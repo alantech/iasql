@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  change_engine:
+    build: .
+    ports:
+      - "8088:8088"
+    links:
+      - postgresql
+  postgresql:
+    image: postgres:13.4
+    environment:
+      - POSTGRES_PASSWORD=test
