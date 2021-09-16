@@ -23,3 +23,5 @@ Currently thinking that each cluster should be treated as a specially-named data
 This is assuming no one user is able to overload the Postgres database. We may need to isolate an RDS instance per user if that is not the case, but I cannot imagine how you would do that with a database to manage your infrastructure?
 
 We can then make the job to poll the various databases an actual cron job and then schedule work for any database that has a difference between representation and reality. For now we can just manually trigger that per database name with a simple `/check/<dbname>` HTTP request on our test server, which gives us the added benefit of being able to pause changes to our test AWS accounts if/when it doesn't do what we expected and we want to figure out why.
+
+The actual execution requires access to credentials. While we're testing we can just use the local credentials on our machines, but in reality, we'll need to use something like the AWS Secrets Manager to hold on to them. Later on we may make our own "vault" service to tackle this problem because that service gets expensive fast, especially with how we're proposing to use it.
