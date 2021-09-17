@@ -30,6 +30,7 @@
     "typescript": "^4.4.3"
   },
   "dependencies": {
+    "@aws-sdk/client-ec2": "^3.31.0",
     "knex": "^0.95.11",
     "pg": "^8.7.1"
   }
