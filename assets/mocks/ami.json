@@ -1,0 +1,17 @@
+{
+    "Architecture": "x86_64",
+    "CreationDate": "2011-10-17T15:55:04.000Z",
+    "ImageId": "ari-fd9fad89",
+    "ImageLocation": "ubuntu-kernels-testing-eu/ubuntu-hardy-amd64-linux-image-2.6.24-29-xen-v-2.6.24-29.94-ramdisk.20111017.img.manifest.xml",
+    "ImageType": "ramdisk",
+    "Public": true,
+    "OwnerId": "099720109477",
+    "PlatformDetails": "Linux/UNIX",
+    "UsageOperation": "RunInstances",
+    "State": "available",
+    "BlockDeviceMappings": [],
+    "Hypervisor": "xen",
+    "Name": "ubuntu-kernels-testing/ubuntu-hardy-amd64-linux-image-2.6.24-29-xen-v-2.6.24-29.94-ramdisk.20111017",
+    "RootDeviceType": "instance-store",
+    "VirtualizationType": "paravirtual"
+}
