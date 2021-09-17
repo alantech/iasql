@@ -40,6 +40,32 @@ create table instance_type (
   primary key(instance_type_id)
 );
 
+create table instance_type_by_region (
+  instance_type_by_region_id int generated always as identity,
+  instance_type_id int,
+  region_id int,
+  primary key(instance_type_by_region_id),
+  constraint fk_region
+    foreign key(region_id) 
+  references region(region_id),
+  constraint fk_instance_type
+    foreign key(instance_type_id) 
+  references instance_type(instance_type_id)
+);
+
+create table instance_type_by_availability_zone (
+  instance_type_by_availability_zone_id int generated always as identity,
+  instance_type_id int,
+  availability_zone_id int,
+  primary key(instance_type_by_availability_zone_id),
+  constraint fk_availability_zone
+    foreign key(availability_zone_id) 
+  references availability_zone(availability_zone_id),
+  constraint fk_instance_type
+    foreign key(instance_type_id) 
+  references instance_type(instance_type_id)
+);
+
 -- TODO: complete schema
 create table ami (
   ami_id int generated always as identity,
