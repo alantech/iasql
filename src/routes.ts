@@ -29,7 +29,9 @@ v1.get('/create/:db', async (req, res) => {
         database: dbname,
       },
     });
-    const resp2 = await conn2.raw(template)
+    const resp2 = await conn2.raw(template);
+    conn1.destroy();
+    conn2.destroy();
     res.end(`create ${dbname}: ${JSON.stringify(resp1)} ${JSON.stringify(resp2)}`);
   } catch (e: any) {
     res.end(`failure to create DB: ${e?.message ?? ''}`);
@@ -51,6 +53,7 @@ v1.get('/delete/:db', async (req, res) => {
     const resp1 = await conn.raw(`
       DROP DATABASE ${dbname};
     `);
+    conn.destroy();
     res.end(`delete ${dbname}`);
   } catch (e: any) {
     res.end(`failure to drop DB: ${e?.message ?? ''}`);
