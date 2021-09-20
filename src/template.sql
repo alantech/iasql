@@ -1,4 +1,3 @@
--- TODO: complete schema
 create table region (
   region_id int generated always as identity,
   region_name varchar(30),
