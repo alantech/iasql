@@ -6,11 +6,14 @@ create table region (
   primary key(region_id)
 );
 
--- TODO: complete schema
+create type availability_zone_state as enum ('available', 'impaired', 'information', 'unavailable');
+create type availability_zone_opt_in_status as enum ('not-opted-in', 'opt-in-not-required', 'opted-in');
+
 create table availability_zone (
   availability_zone_id int generated always as identity,
-  state varchar(50),
-  opt_in_status varchar(20),
+  state availability_zone_state,
+  opt_in_status availability_zone_opt_in_status,
+  messages varchar(100) array,
   region_id int,
   zone_name varchar(30),
   zone_id varchar(30),
