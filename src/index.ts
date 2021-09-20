@@ -1,60 +1,20 @@
-import * as http from 'http'
-import * as fs from 'fs'
-import knex from 'knex'
+import express from 'express';
+import { inspect } from 'util';
 
-const template = fs.readFileSync(`${__dirname}/template.sql`, 'utf8');
+import config from './config';
+import { v1 } from './routes';
 
-const server = http.createServer(async (req, res) => {
-  if (/^\/create\/.*/.test(req.url ?? '')) {
-    // TODO: Clean/validate this input
-    const dbname = (/^\/create\/(.*)/.exec(req.url ?? '') ?? [])[1];
-    try {
-      const conn1 = knex({
-        client: 'pg',
-        connection: {
-          user: 'postgres',
-          password: 'test',
-          host: 'postgresql',
-        },
-      });
-      const resp1 = await conn1.raw(`
-        CREATE DATABASE ${dbname};
-      `);
-      const conn2 = knex({
-        client: 'pg',
-        connection: {
-          user: 'postgres',
-          password: 'test',
-          host: 'postgresql',
-          database: dbname,
-        },
-      });
-      const resp2 = await conn2.raw(template)
-      res.end(`create ${dbname}: ${JSON.stringify(resp1)} ${JSON.stringify(resp2)}`);
-    } catch (e: any) {
-      res.end(`failure to create DB: ${e?.message ?? ''}`);
-    }
-  } else if (/^\/delete\/.*/.test(req.url ?? '')) {
-    // TODO: Clean/validate this input
-    const dbname = (/^\/delete\/(.*)/.exec(req.url ?? '') ?? [])[1];
-    try {
-      const conn = knex({
-        client: 'pg',
-        connection: {
-          user: 'postgres',
-          password: 'test',
-          host: 'postgresql',
-        },
-      });
-      const resp1 = await conn.raw(`
-        DROP DATABASE ${dbname};
-      `);
-      res.end(`delete ${dbname}`);
-    } catch (e: any) {
-      res.end(`failure to drop DB: ${e?.message ?? ''}`);
-    }
-  } else {
-    res.end('Hello, World!');
-  }
+const port = config.port;
+const app = express();
+
+app.get('/health', (_, res) => res.send('ok'));
+app.use('/v1', v1);
+app.use((error: any, _req: any, res: any, _next: any) => {
+  console.error(inspect(error));
+  return res
+    .status(error.statusCode || error.status || 500)
+    .end(error.message || inspect(error));
 });
-server.listen(8088);
+app.listen(port, () => {
+  console.log(`Server is running at http://localhost:${port}`);
+});
