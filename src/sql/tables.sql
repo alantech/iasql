@@ -6,6 +6,13 @@ create table region (
   primary key(region_id)
 );
 
+create table tag (
+  tag_id int generated always as identity,
+  key varchar(50),
+  value varchar(500),
+  primary key(tag_id)
+);
+
 create table availability_zone (
   availability_zone_id int generated always as identity,
   state availability_zone_state,
@@ -95,11 +102,19 @@ create table ami (
   root_device_type device_type,
   sriov_net_support varchar(50),
   state_reason state_reason_type,
-  tags tag array,
   virtualization_type virtualization_type_values,
   boot_mode boot_mode_values,
   deprecation_time timestamp,
   primary key(ami_id)
+);
+
+create table ami_tag (
+  ami_tag_id int generated always as identity,
+  ami_id int not null,
+  tag_id int not null,
+  primary key(ami_tag_id),
+  constraint fk_ami foreign key(ami_id) references ami(ami_id),
+  constraint fk_tag foreign key(tag_id) references tag(tag_id)
 );
 
 -- TODO finish schema
