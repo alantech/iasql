@@ -1,15 +1,13 @@
 import * as express from 'express'
 import * as fs from 'fs'
 import knex from 'knex'
-import path from 'path'
 
 const v1 = express.Router();
 
 v1.get('/create/:db', async (req, res) => {
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
-  const dist = path.resolve(__dirname, '../dist')
-  const template = fs.readFileSync(`${dist}/template.sql`, 'utf8');
+  const template = fs.readFileSync(`${__dirname}/template.sql`, 'utf8');
   try {
     const conn1 = knex({
       client: 'pg',
