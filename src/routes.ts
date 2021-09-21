@@ -29,10 +29,10 @@ v1.get('/create/:db', async (req, res) => {
         database: dbname,
       },
     });
-    const templateRes = await conn2.raw(template);
+    const resp2 = await conn2.raw(template);
     conn1.destroy();
     conn2.destroy();
-    res.end(`create ${dbname}: ${JSON.stringify(resp1)} ${JSON.stringify(templateRes)}`);
+    res.end(`create ${dbname}: ${JSON.stringify(resp1)} ${JSON.stringify(resp2)}`);
   } catch (e: any) {
     res.end(`failure to create DB: ${e?.message ?? ''}`);
   }
