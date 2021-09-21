@@ -2,6 +2,9 @@ import * as express from 'express'
 import * as fs from 'fs'
 import knex from 'knex'
 
+import { AWS } from './services/gateways/aws'
+import config from './config'
+
 const v1 = express.Router();
 
 v1.get('/create/:db', async (req, res) => {
@@ -74,6 +77,9 @@ v1.get('/check/:db', async (req, res) => {
       },
     });
     //const resp1 = await conn.select(``);
+    // TODO actually use database records
+    const awsClient = new AWS({region: config.region ?? 'eu-west-1', credentials: { accessKeyId: config.accessKeyId ?? '', secretAccessKey: config.secretAccessKey ?? '' }})
+    await awsClient.newInstance('t2.micro');
     conn.destroy();
     res.end(`delete ${dbname}`);
   } catch (e: any) {

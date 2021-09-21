@@ -66,7 +66,7 @@ export class AWS {
       TagSpecifications: [
         {
           ResourceType: 'instance',
-          Tags: [],
+          Tags: [{ Key: 'owner', Value: 'iasql-change-engine' }],
         },
       ],
       UserData: undefined,
@@ -74,36 +74,36 @@ export class AWS {
     const create = await this.ec2client.send(
       new RunInstancesCommand(instanceParams),
     );
-    const instanceIds: string[] | undefined = create.Instances?.map((i) => i?.InstanceId ??);
-    // const input = new DescribeInstancesCommand({
-    //   InstanceIds: instanceIds,
-    // });
-    // await createWaiter<EC2Client, DescribeInstancesCommand>(
-    //   {
-    //     client: this.ec2client,
-    //     // all in seconds
-    //     maxWaitTime: 180,
-    //     minDelay: 1,
-    //     maxDelay: 4,
-    //   },
-    //   input,
-    //   async (client, cmd) => {
-    //     try {
-    //       const data = await client.send(cmd);
-    //       for (const reservation of data.Reservations) {
-    //         for (const instance of reservation.Instances) {
-    //           if (instance.PublicIpAddress === undefined)
-    //             return { state: WaiterState.RETRY };
-    //         }
-    //       }
-    //       return { state: WaiterState.SUCCESS };
-    //     } catch (e) {
-    //       if (e.Code === 'InvalidInstanceID.NotFound')
-    //         return { state: WaiterState.RETRY };
-    //       throw e;
-    //     }
-    //   },
-    // );
+    const instanceIds: string[] | undefined = create.Instances?.map((i) => i?.InstanceId ?? '');
+    const input = new DescribeInstancesCommand({
+      InstanceIds: instanceIds,
+    });
+    await createWaiter<EC2Client, DescribeInstancesCommand>(
+      {
+        client: this.ec2client,
+        // all in seconds
+        maxWaitTime: 180,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const reservation of data?.Reservations ?? []) {
+            for (const instance of reservation?.Instances ?? []) {
+              if (instance.PublicIpAddress === undefined)
+                return { state: WaiterState.RETRY };
+            }
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
+    );
   }
   
   async getInstances() {
