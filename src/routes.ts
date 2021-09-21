@@ -1,15 +1,15 @@
 import * as express from 'express'
 import * as fs from 'fs'
 import knex from 'knex'
+import path from 'path'
 
 const v1 = express.Router();
 
 v1.get('/create/:db', async (req, res) => {
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
-  const types = fs.readFileSync(`${__dirname}/types.sql`, 'utf8');
-  const tables = fs.readFileSync(`${__dirname}/tables.sql`, 'utf8');
-  const indexes = fs.readFileSync(`${__dirname}/indexes.sql`, 'utf8');
+  const dist = path.resolve(__dirname, '../dist')
+  const template = fs.readFileSync(`${dist}/template.sql`, 'utf8');
   try {
     const conn1 = knex({
       client: 'pg',
@@ -31,12 +31,10 @@ v1.get('/create/:db', async (req, res) => {
         database: dbname,
       },
     });
-    const typesRes = await conn2.raw(types);
-    const tablesRes = await conn2.raw(tables);
-    const indexesRes = await conn2.raw(indexes);
+    const templateRes = await conn2.raw(template);
     conn1.destroy();
     conn2.destroy();
-    res.end(`create ${dbname}: ${JSON.stringify(resp1)} ${JSON.stringify(typesRes)} ${JSON.stringify(tablesRes)} ${JSON.stringify(indexesRes)}`);
+    res.end(`create ${dbname}: ${JSON.stringify(resp1)} ${JSON.stringify(templateRes)}`);
   } catch (e: any) {
     res.end(`failure to create DB: ${e?.message ?? ''}`);
   }
