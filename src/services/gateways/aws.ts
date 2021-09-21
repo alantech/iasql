@@ -55,7 +55,7 @@ export class AWS {
       .pop()?.ImageId;
   }
 
-  async newInstance(instanceType: string) {
+  async newInstance(instanceType: string): Promise<string> {
     const amiId = await this.getAmiId();
     const instanceParams = {
       ImageId: amiId,
@@ -104,6 +104,7 @@ export class AWS {
         }
       },
     );
+    return instanceIds?.pop() ?? ''
   }
   
   async getInstances() {

@@ -735,3 +735,12 @@ create table instance (
   -- TODO uncomment once we populate the ami table
   -- constraint fk_ami foreign key(ami_id) references ami(ami_id),
 );
+
+insert into region (region_name)
+values ('eu-west-1');
+
+insert into instance_type (instance_type)
+values ('t2.micro');
+
+insert into instance (ami_id, region_id, instance_type_id)
+values ('', 1, 1);

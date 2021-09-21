@@ -4,6 +4,7 @@ import knex from 'knex'
 
 import { AWS } from './services/gateways/aws'
 import config from './config'
+import { inspect } from 'util'
 
 const v1 = express.Router();
 
@@ -78,10 +79,24 @@ v1.get('/check/:db', async (req, res) => {
     });
     //const resp1 = await conn.select(``);
     // TODO actually use database records
-    const awsClient = new AWS({region: config.region ?? 'eu-west-1', credentials: { accessKeyId: config.accessKeyId ?? '', secretAccessKey: config.secretAccessKey ?? '' }})
-    await awsClient.newInstance('t2.micro');
+    const awsClient = new AWS({ region: config.region ?? 'eu-west-1', credentials: { accessKeyId: config.accessKeyId ?? '', secretAccessKey: config.secretAccessKey ?? '' } })
+    const awsInstances = await awsClient.getInstances()
+    let awsInstanceIds: string[] = []
+    awsInstances?.Reservations?.forEach((r) => {
+      const rInstancesIds: string[] = r.Instances?.filter(i => i.State?.Name === 'running').map((i) => i.InstanceId ?? '') ?? []
+      awsInstanceIds = awsInstanceIds.concat(rInstancesIds)
+    });
+    const instancesToCreate = await conn.select('instance.id', 'instance_type.instance_type').table('instance')
+      .leftJoin('instance_type', 'instance.instance_type_id', 'instance_type.instance_type_id')
+      .whereNotIn('instance.instance_id', awsInstanceIds)
+      .orWhereNull('instance.instance_id')
+    await Promise.all(instancesToCreate.map(async (i) => {
+      const newInstanceId = await awsClient.newInstance(i['instance_type']);
+      await conn.table('instance').where({ id: i.id }).update({ 'instance_id': newInstanceId })
+    }))
+    console.log(await conn.select().table('instance'))
     conn.destroy();
-    res.end(`delete ${dbname}`);
+    res.end(`check ${dbname}`);
   } catch (e: any) {
     res.end(`failure to check DB: ${e?.message ?? ''}`);
   }
