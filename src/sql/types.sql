@@ -615,5 +615,3 @@ create type block_device_mapping as (
 
 -- create type throughput_range as range (int4range(125, 1000));
 create type state_reason_type as (code varchar(50), message varchar(1000));
-
-create type tag as (key varchar(50), value varchar(500));
