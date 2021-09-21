@@ -115,4 +115,4 @@ create table ami_tag (
   primary key(ami_tag_id),
   constraint fk_ami foreign key(ami_id) references ami(ami_id),
   constraint fk_tag foreign key(tag_id) references tag(tag_id)
-)
+);
