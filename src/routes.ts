@@ -60,4 +60,25 @@ v1.get('/delete/:db', async (req, res) => {
   }
 });
 
+v1.get('/check/:db', async (req, res) => {
+  // TODO: Clean/validate this input
+  const dbname = req.params['db'];
+  try {
+    const conn = knex({
+      client: 'pg',
+      connection: {
+        user: 'postgres',
+        password: 'test',
+        host: 'postgresql',
+        database: dbname,
+      },
+    });
+    //const resp1 = await conn.select(``);
+    conn.destroy();
+    res.end(`delete ${dbname}`);
+  } catch (e: any) {
+    res.end(`failure to check DB: ${e?.message ?? ''}`);
+  }
+});
+
 export { v1 };

@@ -55,6 +55,14 @@
     "@aws-sdk/types" "3.29.0"
     tslib "^2.3.0"
 
+"@aws-sdk/abort-controller@3.32.0":
+  version "3.32.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/abort-controller/-/abort-controller-3.32.0.tgz#92be8d442141432ee83eb522170047fd8ea77bee"
+  integrity sha512-fGGlLbGzbfT8lWMt26Cr4lXpYN8rofraIK3mW9cUnV4dwFO/4UJw9m35GU/YNsC1MLzTI9Q1e08kZP+1yubvaw==
+  dependencies:
+    "@aws-sdk/types" "3.32.0"
+    tslib "^2.3.0"
+
 "@aws-sdk/client-ec2@^3.31.0":
   version "3.31.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/client-ec2/-/client-ec2-3.31.0.tgz#92886ca91e342161b30cd84dfa046f1f65ee2777"
@@ -485,6 +493,11 @@
   resolved "https://registry.yarnpkg.com/@aws-sdk/types/-/types-3.29.0.tgz#792050dfd4ff97fca448160ca9f652d5f33514b0"
   integrity sha512-8ilWQU5ZTdiRfblmmjl38+6JZKKM8EqA5Sbn8djgDLShCLeVJ2TsL2guzNi+WHcL7BHdv1pI/NNmTcgRUo6yOw==
 
+"@aws-sdk/types@3.32.0":
+  version "3.32.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/types/-/types-3.32.0.tgz#67f5324e70272c17b67e19fb5c9647b08d9e40ed"
+  integrity sha512-ZkB+jFk6FZ9wA9wvQTqv6ao2sPSVeMlUF349NecPGLtpy2c/+RPxO10NmJ8yG9jFfmB0OXLnEPrDR7VinxTHNw==
+
 "@aws-sdk/url-parser@3.29.0":
   version "3.29.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/url-parser/-/url-parser-3.29.0.tgz#81d1279d74d6cac53d444a533c439bc839437ca0"
@@ -609,6 +622,15 @@
   dependencies:
     "@aws-sdk/abort-controller" "3.29.0"
     "@aws-sdk/types" "3.29.0"
+    tslib "^2.3.0"
+
+"@aws-sdk/util-waiter@^3.32.0":
+  version "3.32.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/util-waiter/-/util-waiter-3.32.0.tgz#53f3764b6209fe4d406c85a2b1b04d23105a3f02"
+  integrity sha512-kd8RI2A8JO/55FL2AIzDHEd7b5KThU7+l7798fTUt2/2iWjIGDm8srGFCvlQFoo1zcgqtJCHz21x1gRNF2XvzA==
+  dependencies:
+    "@aws-sdk/abort-controller" "3.32.0"
+    "@aws-sdk/types" "3.32.0"
     tslib "^2.3.0"
 
 "@babel/code-frame@^7.0.0":
