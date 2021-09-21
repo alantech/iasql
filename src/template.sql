@@ -721,3 +721,32 @@ create table ami (
   deprecation_time timestamp,
   primary key(ami_id)
 );
+
+create table security_groups (
+  id int generated always as identity,
+  description text,
+  group_name text,
+  owner_id varchar(50),
+  group_id varchar(50),
+  vpc_id varchar(50),
+  primary key(id)
+);
+
+create table security_group_rules (
+  id int generated always as identity,
+  security_group_rule_id varchar(50),
+  group_id varchar(50), -- This is the string ID from AWS
+  security_group_id int, -- And this is the internal integer ID, this one is faster to join on and we can't join on the nullable string when it's still null
+  group_owner_id varchar(50),
+  is_egress boolean,
+  ip_protocol varchar(50),
+  from_port int,
+  to_port int,
+  cidr_ipv4 cidr, -- TODO: Replace with string and constraint
+  cidr_ipv6 cidr, -- TODO: Same
+  prefix_list_id varchar(50),
+  description text,
+  -- TODO: Do I include the "ReferencedGroupInfo" that appears to be metadata on the `group_id` record but also has some fields that *aren't* in the security_group table for some godforsaken reason?
+  primary key(id),
+  constraint fk_security_group foreign key(security_group_id) references security_groups(id)
+);
