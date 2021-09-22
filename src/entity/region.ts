@@ -10,17 +10,17 @@ export class Region {
   @Column({
     nullable: true
   })
-  name: string | null;
+  name?: string;
 
   @Column({
     nullable: true
   })
-  endpoint: string | null;
+  endpoint?: string;
 
   @Column({
     nullable: true
   })
-  optInStatus: string | null;
+  optInStatus?: string;
 
   @ManyToMany(() => InstanceType)
   instanceTypes: InstanceType[];
