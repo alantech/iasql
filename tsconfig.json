@@ -27,6 +27,7 @@
     "module": "commonjs",                                /* Specify what module code is generated. */
     // "rootDir": "./",                                  /* Specify the root folder within your source files. */
     // "moduleResolution": "node",                       /* Specify how TypeScript looks up a file from a given module specifier. */
+    "moduleResolution": "node",
     // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
     // "paths": {},                                      /* Specify a set of entries that re-map imports to additional lookup locations. */
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
@@ -46,6 +47,9 @@
     // "declarationMap": true,                           /* Create sourcemaps for d.ts files. */
     // "emitDeclarationOnly": true,                      /* Only output d.ts files and not JavaScript files. */
     // "sourceMap": true,                                /* Create source map files for emitted JavaScript files. */
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "strictPropertyInitialization": false,
     "sourceMap": true,
     // "outFile": "./",                                  /* Specify a file that bundles all outputs into one JavaScript file. If `declaration` is true, also designates a file that bundles all .d.ts output. */
     // "outDir": "./",                                   /* Specify an output folder for all emitted files. */

@@ -1,0 +1,30 @@
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, } from 'typeorm';
+
+import { DiskInfo, } from './disk_info';
+
+export enum EphemeralNVMESupport {
+  REQUIRED = 'required',
+  SUPPORTED = 'supported',
+  UNSUPPORTED = 'unsupported',
+}
+
+@Entity()
+export class InstanceStorageInfo {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({
+    type: 'decimal',
+  })
+  totalSizeInGB: number;
+
+  @ManyToMany(() => DiskInfo)
+  @JoinTable()
+  disks: DiskInfo[];
+
+  @Column({
+    type: 'enum',
+    enum: EphemeralNVMESupport,
+  })
+  NVMESupport: EphemeralNVMESupport;
+}
