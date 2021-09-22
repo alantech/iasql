@@ -1,4 +1,6 @@
-{
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
+
+export default {
    "type": "postgres",
    "host": "localhost",
    "port": 5432,
@@ -21,5 +23,6 @@
       "entitiesDir": "src/entity",
       "migrationsDir": "src/migration",
       "subscribersDir": "src/subscriber"
-   }
+   },
+   namingStrategy: new SnakeNamingStrategy(),
 }
