@@ -1,13 +1,12 @@
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
 
 export default {
-   "name": "default",
    "type": "postgres",
-   "host": "postgresql",
+   "host": "localhost",
    "port": 5432,
    "username": "postgres",
    "password": "test",
-   "database": "typeorm",
+   "database": "__example__",
    "synchronize": true,
    "logging": false,
    "entities": [
