@@ -1,4 +1,4 @@
-import {Entity, PrimaryGeneratedColumn, Column, ManyToMany, } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, } from 'typeorm';
 
 import { InstanceType, } from './instance_type';
 
@@ -7,14 +7,20 @@ export class Region {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  name: string;
+  @Column({
+    nullable: true
+  })
+  name: string | null;
 
-  @Column()
-  endpoint: string;
+  @Column({
+    nullable: true
+  })
+  endpoint: string | null;
 
-  @Column()
-  optInStatus: string;
+  @Column({
+    nullable: true
+  })
+  optInStatus: string | null;
 
   @ManyToMany(() => InstanceType)
   instanceTypes: InstanceType[];
