@@ -1,4 +1,4 @@
-import { Connection, createConnection, EntityTarget, Repository } from 'typeorm';
+import { Connection, createConnection, EntityTarget, getConnectionManager } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
 
@@ -16,6 +16,10 @@ export class Typeorm {
 
   static async createConn(database: string): Promise<Typeorm> {
     const typeorm = new Typeorm();
+    const connMan = getConnectionManager();
+    if (connMan.has(database)) {
+      throw `Connection ${database} already exists`
+    }
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
       name: database,
