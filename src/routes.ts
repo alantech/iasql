@@ -4,9 +4,9 @@ import { createConnection, Connection, } from 'typeorm'
 
 import { AWS } from './services/gateways/aws'
 import config from './config'
+import { aws } from './router/aws'
 
 const v1 = express.Router();
-
 v1.get('/create/:db', async (req, res) => {
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
@@ -104,5 +104,7 @@ v1.get('/check/:db', async (req, res) => {
     conn?.close();
   }
 });
+
+v1.use('/aws', aws)
 
 export { v1 };
