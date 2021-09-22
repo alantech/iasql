@@ -1,12 +1,13 @@
-import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
+const SnakeNamingStrategy = require("typeorm-naming-strategies").SnakeNamingStrategy
 
-export default {
+module.exports = {
+   "name": "default",
    "type": "postgres",
    "host": "localhost",
    "port": 5432,
    "username": "postgres",
    "password": "test",
-   "database": "__example__",
+   "database": "typeorm",
    "synchronize": true,
    "logging": false,
    "entities": [
