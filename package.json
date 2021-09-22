@@ -7,7 +7,9 @@
     "build": "tsc && ./src/sql/create-template.sh",
     "clean": "rm -r dist",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "export $(cat .env | xargs) && node dist/index.js"
+    "start": "export $(cat .env | xargs) && node dist/index.js",
+    "gen-sql": "ts-node ./node_modules/.bin/typeorm migration:generate -n",
+    "migrate": "ts-node ./node_modules/.bin/typeorm migration:run"
   },
   "repository": {
     "type": "git",
@@ -35,7 +37,9 @@
     "@aws-sdk/util-waiter": "^3.32.0",
     "@types/express": "^4.17.13",
     "express": "^4.17.1",
-    "knex": "^0.95.11",
-    "pg": "^8.7.1"
+    "pg": "^8.7.1",
+    "reflect-metadata": "^0.1.13",
+    "typeorm": "^0.2.37",
+    "typeorm-naming-strategies": "^2.0.0"
   }
 }
