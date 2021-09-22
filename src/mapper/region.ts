@@ -8,10 +8,9 @@ export class RegionMapper {
   static async fromAWS(regionAWS: RegionAWS[]) {
     const regions = regionAWS.map(r => {
       const region = new Region();
-      // TODO in case the aws property does not exist do not default to '' but use actual nulls once we figure out how to handle the models
-      region.name = r.RegionName ?? ''
-      region.endpoint = r.Endpoint ?? ''
-      region.optInStatus = r.OptInStatus ?? ''
+      region.name = r.RegionName ?? null
+      region.endpoint = r.Endpoint ?? null
+      region.optInStatus = r.OptInStatus ?? null
     });
     // TODO make database name dynamic
     const db = 'typeorm'
