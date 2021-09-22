@@ -8,7 +8,7 @@
     "clean": "rm -r dist",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "export $(cat .env | xargs) && node dist/index.js",
-    "gen": "ts-node ./node_modules/.bin/typeorm migration:generate -n",
+    "gen-sql": "ts-node ./node_modules/.bin/typeorm migration:generate -n",
     "migrate": "ts-node ./node_modules/.bin/typeorm migration:run"
   },
   "repository": {
