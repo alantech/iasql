@@ -11,7 +11,7 @@ v1.get('/create/:db', async (req, res) => {
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
   const template = fs.readFileSync(`${__dirname}/template.sql`, 'utf8');
-  let conn1, conn2;;
+  let conn1, conn2;
   try {
     conn1 = await createConnection({
       name: 'base', // If you use multiple connections they must have unique names or typeorm bails
