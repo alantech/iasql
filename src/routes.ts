@@ -186,7 +186,7 @@ function isObject(o: any) {
 }
 
 function isArray(o: any) {
-  return typeof o === 'object' && o !== null && Array.isArray(o);
+  return Array.isArray(o);
 }
 
 function isDate(o: any) {
