@@ -8,20 +8,20 @@ import {
   JoinTable,
 } from 'typeorm';
 
-import { BootMode, } from './boot_modes';
-import { CPUArchitecture, } from './cpu_architectures';
+import { BootMode, } from './boot_mode';
+import { CPUArchitecture, } from './cpu_architecture';
 import { EBSBlockDeviceMapping, } from './ebs_block_device_mapping';
 import { ProductCode, } from './product_code';
 import { StateReason, } from './state_reason';
 import { Tag, } from './tag';
 
-export enum ImageTypes {
+export enum ImageType {
   KERNEL = 'kernel',
   MACHINE = 'machine',
   RAMDISK = 'ramdisk',
 }
 
-export enum AMIPlatforms {
+export enum AMIPlatform {
   WINDOWS = 'windows',
   NA = '',
 }
@@ -70,9 +70,9 @@ export class AMI {
 
   @Column({
     type: 'enum',
-    enum: ImageTypes,
+    enum: ImageType,
   })
-  imageType: ImageTypes;
+  imageType: ImageType;
 
   @Column()
   'public': boolean;
@@ -85,9 +85,9 @@ export class AMI {
 
   @Column({
     type: 'enum',
-    enum: AMIPlatforms,
+    enum: AMIPlatform,
   })
-  platform: AMIPlatforms;
+  platform: AMIPlatform;
 
   @Column()
   platformDetails: string;

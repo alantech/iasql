@@ -9,8 +9,8 @@ import {
 } from 'typeorm';
 
 import { AvailabilityZone, } from './availability_zone';
-import { BootMode, } from './boot_modes';
-import { DeviceType, } from './device_types';
+import { BootMode, } from './boot_mode';
+import { DeviceType, } from './device_type';
 import { EBSInfo, } from './ebs_info';
 import { FPGAInfo, } from './fpga_info';
 import { GPUInfo, } from './gpu_info';
@@ -20,11 +20,11 @@ import { NetworkInfo, } from './network_info';
 import { PlacementGroupInfo, } from './placement_group_info';
 import { ProcessorInfo, } from './processor_info';
 import { Region, } from './region';
-import { UsageClass, } from './usage_classes';
+import { UsageClass, } from './usage_class';
 import { VCPUInfo, } from './v_cpu_info';
-import { VirtualizationType, } from './virtualization_types';
+import { VirtualizationType, } from './virtualization_type';
 
-export enum InstanceTypeValues {
+export enum InstanceTypeValue {
   A1_2XLARGE = 'a1.2xlarge',
   A1_4XLARGE = 'a1.4xlarge',
   A1_LARGE = 'a1.large',
@@ -456,9 +456,9 @@ export class InstanceType {
 
   @Column({
     type: 'enum',
-    enum: InstanceTypeValues,
+    enum: InstanceTypeValue,
   })
-  instanceType: InstanceTypeValues;
+  instanceType: InstanceTypeValue;
 
   @Column()
   currentGeneration: boolean;

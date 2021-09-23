@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, } from 'typeorm';
 
-import { ValidCore, } from './valid_cores';
+import { ValidCore, } from './valid_core';
 import { ValidThreadsPerCore, } from './valid_threads_per_core';
 
 @Entity()
