@@ -5,7 +5,7 @@ import { createConnection, Connection, } from 'typeorm'
 import { AWS } from './services/gateways/aws'
 import config from './config'
 import { aws } from './router/aws'
-import { Typeorm } from './services/typeorm'
+import { TypeormWrapper } from './services/typeorm'
 import { RegionMapper } from './mapper/region'
 import { inspect } from 'util'
 import { Region } from './entity/region'
@@ -101,10 +101,10 @@ v1.get('/delete/:db', async (req, res) => {
 v1.get('/check/:db', async (req, res) => {
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
-  let conn: Typeorm | null = null;
+  let orm: TypeormWrapper | null = null;
   try {
-    conn = await Typeorm.createConn('typeorm');
-    const regions = await conn.find(Region);
+    orm = await TypeormWrapper.createConn(dbname);
+    const regions = await orm.find(Region);
     const awsClient = new AWS({ region: config.region ?? 'eu-west-1', credentials: { accessKeyId: config.accessKeyId ?? '', secretAccessKey: config.secretAccessKey ?? '' } })
     const regionsAWS = await awsClient.getRegions();
     const regionsMapped = await RegionMapper.fromAWS(regionsAWS?.Regions ?? []);
@@ -117,7 +117,7 @@ v1.get('/check/:db', async (req, res) => {
   } catch (e: any) {
     res.end(`failure to check DB: ${e?.message ?? ''}`);
   } finally {
-    conn?.dropConn();
+    orm?.dropConn();
   }
 });
 

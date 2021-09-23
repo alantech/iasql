@@ -4,7 +4,7 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
 
 
-export class Typeorm {
+export class TypeormWrapper {
   private connection: Connection
   private connectionConfig: PostgresConnectionOptions = {
     type: 'postgres',
@@ -17,8 +17,8 @@ export class Typeorm {
 
   constructor() { }
 
-  static async createConn(database: string): Promise<Typeorm> {
-    const typeorm = new Typeorm();
+  static async createConn(database: string): Promise<TypeormWrapper> {
+    const typeorm = new TypeormWrapper();
     const connMan = getConnectionManager();
     if (connMan.has(database)) {
       throw `Connection ${database} already exists`

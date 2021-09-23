@@ -4,7 +4,7 @@ import config from '../config'
 import { Region } from '../entity/region';
 import { RegionMapper } from '../mapper/region'
 import { AWS } from '../services/gateways/aws'
-import { Typeorm } from '../services/typeorm';
+import { TypeormWrapper } from '../services/typeorm';
 
 const aws = express.Router();
 
@@ -15,7 +15,7 @@ aws.get('/regions', async (req, res) => {
     const regions = await RegionMapper.fromAWS(awsRegions?.Regions ?? [])
     // TODO make database name dynamic
     const db = 'typeorm'
-    const orm = await Typeorm.createConn(db);
+    const orm = await TypeormWrapper.createConn(db);
     await orm.save(Region, regions);
     await orm.dropConn();
     res.end('ok');
