@@ -17,6 +17,7 @@ aws.get('/regions', async (req, res) => {
     const db = 'typeorm'
     const orm = await Typeorm.createConn(db);
     await orm.save(Region, regions);
+    await orm.dropConn();
     res.end('ok');
   } catch (e: any) {
     console.log(e)
