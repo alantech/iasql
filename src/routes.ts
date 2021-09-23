@@ -6,11 +6,41 @@ import { AWS } from './services/gateways/aws'
 import config from './config'
 import { aws } from './router/aws'
 
+// We only want to do this setup once, then we re-use it. First we get the list of files
+const migrationFiles = fs
+  .readdirSync(`${__dirname}/migration`)
+  .filter(f => !/\.map$/.test(f));
+// Then we construct the class names stored within those files (assuming *all* were generated with
+// `yarn gen-sql some-name`
+const migrationNames = migrationFiles.map(f => {
+  const components = f.replace(/\.js/, '').split('-');
+  const tz = components.shift();
+  for (let i = 1; i < components.length; i++) {
+    components[i] = components[i].replace(/^([a-z])(.*$)/, (_, p1, p2) => p1.toUpperCase() + p2);
+  }
+  return [...components, tz].join('');
+});
+// Then we dynamically `require` the migration files and construct the inner classes
+const migrationObjs = migrationFiles
+  .map(f => require(`./migration/${f}`))
+  .map((c,i) => c[migrationNames[i]])
+  .map(M => new M());
+// Finally we use this in this function to execute all of the migrations in order for a provided
+// connection, but without the migration management metadata being added, which is actually a plus
+// for us.
+async function migrate(conn: Connection) {
+  const qr = conn.createQueryRunner();
+  await qr.connect();
+  for (const m of migrationObjs) {
+    await m.up(qr);
+  }
+  await qr.release();
+}
+
 const v1 = express.Router();
 v1.get('/create/:db', async (req, res) => {
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
-  const template = fs.readFileSync(`${__dirname}/template.sql`, 'utf8');
   let conn1, conn2;
   try {
     conn1 = await createConnection({
@@ -31,8 +61,8 @@ v1.get('/create/:db', async (req, res) => {
       host: 'postgresql',
       database: dbname,
     });
-    const resp2 = await conn2.query(template);
-    res.end(`create ${dbname}: ${JSON.stringify(resp1)} ${JSON.stringify(resp2)}`);
+    await migrate(conn2);
+    res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
     res.end(`failure to create DB: ${e?.message ?? ''}`);
   } finally {
