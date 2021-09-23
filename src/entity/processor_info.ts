@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, } from 'typeorm';
 
-import { CPUArchitecture, } from './cpu_architectures';
+import { CPUArchitecture, } from './cpu_architecture';
 
 @Entity()
 export class ProcessorInfo {
