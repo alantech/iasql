@@ -25,7 +25,7 @@ export class Typeorm {
     }
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
-      name: `database-${randomInt(200000)}`,
+      name: `database-${randomInt(200000)}`, // TODO improve connection name handling
       database,
     }
     typeorm.connection = await createConnection(connOpts);
