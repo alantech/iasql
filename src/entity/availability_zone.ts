@@ -8,7 +8,7 @@ import {
   ManyToMany,
 } from 'typeorm';
 
-import { AvailabilityZoneMessage, } from './availability_zone_messages';
+import { AvailabilityZoneMessage, } from './availability_zone_message';
 import { InstanceType, } from './instance_type';
 import { Region, } from './region';
 
