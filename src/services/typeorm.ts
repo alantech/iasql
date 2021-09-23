@@ -1,5 +1,7 @@
+import { randomInt } from 'crypto';
 import { Connection, createConnection, EntityTarget, getConnectionManager } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
 
 
 export class Typeorm {
@@ -10,6 +12,7 @@ export class Typeorm {
     password: 'test',
     host: 'postgresql',
     entities: [`${__dirname}/../entity/**/*.js`],
+    namingStrategy: new SnakeNamingStrategy(),
   }
 
   constructor() { }
@@ -22,7 +25,7 @@ export class Typeorm {
     }
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
-      name: database,
+      name: `database-${randomInt(200000)}`,
       database,
     }
     typeorm.connection = await createConnection(connOpts);
@@ -31,6 +34,14 @@ export class Typeorm {
   
   async dropConn() {
     await this.connection.close();
+  }
+
+  async find(entity: EntityTarget<any>): Promise<any> {
+    return await this.connection.manager.getRepository(entity).find();
+  }
+
+  async query(query: string): Promise<any> {
+    return await this.connection.query(query);
   }
 
   async save(entity: EntityTarget<any>, value: any) {
