@@ -5,6 +5,10 @@ import { createConnection, Connection, } from 'typeorm'
 import { AWS } from './services/gateways/aws'
 import config from './config'
 import { aws } from './router/aws'
+import { TypeormWrapper } from './services/typeorm'
+import { RegionMapper } from './mapper/region'
+import { inspect } from 'util'
+import { Region } from './entity/region'
 
 // We only want to do this setup once, then we re-use it. First we get the list of files
 const migrationFiles = fs
@@ -97,44 +101,104 @@ v1.get('/delete/:db', async (req, res) => {
 v1.get('/check/:db', async (req, res) => {
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
-  let conn: Connection | null = null;
+  let orm: TypeormWrapper | null = null;
   try {
-    conn = await createConnection({
-      name: dbname,
-      type: 'postgres',
-      username: 'postgres',
-      password: 'test',
-      host: 'postgresql',
-      database: dbname,
-    });
-    // TODO actually use database records
+    orm = await TypeormWrapper.createConn(dbname);
+    const regions = await orm.find(Region);
     const awsClient = new AWS({ region: config.region ?? 'eu-west-1', credentials: { accessKeyId: config.accessKeyId ?? '', secretAccessKey: config.secretAccessKey ?? '' } })
-    const awsInstances = await awsClient.getInstances()
-    let awsInstanceIds: string[] = []
-    awsInstances?.Reservations?.forEach((r) => {
-      const rInstancesIds: string[] = r.Instances?.filter(i => i.State?.Name === 'running').map((i) => i.InstanceId ?? '') ?? []
-      awsInstanceIds = awsInstanceIds.concat(rInstancesIds)
-    });
-    const instancesToCreate = await conn.query(`
-      select instance.id, instance_type.instance_type
-      from instance
-      left join instance_type on instance.instance_type_id = instance_type.instance_type_id
-      where instance.instance_id not in ${awsInstanceIds}
-      or instance.instance_id is null
+    const regionsAWS = await awsClient.getRegions();
+    const regionsMapped = await RegionMapper.fromAWS(regionsAWS?.Regions ?? []);
+    const diff = findDiff(regions, regionsMapped, 'name');
+    res.end(`
+      To create: ${inspect(diff.entitiesToCreate)}
+      To delete: ${inspect(diff.entitiesToDelete)}
+      Differences: ${inspect(diff.entitiesDiff)}
     `);
-    await Promise.all(instancesToCreate.map(async (i: any) => {
-      const newInstanceId = await awsClient.newInstance(i['instance_type']);
-      await conn?.query(`update instance set instance_id = ${newInstanceId} where id = ${i.id}`);
-    }));
-    console.log(await conn.query(`select * from instance`));
-    res.end(`check ${dbname}`);
   } catch (e: any) {
     res.end(`failure to check DB: ${e?.message ?? ''}`);
   } finally {
-    conn?.close();
+    orm?.dropConn();
   }
 });
 
 v1.use('/aws', aws)
 
 export { v1 };
+
+// TODO refactor to a class
+function findDiff(dbEntities: any[], cloudEntities: any[], id: string) {
+  const entitiesToCreate: any[] = [];
+  const entitiesToDelete: any[] = [];
+  const dbEntityIds = dbEntities.map(e => e[id]); 
+  const cloudEntityIds = cloudEntities.map(e => e[id]);
+  // Everything in cloud and not in db is a potential delete 
+  const cloudEntNotInDb = cloudEntities.filter(e => !dbEntityIds.includes(e[id]));
+  cloudEntNotInDb.map(e => entitiesToDelete.push(e));
+  // Everything in db and not in cloud is a potential create 
+  const dbEntNotInCloud = dbEntities.filter(e => !cloudEntityIds.includes(e[id]));
+  dbEntNotInCloud.map(e => entitiesToCreate.push(e));
+  // Everything else needs a diff between them
+  const remainingDbEntities = dbEntities.filter(e => cloudEntityIds.includes(e[id]));
+  const entitiesDiff: any[] = [];
+  remainingDbEntities.map(dbEnt => {
+    const cloudEntToCompare = cloudEntities.find(e => e[id] === dbEnt[id]);
+    entitiesDiff.push(diff(dbEnt, cloudEntToCompare));
+  });
+  return {
+    entitiesToCreate,
+    entitiesToDelete,
+    entitiesDiff
+  }
+}
+
+function diff(dbObj: any, cloudObj: any) {
+  if (isValue(dbObj) || isValue(cloudObj)) {
+    return {
+      type: compare(dbObj, cloudObj),
+      db: dbObj,
+      cloud: cloudObj
+    };
+  }
+  let diffObj: any = {};
+  for (let key in dbObj) {
+    // Ignore database internal primary key
+    if (key === 'id') {
+      continue;
+    }
+    let cloudVal = cloudObj[key];
+    diffObj[key] = diff(dbObj[key], cloudVal);
+  }
+  for (var key in cloudObj) {
+    if (key === 'id' || diffObj[key] !== undefined) {
+      continue;
+    }
+    diffObj[key] = diff(undefined, cloudObj[key]);
+  }
+  return diffObj;
+}
+
+function isValue(o: any) {
+  return !isObject(o) && !isArray(o);
+}
+
+function isObject(o: any) {
+  return typeof o === 'object' && o !== null && !Array.isArray(o);
+}
+
+function isArray(o: any) {
+  return Array.isArray(o);
+}
+
+function isDate(o: any) {
+  return o instanceof Date;
+}
+
+function compare(dbVal: any, cloudVal: any) {
+  if (dbVal === cloudVal) {
+    return 'unchanged'
+  } 
+  if (isDate(dbVal) && isDate(cloudVal) && dbVal.getTime() === cloudVal.getTime()) {
+    return 'unchanged'
+  }
+  return `to update ${cloudVal} with ${dbVal}`
+}
