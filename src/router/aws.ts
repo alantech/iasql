@@ -12,7 +12,10 @@ aws.get('/regions', async (req, res) => {
   try {
     const awsClient = new AWS({ region: config.region ?? 'eu-west-1', credentials: { accessKeyId: config.accessKeyId ?? '', secretAccessKey: config.secretAccessKey ?? '' } })
     const awsRegions = await awsClient.getRegions()
-    const regions = await awsRegions.Regions?.map(async r => await RegionMapper.fromAWS(r));
+    const regions = [];
+    for(const r of awsRegions.Regions ?? []) {
+      regions.push(await RegionMapper.fromAWS(r));
+    }
     // TODO make database name dynamic
     const db = 'typeorm'
     const orm = await TypeormWrapper.createConn(db);
