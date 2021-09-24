@@ -1,26 +1,11 @@
 import { Region as RegionAWS } from '@aws-sdk/client-ec2'
 
-import indexedAWS from '../services/indexed-aws'
+import { IndexedAWS } from '../services/indexed-aws'
+import { EntityMapper } from './entity';
+import { Region } from '../entity/region';
 
-export class RegionMapper {
-
-  // TODO avoid using name property?
-  // @ts-ignore: Built-in name override
-  static name(regionAWS: RegionAWS) {
-    const regionName = regionAWS?.RegionName;
-    if (regionName) {
-      indexedAWS.set('region', regionName, regionAWS);
-    }
-    return regionName;
-  }
-
-  static endpoint(regionAWS: RegionAWS) {
-    const endpoint = regionAWS?.Endpoint;
-    return endpoint;
-  }
-
-  static optInStatus(regionAWS: RegionAWS) {
-    const optInStatus = regionAWS?.OptInStatus;
-    return optInStatus;
-  }
-}
+export const RegionMapper = new EntityMapper(Region, {
+  name: async (region: RegionAWS, indexes: IndexedAWS) => region?.RegionName,
+  endpoint: async (region: RegionAWS, indexes: IndexedAWS) => region?.Endpoint,
+  optInStatus: async (region: RegionAWS, indexes: IndexedAWS) => region?.OptInStatus,
+})

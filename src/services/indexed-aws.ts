@@ -1,4 +1,4 @@
-class IndexedAWS {
+export class IndexedAWS {
   private index: any;
 
   constructor() {

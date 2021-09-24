@@ -1,15 +1,18 @@
-import { RegionMapper } from "./region";
+import indexedAWS from '../services/indexed-aws'
 
-export class EntityMapper extends RegionMapper {
+export class EntityMapper {
+  private entity: any;
+  private methods: any;
 
-  // TODO avoid using name property?
-  static prototypeFilter = ['length', /*'name',*/ 'prototype',]
+  constructor(entity: any, methods: any) {
+    this.entity = entity;
+    this.methods = methods;
+  }
 
-  static async fromAWS(obj: any, entity: any, mapper: any): Promise<any> {
-    const newEntity = new entity();
-    Object.getOwnPropertyNames(mapper)
-      .filter(p => !EntityMapper.prototypeFilter.includes(p))
-      .map(p => newEntity[p] = mapper[p](obj));
+  async fromAWS(obj: any): Promise<any> {
+    const newEntity = new this.entity();
+    Object.getOwnPropertyNames(this.methods)
+      .map(p => newEntity[p] = this.methods[p](obj, indexedAWS));
     return newEntity;
   }
 
