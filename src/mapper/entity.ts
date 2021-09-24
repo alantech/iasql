@@ -9,7 +9,7 @@ export class EntityMapper extends RegionMapper {
     const newEntity = new entity();
     Object.getOwnPropertyNames(mapper)
       .filter(p => !EntityMapper.prototypeFilter.includes(p))
-      .map(p => newEntity[p] = mapper[p](obj, {regions: {}})); // TODO define indexes structure
+      .map(p => newEntity[p] = mapper[p](obj));
     return newEntity;
   }
 
