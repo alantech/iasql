@@ -1,17 +1,24 @@
 import { Region as RegionAWS } from '@aws-sdk/client-ec2'
 
-import { Region } from '../entity/region'
-
 export class RegionMapper {
-  
-  static async fromAWS(regionAWS: RegionAWS[]): Promise<any> {
-    const regions = regionAWS.map(r => {
-      const region = new Region();
-      region.name = r?.RegionName
-      region.endpoint = r?.Endpoint
-      region.optInStatus = r?.OptInStatus
-      return region;
-    });
-    return regions;
+
+  // TODO avoid using name property?
+  // @ts-ignore: Built-in name override
+  static name(regionAWS: RegionAWS, indexes?: any) {
+    const regionName = regionAWS?.RegionName;
+    if (regionName && indexes?.regions) {
+      indexes.regions[regionName] = regionAWS;
+    }
+    return regionName;
+  }
+
+  static endpoint(regionAWS: RegionAWS, indexes?: any) {
+    const endpoint = regionAWS?.Endpoint;
+    return endpoint;
+  }
+
+  static optInStatus(regionAWS: RegionAWS, indexes?: any) {
+    const optInStatus = regionAWS?.OptInStatus;
+    return optInStatus;
   }
 }

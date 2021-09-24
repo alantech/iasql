@@ -9,6 +9,7 @@ import { TypeormWrapper } from './services/typeorm'
 import { RegionMapper } from './mapper/region'
 import { inspect } from 'util'
 import { Region } from './entity/region'
+import { EntityMapper } from './mapper/entity'
 
 // We only want to do this setup once, then we re-use it. First we get the list of files
 const migrationFiles = fs
@@ -107,7 +108,7 @@ v1.get('/check/:db', async (req, res) => {
     const regions = await orm.find(Region);
     const awsClient = new AWS({ region: config.region ?? 'eu-west-1', credentials: { accessKeyId: config.accessKeyId ?? '', secretAccessKey: config.secretAccessKey ?? '' } })
     const regionsAWS = await awsClient.getRegions();
-    const regionsMapped = await RegionMapper.fromAWS(regionsAWS?.Regions ?? []);
+    const regionsMapped = await regionsAWS.Regions?.map(async r => await EntityMapper.fromAWS(r, Region, RegionMapper)) ?? [];
     const diff = findDiff(regions, regionsMapped, 'name');
     res.end(`
       To create: ${inspect(diff.entitiesToCreate)}
@@ -120,6 +121,13 @@ v1.get('/check/:db', async (req, res) => {
     orm?.dropConn();
   }
 });
+
+v1.get('/map', async(req, res) => {
+  const awsClient = new AWS({ region: config.region ?? 'eu-west-1', credentials: { accessKeyId: config.accessKeyId ?? '', secretAccessKey: config.secretAccessKey ?? '' } })
+  const regionsAWS = await awsClient.getRegions();
+  const entity = await EntityMapper.fromAWS(regionsAWS.Regions?.pop(), Region, RegionMapper);
+  res.end(`mapped: ${inspect(entity)}`);
+})
 
 v1.use('/aws', aws)
 
