@@ -14,8 +14,9 @@ export class EntityMapper {
   @memoize()
   async fromAWS(obj: any): Promise<any> {
     const newEntity = new this.entity();
-    Object.getOwnPropertyNames(this.methods)
-      .map(async p => newEntity[p] = await this.methods[p](obj, indexedAWS));
+    for(const p of Object.getOwnPropertyNames(this.methods)) {
+      newEntity[p] = await this.methods[p](obj, indexedAWS);
+    }
     return newEntity;
   }
 
