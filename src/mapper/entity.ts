@@ -12,7 +12,7 @@ export class EntityMapper {
   async fromAWS(obj: any): Promise<any> {
     const newEntity = new this.entity();
     Object.getOwnPropertyNames(this.methods)
-      .map(p => newEntity[p] = this.methods[p](obj, indexedAWS));
+      .map(async p => newEntity[p] = await this.methods[p](obj, indexedAWS));
     return newEntity;
   }
 
