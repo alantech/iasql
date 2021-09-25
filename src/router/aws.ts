@@ -8,10 +8,16 @@ import { TypeormWrapper } from '../services/typeorm';
 
 const aws = express.Router();
 
-aws.get('/regions', async (req, res) => {
+aws.get('/regions', async (_req, res) => {
   try {
-    const awsClient = new AWS({ region: config.region ?? 'eu-west-1', credentials: { accessKeyId: config.accessKeyId ?? '', secretAccessKey: config.secretAccessKey ?? '' } })
-    const awsRegions = await awsClient.getRegions()
+    const awsClient = new AWS({
+      region: config.region ?? 'eu-west-1',
+      credentials: {
+        accessKeyId: config.accessKeyId ?? '',
+        secretAccessKey: config.secretAccessKey ?? '',
+      },
+    });
+    const awsRegions = await awsClient.getRegions();
     const regions = [];
     for(const r of awsRegions.Regions ?? []) {
       regions.push(await RegionMapper.fromAWS(r));

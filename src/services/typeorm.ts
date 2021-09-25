@@ -1,7 +1,7 @@
-import { randomInt } from 'crypto';
-import { Connection, createConnection, EntityTarget, getConnectionManager } from 'typeorm';
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
+import { randomInt, } from 'crypto';
+import { Connection, createConnection, EntityTarget, getConnectionManager, } from 'typeorm';
+import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
 
 export class TypeormWrapper {
@@ -31,7 +31,7 @@ export class TypeormWrapper {
     typeorm.connection = await createConnection(connOpts);
     return typeorm;
   }
-  
+
   async dropConn() {
     await this.connection.close();
   }
@@ -45,7 +45,7 @@ export class TypeormWrapper {
   }
 
   async save(entity: EntityTarget<any>, value: any) {
-    const repository = await this.connection.manager.getRepository(entity);
+    const repository = this.connection.manager.getRepository(entity);
     await repository.save(value);
   }
 }

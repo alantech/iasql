@@ -1,8 +1,8 @@
-import { Region as RegionAWS } from '@aws-sdk/client-ec2'
+import { Region as RegionAWS, } from '@aws-sdk/client-ec2'
 
-import { IndexedAWS } from '../services/indexed-aws'
-import { EntityMapper } from './entity';
-import { Region } from '../entity/region';
+import { IndexedAWS, } from '../services/indexed-aws'
+import { EntityMapper, } from './entity';
+import { Region, } from '../entity/region';
 
 export const RegionMapper = new EntityMapper(Region, {
   name: async (region: RegionAWS, _indexes: IndexedAWS) => region?.RegionName,

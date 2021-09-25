@@ -1,8 +1,8 @@
-import { 
-  EC2Client, 
-  DescribeRegionsCommand, 
-  DescribeAvailabilityZonesCommand, 
-  DescribeInstanceTypesCommand, 
+import {
+  EC2Client,
+  DescribeRegionsCommand,
+  DescribeAvailabilityZonesCommand,
+  DescribeInstanceTypesCommand,
   DescribeImagesCommand,
   DescribeInstancesCommand,
   RunInstancesCommand,
@@ -106,7 +106,7 @@ export class AWS {
     );
     return instanceIds?.pop() ?? ''
   }
-  
+
   async getInstances() {
     return await this.ec2client.send(new DescribeInstancesCommand({}))
   }

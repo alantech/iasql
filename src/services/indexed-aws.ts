@@ -1,3 +1,5 @@
+import { AWS, } from './gateways/aws'
+
 type Index = {
   [entity: string]: {
     [key: string]: any,
@@ -9,6 +11,13 @@ export class IndexedAWS {
 
   constructor() {
     this.index = {};
+  }
+
+  async populate(awsClient: AWS) {
+    const regions = await awsClient.getRegions();
+    for (const region of regions.Regions ?? []) {
+      this.set('regions', region.RegionName ?? '', region)
+    }
   }
 
   set(entity: string, key: string, value: any) {
