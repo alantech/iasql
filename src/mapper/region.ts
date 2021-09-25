@@ -5,7 +5,7 @@ import { EntityMapper } from './entity';
 import { Region } from '../entity/region';
 
 export const RegionMapper = new EntityMapper(Region, {
-  name: async (region: RegionAWS, indexes: IndexedAWS) => region?.RegionName,
-  endpoint: async (region: RegionAWS, indexes: IndexedAWS) => region?.Endpoint,
-  optInStatus: async (region: RegionAWS, indexes: IndexedAWS) => region?.OptInStatus,
+  name: async (region: RegionAWS, _indexes: IndexedAWS) => region?.RegionName,
+  endpoint: async (region: RegionAWS, _indexes: IndexedAWS) => region?.Endpoint,
+  optInStatus: async (region: RegionAWS, _indexes: IndexedAWS) => region?.OptInStatus,
 })

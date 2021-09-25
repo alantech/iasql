@@ -1,5 +1,11 @@
+type Index = {
+  [entity: string]: {
+    [key: string]: any,
+  },
+};
+
 export class IndexedAWS {
-  private index: any;
+  private index: Index;
 
   constructor() {
     this.index = {};
