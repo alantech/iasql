@@ -20,12 +20,13 @@ export class TypeormWrapper {
   static async createConn(database: string): Promise<TypeormWrapper> {
     const typeorm = new TypeormWrapper();
     const connMan = getConnectionManager();
-    if (connMan.has(database)) {
-      throw `Connection ${database} already exists`
+    const dbname = `database-${randomInt(200000)}`;
+    if (connMan.has(dbname)) {
+      throw new Error(`Connection ${dbname} already exists`)
     }
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
-      name: `database-${randomInt(200000)}`, // TODO improve connection name handling
+      name: dbname, // TODO improve connection name handling
       database,
     }
     typeorm.connection = await createConnection(connOpts);

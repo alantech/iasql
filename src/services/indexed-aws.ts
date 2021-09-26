@@ -15,7 +15,7 @@ export class IndexedAWS {
 
   async populate(awsClient: AWS) {
     const regions = await awsClient.getRegions();
-    for (const region of regions.Regions ?? []) {
+    for (const region of (regions.Regions ?? [])) {
       this.set('regions', region.RegionName ?? '', region)
     }
   }
@@ -30,7 +30,7 @@ export class IndexedAWS {
 
   get(entity?: string, key?: string) {
     if (!entity && key) {
-      throw 'Error getting indexed entities';
+      throw new Error('Error getting indexed entities');
     }
     if (entity && key) {
       return this.index[entity][key];

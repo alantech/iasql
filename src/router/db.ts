@@ -48,7 +48,7 @@ async function migrate(conn: Connection) {
 db.get('/create/:db', async (req, res) => {
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
-  let conn1, conn2;
+  let conn1, conn2, orm;
   try {
     conn1 = await createConnection({
       name: 'base', // If you use multiple connections they must have unique names or typeorm bails
@@ -79,18 +79,19 @@ db.get('/create/:db', async (req, res) => {
     const indexes = new IndexedAWS();
     await indexes.populate(awsClient);
     // TODO: Put this somewhere else
-    const regionAws = indexes.get('regions');
-    const regions: Region[] = regionAws.map((r: RegionAWS) => RegionMapper.fromAWS(r));
-    const orm = await TypeormWrapper.createConn(dbname);
-    for (const region of regions) {
+    const regionsAws: { [key: string]: RegionAWS } = indexes.get('regions');
+    orm = await TypeormWrapper.createConn(dbname);
+    for (const regionAws of Object.values(regionsAws)) {
+      const region = await RegionMapper.fromAWS(regionAws);
       await orm.save(Region, region);
     }
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
     res.end(`failure to create DB: ${e?.message ?? ''}`);
   } finally {
-    conn1?.close();
-    conn2?.close();
+    await conn1?.close();
+    await conn2?.close();
+    await orm?.dropConn();
   }
 });
 
