@@ -53,5 +53,3 @@ export class IndexedAWS {
     return this.index;
   }
 }
-
-export default new IndexedAWS();

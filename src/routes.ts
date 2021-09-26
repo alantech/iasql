@@ -1,4 +1,4 @@
-import { inspect } from 'util'
+import { inspect, } from 'util'
 
 import * as express from 'express'
 
@@ -6,7 +6,8 @@ import { AWS } from './services/gateways/aws'
 import config from './config'
 import { aws, } from './router/aws'
 import { db, } from './router/db'
-import { RegionMapper } from './mapper/region'
+import { RegionMapper, } from './mapper/region'
+import { IndexedAWS, } from './services/indexed-aws'
 
 const v1 = express.Router();
 v1.get('/map', async(_req, res) => {
@@ -18,7 +19,8 @@ v1.get('/map', async(_req, res) => {
     },
   })
   const regionsAWS = await awsClient.getRegions();
-  const entity = await RegionMapper.fromAWS(regionsAWS.Regions?.pop());
+  const indexes = new IndexedAWS();
+  const entity = await RegionMapper.fromAWS(regionsAWS.Regions?.pop(), indexes);
   res.end(`mapped: ${inspect(entity)}`);
 })
 

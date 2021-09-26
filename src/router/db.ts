@@ -14,7 +14,7 @@ import config from '../config'
 import { TypeormWrapper, } from '../services/typeorm'
 import { Region, SecurityGroup, SecurityGroupRule } from '../entity'
 import { RegionMapper, SecurityGroupMapper, SecurityGroupRuleMapper, } from '../mapper'
-import { default as indexes, IndexedAWS, } from '../services/indexed-aws'
+import { IndexedAWS, } from '../services/indexed-aws'
 
 export const db = express.Router();
 
@@ -81,6 +81,7 @@ db.get('/create/:db', async (req, res) => {
         secretAccessKey: config.secretAccessKey ?? '',
       },
     });
+    const indexes = new IndexedAWS();
     await indexes.populate(awsClient);
     // TODO: Put this somewhere else
     orm = await TypeormWrapper.createConn(dbname);
@@ -88,13 +89,13 @@ db.get('/create/:db', async (req, res) => {
     await Promise.all([(async () => {
       const regionsAws: { [key: string]: RegionAWS } = indexes.get('regions');
       for (const regionAws of Object.values(regionsAws)) {
-        const region = await RegionMapper.fromAWS(regionAws);
+        const region = await RegionMapper.fromAWS(regionAws, indexes);
         await orm?.save(Region, region);
       }
     })(), (async () => {
       const securityGroupsAws: { [key: string]: SecurityGroupAWS } = indexes.get('securityGroups');
       for (const securityGroupAws of Object.values(securityGroupsAws)) {
-        const sg = await SecurityGroupMapper.fromAWS(securityGroupAws);
+        const sg = await SecurityGroupMapper.fromAWS(securityGroupAws, indexes);
         await orm?.save(SecurityGroup, sg);
       }
       // The security group rules *must* be added after the security groups
@@ -102,7 +103,7 @@ db.get('/create/:db', async (req, res) => {
         [key: string]: SecurityGroupRuleAWS,
       } = indexes.get('securityGroupRules');
       for (const securityGroupRuleAws of Object.values(securityGroupRulesAws)) {
-        const sgr = await SecurityGroupRuleMapper.fromAWS(securityGroupRuleAws);
+        const sgr = await SecurityGroupRuleMapper.fromAWS(securityGroupRuleAws, indexes);
         await orm?.save(SecurityGroupRule, sgr);
       }
     })()]);
@@ -153,9 +154,10 @@ db.get('/check/:db', async (req, res) => {
         secretAccessKey: config.secretAccessKey ?? '',
       },
     });
+    const indexes = new IndexedAWS();
     const regionsAWS = await awsClient.getRegions();
     const regionsMapped = await Promise.all(
-      regionsAWS.Regions?.map(async r => await RegionMapper.fromAWS(r)) ?? []
+      regionsAWS.Regions?.map(async r => await RegionMapper.fromAWS(r, indexes)) ?? []
     );
     const diff = findDiff(regions, regionsMapped, 'name');
     res.end(`

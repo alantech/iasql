@@ -12,7 +12,7 @@ export const SecurityGroupRuleMapper = new EntityMapper(SecurityGroupRule, {
   securityGroupRuleId: async (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.SecurityGroupRuleId,
   groupId: async (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.GroupId,
   securityGroup: async (sgr: SecurityGroupRuleAWS, i: IndexedAWS) => SecurityGroupMapper.fromAWS(
-    i.get('securityGroups', sgr?.GroupId) as SecurityGroupAWS
+    i.get('securityGroups', sgr?.GroupId) as SecurityGroupAWS, i
   ),
   isEgress: async (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.IsEgress,
   ipProtocol: async (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.IpProtocol,

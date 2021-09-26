@@ -1,10 +1,11 @@
 import * as express from 'express'
 
 import config from '../config'
-import { Region } from '../entity/region';
-import { RegionMapper } from '../mapper/region'
-import { AWS } from '../services/gateways/aws'
-import { TypeormWrapper } from '../services/typeorm';
+import { Region, } from '../entity/region'
+import { RegionMapper, } from '../mapper/region'
+import { AWS, } from '../services/gateways/aws'
+import { TypeormWrapper, } from '../services/typeorm'
+import { IndexedAWS, } from '../services/indexed-aws'
 
 const aws = express.Router();
 
@@ -19,8 +20,9 @@ aws.get('/regions', async (_req, res) => {
     });
     const awsRegions = await awsClient.getRegions();
     const regions = [];
+    const i = new IndexedAWS();
     for(const r of awsRegions.Regions ?? []) {
-      regions.push(await RegionMapper.fromAWS(r));
+      regions.push(await RegionMapper.fromAWS(r, i));
     }
     // TODO make database name dynamic
     const db = 'typeorm'
