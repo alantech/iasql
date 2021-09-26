@@ -1,12 +1,14 @@
 import {
-  EC2Client,
-  DescribeRegionsCommand,
   DescribeAvailabilityZonesCommand,
-  DescribeInstanceTypesCommand,
   DescribeImagesCommand,
+  DescribeInstanceTypesCommand,
   DescribeInstancesCommand,
-  RunInstancesCommand,
+  DescribeRegionsCommand,
+  EC2Client,
   Instance,
+  RunInstancesCommand,
+  paginateDescribeSecurityGroups,
+  paginateDescribeSecurityGroupRules,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
@@ -125,5 +127,33 @@ export class AWS {
 
   async getAvailabilityZones() {
     return await this.ec2client.send(new DescribeAvailabilityZonesCommand({}))
+  }
+
+  async getSecurityGroups() {
+    const securityGroups = [];
+    const paginator = paginateDescribeSecurityGroups({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      securityGroups.push(...(page.SecurityGroups ?? []));
+    }
+    return {
+      SecurityGroups: securityGroups, // Make it "look like" the regular query again
+    };
+  }
+
+  async getSecurityGroupRules() {
+    const securityGroupRules = [];
+    const paginator = paginateDescribeSecurityGroupRules({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      securityGroupRules.push(...(page.SecurityGroupRules ?? []));
+    }
+    return {
+      SecurityGroupRules: securityGroupRules, // Make it "look like" the regular query again
+    };
   }
 }

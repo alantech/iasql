@@ -1,16 +1,20 @@
 import * as fs from 'fs'
 import { inspect, } from 'util'
 
-import { Region as RegionAWS } from '@aws-sdk/client-ec2'
+import {
+  Region as RegionAWS,
+  SecurityGroup as SecurityGroupAWS,
+  SecurityGroupRule as SecurityGroupRuleAWS,
+} from '@aws-sdk/client-ec2'
 import * as express from 'express'
 import { createConnection, Connection, } from 'typeorm'
 
 import { AWS, } from '../services/gateways/aws'
 import config from '../config'
 import { TypeormWrapper, } from '../services/typeorm'
-import { Region, } from '../entity/region'
-import { RegionMapper, } from '../mapper/region'
-import { IndexedAWS, } from '../services/indexed-aws'
+import { Region, SecurityGroup, SecurityGroupRule } from '../entity'
+import { RegionMapper, SecurityGroupMapper, SecurityGroupRuleMapper, } from '../mapper'
+import { default as indexes, IndexedAWS, } from '../services/indexed-aws'
 
 export const db = express.Router();
 
@@ -48,7 +52,8 @@ async function migrate(conn: Connection) {
 db.get('/create/:db', async (req, res) => {
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
-  let conn1, conn2, orm;
+  let conn1, conn2;
+  let orm: TypeormWrapper | undefined;
   try {
     conn1 = await createConnection({
       name: 'base', // If you use multiple connections they must have unique names or typeorm bails
@@ -76,18 +81,34 @@ db.get('/create/:db', async (req, res) => {
         secretAccessKey: config.secretAccessKey ?? '',
       },
     });
-    const indexes = new IndexedAWS();
     await indexes.populate(awsClient);
     // TODO: Put this somewhere else
-    const regionsAws: { [key: string]: RegionAWS } = indexes.get('regions');
     orm = await TypeormWrapper.createConn(dbname);
-    for (const regionAws of Object.values(regionsAws)) {
-      const region = await RegionMapper.fromAWS(regionAws);
-      await orm.save(Region, region);
-    }
+    console.log(`Populating new db: ${dbname}`);
+    await Promise.all([(async () => {
+      const regionsAws: { [key: string]: RegionAWS } = indexes.get('regions');
+      for (const regionAws of Object.values(regionsAws)) {
+        const region = await RegionMapper.fromAWS(regionAws);
+        await orm?.save(Region, region);
+      }
+    })(), (async () => {
+      const securityGroupsAws: { [key: string]: SecurityGroupAWS } = indexes.get('securityGroups');
+      for (const securityGroupAws of Object.values(securityGroupsAws)) {
+        const sg = await SecurityGroupMapper.fromAWS(securityGroupAws);
+        await orm?.save(SecurityGroup, sg);
+      }
+      // The security group rules *must* be added after the security groups
+      const securityGroupRulesAws: {
+        [key: string]: SecurityGroupRuleAWS,
+      } = indexes.get('securityGroupRules');
+      for (const securityGroupRuleAws of Object.values(securityGroupRulesAws)) {
+        const sgr = await SecurityGroupRuleMapper.fromAWS(securityGroupRuleAws);
+        await orm?.save(SecurityGroupRule, sgr);
+      }
+    })()]);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
-    res.end(`failure to create DB: ${e?.message ?? ''}`);
+    res.end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
   } finally {
     await conn1?.close();
     await conn2?.close();

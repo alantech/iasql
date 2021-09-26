@@ -41,7 +41,7 @@ export enum HypervisorType {
   XEN = 'xen',
 }
 
-export enum DeviceType {
+export enum AMIDeviceType { // TODO: Is this the same as the DeviceType entity?
   EBS = 'ebs',
   INSTANCE_STORE = 'instance-store',
 }
@@ -135,9 +135,9 @@ export class AMI {
 
   @Column({
     type: 'enum',
-    enum: DeviceType,
+    enum: AMIDeviceType,
   })
-  rootDeviceType: DeviceType;
+  rootDeviceType: AMIDeviceType;
 
   @Column()
   sirovNetSupport: string;

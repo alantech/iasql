@@ -14,10 +14,22 @@ export class IndexedAWS {
   }
 
   async populate(awsClient: AWS) {
-    const regions = await awsClient.getRegions();
-    for (const region of (regions.Regions ?? [])) {
-      this.set('regions', region.RegionName ?? '', region)
-    }
+    await Promise.all([(async () => {
+      const regions = await awsClient.getRegions();
+      for (const region of (regions.Regions ?? [])) {
+        this.set('regions', region.RegionName ?? '', region);
+      }
+    })(), (async () => {
+      const securityGroups = await awsClient.getSecurityGroups();
+      for (const sg of (securityGroups.SecurityGroups ?? [])) {
+        this.set('securityGroups', sg.GroupId ?? '', sg);
+      }
+    })(), (async () => {
+      const securityGroupRules = await awsClient.getSecurityGroupRules();
+      for (const sgr of (securityGroupRules.SecurityGroupRules ?? [])) {
+        this.set('securityGroupRules', sgr.SecurityGroupRuleId ?? '', sgr);
+      }
+    })()]);
   }
 
   set(entity: string, key: string, value: any) {
