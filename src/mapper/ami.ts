@@ -8,6 +8,7 @@ import { ProductCodeMapper, } from './product_code';
 import { TagMapper, } from './tag';
 import { StateReasonMapper, } from './state_reason';
 import { BootModeMapper, } from './boot_mode';
+import { EBSBlockDeviceMappingMapper, } from './ebs_block_device_mapping';
 
 export const AMIMapper = new EntityMapper(AMI, {
   cpuArchitecture: async (ami: Image, _indexes: IndexedAWS) => CPUArchitectureMapper.fromAWS(
@@ -28,7 +29,9 @@ export const AMIMapper = new EntityMapper(AMI, {
   ),
   ramdiskId: async (ami: Image, _indexes: IndexedAWS) => ami?.RamdiskId,
   state: async (ami: Image, _indexes: IndexedAWS) => ami?.State,
-  blockDeviceMappings: async (ami: Image, _indexes: IndexedAWS) => ami?.BlockDeviceMappings, // TODO: add mapper
+  blockDeviceMappings: async (ami: Image, _indexes: IndexedAWS) => ami?.BlockDeviceMappings?.map(
+    bdm => EBSBlockDeviceMappingMapper.fromAWS(bdm, _indexes)
+  ),
   description: async (ami: Image, _indexes: IndexedAWS) => ami?.Description,
   enaSupport: async (ami: Image, _indexes: IndexedAWS) => ami?.EnaSupport,
   hypervisor: async (ami: Image, _indexes: IndexedAWS) => ami?.Hypervisor,
