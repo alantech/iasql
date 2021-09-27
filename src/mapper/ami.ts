@@ -3,7 +3,8 @@ import { Image, } from '@aws-sdk/client-ec2'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { EntityMapper, } from './entity';
 import { AMI, } from '../entity/ami';
-import { CPUArchitectureMapper } from '.';
+import { CPUArchitectureMapper, } from './cpu_architecture';
+import { ProductCodeMapper, } from './product_code';
 
 export const AMIMapper = new EntityMapper(AMI, {
   cpuArchitecture: async (ami: Image, _indexes: IndexedAWS) => CPUArchitectureMapper.fromAWS(
@@ -19,7 +20,9 @@ export const AMIMapper = new EntityMapper(AMI, {
   platform: async (ami: Image, _indexes: IndexedAWS) => ami?.Platform,
   platformDetails: async (ami: Image, _indexes: IndexedAWS) => ami?.PlatformDetails,
   usageOperation: async (ami: Image, _indexes: IndexedAWS) => ami?.UsageOperation,
-  productCodes: async (ami: Image, _indexes: IndexedAWS) => ami?.ProductCodes, // TODO: add mapper
+  productCodes: async (ami: Image, _indexes: IndexedAWS) => ami?.ProductCodes?.map(
+    pc => ProductCodeMapper.fromAWS(pc, _indexes)
+  ),
   ramdiskId: async (ami: Image, _indexes: IndexedAWS) => ami?.RamdiskId,
   state: async (ami: Image, _indexes: IndexedAWS) => ami?.State,
   blockDeviceMappings: async (ami: Image, _indexes: IndexedAWS) => ami?.BlockDeviceMappings, // TODO: add mapper
