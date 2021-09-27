@@ -2,8 +2,8 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToOne,
   JoinColumn,
+  ManyToOne,
 } from 'typeorm';
 import { AMI } from './ami'
 import { InstanceType } from './instance_type'
@@ -20,21 +20,21 @@ export class Instance {
   })
   instanceId?: string;
 
-  @OneToOne(() => AMI)
+  @ManyToOne(() => AMI)
   @JoinColumn({
     name: 'ami_id',
   })
-  amiId: number;
+  ami: AMI;
 
-  @OneToOne(() => Region)
+  @ManyToOne(() => Region)
   @JoinColumn({
     name: 'region_id',
   })
-  regionId: number;
+  region: Region;
 
-  @OneToOne(() => InstanceType)
+  @ManyToOne(() => InstanceType)
   @JoinColumn({
     name: 'instance_type_id',
   })
-  instanceTypeId: number;
+  instanceType: InstanceType;
 }

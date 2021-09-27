@@ -6,6 +6,7 @@ import {
   ManyToMany,
   JoinColumn,
   JoinTable,
+  OneToMany,
 } from 'typeorm';
 
 import { AvailabilityZone, } from './availability_zone';
@@ -23,6 +24,7 @@ import { Region, } from './region';
 import { UsageClass, } from './usage_class';
 import { VCPUInfo, } from './v_cpu_info';
 import { VirtualizationType, } from './virtualization_type';
+import { Instance } from './instance';
 
 export enum InstanceTypeValue {
   A1_2XLARGE = 'a1.2xlarge',
@@ -572,4 +574,7 @@ export class InstanceType {
   @ManyToMany(() => AvailabilityZone)
   @JoinTable()
   availabilityZones: AvailabilityZone[];
+
+  @OneToMany(() => Instance, i => i.ami)
+  instances: Instance[];
 }
