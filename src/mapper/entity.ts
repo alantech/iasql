@@ -1,6 +1,6 @@
 import { memoize } from 'memoize-cache-decorator'
 
-import indexedAWS from '../services/indexed-aws'
+import { IndexedAWS, } from '../services/indexed-aws'
 
 export class EntityMapper {
   private entity: any;
@@ -12,10 +12,10 @@ export class EntityMapper {
   }
 
   @memoize()
-  async fromAWS(obj: any): Promise<any> {
+  async fromAWS(obj: any, indexes: IndexedAWS): Promise<any> {
     const newEntity = new this.entity();
     for(const p of Object.getOwnPropertyNames(this.methods)) {
-      newEntity[p] = await this.methods[p](obj, indexedAWS);
+      newEntity[p] = await this.methods[p](obj, indexes);
     }
     return newEntity;
   }
