@@ -51,7 +51,7 @@ export class AMI {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => CPUArchitecture)
+  @ManyToOne(() => CPUArchitecture, { cascade: true })
   @JoinColumn({
     name: 'cpu_architecture_id',
   })
@@ -59,96 +59,130 @@ export class AMI {
 
   @Column({
     type: 'timestamp with time zone',
+    nullable: true,
   })
-  creationDate: Date;
+  creationDate?: Date;
 
-  @Column()
-  imageId: string;
+  @Column({
+    nullable: true,
+  })
+  imageId?: string;
 
-  @Column()
-  imageLocation: string;
+  @Column({
+    nullable: true,
+  })
+  imageLocation?: string;
 
   @Column({
     type: 'enum',
     enum: ImageType,
+    nullable: true,
   })
-  imageType: ImageType;
+  imageType?: ImageType;
 
-  @Column()
-  'public': boolean;
+  @Column({
+    nullable: true,
+  })
+  'public'?: boolean;
 
-  @Column()
-  kernelId: string;
+  @Column({
+    nullable: true,
+  })
+  kernelId?: string;
 
-  @Column()
-  ownerId: string;
+  @Column({
+    nullable: true,
+  })
+  ownerId?: string;
 
   @Column({
     type: 'enum',
     enum: AMIPlatform,
+    nullable: true,
   })
-  platform: AMIPlatform;
+  platform?: AMIPlatform;
 
-  @Column()
-  platformDetails: string;
+  @Column({
+    nullable: true,
+  })
+  platformDetails?: string;
 
-  @Column()
-  usageOperation: string;
+  @Column({
+    nullable: true,
+  })
+  usageOperation?: string;
 
-  @ManyToMany(() => ProductCode)
+  @ManyToMany(() => ProductCode, { cascade: true })
   @JoinTable()
   productCodes: ProductCode[];
 
-  @Column()
-  ramdiskId: string;
+  @Column({
+    nullable: true,
+  })
+  ramdiskId?: string;
 
   @Column({
     type: 'enum',
     enum: AMIImageState,
+    nullable: true,
   })
-  state: AMIImageState;
+  state?: AMIImageState;
 
-  @ManyToMany(() => EBSBlockDeviceMapping)
+  @ManyToMany(() => EBSBlockDeviceMapping, { cascade: true })
   @JoinTable()
   blockDeviceMappings: EBSBlockDeviceMapping[];
 
-  @Column()
-  description: string;
+  @Column({
+    nullable: true,
+  })
+  description?: string;
 
-  @Column()
-  enaSupport: boolean;
+  @Column({
+    nullable: true,
+  })
+  enaSupport?: boolean;
 
   @Column({
     type: 'enum',
     enum: HypervisorType,
+    nullable: true,
   })
-  hypervisor: HypervisorType;
+  hypervisor?: HypervisorType;
 
-  @Column()
-  imageOwnerAlias: string;
+  @Column({
+    nullable: true,
+  })
+  imageOwnerAlias?: string;
 
-  @Column()
-  name: string;
+  @Column({
+    nullable: true,
+  })
+  name?: string;
 
-  @Column()
-  rootDeviceName: string;
+  @Column({
+    nullable: true,
+  })
+  rootDeviceName?: string;
 
   @Column({
     type: 'enum',
     enum: AMIDeviceType,
+    nullable: true,
   })
-  rootDeviceType: AMIDeviceType;
+  rootDeviceType?: AMIDeviceType;
 
-  @Column()
-  sirovNetSupport: string;
+  @Column({
+    nullable: true,
+  })
+  sirovNetSupport?: string;
 
-  @ManyToOne(() => StateReason)
+  @ManyToOne(() => StateReason, { cascade: true })
   @JoinColumn({
     name: 'state_reason_id',
   })
   stateReason: StateReason;
 
-  @ManyToOne(() => BootMode)
+  @ManyToOne(() => BootMode, { cascade: true })
   @JoinColumn({
     name: 'boot_mode_id',
   })
@@ -156,10 +190,11 @@ export class AMI {
 
   @Column({
     type: 'timestamp with time zone',
+    nullable: true,
   })
-  deprecationTime: Date;
+  deprecationTime?: Date;
 
-  @ManyToMany(() => Tag)
+  @ManyToMany(() => Tag, { cascade: true })
   @JoinTable()
   tags: Tag[];
 }

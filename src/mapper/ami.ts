@@ -11,10 +11,10 @@ import { BootModeMapper, } from './boot_mode';
 import { EBSBlockDeviceMappingMapper, } from './ebs_block_device_mapping';
 
 export const AMIMapper = new EntityMapper(AMI, {
-  cpuArchitecture: async (ami: Image, _indexes: IndexedAWS) => CPUArchitectureMapper.fromAWS(
+  cpuArchitecture: async (ami: Image, _indexes: IndexedAWS) => ami?.Architecture ? CPUArchitectureMapper.fromAWS(
     ami?.Architecture, _indexes
-  ),
-  creationDate: async (ami: Image, _indexes: IndexedAWS) => ami?.CreationDate,
+  ) : undefined,
+  creationDate: async (ami: Image, _indexes: IndexedAWS) => ami?.CreationDate ? ami.CreationDate : undefined,
   imageId: async (ami: Image, _indexes: IndexedAWS) => ami?.ImageId,
   imageLocation: async (ami: Image, _indexes: IndexedAWS) => ami?.ImageLocation,
   imageType: async (ami: Image, _indexes: IndexedAWS) => ami?.ImageType,
@@ -40,13 +40,13 @@ export const AMIMapper = new EntityMapper(AMI, {
   rootDeviceName: async (ami: Image, _indexes: IndexedAWS) => ami?.RootDeviceName,
   rootDeviceType: async (ami: Image, _indexes: IndexedAWS) => ami?.RootDeviceType,
   sirovNetSupport: async (ami: Image, _indexes: IndexedAWS) => ami?.SriovNetSupport,
-  stateReason: async (ami: Image, _indexes: IndexedAWS) => StateReasonMapper.fromAWS(
+  stateReason: async (ami: Image, _indexes: IndexedAWS) => ami?.StateReason ? StateReasonMapper.fromAWS(
     ami?.StateReason, _indexes
-  ),
-  bootMode: async (ami: Image, _indexes: IndexedAWS) => BootModeMapper.fromAWS(
+  ) : undefined,
+  bootMode: async (ami: Image, _indexes: IndexedAWS) => ami?.BootMode ? BootModeMapper.fromAWS(
     ami?.BootMode, _indexes
-  ),
-  deprecationTime: async (ami: Image, _indexes: IndexedAWS) => ami?.DeprecationTime,
+  ) : undefined,
+  deprecationTime: async (ami: Image, _indexes: IndexedAWS) => ami?.DeprecationTime ? ami.DeprecationTime : undefined,
   tags: async (ami: Image, _indexes: IndexedAWS) => ami?.Tags?.map(
     tag => TagMapper.fromAWS(tag, _indexes)
   ),
