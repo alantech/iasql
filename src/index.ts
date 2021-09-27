@@ -3,7 +3,7 @@ import express from 'express';
 import { inspect } from 'util';
 
 import config from './config';
-import { v1 } from './routes';
+import { v1 } from './router';
 
 const port = config.port;
 const app = express();
