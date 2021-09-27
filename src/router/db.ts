@@ -5,6 +5,7 @@ import {
   Region as RegionAWS,
   SecurityGroup as SecurityGroupAWS,
   SecurityGroupRule as SecurityGroupRuleAWS,
+  Image,
 } from '@aws-sdk/client-ec2'
 import * as express from 'express'
 import { createConnection, Connection, } from 'typeorm'
@@ -12,8 +13,8 @@ import { createConnection, Connection, } from 'typeorm'
 import { AWS, } from '../services/gateways/aws'
 import config from '../config'
 import { TypeormWrapper, } from '../services/typeorm'
-import { Region, SecurityGroup, SecurityGroupRule } from '../entity'
-import { RegionMapper, SecurityGroupMapper, SecurityGroupRuleMapper, } from '../mapper'
+import { AMI, Region, SecurityGroup, SecurityGroupRule } from '../entity'
+import { AMIMapper, RegionMapper, SecurityGroupMapper, SecurityGroupRuleMapper, } from '../mapper'
 import { IndexedAWS, } from '../services/indexed-aws'
 
 export const db = express.Router();
@@ -105,6 +106,12 @@ db.get('/create/:db', async (req, res) => {
       for (const securityGroupRuleAws of Object.values(securityGroupRulesAws)) {
         const sgr = await SecurityGroupRuleMapper.fromAWS(securityGroupRuleAws, indexes);
         await orm?.save(SecurityGroupRule, sgr);
+      }
+    })(), (async () => {
+      const amisAws: { [key: string]: Image } = indexes.get('amis');
+      for (const amiAws of Object.values(amisAws)) {
+        const ami = await AMIMapper.fromAWS(amiAws, indexes);
+        await orm?.save(AMI, ami);
       }
     })()]);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);

@@ -29,6 +29,11 @@ export class IndexedAWS {
       for (const sgr of (securityGroupRules.SecurityGroupRules ?? [])) {
         this.set('securityGroupRules', sgr.SecurityGroupRuleId ?? '', sgr);
       }
+    })(), (async () => {
+      const amis = await awsClient.getAMIs();
+      for (const ami of (amis.Images ?? [])) {
+        this.set('amis', ami.ImageId ?? '', ami);
+      }
     })()]);
   }
 
