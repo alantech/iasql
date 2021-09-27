@@ -107,7 +107,7 @@ v1.get('/check/:db', async (req, res) => {
     const regions = await orm.find(Region);
     const awsClient = new AWS({ region: config.region ?? 'eu-west-1', credentials: { accessKeyId: config.accessKeyId ?? '', secretAccessKey: config.secretAccessKey ?? '' } })
     const regionsAWS = await awsClient.getRegions();
-    const regionsMapped = await RegionMapper.fromAWS(regionsAWS?.Regions ?? []);
+    const regionsMapped = await regionsAWS.Regions?.map(async r => await RegionMapper.fromAWS(r)) ?? [];
     const diff = findDiff(regions, regionsMapped, 'name');
     res.end(`
       To create: ${inspect(diff.entitiesToCreate)}
@@ -120,6 +120,13 @@ v1.get('/check/:db', async (req, res) => {
     orm?.dropConn();
   }
 });
+
+v1.get('/map', async(req, res) => {
+  const awsClient = new AWS({ region: config.region ?? 'eu-west-1', credentials: { accessKeyId: config.accessKeyId ?? '', secretAccessKey: config.secretAccessKey ?? '' } })
+  const regionsAWS = await awsClient.getRegions();
+  const entity = await RegionMapper.fromAWS(regionsAWS.Regions?.pop());
+  res.end(`mapped: ${inspect(entity)}`);
+})
 
 v1.use('/aws', aws)
 
