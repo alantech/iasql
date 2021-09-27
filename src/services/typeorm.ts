@@ -1,7 +1,7 @@
-import { randomInt } from 'crypto';
-import { Connection, createConnection, EntityTarget, getConnectionManager } from 'typeorm';
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
+import { randomInt, } from 'crypto';
+import { Connection, createConnection, EntityTarget, getConnectionManager, } from 'typeorm';
+import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
 
 export class TypeormWrapper {
@@ -20,18 +20,19 @@ export class TypeormWrapper {
   static async createConn(database: string): Promise<TypeormWrapper> {
     const typeorm = new TypeormWrapper();
     const connMan = getConnectionManager();
-    if (connMan.has(database)) {
-      throw `Connection ${database} already exists`
+    const dbname = `database-${randomInt(200000)}`;
+    if (connMan.has(dbname)) {
+      throw new Error(`Connection ${dbname} already exists`)
     }
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
-      name: `database-${randomInt(200000)}`, // TODO improve connection name handling
+      name: dbname, // TODO improve connection name handling
       database,
     }
     typeorm.connection = await createConnection(connOpts);
     return typeorm;
   }
-  
+
   async dropConn() {
     await this.connection.close();
   }
@@ -45,7 +46,7 @@ export class TypeormWrapper {
   }
 
   async save(entity: EntityTarget<any>, value: any) {
-    const repository = await this.connection.manager.getRepository(entity);
+    const repository = this.connection.manager.getRepository(entity);
     await repository.save(value);
   }
 }
