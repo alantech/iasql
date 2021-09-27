@@ -6,6 +6,7 @@ import { AMI, } from '../entity/ami';
 import { CPUArchitectureMapper, } from './cpu_architecture';
 import { ProductCodeMapper, } from './product_code';
 import { TagMapper, } from './tag';
+import { StateReasonMapper } from './state_reason';
 
 export const AMIMapper = new EntityMapper(AMI, {
   cpuArchitecture: async (ami: Image, _indexes: IndexedAWS) => CPUArchitectureMapper.fromAWS(
@@ -35,7 +36,9 @@ export const AMIMapper = new EntityMapper(AMI, {
   rootDeviceName: async (ami: Image, _indexes: IndexedAWS) => ami?.RootDeviceName,
   rootDeviceType: async (ami: Image, _indexes: IndexedAWS) => ami?.RootDeviceType,
   sirovNetSupport: async (ami: Image, _indexes: IndexedAWS) => ami?.SriovNetSupport,
-  stateReason: async (ami: Image, _indexes: IndexedAWS) => ami?.StateReason, // TODO: add mapper
+  stateReason: async (ami: Image, _indexes: IndexedAWS) => StateReasonMapper.fromAWS(
+    ami?.StateReason, _indexes
+  ),
   bootMode: async (ami: Image, _indexes: IndexedAWS) => ami?.BootMode, // TODO: add mapper
   deprecationTime: async (ami: Image, _indexes: IndexedAWS) => ami?.DeprecationTime,
   tags: async (ami: Image, _indexes: IndexedAWS) => ami?.Tags?.map(
