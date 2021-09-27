@@ -26,6 +26,6 @@ export class Region {
   @ManyToMany(() => InstanceType)
   instanceTypes: InstanceType[];
 
-  @OneToMany(() => Instance, i => i.ami)
+  @OneToMany(() => Instance, i => i.region)
   instances: Instance[];
 }

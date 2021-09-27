@@ -575,6 +575,6 @@ export class InstanceType {
   @JoinTable()
   availabilityZones: AvailabilityZone[];
 
-  @OneToMany(() => Instance, i => i.ami)
+  @OneToMany(() => Instance, i => i.instanceType)
   instances: Instance[];
 }
