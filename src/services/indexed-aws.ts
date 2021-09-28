@@ -1,5 +1,6 @@
 import { AWS, } from './gateways/aws'
 import { EntityMapper, } from '../mapper/entity'
+import { Image } from '@aws-sdk/client-ec2';
 
 type Index = {
   [entity: string]: {
@@ -32,6 +33,25 @@ export class IndexedAWS {
       ),
       populator('amis', 'getAMIs', 'Images', 'ImageId'),
     ]);
+    this.setAuxAmiIndexes();
+  }
+
+  setAuxAmiIndexes() {
+    const amis: { [key: string]: Image } = this.get('amis');
+    for (const [_id, ami] of Object.entries(amis)) {
+      if (ami.Architecture) {
+        this.set('cpuArchitectures', ami.Architecture, ami.Architecture);
+      }
+      if (ami.ProductCodes && ami.ProductCodes.length) {
+        for (const pc of ami.ProductCodes) {
+          if (pc.ProductCodeId) {
+            this.set('productCodes', pc.ProductCodeId, pc)
+          } else {
+            console.log('is this possible?');
+          }
+        }
+      }
+    }
   }
 
   async toEntityList(entity: string, mapper: EntityMapper) {
