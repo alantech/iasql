@@ -11,7 +11,9 @@ export class EntityMapper {
     this.methods = methods;
   }
 
-  @memoize()
+  @memoize({
+    resolver: (obj, indexes) => JSON.stringify(obj), // TODO: Better hashing fn
+  })
   async fromAWS(obj: any, indexes: IndexedAWS): Promise<any> {
     const newEntity = new this.entity();
     for(const p of Object.getOwnPropertyNames(this.methods)) {
