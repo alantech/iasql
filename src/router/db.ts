@@ -88,25 +88,17 @@ db.get('/create/:db', async (req, res) => {
     orm = await TypeormWrapper.createConn(dbname);
     console.log(`Populating new db: ${dbname}`);
     await Promise.all([(async () => {
-      const regionsAws: { [key: string]: RegionAWS } = indexes.get('regions');
-      for (const regionAws of Object.values(regionsAws)) {
-        const region = await RegionMapper.fromAWS(regionAws, indexes);
-        await orm?.save(Region, region);
-      }
+      const regions = await indexes.toEntityList('regions', RegionMapper);
+      await Promise.all(regions.map(r => orm?.save(Region, r)));
     })(), (async () => {
-      const securityGroupsAws: { [key: string]: SecurityGroupAWS } = indexes.get('securityGroups');
-      for (const securityGroupAws of Object.values(securityGroupsAws)) {
-        const sg = await SecurityGroupMapper.fromAWS(securityGroupAws, indexes);
-        await orm?.save(SecurityGroup, sg);
-      }
+      const securityGroups = await indexes.toEntityList('securityGroups', SecurityGroupMapper);
+      await Promise.all(securityGroups.map(sg => orm?.save(SecurityGroup, sg)));
       // The security group rules *must* be added after the security groups
-      const securityGroupRulesAws: {
-        [key: string]: SecurityGroupRuleAWS,
-      } = indexes.get('securityGroupRules');
-      for (const securityGroupRuleAws of Object.values(securityGroupRulesAws)) {
-        const sgr = await SecurityGroupRuleMapper.fromAWS(securityGroupRuleAws, indexes);
-        await orm?.save(SecurityGroupRule, sgr);
-      }
+      const securityGroupRules = await indexes.toEntityList(
+        'securityGroupRules',
+        SecurityGroupRuleMapper,
+      );
+      await Promise.all(securityGroupRules.map(sgr => orm?.save(SecurityGroupRule, sgr)));
     })()]);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
@@ -157,8 +149,7 @@ db.get('/check/:db', async (req, res) => {
     });
     const indexes = new IndexedAWS();
     await indexes.populate(awsClient);
-    const regionsAws = Object.values(indexes.get('regions'));
-    const regionEntities = await Promise.all(regionsAws.map(r => RegionMapper.fromAWS(r, indexes)));
+    const regionEntities = await indexes.toEntityList('regions', RegionMapper);
     const diff = findDiff(regions,regionEntities, 'name');
     res.end(`
       To create: ${inspect(diff.entitiesToCreate)}
