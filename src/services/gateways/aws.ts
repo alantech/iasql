@@ -122,7 +122,7 @@ export class AWS {
   }
 
   async getRegions() {
-    return await this.ec2client.send(new DescribeRegionsCommand({}))
+    return await this.ec2client.send(new DescribeRegionsCommand({ AllRegions: true, }))
   }
 
   async getAvailabilityZones() {
