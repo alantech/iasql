@@ -2,12 +2,12 @@ import { inspect, } from 'util'
 
 import * as express from 'express'
 
-import { AWS } from './services/gateways/aws'
-import config from './config'
-import { aws, } from './router/aws'
-import { db, } from './router/db'
-import { RegionMapper, } from './mapper/region'
-import { IndexedAWS, } from './services/indexed-aws'
+import { AWS, } from '../services/gateways/aws'
+import config from '../config'
+import { aws, } from './aws'
+import { db, } from './db'
+import { RegionMapper, } from '../mapper/region'
+import { IndexedAWS, } from '../services/indexed-aws'
 
 const v1 = express.Router();
 v1.get('/map', async(_req, res) => {

@@ -1,6 +1,9 @@
-# Skybase
+# IaSQL
 
-<h2 align="center">Infrastructure as SQL</h2>
+<h2 align="center">
+<img src="https://www.readytocut.com/community/attachments/cthulhu-face-jpeg.3865/" /><br />
+Infrastructure as SQL
+</h2>
 
 ### Architecture
 

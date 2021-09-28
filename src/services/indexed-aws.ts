@@ -1,4 +1,5 @@
 import { AWS, } from './gateways/aws'
+import { EntityMapper, } from '../mapper/entity'
 
 type Index = {
   [entity: string]: {
@@ -14,27 +15,28 @@ export class IndexedAWS {
   }
 
   async populate(awsClient: AWS) {
-    await Promise.all([(async () => {
-      const regions = await awsClient.getRegions();
-      for (const region of (regions.Regions ?? [])) {
-        this.set('regions', region.RegionName ?? '', region);
+    const populator = async (entity: string, awsMethod: string, awsArr: string, idProp: string) => {
+      const entitiesAws = await (awsClient as unknown as { [key: string]: Function })[awsMethod]();
+      for (const entityAws of (entitiesAws[awsArr] ?? [])) {
+        this.set(entity, entityAws[idProp] ?? '', entityAws);
       }
-    })(), (async () => {
-      const securityGroups = await awsClient.getSecurityGroups();
-      for (const sg of (securityGroups.SecurityGroups ?? [])) {
-        this.set('securityGroups', sg.GroupId ?? '', sg);
-      }
-    })(), (async () => {
-      const securityGroupRules = await awsClient.getSecurityGroupRules();
-      for (const sgr of (securityGroupRules.SecurityGroupRules ?? [])) {
-        this.set('securityGroupRules', sgr.SecurityGroupRuleId ?? '', sgr);
-      }
-    })(), (async () => {
-      const amis = await awsClient.getAMIs();
-      for (const ami of (amis.Images ?? [])) {
-        this.set('amis', ami.ImageId ?? '', ami);
-      }
-    })()]);
+    }
+    await Promise.all([
+      populator('regions', 'getRegions', 'Regions', 'RegionName'),
+      populator('securityGroups', 'getSecurityGroups', 'SecurityGroups', 'GroupId'),
+      populator(
+        'securityGroupRules',
+        'getSecurityGroupRules',
+        'SecurityGroupRules',
+        'SecurityGroupRuleId',
+      ),
+      populator('amis', 'getAMIs', 'Images', 'ImageId'),
+    ]);
+  }
+
+  async toEntityList(entity: string, mapper: EntityMapper) {
+    const entitiesAws = Object.values(this.get(entity));
+    return await Promise.all(entitiesAws.map(e => mapper.fromAWS(e, this)));
   }
 
   set(entity: string, key: string, value: any) {

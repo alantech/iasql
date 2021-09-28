@@ -16,6 +16,7 @@ import { TypeormWrapper, } from '../services/typeorm'
 import { AMI, Region, SecurityGroup, SecurityGroupRule } from '../entity'
 import { AMIMapper, RegionMapper, SecurityGroupMapper, SecurityGroupRuleMapper, } from '../mapper'
 import { IndexedAWS, } from '../services/indexed-aws'
+import { findDiff, } from '../services/diff'
 
 export const db = express.Router();
 
@@ -88,31 +89,20 @@ db.get('/create/:db', async (req, res) => {
     orm = await TypeormWrapper.createConn(dbname);
     console.log(`Populating new db: ${dbname}`);
     await Promise.all([(async () => {
-      const regionsAws: { [key: string]: RegionAWS } = indexes.get('regions');
-      for (const regionAws of Object.values(regionsAws)) {
-        const region = await RegionMapper.fromAWS(regionAws, indexes);
-        await orm?.save(Region, region);
-      }
+      const regions = await indexes.toEntityList('regions', RegionMapper);
+      await Promise.all(regions.map(r => orm?.save(Region, r)));
     })(), (async () => {
-      const securityGroupsAws: { [key: string]: SecurityGroupAWS } = indexes.get('securityGroups');
-      for (const securityGroupAws of Object.values(securityGroupsAws)) {
-        const sg = await SecurityGroupMapper.fromAWS(securityGroupAws, indexes);
-        await orm?.save(SecurityGroup, sg);
-      }
+      const securityGroups = await indexes.toEntityList('securityGroups', SecurityGroupMapper);
+      await Promise.all(securityGroups.map(sg => orm?.save(SecurityGroup, sg)));
       // The security group rules *must* be added after the security groups
-      const securityGroupRulesAws: {
-        [key: string]: SecurityGroupRuleAWS,
-      } = indexes.get('securityGroupRules');
-      for (const securityGroupRuleAws of Object.values(securityGroupRulesAws)) {
-        const sgr = await SecurityGroupRuleMapper.fromAWS(securityGroupRuleAws, indexes);
-        await orm?.save(SecurityGroupRule, sgr);
-      }
+      const securityGroupRules = await indexes.toEntityList(
+        'securityGroupRules',
+        SecurityGroupRuleMapper,
+      );
+      await Promise.all(securityGroupRules.map(sgr => orm?.save(SecurityGroupRule, sgr)));
     })(), (async () => {
-      const amisAws: { [key: string]: Image } = indexes.get('amis');
-      for (const amiAws of Object.values(amisAws)) {
-        const ami = await AMIMapper.fromAWS(amiAws, indexes);
-        await orm?.save(AMI, ami);
-      }
+      const amis = await indexes.toEntityList('amis', AMIMapper);
+      await orm?.save(AMI, amis);
     })()]);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
@@ -162,11 +152,9 @@ db.get('/check/:db', async (req, res) => {
       },
     });
     const indexes = new IndexedAWS();
-    const regionsAWS = await awsClient.getRegions();
-    const regionsMapped = await Promise.all(
-      regionsAWS.Regions?.map(async r => await RegionMapper.fromAWS(r, indexes)) ?? []
-    );
-    const diff = findDiff(regions, regionsMapped, 'name');
+    await indexes.populate(awsClient);
+    const regionEntities = await indexes.toEntityList('regions', RegionMapper);
+    const diff = findDiff(regions,regionEntities, 'name');
     res.end(`
       To create: ${inspect(diff.entitiesToCreate)}
       To delete: ${inspect(diff.entitiesToDelete)}
@@ -178,82 +166,3 @@ db.get('/check/:db', async (req, res) => {
     orm?.dropConn();
   }
 });
-
-// TODO refactor to a class
-function findDiff(dbEntities: any[], cloudEntities: any[], id: string) {
-  const entitiesToCreate: any[] = [];
-  const entitiesToDelete: any[] = [];
-  const dbEntityIds = dbEntities.map(e => e[id]);
-  const cloudEntityIds = cloudEntities.map(e => e[id]);
-  // Everything in cloud and not in db is a potential delete
-  const cloudEntNotInDb = cloudEntities.filter(e => !dbEntityIds.includes(e[id]));
-  cloudEntNotInDb.map(e => entitiesToDelete.push(e));
-  // Everything in db and not in cloud is a potential create
-  const dbEntNotInCloud = dbEntities.filter(e => !cloudEntityIds.includes(e[id]));
-  dbEntNotInCloud.map(e => entitiesToCreate.push(e));
-  // Everything else needs a diff between them
-  const remainingDbEntities = dbEntities.filter(e => cloudEntityIds.includes(e[id]));
-  const entitiesDiff: any[] = [];
-  remainingDbEntities.map(dbEnt => {
-    const cloudEntToCompare = cloudEntities.find(e => e[id] === dbEnt[id]);
-    entitiesDiff.push(diff(dbEnt, cloudEntToCompare));
-  });
-  return {
-    entitiesToCreate,
-    entitiesToDelete,
-    entitiesDiff
-  }
-}
-
-function diff(dbObj: any, cloudObj: any) {
-  if (isValue(dbObj) || isValue(cloudObj)) {
-    return {
-      type: compare(dbObj, cloudObj),
-      db: dbObj,
-      cloud: cloudObj
-    };
-  }
-  let diffObj: any = {};
-  for (let key in dbObj) {
-    // Ignore database internal primary key
-    if (key === 'id') {
-      continue;
-    }
-    let cloudVal = cloudObj[key];
-    diffObj[key] = diff(dbObj[key], cloudVal);
-  }
-  for (var key in cloudObj) {
-    if (key === 'id' || diffObj[key] !== undefined) {
-      continue;
-    }
-    diffObj[key] = diff(undefined, cloudObj[key]);
-  }
-  return diffObj;
-}
-
-function isValue(o: any) {
-  return !isObject(o) && !isArray(o);
-}
-
-function isObject(o: any) {
-  return typeof o === 'object' && o !== null && !Array.isArray(o);
-}
-
-function isArray(o: any) {
-  return Array.isArray(o);
-}
-
-function isDate(o: any) {
-  return o instanceof Date;
-}
-
-function compare(dbVal: any, cloudVal: any) {
-  if (dbVal === cloudVal) {
-    return 'unchanged'
-  }
-  if (isDate(dbVal) && isDate(cloudVal) && dbVal.getTime() === cloudVal.getTime()) {
-    return 'unchanged'
-  }
-  return `to update ${cloudVal} with ${dbVal}`
-}
-
