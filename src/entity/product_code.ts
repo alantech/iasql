@@ -1,4 +1,3 @@
-import { Image } from '@aws-sdk/client-ec2';
 import { Entity, PrimaryGeneratedColumn, Column, } from 'typeorm';
 
 @Entity()
@@ -7,10 +6,12 @@ export class ProductCode {
   id: number;
 
   @Column({
-    unique: true
+    nullable: true
   })
-  productCodeId: string;
+  productCodeId?: string;
 
-  @Column()
-  productCodeType: string;
+  @Column({
+    nullable: true
+  })
+  productCodeType?: string;
 }

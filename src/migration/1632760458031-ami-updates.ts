@@ -1,14 +1,25 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class amiUpdates1632753819034 implements MigrationInterface {
-    name = 'amiUpdates1632753819034'
+export class amiUpdates1632760458031 implements MigrationInterface {
+    name = 'amiUpdates1632760458031'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "public"."product_code" DROP COLUMN "code"`);
-        await queryRunner.query(`ALTER TABLE "public"."product_code" ADD "product_code_id" character varying NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "public"."product_code" ADD CONSTRAINT "UQ_e9dd5813514d7d3798dda239bb0" UNIQUE ("product_code_id")`);
-        await queryRunner.query(`ALTER TABLE "public"."product_code" ADD "product_code_type" character varying NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."product_code" ADD "product_code_id" character varying`);
+        await queryRunner.query(`ALTER TABLE "public"."product_code" ADD "product_code_type" character varying`);
         await queryRunner.query(`ALTER TABLE "public"."boot_mode" ADD CONSTRAINT "UQ_88a9fac6831af2d520a0947c113" UNIQUE ("mode")`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "delete_on_termination" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "iops" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "snapshot_id" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "volume_size" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "volume_type" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "kms_key_id" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "throughput" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "outpost_arn" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "encrypted" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_mapping" ALTER COLUMN "device_name" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_mapping" ALTER COLUMN "virtual_name" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_mapping" ALTER COLUMN "no_device" DROP NOT NULL`);
         await queryRunner.query(`ALTER TABLE "public"."ami" ALTER COLUMN "creation_date" DROP NOT NULL`);
         await queryRunner.query(`ALTER TABLE "public"."ami" ALTER COLUMN "image_id" DROP NOT NULL`);
         await queryRunner.query(`ALTER TABLE "public"."ami" ALTER COLUMN "image_location" DROP NOT NULL`);
@@ -54,9 +65,20 @@ export class amiUpdates1632753819034 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "public"."ami" ALTER COLUMN "image_location" SET NOT NULL`);
         await queryRunner.query(`ALTER TABLE "public"."ami" ALTER COLUMN "image_id" SET NOT NULL`);
         await queryRunner.query(`ALTER TABLE "public"."ami" ALTER COLUMN "creation_date" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_mapping" ALTER COLUMN "no_device" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_mapping" ALTER COLUMN "virtual_name" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_mapping" ALTER COLUMN "device_name" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "encrypted" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "outpost_arn" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "throughput" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "kms_key_id" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "volume_type" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "volume_size" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "snapshot_id" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "iops" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "public"."ebs_block_device_type" ALTER COLUMN "delete_on_termination" SET NOT NULL`);
         await queryRunner.query(`ALTER TABLE "public"."boot_mode" DROP CONSTRAINT "UQ_88a9fac6831af2d520a0947c113"`);
         await queryRunner.query(`ALTER TABLE "public"."product_code" DROP COLUMN "product_code_type"`);
-        await queryRunner.query(`ALTER TABLE "public"."product_code" DROP CONSTRAINT "UQ_e9dd5813514d7d3798dda239bb0"`);
         await queryRunner.query(`ALTER TABLE "public"."product_code" DROP COLUMN "product_code_id"`);
         await queryRunner.query(`ALTER TABLE "public"."product_code" ADD "code" character varying NOT NULL`);
     }

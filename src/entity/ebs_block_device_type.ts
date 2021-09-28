@@ -15,39 +15,53 @@ export class EBSBlockDeviceType {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  deleteOnTermination: boolean;
+  @Column({
+    nullable: true,
+  })
+  deleteOnTermination?: boolean;
 
   @Column({
     type: 'int',
+    nullable: true,
   })
-  iops: number;
+  iops?: number;
 
-  @Column()
-  snapshotId: string;
+  @Column({
+    nullable: true,
+  })
+  snapshotId?: string;
 
   @Column({
     type: 'int',
+    nullable: true,
   })
-  volumeSize: number;
+  volumeSize?: number;
 
   @Column({
     type: 'enum',
     enum: EBSBlockDeviceVolumeType,
+    nullable: true,
   })
-  volumeType: EBSBlockDeviceVolumeType;
+  volumeType?: EBSBlockDeviceVolumeType;
 
-  @Column()
-  kmsKeyId: string;
+  @Column({
+    nullable: true,
+  })
+  kmsKeyId?: string;
 
   @Column({
     type: 'int',
+    nullable: true,
   })
-  throughput: number;
+  throughput?: number;
 
-  @Column()
-  outpostArn: string;
+  @Column({
+    nullable: true,
+  })
+  outpostArn?: string;
 
-  @Column()
-  encrypted: boolean;
+  @Column({
+    nullable: true,
+  })
+  encrypted?: boolean;
 }
