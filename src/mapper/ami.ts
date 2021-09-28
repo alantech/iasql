@@ -24,14 +24,20 @@ export const AMIMapper = new EntityMapper(AMI, {
   platform: async (ami: Image, _indexes: IndexedAWS) => ami?.Platform,
   platformDetails: async (ami: Image, _indexes: IndexedAWS) => ami?.PlatformDetails,
   usageOperation: async (ami: Image, _indexes: IndexedAWS) => ami?.UsageOperation,
-  productCodes: async (ami: Image, _indexes: IndexedAWS) => ami?.ProductCodes?.map(
-    pc => ProductCodeMapper.fromAWS(pc, _indexes)
-  ),
+  productCodes: async (ami: Image, _indexes: IndexedAWS) =>
+    ami?.ProductCodes && ami?.ProductCodes.length ?
+      await Promise.all(ami?.ProductCodes?.map(
+        pc => ProductCodeMapper.fromAWS(pc, _indexes)
+      )) :
+      [],
   ramdiskId: async (ami: Image, _indexes: IndexedAWS) => ami?.RamdiskId,
   state: async (ami: Image, _indexes: IndexedAWS) => ami?.State,
-  blockDeviceMappings: async (ami: Image, _indexes: IndexedAWS) => ami?.BlockDeviceMappings?.map(
-    bdm => EBSBlockDeviceMappingMapper.fromAWS(bdm, _indexes)
-  ),
+  blockDeviceMappings: async (ami: Image, _indexes: IndexedAWS) =>
+    ami?.BlockDeviceMappings && ami?.BlockDeviceMappings.length ?
+      await Promise.all(ami.BlockDeviceMappings.map(
+        bdm => EBSBlockDeviceMappingMapper.fromAWS(bdm, _indexes)
+      )) :
+      [],
   description: async (ami: Image, _indexes: IndexedAWS) => ami?.Description,
   enaSupport: async (ami: Image, _indexes: IndexedAWS) => ami?.EnaSupport,
   hypervisor: async (ami: Image, _indexes: IndexedAWS) => ami?.Hypervisor,
