@@ -7,7 +7,7 @@ export class FPGAInfo {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToMany(() => FPGADeviceInfo)
+  @ManyToMany(() => FPGADeviceInfo, { cascade: true })
   @JoinTable()
   fpgas: FPGADeviceInfo[];
 

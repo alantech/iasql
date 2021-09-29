@@ -13,6 +13,7 @@ import { InstanceStorageInfoMapper } from './instance_storage_info';
 import { EBSInfoMapper } from './ebs_info';
 import { NetworkInfoMapper } from './network_info';
 import { GPUInfoMapper } from './gpu_info';
+import { FPGAInfoMapper } from './fpga_info';
 
 export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   instanceType: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceType,
@@ -64,7 +65,10 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
     instanceType?.GpuInfo ? GPUInfoMapper.fromAWS(
       instanceType?.GpuInfo, indexes
     ) : undefined,
-  // fpgaInfo: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.FpgaInfo,
+  fpgaInfo: async (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+    instanceType?.FpgaInfo ? FPGAInfoMapper.fromAWS(
+      instanceType?.FpgaInfo, indexes
+    ) : undefined,
   // placementGroupInfo: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.PlacementGroupInfo,
   // inferenceAcceleratorInfo: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InferenceAcceleratorInfo,
   hibernationSupported: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.HibernationSupported,

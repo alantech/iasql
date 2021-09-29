@@ -531,7 +531,7 @@ export class InstanceType {
   })
   gpuInfo: GPUInfo;
 
-  @ManyToOne(() => FPGAInfo)
+  @ManyToOne(() => FPGAInfo, { cascade: true })
   @JoinColumn({
     name: 'fpga_info_id',
   })
