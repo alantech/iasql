@@ -7,4 +7,8 @@ import { StateReason, } from '../entity/state_reason';
 export const StateReasonMapper = new EntityMapper(StateReason, {
   code: async (sr: StateReasonAWS, _indexes: IndexedAWS) => sr?.Code,
   message: async (sr: StateReasonAWS, _indexes: IndexedAWS) => sr?.Message,
+}, {
+  createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
 })

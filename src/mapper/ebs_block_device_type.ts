@@ -14,4 +14,8 @@ export const EBSBlockDeviceTypeMapper = new EntityMapper(EBSBlockDeviceType, {
   throughput: async (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.Throughput,
   outpostArn: async (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.OutpostArn,
   encrypted: async (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.Encrypted,
+}, {
+  createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
 })

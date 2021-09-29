@@ -17,10 +17,13 @@ export class IndexedAWS {
 
   async populate(awsClient: AWS) {
     const populator = async (entity: string, awsMethod: string, awsArr: string, idProp: string) => {
+      console.log(`Populating ${entity}...`);
       const entitiesAws = await (awsClient as unknown as { [key: string]: Function })[awsMethod]();
+      console.log(`Querying AWS for ${entity} complete...`);
       for (const entityAws of (entitiesAws[awsArr] ?? [])) {
         this.set(entity, entityAws[idProp] ?? '', entityAws);
       }
+      console.log(`${entity} complete!`);
     }
     await Promise.all([
       populator('regions', 'getRegions', 'Regions', 'RegionName'),

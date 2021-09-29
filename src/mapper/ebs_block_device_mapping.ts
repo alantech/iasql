@@ -12,4 +12,8 @@ export const EBSBlockDeviceMappingMapper = new EntityMapper(EBSBlockDeviceMappin
     bdm?.Ebs, _indexes
   ),
   noDevice: async (bdm: BlockDeviceMapping, _indexes: IndexedAWS) => bdm?.NoDevice,
+}, {
+  createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
 })

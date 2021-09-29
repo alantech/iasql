@@ -22,4 +22,8 @@ export const SecurityGroupRuleMapper = new EntityMapper(SecurityGroupRule, {
   cidrIpv6: async (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.CidrIpv6,
   prefixListId: async (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.PrefixListId,
   description: async (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.Description,
+}, {
+  createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
 });

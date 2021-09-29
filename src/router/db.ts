@@ -154,6 +154,8 @@ db.get('/delete/:db', async (req, res) => {
 db.get('/check/:db', async (req, res) => {
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
+  const t1 = new Date().getTime();
+  console.log(`Checking ${dbname}`);
   let orm: TypeormWrapper | null = null;
   try {
     orm = await TypeormWrapper.createConn(dbname);
@@ -166,12 +168,20 @@ db.get('/check/:db', async (req, res) => {
       },
     });
     const indexes = new IndexedAWS();
+    const t2 = new Date().getTime();
+    console.log(`Setup took ${t2 - t1}ms`);
     await indexes.populate(awsClient);
+    const t3 = new Date().getTime();
+    console.log(`AWS record acquisition time: ${t3 - t2}ms`);
     const regionEntities = await indexes.toEntityList('regions', RegionMapper);
-    const diff = findDiff(regions, regionEntities, 'name');
+    const t4 = new Date().getTime();
+    console.log(`Mapping time: ${t4 - t3}ms`);
+    const diff = findDiff(regions,regionEntities, 'name');
+    const t5 = new Date().getTime();
+    console.log(`Diff time: ${t5 - t4}ms`);
     res.end(`
-      To create: ${inspect(diff.entitiesToCreate)}
-      To delete: ${inspect(diff.entitiesToDelete)}
+      DB Only: ${inspect(diff.entitiesInDbOnly)}
+      AWS Only: ${inspect(diff.entitiesInAwsOnly)}
       Differences: ${inspect(diff.entitiesDiff)}
     `);
   } catch (e: any) {

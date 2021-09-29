@@ -2,17 +2,23 @@ import { memoize } from 'memoize-cache-decorator'
 
 import { IndexedAWS, } from '../services/indexed-aws'
 
+type AwsFn = (obj: any, indexes: IndexedAWS) => Promise<any>;
+type FromAws = { [key: string]: AwsFn, };
+type ToAws = { createAWS: AwsFn, deleteAWS: AwsFn, updateAWS: AwsFn, };
+
 export class EntityMapper {
   private entity: any;
-  private methods: any;
+  private methods: FromAws;
+  private toAws: ToAws;
 
-  constructor(entity: any, methods: any) {
+  constructor(entity: any, methods: FromAws, toAws: ToAws) {
     this.entity = entity;
     this.methods = methods;
+    this.toAws = toAws;
   }
 
   @memoize({
-    resolver: (obj, indexes) => JSON.stringify(obj), // TODO: Better hashing fn
+    resolver: (obj, _indexes) => JSON.stringify(obj), // TODO: Better hashing fn
   })
   async fromAWS(obj: any, indexes: IndexedAWS): Promise<any> {
     const newEntity = new this.entity();
@@ -22,4 +28,15 @@ export class EntityMapper {
     return newEntity;
   }
 
+  createAWS(obj: any, indexes: IndexedAWS): Promise<any> {
+    return this.toAws.createAWS(obj, indexes);
+  }
+
+  deleteAWS(obj: any, indexes: IndexedAWS): Promise<any> {
+    return this.toAws.deleteAWS(obj, indexes);
+  }
+
+  updateAWS(obj: any, indexes: IndexedAWS): Promise<any> {
+    return this.toAws.updateAWS(obj, indexes);
+  }
 }

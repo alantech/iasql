@@ -16,4 +16,8 @@ export const SecurityGroupMapper = new EntityMapper(SecurityGroup, {
   securityGroupRules: async (sg: SecurityGroupAWS, i: IndexedAWS) => Object.values(
     i.get('securityGroupRules') as { [key: string]: SecurityGroupRuleAWS }
   ).filter((sgr: SecurityGroupRuleAWS) => sgr?.GroupId === sg?.GroupId),
+}, {
+  createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
 });
