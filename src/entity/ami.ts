@@ -128,9 +128,9 @@ export class AMI {
   })
   state?: AMIImageState;
 
-  // @ManyToMany(() => EBSBlockDeviceMapping, { cascade: true })
-  // @JoinTable()
-  // blockDeviceMappings: EBSBlockDeviceMapping[];
+  @ManyToMany(() => EBSBlockDeviceMapping, { cascade: true })
+  @JoinTable()
+  blockDeviceMappings: EBSBlockDeviceMapping[];
 
   @Column({
     nullable: true,
@@ -176,17 +176,17 @@ export class AMI {
   })
   sirovNetSupport?: string;
 
-  // @ManyToOne(() => StateReason, { cascade: true })
-  // @JoinColumn({
-  //   name: 'state_reason_id',
-  // })
-  // stateReason: StateReason;
+  @ManyToOne(() => StateReason)
+  @JoinColumn({
+    name: 'state_reason_id',
+  })
+  stateReason: StateReason;
 
-  // @ManyToOne(() => BootMode, { cascade: true })
-  // @JoinColumn({
-  //   name: 'boot_mode_id',
-  // })
-  // bootMode: BootMode;
+  @ManyToOne(() => BootMode)
+  @JoinColumn({
+    name: 'boot_mode_id',
+  })
+  bootMode: BootMode;
 
   @Column({
     type: 'timestamp with time zone',
@@ -194,7 +194,7 @@ export class AMI {
   })
   deprecationTime?: Date;
 
-  // @ManyToMany(() => Tag, { cascade: true })
-  // @JoinTable()
-  // tags: Tag[];
+  @ManyToMany(() => Tag, { cascade: true })
+  @JoinTable()
+  tags: Tag[];
 }
