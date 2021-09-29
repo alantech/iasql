@@ -13,8 +13,8 @@ import { createConnection, Connection, } from 'typeorm'
 import { AWS, } from '../services/gateways/aws'
 import config from '../config'
 import { TypeormWrapper, } from '../services/typeorm'
-import { AMI, CPUArchitecture, ProductCode, Region, SecurityGroup, SecurityGroupRule } from '../entity'
-import { AMIMapper, CPUArchitectureMapper, ProductCodeMapper, RegionMapper, SecurityGroupMapper, SecurityGroupRuleMapper, } from '../mapper'
+import { AMI, CPUArchitecture, InstanceType, ProductCode, Region, SecurityGroup, SecurityGroupRule, UsageClass } from '../entity'
+import { AMIMapper, CPUArchitectureMapper, InstanceTypeMapper, ProductCodeMapper, RegionMapper, SecurityGroupMapper, SecurityGroupRuleMapper, UsageClassMapper, } from '../mapper'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { findDiff, } from '../services/diff'
 
@@ -37,7 +37,7 @@ const migrationNames = migrationFiles.map(f => {
 // Then we dynamically `require` the migration files and construct the inner classes
 const migrationObjs = migrationFiles
   .map(f => require(`../migration/${f}`))
-  .map((c,i) => c[migrationNames[i]])
+  .map((c, i) => c[migrationNames[i]])
   .map(M => new M());
 // Finally we use this in this function to execute all of the migrations in order for a provided
 // connection, but without the migration management metadata being added, which is actually a plus
@@ -106,10 +106,10 @@ db.get('/create/:db', async (req, res) => {
       );
       await Promise.all(securityGroupRules.map(sgr => orm?.save(SecurityGroupRule, sgr)));
     })(), (async () => {
-       const t4 = new Date();
-       const arch = await indexes.toEntityList('cpuArchitectures', CPUArchitectureMapper);
-       console.log(arch)
-       const t5 = new Date();
+      const t4 = new Date();
+      const arch = await indexes.toEntityList('cpuArchitectures', CPUArchitectureMapper);
+      console.log(arch)
+      const t5 = new Date();
       console.log(`cpuArchitectures mapped in: ${t5.getTime() - t4.getTime()}`)
       await orm.save(CPUArchitecture, arch);
       const t6 = new Date();
@@ -129,7 +129,14 @@ db.get('/create/:db', async (req, res) => {
         await orm?.save(AMI, slice);
       }
       console.log(`amis saved in: ${new Date().getTime() - t9.getTime()}`)
-    })(),]);
+    })(),
+    (async () => {
+      const usageClasses = await indexes.toEntityList('usageClasses', UsageClassMapper);
+      await orm.save(UsageClass, usageClasses);
+      const instanceTypes = await indexes.toEntityList('instanceTypes', InstanceTypeMapper);
+      await orm?.save(InstanceType, instanceTypes);
+    })()
+    ]);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
     res.end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
@@ -181,7 +188,7 @@ db.get('/check/:db', async (req, res) => {
     const indexes = new IndexedAWS();
     await indexes.populate(awsClient);
     const regionEntities = await indexes.toEntityList('regions', RegionMapper);
-    const diff = findDiff(regions,regionEntities, 'name');
+    const diff = findDiff(regions, regionEntities, 'name');
     res.end(`
       To create: ${inspect(diff.entitiesToCreate)}
       To delete: ${inspect(diff.entitiesToDelete)}

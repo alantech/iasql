@@ -4,12 +4,18 @@ import { InstanceTypeInfo } from '@aws-sdk/client-ec2';
 import { IndexedAWS, } from '../services/indexed-aws'
 import { EntityMapper, } from './entity';
 import { InstanceType } from '../entity/instance_type';
+import { UsageClassMapper } from './usage_class';
 
 export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   instanceType: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceType,
   currentGeneration: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.CurrentGeneration,
   freeTierEligible: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.FreeTierEligible,
-  // supportedUsageClasses: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.SupportedUsageClasses,
+  supportedUsageClasses: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) =>
+    instanceType?.SupportedUsageClasses && instanceType?.SupportedUsageClasses.length ?
+      await Promise.all(instanceType?.SupportedUsageClasses?.map(
+        usageClass => UsageClassMapper.fromAWS(usageClass, _indexes)
+      )) :
+      [],
   // supportedRootDeviceTypes: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.SupportedRootDeviceTypes,
   // supportedVirtualizationTypes: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.SupportedVirtualizationTypes,
   bareMetal: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BareMetal,

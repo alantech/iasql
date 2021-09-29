@@ -1,4 +1,3 @@
-
 import { Tag as TagAWS, } from '@aws-sdk/client-ec2';
 
 import { IndexedAWS, } from '../services/indexed-aws'

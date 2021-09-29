@@ -1,6 +1,6 @@
 import { AWS, } from './gateways/aws'
 import { EntityMapper, } from '../mapper/entity'
-import { Image } from '@aws-sdk/client-ec2';
+import { Image, InstanceTypeInfo } from '@aws-sdk/client-ec2';
 
 type Index = {
   [entity: string]: {
@@ -32,11 +32,17 @@ export class IndexedAWS {
         'SecurityGroupRuleId',
       ),
       populator('amis', 'getAMIs', 'Images', 'ImageId'),
+      populator('instanceTypes', 'getInstanceTypes', 'InstanceTypes', 'InstanceType'),
     ]);
-    this.setAuxAmiIndexes();
+    this.setAuxIndexes();
   }
 
-  setAuxAmiIndexes() {
+  setAuxIndexes() {
+    this.setAMIAuxIndexes();
+    this.setInstanceTypeAuxIndexes();
+  }
+
+  setAMIAuxIndexes() {
     const amis: { [key: string]: Image } = this.get('amis');
     for (const [_id, ami] of Object.entries(amis)) {
       if (ami.Architecture) {
@@ -48,6 +54,21 @@ export class IndexedAWS {
             this.set('productCodes', pc.ProductCodeId, pc)
           } else {
             console.log('is this possible?');
+          }
+        }
+      }
+    }
+  }
+
+  setInstanceTypeAuxIndexes() {
+    const instanceTypes: { [key: string]: InstanceTypeInfo } = this.get('instanceTypes');
+    for (const [_id, instanceType] of Object.entries(instanceTypes)) {
+      if (instanceType.SupportedUsageClasses && instanceType.SupportedUsageClasses.length) {
+        for (const usageClass of instanceType.SupportedUsageClasses) {
+          if (usageClass) {
+            this.set('usageClasses', usageClass, usageClass)
+          } else {
+            throw Error('usageClasses is this possible?');
           }
         }
       }
