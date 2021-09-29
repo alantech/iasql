@@ -487,7 +487,7 @@ export class InstanceType {
   })
   hypervisor: InstanceTypeHypervisor;
 
-  @ManyToOne(() => ProcessorInfo)
+  @ManyToOne(() => ProcessorInfo, { cascade: true })
   @JoinColumn({
     name: 'processor_info_id',
   })
