@@ -2,7 +2,7 @@ import { memoize } from 'memoize-cache-decorator'
 
 import { IndexedAWS, } from '../services/indexed-aws'
 
-type AwsFn = (obj: any, indexes: IndexedAWS) => Promise<any>;
+type AwsFn = (obj: any, indexes: IndexedAWS) => any;
 type FromAws = { [key: string]: AwsFn, };
 type ToAws = { createAWS: AwsFn, deleteAWS: AwsFn, updateAWS: AwsFn, };
 
@@ -20,10 +20,10 @@ export class EntityMapper {
   @memoize({
     resolver: (obj, _indexes) => JSON.stringify(obj), // TODO: Better hashing fn
   })
-  async fromAWS(obj: any, indexes: IndexedAWS): Promise<any> {
+  fromAWS(obj: any, indexes: IndexedAWS): any {
     const newEntity = new this.entity();
     for(const p of Object.getOwnPropertyNames(this.methods)) {
-      newEntity[p] = await this.methods[p](obj, indexes);
+      newEntity[p] = this.methods[p](obj, indexes);
     }
     return newEntity;
   }

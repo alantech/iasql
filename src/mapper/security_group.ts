@@ -8,12 +8,12 @@ import { EntityMapper, } from './entity';
 import { SecurityGroup, } from '../entity';
 
 export const SecurityGroupMapper = new EntityMapper(SecurityGroup, {
-  description: async (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.Description,
-  groupName: async (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.GroupName,
-  ownerId: async (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.OwnerId,
-  groupId: async (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.GroupId,
-  vpcId: async (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.VpcId,
-  securityGroupRules: async (sg: SecurityGroupAWS, i: IndexedAWS) => Object.values(
+  description: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.Description,
+  groupName: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.GroupName,
+  ownerId: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.OwnerId,
+  groupId: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.GroupId,
+  vpcId: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.VpcId,
+  securityGroupRules: (sg: SecurityGroupAWS, i: IndexedAWS) => Object.values(
     i.get('securityGroupRules') as { [key: string]: SecurityGroupRuleAWS }
   ).filter((sgr: SecurityGroupRuleAWS) => sgr?.GroupId === sg?.GroupId),
 }, {

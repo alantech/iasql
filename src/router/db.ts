@@ -52,7 +52,7 @@ async function migrate(conn: Connection) {
 }
 
 db.get('/create/:db', async (req, res) => {
-  const t1 = new Date();
+  const t1 = Date.now();
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
   let conn1, conn2;
@@ -85,38 +85,68 @@ db.get('/create/:db', async (req, res) => {
       },
     });
     const indexes = new IndexedAWS();
-    const t2 = new Date();
-    console.log(`Start populating index after: ${t2.getTime() - t1.getTime()}`)
+    const t2 = Date.now();
+    console.log(`Start populating index after ${t2 - t1}ms`)
     await indexes.populate(awsClient);
-    const t3 = new Date();
-    console.log(`Populate indexes in: ${t3.getTime() - t2.getTime()}`)
+    const t3 = Date.now();
+    console.log(`Populate indexes in ${t3 - t2}ms`)
     // TODO: Put this somewhere else
     orm = await TypeormWrapper.createConn(dbname);
     console.log(`Populating new db: ${dbname}`);
     await Promise.all([(async () => {
+      const ta = Date.now();
       const regions = await indexes.toEntityList('regions', RegionMapper);
-      await Promise.all(regions.map(r => orm?.save(Region, r)));
+      await orm.save(Region, regions);
+      const tb = Date.now();
+      console.log(`Regions stored in ${tb - ta}ms`);
     })(), (async () => {
+      const tc = Date.now();
       const securityGroups = await indexes.toEntityList('securityGroups', SecurityGroupMapper);
-      await Promise.all(securityGroups.map(sg => orm?.save(SecurityGroup, sg)));
+      await orm.save(SecurityGroup, securityGroups);
+      const td = Date.now();
+      console.log(`Security groups stored in ${td - tc}ms`);
       // The security group rules *must* be added after the security groups
       const securityGroupRules = await indexes.toEntityList(
         'securityGroupRules',
         SecurityGroupRuleMapper,
       );
-      await Promise.all(securityGroupRules.map(sgr => orm?.save(SecurityGroupRule, sgr)));
+      await orm.save(SecurityGroupRule, securityGroupRules);
+      const te = Date.now();
+      console.log(`Security group rules stored in ${te - td}ms`);
     })(), (async () => {
-      const arch = await indexes.toEntityList('cpuArchitectures', CPUArchitectureMapper);
-      await orm.save(CPUArchitecture, arch);
-      const productCodes = await indexes.toEntityList('productCodes', ProductCodeMapper);
-      await orm.save(ProductCode, productCodes);
-      const stateReason = await indexes.toEntityList('stateReason', StateReasonMapper);
-      await orm.save(StateReason, stateReason);
-      const bootMode = await indexes.toEntityList('bootMode', BootModeMapper);
-      await orm.save(BootMode, bootMode);
-      const amis = await indexes.toEntityList('amis', AMIMapper);
-      await orm?.save(AMI, amis);
+      await Promise.all([(async () => {
+        const tf = Date.now();
+        const arch = indexes.toEntityList('cpuArchitectures', CPUArchitectureMapper);
+        await orm.save(CPUArchitecture, arch);
+        const tg = Date.now();
+        console.log(`CPU Archs stored in ${tg - tf}ms`);
+      })(), (async () => {
+        const th = Date.now();
+        const productCodes = indexes.toEntityList('productCodes', ProductCodeMapper);
+        await orm.save(ProductCode, productCodes);
+        const ti = Date.now();
+        console.log(`Product codes stored in ${ti - th}ms`);
+      })(), (async () => {
+        const tj = Date.now();
+        const stateReason = indexes.toEntityList('stateReason', StateReasonMapper);
+        await orm.save(StateReason, stateReason);
+        const tk = Date.now();
+        console.log(`State reason stored in ${tk - tj}ms`);
+      })(), (async () => {
+        const tl = Date.now();
+        const bootMode = indexes.toEntityList('bootMode', BootModeMapper);
+        await orm.save(BootMode, bootMode);
+        const tm = Date.now();
+        console.log(`Boot mode stored in ${tm - tl}ms`);
+      })()]);
+      const tn = Date.now();
+      const amis = indexes.toEntityList('amis', AMIMapper);
+      await orm.save(AMI, amis);
+      const to = Date.now();
+      console.log(`AMIs stored in ${to - tn}ms`);
     })(),]);
+    const t4 = Date.now();
+    console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
     res.end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
@@ -173,7 +203,7 @@ db.get('/check/:db', async (req, res) => {
     await indexes.populate(awsClient);
     const t3 = new Date().getTime();
     console.log(`AWS record acquisition time: ${t3 - t2}ms`);
-    const regionEntities = await indexes.toEntityList('regions', RegionMapper);
+    const regionEntities = indexes.toEntityList('regions', RegionMapper);
     const t4 = new Date().getTime();
     console.log(`Mapping time: ${t4 - t3}ms`);
     const diff = findDiff(regions,regionEntities, 'name');

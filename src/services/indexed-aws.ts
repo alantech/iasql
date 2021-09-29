@@ -17,13 +17,15 @@ export class IndexedAWS {
 
   async populate(awsClient: AWS) {
     const populator = async (entity: string, awsMethod: string, awsArr: string, idProp: string) => {
+      const t1 = Date.now();
       console.log(`Populating ${entity}...`);
       const entitiesAws = await (awsClient as unknown as { [key: string]: Function })[awsMethod]();
       console.log(`Querying AWS for ${entity} complete...`);
       for (const entityAws of (entitiesAws[awsArr] ?? [])) {
         this.set(entity, entityAws[idProp] ?? '', entityAws);
       }
-      console.log(`${entity} complete!`);
+      const t2 = Date.now();
+      console.log(`${entity} complete in ${t2 - t1}ms`);
     }
     await Promise.all([
       populator('regions', 'getRegions', 'Regions', 'RegionName'),
@@ -67,9 +69,9 @@ export class IndexedAWS {
     }
   }
 
-  async toEntityList(entity: string, mapper: EntityMapper) {
+  toEntityList(entity: string, mapper: EntityMapper) {
     const entitiesAws = Object.values(this.get(entity) ?? {});
-    return await Promise.all(entitiesAws.map(e => mapper.fromAWS(e, this)));
+    return entitiesAws.map(e => mapper.fromAWS(e, this));
   }
 
   set(entity: string, key: string, value: any) {
