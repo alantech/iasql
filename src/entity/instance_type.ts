@@ -519,7 +519,7 @@ export class InstanceType {
   })
   ebsInfo: EBSInfo;
 
-  @ManyToOne(() => NetworkInfo)
+  @ManyToOne(() => NetworkInfo, { cascade: true })
   @JoinColumn({
     name: 'network_info_id',
   })
