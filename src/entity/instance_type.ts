@@ -493,7 +493,7 @@ export class InstanceType {
   })
   processorInfo: ProcessorInfo;
 
-  @ManyToOne(() => VCPUInfo)
+  @ManyToOne(() => VCPUInfo, { cascade: true })
   @JoinColumn({
     name: 'v_cpu_info_id',
   })

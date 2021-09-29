@@ -8,6 +8,7 @@ import { UsageClassMapper } from './usage_class';
 import { DeviceTypeMapper } from './device_type';
 import { VirtualizationTypeMapper } from './virtualization_type';
 import { ProcessorInfoMapper } from './processor_info';
+import { VCPUInfoMapper } from './v_cpu_info';
 
 export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   instanceType: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceType,
@@ -37,7 +38,10 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
     instanceType?.ProcessorInfo ? ProcessorInfoMapper.fromAWS(
       instanceType?.ProcessorInfo, indexes
     ) : undefined,
-  // vCPUInfo: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.VCpuInfo,
+  vCPUInfo: async (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+    instanceType?.VCpuInfo ? VCPUInfoMapper.fromAWS(
+      instanceType?.VCpuInfo, indexes
+    ) : undefined,
   memorySizeInMiB: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.MemoryInfo?.SizeInMiB,
   instanceStorageSupported: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceStorageSupported,
   // instanceStorageInfo: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceStorageInfo,
