@@ -37,7 +37,7 @@ const migrationNames = migrationFiles.map(f => {
 // Then we dynamically `require` the migration files and construct the inner classes
 const migrationObjs = migrationFiles
   .map(f => require(`../migration/${f}`))
-  .map((c,i) => c[migrationNames[i]])
+  .map((c, i) => c[migrationNames[i]])
   .map(M => new M());
 // Finally we use this in this function to execute all of the migrations in order for a provided
 // connection, but without the migration management metadata being added, which is actually a plus
@@ -105,9 +105,8 @@ db.get('/create/:db', async (req, res) => {
         SecurityGroupRuleMapper,
       );
       await Promise.all(securityGroupRules.map(sgr => orm?.save(SecurityGroupRule, sgr)));
-    })(), 
-    (async () => {
-       const arch = await indexes.toEntityList('cpuArchitectures', CPUArchitectureMapper);
+    })(), (async () => {
+      const arch = await indexes.toEntityList('cpuArchitectures', CPUArchitectureMapper);
       await orm.save(CPUArchitecture, arch);
       const productCodes = await indexes.toEntityList('productCodes', ProductCodeMapper);
       await orm.save(ProductCode, productCodes);
@@ -115,14 +114,9 @@ db.get('/create/:db', async (req, res) => {
       await orm.save(StateReason, stateReason);
       const bootMode = await indexes.toEntityList('bootMode', BootModeMapper);
       await orm.save(BootMode, bootMode);
-      const t8 = new Date();
       const amis = await indexes.toEntityList('amis', AMIMapper);
-      const t9 = new Date();
-      console.log(`amis mapped in: ${t9.getTime() - t8.getTime()}`)
       await orm?.save(AMI, amis);
-      console.log(`amis saved in: ${new Date().getTime() - t9.getTime()}`)
-    })(),
-  ]);
+    })(),]);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
     res.end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
@@ -174,7 +168,7 @@ db.get('/check/:db', async (req, res) => {
     const indexes = new IndexedAWS();
     await indexes.populate(awsClient);
     const regionEntities = await indexes.toEntityList('regions', RegionMapper);
-    const diff = findDiff(regions,regionEntities, 'name');
+    const diff = findDiff(regions, regionEntities, 'name');
     res.end(`
       To create: ${inspect(diff.entitiesToCreate)}
       To delete: ${inspect(diff.entitiesToDelete)}
