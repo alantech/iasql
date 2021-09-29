@@ -2,7 +2,7 @@ import { Image } from '@aws-sdk/client-ec2';
 
 import { AWS, } from './gateways/aws'
 import * as Entities from '../entity'
-import * as Mappers from '../mapper'
+import { EntityMapper, } from '../mapper'
 
 
 type Index = {
@@ -31,7 +31,9 @@ export class IndexedAWS {
       console.log(`${entity} complete in ${t2 - t1}ms`);
     }
     await Promise.all([
-      Mappers.RegionMapper.readAWS(awsClient, this),
+      // TODO: Figure out circular dep issue here
+      //Mappers.RegionMapper.readAWS(awsClient, this),
+      populator(Entities.Region, 'getRegions', 'Regions', 'RegionName'),
       populator(Entities.SecurityGroup, 'getSecurityGroups', 'SecurityGroups', 'GroupId'),
       populator(
         Entities.SecurityGroupRule,
@@ -72,7 +74,7 @@ export class IndexedAWS {
     }
   }
 
-  toEntityList(mapper: Mappers.EntityMapper) {
+  toEntityList(mapper: EntityMapper) {
     const entity = mapper.getEntity();
     const entitiesAws = Object.values(this.get(entity) ?? {});
     return entitiesAws.map(e => mapper.fromAWS(e, this));
