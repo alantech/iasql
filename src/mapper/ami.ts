@@ -33,12 +33,12 @@ export const AMIMapper = new EntityMapper(AMI, {
     [],
   ramdiskId: async (ami: Image, _indexes: IndexedAWS) => ami?.RamdiskId,
   state: async (ami: Image, _indexes: IndexedAWS) => ami?.State,
-  // blockDeviceMappings: async (ami: Image, _indexes: IndexedAWS) =>
-  //   ami?.BlockDeviceMappings && ami?.BlockDeviceMappings.length ?
-  //     await Promise.all(ami.BlockDeviceMappings.map(
-  //       bdm => EBSBlockDeviceMappingMapper.fromAWS(bdm, _indexes)
-  //     )) :
-  //     [],
+  blockDeviceMappings: async (ami: Image, _indexes: IndexedAWS) =>
+    ami?.BlockDeviceMappings && ami?.BlockDeviceMappings.length ?
+      await Promise.all(ami.BlockDeviceMappings.map(
+        bdm => EBSBlockDeviceMappingMapper.fromAWS(bdm, _indexes)
+      )) :
+      [],
   description: async (ami: Image, _indexes: IndexedAWS) => ami?.Description,
   enaSupport: async (ami: Image, _indexes: IndexedAWS) => ami?.EnaSupport,
   hypervisor: async (ami: Image, _indexes: IndexedAWS) => ami?.Hypervisor,
@@ -47,12 +47,12 @@ export const AMIMapper = new EntityMapper(AMI, {
   rootDeviceName: async (ami: Image, _indexes: IndexedAWS) => ami?.RootDeviceName,
   rootDeviceType: async (ami: Image, _indexes: IndexedAWS) => ami?.RootDeviceType,
   sirovNetSupport: async (ami: Image, _indexes: IndexedAWS) => ami?.SriovNetSupport,
-  // stateReason: async (ami: Image, _indexes: IndexedAWS) => ami?.StateReason ? StateReasonMapper.fromAWS(
-  //   ami?.StateReason, _indexes
-  // ) : undefined,
-  // bootMode: async (ami: Image, _indexes: IndexedAWS) => ami?.BootMode ? BootModeMapper.fromAWS(
-  //   ami?.BootMode, _indexes
-  // ) : undefined,
+  stateReason: async (ami: Image, _indexes: IndexedAWS) => ami?.StateReason ? StateReasonMapper.fromAWS(
+    ami?.StateReason, _indexes
+  ) : undefined,
+  bootMode: async (ami: Image, _indexes: IndexedAWS) => ami?.BootMode ? BootModeMapper.fromAWS(
+    ami?.BootMode, _indexes
+  ) : undefined,
   deprecationTime: async (ami: Image, _indexes: IndexedAWS) => ami?.DeprecationTime ? ami.DeprecationTime : undefined,
   // tags: async (ami: Image, _indexes: IndexedAWS) => ami?.Tags?.map(
   //   tag => TagMapper.fromAWS(tag, _indexes)

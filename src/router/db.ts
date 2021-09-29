@@ -13,8 +13,8 @@ import { createConnection, Connection, } from 'typeorm'
 import { AWS, } from '../services/gateways/aws'
 import config from '../config'
 import { TypeormWrapper, } from '../services/typeorm'
-import { AMI, CPUArchitecture, ProductCode, Region, SecurityGroup, SecurityGroupRule } from '../entity'
-import { AMIMapper, CPUArchitectureMapper, ProductCodeMapper, RegionMapper, SecurityGroupMapper, SecurityGroupRuleMapper, } from '../mapper'
+import { AMI, BootMode, CPUArchitecture, EBSBlockDeviceMapping, EBSBlockDeviceType, ProductCode, Region, SecurityGroup, SecurityGroupRule, StateReason } from '../entity'
+import { AMIMapper, BootModeMapper, CPUArchitectureMapper, EBSBlockDeviceMappingMapper, EBSBlockDeviceTypeMapper, ProductCodeMapper, RegionMapper, SecurityGroupMapper, SecurityGroupRuleMapper, StateReasonMapper, } from '../mapper'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { findDiff, } from '../services/diff'
 
@@ -105,31 +105,24 @@ db.get('/create/:db', async (req, res) => {
         SecurityGroupRuleMapper,
       );
       await Promise.all(securityGroupRules.map(sgr => orm?.save(SecurityGroupRule, sgr)));
-    })(), (async () => {
-       const t4 = new Date();
+    })(), 
+    (async () => {
        const arch = await indexes.toEntityList('cpuArchitectures', CPUArchitectureMapper);
-       console.log(arch)
-       const t5 = new Date();
-      console.log(`cpuArchitectures mapped in: ${t5.getTime() - t4.getTime()}`)
       await orm.save(CPUArchitecture, arch);
-      const t6 = new Date();
-      console.log(`cpuArchitectures saved in: ${t6.getTime() - t5.getTime()}`)
       const productCodes = await indexes.toEntityList('productCodes', ProductCodeMapper);
-      const t7 = new Date();
-      console.log(`productCodes mapped in: ${t7.getTime() - t6.getTime()}`)
       await orm.save(ProductCode, productCodes);
+      const stateReason = await indexes.toEntityList('stateReason', StateReasonMapper);
+      await orm.save(StateReason, stateReason);
+      const bootMode = await indexes.toEntityList('bootMode', BootModeMapper);
+      await orm.save(BootMode, bootMode);
       const t8 = new Date();
-      console.log(`productCodes saved in: ${t8.getTime() - t7.getTime()}`)
       const amis = await indexes.toEntityList('amis', AMIMapper);
       const t9 = new Date();
       console.log(`amis mapped in: ${t9.getTime() - t8.getTime()}`)
-      const chunks = 500;
-      for (let i = 0; i < amis.length; i += chunks) {
-        const slice = amis.slice(i, i + chunks);
-        await orm?.save(AMI, slice);
-      }
+      await orm?.save(AMI, amis);
       console.log(`amis saved in: ${new Date().getTime() - t9.getTime()}`)
-    })(),]);
+    })(),
+  ]);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
     res.end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
