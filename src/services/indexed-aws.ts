@@ -82,6 +82,15 @@ export class IndexedAWS {
           }
         }
       }
+      if (instanceType.SupportedRootDeviceTypes && instanceType.SupportedRootDeviceTypes.length) {
+        for (const supportedRootDeviceType of instanceType.SupportedRootDeviceTypes) {
+          if (supportedRootDeviceType) {
+            this.set('supportedRootDeviceTypes', supportedRootDeviceType, supportedRootDeviceType)
+          } else {
+            throw Error('supportedRootDeviceTypes is this possible?');
+          }
+        }
+      }
     }
   }
 

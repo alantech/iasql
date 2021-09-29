@@ -5,18 +5,24 @@ import { IndexedAWS, } from '../services/indexed-aws'
 import { EntityMapper, } from './entity';
 import { InstanceType } from '../entity/instance_type';
 import { UsageClassMapper } from './usage_class';
+import { DeviceTypeMapper } from './device_type';
 
 export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   instanceType: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceType,
   currentGeneration: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.CurrentGeneration,
   freeTierEligible: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.FreeTierEligible,
-  supportedUsageClasses: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) =>
+  supportedUsageClasses: async (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.SupportedUsageClasses && instanceType?.SupportedUsageClasses.length ?
       await Promise.all(instanceType?.SupportedUsageClasses?.map(
-        usageClass => UsageClassMapper.fromAWS(usageClass, _indexes)
+        usageClass => UsageClassMapper.fromAWS(usageClass, indexes)
       )) :
       [],
-  // supportedRootDeviceTypes: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.SupportedRootDeviceTypes,
+  supportedRootDeviceTypes: async (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+    instanceType?.SupportedRootDeviceTypes && instanceType?.SupportedRootDeviceTypes.length ?
+      await Promise.all(instanceType?.SupportedRootDeviceTypes?.map(
+        deviceType => DeviceTypeMapper.fromAWS(deviceType, indexes)
+      )) :
+      [],
   // supportedVirtualizationTypes: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.SupportedVirtualizationTypes,
   bareMetal: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BareMetal,
   hypervisor: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.Hypervisor,
