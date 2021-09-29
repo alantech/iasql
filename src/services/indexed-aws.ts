@@ -53,9 +53,19 @@ export class IndexedAWS {
           if (pc.ProductCodeId) {
             this.set('productCodes', pc.ProductCodeId, pc)
           } else {
-            console.log('is this possible?');
+            throw Error('productCodes is this possible?');
           }
         }
+      }
+      if (ami.StateReason) {
+        if (ami.StateReason.Code) {
+          this.set('stateReason', ami.StateReason.Code, ami.StateReason)
+        } else {
+          throw Error('stateReason is this possible?')
+        }
+      }
+      if (ami.BootMode) {
+        this.set('bootMode', ami.BootMode, ami.BootMode)
       }
     }
   }
@@ -76,7 +86,7 @@ export class IndexedAWS {
   }
 
   async toEntityList(entity: string, mapper: EntityMapper) {
-    const entitiesAws = Object.values(this.get(entity));
+    const entitiesAws = Object.values(this.get(entity) ?? {});
     return await Promise.all(entitiesAws.map(e => mapper.fromAWS(e, this)));
   }
 
@@ -93,6 +103,7 @@ export class IndexedAWS {
       throw new Error('Error getting indexed entities');
     }
     if (entity && key) {
+      if (!(entity in this.index)) return undefined; 
       return this.index[entity][key];
     }
     if (entity) {
