@@ -525,7 +525,7 @@ export class InstanceType {
   })
   networkInfo: NetworkInfo;
 
-  @ManyToOne(() => GPUInfo)
+  @ManyToOne(() => GPUInfo, { cascade: true })
   @JoinColumn({
     name: 'gpu_info_id',
   })
