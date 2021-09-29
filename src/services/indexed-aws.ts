@@ -1,7 +1,6 @@
 import { Image } from '@aws-sdk/client-ec2';
 
 import { AWS, } from './gateways/aws'
-import * as Entities from '../entity'
 import { EntityMapper, } from '../mapper'
 
 
@@ -16,62 +15,6 @@ export class IndexedAWS {
 
   constructor() {
     this.index = {};
-  }
-
-  async populate(awsClient: AWS) {
-    const populator = async (entity: Function, awsMethod: string, awsArr: string, idProp: string) => {
-      const t1 = Date.now();
-      console.log(`Populating ${entity}...`);
-      const entitiesAws = await (awsClient as unknown as { [key: string]: Function })[awsMethod]();
-      console.log(`Querying AWS for ${entity} complete...`);
-      for (const entityAws of (entitiesAws[awsArr] ?? [])) {
-        this.set(entity, entityAws[idProp] ?? '', entityAws);
-      }
-      const t2 = Date.now();
-      console.log(`${entity} complete in ${t2 - t1}ms`);
-    }
-    await Promise.all([
-      // TODO: Figure out circular dep issue here
-      //Mappers.RegionMapper.readAWS(awsClient, this),
-      populator(Entities.Region, 'getRegions', 'Regions', 'RegionName'),
-      populator(Entities.SecurityGroup, 'getSecurityGroups', 'SecurityGroups', 'GroupId'),
-      populator(
-        Entities.SecurityGroupRule,
-        'getSecurityGroupRules',
-        'SecurityGroupRules',
-        'SecurityGroupRuleId',
-      ),
-      populator(Entities.AMI, 'getAMIs', 'Images', 'ImageId'),
-    ]);
-    this.setAuxAmiIndexes();
-  }
-
-  setAuxAmiIndexes() {
-    const amis: { [key: string]: Image } = this.get(Entities.AMI);
-    for (const [_id, ami] of Object.entries(amis)) {
-      if (ami.Architecture) {
-        this.set(Entities.CPUArchitecture, ami.Architecture, ami.Architecture);
-      }
-      if (ami.ProductCodes && ami.ProductCodes.length) {
-        for (const pc of ami.ProductCodes) {
-          if (pc.ProductCodeId) {
-            this.set(Entities.ProductCode, pc.ProductCodeId, pc);
-          } else {
-            throw Error('productCodes is this possible?');
-          }
-        }
-      }
-      if (ami.StateReason) {
-        if (ami.StateReason.Code) {
-          this.set(Entities.StateReason, ami.StateReason.Code, ami.StateReason);
-        } else {
-          throw Error('stateReason is this possible?')
-        }
-      }
-      if (ami.BootMode) {
-        this.set(Entities.BootMode, ami.BootMode, ami.BootMode);
-      }
-    }
   }
 
   toEntityList(mapper: EntityMapper) {

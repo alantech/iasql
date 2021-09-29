@@ -51,6 +51,60 @@ async function migrate(conn: Connection) {
   await qr.release();
 }
 
+async function populate(awsClient: AWS, indexes: IndexedAWS) {
+  const populator = async (entity: Function, awsMethod: string, awsArr: string, idProp: string) => {
+    const t1 = Date.now();
+    console.log(`Populating ${entity.name}...`);
+    const entitiesAws = await (awsClient as unknown as { [key: string]: Function })[awsMethod]();
+    console.log(`Querying AWS for ${entity.name} complete...`);
+    for (const entityAws of (entitiesAws[awsArr] ?? [])) {
+      indexes.set(entity, entityAws[idProp] ?? '', entityAws);
+    }
+    const t2 = Date.now();
+    console.log(`${entity.name} complete in ${t2 - t1}ms`);
+  }
+  await Promise.all([
+    Mappers.RegionMapper.readAWS(awsClient, indexes),
+    populator(Entities.SecurityGroup, 'getSecurityGroups', 'SecurityGroups', 'GroupId'),
+    populator(
+      Entities.SecurityGroupRule,
+      'getSecurityGroupRules',
+      'SecurityGroupRules',
+      'SecurityGroupRuleId',
+    ),
+    populator(Entities.AMI, 'getAMIs', 'Images', 'ImageId'),
+  ]);
+  setAuxAmiIndexes(indexes);
+}
+
+function setAuxAmiIndexes(indexes: IndexedAWS) {
+  const amis: { [key: string]: Image } = indexes.get(Entities.AMI);
+  for (const [_id, ami] of Object.entries(amis)) {
+    if (ami.Architecture) {
+      indexes.set(Entities.CPUArchitecture, ami.Architecture, ami.Architecture);
+    }
+    if (ami.ProductCodes && ami.ProductCodes.length) {
+      for (const pc of ami.ProductCodes) {
+        if (pc.ProductCodeId) {
+          indexes.set(Entities.ProductCode, pc.ProductCodeId, pc);
+        } else {
+          throw Error('productCodes is this possible?');
+        }
+      }
+    }
+    if (ami.StateReason) {
+      if (ami.StateReason.Code) {
+        indexes.set(Entities.StateReason, ami.StateReason.Code, ami.StateReason);
+      } else {
+        throw Error('stateReason is this possible?')
+      }
+    }
+    if (ami.BootMode) {
+      indexes.set(Entities.BootMode, ami.BootMode, ami.BootMode);
+    }
+  }
+}
+
 db.get('/create/:db', async (req, res) => {
   const t1 = Date.now();
   // TODO: Clean/validate this input
@@ -87,7 +141,7 @@ db.get('/create/:db', async (req, res) => {
     const indexes = new IndexedAWS();
     const t2 = Date.now();
     console.log(`Start populating index after ${t2 - t1}ms`)
-    await indexes.populate(awsClient);
+    await populate(awsClient, indexes);
     const t3 = Date.now();
     console.log(`Populate indexes in ${t3 - t2}ms`)
     // TODO: Put this somewhere else
@@ -197,7 +251,7 @@ db.get('/check/:db', async (req, res) => {
     const indexes = new IndexedAWS();
     const t2 = new Date().getTime();
     console.log(`Setup took ${t2 - t1}ms`);
-    await indexes.populate(awsClient);
+    await populate(awsClient, indexes);
     const t3 = new Date().getTime();
     console.log(`AWS record acquisition time: ${t3 - t2}ms`);
     const regionEntities = indexes.toEntityList(Mappers.RegionMapper);
