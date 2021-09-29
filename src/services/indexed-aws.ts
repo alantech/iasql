@@ -91,6 +91,15 @@ export class IndexedAWS {
           }
         }
       }
+      if (instanceType.SupportedVirtualizationTypes && instanceType.SupportedVirtualizationTypes.length) {
+        for (const supportedVirtualizationType of instanceType.SupportedVirtualizationTypes) {
+          if (supportedVirtualizationType) {
+            this.set('supportedVirtualizationTypes', supportedVirtualizationType, supportedVirtualizationType)
+          } else {
+            throw Error('supportedVirtualizationTypes is this possible?');
+          }
+        }
+      }
     }
   }
 

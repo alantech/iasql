@@ -6,6 +6,7 @@ import { EntityMapper, } from './entity';
 import { InstanceType } from '../entity/instance_type';
 import { UsageClassMapper } from './usage_class';
 import { DeviceTypeMapper } from './device_type';
+import { VirtualizationTypeMapper } from './virtualization_type';
 
 export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   instanceType: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceType,
@@ -21,6 +22,12 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
     instanceType?.SupportedRootDeviceTypes && instanceType?.SupportedRootDeviceTypes.length ?
       await Promise.all(instanceType?.SupportedRootDeviceTypes?.map(
         deviceType => DeviceTypeMapper.fromAWS(deviceType, indexes)
+      )) :
+      [],
+  supportedVirtualizationTypes: async (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+    instanceType?.SupportedVirtualizationTypes && instanceType?.SupportedVirtualizationTypes.length ?
+      await Promise.all(instanceType?.SupportedVirtualizationTypes?.map(
+        virtualizationType => VirtualizationTypeMapper.fromAWS(virtualizationType, indexes)
       )) :
       [],
   // supportedVirtualizationTypes: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.SupportedVirtualizationTypes,

@@ -6,8 +6,8 @@ import { createConnection, Connection, } from 'typeorm'
 import { AWS, } from '../services/gateways/aws'
 import config from '../config'
 import { TypeormWrapper, } from '../services/typeorm'
-import { AMI, BootMode, CPUArchitecture, DeviceType, InstanceType, ProductCode, Region, SecurityGroup, SecurityGroupRule, StateReason, UsageClass, } from '../entity'
-import { AMIMapper, BootModeMapper, CPUArchitectureMapper, DeviceTypeMapper, InstanceTypeMapper, ProductCodeMapper, RegionMapper, SecurityGroupMapper, SecurityGroupRuleMapper, StateReasonMapper, UsageClassMapper, } from '../mapper'
+import { AMI, BootMode, CPUArchitecture, DeviceType, InstanceType, ProductCode, Region, SecurityGroup, SecurityGroupRule, StateReason, UsageClass, VirtualizationType, } from '../entity'
+import { AMIMapper, BootModeMapper, CPUArchitectureMapper, DeviceTypeMapper, InstanceTypeMapper, ProductCodeMapper, RegionMapper, SecurityGroupMapper, SecurityGroupRuleMapper, StateReasonMapper, UsageClassMapper, VirtualizationTypeMapper, } from '../mapper'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { findDiff, } from '../services/diff'
 
@@ -115,6 +115,8 @@ db.get('/create/:db', async (req, res) => {
       await orm.save(UsageClass, usageClasses);
       const deviceTypes = await indexes.toEntityList('supportedRootDeviceTypes', DeviceTypeMapper);
       await orm.save(DeviceType, deviceTypes);
+      const virtualizationTypes = await indexes.toEntityList('supportedVirtualizationTypes', VirtualizationTypeMapper);
+      await orm.save(VirtualizationType, virtualizationTypes);
       const instanceTypes = await indexes.toEntityList('instanceTypes', InstanceTypeMapper);
       await orm?.save(InstanceType, instanceTypes);
     })()
