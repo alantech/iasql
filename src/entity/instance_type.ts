@@ -513,7 +513,7 @@ export class InstanceType {
   })
   instanceStorageInfo: InstanceStorageInfo;
 
-  @ManyToOne(() => EBSInfo)
+  @ManyToOne(() => EBSInfo, { cascade: true })
   @JoinColumn({
     name: 'ebs_info_id',
   })

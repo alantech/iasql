@@ -31,7 +31,7 @@ export class EBSInfo {
   })
   encryptionSupport: EBSEncryptionSupport;
 
-  @OneToOne(() => EBSOptimizedInfo)
+  @OneToOne(() => EBSOptimizedInfo, { cascade: true })
   @JoinColumn({
     name: 'ebs_optimized_info_id',
   })

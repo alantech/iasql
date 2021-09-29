@@ -10,6 +10,7 @@ import { VirtualizationTypeMapper } from './virtualization_type';
 import { ProcessorInfoMapper } from './processor_info';
 import { VCPUInfoMapper } from './v_cpu_info';
 import { InstanceStorageInfoMapper } from './instance_storage_info';
+import { EBSInfoMapper } from './ebs_info';
 
 export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   instanceType: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceType,
@@ -49,7 +50,10 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
     instanceType?.InstanceStorageInfo ? InstanceStorageInfoMapper.fromAWS(
       instanceType?.InstanceStorageInfo, indexes
     ) : undefined,
-  // ebsInfo: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.EbsInfo,
+  ebsInfo: async (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+    instanceType?.EbsInfo ? EBSInfoMapper.fromAWS(
+      instanceType?.EbsInfo, indexes
+    ) : undefined,
   // networkInfo: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.NetworkInfo,
   // gpuInfo: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.GpuInfo,
   // fpgaInfo: async (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.FpgaInfo,
