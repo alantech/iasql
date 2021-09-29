@@ -7,7 +7,7 @@ export class GPUInfo {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToMany(() => GPUDeviceInfo)
+  @ManyToMany(() => GPUDeviceInfo, { cascade: true })
   @JoinTable()
   gpus: GPUDeviceInfo[];
 
