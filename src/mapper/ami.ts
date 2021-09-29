@@ -1,4 +1,4 @@
-import { ProductCode as ProductCodeAWS, Image, } from '@aws-sdk/client-ec2'
+import { Image, } from '@aws-sdk/client-ec2'
 
 import { IndexedAWS, } from '../services/indexed-aws'
 import { EntityMapper, } from './entity';
@@ -9,7 +9,6 @@ import { TagMapper, } from './tag';
 import { StateReasonMapper, } from './state_reason';
 import { BootModeMapper, } from './boot_mode';
 import { EBSBlockDeviceMappingMapper, } from './ebs_block_device_mapping';
-import { ProductCode } from '../entity';
 
 export const AMIMapper = new EntityMapper(AMI, {
   cpuArchitecture: async (ami: Image, _indexes: IndexedAWS) => ami?.Architecture ? CPUArchitectureMapper.fromAWS(
@@ -26,11 +25,11 @@ export const AMIMapper = new EntityMapper(AMI, {
   platformDetails: async (ami: Image, _indexes: IndexedAWS) => ami?.PlatformDetails,
   usageOperation: async (ami: Image, _indexes: IndexedAWS) => ami?.UsageOperation,
   productCodes: async (ami: Image, _indexes: IndexedAWS) =>
-  ami?.ProductCodes && ami?.ProductCodes.length ?
-    await Promise.all(ami?.ProductCodes?.map(
-      pc => ProductCodeMapper.fromAWS(pc, _indexes)
-    )) :
-    [],
+    ami?.ProductCodes && ami?.ProductCodes.length ?
+      await Promise.all(ami?.ProductCodes?.map(
+        pc => ProductCodeMapper.fromAWS(pc, _indexes)
+      )) :
+      [],
   ramdiskId: async (ami: Image, _indexes: IndexedAWS) => ami?.RamdiskId,
   state: async (ami: Image, _indexes: IndexedAWS) => ami?.State,
   blockDeviceMappings: async (ami: Image, _indexes: IndexedAWS) =>
@@ -54,7 +53,10 @@ export const AMIMapper = new EntityMapper(AMI, {
     ami?.BootMode, _indexes
   ) : undefined,
   deprecationTime: async (ami: Image, _indexes: IndexedAWS) => ami?.DeprecationTime ? ami.DeprecationTime : undefined,
-  // tags: async (ami: Image, _indexes: IndexedAWS) => ami?.Tags?.map(
-  //   tag => TagMapper.fromAWS(tag, _indexes)
-  // ),
+  tags: async (ami: Image, _indexes: IndexedAWS) =>
+    ami?.Tags && ami?.Tags.length ?
+      await Promise.all(ami.Tags.map(
+        tag => TagMapper.fromAWS(tag, _indexes)
+      )) :
+      [],
 })

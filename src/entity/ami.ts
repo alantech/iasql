@@ -194,7 +194,7 @@ export class AMI {
   })
   deprecationTime?: Date;
 
-  // @ManyToMany(() => Tag, { cascade: true })
-  // @JoinTable()
-  // tags: Tag[];
+  @ManyToMany(() => Tag, { cascade: true })
+  @JoinTable()
+  tags: Tag[];
 }
