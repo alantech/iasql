@@ -507,7 +507,7 @@ export class InstanceType {
   @Column()
   instanceStorageSupported: boolean;
 
-  @ManyToOne(() => InstanceStorageInfo)
+  @ManyToOne(() => InstanceStorageInfo, { cascade: true })
   @JoinColumn({
     name: 'instance_storage_info_id',
   })
