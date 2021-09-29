@@ -9,7 +9,7 @@ export const TagMapper = new EntityMapper(Tag, {
   key: (tag: TagAWS, _indexes: IndexedAWS) => tag?.Key,
   value: (tag: TagAWS, _indexes: IndexedAWS) => tag?.Value,
 }, {
-  readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { /* todo */ },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },

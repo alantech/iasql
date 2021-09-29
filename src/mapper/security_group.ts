@@ -18,7 +18,13 @@ export const SecurityGroupMapper = new EntityMapper(SecurityGroup, {
     i.get(SecurityGroupRule) as { [key: string]: SecurityGroupRuleAWS }
   ).filter((sgr: SecurityGroupRuleAWS) => sgr?.GroupId === sg?.GroupId),
 }, {
-  readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
+    const t1 = Date.now();
+    const securityGroups = (await awsClient.getSecurityGroups())?.SecurityGroups ?? [];
+    indexes.setAll(SecurityGroup, securityGroups, 'GroupId');
+    const t2 = Date.now();
+    console.log(`SecurityGroups set in ${t2 - t1}ms`);
+  },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },

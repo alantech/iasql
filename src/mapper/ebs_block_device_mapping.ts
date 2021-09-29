@@ -14,7 +14,10 @@ export const EBSBlockDeviceMappingMapper = new EntityMapper(EBSBlockDeviceMappin
   ),
   noDevice: (bdm: BlockDeviceMapping, _indexes: IndexedAWS) => bdm?.NoDevice,
 }, {
-  readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => {
+    // Handled by AMI (I think?)
+    return
+  },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
