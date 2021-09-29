@@ -1,8 +1,9 @@
 import { EbsBlockDevice } from '@aws-sdk/client-ec2';
 
-import { IndexedAWS, } from '../services/indexed-aws'
-import { EntityMapper, } from './entity';
+import { AWS, } from '../services/gateways/aws'
 import { EBSBlockDeviceType, } from '../entity/ebs_block_device_type';
+import { EntityMapper, } from './entity';
+import { IndexedAWS, } from '../services/indexed-aws'
 
 export const EBSBlockDeviceTypeMapper = new EntityMapper(EBSBlockDeviceType, {
   deleteOnTermination: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.DeleteOnTermination,
@@ -15,6 +16,7 @@ export const EBSBlockDeviceTypeMapper = new EntityMapper(EBSBlockDeviceType, {
   outpostArn: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.OutpostArn,
   encrypted: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.Encrypted,
 }, {
+  readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },

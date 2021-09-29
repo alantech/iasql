@@ -1,10 +1,16 @@
 import { memoize } from 'memoize-cache-decorator'
 
 import { IndexedAWS, } from '../services/indexed-aws'
+import { AWS, } from '../services/gateways/aws'
 
 type AwsFn = (obj: any, indexes: IndexedAWS) => any;
 type FromAws = { [key: string]: AwsFn, };
-type ToAws = { createAWS: AwsFn, deleteAWS: AwsFn, updateAWS: AwsFn, };
+type ToAws = {
+  readAWS: (awsClient: AWS, indexes: IndexedAWS) => any,
+  createAWS: AwsFn,
+  deleteAWS: AwsFn,
+  updateAWS: AwsFn,
+};
 
 export class EntityMapper {
   private entity: any;
@@ -17,6 +23,10 @@ export class EntityMapper {
     this.toAws = toAws;
   }
 
+  getEntity() {
+    return this.entity;
+  }
+
   @memoize({
     resolver: (obj, _indexes) => JSON.stringify(obj), // TODO: Better hashing fn
   })
@@ -26,6 +36,10 @@ export class EntityMapper {
       newEntity[p] = this.methods[p](obj, indexes);
     }
     return newEntity;
+  }
+
+  readAWS(awsClient: AWS, indexes: IndexedAWS): Promise<any> {
+    return this.toAws.readAWS(awsClient, indexes);
   }
 
   createAWS(obj: any, indexes: IndexedAWS): Promise<any> {

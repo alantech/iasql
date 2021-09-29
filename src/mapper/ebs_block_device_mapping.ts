@@ -1,9 +1,10 @@
 import { BlockDeviceMapping } from '@aws-sdk/client-ec2';
 
-import { IndexedAWS, } from '../services/indexed-aws'
+import { AWS, } from '../services/gateways/aws'
 import { EBSBlockDeviceMapping, } from '../entity/ebs_block_device_mapping';
-import { EntityMapper, } from './entity';
 import { EBSBlockDeviceTypeMapper } from './ebs_block_device_type';
+import { EntityMapper, } from './entity';
+import { IndexedAWS, } from '../services/indexed-aws'
 
 export const EBSBlockDeviceMappingMapper = new EntityMapper(EBSBlockDeviceMapping, {
   deviceName: (bdm: BlockDeviceMapping, _indexes: IndexedAWS) => bdm?.DeviceName,
@@ -13,6 +14,7 @@ export const EBSBlockDeviceMappingMapper = new EntityMapper(EBSBlockDeviceMappin
   ),
   noDevice: (bdm: BlockDeviceMapping, _indexes: IndexedAWS) => bdm?.NoDevice,
 }, {
+  readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },

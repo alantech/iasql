@@ -3,16 +3,17 @@ import {
   SecurityGroupRule as SecurityGroupRuleAWS,
 } from '@aws-sdk/client-ec2'
 
-import { IndexedAWS, } from '../services/indexed-aws'
+import { AWS, } from '../services/gateways/aws'
 import { EntityMapper, } from './entity';
+import { IndexedAWS, } from '../services/indexed-aws'
 import { SecurityGroupMapper, } from './security_group';
-import { SecurityGroupRule, } from '../entity/security_group_rule';
+import { SecurityGroup, SecurityGroupRule, } from '../entity';
 
 export const SecurityGroupRuleMapper = new EntityMapper(SecurityGroupRule, {
   securityGroupRuleId: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.SecurityGroupRuleId,
   groupId: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.GroupId,
   securityGroup: (sgr: SecurityGroupRuleAWS, i: IndexedAWS) => SecurityGroupMapper.fromAWS(
-    i.get('securityGroups', sgr?.GroupId) as SecurityGroupAWS, i
+    i.get(SecurityGroup, sgr?.GroupId) as SecurityGroupAWS, i
   ),
   isEgress: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.IsEgress,
   ipProtocol: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.IpProtocol,
@@ -23,6 +24,7 @@ export const SecurityGroupRuleMapper = new EntityMapper(SecurityGroupRule, {
   prefixListId: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.PrefixListId,
   description: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.Description,
 }, {
+  readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },

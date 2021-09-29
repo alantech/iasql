@@ -1,14 +1,15 @@
 import { Image, } from '@aws-sdk/client-ec2'
 
-import { IndexedAWS, } from '../services/indexed-aws'
-import { EntityMapper, } from './entity';
 import { AMI, } from '../entity/ami';
-import { CPUArchitectureMapper, } from './cpu_architecture';
-import { ProductCodeMapper, } from './product_code';
-import { TagMapper, } from './tag';
-import { StateReasonMapper, } from './state_reason';
+import { AWS, } from '../services/gateways/aws'
 import { BootModeMapper, } from './boot_mode';
+import { CPUArchitectureMapper, } from './cpu_architecture';
 import { EBSBlockDeviceMappingMapper, } from './ebs_block_device_mapping';
+import { EntityMapper, } from './entity';
+import { IndexedAWS, } from '../services/indexed-aws'
+import { ProductCodeMapper, } from './product_code';
+import { StateReasonMapper, } from './state_reason';
+import { TagMapper, } from './tag';
 
 export const AMIMapper = new EntityMapper(AMI, {
   cpuArchitecture: (ami: Image, indexes: IndexedAWS) => ami?.Architecture ? CPUArchitectureMapper.fromAWS(
@@ -55,6 +56,7 @@ export const AMIMapper = new EntityMapper(AMI, {
     ami.Tags.map(tag => TagMapper.fromAWS(tag, indexes)) :
     [],
 }, {
+  readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
   deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
