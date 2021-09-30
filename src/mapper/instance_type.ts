@@ -29,7 +29,7 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
       ) :
       [],
   supportedRootDeviceTypes: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.SupportedRootDeviceTypes && instanceType?.SupportedRootDeviceTypes.length ?
+    instanceType?.SupportedRootDeviceTypes?.length ?
       instanceType?.SupportedRootDeviceTypes?.map(
         deviceType => DeviceTypeMapper.fromAWS(deviceType, indexes)
       ) :
