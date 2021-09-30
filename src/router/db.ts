@@ -110,7 +110,8 @@ db.get('/create/:db', async (req, res) => {
       await orm.save(Entities.SecurityGroupRule, securityGroupRules);
       const te = Date.now();
       console.log(`Security group rules stored in ${te - td}ms`);
-    })(), (async () => {
+    })(), 
+    (async () => {
       await Promise.all([(async () => {
         const tf = Date.now();
         const arch = indexes.toEntityList(Mappers.CPUArchitectureMapper);
@@ -184,7 +185,6 @@ db.get('/create/:db', async (req, res) => {
 });
 
 db.get('/delete/:db', async (req, res) => {
-  console.log('delete')
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
   let conn;
