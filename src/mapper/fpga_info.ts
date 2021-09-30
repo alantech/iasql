@@ -9,7 +9,7 @@ import { AWS } from '../services/gateways/aws';
 export const FPGAInfoMapper = new EntityMapper(FPGAInfo, {
   totalFPGAMemoryInMiB: (fpgaInfo: FpgaInfoAWS, _indexes: IndexedAWS) => fpgaInfo?.TotalFpgaMemoryInMiB,
   fpgas: (fpgaInfo: FpgaInfoAWS, indexes: IndexedAWS) =>
-    fpgaInfo?.Fpgas && fpgaInfo?.Fpgas.length ?
+    fpgaInfo?.Fpgas?.length ?
       fpgaInfo.Fpgas.map(
         fpga => FPGADeviceInfoMapper.fromAWS(fpga, indexes)
       ) :
