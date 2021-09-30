@@ -1,5 +1,4 @@
 import { InstanceTypeInfo } from '@aws-sdk/client-ec2';
-import * as fs from 'fs'
 
 import { IndexedAWS, } from '../services/indexed-aws'
 import { EntityMapper, } from './entity';
@@ -17,9 +16,14 @@ import { AWS } from '../services/gateways/aws';
 import { InstanceType, DeviceType, UsageClass, VirtualizationType, PlacementGroupStrategy, ValidCore, ValidThreadsPerCore } from '../entity';
 import { BootModeMapper, PlacementGroupInfoMapper } from '.';
 import { InferenceAcceleratorInfoMapper } from './inference_accelerator_info';
+import { InstanceTypeValue } from '../entity/instance_type_value';
+import { InstanceTypeValueMapper } from './instance_type_value';
 
 export const InstanceTypeMapper = new EntityMapper(InstanceType, {
-  instanceType: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceType ?? null,
+  instanceType: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+    instanceType?.InstanceType ? InstanceTypeValueMapper.fromAWS(
+      instanceType?.InstanceType, indexes
+    ) : null,
   currentGeneration: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.CurrentGeneration ?? null,
   freeTierEligible: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.FreeTierEligible ?? null,
   supportedUsageClasses: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
@@ -97,6 +101,8 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
     const t1 = Date.now();
     const instanceTypes = (await awsClient.getInstanceTypes())?.InstanceTypes ?? [];
     indexes.setAll(InstanceType, instanceTypes, 'InstanceType');
+    const instanceTypeValues = Object.keys(indexes.get(InstanceType));
+    instanceTypeValues.forEach(i => indexes.set(InstanceTypeValue, i, i));
     const t2 = Date.now();
     console.log(`Instance types set in ${t2 - t1}ms`);
     // Set aux AMI indexes, too
