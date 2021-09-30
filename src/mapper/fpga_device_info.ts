@@ -13,7 +13,7 @@ export const FPGADeviceInfoMapper = new EntityMapper(FPGADeviceInfo, {
   memoryInfo: (fpgaDeviceInfo: FpgaDeviceInfoAWS, indexes: IndexedAWS) =>
     fpgaDeviceInfo?.MemoryInfo ? FPGADeviceMemoryInfoMapper.fromAWS(
       fpgaDeviceInfo?.MemoryInfo, indexes
-    ) : undefined,
+    ) : null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
