@@ -2,8 +2,6 @@ import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, ManyToOne, } from '
 
 import { EBSOptimizedInfo, } from './ebs_optimized_info';
 import { EphemeralNVMESupport, } from './instance_storage_info';
-import { source, Source, } from '../services/source-of-truth'
-import { noDiff, } from '../services/diff'
 
 export enum EBSOptimizedSupport {
   DEFAULT = 'default',
@@ -16,10 +14,8 @@ export enum EBSEncryptionSupport {
   UNSUPPORTED = 'unsupported',
 }
 
-@source(Source.AWS)
 @Entity()
 export class EBSInfo {
-  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 

@@ -1,8 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, } from 'typeorm';
 
 import { DiskInfo, } from './disk_info';
-import { source, Source, } from '../services/source-of-truth'
-import { noDiff, } from '../services/diff'
 
 export enum EphemeralNVMESupport {
   REQUIRED = 'required',
@@ -10,10 +8,8 @@ export enum EphemeralNVMESupport {
   UNSUPPORTED = 'unsupported',
 }
 
-@source(Source.AWS)
 @Entity()
 export class InstanceStorageInfo {
-  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 

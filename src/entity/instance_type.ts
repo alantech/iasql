@@ -24,6 +24,7 @@ import { UsageClass, } from './usage_class';
 import { VCPUInfo, } from './v_cpu_info';
 import { VirtualizationType, } from './virtualization_type';
 import { source, Source, } from '../services/source-of-truth'
+import { awsPrimaryKey, } from '../services/aws-primary-key'
 import { noDiff, } from '../services/diff'
 
 export enum InstanceTypeValue {
@@ -441,9 +442,11 @@ export class InstanceType {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @awsPrimaryKey
   @Column({
     type: 'enum',
     enum: InstanceTypeValue,
+    unique: true,
   })
   instanceType: InstanceTypeValue;
 
@@ -453,15 +456,15 @@ export class InstanceType {
   @Column()
   freeTierEligible: boolean;
 
-  @ManyToMany(() => UsageClass, { eager: true, })
+  @ManyToMany(() => UsageClass, { cascade: true, })
   @JoinTable()
   supportedUsageClasses: UsageClass[];
 
-  @ManyToMany(() => DeviceType, { eager: true, })
+  @ManyToMany(() => DeviceType, { cascade: true, })
   @JoinTable()
   supportedRootDeviceTypes: DeviceType[];
 
-  @ManyToMany(() => VirtualizationType, { eager: true, })
+  @ManyToMany(() => VirtualizationType, { cascade: true, })
   @JoinTable()
   supportedVirtualizationTypes: VirtualizationType[];
 
@@ -549,15 +552,15 @@ export class InstanceType {
   @Column()
   autoRecoverySupported: boolean;
 
-  @ManyToMany(() => BootMode, { eager: true, })
+  @ManyToMany(() => BootMode, { cascade: true, })
   @JoinTable()
   supportedBootModes: BootMode[];
 
-  @ManyToMany(() => Region, { eager: true, })
+  @ManyToMany(() => Region, { cascade: true, })
   @JoinTable()
   regions: Region[];
 
-  @ManyToMany(() => AvailabilityZone, { eager: true, })
+  @ManyToMany(() => AvailabilityZone, { cascade: true, })
   @JoinTable()
   availabilityZones: AvailabilityZone[];
 }

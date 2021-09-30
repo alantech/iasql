@@ -1,13 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, } from 'typeorm';
 
 import { GPUDeviceMemoryInfo, } from './gpu_device_memory_info';
-import { source, Source, } from '../services/source-of-truth'
-import { noDiff, } from '../services/diff'
 
-@source(Source.AWS)
 @Entity()
 export class GPUDeviceInfo {
-  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 

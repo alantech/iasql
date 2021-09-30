@@ -56,7 +56,7 @@ export class AMI {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => CPUArchitecture, { eager: true, })
+  @ManyToOne(() => CPUArchitecture, { cascade: true, })
   @JoinColumn({
     name: 'cpu_architecture_id',
   })
@@ -118,7 +118,7 @@ export class AMI {
   })
   usageOperation?: string;
 
-  @ManyToMany(() => ProductCode, { eager: true, })
+  @ManyToMany(() => ProductCode, { cascade: true, })
   @JoinTable()
   productCodes: ProductCode[];
 
@@ -134,7 +134,7 @@ export class AMI {
   })
   state?: AMIImageState;
 
-  @ManyToMany(() => EBSBlockDeviceMapping, { eager: true, cascade: true, })
+  @ManyToMany(() => EBSBlockDeviceMapping, { cascade: true, })
   @JoinTable()
   blockDeviceMappings: EBSBlockDeviceMapping[];
 
@@ -182,13 +182,13 @@ export class AMI {
   })
   sirovNetSupport?: string;
 
-  @ManyToOne(() => StateReason, { eager: true, })
+  @ManyToOne(() => StateReason, { cascade: true, })
   @JoinColumn({
     name: 'state_reason_id',
   })
   stateReason: StateReason;
 
-  @ManyToOne(() => BootMode, { eager: true, })
+  @ManyToOne(() => BootMode, { cascade: true, })
   @JoinColumn({
     name: 'boot_mode_id',
   })
@@ -200,7 +200,7 @@ export class AMI {
   })
   deprecationTime?: Date;
 
-  @ManyToMany(() => Tag, { eager: true, cascade: true, })
+  @ManyToMany(() => Tag, { cascade: true, })
   @JoinTable()
   tags: Tag[];
 }

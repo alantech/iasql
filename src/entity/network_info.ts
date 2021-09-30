@@ -10,8 +10,6 @@ import {
 
 import { EFAInfo, } from './efa_info';
 import { NetworkCardInfo, } from './network_card_info';
-import { source, Source, } from '../services/source-of-truth'
-import { noDiff, } from '../services/diff'
 
 export enum ENASupport {
   REQUIRED = 'required',
@@ -19,10 +17,8 @@ export enum ENASupport {
   UNSUPPORTED = 'unsupported',
 }
 
-@source(Source.AWS)
 @Entity()
 export class NetworkInfo {
-  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 
