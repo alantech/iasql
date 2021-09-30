@@ -75,7 +75,7 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   placementGroupInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.PlacementGroupInfo ? PlacementGroupInfoMapper.fromAWS(
       instanceType?.PlacementGroupInfo, indexes
-    ) : undefined,
+    ) : null,
   inferenceAcceleratorInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.InferenceAcceleratorInfo ? InferenceAcceleratorInfoMapper.fromAWS(
       instanceType?.InferenceAcceleratorInfo, indexes
