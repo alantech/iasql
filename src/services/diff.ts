@@ -41,16 +41,16 @@ function diff(dbObj: any, cloudObj: any, exclusionList: string[]) {
       cloud: cloudObj
     };
   }
-  let diffObj: any = {};
-  for (let key in dbObj) {
+  const diffObj: any = {};
+  for (const key in dbObj) {
     // Ignore excluded keys
     if (exclusionList.includes(key)) {
       continue;
     }
-    let cloudVal = cloudObj[key];
+    const cloudVal = cloudObj[key];
     diffObj[key] = diff(dbObj[key], cloudVal, exclusionList);
   }
-  for (var key in cloudObj) {
+  for (const key in cloudObj) {
     if (exclusionList.includes(key) || diffObj[key] !== undefined) {
       continue;
     }

@@ -61,8 +61,7 @@ async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
 
 db.get('/create/:db', async (req, res) => {
   const t1 = Date.now();
-  // TODO: Clean/validate this input
-  const dbname = req.params['db'];
+  const dbname = req.params.db;
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
   try {
@@ -216,8 +215,7 @@ db.get('/create/:db', async (req, res) => {
 });
 
 db.get('/delete/:db', async (req, res) => {
-  // TODO: Clean/validate this input
-  const dbname = req.params['db'];
+  const dbname = req.params.db;
   let conn;
   try {
     conn = await createConnection({
@@ -239,8 +237,7 @@ db.get('/delete/:db', async (req, res) => {
 });
 
 db.get('/check/:db', async (req, res) => {
-  // TODO: Clean/validate this input
-  const dbname = req.params['db'];
+  const dbname = req.params.db;
   const t1 = new Date().getTime();
   console.log(`Checking ${dbname}`);
   let orm: TypeormWrapper | null = null;
