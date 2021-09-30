@@ -5,21 +5,27 @@ import { EntityMapper, } from './entity';
 import { VCPUInfo } from '../entity/v_cpu_info';
 import { ValidCoreMapper } from './valid_core';
 import { ValidThreadsPerCoreMapper } from './valid_threads_per_core';
+import { AWS } from '../services/gateways/aws';
 
 export const VCPUInfoMapper = new EntityMapper(VCPUInfo, {
-  defaultVCPUs: async (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultVCpus,
-  defaultCores: async (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultCores,
-  defaultThreadsPerCore: async (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultThreadsPerCore,
-  validCores: async (vCPUInfo: VCpuInfo, indexes: IndexedAWS) =>
+  defaultVCPUs: (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultVCpus,
+  defaultCores: (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultCores,
+  defaultThreadsPerCore: (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultThreadsPerCore,
+  validCores: (vCPUInfo: VCpuInfo, indexes: IndexedAWS) =>
     vCPUInfo?.ValidCores && vCPUInfo?.ValidCores.length ?
-      await Promise.all(vCPUInfo.ValidCores.map(
+      vCPUInfo.ValidCores.map(
         count => ValidCoreMapper.fromAWS(count, indexes)
-      )) :
+      ) :
       [],
-  validThreadsPerCore: async (vCPUInfo: VCpuInfo, indexes: IndexedAWS) =>
+  validThreadsPerCore: (vCPUInfo: VCpuInfo, indexes: IndexedAWS) =>
     vCPUInfo?.ValidThreadsPerCore && vCPUInfo?.ValidThreadsPerCore.length ?
-      await Promise.all(vCPUInfo.ValidThreadsPerCore.map(
+      vCPUInfo.ValidThreadsPerCore.map(
         count => ValidThreadsPerCoreMapper.fromAWS(count, indexes)
-      )) :
+      ) :
       [],
+}, {
+  readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
+  createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
 })

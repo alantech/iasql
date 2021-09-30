@@ -1,18 +1,23 @@
-
 import { InstanceStorageInfo as InstanceStorageInfoAWS } from '@aws-sdk/client-ec2';
 
 import { IndexedAWS, } from '../services/indexed-aws'
 import { EntityMapper, } from './entity';
 import { InstanceStorageInfo, } from '../entity/instance_storage_info';
 import { DiskInfoMapper } from './disk_info';
+import { AWS } from '../services/gateways/aws';
 
 export const InstanceStorageInfoMapper = new EntityMapper(InstanceStorageInfo, {
-  totalSizeInGB: async (instanceStorageInfo: InstanceStorageInfoAWS, _indexes: IndexedAWS) => instanceStorageInfo?.TotalSizeInGB,
-  disks: async (instanceStorageInfo: InstanceStorageInfoAWS, indexes: IndexedAWS) =>
+  totalSizeInGB: (instanceStorageInfo: InstanceStorageInfoAWS, _indexes: IndexedAWS) => instanceStorageInfo?.TotalSizeInGB,
+  disks: (instanceStorageInfo: InstanceStorageInfoAWS, indexes: IndexedAWS) =>
     instanceStorageInfo?.Disks && instanceStorageInfo?.Disks.length ?
-      await Promise.all(instanceStorageInfo.Disks.map(
+      instanceStorageInfo.Disks.map(
         disk => DiskInfoMapper.fromAWS(disk, indexes)
-      )) :
+      ) :
       [],
-  NVMESupport: async (instanceStorageInfo: InstanceStorageInfoAWS, _indexes: IndexedAWS) => instanceStorageInfo?.NvmeSupport,
+  NVMESupport: (instanceStorageInfo: InstanceStorageInfoAWS, _indexes: IndexedAWS) => instanceStorageInfo?.NvmeSupport,
+}, {
+  readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
+  createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
 })

@@ -4,13 +4,19 @@ import { IndexedAWS, } from '../services/indexed-aws'
 import { EntityMapper, } from './entity';
 import { FPGADeviceInfo, } from '../entity/fpga_device_info';
 import { FPGADeviceMemoryInfoMapper } from './fpga_device_memory_info';
+import { AWS } from '../services/gateways/aws';
 
 export const FPGADeviceInfoMapper = new EntityMapper(FPGADeviceInfo, {
-  name: async (fpgaDeviceInfo: FpgaDeviceInfoAWS, _indexes: IndexedAWS) => fpgaDeviceInfo?.Name,
-  manufacturer: async (fpgaDeviceInfo: FpgaDeviceInfoAWS, _indexes: IndexedAWS) => fpgaDeviceInfo?.Manufacturer,
-  count: async (fpgaDeviceInfo: FpgaDeviceInfoAWS, _indexes: IndexedAWS) => fpgaDeviceInfo?.Count,
-  memoryInfo: async (fpgaDeviceInfo: FpgaDeviceInfoAWS, indexes: IndexedAWS) =>
+  name: (fpgaDeviceInfo: FpgaDeviceInfoAWS, _indexes: IndexedAWS) => fpgaDeviceInfo?.Name,
+  manufacturer: (fpgaDeviceInfo: FpgaDeviceInfoAWS, _indexes: IndexedAWS) => fpgaDeviceInfo?.Manufacturer,
+  count: (fpgaDeviceInfo: FpgaDeviceInfoAWS, _indexes: IndexedAWS) => fpgaDeviceInfo?.Count,
+  memoryInfo: (fpgaDeviceInfo: FpgaDeviceInfoAWS, indexes: IndexedAWS) =>
     fpgaDeviceInfo?.MemoryInfo ? FPGADeviceMemoryInfoMapper.fromAWS(
       fpgaDeviceInfo?.MemoryInfo, indexes
     ) : undefined,
+}, {
+  readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
+  createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
 })
