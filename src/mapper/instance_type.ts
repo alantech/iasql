@@ -79,7 +79,7 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   inferenceAcceleratorInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.InferenceAcceleratorInfo ? InferenceAcceleratorInfoMapper.fromAWS(
       instanceType?.InferenceAcceleratorInfo, indexes
-    ) : undefined,
+    ) : null,
   hibernationSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.HibernationSupported,
   burstablePerformanceSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BurstablePerformanceSupported,
   dedicatedHostsSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.DedicatedHostsSupported,
