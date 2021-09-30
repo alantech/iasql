@@ -63,7 +63,7 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   networkInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.NetworkInfo ? NetworkInfoMapper.fromAWS(
       instanceType?.NetworkInfo, indexes
-    ) : undefined,
+    ) : null,
   gpuInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.GpuInfo ? GPUInfoMapper.fromAWS(
       instanceType?.GpuInfo, indexes
