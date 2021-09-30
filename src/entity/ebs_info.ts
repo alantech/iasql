@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, ManyToOne, } from 'typeorm';
 
 import { EBSOptimizedInfo, } from './ebs_optimized_info';
 import { EphemeralNVMESupport, } from './instance_storage_info';
@@ -31,7 +31,7 @@ export class EBSInfo {
   })
   encryptionSupport: EBSEncryptionSupport;
 
-  @OneToOne(() => EBSOptimizedInfo, { cascade: true })
+  @ManyToOne(() => EBSOptimizedInfo, { cascade: true })
   @JoinColumn({
     name: 'ebs_optimized_info_id',
   })

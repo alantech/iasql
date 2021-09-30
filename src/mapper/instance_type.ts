@@ -1,4 +1,5 @@
 import { InstanceTypeInfo } from '@aws-sdk/client-ec2';
+import * as fs from 'fs'
 
 import { IndexedAWS, } from '../services/indexed-aws'
 import { EntityMapper, } from './entity';
@@ -13,7 +14,7 @@ import { NetworkInfoMapper } from './network_info';
 import { GPUInfoMapper } from './gpu_info';
 import { FPGAInfoMapper } from './fpga_info';
 import { AWS } from '../services/gateways/aws';
-import { InstanceType, DeviceType, UsageClass, VirtualizationType, PlacementGroupStrategy } from '../entity';
+import { InstanceType, DeviceType, UsageClass, VirtualizationType, PlacementGroupStrategy, ValidCore, ValidThreadsPerCore } from '../entity';
 import { BootModeMapper, PlacementGroupInfoMapper } from '.';
 import { InferenceAcceleratorInfoMapper } from './inference_accelerator_info';
 
@@ -130,6 +131,16 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
       if (instanceType.PlacementGroupInfo && instanceType.PlacementGroupInfo.SupportedStrategies && instanceType.PlacementGroupInfo.SupportedStrategies.length) {
         for (const supportedStrategy of instanceType.PlacementGroupInfo.SupportedStrategies) {
           indexes.set(PlacementGroupStrategy, supportedStrategy, supportedStrategy);
+        }
+      }
+      if (instanceType.VCpuInfo && instanceType.VCpuInfo.ValidCores && instanceType.VCpuInfo.ValidCores.length) {
+        for (const validCores of instanceType.VCpuInfo.ValidCores) {
+          indexes.set(ValidCore, `${validCores}`, validCores);
+        }
+      }
+      if (instanceType.VCpuInfo && instanceType.VCpuInfo.ValidThreadsPerCore && instanceType.VCpuInfo.ValidThreadsPerCore.length) {
+        for (const validCores of instanceType.VCpuInfo.ValidThreadsPerCore) {
+          indexes.set(ValidThreadsPerCore, `${validCores}`, validCores);
         }
       }
     }
