@@ -18,7 +18,7 @@ export const VCPUInfoMapper = new EntityMapper(VCPUInfo, {
       ) :
       [],
   validThreadsPerCore: (vCPUInfo: VCpuInfo, indexes: IndexedAWS) =>
-    vCPUInfo?.ValidThreadsPerCore && vCPUInfo?.ValidThreadsPerCore.length ?
+    vCPUInfo?.ValidThreadsPerCore?.length ?
       vCPUInfo.ValidThreadsPerCore.map(
         count => ValidThreadsPerCoreMapper.fromAWS(count, indexes)
       ) :
