@@ -45,7 +45,7 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   processorInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.ProcessorInfo ? ProcessorInfoMapper.fromAWS(
       instanceType?.ProcessorInfo, indexes
-    ) : undefined,
+    ) : null,
   vCPUInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.VCpuInfo ? VCPUInfoMapper.fromAWS(
       instanceType?.VCpuInfo, indexes
