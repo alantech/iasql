@@ -51,6 +51,14 @@ async function populate(awsClient: AWS, indexes: IndexedAWS) {
   );
 }
 
+async function saveEntities(orm: TypeormWrapper, indexes: IndexedAWS, entity: Function, mapper: Mappers.EntityMapper) {
+  const t1 = Date.now();
+  const entities = await indexes.toEntityList(mapper);
+  await orm.save(entity, entities);
+  const t2 = Date.now();
+  console.log(`${entity.name} stored in ${t2 - t1}ms`);
+}
+
 db.get('/create/:db', async (req, res) => {
   const t1 = Date.now();
   // TODO: Clean/validate this input
@@ -93,107 +101,33 @@ db.get('/create/:db', async (req, res) => {
     // TODO: Put this somewhere else
     orm = await TypeormWrapper.createConn(dbname);
     console.log(`Populating new db: ${dbname}`);
-    await Promise.all([(async () => {
-      const ta = Date.now();
-      const regions = await indexes.toEntityList(Mappers.RegionMapper);
-      await orm.save(Entities.Region, regions);
-      const tb = Date.now();
-      console.log(`Regions stored in ${tb - ta}ms`);
-    })(), (async () => {
-      const tc = Date.now();
-      const securityGroups = await indexes.toEntityList(Mappers.SecurityGroupMapper);
-      await orm.save(Entities.SecurityGroup, securityGroups);
-      const td = Date.now();
-      console.log(`Security groups stored in ${td - tc}ms`);
-      // The security group rules *must* be added after the security groups
-      const securityGroupRules = await indexes.toEntityList(Mappers.SecurityGroupRuleMapper);
-      await orm.save(Entities.SecurityGroupRule, securityGroupRules);
-      const te = Date.now();
-      console.log(`Security group rules stored in ${te - td}ms`);
-    })(),
-    (async () => {
-      await Promise.all([(async () => {
-        const tf = Date.now();
-        const arch = indexes.toEntityList(Mappers.CPUArchitectureMapper);
-        await orm.save(Entities.CPUArchitecture, arch);
-        const tg = Date.now();
-        console.log(`CPU Archs stored in ${tg - tf}ms`);
-      })(), (async () => {
-        const th = Date.now();
-        const productCodes = indexes.toEntityList(Mappers.ProductCodeMapper);
-        await orm.save(Entities.ProductCode, productCodes);
-        const ti = Date.now();
-        console.log(`Product codes stored in ${ti - th}ms`);
-      })(), (async () => {
-        const tj = Date.now();
-        const stateReason = indexes.toEntityList(Mappers.StateReasonMapper);
-        await orm.save(Entities.StateReason, stateReason);
-        const tk = Date.now();
-        console.log(`State reason stored in ${tk - tj}ms`);
-      })(), (async () => {
-        const tl = Date.now();
-        const bootMode = indexes.toEntityList(Mappers.BootModeMapper);
-        await orm.save(Entities.BootMode, bootMode);
-        const tm = Date.now();
-        console.log(`Boot mode stored in ${tm - tl}ms`);
-      })()]);
-      const tn = Date.now();
-      const amis = indexes.toEntityList(Mappers.AMIMapper);
-      await orm.save(Entities.AMI, amis);
-      const to = Date.now();
-      console.log(`AMIs stored in ${to - tn}ms`);
-    })(),
-    (async () => {
-      await Promise.all([
-        (async () => {
-          const tp = Date.now();
-          const usageClasses = await indexes.toEntityList(Mappers.UsageClassMapper);
-          await orm.save(Entities.UsageClass, usageClasses);
-          const tq = Date.now();
-          console.log(`Usage class stored in ${tq - tp}ms`);
-        })(),
-        (async () => {
-          const tr = Date.now();
-          const deviceTypes = await indexes.toEntityList(Mappers.DeviceTypeMapper);
-          await orm.save(Entities.DeviceType, deviceTypes);
-          const ts = Date.now();
-          console.log(`Device types stored in ${ts - tr}ms`);
-        })(),
-        (async () => {
-          const tt = Date.now();
-          const virtualizationTypes = await indexes.toEntityList(Mappers.VirtualizationTypeMapper);
-          await orm.save(Entities.VirtualizationType, virtualizationTypes);
-          const tu = Date.now();
-          console.log(`Virtualization types stored in ${tu - tt}ms`);
-        })(),
-        (async () => {
-          const tv = Date.now();
-          const placementGroupStrategies = await indexes.toEntityList(Mappers.PlacementGroupStrategyMapper);
-          await orm.save(Entities.PlacementGroupStrategy, placementGroupStrategies);
-          const tw = Date.now();
-          console.log(`Placement groups stored in ${tw - tv}ms`);
-        })(),
-        (async () => {
-          const tx = Date.now();
-          const validCores = await indexes.toEntityList(Mappers.ValidCoreMapper);
-          await orm.save(Entities.ValidCore, validCores);
-          const ty = Date.now();
-          console.log(`Valid cores stored in ${ty - tx}ms`);
-        })(),
-        (async () => {
-          const tz = Date.now();
-          const validThreadsPerCore = await indexes.toEntityList(Mappers.ValidThreadsPerCoreMapper);
-          await orm.save(Entities.ValidThreadsPerCore, validThreadsPerCore);
-          const taa = Date.now();
-          console.log(`Valid Threads Per Core stored in ${taa - tz}ms`);
-        })(),
-      ]);
-      const tab = Date.now();
-      const instanceTypes = await indexes.toEntityList(Mappers.InstanceTypeMapper);
-      await orm?.save(Entities.InstanceType, instanceTypes);
-      const tac = Date.now();
-      console.log(`Instance types stored in ${tac - tab}ms`);
-    })()
+    await Promise.all([
+      saveEntities(orm, indexes, Entities.Region, Mappers.RegionMapper),
+      (async () => {
+        await saveEntities(orm, indexes, Entities.SecurityGroup, Mappers.SecurityGroupMapper);
+        // The security group rules *must* be added after the security groups
+        await saveEntities(orm, indexes, Entities.SecurityGroupRule, Mappers.SecurityGroupRuleMapper)
+      })(),
+      (async () => {
+        await Promise.all([
+          saveEntities(orm, indexes, Entities.CPUArchitecture, Mappers.CPUArchitectureMapper),
+          saveEntities(orm, indexes, Entities.ProductCode, Mappers.ProductCodeMapper),
+          saveEntities(orm, indexes, Entities.StateReason, Mappers.StateReasonMapper),
+          saveEntities(orm, indexes, Entities.BootMode, Mappers.BootModeMapper),
+        ]);
+        await saveEntities(orm, indexes, Entities.AMI, Mappers.AMIMapper);
+      })(),
+      (async () => {
+        await Promise.all([
+          saveEntities(orm, indexes, Entities.UsageClass, Mappers.UsageClassMapper),
+          saveEntities(orm, indexes, Entities.DeviceType, Mappers.DeviceTypeMapper),
+          saveEntities(orm, indexes, Entities.VirtualizationType, Mappers.VirtualizationTypeMapper),
+          saveEntities(orm, indexes, Entities.PlacementGroupStrategy, Mappers.PlacementGroupStrategyMapper),
+          saveEntities(orm, indexes, Entities.ValidCore, Mappers.ValidCoreMapper),
+          saveEntities(orm, indexes, Entities.ValidThreadsPerCore, Mappers.ValidThreadsPerCoreMapper),
+        ]);
+        await saveEntities(orm, indexes, Entities.InstanceType, Mappers.InstanceTypeMapper)
+      })(),
     ]);
     const t4 = Date.now();
     console.log(`Writing complete in ${t4 - t3}ms`);
@@ -255,7 +189,7 @@ db.get('/check/:db', async (req, res) => {
     const regionEntities = indexes.toEntityList(Mappers.RegionMapper);
     const t4 = new Date().getTime();
     console.log(`Mapping time: ${t4 - t3}ms`);
-    const diff = findDiff(regions,regionEntities, 'name');
+    const diff = findDiff(regions, regionEntities, 'name');
     const t5 = new Date().getTime();
     console.log(`Diff time: ${t5 - t4}ms`);
     res.end(`
