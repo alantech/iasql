@@ -15,8 +15,8 @@ import { TagMapper, } from './tag';
 export const AMIMapper = new EntityMapper(AMI, {
   cpuArchitecture: (ami: Image, indexes: IndexedAWS) => ami?.Architecture ? CPUArchitectureMapper.fromAWS(
     ami?.Architecture, indexes
-  ) : undefined,
-  creationDate: (ami: Image, _indexes: IndexedAWS) => ami?.CreationDate ? ami.CreationDate : undefined,
+  ) : null,
+  creationDate: (ami: Image, _indexes: IndexedAWS) => ami?.CreationDate ? ami.CreationDate : null,
   imageId: (ami: Image, _indexes: IndexedAWS) => ami?.ImageId,
   imageLocation: (ami: Image, _indexes: IndexedAWS) => ami?.ImageLocation,
   imageType: (ami: Image, _indexes: IndexedAWS) => ami?.ImageType,
@@ -46,13 +46,13 @@ export const AMIMapper = new EntityMapper(AMI, {
   sirovNetSupport: (ami: Image, _indexes: IndexedAWS) => ami?.SriovNetSupport,
   stateReason: (ami: Image, indexes: IndexedAWS) => ami?.StateReason ?
     StateReasonMapper.fromAWS(ami?.StateReason, indexes) :
-    undefined,
+    null,
   bootMode: (ami: Image, indexes: IndexedAWS) => ami?.BootMode ?
     BootModeMapper.fromAWS(ami?.BootMode, indexes) :
-    undefined,
+    null,
   deprecationTime: (ami: Image, _indexes: IndexedAWS) => ami?.DeprecationTime ?
     ami.DeprecationTime :
-    undefined,
+    null,
   tags: (ami: Image, indexes: IndexedAWS) => ami?.Tags?.length ?
     ami.Tags.map(tag => TagMapper.fromAWS(tag, indexes)) :
     [],
