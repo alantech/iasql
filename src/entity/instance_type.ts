@@ -23,6 +23,9 @@ import { Region, } from './region';
 import { UsageClass, } from './usage_class';
 import { VCPUInfo, } from './v_cpu_info';
 import { VirtualizationType, } from './virtualization_type';
+import { source, Source, } from '../services/source-of-truth'
+import { awsPrimaryKey, } from '../services/aws-primary-key'
+import { noDiff, } from '../services/diff'
 
 export enum InstanceTypeValue {
   R5N_12XLARGE = 'r5n.12xlarge',
@@ -432,14 +435,18 @@ export enum InstanceTypeHypervisor {
   XEN = 'xen',
 }
 
+@source(Source.AWS)
 @Entity()
 export class InstanceType {
+  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 
+  @awsPrimaryKey
   @Column({
     type: 'enum',
     enum: InstanceTypeValue,
+    unique: true,
   })
   instanceType: InstanceTypeValue;
 
@@ -449,15 +456,15 @@ export class InstanceType {
   @Column()
   freeTierEligible: boolean;
 
-  @ManyToMany(() => UsageClass)
+  @ManyToMany(() => UsageClass, { cascade: true, })
   @JoinTable()
   supportedUsageClasses: UsageClass[];
 
-  @ManyToMany(() => DeviceType)
+  @ManyToMany(() => DeviceType, { cascade: true, })
   @JoinTable()
   supportedRootDeviceTypes: DeviceType[];
 
-  @ManyToMany(() => VirtualizationType)
+  @ManyToMany(() => VirtualizationType, { cascade: true, })
   @JoinTable()
   supportedVirtualizationTypes: VirtualizationType[];
 
@@ -545,15 +552,15 @@ export class InstanceType {
   @Column()
   autoRecoverySupported: boolean;
 
-  @ManyToMany(() => BootMode)
+  @ManyToMany(() => BootMode, { cascade: true, })
   @JoinTable()
   supportedBootModes: BootMode[];
 
-  @ManyToMany(() => Region)
+  @ManyToMany(() => Region, { cascade: true, })
   @JoinTable()
   regions: Region[];
 
-  @ManyToMany(() => AvailabilityZone)
+  @ManyToMany(() => AvailabilityZone, { cascade: true, })
   @JoinTable()
   availabilityZones: AvailabilityZone[];
 }

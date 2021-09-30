@@ -7,7 +7,7 @@ export class ProcessorInfo {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToMany(() => CPUArchitecture)
+  @ManyToMany(() => CPUArchitecture, { cascade: true, })
   @JoinTable()
   supportedArchitectures: CPUArchitecture[];
 
