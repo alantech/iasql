@@ -23,7 +23,7 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   currentGeneration: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.CurrentGeneration,
   freeTierEligible: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.FreeTierEligible,
   supportedUsageClasses: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.SupportedUsageClasses && instanceType?.SupportedUsageClasses.length ?
+    instanceType?.SupportedUsageClasses?.length ?
       instanceType?.SupportedUsageClasses?.map(
         usageClass => UsageClassMapper.fromAWS(usageClass, indexes)
       ) :
