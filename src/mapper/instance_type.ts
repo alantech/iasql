@@ -85,7 +85,7 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   dedicatedHostsSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.DedicatedHostsSupported,
   autoRecoverySupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.AutoRecoverySupported,
   supportedBootModes: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.SupportedBootModes && instanceType?.SupportedBootModes.length ?
+    instanceType?.SupportedBootModes?.length ?
       instanceType?.SupportedBootModes?.map(
         supportedBootMode => BootModeMapper.fromAWS(supportedBootMode, indexes)
       ) :
