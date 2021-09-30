@@ -15,44 +15,44 @@ import { TagMapper, } from './tag';
 export const AMIMapper = new EntityMapper(AMI, {
   cpuArchitecture: (ami: Image, indexes: IndexedAWS) => ami?.Architecture ? CPUArchitectureMapper.fromAWS(
     ami?.Architecture, indexes
-  ) : undefined,
-  creationDate: (ami: Image, _indexes: IndexedAWS) => ami?.CreationDate ? ami.CreationDate : undefined,
-  imageId: (ami: Image, _indexes: IndexedAWS) => ami?.ImageId,
-  imageLocation: (ami: Image, _indexes: IndexedAWS) => ami?.ImageLocation,
-  imageType: (ami: Image, _indexes: IndexedAWS) => ami?.ImageType,
-  public: (ami: Image, _indexes: IndexedAWS) => ami?.Public,
-  kernelId: (ami: Image, _indexes: IndexedAWS) => ami?.KernelId,
-  ownerId: (ami: Image, _indexes: IndexedAWS) => ami?.OwnerId,
-  platform: (ami: Image, _indexes: IndexedAWS) => ami?.Platform,
-  platformDetails: (ami: Image, _indexes: IndexedAWS) => ami?.PlatformDetails,
-  usageOperation: (ami: Image, _indexes: IndexedAWS) => ami?.UsageOperation,
+  ) : null,
+  creationDate: (ami: Image, _indexes: IndexedAWS) => ami?.CreationDate ? ami.CreationDate : null,
+  imageId: (ami: Image, _indexes: IndexedAWS) => ami?.ImageId ?? null,
+  imageLocation: (ami: Image, _indexes: IndexedAWS) => ami?.ImageLocation ?? null,
+  imageType: (ami: Image, _indexes: IndexedAWS) => ami?.ImageType ?? null,
+  public: (ami: Image, _indexes: IndexedAWS) => ami?.Public ?? null,
+  kernelId: (ami: Image, _indexes: IndexedAWS) => ami?.KernelId ?? null,
+  ownerId: (ami: Image, _indexes: IndexedAWS) => ami?.OwnerId ?? null,
+  platform: (ami: Image, _indexes: IndexedAWS) => ami?.Platform ?? null,
+  platformDetails: (ami: Image, _indexes: IndexedAWS) => ami?.PlatformDetails ?? null,
+  usageOperation: (ami: Image, _indexes: IndexedAWS) => ami?.UsageOperation ?? null,
   productCodes: (ami: Image, indexes: IndexedAWS) =>
     ami?.ProductCodes?.length ?
       ami?.ProductCodes?.map(pc => ProductCodeMapper.fromAWS(pc, indexes)) :
       [],
-  ramdiskId: (ami: Image, _indexes: IndexedAWS) => ami?.RamdiskId,
-  state: (ami: Image, _indexes: IndexedAWS) => ami?.State,
+  ramdiskId: (ami: Image, _indexes: IndexedAWS) => ami?.RamdiskId ?? null,
+  state: (ami: Image, _indexes: IndexedAWS) => ami?.State ?? null,
   blockDeviceMappings: (ami: Image, indexes: IndexedAWS) =>
     ami?.BlockDeviceMappings?.length ?
       ami.BlockDeviceMappings.map(bdm => EBSBlockDeviceMappingMapper.fromAWS(bdm, indexes)) :
       [],
-  description: (ami: Image, _indexes: IndexedAWS) => ami?.Description,
-  enaSupport: (ami: Image, _indexes: IndexedAWS) => ami?.EnaSupport,
-  hypervisor: (ami: Image, _indexes: IndexedAWS) => ami?.Hypervisor,
-  imageOwnerAlias: (ami: Image, _indexes: IndexedAWS) => ami?.ImageOwnerAlias,
-  name: (ami: Image, _indexes: IndexedAWS) => ami?.Name,
-  rootDeviceName: (ami: Image, _indexes: IndexedAWS) => ami?.RootDeviceName,
-  rootDeviceType: (ami: Image, _indexes: IndexedAWS) => ami?.RootDeviceType,
-  sirovNetSupport: (ami: Image, _indexes: IndexedAWS) => ami?.SriovNetSupport,
+  description: (ami: Image, _indexes: IndexedAWS) => ami?.Description ?? null,
+  enaSupport: (ami: Image, _indexes: IndexedAWS) => ami?.EnaSupport ?? null,
+  hypervisor: (ami: Image, _indexes: IndexedAWS) => ami?.Hypervisor ?? null,
+  imageOwnerAlias: (ami: Image, _indexes: IndexedAWS) => ami?.ImageOwnerAlias ?? null,
+  name: (ami: Image, _indexes: IndexedAWS) => ami?.Name ?? null,
+  rootDeviceName: (ami: Image, _indexes: IndexedAWS) => ami?.RootDeviceName ?? null,
+  rootDeviceType: (ami: Image, _indexes: IndexedAWS) => ami?.RootDeviceType ?? null,
+  sirovNetSupport: (ami: Image, _indexes: IndexedAWS) => ami?.SriovNetSupport ?? null,
   stateReason: (ami: Image, indexes: IndexedAWS) => ami?.StateReason ?
     StateReasonMapper.fromAWS(ami?.StateReason, indexes) :
-    undefined,
+    null,
   bootMode: (ami: Image, indexes: IndexedAWS) => ami?.BootMode ?
     BootModeMapper.fromAWS(ami?.BootMode, indexes) :
-    undefined,
+    null,
   deprecationTime: (ami: Image, _indexes: IndexedAWS) => ami?.DeprecationTime ?
     ami.DeprecationTime :
-    undefined,
+    null,
   tags: (ami: Image, indexes: IndexedAWS) => ami?.Tags?.length ?
     ami.Tags.map(tag => TagMapper.fromAWS(tag, indexes)) :
     [],

@@ -1,14 +1,13 @@
 import {
   DescribeAvailabilityZonesCommand,
   DescribeImagesCommand,
-  DescribeInstanceTypesCommand,
   DescribeInstancesCommand,
   DescribeRegionsCommand,
   EC2Client,
-  Instance,
   RunInstancesCommand,
   paginateDescribeSecurityGroups,
   paginateDescribeSecurityGroupRules,
+  paginateDescribeInstanceTypes,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
@@ -114,7 +113,17 @@ export class AWS {
   }
 
   async getInstanceTypes() {
-    return await this.ec2client.send(new DescribeInstanceTypesCommand({}))
+    const instanceTypes = [];
+    const paginator = paginateDescribeInstanceTypes({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      instanceTypes.push(...(page.InstanceTypes ?? []));
+    }
+    return {
+      InstanceTypes: instanceTypes, // Make it "look like" the regular query again
+    };
   }
 
   async getAMIs() {

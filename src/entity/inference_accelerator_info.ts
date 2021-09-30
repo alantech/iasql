@@ -7,7 +7,7 @@ export class InferenceAcceleratorInfo {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToMany(() => InferenceDeviceInfo)
+  @ManyToMany(() => InferenceDeviceInfo, { cascade: true })
   @JoinTable()
   accelerators: InferenceDeviceInfo[];
 }

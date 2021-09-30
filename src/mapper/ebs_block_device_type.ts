@@ -6,15 +6,15 @@ import { EntityMapper, } from './entity';
 import { IndexedAWS, } from '../services/indexed-aws'
 
 export const EBSBlockDeviceTypeMapper = new EntityMapper(EBSBlockDeviceType, {
-  deleteOnTermination: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.DeleteOnTermination,
-  iops: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.Iops,
-  snapshotId: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.SnapshotId,
-  volumeSize: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.VolumeSize,
-  volumeType: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.VolumeType,
-  kmsKeyId: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.KmsKeyId,
-  throughput: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.Throughput,
-  outpostArn: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.OutpostArn,
-  encrypted: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.Encrypted,
+  deleteOnTermination: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.DeleteOnTermination ?? null,
+  iops: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.Iops ?? null,
+  snapshotId: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.SnapshotId ?? null,
+  volumeSize: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.VolumeSize ?? null,
+  volumeType: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.VolumeType ?? null,
+  kmsKeyId: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.KmsKeyId ?? null,
+  throughput: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.Throughput ?? null,
+  outpostArn: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.OutpostArn ?? null,
+  encrypted: (ebd: EbsBlockDevice, _indexes: IndexedAWS) => ebd?.Encrypted ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => {
     // Handled by AMI (I think?)

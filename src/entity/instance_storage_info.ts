@@ -18,7 +18,7 @@ export class InstanceStorageInfo {
   })
   totalSizeInGB: number;
 
-  @ManyToMany(() => DiskInfo)
+  @ManyToMany(() => DiskInfo, { cascade: true })
   @JoinTable()
   disks: DiskInfo[];
 

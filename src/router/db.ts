@@ -1,12 +1,5 @@
 import * as fs from 'fs'
 import { inspect, } from 'util'
-
-import {
-  Region as RegionAWS,
-  SecurityGroup as SecurityGroupAWS,
-  SecurityGroupRule as SecurityGroupRuleAWS,
-  Image,
-} from '@aws-sdk/client-ec2'
 import * as express from 'express'
 import { createConnection, Connection, } from 'typeorm'
 
@@ -117,7 +110,8 @@ db.get('/create/:db', async (req, res) => {
       await orm.save(Entities.SecurityGroupRule, securityGroupRules);
       const te = Date.now();
       console.log(`Security group rules stored in ${te - td}ms`);
-    })(), (async () => {
+    })(),
+    (async () => {
       await Promise.all([(async () => {
         const tf = Date.now();
         const arch = indexes.toEntityList(Mappers.CPUArchitectureMapper);
@@ -148,7 +142,59 @@ db.get('/create/:db', async (req, res) => {
       await orm.save(Entities.AMI, amis);
       const to = Date.now();
       console.log(`AMIs stored in ${to - tn}ms`);
-    })(),]);
+    })(),
+    (async () => {
+      await Promise.all([
+        (async () => {
+          const tp = Date.now();
+          const usageClasses = await indexes.toEntityList(Mappers.UsageClassMapper);
+          await orm.save(Entities.UsageClass, usageClasses);
+          const tq = Date.now();
+          console.log(`Usage class stored in ${tq - tp}ms`);
+        })(),
+        (async () => {
+          const tr = Date.now();
+          const deviceTypes = await indexes.toEntityList(Mappers.DeviceTypeMapper);
+          await orm.save(Entities.DeviceType, deviceTypes);
+          const ts = Date.now();
+          console.log(`Device types stored in ${ts - tr}ms`);
+        })(),
+        (async () => {
+          const tt = Date.now();
+          const virtualizationTypes = await indexes.toEntityList(Mappers.VirtualizationTypeMapper);
+          await orm.save(Entities.VirtualizationType, virtualizationTypes);
+          const tu = Date.now();
+          console.log(`Virtualization types stored in ${tu - tt}ms`);
+        })(),
+        (async () => {
+          const tv = Date.now();
+          const placementGroupStrategies = await indexes.toEntityList(Mappers.PlacementGroupStrategyMapper);
+          await orm.save(Entities.PlacementGroupStrategy, placementGroupStrategies);
+          const tw = Date.now();
+          console.log(`Placement groups stored in ${tw - tv}ms`);
+        })(),
+        (async () => {
+          const tx = Date.now();
+          const validCores = await indexes.toEntityList(Mappers.ValidCoreMapper);
+          await orm.save(Entities.ValidCore, validCores);
+          const ty = Date.now();
+          console.log(`Valid cores stored in ${ty - tx}ms`);
+        })(),
+        (async () => {
+          const tz = Date.now();
+          const validThreadsPerCore = await indexes.toEntityList(Mappers.ValidThreadsPerCoreMapper);
+          await orm.save(Entities.ValidThreadsPerCore, validThreadsPerCore);
+          const taa = Date.now();
+          console.log(`Valid Threads Per Core stored in ${taa - tz}ms`);
+        })(),
+      ]);
+      const tab = Date.now();
+      const instanceTypes = await indexes.toEntityList(Mappers.InstanceTypeMapper);
+      await orm?.save(Entities.InstanceType, instanceTypes);
+      const tac = Date.now();
+      console.log(`Instance types stored in ${tac - tab}ms`);
+    })()
+    ]);
     const t4 = Date.now();
     console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
@@ -162,7 +208,6 @@ db.get('/create/:db', async (req, res) => {
 });
 
 db.get('/delete/:db', async (req, res) => {
-  console.log('delete')
   // TODO: Clean/validate this input
   const dbname = req.params['db'];
   let conn;
