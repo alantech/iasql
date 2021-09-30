@@ -13,7 +13,8 @@ import { NetworkInfoMapper } from './network_info';
 import { GPUInfoMapper } from './gpu_info';
 import { FPGAInfoMapper } from './fpga_info';
 import { AWS } from '../services/gateways/aws';
-import { InstanceType, DeviceType, UsageClass, VirtualizationType } from '../entity';
+import { InstanceType, DeviceType, UsageClass, VirtualizationType, PlacementGroupStrategy } from '../entity';
+import { PlacementGroupInfoMapper } from '.';
 
 export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   instanceType: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceType,
@@ -69,7 +70,10 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
     instanceType?.FpgaInfo ? FPGAInfoMapper.fromAWS(
       instanceType?.FpgaInfo, indexes
     ) : undefined,
-  // placementGroupInfo:  (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.PlacementGroupInfo,
+  placementGroupInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+    instanceType?.PlacementGroupInfo ? PlacementGroupInfoMapper.fromAWS(
+      instanceType?.PlacementGroupInfo, indexes
+    ) : undefined,
   // inferenceAcceleratorInfo:  (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InferenceAcceleratorInfo,
   hibernationSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.HibernationSupported,
   burstablePerformanceSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BurstablePerformanceSupported,
@@ -112,6 +116,11 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
           } else {
             throw Error('supportedVirtualizationTypes is this possible?');
           }
+        }
+      }
+      if (instanceType.PlacementGroupInfo && instanceType.PlacementGroupInfo.SupportedStrategies && instanceType.PlacementGroupInfo.SupportedStrategies.length) {
+        for (const supportedStrategy of instanceType.PlacementGroupInfo.SupportedStrategies) {
+          indexes.set(PlacementGroupStrategy, supportedStrategy, supportedStrategy);
         }
       }
     }

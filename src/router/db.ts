@@ -161,6 +161,12 @@ db.get('/create/:db', async (req, res) => {
       const tu = Date.now();
       console.log(`Device type stored in ${tt - tu}ms`);
 
+      const tv = Date.now();
+      const placementGroupStrategies = await indexes.toEntityList(Mappers.PlacementGroupStrategyMapper);
+      await orm.save(Entities.PlacementGroupStrategy, placementGroupStrategies);
+      const tw = Date.now();
+      console.log(`Device type stored in ${tw - tv}ms`);
+
       const instanceTypes = await indexes.toEntityList(Mappers.InstanceTypeMapper);
       await orm?.save(Entities.InstanceType, instanceTypes);
     })()

@@ -537,7 +537,7 @@ export class InstanceType {
   })
   fpgaInfo: FPGAInfo;
 
-  @ManyToOne(() => PlacementGroupInfo)
+  @ManyToOne(() => PlacementGroupInfo, { cascade: true })
   @JoinColumn({
     name: 'placement_group_info_id',
   })
