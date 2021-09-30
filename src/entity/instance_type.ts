@@ -543,7 +543,7 @@ export class InstanceType {
   })
   placementGroupInfo: PlacementGroupInfo;
 
-  @ManyToOne(() => InferenceAcceleratorInfo)
+  @ManyToOne(() => InferenceAcceleratorInfo, { cascade: true })
   @JoinColumn({
     name: 'inference_accelerator_info_id',
   })

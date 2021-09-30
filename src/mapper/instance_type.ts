@@ -15,6 +15,7 @@ import { FPGAInfoMapper } from './fpga_info';
 import { AWS } from '../services/gateways/aws';
 import { InstanceType, DeviceType, UsageClass, VirtualizationType, PlacementGroupStrategy } from '../entity';
 import { PlacementGroupInfoMapper } from '.';
+import { InferenceAcceleratorInfoMapper } from './inference_accelerator_info';
 
 export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   instanceType: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceType,
@@ -74,7 +75,10 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
     instanceType?.PlacementGroupInfo ? PlacementGroupInfoMapper.fromAWS(
       instanceType?.PlacementGroupInfo, indexes
     ) : undefined,
-  // inferenceAcceleratorInfo:  (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InferenceAcceleratorInfo,
+  inferenceAcceleratorInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+    instanceType?.InferenceAcceleratorInfo ? InferenceAcceleratorInfoMapper.fromAWS(
+      instanceType?.InferenceAcceleratorInfo, indexes
+    ) : undefined,
   hibernationSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.HibernationSupported,
   burstablePerformanceSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BurstablePerformanceSupported,
   dedicatedHostsSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.DedicatedHostsSupported,
