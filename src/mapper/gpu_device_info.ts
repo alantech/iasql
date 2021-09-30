@@ -13,7 +13,7 @@ export const GPUDeviceInfoMapper = new EntityMapper(GPUDeviceInfo, {
   memoryInfo: (gpuDeviceInfo: GpuDeviceInfoAWS, indexes: IndexedAWS) =>
     gpuDeviceInfo?.MemoryInfo ? GPUDeviceMemoryInfoMapper.fromAWS(
       gpuDeviceInfo?.MemoryInfo, indexes
-    ) : undefined,
+    ) : null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
