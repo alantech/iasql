@@ -132,6 +132,7 @@ db.get('/create/:db', async (req, res) => {
           saveEntities(orm, indexes, Entities.PlacementGroupStrategy, Mappers.PlacementGroupStrategyMapper),
           saveEntities(orm, indexes, Entities.ValidCore, Mappers.ValidCoreMapper),
           saveEntities(orm, indexes, Entities.ValidThreadsPerCore, Mappers.ValidThreadsPerCoreMapper),
+          saveEntities(orm, indexes, Entities.InstanceTypeValue, Mappers.InstanceTypeValueMapper),
         ]);
         await saveEntities(orm, indexes, Entities.InstanceType, Mappers.InstanceTypeMapper)
       })(),
