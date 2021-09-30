@@ -6,7 +6,7 @@ import { VirtualizationType } from '../entity/virtualization_type';
 import { AWS } from '../services/gateways/aws';
 
 export const VirtualizationTypeMapper = new EntityMapper(VirtualizationType, {
-  virtualizationType: (virtualizationType: VirtualizationTypeAWS, _indexes: IndexedAWS) => virtualizationType,
+  virtualizationType: (virtualizationType: VirtualizationTypeAWS, _indexes: IndexedAWS) => virtualizationType ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },

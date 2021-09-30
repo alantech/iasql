@@ -7,14 +7,14 @@ import { DiskInfoMapper } from './disk_info';
 import { AWS } from '../services/gateways/aws';
 
 export const InstanceStorageInfoMapper = new EntityMapper(InstanceStorageInfo, {
-  totalSizeInGB: (instanceStorageInfo: InstanceStorageInfoAWS, _indexes: IndexedAWS) => instanceStorageInfo?.TotalSizeInGB,
+  totalSizeInGB: (instanceStorageInfo: InstanceStorageInfoAWS, _indexes: IndexedAWS) => instanceStorageInfo?.TotalSizeInGB ?? null,
   disks: (instanceStorageInfo: InstanceStorageInfoAWS, indexes: IndexedAWS) =>
     instanceStorageInfo?.Disks?.length ?
       instanceStorageInfo.Disks.map(
         disk => DiskInfoMapper.fromAWS(disk, indexes)
       ) :
       [],
-  NVMESupport: (instanceStorageInfo: InstanceStorageInfoAWS, _indexes: IndexedAWS) => instanceStorageInfo?.NvmeSupport,
+  NVMESupport: (instanceStorageInfo: InstanceStorageInfoAWS, _indexes: IndexedAWS) => instanceStorageInfo?.NvmeSupport ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },

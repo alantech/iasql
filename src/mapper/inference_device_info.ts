@@ -6,9 +6,9 @@ import { InferenceDeviceInfo, } from '../entity/inference_device_info';
 import { AWS } from '../services/gateways/aws';
 
 export const InferenceDeviceInfoMapper = new EntityMapper(InferenceDeviceInfo, {
-  name: (inferenceDeviceInfo: InferenceDeviceInfoAWS, _indexes: IndexedAWS) => inferenceDeviceInfo?.Name,
-  count: (inferenceDeviceInfo: InferenceDeviceInfoAWS, _indexes: IndexedAWS) => inferenceDeviceInfo?.Count,
-  manufacturer: (inferenceDeviceInfo: InferenceDeviceInfoAWS, _indexes: IndexedAWS) => inferenceDeviceInfo?.Manufacturer,
+  name: (inferenceDeviceInfo: InferenceDeviceInfoAWS, _indexes: IndexedAWS) => inferenceDeviceInfo?.Name ?? null,
+  count: (inferenceDeviceInfo: InferenceDeviceInfoAWS, _indexes: IndexedAWS) => inferenceDeviceInfo?.Count ?? null,
+  manufacturer: (inferenceDeviceInfo: InferenceDeviceInfoAWS, _indexes: IndexedAWS) => inferenceDeviceInfo?.Manufacturer ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },

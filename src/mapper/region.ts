@@ -6,9 +6,9 @@ import { IndexedAWS, } from '../services/indexed-aws'
 import { Region, } from '../entity/region';
 
 export const RegionMapper = new EntityMapper(Region, {
-  name: (region: RegionAWS, _indexes: IndexedAWS) => region?.RegionName,
-  endpoint: (region: RegionAWS, _indexes: IndexedAWS) => region?.Endpoint,
-  optInStatus: (region: RegionAWS, _indexes: IndexedAWS) => region?.OptInStatus,
+  name: (region: RegionAWS, _indexes: IndexedAWS) => region?.RegionName ?? null,
+  endpoint: (region: RegionAWS, _indexes: IndexedAWS) => region?.Endpoint ?? null,
+  optInStatus: (region: RegionAWS, _indexes: IndexedAWS) => region?.OptInStatus ?? null,
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();

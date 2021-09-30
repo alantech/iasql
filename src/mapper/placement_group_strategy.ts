@@ -4,7 +4,7 @@ import { EntityMapper, } from './entity';
 import { IndexedAWS, } from '../services/indexed-aws'
 
 export const PlacementGroupStrategyMapper = new EntityMapper(PlacementGroupStrategy, {
-  strategy: (strategy: string, _indexes: IndexedAWS) => strategy,
+  strategy: (strategy: string, _indexes: IndexedAWS) => strategy ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },

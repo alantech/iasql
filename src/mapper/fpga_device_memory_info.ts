@@ -6,7 +6,7 @@ import { FPGADeviceMemoryInfo, } from '../entity/fpga_device_memory_info';
 import { AWS } from '../services/gateways/aws';
 
 export const FPGADeviceMemoryInfoMapper = new EntityMapper(FPGADeviceMemoryInfo, {
-  sizeInMiB: (fpgaDeviceMemoryInfo: FpgaDeviceMemoryInfoAWS, _indexes: IndexedAWS) => fpgaDeviceMemoryInfo?.SizeInMiB,
+  sizeInMiB: (fpgaDeviceMemoryInfo: FpgaDeviceMemoryInfoAWS, _indexes: IndexedAWS) => fpgaDeviceMemoryInfo?.SizeInMiB ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },

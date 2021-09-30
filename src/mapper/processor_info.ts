@@ -13,7 +13,7 @@ export const ProcessorInfoMapper = new EntityMapper(ProcessorInfo, {
         cpuArch => CPUArchitectureMapper.fromAWS(cpuArch, indexes)
       ) :
       [],
-  sustainedClockSpeedInGHz: (processorInfo: ProcessorInfoAWS, _indexes: IndexedAWS) => processorInfo?.SustainedClockSpeedInGhz,
+  sustainedClockSpeedInGHz: (processorInfo: ProcessorInfoAWS, _indexes: IndexedAWS) => processorInfo?.SustainedClockSpeedInGhz ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },

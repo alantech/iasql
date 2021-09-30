@@ -7,9 +7,9 @@ import { GPUDeviceMemoryInfoMapper } from './gpu_device_memory_info';
 import { AWS } from '../services/gateways/aws';
 
 export const GPUDeviceInfoMapper = new EntityMapper(GPUDeviceInfo, {
-  name: (gpuDeviceInfo: GpuDeviceInfoAWS, _indexes: IndexedAWS) => gpuDeviceInfo?.Name,
-  manufacturer: (gpuDeviceInfo: GpuDeviceInfoAWS, _indexes: IndexedAWS) => gpuDeviceInfo?.Manufacturer,
-  count: (gpuDeviceInfo: GpuDeviceInfoAWS, _indexes: IndexedAWS) => gpuDeviceInfo?.Count,
+  name: (gpuDeviceInfo: GpuDeviceInfoAWS, _indexes: IndexedAWS) => gpuDeviceInfo?.Name ?? null,
+  manufacturer: (gpuDeviceInfo: GpuDeviceInfoAWS, _indexes: IndexedAWS) => gpuDeviceInfo?.Manufacturer ?? null,
+  count: (gpuDeviceInfo: GpuDeviceInfoAWS, _indexes: IndexedAWS) => gpuDeviceInfo?.Count ?? null,
   memoryInfo: (gpuDeviceInfo: GpuDeviceInfoAWS, indexes: IndexedAWS) =>
     gpuDeviceInfo?.MemoryInfo ? GPUDeviceMemoryInfoMapper.fromAWS(
       gpuDeviceInfo?.MemoryInfo, indexes

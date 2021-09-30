@@ -19,9 +19,9 @@ import { BootModeMapper, PlacementGroupInfoMapper } from '.';
 import { InferenceAcceleratorInfoMapper } from './inference_accelerator_info';
 
 export const InstanceTypeMapper = new EntityMapper(InstanceType, {
-  instanceType: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceType,
-  currentGeneration: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.CurrentGeneration,
-  freeTierEligible: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.FreeTierEligible,
+  instanceType: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceType ?? null,
+  currentGeneration: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.CurrentGeneration ?? null,
+  freeTierEligible: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.FreeTierEligible ?? null,
   supportedUsageClasses: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.SupportedUsageClasses?.length ?
       instanceType?.SupportedUsageClasses?.map(
@@ -40,8 +40,8 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
         virtualizationType => VirtualizationTypeMapper.fromAWS(virtualizationType, indexes)
       ) :
       [],
-  bareMetal: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BareMetal,
-  hypervisor: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.Hypervisor,
+  bareMetal: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BareMetal ?? null,
+  hypervisor: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.Hypervisor ?? null,
   processorInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.ProcessorInfo ? ProcessorInfoMapper.fromAWS(
       instanceType?.ProcessorInfo, indexes
@@ -50,8 +50,8 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
     instanceType?.VCpuInfo ? VCPUInfoMapper.fromAWS(
       instanceType?.VCpuInfo, indexes
     ) : null,
-  memorySizeInMiB: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.MemoryInfo?.SizeInMiB,
-  instanceStorageSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceStorageSupported,
+  memorySizeInMiB: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.MemoryInfo?.SizeInMiB ?? null,
+  instanceStorageSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceStorageSupported ?? null,
   instanceStorageInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.InstanceStorageInfo ? InstanceStorageInfoMapper.fromAWS(
       instanceType?.InstanceStorageInfo, indexes
@@ -80,10 +80,10 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
     instanceType?.InferenceAcceleratorInfo ? InferenceAcceleratorInfoMapper.fromAWS(
       instanceType?.InferenceAcceleratorInfo, indexes
     ) : null,
-  hibernationSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.HibernationSupported,
-  burstablePerformanceSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BurstablePerformanceSupported,
-  dedicatedHostsSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.DedicatedHostsSupported,
-  autoRecoverySupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.AutoRecoverySupported,
+  hibernationSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.HibernationSupported ?? null,
+  burstablePerformanceSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BurstablePerformanceSupported ?? null,
+  dedicatedHostsSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.DedicatedHostsSupported ?? null,
+  autoRecoverySupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.AutoRecoverySupported ?? null,
   supportedBootModes: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.SupportedBootModes?.length ?
       instanceType?.SupportedBootModes?.map(

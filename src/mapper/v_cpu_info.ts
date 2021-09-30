@@ -8,9 +8,9 @@ import { ValidThreadsPerCoreMapper } from './valid_threads_per_core';
 import { AWS } from '../services/gateways/aws';
 
 export const VCPUInfoMapper = new EntityMapper(VCPUInfo, {
-  defaultVCPUs: (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultVCpus,
-  defaultCores: (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultCores,
-  defaultThreadsPerCore: (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultThreadsPerCore,
+  defaultVCPUs: (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultVCpus ?? null,
+  defaultCores: (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultCores ?? null,
+  defaultThreadsPerCore: (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultThreadsPerCore ?? null,
   validCores: (vCPUInfo: VCpuInfo, indexes: IndexedAWS) =>
     vCPUInfo?.ValidCores?.length ?
       vCPUInfo.ValidCores.map(

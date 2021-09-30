@@ -7,9 +7,9 @@ import { FPGADeviceMemoryInfoMapper } from './fpga_device_memory_info';
 import { AWS } from '../services/gateways/aws';
 
 export const FPGADeviceInfoMapper = new EntityMapper(FPGADeviceInfo, {
-  name: (fpgaDeviceInfo: FpgaDeviceInfoAWS, _indexes: IndexedAWS) => fpgaDeviceInfo?.Name,
-  manufacturer: (fpgaDeviceInfo: FpgaDeviceInfoAWS, _indexes: IndexedAWS) => fpgaDeviceInfo?.Manufacturer,
-  count: (fpgaDeviceInfo: FpgaDeviceInfoAWS, _indexes: IndexedAWS) => fpgaDeviceInfo?.Count,
+  name: (fpgaDeviceInfo: FpgaDeviceInfoAWS, _indexes: IndexedAWS) => fpgaDeviceInfo?.Name ?? null,
+  manufacturer: (fpgaDeviceInfo: FpgaDeviceInfoAWS, _indexes: IndexedAWS) => fpgaDeviceInfo?.Manufacturer ?? null,
+  count: (fpgaDeviceInfo: FpgaDeviceInfoAWS, _indexes: IndexedAWS) => fpgaDeviceInfo?.Count ?? null,
   memoryInfo: (fpgaDeviceInfo: FpgaDeviceInfoAWS, indexes: IndexedAWS) =>
     fpgaDeviceInfo?.MemoryInfo ? FPGADeviceMemoryInfoMapper.fromAWS(
       fpgaDeviceInfo?.MemoryInfo, indexes

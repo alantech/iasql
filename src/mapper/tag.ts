@@ -6,8 +6,8 @@ import { IndexedAWS, } from '../services/indexed-aws'
 import { Tag, } from '../entity/tag';
 
 export const TagMapper = new EntityMapper(Tag, {
-  key: (tag: TagAWS, _indexes: IndexedAWS) => tag?.Key,
-  value: (tag: TagAWS, _indexes: IndexedAWS) => tag?.Value,
+  key: (tag: TagAWS, _indexes: IndexedAWS) => tag?.Key ?? null,
+  value: (tag: TagAWS, _indexes: IndexedAWS) => tag?.Value ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { /* todo */ },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },

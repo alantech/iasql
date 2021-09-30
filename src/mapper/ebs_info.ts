@@ -7,13 +7,13 @@ import { EBSOptimizedInfoMapper } from './ebs_optimized_info';
 import { AWS } from '../services/gateways/aws';
 
 export const EBSInfoMapper = new EntityMapper(EBSInfo, {
-  ebsOptimizedSupport: (ebs: EbsInfoAWS, _indexes: IndexedAWS) => ebs?.EbsOptimizedSupport,
-  encryptionSupport: (ebs: EbsInfoAWS, _indexes: IndexedAWS) => ebs?.EncryptionSupport,
+  ebsOptimizedSupport: (ebs: EbsInfoAWS, _indexes: IndexedAWS) => ebs?.EbsOptimizedSupport ?? null,
+  encryptionSupport: (ebs: EbsInfoAWS, _indexes: IndexedAWS) => ebs?.EncryptionSupport ?? null,
   ebsOptimizedInfo: (ebs: EbsInfoAWS, indexes: IndexedAWS) =>
     ebs?.EbsOptimizedInfo ? EBSOptimizedInfoMapper.fromAWS(
       ebs?.EbsOptimizedInfo, indexes
     ) : null,
-  NVMESupport: (ebs: EbsInfoAWS, _indexes: IndexedAWS) => ebs?.NvmeSupport,
+  NVMESupport: (ebs: EbsInfoAWS, _indexes: IndexedAWS) => ebs?.NvmeSupport ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
   createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
