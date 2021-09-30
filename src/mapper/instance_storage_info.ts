@@ -9,7 +9,7 @@ import { AWS } from '../services/gateways/aws';
 export const InstanceStorageInfoMapper = new EntityMapper(InstanceStorageInfo, {
   totalSizeInGB: (instanceStorageInfo: InstanceStorageInfoAWS, _indexes: IndexedAWS) => instanceStorageInfo?.TotalSizeInGB,
   disks: (instanceStorageInfo: InstanceStorageInfoAWS, indexes: IndexedAWS) =>
-    instanceStorageInfo?.Disks && instanceStorageInfo?.Disks.length ?
+    instanceStorageInfo?.Disks?.length ?
       instanceStorageInfo.Disks.map(
         disk => DiskInfoMapper.fromAWS(disk, indexes)
       ) :
