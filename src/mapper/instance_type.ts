@@ -14,7 +14,7 @@ import { GPUInfoMapper } from './gpu_info';
 import { FPGAInfoMapper } from './fpga_info';
 import { AWS } from '../services/gateways/aws';
 import { InstanceType, DeviceType, UsageClass, VirtualizationType, PlacementGroupStrategy } from '../entity';
-import { PlacementGroupInfoMapper } from '.';
+import { BootModeMapper, PlacementGroupInfoMapper } from '.';
 import { InferenceAcceleratorInfoMapper } from './inference_accelerator_info';
 
 export const InstanceTypeMapper = new EntityMapper(InstanceType, {
@@ -83,7 +83,12 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   burstablePerformanceSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BurstablePerformanceSupported,
   dedicatedHostsSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.DedicatedHostsSupported,
   autoRecoverySupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.AutoRecoverySupported,
-  // supportedBootModes:  (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.SupportedBootModes,
+  supportedBootModes: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+    instanceType?.SupportedBootModes && instanceType?.SupportedBootModes.length ?
+      instanceType?.SupportedBootModes?.map(
+        supportedBootMode => BootModeMapper.fromAWS(supportedBootMode, indexes)
+      ) :
+      [],
   // // regions:  (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.,
   // // availabilityZones:  (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.,
 }, {
