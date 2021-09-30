@@ -35,7 +35,7 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
       ) :
       [],
   supportedVirtualizationTypes: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.SupportedVirtualizationTypes && instanceType?.SupportedVirtualizationTypes.length ?
+    instanceType?.SupportedVirtualizationTypes?.length ?
       instanceType?.SupportedVirtualizationTypes?.map(
         virtualizationType => VirtualizationTypeMapper.fromAWS(virtualizationType, indexes)
       ) :
@@ -101,44 +101,44 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
     console.log(`Instance types set in ${t2 - t1}ms`);
     // Set aux AMI indexes, too
     for (const instanceType of instanceTypes) {
-      if (instanceType.SupportedUsageClasses && instanceType.SupportedUsageClasses.length) {
+      if (instanceType.SupportedUsageClasses?.length) {
         for (const usageClass of instanceType.SupportedUsageClasses) {
           if (usageClass) {
             indexes.set(UsageClass, usageClass, usageClass)
           } else {
-            throw Error('usageClasses is this possible?');
+            throw new Error('usageClasses is this possible?');
           }
         }
       }
-      if (instanceType.SupportedRootDeviceTypes && instanceType.SupportedRootDeviceTypes.length) {
+      if (instanceType.SupportedRootDeviceTypes?.length) {
         for (const supportedRootDeviceType of instanceType.SupportedRootDeviceTypes) {
           if (supportedRootDeviceType) {
             indexes.set(DeviceType, supportedRootDeviceType, supportedRootDeviceType)
           } else {
-            throw Error('supportedRootDeviceTypes is this possible?');
+            throw new Error('supportedRootDeviceTypes is this possible?');
           }
         }
       }
-      if (instanceType.SupportedVirtualizationTypes && instanceType.SupportedVirtualizationTypes.length) {
+      if (instanceType.SupportedVirtualizationTypes?.length) {
         for (const supportedVirtualizationType of instanceType.SupportedVirtualizationTypes) {
           if (supportedVirtualizationType) {
             indexes.set(VirtualizationType, supportedVirtualizationType, supportedVirtualizationType)
           } else {
-            throw Error('supportedVirtualizationTypes is this possible?');
+            throw new Error('supportedVirtualizationTypes is this possible?');
           }
         }
       }
-      if (instanceType.PlacementGroupInfo && instanceType.PlacementGroupInfo.SupportedStrategies && instanceType.PlacementGroupInfo.SupportedStrategies.length) {
+      if (instanceType.PlacementGroupInfo?.SupportedStrategies?.length) {
         for (const supportedStrategy of instanceType.PlacementGroupInfo.SupportedStrategies) {
           indexes.set(PlacementGroupStrategy, supportedStrategy, supportedStrategy);
         }
       }
-      if (instanceType.VCpuInfo && instanceType.VCpuInfo.ValidCores && instanceType.VCpuInfo.ValidCores.length) {
+      if (instanceType.VCpuInfo?.ValidCores?.length) {
         for (const validCores of instanceType.VCpuInfo.ValidCores) {
           indexes.set(ValidCore, `${validCores}`, validCores);
         }
       }
-      if (instanceType.VCpuInfo && instanceType.VCpuInfo.ValidThreadsPerCore && instanceType.VCpuInfo.ValidThreadsPerCore.length) {
+      if (instanceType.VCpuInfo?.ValidThreadsPerCore?.length) {
         for (const validCores of instanceType.VCpuInfo.ValidThreadsPerCore) {
           indexes.set(ValidThreadsPerCore, `${validCores}`, validCores);
         }
