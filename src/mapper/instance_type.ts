@@ -59,7 +59,7 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   ebsInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.EbsInfo ? EBSInfoMapper.fromAWS(
       instanceType?.EbsInfo, indexes
-    ) : undefined,
+    ) : null,
   networkInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.NetworkInfo ? NetworkInfoMapper.fromAWS(
       instanceType?.NetworkInfo, indexes
