@@ -12,7 +12,7 @@ export const EBSInfoMapper = new EntityMapper(EBSInfo, {
   ebsOptimizedInfo: (ebs: EbsInfoAWS, indexes: IndexedAWS) =>
     ebs?.EbsOptimizedInfo ? EBSOptimizedInfoMapper.fromAWS(
       ebs?.EbsOptimizedInfo, indexes
-    ) : undefined,
+    ) : null,
   NVMESupport: (ebs: EbsInfoAWS, _indexes: IndexedAWS) => ebs?.NvmeSupport,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
