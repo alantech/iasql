@@ -1,16 +1,16 @@
 
 // TODO refactor to a class
 export function findDiff(dbEntities: any[], cloudEntities: any[], id: string) {
-  const entitiesToCreate: any[] = [];
-  const entitiesToDelete: any[] = [];
+  const entitiesInDbOnly: any[] = [];
+  const entitiesInAwsOnly: any[] = [];
   const dbEntityIds = dbEntities.map(e => e[id]);
   const cloudEntityIds = cloudEntities.map(e => e[id]);
   // Everything in cloud and not in db is a potential delete
   const cloudEntNotInDb = cloudEntities.filter(e => !dbEntityIds.includes(e[id]));
-  cloudEntNotInDb.map(e => entitiesToDelete.push(e));
+  cloudEntNotInDb.map(e => entitiesInAwsOnly.push(e));
   // Everything in db and not in cloud is a potential create
   const dbEntNotInCloud = dbEntities.filter(e => !cloudEntityIds.includes(e[id]));
-  dbEntNotInCloud.map(e => entitiesToCreate.push(e));
+  dbEntNotInCloud.map(e => entitiesInDbOnly.push(e));
   // Everything else needs a diff between them
   const remainingDbEntities = dbEntities.filter(e => cloudEntityIds.includes(e[id]));
   const entitiesDiff: any[] = [];
@@ -19,8 +19,8 @@ export function findDiff(dbEntities: any[], cloudEntities: any[], id: string) {
     entitiesDiff.push(diff(dbEnt, cloudEntToCompare));
   });
   return {
-    entitiesToCreate,
-    entitiesToDelete,
+    entitiesInDbOnly,
+    entitiesInAwsOnly,
     entitiesDiff
   }
 }
