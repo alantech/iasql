@@ -1,6 +1,8 @@
 const diffExclusionTable: { [key: string]: string[], } = {};
 
-export function noDiff(Class: any, name: string, descriptor?:any) {
+// Decorator function that indicates fields that should not be compared when diffing
+// database and AWS sources. Usually for sub-objects controlled by a different AWS endpoint
+export function noDiff(Class: any, name: string, descriptor?: any) {
   diffExclusionTable[Class.constructor.name] = diffExclusionTable[Class.constructor.name] ?? [];
   diffExclusionTable[Class.constructor.name].push(name);
   return descriptor;
