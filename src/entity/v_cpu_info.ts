@@ -23,11 +23,11 @@ export class VCPUInfo {
   })
   defaultThreadsPerCore: number;
 
-  @ManyToMany(() => ValidCore)
+  @ManyToMany(() => ValidCore, { cascade: true })
   @JoinTable()
   validCores: ValidCore[];
 
-  @ManyToMany(() => ValidThreadsPerCore)
+  @ManyToMany(() => ValidThreadsPerCore, { cascade: true })
   @JoinTable()
   validThreadsPerCore: ValidThreadsPerCore[];
 }

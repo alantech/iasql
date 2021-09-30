@@ -6,8 +6,8 @@ import { IndexedAWS, } from '../services/indexed-aws'
 import { ProductCode, } from '../entity/product_code';
 
 export const ProductCodeMapper = new EntityMapper(ProductCode, {
-  productCodeId: (productCode: ProductCodeAWS, _indexes: IndexedAWS) => productCode?.ProductCodeId,
-  productCodeType: (productCode: ProductCodeAWS, _indexes: IndexedAWS) => productCode?.ProductCodeType,
+  productCodeId: (productCode: ProductCodeAWS, _indexes: IndexedAWS) => productCode?.ProductCodeId ?? null,
+  productCodeType: (productCode: ProductCodeAWS, _indexes: IndexedAWS) => productCode?.ProductCodeType ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => {
     // Handled by AMI

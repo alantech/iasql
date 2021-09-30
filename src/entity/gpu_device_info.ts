@@ -18,7 +18,7 @@ export class GPUDeviceInfo {
   })
   count: number;
 
-  @ManyToOne(() => GPUDeviceMemoryInfo)
+  @ManyToOne(() => GPUDeviceMemoryInfo, { cascade: true })
   @JoinColumn({
     name: 'gpu_device_memory_info_id',
   })

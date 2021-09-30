@@ -13,6 +13,7 @@ export class ProcessorInfo {
 
   @Column({
     type: 'decimal',
+    nullable: true,
   })
-  sustainedClockSpeedInGHz: number;
+  sustainedClockSpeedInGHz?: number;
 }
