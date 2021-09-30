@@ -8,7 +8,7 @@ import { AWS } from '../services/gateways/aws';
 
 export const PlacementGroupInfoMapper = new EntityMapper(PlacementGroupInfo, {
   supportedStrategies: (placementGroupInfo: PlacementGroupInfoAWS, indexes: IndexedAWS) =>
-    placementGroupInfo?.SupportedStrategies && placementGroupInfo?.SupportedStrategies.length ?
+    placementGroupInfo?.SupportedStrategies?.length ?
       placementGroupInfo.SupportedStrategies.map(
         supportedStrategy => PlacementGroupStrategyMapper.fromAWS(supportedStrategy, indexes)
       ) :

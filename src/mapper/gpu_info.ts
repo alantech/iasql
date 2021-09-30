@@ -9,7 +9,7 @@ import { AWS } from '../services/gateways/aws';
 export const GPUInfoMapper = new EntityMapper(GPUInfo, {
   totalGPUMemoryInMiB: (gpuInfo: GpuInfoAWS, _indexes: IndexedAWS) => gpuInfo?.TotalGpuMemoryInMiB,
   gpus: (gpuInfo: GpuInfoAWS, indexes: IndexedAWS) =>
-    gpuInfo?.Gpus && gpuInfo?.Gpus.length ?
+    gpuInfo?.Gpus?.length ?
       gpuInfo.Gpus.map(
         gpu => GPUDeviceInfoMapper.fromAWS(gpu, indexes)
       ) :

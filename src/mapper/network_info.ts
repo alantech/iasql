@@ -13,7 +13,7 @@ export const NetworkInfoMapper = new EntityMapper(NetworkInfo, {
   maximumNetworkCards: (networkInfo: NetworkInfoAWS, _indexes: IndexedAWS) => networkInfo?.MaximumNetworkCards,
   defaultNetworkCardIndex: (networkInfo: NetworkInfoAWS, _indexes: IndexedAWS) => networkInfo?.DefaultNetworkCardIndex,
   networkCards: (networkInfo: NetworkInfoAWS, indexes: IndexedAWS) =>
-    networkInfo?.NetworkCards && networkInfo?.NetworkCards.length ?
+    networkInfo?.NetworkCards?.length ?
       networkInfo?.NetworkCards?.map(
         networkCardInfo => NetworkCardInfoMapper.fromAWS(networkCardInfo, indexes)
       ) :
@@ -26,7 +26,7 @@ export const NetworkInfoMapper = new EntityMapper(NetworkInfo, {
   efaInfo: (networkInfo: NetworkInfoAWS, indexes: IndexedAWS) =>
     networkInfo?.EfaInfo ? EFAInfoMapper.fromAWS(
       networkInfo?.EfaInfo, indexes
-    ) : undefined,
+    ) : null,
   encryptionInTransitSupported: (networkInfo: NetworkInfoAWS, _indexes: IndexedAWS) => networkInfo?.EncryptionInTransitSupported,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },

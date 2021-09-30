@@ -8,7 +8,7 @@ import { AWS } from '../services/gateways/aws';
 
 export const ProcessorInfoMapper = new EntityMapper(ProcessorInfo, {
   supportedArchitectures: (processorInfo: ProcessorInfoAWS, indexes: IndexedAWS) =>
-    processorInfo.SupportedArchitectures && processorInfo.SupportedArchitectures.length ?
+    processorInfo.SupportedArchitectures?.length ?
       processorInfo.SupportedArchitectures.map(
         cpuArch => CPUArchitectureMapper.fromAWS(cpuArch, indexes)
       ) :

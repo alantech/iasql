@@ -12,13 +12,13 @@ export const VCPUInfoMapper = new EntityMapper(VCPUInfo, {
   defaultCores: (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultCores,
   defaultThreadsPerCore: (vCPUInfo: VCpuInfo, _indexes: IndexedAWS) => vCPUInfo?.DefaultThreadsPerCore,
   validCores: (vCPUInfo: VCpuInfo, indexes: IndexedAWS) =>
-    vCPUInfo?.ValidCores && vCPUInfo?.ValidCores.length ?
+    vCPUInfo?.ValidCores?.length ?
       vCPUInfo.ValidCores.map(
         count => ValidCoreMapper.fromAWS(count, indexes)
       ) :
       [],
   validThreadsPerCore: (vCPUInfo: VCpuInfo, indexes: IndexedAWS) =>
-    vCPUInfo?.ValidThreadsPerCore && vCPUInfo?.ValidThreadsPerCore.length ?
+    vCPUInfo?.ValidThreadsPerCore?.length ?
       vCPUInfo.ValidThreadsPerCore.map(
         count => ValidThreadsPerCoreMapper.fromAWS(count, indexes)
       ) :

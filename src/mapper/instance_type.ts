@@ -23,19 +23,19 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   currentGeneration: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.CurrentGeneration,
   freeTierEligible: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.FreeTierEligible,
   supportedUsageClasses: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.SupportedUsageClasses && instanceType?.SupportedUsageClasses.length ?
+    instanceType?.SupportedUsageClasses?.length ?
       instanceType?.SupportedUsageClasses?.map(
         usageClass => UsageClassMapper.fromAWS(usageClass, indexes)
       ) :
       [],
   supportedRootDeviceTypes: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.SupportedRootDeviceTypes && instanceType?.SupportedRootDeviceTypes.length ?
+    instanceType?.SupportedRootDeviceTypes?.length ?
       instanceType?.SupportedRootDeviceTypes?.map(
         deviceType => DeviceTypeMapper.fromAWS(deviceType, indexes)
       ) :
       [],
   supportedVirtualizationTypes: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.SupportedVirtualizationTypes && instanceType?.SupportedVirtualizationTypes.length ?
+    instanceType?.SupportedVirtualizationTypes?.length ?
       instanceType?.SupportedVirtualizationTypes?.map(
         virtualizationType => VirtualizationTypeMapper.fromAWS(virtualizationType, indexes)
       ) :
@@ -45,47 +45,47 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   processorInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.ProcessorInfo ? ProcessorInfoMapper.fromAWS(
       instanceType?.ProcessorInfo, indexes
-    ) : undefined,
+    ) : null,
   vCPUInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.VCpuInfo ? VCPUInfoMapper.fromAWS(
       instanceType?.VCpuInfo, indexes
-    ) : undefined,
+    ) : null,
   memorySizeInMiB: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.MemoryInfo?.SizeInMiB,
   instanceStorageSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceStorageSupported,
   instanceStorageInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.InstanceStorageInfo ? InstanceStorageInfoMapper.fromAWS(
       instanceType?.InstanceStorageInfo, indexes
-    ) : undefined,
+    ) : null,
   ebsInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.EbsInfo ? EBSInfoMapper.fromAWS(
       instanceType?.EbsInfo, indexes
-    ) : undefined,
+    ) : null,
   networkInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.NetworkInfo ? NetworkInfoMapper.fromAWS(
       instanceType?.NetworkInfo, indexes
-    ) : undefined,
+    ) : null,
   gpuInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.GpuInfo ? GPUInfoMapper.fromAWS(
       instanceType?.GpuInfo, indexes
-    ) : undefined,
+    ) : null,
   fpgaInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.FpgaInfo ? FPGAInfoMapper.fromAWS(
       instanceType?.FpgaInfo, indexes
-    ) : undefined,
+    ) : null,
   placementGroupInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.PlacementGroupInfo ? PlacementGroupInfoMapper.fromAWS(
       instanceType?.PlacementGroupInfo, indexes
-    ) : undefined,
+    ) : null,
   inferenceAcceleratorInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.InferenceAcceleratorInfo ? InferenceAcceleratorInfoMapper.fromAWS(
       instanceType?.InferenceAcceleratorInfo, indexes
-    ) : undefined,
+    ) : null,
   hibernationSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.HibernationSupported,
   burstablePerformanceSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BurstablePerformanceSupported,
   dedicatedHostsSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.DedicatedHostsSupported,
   autoRecoverySupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.AutoRecoverySupported,
   supportedBootModes: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.SupportedBootModes && instanceType?.SupportedBootModes.length ?
+    instanceType?.SupportedBootModes?.length ?
       instanceType?.SupportedBootModes?.map(
         supportedBootMode => BootModeMapper.fromAWS(supportedBootMode, indexes)
       ) :
@@ -101,44 +101,44 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
     console.log(`Instance types set in ${t2 - t1}ms`);
     // Set aux AMI indexes, too
     for (const instanceType of instanceTypes) {
-      if (instanceType.SupportedUsageClasses && instanceType.SupportedUsageClasses.length) {
+      if (instanceType.SupportedUsageClasses?.length) {
         for (const usageClass of instanceType.SupportedUsageClasses) {
           if (usageClass) {
             indexes.set(UsageClass, usageClass, usageClass)
           } else {
-            throw Error('usageClasses is this possible?');
+            throw new Error('usageClasses is this possible?');
           }
         }
       }
-      if (instanceType.SupportedRootDeviceTypes && instanceType.SupportedRootDeviceTypes.length) {
+      if (instanceType.SupportedRootDeviceTypes?.length) {
         for (const supportedRootDeviceType of instanceType.SupportedRootDeviceTypes) {
           if (supportedRootDeviceType) {
             indexes.set(DeviceType, supportedRootDeviceType, supportedRootDeviceType)
           } else {
-            throw Error('supportedRootDeviceTypes is this possible?');
+            throw new Error('supportedRootDeviceTypes is this possible?');
           }
         }
       }
-      if (instanceType.SupportedVirtualizationTypes && instanceType.SupportedVirtualizationTypes.length) {
+      if (instanceType.SupportedVirtualizationTypes?.length) {
         for (const supportedVirtualizationType of instanceType.SupportedVirtualizationTypes) {
           if (supportedVirtualizationType) {
             indexes.set(VirtualizationType, supportedVirtualizationType, supportedVirtualizationType)
           } else {
-            throw Error('supportedVirtualizationTypes is this possible?');
+            throw new Error('supportedVirtualizationTypes is this possible?');
           }
         }
       }
-      if (instanceType.PlacementGroupInfo && instanceType.PlacementGroupInfo.SupportedStrategies && instanceType.PlacementGroupInfo.SupportedStrategies.length) {
+      if (instanceType.PlacementGroupInfo?.SupportedStrategies?.length) {
         for (const supportedStrategy of instanceType.PlacementGroupInfo.SupportedStrategies) {
           indexes.set(PlacementGroupStrategy, supportedStrategy, supportedStrategy);
         }
       }
-      if (instanceType.VCpuInfo && instanceType.VCpuInfo.ValidCores && instanceType.VCpuInfo.ValidCores.length) {
+      if (instanceType.VCpuInfo?.ValidCores?.length) {
         for (const validCores of instanceType.VCpuInfo.ValidCores) {
           indexes.set(ValidCore, `${validCores}`, validCores);
         }
       }
-      if (instanceType.VCpuInfo && instanceType.VCpuInfo.ValidThreadsPerCore && instanceType.VCpuInfo.ValidThreadsPerCore.length) {
+      if (instanceType.VCpuInfo?.ValidThreadsPerCore?.length) {
         for (const validCores of instanceType.VCpuInfo.ValidThreadsPerCore) {
           indexes.set(ValidThreadsPerCore, `${validCores}`, validCores);
         }

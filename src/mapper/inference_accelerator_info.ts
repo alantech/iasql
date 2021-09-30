@@ -8,7 +8,7 @@ import { AWS } from '../services/gateways/aws';
 
 export const InferenceAcceleratorInfoMapper = new EntityMapper(InferenceAcceleratorInfo, {
   accelerators: (inferenceAcceleratorInfo: InferenceAcceleratorInfoAWS, indexes: IndexedAWS) =>
-    inferenceAcceleratorInfo?.Accelerators && inferenceAcceleratorInfo?.Accelerators.length ?
+    inferenceAcceleratorInfo?.Accelerators?.length ?
       inferenceAcceleratorInfo.Accelerators.map(
         accelerator => InferenceDeviceInfoMapper.fromAWS(accelerator, indexes)
       ) :
