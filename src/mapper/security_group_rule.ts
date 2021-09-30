@@ -16,13 +16,13 @@ export const SecurityGroupRuleMapper = new EntityMapper(SecurityGroupRule, {
     i.get(SecurityGroup, sgr?.GroupId) as SecurityGroupAWS, i
   ),
   isEgress: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.IsEgress,
-  ipProtocol: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.IpProtocol,
-  fromPort: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.FromPort,
-  toPort: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.ToPort,
-  cidrIpv4: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.CidrIpv4,
-  cidrIpv6: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.CidrIpv6,
-  prefixListId: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.PrefixListId,
-  description: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.Description,
+  ipProtocol: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.IpProtocol ?? null,
+  fromPort: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.FromPort ?? null,
+  toPort: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.ToPort ?? null,
+  cidrIpv4: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.CidrIpv4 ?? null,
+  cidrIpv6: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.CidrIpv6 ?? null,
+  prefixListId: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.PrefixListId ?? null,
+  description: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.Description ?? null,
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();

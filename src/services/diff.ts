@@ -1,6 +1,16 @@
+const diffExclusionTable: { [key: string]: string[], } = {};
+
+// Decorator function that indicates fields that should not be compared when diffing
+// database and AWS sources. Usually for sub-objects controlled by a different AWS endpoint
+export function noDiff(Class: any, name: string, descriptor?: any) {
+  diffExclusionTable[Class.constructor.name] = diffExclusionTable[Class.constructor.name] ?? [];
+  diffExclusionTable[Class.constructor.name].push(name);
+  return descriptor;
+}
 
 // TODO refactor to a class
-export function findDiff(dbEntities: any[], cloudEntities: any[], id: string) {
+export function findDiff(entity: string, dbEntities: any[], cloudEntities: any[], id: string) {
+  const exclusionList = diffExclusionTable[entity] ?? [];
   const entitiesInDbOnly: any[] = [];
   const entitiesInAwsOnly: any[] = [];
   const dbEntityIds = dbEntities.map(e => e[id]);
@@ -16,7 +26,7 @@ export function findDiff(dbEntities: any[], cloudEntities: any[], id: string) {
   const entitiesDiff: any[] = [];
   remainingDbEntities.map(dbEnt => {
     const cloudEntToCompare = cloudEntities.find(e => e[id] === dbEnt[id]);
-    entitiesDiff.push(diff(dbEnt, cloudEntToCompare));
+    entitiesDiff.push(diff(dbEnt, cloudEntToCompare, exclusionList));
   });
   return {
     entitiesInDbOnly,
@@ -25,7 +35,7 @@ export function findDiff(dbEntities: any[], cloudEntities: any[], id: string) {
   }
 }
 
-function diff(dbObj: any, cloudObj: any) {
+function diff(dbObj: any, cloudObj: any, exclusionList: string[]) {
   if (isValue(dbObj) || isValue(cloudObj)) {
     return {
       type: compare(dbObj, cloudObj),
@@ -33,20 +43,20 @@ function diff(dbObj: any, cloudObj: any) {
       cloud: cloudObj
     };
   }
-  let diffObj: any = {};
-  for (let key in dbObj) {
-    // Ignore database internal primary key
-    if (key === 'id') {
+  const diffObj: any = {};
+  for (const key in dbObj) {
+    // Ignore excluded keys
+    if (exclusionList.includes(key)) {
       continue;
     }
-    let cloudVal = cloudObj[key];
-    diffObj[key] = diff(dbObj[key], cloudVal);
+    const cloudVal = cloudObj[key];
+    diffObj[key] = diff(dbObj[key], cloudVal, exclusionList);
   }
-  for (var key in cloudObj) {
-    if (key === 'id' || diffObj[key] !== undefined) {
+  for (const key in cloudObj) {
+    if (exclusionList.includes(key) || diffObj[key] !== undefined) {
       continue;
     }
-    diffObj[key] = diff(undefined, cloudObj[key]);
+    diffObj[key] = diff(undefined, cloudObj[key], exclusionList);
   }
   return diffObj;
 }
@@ -76,4 +86,3 @@ function compare(dbVal: any, cloudVal: any) {
   }
   return `to update ${cloudVal} with ${dbVal}`
 }
-

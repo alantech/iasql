@@ -7,7 +7,7 @@ export class PlacementGroupInfo {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToMany(() => PlacementGroupStrategy)
+  @ManyToMany(() => PlacementGroupStrategy, { cascade: true, })
   @JoinTable()
   supportedStrategies: PlacementGroupStrategy[];
 }
