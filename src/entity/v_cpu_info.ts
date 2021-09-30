@@ -2,9 +2,13 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, } from '
 
 import { ValidCore, } from './valid_core';
 import { ValidThreadsPerCore, } from './valid_threads_per_core';
+import { source, Source, } from '../services/source-of-truth'
+import { noDiff, } from '../services/diff'
 
+@source(Source.AWS)
 @Entity()
 export class VCPUInfo {
+  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 

@@ -1,5 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, } from 'typeorm';
 
+import { source, Source, } from '../services/source-of-truth'
+import { noDiff, } from '../services/diff'
+
 export enum EBSBlockDeviceVolumeType {
   GP2 = 'gp2',
   GP3 = 'gp3',
@@ -10,8 +13,10 @@ export enum EBSBlockDeviceVolumeType {
   STANDARD = 'standard',
 }
 
+@source(Source.AWS)
 @Entity()
 export class EBSBlockDeviceType {
+  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 

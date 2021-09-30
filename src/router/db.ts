@@ -10,6 +10,8 @@ import * as Entities from '../entity'
 import * as Mappers from '../mapper'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { findDiff, } from '../services/diff'
+import { Source, getSourceOfTruth, } from '../services/source-of-truth'
+import { getAwsPrimaryKey, } from '../services/aws-primary-key'
 
 export const db = express.Router();
 
@@ -44,9 +46,15 @@ async function migrate(conn: Connection) {
   await qr.release();
 }
 
-async function populate(awsClient: AWS, indexes: IndexedAWS) {
+async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
   await Promise.all(Object.values(Mappers)
-    .filter(mapper => mapper instanceof Mappers.EntityMapper)
+    .filter(mapper => {
+      let out = mapper instanceof Mappers.EntityMapper;
+      if (out && typeof source === 'string') {
+        out &&= getSourceOfTruth((mapper as Mappers.EntityMapper).getEntity()) === source;
+      }
+      return out;
+    })
     .map(mapper => (mapper as Mappers.EntityMapper).readAWS(awsClient, indexes))
   );
 }
@@ -238,7 +246,6 @@ db.get('/check/:db', async (req, res) => {
   let orm: TypeormWrapper | null = null;
   try {
     orm = await TypeormWrapper.createConn(dbname);
-    const regions = await orm.find(Entities.Region);
     const awsClient = new AWS({
       region: config.region ?? 'eu-west-1',
       credentials: {
@@ -249,20 +256,19 @@ db.get('/check/:db', async (req, res) => {
     const indexes = new IndexedAWS();
     const t2 = new Date().getTime();
     console.log(`Setup took ${t2 - t1}ms`);
-    await populate(awsClient, indexes);
+    await populate(awsClient, indexes, Source.DB);
     const t3 = new Date().getTime();
     console.log(`AWS record acquisition time: ${t3 - t2}ms`);
-    const regionEntities = indexes.toEntityList(Mappers.RegionMapper);
+    const tables = Object.keys(indexes.get());
+    const dbEntities = await Promise.all(tables.map(t => orm?.find((Entities as any)[t])));
+    const awsEntities = tables.map(t => indexes.toEntityList((Mappers as any)[t + 'Mapper']));
+    const comparisonKeys = tables.map(t => getAwsPrimaryKey((Entities as any)[t]));
     const t4 = new Date().getTime();
     console.log(`Mapping time: ${t4 - t3}ms`);
-    const diff = findDiff(regions,regionEntities, 'name');
+    const diffs = dbEntities.map((d, i) => findDiff(tables[i], d, awsEntities[i], comparisonKeys[i]));
     const t5 = new Date().getTime();
     console.log(`Diff time: ${t5 - t4}ms`);
-    res.end(`
-      DB Only: ${inspect(diff.entitiesInDbOnly)}
-      AWS Only: ${inspect(diff.entitiesInAwsOnly)}
-      Differences: ${inspect(diff.entitiesDiff)}
-    `);
+    res.end(`${inspect(diffs, { depth: 4, })}`);
   } catch (e: any) {
     res.end(`failure to check DB: ${e?.message ?? ''}`);
   } finally {

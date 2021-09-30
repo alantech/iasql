@@ -11,6 +11,9 @@ import {
 import { AvailabilityZoneMessage, } from './availability_zone_message';
 import { InstanceType, } from './instance_type';
 import { Region, } from './region';
+import { source, Source, } from '../services/source-of-truth'
+import { awsPrimaryKey, } from '../services/aws-primary-key'
+import { noDiff, } from '../services/diff'
 
 export enum AvailabilityZoneState {
   AVAILABLE = 'available',
@@ -25,8 +28,10 @@ export enum AvailabilityZoneOptInStatus {
   OPTED_IN = 'opted-in',
 }
 
+@source(Source.AWS)
 @Entity()
 export class AvailabilityZone {
+  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -44,10 +49,11 @@ export class AvailabilityZone {
   })
   optInStatus: AvailabilityZoneOptInStatus;
 
-  @OneToMany(() => AvailabilityZoneMessage, message => message.availabilityZone)
+  @OneToMany(() => AvailabilityZoneMessage, message => message.availabilityZone, { eager: true, })
   messages: AvailabilityZoneMessage[];
 
-  @ManyToOne(() => Region)
+  @noDiff
+  @ManyToOne(() => Region, { eager: true, })
   @JoinColumn({
     name: 'region_id',
   })
@@ -56,6 +62,7 @@ export class AvailabilityZone {
   @Column()
   zoneName: string;
 
+  @awsPrimaryKey
   @Column()
   zoneId: number;
 
@@ -67,12 +74,13 @@ export class AvailabilityZone {
 
   @ManyToOne(() => AvailabilityZone, {
     nullable: true,
+    eager: true,
   })
   @JoinColumn({
     name: 'parent_zone_id',
   })
   parentZone: AvailabilityZone;
 
-  @ManyToMany(() => InstanceType)
+  @ManyToMany(() => InstanceType, { eager: true, })
   instanceTypes: InstanceType[];
 }
