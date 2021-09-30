@@ -15,8 +15,6 @@ export class TypeormWrapper {
     namingStrategy: new SnakeNamingStrategy(),
   }
 
-  constructor() { }
-
   static async createConn(database: string): Promise<TypeormWrapper> {
     const typeorm = new TypeormWrapper();
     const connMan = getConnectionManager();

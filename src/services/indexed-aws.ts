@@ -41,7 +41,7 @@ export class IndexedAWS {
     }
     if (entity && key) {
       const entityName = entity.name;
-      if (!(entityName in this.index)) return undefined; 
+      if (!(entityName in this.index)) return undefined;
       return this.index[entityName][key];
     }
     if (entity) {

@@ -14,6 +14,9 @@ import { EBSBlockDeviceMapping, } from './ebs_block_device_mapping';
 import { ProductCode, } from './product_code';
 import { StateReason, } from './state_reason';
 import { Tag, } from './tag';
+import { source, Source, } from '../services/source-of-truth'
+import { awsPrimaryKey, } from '../services/aws-primary-key'
+import { noDiff, } from '../services/diff'
 
 export enum ImageType {
   KERNEL = 'kernel',
@@ -46,12 +49,14 @@ export enum AMIDeviceType { // TODO: Is this the same as the DeviceType entity?
   INSTANCE_STORE = 'instance-store',
 }
 
+@source(Source.AWS)
 @Entity()
 export class AMI {
+  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => CPUArchitecture)
+  @ManyToOne(() => CPUArchitecture, { cascade: true, })
   @JoinColumn({
     name: 'cpu_architecture_id',
   })
@@ -63,6 +68,7 @@ export class AMI {
   })
   creationDate?: Date;
 
+  @awsPrimaryKey
   @Column({
     nullable: true,
   })
@@ -112,7 +118,7 @@ export class AMI {
   })
   usageOperation?: string;
 
-  @ManyToMany(() => ProductCode)
+  @ManyToMany(() => ProductCode, { cascade: true, })
   @JoinTable()
   productCodes: ProductCode[];
 
@@ -128,7 +134,7 @@ export class AMI {
   })
   state?: AMIImageState;
 
-  @ManyToMany(() => EBSBlockDeviceMapping, { cascade: true })
+  @ManyToMany(() => EBSBlockDeviceMapping, { cascade: true, })
   @JoinTable()
   blockDeviceMappings: EBSBlockDeviceMapping[];
 
@@ -176,13 +182,13 @@ export class AMI {
   })
   sirovNetSupport?: string;
 
-  @ManyToOne(() => StateReason)
+  @ManyToOne(() => StateReason, { cascade: true, })
   @JoinColumn({
     name: 'state_reason_id',
   })
   stateReason: StateReason;
 
-  @ManyToOne(() => BootMode)
+  @ManyToOne(() => BootMode, { cascade: true, })
   @JoinColumn({
     name: 'boot_mode_id',
   })
@@ -194,7 +200,7 @@ export class AMI {
   })
   deprecationTime?: Date;
 
-  @ManyToMany(() => Tag, { cascade: true })
+  @ManyToMany(() => Tag, { cascade: true, })
   @JoinTable()
   tags: Tag[];
 }

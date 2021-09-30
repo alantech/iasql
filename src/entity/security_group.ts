@@ -1,9 +1,14 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, } from 'typeorm';
 
 import { SecurityGroupRule, } from './security_group_rule';
+import { source, Source, } from '../services/source-of-truth'
+import { awsPrimaryKey, } from '../services/aws-primary-key'
+import { noDiff, } from '../services/diff'
 
+@source(Source.DB)
 @Entity()
 export class SecurityGroup {
+  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -22,6 +27,7 @@ export class SecurityGroup {
   })
   ownerId?: string;
 
+  @awsPrimaryKey
   @Column({
     nullable: true,
   })
@@ -32,6 +38,7 @@ export class SecurityGroup {
   })
   vpcId?: string;
 
+  @noDiff
   @OneToMany(() => SecurityGroupRule, sgr => sgr.securityGroup)
   securityGroupRules: SecurityGroupRule[];
 }
