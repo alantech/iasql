@@ -89,8 +89,8 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
         supportedBootMode => BootModeMapper.fromAWS(supportedBootMode, indexes)
       ) :
       [],
-  // // regions:  (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.,
-  // // availabilityZones:  (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.,
+  // regions:  (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.,
+  // availabilityZones:  (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.,
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
