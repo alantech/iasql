@@ -67,7 +67,7 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   gpuInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.GpuInfo ? GPUInfoMapper.fromAWS(
       instanceType?.GpuInfo, indexes
-    ) : undefined,
+    ) : null,
   fpgaInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.FpgaInfo ? FPGAInfoMapper.fromAWS(
       instanceType?.FpgaInfo, indexes
