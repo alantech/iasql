@@ -122,7 +122,7 @@ export class AWS {
       instanceTypes.push(...(page.InstanceTypes ?? []));
     }
     return {
-      InstanceTypes: instanceTypes[0], // Make it "look like" the regular query again
+      InstanceTypes: instanceTypes, // Make it "look like" the regular query again
     };
   }
 

@@ -141,7 +141,30 @@ db.get('/create/:db', async (req, res) => {
       await orm.save(Entities.AMI, amis);
       const to = Date.now();
       console.log(`AMIs stored in ${to - tn}ms`);
-    })(),]);
+    })(),
+    (async () => {
+      const tp = Date.now();
+      const usageClasses = await indexes.toEntityList(Mappers.UsageClassMapper);
+      await orm.save(Entities.UsageClass, usageClasses);
+      const tq = Date.now();
+      console.log(`Usage class stored in ${tq - tp}ms`);
+
+      const tr = Date.now();
+      const deviceTypes = await indexes.toEntityList(Mappers.DeviceTypeMapper);
+      await orm.save(Entities.DeviceType, deviceTypes);
+      const ts = Date.now();
+      console.log(`Device type stored in ${ts - tr}ms`);
+
+      const tt = Date.now();
+      const virtualizationTypes = await indexes.toEntityList(Mappers.VirtualizationTypeMapper);
+      await orm.save(Entities.VirtualizationType, virtualizationTypes);
+      const tu = Date.now();
+      console.log(`Device type stored in ${tt - tu}ms`);
+
+      const instanceTypes = await indexes.toEntityList(Mappers.InstanceTypeMapper);
+      await orm?.save(Entities.InstanceType, instanceTypes);
+    })()
+  ]);
     const t4 = Date.now();
     console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
