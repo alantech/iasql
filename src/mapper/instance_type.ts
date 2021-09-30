@@ -71,7 +71,7 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   fpgaInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.FpgaInfo ? FPGAInfoMapper.fromAWS(
       instanceType?.FpgaInfo, indexes
-    ) : undefined,
+    ) : null,
   placementGroupInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.PlacementGroupInfo ? PlacementGroupInfoMapper.fromAWS(
       instanceType?.PlacementGroupInfo, indexes
