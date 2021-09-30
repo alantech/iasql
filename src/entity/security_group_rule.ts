@@ -8,7 +8,7 @@ import { noDiff, } from '../services/diff'
 @source(Source.DB)
 @Entity()
 export class SecurityGroupRule {
-	@noDiff
+  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -23,7 +23,7 @@ export class SecurityGroupRule {
   })
   groupId?: string;
 
-	@noDiff
+  @noDiff
   @ManyToOne(() => SecurityGroup)
   @JoinColumn({
     name: 'security_group_id',
