@@ -255,7 +255,7 @@ db.get('/check/:db', async (req, res) => {
     const regionEntities = indexes.toEntityList(Mappers.RegionMapper);
     const t4 = new Date().getTime();
     console.log(`Mapping time: ${t4 - t3}ms`);
-    const diff = findDiff(regions, regionEntities, 'name');
+    const diff = findDiff(regions,regionEntities, 'name');
     const t5 = new Date().getTime();
     console.log(`Diff time: ${t5 - t4}ms`);
     res.end(`
