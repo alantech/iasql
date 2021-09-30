@@ -55,7 +55,7 @@ export const InstanceTypeMapper = new EntityMapper(InstanceType, {
   instanceStorageInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.InstanceStorageInfo ? InstanceStorageInfoMapper.fromAWS(
       instanceType?.InstanceStorageInfo, indexes
-    ) : undefined,
+    ) : null,
   ebsInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
     instanceType?.EbsInfo ? EBSInfoMapper.fromAWS(
       instanceType?.EbsInfo, indexes
