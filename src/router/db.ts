@@ -57,6 +57,8 @@ async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
     })
     .map(mapper => (mapper as Mappers.EntityMapper).readAWS(awsClient, indexes))
   );
+  // Need to do a second pass on availabilityZones since we need the regions to be indexed
+  await Mappers.AvailabilityZoneMapper.readAWS(awsClient, indexes);
 }
 
 async function saveEntities(orm: TypeormWrapper, indexes: IndexedAWS, entity: Function, mapper: Mappers.EntityMapper) {
@@ -109,7 +111,10 @@ db.get('/create/:db', async (req, res) => {
     orm = await TypeormWrapper.createConn(dbname);
     console.log(`Populating new db: ${dbname}`);
     await Promise.all([
-      saveEntities(orm, indexes, Entities.Region, Mappers.RegionMapper),
+      (async () => {
+        await saveEntities(orm, indexes, Entities.Region, Mappers.RegionMapper);
+        await saveEntities(orm, indexes, Entities.AvailabilityZone, Mappers.AvailabilityZoneMapper);
+      })(),
       (async () => {
         await saveEntities(orm, indexes, Entities.SecurityGroup, Mappers.SecurityGroupMapper);
         // The security group rules *must* be added after the security groups
