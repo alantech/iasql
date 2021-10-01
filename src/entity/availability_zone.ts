@@ -64,7 +64,7 @@ export class AvailabilityZone {
 
   @awsPrimaryKey
   @Column()
-  zoneId: number;
+  zoneId: string;
 
   @Column()
   groupName: string;
@@ -75,6 +75,7 @@ export class AvailabilityZone {
   @ManyToOne(() => AvailabilityZone, {
     nullable: true,
     eager: true,
+    cascade: true,
   })
   @JoinColumn({
     name: 'parent_zone_id',
