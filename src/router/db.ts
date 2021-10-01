@@ -213,7 +213,7 @@ db.get('/delete/:db', async (req, res) => {
 
 db.get('/check/:db', async (req, res) => {
   const dbname = req.params.db;
-  const t1 = new Date().getTime();
+  const t1 = Date.now();
   console.log(`Checking ${dbname}`);
   let orm: TypeormWrapper | null = null;
   try {
@@ -226,20 +226,40 @@ db.get('/check/:db', async (req, res) => {
       },
     });
     const indexes = new IndexedAWS();
-    const t2 = new Date().getTime();
+    const t2 = Date.now();
     console.log(`Setup took ${t2 - t1}ms`);
     await populate(awsClient, indexes, Source.DB);
-    const t3 = new Date().getTime();
+    const t3 = Date.now();
     console.log(`AWS record acquisition time: ${t3 - t2}ms`);
     const tables = Object.keys(indexes.get());
+    const mappers = tables.map(t => (Mappers as any)[t + 'Mapper']);
     const dbEntities = await Promise.all(tables.map(t => orm?.find((Entities as any)[t])));
     const awsEntities = tables.map(t => indexes.toEntityList((Mappers as any)[t + 'Mapper']));
     const comparisonKeys = tables.map(t => getAwsPrimaryKey((Entities as any)[t]));
-    const t4 = new Date().getTime();
+    const t4 = Date.now();
     console.log(`Mapping time: ${t4 - t3}ms`);
     const diffs = dbEntities.map((d, i) => findDiff(tables[i], d, awsEntities[i], comparisonKeys[i]));
-    const t5 = new Date().getTime();
+    const t5 = Date.now();
     console.log(`Diff time: ${t5 - t4}ms`);
+    await Promise.all(mappers.map(async (m, i) => {
+      const ta = Date.now();
+      const name = m.getEntity().name;
+      console.log(`Checking ${name}`);
+      if (m.getEntity().name !== 'SecurityGroup') return; // TODO: Don't do this
+      const diff = diffs[i];
+      if (diff.entitiesInDbOnly.length > 0) {
+        console.log(`${name} has records to create`);
+        await Promise.all(diff.entitiesInDbOnly.map(async (e) => {
+          // Mutate in AWS, it also updates the entity for us with any AWS-created prop values
+          await m.createAWS(e, awsClient, indexes);
+          await orm?.save(m.getEntity(), e);
+        }));
+      }
+      const tb = Date.now();
+      console.log(`${name} took ${tb - ta}ms`);
+    }));
+    const t6 = Date.now();
+    console.log(`AWS update time: ${t6 - t5}ms`);
     res.end(`${inspect(diffs, { depth: 4, })}`);
   } catch (e: any) {
     res.end(`failure to check DB: ${e?.message ?? ''}`);

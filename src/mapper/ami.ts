@@ -91,7 +91,7 @@ export const AMIMapper = new EntityMapper(AMI, {
     const t3 = Date.now();
     console.log(`AMI sub entities set in ${t3 - t2}ms`);
   },
-  createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
-  updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
-  deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  createAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  updateAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  deleteAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
 })

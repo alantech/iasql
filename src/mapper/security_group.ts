@@ -25,7 +25,28 @@ export const SecurityGroupMapper = new EntityMapper(SecurityGroup, {
     const t2 = Date.now();
     console.log(`SecurityGroups set in ${t2 - t1}ms`);
   },
-  createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
-  updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
-  deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  createAWS: async (obj: SecurityGroup, awsClient: AWS, indexes: IndexedAWS) => {
+    // First construct the security group
+    const result = await awsClient.createSecurityGroup({
+      Description: obj.description,
+      GroupName: obj.groupName,
+      VpcId: obj.vpcId,
+      // TODO: Tags
+    });
+    // TODO: Handle if it fails (somehow)
+    if (!result.hasOwnProperty('GroupId')) { // Failure
+      throw new Error('what should we do here?');
+    }
+    // TODO: Determine if the following logic really belongs here or not
+    // Re-get the inserted security group to get all of the relevant records we care about
+    const newGroup = await awsClient.getSecurityGroup(result.GroupId ?? '');
+    // We map this into the same kind of entity as `obj`
+    const newEntity = SecurityGroupMapper.fromAWS(newGroup, indexes);
+    // But we want to make sure that the original object gets the updated values, so we copy them
+    // over, excepting the id that we want to remain the same
+    Object.keys(newEntity).filter(k => k !== 'id').forEach(k => (obj as any)[k] = newEntity[k]);
+    // It's up to the caller if they want to actually update into the DB or not, though.
+  },
+  updateAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  deleteAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
 });
