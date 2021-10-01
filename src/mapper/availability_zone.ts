@@ -13,7 +13,7 @@ export const AvailabilityZoneMapper: EntityMapper = new EntityMapper(Availabilit
   optInStatus: (availabilityZone: AvailabilityZoneAWS, _indexes: IndexedAWS) => availabilityZone?.OptInStatus,
   messages: (availabilityZone: AvailabilityZoneAWS, indexes: IndexedAWS) =>
     availabilityZone?.Messages?.length ?
-      availabilityZone.Messages.map(m => AvailabilityZoneMessageMapper.fromAWS({message: m, availabilityZone}, indexes))
+      availabilityZone.Messages.map(m => AvailabilityZoneMessageMapper.fromAWS({ message: m, availabilityZone }, indexes))
       : [],
   region: (availabilityZone: AvailabilityZoneAWS, indexes: IndexedAWS) => RegionMapper.fromAWS(indexes.get(Region, availabilityZone?.RegionName), indexes),
   zoneName: (availabilityZone: AvailabilityZoneAWS, _indexes: IndexedAWS) => availabilityZone?.ZoneName,
@@ -31,9 +31,9 @@ export const AvailabilityZoneMapper: EntityMapper = new EntityMapper(Availabilit
   },
   // TODO: handle intance type - availability zone realtion
 }, {
-  readAWS: async (awsClient: AWS, indexes: IndexedAWS) => { 
+  readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
-    let regions = indexes.get(Region);
+    const regions = indexes.get(Region);
     const availabilityZones = (await awsClient.getAvailabilityZones(Object.keys(regions ?? {})))?.AvailabilityZones ?? [];
     indexes.setAll(AvailabilityZone, availabilityZones, 'zoneId');
     const t2 = Date.now();

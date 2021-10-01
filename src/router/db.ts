@@ -72,7 +72,6 @@ async function saveEntities(orm: TypeormWrapper, indexes: IndexedAWS, entity: Fu
 db.get('/migrate/:db', async (req, res) => {
   const dbname = req.params.db;
   let conn1, conn2;
-  let orm: TypeormWrapper | undefined;
   try {
     conn1 = await createConnection({
       name: 'base', // If you use multiple connections they must have unique names or typeorm bails
@@ -99,7 +98,6 @@ db.get('/migrate/:db', async (req, res) => {
   } finally {
     await conn1?.close();
     await conn2?.close();
-    await orm?.dropConn();
   }
 })
 
