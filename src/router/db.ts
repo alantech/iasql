@@ -251,8 +251,7 @@ db.get('/check/:db', async (req, res) => {
         console.log(`${name} has records to create`);
         await Promise.all(diff.entitiesInDbOnly.map(async (e) => {
           // Mutate in AWS, it also updates the entity for us with any AWS-created prop values
-          await m.createAWS(e, awsClient, indexes);
-          await orm?.save(m.getEntity(), e);
+          await orm?.save(m. getEntity(), await m.createAWS(e, awsClient, indexes));
         }));
       }
       const tb = Date.now();
