@@ -10,6 +10,8 @@ import {
   EC2Client,
   RunInstancesCommand,
   paginateDescribeInstanceTypes,
+  paginateDescribeSecurityGroupRules,
+  paginateDescribeSecurityGroups,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
