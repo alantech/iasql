@@ -1,4 +1,4 @@
-import { AvailabilityZone as AvailabilityZoneAWS } from '@aws-sdk/client-ec2'
+import { AvailabilityZone as AvailabilityZoneAWS, Region as RegionAWS } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../services/gateways/aws'
 import { AvailabilityZone, } from '../entity/availability_zone';
@@ -34,8 +34,11 @@ export const AvailabilityZoneMapper: EntityMapper = new EntityMapper(Availabilit
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
     const regions = indexes.get(Region);
-    const availabilityZones = (await awsClient.getAvailabilityZones(Object.keys(regions ?? {})))?.AvailabilityZones ?? [];
-    indexes.setAll(AvailabilityZone, availabilityZones, 'zoneId');
+    const optInRegions = Object.entries(regions ?? {})
+      .filter(([_, v]) => (v as RegionAWS).OptInStatus !== 'not-opted-in')
+      .map(([k,_]) => k);
+    const availabilityZones = (await awsClient.getAvailabilityZones(optInRegions))?.AvailabilityZones ?? [];
+    indexes.setAll(AvailabilityZone, availabilityZones, 'ZoneId');
     const t2 = Date.now();
     console.log(`AvailabilityZone set in ${t2 - t1}ms`);
   },
