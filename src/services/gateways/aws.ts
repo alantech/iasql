@@ -8,6 +8,7 @@ import {
   paginateDescribeSecurityGroups,
   paginateDescribeSecurityGroupRules,
   paginateDescribeInstanceTypes,
+  AvailabilityZone,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
@@ -23,9 +24,11 @@ type AWSConfig = {
 
 export class AWS {
   private ec2client: EC2Client
+  private credentials: AWSCreds
 
   constructor(config: AWSConfig) {
-    this.ec2client = new EC2Client(config)
+    this.credentials = config.credentials;
+    this.ec2client = new EC2Client(config);
   }
 
   // TODO remove once we populate the AMI table
@@ -134,8 +137,21 @@ export class AWS {
     return await this.ec2client.send(new DescribeRegionsCommand({ AllRegions: true, }))
   }
 
-  async getAvailabilityZones() {
-    return await this.ec2client.send(new DescribeAvailabilityZonesCommand({}))
+  async getAvailabilityZones(regions: string[]) {
+    let availabilityZones: AvailabilityZone[] = [];
+    for (const region of regions) {
+      try {
+        const client = new EC2Client({
+          credentials: this.credentials,
+          region
+        });
+        const regionAZs = await client.send(new DescribeAvailabilityZonesCommand({ AllAvailabilityZones: true, }));
+        availabilityZones = availabilityZones.concat(regionAZs.AvailabilityZones ?? []);
+      } catch (e) {
+        console.log(`Could not get availability zones for region: ${region}. Error: ${e}`);
+      }
+    }
+    return { AvailabilityZones: availabilityZones }
   }
 
   async getSecurityGroups() {
