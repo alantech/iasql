@@ -48,25 +48,25 @@ jobs:
         with:
           node-version: 14.x
 
-      # - name: Install dependencies
-      #   run: yarn install
+      - name: Install dependencies
+        run: yarn install
 
-      # - name: Docker build and run --detach
-      #   run: docker-compose up --build --detach
+      - name: Docker build and run --detach
+        run: docker-compose up --build --detach
 
-      # - name: Docker ps -a
-      #   run: docker ps -a
+      - name: Docker ps -a
+        run: docker ps -a
 
       - name: Waiting for listening port
         # run: while ! lsof -i -n -P | grep 8088; do sleep 1; done
         run: lsof -i -n -P
 
-      # - name: Health
-      #   run: curl http://localhost:8088/health
+      - name: Health
+        run: while ! lsof -i -n -P | grep 8088; do sleep 1; done && curl http://localhost:8088/health
 
-      # # Check that all migrations are applied
-      # - name: Migrate
-      #   run: curl http://localhost:8088/v1/db/migrate/__example__
+      # Check that all migrations are applied
+      - name: Migrate
+        run: curl http://localhost:8088/v1/db/migrate/__example__
 
-      # - name: Docker stop
-      #   run: docker stop $(docker ps -q)
+      - name: Docker stop
+        run: docker stop $(docker ps -q)
