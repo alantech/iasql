@@ -1,14 +1,17 @@
 import {
+  AvailabilityZone,
+  CreateSecurityGroupCommand,
+  CreateSecurityGroupRequest,
   DescribeAvailabilityZonesCommand,
   DescribeImagesCommand,
   DescribeInstancesCommand,
   DescribeRegionsCommand,
+  DescribeSecurityGroupsCommand,
   EC2Client,
   RunInstancesCommand,
-  paginateDescribeSecurityGroups,
-  paginateDescribeSecurityGroupRules,
   paginateDescribeInstanceTypes,
-  AvailabilityZone,
+  paginateDescribeSecurityGroupRules,
+  paginateDescribeSecurityGroups,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
@@ -166,6 +169,20 @@ export class AWS {
     return {
       SecurityGroups: securityGroups, // Make it "look like" the regular query again
     };
+  }
+
+  async getSecurityGroup(id: string) {
+    const group = await this.ec2client.send(
+      new DescribeSecurityGroupsCommand({ GroupIds: [id], })
+    );
+    return (group?.SecurityGroups ?? [])[0];
+  }
+
+  async createSecurityGroup(instanceParams: CreateSecurityGroupRequest) {
+    const create = await this.ec2client.send(
+      new CreateSecurityGroupCommand(instanceParams),
+    );
+    return create;
   }
 
   async getSecurityGroupRules() {
