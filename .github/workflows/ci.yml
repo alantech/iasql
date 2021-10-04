@@ -59,7 +59,7 @@ jobs:
 
       - name: Waiting for listening port
         # run: while ! lsof -i -n -P | grep 8088; do sleep 1; done
-        run: lsof -i -n -P | grep 8088
+        run: lsof -i -n -P
 
       # - name: Health
       #   run: curl http://localhost:8088/health
