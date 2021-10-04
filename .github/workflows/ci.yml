@@ -23,8 +23,8 @@ jobs:
 
       # Set up Node.js
       - name: Use Node.js 14.x
-        working-directory: ./engine
         uses: actions/setup-node@v1
+        working-directory: ./engine
         with:
           node-version: 14.x
 
@@ -47,8 +47,8 @@ jobs:
 
       # Set up Node.js
       - name: Use Node.js 14.x
-        working-directory: ./engine
         uses: actions/setup-node@v1
+        working-directory: ./engine
         with:
           node-version: 14.x
 
