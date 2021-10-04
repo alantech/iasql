@@ -55,10 +55,16 @@ jobs:
         run: docker-compose up --build --detach
 
       - name: Docker ps
-        run: docker ps -a
+        run: sleep 10 && docker ps
 
-      - name: localhost health
-        run: curl localhost:8088/health
+      - name: Docker ps -a
+        run: sleep 10 && docker ps -a
+
+      - name: Health
+        run: curl http://localhost:8088/health
+
+      - name: Migrate
+        run: curl http://localhost:8088/v1/db/migrate/__example__
 
       - name: Docker stop
         run: docker stop $(docker ps -q)
