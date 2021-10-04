@@ -10,6 +10,10 @@ on:
   pull_request:
     branches: [main]
 
+defaults:
+  run:
+    working-directory: ./engine
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   lint:
@@ -24,16 +28,13 @@ jobs:
       # Set up Node.js
       - name: Use Node.js 14.x
         uses: actions/setup-node@v1
-        working-directory: ./engine
         with:
           node-version: 14.x
 
       - name: Install dependencies
-        working-directory: ./engine
         run: yarn install
 
       - name: Run linter check
-        working-directory: ./engine
         run: yarn run lint
 
   db:
