@@ -3,8 +3,9 @@ import { memoize } from 'memoize-cache-decorator'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { AWS, } from '../services/gateways/aws'
 
-type AwsFn = (obj: any, indexes: IndexedAWS) => any;
-type FromAws = { [key: string]: AwsFn, };
+type AwsInFn = (obj: any, indexes: IndexedAWS) => any;
+type AwsFn = (obj: any, awsClient: AWS, indexes: IndexedAWS) => any;
+type FromAws = { [key: string]: AwsInFn, };
 type ToAws = {
   readAWS: (awsClient: AWS, indexes: IndexedAWS) => any,
   createAWS: AwsFn,
@@ -42,15 +43,15 @@ export class EntityMapper {
     return this.toAws.readAWS(awsClient, indexes);
   }
 
-  createAWS(obj: any, indexes: IndexedAWS): Promise<any> {
-    return this.toAws.createAWS(obj, indexes);
+  createAWS(obj: any, awsClient: AWS, indexes: IndexedAWS): Promise<any> {
+    return this.toAws.createAWS(obj, awsClient, indexes);
   }
 
-  deleteAWS(obj: any, indexes: IndexedAWS): Promise<any> {
-    return this.toAws.deleteAWS(obj, indexes);
+  deleteAWS(obj: any, awsClient: AWS, indexes: IndexedAWS): Promise<any> {
+    return this.toAws.deleteAWS(obj, awsClient, indexes);
   }
 
-  updateAWS(obj: any, indexes: IndexedAWS): Promise<any> {
-    return this.toAws.updateAWS(obj, indexes);
+  updateAWS(obj: any, awsClient: AWS, indexes: IndexedAWS): Promise<any> {
+    return this.toAws.updateAWS(obj, awsClient, indexes);
   }
 }
