@@ -23,14 +23,17 @@ jobs:
 
       # Set up Node.js
       - name: Use Node.js 14.x
+        working-directory: ./engine
         uses: actions/setup-node@v1
         with:
           node-version: 14.x
 
       - name: Install dependencies
+        working-directory: ./engine
         run: yarn install
 
       - name: Run linter check
+        working-directory: ./engine
         run: yarn run lint
 
   db:
@@ -44,14 +47,17 @@ jobs:
 
       # Set up Node.js
       - name: Use Node.js 14.x
+        working-directory: ./engine
         uses: actions/setup-node@v1
         with:
           node-version: 14.x
 
       - name: Install dependencies
+        working-directory: ./engine
         run: yarn install
 
       - name: Docker build and run --detach
+        working-directory: ./engine
         run: docker-compose up --build --detach
 
       - name: Docker ps -a
