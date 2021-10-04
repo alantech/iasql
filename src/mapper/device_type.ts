@@ -9,7 +9,7 @@ export const DeviceTypeMapper = new EntityMapper(DeviceType, {
   deviceType: (deviceType: RootDeviceType, _indexes: IndexedAWS) => deviceType ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
-  createAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
-  updateAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
-  deleteAWS: async (_obj: any, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  createAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  updateAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  deleteAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
 })
