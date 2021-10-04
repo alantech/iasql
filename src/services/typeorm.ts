@@ -44,7 +44,7 @@ export class TypeormWrapper {
   }
 
   async save(entity: EntityTarget<any>, value: any) {
-    let repository = this.connection.manager.getRepository(entity);
+    const repository = this.connection.manager.getRepository(entity);
     const batchSize = 500;
     if (value && Array.isArray(value) && value.length > batchSize) {
       for (let i = 0; i < value.length; i += batchSize) {
