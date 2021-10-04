@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Run style check
+      - name: Run linter check
         run: yarn run lint
 
   db:
@@ -51,11 +51,14 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Run test
-        run: docker-compose up --build
+      - name: Docker build and run --detach
+        run: docker-compose up --build --detach
 
       - name: Docker ps
         run: docker ps -a
 
       - name: localhost health
         run: curl localhost:8088/health
+
+      - name: Docker stop
+        run: docker stop $(docker ps -q)
