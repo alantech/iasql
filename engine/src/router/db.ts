@@ -263,6 +263,7 @@ db.get('/check/:db', async (req, res) => {
     console.log(`AWS update time: ${t6 - t5}ms`);
     res.end(`${inspect(diffs, { depth: 4, })}`);
   } catch (e: any) {
+    console.error(e);
     res.end(`failure to check DB: ${e?.message ?? ''}`);
   } finally {
     orm?.dropConn();
