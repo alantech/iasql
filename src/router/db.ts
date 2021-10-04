@@ -57,7 +57,7 @@ async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
     })
     .map(mapper => (mapper as Mappers.EntityMapper).readAWS(awsClient, indexes))
   );
-  if (source === Source.AWS) {
+  if (!source || source === Source.AWS) {
     // TODO: revisit with some kind of retry logic or add order to indexes population
     // Need to do a second pass on availabilityZones since we need the regions to be indexed
     await Mappers.AvailabilityZoneMapper.readAWS(awsClient, indexes);
