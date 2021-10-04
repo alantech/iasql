@@ -41,7 +41,7 @@ export const SecurityGroupMapper = new EntityMapper(SecurityGroup, {
     // Re-get the inserted security group to get all of the relevant records we care about
     const newGroup = await awsClient.getSecurityGroup(result.GroupId ?? '');
     // We map this into the same kind of entity as `obj`
-    let newEntity: SecurityGroup = SecurityGroupMapper.fromAWS(newGroup, indexes);
+    const newEntity: SecurityGroup = SecurityGroupMapper.fromAWS(newGroup, indexes);
     // We attach the original object's ID to this new one, indicating the exact record it is
     // replacing in the database
     newEntity.id = obj.id;
