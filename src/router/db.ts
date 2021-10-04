@@ -57,6 +57,7 @@ async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
     })
     .map(mapper => (mapper as Mappers.EntityMapper).readAWS(awsClient, indexes))
   );
+  // TODO: revisit with some kind of retry logic or add order to indexes population
   // Need to do a second pass on availabilityZones since we need the regions to be indexed
   await Mappers.AvailabilityZoneMapper.readAWS(awsClient, indexes);
 }
@@ -69,6 +70,8 @@ async function saveEntities(orm: TypeormWrapper, indexes: IndexedAWS, entity: Fu
   console.log(`${entity.name} stored in ${t2 - t1}ms`);
 }
 
+// TODO: To be removed in production
+// Endpoint to create database and be able to create new migrations running the yarn command.
 db.get('/migrate/:db', async (req, res) => {
   const dbname = req.params.db;
   let conn1, conn2;
