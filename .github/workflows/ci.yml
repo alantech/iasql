@@ -57,12 +57,9 @@ jobs:
       - name: Docker ps -a
         run: docker ps -a
 
-      - name: Waiting for listening port
-        # run: while ! lsof -i -n -P | grep 8088; do sleep 1; done
-        run: lsof -i -n -P
-
+      # Waiting for listening port
       - name: Health
-        run: while ! lsof -i -n -P | grep 8088; do sleep 1; done && curl http://localhost:8088/health
+        run: sleep 5 && curl http://localhost:8088/health
 
       # Check that all migrations are applied
       - name: Migrate
