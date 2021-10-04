@@ -5,6 +5,8 @@ export class BootMode {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({
+    unique: true,
+  })
   mode: string;
 }

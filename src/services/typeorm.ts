@@ -15,8 +15,6 @@ export class TypeormWrapper {
     namingStrategy: new SnakeNamingStrategy(),
   }
 
-  constructor() { }
-
   static async createConn(database: string): Promise<TypeormWrapper> {
     const typeorm = new TypeormWrapper();
     const connMan = getConnectionManager();
@@ -47,6 +45,14 @@ export class TypeormWrapper {
 
   async save(entity: EntityTarget<any>, value: any) {
     const repository = this.connection.manager.getRepository(entity);
-    await repository.save(value);
+    const batchSize = 500;
+    if (value && Array.isArray(value) && value.length > batchSize) {
+      for (let i = 0; i < value.length; i += batchSize) {
+        const batch = value.slice(i, i + batchSize);
+        await repository.save(batch);
+      }
+    } else {
+      await repository.save(value);
+    }
   }
 }

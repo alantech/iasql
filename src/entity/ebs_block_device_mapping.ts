@@ -7,18 +7,26 @@ export class EBSBlockDeviceMapping {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  deviceName: string;
+  @Column({
+    nullable: true,
+  })
+  deviceName?: string;
 
-  @Column()
-  virtualName: string;
+  @Column({
+    nullable: true,
+  })
+  virtualName?: string;
 
-  @ManyToOne(() => EBSBlockDeviceType)
+  @ManyToOne(() => EBSBlockDeviceType, {
+    cascade: true,
+  })
   @JoinColumn({
     name: 'ebs_block_device_type_id',
   })
   ebs: EBSBlockDeviceType;
 
-  @Column()
-  noDevice: string;
+  @Column({
+    nullable: true,
+  })
+  noDevice?: string;
 }

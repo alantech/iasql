@@ -18,7 +18,7 @@ export class FPGADeviceInfo {
   })
   count: number;
 
-  @ManyToOne(() => FPGADeviceMemoryInfo)
+  @ManyToOne(() => FPGADeviceMemoryInfo, { cascade: true })
   @JoinColumn({
     name: 'fpga_device_memory_info_id',
   })

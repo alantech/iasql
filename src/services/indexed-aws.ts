@@ -1,4 +1,8 @@
+import { Image } from '@aws-sdk/client-ec2';
+
 import { AWS, } from './gateways/aws'
+import { EntityMapper, } from '../mapper'
+
 
 type Index = {
   [entity: string]: {
@@ -13,42 +17,35 @@ export class IndexedAWS {
     this.index = {};
   }
 
-  async populate(awsClient: AWS) {
-    await Promise.all([(async () => {
-      const regions = await awsClient.getRegions();
-      for (const region of (regions.Regions ?? [])) {
-        this.set('regions', region.RegionName ?? '', region);
-      }
-    })(), (async () => {
-      const securityGroups = await awsClient.getSecurityGroups();
-      for (const sg of (securityGroups.SecurityGroups ?? [])) {
-        this.set('securityGroups', sg.GroupId ?? '', sg);
-      }
-    })(), (async () => {
-      const securityGroupRules = await awsClient.getSecurityGroupRules();
-      for (const sgr of (securityGroupRules.SecurityGroupRules ?? [])) {
-        this.set('securityGroupRules', sgr.SecurityGroupRuleId ?? '', sgr);
-      }
-    })()]);
+  toEntityList(mapper: EntityMapper) {
+    const entity = mapper.getEntity();
+    const entitiesAws = Object.values(this.get(entity) ?? {});
+    return entitiesAws.map(e => mapper.fromAWS(e, this));
   }
 
-  set(entity: string, key: string, value: any) {
-    if (entity in this.index) {
-      this.index[entity][key] = value;
-    } else {
-      this.index[entity] = { [key]: value };
-    }
+  set(entity: Function, key: string, value: any) {
+    const entityName = entity.name;
+    this.index[entityName] = this.index[entityName] ?? {};
+    this.index[entityName][key] = value;
   }
 
-  get(entity?: string, key?: string) {
+  setAll(entity: Function, entityList: any[], idName: string) {
+    const entityName = entity.name;
+    this.index[entityName] = this.index[entityName] ?? {};
+    entityList.forEach(e => this.index[entityName][e[idName] ?? ''] = e);
+  }
+
+  get(entity?: Function, key?: string) {
     if (!entity && key) {
       throw new Error('Error getting indexed entities');
     }
     if (entity && key) {
-      return this.index[entity][key];
+      const entityName = entity.name;
+      if (!(entityName in this.index)) return undefined;
+      return this.index[entityName][key];
     }
     if (entity) {
-      return this.index[entity];
+      return this.index[entity.name];
     }
     return this.index;
   }

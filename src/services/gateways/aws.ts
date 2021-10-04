@@ -1,14 +1,14 @@
 import {
   DescribeAvailabilityZonesCommand,
   DescribeImagesCommand,
-  DescribeInstanceTypesCommand,
   DescribeInstancesCommand,
   DescribeRegionsCommand,
   EC2Client,
-  Instance,
   RunInstancesCommand,
   paginateDescribeSecurityGroups,
   paginateDescribeSecurityGroupRules,
+  paginateDescribeInstanceTypes,
+  AvailabilityZone,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
@@ -24,9 +24,11 @@ type AWSConfig = {
 
 export class AWS {
   private ec2client: EC2Client
+  private credentials: AWSCreds
 
   constructor(config: AWSConfig) {
-    this.ec2client = new EC2Client(config)
+    this.credentials = config.credentials;
+    this.ec2client = new EC2Client(config);
   }
 
   // TODO remove once we populate the AMI table
@@ -114,7 +116,17 @@ export class AWS {
   }
 
   async getInstanceTypes() {
-    return await this.ec2client.send(new DescribeInstanceTypesCommand({}))
+    const instanceTypes = [];
+    const paginator = paginateDescribeInstanceTypes({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      instanceTypes.push(...(page.InstanceTypes ?? []));
+    }
+    return {
+      InstanceTypes: instanceTypes, // Make it "look like" the regular query again
+    };
   }
 
   async getAMIs() {
@@ -122,11 +134,24 @@ export class AWS {
   }
 
   async getRegions() {
-    return await this.ec2client.send(new DescribeRegionsCommand({}))
+    return await this.ec2client.send(new DescribeRegionsCommand({ AllRegions: true, }))
   }
 
-  async getAvailabilityZones() {
-    return await this.ec2client.send(new DescribeAvailabilityZonesCommand({}))
+  async getAvailabilityZones(regions: string[]) {
+    let availabilityZones: AvailabilityZone[] = [];
+    for (const region of regions) {
+      try {
+        const client = new EC2Client({
+          credentials: this.credentials,
+          region
+        });
+        const regionAZs = await client.send(new DescribeAvailabilityZonesCommand({ AllAvailabilityZones: true, }));
+        availabilityZones = availabilityZones.concat(regionAZs.AvailabilityZones ?? []);
+      } catch (e) {
+        console.log(`Could not get availability zones for region: ${region}. Error: ${e}`);
+      }
+    }
+    return { AvailabilityZones: availabilityZones }
   }
 
   async getSecurityGroups() {

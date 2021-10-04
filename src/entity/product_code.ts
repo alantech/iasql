@@ -5,6 +5,13 @@ export class ProductCode {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  code: string;
+  @Column({
+    nullable: true
+  })
+  productCodeId?: string;
+
+  @Column({
+    nullable: true
+  })
+  productCodeType?: string;
 }

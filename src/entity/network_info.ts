@@ -4,8 +4,8 @@ import {
   Column,
   ManyToMany,
   JoinTable,
-  OneToOne,
   JoinColumn,
+  ManyToOne,
 } from 'typeorm';
 
 import { EFAInfo, } from './efa_info';
@@ -40,7 +40,7 @@ export class NetworkInfo {
   })
   defaultNetworkCardIndex: number;
 
-  @ManyToMany(() => NetworkCardInfo)
+  @ManyToMany(() => NetworkCardInfo, { cascade: true })
   @JoinTable()
   networkCards: NetworkCardInfo[];
 
@@ -66,7 +66,7 @@ export class NetworkInfo {
   @Column()
   efaSupported: boolean;
 
-  @OneToOne(() => EFAInfo)
+  @ManyToOne(() => EFAInfo, { cascade: true })
   @JoinColumn({
     name: 'efa_info_id',
   })

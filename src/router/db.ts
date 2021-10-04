@@ -1,20 +1,17 @@
 import * as fs from 'fs'
 import { inspect, } from 'util'
-
-import {
-  Region as RegionAWS,
-  SecurityGroup as SecurityGroupAWS,
-  SecurityGroupRule as SecurityGroupRuleAWS,
-} from '@aws-sdk/client-ec2'
 import * as express from 'express'
 import { createConnection, Connection, } from 'typeorm'
 
 import { AWS, } from '../services/gateways/aws'
 import config from '../config'
 import { TypeormWrapper, } from '../services/typeorm'
-import { Region, SecurityGroup, SecurityGroupRule } from '../entity'
-import { RegionMapper, SecurityGroupMapper, SecurityGroupRuleMapper, } from '../mapper'
+import * as Entities from '../entity'
+import * as Mappers from '../mapper'
 import { IndexedAWS, } from '../services/indexed-aws'
+import { findDiff, } from '../services/diff'
+import { Source, getSourceOfTruth, } from '../services/source-of-truth'
+import { getAwsPrimaryKey, } from '../services/aws-primary-key'
 
 export const db = express.Router();
 
@@ -35,7 +32,7 @@ const migrationNames = migrationFiles.map(f => {
 // Then we dynamically `require` the migration files and construct the inner classes
 const migrationObjs = migrationFiles
   .map(f => require(`../migration/${f}`))
-  .map((c,i) => c[migrationNames[i]])
+  .map((c, i) => c[migrationNames[i]])
   .map(M => new M());
 // Finally we use this in this function to execute all of the migrations in order for a provided
 // connection, but without the migration management metadata being added, which is actually a plus
@@ -49,9 +46,67 @@ async function migrate(conn: Connection) {
   await qr.release();
 }
 
+async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
+  await Promise.all(Object.values(Mappers)
+    .filter(mapper => {
+      let out = mapper instanceof Mappers.EntityMapper;
+      if (out && typeof source === 'string') {
+        out &&= getSourceOfTruth((mapper as Mappers.EntityMapper).getEntity()) === source;
+      }
+      return out;
+    })
+    .map(mapper => (mapper as Mappers.EntityMapper).readAWS(awsClient, indexes))
+  );
+  // TODO: revisit with some kind of retry logic or add order to indexes population
+  // Need to do a second pass on availabilityZones since we need the regions to be indexed
+  await Mappers.AvailabilityZoneMapper.readAWS(awsClient, indexes);
+}
+
+async function saveEntities(orm: TypeormWrapper, indexes: IndexedAWS, entity: Function, mapper: Mappers.EntityMapper) {
+  const t1 = Date.now();
+  const entities = await indexes.toEntityList(mapper);
+  await orm.save(entity, entities);
+  const t2 = Date.now();
+  console.log(`${entity.name} stored in ${t2 - t1}ms`);
+}
+
+// TODO: To be removed in production
+// Endpoint to create database and be able to create new migrations running the yarn command.
+db.get('/migrate/:db', async (req, res) => {
+  const dbname = req.params.db;
+  let conn1, conn2;
+  try {
+    conn1 = await createConnection({
+      name: 'base', // If you use multiple connections they must have unique names or typeorm bails
+      type: 'postgres',
+      username: 'postgres',
+      password: 'test',
+      host: 'postgresql',
+    });
+    const resp1 = await conn1.query(`
+      CREATE DATABASE ${dbname};
+    `);
+    conn2 = await createConnection({
+      name: dbname,
+      type: 'postgres',
+      username: 'postgres',
+      password: 'test',
+      host: 'postgresql',
+      database: dbname,
+    });
+    await migrate(conn2);
+    res.end(`migrate ${dbname}: ${JSON.stringify(resp1)}`);
+  } catch (e: any) {
+    res.end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
+  } finally {
+    await conn1?.close();
+    await conn2?.close();
+  }
+})
+
 db.get('/create/:db', async (req, res) => {
-  // TODO: Clean/validate this input
-  const dbname = req.params['db'];
+  const t1 = Date.now();
+  const dbname = req.params.db;
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
   try {
@@ -82,31 +137,48 @@ db.get('/create/:db', async (req, res) => {
       },
     });
     const indexes = new IndexedAWS();
-    await indexes.populate(awsClient);
+    const t2 = Date.now();
+    console.log(`Start populating index after ${t2 - t1}ms`)
+    await populate(awsClient, indexes);
+    const t3 = Date.now();
+    console.log(`Populate indexes in ${t3 - t2}ms`)
     // TODO: Put this somewhere else
     orm = await TypeormWrapper.createConn(dbname);
     console.log(`Populating new db: ${dbname}`);
-    await Promise.all([(async () => {
-      const regionsAws: { [key: string]: RegionAWS } = indexes.get('regions');
-      for (const regionAws of Object.values(regionsAws)) {
-        const region = await RegionMapper.fromAWS(regionAws, indexes);
-        await orm?.save(Region, region);
-      }
-    })(), (async () => {
-      const securityGroupsAws: { [key: string]: SecurityGroupAWS } = indexes.get('securityGroups');
-      for (const securityGroupAws of Object.values(securityGroupsAws)) {
-        const sg = await SecurityGroupMapper.fromAWS(securityGroupAws, indexes);
-        await orm?.save(SecurityGroup, sg);
-      }
-      // The security group rules *must* be added after the security groups
-      const securityGroupRulesAws: {
-        [key: string]: SecurityGroupRuleAWS,
-      } = indexes.get('securityGroupRules');
-      for (const securityGroupRuleAws of Object.values(securityGroupRulesAws)) {
-        const sgr = await SecurityGroupRuleMapper.fromAWS(securityGroupRuleAws, indexes);
-        await orm?.save(SecurityGroupRule, sgr);
-      }
-    })()]);
+    await Promise.all([
+      (async () => {
+        await saveEntities(orm, indexes, Entities.Region, Mappers.RegionMapper);
+        await saveEntities(orm, indexes, Entities.AvailabilityZone, Mappers.AvailabilityZoneMapper);
+      })(),
+      (async () => {
+        await saveEntities(orm, indexes, Entities.SecurityGroup, Mappers.SecurityGroupMapper);
+        // The security group rules *must* be added after the security groups
+        await saveEntities(orm, indexes, Entities.SecurityGroupRule, Mappers.SecurityGroupRuleMapper)
+      })(),
+      (async () => {
+        await Promise.all([
+          saveEntities(orm, indexes, Entities.CPUArchitecture, Mappers.CPUArchitectureMapper),
+          saveEntities(orm, indexes, Entities.ProductCode, Mappers.ProductCodeMapper),
+          saveEntities(orm, indexes, Entities.StateReason, Mappers.StateReasonMapper),
+          saveEntities(orm, indexes, Entities.BootMode, Mappers.BootModeMapper),
+        ]);
+        await saveEntities(orm, indexes, Entities.AMI, Mappers.AMIMapper);
+      })(),
+      (async () => {
+        await Promise.all([
+          saveEntities(orm, indexes, Entities.UsageClass, Mappers.UsageClassMapper),
+          saveEntities(orm, indexes, Entities.DeviceType, Mappers.DeviceTypeMapper),
+          saveEntities(orm, indexes, Entities.VirtualizationType, Mappers.VirtualizationTypeMapper),
+          saveEntities(orm, indexes, Entities.PlacementGroupStrategy, Mappers.PlacementGroupStrategyMapper),
+          saveEntities(orm, indexes, Entities.ValidCore, Mappers.ValidCoreMapper),
+          saveEntities(orm, indexes, Entities.ValidThreadsPerCore, Mappers.ValidThreadsPerCoreMapper),
+          saveEntities(orm, indexes, Entities.InstanceTypeValue, Mappers.InstanceTypeValueMapper),
+        ]);
+        await saveEntities(orm, indexes, Entities.InstanceType, Mappers.InstanceTypeMapper)
+      })(),
+    ]);
+    const t4 = Date.now();
+    console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
     res.end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
@@ -118,8 +190,7 @@ db.get('/create/:db', async (req, res) => {
 });
 
 db.get('/delete/:db', async (req, res) => {
-  // TODO: Clean/validate this input
-  const dbname = req.params['db'];
+  const dbname = req.params.db;
   let conn;
   try {
     conn = await createConnection({
@@ -141,12 +212,12 @@ db.get('/delete/:db', async (req, res) => {
 });
 
 db.get('/check/:db', async (req, res) => {
-  // TODO: Clean/validate this input
-  const dbname = req.params['db'];
+  const dbname = req.params.db;
+  const t1 = new Date().getTime();
+  console.log(`Checking ${dbname}`);
   let orm: TypeormWrapper | null = null;
   try {
     orm = await TypeormWrapper.createConn(dbname);
-    const regions = await orm.find(Region);
     const awsClient = new AWS({
       region: config.region ?? 'eu-west-1',
       credentials: {
@@ -155,98 +226,24 @@ db.get('/check/:db', async (req, res) => {
       },
     });
     const indexes = new IndexedAWS();
-    const regionsAWS = await awsClient.getRegions();
-    const regionsMapped = await Promise.all(
-      regionsAWS.Regions?.map(async r => await RegionMapper.fromAWS(r, indexes)) ?? []
-    );
-    const diff = findDiff(regions, regionsMapped, 'name');
-    res.end(`
-      To create: ${inspect(diff.entitiesToCreate)}
-      To delete: ${inspect(diff.entitiesToDelete)}
-      Differences: ${inspect(diff.entitiesDiff)}
-    `);
+    const t2 = new Date().getTime();
+    console.log(`Setup took ${t2 - t1}ms`);
+    await populate(awsClient, indexes, Source.DB);
+    const t3 = new Date().getTime();
+    console.log(`AWS record acquisition time: ${t3 - t2}ms`);
+    const tables = Object.keys(indexes.get());
+    const dbEntities = await Promise.all(tables.map(t => orm?.find((Entities as any)[t])));
+    const awsEntities = tables.map(t => indexes.toEntityList((Mappers as any)[t + 'Mapper']));
+    const comparisonKeys = tables.map(t => getAwsPrimaryKey((Entities as any)[t]));
+    const t4 = new Date().getTime();
+    console.log(`Mapping time: ${t4 - t3}ms`);
+    const diffs = dbEntities.map((d, i) => findDiff(tables[i], d, awsEntities[i], comparisonKeys[i]));
+    const t5 = new Date().getTime();
+    console.log(`Diff time: ${t5 - t4}ms`);
+    res.end(`${inspect(diffs, { depth: 4, })}`);
   } catch (e: any) {
     res.end(`failure to check DB: ${e?.message ?? ''}`);
   } finally {
     orm?.dropConn();
   }
 });
-
-// TODO refactor to a class
-function findDiff(dbEntities: any[], cloudEntities: any[], id: string) {
-  const entitiesToCreate: any[] = [];
-  const entitiesToDelete: any[] = [];
-  const dbEntityIds = dbEntities.map(e => e[id]);
-  const cloudEntityIds = cloudEntities.map(e => e[id]);
-  // Everything in cloud and not in db is a potential delete
-  const cloudEntNotInDb = cloudEntities.filter(e => !dbEntityIds.includes(e[id]));
-  cloudEntNotInDb.map(e => entitiesToDelete.push(e));
-  // Everything in db and not in cloud is a potential create
-  const dbEntNotInCloud = dbEntities.filter(e => !cloudEntityIds.includes(e[id]));
-  dbEntNotInCloud.map(e => entitiesToCreate.push(e));
-  // Everything else needs a diff between them
-  const remainingDbEntities = dbEntities.filter(e => cloudEntityIds.includes(e[id]));
-  const entitiesDiff: any[] = [];
-  remainingDbEntities.map(dbEnt => {
-    const cloudEntToCompare = cloudEntities.find(e => e[id] === dbEnt[id]);
-    entitiesDiff.push(diff(dbEnt, cloudEntToCompare));
-  });
-  return {
-    entitiesToCreate,
-    entitiesToDelete,
-    entitiesDiff
-  }
-}
-
-function diff(dbObj: any, cloudObj: any) {
-  if (isValue(dbObj) || isValue(cloudObj)) {
-    return {
-      type: compare(dbObj, cloudObj),
-      db: dbObj,
-      cloud: cloudObj
-    };
-  }
-  let diffObj: any = {};
-  for (let key in dbObj) {
-    // Ignore database internal primary key
-    if (key === 'id') {
-      continue;
-    }
-    let cloudVal = cloudObj[key];
-    diffObj[key] = diff(dbObj[key], cloudVal);
-  }
-  for (var key in cloudObj) {
-    if (key === 'id' || diffObj[key] !== undefined) {
-      continue;
-    }
-    diffObj[key] = diff(undefined, cloudObj[key]);
-  }
-  return diffObj;
-}
-
-function isValue(o: any) {
-  return !isObject(o) && !isArray(o);
-}
-
-function isObject(o: any) {
-  return typeof o === 'object' && o !== null && !Array.isArray(o);
-}
-
-function isArray(o: any) {
-  return Array.isArray(o);
-}
-
-function isDate(o: any) {
-  return o instanceof Date;
-}
-
-function compare(dbVal: any, cloudVal: any) {
-  if (dbVal === cloudVal) {
-    return 'unchanged'
-  }
-  if (isDate(dbVal) && isDate(cloudVal) && dbVal.getTime() === cloudVal.getTime()) {
-    return 'unchanged'
-  }
-  return `to update ${cloudVal} with ${dbVal}`
-}
-
