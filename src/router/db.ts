@@ -57,6 +57,9 @@ async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
     })
     .map(mapper => (mapper as Mappers.EntityMapper).readAWS(awsClient, indexes))
   );
+  // TODO: revisit with some kind of retry logic or add order to indexes population
+  // Need to do a second pass on availabilityZones since we need the regions to be indexed
+  await Mappers.AvailabilityZoneMapper.readAWS(awsClient, indexes);
 }
 
 async function saveEntities(orm: TypeormWrapper, indexes: IndexedAWS, entity: Function, mapper: Mappers.EntityMapper) {
@@ -66,6 +69,40 @@ async function saveEntities(orm: TypeormWrapper, indexes: IndexedAWS, entity: Fu
   const t2 = Date.now();
   console.log(`${entity.name} stored in ${t2 - t1}ms`);
 }
+
+// TODO: To be removed in production
+// Endpoint to create database and be able to create new migrations running the yarn command.
+db.get('/migrate/:db', async (req, res) => {
+  const dbname = req.params.db;
+  let conn1, conn2;
+  try {
+    conn1 = await createConnection({
+      name: 'base', // If you use multiple connections they must have unique names or typeorm bails
+      type: 'postgres',
+      username: 'postgres',
+      password: 'test',
+      host: 'postgresql',
+    });
+    const resp1 = await conn1.query(`
+      CREATE DATABASE ${dbname};
+    `);
+    conn2 = await createConnection({
+      name: dbname,
+      type: 'postgres',
+      username: 'postgres',
+      password: 'test',
+      host: 'postgresql',
+      database: dbname,
+    });
+    await migrate(conn2);
+    res.end(`migrate ${dbname}: ${JSON.stringify(resp1)}`);
+  } catch (e: any) {
+    res.end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
+  } finally {
+    await conn1?.close();
+    await conn2?.close();
+  }
+})
 
 db.get('/create/:db', async (req, res) => {
   const t1 = Date.now();
@@ -109,7 +146,10 @@ db.get('/create/:db', async (req, res) => {
     orm = await TypeormWrapper.createConn(dbname);
     console.log(`Populating new db: ${dbname}`);
     await Promise.all([
-      saveEntities(orm, indexes, Entities.Region, Mappers.RegionMapper),
+      (async () => {
+        await saveEntities(orm, indexes, Entities.Region, Mappers.RegionMapper);
+        await saveEntities(orm, indexes, Entities.AvailabilityZone, Mappers.AvailabilityZoneMapper);
+      })(),
       (async () => {
         await saveEntities(orm, indexes, Entities.SecurityGroup, Mappers.SecurityGroupMapper);
         // The security group rules *must* be added after the security groups
