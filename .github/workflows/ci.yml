@@ -54,15 +54,14 @@ jobs:
       - name: Docker build and run --detach
         run: docker-compose up --build --detach
 
-      - name: Docker ps
-        run: sleep 10 && docker ps
-
+      # Sleep to give time the docker container to be ready
       - name: Docker ps -a
-        run: sleep 10 && docker ps -a
+        run: sleep 5 && docker ps -a
 
       - name: Health
         run: curl http://localhost:8088/health
 
+      # Check that all migrations are applied
       - name: Migrate
         run: curl http://localhost:8088/v1/db/migrate/__example__
 
