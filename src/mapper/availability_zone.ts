@@ -22,7 +22,7 @@ export const AvailabilityZoneMapper: EntityMapper = new EntityMapper(Availabilit
   networkBorderGroup: (availabilityZone: AvailabilityZoneAWS, _indexes: IndexedAWS) => availabilityZone?.NetworkBorderGroup,
   parentZone: (availabilityZone: AvailabilityZoneAWS, indexes: IndexedAWS) => {
     if (availabilityZone?.ParentZoneId) {
-      const parentZone = indexes.get(AvailabilityZone, availabilityZone.ZoneId);
+      const parentZone = indexes.get(AvailabilityZone, availabilityZone.ParentZoneId);
       if (parentZone) {
         return AvailabilityZoneMapper.fromAWS(parentZone, indexes)
       }
