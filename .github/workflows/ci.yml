@@ -56,7 +56,7 @@ jobs:
 
       # Sleep to give time the docker container to be ready
       - name: Docker ps -a
-        run: sleep 5 && docker ps -a
+        run: docker ps -a
 
       - name: Health
         run: curl http://localhost:8088/health
