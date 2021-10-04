@@ -9,6 +9,7 @@ import {
   paginateDescribeSecurityGroupRules,
   paginateDescribeInstanceTypes,
   AvailabilityZone,
+  paginateDescribeInstances,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
@@ -112,7 +113,19 @@ export class AWS {
   }
 
   async getInstances() {
-    return await this.ec2client.send(new DescribeInstancesCommand({}))
+    const instances = [];
+    const paginator = paginateDescribeInstances({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      for (const r of page.Reservations ?? []) {
+        instances.push(...(r.Instances ?? []));
+      }
+    }
+    return {
+      Instances: instances, // Make it "look like" the regular query again
+    };
   }
 
   async getInstanceTypes() {
