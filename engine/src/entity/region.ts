@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, } from 'typeorm';
+import { Instance } from './instance';
 
 import { InstanceType, } from './instance_type';
 import { source, Source, } from '../services/source-of-truth'
@@ -30,4 +31,7 @@ export class Region {
 
   @ManyToMany(() => InstanceType)
   instanceTypes: InstanceType[];
+
+  @OneToMany(() => Instance, i => i.region)
+  instances: Instance[];
 }

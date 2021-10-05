@@ -6,11 +6,13 @@ import {
   JoinColumn,
   ManyToMany,
   JoinTable,
+  OneToMany,
 } from 'typeorm';
 
 import { BootMode, } from './boot_mode';
 import { CPUArchitecture, } from './cpu_architecture';
 import { EBSBlockDeviceMapping, } from './ebs_block_device_mapping';
+import { Instance } from './instance';
 import { ProductCode, } from './product_code';
 import { StateReason, } from './state_reason';
 import { Tag, } from './tag';
@@ -203,4 +205,7 @@ export class AMI {
   @ManyToMany(() => Tag, { cascade: true, })
   @JoinTable()
   tags: Tag[];
+
+  @OneToMany(() => Instance, i => i.ami)
+  instances: Instance[];
 }
