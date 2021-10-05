@@ -160,7 +160,7 @@ export class InstanceType {
   @JoinTable()
   regions: Region[];
 
-  @ManyToMany(() => AvailabilityZone, { cascade: true, })
+  @ManyToMany(() => AvailabilityZone)
   @JoinTable()
   availabilityZones: AvailabilityZone[];
 
