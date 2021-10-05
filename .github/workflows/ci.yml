@@ -57,6 +57,11 @@ jobs:
 
       - name: Docker build and run --detach
         run: docker-compose up --build --detach
+        env:
+          PORT: 8088
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-west-1
 
       - name: Docker ps -a
         run: docker ps -a
@@ -66,20 +71,15 @@ jobs:
         run: sleep 5 && curl http://localhost:8088/health
 
       # Check that all migrations are applied
-      # - name: Create
-      #   run: curl -f http://localhost:8088/v1/db/create/__example__
-      #   env:
-      #     PORT: 8088
-      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     AWS_REGION: eu-west-1
+      - name: Create
+        run: curl -f http://localhost:8088/v1/db/create/__example__
       
       # TODO: Remove once create works
-      - name: migrate
-        run: curl -f http://localhost:8088/v1/db/migrate/__example__
+      # - name: migrate
+      #   run: curl -f http://localhost:8088/v1/db/migrate/__example__
 
-      # - name: Check
-      #   run: curl -f http://localhost:8088/v1/db/check/__example__
+      - name: Check
+        run: curl -f http://localhost:8088/v1/db/check/__example__
         
       - name: Find
         run: curl -f http://localhost:8088/v1/db/find/__example__
