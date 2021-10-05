@@ -60,6 +60,7 @@ jobs:
           echo AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} > .env
           echo AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} >> .env
           echo AWS_REGION=${AWS_REGION} >> .env
+          cat .env
           docker-compose up --build --detach
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -73,9 +74,15 @@ jobs:
       - name: Health
         run: sleep 5 && curl -f -s -S http://localhost:8088/health
 
+      - name: Delete
+        run: curl http://localhost:8088/v1/db/delete/__example__
+
       # Check that all migrations are applied
       - name: Create
-        run: curl -s -S http://localhost:8088/v1/db/create/__example__
+        run: curl http://localhost:8088/v1/db/create/__example__
+
+      - name: Logs
+        run: docker logs $(docker ps -aq | head -n 1)
 
       - name: Check
         run: curl -f -s -S http://localhost:8088/v1/db/check/__example__
