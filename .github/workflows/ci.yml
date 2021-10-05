@@ -66,8 +66,17 @@ jobs:
         run: sleep 5 && curl http://localhost:8088/health
 
       # Check that all migrations are applied
-      - name: Migrate
-        run: curl http://localhost:8088/v1/db/migrate/__example__
+      - name: Create
+        run: curl http://localhost:8088/v1/db/create/__example__
+
+      - name: Check
+        run: curl http://localhost:8088/v1/db/check/__example__
+        
+      - name: Find
+        run: curl http://localhost:8088/v1/db/find/__example__
+
+      - name: Delete
+        run: curl http://localhost:8088/v1/db/create/__example__
 
       - name: Docker stop
         run: docker stop $(docker ps -q)
