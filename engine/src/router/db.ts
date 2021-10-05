@@ -12,6 +12,7 @@ import { IndexedAWS, } from '../services/indexed-aws'
 import { findDiff, } from '../services/diff'
 import { Source, getSourceOfTruth, } from '../services/source-of-truth'
 import { getAwsPrimaryKey, } from '../services/aws-primary-key'
+import { lazyLoader, } from '../services/lazy-dep'
 
 export const db = express.Router();
 
@@ -47,7 +48,7 @@ async function migrate(conn: Connection) {
 }
 
 async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
-  await Promise.all(Object.values(Mappers)
+  const promiseGenerators = Object.values(Mappers)
     .filter(mapper => {
       let out = mapper instanceof Mappers.EntityMapper;
       if (out && typeof source === 'string') {
@@ -55,18 +56,13 @@ async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
       }
       return out;
     })
-    .map(mapper => (mapper as Mappers.EntityMapper).readAWS(awsClient, indexes))
-  );
-  if (!source || source === Source.AWS) {
-    // TODO: revisit with some kind of retry logic or add order to indexes population
-    // Need to do a second pass on availabilityZones since we need the regions to be indexed
-    await Mappers.AvailabilityZoneMapper.readAWS(awsClient, indexes);
-  }
+    .map(mapper => () => (mapper as Mappers.EntityMapper).readAWS(awsClient, indexes));
+  await lazyLoader(promiseGenerators);
 }
 
 async function saveEntities(orm: TypeormWrapper, indexes: IndexedAWS, entity: Function, mapper: Mappers.EntityMapper) {
   const t1 = Date.now();
-  const entities = await indexes.toEntityList(mapper);
+  const entities = indexes.toEntityList(mapper);
   await orm.save(entity, entities);
   const t2 = Date.now();
   console.log(`${entity.name} stored in ${t2 - t1}ms`);
