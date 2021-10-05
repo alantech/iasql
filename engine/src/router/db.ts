@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import { inspect, } from 'util'
 import * as express from 'express'
-import { createConnection, Connection, } from 'typeorm'
+import { createConnection, Connection, EntityTarget, } from 'typeorm'
 
 import { AWS, } from '../services/gateways/aws'
 import config from '../config'
@@ -261,6 +261,34 @@ db.get('/check/:db', async (req, res) => {
   } catch (e: any) {
     console.error(e);
     res.end(`failure to check DB: ${e?.message ?? ''}`);
+  } finally {
+    orm?.dropConn();
+  }
+});
+
+// Test endpoint to ensure all ORM queries to entities work as expected
+db.get('/find/:db', async (req, res) => {
+  const dbname = req.params.db;
+  const t1 = Date.now();
+  console.log(`Find entities in ${dbname}`);
+  let orm: TypeormWrapper | null = null;
+  try {
+    orm = await TypeormWrapper.createConn(dbname);
+    const t2 = Date.now();
+    console.log(`Setup took ${t2 - t1}ms`);
+    const finds = [];
+    for (const e of Object.values(Entities)) {
+      if (typeof e === 'function') {
+        finds.push(orm?.find(e as EntityTarget<any>));
+      }
+    };
+    await Promise.all(finds);
+    const t3 = Date.now();
+    console.log(`Find time: ${t3 - t2}ms`);
+    res.end('ok');
+  } catch (e: any) {
+    console.error(e);
+    res.end(`failure to find all entities in DB: ${e?.message ?? ''}`);
   } finally {
     orm?.dropConn();
   }
