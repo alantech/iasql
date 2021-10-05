@@ -68,40 +68,6 @@ async function saveEntities(orm: TypeormWrapper, indexes: IndexedAWS, entity: Fu
   console.log(`${entity.name} stored in ${t2 - t1}ms`);
 }
 
-// TODO: To be removed in production
-// Endpoint to create database and be able to create new migrations running the yarn command.
-db.get('/migrate/:db', async (req, res) => {
-  const dbname = req.params.db;
-  let conn1, conn2;
-  try {
-    conn1 = await createConnection({
-      name: 'base', // If you use multiple connections they must have unique names or typeorm bails
-      type: 'postgres',
-      username: 'postgres',
-      password: 'test',
-      host: 'postgresql',
-    });
-    const resp1 = await conn1.query(`
-      CREATE DATABASE ${dbname};
-    `);
-    conn2 = await createConnection({
-      name: dbname,
-      type: 'postgres',
-      username: 'postgres',
-      password: 'test',
-      host: 'postgresql',
-      database: dbname,
-    });
-    await migrate(conn2);
-    res.end(`migrate ${dbname}: ${JSON.stringify(resp1)}`);
-  } catch (e: any) {
-    res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
-  } finally {
-    await conn1?.close();
-    await conn2?.close();
-  }
-})
-
 db.get('/create/:db', async (req, res) => {
   const t1 = Date.now();
   const dbname = req.params.db;
