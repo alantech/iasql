@@ -8,7 +8,7 @@
     "clean": "rm -r dist",
     "lint": "tslint --project .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "export $(cat .env | xargs) && node dist/index.js",
+    "start": "export $(cat .env | xargs) && NODE_OPTIONS=\"--max_old_space_size=8192\" node dist/index.js",
     "gen-sql": "ts-node ./node_modules/.bin/typeorm migration:generate -n",
     "migrate": "ts-node ./node_modules/.bin/typeorm migration:run"
   },

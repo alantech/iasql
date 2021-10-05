@@ -93,7 +93,6 @@ db.get('/create/:db', async (req, res) => {
       database: dbname,
     });
     await migrate(conn2);
-    if (!config.accessKeyId) throw new Error('noo credentials');
     const awsClient = new AWS({
       region: config.region ?? 'eu-west-1',
       credentials: {
