@@ -10,6 +10,7 @@ import {
   EC2Client,
   RunInstancesCommand,
   paginateDescribeInstanceTypes,
+  paginateDescribeInstances,
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
 } from '@aws-sdk/client-ec2'
@@ -62,14 +63,13 @@ export class AWS {
       .pop()?.ImageId;
   }
 
-  async newInstance(instanceType: string): Promise<string> {
-    const amiId = await this.getAmiId();
+  async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
     const instanceParams = {
       ImageId: amiId,
       InstanceType: instanceType,
       MinCount: 1,
       MaxCount: 1,
-      SecurityGroupIds: [],
+      SecurityGroupIds: securityGroupIds,
       TagSpecifications: [
         {
           ResourceType: 'instance',
@@ -85,6 +85,7 @@ export class AWS {
     const input = new DescribeInstancesCommand({
       InstanceIds: instanceIds,
     });
+    // TODO: should we use the paginator instead?
     await createWaiter<EC2Client, DescribeInstancesCommand>(
       {
         client: this.ec2client,
@@ -115,7 +116,26 @@ export class AWS {
   }
 
   async getInstances() {
-    return await this.ec2client.send(new DescribeInstancesCommand({}))
+    const instances = [];
+    const paginator = paginateDescribeInstances({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      for (const r of page.Reservations ?? []) {
+        instances.push(...(r.Instances ?? []));
+      }
+    }
+    return {
+      Instances: instances, // Make it "look like" the regular query again
+    };
+  }
+
+  async getInstance(id: string) {
+    const reservations = await this.ec2client.send(
+      new DescribeInstancesCommand({ InstanceIds: [id], })
+    );
+    return (reservations?.Reservations?.map(r => r.Instances?.map(i => i)) ?? []).pop()?.pop();
   }
 
   async getInstanceTypes() {
