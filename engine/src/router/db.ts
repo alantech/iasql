@@ -175,6 +175,20 @@ db.get('/delete/:db', async (req, res) => {
   }
 });
 
+function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
+  // Assumes equal length for all arrays
+  const keys = Object.keys(cols);
+  const out: { [key: string]: any, }[] = [];
+  for (let i = 0; i < cols[keys[0]].length; i++) {
+    let row: { [key: string]: any, } = {};
+    for (const key of keys) {
+      row[key] = cols[key][i];
+    }
+    out.push(row);
+  }
+  return out;
+}
+
 db.get('/check/:db', async (req, res) => {
   const dbname = req.params.db;
   const t1 = Date.now();
@@ -200,30 +214,40 @@ db.get('/check/:db', async (req, res) => {
     const dbEntities = await Promise.all(tables.map(t => orm?.find((Entities as any)[t])));
     const awsEntities = tables.map(t => indexes.toEntityList((Mappers as any)[t + 'Mapper']));
     const comparisonKeys = tables.map(t => getAwsPrimaryKey((Entities as any)[t]));
+    const records = colToRow({
+      table: tables,
+      mapper: mappers,
+      dbEntity: dbEntities,
+      awsEntity: awsEntities,
+      comparisonKey: comparisonKeys,
+    });
     const t4 = Date.now();
     console.log(`Mapping time: ${t4 - t3}ms`);
-    const diffs = dbEntities.map((d, i) => findDiff(tables[i], d, awsEntities[i], comparisonKeys[i]));
+    records.forEach(r => {
+      r.diff = findDiff(r.table, r.dbEntity, r.awsEntity, r.comparisonKey);
+    });
     const t5 = Date.now();
     console.log(`Diff time: ${t5 - t4}ms`);
-    await Promise.all(mappers.map(async (m, i) => {
-      const ta = Date.now();
-      const name = m.getEntity().name;
-      console.log(`Checking ${name}`);
-      if (!['Instance', 'SecurityGroup'].includes(m.getEntity().name)) return; // TODO: Don't do this
-      const diff = diffs[i];
-      if (diff.entitiesInDbOnly.length > 0) {
-        console.log(`${name} has records to create`);
-        await Promise.all(diff.entitiesInDbOnly.map(async (e) => {
-          // Mutate in AWS, it also updates the entity for us with any AWS-created prop values
-          await orm?.save(m. getEntity(), await m.createAWS(e, awsClient, indexes));
-        }));
-      }
-      const tb = Date.now();
-      console.log(`${name} took ${tb - ta}ms`);
-    }));
+    console.dir(records, { depth: 6, });
+    const promiseGenerators = records
+      .filter(r => ['SecurityGroup', 'Instance'].includes(r.table)) // TODO: Don't do this
+      .map(r => {
+        const name = r.table;
+        console.log(`Checking ${name}`);
+        if (r.diff.entitiesInDbOnly.length > 0) {
+          console.log(`${name} has records to create`);
+          return r.diff.entitiesInDbOnly.map((e: any) => async () => {
+            await orm?.save(r.mapper.getEntity(), await r.mapper.createAWS(e, awsClient, indexes));
+          });
+        } else {
+          return [];
+        }
+      })
+      .flat();
+    await lazyLoader(promiseGenerators);
     const t6 = Date.now();
     console.log(`AWS update time: ${t6 - t5}ms`);
-    res.end(`${inspect(diffs, { depth: 4, })}`);
+    res.end(`${inspect(records, { depth: 6, })}`);
   } catch (e: any) {
     console.error(e);
     res.status(500).end(`failure to check DB: ${e?.message ?? ''}`);
