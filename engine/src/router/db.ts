@@ -95,7 +95,7 @@ db.get('/migrate/:db', async (req, res) => {
     await migrate(conn2);
     res.end(`migrate ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
-    res.end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
+    res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
   } finally {
     await conn1?.close();
     await conn2?.close();
@@ -179,7 +179,7 @@ db.get('/create/:db', async (req, res) => {
     console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
-    res.end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
+    res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
   } finally {
     await conn1?.close();
     await conn2?.close();
@@ -203,7 +203,7 @@ db.get('/delete/:db', async (req, res) => {
     `);
     res.end(`delete ${dbname}`);
   } catch (e: any) {
-    res.end(`failure to drop DB: ${e?.message ?? ''}`);
+    res.status(500).end(`failure to drop DB: ${e?.message ?? ''}`);
   } finally {
     conn?.close();
   }
@@ -260,7 +260,7 @@ db.get('/check/:db', async (req, res) => {
     res.end(`${inspect(diffs, { depth: 4, })}`);
   } catch (e: any) {
     console.error(e);
-    res.end(`failure to check DB: ${e?.message ?? ''}`);
+    res.status(500).end(`failure to check DB: ${e?.message ?? ''}`);
   } finally {
     orm?.dropConn();
   }
@@ -288,7 +288,7 @@ db.get('/find/:db', async (req, res) => {
     res.end('ok');
   } catch (e: any) {
     console.error(e);
-    res.end(`failure to find all entities in DB: ${e?.message ?? ''}`);
+    res.status(500).end(`failure to find all entities in DB: ${e?.message ?? ''}`);
   } finally {
     orm?.dropConn();
   }
