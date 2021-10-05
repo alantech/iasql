@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import { inspect, } from 'util'
 import * as express from 'express'
-import { createConnection, Connection, } from 'typeorm'
+import { createConnection, Connection, EntityTarget, } from 'typeorm'
 
 import { AWS, } from '../services/gateways/aws'
 import config from '../config'
@@ -67,40 +67,6 @@ async function saveEntities(orm: TypeormWrapper, indexes: IndexedAWS, entity: Fu
   const t2 = Date.now();
   console.log(`${entity.name} stored in ${t2 - t1}ms`);
 }
-
-// TODO: To be removed in production
-// Endpoint to create database and be able to create new migrations running the yarn command.
-db.get('/migrate/:db', async (req, res) => {
-  const dbname = req.params.db;
-  let conn1, conn2;
-  try {
-    conn1 = await createConnection({
-      name: 'base', // If you use multiple connections they must have unique names or typeorm bails
-      type: 'postgres',
-      username: 'postgres',
-      password: 'test',
-      host: 'postgresql',
-    });
-    const resp1 = await conn1.query(`
-      CREATE DATABASE ${dbname};
-    `);
-    conn2 = await createConnection({
-      name: dbname,
-      type: 'postgres',
-      username: 'postgres',
-      password: 'test',
-      host: 'postgresql',
-      database: dbname,
-    });
-    await migrate(conn2);
-    res.end(`migrate ${dbname}: ${JSON.stringify(resp1)}`);
-  } catch (e: any) {
-    res.end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
-  } finally {
-    await conn1?.close();
-    await conn2?.close();
-  }
-})
 
 db.get('/create/:db', async (req, res) => {
   const t1 = Date.now();
@@ -179,7 +145,7 @@ db.get('/create/:db', async (req, res) => {
     console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
-    res.end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
+    res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
   } finally {
     await conn1?.close();
     await conn2?.close();
@@ -203,7 +169,7 @@ db.get('/delete/:db', async (req, res) => {
     `);
     res.end(`delete ${dbname}`);
   } catch (e: any) {
-    res.end(`failure to drop DB: ${e?.message ?? ''}`);
+    res.status(500).end(`failure to drop DB: ${e?.message ?? ''}`);
   } finally {
     conn?.close();
   }
@@ -260,7 +226,35 @@ db.get('/check/:db', async (req, res) => {
     res.end(`${inspect(diffs, { depth: 4, })}`);
   } catch (e: any) {
     console.error(e);
-    res.end(`failure to check DB: ${e?.message ?? ''}`);
+    res.status(500).end(`failure to check DB: ${e?.message ?? ''}`);
+  } finally {
+    orm?.dropConn();
+  }
+});
+
+// Test endpoint to ensure all ORM queries to entities work as expected
+db.get('/find/:db', async (req, res) => {
+  const dbname = req.params.db;
+  const t1 = Date.now();
+  console.log(`Find entities in ${dbname}`);
+  let orm: TypeormWrapper | null = null;
+  try {
+    orm = await TypeormWrapper.createConn(dbname);
+    const t2 = Date.now();
+    console.log(`Setup took ${t2 - t1}ms`);
+    const finds = [];
+    for (const e of Object.values(Entities)) {
+      if (typeof e === 'function') {
+        finds.push(orm?.find(e as EntityTarget<any>));
+      }
+    };
+    await Promise.all(finds);
+    const t3 = Date.now();
+    console.log(`Find time: ${t3 - t2}ms`);
+    res.end('ok');
+  } catch (e: any) {
+    console.error(e);
+    res.status(500).end(`failure to find all entities in DB: ${e?.message ?? ''}`);
   } finally {
     orm?.dropConn();
   }
