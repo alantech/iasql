@@ -70,13 +70,13 @@ jobs:
       #   run: curl http://localhost:8088/v1/db/create/__example__
 
       # - name: Check
-      #   run: curl http://localhost:8088/v1/db/check/__example__
+      #   run: curl -f http://localhost:8088/v1/db/check/__example__
         
       - name: Find
-        run: curl http://localhost:8088/v1/db/find/__example__
+        run: curl -f http://localhost:8088/v1/db/find/__example__
 
       - name: Delete
-        run: curl http://localhost:8088/v1/db/create/__example__
+        run: curl -f http://localhost:8088/v1/db/delete/__example__
 
       - name: Docker stop
         run: docker stop $(docker ps -q)
