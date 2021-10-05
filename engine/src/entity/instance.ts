@@ -35,12 +35,6 @@ export class Instance {
   })
   ami: AMI;
 
-  @ManyToOne(() => Region)
-  @JoinColumn({
-    name: 'region_id',
-  })
-  region: Region;
-
   @ManyToOne(() => InstanceType)
   @JoinColumn({
     name: 'instance_type_id',
