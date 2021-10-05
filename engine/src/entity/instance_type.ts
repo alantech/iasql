@@ -6,6 +6,7 @@ import {
   ManyToMany,
   JoinColumn,
   JoinTable,
+  OneToMany,
   OneToOne,
 } from 'typeorm';
 
@@ -28,6 +29,7 @@ import { source, Source, } from '../services/source-of-truth'
 import { awsPrimaryKey, } from '../services/aws-primary-key'
 import { noDiff, } from '../services/diff'
 import { InstanceTypeValue } from './instance_type_value';
+import { Instance } from './instance';
 
 export enum InstanceTypeHypervisor {
   NITRO = 'nitro',
@@ -161,4 +163,7 @@ export class InstanceType {
   @ManyToMany(() => AvailabilityZone)
   @JoinTable()
   availabilityZones: AvailabilityZone[];
+
+  @OneToMany(() => Instance, i => i.instanceType)
+  instances: Instance[];
 }
