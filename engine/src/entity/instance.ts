@@ -35,6 +35,12 @@ export class Instance {
   })
   ami: AMI;
 
+  @ManyToOne(() => Region, { eager: true, })
+  @JoinColumn({
+    name: 'region_id',
+  })
+  region: Region;
+
   @ManyToOne(() => InstanceType, { eager: true, })
   @JoinColumn({
     name: 'instance_type_id',
