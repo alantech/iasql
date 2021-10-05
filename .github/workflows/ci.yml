@@ -56,18 +56,39 @@ jobs:
         run: yarn install
 
       - name: Docker build and run --detach
-        run: docker-compose up --build --detach
+        run: |
+          echo AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} > .env
+          echo AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} >> .env
+          echo AWS_REGION=${AWS_REGION} >> .env
+          docker-compose up --build --detach
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
 
       - name: Docker ps -a
         run: docker ps -a
 
       # Waiting for listening port
       - name: Health
-        run: sleep 5 && curl http://localhost:8088/health
+        run: sleep 5 && curl -f -s -S http://localhost:8088/health
 
       # Check that all migrations are applied
-      - name: Migrate
-        run: curl http://localhost:8088/v1/db/migrate/__example__
+      - name: Create
+        run: curl -f -s -S http://localhost:8088/v1/db/create/__example__
+
+      - name: Check
+        run: curl -f -s -S http://localhost:8088/v1/db/check/__example__
+        
+      - name: Find
+        run: curl -f -s -S http://localhost:8088/v1/db/find/__example__
+
+      - name: Delete
+        run: curl -f -s -S http://localhost:8088/v1/db/delete/__example__
+
+      - name: Logs
+        if: always()
+        run: docker logs $(docker ps -aq | head -n 1)
 
       - name: Docker stop
         run: docker stop $(docker ps -q)
