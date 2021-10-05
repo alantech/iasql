@@ -8,7 +8,7 @@ export class DepError {
   }
 }
 
-export async function lazyLoader(promiseGenerators: Array<() => Promise<any>>) {
+export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
   console.log('Running lazyLoader...');
   // Set up the tracking variables for the promise execution
   let generatorsToRun = [...promiseGenerators]; // Shallow clone to not mutate the input
@@ -23,7 +23,7 @@ export async function lazyLoader(promiseGenerators: Array<() => Promise<any>>) {
     generatorsSuccess = 0;
     const results = await Promise.allSettled(generatorsToRun.map(g => g()));
     generatorsRun = results.length;
-    let generatorsToRerun = [];
+    const generatorsToRerun = [];
     for (let i = 0; i < results.length; i++) {
       if (results[i].status === 'fulfilled') {
         generatorsSuccess++;
