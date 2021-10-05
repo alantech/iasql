@@ -1,12 +1,12 @@
 import { AvailabilityZone as AvailabilityZoneAWS, Region as RegionAWS } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../services/gateways/aws'
-import { AvailabilityZone, } from '../entity/availability_zone';
-import { EntityMapper, } from './entity';
+import { AvailabilityZone, } from '../entity/availability_zone'
+import { AvailabilityZoneMessageMapper, RegionMapper } from '.'
+import { DepError, } from '../services/lazy-dep'
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { AvailabilityZoneMessageMapper } from './availability_zone_message';
-import { RegionMapper } from '.';
-import { Region } from '../entity';
+import { Region, } from '../entity'
 
 export const AvailabilityZoneMapper: EntityMapper = new EntityMapper(AvailabilityZone, {
   state: (availabilityZone: AvailabilityZoneAWS, _indexes: IndexedAWS) => availabilityZone?.State,
@@ -29,11 +29,12 @@ export const AvailabilityZoneMapper: EntityMapper = new EntityMapper(Availabilit
     }
     return null;
   },
-  // TODO: handle intance type - availability zone realtion
+  // TODO: handle intance type - availability zone relation
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
     const regions = indexes.get(Region);
+    if (!regions) throw new DepError('Regions must be loaded first');
     const optInRegions = Object.entries(regions ?? {})
       .filter(([_, v]) => (v as RegionAWS).OptInStatus !== 'not-opted-in')
       .map(([k,_]) => k);

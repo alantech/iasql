@@ -74,14 +74,12 @@ export class AvailabilityZone {
 
   @ManyToOne(() => AvailabilityZone, {
     nullable: true,
-    eager: true,
-    cascade: true,
   })
   @JoinColumn({
     name: 'parent_zone_id',
   })
   parentZone: AvailabilityZone;
 
-  @ManyToMany(() => InstanceType, { eager: true, })
+  @ManyToMany(() => InstanceType)
   instanceTypes: InstanceType[];
 }
