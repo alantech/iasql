@@ -63,14 +63,13 @@ export class AWS {
       .pop()?.ImageId;
   }
 
-  async newInstance(instanceType: string): Promise<string> {
-    const amiId = await this.getAmiId();
+  async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
     const instanceParams = {
       ImageId: amiId,
       InstanceType: instanceType,
       MinCount: 1,
       MaxCount: 1,
-      SecurityGroupIds: [],
+      SecurityGroupIds: securityGroupIds,
       TagSpecifications: [
         {
           ResourceType: 'instance',
@@ -86,6 +85,7 @@ export class AWS {
     const input = new DescribeInstancesCommand({
       InstanceIds: instanceIds,
     });
+    // TODO: should we use the paginator instead?
     await createWaiter<EC2Client, DescribeInstancesCommand>(
       {
         client: this.ec2client,
@@ -129,6 +129,13 @@ export class AWS {
     return {
       Instances: instances, // Make it "look like" the regular query again
     };
+  }
+
+  async getInstance(id: string) {
+    const reservations = await this.ec2client.send(
+      new DescribeInstancesCommand({ InstanceIds: [id], })
+    );
+    return (reservations?.Reservations?.map(r => r.Instances?.map(i => i)) ?? [])[0];
   }
 
   async getInstanceTypes() {

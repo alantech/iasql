@@ -30,7 +30,24 @@ export const InstanceMapper = new EntityMapper(Instance, {
     const t2 = Date.now();
     console.log(`Instances set in ${t2 - t1}ms`);
   },
-  createAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  createAWS: async (obj: any, awsClient: AWS, indexes: IndexedAWS) => {
+    // First construct the instance
+    console.log('Obj', obj)
+    const result = await awsClient.newInstance(obj.instanceType.instanceType.name, obj.ami.imageId, obj.securityGroups.map((sg: any) => sg.groupId));
+    // TODO: Handle if it fails (somehow)
+    if (!result) { // Failure
+      throw new Error('what should we do here?');
+    }
+    // TODO: Determine if the following logic really belongs here or not
+    const newInstance = await awsClient.getInstance(result ?? '');
+    // We map this into the same kind of entity as `obj`
+    const newEntity: Instance = InstanceMapper.fromAWS(newInstance, indexes);
+    // We attach the original object's ID to this new one, indicating the exact record it is
+    // replacing in the database
+    newEntity.id = obj.id;
+    // It's up to the caller if they want to actually update into the DB or not, though.
+    return newEntity;
+  },
   updateAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
   deleteAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
 })
