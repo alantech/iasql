@@ -180,7 +180,7 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
   const keys = Object.keys(cols);
   const out: { [key: string]: any, }[] = [];
   for (let i = 0; i < cols[keys[0]].length; i++) {
-    let row: { [key: string]: any, } = {};
+    const row: { [key: string]: any, } = {};
     for (const key of keys) {
       row[key] = cols[key][i];
     }
