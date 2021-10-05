@@ -44,7 +44,7 @@ export class InstanceType {
   id: number;
 
   @awsPrimaryKey
-  @OneToOne(() => InstanceTypeValue, { cascade: true })
+  @OneToOne(() => InstanceTypeValue, { cascade: true, eager: true, })
   @JoinColumn({
     name: 'instance_type_value_id',
   })

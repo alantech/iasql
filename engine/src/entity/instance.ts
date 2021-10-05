@@ -29,25 +29,25 @@ export class Instance {
   })
   instanceId?: string;
 
-  @ManyToOne(() => AMI)
+  @ManyToOne(() => AMI, { eager: true, })
   @JoinColumn({
     name: 'ami_id',
   })
   ami: AMI;
 
-  @ManyToOne(() => Region)
+  @ManyToOne(() => Region, { eager: true, })
   @JoinColumn({
     name: 'region_id',
   })
   region: Region;
 
-  @ManyToOne(() => InstanceType)
+  @ManyToOne(() => InstanceType, { eager: true, })
   @JoinColumn({
     name: 'instance_type_id',
   })
   instanceType: InstanceType;
 
-  @ManyToMany(() => SecurityGroup)
+  @ManyToMany(() => SecurityGroup, { eager: true, })
   @JoinTable()
   securityGroups: SecurityGroup[]
 }
