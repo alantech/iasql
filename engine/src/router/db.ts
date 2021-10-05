@@ -209,7 +209,7 @@ db.get('/check/:db', async (req, res) => {
       const ta = Date.now();
       const name = m.getEntity().name;
       console.log(`Checking ${name}`);
-      if (m.getEntity().name !== 'SecurityGroup') return; // TODO: Don't do this
+      if (!['Instance', 'SecurityGroup'].includes(m.getEntity().name)) return; // TODO: Don't do this
       const diff = diffs[i];
       if (diff.entitiesInDbOnly.length > 0) {
         console.log(`${name} has records to create`);
