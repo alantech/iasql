@@ -127,8 +127,9 @@ db.get('/create/:db', async (req, res) => {
       database: dbname,
     });
     await migrate(conn2);
-    console.log('before client')
-    console.log(config)
+
+    if (!config.accessKeyId) throw new Error(`Error ${config.accessKeyId} - ${config.secretAccessKey}`)
+
     const awsClient = new AWS({
       region: config.region ?? 'eu-west-1',
       credentials: {
@@ -136,7 +137,6 @@ db.get('/create/:db', async (req, res) => {
         secretAccessKey: config.secretAccessKey ?? '',
       },
     });
-    console.log('after client')
     const indexes = new IndexedAWS();
     const t2 = Date.now();
     console.log(`Start populating index after ${t2 - t1}ms`)
