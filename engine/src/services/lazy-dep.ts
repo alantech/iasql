@@ -31,10 +31,7 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
       }
       generatorsToRerun.push(generatorsToRun[i]);
     }
-    if (generatorsToRun.length === generatorsToRerun.length) {
-      console.log(results);
-      break;
-    }
+    if (generatorsToRun.length === generatorsToRerun.length) break;
     generatorsToRun = generatorsToRerun;
   } while (generatorsToRun.length > 0);
   console.log('lazyLoader done!');

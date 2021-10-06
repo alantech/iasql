@@ -61,9 +61,6 @@ export const SecurityGroupMapper: EntityMapper = new EntityMapper(SecurityGroup,
     return await SecurityGroupMapper.createAWS(obj, awsClient, indexes);
   },
   deleteAWS: async (obj: SecurityGroup, awsClient: AWS, indexes: IndexedAWS) => {
-    console.log({
-      obj,
-    });
     await awsClient.deleteSecurityGroup({
       GroupId: obj.groupId,
     });

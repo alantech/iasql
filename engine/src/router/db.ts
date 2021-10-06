@@ -108,74 +108,11 @@ db.get('/create/:db', async (req, res) => {
     console.log(`Populate indexes in ${t3 - t2}ms`)
     // TODO: Put this somewhere else
     orm = await TypeormWrapper.createConn(dbname);
+    const o: TypeormWrapper = orm;
     console.log(`Populating new db: ${dbname}`);
-    console.log(indexes);
-    console.log('Temporarily linear, first Region');
-    await saveEntities(orm, indexes, Entities.Region, Mappers.RegionMapper);
-    console.log('AvailabilityZone');
-    await saveEntities(orm, indexes, Entities.AvailabilityZone, Mappers.AvailabilityZoneMapper);
-    console.log('SecurityGroup');
-    await saveEntities(orm, indexes, Entities.SecurityGroup, Mappers.SecurityGroupMapper);
-    console.log('SecurityGroupRule');
-    await saveEntities(orm, indexes, Entities.SecurityGroupRule, Mappers.SecurityGroupRuleMapper);
-    console.log('CPUArchitecture');
-    await saveEntities(orm, indexes, Entities.CPUArchitecture, Mappers.CPUArchitectureMapper);
-    console.log('ProductCode');
-    await saveEntities(orm, indexes, Entities.ProductCode, Mappers.ProductCodeMapper);
-    console.log('StateReason');
-    await saveEntities(orm, indexes, Entities.StateReason, Mappers.StateReasonMapper);
-    console.log('BootMode');
-    await saveEntities(orm, indexes, Entities.BootMode, Mappers.BootModeMapper);
-    console.log('AMI');
-    await saveEntities(orm, indexes, Entities.AMI, Mappers.AMIMapper);
-    console.log('UsageClass');
-    await saveEntities(orm, indexes, Entities.UsageClass, Mappers.UsageClassMapper);
-    console.log('DeviceType');
-    await saveEntities(orm, indexes, Entities.DeviceType, Mappers.DeviceTypeMapper);
-    console.log('VirtualizationType');
-    await saveEntities(orm, indexes, Entities.VirtualizationType, Mappers.VirtualizationTypeMapper);
-    console.log('PlacementGroupStrategy');
-    await saveEntities(orm, indexes, Entities.PlacementGroupStrategy, Mappers.PlacementGroupStrategyMapper);
-    console.log('ValidCore');
-    await saveEntities(orm, indexes, Entities.ValidCore, Mappers.ValidCoreMapper);
-    console.log('ValidThreadsPerCore');
-    await saveEntities(orm, indexes, Entities.ValidThreadsPerCore, Mappers.ValidThreadsPerCoreMapper);
-    console.log('InstanceTypeValue');
-    await saveEntities(orm, indexes, Entities.InstanceTypeValue, Mappers.InstanceTypeValueMapper);
-    console.log('InstanceType');
-    await saveEntities(orm, indexes, Entities.InstanceType, Mappers.InstanceTypeMapper)
-    /*await Promise.all([
-      (async () => {
-        await saveEntities(orm, indexes, Entities.Region, Mappers.RegionMapper);
-        await saveEntities(orm, indexes, Entities.AvailabilityZone, Mappers.AvailabilityZoneMapper);
-      })(),
-      (async () => {
-        await saveEntities(orm, indexes, Entities.SecurityGroup, Mappers.SecurityGroupMapper);
-        // The security group rules *must* be added after the security groups
-        await saveEntities(orm, indexes, Entities.SecurityGroupRule, Mappers.SecurityGroupRuleMapper)
-      })(),
-      (async () => {
-        await Promise.all([
-          saveEntities(orm, indexes, Entities.CPUArchitecture, Mappers.CPUArchitectureMapper),
-          saveEntities(orm, indexes, Entities.ProductCode, Mappers.ProductCodeMapper),
-          saveEntities(orm, indexes, Entities.StateReason, Mappers.StateReasonMapper),
-          saveEntities(orm, indexes, Entities.BootMode, Mappers.BootModeMapper),
-        ]);
-        await saveEntities(orm, indexes, Entities.AMI, Mappers.AMIMapper);
-      })(),
-      (async () => {
-        await Promise.all([
-          saveEntities(orm, indexes, Entities.UsageClass, Mappers.UsageClassMapper),
-          saveEntities(orm, indexes, Entities.DeviceType, Mappers.DeviceTypeMapper),
-          saveEntities(orm, indexes, Entities.VirtualizationType, Mappers.VirtualizationTypeMapper),
-          saveEntities(orm, indexes, Entities.PlacementGroupStrategy, Mappers.PlacementGroupStrategyMapper),
-          saveEntities(orm, indexes, Entities.ValidCore, Mappers.ValidCoreMapper),
-          saveEntities(orm, indexes, Entities.ValidThreadsPerCore, Mappers.ValidThreadsPerCoreMapper),
-          saveEntities(orm, indexes, Entities.InstanceTypeValue, Mappers.InstanceTypeValueMapper),
-        ]);
-        await saveEntities(orm, indexes, Entities.InstanceType, Mappers.InstanceTypeMapper)
-      })(),
-    ]);*/
+    const mappers: Mappers.EntityMapper[] = Object.values(Mappers)
+      .filter(m => m instanceof Mappers.EntityMapper) as Mappers.EntityMapper[];
+    await lazyLoader(mappers.map(m => () => saveEntities(o, indexes, m.getEntity(), m)));
     const t4 = Date.now();
     console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
@@ -263,7 +200,6 @@ db.get('/check/:db', async (req, res) => {
     });
     const t5 = Date.now();
     console.log(`Diff time: ${t5 - t4}ms`);
-    console.dir(records, { depth: 6, });
     const promiseGenerators = records
       .filter(r => ['SecurityGroup', 'Instance'].includes(r.table)) // TODO: Don't do this
       .map(r => {
