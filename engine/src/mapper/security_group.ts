@@ -42,7 +42,7 @@ export const SecurityGroupMapper: EntityMapper = new EntityMapper(SecurityGroup,
     const newGroup = await awsClient.getSecurityGroup(result.GroupId ?? '');
     // We map this into the same kind of entity as `obj`
     const newEntity: SecurityGroup = SecurityGroupMapper.fromAWS(newGroup, indexes);
-    indexes.set(SecurityGroup, (newEntity as any)['groupId'], newEntity);
+    indexes.set(SecurityGroup, (newEntity as any).groupId, newEntity);
     // We attach the original object's ID to this new one, indicating the exact record it is
     // replacing in the database
     newEntity.id = obj.id;
@@ -65,7 +65,7 @@ export const SecurityGroupMapper: EntityMapper = new EntityMapper(SecurityGroup,
       GroupId: obj.groupId,
     });
     // TODO: What does the error even look like? Docs are spotty on this
-    indexes.del(SecurityGroup, (obj as any)['groupId']);
+    indexes.del(SecurityGroup, (obj as any).groupId);
     return obj;
   },
 });
