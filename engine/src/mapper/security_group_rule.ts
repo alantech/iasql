@@ -4,10 +4,10 @@ import {
 } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../services/gateways/aws'
-import { EntityMapper, } from './entity';
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { SecurityGroupMapper, } from './security_group';
-import { SecurityGroup, SecurityGroupRule, } from '../entity';
+import { SecurityGroupMapper, } from './security_group'
+import { SecurityGroup, SecurityGroupRule, } from '../entity'
 
 export const SecurityGroupRuleMapper = new EntityMapper(SecurityGroupRule, {
   securityGroupRuleId: (sgr: SecurityGroupRuleAWS, _i: IndexedAWS) => sgr?.SecurityGroupRuleId,

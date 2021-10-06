@@ -2,6 +2,8 @@ import {
   AvailabilityZone,
   CreateSecurityGroupCommand,
   CreateSecurityGroupRequest,
+  DeleteSecurityGroupCommand,
+  DeleteSecurityGroupRequest,
   DescribeAvailabilityZonesCommand,
   DescribeImagesCommand,
   DescribeInstancesCommand,
@@ -199,10 +201,15 @@ export class AWS {
   }
 
   async createSecurityGroup(instanceParams: CreateSecurityGroupRequest) {
-    const create = await this.ec2client.send(
+    return await this.ec2client.send(
       new CreateSecurityGroupCommand(instanceParams),
     );
-    return create;
+  }
+
+  async deleteSecurityGroup(instanceParams: DeleteSecurityGroupRequest) {
+    return await this.ec2client.send(
+      new DeleteSecurityGroupCommand(instanceParams),
+    );
   }
 
   async getSecurityGroupRules() {
