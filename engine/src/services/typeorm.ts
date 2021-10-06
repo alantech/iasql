@@ -55,4 +55,9 @@ export class TypeormWrapper {
       await repository.save(value);
     }
   }
+
+  async remove(entity: EntityTarget<any>, value: any) {
+    const repository = this.connection.manager.getRepository(entity);
+    await repository.remove(value);
+  }
 }
