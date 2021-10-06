@@ -3,4 +3,4 @@ COPY . .
 RUN yarn
 RUN yarn build
 EXPOSE 8088
-CMD yarn watch
+CMD yarn start
