@@ -8,9 +8,14 @@
     "clean": "rm -r dist",
     "lint": "tslint --project .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "export $(cat .env | xargs) && node --max_old_space_size=8192 dist/index.js",
+    "start": "export $(cat .env | xargs) && if [ \"$IASQL_ENV\" = \"local\" ]; then yarn start:dev; else yarn serve; fi",
+    "serve": "node --max_old_space_size=8192 dist/index.js",
+    "start:dev": "nodemon -e ts -w ./src -x yarn start:dev:watch",
+    "start:dev:watch": "yarn build && yarn serve",
     "gen-sql": "ts-node ./node_modules/.bin/typeorm migration:generate -n",
-    "migrate": "ts-node ./node_modules/.bin/typeorm migration:run"
+    "migrate": "ts-node ./node_modules/.bin/typeorm migration:run",
+    "docker-compose:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "docker-compose": "docker-compose -f docker-compose.yml up --build"
   },
   "repository": {
     "type": "git",
@@ -29,6 +34,7 @@
   "homepage": "https://github.com/alantech/skybase#readme",
   "devDependencies": {
     "@types/node": "^16.9.1",
+    "nodemon": "^2.0.13",
     "ts-node-dev": "^1.1.8",
     "tslint": "^6.1.3",
     "typescript": "^4.4.3"
