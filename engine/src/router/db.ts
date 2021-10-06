@@ -108,39 +108,11 @@ db.get('/create/:db', async (req, res) => {
     console.log(`Populate indexes in ${t3 - t2}ms`)
     // TODO: Put this somewhere else
     orm = await TypeormWrapper.createConn(dbname);
+    const o: TypeormWrapper = orm;
     console.log(`Populating new db: ${dbname}`);
-    await Promise.all([
-      (async () => {
-        await saveEntities(orm, indexes, Entities.Region, Mappers.RegionMapper);
-        await saveEntities(orm, indexes, Entities.AvailabilityZone, Mappers.AvailabilityZoneMapper);
-      })(),
-      (async () => {
-        await saveEntities(orm, indexes, Entities.SecurityGroup, Mappers.SecurityGroupMapper);
-        // The security group rules *must* be added after the security groups
-        await saveEntities(orm, indexes, Entities.SecurityGroupRule, Mappers.SecurityGroupRuleMapper)
-      })(),
-      (async () => {
-        await Promise.all([
-          saveEntities(orm, indexes, Entities.CPUArchitecture, Mappers.CPUArchitectureMapper),
-          saveEntities(orm, indexes, Entities.ProductCode, Mappers.ProductCodeMapper),
-          saveEntities(orm, indexes, Entities.StateReason, Mappers.StateReasonMapper),
-          saveEntities(orm, indexes, Entities.BootMode, Mappers.BootModeMapper),
-        ]);
-        await saveEntities(orm, indexes, Entities.AMI, Mappers.AMIMapper);
-      })(),
-      (async () => {
-        await Promise.all([
-          saveEntities(orm, indexes, Entities.UsageClass, Mappers.UsageClassMapper),
-          saveEntities(orm, indexes, Entities.DeviceType, Mappers.DeviceTypeMapper),
-          saveEntities(orm, indexes, Entities.VirtualizationType, Mappers.VirtualizationTypeMapper),
-          saveEntities(orm, indexes, Entities.PlacementGroupStrategy, Mappers.PlacementGroupStrategyMapper),
-          saveEntities(orm, indexes, Entities.ValidCore, Mappers.ValidCoreMapper),
-          saveEntities(orm, indexes, Entities.ValidThreadsPerCore, Mappers.ValidThreadsPerCoreMapper),
-          saveEntities(orm, indexes, Entities.InstanceTypeValue, Mappers.InstanceTypeValueMapper),
-        ]);
-        await saveEntities(orm, indexes, Entities.InstanceType, Mappers.InstanceTypeMapper)
-      })(),
-    ]);
+    const mappers: Mappers.EntityMapper[] = Object.values(Mappers)
+      .filter(m => m instanceof Mappers.EntityMapper) as Mappers.EntityMapper[];
+    await lazyLoader(mappers.map(m => () => saveEntities(o, indexes, m.getEntity(), m)));
     const t4 = Date.now();
     console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
@@ -175,6 +147,20 @@ db.get('/delete/:db', async (req, res) => {
   }
 });
 
+function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
+  // Assumes equal length for all arrays
+  const keys = Object.keys(cols);
+  const out: { [key: string]: any, }[] = [];
+  for (let i = 0; i < cols[keys[0]].length; i++) {
+    const row: { [key: string]: any, } = {};
+    for (const key of keys) {
+      row[key] = cols[key][i];
+    }
+    out.push(row);
+  }
+  return out;
+}
+
 db.get('/check/:db', async (req, res) => {
   const dbname = req.params.db;
   const t1 = Date.now();
@@ -200,30 +186,64 @@ db.get('/check/:db', async (req, res) => {
     const dbEntities = await Promise.all(tables.map(t => orm?.find((Entities as any)[t])));
     const awsEntities = tables.map(t => indexes.toEntityList((Mappers as any)[t + 'Mapper']));
     const comparisonKeys = tables.map(t => getAwsPrimaryKey((Entities as any)[t]));
+    const records = colToRow({
+      table: tables,
+      mapper: mappers,
+      dbEntity: dbEntities,
+      awsEntity: awsEntities,
+      comparisonKey: comparisonKeys,
+    });
     const t4 = Date.now();
     console.log(`Mapping time: ${t4 - t3}ms`);
-    const diffs = dbEntities.map((d, i) => findDiff(tables[i], d, awsEntities[i], comparisonKeys[i]));
+    records.forEach(r => {
+      r.diff = findDiff(r.table, r.dbEntity, r.awsEntity, r.comparisonKey);
+    });
     const t5 = Date.now();
     console.log(`Diff time: ${t5 - t4}ms`);
-    await Promise.all(mappers.map(async (m, i) => {
-      const ta = Date.now();
-      const name = m.getEntity().name;
-      console.log(`Checking ${name}`);
-      if (!['Instance', 'SecurityGroup'].includes(m.getEntity().name)) return; // TODO: Don't do this
-      const diff = diffs[i];
-      if (diff.entitiesInDbOnly.length > 0) {
-        console.log(`${name} has records to create`);
-        await Promise.all(diff.entitiesInDbOnly.map(async (e) => {
-          // Mutate in AWS, it also updates the entity for us with any AWS-created prop values
-          await orm?.save(m. getEntity(), await m.createAWS(e, awsClient, indexes));
-        }));
-      }
-      const tb = Date.now();
-      console.log(`${name} took ${tb - ta}ms`);
-    }));
+    const promiseGenerators = records
+      .filter(r => ['SecurityGroup', 'Instance'].includes(r.table)) // TODO: Don't do this
+      .map(r => {
+        const name = r.table;
+        console.log(`Checking ${name}`);
+        const outArr = [];
+        if (r.diff.entitiesInDbOnly.length > 0) {
+          console.log(`${name} has records to create`);
+          outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
+            await orm?.save(r.mapper.getEntity(), await r.mapper.createAWS(e, awsClient, indexes));
+          }));
+        }
+        let diffFound = false;
+        r.diff.entitiesDiff.forEach((d: any) => {
+          const keys = Object.keys(d).filter(k => k !== 'id');
+          const unchanged = keys.every(k => d[k].type === 'unchanged');
+          if (!unchanged) {
+            diffFound = true;
+            const entity = r.dbEntity.find((e: any) => e.id === d.id);
+            outArr.push(async () => {
+              await orm?.save(
+                r.mapper.getEntity(),
+                await r.mapper.updateAWS(entity, awsClient, indexes)
+              );
+            });
+          }
+        });
+        if (diffFound) console.log(`${name} has records to update`);
+        if (r.diff.entitiesInAwsOnly.length > 0) {
+          console.log(`${name} has records to delete`);
+          outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
+            await orm?.remove(
+              r.mapper.getEntity(),
+              await r.mapper.deleteAWS(e, awsClient, indexes)
+            );
+          }));
+        }
+        return outArr;
+      })
+      .flat(9001);
+    await lazyLoader(promiseGenerators);
     const t6 = Date.now();
     console.log(`AWS update time: ${t6 - t5}ms`);
-    res.end(`${inspect(diffs, { depth: 4, })}`);
+    res.end(`${inspect(records, { depth: 6, })}`);
   } catch (e: any) {
     console.error(e);
     res.status(500).end(`failure to check DB: ${e?.message ?? ''}`);

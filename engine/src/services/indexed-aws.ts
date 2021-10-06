@@ -49,4 +49,10 @@ export class IndexedAWS {
     }
     return this.index;
   }
+
+  del(entity: Function, key: string) {
+    const entityName = entity.name;
+    this.index[entityName] = this.index[entityName] ?? {};
+    delete this.index[entityName][key];
+  }
 }
