@@ -5,6 +5,8 @@ import { inspect } from 'util';
 import config from './config';
 import { v1 } from './router';
 
+Error.stackTraceLimit = Infinity;
+
 const port = config.port;
 const app = express();
 

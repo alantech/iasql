@@ -109,7 +109,42 @@ db.get('/create/:db', async (req, res) => {
     // TODO: Put this somewhere else
     orm = await TypeormWrapper.createConn(dbname);
     console.log(`Populating new db: ${dbname}`);
-    await Promise.all([
+    console.log(indexes);
+    console.log('Temporarily linear, first Region');
+    await saveEntities(orm, indexes, Entities.Region, Mappers.RegionMapper);
+    console.log('AvailabilityZone');
+    await saveEntities(orm, indexes, Entities.AvailabilityZone, Mappers.AvailabilityZoneMapper);
+    console.log('SecurityGroup');
+    await saveEntities(orm, indexes, Entities.SecurityGroup, Mappers.SecurityGroupMapper);
+    console.log('SecurityGroupRule');
+    await saveEntities(orm, indexes, Entities.SecurityGroupRule, Mappers.SecurityGroupRuleMapper);
+    console.log('CPUArchitecture');
+    await saveEntities(orm, indexes, Entities.CPUArchitecture, Mappers.CPUArchitectureMapper);
+    console.log('ProductCode');
+    await saveEntities(orm, indexes, Entities.ProductCode, Mappers.ProductCodeMapper);
+    console.log('StateReason');
+    await saveEntities(orm, indexes, Entities.StateReason, Mappers.StateReasonMapper);
+    console.log('BootMode');
+    await saveEntities(orm, indexes, Entities.BootMode, Mappers.BootModeMapper);
+    console.log('AMI');
+    await saveEntities(orm, indexes, Entities.AMI, Mappers.AMIMapper);
+    console.log('UsageClass');
+    await saveEntities(orm, indexes, Entities.UsageClass, Mappers.UsageClassMapper);
+    console.log('DeviceType');
+    await saveEntities(orm, indexes, Entities.DeviceType, Mappers.DeviceTypeMapper);
+    console.log('VirtualizationType');
+    await saveEntities(orm, indexes, Entities.VirtualizationType, Mappers.VirtualizationTypeMapper);
+    console.log('PlacementGroupStrategy');
+    await saveEntities(orm, indexes, Entities.PlacementGroupStrategy, Mappers.PlacementGroupStrategyMapper);
+    console.log('ValidCore');
+    await saveEntities(orm, indexes, Entities.ValidCore, Mappers.ValidCoreMapper);
+    console.log('ValidThreadsPerCore');
+    await saveEntities(orm, indexes, Entities.ValidThreadsPerCore, Mappers.ValidThreadsPerCoreMapper);
+    console.log('InstanceTypeValue');
+    await saveEntities(orm, indexes, Entities.InstanceTypeValue, Mappers.InstanceTypeValueMapper);
+    console.log('InstanceType');
+    await saveEntities(orm, indexes, Entities.InstanceType, Mappers.InstanceTypeMapper)
+    /*await Promise.all([
       (async () => {
         await saveEntities(orm, indexes, Entities.Region, Mappers.RegionMapper);
         await saveEntities(orm, indexes, Entities.AvailabilityZone, Mappers.AvailabilityZoneMapper);
@@ -140,7 +175,7 @@ db.get('/create/:db', async (req, res) => {
         ]);
         await saveEntities(orm, indexes, Entities.InstanceType, Mappers.InstanceTypeMapper)
       })(),
-    ]);
+    ]);*/
     const t4 = Date.now();
     console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
@@ -234,16 +269,41 @@ db.get('/check/:db', async (req, res) => {
       .map(r => {
         const name = r.table;
         console.log(`Checking ${name}`);
+        const outArr = [];
         if (r.diff.entitiesInDbOnly.length > 0) {
           console.log(`${name} has records to create`);
-          return r.diff.entitiesInDbOnly.map((e: any) => async () => {
+          outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
             await orm?.save(r.mapper.getEntity(), await r.mapper.createAWS(e, awsClient, indexes));
-          });
-        } else {
-          return [];
+          }));
         }
+        let diffFound = false;
+        r.diff.entitiesDiff.forEach((d: any) => {
+          const keys = Object.keys(d).filter(k => k !== 'id');
+          const unchanged = keys.every(k => d[k].type === 'unchanged');
+          if (!unchanged) {
+            diffFound = true;
+            const entity = r.dbEntity.find((e: any) => e.id === d.id);
+            outArr.push(async () => {
+              await orm?.save(
+                r.mapper.getEntity(),
+                await r.mapper.updateAWS(entity, awsClient, indexes)
+              );
+            });
+          }
+        });
+        if (diffFound) console.log(`${name} has records to update`);
+        if (r.diff.entitiesInAwsOnly.length > 0) {
+          console.log(`${name} has records to delete`);
+          outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
+            await orm?.remove(
+              r.mapper.getEntity(),
+              await r.mapper.deleteAWS(e, awsClient, indexes)
+            );
+          }));
+        }
+        return outArr;
       })
-      .flat();
+      .flat(9001);
     await lazyLoader(promiseGenerators);
     const t6 = Date.now();
     console.log(`AWS update time: ${t6 - t5}ms`);

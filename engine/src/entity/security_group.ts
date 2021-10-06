@@ -17,7 +17,6 @@ export class SecurityGroup {
   })
   description?: string;
 
-  @awsPrimaryKey
   @Column({
     nullable: true,
   })
@@ -28,6 +27,7 @@ export class SecurityGroup {
   })
   ownerId?: string;
 
+  @awsPrimaryKey
   @Column({
     nullable: true,
   })

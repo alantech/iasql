@@ -4,11 +4,11 @@ import {
 } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../services/gateways/aws'
-import { EntityMapper, } from './entity';
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { SecurityGroup, SecurityGroupRule, } from '../entity';
+import { SecurityGroup, SecurityGroupRule, } from '../entity'
 
-export const SecurityGroupMapper = new EntityMapper(SecurityGroup, {
+export const SecurityGroupMapper: EntityMapper = new EntityMapper(SecurityGroup, {
   description: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.Description,
   groupName: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.GroupName,
   ownerId: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.OwnerId,
@@ -42,12 +42,33 @@ export const SecurityGroupMapper = new EntityMapper(SecurityGroup, {
     const newGroup = await awsClient.getSecurityGroup(result.GroupId ?? '');
     // We map this into the same kind of entity as `obj`
     const newEntity: SecurityGroup = SecurityGroupMapper.fromAWS(newGroup, indexes);
+    indexes.set(SecurityGroup, (newEntity as any)['groupId'], newEntity);
     // We attach the original object's ID to this new one, indicating the exact record it is
     // replacing in the database
     newEntity.id = obj.id;
     // It's up to the caller if they want to actually update into the DB or not, though.
     return newEntity;
   },
-  updateAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
-  deleteAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
+  updateAWS: async (obj: any, awsClient: AWS, indexes: IndexedAWS) => {
+    // TODO: To do updates right on this, since AWS doesn't actually support updating the outer
+    // records of a security group, we have to delete and recreate, but since other relations will
+    // still exist in the database for an update but would not on an actual delete, we will have to
+    // temporarily remove any association of the security group from anything that can join on it,
+    // which is an unfortunate violation of separation of concerns. At least EC2 instances are a
+    // problem, but also likely the weird references to VPNs and likely other services, in AWS, too.
+    // For now, though, we'll just ignore and fill this in once it bites us.
+    await SecurityGroupMapper.deleteAWS(obj, awsClient, indexes);
+    return await SecurityGroupMapper.createAWS(obj, awsClient, indexes);
+  },
+  deleteAWS: async (obj: SecurityGroup, awsClient: AWS, indexes: IndexedAWS) => {
+    console.log({
+      obj,
+    });
+    await awsClient.deleteSecurityGroup({
+      GroupId: obj.groupId,
+    });
+    // TODO: What does the error even look like? Docs are spotty on this
+    indexes.del(SecurityGroup, (obj as any)['groupId']);
+    return obj;
+  },
 });
