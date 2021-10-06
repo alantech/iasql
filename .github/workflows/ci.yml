@@ -71,7 +71,7 @@ jobs:
 
       # Waiting for listening port
       - name: Health
-        run: sleep 5 && curl -f -s -S http://localhost:8088/health
+        run: while ! nc -z localhost 8088; do sleep 1; done; && curl -f -s -S http://localhost:8088/health
 
       # Check that all migrations are applied
       - name: Create
