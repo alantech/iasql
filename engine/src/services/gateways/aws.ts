@@ -135,7 +135,7 @@ export class AWS {
     const reservations = await this.ec2client.send(
       new DescribeInstancesCommand({ InstanceIds: [id], })
     );
-    return (reservations?.Reservations?.map(r => r.Instances?.map(i => i)) ?? [])[0];
+    return (reservations?.Reservations?.map(r => r.Instances?.map(i => i)) ?? []).pop()?.pop();
   }
 
   async getInstanceTypes() {

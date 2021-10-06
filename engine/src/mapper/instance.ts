@@ -32,7 +32,6 @@ export const InstanceMapper = new EntityMapper(Instance, {
   },
   createAWS: async (obj: any, awsClient: AWS, indexes: IndexedAWS) => {
     // First construct the instance
-    console.log('Obj', obj)
     const result = await awsClient.newInstance(obj.instanceType.instanceType.name, obj.ami.imageId, obj.securityGroups.map((sg: any) => sg.groupId));
     // TODO: Handle if it fails (somehow)
     if (!result) { // Failure
