@@ -37,34 +37,6 @@ export class AWS {
     this.ec2client = new EC2Client(config);
   }
 
-  // TODO remove once we populate the AMI table
-  // the AMI id for the same AMI is different per region
-  private async getAmiId() {
-    // ubuntu free tier compatible image
-    const amiType = 'ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*'
-    // Defined to filter images that do not need to accept terms and subscribe to use this AWS Marketplace product
-    const amiTypeRegex =
-      /ubuntu\/images\/hvm-ssd\/ubuntu-focal-20\.04-amd64-server-[0-9]{8}$/
-    const output = await this.ec2client.send(
-      new DescribeImagesCommand({
-        Filters: [
-          {
-            Name: 'name',
-            Values: [amiType],
-          },
-        ],
-      }),
-    );
-    return output.Images?.filter((i) => i.Name?.match(amiTypeRegex))
-      .sort((a, b) => {
-        if (a.CreationDate && b.CreationDate) {
-          return (a.CreationDate).localeCompare(b.CreationDate)
-        }
-        return 0;
-      })
-      .pop()?.ImageId;
-  }
-
   async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
     const instanceParams = {
       ImageId: amiId,
