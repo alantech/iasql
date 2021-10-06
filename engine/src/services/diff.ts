@@ -26,7 +26,9 @@ export function findDiff(entity: string, dbEntities: any[], cloudEntities: any[]
   const entitiesDiff: any[] = [];
   remainingDbEntities.map(dbEnt => {
     const cloudEntToCompare = cloudEntities.find(e => e[id] === dbEnt[id]);
-    entitiesDiff.push(diff(dbEnt, cloudEntToCompare, exclusionList));
+    const entityDiff = diff(dbEnt, cloudEntToCompare, exclusionList);
+    entityDiff.id = dbEnt.id; // Reattach the ID to be able to re-acquire the original entity
+    entitiesDiff.push(entityDiff);
   });
   return {
     entitiesInDbOnly,
