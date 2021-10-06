@@ -13,20 +13,14 @@ export class Region {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @awsPrimaryKey // TODO: What if it really is nullable?
-  @Column({
-    nullable: true
-  })
+  @awsPrimaryKey
+  @Column()
   name?: string;
 
-  @Column({
-    nullable: true
-  })
+  @Column()
   endpoint?: string;
 
-  @Column({
-    nullable: true
-  })
+  @Column()
   optInStatus?: string;
 
   @ManyToMany(() => InstanceType)
