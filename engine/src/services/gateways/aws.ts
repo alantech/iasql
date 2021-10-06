@@ -16,8 +16,9 @@ import {
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
 } from '@aws-sdk/client-ec2'
-import { DescribeOrderableDBInstanceOptionsCommand, paginateDescribeDBInstances, RDSClient, } from '@aws-sdk/client-rds'
+import { CreateDBInstanceCommand, CreateDBInstanceCommandInput, DescribeDBInstancesCommand, DescribeOrderableDBInstanceOptionsCommand, paginateDescribeDBInstances, RDSClient, } from '@aws-sdk/client-rds'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
+import { inspect } from 'util'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -35,6 +36,7 @@ export class AWS {
   private credentials: AWSCreds
 
   constructor(config: AWSConfig) {
+    console.log(config);
     this.credentials = config.credentials;
     this.ec2client = new EC2Client(config);
     this.rdsClient = new RDSClient(config);
@@ -201,6 +203,28 @@ export class AWS {
     };
   }
   
+  async createDBInstance() {
+    const dbInstanceParams: CreateDBInstanceCommandInput = {
+      DBInstanceClass: 'db.m5.large',
+      Engine: 'postgres',
+      DBInstanceIdentifier: 'dbtest3',
+      MasterUsername: 'postgres',
+      MasterUserPassword: '4l4nU$er',
+      AllocatedStorage: 8192,
+    };
+    console.log('db instance params', dbInstanceParams);
+    const create = await this.rdsClient.send(
+      new CreateDBInstanceCommand(dbInstanceParams),
+    );
+    console.log('create result', create);
+    const instanceId: string | undefined = create.DBInstance?.DBInstanceIdentifier;
+    const input = await this.rdsClient.send(new DescribeDBInstancesCommand({
+      DBInstanceIdentifier: instanceId,
+    }));
+    console.log(input, {depth: 6});
+    return input;
+  }
+
   async getDBInstances() {
     const dbInstances = [];
     const paginator = paginateDescribeDBInstances({
