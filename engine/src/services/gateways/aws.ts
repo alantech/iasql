@@ -14,6 +14,7 @@ import {
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
 } from '@aws-sdk/client-ec2'
+import { DescribeOrderableDBInstanceOptionsCommand, paginateDescribeDBInstances, RDSClient, } from '@aws-sdk/client-rds'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
 type AWSCreds = {
@@ -28,11 +29,13 @@ type AWSConfig = {
 
 export class AWS {
   private ec2client: EC2Client
+  private rdsClient: RDSClient
   private credentials: AWSCreds
 
   constructor(config: AWSConfig) {
     this.credentials = config.credentials;
     this.ec2client = new EC2Client(config);
+    this.rdsClient = new RDSClient(config);
   }
 
   // TODO remove once we populate the AMI table
@@ -216,6 +219,20 @@ export class AWS {
     }
     return {
       SecurityGroupRules: securityGroupRules, // Make it "look like" the regular query again
+    };
+  }
+  
+  async getDBInstances() {
+    const dbInstances = [];
+    const paginator = paginateDescribeDBInstances({
+      client: this.rdsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      dbInstances.push(...(page.DBInstances ?? []));
+    }
+    return {
+      DBInstances: dbInstances, // Make it "look like" the regular query again
     };
   }
 }
