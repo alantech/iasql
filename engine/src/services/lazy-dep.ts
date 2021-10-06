@@ -31,22 +31,16 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
       }
       generatorsToRerun.push(generatorsToRun[i]);
     }
+    if (generatorsToRun.length === generatorsToRerun.length) break;
     generatorsToRun = generatorsToRerun;
-  } while (generatorsToRun.length > 0 && generatorsSuccess !== generatorsRun);
+  } while (generatorsToRun.length > 0);
   console.log('lazyLoader done!');
   // Handle the success and error paths
   if (generatorsToRun.length === 0) {
     return true;
-  } else if (generatorsSuccess === generatorsRun) {
+  } else {
     throw new DepError('Forward progress halted. Some promises never resolved', {
       generatorsToRun,
-    });
-  } else {
-    throw new DepError('This path should be impossible!', {
-      promiseGenerators,
-      generatorsToRun,
-      generatorsSuccess,
-      generatorsRun,
     });
   }
 }
