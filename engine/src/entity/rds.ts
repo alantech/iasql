@@ -45,7 +45,7 @@ export class RDS {
   @Column({ 
     unique: true, 
   })
-  DBInstanceIdentifier: string;
+  dbInstanceIdentifier: string;
 
   // TODO: range vary based on storage type and engine
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#allocatedstorage
@@ -121,15 +121,11 @@ export class RDS {
   })
   deletionProtection?: boolean;
 
+  // TODO: Update to array and fix relationship type (many to many) once Domain entity is defined
   @Column({
     nullable: true,
   })
-  domain?: string;
-
-  @Column({
-    nullable: true,
-  })
-  domainIAMRoleName?: string;
+  domainMemberships?: string;
 
   // TODO: many to may relation eventually
   @Column({
@@ -184,6 +180,7 @@ export class RDS {
   // TODO: How to handle this just for creation time and do not store it in DB?
   // TODO: Apply constraints?
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#masteruserpassword
+  @noDiff
   @Column({
     nullable: true,
   })
@@ -223,6 +220,7 @@ export class RDS {
   })
   ncharCharacterSetName?: string;
   
+  // TODO: Update relationship and create groups entity
   @Column({
     nullable: true,
   })
