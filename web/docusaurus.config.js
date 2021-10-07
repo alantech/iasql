@@ -5,7 +5,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
 (module.exports = {
   title: 'IaSQL',
-  tagline: 'Infrastructure as SQL',
+  tagline: 'AWS Infrastructure as SQL',
   url: 'https://beta.iasql.com',
   baseUrl: '/',
   trailingSlash: true,
@@ -16,12 +16,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
   projectName: 'iasql', // Usually your repo name.
 
   customFields: {
-    dev: {
-      domain: "dev-mecb604n.us.auth0.com",
-      clientId: "oVzQPoS0TuEq71s6p7QoaQElawntnx3O",
-      redirectUri: 'https://beta.iasql.com'
-    },
-    prod: {
+    auth: {
       domain: "iasql.us.auth0.com",
       clientId: "1KmfyRSPUVHpv7e7H8cTKmYE0dEKW5Vz",
       redirectUri: 'https://beta.iasql.com'

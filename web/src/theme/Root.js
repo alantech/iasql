@@ -6,12 +6,12 @@ import { Auth0Provider } from "@auth0/auth0-react";
 function Root({children}) {
   const {siteConfig} = useDocusaurusContext();
   {/* TODO generalize per environment */}
-  const config = siteConfig.customFields.dev;
+  const authConfig = siteConfig.customFields.auth;
   return (
     <Auth0Provider
-      domain={config.domain}
-      clientId={config.clientId}
-      redirectUri={config.redirectUri}
+      domain={authConfig.domain}
+      clientId={authConfig.clientId}
+      redirectUri={authConfig.redirectUri}
       >
       <>{children}</>
     </Auth0Provider>
