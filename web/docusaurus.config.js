@@ -17,7 +17,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 
   customFields: {
     auth: {
-      domain: "iasql.us.auth0.com",
+      domain: "auth.iasql.com",
       clientId: "OLQAngfr1LnenTt6wmQOYKmzx1c1dSxg",
       redirectUri: 'https://beta.iasql.com'
     },
