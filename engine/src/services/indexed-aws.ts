@@ -55,4 +55,8 @@ export class IndexedAWS {
     this.index[entityName] = this.index[entityName] ?? {};
     delete this.index[entityName][key];
   }
+
+  flush() {
+    this.index = {};
+  }
 }
