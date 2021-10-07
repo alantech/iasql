@@ -65,6 +65,35 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
     dbi?.VpcSecurityGroups?.length ?
       dbi.VpcSecurityGroups.map(vpcsg => SecurityGroupMapper.fromAWS(vpcsg, i)) :
       [],
+  dbInstanceStatus: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBInstanceStatus ?? null,
+  automaticRestartTime: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AutomaticRestartTime ?? null,
+  endpoint: (dbi: DBInstance, _i: IndexedAWS) => dbi?.Endpoint?.Address ?? null,
+  instanceCreateTime: (dbi: DBInstance, _i: IndexedAWS) => dbi?.InstanceCreateTime ?? null,
+  dbSubnetGroup: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBSubnetGroup?.DBSubnetGroupArn ?? null,
+  latestRestorableTime: (dbi: DBInstance, _i: IndexedAWS) => dbi?.LatestRestorableTime ?? null,
+  secondaryAvailabilityZone: (_dbi: DBInstance, _i: IndexedAWS) =>
+    // TODO fix availability zone to be indexed by name and not id
+    // dbi?.SecondaryAvailabilityZone ?
+    //   AvailabilityZoneMapper.fromAWS(i.get(AvailabilityZone, dbi.SecondaryAvailabilityZone), i)
+    //   : null,
+    null,
+  caCertificateIdentifier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CACertificateIdentifier ?? null,
+  dbInstanceArn: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBInstanceArn ?? null,
+  associatedRoles: (_dbi: DBInstance, _i: IndexedAWS) => null,
+  listenerEndpoint: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ListenerEndpoint?.Address ?? null,
+  awsBackupRecoveryPointArn: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AwsBackupRecoveryPointArn ?? null,
+  activityStreamStatus: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamStatus ?? null,
+  activityStreamMode: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamMode ?? null,
+  activityStreamKmsKeyId: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamKmsKeyId ?? null,
+  activityStreamKinesisStreamName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamKinesisStreamName ?? null,
+  activityStreamEngineNativeAuditFieldsIncluded: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamEngineNativeAuditFieldsIncluded ?? null,
+  readReplicaSourceDBInstanceIdentifier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ReadReplicaSourceDBInstanceIdentifier ?? null,
+  readReplicaDBInstanceIdentifiers: (_dbi: DBInstance, _i: IndexedAWS) => null,
+  readReplicaDBClusterIdentifiers: (_dbi: DBInstance, _i: IndexedAWS) => null,
+  replicaMode: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ReplicaMode ?? null,
+  statusInfos: (_dbi: DBInstance, _i: IndexedAWS) => null,
+  dbInstanceAutomatedBackupsReplications: (dbi: DBInstance, _i: IndexedAWS) => null,
+  
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
