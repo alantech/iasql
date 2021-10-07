@@ -178,72 +178,84 @@ db.get('/check/:db', async (req, res) => {
     const indexes = new IndexedAWS();
     const t2 = Date.now();
     console.log(`Setup took ${t2 - t1}ms`);
+    let ranFullUpdate = false;
     await populate(awsClient, indexes, Source.DB);
-    const t3 = Date.now();
-    console.log(`AWS record acquisition time: ${t3 - t2}ms`);
-    const tables = Object.keys(indexes.get());
-    const mappers = tables.map(t => (Mappers as any)[t + 'Mapper']);
-    const dbEntities = await Promise.all(tables.map(t => orm?.find((Entities as any)[t])));
-    const awsEntities = tables.map(t => indexes.toEntityList((Mappers as any)[t + 'Mapper']));
-    const comparisonKeys = tables.map(t => getAwsPrimaryKey((Entities as any)[t]));
-    const records = colToRow({
-      table: tables,
-      mapper: mappers,
-      dbEntity: dbEntities,
-      awsEntity: awsEntities,
-      comparisonKey: comparisonKeys,
-    });
-    const t4 = Date.now();
-    console.log(`Mapping time: ${t4 - t3}ms`);
-    records.forEach(r => {
-      r.diff = findDiff(r.table, r.dbEntity, r.awsEntity, r.comparisonKey);
-    });
-    const t5 = Date.now();
-    console.log(`Diff time: ${t5 - t4}ms`);
-    const promiseGenerators = records
-      .filter(r => ['SecurityGroup', 'Instance'].includes(r.table)) // TODO: Don't do this
-      .map(r => {
-        const name = r.table;
-        console.log(`Checking ${name}`);
-        const outArr = [];
-        if (r.diff.entitiesInDbOnly.length > 0) {
-          console.log(`${name} has records to create`);
-          outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
-            await orm?.save(r.mapper.getEntity(), await r.mapper.createAWS(e, awsClient, indexes));
-          }));
-        }
-        let diffFound = false;
-        r.diff.entitiesDiff.forEach((d: any) => {
-          const keys = Object.keys(d).filter(k => k !== 'id');
-          const unchanged = keys.every(k => d[k].type === 'unchanged');
-          if (!unchanged) {
-            diffFound = true;
-            const entity = r.dbEntity.find((e: any) => e.id === d.id);
-            outArr.push(async () => {
-              await orm?.save(
-                r.mapper.getEntity(),
-                await r.mapper.updateAWS(entity, awsClient, indexes)
-              );
-            });
-          }
+    do {
+      ranFullUpdate = false;
+      const t3 = Date.now();
+      console.log(`AWS record acquisition time: ${t3 - t2}ms`);
+      const tables = Object.keys(indexes.get());
+      const mappers = tables.map(t => (Mappers as any)[t + 'Mapper']);
+      const dbEntities = await Promise.all(tables.map(t => orm?.find((Entities as any)[t])));
+      const comparisonKeys = tables.map(t => getAwsPrimaryKey((Entities as any)[t]));
+      const t4 = Date.now();
+      console.log(`DB Mapping time: ${t4 - t3}ms`);
+      let ranUpdate = false;
+      do {
+        const ta = Date.now();
+        ranUpdate = false;
+        indexes.flush();
+        await populate(awsClient, indexes, Source.DB);
+        const awsEntities = tables.map(t => indexes.toEntityList((Mappers as any)[t + 'Mapper']));
+        const records = colToRow({
+          table: tables,
+          mapper: mappers,
+          dbEntity: dbEntities,
+          awsEntity: awsEntities,
+          comparisonKey: comparisonKeys,
         });
-        if (diffFound) console.log(`${name} has records to update`);
-        if (r.diff.entitiesInAwsOnly.length > 0) {
-          console.log(`${name} has records to delete`);
-          outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
-            await orm?.remove(
-              r.mapper.getEntity(),
-              await r.mapper.deleteAWS(e, awsClient, indexes)
-            );
-          }));
+        const tb = Date.now();
+        console.log(`AWS Mapping time: ${tb - ta}ms`);
+        records.forEach(r => {
+          r.diff = findDiff(r.table, r.dbEntity, r.awsEntity, r.comparisonKey);
+        });
+        const t5 = Date.now();
+        console.log(`Diff time: ${t5 - tb}ms`);
+        const promiseGenerators = records
+          .filter(r => ['SecurityGroup', 'Instance'].includes(r.table)) // TODO: Don't do this
+          .map(r => {
+            const name = r.table;
+            console.log(`Checking ${name}`);
+            const outArr = [];
+            if (r.diff.entitiesInDbOnly.length > 0) {
+              console.log(`${name} has records to create`);
+              outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
+                await orm?.save(r.mapper.getEntity(), await r.mapper.createAWS(e, awsClient, indexes));
+              }));
+            }
+            let diffFound = false;
+            r.diff.entitiesDiff.forEach((d: any) => {
+              const keys = Object.keys(d).filter(k => k !== 'id');
+              const unchanged = keys.every(k => d[k].type === 'unchanged');
+              if (!unchanged) {
+                diffFound = true;
+                const entity = r.dbEntity.find((e: any) => e.id === d.id);
+                outArr.push(async () => {
+                  await r.mapper.updateAWS(entity, awsClient, indexes)
+                });
+              }
+            });
+            if (diffFound) console.log(`${name} has records to update`);
+            if (r.diff.entitiesInAwsOnly.length > 0) {
+              console.log(`${name} has records to delete`);
+              outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
+                await r.mapper.deleteAWS(e, awsClient, indexes);
+              }));
+            }
+            return outArr;
+          })
+          .flat(9001);
+        if (promiseGenerators.length > 0) {
+          ranUpdate = true;
+          ranFullUpdate = true;
+          await lazyLoader(promiseGenerators);
+          const t6 = Date.now();
+          console.log(`AWS update time: ${t6 - t5}ms`);
         }
-        return outArr;
-      })
-      .flat(9001);
-    await lazyLoader(promiseGenerators);
-    const t6 = Date.now();
-    console.log(`AWS update time: ${t6 - t5}ms`);
-    res.end(`${inspect(records, { depth: 6, })}`);
+      } while(ranUpdate);
+    } while(ranFullUpdate);
+    const t7 = Date.now();
+    res.end(`${dbname} checked and synced, total time: ${t7 - t1}ms`);
   } catch (e: any) {
     console.error(e);
     res.status(500).end(`failure to check DB: ${e?.message ?? ''}`);
