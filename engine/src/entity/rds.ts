@@ -34,7 +34,6 @@ export class RDS {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @awsPrimaryKey
   @Column({
     nullable: true
   })
@@ -42,7 +41,8 @@ export class RDS {
 
   // TODO: add constraints
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#dbinstanceidentifier
-  @Column({ 
+  @awsPrimaryKey
+  @Column({
     unique: true, 
   })
   dbInstanceIdentifier: string;

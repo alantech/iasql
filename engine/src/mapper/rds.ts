@@ -65,34 +65,41 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
     const dbInstances = (await awsClient.getDBInstances())?.DBInstances ?? [];
-    indexes.setAll(RDS, dbInstances, 'DbiResourceId');
+    indexes.setAll(RDS, dbInstances, 'DBInstanceIdentifier');
     const t2 = Date.now();
     console.log(`RDS set in ${t2 - t1}ms`);
   },
-  createAWS: async (obj: SecurityGroup, awsClient: AWS, indexes: IndexedAWS) => {
-    throw new Error('tbd')
-    // // First construct the security group
-    // const result = await awsClient.createSecurityGroup({
-    //   Description: obj.description,
-    //   GroupName: obj.groupName,
-    //   VpcId: obj.vpcId,
-    //   // TODO: Tags
-    // });
-    // // TODO: Handle if it fails (somehow)
-    // if (!result.hasOwnProperty('GroupId')) { // Failure
-    //   throw new Error('what should we do here?');
-    // }
-    // // TODO: Determine if the following logic really belongs here or not
-    // // Re-get the inserted security group to get all of the relevant records we care about
-    // const newGroup = await awsClient.getSecurityGroup(result.GroupId ?? '');
-    // // We map this into the same kind of entity as `obj`
-    // const newEntity: SecurityGroup = SecurityGroupMapper.fromAWS(newGroup, indexes);
-    // indexes.set(SecurityGroup, (newEntity as any).groupId, newEntity);
-    // // We attach the original object's ID to this new one, indicating the exact record it is
-    // // replacing in the database
-    // newEntity.id = obj.id;
-    // // It's up to the caller if they want to actually update into the DB or not, though.
-    // return newEntity;
+  createAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
+    // First construct the rds instance
+    const result = await awsClient.createDBInstance({
+      // TODO: Use real obj properties
+      DBInstanceClass: 'db.m5.large',
+      Engine: 'postgres',
+      DBInstanceIdentifier: obj.dbInstanceIdentifier,
+      MasterUsername: obj.masterUsername,
+      MasterUserPassword: '4l4nU$er',
+      AllocatedStorage: obj.allocatedStorage,
+      // TODO: complete input properties
+    });
+    // TODO: Handle if it fails (somehow)
+    if (!result.hasOwnProperty('DBInstanceIdentifier')) { // Failure
+      throw new Error('what should we do here?');
+    }
+    // Re-get the inserted security group to get all of the relevant records we care about
+    const newDBInstance = await awsClient.getDBInstance(result.DBInstance?.DBInstanceIdentifier ?? '');
+    indexes.set(RDS, newDBInstance?.DBInstanceIdentifier ?? '', newDBInstance);
+    // We map this into the same kind of entity as `obj`
+    const newEntity: RDS = RDSMapper.fromAWS(newDBInstance, indexes);
+    // We attach the original object's ID to this new one, indicating the exact record it is
+    // replacing in the database
+    newEntity.id = obj.id;
+    // Then we update the DB cache object with all of these properties so we can perform multiple
+    // runs without re-querying the DB
+    for (const key of Object.keys(newEntity)) {
+      (obj as any)[key] = (newEntity as any)[key];
+    }
+    // It's up to the caller if they want to actually update into the DB or not, though.
+    return newEntity;
   },
   updateAWS: async (obj: any, awsClient: AWS, indexes: IndexedAWS) => {
     // // TODO: To do updates right on this, since AWS doesn't actually support updating the outer
