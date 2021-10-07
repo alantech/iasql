@@ -12,7 +12,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   dbInstanceIdentifier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBInstanceIdentifier,
   allocatedStorage: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AllocatedStorage,
   autoMinorVersionUpgrade: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AutoMinorVersionUpgrade ?? null,
-  availabilityZone: (dbi: DBInstance, i: IndexedAWS) =>
+  availabilityZone: (_dbi: DBInstance, _i: IndexedAWS) =>
     // TODO fix availability zone to be indexed by name and not id
     // dbi?.AvailabilityZone ?
     //   AvailabilityZoneMapper.fromAWS(i.get(AvailabilityZone, dbi.AvailabilityZone), i)
@@ -38,6 +38,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   kmsKeyId: (dbi: DBInstance, _i: IndexedAWS) => dbi?.KmsKeyId ?? null,
   licenseModel: (dbi: DBInstance, _i: IndexedAWS) => dbi?.LicenseModel ?? null,
   masterUsername: (dbi: DBInstance, _i: IndexedAWS) => dbi?.MasterUsername ?? null,
+  masterUserPassword: (_dbi: DBInstance, _i: IndexedAWS) => null,
   maxAllocatedStorage: (dbi: DBInstance, _i: IndexedAWS) => dbi?.MaxAllocatedStorage ?? null,
   monitoringInterval: (dbi: DBInstance, _i: IndexedAWS) => dbi?.MonitoringInterval ?? null,
   monitoringRoleArn: (dbi: DBInstance, _i: IndexedAWS) => dbi?.MonitoringRoleArn ?? null,
@@ -53,14 +54,17 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   promotionTier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PromotionTier ?? null,
   publiclyAccessible: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PubliclyAccessible ?? null,
   storageEncrypted: (dbi: DBInstance, _i: IndexedAWS) => dbi?.StorageEncrypted ?? null,
+  storageType: (dbi: DBInstance, _i: IndexedAWS) => dbi?.StorageType ?? null,
   tags: (dbi: DBInstance, i: IndexedAWS) => dbi?.TagList?.length ?
     dbi.TagList.map(tag => TagMapper.fromAWS(tag, i)) :
     [],
   tdeCredentialArn: (dbi: DBInstance, _i: IndexedAWS) => dbi?.TdeCredentialArn ?? null,
+  tdeCredentialPassword: (_dbi: DBInstance, _i: IndexedAWS) => null,
   timezone: (dbi: DBInstance, _i: IndexedAWS) => dbi?.Timezone ?? null,
-  vpcSecurityGroups: (dbi: DBInstance, i: IndexedAWS) => dbi?.VpcSecurityGroups?.length ?
-    dbi.VpcSecurityGroups.map(vpcsg => SecurityGroupMapper.fromAWS(vpcsg, i)) :
-    [],
+  vpcSecurityGroups: (dbi: DBInstance, i: IndexedAWS) => 
+    dbi?.VpcSecurityGroups?.length ?
+      dbi.VpcSecurityGroups.map(vpcsg => SecurityGroupMapper.fromAWS(vpcsg, i)) :
+      [],
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
@@ -71,6 +75,8 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   },
   createAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
     // First construct the rds instance
+    // TODO: if inserted without sec group it assign default.
+    // Should we check that here and insert it manually?
     const result = await awsClient.createDBInstance({
       // TODO: Use real obj properties
       DBInstanceClass: 'db.m5.large',
@@ -102,17 +108,28 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
     return newEntity;
   },
   updateAWS: async (obj: any, awsClient: AWS, indexes: IndexedAWS) => {
-    throw new Error('tbd')
+    console.log('trying to update')
+    // throw new Error('tbd')
   },
   deleteAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
-    await awsClient.deleteDBInstance({
-      DBInstanceIdentifier: obj.dbInstanceIdentifier,
-      // TODO: do users will have access to this ype of config? probably initially we should play it safe 
-      // and create a snapshot and do not delete backups if any? or like it is and do nothing
-      SkipFinalSnapshot: false,
-      FinalDBSnapshotIdentifier: undefined,
-      DeleteAutomatedBackups: false,
-    });
+    console.log('trying to delete')
+    try {
+      // If status is already deleting do nothing
+      if (obj.dbInstanceStatus !== 'deleting') {
+        await awsClient.deleteDBInstance({
+          DBInstanceIdentifier: obj.dbInstanceIdentifier,
+          // TODO: do users will have access to this type of config?
+          // probably initially we should play it safe and do not create a snapshot 
+          // and do not delete backups if any?
+          SkipFinalSnapshot: true,
+          // FinalDBSnapshotIdentifier: undefined,
+          // DeleteAutomatedBackups: false,
+        });
+      }
+    } catch (e) {
+      console.log(`something went wrong deleting ${e}`);
+      throw new Error(`${e}`)
+    }
     // TODO: What does the error even look like? Docs are spotty on this
     indexes.del(RDS, (obj as any).dbInstanceIdentifier);
     return obj;
