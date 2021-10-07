@@ -143,18 +143,15 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   deleteAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
     console.log('trying to delete')
     try {
-      // If status is already deleting do nothing
-      if (obj.dbInstanceStatus !== 'deleting') {
-        await awsClient.deleteDBInstance({
-          DBInstanceIdentifier: obj.dbInstanceIdentifier,
-          // TODO: do users will have access to this type of config?
-          // probably initially we should play it safe and do not create a snapshot 
-          // and do not delete backups if any?
-          SkipFinalSnapshot: true,
-          // FinalDBSnapshotIdentifier: undefined,
-          // DeleteAutomatedBackups: false,
-        });
-      }
+      await awsClient.deleteDBInstance({
+        DBInstanceIdentifier: obj.dbInstanceIdentifier,
+        // TODO: do users will have access to this type of config?
+        // probably initially we should play it safe and do not create a snapshot 
+        // and do not delete backups if any?
+        SkipFinalSnapshot: true,
+        // FinalDBSnapshotIdentifier: undefined,
+        // DeleteAutomatedBackups: false,
+      });
     } catch (e) {
       console.log(`something went wrong deleting ${e}`);
       throw new Error(`${e}`)
