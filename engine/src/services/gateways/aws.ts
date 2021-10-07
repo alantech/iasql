@@ -16,7 +16,15 @@ import {
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
 } from '@aws-sdk/client-ec2'
-import { CreateDBInstanceCommand, CreateDBInstanceCommandInput, CreateDBInstanceMessage, DescribeDBInstancesCommand, DescribeDBInstancesCommandInput, DescribeOrderableDBInstanceOptionsCommand, paginateDescribeDBInstances, RDSClient, } from '@aws-sdk/client-rds'
+import {
+  CreateDBInstanceCommand,
+  CreateDBInstanceCommandInput,
+  DeleteDBInstanceCommand,
+  DeleteDBInstanceMessage,
+  DescribeDBInstancesCommand,
+  paginateDescribeDBInstances,
+  RDSClient,
+} from '@aws-sdk/client-rds'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import { inspect } from 'util'
 
@@ -229,4 +237,11 @@ export class AWS {
       DBInstances: dbInstances, // Make it "look like" the regular query again
     };
   }
+
+  async deleteDBInstance(deleteInput: DeleteDBInstanceMessage) {
+    return await this.rdsClient.send(
+      new DeleteDBInstanceCommand(deleteInput),
+    );
+  }
+
 }

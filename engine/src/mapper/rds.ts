@@ -102,24 +102,19 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
     return newEntity;
   },
   updateAWS: async (obj: any, awsClient: AWS, indexes: IndexedAWS) => {
-    // // TODO: To do updates right on this, since AWS doesn't actually support updating the outer
-    // // records of a security group, we have to delete and recreate, but since other relations will
-    // // still exist in the database for an update but would not on an actual delete, we will have to
-    // // temporarily remove any association of the security group from anything that can join on it,
-    // // which is an unfortunate violation of separation of concerns. At least EC2 instances are a
-    // // problem, but also likely the weird references to VPNs and likely other services, in AWS, too.
-    // // For now, though, we'll just ignore and fill this in once it bites us.
-    // await SecurityGroupMapper.deleteAWS(obj, awsClient, indexes);
-    // return await SecurityGroupMapper.createAWS(obj, awsClient, indexes);
     throw new Error('tbd')
   },
-  deleteAWS: async (obj: SecurityGroup, awsClient: AWS, indexes: IndexedAWS) => {
-    // await awsClient.deleteSecurityGroup({
-    //   GroupId: obj.groupId,
-    // });
-    // // TODO: What does the error even look like? Docs are spotty on this
-    // indexes.del(SecurityGroup, (obj as any).groupId);
-    // return obj;
-    throw new Error('tbd')
+  deleteAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
+    await awsClient.deleteDBInstance({
+      DBInstanceIdentifier: obj.dbInstanceIdentifier,
+      // TODO: do users will have access to this ype of config? probably initially we should play it safe 
+      // and create a snapshot and do not delete backups if any? or like it is and do nothing
+      SkipFinalSnapshot: false,
+      FinalDBSnapshotIdentifier: undefined,
+      DeleteAutomatedBackups: false,
+    });
+    // TODO: What does the error even look like? Docs are spotty on this
+    indexes.del(RDS, (obj as any).dbInstanceIdentifier);
+    return obj;
   },
 });
