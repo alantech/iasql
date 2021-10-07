@@ -212,7 +212,7 @@ db.get('/check/:db', async (req, res) => {
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - tb}ms`);
         const promiseGenerators = records
-          .filter(r => ['SecurityGroup', 'Instance'].includes(r.table)) // TODO: Don't do this
+          .filter(r => ['SecurityGroup', 'Instance', 'RDS'].includes(r.table)) // TODO: Don't do this
           .map(r => {
             const name = r.table;
             console.log(`Checking ${name}`);
@@ -230,6 +230,7 @@ db.get('/check/:db', async (req, res) => {
               if (!unchanged) {
                 diffFound = true;
                 const entity = r.dbEntity.find((e: any) => e.id === d.id);
+                console.log(`${inspect(r.diff, true, 6)}`)
                 outArr.push(async () => {
                   await r.mapper.updateAWS(entity, awsClient, indexes)
                 });
