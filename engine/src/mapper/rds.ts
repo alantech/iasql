@@ -13,9 +13,11 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   allocatedStorage: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AllocatedStorage,
   autoMinorVersionUpgrade: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AutoMinorVersionUpgrade ?? null,
   availabilityZone: (dbi: DBInstance, i: IndexedAWS) =>
-    dbi?.AvailabilityZone ?
-      AvailabilityZoneMapper.fromAWS(i.get(AvailabilityZone, dbi.AvailabilityZone), i)
-      : null,
+    // TODO fix availability zone to be indexed by name and not id
+    // dbi?.AvailabilityZone ?
+    //   AvailabilityZoneMapper.fromAWS(i.get(AvailabilityZone, dbi.AvailabilityZone), i)
+    //   : null,
+    null,
   backupRetentionPeriod: (dbi: DBInstance, _i: IndexedAWS) => dbi?.BackupRetentionPeriod ?? null,
   characterSetName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CharacterSetName ?? null,
   copyTagsToSnapshot: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CopyTagsToSnapshot ?? null,
