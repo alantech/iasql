@@ -28,7 +28,7 @@ jobs:
             "signupActionText": " "
           }
         }'
-      # once we launch show singup again
+      # once we launch show signup again
       # "signupActionLinkText": "Sign up",
       # "signupActionText": "Don't have an account?",
 
