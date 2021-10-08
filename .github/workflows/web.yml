@@ -43,9 +43,9 @@ jobs:
       with:
         args: |
           --request PUT \
-          --url 'https://iasql.us.auth0.com/api/v2/prompts/signup/custom-text/en' \
-          --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}' \
-          --header 'content-type: application/json' \
+          --url 'https://iasql.us.auth0.com/api/v2/prompts/signup/custom-text/en'
+          --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
+          --header 'content-type: application/json'
           --data '{
             "signup": {
               "title": "Sign Up to IaSQL",
@@ -113,7 +113,7 @@ jobs:
       # Install and build Docusaurus website
       - name: Build Docusaurus website
         run: |
-          cd website
+          cd web
           npm install 
           npm run build
       - name: Deploy to GitHub Pages
