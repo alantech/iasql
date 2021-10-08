@@ -5,18 +5,17 @@ import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { RDS } from '../entity/rds'
 import { AvailabilityZoneMapper, SecurityGroupMapper, TagMapper } from '.'
+import { AvailabilityZone } from '../entity'
 
 export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   dbiResourceId: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DbiResourceId ?? null,
   dbInstanceIdentifier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBInstanceIdentifier,
   allocatedStorage: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AllocatedStorage,
   autoMinorVersionUpgrade: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AutoMinorVersionUpgrade ?? null,
-  availabilityZone: (_dbi: DBInstance, _i: IndexedAWS) =>
-    // TODO fix availability zone to be indexed by name and not id
-    // dbi?.AvailabilityZone ?
-    //   AvailabilityZoneMapper.fromAWS(i.get(AvailabilityZone, dbi.AvailabilityZone), i)
-    //   : null,
-    null,
+  availabilityZone: (dbi: DBInstance, i: IndexedAWS) =>
+    dbi?.AvailabilityZone ?
+      AvailabilityZoneMapper.fromAWS(i.get(AvailabilityZone, dbi.AvailabilityZone), i)
+      : null,
   backupRetentionPeriod: (dbi: DBInstance, _i: IndexedAWS) => dbi?.BackupRetentionPeriod ?? null,
   characterSetName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CharacterSetName ?? null,
   copyTagsToSnapshot: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CopyTagsToSnapshot ?? null,
@@ -70,12 +69,10 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   instanceCreateTime: (dbi: DBInstance, _i: IndexedAWS) => dbi?.InstanceCreateTime ?? null,
   dbSubnetGroup: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBSubnetGroup?.DBSubnetGroupArn ?? null,
   latestRestorableTime: (dbi: DBInstance, _i: IndexedAWS) => dbi?.LatestRestorableTime ?? null,
-  secondaryAvailabilityZone: (_dbi: DBInstance, _i: IndexedAWS) =>
-    // TODO fix availability zone to be indexed by name and not id
-    // dbi?.SecondaryAvailabilityZone ?
-    //   AvailabilityZoneMapper.fromAWS(i.get(AvailabilityZone, dbi.SecondaryAvailabilityZone), i)
-    //   : null,
-    null,
+  secondaryAvailabilityZone: (dbi: DBInstance, i: IndexedAWS) =>
+    dbi?.SecondaryAvailabilityZone ?
+      AvailabilityZoneMapper.fromAWS(i.get(AvailabilityZone, dbi.SecondaryAvailabilityZone), i)
+      : null,
   caCertificateIdentifier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CACertificateIdentifier ?? null,
   dbInstanceArn: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBInstanceArn ?? null,
   associatedRoles: (_dbi: DBInstance, _i: IndexedAWS) => null,

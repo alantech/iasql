@@ -21,8 +21,8 @@ export const AvailabilityZoneMapper: EntityMapper = new EntityMapper(Availabilit
   groupName: (availabilityZone: AvailabilityZoneAWS, _indexes: IndexedAWS) => availabilityZone?.GroupName,
   networkBorderGroup: (availabilityZone: AvailabilityZoneAWS, _indexes: IndexedAWS) => availabilityZone?.NetworkBorderGroup,
   parentZone: (availabilityZone: AvailabilityZoneAWS, indexes: IndexedAWS) => {
-    if (availabilityZone?.ParentZoneId) {
-      const parentZone = indexes.get(AvailabilityZone, availabilityZone.ParentZoneId);
+    if (availabilityZone?.ParentZoneName) {
+      const parentZone = indexes.get(AvailabilityZone, availabilityZone.ParentZoneName);
       if (parentZone) {
         return AvailabilityZoneMapper.fromAWS(parentZone, indexes)
       }
@@ -39,7 +39,7 @@ export const AvailabilityZoneMapper: EntityMapper = new EntityMapper(Availabilit
       .filter(([_, v]) => (v as RegionAWS).OptInStatus !== 'not-opted-in')
       .map(([k,_]) => k);
     const availabilityZones = (await awsClient.getAvailabilityZones(optInRegions))?.AvailabilityZones ?? [];
-    indexes.setAll(AvailabilityZone, availabilityZones, 'ZoneId');
+    indexes.setAll(AvailabilityZone, availabilityZones, 'ZoneName');
     const t2 = Date.now();
     console.log(`AvailabilityZone set in ${t2 - t1}ms`);
   },

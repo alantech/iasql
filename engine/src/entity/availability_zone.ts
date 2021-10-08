@@ -59,10 +59,10 @@ export class AvailabilityZone {
   })
   region: Region;
 
+  @awsPrimaryKey
   @Column()
   zoneName: string;
 
-  @awsPrimaryKey
   @Column()
   zoneId: string;
 
