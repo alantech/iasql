@@ -26,7 +26,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   dbParameterGroups: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBParameterGroups?.pop()?.DBParameterGroupName ?? null,
   dbSecurityGroups: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBSecurityGroups?.pop()?.DBSecurityGroupName ?? null,
   deletionProtection: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DeletionProtection ?? null,
-  domainMemberships: (dbi: DBInstance, _i: IndexedAWS) => null,
+  domainMemberships: (_dbi: DBInstance, _i: IndexedAWS) => null,
   enableCloudwatchLogsExports: (dbi: DBInstance, _i: IndexedAWS) => dbi?.EnabledCloudwatchLogsExports?.pop() ?? null,
   enableCustomerOwnedIp: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CustomerOwnedIpEnabled ?? null,
   enableIAMDatabaseAuthentication: (dbi: DBInstance, _i: IndexedAWS) => dbi?.IAMDatabaseAuthenticationEnabled ?? null,
@@ -91,7 +91,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   readReplicaDBClusterIdentifiers: (_dbi: DBInstance, _i: IndexedAWS) => null,
   replicaMode: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ReplicaMode ?? null,
   statusInfos: (_dbi: DBInstance, _i: IndexedAWS) => null,
-  dbInstanceAutomatedBackupsReplications: (dbi: DBInstance, _i: IndexedAWS) => null,
+  dbInstanceAutomatedBackupsReplications: (_dbi: DBInstance, _i: IndexedAWS) => null,
 
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
