@@ -16,88 +16,84 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Set Auth0 UI login prompt
-      with:
-        args: |
-          curl
-          --request PUT
-          --url 'https://iasql.us.auth0.com/api/v2/prompts/login/custom-text/en'
-          --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
-          --header 'content-type: application/json'
-          --data '{
-            "login": {
-              "title": "Login to IaSQL",
-              "description": " ",
-              "signupActionLinkText": " ",
-              "signupActionText": " "
-            }
-          }'
-        # once we launch show singup again 
-        # "signupActionLinkText": "Sign up",
-        # "signupActionText": "Don't have an account?",
+      run: |
+        curl
+        --request PUT
+        --url 'https://iasql.us.auth0.com/api/v2/prompts/login/custom-text/en'
+        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
+        --header 'content-type: application/json'
+        --data '{
+          "login": {
+            "title": "Login to IaSQL",
+            "description": " ",
+            "signupActionLinkText": " ",
+            "signupActionText": " "
+          }
+        }'
+      # once we launch show singup again
+      # "signupActionLinkText": "Sign up",
+      # "signupActionText": "Don't have an account?",
 
   a0-signup-prompt:
     runs-on: ubuntu-latest
     steps:
     - name: Set Auth0 UI signup prompt
-      with:
-        args: |
-          curl
-          --request PUT
-          --url 'https://iasql.us.auth0.com/api/v2/prompts/signup/custom-text/en'
-          --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
-          --header 'content-type: application/json'
-          --data '{
-            "signup": {
-              "title": "Sign Up to IaSQL",
-              "description": " "
-            }
-          }'
+      run: |
+        curl
+        --request PUT
+        --url 'https://iasql.us.auth0.com/api/v2/prompts/signup/custom-text/en'
+        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
+        --header 'content-type: application/json'
+        --data '{
+          "signup": {
+            "title": "Sign Up to IaSQL",
+            "description": " "
+          }
+        }'
 
   a0-branding-config:
     runs-on: ubuntu-latest
     steps:
     - name: Set Auth0 branding config
-      with:
-        args: |
-          curl
-          --request PATCH
-          --url 'https://iasql.us.auth0.com/api/v2/branding'
-          --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
-          --header 'content-type: application/json'
-          --data '{
-            "colors": {
-              "page_background": "#7090F5",
-              "primary": "#304CA7"
-            },
-            "logo_url": "https://beta.iasql.com/img/logo.svg"
-          }'
+      run: |
+        curl
+        --request PATCH
+        --url 'https://iasql.us.auth0.com/api/v2/branding'
+        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
+        --header 'content-type: application/json'
+        --data '{
+          "colors": {
+            "page_background": "#7090F5",
+            "primary": "#304CA7"
+          },
+          "logo_url": "https://beta.iasql.com/img/logo.svg"
+        }'
   
   a0-ui-template:
     runs-on: ubuntu-latest
     steps:
     - name: Set Auth0 UI template
-      with:
-        args: |
-          curl
-          --request PATCH
-          --url 'https://iasql.us.auth0.com/api/v2/branding/templates/universal-login'
-          --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
-          --header 'content-type: application/html'
-          --data '<!DOCTYPE html>
-            <html>
-              <head>
-                {%- auth0:head -%}
-                <style>
-                  @import url("https://fonts.googleapis.com/css2?family=Gothic+A1&display=swap");
-                  body {
-                    font-family: "Gothic A1" !important;
-                  }
-                </style>
-              </head>
-              <body class="_widget-auto-layout">
-                {%- auth0:widget -%}
-              </body>
-            </html>'
+      run: |
+        curl
+        --request PATCH
+        --url 'https://iasql.us.auth0.com/api/v2/branding/templates/universal-login'
+        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
+        --header 'content-type: application/html'
+        --data '<!DOCTYPE html>
+          <html>
+            <head>
+              {%- auth0:head -%}
+              <style>
+                @import url("https://fonts.googleapis.com/css2?family=Gothic+A1&display=swap");
+                body {
+                  font-family: "Gothic A1" !important;
+                }
+              </style>
+            </head>
+            <body class="_widget-auto-layout">
+              {%- auth0:widget -%}
+            </body>
+          </html>'
 
   publish-docusaurus:
     runs-on: ubuntu-latest
