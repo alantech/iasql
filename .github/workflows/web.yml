@@ -12,17 +12,17 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # https://auth0.com/docs/brand-and-customize/text-customization-new-universal-login
-  auth0-login-prompt:
+  a0-login-prompt:
     runs-on: ubuntu-latest
     steps:
-    - name: curl
-      uses: wei/curl@master
+    - name: Set Auth0 UI login prompt
       with:
         args: |
+          curl
           --request PUT \
-          --url 'https://iasql.us.auth0.com/api/v2/prompts/login/custom-text/en' \
-          --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}' \
-          --header 'content-type: application/json' \
+          --url 'https://iasql.us.auth0.com/api/v2/prompts/login/custom-text/en'
+          --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
+          --header 'content-type: application/json'
           --data '{
             "login": {
               "title": "Login to IaSQL",
@@ -35,13 +35,13 @@ jobs:
         # "signupActionLinkText": "Sign up",
         # "signupActionText": "Don't have an account?",
 
-  auth0-signup-prompt:
+  a0-signup-prompt:
     runs-on: ubuntu-latest
     steps:
-    - name: curl
-      uses: wei/curl@master
+    - name: Set Auth0 UI signup prompt
       with:
         args: |
+          curl
           --request PUT \
           --url 'https://iasql.us.auth0.com/api/v2/prompts/signup/custom-text/en'
           --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
@@ -53,17 +53,17 @@ jobs:
             }
           }'
 
-  auth0-branding-config:
+  a0-branding-config:
     runs-on: ubuntu-latest
     steps:
-    - name: curl
-      uses: wei/curl@master
+    - name: Set Auth0 branding config
       with:
         args: |
-          --request PATCH \
-          --url 'https://iasql.us.auth0.com/api/v2/branding' \
-          --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}' \
-          --header 'content-type: application/json' \
+          curl
+          --request PATCH
+          --url 'https://iasql.us.auth0.com/api/v2/branding'
+          --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
+          --header 'content-type: application/json'
           --data '{
             "colors": {
               "page_background": "#7090F5",
@@ -72,17 +72,17 @@ jobs:
             "logo_url": "https://beta.iasql.com/img/logo.svg"
           }'
   
-  auth0-ui-template:
+  a0-ui-template:
     runs-on: ubuntu-latest
     steps:
-    - name: curl
-      uses: wei/curl@master
+    - name: Set Auth0 UI template
       with:
         args: |
-          --request PATCH \
-          --url 'https://iasql.us.auth0.com/api/v2/branding/templates/universal-login' \
-          --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}' \
-          --header 'content-type: application/html' \
+          curl
+          --request PATCH
+          --url 'https://iasql.us.auth0.com/api/v2/branding/templates/universal-login'
+          --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
+          --header 'content-type: application/html'
           --data '<!DOCTYPE html>
             <html>
               <head>
