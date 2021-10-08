@@ -3,7 +3,6 @@ import { DBInstance } from '@aws-sdk/client-rds'
 import { AWS, } from '../services/gateways/aws'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { AvailabilityZone, SecurityGroup, SecurityGroupRule, } from '../entity'
 import { RDS } from '../entity/rds'
 import { AvailabilityZoneMapper, SecurityGroupMapper, TagMapper } from '.'
 
@@ -61,7 +60,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   tdeCredentialArn: (dbi: DBInstance, _i: IndexedAWS) => dbi?.TdeCredentialArn ?? null,
   tdeCredentialPassword: (_dbi: DBInstance, _i: IndexedAWS) => null,
   timezone: (dbi: DBInstance, _i: IndexedAWS) => dbi?.Timezone ?? null,
-  vpcSecurityGroups: (dbi: DBInstance, i: IndexedAWS) => 
+  vpcSecurityGroups: (dbi: DBInstance, i: IndexedAWS) =>
     dbi?.VpcSecurityGroups?.length ?
       dbi.VpcSecurityGroups.map(vpcsg => SecurityGroupMapper.fromAWS(vpcsg, i)) :
       [],
@@ -93,7 +92,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   replicaMode: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ReplicaMode ?? null,
   statusInfos: (_dbi: DBInstance, _i: IndexedAWS) => null,
   dbInstanceAutomatedBackupsReplications: (dbi: DBInstance, _i: IndexedAWS) => null,
-  
+
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
