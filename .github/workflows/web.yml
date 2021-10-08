@@ -17,11 +17,11 @@ jobs:
     steps:
     - name: Set Auth0 UI login prompt
       run: |
-        curl
-        --request PUT
-        --url 'https://iasql.us.auth0.com/api/v2/prompts/login/custom-text/en'
-        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
-        --header 'content-type: application/json'
+        curl \
+        --request PUT \
+        --url 'https://iasql.us.auth0.com/api/v2/prompts/login/custom-text/en' \
+        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}' \
+        --header 'content-type: application/json' \
         --data '{
           "login": {
             "title": "Login to IaSQL",
@@ -39,11 +39,11 @@ jobs:
     steps:
     - name: Set Auth0 UI signup prompt
       run: |
-        curl
-        --request PUT
-        --url 'https://iasql.us.auth0.com/api/v2/prompts/signup/custom-text/en'
-        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
-        --header 'content-type: application/json'
+        curl \
+        --request PUT \
+        --url 'https://iasql.us.auth0.com/api/v2/prompts/signup/custom-text/en' \
+        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}' \
+        --header 'content-type: application/json' \
         --data '{
           "signup": {
             "title": "Sign Up to IaSQL",
@@ -56,11 +56,11 @@ jobs:
     steps:
     - name: Set Auth0 branding config
       run: |
-        curl
-        --request PATCH
-        --url 'https://iasql.us.auth0.com/api/v2/branding'
-        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
-        --header 'content-type: application/json'
+        curl \
+        --request PATCH \
+        --url 'https://iasql.us.auth0.com/api/v2/branding' \
+        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}' \
+        --header 'content-type: application/json' \
         --data '{
           "colors": {
             "page_background": "#7090F5",
@@ -74,11 +74,11 @@ jobs:
     steps:
     - name: Set Auth0 UI template
       run: |
-        curl
-        --request PATCH
-        --url 'https://iasql.us.auth0.com/api/v2/branding/templates/universal-login'
-        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}'
-        --header 'content-type: application/html'
+        curl \
+        --request PATCH \
+        --url 'https://iasql.us.auth0.com/api/v2/branding/templates/universal-login' \
+        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}' \
+        --header 'content-type: application/html' \
         --data '<!DOCTYPE html>
           <html>
             <head>
