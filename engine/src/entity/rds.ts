@@ -7,7 +7,7 @@ import {
   ManyToMany,
   JoinTable,
 } from 'typeorm';
-import { AvailabilityZone, Tag, SecurityGroup } from '.';
+import { AvailabilityZone, Tag, SecurityGroup, EngineVersion } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
 import { Source, source } from '../services/source-of-truth';
@@ -46,7 +46,7 @@ export class RDS {
   })
   dbInstanceIdentifier: string;
 
-  // TODO: range vary based on storage type and engine
+  // TODO: Add constraints? range vary based on storage type and engine
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#allocatedstorage
   @Column({
     type: 'int',
@@ -136,7 +136,6 @@ export class RDS {
   })
   enableCustomerOwnedIp?: boolean;
 
-
   @Column({
     nullable: true,
     default: false,
@@ -148,15 +147,11 @@ export class RDS {
   })
   enablePerformanceInsights?: boolean;
 
-  // TODO: enum or FK to table with versioning include?
-  @Column()
-  engine: string;
-
-  // TODO: DescribeDBEngineVersions
-  @Column({
-    nullable: true,
+  @ManyToOne(() => EngineVersion)
+  @JoinColumn({
+    name: 'engine_version_id'
   })
-  engineVersion?: string;
+  engine: EngineVersion;
 
   // TODO: Add constraints?
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#iops

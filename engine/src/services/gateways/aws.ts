@@ -24,6 +24,8 @@ import {
   DescribeDBInstancesCommand,
   paginateDescribeDBInstances,
   RDSClient,
+  DescribeOrderableDBInstanceOptionsCommand,
+  paginateDescribeDBEngineVersions
 } from '@aws-sdk/client-rds'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import { inspect } from 'util'
@@ -242,6 +244,28 @@ export class AWS {
     return await this.rdsClient.send(
       new DeleteDBInstanceCommand(deleteInput),
     );
+  }
+
+  async getOrdInsOpt() {
+    return await this.rdsClient.send(
+      new DescribeOrderableDBInstanceOptionsCommand({
+        Engine: 'postgres'
+      })
+    );
+  }
+
+  async getEngineVersions() {
+    const engines = [];
+    const paginator = paginateDescribeDBEngineVersions({
+      client: this.rdsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      engines.push(...(page.DBEngineVersions ?? []));
+    }
+    return {
+      DBEngineVersions: engines, // Make it "look like" the regular query again
+    };
   }
 
 }

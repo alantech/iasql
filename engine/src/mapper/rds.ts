@@ -4,8 +4,8 @@ import { AWS, } from '../services/gateways/aws'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { RDS } from '../entity/rds'
-import { AvailabilityZoneMapper, SecurityGroupMapper, TagMapper } from '.'
-import { AvailabilityZone } from '../entity'
+import { AvailabilityZoneMapper, EngineVersionMapper, SecurityGroupMapper, TagMapper } from '.'
+import { AvailabilityZone, EngineVersion } from '../entity'
 
 export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   dbiResourceId: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DbiResourceId ?? null,
@@ -30,8 +30,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   enableCustomerOwnedIp: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CustomerOwnedIpEnabled ?? null,
   enableIAMDatabaseAuthentication: (dbi: DBInstance, _i: IndexedAWS) => dbi?.IAMDatabaseAuthenticationEnabled ?? null,
   enablePerformanceInsights: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PerformanceInsightsEnabled ?? null,
-  engine: (dbi: DBInstance, _i: IndexedAWS) => dbi?.Engine,
-  engineVersion: (dbi: DBInstance, _i: IndexedAWS) => dbi?.EngineVersion ?? null,
+  engine: (dbi: DBInstance, i: IndexedAWS) => EngineVersionMapper.fromAWS(i.get(EngineVersion, dbi.EngineVersion), i),
   iops: (dbi: DBInstance, _i: IndexedAWS) => dbi?.Iops ?? null,
   kmsKeyId: (dbi: DBInstance, _i: IndexedAWS) => dbi?.KmsKeyId ?? null,
   licenseModel: (dbi: DBInstance, _i: IndexedAWS) => dbi?.LicenseModel ?? null,
