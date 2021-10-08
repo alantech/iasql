@@ -24,8 +24,8 @@ import {
   DescribeDBInstancesCommand,
   paginateDescribeDBInstances,
   RDSClient,
-  DescribeOrderableDBInstanceOptionsCommand,
-  paginateDescribeDBEngineVersions
+  paginateDescribeDBEngineVersions,
+  paginateDescribeOrderableDBInstanceOptions
 } from '@aws-sdk/client-rds'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import { inspect } from 'util'
@@ -212,7 +212,7 @@ export class AWS {
       SecurityGroupRules: securityGroupRules, // Make it "look like" the regular query again
     };
   }
-  
+
   async createDBInstance(instanceParams: CreateDBInstanceCommandInput) {
     return await this.rdsClient.send(
       new CreateDBInstanceCommand(instanceParams),
@@ -246,12 +246,21 @@ export class AWS {
     );
   }
 
-  async getOrdInsOpt() {
-    return await this.rdsClient.send(
-      new DescribeOrderableDBInstanceOptionsCommand({
-        Engine: 'postgres'
-      })
-    );
+  async getOrderableInstanceOptions(engines: string[]) {
+    const orderableInstanceOptions = [];
+    for (const engine of engines) {
+      console.log('Getting for engine', engine);
+      const paginator = paginateDescribeOrderableDBInstanceOptions({
+        client: this.rdsClient,
+        pageSize: 100,
+      }, { Engine: engine, });
+      for await (const page of paginator) {
+        orderableInstanceOptions.push(...(page.OrderableDBInstanceOptions ?? []));
+      }
+    }
+    return {
+      OrderableDBInstanceOptions: orderableInstanceOptions,
+    };
   }
 
   async getEngineVersions() {

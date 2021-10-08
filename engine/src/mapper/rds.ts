@@ -4,8 +4,8 @@ import { AWS, } from '../services/gateways/aws'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { RDS } from '../entity/rds'
-import { AvailabilityZoneMapper, EngineVersionMapper, SecurityGroupMapper, TagMapper } from '.'
-import { AvailabilityZone, EngineVersion } from '../entity'
+import { AvailabilityZoneMapper, DBInstanceClassMapper, EngineVersionMapper, SecurityGroupMapper, TagMapper } from '.'
+import { AvailabilityZone, DBInstanceClass, EngineVersion } from '../entity'
 
 export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   dbiResourceId: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DbiResourceId ?? null,
@@ -20,7 +20,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   characterSetName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CharacterSetName ?? null,
   copyTagsToSnapshot: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CopyTagsToSnapshot ?? null,
   dbClusterIdentifier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBClusterIdentifier ?? null,
-  dbInstanceClass: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBInstanceClass,
+  dbInstanceClass: (dbi: DBInstance, i: IndexedAWS) => DBInstanceClassMapper.fromAWS(dbi.DBInstanceClass, i),
   dbName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBName ?? null,
   dbParameterGroups: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBParameterGroups?.pop()?.DBParameterGroupName ?? null,
   dbSecurityGroups: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBSecurityGroups?.pop()?.DBSecurityGroupName ?? null,

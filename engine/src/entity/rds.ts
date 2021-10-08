@@ -11,6 +11,7 @@ import { AvailabilityZone, Tag, SecurityGroup, EngineVersion } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
 import { Source, source } from '../services/source-of-truth';
+import { DBInstanceClass } from './db_instance_class';
 
 export enum LicenseModel {
   LICENSE_INCLUDED = 'license-included',
@@ -89,9 +90,11 @@ export class RDS {
   })
   dbClusterIdentifier?: string;
 
-  // TODO: Update FK to intance class table
-  @Column()
-  dbInstanceClass: string;
+  @ManyToOne(() => DBInstanceClass)
+  @JoinColumn({
+    name: 'db_instance_class_id',
+  })
+  dbInstanceClass: DBInstanceClass;
 
   // TODO: Constraints per database engine?
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#dbname
