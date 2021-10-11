@@ -25,7 +25,7 @@ import {
   paginateDescribeDBInstances,
   RDSClient,
   paginateDescribeDBEngineVersions,
-  paginateDescribeOrderableDBInstanceOptions
+  paginateDescribeOrderableDBInstanceOptions,
 } from '@aws-sdk/client-rds'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import { inspect } from 'util'

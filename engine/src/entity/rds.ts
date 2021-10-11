@@ -6,8 +6,9 @@ import {
   ManyToOne,
   ManyToMany,
   JoinTable,
+  OneToMany,
 } from 'typeorm';
-import { AvailabilityZone, Tag, SecurityGroup, EngineVersion } from '.';
+import { AvailabilityZone, Tag, SecurityGroup, EngineVersion, DBParameterGroupStatus } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
 import { Source, source } from '../services/source-of-truth';
@@ -103,12 +104,9 @@ export class RDS {
   })
   dbName?: string;
 
-  // TODO: Update with FK to DBParameterGroup table?
-  // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#dbparametergroupname
-  @Column({
-    nullable: true,
-  })
-  dbParameterGroups?: string;
+  @ManyToMany(() => DBParameterGroupStatus, { cascade: true, })
+  @JoinTable()
+  dbParameterGroups?: DBParameterGroupStatus[];
 
   // TODO: Update with FK to DB Security groups table?
   @Column({
