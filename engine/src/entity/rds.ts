@@ -333,7 +333,7 @@ export class RDS {
   })
   automaticRestartTime?: Date;
 
-  @OneToOne(() => Endpoint, { cascade: true, })
+  @ManyToOne(() => Endpoint, { cascade: true, })
   @JoinColumn({
     name: 'endpoint_id'
   })
@@ -360,7 +360,7 @@ export class RDS {
   // Only defined for MultiAZ 
   @ManyToOne(() => AvailabilityZone, { eager: true, })
   @JoinColumn({
-    name: 'availability_zone_id',
+    name: 'secondary_availability_zone_id',
   })
   secondaryAvailabilityZone: AvailabilityZone;
 
@@ -381,9 +381,9 @@ export class RDS {
   associatedRoles?: string;
 
   // SQL server only
-  @OneToOne(() => Endpoint, { cascade: true, })
+  @ManyToOne(() => Endpoint, { cascade: true, })
   @JoinColumn({
-    name: 'endpoint_id'
+    name: 'listener_endpoint_id',
   })
   listenerEndpoint?: Endpoint;
 
