@@ -40,7 +40,6 @@ export class IndexedAWS {
     this.index[entityName] = this.index[entityName] ?? {};
     entityList.forEach(e => {
       const idName = idNames.map(n => e[n]).join('');
-      console.log(idName);
       this.index[entityName][idName ?? ''] = e;
     });
   }
