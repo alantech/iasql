@@ -173,7 +173,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
       await awsClient.deleteDBInstance({
         DBInstanceIdentifier: obj.dbInstanceIdentifier,
         // TODO: do users will have access to this type of config?
-        // probably initially we should play it safe and do not create a snapshot 
+        // probably initially we should play it safe and do not create a snapshot
         // and do not delete backups if any?
         SkipFinalSnapshot: true,
         // FinalDBSnapshotIdentifier: undefined,

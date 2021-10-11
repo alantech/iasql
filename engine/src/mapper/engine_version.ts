@@ -10,7 +10,6 @@ import { CharacterSetMapper } from './character_set';
 import { FeatureNameMapper } from './feature_name';
 import { TimezoneMapper } from './timezone';
 import { UpgradeTargetMapper } from '.';
-import { UpgradeTarget } from '../entity';
 
 export const EngineVersionMapper: EntityMapper = new EntityMapper(EngineVersion, {
   engine: (ev: DBEngineVersionAWS, _indexes: IndexedAWS) => ev.Engine,
@@ -27,7 +26,7 @@ export const EngineVersionMapper: EntityMapper = new EntityMapper(EngineVersion,
     ev.ValidUpgradeTarget?.length ?
       ev.ValidUpgradeTarget.map(vt => UpgradeTargetMapper.fromAWS(vt, indexes))
       : [],
-  exportableLogTypes: (ev: DBEngineVersionAWS, indexes: IndexedAWS) => 
+  exportableLogTypes: (ev: DBEngineVersionAWS, indexes: IndexedAWS) =>
     ev.ExportableLogTypes?.length ?
       ev.ExportableLogTypes.map(type => ExportableLogTypeMapper.fromAWS(type, indexes))
       : [],

@@ -231,6 +231,7 @@ db.get('/check/:db', async (req, res) => {
                 diffFound = true;
                 const entity = r.dbEntity.find((e: any) => e.id === d.id);
                 console.log(`${inspect(r.diff, true, 6)}`)
+                console.log(`${JSON.stringify(r.diff)}`)
                 outArr.push(async () => {
                   await r.mapper.updateAWS(entity, awsClient, indexes)
                 });

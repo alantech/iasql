@@ -356,7 +356,7 @@ export class RDS {
   })
   latestRestorableTime?: Date;
 
-  // Only defined for MultiAZ 
+  // Only defined for MultiAZ
   @ManyToOne(() => AvailabilityZone, { eager: true, })
   @JoinColumn({
     name: 'secondary_availability_zone_id',

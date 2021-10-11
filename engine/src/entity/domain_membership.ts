@@ -14,12 +14,12 @@ export class DomainMembership {
     nullable: true,
   })
   status?: string;
-  
+
   @Column({
     nullable: true,
   })
   fqdn?: string;
-  
+
   @Column({
     nullable: true,
   })

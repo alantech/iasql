@@ -19,10 +19,10 @@ export const DBSecurityGroupMapper: EntityMapper = new EntityMapper(DBSecurityGr
     i.get(SecurityGroup) as { [key: string]: SecurityGroupAWS }
   ).filter((sg: SecurityGroupAWS) => dbsg?.DBSecurityGroupName === sg?.GroupName)
     .map((sg: SecurityGroupAWS) => SecurityGroupMapper.fromAWS(sg, i)),
-  IPRanges: (sg: DBSecurityGroupAWS, i: IndexedAWS) => 
+  IPRanges: (sg: DBSecurityGroupAWS, i: IndexedAWS) =>
     sg?.IPRanges?.length ?
-    sg.IPRanges.map((ip: IPRangeAWS) => IPRangeMapper.fromAWS(ip, i)) 
-    : [],
+      sg.IPRanges.map((ip: IPRangeAWS) => IPRangeMapper.fromAWS(ip, i))
+      : [],
   dbSecurityGroupArn: (sg: DBSecurityGroupAWS, _i: IndexedAWS) => sg?.DBSecurityGroupArn ?? null,
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
