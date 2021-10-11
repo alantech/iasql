@@ -5,10 +5,12 @@ import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { RDS } from '../entity/rds'
 import {
+  ActivityStreamModeMapper,
   AvailabilityZoneMapper,
   DBInstanceClassMapper,
   DBParameterGroupStatusMapper,
   DBSecurityGroupMembershipMapper,
+  DomainMembershipMapper,
   EngineVersionMapper,
   SecurityGroupMembershipMapper,
   TagMapper
@@ -39,7 +41,10 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
       dbi.DBSecurityGroups.map(sgm => DBSecurityGroupMembershipMapper.fromAWS(sgm, i))
       : [],
   deletionProtection: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DeletionProtection ?? null,
-  domainMemberships: (_dbi: DBInstance, _i: IndexedAWS) => null,
+  domainMemberships: (dbi: DBInstance, i: IndexedAWS) => 
+    dbi.DomainMemberships?.length ?
+      dbi.DomainMemberships.map(dm => DomainMembershipMapper.fromAWS(dm, i))
+      : [],
   enableCloudwatchLogsExports: (dbi: DBInstance, _i: IndexedAWS) => dbi?.EnabledCloudwatchLogsExports?.pop() ?? null,
   enableCustomerOwnedIp: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CustomerOwnedIpEnabled ?? null,
   enableIAMDatabaseAuthentication: (dbi: DBInstance, _i: IndexedAWS) => dbi?.IAMDatabaseAuthenticationEnabled ?? null,
@@ -92,7 +97,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   listenerEndpoint: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ListenerEndpoint?.Address ?? null,
   awsBackupRecoveryPointArn: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AwsBackupRecoveryPointArn ?? null,
   activityStreamStatus: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamStatus ?? null,
-  activityStreamMode: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamMode ?? null,
+  activityStreamMode: (dbi: DBInstance, i: IndexedAWS) => dbi.ActivityStreamMode ? ActivityStreamModeMapper.fromAWS(dbi.ActivityStreamMode, i) : null,
   activityStreamKmsKeyId: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamKmsKeyId ?? null,
   activityStreamKinesisStreamName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamKinesisStreamName ?? null,
   activityStreamEngineNativeAuditFieldsIncluded: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamEngineNativeAuditFieldsIncluded ?? null,

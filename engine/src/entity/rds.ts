@@ -8,12 +8,14 @@ import {
   JoinTable,
 } from 'typeorm';
 import {
+  ActivityStreamMode,
   AvailabilityZone,
   Tag,
   EngineVersion,
   DBParameterGroupStatus,
   DBSecurityGroupMembership,
-  SecurityGroupMembership
+  SecurityGroupMembership,
+  DomainMembership
 } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
@@ -37,11 +39,6 @@ export enum ActivityStreamStatus {
   STARTING = 'starting',
   STOPPED = 'stopped',
   STOPPING = 'stopping',
-}
-
-export enum ActivityStreamMode {
-  ASYNC = 'async',
-  SYNC = 'sync',
 }
 
 export enum ReplicaMode {
@@ -141,11 +138,9 @@ export class RDS {
   })
   deletionProtection?: boolean;
 
-  // TODO: Update to array and fix relationship type (many to many) once Domain entity is defined
-  @Column({
-    nullable: true,
-  })
-  domainMemberships?: string;
+  @ManyToMany(() => DomainMembership, { cascade: true, })
+  @JoinTable()
+  domainMemberships?: DomainMembership[];
 
   // TODO: many to may relation eventually
   @Column({
@@ -401,11 +396,11 @@ export class RDS {
   })
   activityStreamStatus?: ActivityStreamStatus;
 
-  @Column({
-    nullable: true,
+  @ManyToOne(() => ActivityStreamMode)
+  @JoinColumn({
+    name: 'activity_stream_mode_id',
   })
   activityStreamMode?: ActivityStreamMode;
-  ;
 
   @Column({
     nullable: true,
