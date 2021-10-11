@@ -1,11 +1,12 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class updateRds1633957742055 implements MigrationInterface {
-    name = 'updateRds1633957742055'
+export class updateRds1633963102129 implements MigrationInterface {
+    name = 'updateRds1633963102129'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "activity_stream_mode" ("id" SERIAL NOT NULL, "mode" character varying NOT NULL, CONSTRAINT "UQ_2495c911d618977ab170eaf9179" UNIQUE ("mode"), CONSTRAINT "PK_ecc0a022d867dfdfdb1a8b6a4aa" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "character_set" ("id" SERIAL NOT NULL, "character_set_name" character varying NOT NULL, "character_set_description" character varying, CONSTRAINT "UQ_bd3acc10c6e3e46d395dbd62f38" UNIQUE ("character_set_name"), CONSTRAINT "PK_c8e16ff898530271ff50d765911" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "cloudwatch_logs_export" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, CONSTRAINT "UQ_9fb0d25617e24914a2dbd0cc3d0" UNIQUE ("name"), CONSTRAINT "PK_62bf7e06f5a3108f1a5718a04d0" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "db_instance_class" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, CONSTRAINT "UQ_671cddb2858888a104b6ed827c8" UNIQUE ("name"), CONSTRAINT "PK_6f121e752f8b41bef4c04d20d83" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "db_parameter_group_status" ("id" SERIAL NOT NULL, "db_parameter_group_name" character varying, "parameter_apply_status" character varying, CONSTRAINT "PK_a259f265745cb6dd5305e4e4e10" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "exportable_log_type" ("id" SERIAL NOT NULL, "type" character varying NOT NULL, CONSTRAINT "UQ_8a722b68144f86254288cbf849b" UNIQUE ("type"), CONSTRAINT "PK_b7ac936668c10ffe2d81ecc490c" PRIMARY KEY ("id"))`);
@@ -19,6 +20,9 @@ export class updateRds1633957742055 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "ip_range" ("id" SERIAL NOT NULL, "status" character varying, "cidrip" cidr, CONSTRAINT "PK_914964db63442554c504a9a6a22" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "db_security_group" ("id" SERIAL NOT NULL, "db_security_group_description" character varying, "db_security_group_name" character varying, "owner_id" character varying, "vpc_id" character varying, "db_security_group_arn" character varying, CONSTRAINT "PK_b8f3e48843ad67373a863bee176" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "security_group_membership" ("id" SERIAL NOT NULL, "status" character varying, "security_group_id" integer, CONSTRAINT "PK_c0f123642afb193dff3355254d5" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "domain_membership" ("id" SERIAL NOT NULL, "domain" character varying, "status" character varying, "fqdn" character varying, "iam_role_name" character varying, CONSTRAINT "PK_d015c1d1a3584be1afdea928ece" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "option_group_membership" ("id" SERIAL NOT NULL, "option_group_name" character varying, "status" character varying, CONSTRAINT "PK_edc58af19ca145174e323888d2f" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "endpoint" ("id" SERIAL NOT NULL, "address" character varying, "port" integer, "hosted_zone_id" character varying, CONSTRAINT "PK_7785c5c2cf24e6ab3abb7a2e89f" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "db_security_group_membership" ("id" SERIAL NOT NULL, "status" character varying, "db_security_group_id" integer, CONSTRAINT "PK_6e486fc9b042fab60d6bf5757c9" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "engine_version_valid_upgrade_targets_upgrade_target" ("engine_version_id" integer NOT NULL, "upgrade_target_id" integer NOT NULL, CONSTRAINT "PK_d023ecc41c465d76b0af52f16ca" PRIMARY KEY ("engine_version_id", "upgrade_target_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_0b9d53fadcfc2b156c0578e26a" ON "engine_version_valid_upgrade_targets_upgrade_target" ("engine_version_id") `);
@@ -68,16 +72,48 @@ export class updateRds1633957742055 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "rds_db_security_groups_db_security_group_membership" ("rds_id" integer NOT NULL, "db_security_group_membership_id" integer NOT NULL, CONSTRAINT "PK_352c03b813c117b5e8f1f8634fd" PRIMARY KEY ("rds_id", "db_security_group_membership_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_410ac911ca28945c5ff0dd090c" ON "rds_db_security_groups_db_security_group_membership" ("rds_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_33e2c1567d8d568a8f93ec4d06" ON "rds_db_security_groups_db_security_group_membership" ("db_security_group_membership_id") `);
+        await queryRunner.query(`CREATE TABLE "rds_domain_memberships_domain_membership" ("rds_id" integer NOT NULL, "domain_membership_id" integer NOT NULL, CONSTRAINT "PK_200f4a5b906c8a4a6f48b544e5a" PRIMARY KEY ("rds_id", "domain_membership_id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_5e9a0a3f9d6ef14aaac0cf9663" ON "rds_domain_memberships_domain_membership" ("rds_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_1af07c6514ee027a2dc85ac79f" ON "rds_domain_memberships_domain_membership" ("domain_membership_id") `);
+        await queryRunner.query(`CREATE TABLE "rds_enabled_cloudwatch_logs_exports_cloudwatch_logs_export" ("rds_id" integer NOT NULL, "cloudwatch_logs_export_id" integer NOT NULL, CONSTRAINT "PK_91c58391cbb032e3940350f286b" PRIMARY KEY ("rds_id", "cloudwatch_logs_export_id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_8665c22521b74fcc1036760c57" ON "rds_enabled_cloudwatch_logs_exports_cloudwatch_logs_export" ("rds_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_edb9b1dc35e66b8e090cc855e2" ON "rds_enabled_cloudwatch_logs_exports_cloudwatch_logs_export" ("cloudwatch_logs_export_id") `);
+        await queryRunner.query(`CREATE TABLE "rds_option_group_memberships_option_group_membership" ("rds_id" integer NOT NULL, "option_group_membership_id" integer NOT NULL, CONSTRAINT "PK_12f3f55ee9bf416b13b474ece50" PRIMARY KEY ("rds_id", "option_group_membership_id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_46a3198cc9c5fc5c423422dfb7" ON "rds_option_group_memberships_option_group_membership" ("rds_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_21d2baf09d1f84ca46f77c287a" ON "rds_option_group_memberships_option_group_membership" ("option_group_membership_id") `);
+        await queryRunner.query(`CREATE TABLE "rds_processor_features_processor_feature" ("rds_id" integer NOT NULL, "processor_feature_id" integer NOT NULL, CONSTRAINT "PK_466a9fbbfbfe991cb67303b5e8f" PRIMARY KEY ("rds_id", "processor_feature_id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_040989e476315840c5bc4f0c6d" ON "rds_processor_features_processor_feature" ("rds_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_568be2825b0cb4b0badc098c3b" ON "rds_processor_features_processor_feature" ("processor_feature_id") `);
         await queryRunner.query(`CREATE TABLE "rds_vpc_security_groups_security_group_membership" ("rds_id" integer NOT NULL, "security_group_membership_id" integer NOT NULL, CONSTRAINT "PK_3e34403c0ea7ee6a7ae3170b9dd" PRIMARY KEY ("rds_id", "security_group_membership_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_bef20834732522945d9bb63929" ON "rds_vpc_security_groups_security_group_membership" ("rds_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_691e4fe60d8cd05a5d92089a2b" ON "rds_vpc_security_groups_security_group_membership" ("security_group_membership_id") `);
         await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "engine"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "engine_version"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "listener_endpoint"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "option_group_name"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "activity_stream_mode"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "processor_features"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "endpoint"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "db_instance_class"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "db_parameter_groups"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "db_security_groups"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "domain_memberships"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "enable_cloudwatch_logs_exports"`);
         await queryRunner.query(`ALTER TABLE "rds" ADD "db_instance_class_id" integer`);
         await queryRunner.query(`ALTER TABLE "rds" ADD "engine_version_id" integer`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "endpoint_id" integer`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "secondary_availability_zone_id" integer`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "listener_endpoint_id" integer`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "activity_stream_mode_id" integer`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "storage_type"`);
+        await queryRunner.query(`CREATE TYPE "public"."rds_storage_type_enum" AS ENUM('standard', 'gp2', 'io1')`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "storage_type" "public"."rds_storage_type_enum"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "activity_stream_status"`);
+        await queryRunner.query(`CREATE TYPE "public"."rds_activity_stream_status_enum" AS ENUM('started', 'starting', 'stopped', 'stopping')`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "activity_stream_status" "public"."rds_activity_stream_status_enum"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "replica_mode"`);
+        await queryRunner.query(`CREATE TYPE "public"."rds_replica_mode_enum" AS ENUM('mounted', 'open-read-only')`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "replica_mode" "public"."rds_replica_mode_enum"`);
         await queryRunner.query(`ALTER TABLE "engine_version" ADD CONSTRAINT "FK_87600ab5ee44e3d1d2c7bb01083" FOREIGN KEY ("character_set_id") REFERENCES "character_set"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "upgrade_target" ADD CONSTRAINT "FK_f72e551ae46bb42c1b7d5c0c958" FOREIGN KEY ("engine_version_id") REFERENCES "engine_version"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "orderable_db_instance_option" ADD CONSTRAINT "FK_b2609a55c9361c6c05549bb3e22" FOREIGN KEY ("engine_version_id") REFERENCES "engine_version"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
@@ -85,6 +121,10 @@ export class updateRds1633957742055 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "security_group_membership" ADD CONSTRAINT "FK_07c8fdd5ab2d176102ac11f7983" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "rds" ADD CONSTRAINT "FK_f78aee03934884ec12ed206c6ee" FOREIGN KEY ("db_instance_class_id") REFERENCES "db_instance_class"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "rds" ADD CONSTRAINT "FK_f0c9a8ba920bd21d2f2833e1d92" FOREIGN KEY ("engine_version_id") REFERENCES "engine_version"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD CONSTRAINT "FK_505a7144df2d71295aac1bf0da0" FOREIGN KEY ("endpoint_id") REFERENCES "endpoint"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD CONSTRAINT "FK_8e3b0a8a106963b1b17af2bd674" FOREIGN KEY ("secondary_availability_zone_id") REFERENCES "availability_zone"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD CONSTRAINT "FK_7a5a4239f36cb66f08e56ffcf1c" FOREIGN KEY ("listener_endpoint_id") REFERENCES "endpoint"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD CONSTRAINT "FK_dab66e009d8ba438e795c9f2105" FOREIGN KEY ("activity_stream_mode_id") REFERENCES "activity_stream_mode"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "db_security_group_membership" ADD CONSTRAINT "FK_d17fac23c8b2639304424cb1522" FOREIGN KEY ("db_security_group_id") REFERENCES "db_security_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "engine_version_valid_upgrade_targets_upgrade_target" ADD CONSTRAINT "FK_0b9d53fadcfc2b156c0578e26ab" FOREIGN KEY ("engine_version_id") REFERENCES "engine_version"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "engine_version_valid_upgrade_targets_upgrade_target" ADD CONSTRAINT "FK_3f6eada6a897f57e03afdca8b49" FOREIGN KEY ("upgrade_target_id") REFERENCES "upgrade_target"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
@@ -118,6 +158,14 @@ export class updateRds1633957742055 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "rds_db_parameter_groups_db_parameter_group_status" ADD CONSTRAINT "FK_4aa131803a030d058fe4abb7fed" FOREIGN KEY ("db_parameter_group_status_id") REFERENCES "db_parameter_group_status"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "rds_db_security_groups_db_security_group_membership" ADD CONSTRAINT "FK_410ac911ca28945c5ff0dd090c4" FOREIGN KEY ("rds_id") REFERENCES "rds"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "rds_db_security_groups_db_security_group_membership" ADD CONSTRAINT "FK_33e2c1567d8d568a8f93ec4d06b" FOREIGN KEY ("db_security_group_membership_id") REFERENCES "db_security_group_membership"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "rds_domain_memberships_domain_membership" ADD CONSTRAINT "FK_5e9a0a3f9d6ef14aaac0cf9663e" FOREIGN KEY ("rds_id") REFERENCES "rds"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "rds_domain_memberships_domain_membership" ADD CONSTRAINT "FK_1af07c6514ee027a2dc85ac79f8" FOREIGN KEY ("domain_membership_id") REFERENCES "domain_membership"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "rds_enabled_cloudwatch_logs_exports_cloudwatch_logs_export" ADD CONSTRAINT "FK_8665c22521b74fcc1036760c572" FOREIGN KEY ("rds_id") REFERENCES "rds"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "rds_enabled_cloudwatch_logs_exports_cloudwatch_logs_export" ADD CONSTRAINT "FK_edb9b1dc35e66b8e090cc855e2f" FOREIGN KEY ("cloudwatch_logs_export_id") REFERENCES "cloudwatch_logs_export"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "rds_option_group_memberships_option_group_membership" ADD CONSTRAINT "FK_46a3198cc9c5fc5c423422dfb73" FOREIGN KEY ("rds_id") REFERENCES "rds"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "rds_option_group_memberships_option_group_membership" ADD CONSTRAINT "FK_21d2baf09d1f84ca46f77c287a1" FOREIGN KEY ("option_group_membership_id") REFERENCES "option_group_membership"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "rds_processor_features_processor_feature" ADD CONSTRAINT "FK_040989e476315840c5bc4f0c6d4" FOREIGN KEY ("rds_id") REFERENCES "rds"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "rds_processor_features_processor_feature" ADD CONSTRAINT "FK_568be2825b0cb4b0badc098c3bc" FOREIGN KEY ("processor_feature_id") REFERENCES "processor_feature"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_security_group_membership" ADD CONSTRAINT "FK_bef20834732522945d9bb63929a" FOREIGN KEY ("rds_id") REFERENCES "rds"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_security_group_membership" ADD CONSTRAINT "FK_691e4fe60d8cd05a5d92089a2bf" FOREIGN KEY ("security_group_membership_id") REFERENCES "security_group_membership"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
     }
@@ -125,6 +173,14 @@ export class updateRds1633957742055 implements MigrationInterface {
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_security_group_membership" DROP CONSTRAINT "FK_691e4fe60d8cd05a5d92089a2bf"`);
         await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_security_group_membership" DROP CONSTRAINT "FK_bef20834732522945d9bb63929a"`);
+        await queryRunner.query(`ALTER TABLE "rds_processor_features_processor_feature" DROP CONSTRAINT "FK_568be2825b0cb4b0badc098c3bc"`);
+        await queryRunner.query(`ALTER TABLE "rds_processor_features_processor_feature" DROP CONSTRAINT "FK_040989e476315840c5bc4f0c6d4"`);
+        await queryRunner.query(`ALTER TABLE "rds_option_group_memberships_option_group_membership" DROP CONSTRAINT "FK_21d2baf09d1f84ca46f77c287a1"`);
+        await queryRunner.query(`ALTER TABLE "rds_option_group_memberships_option_group_membership" DROP CONSTRAINT "FK_46a3198cc9c5fc5c423422dfb73"`);
+        await queryRunner.query(`ALTER TABLE "rds_enabled_cloudwatch_logs_exports_cloudwatch_logs_export" DROP CONSTRAINT "FK_edb9b1dc35e66b8e090cc855e2f"`);
+        await queryRunner.query(`ALTER TABLE "rds_enabled_cloudwatch_logs_exports_cloudwatch_logs_export" DROP CONSTRAINT "FK_8665c22521b74fcc1036760c572"`);
+        await queryRunner.query(`ALTER TABLE "rds_domain_memberships_domain_membership" DROP CONSTRAINT "FK_1af07c6514ee027a2dc85ac79f8"`);
+        await queryRunner.query(`ALTER TABLE "rds_domain_memberships_domain_membership" DROP CONSTRAINT "FK_5e9a0a3f9d6ef14aaac0cf9663e"`);
         await queryRunner.query(`ALTER TABLE "rds_db_security_groups_db_security_group_membership" DROP CONSTRAINT "FK_33e2c1567d8d568a8f93ec4d06b"`);
         await queryRunner.query(`ALTER TABLE "rds_db_security_groups_db_security_group_membership" DROP CONSTRAINT "FK_410ac911ca28945c5ff0dd090c4"`);
         await queryRunner.query(`ALTER TABLE "rds_db_parameter_groups_db_parameter_group_status" DROP CONSTRAINT "FK_4aa131803a030d058fe4abb7fed"`);
@@ -158,6 +214,10 @@ export class updateRds1633957742055 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "engine_version_valid_upgrade_targets_upgrade_target" DROP CONSTRAINT "FK_3f6eada6a897f57e03afdca8b49"`);
         await queryRunner.query(`ALTER TABLE "engine_version_valid_upgrade_targets_upgrade_target" DROP CONSTRAINT "FK_0b9d53fadcfc2b156c0578e26ab"`);
         await queryRunner.query(`ALTER TABLE "db_security_group_membership" DROP CONSTRAINT "FK_d17fac23c8b2639304424cb1522"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_dab66e009d8ba438e795c9f2105"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_7a5a4239f36cb66f08e56ffcf1c"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_8e3b0a8a106963b1b17af2bd674"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_505a7144df2d71295aac1bf0da0"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_f0c9a8ba920bd21d2f2833e1d92"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_f78aee03934884ec12ed206c6ee"`);
         await queryRunner.query(`ALTER TABLE "security_group_membership" DROP CONSTRAINT "FK_07c8fdd5ab2d176102ac11f7983"`);
@@ -165,16 +225,48 @@ export class updateRds1633957742055 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "orderable_db_instance_option" DROP CONSTRAINT "FK_b2609a55c9361c6c05549bb3e22"`);
         await queryRunner.query(`ALTER TABLE "upgrade_target" DROP CONSTRAINT "FK_f72e551ae46bb42c1b7d5c0c958"`);
         await queryRunner.query(`ALTER TABLE "engine_version" DROP CONSTRAINT "FK_87600ab5ee44e3d1d2c7bb01083"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "replica_mode"`);
+        await queryRunner.query(`DROP TYPE "public"."rds_replica_mode_enum"`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "replica_mode" character varying`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "activity_stream_status"`);
+        await queryRunner.query(`DROP TYPE "public"."rds_activity_stream_status_enum"`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "activity_stream_status" character varying`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "storage_type"`);
+        await queryRunner.query(`DROP TYPE "public"."rds_storage_type_enum"`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "storage_type" character varying`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "activity_stream_mode_id"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "listener_endpoint_id"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "secondary_availability_zone_id"`);
+        await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "endpoint_id"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "engine_version_id"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "db_instance_class_id"`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "enable_cloudwatch_logs_exports" character varying`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "domain_memberships" character varying`);
         await queryRunner.query(`ALTER TABLE "rds" ADD "db_security_groups" character varying`);
         await queryRunner.query(`ALTER TABLE "rds" ADD "db_parameter_groups" character varying`);
         await queryRunner.query(`ALTER TABLE "rds" ADD "db_instance_class" character varying NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "endpoint" character varying`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "processor_features" character varying`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "activity_stream_mode" character varying`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "option_group_name" character varying`);
+        await queryRunner.query(`ALTER TABLE "rds" ADD "listener_endpoint" character varying`);
         await queryRunner.query(`ALTER TABLE "rds" ADD "engine_version" character varying`);
         await queryRunner.query(`ALTER TABLE "rds" ADD "engine" character varying NOT NULL`);
         await queryRunner.query(`DROP INDEX "public"."IDX_691e4fe60d8cd05a5d92089a2b"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_bef20834732522945d9bb63929"`);
         await queryRunner.query(`DROP TABLE "rds_vpc_security_groups_security_group_membership"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_568be2825b0cb4b0badc098c3b"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_040989e476315840c5bc4f0c6d"`);
+        await queryRunner.query(`DROP TABLE "rds_processor_features_processor_feature"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_21d2baf09d1f84ca46f77c287a"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_46a3198cc9c5fc5c423422dfb7"`);
+        await queryRunner.query(`DROP TABLE "rds_option_group_memberships_option_group_membership"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_edb9b1dc35e66b8e090cc855e2"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_8665c22521b74fcc1036760c57"`);
+        await queryRunner.query(`DROP TABLE "rds_enabled_cloudwatch_logs_exports_cloudwatch_logs_export"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_1af07c6514ee027a2dc85ac79f"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_5e9a0a3f9d6ef14aaac0cf9663"`);
+        await queryRunner.query(`DROP TABLE "rds_domain_memberships_domain_membership"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_33e2c1567d8d568a8f93ec4d06"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_410ac911ca28945c5ff0dd090c"`);
         await queryRunner.query(`DROP TABLE "rds_db_security_groups_db_security_group_membership"`);
@@ -224,6 +316,9 @@ export class updateRds1633957742055 implements MigrationInterface {
         await queryRunner.query(`DROP INDEX "public"."IDX_0b9d53fadcfc2b156c0578e26a"`);
         await queryRunner.query(`DROP TABLE "engine_version_valid_upgrade_targets_upgrade_target"`);
         await queryRunner.query(`DROP TABLE "db_security_group_membership"`);
+        await queryRunner.query(`DROP TABLE "endpoint"`);
+        await queryRunner.query(`DROP TABLE "option_group_membership"`);
+        await queryRunner.query(`DROP TABLE "domain_membership"`);
         await queryRunner.query(`DROP TABLE "security_group_membership"`);
         await queryRunner.query(`DROP TABLE "db_security_group"`);
         await queryRunner.query(`DROP TABLE "ip_range"`);
@@ -237,6 +332,7 @@ export class updateRds1633957742055 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "exportable_log_type"`);
         await queryRunner.query(`DROP TABLE "db_parameter_group_status"`);
         await queryRunner.query(`DROP TABLE "db_instance_class"`);
+        await queryRunner.query(`DROP TABLE "cloudwatch_logs_export"`);
         await queryRunner.query(`DROP TABLE "character_set"`);
         await queryRunner.query(`DROP TABLE "activity_stream_mode"`);
     }
