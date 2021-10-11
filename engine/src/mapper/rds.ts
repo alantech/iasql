@@ -14,6 +14,7 @@ import {
   DomainMembershipMapper,
   EngineVersionMapper,
   OptionGroupMembershipMapper,
+  ProcessorFeatureMapper,
   SecurityGroupMembershipMapper,
   TagMapper
 } from '.'
@@ -74,7 +75,10 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   port: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DbInstancePort ?? null,
   preferredBackupWindow: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PreferredBackupWindow ?? null,
   preferredMaintenanceWindow: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PreferredMaintenanceWindow ?? null,
-  processorFeatures: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ProcessorFeatures?.pop()?.Name ?? null,
+  processorFeatures: (dbi: DBInstance, i: IndexedAWS) =>
+    dbi?.ProcessorFeatures?.length ?
+      dbi.ProcessorFeatures.map(pf => ProcessorFeatureMapper.fromAWS(pf, i))
+      : [],
   promotionTier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PromotionTier ?? null,
   publiclyAccessible: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PubliclyAccessible ?? null,
   storageEncrypted: (dbi: DBInstance, _i: IndexedAWS) => dbi?.StorageEncrypted ?? null,

@@ -17,7 +17,8 @@ import {
   SecurityGroupMembership,
   DomainMembership,
   CloudwatchLogsExport,
-  OptionGroupMembership
+  OptionGroupMembership,
+  ProcessorFeature
 } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
@@ -265,11 +266,9 @@ export class RDS {
   })
   preferredMaintenanceWindow?: string;
 
-  // TODO: Implement processor features entity and fix column type
-  @Column({
-    nullable: true,
-  })
-  processorFeatures?: string;
+  @ManyToMany(() => ProcessorFeature, { cascade: true, })
+  @JoinTable()
+  processorFeatures?: ProcessorFeature[];
 
   // TODO: constraint 0 - 15
   @Column({
