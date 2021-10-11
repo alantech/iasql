@@ -16,7 +16,8 @@ import {
   DBSecurityGroupMembership,
   SecurityGroupMembership,
   DomainMembership,
-  CloudwatchLogsExport
+  CloudwatchLogsExport,
+  OptionGroupMembership
 } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
@@ -186,7 +187,7 @@ export class RDS {
   })
   licenseModel?: LicenseModel;
 
-  // TODO: How to handle this just for creation time and do not store it in DB?
+  // ? How to handle this just for creation time and do not store it in DB?
   // TODO: Apply constraints?
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#masteruserpassword
   @noDiff
@@ -229,11 +230,9 @@ export class RDS {
   })
   ncharCharacterSetName?: string;
 
-  // TODO: Update relationship and create groups entity
-  @Column({
-    nullable: true,
-  })
-  optionGroupName?: string;
+  @ManyToMany(() => OptionGroupMembership, { cascade: true, })
+  @JoinTable()
+  optionGroupMemberships?: OptionGroupMembership[];
 
   @Column({
     nullable: true,

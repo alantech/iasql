@@ -13,6 +13,7 @@ import {
   DBSecurityGroupMembershipMapper,
   DomainMembershipMapper,
   EngineVersionMapper,
+  OptionGroupMembershipMapper,
   SecurityGroupMembershipMapper,
   TagMapper
 } from '.'
@@ -64,7 +65,10 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   monitoringRoleArn: (dbi: DBInstance, _i: IndexedAWS) => dbi?.MonitoringRoleArn ?? null,
   multiAZ: (dbi: DBInstance, _i: IndexedAWS) => dbi?.MultiAZ ?? null,
   ncharCharacterSetName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.NcharCharacterSetName ?? null,
-  optionGroupName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.OptionGroupMemberships?.pop()?.OptionGroupName ?? null,
+  optionGroupMemberships: (dbi: DBInstance, i: IndexedAWS) =>
+    dbi?.OptionGroupMemberships?.length ?
+      dbi.OptionGroupMemberships.map(og => OptionGroupMembershipMapper.fromAWS(og, i))
+      : [],
   performanceInsightsKMSKeyId: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PerformanceInsightsKMSKeyId ?? null,
   performanceInsightsRetentionPeriod: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PerformanceInsightsRetentionPeriod ?? null,
   port: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DbInstancePort ?? null,
