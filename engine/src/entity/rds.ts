@@ -6,6 +6,7 @@ import {
   ManyToOne,
   ManyToMany,
   JoinTable,
+  OneToOne,
 } from 'typeorm';
 import {
   ActivityStreamMode,
@@ -18,7 +19,8 @@ import {
   DomainMembership,
   CloudwatchLogsExport,
   OptionGroupMembership,
-  ProcessorFeature
+  ProcessorFeature,
+  Endpoint
 } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
@@ -331,11 +333,11 @@ export class RDS {
   })
   automaticRestartTime?: Date;
 
-  // TODO: update to endpoint structure and add FK
-  @Column({
-    nullable: true,
+  @OneToOne(() => Endpoint, { cascade: true, })
+  @JoinColumn({
+    name: 'endpoint_id'
   })
-  endpoint?: string;
+  endpoint?: Endpoint;
 
   @Column({
     type: 'timestamp with time zone',
@@ -378,12 +380,12 @@ export class RDS {
   })
   associatedRoles?: string;
 
-  // TODO: update once Endpoint entity is implemented
   // SQL server only
-  @Column({
-    nullable: true,
+  @OneToOne(() => Endpoint, { cascade: true, })
+  @JoinColumn({
+    name: 'endpoint_id'
   })
-  listenerEndpoint?: string;
+  listenerEndpoint?: Endpoint;
 
   @Column({
     nullable: true,
