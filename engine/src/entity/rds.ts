@@ -15,7 +15,8 @@ import {
   DBParameterGroupStatus,
   DBSecurityGroupMembership,
   SecurityGroupMembership,
-  DomainMembership
+  DomainMembership,
+  CloudwatchLogsExport
 } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
@@ -142,11 +143,9 @@ export class RDS {
   @JoinTable()
   domainMemberships?: DomainMembership[];
 
-  // TODO: many to may relation eventually
-  @Column({
-    nullable: true,
-  })
-  enableCloudwatchLogsExports?: string;
+  @ManyToMany(() => CloudwatchLogsExport, { cascade: true, })
+  @JoinTable()
+  enabledCloudwatchLogsExports?: CloudwatchLogsExport[];
 
   @Column({
     nullable: true,

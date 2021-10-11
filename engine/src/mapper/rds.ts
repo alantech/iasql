@@ -7,6 +7,7 @@ import { RDS } from '../entity/rds'
 import {
   ActivityStreamModeMapper,
   AvailabilityZoneMapper,
+  CloudwatchLogsExportMapper,
   DBInstanceClassMapper,
   DBParameterGroupStatusMapper,
   DBSecurityGroupMembershipMapper,
@@ -41,11 +42,14 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
       dbi.DBSecurityGroups.map(sgm => DBSecurityGroupMembershipMapper.fromAWS(sgm, i))
       : [],
   deletionProtection: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DeletionProtection ?? null,
-  domainMemberships: (dbi: DBInstance, i: IndexedAWS) => 
+  domainMemberships: (dbi: DBInstance, i: IndexedAWS) =>
     dbi.DomainMemberships?.length ?
       dbi.DomainMemberships.map(dm => DomainMembershipMapper.fromAWS(dm, i))
       : [],
-  enableCloudwatchLogsExports: (dbi: DBInstance, _i: IndexedAWS) => dbi?.EnabledCloudwatchLogsExports?.pop() ?? null,
+  enabledCloudwatchLogsExports: (dbi: DBInstance, i: IndexedAWS) =>
+    dbi?.EnabledCloudwatchLogsExports?.length ?
+      dbi.EnabledCloudwatchLogsExports.map(n => CloudwatchLogsExportMapper.fromAWS(n, i))
+      : [],
   enableCustomerOwnedIp: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CustomerOwnedIpEnabled ?? null,
   enableIAMDatabaseAuthentication: (dbi: DBInstance, _i: IndexedAWS) => dbi?.IAMDatabaseAuthenticationEnabled ?? null,
   enablePerformanceInsights: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PerformanceInsightsEnabled ?? null,
