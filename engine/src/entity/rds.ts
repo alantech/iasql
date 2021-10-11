@@ -6,7 +6,6 @@ import {
   ManyToOne,
   ManyToMany,
   JoinTable,
-  OneToOne,
 } from 'typeorm';
 import {
   ActivityStreamMode,
@@ -116,7 +115,7 @@ export class RDS {
   })
   dbClusterIdentifier?: string;
 
-  @ManyToOne(() => DBInstanceClass)
+  @ManyToOne(() => DBInstanceClass, { eager: true, })
   @JoinColumn({
     name: 'db_instance_class_id',
   })
@@ -129,11 +128,11 @@ export class RDS {
   })
   dbName?: string;
 
-  @ManyToMany(() => DBParameterGroupStatus, { cascade: true, })
+  @ManyToMany(() => DBParameterGroupStatus, { cascade: true, eager: true, })
   @JoinTable()
   dbParameterGroups?: DBParameterGroupStatus[];
 
-  @ManyToMany(() => DBSecurityGroupMembership)
+  @ManyToMany(() => DBSecurityGroupMembership, { eager: true, })
   @JoinTable()
   dbSecurityGroups?: DBSecurityGroupMembership[];
 
@@ -143,11 +142,11 @@ export class RDS {
   })
   deletionProtection?: boolean;
 
-  @ManyToMany(() => DomainMembership, { cascade: true, })
+  @ManyToMany(() => DomainMembership, { cascade: true, eager: true, })
   @JoinTable()
   domainMemberships?: DomainMembership[];
 
-  @ManyToMany(() => CloudwatchLogsExport, { cascade: true, })
+  @ManyToMany(() => CloudwatchLogsExport, { cascade: true, eager: true, })
   @JoinTable()
   enabledCloudwatchLogsExports?: CloudwatchLogsExport[];
 
@@ -167,7 +166,7 @@ export class RDS {
   })
   enablePerformanceInsights?: boolean;
 
-  @ManyToOne(() => EngineVersion)
+  @ManyToOne(() => EngineVersion, { eager: true, })
   @JoinColumn({
     name: 'engine_version_id'
   })
@@ -233,7 +232,7 @@ export class RDS {
   })
   ncharCharacterSetName?: string;
 
-  @ManyToMany(() => OptionGroupMembership, { cascade: true, })
+  @ManyToMany(() => OptionGroupMembership, { cascade: true, eager: true, })
   @JoinTable()
   optionGroupMemberships?: OptionGroupMembership[];
 
@@ -268,7 +267,7 @@ export class RDS {
   })
   preferredMaintenanceWindow?: string;
 
-  @ManyToMany(() => ProcessorFeature, { cascade: true, })
+  @ManyToMany(() => ProcessorFeature, { cascade: true, eager: true, })
   @JoinTable()
   processorFeatures?: ProcessorFeature[];
 
@@ -296,7 +295,7 @@ export class RDS {
   })
   storageType?: StorageType;
 
-  @ManyToMany(() => Tag, { cascade: true, })
+  @ManyToMany(() => Tag, { cascade: true, eager: true, })
   @JoinTable()
   tags: Tag[];
 
@@ -333,7 +332,7 @@ export class RDS {
   })
   automaticRestartTime?: Date;
 
-  @ManyToOne(() => Endpoint, { cascade: true, })
+  @ManyToOne(() => Endpoint, { cascade: true, eager: true, })
   @JoinColumn({
     name: 'endpoint_id'
   })
@@ -381,7 +380,7 @@ export class RDS {
   associatedRoles?: string;
 
   // SQL server only
-  @ManyToOne(() => Endpoint, { cascade: true, })
+  @ManyToOne(() => Endpoint, { cascade: true, eager: true, })
   @JoinColumn({
     name: 'listener_endpoint_id',
   })
@@ -399,7 +398,7 @@ export class RDS {
   })
   activityStreamStatus?: ActivityStreamStatus;
 
-  @ManyToOne(() => ActivityStreamMode)
+  @ManyToOne(() => ActivityStreamMode, { eager: true, })
   @JoinColumn({
     name: 'activity_stream_mode_id',
   })
