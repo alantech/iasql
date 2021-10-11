@@ -4,7 +4,15 @@ import { AWS, } from '../services/gateways/aws'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { RDS } from '../entity/rds'
-import { AvailabilityZoneMapper, DBInstanceClassMapper, DBParameterGroupStatusMapper, DBSecurityGroupMembershipMapper, EngineVersionMapper, SecurityGroupMapper, TagMapper } from '.'
+import {
+  AvailabilityZoneMapper,
+  DBInstanceClassMapper,
+  DBParameterGroupStatusMapper,
+  DBSecurityGroupMembershipMapper,
+  EngineVersionMapper,
+  SecurityGroupMembershipMapper,
+  TagMapper
+} from '.'
 import { AvailabilityZone, EngineVersion } from '../entity'
 
 export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
@@ -24,7 +32,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   dbName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBName ?? null,
   dbParameterGroups: (dbi: DBInstance, i: IndexedAWS) =>
     dbi?.DBParameterGroups?.length ?
-      dbi.DBParameterGroups.map(pgs => DBParameterGroupStatusMapper.fromAWS(pgs, i)) 
+      dbi.DBParameterGroups.map(pgs => DBParameterGroupStatusMapper.fromAWS(pgs, i))
       : [],
   dbSecurityGroups: (dbi: DBInstance, i: IndexedAWS) =>
     dbi?.DBSecurityGroups?.length ?
@@ -66,8 +74,8 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   timezone: (dbi: DBInstance, _i: IndexedAWS) => dbi?.Timezone ?? null,
   vpcSecurityGroups: (dbi: DBInstance, i: IndexedAWS) =>
     dbi?.VpcSecurityGroups?.length ?
-      dbi.VpcSecurityGroups.map(vpcsg => SecurityGroupMapper.fromAWS(vpcsg, i)) :
-      [],
+      dbi.VpcSecurityGroups.map(vpcsgm => SecurityGroupMembershipMapper.fromAWS(vpcsgm, i))
+      : [],
   dbInstanceStatus: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBInstanceStatus ?? null,
   automaticRestartTime: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AutomaticRestartTime ?? null,
   endpoint: (dbi: DBInstance, _i: IndexedAWS) => dbi?.Endpoint?.Address ?? null,

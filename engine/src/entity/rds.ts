@@ -6,9 +6,15 @@ import {
   ManyToOne,
   ManyToMany,
   JoinTable,
-  OneToMany,
 } from 'typeorm';
-import { AvailabilityZone, Tag, SecurityGroup, EngineVersion, DBParameterGroupStatus, DBSecurityGroup } from '.';
+import {
+  AvailabilityZone,
+  Tag,
+  EngineVersion,
+  DBParameterGroupStatus,
+  DBSecurityGroupMembership,
+  SecurityGroupMembership
+} from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
 import { Source, source } from '../services/source-of-truth';
@@ -24,6 +30,23 @@ export enum StorageType {
   STANDARD = 'standard',
   GP2 = 'gp2',
   IO1 = 'io1',
+}
+
+export enum ActivityStreamStatus {
+  STARTED = 'started',
+  STARTING = 'starting',
+  STOPPED = 'stopped',
+  STOPPING = 'stopping',
+}
+
+export enum ActivityStreamMode {
+  ASYNC = 'async',
+  SYNC = 'sync',
+}
+
+export enum ReplicaMode {
+  MOUNTED = "mounted",
+  OPEN_READ_ONLY = "open-read-only"
 }
 
 export type MonitoringIntervals = 0 | 1 | 5 | 10 | 15 | 30 | 60;
@@ -108,9 +131,9 @@ export class RDS {
   @JoinTable()
   dbParameterGroups?: DBParameterGroupStatus[];
 
-  @ManyToMany(() => DBSecurityGroup)
+  @ManyToMany(() => DBSecurityGroupMembership)
   @JoinTable()
-  dbSecurityGroups?: DBSecurityGroup[];
+  dbSecurityGroups?: DBSecurityGroupMembership[];
 
   @Column({
     nullable: true,
@@ -286,7 +309,7 @@ export class RDS {
   })
   tdeCredentialArn?: string;
 
-  // TODO: how to handle this for creation
+  // ? how to handle this for creation
   @Column({
     nullable: true,
   })
@@ -297,12 +320,11 @@ export class RDS {
   })
   timezone?: string;
 
-  // TODO: DBSecurityGroupMembership instead of actual security group structure. probably create an intermediate table
-  @ManyToMany(() => SecurityGroup, { eager: true, })
+  @ManyToMany(() => SecurityGroupMembership, { eager: true, })
   @JoinTable()
-  vpcSecurityGroups: SecurityGroup;
+  vpcSecurityGroups: SecurityGroupMembership[];
 
-  // TODO: enum all statuses?
+  // ? enum all statuses?
   // https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/accessing-monitoring.html#Overview.DBInstance.Status
   @Column({
     nullable: true,
@@ -374,17 +396,16 @@ export class RDS {
   })
   awsBackupRecoveryPointArn?: string;
 
-  // TODO: add enum
   @Column({
     nullable: true,
   })
-  activityStreamStatus?: string;
+  activityStreamStatus?: ActivityStreamStatus;
 
-  // TODO: add enum
   @Column({
     nullable: true,
   })
-  activityStreamMode?: string;
+  activityStreamMode?: ActivityStreamMode;
+  ;
 
   @Column({
     nullable: true,
@@ -418,11 +439,10 @@ export class RDS {
   })
   readReplicaDBClusterIdentifiers?: string;
 
-  // TODO: add enum
   @Column({
     nullable: true,
   })
-  replicaMode?: string;
+  replicaMode?: ReplicaMode;
 
   // TODO: create sub entity with many relationship
   @Column({
