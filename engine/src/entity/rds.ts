@@ -289,6 +289,8 @@ export class RDS {
 
   @Column({
     nullable: true,
+    type: 'enum',
+    enum: StorageType,
   })
   storageType?: StorageType;
 
@@ -390,6 +392,8 @@ export class RDS {
 
   @Column({
     nullable: true,
+    type: 'enum',
+    enum: ActivityStreamStatus,
   })
   activityStreamStatus?: ActivityStreamStatus;
 
@@ -433,6 +437,8 @@ export class RDS {
 
   @Column({
     nullable: true,
+    type: 'enum',
+    enum: ReplicaMode,
   })
   replicaMode?: ReplicaMode;
 
