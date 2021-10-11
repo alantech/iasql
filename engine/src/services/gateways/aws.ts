@@ -26,6 +26,7 @@ import {
   RDSClient,
   paginateDescribeDBEngineVersions,
   paginateDescribeOrderableDBInstanceOptions,
+  paginateDescribeDBSecurityGroups,
 } from '@aws-sdk/client-rds'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import { inspect } from 'util'
@@ -274,6 +275,20 @@ export class AWS {
     }
     return {
       DBEngineVersions: engines, // Make it "look like" the regular query again
+    };
+  }
+
+  async getDBSecurityGroups() {
+    const dbSecurityGroups = [];
+    const paginator = paginateDescribeDBSecurityGroups({
+      client: this.rdsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      dbSecurityGroups.push(...(page.DBSecurityGroups ?? []));
+    }
+    return {
+      DBSecurityGroups: dbSecurityGroups,
     };
   }
 

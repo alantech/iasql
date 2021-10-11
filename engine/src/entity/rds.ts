@@ -8,7 +8,7 @@ import {
   JoinTable,
   OneToMany,
 } from 'typeorm';
-import { AvailabilityZone, Tag, SecurityGroup, EngineVersion, DBParameterGroupStatus } from '.';
+import { AvailabilityZone, Tag, SecurityGroup, EngineVersion, DBParameterGroupStatus, DBSecurityGroup } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
 import { Source, source } from '../services/source-of-truth';
@@ -108,11 +108,9 @@ export class RDS {
   @JoinTable()
   dbParameterGroups?: DBParameterGroupStatus[];
 
-  // TODO: Update with FK to DB Security groups table?
-  @Column({
-    nullable: true,
-  })
-  dbSecurityGroups?: string;
+  @ManyToMany(() => DBSecurityGroup)
+  @JoinTable()
+  dbSecurityGroups?: DBSecurityGroup[];
 
   @Column({
     nullable: true,
