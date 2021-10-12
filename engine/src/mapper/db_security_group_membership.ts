@@ -9,8 +9,15 @@ import { DBSecurityGroup, DBSecurityGroupMembership, SecurityGroup, } from '../e
 import { DBSecurityGroupMapper, } from '.'
 
 export const DBSecurityGroupMembershipMapper: EntityMapper = new EntityMapper(DBSecurityGroupMembership, {
-  dbSecurityGroup: (sgm: DBSecurityGroupMembershipAWS, i: IndexedAWS) => DBSecurityGroupMapper.fromAWS(i.get(DBSecurityGroup, sgm.DBSecurityGroupName), i),
-  status: (sgm: DBSecurityGroupMembershipAWS, _i: IndexedAWS) => sgm?.Status ?? null,
+  dbSecurityGroup: async (sgm: DBSecurityGroupMembershipAWS, awsClient: AWS, indexes: IndexedAWS) => {
+    if (sgm?.DBSecurityGroupName) {
+      const dbSg = await indexes.getOr(DBSecurityGroup, sgm?.DBSecurityGroupName, awsClient.getDBSecurityGroup.bind(awsClient));
+      return await DBSecurityGroupMapper.fromAWS(dbSg, awsClient, indexes);
+    } else {
+      return null;
+    }
+  },
+  status: (sgm: DBSecurityGroupMembershipAWS) => sgm?.Status ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
   createAWS: async (_obj: SecurityGroup, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },

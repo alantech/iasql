@@ -1,23 +1,26 @@
-import { UpgradeTarget as UpgradeTargetAWS } from '@aws-sdk/client-rds'
+import { UpgradeTarget as UpgradeTargetAWS, } from '@aws-sdk/client-rds'
 
 import { AWS, } from '../services/gateways/aws'
-import { UpgradeTarget, } from '../entity/upgrade_target';
-import { EntityMapper, } from './entity';
+import { UpgradeTarget, } from '../entity/upgrade_target'
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { EngineVersionMapper, SupportedEngineModeMapper } from '.';
-import { EngineVersion } from '../entity';
+import { EngineVersionMapper, SupportedEngineModeMapper, } from '.'
+import { EngineVersion, } from '../entity'
 
 export const UpgradeTargetMapper = new EntityMapper(UpgradeTarget, {
-  engine: (t: UpgradeTargetAWS, indexes: IndexedAWS) => EngineVersionMapper.fromAWS(indexes.get(EngineVersion, t.EngineVersion), indexes),
-  description: (t: UpgradeTargetAWS, _indexes: IndexedAWS) => t.Description ?? null,
-  autoUpgrade: (t: UpgradeTargetAWS, _indexes: IndexedAWS) => t.AutoUpgrade ?? null,
-  isMajorVersionUpgrade: (t: UpgradeTargetAWS, _indexes: IndexedAWS) => t.IsMajorVersionUpgrade ?? null,
-  supportedEngineModes: (t: UpgradeTargetAWS, indexes: IndexedAWS) =>
+  engine: async (t: UpgradeTargetAWS, awsClient: AWS, indexes: IndexedAWS) => {
+    const engineVersionEntity = await indexes.getOr(EngineVersion, t.EngineVersion!, awsClient.getEngineVersion.bind(awsClient));
+    return await EngineVersionMapper.fromAWS(engineVersionEntity, awsClient, indexes)
+  },
+  description: (t: UpgradeTargetAWS) => t.Description ?? null,
+  autoUpgrade: (t: UpgradeTargetAWS) => t.AutoUpgrade ?? null,
+  isMajorVersionUpgrade: (t: UpgradeTargetAWS) => t.IsMajorVersionUpgrade ?? null,
+  supportedEngineModes: async (t: UpgradeTargetAWS, awsClient: AWS, indexes: IndexedAWS) =>
     t.SupportedEngineModes ?
-      t.SupportedEngineModes.map(mode => SupportedEngineModeMapper.fromAWS(mode, indexes))
+      await Promise.all(t.SupportedEngineModes.map(mode => SupportedEngineModeMapper.fromAWS(mode, awsClient, indexes)))
       : [],
-  supportsParallelQuery: (t: UpgradeTargetAWS, _indexes: IndexedAWS) => t.SupportsParallelQuery ?? null,
-  supportsGlobalDatabases: (t: UpgradeTargetAWS, _indexes: IndexedAWS) => t.SupportsGlobalDatabases ?? null,
+  supportsParallelQuery: (t: UpgradeTargetAWS) => t.SupportsParallelQuery ?? null,
+  supportsGlobalDatabases: (t: UpgradeTargetAWS) => t.SupportsGlobalDatabases ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => {
     return

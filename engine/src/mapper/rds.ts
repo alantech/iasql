@@ -1,9 +1,9 @@
-import { DBInstance } from '@aws-sdk/client-rds'
+import { DBInstance, } from '@aws-sdk/client-rds'
 
 import { AWS, } from '../services/gateways/aws'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { RDS } from '../entity/rds'
+import { RDS, } from '../entity/rds'
 import {
   ActivityStreamModeMapper,
   AvailabilityZoneMapper,
@@ -17,110 +17,122 @@ import {
   OptionGroupMembershipMapper,
   ProcessorFeatureMapper,
   SecurityGroupMembershipMapper,
-  TagMapper
+  TagMapper,
 } from '.'
-import { AvailabilityZone, EngineVersion } from '../entity'
+import { AvailabilityZone, EngineVersion, } from '../entity'
 
 export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
-  dbiResourceId: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DbiResourceId ?? null,
-  dbInstanceIdentifier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBInstanceIdentifier,
-  allocatedStorage: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AllocatedStorage,
-  autoMinorVersionUpgrade: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AutoMinorVersionUpgrade ?? null,
-  availabilityZone: (dbi: DBInstance, i: IndexedAWS) =>
-    dbi?.AvailabilityZone ?
-      AvailabilityZoneMapper.fromAWS(i.get(AvailabilityZone, dbi.AvailabilityZone), i)
-      : null,
-  backupRetentionPeriod: (dbi: DBInstance, _i: IndexedAWS) => dbi?.BackupRetentionPeriod ?? null,
-  characterSetName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CharacterSetName ?? null,
-  copyTagsToSnapshot: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CopyTagsToSnapshot ?? null,
-  dbClusterIdentifier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBClusterIdentifier ?? null,
-  dbInstanceClass: (dbi: DBInstance, i: IndexedAWS) => DBInstanceClassMapper.fromAWS(dbi.DBInstanceClass, i),
-  dbName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBName ?? null,
-  dbParameterGroups: (dbi: DBInstance, i: IndexedAWS) =>
+  dbiResourceId: (dbi: DBInstance) => dbi?.DbiResourceId ?? null,
+  dbInstanceIdentifier: (dbi: DBInstance) => dbi?.DBInstanceIdentifier,
+  allocatedStorage: (dbi: DBInstance) => dbi?.AllocatedStorage,
+  autoMinorVersionUpgrade: (dbi: DBInstance) => dbi?.AutoMinorVersionUpgrade ?? null,
+  availabilityZone: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) => {
+    if (dbi?.AvailabilityZone) {
+      const azEntity = await i.getOr(AvailabilityZone, dbi.AvailabilityZone, awsClient.getAvailabilityZoneByName.bind(awsClient));
+      return await AvailabilityZoneMapper.fromAWS(azEntity, awsClient, i);
+    } else {
+      return null;
+    }
+  },
+  backupRetentionPeriod: (dbi: DBInstance) => dbi?.BackupRetentionPeriod ?? null,
+  characterSetName: (dbi: DBInstance) => dbi?.CharacterSetName ?? null,
+  copyTagsToSnapshot: (dbi: DBInstance) => dbi?.CopyTagsToSnapshot ?? null,
+  dbClusterIdentifier: (dbi: DBInstance) => dbi?.DBClusterIdentifier ?? null,
+  dbInstanceClass: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) => await DBInstanceClassMapper.fromAWS(dbi.DBInstanceClass, awsClient, i),
+  dbName: (dbi: DBInstance) => dbi?.DBName ?? null,
+  dbParameterGroups: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) =>
     dbi?.DBParameterGroups?.length ?
-      dbi.DBParameterGroups.map(pgs => DBParameterGroupStatusMapper.fromAWS(pgs, i))
+      await Promise.all(dbi.DBParameterGroups.map(pgs => DBParameterGroupStatusMapper.fromAWS(pgs, awsClient, i)))
       : [],
-  dbSecurityGroups: (dbi: DBInstance, i: IndexedAWS) =>
+  dbSecurityGroups: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) =>
     dbi?.DBSecurityGroups?.length ?
-      dbi.DBSecurityGroups.map(sgm => DBSecurityGroupMembershipMapper.fromAWS(sgm, i))
+      await Promise.all(dbi.DBSecurityGroups.map(sgm => DBSecurityGroupMembershipMapper.fromAWS(sgm, awsClient, i)))
       : [],
-  deletionProtection: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DeletionProtection ?? null,
-  domainMemberships: (dbi: DBInstance, i: IndexedAWS) =>
+  deletionProtection: (dbi: DBInstance) => dbi?.DeletionProtection ?? null,
+  domainMemberships: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) =>
     dbi.DomainMemberships?.length ?
-      dbi.DomainMemberships.map(dm => DomainMembershipMapper.fromAWS(dm, i))
+      await Promise.all(dbi.DomainMemberships.map(dm => DomainMembershipMapper.fromAWS(dm, awsClient, i)))
       : [],
-  enabledCloudwatchLogsExports: (dbi: DBInstance, i: IndexedAWS) =>
+  enabledCloudwatchLogsExports: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) =>
     dbi?.EnabledCloudwatchLogsExports?.length ?
-      dbi.EnabledCloudwatchLogsExports.map(n => CloudwatchLogsExportMapper.fromAWS(n, i))
+      await Promise.all(dbi.EnabledCloudwatchLogsExports.map(n => CloudwatchLogsExportMapper.fromAWS(n, awsClient, i)))
       : [],
-  enableCustomerOwnedIp: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CustomerOwnedIpEnabled ?? null,
-  enableIAMDatabaseAuthentication: (dbi: DBInstance, _i: IndexedAWS) => dbi?.IAMDatabaseAuthenticationEnabled ?? null,
-  enablePerformanceInsights: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PerformanceInsightsEnabled ?? null,
-  engine: (dbi: DBInstance, i: IndexedAWS) => EngineVersionMapper.fromAWS(i.get(EngineVersion, dbi.EngineVersion), i),
-  iops: (dbi: DBInstance, _i: IndexedAWS) => dbi?.Iops ?? null,
-  kmsKeyId: (dbi: DBInstance, _i: IndexedAWS) => dbi?.KmsKeyId ?? null,
-  licenseModel: (dbi: DBInstance, _i: IndexedAWS) => dbi?.LicenseModel ?? null,
-  masterUsername: (dbi: DBInstance, _i: IndexedAWS) => dbi?.MasterUsername ?? null,
-  masterUserPassword: (_dbi: DBInstance, _i: IndexedAWS) => null,
-  maxAllocatedStorage: (dbi: DBInstance, _i: IndexedAWS) => dbi?.MaxAllocatedStorage ?? null,
-  monitoringInterval: (dbi: DBInstance, _i: IndexedAWS) => dbi?.MonitoringInterval ?? null,
-  monitoringRoleArn: (dbi: DBInstance, _i: IndexedAWS) => dbi?.MonitoringRoleArn ?? null,
-  multiAZ: (dbi: DBInstance, _i: IndexedAWS) => dbi?.MultiAZ ?? null,
-  ncharCharacterSetName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.NcharCharacterSetName ?? null,
-  optionGroupMemberships: (dbi: DBInstance, i: IndexedAWS) =>
+  enableCustomerOwnedIp: (dbi: DBInstance) => dbi?.CustomerOwnedIpEnabled ?? null,
+  enableIAMDatabaseAuthentication: (dbi: DBInstance) => dbi?.IAMDatabaseAuthenticationEnabled ?? null,
+  enablePerformanceInsights: (dbi: DBInstance) => dbi?.PerformanceInsightsEnabled ?? null,
+  engine: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) => {
+    const engineEntity = await i.getOr(EngineVersion, dbi.EngineVersion!, awsClient.getEngineVersion.bind(awsClient));
+    return EngineVersionMapper.fromAWS(engineEntity, awsClient, i)
+  },
+  iops: (dbi: DBInstance) => dbi?.Iops ?? null,
+  kmsKeyId: (dbi: DBInstance) => dbi?.KmsKeyId ?? null,
+  licenseModel: (dbi: DBInstance) => dbi?.LicenseModel ?? null,
+  masterUsername: (dbi: DBInstance) => dbi?.MasterUsername ?? null,
+  masterUserPassword: (_dbi: DBInstance) => null,
+  maxAllocatedStorage: (dbi: DBInstance) => dbi?.MaxAllocatedStorage ?? null,
+  monitoringInterval: (dbi: DBInstance) => dbi?.MonitoringInterval ?? null,
+  monitoringRoleArn: (dbi: DBInstance) => dbi?.MonitoringRoleArn ?? null,
+  multiAZ: (dbi: DBInstance) => dbi?.MultiAZ ?? null,
+  ncharCharacterSetName: (dbi: DBInstance) => dbi?.NcharCharacterSetName ?? null,
+  optionGroupMemberships: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) =>
     dbi?.OptionGroupMemberships?.length ?
-      dbi.OptionGroupMemberships.map(og => OptionGroupMembershipMapper.fromAWS(og, i))
+      await Promise.all(dbi.OptionGroupMemberships.map(og => OptionGroupMembershipMapper.fromAWS(og, awsClient, i)))
       : [],
-  performanceInsightsKMSKeyId: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PerformanceInsightsKMSKeyId ?? null,
-  performanceInsightsRetentionPeriod: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PerformanceInsightsRetentionPeriod ?? null,
-  port: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DbInstancePort ?? null,
-  preferredBackupWindow: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PreferredBackupWindow ?? null,
-  preferredMaintenanceWindow: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PreferredMaintenanceWindow ?? null,
-  processorFeatures: (dbi: DBInstance, i: IndexedAWS) =>
+  performanceInsightsKMSKeyId: (dbi: DBInstance) => dbi?.PerformanceInsightsKMSKeyId ?? null,
+  performanceInsightsRetentionPeriod: (dbi: DBInstance) => dbi?.PerformanceInsightsRetentionPeriod ?? null,
+  port: (dbi: DBInstance) => dbi?.DbInstancePort ?? null,
+  preferredBackupWindow: (dbi: DBInstance) => dbi?.PreferredBackupWindow ?? null,
+  preferredMaintenanceWindow: (dbi: DBInstance) => dbi?.PreferredMaintenanceWindow ?? null,
+  processorFeatures: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) =>
     dbi?.ProcessorFeatures?.length ?
-      dbi.ProcessorFeatures.map(pf => ProcessorFeatureMapper.fromAWS(pf, i))
+      await Promise.all(dbi.ProcessorFeatures.map(pf => ProcessorFeatureMapper.fromAWS(pf, awsClient, i)))
       : [],
-  promotionTier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PromotionTier ?? null,
-  publiclyAccessible: (dbi: DBInstance, _i: IndexedAWS) => dbi?.PubliclyAccessible ?? null,
-  storageEncrypted: (dbi: DBInstance, _i: IndexedAWS) => dbi?.StorageEncrypted ?? null,
-  storageType: (dbi: DBInstance, _i: IndexedAWS) => dbi?.StorageType ?? null,
-  tags: (dbi: DBInstance, i: IndexedAWS) => dbi?.TagList?.length ?
-    dbi.TagList.map(tag => TagMapper.fromAWS(tag, i)) :
-    [],
-  tdeCredentialArn: (dbi: DBInstance, _i: IndexedAWS) => dbi?.TdeCredentialArn ?? null,
-  tdeCredentialPassword: (_dbi: DBInstance, _i: IndexedAWS) => null,
-  timezone: (dbi: DBInstance, _i: IndexedAWS) => dbi?.Timezone ?? null,
-  vpcSecurityGroups: (dbi: DBInstance, i: IndexedAWS) =>
+  promotionTier: (dbi: DBInstance) => dbi?.PromotionTier ?? null,
+  publiclyAccessible: (dbi: DBInstance) => dbi?.PubliclyAccessible ?? null,
+  storageEncrypted: (dbi: DBInstance) => dbi?.StorageEncrypted ?? null,
+  storageType: (dbi: DBInstance) => dbi?.StorageType ?? null,
+  tags: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) => dbi?.TagList?.length ?
+    await Promise.all(dbi.TagList.map(tag => TagMapper.fromAWS(tag, awsClient, i)))
+    : [],
+  tdeCredentialArn: (dbi: DBInstance) => dbi?.TdeCredentialArn ?? null,
+  tdeCredentialPassword: (_dbi: DBInstance) => null,
+  timezone: (dbi: DBInstance) => dbi?.Timezone ?? null,
+  vpcSecurityGroups: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) =>
     dbi?.VpcSecurityGroups?.length ?
-      dbi.VpcSecurityGroups.map(vpcsgm => SecurityGroupMembershipMapper.fromAWS(vpcsgm, i))
+      await Promise.all(dbi.VpcSecurityGroups.map(vpcsgm => SecurityGroupMembershipMapper.fromAWS(vpcsgm, awsClient, i)))
       : [],
-  dbInstanceStatus: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBInstanceStatus ?? null,
-  automaticRestartTime: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AutomaticRestartTime ?? null,
-  endpoint: (dbi: DBInstance, i: IndexedAWS) => dbi?.Endpoint ? EndpointMapper.fromAWS(dbi.Endpoint, i) : null,
-  instanceCreateTime: (dbi: DBInstance, _i: IndexedAWS) => dbi?.InstanceCreateTime ?? null,
-  dbSubnetGroup: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBSubnetGroup?.DBSubnetGroupArn ?? null,
-  latestRestorableTime: (dbi: DBInstance, _i: IndexedAWS) => dbi?.LatestRestorableTime ?? null,
-  secondaryAvailabilityZone: (dbi: DBInstance, i: IndexedAWS) =>
-    dbi?.SecondaryAvailabilityZone ?
-      AvailabilityZoneMapper.fromAWS(i.get(AvailabilityZone, dbi.SecondaryAvailabilityZone), i)
-      : null,
-  caCertificateIdentifier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.CACertificateIdentifier ?? null,
-  dbInstanceArn: (dbi: DBInstance, _i: IndexedAWS) => dbi?.DBInstanceArn ?? null,
-  associatedRoles: (_dbi: DBInstance, _i: IndexedAWS) => null,
-  listenerEndpoint: (dbi: DBInstance, i: IndexedAWS) => dbi?.ListenerEndpoint ? EndpointMapper.fromAWS(dbi.ListenerEndpoint, i) : null,
-  awsBackupRecoveryPointArn: (dbi: DBInstance, _i: IndexedAWS) => dbi?.AwsBackupRecoveryPointArn ?? null,
-  activityStreamStatus: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamStatus ?? null,
-  activityStreamMode: (dbi: DBInstance, i: IndexedAWS) => dbi.ActivityStreamMode ? ActivityStreamModeMapper.fromAWS(dbi.ActivityStreamMode, i) : null,
-  activityStreamKmsKeyId: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamKmsKeyId ?? null,
-  activityStreamKinesisStreamName: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamKinesisStreamName ?? null,
-  activityStreamEngineNativeAuditFieldsIncluded: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ActivityStreamEngineNativeAuditFieldsIncluded ?? null,
-  readReplicaSourceDBInstanceIdentifier: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ReadReplicaSourceDBInstanceIdentifier ?? null,
-  readReplicaDBInstanceIdentifiers: (_dbi: DBInstance, _i: IndexedAWS) => null,
-  readReplicaDBClusterIdentifiers: (_dbi: DBInstance, _i: IndexedAWS) => null,
-  replicaMode: (dbi: DBInstance, _i: IndexedAWS) => dbi?.ReplicaMode ?? null,
-  statusInfos: (_dbi: DBInstance, _i: IndexedAWS) => null,
-  dbInstanceAutomatedBackupsReplications: (_dbi: DBInstance, _i: IndexedAWS) => null,
-
+  dbInstanceStatus: (dbi: DBInstance) => dbi?.DBInstanceStatus ?? null,
+  automaticRestartTime: (dbi: DBInstance) => dbi?.AutomaticRestartTime ?? null,
+  endpoint: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) => dbi?.Endpoint ? await EndpointMapper.fromAWS(dbi.Endpoint, awsClient, i) : null,
+  instanceCreateTime: (dbi: DBInstance) => dbi?.InstanceCreateTime ?? null,
+  dbSubnetGroup: (dbi: DBInstance) => dbi?.DBSubnetGroup?.DBSubnetGroupArn ?? null,
+  latestRestorableTime: (dbi: DBInstance) => dbi?.LatestRestorableTime ?? null,
+  secondaryAvailabilityZone: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) => {
+    if (dbi?.SecondaryAvailabilityZone) {
+      const azEntity = await i.getOr(AvailabilityZone, dbi.SecondaryAvailabilityZone, awsClient.getAvailabilityZoneByName.bind(awsClient));
+      return await AvailabilityZoneMapper.fromAWS(azEntity, awsClient, i);
+    } else {
+      return null;
+    }
+  },
+  caCertificateIdentifier: (dbi: DBInstance) => dbi?.CACertificateIdentifier ?? null,
+  dbInstanceArn: (dbi: DBInstance) => dbi?.DBInstanceArn ?? null,
+  associatedRoles: (_dbi: DBInstance) => null,
+  listenerEndpoint: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) => dbi?.ListenerEndpoint ?
+    await EndpointMapper.fromAWS(dbi.ListenerEndpoint, awsClient, i) : null,
+  awsBackupRecoveryPointArn: (dbi: DBInstance) => dbi?.AwsBackupRecoveryPointArn ?? null,
+  activityStreamStatus: (dbi: DBInstance) => dbi?.ActivityStreamStatus ?? null,
+  activityStreamMode: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) => dbi.ActivityStreamMode ?
+    await ActivityStreamModeMapper.fromAWS(dbi.ActivityStreamMode, awsClient, i) : null,
+  activityStreamKmsKeyId: (dbi: DBInstance) => dbi?.ActivityStreamKmsKeyId ?? null,
+  activityStreamKinesisStreamName: (dbi: DBInstance) => dbi?.ActivityStreamKinesisStreamName ?? null,
+  activityStreamEngineNativeAuditFieldsIncluded: (dbi: DBInstance) => dbi?.ActivityStreamEngineNativeAuditFieldsIncluded ?? null,
+  readReplicaSourceDBInstanceIdentifier: (dbi: DBInstance) => dbi?.ReadReplicaSourceDBInstanceIdentifier ?? null,
+  readReplicaDBInstanceIdentifiers: (_dbi: DBInstance) => null,
+  readReplicaDBClusterIdentifiers: (_dbi: DBInstance) => null,
+  replicaMode: (dbi: DBInstance) => dbi?.ReplicaMode ?? null,
+  statusInfos: (_dbi: DBInstance) => null,
+  dbInstanceAutomatedBackupsReplications: (_dbi: DBInstance) => null,
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
@@ -151,7 +163,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
     const newDBInstance = await awsClient.getDBInstance(result.DBInstance?.DBInstanceIdentifier ?? '');
     indexes.set(RDS, newDBInstance?.DBInstanceIdentifier ?? '', newDBInstance);
     // We map this into the same kind of entity as `obj`
-    const newEntity: RDS = RDSMapper.fromAWS(newDBInstance, indexes);
+    const newEntity: RDS = await RDSMapper.fromAWS(newDBInstance, awsClient, indexes);
     // We attach the original object's ID to this new one, indicating the exact record it is
     // replacing in the database
     newEntity.id = obj.id;

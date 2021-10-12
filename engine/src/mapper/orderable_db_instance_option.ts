@@ -1,53 +1,62 @@
-import { OrderableDBInstanceOption as OrderableDBInstanceOptionAWS } from '@aws-sdk/client-rds'
+import { OrderableDBInstanceOption as OrderableDBInstanceOptionAWS, } from '@aws-sdk/client-rds'
 
 import { IndexedAWS, } from '../services/indexed-aws'
-import { EntityMapper, } from './entity';
-import { OrderableDBInstanceOption, } from '../entity/orderable_db_instance_option';
-import { AWS } from '../services/gateways/aws';
-import { AvailabilityZoneMapper, DBInstanceClassMapper, EngineVersionMapper, ProcessorFeatureMapper, SupportedEngineModeMapper } from '.';
-import { AvailabilityZone, EngineVersion } from '../entity';
-import { DepError } from '../services/lazy-dep';
+import { EntityMapper, } from './entity'
+import { OrderableDBInstanceOption, } from '../entity/orderable_db_instance_option'
+import { AWS, } from '../services/gateways/aws'
+import {
+  AvailabilityZoneMapper,
+  DBInstanceClassMapper,
+  EngineVersionMapper,
+  ProcessorFeatureMapper,
+  SupportedEngineModeMapper,
+} from '.'
+import { AvailabilityZone, EngineVersion, } from '../entity'
+import { DepError, } from '../services/lazy-dep'
 
 export const OrderableDBInstanceOptionMapper = new EntityMapper(OrderableDBInstanceOption, {
-  engine: (opt: OrderableDBInstanceOptionAWS, indexes: IndexedAWS) =>
-    EngineVersionMapper.fromAWS(indexes.get(EngineVersion, opt.EngineVersion), indexes),
-  dbInstanceClass: (opt: OrderableDBInstanceOptionAWS, indexes: IndexedAWS) =>
-    DBInstanceClassMapper.fromAWS(opt.DBInstanceClass, indexes),
-  licenseModel: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.LicenseModel ?? null,
-  availabilityZones: (opt: OrderableDBInstanceOptionAWS, indexes: IndexedAWS) =>
+  engine: async (opt: OrderableDBInstanceOptionAWS, awsClient: AWS, indexes: IndexedAWS) =>
+    await EngineVersionMapper.fromAWS(
+      indexes.getOr(EngineVersion, opt.EngineVersion!, awsClient.getEngineVersion.bind(awsClient)), awsClient, indexes),
+  dbInstanceClass: async (opt: OrderableDBInstanceOptionAWS, awsClient: AWS, indexes: IndexedAWS) =>
+    await DBInstanceClassMapper.fromAWS(opt.DBInstanceClass, awsClient, indexes),
+  licenseModel: (opt: OrderableDBInstanceOptionAWS) => opt.LicenseModel ?? null,
+  availabilityZones: async (opt: OrderableDBInstanceOptionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     opt.AvailabilityZones?.length ?
-      opt.AvailabilityZones.map(az => AvailabilityZoneMapper.fromAWS(indexes.get(AvailabilityZone, az.Name), indexes))
-      : [],
-  multiAZCapable: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.MultiAZCapable ?? null,
-  readReplicaCapable: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.ReadReplicaCapable ?? null,
-  supportsStorageEncryption: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.SupportsGlobalDatabases ?? null,
-  storageType: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.StorageType ?? null,
-  supportsIops: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.SupportsIops ?? null,
-  supportsEnhancedMonitoring: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.SupportsEnhancedMonitoring ?? null,
-  supportsIAMDatabaseAuthentication: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.SupportsIAMDatabaseAuthentication ?? null,
-  supportsPerformanceInsights: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.SupportsPerformanceInsights ?? null,
-  minStorageSize: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.MinStorageSize ?? null,
-  maxStorageSize: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.MaxStorageSize ?? null,
-  minIopsPerDbInstance: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.MinIopsPerDbInstance ?? null,
-  maxIopsPerDbInstance: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.MaxIopsPerDbInstance ?? null,
-  minIopsPerGib: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.MinIopsPerGib ?? null,
-  maxIopsPerGib: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.MaxIopsPerGib ?? null,
-  availableProcessorFeatures: (opt: OrderableDBInstanceOptionAWS, indexes: IndexedAWS) =>
+      await Promise.all(opt?.AvailabilityZones?.map(async (az) => {
+        const azEntity = await indexes.getOr(AvailabilityZone, az.Name ?? '', awsClient.getAvailabilityZoneByName.bind(awsClient));
+        return AvailabilityZoneMapper.fromAWS(azEntity, awsClient, indexes);
+      })) : [],
+  multiAZCapable: (opt: OrderableDBInstanceOptionAWS) => opt.MultiAZCapable ?? null,
+  readReplicaCapable: (opt: OrderableDBInstanceOptionAWS) => opt.ReadReplicaCapable ?? null,
+  supportsStorageEncryption: (opt: OrderableDBInstanceOptionAWS) => opt.SupportsGlobalDatabases ?? null,
+  storageType: (opt: OrderableDBInstanceOptionAWS) => opt.StorageType ?? null,
+  supportsIops: (opt: OrderableDBInstanceOptionAWS) => opt.SupportsIops ?? null,
+  supportsEnhancedMonitoring: (opt: OrderableDBInstanceOptionAWS) => opt.SupportsEnhancedMonitoring ?? null,
+  supportsIAMDatabaseAuthentication: (opt: OrderableDBInstanceOptionAWS) => opt.SupportsIAMDatabaseAuthentication ?? null,
+  supportsPerformanceInsights: (opt: OrderableDBInstanceOptionAWS) => opt.SupportsPerformanceInsights ?? null,
+  minStorageSize: (opt: OrderableDBInstanceOptionAWS) => opt.MinStorageSize ?? null,
+  maxStorageSize: (opt: OrderableDBInstanceOptionAWS) => opt.MaxStorageSize ?? null,
+  minIopsPerDbInstance: (opt: OrderableDBInstanceOptionAWS) => opt.MinIopsPerDbInstance ?? null,
+  maxIopsPerDbInstance: (opt: OrderableDBInstanceOptionAWS) => opt.MaxIopsPerDbInstance ?? null,
+  minIopsPerGib: (opt: OrderableDBInstanceOptionAWS) => opt.MinIopsPerGib ?? null,
+  maxIopsPerGib: (opt: OrderableDBInstanceOptionAWS) => opt.MaxIopsPerGib ?? null,
+  availableProcessorFeatures: async (opt: OrderableDBInstanceOptionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     opt.AvailableProcessorFeatures?.length ?
-      opt.AvailableProcessorFeatures.map(pf => ProcessorFeatureMapper.fromAWS(pf, indexes))
+      await Promise.all(opt.AvailableProcessorFeatures.map(pf => ProcessorFeatureMapper.fromAWS(pf, awsClient, indexes)))
       : [],
-  supportedEngineModes: (opt: OrderableDBInstanceOptionAWS, indexes: IndexedAWS) =>
+  supportedEngineModes: async (opt: OrderableDBInstanceOptionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     opt.SupportedEngineModes?.length ?
-      opt.SupportedEngineModes.map(mode => SupportedEngineModeMapper.fromAWS(mode, indexes))
+      await Promise.all(opt.SupportedEngineModes.map(mode => SupportedEngineModeMapper.fromAWS(mode, awsClient, indexes)))
       : [],
-  supportsStorageAutoscaling: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.SupportsStorageAutoscaling ?? null,
-  supportsKerberosAuthentication: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.SupportsKerberosAuthentication ?? null,
-  outpostCapable: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.OutpostCapable ?? null,
-  supportedActivityStreamModes: (opt: OrderableDBInstanceOptionAWS, indexes: IndexedAWS) =>
+  supportsStorageAutoscaling: (opt: OrderableDBInstanceOptionAWS) => opt.SupportsStorageAutoscaling ?? null,
+  supportsKerberosAuthentication: (opt: OrderableDBInstanceOptionAWS) => opt.SupportsKerberosAuthentication ?? null,
+  outpostCapable: (opt: OrderableDBInstanceOptionAWS) => opt.OutpostCapable ?? null,
+  supportedActivityStreamModes: async (opt: OrderableDBInstanceOptionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     opt.SupportedActivityStreamModes?.length ?
-      opt.SupportedActivityStreamModes.map(mode => SupportedEngineModeMapper.fromAWS(mode, indexes))
+      await Promise.all(opt.SupportedActivityStreamModes.map(mode => SupportedEngineModeMapper.fromAWS(mode, awsClient, indexes)))
       : [],
-  supportsGlobalDatabases: (opt: OrderableDBInstanceOptionAWS, _indexes: IndexedAWS) => opt.SupportsGlobalDatabases ?? null,
+  supportsGlobalDatabases: (opt: OrderableDBInstanceOptionAWS) => opt.SupportsGlobalDatabases ?? null,
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();

@@ -1,10 +1,10 @@
 import { AWS, } from '../services/gateways/aws'
-import { Timezone, } from '../entity/timezone';
-import { EntityMapper, } from './entity';
+import { Timezone, } from '../entity/timezone'
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 
 export const TimezoneMapper = new EntityMapper(Timezone, {
-  name: (name: string, _indexes: IndexedAWS) => name,
+  name: (name: string) => name,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => {
     return

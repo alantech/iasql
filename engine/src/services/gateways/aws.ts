@@ -5,7 +5,6 @@ import {
   DeleteSecurityGroupCommand,
   DeleteSecurityGroupRequest,
   DescribeInstanceTypesCommand,
-  DescribeInstanceTypesRequest,
   DescribeAvailabilityZonesCommand,
   DescribeImagesCommand,
   DescribeInstancesCommand,
@@ -14,7 +13,6 @@ import {
   EC2Client,
   RunInstancesCommand,
   TerminateInstancesCommand,
-  TerminateInstancesRequest,
   paginateDescribeInstanceTypes,
   paginateDescribeInstances,
   paginateDescribeSecurityGroupRules,
@@ -31,6 +29,8 @@ import {
   paginateDescribeDBEngineVersions,
   paginateDescribeOrderableDBInstanceOptions,
   paginateDescribeDBSecurityGroups,
+  DescribeDBSecurityGroupsCommand,
+  DescribeDBEngineVersionsCommand,
 } from '@aws-sdk/client-rds'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import { inspect } from 'util'
@@ -198,6 +198,12 @@ export class AWS {
     return { AvailabilityZones: availabilityZones }
   }
 
+  async getAvailabilityZoneByName(azName: string) {
+    return (await this.ec2client.send(new DescribeAvailabilityZonesCommand({
+      ZoneNames: [ azName ],
+    })))?.AvailabilityZones?.[0];
+  }
+
   async getSecurityGroups() {
     const securityGroups = [];
     const paginator = paginateDescribeSecurityGroups({
@@ -309,6 +315,12 @@ export class AWS {
     };
   }
 
+  async getEngineVersion(version: string) {
+    return (await this.rdsClient.send(new DescribeDBEngineVersionsCommand({
+      EngineVersion: version,
+    })))?.DBEngineVersions?.[0];
+  }
+
   async getDBSecurityGroups() {
     const dbSecurityGroups = [];
     const paginator = paginateDescribeDBSecurityGroups({
@@ -321,6 +333,12 @@ export class AWS {
     return {
       DBSecurityGroups: dbSecurityGroups,
     };
+  }
+
+  async getDBSecurityGroup(sgName: string) {
+    return (await this.rdsClient.send(new DescribeDBSecurityGroupsCommand({
+      DBSecurityGroupName: sgName,
+    })))?.DBSecurityGroups?.[0];
   }
 
 }

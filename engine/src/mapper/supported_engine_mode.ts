@@ -1,10 +1,10 @@
 import { AWS, } from '../services/gateways/aws'
-import { SupportedEngineMode, } from '../entity/supported_engine_mode';
-import { EntityMapper, } from './entity';
+import { SupportedEngineMode, } from '../entity/supported_engine_mode'
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 
 export const SupportedEngineModeMapper = new EntityMapper(SupportedEngineMode, {
-  mode: (mode: string, _indexes: IndexedAWS) => mode,
+  mode: (mode: string) => mode,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => {
     return

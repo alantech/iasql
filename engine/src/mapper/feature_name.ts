@@ -1,10 +1,10 @@
 import { AWS, } from '../services/gateways/aws'
-import { FeatureName, } from '../entity/feature_name';
-import { EntityMapper, } from './entity';
+import { FeatureName, } from '../entity/feature_name'
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 
 export const FeatureNameMapper = new EntityMapper(FeatureName, {
-  name: (name: string, _indexes: IndexedAWS) => name,
+  name: (name: string) => name,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => {
     return

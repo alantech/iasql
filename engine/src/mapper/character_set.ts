@@ -1,13 +1,13 @@
-import { CharacterSet as CharacterSetAWS } from '@aws-sdk/client-rds'
+import { CharacterSet as CharacterSetAWS, } from '@aws-sdk/client-rds'
 
 import { AWS, } from '../services/gateways/aws'
-import { CharacterSet, } from '../entity/character_set';
-import { EntityMapper, } from './entity';
+import { CharacterSet, } from '../entity/character_set'
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 
 export const CharacterSetMapper = new EntityMapper(CharacterSet, {
-  characterSetName: (cs: CharacterSetAWS, _indexes: IndexedAWS) => cs.CharacterSetName,
-  characterSetDescription: (cs: CharacterSetAWS, _indexes: IndexedAWS) => cs.CharacterSetDescription ?? null,
+  characterSetName: (cs: CharacterSetAWS) => cs.CharacterSetName,
+  characterSetDescription: (cs: CharacterSetAWS) => cs.CharacterSetDescription ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => {
     return

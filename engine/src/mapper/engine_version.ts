@@ -1,58 +1,58 @@
 import { DBEngineVersion as DBEngineVersionAWS } from '@aws-sdk/client-rds'
 
 import { AWS, } from '../services/gateways/aws'
-import { EngineVersion, } from '../entity/engine_version';
-import { EntityMapper, } from './entity';
+import { EngineVersion, } from '../entity/engine_version'
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { ExportableLogTypeMapper } from './exportable_log_type';
-import { SupportedEngineModeMapper } from './supported_engine_mode';
-import { CharacterSetMapper } from './character_set';
-import { FeatureNameMapper } from './feature_name';
-import { TimezoneMapper } from './timezone';
-import { UpgradeTargetMapper } from '.';
+import { ExportableLogTypeMapper } from './exportable_log_type'
+import { SupportedEngineModeMapper } from './supported_engine_mode'
+import { CharacterSetMapper } from './character_set'
+import { FeatureNameMapper } from './feature_name'
+import { TimezoneMapper } from './timezone'
+import { UpgradeTargetMapper } from '.'
 
 export const EngineVersionMapper: EntityMapper = new EntityMapper(EngineVersion, {
-  engine: (ev: DBEngineVersionAWS, _indexes: IndexedAWS) => ev.Engine,
-  engineVersion: (ev: DBEngineVersionAWS, _indexes: IndexedAWS) => ev.EngineVersion,
-  dbParameterGroupFamily: (ev: DBEngineVersionAWS, _indexes: IndexedAWS) => ev.DBParameterGroupFamily,
-  dbEngineDescription: (ev: DBEngineVersionAWS, _indexes: IndexedAWS) => ev.DBEngineDescription,
-  dbEngineVersionDescription: (ev: DBEngineVersionAWS, _indexes: IndexedAWS) => ev.DBEngineVersionDescription,
-  supportsLogExportsToCloudwatchLogs: (ev: DBEngineVersionAWS, _indexes: IndexedAWS) => ev.SupportsLogExportsToCloudwatchLogs,
-  supportsReadReplica: (ev: DBEngineVersionAWS, _indexes: IndexedAWS) => ev.SupportsReadReplica,
-  status: (ev: DBEngineVersionAWS, _indexes: IndexedAWS) => ev.Status,
-  supportsParallelQuery: (ev: DBEngineVersionAWS, _indexes: IndexedAWS) => ev.SupportsParallelQuery,
-  supportsGlobalDatabases: (ev: DBEngineVersionAWS, _indexes: IndexedAWS) => ev.SupportsGlobalDatabases,
-  validUpgradeTargets: (ev: DBEngineVersionAWS, indexes: IndexedAWS) =>
+  engine: (ev: DBEngineVersionAWS) => ev.Engine,
+  engineVersion: (ev: DBEngineVersionAWS) => ev.EngineVersion,
+  dbParameterGroupFamily: (ev: DBEngineVersionAWS) => ev.DBParameterGroupFamily,
+  dbEngineDescription: (ev: DBEngineVersionAWS) => ev.DBEngineDescription,
+  dbEngineVersionDescription: (ev: DBEngineVersionAWS) => ev.DBEngineVersionDescription,
+  supportsLogExportsToCloudwatchLogs: (ev: DBEngineVersionAWS) => ev.SupportsLogExportsToCloudwatchLogs,
+  supportsReadReplica: (ev: DBEngineVersionAWS) => ev.SupportsReadReplica,
+  status: (ev: DBEngineVersionAWS) => ev.Status,
+  supportsParallelQuery: (ev: DBEngineVersionAWS) => ev.SupportsParallelQuery,
+  supportsGlobalDatabases: (ev: DBEngineVersionAWS) => ev.SupportsGlobalDatabases,
+  validUpgradeTargets: async (ev: DBEngineVersionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     ev.ValidUpgradeTarget?.length ?
-      ev.ValidUpgradeTarget.map(vt => UpgradeTargetMapper.fromAWS(vt, indexes))
+      await Promise.all(ev.ValidUpgradeTarget.map(vt => UpgradeTargetMapper.fromAWS(vt, awsClient, indexes)))
       : [],
-  exportableLogTypes: (ev: DBEngineVersionAWS, indexes: IndexedAWS) =>
+  exportableLogTypes: async (ev: DBEngineVersionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     ev.ExportableLogTypes?.length ?
-      ev.ExportableLogTypes.map(type => ExportableLogTypeMapper.fromAWS(type, indexes))
+      await Promise.all(ev.ExportableLogTypes.map(type => ExportableLogTypeMapper.fromAWS(type, awsClient, indexes)))
       : [],
-  supportedEngineModes: (ev: DBEngineVersionAWS, indexes: IndexedAWS) =>
+  supportedEngineModes: async (ev: DBEngineVersionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     ev.SupportedEngineModes?.length ?
-      ev.SupportedEngineModes.map(mode => SupportedEngineModeMapper.fromAWS(mode, indexes))
+      await Promise.all(ev.SupportedEngineModes.map(mode => SupportedEngineModeMapper.fromAWS(mode, awsClient, indexes)))
       : [],
-  defaultCharacterSet: (ev: DBEngineVersionAWS, indexes: IndexedAWS) =>
+  defaultCharacterSet: async (ev: DBEngineVersionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     ev.DefaultCharacterSet ?
-      CharacterSetMapper.fromAWS(ev.DefaultCharacterSet, indexes)
+      await CharacterSetMapper.fromAWS(ev.DefaultCharacterSet, awsClient, indexes)
       : null,
-  supportedCharacterSets: (ev: DBEngineVersionAWS, indexes: IndexedAWS) =>
+  supportedCharacterSets: async (ev: DBEngineVersionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     ev.SupportedCharacterSets?.length ?
-      ev.SupportedCharacterSets.map(chs => CharacterSetMapper.fromAWS(chs, indexes))
+      await Promise.all(ev.SupportedCharacterSets.map(chs => CharacterSetMapper.fromAWS(chs, awsClient, indexes)))
       : [],
-  supportedNcharCharacterSets: (ev: DBEngineVersionAWS, indexes: IndexedAWS) =>
+  supportedNcharCharacterSets: async (ev: DBEngineVersionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     ev.SupportedNcharCharacterSets?.length ?
-      ev.SupportedNcharCharacterSets.map(chs => CharacterSetMapper.fromAWS(chs, indexes))
+      await Promise.all(ev.SupportedNcharCharacterSets.map(chs => CharacterSetMapper.fromAWS(chs, awsClient, indexes)))
       : [],
-  supportedFeatureNames: (ev: DBEngineVersionAWS, indexes: IndexedAWS) =>
+  supportedFeatureNames: async (ev: DBEngineVersionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     ev.SupportedFeatureNames?.length ?
-      ev.SupportedFeatureNames.map(name => FeatureNameMapper.fromAWS(name, indexes))
+      await Promise.all(ev.SupportedFeatureNames.map(name => FeatureNameMapper.fromAWS(name, awsClient, indexes)))
       : [],
-  supportedTimezones: (ev: DBEngineVersionAWS, indexes: IndexedAWS) =>
+  supportedTimezones: async (ev: DBEngineVersionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     ev.SupportedTimezones?.length ?
-      ev.SupportedTimezones.map(tz => TimezoneMapper.fromAWS(tz, indexes))
+      await Promise.all(ev.SupportedTimezones.map(tz => TimezoneMapper.fromAWS(tz, awsClient, indexes)))
       : [],
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {

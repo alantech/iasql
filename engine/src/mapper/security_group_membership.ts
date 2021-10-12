@@ -9,8 +9,9 @@ import { SecurityGroupMembership, SecurityGroup, } from '../entity'
 import { SecurityGroupMapper, } from '.'
 
 export const SecurityGroupMembershipMapper: EntityMapper = new EntityMapper(SecurityGroupMembership, {
-  securityGroup: (sgm: VpcSecurityGroupMembership, i: IndexedAWS) => SecurityGroupMapper.fromAWS(i.get(SecurityGroup, sgm.VpcSecurityGroupId), i),
-  status: (sgm: VpcSecurityGroupMembership, _i: IndexedAWS) => sgm?.Status ?? null,
+  securityGroup: async (sgm: VpcSecurityGroupMembership, awsClient: AWS, i: IndexedAWS) => await SecurityGroupMapper.fromAWS(
+    i.getOr(SecurityGroup, sgm.VpcSecurityGroupId!, awsClient.getSecurityGroup.bind(awsClient)), awsClient, i),
+  status: (sgm: VpcSecurityGroupMembership) => sgm?.Status ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
   createAWS: async (_obj: SecurityGroup, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },
