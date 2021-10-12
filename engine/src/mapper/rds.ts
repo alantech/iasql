@@ -137,8 +137,6 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
-    const engineVersions = indexes.get(EngineVersion);
-    if (!engineVersions) throw new DepError('EnginesVersions must be loaded first');
     const dbInstances = (await awsClient.getDBInstances())?.DBInstances ?? [];
     indexes.setAll(RDS, dbInstances, 'DBInstanceIdentifier');
     const t2 = Date.now();
@@ -159,11 +157,11 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
       // TODO: complete input properties
     });
     // TODO: Handle if it fails (somehow)
-    if (!result.hasOwnProperty('DBInstanceIdentifier')) { // Failure
+    if (!result?.hasOwnProperty('DBInstanceIdentifier')) { // Failure
       throw new Error('what should we do here?');
     }
     // Re-get the inserted security group to get all of the relevant records we care about
-    const newDBInstance = await awsClient.getDBInstance(result.DBInstance?.DBInstanceIdentifier ?? '');
+    const newDBInstance = await awsClient.getDBInstance(result?.DBInstanceIdentifier ?? '');
     indexes.set(RDS, newDBInstance?.DBInstanceIdentifier ?? '', newDBInstance);
     // We map this into the same kind of entity as `obj`
     const newEntity: RDS = await RDSMapper.fromAWS(newDBInstance, awsClient, indexes);
