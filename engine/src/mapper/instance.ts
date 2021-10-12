@@ -28,7 +28,7 @@ export const InstanceMapper: EntityMapper = new EntityMapper(Instance, {
   securityGroups: async (instance: InstanceAWS, awsClient: AWS, indexes: IndexedAWS) =>
     instance?.SecurityGroups?.length ?
       await Promise.all(instance?.SecurityGroups?.map(async (sg) => {
-        let sgEntity = await indexes.getOr(SecurityGroup, sg.GroupId ?? '', awsClient.getSecurityGroup.bind(awsClient));
+        const sgEntity = await indexes.getOr(SecurityGroup, sg.GroupId ?? '', awsClient.getSecurityGroup.bind(awsClient));
         return await SecurityGroupMapper.fromAWS(sgEntity, awsClient, indexes);
       })) : [],
   region: async (_instance: InstanceAWS, awsClient: AWS, indexes: IndexedAWS) => {
@@ -53,7 +53,6 @@ export const InstanceMapper: EntityMapper = new EntityMapper(Instance, {
     }
     // TODO: Determine if the following logic really belongs here or not
     const newInstance = await indexes.getOr(Instance, result ?? '', awsClient.getInstance.bind(awsClient));
-    //const newInstance: any = await awsClient.getInstance(result ?? '');
     // We map this into the same kind of entity as `obj`
     const newEntity: Instance = await InstanceMapper.fromAWS(newInstance, awsClient, indexes);
     newEntity.id = obj.id;
