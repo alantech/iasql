@@ -123,7 +123,7 @@ db.get('/create/:db', async (req, res) => {
     console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
-    console.log(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
+    console.log(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}\n${e?.failures ?? ''}`);
     res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
   } finally {
     await conn1?.close();
