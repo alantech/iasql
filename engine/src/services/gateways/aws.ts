@@ -4,6 +4,8 @@ import {
   CreateSecurityGroupRequest,
   DeleteSecurityGroupCommand,
   DeleteSecurityGroupRequest,
+  DescribeInstanceTypesCommand,
+  DescribeInstanceTypesRequest,
   DescribeAvailabilityZonesCommand,
   DescribeImagesCommand,
   DescribeInstancesCommand,
@@ -11,6 +13,8 @@ import {
   DescribeSecurityGroupsCommand,
   EC2Client,
   RunInstancesCommand,
+  TerminateInstancesCommand,
+  TerminateInstancesRequest,
   paginateDescribeInstanceTypes,
   paginateDescribeInstances,
   paginateDescribeSecurityGroupRules,
@@ -128,6 +132,13 @@ export class AWS {
     return (reservations?.Reservations?.map(r => r.Instances?.map(i => i)) ?? []).pop()?.pop();
   }
 
+  async terminateInstance(id: string) {
+    const response = await this.ec2client.send(
+      new TerminateInstancesCommand({ InstanceIds: [id], })
+    );
+    return (response?.TerminatingInstances ?? []).pop();
+  }
+
   async getInstanceTypes() {
     const instanceTypes = [];
     const paginator = paginateDescribeInstanceTypes({
@@ -142,12 +153,32 @@ export class AWS {
     };
   }
 
+  async getInstanceType(instanceType: string) {
+    return (await this.ec2client.send(
+      new DescribeInstanceTypesCommand({
+        InstanceTypes: [ instanceType, ],
+      })
+    ))?.InstanceTypes?.[0];
+  }
+
   async getAMIs() {
-    return await this.ec2client.send(new DescribeImagesCommand({}))
+    return await this.ec2client.send(new DescribeImagesCommand({}));
+  }
+
+  async getAMI(imageId: string) {
+    return (await this.ec2client.send(new DescribeImagesCommand({
+      ImageIds: [ imageId, ],
+    })))?.Images?.[0];
   }
 
   async getRegions() {
-    return await this.ec2client.send(new DescribeRegionsCommand({ AllRegions: true, }))
+    return await this.ec2client.send(new DescribeRegionsCommand({ AllRegions: true, }));
+  }
+
+  async getRegion(regionName: string) {
+    return (await this.ec2client.send(new DescribeRegionsCommand({
+      RegionNames: [ regionName, ],
+    })))?.Regions?.[0];
   }
 
   async getAvailabilityZones(regions: string[]) {

@@ -1,19 +1,19 @@
 import { ProcessorInfo as ProcessorInfoAWS } from '@aws-sdk/client-ec2'
 
+import { AWS, } from '../services/gateways/aws'
+import { CPUArchitectureMapper, } from './cpu_architecture'
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { EntityMapper, } from './entity';
-import { CPUArchitectureMapper } from './cpu_architecture';
-import { ProcessorInfo } from '../entity/processor_info';
-import { AWS } from '../services/gateways/aws';
+import { ProcessorInfo, } from '../entity/processor_info'
 
 export const ProcessorInfoMapper = new EntityMapper(ProcessorInfo, {
-  supportedArchitectures: (processorInfo: ProcessorInfoAWS, indexes: IndexedAWS) =>
+  supportedArchitectures: async (processorInfo: ProcessorInfoAWS, awsClient: AWS, indexes: IndexedAWS) =>
     processorInfo.SupportedArchitectures?.length ?
-      processorInfo.SupportedArchitectures.map(
-        cpuArch => CPUArchitectureMapper.fromAWS(cpuArch, indexes)
-      ) :
+      await Promise.all(processorInfo.SupportedArchitectures.map(
+        cpuArch => CPUArchitectureMapper.fromAWS(cpuArch, awsClient, indexes)
+      )) :
       [],
-  sustainedClockSpeedInGHz: (processorInfo: ProcessorInfoAWS, _indexes: IndexedAWS) => processorInfo?.SustainedClockSpeedInGhz ?? null,
+  sustainedClockSpeedInGHz: (processorInfo: ProcessorInfoAWS) => processorInfo?.SustainedClockSpeedInGhz ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
   createAWS: async (_obj: any, _awsClient: AWS, _indexes: IndexedAWS) => { throw new Error('tbd') },

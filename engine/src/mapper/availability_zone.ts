@@ -9,22 +9,26 @@ import { IndexedAWS, } from '../services/indexed-aws'
 import { Region, } from '../entity'
 
 export const AvailabilityZoneMapper: EntityMapper = new EntityMapper(AvailabilityZone, {
-  state: (availabilityZone: AvailabilityZoneAWS, _indexes: IndexedAWS) => availabilityZone?.State,
-  optInStatus: (availabilityZone: AvailabilityZoneAWS, _indexes: IndexedAWS) => availabilityZone?.OptInStatus,
-  messages: (availabilityZone: AvailabilityZoneAWS, indexes: IndexedAWS) =>
+  state: (availabilityZone: AvailabilityZoneAWS) => availabilityZone?.State,
+  optInStatus: (availabilityZone: AvailabilityZoneAWS) => availabilityZone?.OptInStatus,
+  messages: async (availabilityZone: AvailabilityZoneAWS, awsClient: AWS, indexes: IndexedAWS) =>
     availabilityZone?.Messages?.length ?
-      availabilityZone.Messages.map(m => AvailabilityZoneMessageMapper.fromAWS({ message: m, availabilityZone }, indexes))
+      await Promise.all(availabilityZone.Messages.map(m => AvailabilityZoneMessageMapper.fromAWS({ message: m, availabilityZone }, awsClient, indexes)))
       : [],
-  region: (availabilityZone: AvailabilityZoneAWS, indexes: IndexedAWS) => RegionMapper.fromAWS(indexes.get(Region, availabilityZone?.RegionName), indexes),
-  zoneName: (availabilityZone: AvailabilityZoneAWS, _indexes: IndexedAWS) => availabilityZone?.ZoneName,
-  zoneId: (availabilityZone: AvailabilityZoneAWS, _indexes: IndexedAWS) => availabilityZone?.ZoneId,
-  groupName: (availabilityZone: AvailabilityZoneAWS, _indexes: IndexedAWS) => availabilityZone?.GroupName,
-  networkBorderGroup: (availabilityZone: AvailabilityZoneAWS, _indexes: IndexedAWS) => availabilityZone?.NetworkBorderGroup,
-  parentZone: (availabilityZone: AvailabilityZoneAWS, indexes: IndexedAWS) => {
+  region: async (
+    availabilityZone: AvailabilityZoneAWS,
+    awsClient: AWS,
+    indexes: IndexedAWS,
+  ) => await RegionMapper.fromAWS(indexes.get(Region, availabilityZone?.RegionName), awsClient, indexes),
+  zoneName: (availabilityZone: AvailabilityZoneAWS) => availabilityZone?.ZoneName,
+  zoneId: (availabilityZone: AvailabilityZoneAWS) => availabilityZone?.ZoneId,
+  groupName: (availabilityZone: AvailabilityZoneAWS) => availabilityZone?.GroupName,
+  networkBorderGroup: (availabilityZone: AvailabilityZoneAWS) => availabilityZone?.NetworkBorderGroup,
+  parentZone: async (availabilityZone: AvailabilityZoneAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (availabilityZone?.ParentZoneName) {
       const parentZone = indexes.get(AvailabilityZone, availabilityZone.ParentZoneName);
       if (parentZone) {
-        return AvailabilityZoneMapper.fromAWS(parentZone, indexes)
+        return await AvailabilityZoneMapper.fromAWS(parentZone, awsClient, indexes);
       }
     }
     return null;
@@ -37,7 +41,7 @@ export const AvailabilityZoneMapper: EntityMapper = new EntityMapper(Availabilit
     if (!regions) throw new DepError('Regions must be loaded first');
     const optInRegions = Object.entries(regions ?? {})
       .filter(([_, v]) => (v as RegionAWS).OptInStatus !== 'not-opted-in')
-      .map(([k,_]) => k);
+      .map(([k, _]) => k);
     const availabilityZones = (await awsClient.getAvailabilityZones(optInRegions))?.AvailabilityZones ?? [];
     indexes.setAll(AvailabilityZone, availabilityZones, 'ZoneName');
     const t2 = Date.now();

@@ -56,14 +56,17 @@ export class InstanceType {
   @Column()
   freeTierEligible: boolean;
 
+  @noDiff
   @ManyToMany(() => UsageClass, { cascade: true, })
   @JoinTable()
   supportedUsageClasses: UsageClass[];
 
+  @noDiff
   @ManyToMany(() => DeviceType, { cascade: true, })
   @JoinTable()
   supportedRootDeviceTypes: DeviceType[];
 
+  @noDiff
   @ManyToMany(() => VirtualizationType, { cascade: true, })
   @JoinTable()
   supportedVirtualizationTypes: VirtualizationType[];
@@ -78,12 +81,14 @@ export class InstanceType {
   })
   hypervisor?: InstanceTypeHypervisor;
 
+  @noDiff
   @ManyToOne(() => ProcessorInfo, { cascade: true })
   @JoinColumn({
     name: 'processor_info_id',
   })
   processorInfo: ProcessorInfo;
 
+  @noDiff
   @ManyToOne(() => VCPUInfo, { cascade: true })
   @JoinColumn({
     name: 'v_cpu_info_id',
@@ -98,42 +103,49 @@ export class InstanceType {
   @Column()
   instanceStorageSupported: boolean;
 
+  @noDiff
   @ManyToOne(() => InstanceStorageInfo, { cascade: true })
   @JoinColumn({
     name: 'instance_storage_info_id',
   })
   instanceStorageInfo: InstanceStorageInfo;
 
+  @noDiff
   @ManyToOne(() => EBSInfo, { cascade: true })
   @JoinColumn({
     name: 'ebs_info_id',
   })
   ebsInfo: EBSInfo;
 
+  @noDiff
   @ManyToOne(() => NetworkInfo, { cascade: true })
   @JoinColumn({
     name: 'network_info_id',
   })
   networkInfo: NetworkInfo;
 
+  @noDiff
   @ManyToOne(() => GPUInfo, { cascade: true })
   @JoinColumn({
     name: 'gpu_info_id',
   })
   gpuInfo: GPUInfo;
 
+  @noDiff
   @ManyToOne(() => FPGAInfo, { cascade: true })
   @JoinColumn({
     name: 'fpga_info_id',
   })
   fpgaInfo: FPGAInfo;
 
+  @noDiff
   @ManyToOne(() => PlacementGroupInfo, { cascade: true })
   @JoinColumn({
     name: 'placement_group_info_id',
   })
   placementGroupInfo: PlacementGroupInfo;
 
+  @noDiff
   @ManyToOne(() => InferenceAcceleratorInfo, { cascade: true })
   @JoinColumn({
     name: 'inference_accelerator_info_id',
@@ -152,18 +164,22 @@ export class InstanceType {
   @Column()
   autoRecoverySupported: boolean;
 
+  @noDiff
   @ManyToMany(() => BootMode, { cascade: true, })
   @JoinTable()
   supportedBootModes: BootMode[];
 
+  @noDiff
   @ManyToMany(() => Region, { cascade: true, })
   @JoinTable()
   regions: Region[];
 
+  @noDiff
   @ManyToMany(() => AvailabilityZone)
   @JoinTable()
   availabilityZones: AvailabilityZone[];
 
+  @noDiff
   @OneToMany(() => Instance, i => i.instanceType)
   instances: Instance[];
 }
