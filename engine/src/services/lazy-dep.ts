@@ -18,6 +18,7 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
   // a re-run. The loop continues until either all promises resolve successfully, or there are
   // two runs in a row that fail identically, meaning no forward progress is possible and there
   // was an unrecoverable failure, which causes this function to also fail.
+  const failures = [];
   do {
     console.log('Starting a loop...');
     generatorsSuccess = 0;
@@ -29,6 +30,7 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
         generatorsSuccess++;
         continue;
       }
+      failures.push(results[i]);
       generatorsToRerun.push(generatorsToRun[i]);
     }
     if (generatorsToRun.length === generatorsToRerun.length) break;
@@ -41,6 +43,8 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
   } else {
     throw new DepError('Forward progress halted. Some promises never resolved', {
       generatorsToRun,
+      generatorsSource: generatorsToRun.map(g => g.toString()),
+      failures,
     });
   }
 }

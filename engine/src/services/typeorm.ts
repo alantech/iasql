@@ -35,8 +35,8 @@ export class TypeormWrapper {
     await this.connection.close();
   }
 
-  async find(entity: EntityTarget<any>): Promise<any> {
-    return await this.connection.manager.getRepository(entity).find();
+  async find(entity: EntityTarget<any>, options?: any): Promise<any> {
+    return await this.connection.manager.getRepository(entity).find(options);
   }
 
   async query(query: string): Promise<any> {
