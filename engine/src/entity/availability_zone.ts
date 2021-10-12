@@ -49,7 +49,10 @@ export class AvailabilityZone {
   })
   optInStatus: AvailabilityZoneOptInStatus;
 
-  @OneToMany(() => AvailabilityZoneMessage, message => message.availabilityZone, { cascade: true, })
+  @OneToMany(
+    () => AvailabilityZoneMessage,
+    message => message.availabilityZone,
+    { cascade: true, eager: true, })
   messages: AvailabilityZoneMessage[];
 
   @noDiff
