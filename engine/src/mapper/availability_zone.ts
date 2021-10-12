@@ -19,7 +19,10 @@ export const AvailabilityZoneMapper: EntityMapper = new EntityMapper(Availabilit
     availabilityZone: AvailabilityZoneAWS,
     awsClient: AWS,
     indexes: IndexedAWS,
-  ) => await RegionMapper.fromAWS(indexes.get(Region, availabilityZone?.RegionName), awsClient, indexes),
+  ) => {
+    const regionEntity = await indexes.getOr(Region, availabilityZone?.RegionName!, awsClient.getRegion.bind(awsClient));
+    return await RegionMapper.fromAWS(regionEntity, awsClient, indexes)
+  },
   zoneName: (availabilityZone: AvailabilityZoneAWS) => availabilityZone?.ZoneName,
   zoneId: (availabilityZone: AvailabilityZoneAWS) => availabilityZone?.ZoneId,
   groupName: (availabilityZone: AvailabilityZoneAWS) => availabilityZone?.GroupName,
