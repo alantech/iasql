@@ -263,7 +263,7 @@ export class AWS {
       {
         client: this.rdsClient,
         // all in seconds
-        maxWaitTime: 220,
+        maxWaitTime: 600,
         minDelay: 1,
         maxDelay: 4,
       },
