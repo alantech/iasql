@@ -18,19 +18,16 @@ jobs:
         curl \
         --request PUT \
         --url 'https://iasql.us.auth0.com/api/v2/prompts/login/custom-text/en' \
-        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}' \
+        --header 'authorization: Bearer ${{ secrets.A0_MANAGEMENT_API_TOKEN }}' \
         --header 'content-type: application/json' \
         --data '{
           "login": {
             "title": "Login to IaSQL",
             "description": " ",
-            "signupActionLinkText": " ",
-            "signupActionText": " "
+            "signupActionText": "Need an IaSQL account?",
+            "signupActionLinkText": "Sign up"
           }
         }'
-      # once we launch show signup again
-      # "signupActionLinkText": "Sign up",
-      # "signupActionText": "Don't have an account?",
 
   a0-signup-prompt:
     runs-on: ubuntu-latest
@@ -40,7 +37,7 @@ jobs:
         curl \
         --request PUT \
         --url 'https://iasql.us.auth0.com/api/v2/prompts/signup/custom-text/en' \
-        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}' \
+        --header 'authorization: Bearer ${{ secrets.A0_MANAGEMENT_API_TOKEN }}' \
         --header 'content-type: application/json' \
         --data '{
           "signup": {
@@ -57,7 +54,7 @@ jobs:
         curl \
         --request PATCH \
         --url 'https://iasql.us.auth0.com/api/v2/branding' \
-        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}' \
+        --header 'authorization: Bearer ${{ secrets.A0_MANAGEMENT_API_TOKEN }}' \
         --header 'content-type: application/json' \
         --data '{
           "colors": {
@@ -67,6 +64,27 @@ jobs:
           "logo_url": "https://beta.iasql.com/img/logo.svg"
         }'
   
+  a0-access-control:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Update IaSQL client app configuration
+      run: |
+        curl \
+        --request PATCH \
+        --url 'https://iasql.us.auth0.com/api/v2/clients/OLQAngfr1LnenTt6wmQOYKmzx1c1dSxg' \
+        --header 'authorization: Bearer ${{ secrets.A0_MANAGEMENT_API_TOKEN }}' \
+        --header 'content-type: application/json' \
+        --data '{
+            "callbacks": [
+              "http://localhost:3000/dashboard",
+              "https://beta.iasql.com/dashboard"
+            ],
+            "allowed_logout_urls": [
+              "http://localhost:3000",
+              "https://*.iasql.com"
+            ]
+        }'
+
   a0-ui-template:
     runs-on: ubuntu-latest
     steps:
@@ -75,7 +93,7 @@ jobs:
         curl \
         --request PATCH \
         --url 'https://iasql.us.auth0.com/api/v2/branding/templates/universal-login' \
-        --header 'authorization: Bearer ${{ secrets.AUTH0_TOKEN }}' \
+        --header 'authorization: Bearer ${{ secrets.A0_MANAGEMENT_API_TOKEN }}' \
         --header 'content-type: application/html' \
         --data '<!DOCTYPE html>
           <html>
