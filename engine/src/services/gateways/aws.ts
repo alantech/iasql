@@ -156,7 +156,7 @@ export class AWS {
   async getInstanceType(instanceType: string) {
     return (await this.ec2client.send(
       new DescribeInstanceTypesCommand({
-        InstanceTypes: [ instanceType, ],
+        InstanceTypes: [instanceType,],
       })
     ))?.InstanceTypes?.[0];
   }
@@ -167,7 +167,7 @@ export class AWS {
 
   async getAMI(imageId: string) {
     return (await this.ec2client.send(new DescribeImagesCommand({
-      ImageIds: [ imageId, ],
+      ImageIds: [imageId,],
     })))?.Images?.[0];
   }
 
@@ -177,7 +177,7 @@ export class AWS {
 
   async getRegion(regionName: string) {
     return (await this.ec2client.send(new DescribeRegionsCommand({
-      RegionNames: [ regionName, ],
+      RegionNames: [regionName,],
     })))?.Regions?.[0];
   }
 
@@ -200,7 +200,7 @@ export class AWS {
 
   async getAvailabilityZoneByName(azName: string) {
     return (await this.ec2client.send(new DescribeAvailabilityZonesCommand({
-      ZoneNames: [ azName ],
+      ZoneNames: [azName],
     })))?.AvailabilityZones?.[0];
   }
 
@@ -252,9 +252,39 @@ export class AWS {
   }
 
   async createDBInstance(instanceParams: CreateDBInstanceCommandInput) {
-    return await this.rdsClient.send(
+    let newDBInstance = (await this.rdsClient.send(
       new CreateDBInstanceCommand(instanceParams),
+    )).DBInstance;
+    const input = new DescribeDBInstancesCommand({
+      DBInstanceIdentifier: instanceParams.DBInstanceIdentifier,
+    });
+    // TODO: should we use the paginator instead?
+    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
+      {
+        client: this.rdsClient,
+        // all in seconds
+        maxWaitTime: 220,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const dbInstance of data?.DBInstances ?? []) {
+            if (dbInstance.DBInstanceStatus !== 'available')
+              return { state: WaiterState.RETRY };
+            newDBInstance = dbInstance;
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
     );
+    return newDBInstance;
   }
 
   async getDBInstance(id: string) {
