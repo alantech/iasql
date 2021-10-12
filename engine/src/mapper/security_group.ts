@@ -9,12 +9,12 @@ import { IndexedAWS, } from '../services/indexed-aws'
 import { SecurityGroup, SecurityGroupRule, } from '../entity'
 
 export const SecurityGroupMapper: EntityMapper = new EntityMapper(SecurityGroup, {
-  description: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.Description,
-  groupName: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.GroupName,
-  ownerId: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.OwnerId,
-  groupId: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.GroupId,
-  vpcId: (sg: SecurityGroupAWS, _i: IndexedAWS) => sg?.VpcId,
-  securityGroupRules: (sg: SecurityGroupAWS, i: IndexedAWS) => Object.values(
+  description: (sg: SecurityGroupAWS) => sg?.Description,
+  groupName: (sg: SecurityGroupAWS) => sg?.GroupName,
+  ownerId: (sg: SecurityGroupAWS) => sg?.OwnerId,
+  groupId: (sg: SecurityGroupAWS) => sg?.GroupId,
+  vpcId: (sg: SecurityGroupAWS) => sg?.VpcId,
+  securityGroupRules: (sg: SecurityGroupAWS, _a: AWS, i: IndexedAWS) => Object.values(
     i.get(SecurityGroupRule) as { [key: string]: SecurityGroupRuleAWS }
   ).filter((sgr: SecurityGroupRuleAWS) => sgr?.GroupId === sg?.GroupId),
 }, {
@@ -41,7 +41,7 @@ export const SecurityGroupMapper: EntityMapper = new EntityMapper(SecurityGroup,
     const newGroup = await awsClient.getSecurityGroup(result.GroupId ?? '');
     indexes.set(SecurityGroup, newGroup?.GroupId ?? '', newGroup);
     // We map this into the same kind of entity as `obj`
-    const newEntity: SecurityGroup = SecurityGroupMapper.fromAWS(newGroup, indexes);
+    const newEntity: SecurityGroup = await SecurityGroupMapper.fromAWS(newGroup, awsClient, indexes);
     // We attach the original object's ID to this new one, indicating the exact record it is
     // replacing in the database
     newEntity.id = obj.id;

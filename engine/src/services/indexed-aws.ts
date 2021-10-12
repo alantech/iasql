@@ -17,10 +17,10 @@ export class IndexedAWS {
     this.index = {};
   }
 
-  toEntityList(mapper: EntityMapper) {
+  async toEntityList(mapper: EntityMapper, awsClient: AWS) {
     const entity = mapper.getEntity();
     const entitiesAws = Object.values(this.get(entity) ?? {});
-    return entitiesAws.map(e => mapper.fromAWS(e, this));
+    return await Promise.all(entitiesAws.map(e => mapper.fromAWS(e, awsClient, this)));
   }
 
   set(entity: Function, key: string, value: any) {
@@ -48,6 +48,13 @@ export class IndexedAWS {
       return this.index[entity.name];
     }
     return this.index;
+  }
+
+  async getOr(entity: Function, key: string, fallback: (key: string) => Promise<any>): Promise<any> {
+    const entityName = entity.name;
+    this.index[entityName] = this.index[entityName] ?? {};
+    this.index[entityName][key] = this.index[entityName][key] ?? await fallback(key);
+    return this.index[entityName][key];
   }
 
   del(entity: Function, key: string) {

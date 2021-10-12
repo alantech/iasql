@@ -1,98 +1,98 @@
 import { InstanceTypeInfo } from '@aws-sdk/client-ec2';
 
+import { AWS, } from '../services/gateways/aws'
+import { BootModeMapper, PlacementGroupInfoMapper, } from '.'
+import { DeviceTypeMapper, } from './device_type'
+import { EBSInfoMapper, } from './ebs_info'
+import { EntityMapper, } from './entity'
+import { FPGAInfoMapper, } from './fpga_info'
+import { GPUInfoMapper, } from './gpu_info'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { EntityMapper, } from './entity';
-import { UsageClassMapper } from './usage_class';
-import { DeviceTypeMapper } from './device_type';
-import { VirtualizationTypeMapper } from './virtualization_type';
-import { ProcessorInfoMapper } from './processor_info';
-import { VCPUInfoMapper } from './v_cpu_info';
-import { InstanceStorageInfoMapper } from './instance_storage_info';
-import { EBSInfoMapper } from './ebs_info';
-import { NetworkInfoMapper } from './network_info';
-import { GPUInfoMapper } from './gpu_info';
-import { FPGAInfoMapper } from './fpga_info';
-import { AWS } from '../services/gateways/aws';
-import { InstanceType, DeviceType, UsageClass, VirtualizationType, PlacementGroupStrategy, ValidCore, ValidThreadsPerCore } from '../entity';
-import { BootModeMapper, PlacementGroupInfoMapper } from '.';
-import { InferenceAcceleratorInfoMapper } from './inference_accelerator_info';
-import { InstanceTypeValue } from '../entity/instance_type_value';
-import { InstanceTypeValueMapper } from './instance_type_value';
+import { InferenceAcceleratorInfoMapper, } from './inference_accelerator_info'
+import { InstanceStorageInfoMapper, } from './instance_storage_info'
+import { InstanceType, DeviceType, UsageClass, VirtualizationType, PlacementGroupStrategy, ValidCore, ValidThreadsPerCore, } from '../entity'
+import { InstanceTypeValue, } from '../entity/instance_type_value'
+import { InstanceTypeValueMapper, } from './instance_type_value'
+import { NetworkInfoMapper, } from './network_info'
+import { ProcessorInfoMapper, } from './processor_info'
+import { UsageClassMapper, } from './usage_class'
+import { VCPUInfoMapper, } from './v_cpu_info'
+import { VirtualizationTypeMapper, } from './virtualization_type'
 
 export const InstanceTypeMapper = new EntityMapper(InstanceType, {
-  instanceType: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.InstanceType ? InstanceTypeValueMapper.fromAWS(
-      instanceType?.InstanceType, indexes
+  instanceType: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
+    instanceType?.InstanceType ? await InstanceTypeValueMapper.fromAWS(
+      instanceType?.InstanceType, awsClient, indexes
     ) : null,
-  currentGeneration: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.CurrentGeneration ?? null,
-  freeTierEligible: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.FreeTierEligible ?? null,
-  supportedUsageClasses: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+  currentGeneration: (instanceType: InstanceTypeInfo) => instanceType?.CurrentGeneration ?? null,
+  freeTierEligible: (instanceType: InstanceTypeInfo) => instanceType?.FreeTierEligible ?? null,
+  supportedUsageClasses: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
     instanceType?.SupportedUsageClasses?.length ?
-      instanceType?.SupportedUsageClasses?.map(
-        usageClass => UsageClassMapper.fromAWS(usageClass, indexes)
-      ) :
+      await Promise.all(instanceType?.SupportedUsageClasses?.map(
+        usageClass => UsageClassMapper.fromAWS(usageClass, awsClient, indexes)
+      )) :
       [],
-  supportedRootDeviceTypes: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+  supportedRootDeviceTypes: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
     instanceType?.SupportedRootDeviceTypes?.length ?
-      instanceType?.SupportedRootDeviceTypes?.map(
-        deviceType => DeviceTypeMapper.fromAWS(deviceType, indexes)
-      ) :
+      await Promise.all(instanceType?.SupportedRootDeviceTypes?.map(
+        deviceType => DeviceTypeMapper.fromAWS(deviceType, awsClient, indexes)
+      )) :
       [],
-  supportedVirtualizationTypes: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+  supportedVirtualizationTypes: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
     instanceType?.SupportedVirtualizationTypes?.length ?
-      instanceType?.SupportedVirtualizationTypes?.map(
-        virtualizationType => VirtualizationTypeMapper.fromAWS(virtualizationType, indexes)
-      ) :
+      await Promise.all(instanceType?.SupportedVirtualizationTypes?.map(
+        virtualizationType => VirtualizationTypeMapper.fromAWS(virtualizationType, awsClient, indexes)
+      )) :
       [],
-  bareMetal: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BareMetal ?? null,
-  hypervisor: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.Hypervisor ?? null,
-  processorInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.ProcessorInfo ? ProcessorInfoMapper.fromAWS(
-      instanceType?.ProcessorInfo, indexes
+  bareMetal: (instanceType: InstanceTypeInfo) => instanceType?.BareMetal ?? null,
+  hypervisor: (instanceType: InstanceTypeInfo) => instanceType?.Hypervisor ?? null,
+  processorInfo: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
+    instanceType?.ProcessorInfo ? await ProcessorInfoMapper.fromAWS(
+      instanceType?.ProcessorInfo, awsClient, indexes
     ) : null,
-  vCPUInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.VCpuInfo ? VCPUInfoMapper.fromAWS(
-      instanceType?.VCpuInfo, indexes
+  vCPUInfo: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
+    instanceType?.VCpuInfo ? await VCPUInfoMapper.fromAWS(
+      instanceType?.VCpuInfo, awsClient, indexes
     ) : null,
-  memorySizeInMiB: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.MemoryInfo?.SizeInMiB ?? null,
-  instanceStorageSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.InstanceStorageSupported ?? null,
-  instanceStorageInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.InstanceStorageInfo ? InstanceStorageInfoMapper.fromAWS(
-      instanceType?.InstanceStorageInfo, indexes
+  memorySizeInMiB: (instanceType: InstanceTypeInfo) => instanceType?.MemoryInfo?.SizeInMiB?.toString?.() ?? null,
+  instanceStorageSupported: (instanceType: InstanceTypeInfo) => instanceType?.InstanceStorageSupported ?? null,
+  instanceStorageInfo: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
+    instanceType?.InstanceStorageInfo ? await InstanceStorageInfoMapper.fromAWS(
+      instanceType?.InstanceStorageInfo, awsClient, indexes
     ) : null,
-  ebsInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.EbsInfo ? EBSInfoMapper.fromAWS(
-      instanceType?.EbsInfo, indexes
+  ebsInfo: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
+    instanceType?.EbsInfo ? await EBSInfoMapper.fromAWS(
+      instanceType?.EbsInfo, awsClient, indexes
     ) : null,
-  networkInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.NetworkInfo ? NetworkInfoMapper.fromAWS(
-      instanceType?.NetworkInfo, indexes
+  networkInfo: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
+    instanceType?.NetworkInfo ? await NetworkInfoMapper.fromAWS(
+      instanceType?.NetworkInfo, awsClient, indexes
     ) : null,
-  gpuInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.GpuInfo ? GPUInfoMapper.fromAWS(
-      instanceType?.GpuInfo, indexes
+  gpuInfo: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
+    instanceType?.GpuInfo ? await GPUInfoMapper.fromAWS(
+      instanceType?.GpuInfo, awsClient, indexes
     ) : null,
-  fpgaInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.FpgaInfo ? FPGAInfoMapper.fromAWS(
-      instanceType?.FpgaInfo, indexes
+  fpgaInfo: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
+    instanceType?.FpgaInfo ? await FPGAInfoMapper.fromAWS(
+      instanceType?.FpgaInfo, awsClient, indexes
     ) : null,
-  placementGroupInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.PlacementGroupInfo ? PlacementGroupInfoMapper.fromAWS(
-      instanceType?.PlacementGroupInfo, indexes
+  placementGroupInfo: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
+    instanceType?.PlacementGroupInfo ? await PlacementGroupInfoMapper.fromAWS(
+      instanceType?.PlacementGroupInfo, awsClient, indexes
     ) : null,
-  inferenceAcceleratorInfo: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
-    instanceType?.InferenceAcceleratorInfo ? InferenceAcceleratorInfoMapper.fromAWS(
-      instanceType?.InferenceAcceleratorInfo, indexes
+  inferenceAcceleratorInfo: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
+    instanceType?.InferenceAcceleratorInfo ? await InferenceAcceleratorInfoMapper.fromAWS(
+      instanceType?.InferenceAcceleratorInfo, awsClient, indexes
     ) : null,
-  hibernationSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.HibernationSupported ?? null,
-  burstablePerformanceSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.BurstablePerformanceSupported ?? null,
-  dedicatedHostsSupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.DedicatedHostsSupported ?? null,
-  autoRecoverySupported: (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.AutoRecoverySupported ?? null,
-  supportedBootModes: (instanceType: InstanceTypeInfo, indexes: IndexedAWS) =>
+  hibernationSupported: (instanceType: InstanceTypeInfo) => instanceType?.HibernationSupported ?? null,
+  burstablePerformanceSupported: (instanceType: InstanceTypeInfo) => instanceType?.BurstablePerformanceSupported ?? null,
+  dedicatedHostsSupported: (instanceType: InstanceTypeInfo) => instanceType?.DedicatedHostsSupported ?? null,
+  autoRecoverySupported: (instanceType: InstanceTypeInfo) => instanceType?.AutoRecoverySupported ?? null,
+  supportedBootModes: async (instanceType: InstanceTypeInfo, awsClient: AWS, indexes: IndexedAWS) =>
     instanceType?.SupportedBootModes?.length ?
-      instanceType?.SupportedBootModes?.map(
-        supportedBootMode => BootModeMapper.fromAWS(supportedBootMode, indexes)
-      ) :
+      await Promise.all(instanceType?.SupportedBootModes?.map(
+        supportedBootMode => BootModeMapper.fromAWS(supportedBootMode, awsClient, indexes)
+      )) :
       [],
   // regions:  (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.,
   // availabilityZones:  (instanceType: InstanceTypeInfo, _indexes: IndexedAWS) => instanceType?.,

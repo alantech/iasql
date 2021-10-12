@@ -1,60 +1,64 @@
 import { Image, } from '@aws-sdk/client-ec2'
 
-import { AMI, } from '../entity/ami';
+import { AMI, } from '../entity/ami'
 import { AWS, } from '../services/gateways/aws'
-import { BootModeMapper, } from './boot_mode';
-import { CPUArchitectureMapper, } from './cpu_architecture';
-import { EBSBlockDeviceMappingMapper, } from './ebs_block_device_mapping';
-import { EntityMapper, } from './entity';
-import * as Entities from '../entity'; // TODO: Is there a way to avoid this double import?
+import { BootModeMapper, } from './boot_mode'
+import { CPUArchitectureMapper, } from './cpu_architecture'
+import { EBSBlockDeviceMappingMapper, } from './ebs_block_device_mapping'
+import { EntityMapper, } from './entity'
+import * as Entities from '../entity' // TODO: Is there a way to avoid this double import?
 import { IndexedAWS, } from '../services/indexed-aws'
-import { ProductCodeMapper, } from './product_code';
-import { StateReasonMapper, } from './state_reason';
-import { TagMapper, } from './tag';
+import { ProductCodeMapper, } from './product_code'
+import { StateReasonMapper, } from './state_reason'
+import { TagMapper, } from './tag'
 
 export const AMIMapper = new EntityMapper(AMI, {
-  cpuArchitecture: (ami: Image, indexes: IndexedAWS) => ami?.Architecture ? CPUArchitectureMapper.fromAWS(
-    ami?.Architecture, indexes
+  cpuArchitecture: async (
+    ami: Image,
+    awsClient: AWS,
+    indexes: IndexedAWS
+  ) => ami?.Architecture ? await CPUArchitectureMapper.fromAWS(
+    ami?.Architecture, awsClient, indexes
   ) : null,
-  creationDate: (ami: Image, _indexes: IndexedAWS) => ami?.CreationDate ? ami.CreationDate : null,
-  imageId: (ami: Image, _indexes: IndexedAWS) => ami?.ImageId ?? null,
-  imageLocation: (ami: Image, _indexes: IndexedAWS) => ami?.ImageLocation ?? null,
-  imageType: (ami: Image, _indexes: IndexedAWS) => ami?.ImageType ?? null,
-  public: (ami: Image, _indexes: IndexedAWS) => ami?.Public ?? null,
-  kernelId: (ami: Image, _indexes: IndexedAWS) => ami?.KernelId ?? null,
-  ownerId: (ami: Image, _indexes: IndexedAWS) => ami?.OwnerId ?? null,
-  platform: (ami: Image, _indexes: IndexedAWS) => ami?.Platform ?? null,
-  platformDetails: (ami: Image, _indexes: IndexedAWS) => ami?.PlatformDetails ?? null,
-  usageOperation: (ami: Image, _indexes: IndexedAWS) => ami?.UsageOperation ?? null,
-  productCodes: (ami: Image, indexes: IndexedAWS) =>
+  creationDate: (ami: Image) => ami?.CreationDate ? new Date(ami.CreationDate) : null,
+  imageId: (ami: Image) => ami?.ImageId ?? null,
+  imageLocation: (ami: Image) => ami?.ImageLocation ?? null,
+  imageType: (ami: Image) => ami?.ImageType ?? null,
+  public: (ami: Image) => ami?.Public ?? null,
+  kernelId: (ami: Image) => ami?.KernelId ?? null,
+  ownerId: (ami: Image) => ami?.OwnerId ?? null,
+  platform: (ami: Image) => ami?.Platform ?? null,
+  platformDetails: (ami: Image) => ami?.PlatformDetails ?? null,
+  usageOperation: (ami: Image) => ami?.UsageOperation ?? null,
+  productCodes: async (ami: Image, awsClient: AWS, indexes: IndexedAWS) =>
     ami?.ProductCodes?.length ?
-      ami?.ProductCodes?.map(pc => ProductCodeMapper.fromAWS(pc, indexes)) :
+      await Promise.all(ami?.ProductCodes?.map(pc => ProductCodeMapper.fromAWS(pc, awsClient, indexes))) :
       [],
-  ramdiskId: (ami: Image, _indexes: IndexedAWS) => ami?.RamdiskId ?? null,
-  state: (ami: Image, _indexes: IndexedAWS) => ami?.State ?? null,
-  blockDeviceMappings: (ami: Image, indexes: IndexedAWS) =>
+  ramdiskId: (ami: Image) => ami?.RamdiskId ?? null,
+  state: (ami: Image) => ami?.State ?? null,
+  blockDeviceMappings: async (ami: Image, awsClient: AWS, indexes: IndexedAWS) =>
     ami?.BlockDeviceMappings?.length ?
-      ami.BlockDeviceMappings.map(bdm => EBSBlockDeviceMappingMapper.fromAWS(bdm, indexes)) :
+      await Promise.all(ami.BlockDeviceMappings.map(bdm => EBSBlockDeviceMappingMapper.fromAWS(bdm, awsClient, indexes))) :
       [],
-  description: (ami: Image, _indexes: IndexedAWS) => ami?.Description ?? null,
-  enaSupport: (ami: Image, _indexes: IndexedAWS) => ami?.EnaSupport ?? null,
-  hypervisor: (ami: Image, _indexes: IndexedAWS) => ami?.Hypervisor ?? null,
-  imageOwnerAlias: (ami: Image, _indexes: IndexedAWS) => ami?.ImageOwnerAlias ?? null,
-  name: (ami: Image, _indexes: IndexedAWS) => ami?.Name ?? null,
-  rootDeviceName: (ami: Image, _indexes: IndexedAWS) => ami?.RootDeviceName ?? null,
-  rootDeviceType: (ami: Image, _indexes: IndexedAWS) => ami?.RootDeviceType ?? null,
-  sirovNetSupport: (ami: Image, _indexes: IndexedAWS) => ami?.SriovNetSupport ?? null,
-  stateReason: (ami: Image, indexes: IndexedAWS) => ami?.StateReason ?
-    StateReasonMapper.fromAWS(ami?.StateReason, indexes) :
+  description: (ami: Image) => ami?.Description ?? null,
+  enaSupport: (ami: Image) => ami?.EnaSupport ?? null,
+  hypervisor: (ami: Image) => ami?.Hypervisor ?? null,
+  imageOwnerAlias: (ami: Image) => ami?.ImageOwnerAlias ?? null,
+  name: (ami: Image) => ami?.Name ?? null,
+  rootDeviceName: (ami: Image) => ami?.RootDeviceName ?? null,
+  rootDeviceType: (ami: Image) => ami?.RootDeviceType ?? null,
+  sirovNetSupport: (ami: Image) => ami?.SriovNetSupport ?? null,
+  stateReason: async (ami: Image, awsClient: AWS, indexes: IndexedAWS) => ami?.StateReason ?
+    await StateReasonMapper.fromAWS(ami?.StateReason, awsClient, indexes) :
     null,
-  bootMode: (ami: Image, indexes: IndexedAWS) => ami?.BootMode ?
-    BootModeMapper.fromAWS(ami?.BootMode, indexes) :
+  bootMode: async (ami: Image, awsClient: AWS, indexes: IndexedAWS) => ami?.BootMode ?
+    await BootModeMapper.fromAWS(ami?.BootMode, awsClient, indexes) :
     null,
-  deprecationTime: (ami: Image, _indexes: IndexedAWS) => ami?.DeprecationTime ?
+  deprecationTime: (ami: Image) => ami?.DeprecationTime ?
     ami.DeprecationTime :
     null,
-  tags: (ami: Image, indexes: IndexedAWS) => ami?.Tags?.length ?
-    ami.Tags.map(tag => TagMapper.fromAWS(tag, indexes)) :
+  tags: async (ami: Image, awsClient: AWS, indexes: IndexedAWS) => ami?.Tags?.length ?
+    await Promise.all(ami.Tags.map(tag => TagMapper.fromAWS(tag, awsClient, indexes))) :
     [],
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {

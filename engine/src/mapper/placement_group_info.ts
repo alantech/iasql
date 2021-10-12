@@ -1,17 +1,17 @@
 import { PlacementGroupInfo as PlacementGroupInfoAWS } from '@aws-sdk/client-ec2'
 
+import { AWS, } from '../services/gateways/aws'
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { EntityMapper, } from './entity';
-import { PlacementGroupInfo, } from '../entity/placement_group_info';
-import { PlacementGroupStrategyMapper } from './placement_group_strategy';
-import { AWS } from '../services/gateways/aws';
+import { PlacementGroupInfo, } from '../entity/placement_group_info'
+import { PlacementGroupStrategyMapper, } from './placement_group_strategy'
 
 export const PlacementGroupInfoMapper = new EntityMapper(PlacementGroupInfo, {
-  supportedStrategies: (placementGroupInfo: PlacementGroupInfoAWS, indexes: IndexedAWS) =>
+  supportedStrategies: async (placementGroupInfo: PlacementGroupInfoAWS, awsClient: AWS, indexes: IndexedAWS) =>
     placementGroupInfo?.SupportedStrategies?.length ?
-      placementGroupInfo.SupportedStrategies.map(
-        supportedStrategy => PlacementGroupStrategyMapper.fromAWS(supportedStrategy, indexes)
-      ) :
+      await Promise.all(placementGroupInfo.SupportedStrategies.map(
+        supportedStrategy => PlacementGroupStrategyMapper.fromAWS(supportedStrategy, awsClient, indexes)
+      )) :
       [],
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },

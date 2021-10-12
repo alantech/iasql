@@ -1,17 +1,17 @@
 import { InferenceAcceleratorInfo as InferenceAcceleratorInfoAWS } from '@aws-sdk/client-ec2'
 
+import { AWS, } from '../services/gateways/aws'
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { EntityMapper, } from './entity';
-import { InferenceAcceleratorInfo, } from '../entity/inference_accelerator_info';
-import { InferenceDeviceInfoMapper } from './inference_device_info';
-import { AWS } from '../services/gateways/aws';
+import { InferenceAcceleratorInfo, } from '../entity/inference_accelerator_info'
+import { InferenceDeviceInfoMapper, } from './inference_device_info'
 
 export const InferenceAcceleratorInfoMapper = new EntityMapper(InferenceAcceleratorInfo, {
-  accelerators: (inferenceAcceleratorInfo: InferenceAcceleratorInfoAWS, indexes: IndexedAWS) =>
+  accelerators: async (inferenceAcceleratorInfo: InferenceAcceleratorInfoAWS, awsClient: AWS, indexes: IndexedAWS) =>
     inferenceAcceleratorInfo?.Accelerators?.length ?
-      inferenceAcceleratorInfo.Accelerators.map(
-        accelerator => InferenceDeviceInfoMapper.fromAWS(accelerator, indexes)
-      ) :
+      await Promise.all(inferenceAcceleratorInfo.Accelerators.map(
+        accelerator => InferenceDeviceInfoMapper.fromAWS(accelerator, awsClient, indexes)
+      )) :
       [],
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => { return },
