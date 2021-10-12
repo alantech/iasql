@@ -20,6 +20,7 @@ import {
   TagMapper,
 } from '.'
 import { AvailabilityZone, EngineVersion, } from '../entity'
+import { DepError } from '../services/lazy-dep'
 
 export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   dbiResourceId: (dbi: DBInstance) => dbi?.DbiResourceId ?? null,
@@ -62,7 +63,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   enablePerformanceInsights: (dbi: DBInstance) => dbi?.PerformanceInsightsEnabled ?? null,
   engine: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) => {
     const engineEntity = await i.getOr(EngineVersion, dbi.EngineVersion!, awsClient.getEngineVersion.bind(awsClient));
-    return EngineVersionMapper.fromAWS(engineEntity, awsClient, i)
+    return await EngineVersionMapper.fromAWS(engineEntity, awsClient, i)
   },
   iops: (dbi: DBInstance) => dbi?.Iops ?? null,
   kmsKeyId: (dbi: DBInstance) => dbi?.KmsKeyId ?? null,
@@ -136,6 +137,8 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
+    const engineVersions = indexes.get(EngineVersion);
+    if (!engineVersions) throw new DepError('EnginesVersions must be loaded first');
     const dbInstances = (await awsClient.getDBInstances())?.DBInstances ?? [];
     indexes.setAll(RDS, dbInstances, 'DBInstanceIdentifier');
     const t2 = Date.now();

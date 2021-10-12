@@ -58,7 +58,7 @@ export const EngineVersionMapper: EntityMapper = new EntityMapper(EngineVersion,
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
     const engines = (await awsClient.getEngineVersions())?.DBEngineVersions ?? [];
-    indexes.setAll(EngineVersion, engines, 'EngineVersion');
+    indexes.setAll(EngineVersion, engines.filter(e => e.Engine === 'postgres'), 'EngineVersion');
     const t2 = Date.now();
     console.log(`EngineVersion set in ${t2 - t1}ms`);
   },

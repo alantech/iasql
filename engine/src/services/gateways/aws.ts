@@ -305,7 +305,7 @@ export class AWS {
     const engines = [];
     const paginator = paginateDescribeDBEngineVersions({
       client: this.rdsClient,
-      pageSize: 25,
+      pageSize: 100,
     }, {});
     for await (const page of paginator) {
       engines.push(...(page.DBEngineVersions ?? []));

@@ -15,9 +15,10 @@ import { AvailabilityZone, EngineVersion, } from '../entity'
 import { DepError, } from '../services/lazy-dep'
 
 export const OrderableDBInstanceOptionMapper = new EntityMapper(OrderableDBInstanceOption, {
-  engine: async (opt: OrderableDBInstanceOptionAWS, awsClient: AWS, indexes: IndexedAWS) =>
-    await EngineVersionMapper.fromAWS(
-      indexes.getOr(EngineVersion, opt.EngineVersion!, awsClient.getEngineVersion.bind(awsClient)), awsClient, indexes),
+  engine: async (opt: OrderableDBInstanceOptionAWS, awsClient: AWS, indexes: IndexedAWS) => {
+    const engineVersionEntity = await indexes.getOr(EngineVersion, opt.EngineVersion!, awsClient.getEngineVersion.bind(awsClient));
+    return await EngineVersionMapper.fromAWS(engineVersionEntity, awsClient, indexes);
+  },
   dbInstanceClass: async (opt: OrderableDBInstanceOptionAWS, awsClient: AWS, indexes: IndexedAWS) =>
     await DBInstanceClassMapper.fromAWS(opt.DBInstanceClass, awsClient, indexes),
   licenseModel: (opt: OrderableDBInstanceOptionAWS) => opt.LicenseModel ?? null,
@@ -62,13 +63,11 @@ export const OrderableDBInstanceOptionMapper = new EntityMapper(OrderableDBInsta
     const t1 = Date.now();
     const engineVersions = indexes.get(EngineVersion);
     if (!engineVersions) throw new DepError('EnginesVersions must be loaded first');
-    console.log('Got engine version')
     let engines = Object.entries(engineVersions ?? {}).map(([_, v]) => (v as OrderableDBInstanceOptionAWS).Engine!);
     engines = [...new Set(engines)];
-    console.log(engines)
     let orderableDBInstanceOptions = [];
     try {
-      orderableDBInstanceOptions = (await awsClient.getOrderableInstanceOptions(engines))?.OrderableDBInstanceOptions ?? [];
+      orderableDBInstanceOptions = (await awsClient.getOrderableInstanceOptions(['postgres']/*engines*/))?.OrderableDBInstanceOptions ?? [];
     } catch (e) {
       console.log(`${e}`);
       throw e;
