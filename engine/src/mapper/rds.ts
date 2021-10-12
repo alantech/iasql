@@ -137,7 +137,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
-    const dbInstances = (await awsClient.getDBInstances())?.DBInstances ?? [];
+    const dbInstances = ((await awsClient.getDBInstances())?.DBInstances ?? []).filter(i => i.DBInstanceStatus === 'available'); // TODO: remove this filter. Not working with intermediate states for now
     indexes.setAll(RDS, dbInstances, 'DBInstanceIdentifier');
     const t2 = Date.now();
     console.log(`RDS set in ${t2 - t1}ms`);
