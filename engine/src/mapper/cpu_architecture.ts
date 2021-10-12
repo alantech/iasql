@@ -1,10 +1,10 @@
 import { AWS, } from '../services/gateways/aws'
-import { CPUArchitecture, } from '../entity/cpu_architecture';
-import { EntityMapper, } from './entity';
+import { CPUArchitecture, } from '../entity/cpu_architecture'
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 
 export const CPUArchitectureMapper = new EntityMapper(CPUArchitecture, {
-  cpuArchitecture: (cpuArchitecure: string, _indexes: IndexedAWS) => cpuArchitecure ?? null,
+  cpuArchitecture: (cpuArchitecure: string) => cpuArchitecure ?? null,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => {
     // Handled by AMI

@@ -52,13 +52,13 @@ function diff(dbObj: any, cloudObj: any, exclusionList: string[]) {
       continue;
     }
     const cloudVal = cloudObj[key];
-    diffObj[key] = diff(dbObj[key], cloudVal, exclusionList);
+    diffObj[key] = diff(dbObj[key], cloudVal, diffExclusionTable[cloudVal?.constructor?.name] ?? exclusionList);
   }
   for (const key in cloudObj) {
     if (exclusionList.includes(key) || diffObj[key] !== undefined) {
       continue;
     }
-    diffObj[key] = diff(undefined, cloudObj[key], exclusionList);
+    diffObj[key] = diff(undefined, cloudObj[key], diffExclusionTable[cloudObj[key]?.constructor?.name] ?? exclusionList);
   }
   return diffObj;
 }

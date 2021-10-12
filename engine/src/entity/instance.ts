@@ -47,6 +47,7 @@ export class Instance {
   })
   instanceType: InstanceType;
 
+  @noDiff // TODO: Eliminate this `noDiff` once a solution to the default SG auto-application is figured out
   @ManyToMany(() => SecurityGroup, { eager: true, })
   @JoinTable()
   securityGroups: SecurityGroup[]

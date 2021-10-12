@@ -60,9 +60,15 @@ async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
   await lazyLoader(promiseGenerators);
 }
 
-async function saveEntities(orm: TypeormWrapper, indexes: IndexedAWS, entity: Function, mapper: Mappers.EntityMapper) {
+async function saveEntities(
+  orm: TypeormWrapper,
+  awsClient: AWS,
+  indexes: IndexedAWS,
+  entity: Function,
+  mapper: Mappers.EntityMapper,
+) {
   const t1 = Date.now();
-  const entities = indexes.toEntityList(mapper);
+  const entities = await indexes.toEntityList(mapper, awsClient);
   await orm.save(entity, entities);
   const t2 = Date.now();
   console.log(`${entity.name} stored in ${t2 - t1}ms`);
@@ -112,7 +118,7 @@ db.get('/create/:db', async (req, res) => {
     console.log(`Populating new db: ${dbname}`);
     const mappers: Mappers.EntityMapper[] = Object.values(Mappers)
       .filter(m => m instanceof Mappers.EntityMapper) as Mappers.EntityMapper[];
-    await lazyLoader(mappers.map(m => () => saveEntities(o, indexes, m.getEntity(), m)));
+    await lazyLoader(mappers.map(m => () => saveEntities(o, awsClient, indexes, m.getEntity(), m)));
     const t4 = Date.now();
     console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
@@ -196,7 +202,10 @@ db.get('/check/:db', async (req, res) => {
         ranUpdate = false;
         indexes.flush();
         await populate(awsClient, indexes, Source.DB);
-        const awsEntities = tables.map(t => indexes.toEntityList((Mappers as any)[t + 'Mapper']));
+        const awsEntities = await Promise.all(tables.map(t => indexes.toEntityList(
+          (Mappers as any)[t + 'Mapper'],
+          awsClient,
+        )));
         const records = colToRow({
           table: tables,
           mapper: mappers,
@@ -225,8 +234,18 @@ db.get('/check/:db', async (req, res) => {
             }
             let diffFound = false;
             r.diff.entitiesDiff.forEach((d: any) => {
-              const keys = Object.keys(d).filter(k => k !== 'id');
-              const unchanged = keys.every(k => d[k].type === 'unchanged');
+              const valIsUnchanged = (val: any): boolean => {
+                if (val.hasOwnProperty('type')) {
+                  return val.type === 'unchanged';
+                } else if (Array.isArray(val)) {
+                  return val.every(v => valIsUnchanged(v));
+                } else if (val instanceof Object) {
+                  return Object.keys(val).filter(k => k !== 'id').every(v => valIsUnchanged(val[v]));
+                } else {
+                  return false;
+                }
+              };
+              const unchanged = valIsUnchanged(d);
               if (!unchanged) {
                 diffFound = true;
                 const entity = r.dbEntity.find((e: any) => e.id === d.id);
@@ -257,7 +276,7 @@ db.get('/check/:db', async (req, res) => {
     const t7 = Date.now();
     res.end(`${dbname} checked and synced, total time: ${t7 - t1}ms`);
   } catch (e: any) {
-    console.error(e);
+    console.dir(e, { depth: 6, });
     res.status(500).end(`failure to check DB: ${e?.message ?? ''}`);
   } finally {
     orm?.dropConn();

@@ -1,14 +1,14 @@
 import { Region as RegionAWS, } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../services/gateways/aws'
-import { EntityMapper, } from './entity';
+import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { Region, } from '../entity/region';
+import { Region, } from '../entity/region'
 
 export const RegionMapper = new EntityMapper(Region, {
-  name: (region: RegionAWS, _indexes: IndexedAWS) => region?.RegionName,
-  endpoint: (region: RegionAWS, _indexes: IndexedAWS) => region?.Endpoint,
-  optInStatus: (region: RegionAWS, _indexes: IndexedAWS) => region?.OptInStatus,
+  name: (region: RegionAWS) => region?.RegionName,
+  endpoint: (region: RegionAWS) => region?.Endpoint,
+  optInStatus: (region: RegionAWS) => region?.OptInStatus,
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();

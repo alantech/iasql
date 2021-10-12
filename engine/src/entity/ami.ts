@@ -58,6 +58,7 @@ export class AMI {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @noDiff
   @ManyToOne(() => CPUArchitecture, { cascade: true, })
   @JoinColumn({
     name: 'cpu_architecture_id',
@@ -120,6 +121,7 @@ export class AMI {
   })
   usageOperation?: string;
 
+  @noDiff
   @ManyToMany(() => ProductCode, { cascade: true, })
   @JoinTable()
   productCodes: ProductCode[];
@@ -136,6 +138,7 @@ export class AMI {
   })
   state?: AMIImageState;
 
+  @noDiff
   @ManyToMany(() => EBSBlockDeviceMapping, { cascade: true, })
   @JoinTable()
   blockDeviceMappings: EBSBlockDeviceMapping[];
@@ -184,12 +187,14 @@ export class AMI {
   })
   sirovNetSupport?: string;
 
+  @noDiff
   @ManyToOne(() => StateReason, { cascade: true, })
   @JoinColumn({
     name: 'state_reason_id',
   })
   stateReason: StateReason;
 
+  @noDiff
   @ManyToOne(() => BootMode, { cascade: true, })
   @JoinColumn({
     name: 'boot_mode_id',
@@ -202,6 +207,7 @@ export class AMI {
   })
   deprecationTime?: Date;
 
+  @noDiff
   @ManyToMany(() => Tag, { cascade: true, })
   @JoinTable()
   tags: Tag[];
