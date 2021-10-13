@@ -18,7 +18,7 @@ const migrationFiles = fs
 // Then we construct the class names stored within those files (assuming *all* were generated with
 // `yarn gen-sql some-name`
 const migrationNames = migrationFiles.map(f => {
-  const components = f.replace(/\.js/, '').split('-');
+  const components = f.replace(/\.(js|ts)/, '').split('-');
   const tz = components.shift();
   for (let i = 1; i < components.length; i++) {
     components[i] = components[i].replace(/^([a-z])(.*$)/, (_, p1, p2) => p1.toUpperCase() + p2);
@@ -27,7 +27,7 @@ const migrationNames = migrationFiles.map(f => {
 });
 // Then we dynamically `require` the migration files and construct the inner classes
 const migrationObjs = migrationFiles
-  .map(f => require(`../migration/${f}`))
+  .map(f => require(`${__dirname}/../migration/${f}`))
   .map((c, i) => c[migrationNames[i]])
   .map(M => new M());
 // Finally we use this in this function to execute all of the migrations in order for a provided
