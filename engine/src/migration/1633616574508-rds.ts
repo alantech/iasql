@@ -8,9 +8,6 @@ export class rds1633616574508 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "rds_tags_tag" ("rds_id" integer NOT NULL, "tag_id" integer NOT NULL, CONSTRAINT "PK_064878365c3757e6fb2baee6b02" PRIMARY KEY ("rds_id", "tag_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_2df06d9732e153c117aa5e22d6" ON "rds_tags_tag" ("rds_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_8c8e70858e8f1e5d846414914e" ON "rds_tags_tag" ("tag_id") `);
-        await queryRunner.query(`CREATE TABLE "rds_vpc_security_groups_security_group" ("rds_id" integer NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_d1ffa733808d137bc741f2fad22" PRIMARY KEY ("rds_id", "security_group_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_3f8d69062593d90e1d7a575463" ON "rds_vpc_security_groups_security_group" ("rds_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_d8771bbe0783f3ff703bdb7e99" ON "rds_vpc_security_groups_security_group" ("security_group_id") `);
         await queryRunner.query(`ALTER TABLE "network_info" DROP COLUMN "ipv4addresses_per_interface"`);
         await queryRunner.query(`ALTER TABLE "network_info" DROP COLUMN "ipv6addresses_per_interface"`);
         await queryRunner.query(`ALTER TABLE "network_info" DROP COLUMN "ipv6supported"`);
@@ -23,13 +20,9 @@ export class rds1633616574508 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "rds" ADD CONSTRAINT "FK_88d7baba1011b1d780d4087e401" FOREIGN KEY ("availability_zone_id") REFERENCES "availability_zone"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "rds_tags_tag" ADD CONSTRAINT "FK_2df06d9732e153c117aa5e22d63" FOREIGN KEY ("rds_id") REFERENCES "rds"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "rds_tags_tag" ADD CONSTRAINT "FK_8c8e70858e8f1e5d846414914ef" FOREIGN KEY ("tag_id") REFERENCES "tag"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_security_group" ADD CONSTRAINT "FK_3f8d69062593d90e1d7a575463f" FOREIGN KEY ("rds_id") REFERENCES "rds"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_security_group" ADD CONSTRAINT "FK_d8771bbe0783f3ff703bdb7e993" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_security_group" DROP CONSTRAINT "FK_d8771bbe0783f3ff703bdb7e993"`);
-        await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_security_group" DROP CONSTRAINT "FK_3f8d69062593d90e1d7a575463f"`);
         await queryRunner.query(`ALTER TABLE "rds_tags_tag" DROP CONSTRAINT "FK_8c8e70858e8f1e5d846414914ef"`);
         await queryRunner.query(`ALTER TABLE "rds_tags_tag" DROP CONSTRAINT "FK_2df06d9732e153c117aa5e22d63"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_88d7baba1011b1d780d4087e401"`);
@@ -44,7 +37,6 @@ export class rds1633616574508 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "network_info" ADD "ipv4addresses_per_interface" integer NOT NULL`);
         await queryRunner.query(`DROP INDEX "public"."IDX_d8771bbe0783f3ff703bdb7e99"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_3f8d69062593d90e1d7a575463"`);
-        await queryRunner.query(`DROP TABLE "rds_vpc_security_groups_security_group"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_8c8e70858e8f1e5d846414914e"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_2df06d9732e153c117aa5e22d6"`);
         await queryRunner.query(`DROP TABLE "rds_tags_tag"`);
