@@ -97,9 +97,6 @@ jobs:
       - name: Check
         run: curl -f -s -S http://localhost:8088/v1/db/check/__example__
 
-      - name: Find
-        run: curl -f -s -S http://localhost:8088/v1/db/find/__example__
-
       - name: Delete
         run: curl -f -s -S http://localhost:8088/v1/db/delete/__example__
 
