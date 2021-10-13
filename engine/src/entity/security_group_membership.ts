@@ -9,7 +9,7 @@ export class SecurityGroupMembership {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => SecurityGroup)
+  @ManyToOne(() => SecurityGroup, { eager: true, })
   @JoinColumn({
     name: 'security_group_id',
   })
