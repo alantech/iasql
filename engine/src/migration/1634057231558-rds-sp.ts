@@ -46,19 +46,9 @@ export class rdsSp1634057231558 implements MigrationInterface {
           where group_name = any(securitygroupnames)
         loop
           insert into
-            security_group_membership (security_group_id)
+            rds_vpc_security_groups_security_group (rds_id, security_group_id)
           values
-            (sg.id);
-            
-          select id into sgm_id
-          from security_group_membership
-          order by id desc
-          limit 1;
-          
-          insert into
-            rds_vpc_security_groups_security_group_membership (rds_id, security_group_membership_id)
-          values
-            (db_instance_id, sgm_id);
+            (db_instance_id, sg.id);
         end loop;
       
         return db_instance_id;
