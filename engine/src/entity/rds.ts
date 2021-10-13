@@ -19,7 +19,8 @@ import {
   CloudwatchLogsExport,
   OptionGroupMembership,
   ProcessorFeature,
-  Endpoint
+  Endpoint,
+  SecurityGroup
 } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
@@ -315,9 +316,9 @@ export class RDS {
   })
   timezone?: string;
 
-  @ManyToMany(() => SecurityGroupMembership, { cascade: true, eager: true, })
+  @ManyToMany(() => SecurityGroup, { eager: true, })
   @JoinTable()
-  vpcSecurityGroups: SecurityGroupMembership[];
+  vpcSecurityGroups: SecurityGroup[];
 
   // ? enum all statuses?
   // https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/accessing-monitoring.html#Overview.DBInstance.Status

@@ -16,11 +16,11 @@ import {
   EngineVersionMapper,
   OptionGroupMembershipMapper,
   ProcessorFeatureMapper,
+  SecurityGroupMapper,
   SecurityGroupMembershipMapper,
   TagMapper,
 } from '.'
-import { AvailabilityZone, EngineVersion, } from '../entity'
-import { DepError } from '../services/lazy-dep'
+import { AvailabilityZone, EngineVersion, SecurityGroup, } from '../entity'
 
 export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   dbiResourceId: (dbi: DBInstance) => dbi?.DbiResourceId ?? null,
@@ -100,7 +100,10 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   timezone: (dbi: DBInstance) => dbi?.Timezone ?? null,
   vpcSecurityGroups: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) =>
     dbi?.VpcSecurityGroups?.length ?
-      await Promise.all(dbi.VpcSecurityGroups.map(vpcsgm => SecurityGroupMembershipMapper.fromAWS(vpcsgm, awsClient, i)))
+      await Promise.all(dbi.VpcSecurityGroups.map(async vpcsgm => {
+        const sgEntity = await i.getOr(SecurityGroup, vpcsgm.VpcSecurityGroupId!, awsClient.getSecurityGroup.bind(awsClient));
+        return await SecurityGroupMapper.fromAWS(sgEntity, awsClient, i)
+      }))
       : [],
   dbInstanceStatus: (dbi: DBInstance) => dbi?.DBInstanceStatus ?? null,
   automaticRestartTime: (dbi: DBInstance) => dbi?.AutomaticRestartTime ?? null,
@@ -146,22 +149,35 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
     // First construct the rds instance
     // TODO: if inserted without sec group it assign default.
     // Should we check that here and insert it manually?
-    const result = await awsClient.createDBInstance({
-      // TODO: Use real obj properties
-      DBInstanceClass: 'db.m5.large',
-      Engine: 'postgres',
-      DBInstanceIdentifier: obj.dbInstanceIdentifier,
-      MasterUsername: obj.masterUsername,
-      MasterUserPassword: '4l4nU$er',
-      AllocatedStorage: obj.allocatedStorage,
-      // TODO: complete input properties
-    });
+    let result;
+    try {
+      const input = {
+        // TODO: Use real obj properties
+        DBInstanceClass: obj.dbInstanceClass.name,
+        Engine: obj.engine.engine,
+        EngineVersion: obj.engine.engineVersion,
+        DBInstanceIdentifier: obj.dbInstanceIdentifier,
+        MasterUsername: obj.masterUsername,
+        MasterUserPassword: obj.masterUserPassword,
+        AllocatedStorage: obj.allocatedStorage,
+        AvailabilityZone: obj.availabilityZone.zoneName,
+        VpcSecurityGroupIds: obj.vpcSecurityGroups.map(sg => sg?.groupId ?? ''),
+        // TODO: complete input properties
+      };
+      console.log(`the input used to create the db is ${JSON.stringify(input)}`)
+      result = await awsClient.createDBInstance(input);
+    } catch (e) {
+      console.log(`Error creating db with error ${e}`);
+      throw e;
+    }
     // TODO: Handle if it fails (somehow)
     if (!result?.hasOwnProperty('DBInstanceIdentifier')) { // Failure
       throw new Error('what should we do here?');
     }
+    console.log(`Getting instance with result = ${JSON.stringify(result)} result_id = ${result?.DBInstanceIdentifier}`)
     // Re-get the inserted security group to get all of the relevant records we care about
     const newDBInstance = await awsClient.getDBInstance(result?.DBInstanceIdentifier ?? '');
+    console.log(`instance = ${JSON.stringify(newDBInstance)}`)
     indexes.set(RDS, newDBInstance?.DBInstanceIdentifier ?? '', newDBInstance);
     // We map this into the same kind of entity as `obj`
     const newEntity: RDS = await RDSMapper.fromAWS(newDBInstance, awsClient, indexes);
@@ -173,12 +189,14 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
     for (const key of Object.keys(newEntity)) {
       (obj as any)[key] = (newEntity as any)[key];
     }
+    console.log(`the new entity: ${JSON.stringify(newEntity)}`)
     // It's up to the caller if they want to actually update into the DB or not, though.
     return newEntity;
   },
   updateAWS: async (obj: any, awsClient: AWS, indexes: IndexedAWS) => {
     console.log('trying to update')
     // throw new Error('tbd')
+    // return obj;
   },
   deleteAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
     console.log('trying to delete')
