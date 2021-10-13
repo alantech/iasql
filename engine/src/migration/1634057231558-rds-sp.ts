@@ -3,17 +3,18 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class rdsSp1634057231558 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Example of use: select * from create_rds_instance('sp-test2', 'postgres', 'db.m5.large', '{default}', 'iasql', '4l4nU$er', 8192, 'eu-west-1c');
+    // Example of use: select * from create_rds_instance('sp-test7', 'postgres', 'db.m5.large', array['default'], 'iasql', '4l4nU$er', 8192, 'eu-west-1c');
     await queryRunner.query(`
     create or replace function create_rds_instance(DBInstanceIdentifier text, dbEngine text, DBInstanceClass text, securitygroupnames text[], MasterUsername text, 
-        MasterUserPassword text, AllocatedStorage numeric, availabilityzonename text)
+    MasterUserPassword text, AllocatedStorage numeric, availabilityzonename text)
       returns integer as $$ 
       declare
         engine_version_id integer;
         db_instance_class_id integer;
         db_instance_id integer;
           az_id integer;
-        sg record;
+          sg record;
+          sgm_id integer;
       begin
         select id into engine_version_id
         from engine_version
@@ -45,9 +46,19 @@ export class rdsSp1634057231558 implements MigrationInterface {
           where group_name = any(securitygroupnames)
         loop
           insert into
-            rds_vpc_security_groups_security_group (rds_id, security_group_id)
+            security_group_membership (security_group_id)
           values
-            (db_instance_id, sg.id);
+            (sg.id);
+            
+          select id into sgm_id
+          from security_group_membership
+          order by id desc
+          limit 1;
+          
+          insert into
+            rds_vpc_security_groups_security_group_membership (rds_id, security_group_membership_id)
+          values
+            (db_instance_id, sgm_id);
         end loop;
       
         return db_instance_id;
