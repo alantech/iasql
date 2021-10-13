@@ -45,37 +45,37 @@ export class EngineVersion {
   @Column()
   supportsGlobalDatabases: boolean;
 
-  @ManyToMany(() => UpgradeTarget, { cascade: true, })
+  @ManyToMany(() => UpgradeTarget, { cascade: true, eager: true, })
   @JoinTable()
   validUpgradeTargets: UpgradeTarget[];
 
-  @ManyToMany(() => ExportableLogType, { cascade: true, })
+  @ManyToMany(() => ExportableLogType, { cascade: true, eager: true, })
   @JoinTable()
   exportableLogTypes: ExportableLogType[];
 
-  @ManyToMany(() => SupportedEngineMode, { cascade: true, })
+  @ManyToMany(() => SupportedEngineMode, { cascade: true, eager: true, })
   @JoinTable()
   supportedEngineModes: SupportedEngineMode[];
 
-  @ManyToOne(() => CharacterSet, { cascade: true, })
+  @ManyToOne(() => CharacterSet, { cascade: true, eager: true, })
   @JoinColumn({
     name: 'character_set_id'
   })
   defaultCharacterSet: CharacterSet;
 
-  @ManyToMany(() => CharacterSet, { cascade: true, })
+  @ManyToMany(() => CharacterSet, { cascade: true, eager: true, })
   @JoinTable()
   supportedCharacterSets: CharacterSet[];
 
-  @ManyToMany(() => CharacterSet, { cascade: true, })
+  @ManyToMany(() => CharacterSet, { cascade: true, eager: true, })
   @JoinTable()
   supportedNcharCharacterSets: CharacterSet[];
 
-  @ManyToMany(() => FeatureName, { cascade: true, })
+  @ManyToMany(() => FeatureName, { cascade: true, eager: true, })
   @JoinTable()
   supportedFeatureNames: FeatureName[];
 
-  @ManyToMany(() => Timezone, { cascade: true, })
+  @ManyToMany(() => Timezone, { cascade: true, eager: true, })
   @JoinTable()
   supportedTimezones: Timezone[];
 }
