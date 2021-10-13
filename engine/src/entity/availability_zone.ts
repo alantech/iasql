@@ -75,6 +75,7 @@ export class AvailabilityZone {
   @Column()
   networkBorderGroup: string;
 
+  @noDiff
   @ManyToOne(() => AvailabilityZone, {
     nullable: true,
   })
