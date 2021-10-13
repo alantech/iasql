@@ -123,7 +123,7 @@ db.get('/create/:db', async (req, res) => {
     console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
-    console.log(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}\n${JSON.stringify(e?.metadata?.failures ?? [])}`);
+    console.log(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}\n${JSON.stringify(e?.metadata ?? [])}\n`);
     res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
   } finally {
     await conn1?.close();
@@ -274,8 +274,8 @@ db.get('/check/:db', async (req, res) => {
           const t6 = Date.now();
           console.log(`AWS update time: ${t6 - t5}ms`);
         }
-      } while(ranUpdate);
-    } while(ranFullUpdate);
+      } while (ranUpdate);
+    } while (ranFullUpdate);
     const t7 = Date.now();
     res.end(`${dbname} checked and synced, total time: ${t7 - t1}ms`);
   } catch (e: any) {
