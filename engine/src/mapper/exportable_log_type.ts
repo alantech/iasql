@@ -4,7 +4,7 @@ import { EntityMapper, } from './entity';
 import { IndexedAWS, } from '../services/indexed-aws'
 
 export const ExportableLogTypeMapper = new EntityMapper(ExportableLogType, {
-  type: (type: string) => type,
+  name: (name: string) => name,
 }, {
   readAWS: async (_awsClient: AWS, _indexes: IndexedAWS) => {
     return

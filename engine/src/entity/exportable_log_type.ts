@@ -8,5 +8,5 @@ export class ExportableLogType {
   @Column({
     unique: true,
   })
-  type: string;
+  name: string;
 }
