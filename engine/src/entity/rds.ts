@@ -132,7 +132,7 @@ export class RDS {
   @JoinTable()
   dbParameterGroups?: DBParameterGroupStatus[];
 
-  @ManyToMany(() => DBSecurityGroupMembership, { eager: true, })
+  @ManyToMany(() => DBSecurityGroupMembership, { cascade: true, eager: true, })
   @JoinTable()
   dbSecurityGroups?: DBSecurityGroupMembership[];
 
@@ -315,7 +315,7 @@ export class RDS {
   })
   timezone?: string;
 
-  @ManyToMany(() => SecurityGroupMembership, { eager: true, })
+  @ManyToMany(() => SecurityGroupMembership, { cascade: true, eager: true, })
   @JoinTable()
   vpcSecurityGroups: SecurityGroupMembership[];
 
