@@ -189,6 +189,8 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
     // Then we update the DB cache object with all of these properties so we can perform multiple
     // runs without re-querying the DB
     for (const key of Object.keys(newEntity)) {
+      // TODO: this way we ensure to keep track of all existing relationships
+      EntityMapper.keepId((obj as any)[key], (newEntity as any)[key]);
       (obj as any)[key] = (newEntity as any)[key];
     }
     console.log(`the new entity: ${JSON.stringify(newEntity)}`)
@@ -196,9 +198,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
     return newEntity;
   },
   updateAWS: async (obj: any, awsClient: AWS, indexes: IndexedAWS) => {
-    console.log('trying to update')
-    // throw new Error('tbd')
-    // return obj;
+    console.log('trying to update');
   },
   deleteAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
     console.log('trying to delete')

@@ -54,4 +54,18 @@ export class EntityMapper {
   updateAWS(obj: any, awsClient: AWS, indexes: IndexedAWS): Promise<any> {
     return this.toAws.updateAWS(obj, awsClient, indexes);
   }
+
+  static keepId(oldObj: any, newObj: any) {
+    if (!oldObj || !newObj) return;
+    if (oldObj?.hasOwnProperty('id')) {
+      newObj.id = oldObj.id;
+    }
+    // TODO: sort objects by @AwsPrimaryKey
+    if (Array.isArray(oldObj)) {
+      oldObj.forEach((v, i) => EntityMapper.keepId(v, newObj[i]));
+    }
+    if (oldObj instanceof Object) {
+      Object.keys(oldObj).filter(k => k !== 'id').forEach(k => EntityMapper.keepId(oldObj[k], newObj[k]));
+    }
+  }
 }
