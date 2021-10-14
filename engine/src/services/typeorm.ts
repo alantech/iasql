@@ -15,15 +15,16 @@ export class TypeormWrapper {
     namingStrategy: new SnakeNamingStrategy(),
   }
 
-  static async createConn(database: string): Promise<TypeormWrapper> {
+  static async createConn(database: string, connectionConfig?: PostgresConnectionOptions): Promise<TypeormWrapper> {
     const typeorm = new TypeormWrapper();
     const connMan = getConnectionManager();
     const dbname = `database-${randomInt(200000)}`;
     if (connMan.has(dbname)) {
       throw new Error(`Connection ${dbname} already exists`)
     }
+    connectionConfig = connectionConfig ?? typeorm.connectionConfig;
     const connOpts: PostgresConnectionOptions = {
-      ...typeorm.connectionConfig,
+      ...connectionConfig,
       name: dbname, // TODO improve connection name handling
       database,
     }
