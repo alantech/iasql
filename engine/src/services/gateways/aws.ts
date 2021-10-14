@@ -51,7 +51,9 @@ export class AWS {
   private credentials: AWSCreds
 
   constructor(config: AWSConfig) {
-    console.log(config);
+    if (!config?.credentials?.accessKeyId || !config?.credentials?.secretAccessKey) {
+      throw new Error('Invalid AWS credentials');
+    }
     this.credentials = config.credentials;
     this.ec2client = new EC2Client(config);
     this.rdsClient = new RDSClient(config);
