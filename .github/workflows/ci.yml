@@ -85,7 +85,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1
-          A0_ENABLED: false
+          A0_ENABLED: true
           A0_DOMAIN: https://auth.iasql.com/
           A0_AUDIENCE: https://api.iasql.com
 
