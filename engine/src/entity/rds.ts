@@ -13,13 +13,13 @@ import {
   Tag,
   EngineVersion,
   DBParameterGroupStatus,
-  DBSecurityGroupMembership,
   DomainMembership,
   CloudwatchLogsExport,
   OptionGroupMembership,
   ProcessorFeature,
   Endpoint,
-  SecurityGroup
+  SecurityGroup,
+  DBSecurityGroup
 } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
@@ -132,9 +132,9 @@ export class RDS {
   @JoinTable()
   dbParameterGroups?: DBParameterGroupStatus[];
 
-  @ManyToMany(() => DBSecurityGroupMembership, { cascade: true, eager: true, })
+  @ManyToMany(() => DBSecurityGroup, { eager: true, })
   @JoinTable()
-  dbSecurityGroups?: DBSecurityGroupMembership[];
+  dbSecurityGroups?: DBSecurityGroup[];
 
   @Column({
     nullable: true,
