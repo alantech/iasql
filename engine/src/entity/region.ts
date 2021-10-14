@@ -23,9 +23,6 @@ export class Region {
   @Column()
   optInStatus?: string;
 
-  @Column()
-  active?: boolean;
-
   @ManyToMany(() => InstanceType)
   instanceTypes: InstanceType[];
 

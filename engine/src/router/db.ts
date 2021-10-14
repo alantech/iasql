@@ -44,7 +44,7 @@ if (config.a0Enabled) {
 }
 
 // TODO secure with cors and scope
-db.post('/create/:db', async (req, res) => {
+db.post('/create', async (req, res) => {
   const t1 = Date.now();
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   // TODO generate unique id as actual name and store association to alias in ironplans
@@ -74,11 +74,7 @@ db.post('/create/:db', async (req, res) => {
     await migrate(conn2);
     orm = await TypeormWrapper.createConn(dbname);
     await orm.query(`
-      INSERT INTO aws_credentials VALUES (${awsAccessKeyId}, ${awsSecretAccessKey});
-    `);
-    orm = await TypeormWrapper.createConn(dbname);
-    await orm.query(`
-      UPDATE region SET active = true WHERE name = ${awsRegion};
+      INSERT INTO aws_credentials VALUES (${awsAccessKeyId}, ${awsSecretAccessKey}, ${awsRegion});
     `);
     const awsClient = new AWS({
       region: awsRegion,
@@ -159,12 +155,8 @@ db.get('/check/:db', async (req, res) => {
       SELECT * FROM aws_credentials LIMIT 1;
     `);
     orm = await TypeormWrapper.createConn(dbname);
-    const region: Entities.Region = await orm.query(`
-      SELECT * FROM region WHERE active = true LIMIT 1;
-    `);
-    orm = await TypeormWrapper.createConn(dbname);
     const awsClient = new AWS({
-      region: region.name ?? 'eu-west-1',
+      region: awsCreds.region,
       credentials: {
         accessKeyId: awsCreds.accessKeyId,
         secretAccessKey: awsCreds.secretAccessKey,
