@@ -77,11 +77,17 @@ jobs:
           echo AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} > .env
           echo AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} >> .env
           echo AWS_REGION=${AWS_REGION} >> .env
+          echo A0_ENABLED=${A0_ENABLED} >> .env
+          echo A0_DOMAIN=${A0_DOMAIN} >> .env
+          echo A0_AUDIENCE=${A0_AUDIENCE} >> .env
           docker-compose up --build --detach
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1
+          A0_ENABLED: true
+          A0_DOMAIN: https://auth.iasql.com/
+          A0_AUDIENCE: https://api.iasql.com
 
       - name: Docker ps -a
         run: docker ps -a
@@ -92,13 +98,16 @@ jobs:
 
       # Check that all migrations are applied
       - name: Create
-        run: curl -f -s -S http://localhost:8088/v1/db/create/__example__
+        run: |
+          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/create/__example__
 
       - name: Check
-        run: curl -f -s -S http://localhost:8088/v1/db/check/__example__
+        run: |
+          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/check/__example__
 
       - name: Delete
-        run: curl -f -s -S http://localhost:8088/v1/db/delete/__example__
+        run: |
+          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/delete/__example__
 
       - name: Logs
         if: always()
