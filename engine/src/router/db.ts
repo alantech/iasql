@@ -1,4 +1,3 @@
-import { randomBytes } from 'crypto'
 import * as express from 'express'
 import jwt from 'express-jwt'
 import jwksRsa from 'jwks-rsa'
@@ -32,15 +31,6 @@ async function saveEntities(
   console.log(`${entity.name} stored in ${t2 - t1}ms`);
 }
 
-function randomValueBase64() {
-  return randomBytes(8)
-    .toString('base64') // convert to base64 format
-    .replace(/\+/g, '0') // replace '+' with '0'
-    .replace(/\//g, '0') // replace '/' with '0'
-    .replace(/\=/g, '0') // replace '=' with '0'
-    .replace(/\-/g, '0') // replace '-' with '0'
-}
-
 if (config.a0Enabled) {
   const checkJwt = jwt({
     secret: jwksRsa.expressJwtSecret({
@@ -54,12 +44,12 @@ if (config.a0Enabled) {
 }
 
 // TODO secure with cors and scope
-db.get('/create/:dbAlias', async (req, res) => {
+db.get('/create/:db', async (req, res) => {
   const t1 = Date.now();
   // TODO use id as actual name and store association to alias in ironplans
   // such that once we auth the user they can use the alias and we map to the id
   // const dbId = randomValueBase64().toLowerCase();
-  const dbname = req.params.dbAlias;
+  const dbname = req.params.db;
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
   try {
