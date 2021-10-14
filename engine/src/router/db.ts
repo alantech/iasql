@@ -237,12 +237,18 @@ db.get('/check/:db', async (req, res) => {
             r.diff.entitiesDiff.forEach((d: any) => {
               const valIsUnchanged = (val: any): boolean => {
                 if (val.hasOwnProperty('type')) {
+                  if (val.type !== 'unchanged') console.log(`FALSE VAL TYPE = ${JSON.stringify(val)}`)
                   return val.type === 'unchanged';
                 } else if (Array.isArray(val)) {
-                  return val.every(v => valIsUnchanged(v));
+                  const res = val.every(v => valIsUnchanged(v));
+                  if (!res) console.log(`FALSE VAL ARRAY = ${JSON.stringify(val)}`)
+                  return res;
                 } else if (val instanceof Object) {
-                  return Object.keys(val).filter(k => k !== 'id').every(v => valIsUnchanged(val[v]));
+                  const res = Object.keys(val).filter(k => k !== 'id').every(v => valIsUnchanged(val[v]));
+                  if (!res) console.log(`FALSE VAL OBJ = ${JSON.stringify(val)}`)
+                  return res;
                 } else {
+                  console.log(`FALSE VAL = ${JSON.stringify(val)}`)
                   return false;
                 }
               };
@@ -251,7 +257,6 @@ db.get('/check/:db', async (req, res) => {
                 diffFound = true;
                 const entity = r.dbEntity.find((e: any) => e.id === d.id);
                 console.log(`${inspect(r.diff, true, 6)}`)
-                console.log(`${JSON.stringify(r.diff)}`)
                 outArr.push(async () => {
                   await r.mapper.updateAWS(entity, awsClient, indexes)
                 });

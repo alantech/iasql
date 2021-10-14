@@ -17,7 +17,6 @@ import {
   OptionGroupMembershipMapper,
   ProcessorFeatureMapper,
   SecurityGroupMapper,
-  SecurityGroupMembershipMapper,
   TagMapper,
 } from '.'
 import { AvailabilityZone, EngineVersion, SecurityGroup, } from '../entity'

@@ -14,7 +14,6 @@ import {
   EngineVersion,
   DBParameterGroupStatus,
   DBSecurityGroupMembership,
-  SecurityGroupMembership,
   DomainMembership,
   CloudwatchLogsExport,
   OptionGroupMembership,

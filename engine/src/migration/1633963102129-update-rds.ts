@@ -19,7 +19,6 @@ export class updateRds1633963102129 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "orderable_db_instance_option" ("id" SERIAL NOT NULL, "license_model" character varying, "multi_az_capable" boolean, "read_replica_capable" boolean, "vpc" boolean, "supports_storage_encryption" boolean, "storage_type" character varying, "supports_iops" boolean, "supports_enhanced_monitoring" boolean, "supports_iam_database_authentication" boolean, "supports_performance_insights" boolean, "min_storage_size" numeric, "max_storage_size" numeric, "min_iops_per_db_instance" numeric, "max_iops_per_db_instance" numeric, "min_iops_per_gib" numeric, "max_iops_per_gib" numeric, "supports_storage_autoscaling" boolean, "supports_kerberos_authentication" boolean, "outpost_capable" boolean, "supports_global_databases" boolean, "engine_version_id" integer, "db_instance_class_id" integer, CONSTRAINT "PK_b3b32923ec60debecf4a5ddeaec" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "ip_range" ("id" SERIAL NOT NULL, "status" character varying, "cidrip" cidr, CONSTRAINT "PK_914964db63442554c504a9a6a22" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "db_security_group" ("id" SERIAL NOT NULL, "db_security_group_description" character varying, "db_security_group_name" character varying, "owner_id" character varying, "vpc_id" character varying, "db_security_group_arn" character varying, CONSTRAINT "PK_b8f3e48843ad67373a863bee176" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "security_group_membership" ("id" SERIAL NOT NULL, "status" character varying, "security_group_id" integer, CONSTRAINT "PK_c0f123642afb193dff3355254d5" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "domain_membership" ("id" SERIAL NOT NULL, "domain" character varying, "status" character varying, "fqdn" character varying, "iam_role_name" character varying, CONSTRAINT "PK_d015c1d1a3584be1afdea928ece" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "option_group_membership" ("id" SERIAL NOT NULL, "option_group_name" character varying, "status" character varying, CONSTRAINT "PK_edc58af19ca145174e323888d2f" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "endpoint" ("id" SERIAL NOT NULL, "address" character varying, "port" integer, "hosted_zone_id" character varying, CONSTRAINT "PK_7785c5c2cf24e6ab3abb7a2e89f" PRIMARY KEY ("id"))`);
@@ -84,9 +83,6 @@ export class updateRds1633963102129 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "rds_processor_features_processor_feature" ("rds_id" integer NOT NULL, "processor_feature_id" integer NOT NULL, CONSTRAINT "PK_466a9fbbfbfe991cb67303b5e8f" PRIMARY KEY ("rds_id", "processor_feature_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_040989e476315840c5bc4f0c6d" ON "rds_processor_features_processor_feature" ("rds_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_568be2825b0cb4b0badc098c3b" ON "rds_processor_features_processor_feature" ("processor_feature_id") `);
-        await queryRunner.query(`CREATE TABLE "rds_vpc_security_groups_security_group_membership" ("rds_id" integer NOT NULL, "security_group_membership_id" integer NOT NULL, CONSTRAINT "PK_3e34403c0ea7ee6a7ae3170b9dd" PRIMARY KEY ("rds_id", "security_group_membership_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_bef20834732522945d9bb63929" ON "rds_vpc_security_groups_security_group_membership" ("rds_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_691e4fe60d8cd05a5d92089a2b" ON "rds_vpc_security_groups_security_group_membership" ("security_group_membership_id") `);
         await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "engine"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "engine_version"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP COLUMN "listener_endpoint"`);
@@ -118,7 +114,6 @@ export class updateRds1633963102129 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "upgrade_target" ADD CONSTRAINT "FK_f72e551ae46bb42c1b7d5c0c958" FOREIGN KEY ("engine_version_id") REFERENCES "engine_version"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "orderable_db_instance_option" ADD CONSTRAINT "FK_b2609a55c9361c6c05549bb3e22" FOREIGN KEY ("engine_version_id") REFERENCES "engine_version"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "orderable_db_instance_option" ADD CONSTRAINT "FK_46e53cc6bc7fcf5aec05a444ac7" FOREIGN KEY ("db_instance_class_id") REFERENCES "db_instance_class"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "security_group_membership" ADD CONSTRAINT "FK_07c8fdd5ab2d176102ac11f7983" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "rds" ADD CONSTRAINT "FK_f78aee03934884ec12ed206c6ee" FOREIGN KEY ("db_instance_class_id") REFERENCES "db_instance_class"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "rds" ADD CONSTRAINT "FK_f0c9a8ba920bd21d2f2833e1d92" FOREIGN KEY ("engine_version_id") REFERENCES "engine_version"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "rds" ADD CONSTRAINT "FK_505a7144df2d71295aac1bf0da0" FOREIGN KEY ("endpoint_id") REFERENCES "endpoint"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
@@ -166,13 +161,9 @@ export class updateRds1633963102129 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "rds_option_group_memberships_option_group_membership" ADD CONSTRAINT "FK_21d2baf09d1f84ca46f77c287a1" FOREIGN KEY ("option_group_membership_id") REFERENCES "option_group_membership"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "rds_processor_features_processor_feature" ADD CONSTRAINT "FK_040989e476315840c5bc4f0c6d4" FOREIGN KEY ("rds_id") REFERENCES "rds"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "rds_processor_features_processor_feature" ADD CONSTRAINT "FK_568be2825b0cb4b0badc098c3bc" FOREIGN KEY ("processor_feature_id") REFERENCES "processor_feature"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_security_group_membership" ADD CONSTRAINT "FK_bef20834732522945d9bb63929a" FOREIGN KEY ("rds_id") REFERENCES "rds"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_security_group_membership" ADD CONSTRAINT "FK_691e4fe60d8cd05a5d92089a2bf" FOREIGN KEY ("security_group_membership_id") REFERENCES "security_group_membership"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_security_group_membership" DROP CONSTRAINT "FK_691e4fe60d8cd05a5d92089a2bf"`);
-        await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_security_group_membership" DROP CONSTRAINT "FK_bef20834732522945d9bb63929a"`);
         await queryRunner.query(`ALTER TABLE "rds_processor_features_processor_feature" DROP CONSTRAINT "FK_568be2825b0cb4b0badc098c3bc"`);
         await queryRunner.query(`ALTER TABLE "rds_processor_features_processor_feature" DROP CONSTRAINT "FK_040989e476315840c5bc4f0c6d4"`);
         await queryRunner.query(`ALTER TABLE "rds_option_group_memberships_option_group_membership" DROP CONSTRAINT "FK_21d2baf09d1f84ca46f77c287a1"`);
@@ -220,7 +211,6 @@ export class updateRds1633963102129 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_505a7144df2d71295aac1bf0da0"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_f0c9a8ba920bd21d2f2833e1d92"`);
         await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_f78aee03934884ec12ed206c6ee"`);
-        await queryRunner.query(`ALTER TABLE "security_group_membership" DROP CONSTRAINT "FK_07c8fdd5ab2d176102ac11f7983"`);
         await queryRunner.query(`ALTER TABLE "orderable_db_instance_option" DROP CONSTRAINT "FK_46e53cc6bc7fcf5aec05a444ac7"`);
         await queryRunner.query(`ALTER TABLE "orderable_db_instance_option" DROP CONSTRAINT "FK_b2609a55c9361c6c05549bb3e22"`);
         await queryRunner.query(`ALTER TABLE "upgrade_target" DROP CONSTRAINT "FK_f72e551ae46bb42c1b7d5c0c958"`);
@@ -254,7 +244,6 @@ export class updateRds1633963102129 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "rds" ADD "engine" character varying NOT NULL`);
         await queryRunner.query(`DROP INDEX "public"."IDX_691e4fe60d8cd05a5d92089a2b"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_bef20834732522945d9bb63929"`);
-        await queryRunner.query(`DROP TABLE "rds_vpc_security_groups_security_group_membership"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_568be2825b0cb4b0badc098c3b"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_040989e476315840c5bc4f0c6d"`);
         await queryRunner.query(`DROP TABLE "rds_processor_features_processor_feature"`);
@@ -319,7 +308,6 @@ export class updateRds1633963102129 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "endpoint"`);
         await queryRunner.query(`DROP TABLE "option_group_membership"`);
         await queryRunner.query(`DROP TABLE "domain_membership"`);
-        await queryRunner.query(`DROP TABLE "security_group_membership"`);
         await queryRunner.query(`DROP TABLE "db_security_group"`);
         await queryRunner.query(`DROP TABLE "ip_range"`);
         await queryRunner.query(`DROP TABLE "orderable_db_instance_option"`);
