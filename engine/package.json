@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "yarn clean && tsc",
-    "clean": "rm -r dist",
+    "clean": "rm -rf dist",
     "lint": "tslint --project .",
     "test": "jest -i",
     "coverage": "jest -i --coverage",
