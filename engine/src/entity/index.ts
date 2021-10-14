@@ -1,6 +1,7 @@
 export * from './ami'
 export * from './availability_zone'
 export * from './availability_zone_message'
+export * from './aws_credentials'
 export * from './boot_mode'
 export * from './cpu_architecture'
 export * from './device_type'

@@ -44,11 +44,12 @@ if (config.a0Enabled) {
 }
 
 // TODO secure with cors and scope
-db.get('/create/:db', async (req, res) => {
+db.post('/create/:db', async (req, res) => {
   const t1 = Date.now();
-  // TODO use unique id as actual name and store association to alias in ironplans
+  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
+  // TODO generate unique id as actual name and store association to alias in ironplans
   // such that once we auth the user they can use the alias and we map to the id
-  const dbname = req.params.db;
+  const dbname = dbAlias;
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
   try {
@@ -71,11 +72,19 @@ db.get('/create/:db', async (req, res) => {
       database: dbname,
     });
     await migrate(conn2);
+    orm = await TypeormWrapper.createConn(dbname);
+    await orm.query(`
+      INSERT INTO aws_credentials VALUES (${awsAccessKeyId}, ${awsSecretAccessKey});
+    `);
+    orm = await TypeormWrapper.createConn(dbname);
+    await orm.query(`
+      UPDATE region SET active = true WHERE name = ${awsRegion};
+    `);
     const awsClient = new AWS({
-      region: config.region ?? 'eu-west-1',
+      region: awsRegion,
       credentials: {
-        accessKeyId: config.accessKeyId ?? '',
-        secretAccessKey: config.secretAccessKey ?? '',
+        accessKeyId: awsAccessKeyId,
+        secretAccessKey: awsSecretAccessKey,
       },
     });
     const indexes = new IndexedAWS();
@@ -146,11 +155,19 @@ db.get('/check/:db', async (req, res) => {
   let orm: TypeormWrapper | null = null;
   try {
     orm = await TypeormWrapper.createConn(dbname);
+    const awsCreds: Entities.AWSCredentials = await orm.query(`
+      SELECT * FROM aws_credentials LIMIT 1;
+    `);
+    orm = await TypeormWrapper.createConn(dbname);
+    const region: Entities.Region = await orm.query(`
+      SELECT * FROM region WHERE active = true LIMIT 1;
+    `);
+    orm = await TypeormWrapper.createConn(dbname);
     const awsClient = new AWS({
-      region: config.region ?? 'eu-west-1',
+      region: region.name ?? 'eu-west-1',
       credentials: {
-        accessKeyId: config.accessKeyId ?? '',
-        secretAccessKey: config.secretAccessKey ?? '',
+        accessKeyId: awsCreds.accessKeyId,
+        secretAccessKey: awsCreds.secretAccessKey,
       },
     });
     const indexes = new IndexedAWS();

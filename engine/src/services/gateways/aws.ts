@@ -35,9 +35,11 @@ type AWSConfig = {
 export class AWS {
   private ec2client: EC2Client
   private credentials: AWSCreds
+  public region: string
 
   constructor(config: AWSConfig) {
     this.credentials = config.credentials;
+    this.region = config.region;
     this.ec2client = new EC2Client(config);
   }
 

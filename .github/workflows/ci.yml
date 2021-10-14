@@ -74,9 +74,6 @@ jobs:
 
       - name: Docker build and run --detach
         run: |
-          echo AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} > .env
-          echo AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} >> .env
-          echo AWS_REGION=${AWS_REGION} >> .env
           echo A0_ENABLED=${A0_ENABLED} >> .env
           echo A0_DOMAIN=${A0_DOMAIN} >> .env
           echo A0_AUDIENCE=${A0_AUDIENCE} >> .env
@@ -99,7 +96,18 @@ jobs:
       # Check that all migrations are applied
       - name: Create
         run: |
-          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/create/__example__
+          curl \
+          --request POST \
+          --url 'http://localhost:8088/v1/db/create/' \
+          --show-error --silent \
+          --header 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' \
+          --header 'content-type: application/json' \
+          --data '{
+            "dbAlias": "__example__"
+            "awsRegion": "us-east-1",
+            "awsAccessKeyId": "${{ secrets.AWS_ACCESS_KEY_ID }}",
+            "awsSecretAccessKey": "${{ secrets.AWS_SECRET_ACCESS_KEY }}",
+          }'
 
       - name: Check
         run: |
