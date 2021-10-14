@@ -1,6 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class rdsSp1634057231558 implements MigrationInterface {
+export class rdsSp1634207752960 implements MigrationInterface {
+  name: 'rdsSp1634207752960'
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Example of use: select * from create_rds_instance('sp-test7', 'postgres', 'db.m5.large', array['default'], 'iasql', '4l4nU$er', 8192, 'eu-west-1c');
