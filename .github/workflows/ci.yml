@@ -26,16 +26,33 @@ jobs:
       - uses: actions/checkout@v2
 
       # Set up Node.js
-      - name: Use Node.js 14.x
+      - name: Use Node.js 16.x
         uses: actions/setup-node@v1
         with:
-          node-version: 14.x
+          node-version: 16.x
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn
 
       - name: Run linter check
-        run: yarn run lint
+        run: yarn lint
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Run tests
+        run: yarn test
 
   db:
     # The type of runner that the job will run on
@@ -47,13 +64,13 @@ jobs:
       - uses: actions/checkout@v2
 
       # Set up Node.js
-      - name: Use Node.js 14.x
+      - name: Use Node.js 16.x
         uses: actions/setup-node@v1
         with:
-          node-version: 14.x
+          node-version: 16.x
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn
 
       - name: Docker build and run --detach
         run: |
@@ -79,9 +96,6 @@ jobs:
 
       - name: Check
         run: curl -f -s -S http://localhost:8088/v1/db/check/__example__
-        
-      - name: Find
-        run: curl -f -s -S http://localhost:8088/v1/db/find/__example__
 
       - name: Delete
         run: curl -f -s -S http://localhost:8088/v1/db/delete/__example__

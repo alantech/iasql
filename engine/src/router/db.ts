@@ -1,7 +1,5 @@
-import * as fs from 'fs'
-import { inspect, } from 'util'
 import * as express from 'express'
-import { createConnection, Connection, EntityTarget, } from 'typeorm'
+import { createConnection, } from 'typeorm'
 
 import { AWS, } from '../services/gateways/aws'
 import config from '../config'
@@ -10,64 +8,21 @@ import * as Entities from '../entity'
 import * as Mappers from '../mapper'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { findDiff, } from '../services/diff'
-import { Source, getSourceOfTruth, } from '../services/source-of-truth'
+import { Source, } from '../services/source-of-truth'
 import { getAwsPrimaryKey, } from '../services/aws-primary-key'
 import { lazyLoader, } from '../services/lazy-dep'
+import { migrate, populate, } from '../services/db-manager'
 
 export const db = express.Router();
-
-// We only want to do this setup once, then we re-use it. First we get the list of files
-const migrationFiles = fs
-  .readdirSync(`${__dirname}/../migration`)
-  .filter(f => !/\.map$/.test(f));
-// Then we construct the class names stored within those files (assuming *all* were generated with
-// `yarn gen-sql some-name`
-const migrationNames = migrationFiles.map(f => {
-  const components = f.replace(/\.js/, '').split('-');
-  const tz = components.shift();
-  for (let i = 1; i < components.length; i++) {
-    components[i] = components[i].replace(/^([a-z])(.*$)/, (_, p1, p2) => p1.toUpperCase() + p2);
-  }
-  return [...components, tz].join('');
-});
-// Then we dynamically `require` the migration files and construct the inner classes
-const migrationObjs = migrationFiles
-  .map(f => require(`../migration/${f}`))
-  .map((c, i) => c[migrationNames[i]])
-  .map(M => new M());
-// Finally we use this in this function to execute all of the migrations in order for a provided
-// connection, but without the migration management metadata being added, which is actually a plus
-// for us.
-async function migrate(conn: Connection) {
-  const qr = conn.createQueryRunner();
-  await qr.connect();
-  for (const m of migrationObjs) {
-    await m.up(qr);
-  }
-  await qr.release();
-}
-
-async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
-  const promiseGenerators = Object.values(Mappers)
-    .filter(mapper => {
-      let out = mapper instanceof Mappers.EntityMapper;
-      if (out && typeof source === 'string') {
-        out &&= getSourceOfTruth((mapper as Mappers.EntityMapper).getEntity()) === source;
-      }
-      return out;
-    })
-    .map(mapper => () => (mapper as Mappers.EntityMapper).readAWS(awsClient, indexes));
-  await lazyLoader(promiseGenerators);
-}
 
 async function saveEntities(
   orm: TypeormWrapper,
   awsClient: AWS,
   indexes: IndexedAWS,
-  entity: Function,
   mapper: Mappers.EntityMapper,
 ) {
   const t1 = Date.now();
+  const entity = mapper.getEntity();
   const entities = await indexes.toEntityList(mapper, awsClient);
   await orm.save(entity, entities);
   const t2 = Date.now();
@@ -118,7 +73,7 @@ db.get('/create/:db', async (req, res) => {
     console.log(`Populating new db: ${dbname}`);
     const mappers: Mappers.EntityMapper[] = Object.values(Mappers)
       .filter(m => m instanceof Mappers.EntityMapper) as Mappers.EntityMapper[];
-    await lazyLoader(mappers.map(m => () => saveEntities(o, awsClient, indexes, m.getEntity(), m)));
+    await lazyLoader(mappers.map(m => () => saveEntities(o, awsClient, indexes, m)));
     const t4 = Date.now();
     console.log(`Writing complete in ${t4 - t3}ms`);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
@@ -278,34 +233,6 @@ db.get('/check/:db', async (req, res) => {
   } catch (e: any) {
     console.dir(e, { depth: 6, });
     res.status(500).end(`failure to check DB: ${e?.message ?? ''}`);
-  } finally {
-    orm?.dropConn();
-  }
-});
-
-// Test endpoint to ensure all ORM queries to entities work as expected
-db.get('/find/:db', async (req, res) => {
-  const dbname = req.params.db;
-  const t1 = Date.now();
-  console.log(`Find entities in ${dbname}`);
-  let orm: TypeormWrapper | null = null;
-  try {
-    orm = await TypeormWrapper.createConn(dbname);
-    const t2 = Date.now();
-    console.log(`Setup took ${t2 - t1}ms`);
-    const finds = [];
-    for (const e of Object.values(Entities)) {
-      if (typeof e === 'function') {
-        finds.push(orm?.find(e as EntityTarget<any>));
-      }
-    };
-    await Promise.all(finds);
-    const t3 = Date.now();
-    console.log(`Find time: ${t3 - t2}ms`);
-    res.end('ok');
-  } catch (e: any) {
-    console.error(e);
-    res.status(500).end(`failure to find all entities in DB: ${e?.message ?? ''}`);
   } finally {
     orm?.dropConn();
   }
