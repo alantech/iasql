@@ -236,9 +236,9 @@ db.get('/check/:db', async (req, res) => {
             let diffFound = false;
             r.diff.entitiesDiff.forEach((d: any) => {
               const valIsUnchanged = (val: any): boolean => {
-                if (val.hasOwnProperty('type')) {
-                  if (val.type !== 'unchanged') console.log(`FALSE VAL TYPE = ${JSON.stringify(val)}`)
-                  return val.type === 'unchanged';
+                if (val.hasOwnProperty('__type__')) {
+                  if (val.__type__ !== 'unchanged') console.log(`FALSE VAL TYPE = ${JSON.stringify(val)}`)
+                  return val.__type__ === 'unchanged';
                 } else if (Array.isArray(val)) {
                   const res = val.every(v => valIsUnchanged(v));
                   if (!res) console.log(`FALSE VAL ARRAY = ${JSON.stringify(val)}`)

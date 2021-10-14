@@ -40,7 +40,7 @@ export function findDiff(entity: string, dbEntities: any[], cloudEntities: any[]
 function diff(dbObj: any, cloudObj: any, exclusionList: string[]) {
   if (isValue(dbObj) || isValue(cloudObj)) {
     return {
-      type: compare(dbObj, cloudObj),
+      __type__: compare(dbObj, cloudObj),
       db: dbObj,
       cloud: cloudObj
     };
