@@ -46,10 +46,10 @@ if (config.a0Enabled) {
 // TODO secure with cors and scope
 db.post('/create', async (req, res) => {
   const t1 = Date.now();
-  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
+  const {db, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   // TODO generate unique id as actual name and store association to alias in ironplans
   // such that once we auth the user they can use the alias and we map to the id
-  const dbname = dbAlias;
+  const dbname = db;
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
   try {
