@@ -1,12 +1,29 @@
 const lightCodeTheme = require('prism-react-renderer/themes/github');
 const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 
+const baseConfig = {
+  url: 'https://beta.iasql.com',
+  backendUrl: 'http://localhost:8088',
+  auth: {
+    domain: 'auth.iasql.com',
+    clientId: 'OLQAngfr1LnenTt6wmQOYKmzx1c1dSxg',
+    redirectPath: 'dashboard',
+    // https://auth0.com/docs/quickstart/backend/nodejs/01-authorization#configure-auth0-apis
+    audience: 'https://api.iasql.com',
+    scope: 'read:dbs, create:dbs, delete:dbs'
+  },
+};
+const localConfig = {
+  url: 'http://localhost:3000'
+};
+const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, localConfig) : baseConfig;
+
 // With JSDoc @type annotations, IDEs can provide config autocompletion
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
 (module.exports = {
   title: 'IaSQL',
   tagline: 'AWS Infrastructure as SQL',
-  url: 'https://beta.iasql.com',
+  url: config.url,
   baseUrl: '/',
   trailingSlash: true,
   onBrokenLinks: 'throw',
@@ -15,13 +32,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
   organizationName: 'alantech', // Usually your GitHub org/user name.
   projectName: 'iasql', // Usually your repo name.
 
-  customFields: {
-    auth: {
-      domain: "auth.iasql.com",
-      clientId: "OLQAngfr1LnenTt6wmQOYKmzx1c1dSxg",
-      redirectUri: 'https://beta.iasql.com'
-    },
-  },
+  customFields: config,
 
   presets: [
     [
