@@ -99,7 +99,7 @@ jobs:
       # Check that all migrations are applied
       - name: Create
         run: |
-          curl -f -s -S http://localhost:8088/v1/db/create/__example__
+          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/create/__example__
 
       - name: Check
         run: |
