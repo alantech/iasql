@@ -46,9 +46,8 @@ if (config.a0Enabled) {
 // TODO secure with cors and scope
 db.get('/create/:db', async (req, res) => {
   const t1 = Date.now();
-  // TODO use id as actual name and store association to alias in ironplans
+  // TODO use unique id as actual name and store association to alias in ironplans
   // such that once we auth the user they can use the alias and we map to the id
-  // const dbId = randomValueBase64().toLowerCase();
   const dbname = req.params.db;
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
