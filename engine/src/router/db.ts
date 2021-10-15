@@ -108,8 +108,8 @@ db.post('/create', async (req, res) => {
   }
 });
 
-db.get('/delete/:db', async (req, res) => {
-  const dbname = req.params.db;
+db.get('/delete/:dbAlias', async (req, res) => {
+  const dbname = req.params.dbAlias;
   let conn;
   try {
     conn = await createConnection({
@@ -144,8 +144,8 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
   return out;
 }
 
-db.get('/check/:db', async (req, res) => {
-  const dbname = req.params.db;
+db.get('/check/:dbAlias', async (req, res) => {
+  const dbname = req.params.dbAlias;
   const t1 = Date.now();
   console.log(`Checking ${dbname}`);
   let orm: TypeormWrapper | null = null;
