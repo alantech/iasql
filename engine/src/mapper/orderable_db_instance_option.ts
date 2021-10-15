@@ -67,6 +67,7 @@ export const OrderableDBInstanceOptionMapper = new EntityMapper(OrderableDBInsta
     engines = [...new Set(engines)];
     let orderableDBInstanceOptions = [];
     try {
+      // TODO: remove engine filter
       orderableDBInstanceOptions = (await awsClient.getOrderableInstanceOptions(['postgres']/*engines*/))?.OrderableDBInstanceOptions ?? [];
     } catch (e) {
       console.log(`${e}`);
