@@ -74,7 +74,7 @@ db.post('/create', async (req, res) => {
     await migrate(conn2);
     orm = await TypeormWrapper.createConn(dbname);
     await orm.query(`
-      INSERT INTO aws_credentials VALUES (${awsAccessKeyId}, ${awsSecretAccessKey}, ${awsRegion});
+      INSERT INTO aws_credentials VALUES (DEFAULT, '${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}');
     `);
     const awsClient = new AWS({
       region: awsRegion,

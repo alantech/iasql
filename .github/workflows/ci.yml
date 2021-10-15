@@ -103,10 +103,10 @@ jobs:
           --header 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' \
           --header 'content-type: application/json' \
           --data '{
-            "dbAlias": "__example__"
+            "dbAlias": "__example__",
             "awsRegion": "us-east-1",
             "awsAccessKeyId": "${{ secrets.AWS_ACCESS_KEY_ID }}",
-            "awsSecretAccessKey": "${{ secrets.AWS_SECRET_ACCESS_KEY }}",
+            "awsSecretAccessKey": "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           }'
 
       - name: Check
