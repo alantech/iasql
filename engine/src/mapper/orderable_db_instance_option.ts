@@ -66,13 +66,8 @@ export const OrderableDBInstanceOptionMapper = new EntityMapper(OrderableDBInsta
     let engines = Object.entries(engineVersions ?? {}).map(([_, v]) => (v as OrderableDBInstanceOptionAWS).Engine!);
     engines = [...new Set(engines)];
     let orderableDBInstanceOptions = [];
-    try {
-      // TODO: remove engine filter
-      orderableDBInstanceOptions = (await awsClient.getOrderableInstanceOptions(['postgres']/*engines*/))?.OrderableDBInstanceOptions ?? [];
-    } catch (e) {
-      console.log(`${e}`);
-      throw e;
-    }
+    // TODO: remove engine filter
+    orderableDBInstanceOptions = (await awsClient.getOrderableInstanceOptions(['postgres']/*engines*/))?.OrderableDBInstanceOptions ?? [];
     indexes.setAllWithComposeKey(OrderableDBInstanceOption, orderableDBInstanceOptions, ['Engine', 'EngineVersion', 'DBInstanceClass', 'StorageType']);
     const t2 = Date.now();
     console.log(`OrderableBDInstanceOptions set in ${t2 - t1}ms`);

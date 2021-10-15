@@ -320,7 +320,6 @@ export class AWS {
   async getOrderableInstanceOptions(engines: string[]) {
     const orderableInstanceOptions = [];
     for (const engine of engines) {
-      console.log('Getting for engine', engine);
       const paginator = paginateDescribeOrderableDBInstanceOptions({
         client: this.rdsClient,
         pageSize: 100,
@@ -395,8 +394,6 @@ export class AWS {
         try {
           const data = await client.send(cmd);
           for (const dbInstance of data?.DBInstances ?? []) {
-            console.log('dbInstance.DBInstanceStatus')
-            console.log(dbInstance.DBInstanceStatus)
             if (dbInstance.DBInstanceStatus !== 'modifying')
               return { state: WaiterState.RETRY };
           }
@@ -421,8 +418,6 @@ export class AWS {
         try {
           const data = await client.send(cmd);
           for (const dbInstance of data?.DBInstances ?? []) {
-            console.log('dbInstance.DBInstanceStatus')
-            console.log(dbInstance.DBInstanceStatus)
             if (dbInstance.DBInstanceStatus !== 'available')
               return { state: WaiterState.RETRY };
             updatedDBInstance = dbInstance;
