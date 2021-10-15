@@ -149,34 +149,25 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   },
   createAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
     // TODO: if inserted without sec group it assign default. Should we insert it manually if no sec group defined?
-    let result;
-    try {
-      const input = {
-        DBInstanceClass: obj.dbInstanceClass.name,
-        Engine: obj.engine.engine,
-        EngineVersion: obj.engine.engineVersion,
-        DBInstanceIdentifier: obj.dbInstanceIdentifier,
-        MasterUsername: obj.masterUsername,
-        MasterUserPassword: obj.masterUserPassword,
-        AllocatedStorage: obj.allocatedStorage,
-        AvailabilityZone: obj.availabilityZone.zoneName,
-        VpcSecurityGroupIds: obj.vpcSecurityGroups.map(sg => sg?.groupId ?? ''),
-        // TODO: complete input properties
-      };
-      console.log(`the input used to create the db is ${JSON.stringify(input)}`)
-      result = await awsClient.createDBInstance(input);
-    } catch (e) {
-      console.log(`Error creating db with error ${e}`);
-      throw e;
-    }
+    const input = {
+      DBInstanceClass: obj.dbInstanceClass.name,
+      Engine: obj.engine.engine,
+      EngineVersion: obj.engine.engineVersion,
+      DBInstanceIdentifier: obj.dbInstanceIdentifier,
+      MasterUsername: obj.masterUsername,
+      MasterUserPassword: obj.masterUserPassword,
+      AllocatedStorage: obj.allocatedStorage,
+      AvailabilityZone: obj.availabilityZone.zoneName,
+      VpcSecurityGroupIds: obj.vpcSecurityGroups.map(sg => sg?.groupId ?? ''),
+      // TODO: complete input properties
+    };
+    const result = await awsClient.createDBInstance(input);
     // TODO: Handle if it fails (somehow)
     if (!result?.hasOwnProperty('DBInstanceIdentifier')) { // Failure
       throw new Error('what should we do here?');
     }
-    console.log(`Getting instance with result = ${JSON.stringify(result)} result_id = ${result?.DBInstanceIdentifier}`)
     // Re-get the inserted security group to get all of the relevant records we care about
     const newDBInstance = await awsClient.getDBInstance(result?.DBInstanceIdentifier ?? '');
-    console.log(`instance = ${JSON.stringify(newDBInstance)}`)
     indexes.set(RDS, newDBInstance?.DBInstanceIdentifier ?? '', newDBInstance);
     // We map this into the same kind of entity as `obj`
     const newEntity: RDS = await RDSMapper.fromAWS(newDBInstance, awsClient, indexes);
@@ -190,12 +181,10 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
       EntityMapper.keepId((obj as any)[key], (newEntity as any)[key]);
       (obj as any)[key] = (newEntity as any)[key];
     }
-    console.log(`the new entity: ${JSON.stringify(newEntity)}`)
     // It's up to the caller if they want to actually update into the DB or not, though.
     return newEntity;
   },
   updateAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
-    console.log('Update called')
     // Doing an actual update of some of the properties that can change.
     // Discarded delete + re-create for two reasons
     // 1. Db identifier should be unique and is the one defined by the user. We could update the current one
@@ -218,47 +207,31 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
         MasterUserPassword: obj.masterUserPassword,
       };
     }
-    console.log(`input to update ${JSON.stringify(input)}`)
-    let result;
-    try {
-      result = await awsClient.updateDBInstance(input);
-    } catch (e) {
-      console.log(`ERROR ${e}`)
-      throw e;
-    }
+    const result = await awsClient.updateDBInstance(input);
     if (!result?.hasOwnProperty('DBInstanceIdentifier')) {
       throw new Error('what should we do here?');
     }
-    console.log(`Getting instance with result = ${JSON.stringify(result)} result_id = ${result?.DBInstanceIdentifier}`)
     const updatedDBInstance = await awsClient.getDBInstance(result?.DBInstanceIdentifier ?? '');
-    console.log(`instance = ${JSON.stringify(updatedDBInstance)}`)
     indexes.set(RDS, updatedDBInstance?.DBInstanceIdentifier ?? '', updatedDBInstance);
     const updatedEntity: RDS = await RDSMapper.fromAWS(updatedDBInstance, awsClient, indexes);
     updatedEntity.id = obj.id;
     for (const key of Object.keys(updatedEntity)) {
-      // We ensure to keep track of all existing relationships
+      // We ensure to keep track of all existing relationships. Otherwise it join table relations will be deleted
       EntityMapper.keepId((obj as any)[key], (updatedEntity as any)[key]);
       (obj as any)[key] = (updatedEntity as any)[key];
     }
-    console.log(`entity = ${JSON.stringify(updatedEntity)}`)
     return updatedEntity;
   },
   deleteAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
-    console.log('trying to delete')
-    try {
-      await awsClient.deleteDBInstance({
-        DBInstanceIdentifier: obj.dbInstanceIdentifier,
-        // TODO: do users will have access to this type of config?
-        // probably initially we should play it safe and do not create a snapshot
-        // and do not delete backups if any?
-        SkipFinalSnapshot: true,
-        // FinalDBSnapshotIdentifier: undefined,
-        // DeleteAutomatedBackups: false,
-      });
-    } catch (e) {
-      console.log(`something went wrong deleting ${e}`);
-      throw new Error(`${e}`)
-    }
+    await awsClient.deleteDBInstance({
+      DBInstanceIdentifier: obj.dbInstanceIdentifier,
+      // TODO: do users will have access to this type of config?
+      //        probably initially we should play it safe and do not create a snapshot
+      //        and do not delete backups if any?
+      SkipFinalSnapshot: true,
+      // FinalDBSnapshotIdentifier: undefined,
+      // DeleteAutomatedBackups: false,
+    });
     // TODO: What does the error even look like? Docs are spotty on this
     indexes.del(RDS, (obj as any).dbInstanceIdentifier);
     return obj;
