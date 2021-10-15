@@ -59,6 +59,7 @@ export const InstanceMapper: EntityMapper = new EntityMapper(Instance, {
     // Then we update the DB cache object with all of these properties so we can perform multiple
     // runs without re-querying the DB
     for (const key of Object.keys(newEntity)) {
+      EntityMapper.keepId((obj as any)[key], (newEntity as any)[key]);
       (obj as any)[key] = (newEntity as any)[key];
     }
     // It's up to the caller if they want to actually update into the DB or not, though.
