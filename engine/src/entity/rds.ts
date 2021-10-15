@@ -132,6 +132,7 @@ export class RDS {
   @JoinTable()
   dbParameterGroups?: DBParameterGroupStatus[];
 
+  @noDiff
   @ManyToMany(() => DBSecurityGroup, { eager: true, })
   @JoinTable()
   dbSecurityGroups?: DBSecurityGroup[];
@@ -315,6 +316,7 @@ export class RDS {
   })
   timezone?: string;
 
+  @noDiff
   @ManyToMany(() => SecurityGroup, { eager: true, })
   @JoinTable()
   vpcSecurityGroups: SecurityGroup[];
