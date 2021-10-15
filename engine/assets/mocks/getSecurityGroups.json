@@ -1,0 +1,59 @@
+{
+ "SecurityGroups": [
+  {
+   "Description": "test double loop 2, IT WORKS",
+   "GroupName": "testdoubleloop2",
+   "IpPermissions": [],
+   "OwnerId": "108328709943",
+   "GroupId": "sg-030accc012a65718d",
+   "IpPermissionsEgress": [
+    {
+     "IpProtocol": "-1",
+     "IpRanges": [
+      {
+       "CidrIp": "0.0.0.0/0"
+      }
+     ],
+     "Ipv6Ranges": [],
+     "PrefixListIds": [],
+     "UserIdGroupPairs": []
+    }
+   ],
+   "VpcId": "vpc-1d4b1165"
+  },
+  {
+   "Description": "default VPC security group",
+   "GroupName": "default",
+   "IpPermissions": [
+    {
+     "IpProtocol": "-1",
+     "IpRanges": [],
+     "Ipv6Ranges": [],
+     "PrefixListIds": [],
+     "UserIdGroupPairs": [
+      {
+       "GroupId": "sg-f27f6fd4",
+       "UserId": "108328709943"
+      }
+     ]
+    }
+   ],
+   "OwnerId": "108328709943",
+   "GroupId": "sg-f27f6fd4",
+   "IpPermissionsEgress": [
+    {
+     "IpProtocol": "-1",
+     "IpRanges": [
+      {
+       "CidrIp": "0.0.0.0/0"
+      }
+     ],
+     "Ipv6Ranges": [],
+     "PrefixListIds": [],
+     "UserIdGroupPairs": []
+    }
+   ],
+   "VpcId": "vpc-1d4b1165"
+  }
+ ]
+}

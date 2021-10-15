@@ -14,9 +14,12 @@ export const SecurityGroupMapper: EntityMapper = new EntityMapper(SecurityGroup,
   ownerId: (sg: SecurityGroupAWS) => sg?.OwnerId,
   groupId: (sg: SecurityGroupAWS) => sg?.GroupId,
   vpcId: (sg: SecurityGroupAWS) => sg?.VpcId,
-  securityGroupRules: (sg: SecurityGroupAWS, _a: AWS, i: IndexedAWS) => Object.values(
-    i.get(SecurityGroupRule) as { [key: string]: SecurityGroupRuleAWS }
-  ).filter((sgr: SecurityGroupRuleAWS) => sgr?.GroupId === sg?.GroupId),
+  securityGroupRules: (sg: SecurityGroupAWS, _a: AWS, i: IndexedAWS) => {
+    const sgrs = Object.values(
+      (i.get(SecurityGroupRule) ?? {}) as { [key: string]: SecurityGroupRuleAWS }
+    ).filter((sgr: SecurityGroupRuleAWS) => sgr?.GroupId === sg?.GroupId);
+    return sgrs.length > 0 ? sgrs : undefined;
+  },
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();

@@ -34,7 +34,10 @@ export class EntityMapper {
   async fromAWS(obj: any, awsClient: AWS, indexes: IndexedAWS): Promise<any> {
     const newEntity = new this.entity();
     for(const p of Object.getOwnPropertyNames(this.methods)) {
-      newEntity[p] = await this.methods[p](obj, awsClient, indexes);
+      const newVal = await this.methods[p](obj, awsClient, indexes);
+      if (newVal !== undefined) {
+        newEntity[p] = newVal;
+      }
     }
     return newEntity;
   }
