@@ -151,7 +151,7 @@ db.get('/check/:db', async (req, res) => {
   let orm: TypeormWrapper | null = null;
   try {
     orm = await TypeormWrapper.createConn(dbname);
-    const awsCreds: Entities.AWSCredentials = await orm.findOne(Entities.AWSCredentials);
+    const awsCreds = await orm.findOne(Entities.AWSCredentials);
     orm = await TypeormWrapper.createConn(dbname);
     const awsClient = new AWS({
       region: awsCreds.region,
