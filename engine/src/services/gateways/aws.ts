@@ -31,6 +31,8 @@ import {
   paginateDescribeDBSecurityGroups,
   DescribeDBSecurityGroupsCommand,
   DescribeDBEngineVersionsCommand,
+  ModifyDBInstanceCommand,
+  ModifyDBInstanceCommandInput,
 } from '@aws-sdk/client-rds'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
@@ -370,6 +372,70 @@ export class AWS {
     return (await this.rdsClient.send(new DescribeDBSecurityGroupsCommand({
       DBSecurityGroupName: sgName,
     })))?.DBSecurityGroups?.[0];
+  }
+
+
+  async updateDBInstance(input: ModifyDBInstanceCommandInput) {
+    let updatedDBInstance = (await this.rdsClient.send(
+      new ModifyDBInstanceCommand(input)
+    ))?.DBInstance;
+    const inputCommand = new DescribeDBInstancesCommand({
+      DBInstanceIdentifier: input.DBInstanceIdentifier,
+    });
+    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
+      {
+        client: this.rdsClient,
+        // all in seconds
+        maxWaitTime: 120,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      inputCommand,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const dbInstance of data?.DBInstances ?? []) {
+            console.log('dbInstance.DBInstanceStatus')
+            console.log(dbInstance.DBInstanceStatus)
+            if (dbInstance.DBInstanceStatus !== 'modifying')
+              return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
+    );
+    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
+      {
+        client: this.rdsClient,
+        // all in seconds
+        maxWaitTime: 600,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      inputCommand,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const dbInstance of data?.DBInstances ?? []) {
+            console.log('dbInstance.DBInstanceStatus')
+            console.log(dbInstance.DBInstanceStatus)
+            if (dbInstance.DBInstanceStatus !== 'available')
+              return { state: WaiterState.RETRY };
+            updatedDBInstance = dbInstance;
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
+    );
+    return updatedDBInstance;
   }
 
 }

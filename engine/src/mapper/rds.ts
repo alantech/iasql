@@ -1,4 +1,4 @@
-import { DBInstance, } from '@aws-sdk/client-rds'
+import { DBInstance, ModifyDBInstanceCommandInput, } from '@aws-sdk/client-rds'
 
 import { AWS, } from '../services/gateways/aws'
 import { EntityMapper, } from './entity'
@@ -148,13 +148,10 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
     console.log(`RDS set in ${t2 - t1}ms`);
   },
   createAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
-    // First construct the rds instance
-    // TODO: if inserted without sec group it assign default.
-    // Should we check that here and insert it manually?
+    // TODO: if inserted without sec group it assign default. Should we insert it manually if no sec group defined?
     let result;
     try {
       const input = {
-        // TODO: Use real obj properties
         DBInstanceClass: obj.dbInstanceClass.name,
         Engine: obj.engine.engine,
         EngineVersion: obj.engine.engineVersion,
@@ -189,7 +186,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
     // Then we update the DB cache object with all of these properties so we can perform multiple
     // runs without re-querying the DB
     for (const key of Object.keys(newEntity)) {
-      // TODO: this way we ensure to keep track of all existing relationships
+      // We ensure to keep track of all existing relationships
       EntityMapper.keepId((obj as any)[key], (newEntity as any)[key]);
       (obj as any)[key] = (newEntity as any)[key];
     }
@@ -197,8 +194,54 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
     // It's up to the caller if they want to actually update into the DB or not, though.
     return newEntity;
   },
-  updateAWS: async (obj: any, awsClient: AWS, indexes: IndexedAWS) => {
-    console.log('trying to update');
+  updateAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
+    console.log('Update called')
+    // Doing an actual update of some of the properties that can change.
+    // Discarded delete + re-create for two reasons
+    // 1. Db identifier should be unique and is the one defined by the user. We could update the current one
+    //    with a temporary name (which could cause a diff later while is not deleted yet?) create the new one with the old name and then delete.
+    // 2. In order to create a new RDS instance is necessary a MasterPassword. The first insertion of the RDS instance have the master password plain text,
+    //    it creates the instance and then remove the value from DB since it does not come on the AWS response. For the update we do not know which password use
+    //    so we should need to ask for a password field for every update?
+    let input: ModifyDBInstanceCommandInput = {
+      DBInstanceClass: obj.dbInstanceClass.name,
+      EngineVersion: obj.engine.engineVersion,
+      DBInstanceIdentifier: obj.dbInstanceIdentifier,
+      AllocatedStorage: obj.allocatedStorage,
+      ApplyImmediately: true,
+      // TODO: complete possible update properties properties
+    };
+    // If a password value has been insterted, we update it.
+    if (obj.masterUserPassword) {
+      input = {
+        ...input,
+        MasterUserPassword: obj.masterUserPassword,
+      };
+    }
+    console.log(`input to update ${JSON.stringify(input)}`)
+    let result;
+    try {
+      result = await awsClient.updateDBInstance(input);
+    } catch (e) {
+      console.log(`ERROR ${e}`)
+      throw e;
+    }
+    if (!result?.hasOwnProperty('DBInstanceIdentifier')) {
+      throw new Error('what should we do here?');
+    }
+    console.log(`Getting instance with result = ${JSON.stringify(result)} result_id = ${result?.DBInstanceIdentifier}`)
+    const updatedDBInstance = await awsClient.getDBInstance(result?.DBInstanceIdentifier ?? '');
+    console.log(`instance = ${JSON.stringify(updatedDBInstance)}`)
+    indexes.set(RDS, updatedDBInstance?.DBInstanceIdentifier ?? '', updatedDBInstance);
+    const updatedEntity: RDS = await RDSMapper.fromAWS(updatedDBInstance, awsClient, indexes);
+    updatedEntity.id = obj.id;
+    for (const key of Object.keys(updatedEntity)) {
+      // We ensure to keep track of all existing relationships
+      EntityMapper.keepId((obj as any)[key], (updatedEntity as any)[key]);
+      (obj as any)[key] = (updatedEntity as any)[key];
+    }
+    console.log(`entity = ${JSON.stringify(updatedEntity)}`)
+    return updatedEntity;
   },
   deleteAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
     console.log('trying to delete')
