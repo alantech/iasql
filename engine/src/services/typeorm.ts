@@ -40,6 +40,10 @@ export class TypeormWrapper {
     return await this.connection.manager.getRepository(entity).find(options);
   }
 
+  async findOne(entity: EntityTarget<any>, options?: any): Promise<any> {
+    return await this.connection.manager.getRepository(entity).findOne(options);
+  }
+
   async query(query: string): Promise<any> {
     return await this.connection.query(query);
   }
