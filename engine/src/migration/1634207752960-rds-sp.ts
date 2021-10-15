@@ -4,7 +4,7 @@ export class rdsSp1634207752960 implements MigrationInterface {
   name: 'rdsSp1634207752960'
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Example of use: select * from create_rds_instance('sp-test7', 'postgres', 'db.m5.large', array['default'], 'iasql', '4l4nU$er', 8192, 'eu-west-1c');
+    // Example of use: select * from create_rds_instance('sp-test7', 'postgres', 'db.m5.large', array['default'], 'iasql', '4l4nU$er', 50, 'eu-west-1c');
     await queryRunner.query(`
       create or replace function create_rds_instance(
         _db_instance_identifier text,
