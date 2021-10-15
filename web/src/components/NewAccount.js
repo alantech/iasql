@@ -31,10 +31,10 @@ export function NewAccount() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        'awsToken': awsToken,
-        'awsSecret': awsSecret,
-        'db': dbAlias,
-        'awsRegion': awsRegion,
+        awsToken,
+        awsSecret,
+        dbAlias,
+        awsRegion,
       }),
     });
   }
