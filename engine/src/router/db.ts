@@ -52,6 +52,7 @@ db.post('/create', async (req, res) => {
   const dbname = dbAlias;
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
+  let orm1: TypeormWrapper | undefined;
   try {
     conn1 = await createConnection({
       name: 'base', // If you use multiple connections they must have unique names or typeorm bails
@@ -72,8 +73,8 @@ db.post('/create', async (req, res) => {
       database: dbname,
     });
     await migrate(conn2);
-    orm = await TypeormWrapper.createConn(dbname);
-    await orm.query(`
+    orm1 = await TypeormWrapper.createConn(dbname);
+    await orm1.query(`
       INSERT INTO aws_credentials VALUES (DEFAULT, '${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}');
     `);
     const awsClient = new AWS({
@@ -105,6 +106,7 @@ db.post('/create', async (req, res) => {
     await conn1?.close();
     await conn2?.close();
     await orm?.dropConn();
+    await orm1?.dropConn();
   }
 });
 
@@ -149,9 +151,10 @@ db.get('/check/:dbAlias', async (req, res) => {
   const t1 = Date.now();
   console.log(`Checking ${dbname}`);
   let orm: TypeormWrapper | null = null;
+  let orm1: TypeormWrapper | null = null;
   try {
-    orm = await TypeormWrapper.createConn(dbname);
-    const awsCreds = await orm.findOne(Entities.AWSCredentials);
+    orm1 = await TypeormWrapper.createConn(dbname);
+    const awsCreds = await orm1.findOne(Entities.AWSCredentials);
     orm = await TypeormWrapper.createConn(dbname);
     const awsClient = new AWS({
       region: awsCreds.region,
@@ -259,5 +262,6 @@ db.get('/check/:dbAlias', async (req, res) => {
     res.status(500).end(`failure to check DB: ${e?.message ?? ''}`);
   } finally {
     orm?.dropConn();
+    orm1?.dropConn();
   }
 });
