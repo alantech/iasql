@@ -16,6 +16,7 @@ import { lazyLoader, } from '../services/lazy-dep'
 import { migrate, populate, } from '../services/db-manager'
 
 export const db = express.Router();
+db.use(express.json());
 
 async function saveEntities(
   orm: TypeormWrapper,
