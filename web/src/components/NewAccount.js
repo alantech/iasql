@@ -5,14 +5,15 @@ import Link from '@docusaurus/Link';
 
 export function NewAccount() {
   const { siteConfig } = useDocusaurusContext();
+  const { awsRegions, auth, backendUrl, } = siteConfig.customFields;
   const { isAuthenticated, getAccessTokenSilently } = useAuth0();
 
   const [awsToken, setAwsToken] = useState('');
   const [awsSecret, setAwsSecret] = useState('');
+  const [awsRegion, setAwsRegion] = useState('');
   const [dbAlias, setDbAlias] = useState('');
 
   const handleSubmit = async () => {
-    const {auth, backendUrl} = siteConfig.customFields;
     const {audience, scope} = auth;
 
     const accessToken = await getAccessTokenSilently({
@@ -23,17 +24,18 @@ export function NewAccount() {
       scope,
     });
 
-    // TODO pass in the aws creds
-    const resp = await fetch(`${backendUrl}/v1/db/create/${dbAlias}`, {
-      method: 'GET',
+    await fetch(`${backendUrl}/v1/db/create`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        //'Content-Type': 'application/json',
+        'Content-Type': 'application/json',
       },
-      // body: JSON.stringify({
-      //   'awsToken': awsToken,
-      //   'awsSecret': awsSecret
-      // }),
+      body: JSON.stringify({
+        awsToken,
+        awsSecret,
+        dbAlias,
+        awsRegion,
+      }),
     });
   }
 
@@ -45,6 +47,13 @@ export function NewAccount() {
           <input type="text" id="awsToken" name="awsToken" value={awsToken} onChange={(e) => setAwsToken(e.target.value)}/>
           <label>AWS Secret:</label>
           <input type="text" id="awsSecret" name="awsSecret" value={awsSecret} onChange={(e) => setAwsSecret(e.target.value)}/>
+          <label>AWS Region:</label>
+          <select value={awsRegion} onChange={(e) => setAwsRegion(e.target.value)}>
+            <option value=""> </option>
+            {
+              awsRegions.map(r => <option key={r} value={r}>{r}</option>)
+            }
+          </select>
           <label>DB Alias:</label>
           <input type="text" id="dbAlias" name="dbAlias" value={dbAlias} onChange={(e) => setDbAlias(e.target.value)}/>
         </form>

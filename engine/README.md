@@ -9,10 +9,18 @@ Infrastructure as SQL
 Set your .env file based on the values from `src/config.ts`, make sure docker is installed locally and then run
 
 ```
-docker-compose up
+docker-compose up --build
 ```
 
 which will bring up the postgres engine and node.js server.
+
+### Migrations
+
+Make sure postgres is up and use dashes (`-`) instead of underscores (`_`)  to separate words in the name of your migration. Then run
+
+```
+yarn gen-sql aws-credentials
+```
 
 ### Architecture
 

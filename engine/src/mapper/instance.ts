@@ -1,6 +1,5 @@
 import { Instance as InstanceAWS, } from '@aws-sdk/client-ec2'
 
-import config from '../config'
 import { AMI, Instance, InstanceType, Region, SecurityGroup, } from '../entity'
 import { AMIMapper, InstanceTypeMapper, RegionMapper, SecurityGroupMapper } from '.'
 import { AWS, } from '../services/gateways/aws'
@@ -33,8 +32,7 @@ export const InstanceMapper: EntityMapper = new EntityMapper(Instance, {
       })) : [],
   region: async (_instance: InstanceAWS, awsClient: AWS, indexes: IndexedAWS) => {
     // TODO: Proper multiregion support
-    const region = await indexes.getOr(Region, config.region ?? 'us-east-1', awsClient.getRegion.bind(awsClient));
-    return await RegionMapper.fromAWS(region, awsClient, indexes);
+    return await RegionMapper.fromAWS(awsClient.region, awsClient, indexes);
   },
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
