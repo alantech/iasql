@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, ManyToOne, } from 'typeorm';
+
+import { Region } from './region';
 
 @Entity()
 export class AWSCredentials {
@@ -17,6 +19,9 @@ export class AWSCredentials {
 
   // TODO remove and add multi region support by attaching region columns
   // to the various entities as appropriate
-  @Column()
-  region: string;
+  @ManyToOne(() => Region, { eager: true, })
+  @JoinColumn({
+    name: 'region_id',
+  })
+  region: Region;
 }

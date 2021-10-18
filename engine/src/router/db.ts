@@ -52,7 +52,6 @@ db.post('/create', async (req, res) => {
   const dbname = dbAlias;
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
-  let orm1: TypeormWrapper | undefined;
   try {
     conn1 = await createConnection({
       name: 'base', // If you use multiple connections they must have unique names or typeorm bails
@@ -73,10 +72,7 @@ db.post('/create', async (req, res) => {
       database: dbname,
     });
     await migrate(conn2);
-    orm1 = await TypeormWrapper.createConn(dbname);
-    await orm1.query(`
-      INSERT INTO aws_credentials VALUES (DEFAULT, '${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}');
-    `);
+    orm = await TypeormWrapper.createConn(dbname);
     const awsClient = new AWS({
       region: awsRegion,
       credentials: {
@@ -91,7 +87,6 @@ db.post('/create', async (req, res) => {
     const t3 = Date.now();
     console.log(`Populate indexes in ${t3 - t2}ms`)
     // TODO: Put this somewhere else
-    orm = await TypeormWrapper.createConn(dbname);
     const o: TypeormWrapper = orm;
     console.log(`Populating new db: ${dbname}`);
     const mappers: Mappers.EntityMapper[] = Object.values(Mappers)
@@ -99,6 +94,11 @@ db.post('/create', async (req, res) => {
     await lazyLoader(mappers.map(m => () => saveEntities(o, awsClient, indexes, m)));
     const t4 = Date.now();
     console.log(`Writing complete in ${t4 - t3}ms`);
+    // store credentials
+    const region = await orm.findOne(Entities.Region, { where: { name: awsRegion }});
+    await orm.query(`
+      INSERT INTO aws_credentials VALUES (DEFAULT, '${awsAccessKeyId}', '${awsSecretAccessKey}', '${region.id}');
+    `);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
     res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
@@ -106,7 +106,6 @@ db.post('/create', async (req, res) => {
     await conn1?.close();
     await conn2?.close();
     await orm?.dropConn();
-    await orm1?.dropConn();
   }
 });
 
@@ -151,11 +150,9 @@ db.get('/check/:dbAlias', async (req, res) => {
   const t1 = Date.now();
   console.log(`Checking ${dbname}`);
   let orm: TypeormWrapper | null = null;
-  let orm1: TypeormWrapper | null = null;
   try {
-    orm1 = await TypeormWrapper.createConn(dbname);
-    const awsCreds = await orm1.findOne(Entities.AWSCredentials);
     orm = await TypeormWrapper.createConn(dbname);
+    const awsCreds = await orm.findOne(Entities.AWSCredentials);
     const awsClient = new AWS({
       region: awsCreds.region,
       credentials: {
@@ -262,6 +259,5 @@ db.get('/check/:dbAlias', async (req, res) => {
     res.status(500).end(`failure to check DB: ${e?.message ?? ''}`);
   } finally {
     orm?.dropConn();
-    orm1?.dropConn();
   }
 });
