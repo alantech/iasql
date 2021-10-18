@@ -59,6 +59,7 @@ export class EntityMapper {
     return this.toAws.updateAWS(obj, awsClient, indexes);
   }
 
+  // TODO: add unit tests for this method
   static keepId(oldObj: any, newObj: any) {
     if (!oldObj || !newObj) return;
     if (oldObj?.hasOwnProperty('id')) {
