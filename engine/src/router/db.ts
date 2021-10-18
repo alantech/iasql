@@ -154,7 +154,7 @@ db.get('/check/:dbAlias', async (req, res) => {
     orm = await TypeormWrapper.createConn(dbname);
     const awsCreds = await orm.findOne(Entities.AWSCredentials);
     const awsClient = new AWS({
-      region: awsCreds.region,
+      region: awsCreds.region.name,
       credentials: {
         accessKeyId: awsCreds.accessKeyId,
         secretAccessKey: awsCreds.secretAccessKey,
