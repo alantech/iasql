@@ -52,7 +52,7 @@ export class Repository {
     nullable: true,
   })
   scanOnPush?: boolean;
-  
+
   // TODO: add encriptation configuration entity.
   // @Column({
   //   nullable: true,
