@@ -4,6 +4,28 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 const baseConfig = {
   url: 'https://beta.iasql.com',
   backendUrl: 'http://localhost:8088',
+  // TODO load regions at startup based on aws services and schema since not all regions support all services.
+  // Currently manually listing ec2 regions that do not require opt-in status in alphabetical order
+  // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
+  awsRegions: [
+    'ap-northeast-1',
+    'ap-northeast-2',
+    'ap-northeast-3',
+    'ap-south-1',
+    'ap-southeast-1',
+    'ap-southeast-2',
+    'ca-central-1',
+    'eu-central-1',
+    'eu-north-1',
+    'eu-west-1',
+    'eu-west-2',
+    'eu-west-3',
+    'sa-east-1',
+    'us-east-1',
+    'us-east-2',
+    'us-west-1',
+    'us-west-2',
+  ],
   auth: {
     domain: 'auth.iasql.com',
     clientId: 'OLQAngfr1LnenTt6wmQOYKmzx1c1dSxg',
