@@ -1,4 +1,4 @@
-import { DBInstance, ModifyDBInstanceCommandInput, } from '@aws-sdk/client-rds'
+import { CreateDBInstanceCommandInput, DBInstance, ModifyDBInstanceCommandInput, } from '@aws-sdk/client-rds'
 
 import { AWS, } from '../services/gateways/aws'
 import { EntityMapper, } from './entity'
@@ -149,7 +149,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   },
   createAWS: async (obj: RDS, awsClient: AWS, indexes: IndexedAWS) => {
     // TODO: if inserted without sec group it assign default. Should we insert it manually if no sec group defined?
-    const input = {
+    const input: CreateDBInstanceCommandInput = {
       DBInstanceClass: obj.dbInstanceClass.name,
       Engine: obj.engine.engine,
       EngineVersion: obj.engine.engineVersion,
