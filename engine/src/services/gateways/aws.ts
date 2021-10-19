@@ -28,6 +28,10 @@ import {
   paginateDescribeRepositories,
   DescribeRepositoriesCommand,
   DeleteRepositoryCommand,
+  GetRepositoryPolicyCommand,
+  SetRepositoryPolicyCommandInput,
+  SetRepositoryPolicyCommand,
+  DeleteRepositoryPolicyCommand,
 } from '@aws-sdk/client-ecr'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
@@ -276,5 +280,30 @@ export class AWS {
         repositoryName: name,
       }),
     );
+  }
+
+  async getECRRepositoryPolicy(repositoryName: string) {
+    const policy = await this.ecrClient.send(
+      new GetRepositoryPolicyCommand({
+        repositoryName,
+      })
+    );
+    return policy;
+  }
+
+  async setECRRepositoryPolicy(input: SetRepositoryPolicyCommandInput) {
+    const policy = await this.ecrClient.send(
+      new SetRepositoryPolicyCommand(input)
+    );
+    return policy;
+  }
+
+  async deleteECRRepositoryPolicy(repositoryName: string) {
+    const policy = await this.ecrClient.send(
+      new DeleteRepositoryPolicyCommand({
+        repositoryName,
+      })
+    );
+    return policy;
   }
 }
