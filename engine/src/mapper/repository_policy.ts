@@ -23,7 +23,7 @@ export const RepositoryPolicyMapper: EntityMapper = new EntityMapper(RepositoryP
     await Promise.all(Object.keys(repositories).map(async (k) => {
       try {
         const policy = (await awsClient.getECRRepositoryPolicy(k)) ?? null;
-        indexes.set(RepositoryPolicy, 'repositoryName', policy);
+        if (!!policy) indexes.set(RepositoryPolicy, 'repositoryName', policy);
       } catch (error) {
         console.log(`No policy for repository ${k}`);
       }
