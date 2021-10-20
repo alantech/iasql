@@ -17,18 +17,20 @@ export const RepositoryPolicyMapper: EntityMapper = new EntityMapper(RepositoryP
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
     const repositories = indexes.get(Repository);
+    const policies: any[] = [];
     if (!repositories) {
       throw new DepError('Need repositories to be loaded');
     }
     await Promise.all(Object.keys(repositories).map(async (k) => {
       try {
         const policy = (await awsClient.getECRRepositoryPolicy(k)) ?? null;
-        if (!!policy) indexes.set(RepositoryPolicy, 'repositoryName', policy);
+        if (!!policy) policies.push(policy);
       } catch (error) {
         console.log(`No policy for repository ${k}`);
       }
       return k;
     }));
+    indexes.setAll(RepositoryPolicy, policies, 'repositoryName');
     const t2 = Date.now();
     console.log(`RepositoryPolicy set in ${t2 - t1}ms`);
   },

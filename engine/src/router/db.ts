@@ -151,7 +151,6 @@ db.get('/check/:dbAlias', async (req, res) => {
   const t1 = Date.now();
   console.log(`Checking ${dbname}`);
   let orm: TypeormWrapper | null = null;
-  const tablesOfInterest = ['SecurityGroup', 'Instance', 'RDS', 'Repository', 'RepositoryPolicy'];
   try {
     orm = await TypeormWrapper.createConn(dbname);
     const awsCreds = await orm.findOne(Entities.AWSCredentials);
@@ -167,14 +166,6 @@ db.get('/check/:dbAlias', async (req, res) => {
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
     await populate(awsClient, indexes, Source.DB);
-    // May exist a case where no AWS entity needs to be indexed but we might have records
-    // in DB waiting to be created so we add an empty index to make it visible inside the loop.
-    const indexedKeys = Object.keys(indexes.get());
-    tablesOfInterest.forEach(t => {
-      if (!indexedKeys.includes(t)) {
-        indexes.set((Entities as any)[t]);
-      }
-    });
     do {
       ranFullUpdate = false;
       const t3 = Date.now();
@@ -210,7 +201,7 @@ db.get('/check/:dbAlias', async (req, res) => {
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - tb}ms`);
         const promiseGenerators = records
-          .filter(r => tablesOfInterest.includes(r.table)) // TODO: Don't do this
+          .filter(r => ['SecurityGroup', 'Instance', 'RDS', 'Repository', 'RepositoryPolicy'].includes(r.table)) // TODO: Don't do this
           .map(r => {
             const name = r.table;
             console.log(`Checking ${name}`);
