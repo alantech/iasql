@@ -1,7 +1,7 @@
 import { Image } from '@aws-sdk/client-ec2';
 
 import { AWS, } from './gateways/aws'
-import { EntityMapper, } from '../mapper'
+//import { EntityMapper, } from '../mapper'
 
 
 type Index = {
@@ -17,11 +17,11 @@ export class IndexedAWS {
     this.index = {};
   }
 
-  async toEntityList(mapper: EntityMapper, awsClient: AWS) {
+  /*async toEntityList(mapper: EntityMapper, awsClient: AWS) {
     const entity = mapper.getEntity();
     const entitiesAws = Object.values(this.get(entity) ?? {});
     return await Promise.all(entitiesAws.map(e => mapper.fromAWS(e, awsClient, this)));
-  }
+  }*/
 
   set(entity: Function, key: string, value: any) {
     const entityName = entity.name;
