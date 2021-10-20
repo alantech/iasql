@@ -1,0 +1,95 @@
+{
+  "dbtest": {
+    "DBInstanceIdentifier": "dbtest",
+    "DBInstanceClass": "db.m5.large",
+    "Engine": "postgres",
+    "DBInstanceStatus": "available",
+    "MasterUsername": "postgres",
+    "Endpoint": {
+      "Address": "dbtest.c4dpszm5pb59.eu-west-1.rds.amazonaws.com",
+      "Port": 5432,
+      "HostedZoneId": "Z29XKXDKYMONMX"
+    },
+    "AllocatedStorage": 8192,
+    "InstanceCreateTime": "2021-10-07T16:26:00.075Z",
+    "PreferredBackupWindow": "00:41-01:11",
+    "BackupRetentionPeriod": 1,
+    "DBSecurityGroups": [],
+    "VpcSecurityGroups": [
+      {
+        "VpcSecurityGroupId": "sg-7c02ac26",
+        "Status": "active"
+      }
+    ],
+    "DBParameterGroups": [
+      {
+        "DBParameterGroupName": "default.postgres13",
+        "ParameterApplyStatus": "in-sync"
+      }
+    ],
+    "AvailabilityZone": "eu-west-1c",
+    "DBSubnetGroup": {
+      "DBSubnetGroupName": "default",
+      "DBSubnetGroupDescription": "default",
+      "VpcId": "vpc-41895538",
+      "SubnetGroupStatus": "Complete",
+      "Subnets": [
+        {
+          "SubnetIdentifier": "subnet-a58a84c3",
+          "SubnetAvailabilityZone": {
+            "Name": "eu-west-1c"
+          },
+          "SubnetOutpost": {},
+          "SubnetStatus": "Active"
+        },
+        {
+          "SubnetIdentifier": "subnet-68312820",
+          "SubnetAvailabilityZone": {
+            "Name": "eu-west-1a"
+          },
+          "SubnetOutpost": {},
+          "SubnetStatus": "Active"
+        },
+        {
+          "SubnetIdentifier": "subnet-72521928",
+          "SubnetAvailabilityZone": {
+            "Name": "eu-west-1b"
+          },
+          "SubnetOutpost": {},
+          "SubnetStatus": "Active"
+        }
+      ]
+    },
+    "PreferredMaintenanceWindow": "thu:03:27-thu:03:57",
+    "PendingModifiedValues": {},
+    "LatestRestorableTime": "2021-10-07T16:35:31.000Z",
+    "MultiAZ": false,
+    "EngineVersion": "13.3",
+    "AutoMinorVersionUpgrade": true,
+    "ReadReplicaDBInstanceIdentifiers": [],
+    "LicenseModel": "postgresql-license",
+    "OptionGroupMemberships": [
+      {
+        "OptionGroupName": "default:postgres-13",
+        "Status": "in-sync"
+      }
+    ],
+    "PubliclyAccessible": true,
+    "StorageType": "gp2",
+    "DbInstancePort": 0,
+    "StorageEncrypted": false,
+    "DbiResourceId": "db-RB2DTYQRJZ5ROKCM6QBZSB4KQ4",
+    "CACertificateIdentifier": "rds-ca-2019",
+    "DomainMemberships": [],
+    "CopyTagsToSnapshot": false,
+    "MonitoringInterval": 0,
+    "DBInstanceArn": "arn:aws:rds:eu-west-1:257682470237:db:dbtest",
+    "IAMDatabaseAuthenticationEnabled": false,
+    "PerformanceInsightsEnabled": false,
+    "DeletionProtection": false,
+    "AssociatedRoles": [],
+    "TagList": [],
+    "CustomerOwnedIpEnabled": false,
+    "ActivityStreamStatus": "stopped"
+  }
+}

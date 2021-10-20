@@ -24,5 +24,5 @@ export class DiskInfo {
     type: 'enum',
     enum: DiskType,
   })
-  type: DiskType;
+  diskType: DiskType;
 }
