@@ -1,10 +1,12 @@
 // Currently just a collection of independent functions for user database management. May eventually
 // grow into something more.
 
+import { randomBytes } from 'crypto'
 import * as fs from 'fs'
 
 import { Connection, } from 'typeorm'
 
+import { IronPlans } from './gateways/ironplans'
 import * as Mappers from '../mapper'
 import { AWS, } from './gateways/aws'
 import { IndexedAWS, } from './indexed-aws'
@@ -55,3 +57,28 @@ export async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Sou
   await lazyLoader(promiseGenerators);
 }
 
+function randomHexValue() {
+  return randomBytes(8)
+    .toString('hex')
+    .toLowerCase()
+}
+
+function dbKey(dbAlias: string) {
+  return `db:${dbAlias}`;
+}
+
+// returns unique db id
+export async function newDB(dbAlias: string, email: string, uid: string): Promise<string> {
+  const ipUser = await IronPlans.newUser(email, uid);
+  const dbId = randomHexValue();
+  await IronPlans.newTeamMetadata(ipUser.teamId, {
+    [dbKey(dbAlias)]: dbId,
+  });
+  return dbId;
+}
+
+export async function getId(dbAlias: string, uid: string) {
+  const teamId = await IronPlans.getTeamId(uid);
+  const metadata: any = await IronPlans.getTeamMetadata(teamId);
+  return metadata[dbKey(dbAlias)];
+}
