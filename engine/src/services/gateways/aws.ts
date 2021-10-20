@@ -5,7 +5,6 @@ import {
   DeleteSecurityGroupCommand,
   DeleteSecurityGroupRequest,
   DescribeInstanceTypesCommand,
-  DescribeInstanceTypesRequest,
   DescribeAvailabilityZonesCommand,
   DescribeImagesCommand,
   DescribeInstancesCommand,
@@ -14,13 +13,11 @@ import {
   EC2Client,
   RunInstancesCommand,
   TerminateInstancesCommand,
-  TerminateInstancesRequest,
   paginateDescribeInstanceTypes,
   paginateDescribeInstances,
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
 } from '@aws-sdk/client-ec2'
-
 import {
   ECRClient,
   CreateRepositoryCommandInput,
@@ -29,6 +26,22 @@ import {
   DescribeRepositoriesCommand,
   DeleteRepositoryCommand,
 } from '@aws-sdk/client-ecr'
+import {
+  CreateDBInstanceCommand,
+  CreateDBInstanceCommandInput,
+  DeleteDBInstanceCommand,
+  DeleteDBInstanceMessage,
+  DescribeDBInstancesCommand,
+  paginateDescribeDBInstances,
+  RDSClient,
+  paginateDescribeDBEngineVersions,
+  paginateDescribeOrderableDBInstanceOptions,
+  paginateDescribeDBSecurityGroups,
+  DescribeDBSecurityGroupsCommand,
+  DescribeDBEngineVersionsCommand,
+  ModifyDBInstanceCommand,
+  ModifyDBInstanceCommandInput,
+} from '@aws-sdk/client-rds'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
 type AWSCreds = {
@@ -44,12 +57,19 @@ type AWSConfig = {
 export class AWS {
   private ec2client: EC2Client
   private ecrClient: ECRClient
+  private rdsClient: RDSClient
   private credentials: AWSCreds
+  public region: string
 
   constructor(config: AWSConfig) {
+    if (!config?.credentials?.accessKeyId || !config?.credentials?.secretAccessKey) {
+      throw new Error('Invalid AWS credentials');
+    }
     this.credentials = config.credentials;
+    this.region = config.region;
     this.ec2client = new EC2Client(config);
     this.ecrClient = new ECRClient(config);
+    this.rdsClient = new RDSClient(config);
   }
 
   async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
@@ -151,7 +171,7 @@ export class AWS {
   async getInstanceType(instanceType: string) {
     return (await this.ec2client.send(
       new DescribeInstanceTypesCommand({
-        InstanceTypes: [ instanceType, ],
+        InstanceTypes: [instanceType,],
       })
     ))?.InstanceTypes?.[0];
   }
@@ -162,7 +182,7 @@ export class AWS {
 
   async getAMI(imageId: string) {
     return (await this.ec2client.send(new DescribeImagesCommand({
-      ImageIds: [ imageId, ],
+      ImageIds: [imageId,],
     })))?.Images?.[0];
   }
 
@@ -172,7 +192,7 @@ export class AWS {
 
   async getRegion(regionName: string) {
     return (await this.ec2client.send(new DescribeRegionsCommand({
-      RegionNames: [ regionName, ],
+      RegionNames: [regionName,],
     })))?.Regions?.[0];
   }
 
@@ -191,6 +211,12 @@ export class AWS {
       }
     }
     return { AvailabilityZones: availabilityZones }
+  }
+
+  async getAvailabilityZoneByName(azName: string) {
+    return (await this.ec2client.send(new DescribeAvailabilityZonesCommand({
+      ZoneNames: [azName],
+    })))?.AvailabilityZones?.[0];
   }
 
   async getSecurityGroups() {
@@ -277,4 +303,188 @@ export class AWS {
       }),
     );
   }
+
+  async createDBInstance(instanceParams: CreateDBInstanceCommandInput) {
+    let newDBInstance = (await this.rdsClient.send(
+      new CreateDBInstanceCommand(instanceParams),
+    )).DBInstance;
+    const input = new DescribeDBInstancesCommand({
+      DBInstanceIdentifier: instanceParams.DBInstanceIdentifier,
+    });
+    // TODO: should we use the paginator instead?
+    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
+      {
+        client: this.rdsClient,
+        // all in seconds
+        maxWaitTime: 600,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const dbInstance of data?.DBInstances ?? []) {
+            if (dbInstance.DBInstanceStatus !== 'available')
+              return { state: WaiterState.RETRY };
+            newDBInstance = dbInstance;
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
+    );
+    return newDBInstance;
+  }
+
+  async getDBInstance(id: string) {
+    const dbInstance = await this.rdsClient.send(
+      new DescribeDBInstancesCommand({ DBInstanceIdentifier: id, }),
+    );
+    return (dbInstance?.DBInstances ?? [])[0];
+  }
+
+  async getDBInstances() {
+    const dbInstances = [];
+    const paginator = paginateDescribeDBInstances({
+      client: this.rdsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      dbInstances.push(...(page.DBInstances ?? []));
+    }
+    return {
+      DBInstances: dbInstances, // Make it "look like" the regular query again
+    };
+  }
+
+  async deleteDBInstance(deleteInput: DeleteDBInstanceMessage) {
+    return await this.rdsClient.send(
+      new DeleteDBInstanceCommand(deleteInput),
+    );
+  }
+
+  async getOrderableInstanceOptions(engines: string[]) {
+    let orderableInstanceOptions = [];
+    for (const engine of engines) {
+      const paginator = paginateDescribeOrderableDBInstanceOptions({
+        client: this.rdsClient,
+        pageSize: 100,
+      }, { Engine: engine, });
+      for await (const page of paginator) {
+        orderableInstanceOptions.push(...(page.OrderableDBInstanceOptions ?? []));
+      }
+    }
+    orderableInstanceOptions = orderableInstanceOptions.map(opt => ({
+      ...opt,
+      CompositeKey: opt.Engine! + opt.EngineVersion! + opt.DBInstanceClass! + opt.StorageType
+    }));
+    return {
+      OrderableDBInstanceOptions: orderableInstanceOptions,
+    };
+  }
+
+  async getEngineVersions() {
+    const engines = [];
+    const paginator = paginateDescribeDBEngineVersions({
+      client: this.rdsClient,
+      pageSize: 100,
+    }, {});
+    for await (const page of paginator) {
+      engines.push(...(page.DBEngineVersions ?? []));
+    }
+    return {
+      DBEngineVersions: engines, // Make it "look like" the regular query again
+    };
+  }
+
+  async getEngineVersion(version: string) {
+    return (await this.rdsClient.send(new DescribeDBEngineVersionsCommand({
+      EngineVersion: version,
+    })))?.DBEngineVersions?.[0];
+  }
+
+  async getDBSecurityGroups() {
+    const dbSecurityGroups = [];
+    const paginator = paginateDescribeDBSecurityGroups({
+      client: this.rdsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      dbSecurityGroups.push(...(page.DBSecurityGroups ?? []));
+    }
+    return {
+      DBSecurityGroups: dbSecurityGroups,
+    };
+  }
+
+  async getDBSecurityGroup(sgName: string) {
+    return (await this.rdsClient.send(new DescribeDBSecurityGroupsCommand({
+      DBSecurityGroupName: sgName,
+    })))?.DBSecurityGroups?.[0];
+  }
+
+
+  async updateDBInstance(input: ModifyDBInstanceCommandInput) {
+    let updatedDBInstance = (await this.rdsClient.send(
+      new ModifyDBInstanceCommand(input)
+    ))?.DBInstance;
+    const inputCommand = new DescribeDBInstancesCommand({
+      DBInstanceIdentifier: input.DBInstanceIdentifier,
+    });
+    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
+      {
+        client: this.rdsClient,
+        // all in seconds
+        maxWaitTime: 120,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      inputCommand,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const dbInstance of data?.DBInstances ?? []) {
+            if (dbInstance.DBInstanceStatus !== 'modifying')
+              return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
+    );
+    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
+      {
+        client: this.rdsClient,
+        // all in seconds
+        maxWaitTime: 600,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      inputCommand,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const dbInstance of data?.DBInstances ?? []) {
+            if (dbInstance.DBInstanceStatus !== 'available')
+              return { state: WaiterState.RETRY };
+            updatedDBInstance = dbInstance;
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
+    );
+    return updatedDBInstance;
+  }
+
 }

@@ -49,7 +49,10 @@ export class AvailabilityZone {
   })
   optInStatus: AvailabilityZoneOptInStatus;
 
-  @OneToMany(() => AvailabilityZoneMessage, message => message.availabilityZone, { cascade: true, })
+  @OneToMany(
+    () => AvailabilityZoneMessage,
+    message => message.availabilityZone,
+    { cascade: true, eager: true, })
   messages: AvailabilityZoneMessage[];
 
   @noDiff
@@ -59,10 +62,10 @@ export class AvailabilityZone {
   })
   region: Region;
 
+  @awsPrimaryKey
   @Column()
   zoneName: string;
 
-  @awsPrimaryKey
   @Column()
   zoneId: string;
 
@@ -72,6 +75,7 @@ export class AvailabilityZone {
   @Column()
   networkBorderGroup: string;
 
+  @noDiff
   @ManyToOne(() => AvailabilityZone, {
     nullable: true,
   })

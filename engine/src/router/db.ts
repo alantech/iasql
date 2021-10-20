@@ -16,6 +16,7 @@ import { lazyLoader, } from '../services/lazy-dep'
 import { migrate, populate, } from '../services/db-manager'
 
 export const db = express.Router();
+db.use(express.json());
 
 async function saveEntities(
   orm: TypeormWrapper,
@@ -44,11 +45,12 @@ if (config.a0Enabled) {
 }
 
 // TODO secure with cors and scope
-db.get('/create/:db', async (req, res) => {
+db.post('/create', async (req, res) => {
   const t1 = Date.now();
-  // TODO use unique id as actual name and store association to alias in ironplans
+  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
+  // TODO generate unique id as actual name and store association to alias in ironplans
   // such that once we auth the user they can use the alias and we map to the id
-  const dbname = req.params.db;
+  const dbname = dbAlias;
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
   try {
@@ -71,11 +73,12 @@ db.get('/create/:db', async (req, res) => {
       database: dbname,
     });
     await migrate(conn2);
+    orm = await TypeormWrapper.createConn(dbname);
     const awsClient = new AWS({
-      region: config.region ?? 'eu-west-1',
+      region: awsRegion,
       credentials: {
-        accessKeyId: config.accessKeyId ?? '',
-        secretAccessKey: config.secretAccessKey ?? '',
+        accessKeyId: awsAccessKeyId,
+        secretAccessKey: awsSecretAccessKey,
       },
     });
     const indexes = new IndexedAWS();
@@ -85,7 +88,6 @@ db.get('/create/:db', async (req, res) => {
     const t3 = Date.now();
     console.log(`Populate indexes in ${t3 - t2}ms`)
     // TODO: Put this somewhere else
-    orm = await TypeormWrapper.createConn(dbname);
     const o: TypeormWrapper = orm;
     console.log(`Populating new db: ${dbname}`);
     const mappers: Mappers.EntityMapper[] = Object.values(Mappers)
@@ -93,9 +95,14 @@ db.get('/create/:db', async (req, res) => {
     await lazyLoader(mappers.map(m => () => saveEntities(o, awsClient, indexes, m)));
     const t4 = Date.now();
     console.log(`Writing complete in ${t4 - t3}ms`);
+    // store credentials
+    const region = await orm.findOne(Entities.Region, { where: { name: awsRegion }});
+    await orm.query(`
+      INSERT INTO aws_credentials VALUES (DEFAULT, '${awsAccessKeyId}', '${awsSecretAccessKey}', '${region.id}');
+    `);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
-    res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
+    res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}\n${JSON.stringify(e?.metadata ?? [])}\n`);
   } finally {
     await conn1?.close();
     await conn2?.close();
@@ -103,8 +110,8 @@ db.get('/create/:db', async (req, res) => {
   }
 });
 
-db.get('/delete/:db', async (req, res) => {
-  const dbname = req.params.db;
+db.get('/delete/:dbAlias', async (req, res) => {
+  const dbname = req.params.dbAlias;
   let conn;
   try {
     conn = await createConnection({
@@ -139,18 +146,19 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
   return out;
 }
 
-db.get('/check/:db', async (req, res) => {
-  const dbname = req.params.db;
+db.get('/check/:dbAlias', async (req, res) => {
+  const dbname = req.params.dbAlias;
   const t1 = Date.now();
   console.log(`Checking ${dbname}`);
   let orm: TypeormWrapper | null = null;
   try {
     orm = await TypeormWrapper.createConn(dbname);
+    const awsCreds = await orm.findOne(Entities.AWSCredentials);
     const awsClient = new AWS({
-      region: config.region ?? 'eu-west-1',
+      region: awsCreds.region.name,
       credentials: {
-        accessKeyId: config.accessKeyId ?? '',
-        secretAccessKey: config.secretAccessKey ?? '',
+        accessKeyId: awsCreds.accessKeyId,
+        secretAccessKey: awsCreds.secretAccessKey,
       },
     });
     const indexes = new IndexedAWS();
@@ -193,7 +201,7 @@ db.get('/check/:db', async (req, res) => {
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - tb}ms`);
         const promiseGenerators = records
-          .filter(r => ['SecurityGroup', 'Instance', 'Repository'].includes(r.table)) // TODO: Don't do this
+          .filter(r => ['SecurityGroup', 'Instance', 'RDS', 'Repository'].includes(r.table)) // TODO: Don't do this
           .map(r => {
             const name = r.table;
             console.log(`Checking ${name}`);
@@ -207,8 +215,8 @@ db.get('/check/:db', async (req, res) => {
             let diffFound = false;
             r.diff.entitiesDiff.forEach((d: any) => {
               const valIsUnchanged = (val: any): boolean => {
-                if (val.hasOwnProperty('type')) {
-                  return val.type === 'unchanged';
+                if (val.hasOwnProperty('__type__')) {
+                  return val.__type__ === 'unchanged';
                 } else if (Array.isArray(val)) {
                   return val.every(v => valIsUnchanged(v));
                 } else if (val instanceof Object) {
@@ -243,8 +251,8 @@ db.get('/check/:db', async (req, res) => {
           const t6 = Date.now();
           console.log(`AWS update time: ${t6 - t5}ms`);
         }
-      } while(ranUpdate);
-    } while(ranFullUpdate);
+      } while (ranUpdate);
+    } while (ranFullUpdate);
     const t7 = Date.now();
     res.end(`${dbname} checked and synced, total time: ${t7 - t1}ms`);
   } catch (e: any) {
