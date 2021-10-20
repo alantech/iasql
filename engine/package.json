@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-ec2": "^3.31.0",
+    "@aws-sdk/client-ecr": "^3.37.0",
     "@aws-sdk/client-rds": "^3.35.0",
     "@aws-sdk/util-waiter": "^3.32.0",
     "@types/express": "^4.17.13",

@@ -19,6 +19,14 @@ import {
   paginateDescribeSecurityGroups,
 } from '@aws-sdk/client-ec2'
 import {
+  ECRClient,
+  CreateRepositoryCommandInput,
+  CreateRepositoryCommand,
+  paginateDescribeRepositories,
+  DescribeRepositoriesCommand,
+  DeleteRepositoryCommand,
+} from '@aws-sdk/client-ecr'
+import {
   CreateDBInstanceCommand,
   CreateDBInstanceCommandInput,
   DeleteDBInstanceCommand,
@@ -48,6 +56,7 @@ type AWSConfig = {
 
 export class AWS {
   private ec2client: EC2Client
+  private ecrClient: ECRClient
   private rdsClient: RDSClient
   private credentials: AWSCreds
   public region: string
@@ -59,6 +68,7 @@ export class AWS {
     this.credentials = config.credentials;
     this.region = config.region;
     this.ec2client = new EC2Client(config);
+    this.ecrClient = new ECRClient(config);
     this.rdsClient = new RDSClient(config);
   }
 
@@ -254,6 +264,44 @@ export class AWS {
     return {
       SecurityGroupRules: securityGroupRules, // Make it "look like" the regular query again
     };
+  }
+
+  async getECRRepositories() {
+    const repositories = [];
+    const paginator = paginateDescribeRepositories({
+      client: this.ecrClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      repositories.push(...(page.repositories ?? []));
+    }
+    return {
+      Repositories: repositories, // Make it "look like" the regular query again
+    };
+  }
+
+  async createECRRepository(input: CreateRepositoryCommandInput) {
+    const repository = await this.ecrClient.send(
+      new CreateRepositoryCommand(input),
+    );
+    return repository.repository;
+  }
+
+  async getECRRepository(name: string) {
+    const repositories = await this.ecrClient.send(
+      new DescribeRepositoriesCommand({
+        repositoryNames: [name],
+      }),
+    );
+    return (repositories.repositories ?? [])[0];
+  }
+
+  async deleteECRRepository(name: string) {
+    return await this.ecrClient.send(
+      new DeleteRepositoryCommand({
+        repositoryName: name,
+      }),
+    );
   }
 
   async createDBInstance(instanceParams: CreateDBInstanceCommandInput) {
