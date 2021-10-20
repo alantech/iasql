@@ -10,7 +10,6 @@ import {
   CloudwatchLogsExportMapper,
   DBInstanceClassMapper,
   DBParameterGroupStatusMapper,
-  DBSecurityGroupMapper,
   DomainMembershipMapper,
   EndpointMapper,
   EngineVersionMapper,
@@ -19,7 +18,7 @@ import {
   SecurityGroupMapper,
   TagMapper,
 } from '.'
-import { AvailabilityZone, DBSecurityGroup, EngineVersion, SecurityGroup, } from '../entity'
+import { AvailabilityZone, EngineVersion, SecurityGroup, } from '../entity'
 
 export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   dbiResourceId: (dbi: DBInstance) => dbi?.DbiResourceId ?? null,
@@ -43,13 +42,6 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   dbParameterGroups: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) =>
     dbi?.DBParameterGroups?.length ?
       await Promise.all(dbi.DBParameterGroups.map(pgs => DBParameterGroupStatusMapper.fromAWS(pgs, awsClient, i)))
-      : [],
-  dbSecurityGroups: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) =>
-    dbi?.DBSecurityGroups?.length ?
-      await Promise.all(dbi.DBSecurityGroups.map(async dbsgm => {
-        const dbSgEntity = await i.getOr(DBSecurityGroup, dbsgm.DBSecurityGroupName!, awsClient.getDBSecurityGroup.bind(awsClient));
-        return await DBSecurityGroupMapper.fromAWS(dbSgEntity, awsClient, i);
-      }))
       : [],
   deletionProtection: (dbi: DBInstance) => dbi?.DeletionProtection ?? null,
   domainMemberships: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) =>

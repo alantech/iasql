@@ -19,7 +19,6 @@ import {
   ProcessorFeature,
   Endpoint,
   SecurityGroup,
-  DBSecurityGroup
 } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
@@ -131,11 +130,6 @@ export class RDS {
   @ManyToMany(() => DBParameterGroupStatus, { cascade: true, eager: true, })
   @JoinTable()
   dbParameterGroups?: DBParameterGroupStatus[];
-
-  @noDiff
-  @ManyToMany(() => DBSecurityGroup, { eager: true, })
-  @JoinTable()
-  dbSecurityGroups?: DBSecurityGroup[];
 
   @Column({
     nullable: true,
