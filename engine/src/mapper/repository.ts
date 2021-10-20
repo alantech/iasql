@@ -12,7 +12,7 @@ export const RepositoryMapper: EntityMapper = new EntityMapper(Repository, {
   registryId: (r: RepositoryAWS) => r?.registryId ?? null,
   repositoryUri: (r: RepositoryAWS) => r?.repositoryUri ?? null,
   repositoryName: (r: RepositoryAWS) => r?.repositoryName,
-  createdAt: (r: RepositoryAWS) => r?.createdAt ?? null,
+  createdAt: (r: RepositoryAWS) => r?.createdAt ? new Date(r.createdAt) : null,
   imageTagMutability: (r: RepositoryAWS) => r?.imageTagMutability ?? null,
   scanOnPush: (r: RepositoryAWS) => r?.imageScanningConfiguration?.scanOnPush ?? null,
 }, {
