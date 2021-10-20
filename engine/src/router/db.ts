@@ -13,7 +13,7 @@ import { findDiff, } from '../services/diff'
 import { Source, } from '../services/source-of-truth'
 import { getAwsPrimaryKey, } from '../services/aws-primary-key'
 import { lazyLoader, } from '../services/lazy-dep'
-import { migrate, populate, newDB, getId } from '../services/db-manager'
+import { migrate, populate, newId, getId, delId } from '../services/db-manager'
 
 export const db = express.Router();
 db.use(express.json());
@@ -50,7 +50,7 @@ db.post('/create', async (req, res) => {
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   const user: any = req.user;
   const email = user[`${config.a0Domain}email`];
-  const dbId = await newDB(dbAlias, email, user.sub);
+  const dbId = await newId(dbAlias, email, user.sub);
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
   try {
@@ -126,6 +126,7 @@ db.get('/delete/:dbAlias', async (req, res) => {
     await conn.query(`
       DROP DATABASE ${dbId};
     `);
+    await delId(dbAlias, user.sub);
     res.end(`delete ${dbId}`);
   } catch (e: any) {
     res.status(500).end(`failure to drop DB: ${e?.message ?? ''}`);
