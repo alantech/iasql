@@ -1,5 +1,5 @@
 import * as express from 'express'
-import jwt from 'express-jwt'
+/*import jwt from 'express-jwt'
 import jwksRsa from 'jwks-rsa'
 import { createConnection, } from 'typeorm'
 
@@ -13,12 +13,12 @@ import { findDiff, } from '../services/diff'
 import { Source, } from '../services/source-of-truth'
 import { getAwsPrimaryKey, } from '../services/aws-primary-key'
 import { lazyLoader, } from '../services/lazy-dep'
-import { migrate, populate, } from '../services/db-manager'
+import { migrate, populate, } from '../services/db-manager'*/
 
 export const db = express.Router();
 db.use(express.json());
 
-async function saveEntities(
+/*async function saveEntities(
   orm: TypeormWrapper,
   awsClient: AWS,
   indexes: IndexedAWS,
@@ -261,4 +261,4 @@ db.get('/check/:dbAlias', async (req, res) => {
   } finally {
     orm?.dropConn();
   }
-});
+});*/

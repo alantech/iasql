@@ -1,7 +1,7 @@
 // Currently just a collection of independent functions for user database management. May eventually
 // grow into something more.
 
-import * as fs from 'fs'
+/*import * as fs from 'fs'
 
 import { Connection, } from 'typeorm'
 
@@ -54,4 +54,4 @@ export async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Sou
     .map(mapper => () => (mapper as Mappers.EntityMapper).readAWS(awsClient, indexes));
   await lazyLoader(promiseGenerators);
 }
-
+*/
