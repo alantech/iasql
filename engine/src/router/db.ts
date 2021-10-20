@@ -49,6 +49,9 @@ db.post('/create', async (req, res) => {
   const t1 = Date.now();
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   const user: any = req.user;
+  // following the format for this auth0 rule
+  // https://manage.auth0.com/dashboard/us/iasql/rules/rul_D2HobGBMtSmwUNQm
+  // more context here https://community.auth0.com/t/include-email-in-jwt/39778/4
   const email = user[`${config.a0Domain}email`];
   const dbId = await newId(dbAlias, email, user.sub);
   let conn1, conn2;
