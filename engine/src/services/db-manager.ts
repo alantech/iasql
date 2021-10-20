@@ -71,7 +71,7 @@ function dbKey(dbAlias: string) {
 export async function newId(dbAlias: string, email: string, uid: string): Promise<string> {
   const ipUser = await IronPlans.newUser(email, uid);
   const dbId = randomHexValue();
-  await IronPlans.newTeamMetadata(ipUser.teamId, {
+  await IronPlans.setTeamMetadata(ipUser.teamId, {
     [dbKey(dbAlias)]: dbId,
   });
   return dbId;
@@ -87,5 +87,5 @@ export async function delId(dbAlias: string, uid: string) {
   const teamId = await IronPlans.getTeamId(uid);
   const metadata: any = await IronPlans.getTeamMetadata(teamId);
   delete metadata[dbKey(dbAlias)];
-  await IronPlans.updateTeamMetadata(teamId, metadata);
+  await IronPlans.setTeamMetadata(teamId, metadata);
 }

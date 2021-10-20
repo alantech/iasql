@@ -27,12 +27,9 @@ export class IronPlans {
     }
   }
 
-  static async newTeamMetadata(teamId: string, data: object) {
+  // sets the entire team metadata, overwritting any existing value
+  static async setTeamMetadata(teamId: string, data: object) {
     await this.client.post(`teams/v1/${teamId}/metadata`, data);
-  }
-
-  static async updateTeamMetadata(teamId: string, data: object) {
-    await this.client.patch(`teams/v1/${teamId}/metadata`, data);
   }
 
   // TODO assumes every user has only one team
