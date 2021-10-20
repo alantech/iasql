@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToOne, } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToOne, } from 'typeorm'
 
 import { source, Source, } from '../services/source-of-truth'
 import { awsPrimaryKey, } from '../services/aws-primary-key'
@@ -17,6 +17,7 @@ export class RepositoryPolicy {
   })
   registryId?: string;
 
+  @noDiff
   @OneToOne(() => Repository, { eager: true, })
   @JoinColumn({
     name: 'repository_id',

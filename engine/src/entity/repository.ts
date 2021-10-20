@@ -54,9 +54,6 @@ export class Repository {
   })
   scanOnPush?: boolean;
 
-  @OneToOne(() => RepositoryPolicy, rp => rp.repository)
-  repositoryPolicy: RepositoryPolicy;
-
   // TODO: add encriptation configuration entity.
   // @Column({
   //   nullable: true,

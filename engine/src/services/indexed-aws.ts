@@ -23,10 +23,12 @@ export class IndexedAWS {
     return await Promise.all(entitiesAws.map(e => mapper.fromAWS(e, awsClient, this)));
   }
 
-  set(entity: Function, key: string, value: any) {
+  set(entity: Function, key?: string, value?: any) {
     const entityName = entity.name;
     this.index[entityName] = this.index[entityName] ?? {};
-    this.index[entityName][key] = value;
+    if (key) {
+      this.index[entityName][key] = value;
+    }
   }
 
   setAll(entity: Function, entityList: any[], idName: string) {
