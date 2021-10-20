@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, ManyToMany, JoinTable, } from 'typeorm';
 import { AvailabilityZone, EngineVersion, SupportedEngineMode } from '.';
+import { awsPrimaryKey } from '../services/aws-primary-key';
 import { source, Source } from '../services/source-of-truth';
 import { ActivityStreamMode } from './activity_stream_mode';
 import { DBInstanceClass } from './db_instance_class';
@@ -10,6 +11,11 @@ import { ProcessorFeature } from './processor_feature';
 export class OrderableDBInstanceOption {
   @PrimaryGeneratedColumn()
   id: number;
+
+  // Engine + EngineVersion + DBInstanceClass + StorageType
+  @awsPrimaryKey
+  @Column()
+  compositeKey: string;
 
   @ManyToOne(() => EngineVersion)
   @JoinColumn({

@@ -318,7 +318,7 @@ export class AWS {
   }
 
   async getOrderableInstanceOptions(engines: string[]) {
-    const orderableInstanceOptions = [];
+    let orderableInstanceOptions = [];
     for (const engine of engines) {
       const paginator = paginateDescribeOrderableDBInstanceOptions({
         client: this.rdsClient,
@@ -328,6 +328,10 @@ export class AWS {
         orderableInstanceOptions.push(...(page.OrderableDBInstanceOptions ?? []));
       }
     }
+    orderableInstanceOptions = orderableInstanceOptions.map(opt => ({
+      ...opt,
+      CompositeKey: opt.Engine! + opt.EngineVersion! + opt.DBInstanceClass! + opt.StorageType
+    }));
     return {
       OrderableDBInstanceOptions: orderableInstanceOptions,
     };

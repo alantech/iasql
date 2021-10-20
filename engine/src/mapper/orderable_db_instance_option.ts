@@ -15,6 +15,7 @@ import { AvailabilityZone, EngineVersion, } from '../entity'
 import { DepError, } from '../services/lazy-dep'
 
 export const OrderableDBInstanceOptionMapper = new EntityMapper(OrderableDBInstanceOption, {
+  compositeKey: (opt: any) => opt.CompositeKey,
   engine: async (opt: OrderableDBInstanceOptionAWS, awsClient: AWS, indexes: IndexedAWS) => {
     const engineVersionEntity = await indexes.getOr(EngineVersion, opt.EngineVersion!, awsClient.getEngineVersion.bind(awsClient));
     return await EngineVersionMapper.fromAWS(engineVersionEntity, awsClient, indexes);
@@ -68,7 +69,7 @@ export const OrderableDBInstanceOptionMapper = new EntityMapper(OrderableDBInsta
     let orderableDBInstanceOptions = [];
     // TODO: remove engine filter
     orderableDBInstanceOptions = (await awsClient.getOrderableInstanceOptions(['postgres']/*engines*/))?.OrderableDBInstanceOptions ?? [];
-    indexes.setAllWithComposeKey(OrderableDBInstanceOption, orderableDBInstanceOptions, ['Engine', 'EngineVersion', 'DBInstanceClass', 'StorageType']);
+    indexes.setAll(OrderableDBInstanceOption, orderableDBInstanceOptions, 'CompositeKey');
     const t2 = Date.now();
     console.log(`OrderableBDInstanceOptions set in ${t2 - t1}ms`);
   },

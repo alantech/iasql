@@ -35,15 +35,6 @@ export class IndexedAWS {
     entityList.forEach(e => this.index[entityName][e[idName] ?? ''] = e);
   }
 
-  setAllWithComposeKey(entity: Function, entityList: any[], idNames: string[]) {
-    const entityName = entity.name;
-    this.index[entityName] = this.index[entityName] ?? {};
-    entityList.forEach(e => {
-      const idName = idNames.map(n => e[n]).join('');
-      this.index[entityName][idName ?? ''] = e;
-    });
-  }
-
   get(entity?: Function, key?: string) {
     if (!entity && key) {
       throw new Error('Error getting indexed entities');
