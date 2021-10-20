@@ -17,13 +17,19 @@ export class RepositoryPolicy {
   })
   registryId?: string;
 
-  @awsPrimaryKey
   @OneToOne(() => Repository, { eager: true, })
   @JoinColumn({
     name: 'repository_id',
   })
   repository: Repository;
 
+  // TODO: Update eventually to a generated column based on the Repository value to avoid inconsistencies.
+  // https://github.com/typeorm/typeorm/pull/6469
+  @awsPrimaryKey
+  @Column({
+    unique: true,
+  })
+  repositoryName: string;
 
   @Column({
     nullable: true,

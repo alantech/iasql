@@ -12,6 +12,7 @@ export const RepositoryPolicyMapper: EntityMapper = new EntityMapper(RepositoryP
   },
   registryId: (rp: any) => rp?.registryId ?? null,
   policyText: (rp: any) => rp?.policyText ?? null,
+  repositoryName: (rp: any) => rp?.repositoryName,
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
