@@ -13,7 +13,7 @@ import { findDiff, } from '../services/diff'
 import { Source, } from '../services/source-of-truth'
 import { getAwsPrimaryKey, } from '../services/aws-primary-key'
 import { lazyLoader, } from '../services/lazy-dep'
-import { migrate, populate, } from '../services/db-manager'
+import { migrate, populate, newId, getId, delId } from '../services/db-manager'
 
 export const db = express.Router();
 db.use(express.json());
@@ -48,9 +48,12 @@ if (config.a0Enabled) {
 db.post('/create', async (req, res) => {
   const t1 = Date.now();
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
-  // TODO generate unique id as actual name and store association to alias in ironplans
-  // such that once we auth the user they can use the alias and we map to the id
-  const dbname = dbAlias;
+  const user: any = req.user;
+  // following the format for this auth0 rule
+  // https://manage.auth0.com/dashboard/us/iasql/rules/rul_D2HobGBMtSmwUNQm
+  // more context here https://community.auth0.com/t/include-email-in-jwt/39778/4
+  const email = user[`${config.a0Domain}email`];
+  const dbId = await newId(dbAlias, email, user.sub);
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
   try {
@@ -62,18 +65,18 @@ db.post('/create', async (req, res) => {
       host: 'postgresql',
     });
     const resp1 = await conn1.query(`
-      CREATE DATABASE ${dbname};
+      CREATE DATABASE "${dbId}";
     `);
     conn2 = await createConnection({
-      name: dbname,
+      name: dbId,
       type: 'postgres',
       username: 'postgres',
       password: 'test',
       host: 'postgresql',
-      database: dbname,
+      database: dbId,
     });
     await migrate(conn2);
-    orm = await TypeormWrapper.createConn(dbname);
+    orm = await TypeormWrapper.createConn(dbId);
     const awsClient = new AWS({
       region: awsRegion,
       credentials: {
@@ -89,7 +92,7 @@ db.post('/create', async (req, res) => {
     console.log(`Populate indexes in ${t3 - t2}ms`)
     // TODO: Put this somewhere else
     const o: TypeormWrapper = orm;
-    console.log(`Populating new db: ${dbname}`);
+    console.log(`Populating new db: ${dbId}`);
     const mappers: Mappers.EntityMapper[] = Object.values(Mappers)
       .filter(m => m instanceof Mappers.EntityMapper) as Mappers.EntityMapper[];
     await lazyLoader(mappers.map(m => () => saveEntities(o, awsClient, indexes, m)));
@@ -100,7 +103,7 @@ db.post('/create', async (req, res) => {
     await orm.query(`
       INSERT INTO aws_credentials VALUES (DEFAULT, '${awsAccessKeyId}', '${awsSecretAccessKey}', '${region.id}');
     `);
-    res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
+    res.end(`created ${dbId} with alias ${dbAlias}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
     res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}\n${JSON.stringify(e?.metadata ?? [])}\n`);
   } finally {
@@ -111,7 +114,9 @@ db.post('/create', async (req, res) => {
 });
 
 db.get('/delete/:dbAlias', async (req, res) => {
-  const dbname = req.params.dbAlias;
+  const user: any = req.user;
+  const dbAlias = req.params.dbAlias;
+  const dbId = await getId(dbAlias, user.sub);
   let conn;
   try {
     conn = await createConnection({
@@ -122,9 +127,10 @@ db.get('/delete/:dbAlias', async (req, res) => {
       host: 'postgresql',
     });
     await conn.query(`
-      DROP DATABASE ${dbname};
+      DROP DATABASE ${dbId};
     `);
-    res.end(`delete ${dbname}`);
+    await delId(dbAlias, user.sub);
+    res.end(`delete ${dbId}`);
   } catch (e: any) {
     res.status(500).end(`failure to drop DB: ${e?.message ?? ''}`);
   } finally {
@@ -147,12 +153,14 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
 }
 
 db.get('/check/:dbAlias', async (req, res) => {
-  const dbname = req.params.dbAlias;
+  const user: any = req.user;
+  const dbAlias = req.params.dbAlias;
+  const dbId = await getId(dbAlias, user.sub);
   const t1 = Date.now();
-  console.log(`Checking ${dbname}`);
+  console.log(`Checking ${dbId} with alias ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
   try {
-    orm = await TypeormWrapper.createConn(dbname);
+    orm = await TypeormWrapper.createConn(dbId);
     const awsCreds = await orm.findOne(Entities.AWSCredentials);
     const awsClient = new AWS({
       region: awsCreds.region.name,
@@ -254,7 +262,7 @@ db.get('/check/:dbAlias', async (req, res) => {
       } while (ranUpdate);
     } while (ranFullUpdate);
     const t7 = Date.now();
-    res.end(`${dbname} checked and synced, total time: ${t7 - t1}ms`);
+    res.end(`${dbId} checked and synced, total time: ${t7 - t1}ms`);
   } catch (e: any) {
     console.dir(e, { depth: 6, });
     res.status(500).end(`failure to check DB: ${e?.message ?? ''}`);
