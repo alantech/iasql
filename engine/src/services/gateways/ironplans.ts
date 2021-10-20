@@ -38,7 +38,7 @@ export class IronPlans {
     const ipUid = body.results[0].id;
     resp = await this.client.get(`/team_memberships/v1?customer_id=${ipUid}`);
     body = resp.data;
-    return body.results[0]['team_id'];
+    return body.results[0].team_id;
   }
 
   static async getTeamMetadata(teamId: string) {
