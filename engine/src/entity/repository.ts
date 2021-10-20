@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, } from 'typeorm'
 
 import { source, Source, } from '../services/source-of-truth'
 import { awsPrimaryKey, } from '../services/aws-primary-key'
