@@ -11,7 +11,7 @@ export const RepositoryPolicyMapper: EntityMapper = new EntityMapper(RepositoryP
     return await RepositoryMapper.fromAWS(repository, awsClient, indexes);
   },
   registryId: (rp: any) => rp?.registryId ?? null,
-  policyText: (rp: any) => rp?.policyText?.replaceAll('\n', '').replace(/\s+/g,' ') ?? null,
+  policyText: (rp: any) => rp?.policyText?.replaceAll('\n', '').replace(/\s+/g, ' ') ?? null,
   repositoryName: (rp: any) => rp?.repositoryName,
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
@@ -33,34 +33,22 @@ export const RepositoryPolicyMapper: EntityMapper = new EntityMapper(RepositoryP
     console.log(`RepositoryPolicy set in ${t2 - t1}ms`);
   },
   createAWS: async (obj: RepositoryPolicy, awsClient: AWS, indexes: IndexedAWS) => {
-    try {
-      let policy;
-      // try {
-      //   policy = `${JSON.parse(obj.policyText!)}`;
-      // } catch (_) {
-      // };
-      policy = obj.policyText;
-      console.log(`policy text = ${policy}`);
-      const result = await awsClient.setECRRepositoryPolicy({
-        repositoryName: obj.repository.repositoryName,
-        policyText: policy,
-      });
-      // TODO: Handle if it fails (somehow)
-      if (!result?.hasOwnProperty('repositoryName')) { // Failure
-        throw new Error('what should we do here?');
-      }
-      const newRepositoryPolicy = await awsClient.getECRRepositoryPolicy(result.repositoryName ?? '');
-      indexes.set(RepositoryPolicy, newRepositoryPolicy?.repositoryName ?? '', newRepositoryPolicy);
-      const newEntity: RepositoryPolicy = await RepositoryPolicyMapper.fromAWS(newRepositoryPolicy, awsClient, indexes);
-      newEntity.id = obj.id;
-      for (const key of Object.keys(newEntity)) {
-        (obj as any)[key] = (newEntity as any)[key];
-      }
-      return newEntity;
-    } catch (e) {
-      console.log(`failing on create error: ${JSON.stringify(e)}`)
-      throw e;
+    const result = await awsClient.setECRRepositoryPolicy({
+      repositoryName: obj.repository.repositoryName,
+      policyText: obj.policyText,
+    });
+    // TODO: Handle if it fails (somehow)
+    if (!result?.hasOwnProperty('repositoryName')) { // Failure
+      throw new Error('what should we do here?');
     }
+    const newRepositoryPolicy = await awsClient.getECRRepositoryPolicy(result.repositoryName ?? '');
+    indexes.set(RepositoryPolicy, newRepositoryPolicy?.repositoryName ?? '', newRepositoryPolicy);
+    const newEntity: RepositoryPolicy = await RepositoryPolicyMapper.fromAWS(newRepositoryPolicy, awsClient, indexes);
+    newEntity.id = obj.id;
+    for (const key of Object.keys(newEntity)) {
+      (obj as any)[key] = (newEntity as any)[key];
+    }
+    return newEntity;
   },
   updateAWS: async (obj: RepositoryPolicy, awsClient: AWS, indexes: IndexedAWS) => {
     return RepositoryPolicyMapper.createAWS(obj, awsClient, indexes);

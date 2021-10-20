@@ -3,7 +3,6 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToOne, } from 'typeorm'
 import { source, Source, } from '../services/source-of-truth'
 import { awsPrimaryKey, } from '../services/aws-primary-key'
 import { noDiff, } from '../services/diff'
-import { RepositoryPolicy } from '.';
 
 export enum ImageTagMutability {
   IMMUTABLE = "IMMUTABLE",
