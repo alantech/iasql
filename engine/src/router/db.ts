@@ -102,7 +102,7 @@ db.post('/create', async (req, res) => {
     `);
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
-    res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
+    res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}\n${JSON.stringify(e?.metadata ?? [])}\n`);
   } finally {
     await conn1?.close();
     await conn2?.close();
@@ -201,7 +201,7 @@ db.get('/check/:dbAlias', async (req, res) => {
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - tb}ms`);
         const promiseGenerators = records
-          .filter(r => ['SecurityGroup', 'Instance'].includes(r.table)) // TODO: Don't do this
+          .filter(r => ['SecurityGroup', 'Instance', 'RDS'].includes(r.table)) // TODO: Don't do this
           .map(r => {
             const name = r.table;
             console.log(`Checking ${name}`);
@@ -215,8 +215,8 @@ db.get('/check/:dbAlias', async (req, res) => {
             let diffFound = false;
             r.diff.entitiesDiff.forEach((d: any) => {
               const valIsUnchanged = (val: any): boolean => {
-                if (val.hasOwnProperty('type')) {
-                  return val.type === 'unchanged';
+                if (val.hasOwnProperty('__type__')) {
+                  return val.__type__ === 'unchanged';
                 } else if (Array.isArray(val)) {
                   return val.every(v => valIsUnchanged(v));
                 } else if (val instanceof Object) {
@@ -251,8 +251,8 @@ db.get('/check/:dbAlias', async (req, res) => {
           const t6 = Date.now();
           console.log(`AWS update time: ${t6 - t5}ms`);
         }
-      } while(ranUpdate);
-    } while(ranFullUpdate);
+      } while (ranUpdate);
+    } while (ranFullUpdate);
     const t7 = Date.now();
     res.end(`${dbname} checked and synced, total time: ${t7 - t1}ms`);
   } catch (e: any) {
