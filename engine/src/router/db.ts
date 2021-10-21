@@ -1,19 +1,19 @@
 import * as express from 'express'
-/*import jwt from 'express-jwt'
+import jwt from 'express-jwt'
 import jwksRsa from 'jwks-rsa'
 import { createConnection, } from 'typeorm'
 
-import { AWS, } from '../services/gateways/aws'
+//import { AWS, } from '../services/gateways/aws'
 import config from '../config'
-import { TypeormWrapper, } from '../services/typeorm'
-import * as Entities from '../entity'
-import * as Mappers from '../mapper'
-import { IndexedAWS, } from '../services/indexed-aws'
-import { findDiff, } from '../services/diff'
-import { Source, } from '../services/source-of-truth'
-import { getAwsPrimaryKey, } from '../services/aws-primary-key'
-import { lazyLoader, } from '../services/lazy-dep'
-import { migrate, populate, } from '../services/db-manager'*/
+//import { TypeormWrapper, } from '../services/typeorm'
+//import * as Entities from '../entity'
+//import * as Mappers from '../mapper'
+//import { IndexedAWS, } from '../services/indexed-aws'
+//import { findDiff, } from '../services/diff'
+//import { Source, } from '../services/source-of-truth'
+//import { getAwsPrimaryKey, } from '../services/aws-primary-key'
+//import { lazyLoader, } from '../services/lazy-dep'
+import { migrate, /*populate,*/ } from '../services/db-manager'
 
 export const db = express.Router();
 db.use(express.json());
@@ -30,7 +30,7 @@ db.use(express.json());
   await orm.save(entity, entities);
   const t2 = Date.now();
   console.log(`${entity.name} stored in ${t2 - t1}ms`);
-}
+}*/
 
 if (config.a0Enabled) {
   const checkJwt = jwt({
@@ -46,13 +46,13 @@ if (config.a0Enabled) {
 
 // TODO secure with cors and scope
 db.post('/create', async (req, res) => {
-  const t1 = Date.now();
-  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
+  //const t1 = Date.now();
+  const {dbAlias, /*awsRegion, awsAccessKeyId, awsSecretAccessKey*/} = req.body;
   // TODO generate unique id as actual name and store association to alias in ironplans
   // such that once we auth the user they can use the alias and we map to the id
   const dbname = dbAlias;
   let conn1, conn2;
-  let orm: TypeormWrapper | undefined;
+  //let orm: TypeormWrapper | undefined;
   try {
     conn1 = await createConnection({
       name: 'base', // If you use multiple connections they must have unique names or typeorm bails
@@ -73,7 +73,12 @@ db.post('/create', async (req, res) => {
       database: dbname,
     });
     await migrate(conn2);
-    orm = await TypeormWrapper.createConn(dbname);
+    //orm = await TypeormWrapper.createConn(dbname);
+    // TODO: The following commented code is part of the "initialization" logic for the various
+    // entities, and should be refactored to be part of the module "install" process. Maybe it
+    // just belongs as part of the `post-install` script and just a pattern within the modules
+    // instead of being fully centralized? For now it is commented out and left where it used to be.
+    /*
     const awsClient = new AWS({
       region: awsRegion,
       credentials: {
@@ -100,13 +105,14 @@ db.post('/create', async (req, res) => {
     await orm.query(`
       INSERT INTO aws_credentials VALUES (DEFAULT, '${awsAccessKeyId}', '${awsSecretAccessKey}', '${region.id}');
     `);
+    */
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
     res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
   } finally {
     await conn1?.close();
     await conn2?.close();
-    await orm?.dropConn();
+    //await orm?.dropConn();
   }
 });
 
@@ -132,7 +138,7 @@ db.get('/delete/:dbAlias', async (req, res) => {
   }
 });
 
-function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
+/*function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
   // Assumes equal length for all arrays
   const keys = Object.keys(cols);
   const out: { [key: string]: any, }[] = [];
