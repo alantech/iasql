@@ -73,7 +73,9 @@ export async function newId(dbAlias: string, email: string, uid: string): Promis
   const dbId = `_${randomHexValue()}`;
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
   const key = dbKey(dbAlias);
-  delete metadata[key];
+  if (metadata.hasOwnProperty(key)) {
+    throw new Error(`db with alias ${dbAlias} already defined`)
+  }
   metadata[key] = dbId;
   await IronPlans.setTeamMetadata(ipUser.teamId, metadata);
   return dbId;
