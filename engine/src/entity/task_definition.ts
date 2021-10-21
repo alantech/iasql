@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, } from 'typeorm';
-import { ContainerDefinition } from '.';
+import { Container } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 
 import { source, Source } from '../services/source-of-truth';
@@ -28,9 +28,9 @@ export class TaskDefinition {
   })
   taskDefinitionArn?: string;
 
-  @ManyToMany(() => ContainerDefinition, { cascade: true, eager: true, })
+  @ManyToMany(() => Container, { cascade: true, eager: true, })
   @JoinTable()
-  containerDefinitions?: ContainerDefinition[];
+  containerDefinitions?: Container[];
 
   @Column()
   family: string;
@@ -107,7 +107,7 @@ export class TaskDefinition {
   //  * 			memory value or a container-level memory value. This field is optional and any value can
   //  * 			be used. If a task-level memory value is specified then the container-level memory value
   //  * 			is optional. For more information regarding container-level memory and memory
-  //  * 			reservation, see <a href="https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ContainerDefinition.html">ContainerDefinition</a>.</p>
+  //  * 			reservation, see <a href="https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ContainerDefinition.html">Container</a>.</p>
   //  * 		       <p>If your tasks will be run on Fargate, this field is required and you must use one of
   //  * 			the following values, which determines your range of valid values for the
   //  * 				<code>cpu</code> parameter:</p>

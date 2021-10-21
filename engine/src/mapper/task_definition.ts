@@ -4,15 +4,14 @@ import { AWS, } from '../services/gateways/aws'
 import { TaskDefinition, } from '../entity/task_definition'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { CompatibilityMapper, ContainerDefinitionMapper } from '.'
-import { inspect } from 'util'
+import { CompatibilityMapper, ContainerMapper } from '.'
 
 export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
   taskDefinitionArn: (td: TaskDefinitionAWS) => td?.taskDefinitionArn ?? null,
   containerDefinitions: async (td: TaskDefinitionAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (td?.containerDefinitions?.length) {
       return await Promise.all(
-        td.containerDefinitions.map(cd => ContainerDefinitionMapper.fromAWS(cd, awsClient, indexes))
+        td.containerDefinitions.map(cd => ContainerMapper.fromAWS(cd, awsClient, indexes))
       );
     } else {
       return [];
@@ -40,7 +39,6 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
     const taskDefinitions = (await awsClient.getTaskDefinitions())?.taskDefinitions ?? [];
-    console.log(inspect(taskDefinitions, false, 7, true))
     indexes.setAll(TaskDefinition, taskDefinitions, 'familyRevision');
     const t2 = Date.now();
     console.log(`TaskDefinitions set in ${t2 - t1}ms`);

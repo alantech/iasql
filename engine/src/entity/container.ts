@@ -9,7 +9,7 @@ import { EnvironmetVariable } from './environmet_variable';
 import { PortMapping } from './port_mapping';
 
 @Entity()
-export class ContainerDefinition {
+export class Container {
   @PrimaryGeneratedColumn()
   id: number;
 

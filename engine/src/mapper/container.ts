@@ -1,12 +1,12 @@
 import { ContainerDefinition as ContainerDefinitionAWS, } from '@aws-sdk/client-ecs'
 
 import { AWS, } from '../services/gateways/aws'
-import { ContainerDefinition, } from '../entity/container_definition'
+import { Container, } from '../entity/container'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { EnvironmetVariableMapper, PortMappingMapper } from '.'
 
-export const ContainerDefinitionMapper = new EntityMapper(ContainerDefinition, {
+export const ContainerMapper = new EntityMapper(Container, {
   name: (c: ContainerDefinitionAWS) => c.name,
   image: (c: ContainerDefinitionAWS) => c.image,
   essential: (c: ContainerDefinitionAWS) => c.essential,
