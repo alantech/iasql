@@ -30,7 +30,7 @@ export class TaskDefinition {
 
   @ManyToMany(() => Container, { cascade: true, eager: true, })
   @JoinTable()
-  containerDefinitions?: Container[];
+  containers?: Container[];
 
   @Column()
   family: string;
@@ -72,7 +72,7 @@ export class TaskDefinition {
 
   @ManyToMany(() => Compatibility, { cascade: true, eager: true, })
   @JoinTable()
-  requiresCompatibilities?: Compatibility[];
+  reqCompatibilities?: Compatibility[];
 
   // TODO: add constraint
   // * <p>The number of <code>cpu</code> units used by the task. If you are using the EC2 launch

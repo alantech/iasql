@@ -8,7 +8,7 @@ import { CompatibilityMapper, ContainerMapper } from '.'
 
 export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
   taskDefinitionArn: (td: TaskDefinitionAWS) => td?.taskDefinitionArn ?? null,
-  containerDefinitions: async (td: TaskDefinitionAWS, awsClient: AWS, indexes: IndexedAWS) => {
+  containers: async (td: TaskDefinitionAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (td?.containerDefinitions?.length) {
       return await Promise.all(
         td.containerDefinitions.map(cd => ContainerMapper.fromAWS(cd, awsClient, indexes))
@@ -24,7 +24,7 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
   executionRoleArn: (td: TaskDefinitionAWS) => td?.executionRoleArn ?? null,
   networkMode: (td: TaskDefinitionAWS) => td?.networkMode ?? null,
   status: (td: TaskDefinitionAWS) => td?.status ?? null,
-  requiresCompatibilities: async (td: TaskDefinitionAWS, awsClient: AWS, indexes: IndexedAWS) => {
+  reqCompatibilities: async (td: TaskDefinitionAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (td?.requiresCompatibilities?.length) {
       return await Promise.all(
         td.requiresCompatibilities.map(c => CompatibilityMapper.fromAWS(c, awsClient, indexes))
@@ -46,8 +46,8 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
   createAWS: async (obj: TaskDefinition, awsClient: AWS, indexes: IndexedAWS) => {
     const input: RegisterTaskDefinitionCommandInput = {
       family: obj.family,
-      containerDefinitions: obj.containerDefinitions,
-      requiresCompatibilities: obj.requiresCompatibilities?.map(c => c.name!) ?? [],
+      containerDefinitions: obj.containers,
+      requiresCompatibilities: obj.reqCompatibilities?.map(c => c.name!) ?? [],
     };
     const result = await awsClient.createTaskDefinition(input);
     // TODO: Handle if it fails (somehow)
