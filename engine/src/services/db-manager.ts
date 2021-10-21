@@ -71,7 +71,7 @@ function dbKey(dbAlias: string) {
 export async function newId(dbAlias: string, email: string, uid: string): Promise<string> {
   const ipUser = await IronPlans.newUser(email, uid);
   const dbId = `_${randomHexValue()}`;
-  await IronPlans.setTeamMetadata(ipUser.teamId, {
+  await IronPlans.mergeTeamMetadata(ipUser.teamId, {
     [dbKey(dbAlias)]: dbId,
   });
   return dbId;

@@ -32,6 +32,10 @@ export class IronPlans {
     await this.client.post(`teams/v1/${teamId}/metadata`, data);
   }
 
+  static async mergeTeamMetadata(teamId: string, data: object) {
+    await this.client.patch(`teams/v1/${teamId}/metadata`, data);
+  }
+
   // TODO assumes every user has only one team
   static async getTeamId(uid: string) {
     let resp = await this.client.get(`/customers/v1?source_id=${uid}`);
