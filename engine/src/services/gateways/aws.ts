@@ -31,7 +31,12 @@ import {
   DeleteRepositoryPolicyCommand,
 } from '@aws-sdk/client-ecr'
 import {
-  ECSClient, RegisterTaskDefinitionCommandInput,
+  DeregisterTaskDefinitionCommand,
+  DescribeTaskDefinitionCommand,
+  ECSClient,
+  paginateListTaskDefinitions,
+  RegisterTaskDefinitionCommand,
+  RegisterTaskDefinitionCommandInput,
 } from '@aws-sdk/client-ecs'
 import {
   CreateDBInstanceCommand,
@@ -521,11 +526,54 @@ export class AWS {
     return updatedDBInstance;
   }
 
-  async createTaskDefinition() {
-    const input: RegisterTaskDefinitionCommandInput = {
-      family: 'name',
-      containerDefinitions: [],
+  async createTaskDefinition(input: RegisterTaskDefinitionCommandInput) {
+    const taskDefinition = await this.ecsClient.send(
+      new RegisterTaskDefinitionCommand(input)
+    );
+    return {
+      ...taskDefinition.taskDefinition,
+      familyRevision: `${taskDefinition.taskDefinition?.family}:${taskDefinition.taskDefinition?.revision}`,
     };
+  }
+
+  async getTaskDefinitions() {
+    const taskDefinitions: any[] = [];
+    const taskDefinitionArns: string[] = [];
+    const paginator = paginateListTaskDefinitions({
+      client: this.ecsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      taskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
+    }
+    await Promise.all(taskDefinitionArns.map(async arn => {
+      taskDefinitions.push(await this.getTaskDefinition(arn));
+      return arn;
+    }));
+    return {
+      taskDefinitions,
+    };
+  }
+
+  // :id could be `family:revision` or ARN
+  async getTaskDefinition(id: string) {
+    const taskDefinition = await this.ecsClient.send(
+      new DescribeTaskDefinitionCommand({
+        taskDefinition: id
+      })
+    );
+    return {
+      ...taskDefinition.taskDefinition,
+      familyRevision: `${taskDefinition.taskDefinition?.family}:${taskDefinition.taskDefinition?.revision}`,
+    };
+  }
+
+  async deleteTaskDefinition(name: string) {
+    await this.ecsClient.send(
+      new DeregisterTaskDefinitionCommand({
+        taskDefinition: name
+      })
+    );
   }
 
 }

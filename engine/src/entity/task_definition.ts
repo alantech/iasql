@@ -28,13 +28,23 @@ export class TaskDefinition {
   })
   taskDefinitionArn?: string;
 
-  @ManyToMany(() => ContainerDefinition, { eager: true, })
+  @ManyToMany(() => ContainerDefinition, { cascade: true, eager: true, })
   @JoinTable()
   containerDefinitions?: ContainerDefinition[];
 
-  @awsPrimaryKey
   @Column()
   family: string;
+
+  @Column({
+    nullable: true,
+    type: 'int',
+  })
+  revision?: number;
+
+  // Generated column to index properly
+  @awsPrimaryKey
+  @Column()
+  familyRevision: string;
 
   @Column({
     nullable: true,
@@ -52,12 +62,6 @@ export class TaskDefinition {
     enum: NetworkMode,
   })
   networkMode?: NetworkMode;
-
-  @Column({
-    nullable: true,
-    type: 'int',
-  })
-  revision?: number;
 
   @Column({
     nullable: true,

@@ -12,14 +12,14 @@ export const ContainerDefinitionMapper = new EntityMapper(ContainerDefinition, {
   essential: (c: ContainerDefinitionAWS) => c.essential,
   portMappings: async (c: ContainerDefinitionAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (c.portMappings?.length) {
-      await Promise.all(c.portMappings.map(p => PortMappingMapper.fromAWS(p, awsClient, indexes)));
+      return await Promise.all(c.portMappings.map(p => PortMappingMapper.fromAWS(p, awsClient, indexes)));
     } else {
       return [];
     }
   },
   environment: async (c: ContainerDefinitionAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (c.environment?.length) {
-      await Promise.all(c.environment.map(e => EnvironmetVariableMapper.fromAWS(e, awsClient, indexes)));
+      return await Promise.all(c.environment.map(e => EnvironmetVariableMapper.fromAWS(e, awsClient, indexes)));
     } else {
       return [];
     }
