@@ -48,12 +48,18 @@ if (config.a0Enabled) {
 db.post('/create', async (req, res) => {
   const t1 = Date.now();
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
-  const user: any = req.user;
-  // following the format for this auth0 rule
-  // https://manage.auth0.com/dashboard/us/iasql/rules/rul_D2HobGBMtSmwUNQm
-  // more context here https://community.auth0.com/t/include-email-in-jwt/39778/4
-  const email = user[`${config.a0Domain}email`];
-  const dbId = await newId(dbAlias, email, user.sub);
+  let dbId;
+  if (config.a0Enabled) {
+    // following the format for this auth0 rule
+    // https://manage.auth0.com/dashboard/us/iasql/rules/rul_D2HobGBMtSmwUNQm
+    // more context here https://community.auth0.com/t/include-email-in-jwt/39778/4
+    const user: any = req.user;
+    const email = user[`${config.a0Domain}email`];
+    dbId = await newId(dbAlias, email, user.sub);
+  } else {
+    // just use alias
+    dbId = dbAlias;
+  }
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
   try {
@@ -116,7 +122,7 @@ db.post('/create', async (req, res) => {
 db.get('/delete/:dbAlias', async (req, res) => {
   const user: any = req.user;
   const dbAlias = req.params.dbAlias;
-  const dbId = await getId(dbAlias, user.sub);
+  const dbId = config.a0Enabled ? await getId(dbAlias, user.sub) : dbAlias;
   let conn;
   try {
     conn = await createConnection({
@@ -155,7 +161,7 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
 db.get('/check/:dbAlias', async (req, res) => {
   const user: any = req.user;
   const dbAlias = req.params.dbAlias;
-  const dbId = await getId(dbAlias, user.sub);
+  const dbId = config.a0Enabled ? await getId(dbAlias, user.sub) : dbAlias;
   const t1 = Date.now();
   console.log(`Checking ${dbId} with alias ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
