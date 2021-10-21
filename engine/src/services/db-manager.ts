@@ -1,15 +1,15 @@
 // Currently just a collection of independent functions for user database management. May eventually
 // grow into something more.
 
-/*import * as fs from 'fs'
+import * as fs from 'fs'
 
 import { Connection, } from 'typeorm'
 
-import * as Mappers from '../mapper'
+/*import * as Mappers from '../mapper'
 import { AWS, } from './gateways/aws'
 import { IndexedAWS, } from './indexed-aws'
 import { Source, getSourceOfTruth, } from './source-of-truth'
-import { lazyLoader, } from './lazy-dep'
+import { lazyLoader, } from './lazy-dep'*/
 
 // We only want to do this setup once, then we re-use it. First we get the list of files
 const migrationFiles = fs
@@ -42,7 +42,7 @@ export async function migrate(conn: Connection) {
   await qr.release();
 }
 
-export async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
+/*export async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
   const promiseGenerators = Object.values(Mappers)
     .filter(mapper => {
       let out = mapper instanceof Mappers.EntityMapper;
