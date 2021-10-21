@@ -31,6 +31,9 @@ import {
   DeleteRepositoryPolicyCommand,
 } from '@aws-sdk/client-ecr'
 import {
+  ECSClient, RegisterTaskDefinitionCommandInput,
+} from '@aws-sdk/client-ecs'
+import {
   CreateDBInstanceCommand,
   CreateDBInstanceCommandInput,
   DeleteDBInstanceCommand,
@@ -62,6 +65,7 @@ export class AWS {
   private ec2client: EC2Client
   private ecrClient: ECRClient
   private rdsClient: RDSClient
+  private ecsClient: ECSClient
   private credentials: AWSCreds
   public region: string
 
@@ -74,6 +78,7 @@ export class AWS {
     this.ec2client = new EC2Client(config);
     this.ecrClient = new ECRClient(config);
     this.rdsClient = new RDSClient(config);
+    this.ecsClient = new ECSClient(config);
   }
 
   async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
@@ -514,6 +519,13 @@ export class AWS {
       },
     );
     return updatedDBInstance;
+  }
+
+  async createTaskDefinition() {
+    const input: RegisterTaskDefinitionCommandInput = {
+      family: 'name',
+      containerDefinitions: [],
+    };
   }
 
 }
