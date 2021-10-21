@@ -70,7 +70,7 @@ function dbKey(dbAlias: string) {
 // returns unique db id
 export async function newId(dbAlias: string, email: string, uid: string): Promise<string> {
   const ipUser = await IronPlans.newUser(email, uid);
-  const dbId = randomHexValue();
+  const dbId = `_${randomHexValue()}`;
   await IronPlans.setTeamMetadata(ipUser.teamId, {
     [dbKey(dbAlias)]: dbId,
   });
