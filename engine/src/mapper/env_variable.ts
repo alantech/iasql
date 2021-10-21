@@ -1,11 +1,11 @@
 import { KeyValuePair, } from '@aws-sdk/client-ecs'
 
 import { AWS, } from '../services/gateways/aws'
-import { EnvironmetVariable, } from '../entity/environmet_variable'
+import { EnvVariable, } from '../entity/env_variable'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 
-export const EnvironmetVariableMapper = new EntityMapper(EnvironmetVariable, {
+export const EnvVariableMapper = new EntityMapper(EnvVariable, {
   name: (kp: KeyValuePair) => kp.name,
   value: (kp: KeyValuePair) => kp.value,
 }, {

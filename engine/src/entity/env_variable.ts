@@ -5,7 +5,7 @@ import {
 } from 'typeorm'
 
 @Entity()
-export class EnvironmetVariable {
+export class EnvVariable {
   @PrimaryGeneratedColumn()
   id: number;
 

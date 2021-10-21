@@ -5,7 +5,7 @@ import {
   ManyToMany,
   JoinTable,
 } from 'typeorm'
-import { EnvironmetVariable } from './environmet_variable';
+import { EnvVariable } from './env_variable';
 import { PortMapping } from './port_mapping';
 
 @Entity()
@@ -31,7 +31,7 @@ export class Container {
   @JoinTable()
   portMappings?: PortMapping[];
 
-  @ManyToMany(() => EnvironmetVariable, { cascade: true, eager: true, })
+  @ManyToMany(() => EnvVariable, { cascade: true, eager: true, })
   @JoinTable()
-  environment?: EnvironmetVariable[];
+  environment?: EnvVariable[];
 }

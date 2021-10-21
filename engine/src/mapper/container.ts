@@ -4,7 +4,7 @@ import { AWS, } from '../services/gateways/aws'
 import { Container, } from '../entity/container'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { EnvironmetVariableMapper, PortMappingMapper } from '.'
+import { EnvVariableMapper, PortMappingMapper } from '.'
 
 export const ContainerMapper = new EntityMapper(Container, {
   name: (c: ContainerDefinitionAWS) => c.name,
@@ -19,7 +19,7 @@ export const ContainerMapper = new EntityMapper(Container, {
   },
   environment: async (c: ContainerDefinitionAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (c.environment?.length) {
-      return await Promise.all(c.environment.map(e => EnvironmetVariableMapper.fromAWS(e, awsClient, indexes)));
+      return await Promise.all(c.environment.map(e => EnvVariableMapper.fromAWS(e, awsClient, indexes)));
     } else {
       return [];
     }
