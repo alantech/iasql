@@ -52,7 +52,7 @@ pub async fn login(non_interactive: bool) {
         } else {
           generate_token().await;
         }
-      },
+      }
       Err(_) => match std::env::var("AUTH_TOKEN") {
         Ok(token) => TOKEN.set(token).unwrap(),
         Err(_) => {
@@ -76,7 +76,10 @@ pub fn logout() {
     let file_name = &format!("{}/{}", home, TOKEN_FILE);
     match read_to_string(file_name) {
       Ok(_) => {
-        let prompt = format!("Do wish to remove the credentials stored in {}?", TOKEN_FILE);
+        let prompt = format!(
+          "Do wish to remove the credentials stored in {}?",
+          TOKEN_FILE
+        );
         if !dlg::confirm_with_default(&prompt, true) {
           std::process::exit(0);
         }
