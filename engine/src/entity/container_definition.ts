@@ -27,11 +27,11 @@ export class ContainerDefinition {
   })
   essential: boolean;
 
-  @ManyToMany(() => PortMapping)
+  @ManyToMany(() => PortMapping, { eager: true, })
   @JoinTable()
   portMappings?: PortMapping[];
 
-  @ManyToMany(() => EnvironmetVariable)
+  @ManyToMany(() => EnvironmetVariable, { eager: true, })
   @JoinTable()
   environment?: EnvironmetVariable[];
 }
