@@ -5,7 +5,7 @@ import {
 import { AWS, } from '../services/gateways/aws'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { Repository } from '../entity'
+import { Repository, } from '../entity'
 
 export const RepositoryMapper: EntityMapper = new EntityMapper(Repository, {
   repositoryArn: (r: RepositoryAWS) => r?.repositoryArn ?? null,
