@@ -135,7 +135,9 @@ db.get('/delete/:dbAlias', async (req, res) => {
     await conn.query(`
       DROP DATABASE ${dbId};
     `);
-    await delId(dbAlias, user.sub);
+    if (config.a0Enabled) {
+      await delId(dbAlias, user.sub);
+    }
     res.end(`delete ${dbId}`);
   } catch (e: any) {
     res.status(500).end(`failure to drop DB: ${e?.message ?? ''}`);
