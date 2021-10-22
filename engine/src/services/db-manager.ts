@@ -71,7 +71,7 @@ function fromdbKey(dbAlias: string) {
   return dbAlias.substr('db:'.length);
 }
 
-function isdbKey(dbAlias: string) {
+function isDbKey(dbAlias: string) {
   return dbAlias.startsWith('db:');
 }
 
