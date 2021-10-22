@@ -86,7 +86,7 @@ export async function newId(dbAlias: string, email: string, uid: string): Promis
   const ipUser = await IronPlans.newUser(email, uid);
   const dbId = `_${randomHexValue()}`;
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
-  const key = todbKey(dbAlias);
+  const key = toDbKey(dbAlias);
   if (metadata.hasOwnProperty(key)) {
     throw new Error(`db with alias ${dbAlias} already defined`)
   }
