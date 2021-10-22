@@ -1,4 +1,11 @@
 import * as express from 'express'
+import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
+
+import * as Modules from '../modules'
+import config from '../config'
+import { AWS, } from '../services/gateways/aws'
+import { IasqlModule, } from '../entity'
+import { TypeormWrapper, } from '../services/typeorm'
 
 export const mod = express.Router();
 mod.use(express.json());
@@ -24,7 +31,17 @@ mod.use(express.json());
 //  satisfy - satisfy dependency strings
 
 // Needed at the beginning
-mod.post('/list', (_req, res) => res.end('ok'));
+mod.post('/list', (req, res) => {
+  if (req.body.all) {
+    res.end(JSON.stringify(Object.values(Modules)
+    .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name'))
+    .map(m => m.name), undefined, '  '));
+  } else if (req.body.installed) {
+    res.end(JSON.stringify("TODO", undefined, '  '));
+  } else {
+    res.end(JSON.stringify("ERROR", undefined, '  '));
+  }
+});
 
 // Needed when we have more than a handful of packages
 mod.post('/search', (_req, res) => res.end('ok'));
@@ -33,10 +50,56 @@ mod.post('/search', (_req, res) => res.end('ok'));
 mod.post('/show', (_req, res) => res.end('ok'));
 
 // Needed at the beginning
-mod.post('/install', (_req, res) => res.end('ok'));
+mod.post('/install', async (req, res) => {
+  if (!req.body.dbname) return res.end(JSON.stringify("ERROR", undefined, '  '));
+  if (Array.isArray(req.body.list)) {
+    const modules = req.body.list.map((n: string) => Object.values(Modules).find(m => m.name === n));
+    if (modules.some((m: any) => m === undefined)) {
+      return res.end(JSON.stringify("ERROR", undefined, '  '));
+    }
+    const entities = modules.map((m: any) => m.mappers.map((ma: any) => ma.entity)).flat();
+    entities.push(IasqlModule);
+    const orm = await TypeormWrapper.createConn(req.body.dbname, {
+      name: req.body.dbname,
+      type: 'postgres',
+      username: 'postgres', // TODO: Should we use the user's account for this?
+      password: 'test',
+      host: 'postgresql',
+      entities,
+      namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
+    });
+    const queryRunner = orm.createQueryRunner();
+    await queryRunner.connect();
+    // TODO: Actual dependency management and DB scanning for tables/functions/etc to be created
+    for (let mod of modules) {
+      if (mod.migrations?.preinstall) {
+        await mod.migrations.preinstall(queryRunner);
+      }
+      if (mod.migrations?.postinstall) {
+        await mod.migrations.postinstall(queryRunner);
+      }
+      const e = new IasqlModule();
+      e.name = mod.name;
+      e.installed = true;
+      e.enabled = true;
+      await orm.save(IasqlModule, e);
+    }
+    await queryRunner.release();
+    res.end(JSON.stringify("Done!", undefined, '  '));
+  } else {
+    res.end(JSON.stringify("ERROR", undefined, '  '));
+  }
+});
 
 // Needed at the beginning
-mod.post('/remove', (_req, res) => res.end('ok'));
+mod.post('/remove', (req, res) => {
+  if (Array.isArray(req.body.list)) {
+    // TODO
+    res.end(JSON.stringify("TODO", undefined, '  '));
+  } else {
+    res.end(JSON.stringify("ERROR", undefined, '  '));
+  }
+});
 
-// Needed at the beginning
+// Needed before first beta
 mod.post('/upgrade', (_req, res) => res.end('ok'));
