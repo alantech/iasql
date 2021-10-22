@@ -67,7 +67,7 @@ function todbKey(dbAlias: string) {
   return `db:${dbAlias}`;
 }
 
-function fromdbKey(dbAlias: string) {
+function fromDbKey(dbAlias: string) {
   return dbAlias.substr('db:'.length);
 }
 
