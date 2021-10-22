@@ -31,9 +31,14 @@ import {
   DeleteRepositoryPolicyCommand,
 } from '@aws-sdk/client-ecr'
 import {
+  CreateClusterCommand,
+  CreateClusterCommandInput,
+  DeleteClusterCommand,
   DeregisterTaskDefinitionCommand,
+  DescribeClustersCommand,
   DescribeTaskDefinitionCommand,
   ECSClient,
+  paginateListClusters,
   paginateListTaskDefinitions,
   RegisterTaskDefinitionCommand,
   RegisterTaskDefinitionCommandInput,
@@ -572,6 +577,49 @@ export class AWS {
     await this.ecsClient.send(
       new DeregisterTaskDefinitionCommand({
         taskDefinition: name
+      })
+    );
+  }
+
+  async createCluster(input: CreateClusterCommandInput) {
+    const cluster = await this.ecsClient.send(
+      new CreateClusterCommand(input)
+    );
+    return cluster.cluster;
+  }
+
+  async getClusters() {
+    const clusters: any[] = [];
+    const clusterArns: string[] = [];
+    const paginator = paginateListClusters({
+      client: this.ecsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      clusterArns.push(...(page.clusterArns ?? []));
+    }
+    await Promise.all(clusterArns.map(async arn => {
+      clusters.push(await this.getCluster(arn));
+      return arn;
+    }));
+    return {
+      clusters,
+    };
+  }
+
+  async getCluster(id: string) {
+    const cluster = await this.ecsClient.send(
+      new DescribeClustersCommand({
+        clusters: [id]
+      })
+    );
+    return cluster.clusters?.[0];
+  }
+
+  async deleteCluster(name: string) {
+    await this.ecsClient.send(
+      new DeleteClusterCommand({
+        cluster: name,
       })
     );
   }

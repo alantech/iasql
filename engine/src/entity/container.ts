@@ -5,11 +5,13 @@ import {
   ManyToMany,
   JoinTable,
 } from 'typeorm'
+import { noDiff } from '../services/diff';
 import { EnvVariable } from './env_variable';
 import { PortMapping } from './port_mapping';
 
 @Entity()
 export class Container {
+  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 
