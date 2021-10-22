@@ -63,8 +63,22 @@ function randomHexValue() {
     .toLowerCase()
 }
 
-function dbKey(dbAlias: string) {
+function todbKey(dbAlias: string) {
   return `db:${dbAlias}`;
+}
+
+function fromdbKey(dbAlias: string) {
+  return dbAlias.substr('db:'.length);
+}
+
+function isdbKey(dbAlias: string) {
+  return dbAlias.startsWith('db:');
+}
+
+export async function getAliases(uid: string) {
+  const teamId = await IronPlans.getTeamId(uid);
+  const metadata: any = await IronPlans.getTeamMetadata(teamId);
+  return Object.keys(metadata).filter(k => isdbKey(k)).map(k => fromdbKey(k));
 }
 
 // returns unique db id
@@ -72,7 +86,7 @@ export async function newId(dbAlias: string, email: string, uid: string): Promis
   const ipUser = await IronPlans.newUser(email, uid);
   const dbId = `_${randomHexValue()}`;
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
-  const key = dbKey(dbAlias);
+  const key = todbKey(dbAlias);
   if (metadata.hasOwnProperty(key)) {
     throw new Error(`db with alias ${dbAlias} already defined`)
   }
@@ -84,12 +98,12 @@ export async function newId(dbAlias: string, email: string, uid: string): Promis
 export async function getId(dbAlias: string, uid: string) {
   const teamId = await IronPlans.getTeamId(uid);
   const metadata: any = await IronPlans.getTeamMetadata(teamId);
-  return metadata[dbKey(dbAlias)];
+  return metadata[todbKey(dbAlias)];
 }
 
 export async function delId(dbAlias: string, uid: string) {
   const teamId = await IronPlans.getTeamId(uid);
   const metadata: any = await IronPlans.getTeamMetadata(teamId);
-  delete metadata[dbKey(dbAlias)];
+  delete metadata[todbKey(dbAlias)];
   await IronPlans.setTeamMetadata(teamId, metadata);
 }
