@@ -63,7 +63,7 @@ function randomHexValue() {
     .toLowerCase()
 }
 
-function todbKey(dbAlias: string) {
+function toDbKey(dbAlias: string) {
   return `db:${dbAlias}`;
 }
 
