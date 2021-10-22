@@ -36,9 +36,11 @@ export class IronPlans {
   static async getTeamId(uid: string) {
     let resp = await this.client.get(`/customers/v1?source_id=${uid}`);
     let body: any = resp.data;
+    if (!body.count) throw new Error(`No customers with ${uid} found`);
     const ipUid = body.results[0].id;
     resp = await this.client.get(`/team_memberships/v1?customer_id=${ipUid}`);
     body = resp.data;
+    if (!body.count) throw new Error(`No teams found for user with uid: ${uid} and IP id: ${ipUid}`);
     return body.results[0].team_id;
   }
 
