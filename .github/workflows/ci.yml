@@ -126,6 +126,10 @@ jobs:
         run: |
           curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/check/__${{ github.sha }}__
 
+      - name: Aliases
+        run: |
+          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/
+
       - name: Delete
         run: |
           curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/delete/__${{ github.sha }}__
