@@ -6,11 +6,8 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import styles from './index.module.css';
 import HomepageFeatures from '../components/HomepageFeatures';
 
-import { useAuth0 } from "@auth0/auth0-react";
-
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
-  const {loginWithRedirect} = useAuth0();
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
@@ -19,7 +16,7 @@ function HomepageHeader() {
         <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
-            onClick={() => loginWithRedirect()}>
+            to='/docs/intro'>
             Manage AWS Account
           </Link>
         </div>
