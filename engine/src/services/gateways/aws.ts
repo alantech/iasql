@@ -628,15 +628,7 @@ export class AWS {
     );
   }
 
-  async createCService(/*input: CreateClusterCommandInput*/) {
-    const input: CreateServiceCommandInput = {
-      serviceName: 'name',
-      taskDefinition: 'name',
-      launchType: 'FARGATE',
-      cluster: 'name',
-      schedulingStrategy: 'REPLICA',
-      desiredCount: 1,
-    };
+  async createService(input: CreateServiceCommandInput) {
     const result = await this.ecsClient.send(
       new CreateServiceCommand(input)
     );

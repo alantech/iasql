@@ -15,12 +15,12 @@ export class Cluster {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @awsPrimaryKey
   @Column({
     unique: true,
   })
   name: string;
 
+  @awsPrimaryKey
   @Column({
     nullable: true,
   })
