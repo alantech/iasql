@@ -78,7 +78,7 @@ function isdbKey(dbAlias: string) {
 export async function getAliases(uid: string) {
   const teamId = await IronPlans.getTeamId(uid);
   const metadata: any = await IronPlans.getTeamMetadata(teamId);
-  return Object.keys(metadata).filter(k => isdbKey(k)).map(k => fromdbKey(k));
+  return Object.keys(metadata).filter(isDbKey).map(fromDbKey);
 }
 
 // returns unique db id
