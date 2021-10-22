@@ -588,14 +588,13 @@ export class AWS {
   }
 
   async createCluster(input: CreateClusterCommandInput) {
-    const cluster = await this.ecsClient.send(
+    const result = await this.ecsClient.send(
       new CreateClusterCommand(input)
     );
-    return cluster.cluster;
+    return result.cluster;
   }
 
   async getClusters() {
-    const clusters: any[] = [];
     const clusterArns: string[] = [];
     const paginator = paginateListClusters({
       client: this.ecsClient,
@@ -604,13 +603,12 @@ export class AWS {
     for await (const page of paginator) {
       clusterArns.push(...(page.clusterArns ?? []));
     }
-    await Promise.all(clusterArns.map(async arn => {
-      clusters.push(await this.getCluster(arn));
-      return arn;
-    }));
-    return {
-      clusters,
-    };
+    const result = await this.ecsClient.send(
+      new DescribeClustersCommand({
+        clusters: clusterArns
+      })
+    );
+    return result.clusters;
   }
 
   async getCluster(id: string) {
@@ -659,7 +657,7 @@ export class AWS {
         services: serviceArns
       })
     );
-    return { services: result.services };
+    return result.services;
   }
 
   async getService(id: string) {

@@ -14,8 +14,7 @@ export const ClusterMapper = new EntityMapper(Cluster, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
     const clusters = (await awsClient.getClusters()) ?? [];
-    console.log(`CLusters=${inspect(clusters, false, 7)}`)
-    indexes.setAll(Cluster, clusters.clusters, 'clusterName');
+    indexes.setAll(Cluster, clusters, 'clusterName');
     const t2 = Date.now();
     console.log(`Clusters set in ${t2 - t1}ms`);
   },
