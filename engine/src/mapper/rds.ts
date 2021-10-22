@@ -56,7 +56,7 @@ export const RDSMapper: EntityMapper = new EntityMapper(RDS, {
   enableIAMDatabaseAuthentication: (dbi: DBInstance) => dbi?.IAMDatabaseAuthenticationEnabled ?? null,
   enablePerformanceInsights: (dbi: DBInstance) => dbi?.PerformanceInsightsEnabled ?? null,
   engine: async (dbi: DBInstance, awsClient: AWS, i: IndexedAWS) => {
-    const engineEntity = await i.getOr(EngineVersion, dbi.EngineVersion!, awsClient.getEngineVersion.bind(awsClient));
+    const engineEntity = await i.getOr(EngineVersion, `${dbi.Engine!}:${dbi.EngineVersion!}`, awsClient.getEngineVersion.bind(awsClient));
     return await EngineVersionMapper.fromAWS(engineEntity, awsClient, i)
   },
   iops: (dbi: DBInstance) => dbi?.Iops ?? null,

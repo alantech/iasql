@@ -9,7 +9,7 @@ import { EngineVersion, } from '../entity'
 
 export const UpgradeTargetMapper = new EntityMapper(UpgradeTarget, {
   engine: async (t: UpgradeTargetAWS, awsClient: AWS, indexes: IndexedAWS) => {
-    const engineVersionEntity = await indexes.getOr(EngineVersion, t.EngineVersion!, awsClient.getEngineVersion.bind(awsClient));
+    const engineVersionEntity = await indexes.getOr(EngineVersion, `${t.Engine!}:${t.EngineVersion!}`, awsClient.getEngineVersion.bind(awsClient));
     return await EngineVersionMapper.fromAWS(engineVersionEntity, awsClient, indexes)
   },
   description: (t: UpgradeTargetAWS) => t.Description ?? null,

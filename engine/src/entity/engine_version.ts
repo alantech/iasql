@@ -10,17 +10,22 @@ import { Timezone } from './timezone';
 
 @Entity()
 export class EngineVersion {
+  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
   engine: string;
 
+  @Column()
+  engineVersion: string;
+
+  // Generated column to be able to index unique values
   @awsPrimaryKey
   @Column({
     unique: true,
   })
-  engineVersion: string;
+  engineVersionKey: string;
 
   @Column()
   dbParameterGroupFamily: string;
