@@ -104,6 +104,6 @@ export async function getId(dbAlias: string, uid: string) {
 export async function delId(dbAlias: string, uid: string) {
   const teamId = await IronPlans.getTeamId(uid);
   const metadata: any = await IronPlans.getTeamMetadata(teamId);
-  delete metadata[todbKey(dbAlias)];
+  delete metadata[toDbKey(dbAlias)];
   await IronPlans.setTeamMetadata(teamId, metadata);
 }
