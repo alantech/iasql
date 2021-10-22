@@ -33,12 +33,18 @@ import {
 import {
   CreateClusterCommand,
   CreateClusterCommandInput,
+  CreateServiceCommand,
+  CreateServiceCommandInput,
   DeleteClusterCommand,
+  DeleteServiceCommand,
   DeregisterTaskDefinitionCommand,
   DescribeClustersCommand,
+  DescribeServicesCommand,
   DescribeTaskDefinitionCommand,
   ECSClient,
+  ListServicesCommand,
   paginateListClusters,
+  paginateListServices,
   paginateListTaskDefinitions,
   RegisterTaskDefinitionCommand,
   RegisterTaskDefinitionCommandInput,
@@ -620,6 +626,55 @@ export class AWS {
     await this.ecsClient.send(
       new DeleteClusterCommand({
         cluster: name,
+      })
+    );
+  }
+
+  async createCService(/*input: CreateClusterCommandInput*/) {
+    const input: CreateServiceCommandInput = {
+      serviceName: 'name',
+      taskDefinition: 'name',
+      launchType: 'FARGATE',
+      cluster: 'name',
+      schedulingStrategy: 'REPLICA',
+      desiredCount: 1,
+    };
+    const result = await this.ecsClient.send(
+      new CreateServiceCommand(input)
+    );
+    return result.service;
+  }
+
+  async getServices() {
+    const serviceArns: string[] = [];
+    const paginator = paginateListServices({
+      client: this.ecsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      serviceArns.push(...(page.serviceArns ?? []));
+    }
+    const result = await this.ecsClient.send(
+      new DescribeServicesCommand({
+        services: serviceArns
+      })
+    );
+    return { services: result.services };
+  }
+
+  async getService(id: string) {
+    const result = await this.ecsClient.send(
+      new DescribeServicesCommand({
+        services: [id]
+      })
+    );
+    return result.services?.[0];
+  }
+
+  async deleteService(name: string) {
+    await this.ecsClient.send(
+      new DeleteServiceCommand({
+        service: name,
       })
     );
   }
