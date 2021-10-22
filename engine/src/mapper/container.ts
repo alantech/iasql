@@ -10,6 +10,9 @@ export const ContainerMapper = new EntityMapper(Container, {
   name: (c: ContainerDefinitionAWS) => c.name,
   image: (c: ContainerDefinitionAWS) => c.image,
   essential: (c: ContainerDefinitionAWS) => c.essential,
+  cpu: (c: ContainerDefinitionAWS) => c.cpu,
+  memory: (c: ContainerDefinitionAWS) => c?.memory ?? null,
+  memoryReservation: (c: ContainerDefinitionAWS) => c?.memoryReservation ?? null,
   portMappings: async (c: ContainerDefinitionAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (c.portMappings?.length) {
       return await Promise.all(c.portMappings.map(p => PortMappingMapper.fromAWS(p, awsClient, indexes)));

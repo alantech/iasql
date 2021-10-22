@@ -48,6 +48,9 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
       family: obj.family,
       containerDefinitions: obj.containers,
       requiresCompatibilities: obj.reqCompatibilities?.map(c => c.name!) ?? [],
+      networkMode: obj.networkMode,
+      cpu: obj.cpu,
+      memory: obj.memory,
     };
     const result = await awsClient.createTaskDefinition(input);
     // TODO: Handle if it fails (somehow)

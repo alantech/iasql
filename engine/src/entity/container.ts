@@ -27,6 +27,24 @@ export class Container {
   })
   essential: boolean;
 
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  cpu?: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  memory?: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  memoryReservation?: number;
+
   @ManyToMany(() => PortMapping, { cascade: true, eager: true, })
   @JoinTable()
   portMappings?: PortMapping[];
