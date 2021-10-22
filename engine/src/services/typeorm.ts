@@ -65,4 +65,8 @@ export class TypeormWrapper {
     const repository = this.connection.manager.getRepository(entity);
     await repository.remove(value);
   }
+
+  createQueryRunner() {
+    return this.connection.createQueryRunner();
+  }
 }
