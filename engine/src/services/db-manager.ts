@@ -98,7 +98,7 @@ export async function newId(dbAlias: string, email: string, uid: string): Promis
 export async function getId(dbAlias: string, uid: string) {
   const teamId = await IronPlans.getTeamId(uid);
   const metadata: any = await IronPlans.getTeamMetadata(teamId);
-  return metadata[todbKey(dbAlias)];
+  return metadata[toDbKey(dbAlias)];
 }
 
 export async function delId(dbAlias: string, uid: string) {
