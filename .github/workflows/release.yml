@@ -53,6 +53,7 @@ jobs:
         # to push to alantech/iasql-releases
         repo_name: alantech/iasql-releases
         repo_token: ${{ secrets.GH_PAT }}
+        tag: ${{ github.ref }}
         file: ./iasql-windows.zip
         asset_name: iasql-windows.zip
 
