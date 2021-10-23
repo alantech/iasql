@@ -53,7 +53,7 @@ jobs:
         # to push to alantech/iasql-releases
         token: ${{ secrets.GH_PAT }}
         repository: alantech/iasql-releases
-        files: iasql-windows.zip
+        files: ./iasql-windows.zip
 
   macos:
     runs-on: macos-latest
