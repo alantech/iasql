@@ -12,7 +12,7 @@ defaults:
     working-directory: ./cli
 
 jobs:
-  create_cli_release:
+  create_release:
     name: Create CLI Release
     runs-on: ubuntu-latest
     outputs:
