@@ -44,7 +44,7 @@ jobs:
     - name: Generate IaSQL zip
       run: |
         cargo build --release
-        Compress-Archive -Path "$(Join-Path (Get-Location).Path '\\cli\\target\\release\\iasql.exe')" -DestinationPath "$(Join-Path (Get-Location).Path 'iasql-windows.zip')"
+        Compress-Archive -Path "$(Join-Path (Get-Location).Path '\\target\\release\\iasql.exe')" -DestinationPath "$(Join-Path (Get-Location).Path 'iasql-windows.zip')"
 
     - name: Upload IaSQL zip
       uses: softprops/action-gh-release@v1
@@ -53,7 +53,7 @@ jobs:
         # to push to alantech/iasql-releases
         token: ${{ secrets.GH_PAT }}
         repository: alantech/iasql-releases
-        files: iasql-windows.zip
+        files: D:\a\iasql\iasql\cli\iasql-windows.zip
 
   macos:
     runs-on: macos-latest
