@@ -84,20 +84,28 @@ mod.post('/install', async (req, res) => {
     const queryRunner = orm.createQueryRunner();
     await queryRunner.connect();
     // TODO: Actual dependency management and DB scanning for tables/functions/etc to be created
-    for (let mod of modules) {
-      if (mod.migrations?.preinstall) {
-        await mod.migrations.preinstall(queryRunner);
+    await queryRunner.startTransaction();
+    try {
+      for (let mod of modules) {
+        if (mod.migrations?.preinstall) {
+          await mod.migrations.preinstall(queryRunner);
+        }
+        if (mod.migrations?.postinstall) {
+          await mod.migrations.postinstall(queryRunner);
+        }
+        const e = new IasqlModule();
+        e.name = mod.name;
+        e.installed = true;
+        e.enabled = true;
+        await orm.save(IasqlModule, e);
       }
-      if (mod.migrations?.postinstall) {
-        await mod.migrations.postinstall(queryRunner);
-      }
-      const e = new IasqlModule();
-      e.name = mod.name;
-      e.installed = true;
-      e.enabled = true;
-      await orm.save(IasqlModule, e);
+      await queryRunner.commitTransaction();
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      return res.json(`Error: ${(e as any).message}`);
+    } finally {
+      await queryRunner.release();
     }
-    await queryRunner.release();
     res.json("Done!");
   } else {
     res.json("ERROR: No packages provided in 'list' property");
