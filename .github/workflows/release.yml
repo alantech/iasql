@@ -103,14 +103,10 @@ jobs:
         gtar -czf /tmp/iasql-macos.tar.gz iasql
 
     - name: Upload IaSQL tar.gz
-      uses: actions/upload-release-asset@v1
-      env:
+      uses: softprops/action-gh-release@v1
+      with:
         # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
         # to push to alantech/iasql-releases
-        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-      with:
-        repo: alantech/iasql-releases
-        upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_path: /tmp/iasql-macos.tar.gz
-        asset_name: iasql-macos.tar.gz
-        asset_content_type: application/gzip
+        token: ${{ secrets.GH_PAT }}
+        repository: alantech/iasql-releases
+        files: /tmp/iasql-macos.tar.gz
