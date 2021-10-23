@@ -25,6 +25,8 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         env:
+          # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
+          # to push to alantech/iasql-releases
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           GITHUB_REPOSITORY: alantech/iasql-releases
         with:
@@ -50,6 +52,8 @@ jobs:
     - name: Upload IaSQL tar.gz
       uses: actions/upload-release-asset@v1
       env:
+        # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
+        # to push to alantech/iasql-releases
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         GITHUB_REPOSITORY: alantech/iasql-releases
       with:
@@ -74,6 +78,8 @@ jobs:
     - name: Upload IaSQL zip
       uses: actions/upload-release-asset@v1
       env:
+        # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
+        # to push to alantech/iasql-releases
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         GITHUB_REPOSITORY: alantech/iasql-releases
       with:
@@ -99,6 +105,8 @@ jobs:
     - name: Upload IaSQL tar.gz
       uses: actions/upload-release-asset@v1
       env:
+        # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
+        # to push to alantech/iasql-releases
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         GITHUB_REPOSITORY: alantech/iasql-releases
       with:
