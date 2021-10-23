@@ -47,13 +47,14 @@ jobs:
         Compress-Archive -Path "$(Join-Path (Get-Location).Path '\\target\\release\\iasql.exe')" -DestinationPath "$(Join-Path (Get-Location).Path 'iasql-windows.zip')"
 
     - name: Upload IaSQL zip
-      uses: softprops/action-gh-release@v1
+      uses: svenstaro/upload-release-action@v2
       with:
         # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
         # to push to alantech/iasql-releases
-        token: ${{ secrets.GH_PAT }}
-        repository: alantech/iasql-releases
-        files: ./iasql-windows.zip
+        repo_name: alantech/iasql-releases
+        repo_token: ${{ secrets.GH_PAT }}
+        file: ./iasql-windows.zip
+        asset_name: iasql-windows.zip
 
   macos:
     runs-on: macos-latest
