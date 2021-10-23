@@ -89,7 +89,6 @@ jobs:
         asset_content_type: application/zip
 
   macos:
-    needs: create_release
     runs-on: macos-latest
 
     steps:
