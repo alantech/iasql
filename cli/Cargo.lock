@@ -320,7 +320,7 @@ dependencies = [
 
 [[package]]
 name = "iasql"
-version = "0.1.0-6"
+version = "0.1.0-7"
 dependencies = [
  "ascii_table",
  "clap",
