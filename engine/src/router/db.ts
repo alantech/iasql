@@ -2,6 +2,7 @@ import * as express from 'express'
 import jwt from 'express-jwt'
 import jwksRsa from 'jwks-rsa'
 import { createConnection, } from 'typeorm'
+import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
 //import { AWS, } from '../services/gateways/aws'
 import config from '../config'
@@ -14,6 +15,8 @@ import config from '../config'
 //import { getAwsPrimaryKey, } from '../services/aws-primary-key'
 //import { lazyLoader, } from '../services/lazy-dep'
 import { migrate, /*populate,*/ } from '../services/db-manager'
+import { AwsAccount, } from '../modules'
+
 
 export const db = express.Router();
 db.use(express.json());
@@ -47,7 +50,12 @@ if (config.a0Enabled) {
 // TODO secure with cors and scope
 db.post('/create', async (req, res) => {
   //const t1 = Date.now();
-  const {dbAlias, /*awsRegion, awsAccessKeyId, awsSecretAccessKey*/} = req.body;
+  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
+  if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.json(
+    `Required key(s) not provided: ${[
+      'dbAlias', 'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
+    ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
+  );
   // TODO generate unique id as actual name and store association to alias in ironplans
   // such that once we auth the user they can use the alias and we map to the id
   const dbname = dbAlias;
@@ -73,7 +81,15 @@ db.post('/create', async (req, res) => {
       database: dbname,
     });
     await migrate(conn2);
-    //orm = await TypeormWrapper.createConn(dbname);
+    const queryRunner = conn2.createQueryRunner();
+    await AwsAccount.migrations.postinstall?.(queryRunner);
+    // TODO: Use the entity for this in the future?
+    await conn2.query(`
+      INSERT INTO iasql_module VALUES ('aws_account', true, true)
+    `);
+    await conn2.query(`
+      INSERT INTO aws_account (access_key_id, secret_access_key, region) VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}')
+    `);
     // TODO: The following commented code is part of the "initialization" logic for the various
     // entities, and should be refactored to be part of the module "install" process. Maybe it
     // just belongs as part of the `post-install` script and just a pattern within the modules
