@@ -44,18 +44,16 @@ jobs:
     - name: Generate IaSQL zip
       run: |
         cargo build --release
-        Compress-Archive -Path "$(Join-Path (Get-Location).Path '\\target\\release\\iasql.exe')" -DestinationPath "$(Join-Path (Get-Location).Path 'iasql-windows.zip')"
+        Compress-Archive -Path "$(Join-Path (Get-Location).Path '\\cli\\target\\release\\iasql.exe')" -DestinationPath "$(Join-Path (Get-Location).Path 'iasql-windows.zip')"
 
     - name: Upload IaSQL zip
-      uses: svenstaro/upload-release-action@v2
+      uses: softprops/action-gh-release@v1
       with:
         # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
         # to push to alantech/iasql-releases
-        repo_name: alantech/iasql-releases
-        repo_token: ${{ secrets.GH_PAT }}
-        tag: ${{ github.ref }}
-        file: ./iasql-windows.zip
-        asset_name: iasql-windows.zip
+        token: ${{ secrets.GH_PAT }}
+        repository: alantech/iasql-releases
+        files: iasql-windows.zip
 
   macos:
     runs-on: macos-latest
