@@ -1,0 +1,108 @@
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+# pushing releases to an empty public repo since this repo is private
+name: Create CLI Release in alantech/iasql-releases
+
+defaults:
+  run:
+    working-directory: ./cli
+
+jobs:
+  create_cli_release:
+    name: Create CLI Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_REPOSITORY: alantech/iasql-releases
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          body: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+  ubuntu:
+    needs: create_release
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+
+    - name: Generate IaSQL tar.gz
+      run: |
+        cargo build --release
+        cd ./target/release
+        tar -czf /tmp/iasql-ubuntu.tar.gz iasql
+
+    - name: Upload IaSQL tar.gz
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        GITHUB_REPOSITORY: alantech/iasql-releases
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: /tmp/iasql-ubuntu.tar.gz
+        asset_name: iasql-ubuntu.tar.gz
+        asset_content_type: application/gzip
+
+  windows:
+    needs: create_release
+    runs-on: windows-latest
+
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+
+    - name: Generate IaSQL zip
+      run: |
+        cargo build --release
+        Compress-Archive -Path "$(Join-Path (Get-Location).Path '\\target\\release\\iasql.exe')" -DestinationPath "$(Join-Path (Get-Location).Path 'anycloud-windows.zip')"
+
+    - name: Upload IaSQL zip
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        GITHUB_REPOSITORY: alantech/iasql-releases
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: ./iasql-windows.zip
+        asset_name: iasql-windows.zip
+        asset_content_type: application/zip
+
+  macos:
+    needs: create_release
+    runs-on: macos-latest
+
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+
+    - name: Generate IaSQL tar.gz
+      run: |
+        cargo build --release
+        cd ./target/release
+        gtar -czf /tmp/iasql-macos.tar.gz iasql
+
+    - name: Upload IaSQL tar.gz
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        GITHUB_REPOSITORY: alantech/iasql-releases
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: /tmp/iasql-macos.tar.gz
+        asset_name: iasql-macos.tar.gz
+        asset_content_type: application/gzip
