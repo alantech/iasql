@@ -31,13 +31,23 @@ mod.use(express.json());
 //  satisfy - satisfy dependency strings
 
 // Needed at the beginning
-mod.post('/list', (req, res) => {
+mod.post('/list', async (req, res) => {
   if (req.body.all) {
-    res.end(JSON.stringify(Object.values(Modules)
+    res.json(Object.values(Modules)
     .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name'))
-    .map(m => m.name), undefined, '  '));
-  } else if (req.body.installed) {
-    res.end(JSON.stringify("TODO", undefined, '  '));
+    .map(m => m.name));
+  } else if (req.body.installed && req.body.dbname) {
+    const orm = await TypeormWrapper.createConn(req.body.dbname, {
+      name: req.body.dbname,
+      type: 'postgres',
+      username: 'postgres', // TODO: Should we use the user's account for this?
+      password: 'test',
+      host: 'postgresql',
+      entities: [IasqlModule],
+      namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
+    });
+    const modules = await orm.find(IasqlModule);
+    res.json(modules.map((m: IasqlModule) => m.name));
   } else {
     res.end(JSON.stringify("ERROR", undefined, '  '));
   }
