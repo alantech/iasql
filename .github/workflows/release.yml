@@ -28,8 +28,8 @@ jobs:
           # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
           # to push to alantech/iasql-releases
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          GITHUB_REPOSITORY: alantech/iasql-releases
         with:
+          repo: alantech/iasql-releases
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
           body: Release ${{ github.ref }}
@@ -55,8 +55,8 @@ jobs:
         # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
         # to push to alantech/iasql-releases
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-        GITHUB_REPOSITORY: alantech/iasql-releases
       with:
+        repo: alantech/iasql-releases
         upload_url: ${{ needs.create_release.outputs.upload_url }}
         asset_path: /tmp/iasql-ubuntu.tar.gz
         asset_name: iasql-ubuntu.tar.gz
@@ -81,8 +81,8 @@ jobs:
         # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
         # to push to alantech/iasql-releases
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-        GITHUB_REPOSITORY: alantech/iasql-releases
       with:
+        repo: alantech/iasql-releases
         upload_url: ${{ needs.create_release.outputs.upload_url }}
         asset_path: ./iasql-windows.zip
         asset_name: iasql-windows.zip
@@ -108,8 +108,8 @@ jobs:
         # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
         # to push to alantech/iasql-releases
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-        GITHUB_REPOSITORY: alantech/iasql-releases
       with:
+        repo: alantech/iasql-releases
         upload_url: ${{ needs.create_release.outputs.upload_url }}
         asset_path: /tmp/iasql-macos.tar.gz
         asset_name: iasql-macos.tar.gz
