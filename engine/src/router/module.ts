@@ -51,11 +51,14 @@ mod.post('/show', (_req, res) => res.end('ok'));
 
 // Needed at the beginning
 mod.post('/install', async (req, res) => {
-  if (!req.body.dbname) return res.end(JSON.stringify("ERROR", undefined, '  '));
+  // TODO: Add security to all of these endpoints
+  if (!req.body.dbname) return res.json("Missing 'dbname' to install into");
   if (Array.isArray(req.body.list)) {
     const modules = req.body.list.map((n: string) => Object.values(Modules).find(m => m.name === n));
     if (modules.some((m: any) => m === undefined)) {
-      return res.end(JSON.stringify("ERROR", undefined, '  '));
+      return res.json(`ERROR. The following modules do not exist: ${
+        req.body.list.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
+      }`);
     }
     const entities = modules.map((m: any) => m.mappers.map((ma: any) => ma.entity)).flat();
     entities.push(IasqlModule);
@@ -85,9 +88,9 @@ mod.post('/install', async (req, res) => {
       await orm.save(IasqlModule, e);
     }
     await queryRunner.release();
-    res.end(JSON.stringify("Done!", undefined, '  '));
+    res.json("Done!");
   } else {
-    res.end(JSON.stringify("ERROR", undefined, '  '));
+    res.json("ERROR: No packages provided in 'list' property");
   }
 });
 
