@@ -83,6 +83,18 @@ mod.post('/install', async (req, res) => {
     });
     const queryRunner = orm.createQueryRunner();
     await queryRunner.connect();
+    // See what modules are already installed and prune them from the list
+    const existingModules = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
+    for (let i = 0; i < modules.length; i++) {
+      if (existingModules.includes(modules[i].name)) {
+        modules.splice(i, 1);
+        i--;
+      }
+    }
+    // See if we need to abort because now there's nothing to do
+    if (modules.length === 0) {
+      return res.json("All modules already installed. Aborting");
+    }
     // Scan the database and see if there are any collisions
     const tables = (await queryRunner.query(`
       SELECT table_name
