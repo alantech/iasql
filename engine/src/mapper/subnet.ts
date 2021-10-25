@@ -6,7 +6,6 @@ import { IndexedAWS, } from '../services/indexed-aws'
 import { Subnet, } from '../entity/subnet'
 import { AvailabilityZone, Vpc } from '../entity'
 import { AvailabilityZoneMapper, VpcMapper, } from '.'
-import { getAwsPrimaryKey } from '../services/aws-primary-key'
 import { DepError } from '../services/lazy-dep'
 
 export const SubnetMapper = new EntityMapper(Subnet, {
