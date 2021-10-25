@@ -64,7 +64,7 @@ mod.post('/install', async (req, res) => {
   // TODO: Add security to all of these endpoints
   if (!req.body.dbname) return res.json("Missing 'dbname' to install into");
   if (Array.isArray(req.body.list)) {
-    const modules = req.body.list.map((n: string) => Object.values(Modules).find(m => m.name === n));
+    const modules = req.body.list.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
     if (modules.some((m: any) => m === undefined)) {
       return res.json(`ERROR. The following modules do not exist: ${
         req.body.list.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
@@ -83,6 +83,33 @@ mod.post('/install', async (req, res) => {
     });
     const queryRunner = orm.createQueryRunner();
     await queryRunner.connect();
+    // Scan the database and see if there are any collisions
+    const tables = (await queryRunner.query(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema='public' AND table_type='BASE TABLE'
+    `)).map((t: any) => t.table_name);
+    const tableCollisions: { [key: string]: string[], } = {};
+    let hasCollision = false;
+    for (let mod of modules) {
+      tableCollisions[mod.name] = [];
+      if (mod.provides?.tables) {
+        for (let t of mod.provides.tables) {
+          if (tables.includes(t)) {
+            tableCollisions[mod.name].push(t);
+            hasCollision = true;
+          }
+        }
+      }
+    }
+    if (hasCollision) {
+      return res.json(`Collision with existing tables detected.
+${Object.keys(tableCollisions)
+  .filter(m => tableCollisions[m].length > 0)
+  .map(m => `Module ${m} collides with tables: ${tableCollisions[m].join(', ')}`)
+  .join('\n')
+}`);
+    }
     // TODO: Actual dependency management and DB scanning for tables/functions/etc to be created
     await queryRunner.startTransaction();
     try {
