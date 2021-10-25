@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class service1634925679503 implements MigrationInterface {
-    name = 'service1634925679503'
+export class serviceUpdate1635161852198 implements MigrationInterface {
+    name = 'serviceUpdate1635161852198'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."service_launch_type_enum" AS ENUM('EC2', 'EXTERNAL', 'FARGATE')`);

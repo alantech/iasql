@@ -45,17 +45,17 @@ export class Service {
   })
   status?: string;
 
-  @ManyToOne(() => Cluster)
+  @ManyToOne(() => Cluster, { eager: true, })
   @JoinColumn({
     name: 'cluster_id',
   })
   cluster?: Cluster;
 
-  @ManyToOne(() => TaskDefinition)
+  @ManyToOne(() => TaskDefinition, { eager: true, })
   @JoinColumn({
     name: 'task_definition_id',
   })
-  taskDefinition?: TaskDefinition;
+  task?: TaskDefinition;
 
   @Column({
     type: 'int',

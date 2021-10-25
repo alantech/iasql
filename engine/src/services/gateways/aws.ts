@@ -635,15 +635,20 @@ export class AWS {
     return result.service;
   }
 
-  async getServices() {
+  async getServices(clusterIds: string[]) {
     const serviceArns: string[] = [];
-    const paginator = paginateListServices({
-      client: this.ecsClient,
-      pageSize: 25,
-    }, {});
-    for await (const page of paginator) {
-      serviceArns.push(...(page.serviceArns ?? []));
+    for (const id of clusterIds) {
+      const paginator = paginateListServices({
+        client: this.ecsClient,
+        pageSize: 25,
+      }, {
+        cluster: id,
+      });
+      for await (const page of paginator) {
+        serviceArns.push(...(page.serviceArns ?? []));
+      }
     }
+    if (!serviceArns.length) return null;
     const result = await this.ecsClient.send(
       new DescribeServicesCommand({
         services: serviceArns

@@ -6,6 +6,7 @@ import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { Cluster, TaskDefinition } from '../entity'
 import { ClusterMapper, TaskDefinitionMapper } from '.'
+import { DepError } from '../services/lazy-dep'
 
 export const ServiceMapper = new EntityMapper(Service, {
   name: (s: ServiceAWS) => s.serviceName,
@@ -19,7 +20,7 @@ export const ServiceMapper = new EntityMapper(Service, {
       return null;
     }
   },
-  taskDefinition: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) => {
+  task: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (s?.taskDefinition) {
       const entity = indexes.getOr(TaskDefinition, s.taskDefinition, awsClient.getTaskDefinition.bind(awsClient))
       return await TaskDefinitionMapper.fromAWS(entity, awsClient, indexes);
@@ -33,7 +34,10 @@ export const ServiceMapper = new EntityMapper(Service, {
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
-    const services = (await awsClient.getServices()) ?? [];
+    const clusters = indexes.get(Cluster);
+    if (!clusters) throw new DepError('Clusters must be loaded first');
+    const clusterNames = Object.keys(clusters);
+    const services = (await awsClient.getServices(clusterNames)) ?? [];
     indexes.setAll(Service, services, 'serviceName');
     const t2 = Date.now();
     console.log(`Services set in ${t2 - t1}ms`);
@@ -41,7 +45,7 @@ export const ServiceMapper = new EntityMapper(Service, {
   createAWS: async (obj: Service, awsClient: AWS, indexes: IndexedAWS) => {
     const input: CreateServiceCommandInput = {
       serviceName: obj.name,
-      taskDefinition: obj.taskDefinition?.familyRevision,
+      taskDefinition: obj.task?.familyRevision,
       launchType: obj.launchType,
       cluster: obj.cluster?.name,
       schedulingStrategy: obj.schedulingStrategy,
