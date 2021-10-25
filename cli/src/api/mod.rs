@@ -133,8 +133,8 @@ pub async fn check_db() {
 
 pub async fn add_db() {
   let regions = &get_aws_regions();
-  // default to us-east-2
-  let selection = dlg::select_with_default("Pick AWS region", regions, 14);
+  let default = regions.iter().position(|s| s == "us-east-2").unwrap_or(0);
+  let selection = dlg::select_with_default("Pick AWS region", regions, default);
   let region = &regions[selection];
   let aws_cli_creds = get_aws_cli_creds();
   let (access_key, secret) = if aws_cli_creds.is_ok()
