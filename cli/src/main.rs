@@ -2,7 +2,7 @@ use std::env;
 
 use clap::{crate_name, crate_version, App, AppSettings, SubCommand};
 
-use iasql::api::{add_db, stop_db, check_db, list_dbs};
+use iasql::api::{add_db, check_db, list_dbs, stop_db};
 use iasql::auth::{login, logout};
 
 extern crate iasql;
