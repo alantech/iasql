@@ -1,4 +1,4 @@
-import { Service as ServiceAWS, CreateServiceCommandInput, } from '@aws-sdk/client-ecs'
+import { Service as ServiceAWS, CreateServiceCommandInput, UpdateServiceCommandInput, } from '@aws-sdk/client-ecs'
 
 import { AWS, } from '../services/gateways/aws'
 import { Service, } from '../entity/service'
@@ -46,8 +46,6 @@ export const ServiceMapper = new EntityMapper(Service, {
     const t1 = Date.now();
     const clusters = indexes.get(Cluster);
     if (!clusters) throw new DepError('Clusters must be loaded first');
-    const subnets = indexes.get(Subnet);
-    if (!subnets) throw new DepError('Subnets must be loaded first');
     const clusterNames = Object.keys(clusters);
     const services = (await awsClient.getServices(clusterNames)) ?? [];
     const t2 = Date.now();
@@ -67,11 +65,21 @@ export const ServiceMapper = new EntityMapper(Service, {
       schedulingStrategy: obj.schedulingStrategy,
       desiredCount: obj.desiredCount,
     };
+    if (obj.network) {
+      input.networkConfiguration = {
+        awsvpcConfiguration: {
+          subnets: obj.network.subnets.map(s => s.subnetId!),
+          securityGroups: obj.network.securityGroups.map(s => s.groupId!),
+          assignPublicIp: obj.network.assignPublicIp,
+        }
+      }
+    }
+    console.log(`Create input = ${JSON.stringify(input)}`)
     const result = await awsClient.createService(input);
     if (!result?.hasOwnProperty('serviceName')) { // Failure
       throw new Error('what should we do here?');
     }
-    const newService = await awsClient.getService(result?.serviceName ?? '');
+    const newService = await awsClient.getService(result?.serviceName ?? '', result.clusterArn ?? '');
     indexes.set(Service, newService?.serviceName ?? '', newService);
     const newEntity: Service = await ServiceMapper.fromAWS(newService, awsClient, indexes);
     newEntity.id = obj.id;
@@ -82,11 +90,33 @@ export const ServiceMapper = new EntityMapper(Service, {
     return newEntity;
   },
   updateAWS: async (obj: Service, awsClient: AWS, indexes: IndexedAWS) => {
-    const delObj = await ServiceMapper.deleteAWS(obj, awsClient, indexes);
-    await ServiceMapper.createAWS(delObj, awsClient, indexes);
+    const input: UpdateServiceCommandInput = {
+      service: obj.name,
+      taskDefinition: obj.task?.familyRevision,
+      cluster: obj.cluster?.name,
+      desiredCount: obj.desiredCount,
+    };
+    console.log(`Input to update ${JSON.stringify(input)}`);
+    const result = await awsClient.updateService(input);
+    if (!result?.hasOwnProperty('serviceName')) { // Failure
+      throw new Error('what should we do here?');
+    }
+    console.log(`Result = ${JSON.stringify(result)}`)
+    const newService = await awsClient.getService(result?.serviceName ?? '', result.clusterArn ?? '');
+    indexes.set(Service, newService?.serviceName ?? '', newService);
+    const newEntity: Service = await ServiceMapper.fromAWS(newService, awsClient, indexes);
+    newEntity.id = obj.id;
+    for (const key of Object.keys(newEntity)) {
+      EntityMapper.keepId((obj as any)[key], (newEntity as any)[key]);
+      (obj as any)[key] = (newEntity as any)[key];
+    }
+    console.log(`new entity = ${JSON.stringify(newEntity)}`)
+    return newEntity;
   },
   deleteAWS: async (obj: Service, awsClient: AWS, indexes: IndexedAWS) => {
-    await awsClient.deleteService(obj.name);
+    obj.desiredCount = 0;
+    await ServiceMapper.updateAWS(obj, awsClient, indexes);
+    await awsClient.deleteService(obj.name, obj.cluster?.name!);
     indexes.del(Service, obj.name);
     return obj;
   },

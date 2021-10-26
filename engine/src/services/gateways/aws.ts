@@ -60,6 +60,8 @@ import {
   paginateListTaskDefinitions,
   RegisterTaskDefinitionCommand,
   RegisterTaskDefinitionCommandInput,
+  UpdateServiceCommand,
+  UpdateServiceCommandInput,
 } from '@aws-sdk/client-ecs'
 import {
   CreateDBInstanceCommand,
@@ -647,6 +649,13 @@ export class AWS {
     return result.service;
   }
 
+  async updateService(input: UpdateServiceCommandInput) {
+    const result = await this.ecsClient.send(
+      new UpdateServiceCommand(input)
+    );
+    return result.service;
+  }
+
   async getServices(clusterIds: string[]) {
     const serviceArns: string[] = [];
     const services = [];
@@ -671,19 +680,21 @@ export class AWS {
     return services;
   }
 
-  async getService(id: string) {
+  async getService(id: string, cluster: string) {
     const result = await this.ecsClient.send(
       new DescribeServicesCommand({
-        services: [id]
+        services: [id],
+        cluster,
       })
     );
     return result.services?.[0];
   }
 
-  async deleteService(name: string) {
+  async deleteService(name: string, cluster: string) {
     await this.ecsClient.send(
       new DeleteServiceCommand({
         service: name,
+        cluster,
       })
     )
   }

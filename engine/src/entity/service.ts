@@ -75,6 +75,7 @@ export class Service {
   })
   schedulingStrategy?: SchedulingStrategy;
 
+  @noDiff
   @OneToOne(() => AwsVpcConf, { eager: true, })
   @JoinColumn({
     name: 'aws_vpc_conf_id',

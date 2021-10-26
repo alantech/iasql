@@ -34,10 +34,6 @@ export const SubnetMapper = new EntityMapper(Subnet, {
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
-    const vpcs = indexes.get(Vpc);
-    if (!vpcs) throw new DepError('Vpc must be loaded first');
-    const az = indexes.get(AvailabilityZone);
-    if (!az) throw new DepError('AvailabilityZone must be loaded first');
     const subnets = (await awsClient.getSubnets())?.Subnets ?? [];
     indexes.setAll(Subnet, subnets, 'SubnetId');
     const t2 = Date.now();
