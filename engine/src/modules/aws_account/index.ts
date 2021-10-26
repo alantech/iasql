@@ -1,5 +1,3 @@
-import { QueryRunner, } from 'typeorm'
-
 import { AWS, } from '../../services/gateways/aws'
 import { AwsAccountEntity, } from './entity'
 import { MapperInterface, ModuleInterface, } from '../interfaces'
