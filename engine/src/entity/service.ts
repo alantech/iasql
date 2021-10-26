@@ -4,6 +4,7 @@ import {
   Column,
   JoinColumn,
   ManyToOne,
+  OneToOne,
 } from 'typeorm'
 import { AwsVpcConf, Cluster, TaskDefinition } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
@@ -74,7 +75,7 @@ export class Service {
   })
   schedulingStrategy?: SchedulingStrategy;
 
-  @ManyToOne(() => AwsVpcConf, { cascade: true, eager: true, })
+  @OneToOne(() => AwsVpcConf, { eager: true, })
   @JoinColumn({
     name: 'aws_vpc_conf_id',
   })

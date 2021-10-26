@@ -16,6 +16,14 @@ export const AwsVpcConfMapper = new EntityMapper(AwsVpcConf, {
       return [];
     }
   },
+  subnet: async (avc: AwsVpcConfiguration, awsClient: AWS, indexes: IndexedAWS) => {
+    if (avc?.subnets?.length) {
+      const subnet = (await Promise.all(avc.subnets.map(s => indexes.getOr(Subnet, s, awsClient.getSubnet.bind(awsClient))))).pop();
+      return await SubnetMapper.fromAWS(subnet, awsClient, indexes);
+    } else {
+      return null;
+    }
+  },
   securityGroups: async (avc: AwsVpcConfiguration, awsClient: AWS, indexes: IndexedAWS) => {
     if (avc?.securityGroups?.length) {
       const securityGroups = await Promise.all(avc.securityGroups.map(sg => indexes.getOr(SecurityGroup, sg, awsClient.getSecurityGroup.bind(awsClient))));
