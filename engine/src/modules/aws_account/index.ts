@@ -1,25 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn, QueryRunner, } from 'typeorm'
+import { QueryRunner, } from 'typeorm'
 
-import { AWS, } from '../services/gateways/aws'
-import { ModuleInterface, } from './interfaces'
-import { TypeormWrapper, } from '../services/typeorm'
-
-@Entity({
-  name: 'aws_account',
-})
-class AwsAccountEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @Column()
-  accessKeyId: string;
-
-  @Column()
-  secretAccessKey: string;
-
-  @Column()
-  region: string;
-}
+import { AWS, } from '../../services/gateways/aws'
+import { AwsAccountEntity, } from './entity'
+import { MapperInterface, ModuleInterface, } from '../interfaces'
+import { TypeormWrapper, } from '../../services/typeorm'
 
 export const AwsAccount: ModuleInterface = {
   name: 'aws_account',
@@ -30,10 +14,10 @@ export const AwsAccount: ModuleInterface = {
   mappers: [{
     entity: AwsAccountEntity,
     db: {
-      create: (e: AwsAccountEntity, client: TypeormWrapper) => client.save(AwsAccountEntity, e),
+      create: async (e: AwsAccountEntity, client: TypeormWrapper) => { await client.save(AwsAccountEntity, e); },
       read: (client: TypeormWrapper, options: any) => client.find(AwsAccountEntity, options),
-      update: (e: AwsAccountEntity, client: TypeormWrapper) => client.save(AwsAccountEntity, e),
-      delete: (e: AwsAccountEntity, client: TypeormWrapper) => client.remove(AwsAccountEntity, e),
+      update: async (e: AwsAccountEntity, client: TypeormWrapper) => { await client.save(AwsAccountEntity, e); },
+      delete: async (e: AwsAccountEntity, client: TypeormWrapper) => { await client.remove(AwsAccountEntity, e); },
     },
     cloud: {
       // We don't actually connect to AWS for this module, because it's meta
@@ -42,7 +26,7 @@ export const AwsAccount: ModuleInterface = {
       update: async (_e: AwsAccountEntity, _client: AWS) => {},
       delete: async (_e: AwsAccountEntity, _client: AWS) => {},
     },
-  }],
+  } as MapperInterface<AwsAccountEntity, TypeormWrapper, AWS>],
   migrations: {
     postinstall: async (q: QueryRunner) => {
       await q.query(`CREATE TABLE "aws_account" ("id" SERIAL NOT NULL, "access_key_id" character varying NOT NULL, "secret_access_key" character varying NOT NULL, "region" character varying NOT NULL, CONSTRAINT "UQ_b590

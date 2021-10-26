@@ -1,16 +1,16 @@
 import { QueryRunner, } from 'typeorm'
 
-export interface CrudInterface {
-  create: (e: any | any[], client: any) => Promise<void>;
-  read: (client: any, options?: any) => Promise<any | any[]>;
-  update: (e: any | any[], client: any) => Promise<void>;
-  delete: (e: any | any[], client: any) => Promise<void>;
+export interface CrudInterface<E, C> {
+  create: (e: E | E[], client: C) => Promise<void>;
+  read: (client: C, options?: any) => Promise<E | E[]>;
+  update: (e: E | E[], client: C) => Promise<void>;
+  delete: (e: E | E[], client: C) => Promise<void>;
 }
 
-export interface MapperInterface {
-  entity: any;
-  db: CrudInterface;
-  cloud: CrudInterface;
+export interface MapperInterface<E, C1, C2> {
+  entity:  { new (): E };
+  db: CrudInterface<E, C1>;
+  cloud: CrudInterface<E, C2>;
 }
 
 export interface ModuleInterface {
@@ -22,7 +22,7 @@ export interface ModuleInterface {
     functions?: string[];
     // TODO: What other PSQL things should be tracked?
   };
-  mappers: MapperInterface[];
+  mappers: MapperInterface<any, any, any>[];
   migrations: {
     // This part is modeled partly on Debian packages, and partly on Node packages. (It's mostly the
     // completeness of options that are taken from Node). There are four kinds of events encoded in

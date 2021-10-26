@@ -15,6 +15,7 @@
     "start:dev:watch": "yarn build && yarn serve",
     "gen-sql": "ts-node ./node_modules/.bin/typeorm migration:generate -n",
     "migrate": "ts-node ./node_modules/.bin/typeorm migration:run",
+    "gen-module": "./.module_migration.sh",
     "docker-compose:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
     "docker-compose": "docker-compose -f docker-compose.yml up --build"
   },
@@ -23,7 +24,6 @@
     "url": "git+https://github.com/alantech/iasql.git"
   },
   "keywords": [
-    "skybase",
     "iasql",
     "devops",
     "iac"
