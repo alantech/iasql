@@ -25,8 +25,6 @@ cd src
 cat <<EOF > ormconfig.js
 const { SnakeNamingStrategy } = require('typeorm-naming-strategies');
 
-console.log('I am being run!');
-
 module.exports = {
  "type": "postgres",
  "host": "localhost",
@@ -37,7 +35,7 @@ module.exports = {
  "synchronize": true,
  "logging": false,
  "entities": [
-  "src/entity/**/*.ts"
+  "modules/**/entity/*.ts"
  ],
  "migrationsTableName": "__migrations__",
  "migrations": [

@@ -4,6 +4,7 @@ import { AWS, } from '../../services/gateways/aws'
 import { AwsAccountEntity, } from './entity'
 import { MapperInterface, ModuleInterface, } from '../interfaces'
 import { TypeormWrapper, } from '../../services/typeorm'
+import { awsAccount1635286464133, } from './migration/1635286464133-aws_account'
 
 export const AwsAccount: ModuleInterface = {
   name: 'aws_account',
@@ -28,12 +29,7 @@ export const AwsAccount: ModuleInterface = {
     },
   } as MapperInterface<AwsAccountEntity, TypeormWrapper, AWS>],
   migrations: {
-    postinstall: async (q: QueryRunner) => {
-      await q.query(`CREATE TABLE "aws_account" ("id" SERIAL NOT NULL, "access_key_id" character varying NOT NULL, "secret_access_key" character varying NOT NULL, "region" character varying NOT NULL, CONSTRAINT "UQ_b590
-44425928a1161cf75c8c491" UNIQUE ("access_key_id"), CONSTRAINT "UQ_15ef7447f0656b630dd129c345b" UNIQUE ("secret_access_key"), CONSTRAINT "PK_dd50eeb7ab9f2b49389ecd659f9" PRIMARY KEY ("id"))`);
-    },
-    preremove: async (q: QueryRunner) => {
-      await q.query(`DROP TABLE "aws_account"`);
-    },
+    postinstall: awsAccount1635286464133.prototype.up,
+    preremove: awsAccount1635286464133.prototype.down,
   },
 };
