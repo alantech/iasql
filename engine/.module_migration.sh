@@ -61,8 +61,9 @@ ts-node ../node_modules/.bin/typeorm migration:run
 # Now run the migration generation for the module
 ts-node ../node_modules/.bin/typeorm migration:generate -n ${MODULE}
 
-# Clean up the temporary ormconfig.js file
+# Clean up the temporary ormconfig.js file and docker containers
 rm ormconfig.js
+docker-compose down
 
 # And we're done!
 echo Done!
