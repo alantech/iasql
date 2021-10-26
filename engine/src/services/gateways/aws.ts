@@ -649,6 +649,7 @@ export class AWS {
 
   async getServices(clusterIds: string[]) {
     const serviceArns: string[] = [];
+    const services = [];
     for (const id of clusterIds) {
       const paginator = paginateListServices({
         client: this.ecsClient,
@@ -659,14 +660,15 @@ export class AWS {
       for await (const page of paginator) {
         serviceArns.push(...(page.serviceArns ?? []));
       }
+      const result = await this.ecsClient.send(
+        new DescribeServicesCommand({
+          cluster: id,
+          services: serviceArns
+        })
+      );
+      services.push(...(result.services ?? []));
     }
-    if (!serviceArns.length) return null;
-    const result = await this.ecsClient.send(
-      new DescribeServicesCommand({
-        services: serviceArns
-      })
-    );
-    return result.services;
+    return services;
   }
 
   async getService(id: string) {

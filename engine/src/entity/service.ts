@@ -5,7 +5,7 @@ import {
   JoinColumn,
   ManyToOne,
 } from 'typeorm'
-import { Cluster, TaskDefinition } from '.';
+import { AwsVpcConf, Cluster, TaskDefinition } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 
 import { noDiff } from '../services/diff'
@@ -73,6 +73,12 @@ export class Service {
     enum: SchedulingStrategy,
   })
   schedulingStrategy?: SchedulingStrategy;
+
+  @ManyToOne(() => AwsVpcConf, { cascade: true, eager: true, })
+  @JoinColumn({
+    name: 'aws_vpc_conf_id',
+  })
+  network?: AwsVpcConf;
 
   // TODO: add loadBalancers?: LoadBalancer[];
 

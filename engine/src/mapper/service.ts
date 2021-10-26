@@ -4,8 +4,8 @@ import { AWS, } from '../services/gateways/aws'
 import { Service, } from '../entity/service'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { Cluster, TaskDefinition } from '../entity'
-import { ClusterMapper, TaskDefinitionMapper } from '.'
+import { Cluster, Subnet, TaskDefinition } from '../entity'
+import { AwsVpcConfMapper, ClusterMapper, TaskDefinitionMapper } from '.'
 import { DepError } from '../services/lazy-dep'
 
 export const ServiceMapper = new EntityMapper(Service, {
@@ -14,7 +14,7 @@ export const ServiceMapper = new EntityMapper(Service, {
   status: (s: ServiceAWS) => s.status ?? null,
   cluster: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (s?.clusterArn) {
-      const entity = indexes.getOr(Cluster, s.clusterArn, awsClient.getCluster.bind(awsClient))
+      const entity = await indexes.getOr(Cluster, s.clusterArn, awsClient.getCluster.bind(awsClient))
       return await ClusterMapper.fromAWS(entity, awsClient, indexes);
     } else {
       return null;
@@ -22,7 +22,7 @@ export const ServiceMapper = new EntityMapper(Service, {
   },
   task: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (s?.taskDefinition) {
-      const entity = indexes.getOr(TaskDefinition, s.taskDefinition, awsClient.getTaskDefinition.bind(awsClient))
+      const entity = await indexes.getOr(TaskDefinition, s.taskDefinition, awsClient.getTaskDefinition.bind(awsClient))
       return await TaskDefinitionMapper.fromAWS(entity, awsClient, indexes);
     } else {
       return null;
@@ -31,14 +31,24 @@ export const ServiceMapper = new EntityMapper(Service, {
   desiredCount: (s: ServiceAWS) => s.desiredCount,
   launchType: (s: ServiceAWS) => s.launchType,
   schedulingStrategy: (s: ServiceAWS) => s.schedulingStrategy,
+  network: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) => {
+    if (s?.networkConfiguration?.awsvpcConfiguration) {
+      const network = await AwsVpcConfMapper.fromAWS(s.networkConfiguration.awsvpcConfiguration, awsClient, indexes);
+      return network;
+    } else {
+      return null;
+    }
+  },
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
-    const clusters = indexes.get(Cluster);
-    if (!clusters) throw new DepError('Clusters must be loaded first');
-    const clusterNames = Object.keys(clusters);
-    const services = (await awsClient.getServices(clusterNames)) ?? [];
-    indexes.setAll(Service, services, 'serviceName');
+      const clusters = indexes.get(Cluster);
+      if (!clusters) throw new DepError('Clusters must be loaded first');
+      const subnets = indexes.get(Subnet);
+      if (!subnets) throw new DepError('Subnets must be loaded first');
+      const clusterNames = Object.keys(clusters);
+      const services = (await awsClient.getServices(clusterNames)) ?? [];
+      indexes.setAll(Service, services, 'serviceName');
     const t2 = Date.now();
     console.log(`Services set in ${t2 - t1}ms`);
   },
