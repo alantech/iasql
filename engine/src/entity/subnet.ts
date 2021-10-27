@@ -45,7 +45,7 @@ export class Subnet {
   @Column({
     nullable: true,
   })
-  cidrBlock?: boolean;
+  cidrBlock?: string;
 
   @awsPrimaryKey
   @Column({

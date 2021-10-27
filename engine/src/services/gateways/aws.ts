@@ -43,6 +43,27 @@ import {
   DeleteRepositoryPolicyCommand,
 } from '@aws-sdk/client-ecr'
 import {
+  CreateClusterCommand,
+  CreateClusterCommandInput,
+  CreateServiceCommand,
+  CreateServiceCommandInput,
+  DeleteClusterCommand,
+  DeleteServiceCommand,
+  DeregisterTaskDefinitionCommand,
+  DescribeClustersCommand,
+  DescribeServicesCommand,
+  DescribeTaskDefinitionCommand,
+  ECSClient,
+  ListServicesCommand,
+  paginateListClusters,
+  paginateListServices,
+  paginateListTaskDefinitions,
+  RegisterTaskDefinitionCommand,
+  RegisterTaskDefinitionCommandInput,
+  UpdateServiceCommand,
+  UpdateServiceCommandInput,
+} from '@aws-sdk/client-ecs'
+import {
   CreateDBInstanceCommand,
   CreateDBInstanceCommandInput,
   DeleteDBInstanceCommand,
@@ -74,6 +95,7 @@ export class AWS {
   private ec2client: EC2Client
   private ecrClient: ECRClient
   private rdsClient: RDSClient
+  private ecsClient: ECSClient
   private credentials: AWSCreds
   public region: string
 
@@ -86,6 +108,7 @@ export class AWS {
     this.ec2client = new EC2Client(config);
     this.ecrClient = new ECRClient(config);
     this.rdsClient = new RDSClient(config);
+    this.ecsClient = new ECSClient(config);
   }
 
   async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
@@ -536,6 +559,156 @@ export class AWS {
       },
     );
     return updatedDBInstance;
+  }
+
+  async createTaskDefinition(input: RegisterTaskDefinitionCommandInput) {
+    const taskDefinition = await this.ecsClient.send(
+      new RegisterTaskDefinitionCommand(input)
+    );
+    return {
+      ...taskDefinition.taskDefinition,
+      familyRevision: `${taskDefinition.taskDefinition?.family}:${taskDefinition.taskDefinition?.revision}`,
+    };
+  }
+
+  async getTaskDefinitions() {
+    const taskDefinitions: any[] = [];
+    const taskDefinitionArns: string[] = [];
+    const paginator = paginateListTaskDefinitions({
+      client: this.ecsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      taskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
+    }
+    await Promise.all(taskDefinitionArns.map(async arn => {
+      taskDefinitions.push(await this.getTaskDefinition(arn));
+      return arn;
+    }));
+    return {
+      taskDefinitions,
+    };
+  }
+
+  // :id could be `family:revision` or ARN
+  async getTaskDefinition(id: string) {
+    const taskDefinition = await this.ecsClient.send(
+      new DescribeTaskDefinitionCommand({
+        taskDefinition: id
+      })
+    );
+    return {
+      ...taskDefinition.taskDefinition,
+      familyRevision: `${taskDefinition.taskDefinition?.family}:${taskDefinition.taskDefinition?.revision}`,
+    };
+  }
+
+  async deleteTaskDefinition(name: string) {
+    await this.ecsClient.send(
+      new DeregisterTaskDefinitionCommand({
+        taskDefinition: name
+      })
+    );
+  }
+
+  async createCluster(input: CreateClusterCommandInput) {
+    const result = await this.ecsClient.send(
+      new CreateClusterCommand(input)
+    );
+    return result.cluster;
+  }
+
+  async getClusters() {
+    const clusterArns: string[] = [];
+    const paginator = paginateListClusters({
+      client: this.ecsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      clusterArns.push(...(page.clusterArns ?? []));
+    }
+    const result = await this.ecsClient.send(
+      new DescribeClustersCommand({
+        clusters: clusterArns
+      })
+    );
+    return result.clusters;
+  }
+
+  async getCluster(id: string) {
+    const cluster = await this.ecsClient.send(
+      new DescribeClustersCommand({
+        clusters: [id]
+      })
+    );
+    return cluster.clusters?.[0];
+  }
+
+  async deleteCluster(name: string) {
+    await this.ecsClient.send(
+      new DeleteClusterCommand({
+        cluster: name,
+      })
+    );
+  }
+
+  async createService(input: CreateServiceCommandInput) {
+    const result = await this.ecsClient.send(
+      new CreateServiceCommand(input)
+    );
+    return result.service;
+  }
+
+  async updateService(input: UpdateServiceCommandInput) {
+    const result = await this.ecsClient.send(
+      new UpdateServiceCommand(input)
+    );
+    return result.service;
+  }
+
+  async getServices(clusterIds: string[]) {
+    const services = [];
+    for (const id of clusterIds) {
+      const serviceArns: string[] = [];
+      const paginator = paginateListServices({
+        client: this.ecsClient,
+        pageSize: 25,
+      }, {
+        cluster: id,
+      });
+      for await (const page of paginator) {
+        serviceArns.push(...(page.serviceArns ?? []));
+      }
+      if (serviceArns.length) {
+        const result = await this.ecsClient.send(
+          new DescribeServicesCommand({
+            cluster: id,
+            services: serviceArns
+          })
+        );
+        services.push(...(result.services ?? []));
+      }
+    }
+    return services;
+  }
+
+  async getService(id: string, cluster: string) {
+    const result = await this.ecsClient.send(
+      new DescribeServicesCommand({
+        services: [id],
+        cluster,
+      })
+    );
+    return result.services?.[0];
+  }
+
+  async deleteService(name: string, cluster: string) {
+    await this.ecsClient.send(
+      new DeleteServiceCommand({
+        service: name,
+        cluster,
+      })
+    )
   }
 
   async createVpc(input: CreateVpcCommandInput): Promise<Vpc | null> {
