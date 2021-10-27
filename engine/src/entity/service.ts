@@ -31,16 +31,19 @@ export class Service {
   id: number;
 
   @awsPrimaryKey
+  @noDiff
   @Column({
     unique: true,
   })
   name: string;
 
+  @noDiff
   @Column({
     nullable: true,
   })
   arn?: string;
 
+  @noDiff
   @Column({
     nullable: true,
   })
@@ -63,12 +66,14 @@ export class Service {
   })
   desiredCount?: number;
 
+  @noDiff
   @Column({
     type: 'enum',
     enum: LaunchType,
   })
   launchType: LaunchType;
 
+  @noDiff
   @Column({
     type: 'enum',
     enum: SchedulingStrategy,
