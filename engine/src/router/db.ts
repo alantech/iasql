@@ -13,7 +13,7 @@ import { findDiff, } from '../services/diff'
 import { Source, } from '../services/source-of-truth'
 import { getAwsPrimaryKey, } from '../services/aws-primary-key'
 import { lazyLoader, } from '../services/lazy-dep'
-import { migrate, populate, newId, getId, delId } from '../services/db-manager'
+import { migrate, populate, newId, getId, delId, getAliases } from '../services/db-manager'
 
 export const db = express.Router();
 db.use(express.json());
@@ -116,6 +116,17 @@ db.post('/create', async (req, res) => {
     await conn1?.close();
     await conn2?.close();
     await orm?.dropConn();
+  }
+});
+
+db.get('/', async (req, res, next) => {
+  const user: any = req.user;
+  try {
+    const aliases = config.a0Enabled ? await getAliases(user.sub) : [];
+    // TODO expose connection string after IaSQL-on-IaSQL
+    res.json(aliases);
+  } catch(e) {
+    next(e);
   }
 });
 

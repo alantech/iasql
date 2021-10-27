@@ -17,6 +17,18 @@ import {
   paginateDescribeInstances,
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
+  Vpc,
+  CreateVpcCommandInput,
+  CreateVpcCommand,
+  DescribeVpcsCommand,
+  paginateDescribeVpcs,
+  DeleteVpcCommand,
+  CreateSubnetCommandInput,
+  Subnet,
+  CreateSubnetCommand,
+  paginateDescribeSubnets,
+  DescribeSubnetsCommand,
+  DeleteSubnetCommand,
 } from '@aws-sdk/client-ec2'
 import {
   ECRClient,
@@ -524,6 +536,74 @@ export class AWS {
       },
     );
     return updatedDBInstance;
+  }
+
+  async createVpc(input: CreateVpcCommandInput): Promise<Vpc | null> {
+    const create = await this.ec2client.send(
+      new CreateVpcCommand(input),
+    );
+    return create?.Vpc ?? null;
+  }
+
+  async getVpcs() {
+    const vpcs = [];
+    const paginator = paginateDescribeVpcs({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      vpcs.push(...(page.Vpcs ?? []));
+    }
+    return {
+      Vpcs: vpcs,
+    };
+  }
+
+  async getVpc(id: string) {
+    const vpcs = await this.ec2client.send(
+      new DescribeVpcsCommand({ VpcIds: [id], })
+    );
+    return vpcs?.Vpcs?.[0];
+  }
+
+  async deleteVpc(id: string) {
+    await this.ec2client.send(
+      new DeleteVpcCommand({ VpcId: id, })
+    );
+  }
+
+  async createSubnet(input: CreateSubnetCommandInput): Promise<Subnet | null> {
+    const create = await this.ec2client.send(
+      new CreateSubnetCommand(input),
+    );
+    return create?.Subnet ?? null;
+  }
+
+  async getSubnets() {
+    const subnets = [];
+    const paginator = paginateDescribeSubnets({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      subnets.push(...(page.Subnets ?? []));
+    }
+    return {
+      Subnets: subnets,
+    };
+  }
+
+  async getSubnet(id: string) {
+    const subnets = await this.ec2client.send(
+      new DescribeSubnetsCommand({ SubnetIds: [id], })
+    );
+    return subnets?.Subnets?.[0];
+  }
+
+  async deleteSubnet(id: string) {
+    await this.ec2client.send(
+      new DeleteSubnetCommand({ SubnetId: id, })
+    );
   }
 
 }

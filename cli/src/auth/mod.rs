@@ -39,18 +39,18 @@ pub fn get_token() -> &'static str {
 }
 
 // Get previously generated access token or generate a new one
-pub async fn login(non_interactive: bool) {
+pub async fn login(non_interactive: bool, prompt_reauth: bool) {
   let token = TOKEN.get();
   if token.is_none() {
     let home = std::env::var("HOME").unwrap();
     let file_name = &format!("{}/{}", home, TOKEN_FILE);
     match read_to_string(file_name) {
-      Ok(_) => {
+      Ok(token) => {
         let prompt = "You are already logged in. Do you wish to re-authenticate?";
-        if !dlg::confirm_with_default(&prompt, true) {
-          std::process::exit(0);
-        } else {
+        if prompt_reauth && dlg::confirm_with_default(&prompt, true) {
           generate_token().await;
+        } else {
+          TOKEN.set(token).unwrap();
         }
       }
       Err(_) => match std::env::var("AUTH_TOKEN") {
@@ -81,7 +81,7 @@ pub fn logout() {
           TOKEN_FILE
         );
         if !dlg::confirm_with_default(&prompt, true) {
-          std::process::exit(0);
+          return;
         }
         remove_file(file_name).unwrap();
         println!(
@@ -119,7 +119,7 @@ async fn generate_token() {
     style("Press Enter").bold(),
   );
   if !dlg::confirm_with_default(&prompt, true) {
-    std::process::exit(0);
+    return;
   }
   println!(
     "{} Your one-time code is: {}",
@@ -176,7 +176,7 @@ async fn generate_token() {
       );
       if dlg::confirm_with_default(&prompt, true) {
         println!("Welcome to IaSQL!");
-        std::process::exit(0);
+        return;
       }
       return;
     } else if let Some(error) = json["error"].as_str() {
