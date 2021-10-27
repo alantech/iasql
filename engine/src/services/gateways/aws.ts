@@ -669,13 +669,15 @@ export class AWS {
       for await (const page of paginator) {
         serviceArns.push(...(page.serviceArns ?? []));
       }
-      const result = await this.ecsClient.send(
-        new DescribeServicesCommand({
-          cluster: id,
-          services: serviceArns
-        })
-      );
-      services.push(...(result.services ?? []));
+      if (serviceArns.length) {
+        const result = await this.ecsClient.send(
+          new DescribeServicesCommand({
+            cluster: id,
+            services: serviceArns
+          })
+        );
+        services.push(...(result.services ?? []));
+      }
     }
     return services;
   }
