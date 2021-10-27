@@ -461,14 +461,24 @@ export class AWS {
       engines.push(...(page.DBEngineVersions ?? []));
     }
     return {
-      DBEngineVersions: engines, // Make it "look like" the regular query again
+      DBEngineVersions: engines.map(e =>
+        ({...e, EngineVersionKey: `${e.Engine}:${e.EngineVersion}`})),
     };
   }
 
-  async getEngineVersion(version: string) {
-    return (await this.rdsClient.send(new DescribeDBEngineVersionsCommand({
+  async getEngineVersion(engineVersionKey: string) {
+    const [engine, version] = engineVersionKey.split(':');
+    let dbEngineVersion: any = (await this.rdsClient.send(new DescribeDBEngineVersionsCommand({
+      Engine: engine,
       EngineVersion: version,
     })))?.DBEngineVersions?.[0];
+    if (dbEngineVersion) {
+      dbEngineVersion = {
+        ...dbEngineVersion,
+        EngineVersionKey: `${dbEngineVersion!.Engine}:${dbEngineVersion!.EngineVersion}`
+      }
+    }
+    return dbEngineVersion;
   }
 
   async getDBSecurityGroups() {

@@ -119,11 +119,15 @@ db.post('/create', async (req, res) => {
   }
 });
 
-db.get('/', async (req, res) => {
+db.get('/', async (req, res, next) => {
   const user: any = req.user;
-  const aliases = config.a0Enabled ? await getAliases(user.sub) : [];
-  // TODO expose connection string after IaSQL-on-IaSQL
-  res.json(aliases);
+  try {
+    const aliases = config.a0Enabled ? await getAliases(user.sub) : [];
+    // TODO expose connection string after IaSQL-on-IaSQL
+    res.json(aliases);
+  } catch(e) {
+    next(e);
+  }
 });
 
 db.get('/delete/:dbAlias', async (req, res) => {
