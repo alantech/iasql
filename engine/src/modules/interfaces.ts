@@ -1,14 +1,15 @@
 import { QueryRunner, } from 'typeorm'
 
 export interface CrudInterface<E, C> {
-  create: (e: E | E[], client: C) => Promise<void>;
+  create: (e: E | E[], client: C) => Promise<void | E>;
   read: (client: C, options?: any) => Promise<E | E[]>;
-  update: (e: E | E[], client: C) => Promise<void>;
-  delete: (e: E | E[], client: C) => Promise<void>;
+  update: (e: E | E[], client: C) => Promise<void | E>;
+  delete: (e: E | E[], client: C) => Promise<void | E>;
 }
 
 export interface MapperInterface<E, C1, C2> {
   entity:  { new (): E };
+  source: 'db' | 'cloud';
   db: CrudInterface<E, C1>;
   cloud: CrudInterface<E, C2>;
 }
