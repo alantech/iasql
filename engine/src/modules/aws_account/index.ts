@@ -12,6 +12,7 @@ export const AwsAccount: ModuleInterface = {
   },
   mappers: [{
     entity: AwsAccountEntity,
+    source: 'db',
     db: {
       create: async (e: AwsAccountEntity, client: TypeormWrapper) => { await client.save(AwsAccountEntity, e); },
       read: (client: TypeormWrapper, options: any) => client.find(AwsAccountEntity, options),
