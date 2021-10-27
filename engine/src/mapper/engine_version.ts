@@ -14,6 +14,7 @@ import { UpgradeTargetMapper } from '.'
 export const EngineVersionMapper: EntityMapper = new EntityMapper(EngineVersion, {
   engine: (ev: DBEngineVersionAWS) => ev.Engine,
   engineVersion: (ev: DBEngineVersionAWS) => ev.EngineVersion,
+  engineVersionKey: (ev: any) => ev.EngineVersionKey,
   dbParameterGroupFamily: (ev: DBEngineVersionAWS) => ev.DBParameterGroupFamily,
   dbEngineDescription: (ev: DBEngineVersionAWS) => ev.DBEngineDescription,
   dbEngineVersionDescription: (ev: DBEngineVersionAWS) => ev.DBEngineVersionDescription,
@@ -58,7 +59,7 @@ export const EngineVersionMapper: EntityMapper = new EntityMapper(EngineVersion,
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
     const engines = (await awsClient.getEngineVersions())?.DBEngineVersions ?? [];
-    indexes.setAll(EngineVersion, engines.filter(e => e.Engine === 'postgres'), 'EngineVersion');  // TODO: remove engine filter
+    indexes.setAll(EngineVersion, engines.filter(e => e.Engine === 'postgres'), 'EngineVersionKey');  // TODO: remove engine filter
     const t2 = Date.now();
     console.log(`EngineVersion set in ${t2 - t1}ms`);
   },

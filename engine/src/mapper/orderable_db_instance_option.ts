@@ -17,7 +17,7 @@ import { DepError, } from '../services/lazy-dep'
 export const OrderableDBInstanceOptionMapper = new EntityMapper(OrderableDBInstanceOption, {
   compositeKey: (opt: any) => opt.CompositeKey,
   engine: async (opt: OrderableDBInstanceOptionAWS, awsClient: AWS, indexes: IndexedAWS) => {
-    const engineVersionEntity = await indexes.getOr(EngineVersion, opt.EngineVersion!, awsClient.getEngineVersion.bind(awsClient));
+    const engineVersionEntity = await indexes.getOr(EngineVersion, `${opt.Engine!}:${opt.EngineVersion!}`, awsClient.getEngineVersion.bind(awsClient));
     return await EngineVersionMapper.fromAWS(engineVersionEntity, awsClient, indexes);
   },
   dbInstanceClass: async (opt: OrderableDBInstanceOptionAWS, awsClient: AWS, indexes: IndexedAWS) =>
