@@ -19,8 +19,8 @@ export class AwsVpcConf {
 
   // TODO: See if this can be removed once migrated to modules
   // The issue is that many to many relationships do not throw error on save if is an empty array
-  // so it do not insert into the subnet jointable correctly. Security groups works because it is
-  // requested and stored before by other dependencies
+  // so the lazy loader is not able to enqueue it again until subnets are saved. As a result the entity
+  // is created but it do not insert into the subnet join table correctly.
   @noDiff
   @ManyToOne(() => Subnet, { eager: true, })
   @JoinColumn({
