@@ -74,7 +74,6 @@ export const ServiceMapper = new EntityMapper(Service, {
         }
       }
     }
-    console.log(`Create input = ${JSON.stringify(input)}`)
     const result = await awsClient.createService(input);
     if (!result?.hasOwnProperty('serviceName')) { // Failure
       throw new Error('what should we do here?');
@@ -96,12 +95,10 @@ export const ServiceMapper = new EntityMapper(Service, {
       cluster: obj.cluster?.name,
       desiredCount: obj.desiredCount,
     };
-    console.log(`Input to update ${JSON.stringify(input)}`);
     const result = await awsClient.updateService(input);
     if (!result?.hasOwnProperty('serviceName')) { // Failure
       throw new Error('what should we do here?');
     }
-    console.log(`Result = ${JSON.stringify(result)}`)
     const newService = await awsClient.getService(result?.serviceName ?? '', result.clusterArn ?? '');
     indexes.set(Service, newService?.serviceName ?? '', newService);
     const newEntity: Service = await ServiceMapper.fromAWS(newService, awsClient, indexes);
@@ -110,7 +107,6 @@ export const ServiceMapper = new EntityMapper(Service, {
       EntityMapper.keepId((obj as any)[key], (newEntity as any)[key]);
       (obj as any)[key] = (newEntity as any)[key];
     }
-    console.log(`new entity = ${JSON.stringify(newEntity)}`)
     return newEntity;
   },
   deleteAWS: async (obj: Service, awsClient: AWS, indexes: IndexedAWS) => {
