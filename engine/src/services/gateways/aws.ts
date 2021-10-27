@@ -657,9 +657,9 @@ export class AWS {
   }
 
   async getServices(clusterIds: string[]) {
-    const serviceArns: string[] = [];
     const services = [];
     for (const id of clusterIds) {
+      const serviceArns: string[] = [];
       const paginator = paginateListServices({
         client: this.ecsClient,
         pageSize: 25,
