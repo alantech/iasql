@@ -439,7 +439,7 @@ export class AWS {
     }
     return {
       DBEngineVersions: engines.map(e =>
-        ({...e, EngineVersionKey: `${e.Engine}:$${e.EngineVersion}`})),
+        ({...e, EngineVersionKey: `${e.Engine}:${e.EngineVersion}`})),
     };
   }
 
@@ -452,7 +452,7 @@ export class AWS {
     if (dbEngineVersion) {
       dbEngineVersion = {
         ...dbEngineVersion,
-        EngineVersionKey: `${dbEngineVersion!.Engine}:$${dbEngineVersion!.EngineVersion}`
+        EngineVersionKey: `${dbEngineVersion!.Engine}:${dbEngineVersion!.EngineVersion}`
       }
     }
     return dbEngineVersion;
