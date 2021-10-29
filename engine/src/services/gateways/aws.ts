@@ -900,5 +900,4 @@ export class AWS {
       new DeleteLoadBalancerCommand({ LoadBalancerArn: arn, })
     );
   }
-
 }
