@@ -54,7 +54,6 @@ import {
   DescribeServicesCommand,
   DescribeTaskDefinitionCommand,
   ECSClient,
-  ListServicesCommand,
   paginateListClusters,
   paginateListServices,
   paginateListTaskDefinitions,
@@ -64,6 +63,8 @@ import {
   UpdateServiceCommandInput,
 } from '@aws-sdk/client-ecs'
 import {
+  CreateLoadBalancerCommand,
+  CreateLoadBalancerCommandInput,
   CreateTargetGroupCommand,
   CreateTargetGroupCommandInput,
   DeleteTargetGroupCommand,
@@ -73,6 +74,10 @@ import {
   ModifyTargetGroupCommandInput,
   paginateDescribeTargetGroups,
   TargetGroup,
+  LoadBalancer,
+  paginateDescribeLoadBalancers,
+  DescribeLoadBalancersCommand,
+  DeleteLoadBalancerCommand,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 import {
   CreateDBInstanceCommand,
@@ -833,4 +838,66 @@ export class AWS {
     );
   }
 
+  async createLoadBalancer(input: CreateLoadBalancerCommandInput): Promise<LoadBalancer | null> {
+    const create = await this.elbClient.send(
+      new CreateLoadBalancerCommand(input),
+    );
+    let loadBalancer = create?.LoadBalancers?.pop() ?? null;
+    if (!loadBalancer) return loadBalancer;
+    const waiterInput = new DescribeLoadBalancersCommand({
+      LoadBalancerArns: [loadBalancer?.LoadBalancerArn!],
+    });
+    // TODO: should we use the paginator instead?
+    await createWaiter<ElasticLoadBalancingV2Client, DescribeLoadBalancersCommand>(
+      {
+        client: this.elbClient,
+        // all in seconds
+        maxWaitTime: 600,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      waiterInput,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const lb of data?.LoadBalancers ?? []) {
+            if (lb.State?.Code !== 'active')
+              return { state: WaiterState.RETRY };
+            loadBalancer = lb;
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
+    return loadBalancer;
+  }
+
+  async getLoadBalancers() {
+    const loadBalancers = [];
+    const paginator = paginateDescribeLoadBalancers({
+      client: this.elbClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      loadBalancers.push(...(page.LoadBalancers ?? []));
+    }
+    return {
+      LoadBalancers: loadBalancers,
+    };
+  }
+
+  async getLoadBalancer(arn: string) {
+    const result = await this.elbClient.send(
+      new DescribeLoadBalancersCommand({ LoadBalancerArns: [arn], })
+    );
+    return result?.LoadBalancers?.[0];
+  }
+
+  async deleteLoadBalancer(arn: string) {
+    await this.elbClient.send(
+      new DeleteLoadBalancerCommand({ LoadBalancerArn: arn, })
+    );
+  }
 }
