@@ -842,7 +842,36 @@ export class AWS {
     const create = await this.elbClient.send(
       new CreateLoadBalancerCommand(input),
     );
-    return create?.LoadBalancers?.pop() ?? null;
+    let loadBalancer = create?.LoadBalancers?.pop() ?? null;
+    if (!loadBalancer) return loadBalancer;
+    const waiterInput = new DescribeLoadBalancersCommand({
+      LoadBalancerArns: [loadBalancer?.LoadBalancerArn!],
+    });
+    // TODO: should we use the paginator instead?
+    await createWaiter<ElasticLoadBalancingV2Client, DescribeLoadBalancersCommand>(
+      {
+        client: this.elbClient,
+        // all in seconds
+        maxWaitTime: 600,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      waiterInput,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const lb of data?.LoadBalancers ?? []) {
+            if (lb.State?.Code !== 'active')
+              return { state: WaiterState.RETRY };
+            loadBalancer = lb;
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
+    return loadBalancer;
   }
 
   async getLoadBalancers() {
