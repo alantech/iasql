@@ -9,23 +9,23 @@ export function noDiff(Class: any, name: string, descriptor?: any) {
 }
 
 // TODO refactor to a class
-export function findDiff(entity: string, dbEntities: any[], cloudEntities: any[], id: string) {
+export function findDiff(entity: string, dbEntities: any[], cloudEntities: any[], idGen: (e: any) => string) {
   const exclusionList = diffExclusionTable[entity] ?? [];
   const entitiesInDbOnly: any[] = [];
   const entitiesInAwsOnly: any[] = [];
-  const dbEntityIds = dbEntities.map(e => e[id]);
-  const cloudEntityIds = cloudEntities.map(e => e[id]);
+  const dbEntityIds = dbEntities.map(idGen);
+  const cloudEntityIds = cloudEntities.map(idGen);
   // Everything in cloud and not in db is a potential delete
-  const cloudEntNotInDb = cloudEntities.filter(e => !dbEntityIds.includes(e[id]));
+  const cloudEntNotInDb = cloudEntities.filter(e => !dbEntityIds.includes(idGen(e)));
   cloudEntNotInDb.map(e => entitiesInAwsOnly.push(e));
   // Everything in db and not in cloud is a potential create
-  const dbEntNotInCloud = dbEntities.filter(e => !cloudEntityIds.includes(e[id]));
+  const dbEntNotInCloud = dbEntities.filter(e => !cloudEntityIds.includes(idGen(e)));
   dbEntNotInCloud.map(e => entitiesInDbOnly.push(e));
   // Everything else needs a diff between them
-  const remainingDbEntities = dbEntities.filter(e => cloudEntityIds.includes(e[id]));
+  const remainingDbEntities = dbEntities.filter(e => cloudEntityIds.includes(idGen(e)));
   const entitiesDiff: any[] = [];
   remainingDbEntities.map(dbEnt => {
-    const cloudEntToCompare = cloudEntities.find(e => e[id] === dbEnt[id]);
+    const cloudEntToCompare = cloudEntities.find(e => idGen(e) === idGen(dbEnt));
     const entityDiff = diff(dbEnt, cloudEntToCompare, exclusionList);
     entityDiff.id = dbEnt.id; // Reattach the ID to be able to re-acquire the original entity
     entitiesDiff.push(entityDiff);

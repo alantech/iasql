@@ -5,11 +5,10 @@ import * as fs from 'fs'
 
 import { Connection, } from 'typeorm'
 
-/*import * as Mappers from '../mapper'
+import * as Modules from '../modules'
 import { AWS, } from './gateways/aws'
 import { IndexedAWS, } from './indexed-aws'
-import { Source, getSourceOfTruth, } from './source-of-truth'
-import { lazyLoader, } from './lazy-dep'*/
+import { lazyLoader, } from './lazy-dep'
 
 // We only want to do this setup once, then we re-use it. First we get the list of files
 const migrationFiles = fs
@@ -42,16 +41,18 @@ export async function migrate(conn: Connection) {
   await qr.release();
 }
 
-/*export async function populate(awsClient: AWS, indexes: IndexedAWS, source?: Source) {
-  const promiseGenerators = Object.values(Mappers)
+export async function populate(awsClient: AWS, indexes: IndexedAWS, source?: 'db' | 'cloud') {
+  const promiseGenerators = Object.values(Modules).map(mod => Object.values(mod.mappers)).flat()
     .filter(mapper => {
-      let out = mapper instanceof Mappers.EntityMapper;
+      let out = true;
       if (out && typeof source === 'string') {
-        out &&= getSourceOfTruth((mapper as Mappers.EntityMapper).getEntity()) === source;
+        out &&= mapper.source === source;
       }
       return out;
     })
-    .map(mapper => () => (mapper as Mappers.EntityMapper).readAWS(awsClient, indexes));
+    .map(mapper => async () => {
+      const entities = await mapper.cloud.read(awsClient);
+      indexes.setAll(mapper.entity, entities, mapper.entityId);
+    });
   await lazyLoader(promiseGenerators);
 }
-*/

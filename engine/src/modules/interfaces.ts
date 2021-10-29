@@ -1,17 +1,20 @@
 import { QueryRunner, } from 'typeorm'
 
-export interface CrudInterface<E, C> {
-  create: (e: E | E[], client: C) => Promise<void | E>;
-  read: (client: C, options?: any) => Promise<E | E[]>;
-  update: (e: E | E[], client: C) => Promise<void | E>;
-  delete: (e: E | E[], client: C) => Promise<void | E>;
+export type Context = { [key: string]: any };
+
+export interface CrudInterface<E> {
+  create: (e: E | E[], ctx: Context) => Promise<void | E>;
+  read: (ctx: Context, options?: any) => Promise<E | E[]>;
+  update: (e: E | E[], ctx: Context) => Promise<void | E>;
+  delete: (e: E | E[], ctx: Context) => Promise<void | E>;
 }
 
-export interface MapperInterface<E, C1, C2> {
+export interface MapperInterface<E> {
   entity:  { new (): E };
+  entityId: (e: E) => string;
   source: 'db' | 'cloud';
-  db: CrudInterface<E, C1>;
-  cloud: CrudInterface<E, C2>;
+  db: CrudInterface<E>;
+  cloud: CrudInterface<E>;
 }
 
 export interface ModuleInterface {
@@ -22,8 +25,13 @@ export interface ModuleInterface {
     tables?: string[];
     functions?: string[];
     // TODO: What other PSQL things should be tracked?
+    // Context is special, it is merged between all installed modules and becomes the input to the
+    // mappers, which can then make use of logic defined and exposed through this that they depend
+    // on, so things like the `awsClient` just becomes part of the responsibility of the
+    // `aws_account` module, for instance.
+    context?: Context;
   };
-  mappers: MapperInterface<any, any, any>[];
+  mappers: { [key: string]: MapperInterface<any>, };
   migrations: {
     // This part is modeled partly on Debian packages, and partly on Node packages. (It's mostly the
     // completeness of options that are taken from Node). There are four kinds of events encoded in
