@@ -54,7 +54,6 @@ import {
   DescribeServicesCommand,
   DescribeTaskDefinitionCommand,
   ECSClient,
-  ListServicesCommand,
   paginateListClusters,
   paginateListServices,
   paginateListTaskDefinitions,
@@ -64,6 +63,8 @@ import {
   UpdateServiceCommandInput,
 } from '@aws-sdk/client-ecs'
 import {
+  CreateLoadBalancerCommand,
+  CreateLoadBalancerCommandInput,
   CreateTargetGroupCommand,
   CreateTargetGroupCommandInput,
   DeleteTargetGroupCommand,
@@ -73,6 +74,10 @@ import {
   ModifyTargetGroupCommandInput,
   paginateDescribeTargetGroups,
   TargetGroup,
+  LoadBalancer,
+  paginateDescribeLoadBalancers,
+  DescribeLoadBalancersCommand,
+  DeleteLoadBalancerCommand,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 import {
   CreateDBInstanceCommand,
@@ -830,6 +835,40 @@ export class AWS {
   async deleteTargetGroup(arn: string) {
     await this.elbClient.send(
       new DeleteTargetGroupCommand({ TargetGroupArn: arn, })
+    );
+  }
+
+  async createLoadBalancer(input: CreateLoadBalancerCommandInput): Promise<LoadBalancer | null> {
+    const create = await this.elbClient.send(
+      new CreateLoadBalancerCommand(input),
+    );
+    return create?.LoadBalancers?.pop() ?? null;
+  }
+
+  async getLoadBalancers() {
+    const loadBalancers = [];
+    const paginator = paginateDescribeLoadBalancers({
+      client: this.elbClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      loadBalancers.push(...(page.LoadBalancers ?? []));
+    }
+    return {
+      LoadBalancers: loadBalancers,
+    };
+  }
+
+  async getLoadBalancer(arn: string) {
+    const result = await this.elbClient.send(
+      new DescribeLoadBalancersCommand({ LoadBalancerArns: [arn], })
+    );
+    return result?.LoadBalancers?.[0];
+  }
+
+  async deleteLoadBalancer(arn: string) {
+    await this.elbClient.send(
+      new DeleteLoadBalancerCommand({ LoadBalancerArn: arn, })
     );
   }
 
