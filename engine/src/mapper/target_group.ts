@@ -42,7 +42,6 @@ export const TargetGroupMapper = new EntityMapper(TargetGroup, {
       console.log(`TargetGroups set in ${t2 - t1}ms`);
     },
     createAWS: async (obj: TargetGroup, awsClient: AWS, indexes: IndexedAWS) => {
-      console.log(inspect(obj, false, 7));
       const result = await awsClient.createTargetGroup({
         Name: obj.targetGroupName,
         TargetType: obj.targetType,
