@@ -64,6 +64,17 @@ import {
   UpdateServiceCommandInput,
 } from '@aws-sdk/client-ecs'
 import {
+  CreateTargetGroupCommand,
+  CreateTargetGroupCommandInput,
+  DeleteTargetGroupCommand,
+  DescribeTargetGroupsCommand,
+  ElasticLoadBalancingV2Client,
+  ModifyTargetGroupCommand,
+  ModifyTargetGroupCommandInput,
+  paginateDescribeTargetGroups,
+  TargetGroup,
+} from '@aws-sdk/client-elastic-load-balancing-v2'
+import {
   CreateDBInstanceCommand,
   CreateDBInstanceCommandInput,
   DeleteDBInstanceCommand,
@@ -96,6 +107,7 @@ export class AWS {
   private ecrClient: ECRClient
   private rdsClient: RDSClient
   private ecsClient: ECSClient
+  private elbClient: ElasticLoadBalancingV2Client
   private credentials: AWSCreds
   public region: string
 
@@ -109,6 +121,7 @@ export class AWS {
     this.ecrClient = new ECRClient(config);
     this.rdsClient = new RDSClient(config);
     this.ecsClient = new ECSClient(config);
+    this.elbClient = new ElasticLoadBalancingV2Client(config);
   }
 
   async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
@@ -462,7 +475,7 @@ export class AWS {
     }
     return {
       DBEngineVersions: engines.map(e =>
-        ({...e, EngineVersionKey: `${e.Engine}:${e.EngineVersion}`})),
+        ({ ...e, EngineVersionKey: `${e.Engine}:${e.EngineVersion}` })),
     };
   }
 
@@ -776,6 +789,47 @@ export class AWS {
   async deleteSubnet(id: string) {
     await this.ec2client.send(
       new DeleteSubnetCommand({ SubnetId: id, })
+    );
+  }
+
+  async createTargetGroup(input: CreateTargetGroupCommandInput): Promise<TargetGroup | null> {
+    const create = await this.elbClient.send(
+      new CreateTargetGroupCommand(input),
+    );
+    return create?.TargetGroups?.pop() ?? null;
+  }
+
+  async updateTargetGroup(input: ModifyTargetGroupCommandInput): Promise<TargetGroup | null> {
+    const update = await this.elbClient.send(
+      new ModifyTargetGroupCommand(input),
+    );
+    return update?.TargetGroups?.pop() ?? null;
+  }
+
+  async getTargetGroups() {
+    const targetGroups = [];
+    const paginator = paginateDescribeTargetGroups({
+      client: this.elbClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      targetGroups.push(...(page.TargetGroups ?? []));
+    }
+    return {
+      TargetGroups: targetGroups,
+    };
+  }
+
+  async getTargetGroup(arn: string) {
+    const result = await this.elbClient.send(
+      new DescribeTargetGroupsCommand({ TargetGroupArns: [arn], })
+    );
+    return result?.TargetGroups?.[0];
+  }
+
+  async deleteTargetGroup(arn: string) {
+    await this.elbClient.send(
+      new DeleteTargetGroupCommand({ TargetGroupArn: arn, })
     );
   }
 
