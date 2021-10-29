@@ -1,6 +1,4 @@
-import { Image } from '@aws-sdk/client-ec2';
-
-import { AWS, } from './gateways/aws'
+//import { AWS, } from './gateways/aws'
 //import { EntityMapper, } from '../mapper'
 
 
@@ -29,10 +27,10 @@ export class IndexedAWS {
     this.index[entityName][key] = value;
   }
 
-  setAll(entity: Function, entityList: any[], idName: string) {
+  setAll(entity: Function, entityList: any[], idGenerator: (e: any) => string) {
     const entityName = entity.name;
     this.index[entityName] = this.index[entityName] ?? {};
-    entityList.forEach(e => this.index[entityName][e[idName] ?? ''] = e);
+    entityList.forEach(e => this.index[entityName][idGenerator(e)] = e);
   }
 
   get(entity?: Function, key?: string) {
