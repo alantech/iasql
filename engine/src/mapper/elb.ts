@@ -17,25 +17,33 @@ export const ELBMapper = new EntityMapper(ELB, {
   vpc: async (elb: LoadBalancer, awsClient: AWS, indexes: IndexedAWS) => {
     if (elb?.VpcId) {
       const vpc = await indexes.getOr(Vpc, elb.VpcId, awsClient.getVpc.bind(awsClient));
-      return await VpcMapper.fromAWS(Vpc, vpc, indexes);
+      return await VpcMapper.fromAWS(vpc, awsClient, indexes);
     } else {
       return null;
     }
   },
-  state: (elb: LoadBalancer) => elb?.State ?? null,
+  state: (elb: LoadBalancer) => elb?.State?.Code ?? null,
   elbType: (elb: LoadBalancer) => elb.Type,
   availabilityZones: async (elb: LoadBalancer, awsClient: AWS, indexes: IndexedAWS) => {
-    if (elb?.AvailabilityZones) {
+    if (elb?.AvailabilityZones?.length) {
       const azs = await Promise.all(elb.AvailabilityZones.map(az => indexes.getOr(AvailabilityZone, az.ZoneName!, awsClient.getAvailabilityZoneByName.bind(awsClient))));
-      return await Promise.all(azs.map(az => AvailabilityZoneMapper.fromAWS(AvailabilityZone, az, indexes)));
+      return await Promise.all(azs.map(az => AvailabilityZoneMapper.fromAWS(az, awsClient, indexes)));
     } else {
       return [];
     }
   },
+  availabilityZone: async (elb: LoadBalancer, awsClient: AWS, indexes: IndexedAWS) => {
+    if (elb?.AvailabilityZones?.length) {
+      const az = await indexes.getOr(AvailabilityZone, elb.AvailabilityZones.pop()!.ZoneName!, awsClient.getAvailabilityZoneByName.bind(awsClient));
+      return await AvailabilityZoneMapper.fromAWS(az, awsClient, indexes);
+    } else {
+      return null;
+    }
+  },
   securityGroups: async (elb: LoadBalancer, awsClient: AWS, indexes: IndexedAWS) => {
-    if (elb?.SecurityGroups) {
+    if (elb?.SecurityGroups?.length) {
       const sgs = await Promise.all(elb.SecurityGroups.map(sg => indexes.getOr(SecurityGroup, sg, awsClient.getSecurityGroup.bind(awsClient))));
-      return await Promise.all(sgs.map(sg => SecurityGroupMapper.fromAWS(SecurityGroup, sg, indexes)));
+      return await Promise.all(sgs.map(sg => SecurityGroupMapper.fromAWS(sg, awsClient, indexes)));
     } else {
       return [];
     }
