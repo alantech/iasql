@@ -2,6 +2,7 @@ import { randomInt, } from 'crypto';
 import { Connection, createConnection, EntityTarget, getConnectionManager, } from 'typeorm';
 import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
+import config from '../config'
 
 
 export class TypeormWrapper {
@@ -10,7 +11,8 @@ export class TypeormWrapper {
     type: 'postgres',
     username: 'postgres',
     password: 'test',
-    host: 'postgresql',
+    host: config.dbHost,
+    port: +config.dbPort,
     entities: [`${__dirname}/../entity/**/*.js`],
     namingStrategy: new SnakeNamingStrategy(),
   }
