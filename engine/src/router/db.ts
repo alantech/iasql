@@ -68,7 +68,8 @@ db.post('/create', async (req, res) => {
       type: 'postgres',
       username: 'postgres',
       password: 'test',
-      host: 'postgresql',
+      host: config.dbHost,
+      port: +config.dbPort,
     });
     const resp1 = await conn1.query(`
       CREATE DATABASE "${dbId}";
@@ -78,7 +79,8 @@ db.post('/create', async (req, res) => {
       type: 'postgres',
       username: 'postgres',
       password: 'test',
-      host: 'postgresql',
+      host: config.dbHost,
+      port: +config.dbPort,
       database: dbId,
     });
     await migrate(conn2);
@@ -141,7 +143,8 @@ db.get('/delete/:dbAlias', async (req, res) => {
       type: 'postgres',
       username: 'postgres',
       password: 'test',
-      host: 'postgresql',
+      host: config.dbHost,
+      port: +config.dbPort,
     });
     await conn.query(`
       DROP DATABASE ${dbId};
