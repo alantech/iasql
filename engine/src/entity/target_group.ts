@@ -50,7 +50,7 @@ export class TargetGroup {
     unique: true,
   })
   targetGroupName: string;
-  
+
   @noDiff
   @Column({
     type: 'enum',
