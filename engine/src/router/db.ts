@@ -228,7 +228,7 @@ db.get('/check/:dbAlias', async (req, res) => {
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - tb}ms`);
         const promiseGenerators = records
-          .filter(r => ['SecurityGroup', 'Instance', 'RDS', 'Repository', 'RepositoryPolicy', 'TaskDefinition', 'Cluster', 'Service'].includes(r.table)) // TODO: Don't do this
+          .filter(r => ['SecurityGroup', 'Instance', 'RDS', 'Repository', 'RepositoryPolicy', 'TaskDefinition', 'Cluster', 'Service', 'TargetGroup'].includes(r.table)) // TODO: Don't do this
           .map(r => {
             const name = r.table;
             console.log(`Checking ${name}`);
