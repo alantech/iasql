@@ -33,8 +33,7 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
       return [];
     }
   },
-  cpu: (td: TaskDefinitionAWS) => td?.cpu ?? null,
-  memory: (td: TaskDefinitionAWS) => td?.memory ?? null,
+  cpuMemory: (td: TaskDefinitionAWS) => td?.cpu && td?.memory ? `${td.cpu}-${td.memory}` : null,
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
@@ -49,9 +48,14 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
       containerDefinitions: obj.containers,
       requiresCompatibilities: obj.reqCompatibilities?.map(c => c.name!) ?? [],
       networkMode: obj.networkMode,
-      cpu: obj.cpu,
-      memory: obj.memory,
+      taskRoleArn: obj.taskRoleArn,
+      executionRoleArn: obj.executionRoleArn,
     };
+    if (obj.cpuMemory) {
+      const [cpu, memory] = obj.cpuMemory.split('-');
+      input.cpu = cpu;
+      input.memory = memory;
+    }
     const result = await awsClient.createTaskDefinition(input);
     // TODO: Handle if it fails (somehow)
     if (!result?.hasOwnProperty('familyRevision')) { // Failure
