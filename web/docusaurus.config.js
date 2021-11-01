@@ -2,7 +2,7 @@ const lightCodeTheme = require('prism-react-renderer/themes/github');
 const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 
 const baseConfig = {
-  url: 'https://beta.iasql.com',
+  url: 'https://docs.iasql.com',
 };
 const localConfig = {
   url: 'http://localhost:3000'
@@ -31,10 +31,9 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
+          routeBasePath: '/',
         },
-        blog: {
-          showReadingTime: true,
-        },
+        blog: false,
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
         },
@@ -52,25 +51,23 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
           src: 'img/logo.svg',
         },
         items: [
-          {
-            type: 'doc',
-            docId: 'intro',
-            position: 'right',
-            label: 'Docs',
-          },
-          {to: '/blog', label: 'Blog', position: 'right'},
-          {to: '/schema', label: 'Schema', position: 'right'},
+          {to: 'https://iasql.com', label: 'Home', position: 'right'},
+          {to: 'https://blog.iasql.com', label: 'Blog', position: 'right'},
         ],
       },
       footer: {
         style: 'dark',
         links: [
           {
-            title: 'Docs',
+            title: 'Product',
             items: [
               {
-                label: 'Tutorial',
-                to: '/docs/intro',
+                label: 'Home',
+                to: 'https://iasql.com',
+              },
+              {
+                label: 'Blog',
+                to: 'https://blog.iasql.com',
               },
             ],
           },
@@ -84,19 +81,6 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
               {
                 label: 'Twitter',
                 href: 'https://twitter.com/sqlcloudinfra',
-              },
-            ],
-          },
-          {
-            title: 'More',
-            items: [
-              {
-                label: 'Blog',
-                to: '/blog',
-              },
-              {
-                label: 'Schema',
-                to: '/schema',
               },
             ],
           },
