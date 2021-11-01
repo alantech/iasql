@@ -33,7 +33,7 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
       return [];
     }
   },
-  cpuMemory: (td: TaskDefinitionAWS) => td?.cpu && td?.memory ? `${td.cpu}-${td.memory}` : null,
+  cpuMemory: (td: TaskDefinitionAWS) => td?.cpu && td?.memory ? `${+td.cpu / 1024}vCPU-${+td.memory / 1024}GB` : null,
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
@@ -52,9 +52,11 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
       executionRoleArn: obj.executionRoleArn,
     };
     if (obj.cpuMemory) {
-      const [cpu, memory] = obj.cpuMemory.split('-');
-      input.cpu = cpu;
-      input.memory = memory;
+      const [cpuStr, memoryStr] = obj.cpuMemory.split('-');
+      const cpu = cpuStr.split('vCPU')[0];
+      input.cpu = `${+cpu * 1024}`;
+      const memory = memoryStr.split('GB')[0];
+      input.memory = `${+memory * 1024}`;
     }
     const result = await awsClient.createTaskDefinition(input);
     // TODO: Handle if it fails (somehow)
