@@ -77,8 +77,8 @@ export class TaskDefinition {
   @noDiff
   @PrimaryGeneratedColumn()
   id: number;
-  @noDiff
 
+  @noDiff
   @Column({
     nullable: true,
   })
