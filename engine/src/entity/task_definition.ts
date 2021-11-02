@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, } from 'typeorm';
 import { Container } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
+import { noDiff } from '../services/diff';
 
 import { source, Source } from '../services/source-of-truth';
 import { Compatibility } from './compatibility';
@@ -17,24 +18,82 @@ export enum TaskDefinitionStatus {
   INACTIVE = "INACTIVE"
 }
 
+export enum CpuMemCombination {
+  "0.25vCPU-0.5GB" = "0.25vCPU-0.5GB",
+  "0.25vCPU-1GB" = "0.25vCPU-1GB",
+  "0.25vCPU-2GB" = "0.25vCPU-2GB",
+  "0.5vCPU-1GB" = "0.5vCPU-1GB",
+  "0.5vCPU-2GB" = "0.5vCPU-2GB",
+  "0.5vCPU-3GB" = "0.5vCPU-3GB",
+  "0.5vCPU-4GB" = "0.5vCPU-4GB",
+  "1vCPU-2GB" = "1vCPU-2GB",
+  "1vCPU-3GB" = "1vCPU-3GB",
+  "1vCPU-4GB" = "1vCPU-4GB",
+  "1vCPU-5GB" = "1vCPU-5GB",
+  "1vCPU-6GB" = "1vCPU-6GB",
+  "1vCPU-7GB" = "1vCPU-7GB",
+  "1vCPU-8GB" = "1vCPU-8GB",
+  "2vCPU-4GB" = "2vCPU-4GB",
+  "2vCPU-5GB" = "2vCPU-5GB",
+  "2vCPU-6GB" = "2vCPU-6GB",
+  "2vCPU-7GB" = "2vCPU-7GB",
+  "2vCPU-8GB" = "2vCPU-8GB",
+  "2vCPU-9GB" = "2vCPU-9GB",
+  "2vCPU-10GB" = "2vCPU-10GB",
+  "2vCPU-11GB" = "2vCPU-11GB",
+  "2vCPU-12GB" = "2vCPU-12GB",
+  "2vCPU-13GB" = "2vCPU-13GB",
+  "2vCPU-14GB" = "2vCPU-14GB",
+  "2vCPU-15GB" = "2vCPU-15GB",
+  "2vCPU-16GB" = "2vCPU-16GB",
+  "4vCPU-8GB" = "4vCPU-8GB",
+  "4vCPU-9GB" = "4vCPU-9GB",
+  "4vCPU-10GB" = "4vCPU-10GB",
+  "4vCPU-11GB" = "4vCPU-11GB",
+  "4vCPU-12GB" = "4vCPU-12GB",
+  "4vCPU-13GB" = "4vCPU-13GB",
+  "4vCPU-14GB" = "4vCPU-14GB",
+  "4vCPU-15GB" = "4vCPU-15GB",
+  "4vCPU-16GB" = "4vCPU-16GB",
+  "4vCPU-17GB" = "4vCPU-17GB",
+  "4vCPU-18GB" = "4vCPU-18GB",
+  "4vCPU-19GB" = "4vCPU-19GB",
+  "4vCPU-20GB" = "4vCPU-20GB",
+  "4vCPU-21GB" = "4vCPU-21GB",
+  "4vCPU-22GB" = "4vCPU-22GB",
+  "4vCPU-23GB" = "4vCPU-23GB",
+  "4vCPU-24GB" = "4vCPU-24GB",
+  "4vCPU-25GB" = "4vCPU-25GB",
+  "4vCPU-26GB" = "4vCPU-26GB",
+  "4vCPU-27GB" = "4vCPU-27GB",
+  "4vCPU-28GB" = "4vCPU-28GB",
+  "4vCPU-29GB" = "4vCPU-29GB",
+  "4vCPU-30GB" = "4vCPU-30GB"
+}
+
 @source(Source.DB)
 @Entity()
 export class TaskDefinition {
+  @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 
+  @noDiff
   @Column({
     nullable: true,
   })
   taskDefinitionArn?: string;
 
+  @noDiff
   @ManyToMany(() => Container, { cascade: true, eager: true, })
   @JoinTable()
   containers?: Container[];
 
+  @noDiff
   @Column()
   family: string;
 
+  @noDiff
   @Column({
     nullable: true,
     type: 'int',
@@ -46,16 +105,19 @@ export class TaskDefinition {
   @Column()
   familyRevision: string;
 
+  @noDiff
   @Column({
     nullable: true,
   })
   taskRoleArn?: string;
 
+  @noDiff
   @Column({
     nullable: true,
   })
   executionRoleArn?: string;
 
+  @noDiff
   @Column({
     nullable: true,
     type: 'enum',
@@ -63,6 +125,7 @@ export class TaskDefinition {
   })
   networkMode?: NetworkMode;
 
+  @noDiff
   @Column({
     nullable: true,
     type: 'enum',
@@ -70,66 +133,16 @@ export class TaskDefinition {
   })
   status?: TaskDefinitionStatus;
 
+  @noDiff
   @ManyToMany(() => Compatibility, { cascade: true, eager: true, })
   @JoinTable()
   reqCompatibilities?: Compatibility[];
 
-  // TODO: add constraint
-  // * <p>The number of <code>cpu</code> units used by the task. If you are using the EC2 launch
-  // * 			type, this field is optional and any value can be used. If you are using the Fargate
-  // * 			launch type, this field is required and you must use one of the following values, which
-  // * 			determines your range of valid values for the <code>memory</code> parameter:</p>
-  // * 		       <ul>
-  // *             <li>
-  // *                 <p>256 (.25 vCPU) - Available <code>memory</code> values: 512 (0.5 GB), 1024 (1 GB), 2048 (2 GB)</p>
-  // *             </li>
-  // *             <li>
-  // *                 <p>512 (.5 vCPU) - Available <code>memory</code> values: 1024 (1 GB), 2048 (2 GB), 3072 (3 GB), 4096 (4 GB)</p>
-  // *             </li>
-  // *             <li>
-  // *                 <p>1024 (1 vCPU) - Available <code>memory</code> values: 2048 (2 GB), 3072 (3 GB), 4096 (4 GB), 5120 (5 GB), 6144 (6 GB), 7168 (7 GB), 8192 (8 GB)</p>
-  // *             </li>
-  // *             <li>
-  // *                 <p>2048 (2 vCPU) - Available <code>memory</code> values: Between 4096 (4 GB) and 16384 (16 GB) in increments of 1024 (1 GB)</p>
-  // *             </li>
-  // *             <li>
-  // *                 <p>4096 (4 vCPU) - Available <code>memory</code> values: Between 8192 (8 GB) and 30720 (30 GB) in increments of 1024 (1 GB)</p>
-  // *             </li>
-  // *          </ul>
+  @noDiff
   @Column({
     nullable: true,
+    type: 'enum',
+    enum: CpuMemCombination,
   })
-  cpu?: string;
-
-  // TODO: Add constraint
-  //  * <p>The amount (in MiB) of memory used by the task.</p>
-  //  * 		       <p>If your tasks will be run on Amazon EC2 instances, you must specify either a task-level
-  //  * 			memory value or a container-level memory value. This field is optional and any value can
-  //  * 			be used. If a task-level memory value is specified then the container-level memory value
-  //  * 			is optional. For more information regarding container-level memory and memory
-  //  * 			reservation, see <a href="https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ContainerDefinition.html">Container</a>.</p>
-  //  * 		       <p>If your tasks will be run on Fargate, this field is required and you must use one of
-  //  * 			the following values, which determines your range of valid values for the
-  //  * 				<code>cpu</code> parameter:</p>
-  //  *          <ul>
-  //  *             <li>
-  //  *                 <p>512 (0.5 GB), 1024 (1 GB), 2048 (2 GB) - Available <code>cpu</code> values: 256 (.25 vCPU)</p>
-  //  *             </li>
-  //  *             <li>
-  //  *                 <p>1024 (1 GB), 2048 (2 GB), 3072 (3 GB), 4096 (4 GB) - Available <code>cpu</code> values: 512 (.5 vCPU)</p>
-  //  *             </li>
-  //  *             <li>
-  //  *                 <p>2048 (2 GB), 3072 (3 GB), 4096 (4 GB), 5120 (5 GB), 6144 (6 GB), 7168 (7 GB), 8192 (8 GB) - Available <code>cpu</code> values: 1024 (1 vCPU)</p>
-  //  *             </li>
-  //  *             <li>
-  //  *                 <p>Between 4096 (4 GB) and 16384 (16 GB) in increments of 1024 (1 GB) - Available <code>cpu</code> values: 2048 (2 vCPU)</p>
-  //  *             </li>
-  //  *             <li>
-  //  *                 <p>Between 8192 (8 GB) and 30720 (30 GB) in increments of 1024 (1 GB) - Available <code>cpu</code> values: 4096 (4 vCPU)</p>
-  //  *             </li>
-  //  *          </ul>
-  @Column({
-    nullable: true,
-  })
-  memory?: string;
+  cpuMemory: CpuMemCombination;
 }
