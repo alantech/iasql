@@ -19,7 +19,7 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
   trailingSlash: true,
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/logo.png',
   organizationName: 'alantech', // Usually your GitHub org/user name.
   projectName: 'iasql', // Usually your repo name.
 
