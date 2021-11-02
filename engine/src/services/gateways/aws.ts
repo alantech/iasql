@@ -11,6 +11,7 @@ import {
   DescribeInstancesCommand,
   DescribeRegionsCommand,
   DescribeSecurityGroupsCommand,
+  DescribeSecurityGroupRulesCommand,
   EC2Client,
   RunInstancesCommand,
   TerminateInstancesCommand,
@@ -229,5 +230,12 @@ export class AWS {
     return {
       SecurityGroupRules: securityGroupRules, // Make it "look like" the regular query again
     };
+  }
+
+  async getSecurityGroupRule(id: string) {
+    const rule = await this.ec2client.send(
+      new DescribeSecurityGroupRulesCommand({ SecurityGroupRuleIds: [id], })
+    );
+    return (rule?.SecurityGroupRules ?? [])[0];
   }
 }

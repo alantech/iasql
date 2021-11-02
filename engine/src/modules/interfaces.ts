@@ -12,6 +12,7 @@ export interface CrudInterface<E> {
 export interface MapperInterface<E> {
   entity:  { new (): E };
   entityId: (e: E) => string;
+  equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
   db: CrudInterface<E>;
   cloud: CrudInterface<E>;
