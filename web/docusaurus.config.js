@@ -51,8 +51,18 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
           src: 'img/logo.svg',
         },
         items: [
-          {to: 'https://iasql.com', label: 'Home', position: 'right'},
-          {to: 'https://blog.iasql.com', label: 'Blog', position: 'right'},
+          {
+            to: 'https://iasql.com',
+            target: '_self',
+            label: 'Home',
+            position: 'right'
+          },
+          {
+            to: 'https://blog.iasql.com',
+            target: '_self',
+            label: 'Blog',
+            position: 'right'
+          },
         ],
       },
       footer: {
@@ -64,10 +74,12 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
               {
                 label: 'Home',
                 to: 'https://iasql.com',
+                target: '_self',
               },
               {
                 label: 'Blog',
                 to: 'https://blog.iasql.com',
+                target: '_self',
               },
             ],
           },
