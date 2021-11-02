@@ -102,7 +102,9 @@ export class TaskDefinition {
 
   // Generated column to index properly
   @awsPrimaryKey
-  @Column()
+  @Column({
+    unique: true,
+  })
   familyRevision: string;
 
   @noDiff
