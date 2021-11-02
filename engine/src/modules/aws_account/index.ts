@@ -28,6 +28,7 @@ export const AwsAccount: ModuleInterface = {
     awsAccount: {
       entity: AwsAccountEntity,
       entityId: (e: AwsAccountEntity) => e.region,
+      equals: (_a: AwsAccountEntity, _b: AwsAccountEntity) => true,
       source: 'db',
       db: {
         create: async (e: AwsAccountEntity, ctx: Context) => { await ctx.orm.save(AwsAccountEntity, e); },
@@ -38,7 +39,7 @@ export const AwsAccount: ModuleInterface = {
       cloud: {
         // We don't actually connect to AWS for this module, because it's meta
         create: async (_e: AwsAccountEntity, _ctx: Context) => {},
-        read: async (_ctx: Context) => [],
+        read: async (ctx: Context, options: any) => ctx.orm.find(AwsAccountEntity, options),
         update: async (_e: AwsAccountEntity, _ctx: Context) => {},
         delete: async (_e: AwsAccountEntity, _ctx: Context) => {},
       },

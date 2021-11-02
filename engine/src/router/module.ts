@@ -73,9 +73,14 @@ mod.post('/install', async (req, res) => {
       req.body.list.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
     }`);
   }
-  // Grab all of the entities from the module plus the IaSQL Module entity itself and create the
-  // TypeORM connection with it.
-  const entities = modules.map((m: any) => m.mappers.map((ma: any) => ma.entity)).flat();
+  // Grab all of the entities plus the IaSQL Module entity itself and create the TypeORM connection
+  // with it. Theoretically only need the module in question at first, but when we try to use the
+  // module to acquire the cloud records, it may use one or more other modules it depends on, so
+  // we just load them all into the TypeORM client.
+  const entities = Object.values(Modules)
+    .filter(m => m.hasOwnProperty('mappers'))
+    .map((m: any) => Object.values(m.mappers).map((ma: any) => ma.entity))
+    .flat();
   entities.push(IasqlModule);
   const orm = await TypeormWrapper.createConn(req.body.dbname, {
     name: req.body.dbname,
@@ -165,6 +170,39 @@ ${Object.keys(tableCollisions)
   } finally {
     await queryRunner.release();
   }
+  // For all newly installed modules, query the cloud state, if any, and save it to the database.
+  // Since the context requires all installed modules and that has changed, for simplicity's sake
+  // we're re-loading the modules and constructing the context that way, first, but then iterating
+  // through the mappers of only the newly installed modules to sync from cloud to DB.
+  // TODO: For now we're gonna use the TypeORM client directly, but we should be using `db.create`,
+  // but we aren't right now because it would be slower. Need to figure out if/how to change the
+  // mapper to make batch create/update/delete more efficient.
+
+  // Find all of the installed modules, and create the context object only for these
+  const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
+  const context: Modules.Context = { orm, }; // Every module gets access to the DB
+  for (let name of moduleNames) {
+    const mod = Object.values(Modules).find(m => m.name === name);
+    if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
+    const moduleContext = mod.provides.context ?? {};
+    Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
+  }
+  console.log({ context, })
+  // Get the relevant mappers, which are the ones where the DB is the source-of-truth
+  const mappers = modules
+    .map(mod => Object.values(mod.mappers))
+    .flat()
+  for (let mapper of mappers) {
+    const e = await mapper.cloud.read(context);
+    if (!e || (Array.isArray(e) && !e.length)) {
+      console.log('what');
+      console.log({ mapper, });
+    } else {
+      console.log('expected');
+      console.log({ e, });
+      await orm.save(mapper.entity, e);
+    }
+  }
   res.json("Done!");
 });
 
@@ -184,7 +222,7 @@ mod.post('/remove', async (req, res) => {
   }
   // Grab all of the entities from the module plus the IaSQL Module entity itself and create the
   // TypeORM connection with it.
-  const entities = modules.map((m: any) => m.mappers.map((ma: any) => ma.entity)).flat();
+  const entities = modules.map((m: any) => Object.values(m.mappers).map((ma: any) => ma.entity)).flat();
   entities.push(IasqlModule);
   const orm = await TypeormWrapper.createConn(req.body.dbname, {
     name: req.body.dbname,

@@ -43,7 +43,7 @@ export class AwsSecurityGroupRule {
   @Column({
     nullable: true,
   })
-  securityGroupRuleId: string;
+  securityGroupRuleId?: string;
 
   @Column({
     nullable: true,
@@ -70,33 +70,33 @@ export class AwsSecurityGroupRule {
     nullable: true,
     type: 'int',
   })
-  fromPort: number;
+  fromPort?: number;
 
   @Column({
     nullable: true,
     type: 'int',
   })
-  toPort: number;
+  toPort?: number;
 
   @Column({
     nullable: true,
     type: 'cidr',
   })
-  cidrIpv4: string;
+  cidrIpv4?: string;
 
   @Column({
     nullable: true,
     type: 'cidr',
   })
-  cidrIpv6: string;
+  cidrIpv6?: string;
 
   @Column({
     nullable: true,
   })
-  prefixListId: string;
+  prefixListId?: string;
 
   @Column({
     nullable: true,
   })
-  description: string;
+  description?: string;
 }

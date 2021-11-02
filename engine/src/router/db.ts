@@ -192,9 +192,6 @@ db.get('/check/:dbAlias', async (req, res) => {
     });
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
-    console.log({
-      moduleNames,
-    });
     const context: Modules.Context = { orm, }; // Every module gets access to the DB
     for (let name of moduleNames) {
       const mod = Object.values(Modules).find(m => m.name === name);
@@ -208,13 +205,9 @@ db.get('/check/:dbAlias', async (req, res) => {
       .map(mod => Object.values(mod.mappers))
       .flat()
       .filter(mapper => mapper.source === 'db');
-    /*// For now, assume `aws_account` module is installed
-    const awsClient = await Modules.AwsAccount.provides.context?.getAwsClient.bind({ orm, })();
-    const indexes = new IndexedAWS();*/
     const t2 = Date.now();
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
-    //await populate(awsClient, indexes, 'db');
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -228,6 +221,7 @@ db.get('/check/:dbAlias', async (req, res) => {
         const entities = await mapper.cloud.read(context);
         cloudEntities[i] = entities;
       }));
+      const comparators = mappers.map(mapper => mapper.equals);
       const idGens = mappers.map(mapper => mapper.entityId);
       const t3 = Date.now();
       console.log(`Record acquisition time: ${t3 - t2}ms`);
@@ -236,17 +230,20 @@ db.get('/check/:dbAlias', async (req, res) => {
         mapper: mappers,
         dbEntity: dbEntities,
         cloudEntity: cloudEntities,
+        comparator: comparators,
         idGen: idGens,
       });
       const t4 = Date.now();
       console.log(`AWS Mapping time: ${t4 - t3}ms`);
+      if (!records.length) { // Only possible on just-created databases
+        return res.end(`${dbname} checked and synced, total time: ${t4 - t1}ms`);
+      }
       records.forEach(r => {
-        r.diff = findDiff(r.table, r.dbEntity, r.awsEntity, r.idGen);
+        r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
       });
       const t5 = Date.now();
       console.log(`Diff time: ${t5 - t4}ms`);
       const promiseGenerators = records
-        //.filter(r => ['AwsSecurityGroup'].includes(r.table)) // TODO: Don't do this
         .map(r => {
           const name = r.table;
           console.log(`Checking ${name}`);
@@ -260,29 +257,12 @@ db.get('/check/:dbAlias', async (req, res) => {
               }
             }));
           }
-          let diffFound = false;
-          r.diff.entitiesDiff.forEach((d: any) => {
-            const valIsUnchanged = (val: any): boolean => {
-              if (val.hasOwnProperty('type')) {
-                return val.type === 'unchanged';
-              } else if (Array.isArray(val)) {
-                return val.every(v => valIsUnchanged(v));
-              } else if (val instanceof Object) {
-                return Object.keys(val).filter(k => k !== 'id').every(v => valIsUnchanged(val[v]));
-              } else {
-                return false;
-              }
-            };
-            const unchanged = valIsUnchanged(d);
-            if (!unchanged) {
-              diffFound = true;
-              const entity = r.dbEntity.find((e: any) => e.id === d.id);
-              outArr.push(async () => {
-                await r.mapper.cloud.update(entity, context);
-              });
-            }
-          });
-          if (diffFound) console.log(`${name} has records to update`);
+          if (r.diff.entitiesChanged.length > 0) {
+            console.log(`${name} has records to delete`);
+            outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
+              await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
+            }));
+          }
           if (r.diff.entitiesInAwsOnly.length > 0) {
             console.log(`${name} has records to delete`);
             outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {

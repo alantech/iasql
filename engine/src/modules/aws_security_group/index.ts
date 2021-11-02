@@ -5,17 +5,37 @@ import { awsSecurityGroup1635288398482, } from './migration/1635288398482-aws_se
 
 const memo: { [key: string]: AwsSecurityGroup | AwsSecurityGroupRule, } = {};
 
-const sgMapper = async (sg: any, client: AWS) => {
+const sgMapper = async (sg: any, ctx: Context) => {
   const out = new AwsSecurityGroup();
+  memo[`cloud:sg:${sg?.GroupId}`] = out; // This being as early as possible is *important*
+  console.log({ memo, });
   out.description = sg.Description;
   out.groupName = sg.GroupName;
   out.ownerId = sg.OwnerId;
   out.groupId = sg.GroupId;
   out.vpcId = sg.VpcId;
-  out.securityGroupRules = (await AwsSecurityGroupModule.mappers.securityGroupRule.cloud.read(client))
+  out.securityGroupRules = (await AwsSecurityGroupModule.mappers.securityGroupRule.cloud.read(ctx))
     .filter((sgr: AwsSecurityGroupRule) => sgr.groupId === sg.GroupId);
   return out;
 };
+
+const sgrMapper = async (sgr: any, ctx: Context) => {
+  const out = new AwsSecurityGroupRule();
+  memo[`cloud:sgr:${sgr?.SecurityGroupRuleId}`] = out; // *Must* be as early as possible
+  console.log({ memo, });
+  out.securityGroupRuleId = sgr?.SecurityGroupRuleId;
+  out.groupId = sgr?.GroupId;
+  out.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sgr?.GroupId);
+  out.isEgress = sgr?.IsEgress ?? false;
+  out.ipProtocol = sgr?.IpProtocol ?? '';
+  out.fromPort = sgr?.FromPort;
+  out.toPort = sgr?.ToPort;
+  out.cidrIpv4 = sgr?.CidrIpv4;
+  out.cidrIpv6 = sgr?.CidrIpv6;
+  out.prefixListId = sgr?.PrefixListId;
+  out.description = sgr?.Description;
+  return out;
+}
 
 export const AwsSecurityGroupModule: ModuleInterface = {
   name: 'aws_security_group',
@@ -27,6 +47,11 @@ export const AwsSecurityGroupModule: ModuleInterface = {
     securityGroup: {
       entity: AwsSecurityGroup,
       entityId: (e: AwsSecurityGroup) => e.groupName ?? '',
+      equals: (a: AwsSecurityGroup, b: AwsSecurityGroup) => a.description === b.description &&
+        a.groupName === b.groupName &&
+        a.ownerId === b.ownerId &&
+        a.groupId === b.ownerId &&
+        a.vpcId === b.vpcId,
       source: 'db',
       db: {
         create: async (e: AwsSecurityGroup, ctx: Context) => { await ctx.orm.save(AwsSecurityGroup, e); },
@@ -51,7 +76,7 @@ export const AwsSecurityGroupModule: ModuleInterface = {
           // Re-get the inserted security group to get all of the relevant records we care about
           const newGroup = await client.getSecurityGroup(result.GroupId ?? '');
           // We map this into the same kind of entity as `obj`
-          const newEntity = await sgMapper(newGroup, client);
+          const newEntity = await sgMapper(newGroup, ctx);
           // We attach the original object's ID to this new one, indicating the exact record it is
           // replacing in the database
           newEntity.id = e.id;
@@ -59,17 +84,18 @@ export const AwsSecurityGroupModule: ModuleInterface = {
           return newEntity;
         },
         read: async (ctx: Context, id?: string) => {
+          const client = await ctx.getAwsClient() as AWS;
           if (id) {
-            if (!!memo[`cloud:sg:${id}`]) return memo[`cloud:sg:${id}`];
-            return [];
+            if (!memo[`cloud:sg:${id}`]) {
+              await sgMapper(await client.getSecurityGroup(id), ctx);
+            }
+            return memo[`cloud:sg:${id}`];
           } else {
-            const client = await ctx.getAwsClient() as AWS;
             const securityGroups = (await client.getSecurityGroups())?.SecurityGroups ?? [];
-            return await Promise.all(securityGroups.map((sg: any) => sgMapper(sg, client)));
+            return await Promise.all(securityGroups.map((sg: any) => sgMapper(sg, ctx)));
           }
         },
         update: async (e: AwsSecurityGroup, ctx: Context) => {
-          const client = await ctx.getAwsClient() as AWS;
           // AWS does not have a way to update the top-level SecurityGroup entity. You can update the
           // various rules associated with it, but not the name or description of the SecurityGroup
           // itself. This may seem counter-intuitive, but we only need to create the security group in
@@ -83,14 +109,14 @@ export const AwsSecurityGroupModule: ModuleInterface = {
           // is a unique constraint on the `GroupName`, so a temporary state with a random name may be
           // necessary, so we try-catch this call and mutate as necessary.
           try {
-            return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, client);
+            return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
           } catch (_) {
             // We mutate the `GroupName` to something unique and unlikely to collide (we should be too
             // slow to ever collide at a millisecond level). This path doesn't save back to the DB
             // like create does (at least right now, if that changes, we need to rethink this logic
             // here)
             e.groupName = Date.now().toString();
-            return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, client);
+            return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
           }
         },
         delete: async (e: AwsSecurityGroup, ctx: Context) => {
@@ -104,6 +130,7 @@ export const AwsSecurityGroupModule: ModuleInterface = {
     securityGroupRule: {
       entity: AwsSecurityGroupRule,
       entityId: (e: AwsSecurityGroupRule) => e.securityGroupRuleId + '',
+      equals: (_a: AwsSecurityGroupRule, _b: AwsSecurityGroupRule) => true,
       source: 'db',
       db: {
         create: async (e: AwsSecurityGroupRule, ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
@@ -114,28 +141,15 @@ export const AwsSecurityGroupModule: ModuleInterface = {
       cloud: {
         create: async (_e: AwsSecurityGroupRule, _ctx: Context) => {},
         read: async (ctx: Context, id?: string) => {
+          const client = await ctx.getAwsClient() as AWS;
           if (id) {
-            if (!!memo[`cloud:sgr:${id}`]) return memo[`cloud:sgr:${id}`];
-            return [];
+            if (!memo[`cloud:sgr:${id}`]) {
+              await sgrMapper(await client.getSecurityGroupRule(id), ctx);
+            }
+            return memo[`cloud:sgr:${id}`];
           } else {
-            const client = await ctx.getAwsClient() as AWS;
             const securityGroupRules = (await client.getSecurityGroupRules())?.SecurityGroupRules ?? [];
-            return await Promise.all(securityGroupRules.map(async (sgr) => {
-              const out = new AwsSecurityGroupRule();
-              out.securityGroupRuleId = sgr?.SecurityGroupRuleId ?? '';
-              out.groupId = sgr?.GroupId;
-              out.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(client, sgr.GroupOwnerId);
-              out.isEgress = sgr?.IsEgress ?? false;
-              out.ipProtocol = sgr?.IpProtocol ?? '';
-              out.fromPort = sgr?.FromPort ?? -1;
-              out.toPort = sgr?.ToPort ?? -1;
-              out.cidrIpv4 = sgr?.CidrIpv4 ?? '';
-              out.cidrIpv6 = sgr?.CidrIpv6 ?? '';
-              out.prefixListId = sgr?.PrefixListId ?? '';
-              out.description = sgr?.Description ?? '';
-              memo[`cloud:sgr:${out.securityGroupRuleId}`] = out;
-              return out;
-            }));
+            return await Promise.all(securityGroupRules.map(sgr => sgrMapper(sgr, ctx)));
           }
         },
         update: async (_e: AwsSecurityGroupRule, _ctx: Context) => {},
