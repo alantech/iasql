@@ -4,8 +4,8 @@ import { AWS, } from '../services/gateways/aws'
 import { Service, } from '../entity/service'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { AwsVpcConf, Cluster, Subnet, TaskDefinition } from '../entity'
-import { AwsVpcConfMapper, ClusterMapper, TaskDefinitionMapper } from '.'
+import { AwsVpcConf, Cluster, TaskDefinition } from '../entity'
+import { AwsVpcConfMapper, ClusterMapper, ServiceLoadBalancerMapper, TaskDefinitionMapper } from '.'
 import { DepError } from '../services/lazy-dep'
 
 export const ServiceMapper = new EntityMapper(Service, {
@@ -41,6 +41,13 @@ export const ServiceMapper = new EntityMapper(Service, {
       return null;
     }
   },
+  loadBalancers: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) => {
+    if (s?.loadBalancers?.length) {
+      return await Promise.all(s?.loadBalancers.map(lb => ServiceLoadBalancerMapper.fromAWS(lb, awsClient, indexes)));
+    } else {
+      return [];
+    }
+  },
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
@@ -74,6 +81,7 @@ export const ServiceMapper = new EntityMapper(Service, {
         }
       }
     }
+    // TODO: add load balancers on create
     const result = await awsClient.createService(input);
     if (!result?.hasOwnProperty('serviceName')) { // Failure
       throw new Error('what should we do here?');

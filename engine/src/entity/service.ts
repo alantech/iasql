@@ -5,8 +5,9 @@ import {
   JoinColumn,
   ManyToOne,
   OneToOne,
+  ManyToMany,
 } from 'typeorm'
-import { AwsVpcConf, Cluster, TaskDefinition } from '.';
+import { AwsVpcConf, Cluster, ServiceLoadBalancer, TaskDefinition } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 
 import { noDiff } from '../services/diff'
@@ -87,6 +88,7 @@ export class Service {
   })
   network?: AwsVpcConf;
 
-  // TODO: add loadBalancers?: LoadBalancer[];
-
+  @noDiff
+  @ManyToMany(() => ServiceLoadBalancer, { cascade: true, eager: true, })
+  loadBalancers?: ServiceLoadBalancer[];
 }
