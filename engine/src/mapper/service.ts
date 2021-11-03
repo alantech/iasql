@@ -77,7 +77,14 @@ export const ServiceMapper = new EntityMapper(Service, {
         }
       }
     }
-    // TODO: add load balancers on create
+    if (obj.loadBalancers?.length) {
+      input.loadBalancers = obj.loadBalancers.map(lb => ({
+        targetGroupArn: lb.targetGroup?.targetGroupArn,
+        loadBalancerName: lb.elb?.loadBalancerName,
+        containerName: lb.containerName,
+        containerPort: lb.containerPort
+      }));
+    }
     const result = await awsClient.createService(input);
     if (!result?.hasOwnProperty('serviceName')) { // Failure
       throw new Error('what should we do here?');
