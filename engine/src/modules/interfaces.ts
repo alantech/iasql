@@ -3,10 +3,41 @@ import { QueryRunner, } from 'typeorm'
 export type Context = { [key: string]: any };
 
 export interface CrudInterface<E> {
-  create: (e: E | E[], ctx: Context) => Promise<void | E>;
+  create: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
   read: (ctx: Context, options?: any) => Promise<E | E[]>;
-  update: (e: E | E[], ctx: Context) => Promise<void | E>;
-  delete: (e: E | E[], ctx: Context) => Promise<void | E>;
+  update: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
+  delete: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
+}
+
+export class Crud<E> {
+  createFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
+  readFn: (ctx: Context, options?: any) => Promise<E | E[]>;
+  updateFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
+  deleteFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
+  
+  constructor(def: CrudInterface<E>) {
+    this.createFn = def.create;
+    this.readFn = def.read;
+    this.updateFn = def.update
+    this.deleteFn = def.delete;
+  }
+
+  // TODO: Add memoization of everything
+  async create(e: E | E[], ctx: Context) {
+    return await this.createFn(e, ctx);
+  }
+
+  async read(ctx: Context, options?: any) {
+    return await this.readFn(ctx, options);
+  }
+
+  async update(e: E | E[], ctx: Context) {
+    return await this.updateFn(e, ctx);
+  }
+
+  async delete(e: E | E[], ctx: Context) {
+    return await this.deleteFn(e, ctx);
+  }
 }
 
 export interface MapperInterface<E> {
@@ -14,8 +45,8 @@ export interface MapperInterface<E> {
   entityId: (e: E) => string;
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
-  db: CrudInterface<E>;
-  cloud: CrudInterface<E>;
+  db: Crud<E>;
+  cloud: Crud<E>;
 }
 
 export interface ModuleInterface {

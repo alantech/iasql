@@ -2,8 +2,6 @@ import * as express from 'express'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
 import * as Modules from '../modules'
-import config from '../config'
-import { AWS, } from '../services/gateways/aws'
 import { IasqlModule, } from '../entity'
 import { TypeormWrapper, } from '../services/typeorm'
 
@@ -182,7 +180,7 @@ ${Object.keys(tableCollisions)
   const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
   const context: Modules.Context = { orm, }; // Every module gets access to the DB
   for (let name of moduleNames) {
-    const mod = Object.values(Modules).find(m => m.name === name);
+    const mod = Object.values(Modules).find(m => m.name === name) as Modules.ModuleInterface;
     if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
     const moduleContext = mod.provides.context ?? {};
     Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);

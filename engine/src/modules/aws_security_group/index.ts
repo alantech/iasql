@@ -1,6 +1,6 @@
 import { AWS, } from '../../services/gateways/aws'
 import { AwsSecurityGroup, AwsSecurityGroupRule, } from './entity'
-import { Context, MapperInterface, ModuleInterface, } from '../interfaces'
+import { Context, MapperInterface, ModuleInterface, Crud, } from '../interfaces'
 import { awsSecurityGroup1635288398482, } from './migration/1635288398482-aws_security_group'
 
 const memo: { [key: string]: AwsSecurityGroup | AwsSecurityGroupRule, } = {};
@@ -8,7 +8,6 @@ const memo: { [key: string]: AwsSecurityGroup | AwsSecurityGroupRule, } = {};
 const sgMapper = async (sg: any, ctx: Context) => {
   const out = new AwsSecurityGroup();
   memo[`cloud:sg:${sg?.GroupId}`] = out; // This being as early as possible is *important*
-  console.log({ memo, });
   out.description = sg.Description;
   out.groupName = sg.GroupName;
   out.ownerId = sg.OwnerId;
@@ -22,7 +21,6 @@ const sgMapper = async (sg: any, ctx: Context) => {
 const sgrMapper = async (sgr: any, ctx: Context) => {
   const out = new AwsSecurityGroupRule();
   memo[`cloud:sgr:${sgr?.SecurityGroupRuleId}`] = out; // *Must* be as early as possible
-  console.log({ memo, });
   out.securityGroupRuleId = sgr?.SecurityGroupRuleId;
   out.groupId = sgr?.GroupId;
   out.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sgr?.GroupId);
@@ -50,38 +48,40 @@ export const AwsSecurityGroupModule: ModuleInterface = {
       equals: (a: AwsSecurityGroup, b: AwsSecurityGroup) => a.description === b.description &&
         a.groupName === b.groupName &&
         a.ownerId === b.ownerId &&
-        a.groupId === b.ownerId &&
+        a.groupId === b.groupId &&
         a.vpcId === b.vpcId,
       source: 'db',
-      db: {
-        create: async (e: AwsSecurityGroup, ctx: Context) => { await ctx.orm.save(AwsSecurityGroup, e); },
+      db: new Crud({
+        create: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroup, e); },
         read: (ctx: Context, options: any) => ctx.orm.find(AwsSecurityGroup, options),
-        update: async (e: AwsSecurityGroup, ctx: Context) => { await ctx.orm.save(AwsSecurityGroup, e); },
-        delete: async (e: AwsSecurityGroup, ctx: Context) => { await ctx.orm.remove(AwsSecurityGroup, e); },
-      },
-      cloud: {
-        create: async (e: AwsSecurityGroup, ctx: Context) => {
+        update: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroup, e); },
+        delete: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => { await ctx.orm.remove(AwsSecurityGroup, e); },
+      }),
+      cloud: new Crud({
+        create: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          // First construct the security group
-          const result = await client.createSecurityGroup({
-            Description: e.description,
-            GroupName: e.groupName,
-            VpcId: e.vpcId,
-            // TODO: Tags
-          });
-          // TODO: Handle if it fails (somehow)
-          if (!result.hasOwnProperty('GroupId')) { // Failure
-            throw new Error('what should we do here?');
-          }
-          // Re-get the inserted security group to get all of the relevant records we care about
-          const newGroup = await client.getSecurityGroup(result.GroupId ?? '');
-          // We map this into the same kind of entity as `obj`
-          const newEntity = await sgMapper(newGroup, ctx);
-          // We attach the original object's ID to this new one, indicating the exact record it is
-          // replacing in the database
-          newEntity.id = e.id;
-          // It's up to the caller if they want to actually update into the DB or not, though.
-          return newEntity;
+          const es = Array.isArray(e) ? e : [e];
+          return await Promise.all(es.map(async (e) => {
+            // First construct the security group
+            const result = await client.createSecurityGroup({
+              Description: e.description,
+              GroupName: e.groupName,
+              VpcId: e.vpcId,
+              // TODO: Tags
+            });
+            // TODO: Handle if it fails (somehow)
+            if (!result.hasOwnProperty('GroupId')) { // Failure
+              throw new Error('what should we do here?');
+            } // Re-get the inserted security group to get all of the relevant records we care about
+            const newGroup = await client.getSecurityGroup(result.GroupId ?? '');
+            // We map this into the same kind of entity as `obj`
+            const newEntity = await sgMapper(newGroup, ctx);
+            // We attach the original object's ID to this new one, indicating the exact record it is
+            // replacing in the database
+            newEntity.id = e.id;
+            // It's up to the caller if they want to actually update into the DB or not, though.
+            return newEntity;
+          }));
         },
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -89,72 +89,79 @@ export const AwsSecurityGroupModule: ModuleInterface = {
             if (!memo[`cloud:sg:${id}`]) {
               await sgMapper(await client.getSecurityGroup(id), ctx);
             }
-            return memo[`cloud:sg:${id}`];
+            return memo[`cloud:sg:${id}`] as AwsSecurityGroup;
           } else {
             const securityGroups = (await client.getSecurityGroups())?.SecurityGroups ?? [];
             return await Promise.all(securityGroups.map((sg: any) => sgMapper(sg, ctx)));
           }
         },
-        update: async (e: AwsSecurityGroup, ctx: Context) => {
-          // AWS does not have a way to update the top-level SecurityGroup entity. You can update the
-          // various rules associated with it, but not the name or description of the SecurityGroup
-          // itself. This may seem counter-intuitive, but we only need to create the security group in
-          // AWS and *eventually* the old one will be removed. Why? Because on the second pass of the
-          // checking algorithm (it always performs another pass if it performed any change, and only
-          // stops once it determines nothing needs to be changed anymore), it will see a security
-          // group in AWS that it doesn't have a record for and then remove it since the database is
-          // supposed to be the source of truth. Further, because of the relations to the security
-          // group being by internal ID in the database instead of the string ID, anything depending
-          // on the old security group will be moved to the new one on the second pass. However, there
-          // is a unique constraint on the `GroupName`, so a temporary state with a random name may be
-          // necessary, so we try-catch this call and mutate as necessary.
-          try {
-            return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
-          } catch (_) {
-            // We mutate the `GroupName` to something unique and unlikely to collide (we should be too
-            // slow to ever collide at a millisecond level). This path doesn't save back to the DB
-            // like create does (at least right now, if that changes, we need to rethink this logic
-            // here)
-            e.groupName = Date.now().toString();
-            return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
-          }
+        update: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
+          const es = Array.isArray(e) ? e : [e];
+          return await Promise.all(es.map(async (e) => {
+            // AWS does not have a way to update the top-level SecurityGroup entity. You can update
+            // the various rules associated with it, but not the name or description of the
+            // SecurityGroup itself. This may seem counter-intuitive, but we only need to create the
+            // security group in AWS and *eventually* the old one will be removed. Why? Because on
+            // the second pass of the checking algorithm (it always performs another pass if it
+            // performed any change, and only stops once it determines nothing needs to be changed
+            // anymore), it will see a security group in AWS that it doesn't have a record for and
+            // then remove it since the database is supposed to be the source of truth. Further,
+            // because of the relations to the security group being by internal ID in the database
+            // instead of the string ID, anything depending on the old security group will be moved
+            // to the new one on the second pass. However, there is a unique constraint on the
+            // `GroupName`, so a temporary state with a random name may be necessary, so we
+            // try-catch this call and mutate as necessary.
+            try {
+              return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
+            } catch (_) {
+              // We mutate the `GroupName` to something unique and unlikely to collide (we should be
+              // too slow to ever collide at a millisecond level). This path doesn't save back to
+              // the DB like create does (at least right now, if that changes, we need to rethink
+              // this logic here)
+              e.groupName = Date.now().toString();
+              return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
+            }
+          }));
         },
-        delete: async (e: AwsSecurityGroup, ctx: Context) => {
+        delete: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          await client.deleteSecurityGroup({
-            GroupId: e.groupId,
-          });
+          const es = Array.isArray(e) ? e : [e];
+          await Promise.all(es.map(async (e) => {
+            await client.deleteSecurityGroup({
+              GroupId: e.groupId,
+            });
+          }));
         },
-      },
+      }),
     } as MapperInterface<AwsSecurityGroup>,
     securityGroupRule: {
       entity: AwsSecurityGroupRule,
       entityId: (e: AwsSecurityGroupRule) => e.securityGroupRuleId + '',
       equals: (_a: AwsSecurityGroupRule, _b: AwsSecurityGroupRule) => true,
       source: 'db',
-      db: {
-        create: async (e: AwsSecurityGroupRule, ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
+      db: new Crud({
+        create: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
         read: (ctx: Context, options: any) => ctx.orm.find(AwsSecurityGroupRule, options),
-        update: async (e: AwsSecurityGroupRule, ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
-        delete: async (e: AwsSecurityGroupRule, ctx: Context) => { await ctx.orm.remove(AwsSecurityGroupRule, e); },
-      },
-      cloud: {
-        create: async (_e: AwsSecurityGroupRule, _ctx: Context) => {},
+        update: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
+        delete: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.remove(AwsSecurityGroupRule, e); },
+      }),
+      cloud: new Crud({
+        create: async (_e: AwsSecurityGroupRule | AwsSecurityGroupRule[], _ctx: Context) => {},
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
             if (!memo[`cloud:sgr:${id}`]) {
               await sgrMapper(await client.getSecurityGroupRule(id), ctx);
             }
-            return memo[`cloud:sgr:${id}`];
+            return memo[`cloud:sgr:${id}`] as AwsSecurityGroupRule;
           } else {
             const securityGroupRules = (await client.getSecurityGroupRules())?.SecurityGroupRules ?? [];
             return await Promise.all(securityGroupRules.map(sgr => sgrMapper(sgr, ctx)));
           }
         },
-        update: async (_e: AwsSecurityGroupRule, _ctx: Context) => {},
-        delete: async (_e: AwsSecurityGroupRule, _ctx: Context) => {},
-      },
+        update: async (_e: AwsSecurityGroupRule | AwsSecurityGroupRule[], _ctx: Context) => {},
+        delete: async (_e: AwsSecurityGroupRule | AwsSecurityGroupRule[], _ctx: Context) => {},
+      }),
     } as MapperInterface<AwsSecurityGroupRule>,
   },
   migrations: {

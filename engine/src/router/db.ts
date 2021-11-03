@@ -22,20 +22,6 @@ import * as Modules from '../modules'
 export const db = express.Router();
 db.use(express.json());
 
-/*async function saveEntities(
-  orm: TypeormWrapper,
-  awsClient: AWS,
-  indexes: IndexedAWS,
-  mapper: Mappers.EntityMapper,
-) {
-  const t1 = Date.now();
-  const entity = mapper.getEntity();
-  const entities = await indexes.toEntityList(mapper, awsClient);
-  await orm.save(entity, entities);
-  const t2 = Date.now();
-  console.log(`${entity.name} stored in ${t2 - t1}ms`);
-}*/
-
 if (config.a0Enabled) {
   const checkJwt = jwt({
     secret: jwksRsa.expressJwtSecret({
@@ -61,7 +47,6 @@ db.post('/create', async (req, res) => {
   // such that once we auth the user they can use the alias and we map to the id
   const dbname = dbAlias;
   let conn1, conn2;
-  //let orm: TypeormWrapper | undefined;
   try {
     conn1 = await createConnection({
       name: 'base', // If you use multiple connections they must have unique names or typeorm bails
@@ -91,45 +76,12 @@ db.post('/create', async (req, res) => {
     await conn2.query(`
       INSERT INTO aws_account (access_key_id, secret_access_key, region) VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}')
     `);
-    // TODO: The following commented code is part of the "initialization" logic for the various
-    // entities, and should be refactored to be part of the module "install" process. Maybe it
-    // just belongs as part of the `post-install` script and just a pattern within the modules
-    // instead of being fully centralized? For now it is commented out and left where it used to be.
-    /*
-    const awsClient = new AWS({
-      region: awsRegion,
-      credentials: {
-        accessKeyId: awsAccessKeyId,
-        secretAccessKey: awsSecretAccessKey,
-      },
-    });
-    const indexes = new IndexedAWS();
-    const t2 = Date.now();
-    console.log(`Start populating index after ${t2 - t1}ms`)
-    await populate(awsClient, indexes);
-    const t3 = Date.now();
-    console.log(`Populate indexes in ${t3 - t2}ms`)
-    // TODO: Put this somewhere else
-    const o: TypeormWrapper = orm;
-    console.log(`Populating new db: ${dbname}`);
-    const mappers: Mappers.EntityMapper[] = Object.values(Mappers)
-      .filter(m => m instanceof Mappers.EntityMapper) as Mappers.EntityMapper[];
-    await lazyLoader(mappers.map(m => () => saveEntities(o, awsClient, indexes, m)));
-    const t4 = Date.now();
-    console.log(`Writing complete in ${t4 - t3}ms`);
-    // store credentials
-    const region = await orm.findOne(Entities.Region, { where: { name: awsRegion }});
-    await orm.query(`
-      INSERT INTO aws_credentials VALUES (DEFAULT, '${awsAccessKeyId}', '${awsSecretAccessKey}', '${region.id}');
-    `);
-    */
     res.end(`create ${dbname}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
     res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
   } finally {
     await conn1?.close();
     await conn2?.close();
-    //await orm?.dropConn();
   }
 });
 
@@ -194,7 +146,7 @@ db.get('/check/:dbAlias', async (req, res) => {
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
     const context: Modules.Context = { orm, }; // Every module gets access to the DB
     for (let name of moduleNames) {
-      const mod = Object.values(Modules).find(m => m.name === name);
+      const mod = Object.values(Modules).find(m => m.name === name) as Modules.ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod.provides.context ?? {};
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
@@ -202,7 +154,7 @@ db.get('/check/:dbAlias', async (req, res) => {
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
     const mappers = Object.values(Modules)
       .filter(mod => moduleNames.includes(mod.name))
-      .map(mod => Object.values(mod.mappers))
+      .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
       .flat()
       .filter(mapper => mapper.source === 'db');
     const t2 = Date.now();
@@ -216,69 +168,99 @@ db.get('/check/:dbAlias', async (req, res) => {
         const entities = await mapper.db.read(context);
         dbEntities[i] = entities;
       }));
-      const cloudEntities: any[][] = [];
-      await lazyLoader(mappers.map((mapper, i) => async () => {
-        const entities = await mapper.cloud.read(context);
-        cloudEntities[i] = entities;
-      }));
       const comparators = mappers.map(mapper => mapper.equals);
       const idGens = mappers.map(mapper => mapper.entityId);
-      const t3 = Date.now();
-      console.log(`Record acquisition time: ${t3 - t2}ms`);
-      const records = colToRow({
-        table: tables,
-        mapper: mappers,
-        dbEntity: dbEntities,
-        cloudEntity: cloudEntities,
-        comparator: comparators,
-        idGen: idGens,
-      });
-      const t4 = Date.now();
-      console.log(`AWS Mapping time: ${t4 - t3}ms`);
-      if (!records.length) { // Only possible on just-created databases
-        return res.end(`${dbname} checked and synced, total time: ${t4 - t1}ms`);
-      }
-      records.forEach(r => {
-        r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
-      });
-      const t5 = Date.now();
-      console.log(`Diff time: ${t5 - t4}ms`);
-      const promiseGenerators = records
-        .map(r => {
-          const name = r.table;
-          console.log(`Checking ${name}`);
-          const outArr = [];
-          if (r.diff.entitiesInDbOnly.length > 0) {
-            console.log(`${name} has records to create`);
-            outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
-              const out = await r.mapper.cloud.create(e, context);
-              if (out) {
-                await orm?.save(r.mapper.entity, out);
-              }
-            }));
-          }
-          if (r.diff.entitiesChanged.length > 0) {
-            console.log(`${name} has records to delete`);
-            outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
-              await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
-            }));
-          }
-          if (r.diff.entitiesInAwsOnly.length > 0) {
-            console.log(`${name} has records to delete`);
-            outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
-              await r.mapper.cloud.delete(e, context);
-            }));
-          }
-          return outArr;
-        })
-        .flat(9001);
-      if (promiseGenerators.length > 0) {
-        ranFullUpdate = true;
-        await lazyLoader(promiseGenerators);
-        const t6 = Date.now();
-        console.log(`AWS update time: ${t6 - t5}ms`);
-      }
-    } while(ranFullUpdate);
+      let ranUpdate = false;
+      do {
+        ranUpdate = false;
+        const cloudEntities: any[][] = [];
+        await lazyLoader(mappers.map((mapper, i) => async () => {
+          const entities = await mapper.cloud.read(context);
+          cloudEntities[i] = entities;
+        }));
+        const t3 = Date.now();
+        console.log(`Record acquisition time: ${t3 - t2}ms`);
+        const records = colToRow({
+          table: tables,
+          mapper: mappers,
+          dbEntity: dbEntities,
+          cloudEntity: cloudEntities,
+          comparator: comparators,
+          idGen: idGens,
+        });
+        const t4 = Date.now();
+        console.log(`AWS Mapping time: ${t4 - t3}ms`);
+        if (!records.length) { // Only possible on just-created databases
+          return res.end(`${dbname} checked and synced, total time: ${t4 - t1}ms`);
+        }
+        records.forEach(r => {
+          r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+        });
+        const t5 = Date.now();
+        console.log(`Diff time: ${t5 - t4}ms`);
+        const promiseGenerators = records
+          .map(r => {
+            const name = r.table;
+            console.log(`Checking ${name}`);
+            const outArr = [];
+            if (r.diff.entitiesInDbOnly.length > 0) {
+              console.log(`${name} has records to create`);
+              console.dir({
+                toCreate: r.diff.entitiesInDbOnly,
+              }, { depth: 4, });
+              outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
+                const out = await r.mapper.cloud.create(e, context);
+                if (out) {
+                  const es = Array.isArray(out) ? out : [out];
+                  es.forEach(e2 => {
+                    // Mutate the original entity with the returned entity's properties so the actual
+                    // record created is what is compared the next loop through
+                    Object.keys(e2).forEach(k => e[k] = e2[k]);
+                  });
+                  // Save the new entity to the database, as well
+                  await orm?.save(r.mapper.entity, out);
+                }
+              }));
+            }
+            if (r.diff.entitiesChanged.length > 0) {
+              console.log(`${name} has records to update`);
+              console.dir({
+                entitesChanged: r.diff.entitiesChanged,
+              }, { depth: 4, });
+              outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
+                const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
+                if (out) {
+                  const es = Array.isArray(out) ? out : [out];
+                  es.forEach(e2 => {
+                    // Mutate the original entity with the returned entity's properties so the actual
+                    // record created is what is compared the next loop through
+                    Object.keys(e2).forEach(k => ec.db[k] = e2[k]);
+                  });
+                  // TODO: Should we also save to ORM?
+                }
+              }));
+            }
+            if (r.diff.entitiesInAwsOnly.length > 0) {
+              console.log(`${name} has records to delete`);
+              console.dir({
+                toDelete: r.diff.entitiesInAwsOnly,
+              }, { depth: 4, });
+              outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
+                await r.mapper.cloud.delete(e, context);
+              }));
+            }
+            return outArr;
+          })
+          .flat(9001);
+        if (promiseGenerators.length > 0) {
+          ranUpdate = true;
+          ranFullUpdate = true;
+          await lazyLoader(promiseGenerators);
+          const t6 = Date.now();
+          console.log(`AWS update time: ${t6 - t5}ms`);
+        }
+      } while(ranUpdate);
+    } while (ranFullUpdate);
     const t7 = Date.now();
     res.end(`${dbname} checked and synced, total time: ${t7 - t1}ms`);
   } catch (e: any) {
