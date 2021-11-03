@@ -42,7 +42,9 @@ export async function migrate(conn: Connection) {
 }
 
 export async function populate(awsClient: AWS, indexes: IndexedAWS, source?: 'db' | 'cloud') {
-  const promiseGenerators = Object.values(Modules).map(mod => Object.values(mod.mappers)).flat()
+  const promiseGenerators = Object.values(Modules)
+    .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
+    .flat()
     .filter(mapper => {
       let out = true;
       if (out && typeof source === 'string') {
