@@ -4,9 +4,9 @@
 
 This is where the main IaSQL change engine is located
 
-### Web
+### Docs
 
-This is where the IaSQL frontend is located
+This is where the IaSQL documentation is located
 
 ### CLI
 

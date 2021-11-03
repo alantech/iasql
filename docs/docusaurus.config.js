@@ -2,7 +2,7 @@ const lightCodeTheme = require('prism-react-renderer/themes/github');
 const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 
 const baseConfig = {
-  url: 'https://beta.iasql.com',
+  url: 'https://docs.iasql.com',
 };
 const localConfig = {
   url: 'http://localhost:3000'
@@ -19,7 +19,7 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
   trailingSlash: true,
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/favicon.png',
   organizationName: 'alantech', // Usually your GitHub org/user name.
   projectName: 'iasql', // Usually your repo name.
 
@@ -31,10 +31,9 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
+          routeBasePath: '/',
         },
-        blog: {
-          showReadingTime: true,
-        },
+        blog: false,
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
         },
@@ -53,24 +52,34 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
         },
         items: [
           {
-            type: 'doc',
-            docId: 'intro',
-            position: 'right',
-            label: 'Docs',
+            to: 'https://iasql.com',
+            target: '_self',
+            label: 'Home',
+            position: 'right'
           },
-          {to: '/blog', label: 'Blog', position: 'right'},
-          {to: '/schema', label: 'Schema', position: 'right'},
+          {
+            to: 'https://blog.iasql.com',
+            target: '_self',
+            label: 'Blog',
+            position: 'right'
+          },
         ],
       },
       footer: {
         style: 'dark',
         links: [
           {
-            title: 'Docs',
+            title: 'Product',
             items: [
               {
-                label: 'Tutorial',
-                to: '/docs/intro',
+                label: 'Home',
+                to: 'https://iasql.com',
+                target: '_self',
+              },
+              {
+                label: 'Blog',
+                to: 'https://blog.iasql.com',
+                target: '_self',
               },
             ],
           },
@@ -84,19 +93,6 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
               {
                 label: 'Twitter',
                 href: 'https://twitter.com/sqlcloudinfra',
-              },
-            ],
-          },
-          {
-            title: 'More',
-            items: [
-              {
-                label: 'Blog',
-                to: '/blog',
-              },
-              {
-                label: 'Schema',
-                to: '/schema',
               },
             ],
           },
