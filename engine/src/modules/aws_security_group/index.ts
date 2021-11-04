@@ -40,7 +40,7 @@ export const AwsSecurityGroupModule: ModuleInterface = {
   mappers: {
     securityGroup: new Mapper<AwsSecurityGroup>({
       entity: AwsSecurityGroup,
-      entityId: (e: AwsSecurityGroup) => e.groupName ?? '',
+      entityId: (e: AwsSecurityGroup) => e.groupId ?? '',
       equals: (a: AwsSecurityGroup, b: AwsSecurityGroup) => a.description === b.description &&
         a.groupName === b.groupName &&
         a.ownerId === b.ownerId &&
