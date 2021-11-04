@@ -4,16 +4,19 @@ export type Context = { [key: string]: any };
 
 export interface CrudInterface<E> {
   create: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
-  read: (ctx: Context, options?: any) => Promise<E | E[]>;
+  read: (ctx: Context, id?: string | string[]) => Promise<E | E[]>;
   update: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
   delete: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
 }
 
 export class Crud<E> {
   createFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
-  readFn: (ctx: Context, options?: any) => Promise<E | E[]>;
+  readFn: (ctx: Context, id?: string | string[]) => Promise<E | E[]>;
   updateFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
   deleteFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
+  dest?: 'db' | 'cloud';
+  entityName?: string;
+  entityId?: (e: E) => string;
   
   constructor(def: CrudInterface<E>) {
     this.createFn = def.create;
@@ -22,17 +25,59 @@ export class Crud<E> {
     this.deleteFn = def.delete;
   }
 
-  // TODO: Add memoization of everything
-  async create(e: E | E[], ctx: Context) {
-    return await this.createFn(e, ctx);
+  memo(e: void | E | E[], ctx: Context) {
+    if (!e) return;
+    const es = Array.isArray(e) ? e : [e];
+    const dest = this.dest ?? 'What?';
+    const entityName = this.entityName ?? 'What?';
+    const entityId = this.entityId ?? function (_e: E) { return 'What?'; };
+    es.forEach(e => {
+      ctx.memo[dest] = ctx.memo[dest] ?? {};
+      ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
+      ctx.memo[dest][entityName][entityId(e)] = e;
+    });
+    return e;
   }
 
-  async read(ctx: Context, options?: any) {
-    return await this.readFn(ctx, options);
+  // TODO: Add memoization of everything
+  async create(e: E | E[], ctx: Context) {
+    return this.memo(await this.createFn(e, ctx), ctx);
+  }
+
+  async read(ctx: Context, id?: string | string[]) {
+    if (id) {
+      const dest = this.dest ?? 'What?';
+      const entityName = this.entityName ?? 'What?';
+      if (Array.isArray(id)) {
+        const missing: string[] = [];
+        const vals = id.map(i => {
+          const val = ctx.memo?.[dest]?.[entityName]?.[i];
+          if (!val) {
+            missing.push(i);
+            return i;
+          } else {
+            return val;
+          }
+        });
+        if (missing.length === 0) return vals;
+        const missingVals = this.memo(await this.readFn(ctx, missing), ctx) as E[];
+        // The order is the same in both lists, so we can cheat and do a single pass
+        for (let i = 0, j = 0; i < vals.length; i++) {
+          if (vals[i] === missing[j]) {
+            vals[i] = missingVals[j];
+            j++;
+          }
+        }
+        return vals;
+      } else {
+        return ctx.memo?.[dest]?.[entityName]?.[id] ?? this.memo(await this.readFn(ctx, id), ctx);
+      }
+    }
+    return this.memo(await this.readFn(ctx, id), ctx);
   }
 
   async update(e: E | E[], ctx: Context) {
-    return await this.updateFn(e, ctx);
+    return this.memo(await this.updateFn(e, ctx), ctx);
   }
 
   async delete(e: E | E[], ctx: Context) {
@@ -49,6 +94,30 @@ export interface MapperInterface<E> {
   cloud: Crud<E>;
 }
 
+export class Mapper<E> {
+  entity: { new(): E };
+  entityId: (e: E) => string;
+  equals: (a: E, b: E) => boolean;
+  source: 'db' | 'cloud';
+  db: Crud<E>;
+  cloud: Crud<E>;
+
+  constructor(def: MapperInterface<E>) {
+    this.entity = def.entity;
+    this.entityId = def.entityId;
+    this.equals = def.equals;
+    this.source = def.source;
+    this.db = def.db;
+    this.db.entityName = def.entity.name;
+    this.db.entityId = def.entityId;
+    this.db.dest = 'db';
+    this.cloud = def.cloud;
+    this.cloud.entityName = def.entity.name;
+    this.cloud.entityId = def.entityId;
+    this.cloud.dest = 'cloud';
+  }
+}
+
 export interface ModuleInterface {
   name: string;
   //version: string; // TODO: Get versioning working
@@ -63,7 +132,7 @@ export interface ModuleInterface {
     // `aws_account` module, for instance.
     context?: Context;
   };
-  mappers: { [key: string]: MapperInterface<any>, };
+  mappers: { [key: string]: Mapper<any>, };
   migrations: {
     // This part is modeled partly on Debian packages, and partly on Node packages. (It's mostly the
     // completeness of options that are taken from Node). There are four kinds of events encoded in
