@@ -178,7 +178,7 @@ ${Object.keys(tableCollisions)
 
   // Find all of the installed modules, and create the context object only for these
   const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
-  const context: Modules.Context = { orm, }; // Every module gets access to the DB
+  const context: Modules.Context = { orm, memo: {}, }; // Every module gets access to the DB
   for (let name of moduleNames) {
     const mod = Object.values(Modules).find(m => m.name === name) as Modules.ModuleInterface;
     if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
@@ -197,8 +197,10 @@ ${Object.keys(tableCollisions)
       console.log({ mapper, });
     } else {
       console.log('expected');
-      console.log({ e, });
-      await orm.save(mapper.entity, e);
+      await Promise.all(e.map(async (e: any) => {
+        console.log(e);
+        await orm.save(mapper.entity, e);
+      }));
     }
   }
   res.json("Done!");

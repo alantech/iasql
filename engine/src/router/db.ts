@@ -144,7 +144,7 @@ db.get('/check/:dbAlias', async (req, res) => {
     });
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
-    const context: Modules.Context = { orm, }; // Every module gets access to the DB
+    const context: Modules.Context = { orm, memo: {}, }; // Every module gets access to the DB
     for (let name of moduleNames) {
       const mod = Object.values(Modules).find(m => m.name === name) as Modules.ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
@@ -236,7 +236,9 @@ db.get('/check/:dbAlias', async (req, res) => {
                     // record created is what is compared the next loop through
                     Object.keys(e2).forEach(k => ec.db[k] = e2[k]);
                   });
-                  // TODO: Should we also save to ORM?
+                  // TODO: Should we also save to ORM? (Relying on this being 'no' for now, but that
+                  // doesn't seem tenable *if* an update does actually mutate another column than
+                  // one mutated by the user.
                 }
               }));
             }

@@ -1,6 +1,6 @@
 import { AWS, } from '../../services/gateways/aws'
 import { AwsAccountEntity, } from './entity'
-import { Context, MapperInterface, ModuleInterface, Crud, } from '../interfaces'
+import { Context, Mapper, ModuleInterface, Crud, } from '../interfaces'
 import { awsAccount1635286464133, } from './migration/1635286464133-aws_account'
 
 export const AwsAccount: ModuleInterface = {
@@ -25,7 +25,7 @@ export const AwsAccount: ModuleInterface = {
     },
   },
   mappers: {
-    awsAccount: {
+    awsAccount: new Mapper<AwsAccountEntity>({
       entity: AwsAccountEntity,
       entityId: (e: AwsAccountEntity) => e.region,
       equals: (_a: AwsAccountEntity, _b: AwsAccountEntity) => true,
@@ -43,7 +43,7 @@ export const AwsAccount: ModuleInterface = {
         update: async (_e: AwsAccountEntity | AwsAccountEntity[], _ctx: Context) => {},
         delete: async (_e: AwsAccountEntity | AwsAccountEntity[], _ctx: Context) => {},
       }),
-    } as MapperInterface<AwsAccountEntity>,
+    }),
   },
   migrations: {
     postinstall: awsAccount1635286464133.prototype.up,
