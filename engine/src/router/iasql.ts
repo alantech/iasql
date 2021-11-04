@@ -136,6 +136,7 @@ iasql.post('/setup/core', async (req, res) => {
       `);
     }
     // create engine container
+    const defaultVpc = 'vpc-41895538';
     const engineContainer = 'iasql-engine-container';
     const iasqlEnginePort = 8088;
     const iasqlEngineEnvironment = {
@@ -174,28 +175,12 @@ iasql.post('/setup/core', async (req, res) => {
       res.status(500).end(`failure to setup IaSQL's base components: ${e?.message ?? ''}\n${e?.stack ?? ''}\n${JSON.stringify(e?.metadata ?? [])}\n`);
     }
     // create engine security group
-    // TODO: create security group store procedure
-    // create engine service
-    const iasqlEngineService = 'iasql-engine-service';
-    const engineDesiredCount = 1;
-    const engineLaunchType = 'FARGATE';
-    const engineSchedulingStrategy = 'REPLICA';
-    const defaultVpc = 'vpc-41895538';
-    const subnets = (await orm.find(Subnet, {
-      where: {
-        vpcId: { vpcId: defaultVpc },
-      },
-      relations: ["vpcId"],
-    })).map((sn: any) => `'${sn.subnetId}'`);
-    const engineAssignPublicIp = 'ENABLED'; // It have to be enabled to access repository
-    const iasqlEngineTargetGroup = 'iasql-engine-target-group';
-    const iasqlEngineLoadBalancer = 'iasql-engine-load-balancer';
-    const engineCurrentTaskDefinition = await orm.findOne(TaskDefinition, { where: { family: iasqlEngineFamily }, order: { revision: 'DESC' } });
+    const iasqlEngineSg = 'iasql-engine-security-group';
     await orm.query(`
       select *
-      from create_ecs_service(
-        '${iasqlEngineService}', '${iasqlCluster}', '${engineCurrentTaskDefinition.familyRevision}', ${engineDesiredCount}, '${engineLaunchType}',
-        '${engineSchedulingStrategy}', array[${subnets}], array['default'], '${engineAssignPublicIp}', '${iasqlEngineTargetGroup}', '${iasqlEngineLoadBalancer}'
+      from create_security_group(
+        '${iasqlEngineSg}', '${iasqlEngineSg}', '${defaultVpc}',
+        '[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ${iasqlEnginePort}, "toPort": ${iasqlEnginePort}, "cidrIpv4": "0.0.0.0/0"}]'
       );
     `);
     // create postgres container
@@ -237,21 +222,12 @@ iasql.post('/setup/core', async (req, res) => {
       res.status(500).end(`failure to setup IaSQL's base components: ${e?.message ?? ''}\n${e?.stack ?? ''}\n${JSON.stringify(e?.metadata ?? [])}\n`);
     }
     // create postgres security group
-    // TODO: create security group store procedure
-    // create postgres service
-    const iasqlPostgresService = 'iasql-postgres-service';
-    const postgresDesiredCount = 1;
-    const postgresLaunchType = 'FARGATE';
-    const postgresSchedulingStrategy = 'REPLICA';
-    const postgresAssignPublicIp = 'ENABLED'; // It have to be enabled to access repository
-    const iasqlPostgresTargetGroup = 'iasql-postgres-target-group';
-    const iasqlPostgresLoadBalancer = 'iasql-postgres-load-balancer';
-    const postgresCurrentTaskDefinition = await orm.findOne(TaskDefinition, { where: { family: iasqlPostgresFamily }, order: { revision: 'DESC' } });
+    const iasqlPostgresSg = 'iasql-postgres-security-group';
     await orm.query(`
       select *
-      from create_ecs_service(
-        '${iasqlPostgresService}', '${iasqlCluster}', '${postgresCurrentTaskDefinition.familyRevision}', ${postgresDesiredCount}, '${postgresLaunchType}',
-        '${postgresSchedulingStrategy}', array[${subnets}], array['default'], '${postgresAssignPublicIp}', '${iasqlPostgresTargetGroup}', '${iasqlPostgresLoadBalancer}'
+      from create_security_group(
+        '${iasqlPostgresSg}', '${iasqlPostgresSg}', '${defaultVpc}',
+        '[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ${iasqlPostgresPort}, "toPort": ${iasqlPostgresPort}, "cidrIpv4": "0.0.0.0/0"}]'
       );
     `);
   } catch (e: any) {
@@ -259,5 +235,163 @@ iasql.post('/setup/core', async (req, res) => {
   } finally {
     await orm?.dropConn();
   }
+  res.end('ok');
+});
+
+iasql.post('/setup/service', async (req, res) => {
+  const { dbAlias, } = req.body;
+  const orm = await TypeormWrapper.createConn(dbAlias);
+  try {
+    const iasqlCluster = 'iasql-cluster';
+    const defaultVpc = 'vpc-41895538';
+    const subnets = (await orm.find(Subnet, {
+      where: {
+        vpcId: { vpcId: defaultVpc },
+      },
+      relations: ["vpcId"],
+    })).map((sn: any) => `'${sn.subnetId}'`);
+    const iasqlEngineFamily = 'iasql-engine-task-definition';
+    // create engine service
+    const iasqlEngineService = 'iasql-engine-service';
+    const engineDesiredCount = 1;
+    const engineLaunchType = 'FARGATE';
+    const engineSchedulingStrategy = 'REPLICA';
+    const engineAssignPublicIp = 'ENABLED'; // It have to be enabled to access repository
+    const iasqlEngineTargetGroup = 'iasql-engine-target-group';
+    const iasqlEngineSg = 'iasql-engine-security-group';
+    const engineCurrentTaskDefinition = await orm.findOne(TaskDefinition, { where: { family: iasqlEngineFamily }, order: { revision: 'DESC' } });
+    await orm.query(`
+      select *
+      from create_ecs_service(
+        '${iasqlEngineService}', '${iasqlCluster}', '${engineCurrentTaskDefinition.familyRevision}', ${engineDesiredCount}, '${engineLaunchType}',
+        '${engineSchedulingStrategy}', array[${subnets}], array['${iasqlEngineSg}'], '${engineAssignPublicIp}', '${iasqlEngineTargetGroup}'
+      );
+    `);
+
+    const iasqlPostgresFamily = 'iasql-postgres-task-definition';
+    const iasqlPostgresSg = 'iasql-postgres-security-group';
+    // create postgres service
+    const iasqlPostgresService = 'iasql-postgres-service';
+    const postgresDesiredCount = 1;
+    const postgresLaunchType = 'FARGATE';
+    const postgresSchedulingStrategy = 'REPLICA';
+    const postgresAssignPublicIp = 'ENABLED'; // It have to be enabled to access repository
+    const iasqlPostgresTargetGroup = 'iasql-postgres-target-group';
+    const postgresCurrentTaskDefinition = await orm.findOne(TaskDefinition, { where: { family: iasqlPostgresFamily }, order: { revision: 'DESC' } });
+    await orm.query(`
+      select *
+      from create_ecs_service(
+        '${iasqlPostgresService}', '${iasqlCluster}', '${postgresCurrentTaskDefinition.familyRevision}', ${postgresDesiredCount}, '${postgresLaunchType}',
+        '${postgresSchedulingStrategy}', array[${subnets}], array['${iasqlPostgresSg}'], '${postgresAssignPublicIp}', '${iasqlPostgresTargetGroup}'
+      );
+    `);
+  } catch (e: any) {
+    res.status(500).end(`failure to setup IaSQL's core components: ${e?.message ?? ''}\n${e?.stack ?? ''}\n${JSON.stringify(e?.metadata ?? [])}\n`);
+  } finally {
+    await orm?.dropConn();
+  }
+  res.end('ok');
+});
+
+iasql.delete('/flush/core/:dbAlias', async (req, res) => {
+  const { dbAlias, } = req.params;
+  const orm = await TypeormWrapper.createConn(dbAlias);
+
+  try {
+    const iasqlEngineSg = 'iasql-engine-security-group';
+    await orm.query(`
+      delete from security_group_rule sgr
+        using security_group sg
+      where sg.id = sgr.security_group_id and sg.group_name = '${iasqlEngineSg}';
+    `);
+    await orm.query(`
+      delete from security_group where group_name = '${iasqlEngineSg}';
+    `);
+  } catch (e) {
+    console.log(`Error deleting security_group ${e}`);
+  }
+  try {
+    const iasqlEngineFamily = 'iasql-engine-task-definition';
+    await orm.query(`
+        delete from task_definition where family = '${iasqlEngineFamily}';
+      `);
+  } catch (e) {
+    console.log(`Error deleting task_definition ${e}`);
+  }
+  try {
+    const engineContainer = 'iasql-engine-container';
+    await orm.query(`
+        delete from container where name = '${engineContainer}';
+      `);
+  } catch (e) {
+    console.log(`Error deleting container ${e}`);
+  }
+
+  try {
+    const iasqlPostgresSg = 'iasql-postgres-security-group';
+    await orm.query(`
+      delete from security_group_rule sgr
+        using security_group sg
+      where sg.id = sgr.security_group_id and sg.group_name = '${iasqlPostgresSg}';
+    `);
+    await orm.query(`
+        delete from security_group where group_name = '${iasqlPostgresSg}';
+      `);
+  } catch (e) {
+    console.log(`Error deleting security_group ${e}`);
+  }
+  try {
+    const iasqlPostgresFamily = 'iasql-postgres-task-definition';
+    await orm.query(`
+        delete from task_definition where family = '${iasqlPostgresFamily}';
+      `);
+  } catch (e) {
+    console.log(`Error deleting task_definition ${e}`);
+  }
+  try {
+    const postgresContainer = 'iasql-postgres-container';
+    await orm.query(`
+        delete from container where name = '${postgresContainer}';
+      `);
+  } catch (e) {
+    console.log(`Error deleting container ${e}`);
+  }
+
+  try {
+    const iasqlCluster = 'iasql-cluster';
+    await orm.query(`
+        delete from cluster where name = '${iasqlCluster}';
+      `);
+  } catch (e) {
+    console.log(`Error deleting cluster ${e}`);
+  }
+
+  await orm?.dropConn();
+  res.end('ok');
+});
+
+iasql.delete('/flush/services/:dbAlias', async (req, res) => {
+  const { dbAlias, } = req.params;
+  const orm = await TypeormWrapper.createConn(dbAlias);
+
+  try {
+    const iasqlEngineService = 'iasql-engine-service';
+    await orm.query(`
+        delete from service where name = '${iasqlEngineService}';
+      `);
+  } catch (e) {
+    console.log(`Error deleting service ${e}`);
+  }
+
+  try {
+    const iasqlPostgresService = 'iasql-postgres-service';
+    await orm.query(`
+        delete from service where name = '${iasqlPostgresService}';
+      `);
+  } catch (e) {
+    console.log(`Error deleting service ${e}`);
+  }
+
+  await orm?.dropConn();
   res.end('ok');
 });
