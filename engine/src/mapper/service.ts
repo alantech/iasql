@@ -33,10 +33,8 @@ export const ServiceMapper = new EntityMapper(Service, {
   desiredCount: (s: ServiceAWS) => s.desiredCount,
   launchType: (s: ServiceAWS) => s.launchType,
   schedulingStrategy: (s: ServiceAWS) => s.schedulingStrategy,
-  network: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) => {
-    const networkConf = indexes.get(AwsVpcConf, s.serviceName);
-    return await AwsVpcConfMapper.fromAWS(networkConf, awsClient, indexes);
-  },
+  network: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) =>
+    await AwsVpcConfMapper.fromAWS(s.networkConfiguration?.awsvpcConfiguration, awsClient, indexes),
   loadBalancers: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (s?.loadBalancers?.length) {
       return await Promise.all(s?.loadBalancers.map(lb => ServiceLoadBalancerMapper.fromAWS(lb, awsClient, indexes)));
