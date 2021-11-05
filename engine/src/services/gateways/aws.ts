@@ -78,6 +78,12 @@ import {
   paginateDescribeLoadBalancers,
   DescribeLoadBalancersCommand,
   DeleteLoadBalancerCommand,
+  CreateListenerCommand,
+  CreateListenerCommandInput,
+  Listener,
+  paginateDescribeListeners,
+  DescribeListenersCommand,
+  DeleteListenerCommand,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 import {
   CreateDBInstanceCommand,
@@ -898,6 +904,44 @@ export class AWS {
   async deleteLoadBalancer(arn: string) {
     await this.elbClient.send(
       new DeleteLoadBalancerCommand({ LoadBalancerArn: arn, })
+    );
+  }
+
+  async createListener(input: CreateListenerCommandInput): Promise<Listener | null> {
+    const create = await this.elbClient.send(
+      new CreateListenerCommand(input),
+    );
+    return create?.Listeners?.pop() ?? null;
+  }
+
+  async getListeners(loadBalancerArns: string[]) {
+    const listeners = [];
+    for (const arn of loadBalancerArns) {
+      const paginator = paginateDescribeListeners({
+        client: this.elbClient,
+        pageSize: 25,
+      }, {
+        LoadBalancerArn: arn,
+      });
+      for await (const page of paginator) {
+        listeners.push(...(page.Listeners ?? []));
+      }
+    }
+    return {
+      Listeners: listeners,
+    };
+  }
+
+  async getListener(arn: string) {
+    const result = await this.elbClient.send(
+      new DescribeListenersCommand({ ListenerArns: [arn], })
+    );
+    return result?.Listeners?.[0];
+  }
+
+  async deleteListener(arn: string) {
+    await this.elbClient.send(
+      new DeleteListenerCommand({ ListenerArn: arn, })
     );
   }
 }

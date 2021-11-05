@@ -33,12 +33,8 @@ export const ELBMapper = new EntityMapper(ELB, {
     }
   },
   availabilityZone: async (elb: LoadBalancer, awsClient: AWS, indexes: IndexedAWS) => {
-    if (elb?.AvailabilityZones?.length) {
-      const az = await indexes.getOr(AvailabilityZone, elb.AvailabilityZones.pop()!.ZoneName!, awsClient.getAvailabilityZoneByName.bind(awsClient));
-      return await AvailabilityZoneMapper.fromAWS(az, awsClient, indexes);
-    } else {
-      return null;
-    }
+    const az = await indexes.getOr(AvailabilityZone, elb.AvailabilityZones![0].ZoneName!, awsClient.getAvailabilityZoneByName.bind(awsClient));
+    return await AvailabilityZoneMapper.fromAWS(az, awsClient, indexes);
   },
   securityGroups: async (elb: LoadBalancer, awsClient: AWS, indexes: IndexedAWS) => {
     if (elb?.SecurityGroups?.length) {
@@ -50,46 +46,44 @@ export const ELBMapper = new EntityMapper(ELB, {
   },
   ipAddressType: (elb: LoadBalancer) => elb.IpAddressType,
   customerOwnedIpv4Pool: (elb: LoadBalancer) => elb?.CustomerOwnedIpv4Pool ?? null,
-},
-  {
-    readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
-      const t1 = Date.now();
-      const loadBalancers = (await awsClient.getLoadBalancers())?.LoadBalancers ?? [];
-      indexes.setAll(ELB, loadBalancers, 'LoadBalancerArn');
-      const t2 = Date.now();
-      console.log(`ELBs set in ${t2 - t1}ms`);
-    },
-    createAWS: async (obj: ELB, awsClient: AWS, indexes: IndexedAWS) => {
-      const result = await awsClient.createLoadBalancer({
-        Name: obj.loadBalancerName,
-        Subnets: obj.subnets?.map(sn => sn.subnetId!),
-        SecurityGroups: obj.securityGroups?.map(sg => sg.groupId!),
-        Scheme: obj.scheme,
-        Type: obj.elbType,
-        IpAddressType: obj.ipAddressType,
-        CustomerOwnedIpv4Pool: obj.customerOwnedIpv4Pool,
-      });
-      // TODO: Handle if it fails (somehow)
-      if (!result?.hasOwnProperty('LoadBalancerArn')) { // Failure
-        throw new Error('what should we do here?');
-      }
-      const created = await awsClient.getLoadBalancer(result.LoadBalancerArn ?? '');
-      indexes.set(ELB, created?.LoadBalancerArn ?? '', created);
-      const newEntity: ELB = await ELBMapper.fromAWS(created, awsClient, indexes);
-      newEntity.id = obj.id;
-      for (const key of Object.keys(newEntity)) {
-        (obj as any)[key] = (newEntity as any)[key];
-      }
-      return newEntity;
-    },
-    updateAWS: async (obj: ELB, awsClient: AWS, indexes: IndexedAWS) => { throw new Error('tbd') },
-    deleteAWS: async (obj: ELB, awsClient: AWS, indexes: IndexedAWS) => {
-      if (obj.loadBalancerArn) {
-        await awsClient.deleteLoadBalancer(obj.loadBalancerArn);
-        // TODO: What does the error even look like? Docs are spotty on this
-        indexes.del(ELB, obj.loadBalancerArn);
-      }
-      return obj;
-    },
-  }
-)
+}, {
+  readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
+    const t1 = Date.now();
+    const loadBalancers = (await awsClient.getLoadBalancers())?.LoadBalancers ?? [];
+    indexes.setAll(ELB, loadBalancers, 'LoadBalancerArn');
+    const t2 = Date.now();
+    console.log(`ELBs set in ${t2 - t1}ms`);
+  },
+  createAWS: async (obj: ELB, awsClient: AWS, indexes: IndexedAWS) => {
+    const result = await awsClient.createLoadBalancer({
+      Name: obj.loadBalancerName,
+      Subnets: obj.subnets?.map(sn => sn.subnetId!),
+      SecurityGroups: obj.securityGroups?.map(sg => sg.groupId!),
+      Scheme: obj.scheme,
+      Type: obj.elbType,
+      IpAddressType: obj.ipAddressType,
+      CustomerOwnedIpv4Pool: obj.customerOwnedIpv4Pool,
+    });
+    // TODO: Handle if it fails (somehow)
+    if (!result?.hasOwnProperty('LoadBalancerArn')) { // Failure
+      throw new Error('what should we do here?');
+    }
+    const created = await awsClient.getLoadBalancer(result.LoadBalancerArn ?? '');
+    indexes.set(ELB, created?.LoadBalancerArn ?? '', created);
+    const newEntity: ELB = await ELBMapper.fromAWS(created, awsClient, indexes);
+    newEntity.id = obj.id;
+    for (const key of Object.keys(newEntity)) {
+      (obj as any)[key] = (newEntity as any)[key];
+    }
+    return newEntity;
+  },
+  updateAWS: async (obj: ELB, awsClient: AWS, indexes: IndexedAWS) => { throw new Error('tbd') },
+  deleteAWS: async (obj: ELB, awsClient: AWS, indexes: IndexedAWS) => {
+    if (obj.loadBalancerArn) {
+      await awsClient.deleteLoadBalancer(obj.loadBalancerArn);
+      // TODO: What does the error even look like? Docs are spotty on this
+      indexes.del(ELB, obj.loadBalancerArn);
+    }
+    return obj;
+  },
+})
