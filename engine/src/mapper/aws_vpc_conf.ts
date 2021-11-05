@@ -18,7 +18,7 @@ export const AwsVpcConfMapper = new EntityMapper(AwsVpcConf, {
   },
   subnet: async (avc: AwsVpcConfiguration, awsClient: AWS, indexes: IndexedAWS) => {
     if (avc?.subnets?.length) {
-      const subnet = (await Promise.all(avc.subnets.map(s => indexes.getOr(Subnet, s, awsClient.getSubnet.bind(awsClient))))).pop();
+      const subnet = (await Promise.all(avc.subnets.map(s => indexes.getOr(Subnet, s, awsClient.getSubnet.bind(awsClient)))))[0];
       return await SubnetMapper.fromAWS(subnet, awsClient, indexes);
     } else {
       return null;

@@ -118,7 +118,7 @@ export class ELB {
   @noDiff
   @ManyToOne(() => AvailabilityZone, { eager: true, })
   @JoinColumn({ name: 'availability_zone_id', })
-  availabilityZone?: AvailabilityZone;
+  availabilityZone: AvailabilityZone;
 
   @noDiff
   @ManyToMany(() => SecurityGroup, { eager: true, })
