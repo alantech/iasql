@@ -14,10 +14,7 @@ export const ListenerMapper = new EntityMapper(Listener, {
   protocol: (l: ListenerAWS) => l.Protocol,
   elb: async (l: ListenerAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (l?.LoadBalancerArn) {
-      console.log(`load balancer arn ${l.LoadBalancerArn}`)
       const entity = await indexes.getOr(ELB, l.LoadBalancerArn, awsClient.getLoadBalancer.bind(awsClient));
-      console.log(`entity: ${JSON.stringify(entity)}`)
-      console.log(`load balancer found ${entity.LoadBalancerArn}`);
       return await ELBMapper.fromAWS(entity, awsClient, indexes);
     } else {
       return null;
@@ -35,16 +32,9 @@ export const ListenerMapper = new EntityMapper(Listener, {
     readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
       const t1 = Date.now();
       const loadBalancers = indexes.get(ELB);
-      console.log(`load balancers indexed ${JSON.stringify(loadBalancers)}`)
       if (!loadBalancers) throw new DepError('ELBs must be loaded first');
       const loadBalancerArns = Object.keys(loadBalancers);
-      let listeners: any = []
-      try {
-        listeners = (await awsClient.getListeners(loadBalancerArns))?.Listeners ?? [];
-      } catch (e) {
-        console.log(e);
-        throw e;
-      }
+      const listeners = (await awsClient.getListeners(loadBalancerArns))?.Listeners ?? [];
       indexes.setAll(Listener, listeners, 'ListenerArn');
       const t2 = Date.now();
       console.log(`Listeners set in ${t2 - t1}ms`);
