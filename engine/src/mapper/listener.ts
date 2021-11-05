@@ -13,12 +13,8 @@ export const ListenerMapper = new EntityMapper(Listener, {
   port: (l: ListenerAWS) => l.Port,
   protocol: (l: ListenerAWS) => l.Protocol,
   elb: async (l: ListenerAWS, awsClient: AWS, indexes: IndexedAWS) => {
-    if (l?.LoadBalancerArn) {
-      const entity = await indexes.getOr(ELB, l.LoadBalancerArn, awsClient.getLoadBalancer.bind(awsClient));
-      return await ELBMapper.fromAWS(entity, awsClient, indexes);
-    } else {
-      return null;
-    }
+    const entity = await indexes.getOr(ELB, l.LoadBalancerArn!, awsClient.getLoadBalancer.bind(awsClient));
+    return await ELBMapper.fromAWS(entity, awsClient, indexes);
   },
   defaultActions: async (l: ListenerAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (l?.DefaultActions) {

@@ -31,7 +31,7 @@ export class Listener {
   @JoinColumn({
     name: 'elb_id',
   })
-  elb?: ELB;
+  elb: ELB;
 
   @Column({
     type: 'integer',
