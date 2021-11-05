@@ -33,12 +33,8 @@ export const ELBMapper = new EntityMapper(ELB, {
     }
   },
   availabilityZone: async (elb: LoadBalancer, awsClient: AWS, indexes: IndexedAWS) => {
-    if (elb?.AvailabilityZones?.length) {
-      const az = await indexes.getOr(AvailabilityZone, elb.AvailabilityZones[0]!.ZoneName!, awsClient.getAvailabilityZoneByName.bind(awsClient));
-      return await AvailabilityZoneMapper.fromAWS(az, awsClient, indexes);
-    } else {
-      return null;
-    }
+    const az = await indexes.getOr(AvailabilityZone, elb.AvailabilityZones![0].ZoneName!, awsClient.getAvailabilityZoneByName.bind(awsClient));
+    return await AvailabilityZoneMapper.fromAWS(az, awsClient, indexes);
   },
   securityGroups: async (elb: LoadBalancer, awsClient: AWS, indexes: IndexedAWS) => {
     if (elb?.SecurityGroups?.length) {
