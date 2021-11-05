@@ -83,11 +83,11 @@ export class Service {
   schedulingStrategy?: SchedulingStrategy;
 
   @noDiff
-  @OneToOne(() => AwsVpcConf, { eager: true, })
+  @OneToOne(() => AwsVpcConf, { nullable: true, eager: true, })
   @JoinColumn({
     name: 'aws_vpc_conf_id',
   })
-  network: AwsVpcConf;
+  network?: AwsVpcConf;
 
   @noDiff
   @ManyToMany(() => ServiceLoadBalancer, { cascade: true, eager: true, })

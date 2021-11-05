@@ -33,15 +33,15 @@ export const ServiceMapper = new EntityMapper(Service, {
   desiredCount: (s: ServiceAWS) => s.desiredCount,
   launchType: (s: ServiceAWS) => s.launchType,
   schedulingStrategy: (s: ServiceAWS) => s.schedulingStrategy,
-  network: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) =>
-    await AwsVpcConfMapper.fromAWS(s.networkConfiguration?.awsvpcConfiguration, awsClient, indexes),
-  loadBalancers: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) => {
-    if (s?.loadBalancers?.length) {
-      return await Promise.all(s?.loadBalancers.map(lb => ServiceLoadBalancerMapper.fromAWS(lb, awsClient, indexes)));
+  network: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) => {
+    if (s?.networkConfiguration?.awsvpcConfiguration) {
+      return await AwsVpcConfMapper.fromAWS(s.networkConfiguration.awsvpcConfiguration, awsClient, indexes);
     } else {
-      return [];
+      return null;
     }
   },
+  loadBalancers: (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) =>
+    Promise.all(s?.loadBalancers?.map(lb => ServiceLoadBalancerMapper.fromAWS(lb, awsClient, indexes)) ?? []),
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
