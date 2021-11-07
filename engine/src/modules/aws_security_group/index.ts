@@ -57,7 +57,7 @@ export const AwsSecurityGroupModule: ModuleInterface = {
         create: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(e) ? e : [e];
-          return await Promise.all(es.map(async (e) => {
+          const out = await Promise.all(es.map(async (e) => {
             // First construct the security group
             const result = await client.createSecurityGroup({
               Description: e.description,
@@ -69,7 +69,6 @@ export const AwsSecurityGroupModule: ModuleInterface = {
             if (!result.hasOwnProperty('GroupId')) { // Failure
               throw new Error('what should we do here?');
             }
-            // AWS automatically creates a default security group rule that we need to keep around
             // Re-get the inserted security group to get all of the relevant records we care about
             const newGroup = await client.getSecurityGroup(result.GroupId ?? '');
             // We map this into the same kind of entity as `obj`
@@ -77,9 +76,28 @@ export const AwsSecurityGroupModule: ModuleInterface = {
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database
             newEntity.id = e.id;
-            // It's up to the caller if they want to actually update into the DB or not, though.
+            // Save the security group record back into the database to get the new fields updated
+            await AwsSecurityGroupModule.mappers.securityGroup.db.update(newEntity, ctx);
+            // AWS automatically creates a default security group rule that we need to keep around
+            const allSecurityGroupRules = await client.getSecurityGroupRules();
+            const newSecurityGroupRule = allSecurityGroupRules.SecurityGroupRules
+              .find(sgr => sgr.GroupId === result.GroupId);
+            const sgrEntity = await sgrMapper(newSecurityGroupRule, ctx);
+            console.dir({ sgrEntity, }, { depth: 4, });
+            sgrEntity.securityGroup = newEntity; // So it has a record with an `id` set
+            newEntity.securityGroupRules = [sgrEntity]; // Maybe this will fix it?
+            console.dir({
+              sgrEntity,
+            }, { depth: 4, });
+            await AwsSecurityGroupModule.mappers.securityGroupRule.db.create(sgrEntity, ctx);
             return newEntity;
           }));
+          // Make sure the dimensionality of the returned data matches the input
+          if (Array.isArray(e)) {
+            return out;
+          } else {
+            return out[0];
+          }
         },
         read: async (ctx: Context, id?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -131,6 +149,11 @@ export const AwsSecurityGroupModule: ModuleInterface = {
             await client.deleteSecurityGroup({
               GroupId: e.groupId,
             });
+            // Also need to delete the security group rules associated with this security group,
+            // if any
+            const rules = await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx);
+            const relevantRules = rules.filter((r: AwsSecurityGroupRule) => r.groupId === e.groupId);
+            await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(relevantRules, ctx);
           }));
         },
       }),

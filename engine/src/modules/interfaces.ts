@@ -40,10 +40,6 @@ export class Crud<E> {
         // Transfer the properties from the entity to the one already memoized so other references
         // to the same entity also get updated, then update the output array
         const realE = ctx.memo[dest][entityName][entityId(e)];
-        console.log({
-          realE,
-          e,
-        });
         Object.keys(e).forEach(k => realE[k] = (e as any)[k]);
         es[i] = realE;
       }
@@ -77,10 +73,6 @@ export class Crud<E> {
   }
 
   async read(ctx: Context, id?: string | string[]) {
-    console.dir({
-      ctx,
-      id,
-    }, { depth: 4, });
     if (id) {
       const dest = this.dest ?? 'What?';
       const entityName = this.entity?.name ?? 'What?';

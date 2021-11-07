@@ -185,7 +185,6 @@ ${Object.keys(tableCollisions)
     const moduleContext = mod.provides.context ?? {};
     Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
   }
-  console.log({ context, })
   // Get the relevant mappers, which are the ones where the DB is the source-of-truth
   const mappers = modules
     .map(mod => Object.values(mod.mappers))
@@ -196,9 +195,7 @@ ${Object.keys(tableCollisions)
       console.log('what');
       console.log({ mapper, });
     } else {
-      console.log('expected');
       await Promise.all(e.map(async (e: any) => {
-        console.log(e);
         await orm.save(mapper.entity, e);
       }));
     }
