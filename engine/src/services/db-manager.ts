@@ -5,11 +5,6 @@ import * as fs from 'fs'
 
 import { Connection, } from 'typeorm'
 
-import * as Modules from '../modules'
-import { AWS, } from './gateways/aws'
-import { IndexedAWS, } from './indexed-aws'
-import { lazyLoader, } from './lazy-dep'
-
 // We only want to do this setup once, then we re-use it. First we get the list of files
 const migrationFiles = fs
   .readdirSync(`${__dirname}/../migration`)
@@ -41,20 +36,3 @@ export async function migrate(conn: Connection) {
   await qr.release();
 }
 
-export async function populate(awsClient: AWS, indexes: IndexedAWS, source?: 'db' | 'cloud') {
-  const promiseGenerators = Object.values(Modules)
-    .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
-    .flat()
-    .filter(mapper => {
-      let out = true;
-      if (out && typeof source === 'string') {
-        out &&= mapper.source === source;
-      }
-      return out;
-    })
-    .map(mapper => async () => {
-      const entities = await mapper.cloud.read(awsClient);
-      indexes.setAll(mapper.entity, entities, mapper.entityId);
-    });
-  await lazyLoader(promiseGenerators);
-}

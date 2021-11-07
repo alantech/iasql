@@ -10,7 +10,6 @@ import { TypeormWrapper, } from '../services/typeorm'
 import { IasqlModule, } from '../entity'
 //import * as Entities from '../entity'
 //import * as Mappers from '../mapper'
-//import { IndexedAWS, } from '../services/indexed-aws'
 import { findDiff, } from '../services/diff'
 //import { Source, } from '../services/source-of-truth'
 //import { getAwsPrimaryKey, } from '../services/aws-primary-key'
@@ -144,7 +143,8 @@ db.get('/check/:dbAlias', async (req, res) => {
     });
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
-    const context: Modules.Context = { orm, memo: {}, }; // Every module gets access to the DB
+    const memo: any = {}; // TODO: Stronger typing here
+    const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
     for (let name of moduleNames) {
       const mod = Object.values(Modules).find(m => m.name === name) as Modules.ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
@@ -163,28 +163,30 @@ db.get('/check/:dbAlias', async (req, res) => {
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
-      const dbEntities: any[][] = [];
-      await lazyLoader(mappers.map((mapper, i) => async () => {
-        const entities = await mapper.db.read(context);
-        dbEntities[i] = entities;
+      memo.db = {}; // Flush the DB entities on the outer loop to restore the actual intended state
+      await lazyLoader(mappers.map(mapper => async () => {
+        await mapper.db.read(context);
       }));
       const comparators = mappers.map(mapper => mapper.equals);
       const idGens = mappers.map(mapper => mapper.entityId);
       let ranUpdate = false;
       do {
         ranUpdate = false;
-        const cloudEntities: any[][] = [];
-        await lazyLoader(mappers.map((mapper, i) => async () => {
-          const entities = await mapper.cloud.read(context);
-          cloudEntities[i] = entities;
+        memo.cloud = {}; // Flush the Cloud entities on the inner loop to track changes to the state
+        await lazyLoader(mappers.map(mapper => async () => {
+          await mapper.cloud.read(context);
         }));
         const t3 = Date.now();
         console.log(`Record acquisition time: ${t3 - t2}ms`);
+        console.dir({
+          tables,
+          dbEntities: tables.map(t => Object.values(memo.db[t])),
+        }, { depth: 4, });
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: dbEntities,
-          cloudEntity: cloudEntities,
+          dbEntity: tables.map(t => Object.values(memo.db[t])),
+          cloudEntity: tables.map(t => Object.values(memo.cloud[t])),
           comparator: comparators,
           idGen: idGens,
         });
