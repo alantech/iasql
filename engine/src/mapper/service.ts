@@ -4,8 +4,8 @@ import { AWS, } from '../services/gateways/aws'
 import { Service, } from '../entity/service'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { AwsVpcConf, Cluster, Subnet, TaskDefinition } from '../entity'
-import { AwsVpcConfMapper, ClusterMapper, TaskDefinitionMapper } from '.'
+import { AwsVpcConf, Cluster, TaskDefinition } from '../entity'
+import { AwsVpcConfMapper, ClusterMapper, ServiceLoadBalancerMapper, TaskDefinitionMapper } from '.'
 import { DepError } from '../services/lazy-dep'
 
 export const ServiceMapper = new EntityMapper(Service, {
@@ -35,12 +35,13 @@ export const ServiceMapper = new EntityMapper(Service, {
   schedulingStrategy: (s: ServiceAWS) => s.schedulingStrategy,
   network: async (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) => {
     if (s?.networkConfiguration?.awsvpcConfiguration) {
-      const networkConf = indexes.get(AwsVpcConf, s.serviceName);
-      return await AwsVpcConfMapper.fromAWS(networkConf, awsClient, indexes);
+      return await AwsVpcConfMapper.fromAWS(s.networkConfiguration.awsvpcConfiguration, awsClient, indexes);
     } else {
       return null;
     }
   },
+  loadBalancers: (s: ServiceAWS, awsClient: AWS, indexes: IndexedAWS) =>
+    Promise.all(s?.loadBalancers?.map(lb => ServiceLoadBalancerMapper.fromAWS(lb, awsClient, indexes)) ?? []),
 }, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
@@ -73,6 +74,14 @@ export const ServiceMapper = new EntityMapper(Service, {
           assignPublicIp: obj.network.assignPublicIp,
         }
       }
+    }
+    if (obj.loadBalancers?.length) {
+      input.loadBalancers = obj.loadBalancers.map(lb => ({
+        targetGroupArn: lb.targetGroup?.targetGroupArn,
+        loadBalancerName: lb.elb?.loadBalancerName,
+        containerName: lb.containerName,
+        containerPort: lb.containerPort
+      }));
     }
     const result = await awsClient.createService(input);
     if (!result?.hasOwnProperty('serviceName')) { // Failure
