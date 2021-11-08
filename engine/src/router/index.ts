@@ -9,7 +9,7 @@ v1.use('/db', db)
 
 db.post('/aws', async (req, res) => {
   const t1 = Date.now();
-  const { dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey } = req.body;
+  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   const awsClient = new AWS({
     region: awsRegion,
     credentials: {
