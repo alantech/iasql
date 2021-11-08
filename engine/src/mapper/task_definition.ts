@@ -5,6 +5,7 @@ import { TaskDefinition, } from '../entity/task_definition'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { CompatibilityMapper, ContainerMapper } from '.'
+import { Container } from '../entity'
 
 export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
   taskDefinitionArn: (td: TaskDefinitionAWS) => td?.taskDefinitionArn ?? null,
@@ -17,9 +18,14 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
       return [];
     }
   },
+  container: async (td: TaskDefinitionAWS, awsClient: AWS, indexes: IndexedAWS) => {
+    if (td?.containerDefinitions?.length) {
+      return await ContainerMapper.fromAWS(td.containerDefinitions[0], awsClient, indexes);
+    }
+    return null;
+  },
   family: (td: TaskDefinitionAWS) => td.family,
   revision: (td: TaskDefinitionAWS) => td?.revision ?? null,
-  familyRevision: (td: TaskDefinitionAWS) => `${td.family}:${td.revision ?? '_'}`, // It should always have a revision but adding the fallback in case we need to debug
   taskRoleArn: (td: TaskDefinitionAWS) => td?.taskRoleArn ?? null,
   executionRoleArn: (td: TaskDefinitionAWS) => td?.executionRoleArn ?? null,
   networkMode: (td: TaskDefinitionAWS) => td?.networkMode ?? null,
@@ -38,9 +44,14 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
   readAWS: async (awsClient: AWS, indexes: IndexedAWS) => {
     const t1 = Date.now();
     const taskDefinitions = (await awsClient.getTaskDefinitions())?.taskDefinitions ?? [];
-    indexes.setAll(TaskDefinition, taskDefinitions, 'familyRevision');
     const t2 = Date.now();
-    console.log(`TaskDefinitions set in ${t2 - t1}ms`);
+    const containers: any = [];
+    taskDefinitions.forEach(td => containers.push(...td.containerDefinitions));
+    indexes.setAll(Container, containers, 'name')
+    console.log(`Containers set in ${t2 - t1}ms`);
+    indexes.setAll(TaskDefinition, taskDefinitions, 'taskDefinitionArn');
+    const t3 = Date.now();
+    console.log(`TaskDefinitions set in ${t3 - t1}ms`);
   },
   createAWS: async (obj: TaskDefinition, awsClient: AWS, indexes: IndexedAWS) => {
     const input: RegisterTaskDefinitionCommandInput = {
@@ -60,11 +71,11 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
     }
     const result = await awsClient.createTaskDefinition(input);
     // TODO: Handle if it fails (somehow)
-    if (!result?.hasOwnProperty('familyRevision')) { // Failure
+    if (!result?.hasOwnProperty('taskDefinitionArn')) { // Failure
       throw new Error('what should we do here?');
     }
-    const newtaskDefinition = await awsClient.getTaskDefinition(result?.familyRevision ?? '');
-    indexes.set(TaskDefinition, newtaskDefinition?.familyRevision ?? '', newtaskDefinition);
+    const newtaskDefinition = await awsClient.getTaskDefinition(result?.taskDefinitionArn ?? '');
+    indexes.set(TaskDefinition, newtaskDefinition?.taskDefinitionArn ?? '', newtaskDefinition);
     const newEntity: TaskDefinition = await TaskDefinitionMapper.fromAWS(newtaskDefinition, awsClient, indexes);
     newEntity.id = obj.id;
     for (const key of Object.keys(newEntity)) {
@@ -78,8 +89,8 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
     throw new Error('Cannot update task definitions. Create a new revision');
   },
   deleteAWS: async (obj: TaskDefinition, awsClient: AWS, indexes: IndexedAWS) => {
-    await awsClient.deleteTaskDefinition(obj.familyRevision);
-    indexes.del(TaskDefinition, (obj as any).family);
+    await awsClient.deleteTaskDefinition(obj.taskDefinitionArn!);
+    indexes.del(TaskDefinition, (obj as any).taskDefinitionArn!);
     return obj;
   },
 })
