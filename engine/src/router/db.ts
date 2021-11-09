@@ -277,7 +277,12 @@ db.get('/check/:dbAlias', async (req, res) => {
         if (promiseGenerators.length > 0) {
           ranUpdate = true;
           ranFullUpdate = true;
-          await lazyLoader(promiseGenerators);
+          try {
+            await lazyLoader(promiseGenerators);
+          } catch (e) {
+            // TODO: keep error count to avoid infinite loop on error
+            ranUpdate = false;
+          }
           const t6 = Date.now();
           console.log(`AWS update time: ${t6 - t5}ms`);
         }
