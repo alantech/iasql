@@ -100,7 +100,7 @@ export const ServiceMapper = new EntityMapper(Service, {
   updateAWS: async (obj: Service, awsClient: AWS, indexes: IndexedAWS) => {
     const input: UpdateServiceCommandInput = {
       service: obj.name,
-      taskDefinition: obj.task?.taskDefinitionArn ?? `${obj.task?.family}:${obj.task?.revision}`,
+      taskDefinition: obj.task?.taskDefinitionArn,
       cluster: obj.cluster?.name,
       desiredCount: obj.desiredCount,
     };
