@@ -14,7 +14,7 @@ mod.use(express.json());
 // "enable/disable" endpoint to stop actions for a given module (and anything dependent on it) but
 // not removing it from the DB?
 //
-// Most used commands:
+// Most used `apt` commands:
 //  list - list packages based on package names
 //  search - search in package descriptions
 //  show - show package details
