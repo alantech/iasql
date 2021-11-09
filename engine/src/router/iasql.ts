@@ -278,22 +278,17 @@ iasql.post('/setup/base', async (req, res) => {
   res.end('ok');
 });
 
-iasql.delete('/flush/core/:dbAlias', async (req, res) => {
+iasql.get('/flush/:dbAlias', async (req, res) => {
   const { dbAlias, } = req.params;
   const orm = await TypeormWrapper.createConn(dbAlias);
 
   try {
-    const iasqlEngineSg = 'iasql-engine-security-group';
+    const iasqlEngineService = 'iasql-engine-service';
     await orm.query(`
-      delete from security_group_rule sgr
-        using security_group sg
-      where sg.id = sgr.security_group_id and sg.group_name = '${iasqlEngineSg}';
-    `);
-    await orm.query(`
-      delete from security_group where group_name = '${iasqlEngineSg}';
-    `);
+        delete from service where name = '${iasqlEngineService}';
+      `);
   } catch (e) {
-    console.log(`Error deleting security_group ${e}`);
+    console.log(`Error deleting service ${e}`);
   }
   try {
     const iasqlEngineFamily = 'iasql-engine-task-definition';
@@ -313,17 +308,12 @@ iasql.delete('/flush/core/:dbAlias', async (req, res) => {
   }
 
   try {
-    const iasqlPostgresSg = 'iasql-postgres-security-group';
+    const iasqlPostgresService = 'iasql-postgres-service';
     await orm.query(`
-      delete from security_group_rule sgr
-        using security_group sg
-      where sg.id = sgr.security_group_id and sg.group_name = '${iasqlPostgresSg}';
-    `);
-    await orm.query(`
-        delete from security_group where group_name = '${iasqlPostgresSg}';
+        delete from service where name = '${iasqlPostgresService}';
       `);
   } catch (e) {
-    console.log(`Error deleting security_group ${e}`);
+    console.log(`Error deleting service ${e}`);
   }
   try {
     const iasqlPostgresFamily = 'iasql-postgres-task-definition';
@@ -336,8 +326,8 @@ iasql.delete('/flush/core/:dbAlias', async (req, res) => {
   try {
     const postgresContainer = 'iasql-postgres-container';
     await orm.query(`
-        delete from container where name = '${postgresContainer}';
-      `);
+    delete from container where name = '${postgresContainer}';
+    `);
   } catch (e) {
     console.log(`Error deleting container ${e}`);
   }
@@ -349,32 +339,6 @@ iasql.delete('/flush/core/:dbAlias', async (req, res) => {
       `);
   } catch (e) {
     console.log(`Error deleting cluster ${e}`);
-  }
-
-  await orm?.dropConn();
-  res.end('ok');
-});
-
-iasql.delete('/flush/services/:dbAlias', async (req, res) => {
-  const { dbAlias, } = req.params;
-  const orm = await TypeormWrapper.createConn(dbAlias);
-
-  try {
-    const iasqlEngineService = 'iasql-engine-service';
-    await orm.query(`
-        delete from service where name = '${iasqlEngineService}';
-      `);
-  } catch (e) {
-    console.log(`Error deleting service ${e}`);
-  }
-
-  try {
-    const iasqlPostgresService = 'iasql-postgres-service';
-    await orm.query(`
-        delete from service where name = '${iasqlPostgresService}';
-      `);
-  } catch (e) {
-    console.log(`Error deleting service ${e}`);
   }
 
   await orm?.dropConn();
