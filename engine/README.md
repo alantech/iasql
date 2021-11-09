@@ -14,6 +14,22 @@ docker-compose up --build
 
 which will bring up the postgres engine and node.js server.
 
+### Module Development
+
+Instead of a centralized linear list of migrations, we have a module-based approach to allow different collections of tables to be inserted or removed as desired by the end users. These modules need to declare what modules they depend on and what resources (tables, stored procedures, etc) they depend on.
+
+Development of a new module is expected to follow this pattern:
+
+
+1. Create the module directory, and create `entity` and `migration` directories inside of it.
+2. Create the entity or entities in the `entity` directory and export them all from the `index.ts` file (or just define them in there).
+3. Run the `yarn gen-module my_new_module_name` script and have it generate the migration file. (`my_new_module_name` needs to match the directory name for the module in question.)
+4. Write the module's `index.ts` file. It must implement the `MapperInterface` inside of `modules/interfaces.ts`, which also requires importing and constructing `Mapper` and `Crud` objects. The auto-generated migration files can be imported and attached as appropriate. Generally `up` is attached to `postinstall` and `down` is attached to `preremove`. The other migration hooks are for more complex situations.
+
+Currently the modules do not support versioning. This documentation will be updated when that is no longer true.
+
+## TODO: Rework the rest of this below, some of it doesn't apply anymore
+
 ### Migrations
 
 Make sure postgres is up and use dashes (`-`) instead of underscores (`_`)  to separate words in the name of your migration. Then run
