@@ -5,7 +5,8 @@ import { TaskDefinition, } from '../entity/task_definition'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
 import { CompatibilityMapper, ContainerMapper } from '.'
-import { Container } from '../entity'
+import { Cluster, Container, Service } from '../entity'
+import { DepError } from '../services/lazy-dep'
 
 export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
   taskDefinitionArn: (td: TaskDefinitionAWS) => td?.taskDefinitionArn ?? null,
@@ -93,6 +94,20 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
     throw new Error('Cannot update task definitions. Create a new revision');
   },
   deleteAWS: async (obj: TaskDefinition, awsClient: AWS, indexes: IndexedAWS) => {
+    // Should not delete task definitons while it's being used by a service
+    let indexedServices = indexes.get(Service);
+    if (!indexedServices) {
+      let indexedClusters = indexes.get(Cluster);
+      if (!indexedClusters) {
+        const awsClusters = await awsClient.getClusters();
+        indexes.setAll(Cluster, awsClusters ?? [], 'clusterName');
+        indexedClusters = indexes.get(Cluster);
+      }
+      const awsServices = await awsClient.getServices(Object.keys(indexedClusters));
+      indexes.setAll(Service, awsServices ?? [], 'serviceName');
+      indexedServices = indexes.get(Service);
+    }
+    if (Object.values(indexedServices).find((s: any) => s.taskDefinition === obj.taskDefinitionArn)) throw new DepError('An existing service is using this task');
     await awsClient.deleteTaskDefinition(obj.taskDefinitionArn!);
     indexes.del(TaskDefinition, (obj as any).taskDefinitionArn!);
     return obj;
