@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, ManyToOne, JoinColumn, } from 'typeorm';
 import { Container } from '.';
 import { awsPrimaryKey } from '../services/aws-primary-key';
 import { noDiff } from '../services/diff';
@@ -79,15 +79,24 @@ export class TaskDefinition {
   id: number;
 
   @noDiff
+  @awsPrimaryKey
   @Column({
     nullable: true,
   })
   taskDefinitionArn?: string;
 
   @noDiff
-  @ManyToMany(() => Container, { cascade: true, eager: true, })
+  @ManyToMany(() => Container, { eager: true, })
   @JoinTable()
-  containers?: Container[];
+  containers: Container[];
+
+  // TODO: Remove this on modular form? this es a work around to force containers join table insertions
+  @noDiff
+  @ManyToOne(() => Container, { eager: true, })
+  @JoinColumn({
+    name: 'container_id',
+  })
+  container: Container;
 
   @noDiff
   @Column()
@@ -99,13 +108,6 @@ export class TaskDefinition {
     type: 'int',
   })
   revision?: number;
-
-  // Generated column to index properly
-  @awsPrimaryKey
-  @Column({
-    unique: true,
-  })
-  familyRevision: string;
 
   @noDiff
   @Column({

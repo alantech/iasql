@@ -4,23 +4,37 @@ import {
   Column,
   ManyToMany,
   JoinTable,
+  Check,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm'
+import { Repository } from '.';
 import { noDiff } from '../services/diff';
 import { EnvVariable } from './env_variable';
 import { PortMapping } from './port_mapping';
 
+@Check(`"docker_image" is not null or "repository_id" is not null`)
 @Entity()
 export class Container {
   @noDiff
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ unique: true, })
   name: string;
 
   // TODO: add constraint  Up to 255 letters (uppercase and lowercase), numbers, hyphens, underscores, colons, periods, forward slashes, and number signs are allowed.
+  @Column({ nullable: true, })
+  dockerImage?: string;
+
+  @ManyToOne(() => Repository, { nullable: true, eager: true, })
+  @JoinColumn({
+    name: "repository_id"
+  })
+  repository?: Repository;
+
   @Column()
-  image: string;
+  tag: string;
 
   @Column({
     default: false,
