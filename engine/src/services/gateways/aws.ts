@@ -1,11 +1,15 @@
 import {
+  AuthorizeSecurityGroupEgressCommand,
+  AuthorizeSecurityGroupEgressCommandInput,
+  AuthorizeSecurityGroupIngressCommand,
+  AuthorizeSecurityGroupIngressCommandInput,
   AvailabilityZone,
   CreateSecurityGroupCommand,
   CreateSecurityGroupRequest,
   DeleteSecurityGroupCommand,
   DeleteSecurityGroupRequest,
   DescribeInstanceTypesCommand,
-  DescribeInstanceTypesRequest,
+  //DescribeInstanceTypesRequest,
   DescribeAvailabilityZonesCommand,
   DescribeImagesCommand,
   DescribeInstancesCommand,
@@ -13,9 +17,16 @@ import {
   DescribeSecurityGroupsCommand,
   DescribeSecurityGroupRulesCommand,
   EC2Client,
+  ModifySecurityGroupRulesCommand,
+  ModifySecurityGroupRulesCommandInput,
+  ModifySecurityGroupRulesCommandOutput,
+  RevokeSecurityGroupEgressCommand,
+  RevokeSecurityGroupEgressCommandInput,
+  RevokeSecurityGroupIngressCommand,
+  RevokeSecurityGroupIngressCommandInput,
   RunInstancesCommand,
   TerminateInstancesCommand,
-  TerminateInstancesRequest,
+  //TerminateInstancesRequest,
   paginateDescribeInstanceTypes,
   paginateDescribeInstances,
   paginateDescribeSecurityGroupRules,
@@ -237,5 +248,55 @@ export class AWS {
       new DescribeSecurityGroupRulesCommand({ SecurityGroupRuleIds: [id], })
     );
     return (rule?.SecurityGroupRules ?? [])[0];
+  }
+
+  async createSecurityGroupEgressRules(is: AuthorizeSecurityGroupEgressCommandInput[]) {
+    const reses = [];
+    for (const i of is) {
+      const res = await this.ec2client.send(
+        new AuthorizeSecurityGroupEgressCommand(i)
+      );
+      reses.push(res);
+    }
+    return reses;
+  }
+
+  async createSecurityGroupIngressRules(is: AuthorizeSecurityGroupIngressCommandInput[]) {
+    const reses = [];
+    for (const i of is) {
+      const res = await this.ec2client.send(
+        new AuthorizeSecurityGroupIngressCommand(i)
+      );
+      reses.push(res);
+    }
+    return reses;
+  }
+
+  async deleteSecurityGroupEgressRules(is: RevokeSecurityGroupEgressCommandInput[]) {
+    const reses = [];
+    for (const i of is) {
+      const res = await this.ec2client.send(
+        new RevokeSecurityGroupEgressCommand(i)
+      );
+      reses.push(res);
+    }
+    return reses;
+  }
+
+  async deleteSecurityGroupIngressRules(is: RevokeSecurityGroupIngressCommandInput[]) {
+    const reses = [];
+    for (const i of is) {
+      const res = await this.ec2client.send(
+        new RevokeSecurityGroupIngressCommand(i)
+      );
+      reses.push(res);
+    }
+    return reses;
+  }
+
+  async modifySecurityGroupRules(i: ModifySecurityGroupRulesCommandInput): Promise<ModifySecurityGroupRulesCommandOutput> {
+    return await this.ec2client.send(
+      new ModifySecurityGroupRulesCommand(i),
+    );
   }
 }

@@ -22,12 +22,12 @@ const sgrMapper = async (sgr: any, ctx: Context) => {
   out.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sgr?.GroupId);
   out.isEgress = sgr?.IsEgress ?? false;
   out.ipProtocol = sgr?.IpProtocol ?? '';
-  out.fromPort = sgr?.FromPort;
-  out.toPort = sgr?.ToPort;
-  out.cidrIpv4 = sgr?.CidrIpv4;
-  out.cidrIpv6 = sgr?.CidrIpv6;
-  out.prefixListId = sgr?.PrefixListId;
-  out.description = sgr?.Description;
+  out.fromPort = sgr?.FromPort ?? null;
+  out.toPort = sgr?.ToPort ?? null;
+  out.cidrIpv4 = sgr?.CidrIpv4 ?? null;
+  out.cidrIpv6 = sgr?.CidrIpv6 ?? null;
+  out.prefixListId = sgr?.PrefixListId ?? null;
+  out.description = sgr?.Description ?? null;
   return out;
 }
 
@@ -48,10 +48,47 @@ export const AwsSecurityGroupModule: ModuleInterface = {
         a.vpcId === b.vpcId,
       source: 'db',
       db: new Crud({
-        create: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroup, e); },
-        read: (ctx: Context, options: any) => ctx.orm.find(AwsSecurityGroup, options),
-        update: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroup, e); },
-        delete: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => { await ctx.orm.remove(AwsSecurityGroup, e); },
+        create: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
+          await ctx.orm.save(AwsSecurityGroup, e);
+          if (Array.isArray(e)) {
+            await Promise.all(e.map(e2 => AwsSecurityGroupModule.mappers.securityGroupRule.db.create(e2.securityGroupRules, ctx)));
+          } else {
+            await AwsSecurityGroupModule.mappers.securityGroupRule.db.create(e.securityGroupRules, ctx);
+          }
+        },
+        read: async (ctx: Context, options: any) => {
+          const sg = await ctx.orm.find(AwsSecurityGroup, options);
+          if (Array.isArray(sg)) {
+            for (const s of sg) {
+              s.securityGroupRules = (
+                await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx)
+              ).filter((sgr: AwsSecurityGroupRule) => sgr.groupId === s.groupId);
+              s.securityGroupRules.forEach((sgr: AwsSecurityGroupRule) => sgr.securityGroup = s);
+            }
+          } else {
+            sg.securityGroupRules = (
+              await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx)
+            ).filter((sgr: AwsSecurityGroupRule) => sgr.groupId === sg.groupId);
+            sg.securityGroupRules.forEach((sgr: AwsSecurityGroupRule) => sgr.securityGroup = sg);
+          }
+          return sg;
+        },
+        update: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
+          await ctx.orm.save(AwsSecurityGroup, e);
+          if (Array.isArray(e)) {
+            await Promise.all(e.map(e2 => AwsSecurityGroupModule.mappers.securityGroupRule.db.update(e2.securityGroupRules, ctx)));
+          } else {
+            await AwsSecurityGroupModule.mappers.securityGroupRule.db.update(e.securityGroupRules, ctx);
+          }
+        },
+        delete: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
+          if (Array.isArray(e)) {
+            await Promise.all(e.map(e2 => AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(e2.securityGroupRules, ctx)));
+          } else {
+            await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(e.securityGroupRules, ctx);
+          }
+          await ctx.orm.remove(AwsSecurityGroup, e);
+        },
       }),
       cloud: new Crud({
         create: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
@@ -74,22 +111,23 @@ export const AwsSecurityGroupModule: ModuleInterface = {
             // We map this into the same kind of entity as `obj`
             const newEntity = await sgMapper(newGroup, ctx);
             // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database
+            // replacing in the database, and also make a proper, complete loop for it as the rules
+            // reference their parent in a circular fashion.
             newEntity.id = e.id;
+            if (e.securityGroupRules?.length > 0) newEntity.securityGroupRules = [ ...e.securityGroupRules];
+            await Promise.all(newEntity.securityGroupRules.map(async (sgr) => {
+              // First, remove the old security group rule from the database
+              await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(sgr, ctx);
+              // Now edit this entity so it can be recreated in the database appropriately
+              sgr.securityGroup = newEntity;
+              sgr.groupId = newEntity.groupId; // TODO: Eliminate this field
+              delete sgr.id; // So it gets properly recreated for the new entity
+            }));
+            console.dir({
+              newEntity,
+            }, { depth: 4, });
             // Save the security group record back into the database to get the new fields updated
             await AwsSecurityGroupModule.mappers.securityGroup.db.update(newEntity, ctx);
-            // AWS automatically creates a default security group rule that we need to keep around
-            const allSecurityGroupRules = await client.getSecurityGroupRules();
-            const newSecurityGroupRule = allSecurityGroupRules.SecurityGroupRules
-              .find(sgr => sgr.GroupId === result.GroupId);
-            const sgrEntity = await sgrMapper(newSecurityGroupRule, ctx);
-            console.dir({ sgrEntity, }, { depth: 4, });
-            sgrEntity.securityGroup = newEntity; // So it has a record with an `id` set
-            newEntity.securityGroupRules = [sgrEntity]; // Maybe this will fix it?
-            console.dir({
-              sgrEntity,
-            }, { depth: 4, });
-            await AwsSecurityGroupModule.mappers.securityGroupRule.db.create(sgrEntity, ctx);
             return newEntity;
           }));
           // Make sure the dimensionality of the returned data matches the input
@@ -161,7 +199,14 @@ export const AwsSecurityGroupModule: ModuleInterface = {
     securityGroupRule: new Mapper<AwsSecurityGroupRule>({
       entity: AwsSecurityGroupRule,
       entityId: (e: AwsSecurityGroupRule) => e.securityGroupRuleId + '',
-      equals: (_a: AwsSecurityGroupRule, _b: AwsSecurityGroupRule) => true,
+      equals: (a: AwsSecurityGroupRule, b: AwsSecurityGroupRule) => Object.is(a.isEgress, b.isEgress) &&
+        Object.is(a.ipProtocol, b.ipProtocol) &&
+        Object.is(a.fromPort, b.fromPort) &&
+        Object.is(a.toPort, b.toPort) &&
+        Object.is(a.cidrIpv4, b.cidrIpv4) &&
+        Object.is(a.cidrIpv6, b.cidrIpv6) &&
+        Object.is(a.prefixListId, b.prefixListId) &&
+        Object.is(a.description, b.description),
       source: 'db',
       db: new Crud({
         create: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
@@ -170,7 +215,60 @@ export const AwsSecurityGroupModule: ModuleInterface = {
         delete: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.remove(AwsSecurityGroupRule, e); },
       }),
       cloud: new Crud({
-        create: async (_e: AwsSecurityGroupRule | AwsSecurityGroupRule[], _ctx: Context) => {},
+        create: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => {
+          // TODO: While the API supports creating multiple security group rules simultaneously,
+          // I can't figure out a 100% correct way to identify which created rules are associated
+          // with which returned ID to store in the database, so we're doing these sequentially at
+          // the moment.
+          const client = await ctx.getAwsClient() as AWS;
+          const es = Array.isArray(e) ? e : [e];
+          for (let en of es) {
+            // TODO: Drop the duplicate groupId
+            const GroupId = en?.securityGroup?.groupId ?? en.groupId;
+            if (!GroupId) throw new Error(
+              'Cannot create a security group rule for a security group that does not yet exist'
+            );
+            const newRule: any = {};
+            // The rest of these should be defined if present
+            if (en.cidrIpv4) newRule.IpRanges = [{ CidrIp: en.cidrIpv4, }];
+            if (en.cidrIpv6) newRule.Ipv6Ranges = [{ CidrIpv6: en.cidrIpv6, }];
+            if (en.description) {
+              if (en.cidrIpv4) newRule.IpRanges[0].Description = en.description;
+              if (en.cidrIpv6) newRule.Ipv6Ranges[0].Description = en.description;
+            }
+            if (en.fromPort) newRule.FromPort = en.fromPort;
+            if (en.ipProtocol) newRule.IpProtocol = en.ipProtocol;
+            if (en.prefixListId) newRule.PrefixListIds = [en.prefixListId];
+            // TODO: There's something weird about `ReferencedGroupId` that I need to dig into
+            if (en.toPort) newRule.ToPort = en.toPort;
+            console.dir({
+              isEgress: en.isEgress,
+              GroupId,
+              IpPermissions: [newRule],
+            }, { depth: 4, });
+            let res;
+            if (en.isEgress) {
+              res = (await client.createSecurityGroupEgressRules([{
+                GroupId,
+                IpPermissions: [newRule],
+              }]))[0];
+            } else {
+              res = (await client.createSecurityGroupIngressRules([{
+                GroupId,
+                IpPermissions: [newRule],
+              }]))[0];
+            }
+            // Now to either throw on error or save the cloud-generated fields
+            if (res.Return !== true || res.SecurityGroupRules?.length === 0) {
+              console.dir(en, { depth: 4, });
+              throw new Error(`Unable to create security group rule`);
+            }
+            console.dir({ res, }, { depth: 4, });
+            en.securityGroupRuleId = res.SecurityGroupRules?.[0].SecurityGroupRuleId;
+            // TODO: Are there any other fields to update?
+            await AwsSecurityGroupModule.mappers.securityGroupRule.db.update(en, ctx);
+          }
+        },
         read: async (ctx: Context, id?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
@@ -186,8 +284,59 @@ export const AwsSecurityGroupModule: ModuleInterface = {
             return await Promise.all(securityGroupRules.map(sgr => sgrMapper(sgr, ctx)));
           }
         },
-        update: async (_e: AwsSecurityGroupRule | AwsSecurityGroupRule[], _ctx: Context) => {},
-        delete: async (_e: AwsSecurityGroupRule | AwsSecurityGroupRule[], _ctx: Context) => {},
+        update: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => {
+          // First we create new instances of these records, then we delete the old instances
+          // To make sure we don't accidentally delete the wrong things, we clone these entities
+          const es = Array.isArray(e) ? e : [e];
+          const deleteEs = es.map(e => ({ ...e, }));
+          await AwsSecurityGroupModule.mappers.securityGroupRule.cloud.create(es, ctx);
+          await AwsSecurityGroupModule.mappers.securityGroupRule.cloud.delete(deleteEs, ctx);
+        },
+        delete: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => {
+          const es = Array.isArray(e) ? e : [e];
+          const egressDeletesToRun: any = {};
+          const ingressDeletesToRun: any = {};
+          for (let en of es) {
+            // TODO: Drop the duplicate groupId
+            const GroupId = en?.securityGroup?.groupId ?? en.groupId;
+            if (!GroupId) throw new Error(
+              'Cannot create a security group rule for a security group that does not yet exist'
+            );
+            if (en.isEgress) {
+              egressDeletesToRun[GroupId] = egressDeletesToRun[GroupId] ?? [];
+              egressDeletesToRun[GroupId].push(en.securityGroupRuleId);
+            } else {
+              ingressDeletesToRun[GroupId] = ingressDeletesToRun[GroupId] ?? [];
+              ingressDeletesToRun[GroupId].push(en.securityGroupRuleId);
+            }
+          }
+          const client = await ctx.getAwsClient() as AWS;
+          for (let GroupId of Object.keys(egressDeletesToRun)) {
+            const res = (await client.deleteSecurityGroupEgressRules([{
+              GroupId,
+              SecurityGroupRuleIds: egressDeletesToRun[GroupId],
+            }]))[0];
+            if (res.Return !== true) {
+              throw new Error(`Failed to remove the security group rules ${res}`);
+            }
+          }
+          for (let GroupId of Object.keys(ingressDeletesToRun)) {
+            const res = (await client.deleteSecurityGroupIngressRules([{
+              GroupId,
+              SecurityGroupRuleIds: ingressDeletesToRun[GroupId],
+            }]))[0];
+            if (res.Return !== true) {
+              throw new Error(`Failed to remove the security group rules ${res}`);
+            }
+          }
+          // Once the old version is deleted, remove it from the DB memo cache, too
+          // TODO: Figure out how to automate the memoization issue here and the general TypeORM
+          // wonkiness with circularly-dependent entities.
+          es.forEach(e => {
+            const oldId = AwsSecurityGroupModule.mappers.securityGroupRule.entityId(e);
+            delete ctx.memo.db.AwsSecurityGroupRule[oldId];
+          });
+        },
       }),
     }),
   },
