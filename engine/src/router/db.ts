@@ -178,10 +178,10 @@ db.get('/check/:dbAlias', async (req, res) => {
         }));
         const t3 = Date.now();
         console.log(`Record acquisition time: ${t3 - t2}ms`);
-        console.dir({
+        /*console.dir({
           tables,
           dbEntities: tables.map(t => Object.values(memo.db[t])),
-        }, { depth: 4, });
+        }, { depth: 4, });*/
         const records = colToRow({
           table: tables,
           mapper: mappers,
@@ -220,7 +220,7 @@ db.get('/check/:dbAlias', async (req, res) => {
                     Object.keys(e2).forEach(k => e[k] = e2[k]);
                   });
                   // Save the new entity to the database, as well
-                  await orm?.save(r.mapper.entity, out);
+                  //await orm?.save(r.mapper.entity, out);
                 }
               }));
             }

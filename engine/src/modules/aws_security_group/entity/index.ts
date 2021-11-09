@@ -3,7 +3,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColum
 @Entity()
 export class AwsSecurityGroup {
   @PrimaryGeneratedColumn()
-  id: number;
+  id?: number;
 
   @Column({
     nullable: true,
@@ -38,7 +38,7 @@ export class AwsSecurityGroup {
 @Entity()
 export class AwsSecurityGroupRule {
   @PrimaryGeneratedColumn()
-  id: number;
+  id?: number;
 
   @Column({
     nullable: true,
