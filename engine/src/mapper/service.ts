@@ -60,7 +60,7 @@ export const ServiceMapper = new EntityMapper(Service, {
   createAWS: async (obj: Service, awsClient: AWS, indexes: IndexedAWS) => {
     const input: CreateServiceCommandInput = {
       serviceName: obj.name,
-      taskDefinition: obj.task?.taskDefinitionArn ?? `${obj.task?.family}:${obj.task?.revision}`,
+      taskDefinition: obj.task?.taskDefinitionArn,
       launchType: obj.launchType,
       cluster: obj.cluster?.name,
       schedulingStrategy: obj.schedulingStrategy,
