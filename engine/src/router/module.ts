@@ -159,6 +159,9 @@ ${Object.keys(tableCollisions)
       e.name = mod.name;
       e.installed = true;
       e.enabled = true;
+      e.dependencies = await Promise.all(
+        mod.dependencies.map(async (dep) => await orm.findOne(IasqlModule, { name: dep, }))
+      );
       await orm.save(IasqlModule, e);
     }
     await queryRunner.commitTransaction();
@@ -224,11 +227,11 @@ mod.post('/remove', async (req, res) => {
   const orm = await TypeormWrapper.createConn(req.body.dbname, {
     name: req.body.dbname,
     type: 'postgres',
-    username: 'postgres', // TODO: Should we use the user's account for this?
+    username: 'postgres',
     password: 'test',
     host: 'postgresql',
     entities,
-    namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
+    namingStrategy: new SnakeNamingStrategy(),
   });
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
