@@ -41,11 +41,11 @@ export const AwsSecurityGroupModule: ModuleInterface = {
     securityGroup: new Mapper<AwsSecurityGroup>({
       entity: AwsSecurityGroup,
       entityId: (e: AwsSecurityGroup) => e.groupId ?? '',
-      equals: (a: AwsSecurityGroup, b: AwsSecurityGroup) => a.description === b.description &&
-        a.groupName === b.groupName &&
-        a.ownerId === b.ownerId &&
-        a.groupId === b.groupId &&
-        a.vpcId === b.vpcId,
+      equals: (a: AwsSecurityGroup, b: AwsSecurityGroup) => Object.is(a.description, b.description) &&
+        Object.is(a.groupName, b.groupName) &&
+        Object.is(a.ownerId, b.ownerId) &&
+        Object.is(a.groupId, b.groupId) &&
+        Object.is(a.vpcId, b.vpcId),
       source: 'db',
       db: new Crud({
         create: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
@@ -123,9 +123,6 @@ export const AwsSecurityGroupModule: ModuleInterface = {
               sgr.groupId = newEntity.groupId; // TODO: Eliminate this field
               delete sgr.id; // So it gets properly recreated for the new entity
             }));
-            console.dir({
-              newEntity,
-            }, { depth: 4, });
             // Save the security group record back into the database to get the new fields updated
             await AwsSecurityGroupModule.mappers.securityGroup.db.update(newEntity, ctx);
             return newEntity;
@@ -241,11 +238,6 @@ export const AwsSecurityGroupModule: ModuleInterface = {
             if (en.prefixListId) newRule.PrefixListIds = [en.prefixListId];
             // TODO: There's something weird about `ReferencedGroupId` that I need to dig into
             if (en.toPort) newRule.ToPort = en.toPort;
-            console.dir({
-              isEgress: en.isEgress,
-              GroupId,
-              IpPermissions: [newRule],
-            }, { depth: 4, });
             let res;
             if (en.isEgress) {
               res = (await client.createSecurityGroupEgressRules([{
@@ -260,10 +252,8 @@ export const AwsSecurityGroupModule: ModuleInterface = {
             }
             // Now to either throw on error or save the cloud-generated fields
             if (res.Return !== true || res.SecurityGroupRules?.length === 0) {
-              console.dir(en, { depth: 4, });
               throw new Error(`Unable to create security group rule`);
             }
-            console.dir({ res, }, { depth: 4, });
             en.securityGroupRuleId = res.SecurityGroupRules?.[0].SecurityGroupRuleId;
             // TODO: Are there any other fields to update?
             await AwsSecurityGroupModule.mappers.securityGroupRule.db.update(en, ctx);

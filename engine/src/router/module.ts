@@ -83,11 +83,11 @@ mod.post('/install', async (req, res) => {
   const orm = await TypeormWrapper.createConn(req.body.dbname, {
     name: req.body.dbname,
     type: 'postgres',
-    username: 'postgres', // TODO: Should we use the user's account for this?
+    username: 'postgres',
     password: 'test',
     host: 'postgresql',
     entities,
-    namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
+    namingStrategy: new SnakeNamingStrategy(),
   });
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
@@ -195,8 +195,8 @@ ${Object.keys(tableCollisions)
   for (let mapper of mappers) {
     const e = await mapper.cloud.read(context);
     if (!e || (Array.isArray(e) && !e.length)) {
-      console.log('what');
-      console.log({ mapper, });
+      console.log('Completely unexpected outcome');
+      console.log({ mapper, e, });
     } else {
       await Promise.all(e.map(async (e: any) => {
         await orm.save(mapper.entity, e);
