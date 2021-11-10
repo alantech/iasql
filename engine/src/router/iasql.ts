@@ -1,12 +1,13 @@
 import * as express from 'express'
 import { Cluster, Container, ELB, Listener, Repository, RepositoryPolicy, SecurityGroup, Service, Subnet, TargetGroup, TaskDefinition } from '../entity'
 import { TypeormWrapper } from '../services/typeorm'
+import { writeFileSync } from 'fs';
 
 export const iasql = express.Router();
 iasql.use(express.json());
 
-iasql.post('/setup/base', async (req, res) => {
-  const { dbAlias, } = req.body;
+iasql.get('/setup/:dbAlias', async (req, res) => {
+  const { dbAlias, } = req.params;
   const orm = await TypeormWrapper.createConn(dbAlias);
   let transaction = '';
   try {
@@ -68,7 +69,7 @@ iasql.post('/setup/base', async (req, res) => {
       `;
     }
     // Create engine load balancer listener
-    const engineListener  = await orm.findOne(Listener, { where: { port: iasqlEngineTgPort } });
+    const engineListener = await orm.findOne(Listener, { where: { port: iasqlEngineTgPort } });
     if (!engineListener) {
       transaction += `
         select create_listener('${iasqlEngineLb}', ${iasqlEngineTgPort}, 'TCP', 'forward', '${iasqlEngineTg}');
@@ -95,7 +96,7 @@ iasql.post('/setup/base', async (req, res) => {
       `;
     }
     // Create posgres load balancer listener
-    const postgresListener  = await orm.findOne(Listener, { where: { port: iasqlPostgresTgPort } });
+    const postgresListener = await orm.findOne(Listener, { where: { port: iasqlPostgresTgPort } });
     if (!postgresListener) {
       transaction += `
         select create_listener('${iasqlPostgresLb}', ${iasqlPostgresTgPort}, 'TCP', 'forward', '${iasqlPostgresTg}');
@@ -342,5 +343,27 @@ iasql.get('/flush/:dbAlias', async (req, res) => {
   }
 
   await orm?.dropConn();
+  res.end('ok');
+});
+
+iasql.post('/genBuildAndPush', async (req, res) => {
+  const { dbAlias, awsRegion, awsProfile, imageTag, } = req.body;
+  const orm = await TypeormWrapper.createConn(dbAlias);
+  try {
+    // Get repository
+    const iasqlEngineRepository = 'iasql-engine-repository';
+    const engineRepository = await orm.findOne(Repository, { where: { repositoryName: iasqlEngineRepository } });
+    // Docker login
+    const script = `#!/bin/bash
+
+aws ecr get-login-password --region ${awsRegion} --profile ${awsProfile} | docker login --username AWS --password-stdin ${engineRepository.repositoryUri}
+docker build -t ${engineRepository.repositoryUri}:${imageTag ?? 'latest'} .
+docker push ${engineRepository.repositoryUri}:${imageTag ?? 'latest'}`;
+    writeFileSync('build-and-push.sh', script);
+  } catch (e: any) {
+    res.status(500).end(`failure to generate build and push IaSQL's script: ${e?.message ?? ''}\n${e?.stack ?? ''}\n${JSON.stringify(e?.metadata ?? [])}\n`);
+  } finally {
+    await orm?.dropConn();
+  }
   res.end('ok');
 });
