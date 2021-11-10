@@ -589,10 +589,7 @@ export class AWS {
     const taskDefinition = await this.ecsClient.send(
       new RegisterTaskDefinitionCommand(input)
     );
-    return {
-      ...taskDefinition.taskDefinition,
-      familyRevision: `${taskDefinition.taskDefinition?.family}:${taskDefinition.taskDefinition?.revision}`,
-    };
+    return taskDefinition.taskDefinition;
   }
 
   async getTaskDefinitions() {
@@ -621,10 +618,7 @@ export class AWS {
         taskDefinition: id
       })
     );
-    return {
-      ...taskDefinition.taskDefinition,
-      familyRevision: `${taskDefinition.taskDefinition?.family}:${taskDefinition.taskDefinition?.revision}`,
-    };
+    return taskDefinition.taskDefinition;
   }
 
   async deleteTaskDefinition(name: string) {
