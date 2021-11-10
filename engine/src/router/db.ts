@@ -196,6 +196,7 @@ db.get('/check/:dbAlias', async (req, res) => {
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
     await populate(awsClient, indexes, Source.DB);
+    let failureCount = -1;
     do {
       ranFullUpdate = false;
       const t3 = Date.now();
@@ -279,8 +280,9 @@ db.get('/check/:dbAlias', async (req, res) => {
           ranFullUpdate = true;
           try {
             await lazyLoader(promiseGenerators);
-          } catch (e) {
-            // TODO: keep error count to avoid infinite loop on error
+          } catch (e: any) {
+            if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
+            failureCount = e.metadata?.generatorsToRun?.length;
             ranUpdate = false;
           }
           const t6 = Date.now();
