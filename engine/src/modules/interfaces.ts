@@ -184,6 +184,7 @@ export interface ModuleInterface {
     // `aws_account` module, for instance.
     context?: Context;
   };
+  utils?: { [key: string]: any, };
   mappers: { [key: string]: Mapper<any>, };
   migrations: {
     // This part is modeled partly on Debian packages, and partly on Node packages. (It's mostly the
@@ -235,6 +236,7 @@ export class Module {
     functions?: string[];
     context?: Context;
   };
+  utils: { [key: string]: any, };
   mappers: { [key: string]: Mapper<any>, };
   migrations: {
     preup?: (q: QueryRunner) => Promise<void>;
@@ -252,6 +254,7 @@ export class Module {
     //this.version = def.version;
     this.dependencies = def.dependencies;
     this.provides = def.provides;
+    this.utils = def?.utils ?? {};
     this.mappers = def.mappers;
     this.migrations = def.migrations;
   }

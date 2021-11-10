@@ -3,39 +3,39 @@ import { AwsSecurityGroup, AwsSecurityGroupRule, } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsSecurityGroup1635288398482, } from './migration/1635288398482-aws_security_group'
 
-const sgMapper = async (sg: any, ctx: Context) => {
-  const out = new AwsSecurityGroup();
-  out.description = sg.Description;
-  out.groupName = sg.GroupName;
-  out.ownerId = sg.OwnerId;
-  out.groupId = sg.GroupId;
-  out.vpcId = sg.VpcId;
-  out.securityGroupRules = (await AwsSecurityGroupModule.mappers.securityGroupRule.cloud.read(ctx))
-    .filter((sgr: AwsSecurityGroupRule) => sgr.groupId === sg.GroupId);
-  return out;
-};
-
-const sgrMapper = async (sgr: any, ctx: Context) => {
-  const out = new AwsSecurityGroupRule();
-  out.securityGroupRuleId = sgr?.SecurityGroupRuleId;
-  out.groupId = sgr?.GroupId;
-  out.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sgr?.GroupId);
-  out.isEgress = sgr?.IsEgress ?? false;
-  out.ipProtocol = sgr?.IpProtocol ?? '';
-  out.fromPort = sgr?.FromPort ?? null;
-  out.toPort = sgr?.ToPort ?? null;
-  out.cidrIpv4 = sgr?.CidrIpv4 ?? null;
-  out.cidrIpv6 = sgr?.CidrIpv6 ?? null;
-  out.prefixListId = sgr?.PrefixListId ?? null;
-  out.description = sgr?.Description ?? null;
-  return out;
-}
-
 export const AwsSecurityGroupModule: Module = new Module({
   name: 'aws_security_group',
   dependencies: ['aws_account'],
   provides: {
     tables: ['aws_security_group', 'aws_security_group_rule'],
+  },
+  utils: {
+    sgMapper: async (sg: any, ctx: Context) => {
+      const out = new AwsSecurityGroup();
+      out.description = sg.Description;
+      out.groupName = sg.GroupName;
+      out.ownerId = sg.OwnerId;
+      out.groupId = sg.GroupId;
+      out.vpcId = sg.VpcId;
+      out.securityGroupRules = (await AwsSecurityGroupModule.mappers.securityGroupRule.cloud.read(ctx))
+        .filter((sgr: AwsSecurityGroupRule) => sgr.groupId === sg.GroupId);
+      return out;
+    },
+    sgrMapper: async (sgr: any, ctx: Context) => {
+      const out = new AwsSecurityGroupRule();
+      out.securityGroupRuleId = sgr?.SecurityGroupRuleId;
+      out.groupId = sgr?.GroupId;
+      out.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sgr?.GroupId);
+      out.isEgress = sgr?.IsEgress ?? false;
+      out.ipProtocol = sgr?.IpProtocol ?? '';
+      out.fromPort = sgr?.FromPort ?? null;
+      out.toPort = sgr?.ToPort ?? null;
+      out.cidrIpv4 = sgr?.CidrIpv4 ?? null;
+      out.cidrIpv6 = sgr?.CidrIpv6 ?? null;
+      out.prefixListId = sgr?.PrefixListId ?? null;
+      out.description = sgr?.Description ?? null;
+      return out;
+    },
   },
   mappers: {
     securityGroup: new Mapper<AwsSecurityGroup>({
@@ -109,13 +109,13 @@ export const AwsSecurityGroupModule: Module = new Module({
             // Re-get the inserted security group to get all of the relevant records we care about
             const newGroup = await client.getSecurityGroup(result.GroupId ?? '');
             // We map this into the same kind of entity as `obj`
-            const newEntity = await sgMapper(newGroup, ctx);
+            const newEntity = await AwsSecurityGroupModule.utils.sgMapper(newGroup, ctx);
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database, and also make a proper, complete loop for it as the rules
             // reference their parent in a circular fashion.
             newEntity.id = e.id;
             if (e.securityGroupRules?.length > 0) newEntity.securityGroupRules = [ ...e.securityGroupRules];
-            await Promise.all(newEntity.securityGroupRules.map(async (sgr) => {
+            await Promise.all(newEntity.securityGroupRules.map(async (sgr: AwsSecurityGroupRule) => {
               // First, remove the old security group rule from the database
               await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(sgr, ctx);
               // Now edit this entity so it can be recreated in the database appropriately
@@ -139,14 +139,20 @@ export const AwsSecurityGroupModule: Module = new Module({
           if (id) {
             if (Array.isArray(id)) {
               return await Promise.all(id.map(async (id) => {
-                return await sgMapper(await client.getSecurityGroup(id), ctx);
+                return await AwsSecurityGroupModule.utils.sgMapper(
+                  await client.getSecurityGroup(id), ctx
+                );
               }));
             } else {
-              return await sgMapper(await client.getSecurityGroup(id), ctx);
+              return await AwsSecurityGroupModule.utils.sgMapper(
+                await client.getSecurityGroup(id), ctx
+              );
             }
           } else {
             const securityGroups = (await client.getSecurityGroups())?.SecurityGroups ?? [];
-            return await Promise.all(securityGroups.map((sg: any) => sgMapper(sg, ctx)));
+            return await Promise.all(
+              securityGroups.map((sg: any) => AwsSecurityGroupModule.utils.sgMapper(sg, ctx))
+            );
           }
         },
         update: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
@@ -264,14 +270,20 @@ export const AwsSecurityGroupModule: Module = new Module({
           if (id) {
             if (Array.isArray(id)) {
               return await Promise.all(id.map(async (id) => {
-                return await sgrMapper(await client.getSecurityGroupRule(id), ctx);
+                return await AwsSecurityGroupModule.utils.sgrMapper(
+                  await client.getSecurityGroupRule(id), ctx
+                );
               }));
             } else {
-              return await sgrMapper(await client.getSecurityGroupRule(id), ctx);
+              return await AwsSecurityGroupModule.utils.sgrMapper(
+                await client.getSecurityGroupRule(id), ctx
+              );
             }
           } else {
             const securityGroupRules = (await client.getSecurityGroupRules())?.SecurityGroupRules ?? [];
-            return await Promise.all(securityGroupRules.map(sgr => sgrMapper(sgr, ctx)));
+            return await Promise.all(
+              securityGroupRules.map(sgr => AwsSecurityGroupModule.utils.sgrMapper(sgr, ctx))
+            );
           }
         },
         update: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => {
