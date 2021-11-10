@@ -57,10 +57,12 @@ import {
   paginateListClusters,
   paginateListServices,
   paginateListTaskDefinitions,
+  paginateListTasks,
   RegisterTaskDefinitionCommand,
   RegisterTaskDefinitionCommandInput,
   UpdateServiceCommand,
   UpdateServiceCommandInput,
+  waitUntilTasksStopped,
 } from '@aws-sdk/client-ecs'
 import {
   CreateLoadBalancerCommand,
@@ -662,7 +664,34 @@ export class AWS {
     return cluster.clusters?.[0];
   }
 
+  async getTasksArns(cluster: string) {
+    const tasksArns: string[] = [];
+    const paginator = paginateListTasks({
+      client: this.ecsClient,
+      pageSize: 25,
+    }, {
+      cluster,
+    });
+    for await (const page of paginator) {
+      tasksArns.push(...(page.taskArns ?? []));
+    }
+    return tasksArns;
+  }
+
   async deleteCluster(name: string) {
+    const tasks = await this.getTasksArns(name);
+    if (tasks.length) {
+      await waitUntilTasksStopped({
+        client: this.ecsClient,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      }, {
+        cluster: name,
+        tasks,
+      });
+    }
     await this.ecsClient.send(
       new DeleteClusterCommand({
         cluster: name,
