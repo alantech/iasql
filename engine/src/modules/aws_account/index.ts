@@ -9,8 +9,14 @@ export const AwsAccount: ModuleInterface = {
   provides: {
     tables: ['aws_account'],
     context: {
+      // This function is `async function () {` instead of `async () => {` because that enables the
+      // `this` keyword within the function based on the objec it is being called from, so the
+      // `getAwsClient` function can access the correct `orm` object with the appropriate creds and
+      // read out the right AWS creds and create an AWS client also attached to the current context,
+      // which will be different for different users. WARNING: Explicitly trying to access via
+      // `AwsAccount.provides.context.getAwsClient` would instead use the context *template* that is
+      // global to the codebase.
       getAwsClient: async function () {
-        // Does `this` work here to grab the ctx object?
         if (this.awsClient) return this.awsClient;
         const awsCreds = await this.orm.findOne(AwsAccount.mappers.awsAccount.entity);
         this.awsClient = new AWS({
@@ -22,6 +28,7 @@ export const AwsAccount: ModuleInterface = {
         });
         return this.awsClient;
       },
+      awsClient: null, // Just reserving this name to guard against collisions between modules.
     },
   },
   mappers: {
@@ -38,6 +45,7 @@ export const AwsAccount: ModuleInterface = {
       }),
       cloud: new Crud({
         // We don't actually connect to AWS for this module, because it's meta
+        // TODO: Perhaps we should to validate the credentials as being valid?
         create: async (_e: AwsAccountEntity | AwsAccountEntity[], _ctx: Context) => {},
         read: async (ctx: Context, options: any) => ctx.orm.find(AwsAccountEntity, options),
         update: async (_e: AwsAccountEntity | AwsAccountEntity[], _ctx: Context) => {},

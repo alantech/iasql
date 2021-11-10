@@ -35,7 +35,6 @@ if (config.a0Enabled) {
 
 // TODO secure with cors and scope
 db.post('/create', async (req, res) => {
-  //const t1 = Date.now();
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.json(
     `Required key(s) not provided: ${[
@@ -135,11 +134,11 @@ db.get('/check/:dbAlias', async (req, res) => {
     orm = await TypeormWrapper.createConn(dbname, {
       name: req.body.dbname,
       type: 'postgres',
-      username: 'postgres', // TODO: Should we use the user's account for this?
+      username: 'postgres', // TODO: This should use the user's account, once that's a thing
       password: 'test',
       host: 'postgresql',
       entities,
-      namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
+      namingStrategy: new SnakeNamingStrategy(),
     });
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
@@ -178,10 +177,6 @@ db.get('/check/:dbAlias', async (req, res) => {
         }));
         const t3 = Date.now();
         console.log(`Record acquisition time: ${t3 - t2}ms`);
-        /*console.dir({
-          tables,
-          dbEntities: tables.map(t => Object.values(memo.db[t])),
-        }, { depth: 4, });*/
         const records = colToRow({
           table: tables,
           mapper: mappers,
@@ -207,9 +202,6 @@ db.get('/check/:dbAlias', async (req, res) => {
             const outArr = [];
             if (r.diff.entitiesInDbOnly.length > 0) {
               console.log(`${name} has records to create`);
-              console.dir({
-                toCreate: r.diff.entitiesInDbOnly,
-              }, { depth: 4, });
               outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 const out = await r.mapper.cloud.create(e, context);
                 if (out) {
@@ -219,16 +211,11 @@ db.get('/check/:dbAlias', async (req, res) => {
                     // record created is what is compared the next loop through
                     Object.keys(e2).forEach(k => e[k] = e2[k]);
                   });
-                  // Save the new entity to the database, as well
-                  //await orm?.save(r.mapper.entity, out);
                 }
               }));
             }
             if (r.diff.entitiesChanged.length > 0) {
               console.log(`${name} has records to update`);
-              console.dir({
-                entitesChanged: r.diff.entitiesChanged,
-              }, { depth: 4, });
               outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
                 const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
                 if (out) {
@@ -238,17 +225,11 @@ db.get('/check/:dbAlias', async (req, res) => {
                     // record created is what is compared the next loop through
                     Object.keys(e2).forEach(k => ec.db[k] = e2[k]);
                   });
-                  // TODO: Should we also save to ORM? (Relying on this being 'no' for now, but that
-                  // doesn't seem tenable *if* an update does actually mutate another column than
-                  // one mutated by the user.
                 }
               }));
             }
             if (r.diff.entitiesInAwsOnly.length > 0) {
               console.log(`${name} has records to delete`);
-              console.dir({
-                toDelete: r.diff.entitiesInAwsOnly,
-              }, { depth: 4, });
               outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 await r.mapper.cloud.delete(e, context);
               }));

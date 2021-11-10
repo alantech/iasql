@@ -65,7 +65,6 @@ export class Crud<E> {
     });
   }
 
-  // TODO: Add memoization of everything
   async create(e: E | E[], ctx: Context) {
     // Memoize before and after the actual logic to make sure the unique ID is reserved
     this.memo(e, ctx);
