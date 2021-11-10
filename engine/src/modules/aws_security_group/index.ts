@@ -1,6 +1,6 @@
 import { AWS, } from '../../services/gateways/aws'
 import { AwsSecurityGroup, AwsSecurityGroupRule, } from './entity'
-import { Context, Mapper, ModuleInterface, Crud, } from '../interfaces'
+import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsSecurityGroup1635288398482, } from './migration/1635288398482-aws_security_group'
 
 const sgMapper = async (sg: any, ctx: Context) => {
@@ -31,7 +31,7 @@ const sgrMapper = async (sgr: any, ctx: Context) => {
   return out;
 }
 
-export const AwsSecurityGroupModule: ModuleInterface = {
+export const AwsSecurityGroupModule: Module = new Module({
   name: 'aws_security_group',
   dependencies: ['aws_account'],
   provides: {
@@ -334,4 +334,4 @@ export const AwsSecurityGroupModule: ModuleInterface = {
     postinstall: awsSecurityGroup1635288398482.prototype.up,
     preremove: awsSecurityGroup1635288398482.prototype.down,
   },
-};
+});

@@ -1,5 +1,10 @@
 import { QueryRunner, } from 'typeorm'
 
+// The exported interfaces are meant to provide better type checking both at compile time and in the
+// editor. They *shouldn't* have to be ever imported directly, only the classes ought to be, but as
+// the classes use these interfaces it helps give you hints as you develop a lot better than without
+// them.
+
 export type Context = { [key: string]: any };
 
 export interface CrudInterface<E> {
@@ -218,4 +223,36 @@ export interface ModuleInterface {
     preremove?: (q: QueryRunner) => Promise<void>;
     postremove?: (q: QueryRunner) => Promise<void>;
   };
+}
+
+// This is just a no-op class at the moment. Not strictly necessary but keeps things consistent
+export class Module {
+  name: string;
+  //version: string; // TODO: Get versioning working
+  dependencies: string[];
+  provides: {
+    tables?: string[];
+    functions?: string[];
+    context?: Context;
+  };
+  mappers: { [key: string]: Mapper<any>, };
+  migrations: {
+    preup?: (q: QueryRunner) => Promise<void>;
+    postup?: (q: QueryRunner) => Promise<void>;
+    predown?: (q: QueryRunner) => Promise<void>;
+    postdown?: (q: QueryRunner) => Promise<void>;
+    preinstall?: (q: QueryRunner) => Promise<void>;
+    postinstall?: (q: QueryRunner) => Promise<void>;
+    preremove?: (q: QueryRunner) => Promise<void>;
+    postremove?: (q: QueryRunner) => Promise<void>;
+  };
+
+  constructor(def: ModuleInterface) {
+    this.name = def.name;
+    //this.version = def.version;
+    this.dependencies = def.dependencies;
+    this.provides = def.provides;
+    this.mappers = def.mappers;
+    this.migrations = def.migrations;
+  }
 }
