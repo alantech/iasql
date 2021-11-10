@@ -157,8 +157,6 @@ ${Object.keys(tableCollisions)
       }
       const e = new IasqlModule();
       e.name = mod.name;
-      e.installed = true;
-      e.enabled = true;
       e.dependencies = await Promise.all(
         mod.dependencies.map(async (dep) => await orm.findOne(IasqlModule, { name: dep, }))
       );

@@ -13,12 +13,6 @@ export class IasqlModule {
   })
   name: string;
 
-  @Column()
-  installed: boolean;
-
-  @Column()
-  enabled: boolean;
-
   @ManyToMany(() => IasqlModule, (m) => m.name, {
     createForeignKeyConstraints: true,
     nullable: true,

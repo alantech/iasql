@@ -64,7 +64,7 @@ db.post('/create', async (req, res) => {
     await Modules.AwsAccount.migrations.postinstall?.(queryRunner);
     // TODO: Use the entity for this in the future?
     await conn2.query(`
-      INSERT INTO iasql_module VALUES ('aws_account', true, true)
+      INSERT INTO iasql_module VALUES ('aws_account')
     `);
     await conn2.query(`
       INSERT INTO aws_account (access_key_id, secret_access_key, region) VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}')
