@@ -45,3 +45,17 @@ This is assuming no one user is able to overload the Postgres database. We may n
 We can then make the job to poll the various databases an actual cron job and then schedule work for any database that has a difference between representation and reality. For now we can just manually trigger that per database name with a simple `/check/<dbname>` HTTP request on our test server, which gives us the added benefit of being able to pause changes to our test AWS accounts if/when it doesn't do what we expected and we want to figure out why.
 
 The actual execution requires access to credentials. While we're testing we can just use the local credentials on our machines, but in reality, we'll need to use something like the AWS Secrets Manager to hold on to them. Later on we may make our own "vault" service to tackle this problem because that service gets expensive fast, especially with how we're proposing to use it.
+
+### IaSQL on IaSQL
+
+The idea is to create the complete IaSQL infrastructure using IaSQL. In order to achieve this goal, we need to follow 3 steps right now:
+
+1. Insert all necessary infrastructure records in the database.
+2. Apply changes so insfrastructure is actually created in the cloud provider (The current `/check` endpoint). 
+3. Build and push IaSQL engine code to the repository.
+
+Step 1 can be done using the `GET` `/setup/:dbAlias` endpoint. This endpoint use the stored procedures created so far and generates a SQL string transaction that is executed using TypeORM.
+
+Step 3 still need to be refined and improve. Right now, I've created a `POST` `/genBuildAndPush` endpoint that will get the repository URI and create a bash script able to docker login, and then build and push the latest IaSQL code locally.
+
+The script `iasql-on-iasql.sh` works assuming a database called `core` exists and will execute `/setup/core`, `/check/core` and execute already auto generated script `./build-and-push.sh`.
