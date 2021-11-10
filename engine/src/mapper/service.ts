@@ -120,11 +120,7 @@ export const ServiceMapper = new EntityMapper(Service, {
   },
   deleteAWS: async (obj: Service, awsClient: AWS, indexes: IndexedAWS) => {
     obj.desiredCount = 0;
-    try {
-      await ServiceMapper.updateAWS(obj, awsClient, indexes);
-    } catch (e) {
-      console.error(`Could not update service. Maybe task definition is inactive. Error ${e}`);
-    }
+    await ServiceMapper.updateAWS(obj, awsClient, indexes);
     await awsClient.deleteService(obj.name, obj.cluster?.name!);
     indexes.del(Service, obj.name);
     return obj;
