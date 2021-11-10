@@ -4,17 +4,12 @@ import jwksRsa from 'jwks-rsa'
 import { createConnection, } from 'typeorm'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-//import { AWS, } from '../services/gateways/aws'
 import config from '../config'
 import { TypeormWrapper, } from '../services/typeorm'
 import { IasqlModule, } from '../entity'
-//import * as Entities from '../entity'
-//import * as Mappers from '../mapper'
 import { findDiff, } from '../services/diff'
-//import { Source, } from '../services/source-of-truth'
-//import { getAwsPrimaryKey, } from '../services/aws-primary-key'
 import { lazyLoader, } from '../services/lazy-dep'
-import { migrate, /*populate,*/ } from '../services/db-manager'
+import { migrate, } from '../services/db-manager'
 import * as Modules from '../modules'
 
 
