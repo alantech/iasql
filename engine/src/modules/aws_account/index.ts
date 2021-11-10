@@ -1,9 +1,9 @@
 import { AWS, } from '../../services/gateways/aws'
 import { AwsAccountEntity, } from './entity'
-import { Context, Mapper, ModuleInterface, Crud, } from '../interfaces'
+import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsAccount1635286464133, } from './migration/1635286464133-aws_account'
 
-export const AwsAccount: ModuleInterface = {
+export const AwsAccount = new Module({
   name: 'aws_account',
   dependencies: [],
   provides: {
@@ -57,4 +57,4 @@ export const AwsAccount: ModuleInterface = {
     postinstall: awsAccount1635286464133.prototype.up,
     preremove: awsAccount1635286464133.prototype.down,
   },
-};
+});
