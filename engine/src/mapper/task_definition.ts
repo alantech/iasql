@@ -56,7 +56,11 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
   createAWS: async (obj: TaskDefinition, awsClient: AWS, indexes: IndexedAWS) => {
     const input: RegisterTaskDefinitionCommandInput = {
       family: obj.family,
-      containerDefinitions: obj.containers,
+      containerDefinitions: obj.containers.map(c => {
+        const container: any = {...c};
+        container.image = `${c.repository ? c.repository.repositoryUri : c.dockerImage}:${c.tag}`;
+        return container;
+      }),
       requiresCompatibilities: obj.reqCompatibilities?.map(c => c.name!) ?? [],
       networkMode: obj.networkMode,
       taskRoleArn: obj.taskRoleArn,

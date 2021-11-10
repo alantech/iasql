@@ -4,11 +4,36 @@ import { AWS, } from '../services/gateways/aws'
 import { Container, } from '../entity/container'
 import { EntityMapper, } from './entity'
 import { IndexedAWS, } from '../services/indexed-aws'
-import { EnvVariableMapper, PortMappingMapper } from '.'
+import { EnvVariableMapper, PortMappingMapper, RepositoryMapper } from '.'
+import { Repository } from '../entity'
 
 export const ContainerMapper = new EntityMapper(Container, {
   name: (c: ContainerDefinitionAWS) => c.name,
-  image: (c: ContainerDefinitionAWS) => c.image,
+  dockerImage: (c: ContainerDefinitionAWS) => {
+    const image = c.image?.split(':')[0];
+    if (image?.includes('amazonaws.com')) {
+      return null;
+    }
+    return image;
+  },
+  repository: async (c: ContainerDefinitionAWS, awsClient: AWS, indexes: IndexedAWS) => {
+    const image = c.image?.split(':')[0];
+    if (!image?.includes('amazonaws.com')) {
+      return null;
+    }
+    let repositories = indexes.get(Repository);
+    if (!repositories) {
+      const awsRepositories = await awsClient.getECRRepositories();
+      indexes.setAll(Repository, awsRepositories.Repositories, 'repositoryName');
+      repositories = indexes.get(Repository);
+    }
+    const repository = Object.values(repositories).find((r: any) => r.repositoryUri === image);
+    if (repository) {
+      return await RepositoryMapper.fromAWS(repository, awsClient, indexes);
+    }
+    return null;
+  },
+  tag: (c: ContainerDefinitionAWS) => c.image?.split(':')[1] ?? null,
   essential: (c: ContainerDefinitionAWS) => c.essential,
   cpu: (c: ContainerDefinitionAWS) => c.cpu,
   memory: (c: ContainerDefinitionAWS) => c?.memory ?? null,
