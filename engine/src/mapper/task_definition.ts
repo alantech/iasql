@@ -94,7 +94,7 @@ export const TaskDefinitionMapper = new EntityMapper(TaskDefinition, {
     throw new Error('Cannot update task definitions. Create a new revision');
   },
   deleteAWS: async (obj: TaskDefinition, awsClient: AWS, indexes: IndexedAWS) => {
-    // Should not delete task definitons while it's being used by a service
+    // Should not delete the task definiton while it's being used by a service
     let indexedServices = indexes.get(Service);
     if (!indexedServices) {
       let indexedClusters = indexes.get(Cluster);
