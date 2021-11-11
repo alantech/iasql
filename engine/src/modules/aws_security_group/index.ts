@@ -1,7 +1,9 @@
+import { In, } from 'typeorm'
+
 import { AWS, } from '../../services/gateways/aws'
 import { AwsSecurityGroup, AwsSecurityGroupRule, } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsSecurityGroup1635288398482, } from './migration/1635288398482-aws_security_group'
+import { awsSecurityGroup1636587967230, } from './migration/1636587967230-aws_security_group'
 
 export const AwsSecurityGroupModule: Module = new Module({
   name: 'aws_security_group',
@@ -18,13 +20,12 @@ export const AwsSecurityGroupModule: Module = new Module({
       out.groupId = sg.GroupId;
       out.vpcId = sg.VpcId;
       out.securityGroupRules = (await AwsSecurityGroupModule.mappers.securityGroupRule.cloud.read(ctx))
-        .filter((sgr: AwsSecurityGroupRule) => sgr.groupId === sg.GroupId);
+        .filter((sgr: AwsSecurityGroupRule) => sgr.securityGroup.groupId === sg.GroupId);
       return out;
     },
     sgrMapper: async (sgr: any, ctx: Context) => {
       const out = new AwsSecurityGroupRule();
       out.securityGroupRuleId = sgr?.SecurityGroupRuleId;
-      out.groupId = sgr?.GroupId;
       out.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sgr?.GroupId);
       out.isEgress = sgr?.IsEgress ?? false;
       out.ipProtocol = sgr?.IpProtocol ?? '';
@@ -56,20 +57,34 @@ export const AwsSecurityGroupModule: Module = new Module({
             await AwsSecurityGroupModule.mappers.securityGroupRule.db.create(e.securityGroupRules, ctx);
           }
         },
-        read: async (ctx: Context, options: any) => {
-          const sg = await ctx.orm.find(AwsSecurityGroup, options);
+        read: async (ctx: Context, id?: string | string[] | undefined) => {
+          const sg = await ctx.orm.find(AwsSecurityGroup, id ? {
+            where: {
+              groupId: Array.isArray(id) ? In(id) : id,
+            },
+          } : undefined);
           if (Array.isArray(sg)) {
             for (const s of sg) {
-              s.securityGroupRules = (
-                await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx)
-              ).filter((sgr: AwsSecurityGroupRule) => sgr.groupId === s.groupId);
-              s.securityGroupRules.forEach((sgr: AwsSecurityGroupRule) => sgr.securityGroup = s);
+              const sgrIds = (await ctx.orm.query(`
+                select sgr.security_group_rule_id
+                from aws_security_group_rule sgr
+                where sgr.security_group_id = ${s.id}
+              `)).map((r: any) => r.security_group_rule_id);
+              if (sgrIds.length > 0) {
+                s.securityGroupRules = await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx, sgrIds);
+                s.securityGroupRules.forEach((sgr: AwsSecurityGroupRule) => sgr.securityGroup = s);
+              }
             }
           } else {
-            sg.securityGroupRules = (
-              await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx)
-            ).filter((sgr: AwsSecurityGroupRule) => sgr.groupId === sg.groupId);
-            sg.securityGroupRules.forEach((sgr: AwsSecurityGroupRule) => sgr.securityGroup = sg);
+            const sgrIds = (await ctx.orm.query(`
+              select sgr.security_group_rule_id
+              from aws_security_group_rule sgr
+              where sgr.security_group_id = ${sg.id}
+            `)).map((r: any) => r.security_group_rule_id);
+            if (sgrIds.length > 0) {
+              sg.securityGroupRules = await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx, sgrIds);
+              sg.securityGroupRules.forEach((sgr: AwsSecurityGroupRule) => sgr.securityGroup = sg);
+            }
           }
           return sg;
         },
@@ -117,10 +132,11 @@ export const AwsSecurityGroupModule: Module = new Module({
             if (e.securityGroupRules?.length > 0) newEntity.securityGroupRules = [ ...e.securityGroupRules];
             await Promise.all(newEntity.securityGroupRules.map(async (sgr: AwsSecurityGroupRule) => {
               // First, remove the old security group rule from the database
-              await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(sgr, ctx);
+              if (sgr.hasOwnProperty('id')) {
+                await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(sgr, ctx);
+              }
               // Now edit this entity so it can be recreated in the database appropriately
               sgr.securityGroup = newEntity;
-              sgr.groupId = newEntity.groupId; // TODO: Eliminate this field
               delete sgr.id; // So it gets properly recreated for the new entity
             }));
             // Save the security group record back into the database to get the new fields updated
@@ -193,7 +209,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             // Also need to delete the security group rules associated with this security group,
             // if any
             const rules = await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx);
-            const relevantRules = rules.filter((r: AwsSecurityGroupRule) => r.groupId === e.groupId);
+            const relevantRules = rules.filter((r: AwsSecurityGroupRule) => r.securityGroup.groupId === e.groupId);
             await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(relevantRules, ctx);
           }));
         },
@@ -213,7 +229,24 @@ export const AwsSecurityGroupModule: Module = new Module({
       source: 'db',
       db: new Crud({
         create: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
-        read: (ctx: Context, options: any) => ctx.orm.find(AwsSecurityGroupRule, options),
+        read: async (ctx: Context, id?: string | string[] | undefined) => {
+          const out = await ctx.orm.find(AwsSecurityGroupRule, id ? {
+            where: {
+              securityGroupRuleId: Array.isArray(id) ? In(id) : id,
+            },
+          } : undefined);
+          // This is ridiculous. Why can't I access the `security_group_id` field directly?
+          await Promise.all(out.map(async (o: AwsSecurityGroupRule) => {
+            const sgId = (await ctx.orm.query(`
+              select sg.group_id
+              from aws_security_group sg
+              inner join aws_security_group_rule sgr on sgr.security_group_id = sg.id
+              where sgr.id = ${o.id}
+            `))[0].group_id;
+            o.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
+          }));
+          return out;
+        },
         update: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
         delete: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.remove(AwsSecurityGroupRule, e); },
       }),
@@ -227,7 +260,7 @@ export const AwsSecurityGroupModule: Module = new Module({
           const es = Array.isArray(e) ? e : [e];
           for (let en of es) {
             // TODO: Drop the duplicate groupId
-            const GroupId = en?.securityGroup?.groupId ?? en.groupId;
+            const GroupId = en?.securityGroup?.groupId;
             if (!GroupId) throw new Error(
               'Cannot create a security group rule for a security group that does not yet exist'
             );
@@ -300,7 +333,7 @@ export const AwsSecurityGroupModule: Module = new Module({
           const ingressDeletesToRun: any = {};
           for (let en of es) {
             // TODO: Drop the duplicate groupId
-            const GroupId = en?.securityGroup?.groupId ?? en.groupId;
+            const GroupId = en?.securityGroup?.groupId;
             if (!GroupId) throw new Error(
               'Cannot create a security group rule for a security group that does not yet exist'
             );
@@ -343,7 +376,7 @@ export const AwsSecurityGroupModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsSecurityGroup1635288398482.prototype.up,
-    preremove: awsSecurityGroup1635288398482.prototype.down,
+    postinstall: awsSecurityGroup1636587967230.prototype.up,
+    preremove: awsSecurityGroup1636587967230.prototype.down,
   },
 });
