@@ -1,35 +1,43 @@
-BEGIN;
-  declare 
-    default_vpc text;
-    -- TODO: default_subnets text[]; -- array['subnet-72521928','subnet-a58a84c3','subnet-68312820']
-    default_subnets := array['subnet-72521928','subnet-a58a84c3','subnet-68312820'];
-    iasql_engine_port := 8088;
-    iasql_postgres_port := 5432;
-    iasql_engine_target_group := 'iasql-engine-target-group';
-    iasql_postgres_target_group := 'iasql-postgres-target-group';
-    iasql_engine_load_balancer := 'iasql-engine-load-balancer';
-    iasql_postgres_load_balancer := 'iasql-postgres-load-balancer';
-    iasql_engine_repository := 'iasql-engine-repository';
-    iasql_postgres_docker_image := 'postgres';
-    iasql_cluster := 'iasql-cluster';
-    iasql_engine_container := 'iasql-engine-container';
-    iasql_engine_image_tag := 'latest';
-    iasql_postgres_container := 'iasql-postgres-container';
-    iasql_postgres_image_tag := '13.4';
-    iasql_engine_task_definition := 'iasql-engine-task-definition';
-    iasql_postgres_task_definition := 'iasql-postgres-task-definition';
-    iasql_ecs_task_execution_role := 'arn:aws:iam::257682470237:role/ecsTaskExecutionRole';
-    iasql_engine_security_group := 'iasql-engine-security-group';
-    iasql_postgres_security_group := 'iasql-postgres-security-group';
-    iasql_engine_service := 'iasql-engine-service';
-    iasql_postgres_service := 'iasql-postgres-service';
-
-  select vpc_id into default_vpc
+do $$
+<<iasql>>
+declare 
+  default_vpc text;
+  default_vpc_id integer;
+  sn record;
+  default_subnets text[];
+  iasql_engine_port integer := 8088;
+  iasql_postgres_port integer := 5432;
+  iasql_engine_target_group text := 'iasql-engine-target-group';
+  iasql_postgres_target_group text := 'iasql-postgres-target-group';
+  iasql_engine_load_balancer text := 'iasql-engine-load-balancer';
+  iasql_postgres_load_balancer text := 'iasql-postgres-load-balancer';
+  iasql_engine_repository text := 'iasql-engine-repository';
+  iasql_postgres_docker_image text := 'postgres';
+  iasql_cluster text := 'iasql-cluster';
+  iasql_engine_container text := 'iasql-engine-container';
+  iasql_engine_image_tag text := 'latest';
+  iasql_postgres_container text := 'iasql-postgres-container';
+  iasql_postgres_image_tag text := '13.4';
+  iasql_engine_task_definition text := 'iasql-engine-task-definition';
+  iasql_postgres_task_definition text := 'iasql-postgres-task-definition';
+  iasql_ecs_task_execution_role text := 'arn:aws:iam::257682470237:role/ecsTaskExecutionRole';
+  iasql_engine_security_group text := 'iasql-engine-security-group';
+  iasql_postgres_security_group text := 'iasql-postgres-security-group';
+  iasql_engine_service text := 'iasql-engine-service';
+  iasql_postgres_service text := 'iasql-postgres-service';
+begin
+  select vpc_id, id into default_vpc, default_vpc_id
   from vpc
   where is_default = true
   limit 1;
 
-  -- TODO: Create a list of strings of default subnet names
+  for sn in
+    select *
+    from subnet
+    where vpc_id = default_vpc_id
+  loop
+    default_subnets := array_append(default_subnets, sn.subnet_id::text);
+  end loop;
 
   select * from create_target_group(
     iasql_engine_target_group, 'ip', iasql_engine_port, default_vpc, 'TCP'
@@ -113,5 +121,4 @@ BEGIN;
     iasql_postgres_service, iasql_cluster, iasql_postgres_task_definition, '1', 1, 'FARGATE',
     'REPLICA', default_subnets, array[iasql_postgres_security_group], 'ENABLED', iasql_postgres_target_group
   );
-
-COMMIT;
+end iasql $$;
