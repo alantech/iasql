@@ -45,11 +45,6 @@ export class AwsSecurityGroupRule {
   })
   securityGroupRuleId?: string;
 
-  @Column({
-    nullable: true,
-  })
-  groupId?: string;
-
   @ManyToOne(() => AwsSecurityGroup)
   @JoinColumn({
     name: 'security_group_id',
