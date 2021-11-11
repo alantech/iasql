@@ -21,11 +21,11 @@ export class containerDefSp1636634027240 implements MigrationInterface {
         _ecr_repository_name text default null
       ) returns integer as $$ 
         declare 
-          container_id integer;
-          port_mapping_id integer;
+          c_id integer;
+          pm_id integer;
           key text;
           val text;
-          env_var_id integer;
+          ev_id integer;
           ecr_repository_id integer;
         begin
 
@@ -76,68 +76,81 @@ export class containerDefSp1636634027240 implements MigrationInterface {
           do nothing;
         end if;
       
-        select id into container_id
+        select id into c_id
         from container
+        where name = _name
         order by id desc
         limit 1;
       
-        //! TODO: IF CONTAINER ID ALREADY IN JOIN TABLE DO NOTHING
-        insert into port_mapping
-          (
-            container_port,
-            host_port,
-            protocol
-          )
-        values
-          (
-            _container_port,
-            _host_port,
-            _protocol
-          );
-      
-        select id into port_mapping_id
-        from port_mapping
-        order by id desc
+        select port_mapping_id into pm_id
+        from container_port_mappings_port_mapping
+        where container_id = c_id
         limit 1;
-      
-        insert into container_port_mappings_port_mapping
-          (
-            container_id,
-            port_mapping_id
-          )
-        values
-          (
-            container_id,
-            port_mapping_id
-          );
-      
-        for key, val in
-          select *
-          from json_each_text (_environment_variables)
-        loop
-          insert into env_variable
-            (name, value)
-          values
-            (key, val);
-      
-          select id into env_var_id
-          from env_variable
-          order by id desc
-          limit 1;
-      
-          insert into container_environment_env_variable
+        
+        if pm_id is null then
+          insert into port_mapping
             (
-              container_id,
-              env_variable_id
+              container_port,
+              host_port,
+              protocol
             )
           values
             (
-              container_id,
-              env_var_id
+              _container_port,
+              _host_port,
+              _protocol
             );
-        end loop;
-      
-        return container_id;
+        
+          select id into pm_id
+          from port_mapping
+          order by id desc
+          limit 1;
+        
+          insert into container_port_mappings_port_mapping
+            (
+              container_id,
+              port_mapping_id
+            )
+          values
+            (
+              c_id,
+              pm_id
+            );
+        end if;
+
+        select env_variable_id into ev_id
+        from container_environment_env_variable
+        where container_id = c_id
+        limit 1;
+        
+        if ev_id is null then
+          for key, val in
+            select *
+            from json_each_text (_environment_variables)
+          loop
+            insert into env_variable
+              (name, value)
+            values
+              (key, val);
+        
+            select id into ev_id
+            from env_variable
+            order by id desc
+            limit 1;
+        
+            insert into container_environment_env_variable
+              (
+                container_id,
+                env_variable_id
+              )
+            values
+              (
+                c_id,
+                ev_id
+              );
+          end loop;
+        end if;
+        return c_id;
         end; $$ language plpgsql;
     `);
   }
