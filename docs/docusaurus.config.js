@@ -19,7 +19,7 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
   trailingSlash: true,
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/favicon.png',
+  favicon: 'img/logo.png',
   organizationName: 'alantech', // Usually your GitHub org/user name.
   projectName: 'iasql', // Usually your repo name.
 
@@ -45,10 +45,11 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       navbar: {
-        title: 'IaSQL',
+        title: '',
         logo: {
           alt: 'logo',
-          src: 'img/logo.svg',
+          src: 'img/logo.png',
+          srcDark: 'img/logo_dark.png',
         },
         items: [
           {
