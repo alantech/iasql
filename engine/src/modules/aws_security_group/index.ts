@@ -259,7 +259,6 @@ export const AwsSecurityGroupModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(e) ? e : [e];
           for (let en of es) {
-            // TODO: Drop the duplicate groupId
             const GroupId = en?.securityGroup?.groupId;
             if (!GroupId) throw new Error(
               'Cannot create a security group rule for a security group that does not yet exist'
@@ -332,7 +331,6 @@ export const AwsSecurityGroupModule: Module = new Module({
           const egressDeletesToRun: any = {};
           const ingressDeletesToRun: any = {};
           for (let en of es) {
-            // TODO: Drop the duplicate groupId
             const GroupId = en?.securityGroup?.groupId;
             if (!GroupId) throw new Error(
               'Cannot create a security group rule for a security group that does not yet exist'
