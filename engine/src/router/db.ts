@@ -139,7 +139,7 @@ db.get('/check/:dbAlias', async (req, res) => {
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
     const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
-    for (let name of moduleNames) {
+    for (const name of moduleNames) {
       const mod = Object.values(Modules).find(m => m.name === name) as Modules.ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod.provides.context ?? {};

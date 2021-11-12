@@ -20,9 +20,9 @@ export class Crud<E> {
   updateFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
   deleteFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
   dest?: 'db' | 'cloud';
-  entity?: { new (): E };
+  entity?: new () => E;
   entityId?: (e: E) => string;
-  
+
   constructor(def: CrudInterface<E>) {
     this.createFn = def.create;
     this.readFn = def.read;
@@ -30,12 +30,12 @@ export class Crud<E> {
     this.deleteFn = def.delete;
   }
 
-  memo(e: void | E | E[], ctx: Context) {
-    if (!e) return;
-    const es = Array.isArray(e) ? e : [e];
+  memo(entity: void | E | E[], ctx: Context) {
+    if (!entity) return;
+    const es = Array.isArray(entity) ? entity : [entity];
     const dest = this.dest ?? 'What?';
     const entityName = this.entity?.name ?? 'What?';
-    const entityId = this.entityId ?? function (_e: E) { return 'What?'; };
+    const entityId = this.entityId ?? ((_e: E) => { return 'What?'; });
     es.forEach((e, i) => {
       ctx.memo[dest] = ctx.memo[dest] ?? {};
       ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
@@ -49,20 +49,20 @@ export class Crud<E> {
         es[i] = realE;
       }
     });
-    if (Array.isArray(e)) {
-      return e;
+    if (Array.isArray(entity)) {
+      return entity;
     } else {
       // To return the possibly-changed entity instead of the original input one
       return es[0];
     }
   }
 
-  unmemo(e: void | E | E[], ctx: Context) {
-    if (!e) return;
-    const es = Array.isArray(e) ? e : [e];
+  unmemo(entity: void | E | E[], ctx: Context) {
+    if (!entity) return;
+    const es = Array.isArray(entity) ? entity : [entity];
     const dest = this.dest ?? 'What?';
     const entityName = this.entity?.name ?? 'What?';
-    const entityId = this.entityId ?? function (_e: E) { return 'What?'; };
+    const entityId = this.entityId ?? ((_e: E) => { return 'What?'; });
     es.forEach(e => {
       ctx.memo[dest] = ctx.memo[dest] ?? {};
       ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
@@ -90,7 +90,7 @@ export class Crud<E> {
             // references are fine
             ctx.memo[dest] = ctx.memo[dest] ?? {};
             ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
-            ctx.memo[dest][entityName][i] = new (this.entity as { new (): E, })();
+            ctx.memo[dest][entityName][i] = new (this.entity as new () => E)();
             missing.push(i);
             return i;
           } else {
@@ -115,7 +115,7 @@ export class Crud<E> {
         ctx.memo[dest] = ctx.memo[dest] ?? {};
         ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
         if (!ctx.memo[dest][entityName][id]) {
-          ctx.memo[dest][entityName][id] = new (this.entity as { new (): E})();
+          ctx.memo[dest][entityName][id] = new (this.entity as new () => E)();
         } else {
           return ctx.memo[dest][entityName][id];
         }
@@ -138,7 +138,7 @@ export class Crud<E> {
 }
 
 export interface MapperInterface<E> {
-  entity:  { new (): E };
+  entity:  new () =>  E;
   entityId: (e: E) => string;
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
@@ -147,7 +147,7 @@ export interface MapperInterface<E> {
 }
 
 export class Mapper<E> {
-  entity: { new(): E };
+  entity: new() => E;
   entityId: (e: E) => string;
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
@@ -172,7 +172,7 @@ export class Mapper<E> {
 
 export interface ModuleInterface {
   name: string;
-  //version: string; // TODO: Get versioning working
+  // version: string; // TODO: Get versioning working
   dependencies: string[];
   provides: {
     tables?: string[];
@@ -229,7 +229,7 @@ export interface ModuleInterface {
 // This is just a no-op class at the moment. Not strictly necessary but keeps things consistent
 export class Module {
   name: string;
-  //version: string; // TODO: Get versioning working
+  // version: string; // TODO: Get versioning working
   dependencies: string[];
   provides: {
     tables?: string[];
@@ -251,7 +251,7 @@ export class Module {
 
   constructor(def: ModuleInterface) {
     this.name = def.name;
-    //this.version = def.version;
+    // this.version = def.version;
     this.dependencies = def.dependencies;
     this.provides = def.provides;
     this.utils = def?.utils ?? {};
