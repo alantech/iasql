@@ -5,13 +5,13 @@
  */
 
 /* You can override the default Infima variables here. */
-@import url('https://fonts.googleapis.com/css2?family=Gothic+A1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
 
 :root {
-  --ifm-color-primary: #7090F5;
-  --ifm-color-primary-dark: #304CA7;
+  --ifm-color-primary: #3D95CE;
+  --ifm-color-primary-dark: #194766;
   --ifm-code-font-size: 90%;
-  --ifm-font-family-base: 'Gothic A1';
+  --ifm-font-family-base: 'Roboto';
 }
 
 .docusaurus-highlight-code-line {
@@ -21,9 +21,8 @@
   padding: 0 var(--ifm-pre-padding);
 }
 
-/* without this the title overflows*/
-.navbar__title {
-  text-overflow: clip;
+.navbar__brand {
+  height: 3rem;
 }
 
 html[data-theme='dark'] .docusaurus-highlight-code-line {
