@@ -83,16 +83,14 @@ do $$
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_engine_port || ', "toPort": ' || iasql_engine_port || ', "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
 
-    -- TODO: remove revision from task procedure and let the store procedure insert it
-    select *
-    from create_ecs_service(
+    call create_ecs_service(
       iasql_engine_service, iasql_cluster, iasql_engine_task_definition, 1, 'FARGATE',
       'REPLICA', default_subnets, array[iasql_engine_security_group], 'ENABLED', iasql_engine_target_group
     );
 
     call create_container_definition(
       iasql_postgres_container, true, 8192, iasql_postgres_port, iasql_postgres_port, 'tcp',
-      '{"PORT": ' || iasql_postgres_port || ',"POSTGRES_PASSWORD": "test"}', iasql_postgres_image_tag,
+      ('{"PORT": ' || iasql_postgres_port || ',"POSTGRES_PASSWORD": "test"}')::json, iasql_postgres_image_tag,
       _docker_image := iasql_postgres_docker_image
     );
 
@@ -106,9 +104,7 @@ do $$
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_postgres_port || ', "toPort": ' || iasql_postgres_port || ', "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
 
-    -- TODO: remove revision from task procedure and let the store procedure insert it
-    select *
-    from create_ecs_service(
+    call create_ecs_service(
       iasql_postgres_service, iasql_cluster, iasql_postgres_task_definition, 1, 'FARGATE',
       'REPLICA', default_subnets, array[iasql_postgres_security_group], 'ENABLED', iasql_postgres_target_group
     );

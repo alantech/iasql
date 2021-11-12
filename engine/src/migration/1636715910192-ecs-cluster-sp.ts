@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class ecsClusterSp1636715910192 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP procedure create_ecs_cluster;`);
+    await queryRunner.query(`DROP function create_ecs_cluster;`);
     // Example of use: call create_ecs_cluster('test-sp');
     await queryRunner.query(`
       create or replace procedure create_ecs_cluster(_name text)
@@ -32,7 +32,7 @@ export class ecsClusterSp1636715910192 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP function create_ecs_cluster;`);
+    await queryRunner.query(`DROP procedure create_ecs_cluster;`);
     // Example of use: select * from create_ecs_cluster('test-sp');
     await queryRunner.query(`
       create or replace function create_ecs_cluster(
