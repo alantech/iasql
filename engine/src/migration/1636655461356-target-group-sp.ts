@@ -27,21 +27,9 @@ export class targetGroupSp1636655461356 implements MigrationInterface {
           limit 1;
       
           insert into target_group
-            (
-              target_group_name,
-              target_type,
-              protocol,
-              port,
-              vpc_id
-            )
+            (target_group_name, target_type, protocol, port, vpc_id)
           values
-            (
-              _name,
-              _target_type,
-              _protocol,
-              _port,
-              tg_vpc_id
-            )
+            (_name, _target_type, _protocol, _port, tg_vpc_id)
           on conflict (target_group_name)
           do nothing;
       
