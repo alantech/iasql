@@ -32,7 +32,9 @@ export class Repository {
   repositoryUri?: string;
 
   @awsPrimaryKey
-  @Column()
+  @Column({
+    unique: true,
+  })
   repositoryName: string;
 
   @Column({
