@@ -58,10 +58,10 @@ jobs:
         --header 'content-type: application/json' \
         --data '{
           "colors": {
-            "page_background": "#7090F5",
-            "primary": "#304CA7"
+            "page_background": "#95CE3D",
+            "primary": "#3D95CE"
           },
-          "logo_url": "https://beta.iasql.com/img/logo.svg"
+          "logo_url": "https://beta.iasql.com/img/favicon.png"
         }'
   
   a0-access-control:
@@ -100,9 +100,9 @@ jobs:
             <head>
               {%- auth0:head -%}
               <style>
-                @import url("https://fonts.googleapis.com/css2?family=Gothic+A1&display=swap");
+                @import url("https://fonts.googleapis.com/css2?family=Roboto&display=swap");
                 body {
-                  font-family: "Gothic A1" !important;
+                  font-family: "Roboto" !important;
                 }
               </style>
             </head>
