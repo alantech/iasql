@@ -61,7 +61,7 @@ jobs:
             "page_background": "#95CE3D",
             "primary": "#3D95CE"
           },
-          "logo_url": "https://beta.iasql.com/img/favicon.png"
+          "logo_url": "https://docs.iasql.com/img/favicon.png"
         }'
   
   a0-access-control:
@@ -75,10 +75,6 @@ jobs:
         --header 'authorization: Bearer ${{ secrets.A0_MANAGEMENT_API_TOKEN }}' \
         --header 'content-type: application/json' \
         --data '{
-            "callbacks": [
-              "http://localhost:3000/dashboard",
-              "https://beta.iasql.com/dashboard"
-            ],
             "allowed_logout_urls": [
               "http://localhost:3000",
               "https://*.iasql.com"

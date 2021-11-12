@@ -21,9 +21,8 @@
   padding: 0 var(--ifm-pre-padding);
 }
 
-/* without this the title overflows*/
-.navbar__title {
-  text-overflow: clip;
+.navbar__brand {
+  height: 3rem;
 }
 
 html[data-theme='dark'] .docusaurus-highlight-code-line {
