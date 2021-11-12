@@ -37,6 +37,17 @@ jobs:
       - name: Run linter check
         run: yarn lint
 
+  cli-style:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # Rust is automatically set up and included by default according to: https://github.com/actions/starter-workflows/blob/master/ci/rust.yml
+      # Run cargo fmt linting on the source code
+      - name: Run style linter
+        run: cd ../cli && cargo fmt -- --check
+
   test:
     runs-on: ubuntu-latest
 
@@ -77,10 +88,12 @@ jobs:
           echo A0_ENABLED=${A0_ENABLED} >> .env
           echo A0_DOMAIN=${A0_DOMAIN} >> .env
           echo A0_AUDIENCE=${A0_AUDIENCE} >> .env
+          echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN} >> .env
           docker-compose up --build --detach
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
           AWS_REGION: us-east-1
           A0_ENABLED: true
           A0_DOMAIN: https://auth.iasql.com/
@@ -103,7 +116,7 @@ jobs:
           --header 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' \
           --header 'content-type: application/json' \
           --data '{
-            "dbAlias": "__example__",
+            "dbAlias": "__${{ github.sha }}__",
             "awsRegion": "us-east-1",
             "awsAccessKeyId": "${{ secrets.AWS_ACCESS_KEY_ID }}",
             "awsSecretAccessKey": "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
@@ -111,15 +124,23 @@ jobs:
 
       - name: Check
         run: |
-          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/check/__example__
+          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/check/__${{ github.sha }}__
+
+      - name: Aliases
+        run: |
+          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/
 
       - name: Delete
         run: |
-          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/delete/__example__
+          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/delete/__${{ github.sha }}__
 
-      - name: Logs
+      - name: Logs engine
         if: always()
-        run: docker logs $(docker ps -aq | head -n 1)
+        run: docker logs engine_change_engine_1
+
+      - name: Logs psql
+        if: always()
+        run: docker logs engine_postgresql_1
 
       - name: Docker stop
         run: docker stop $(docker ps -q)
