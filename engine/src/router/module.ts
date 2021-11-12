@@ -111,12 +111,12 @@ mod.post('/install', async (req, res) => {
   `)).map((t: any) => t.table_name);
   const tableCollisions: { [key: string]: string[], } = {};
   let hasCollision = false;
-  for (let mod of modules) {
-    tableCollisions[mod.name] = [];
-    if (mod.provides?.tables) {
-      for (let t of mod.provides.tables) {
+  for (const md of modules) {
+    tableCollisions[md.name] = [];
+    if (md.provides?.tables) {
+      for (const t of md.provides.tables) {
         if (tables.includes(t)) {
-          tableCollisions[mod.name].push(t);
+          tableCollisions[md.name].push(t);
           hasCollision = true;
         }
       }
@@ -143,22 +143,22 @@ ${Object.keys(tableCollisions)
   // at this point when we're actually mutating the database doesn't leave things in a busted state.
   await queryRunner.startTransaction();
   try {
-    for (let mod of leafToRootOrder) {
-      if (mod.migrations?.preinstall) {
-        await mod.migrations.preinstall(queryRunner);
+    for (const md of leafToRootOrder) {
+      if (md.migrations?.preinstall) {
+        await md.migrations.preinstall(queryRunner);
       }
     }
-    for (let mod of rootToLeafOrder) {
-      if (mod.migrations?.preinstall) {
-        await mod.migrations.preinstall(queryRunner);
+    for (const md of rootToLeafOrder) {
+      if (md.migrations?.preinstall) {
+        await md.migrations.preinstall(queryRunner);
       }
-      if (mod.migrations?.postinstall) {
-        await mod.migrations.postinstall(queryRunner);
+      if (md.migrations?.postinstall) {
+        await md.migrations.postinstall(queryRunner);
       }
       const e = new IasqlModule();
-      e.name = mod.name;
+      e.name = md.name;
       e.dependencies = await Promise.all(
-        mod.dependencies.map(async (dep) => await orm.findOne(IasqlModule, { name: dep, }))
+        md.dependencies.map(async (dep) => await orm.findOne(IasqlModule, { name: dep, }))
       );
       await orm.save(IasqlModule, e);
     }
@@ -180,24 +180,24 @@ ${Object.keys(tableCollisions)
   // Find all of the installed modules, and create the context object only for these
   const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
   const context: Modules.Context = { orm, memo: {}, }; // Every module gets access to the DB
-  for (let name of moduleNames) {
-    const mod = Object.values(Modules).find(m => m.name === name) as Modules.ModuleInterface;
-    if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
-    const moduleContext = mod.provides.context ?? {};
+  for (const name of moduleNames) {
+    const md = Object.values(Modules).find(m => m.name === name) as Modules.ModuleInterface;
+    if (!md) throw new Error(`This should be impossible. Cannot find module ${name}`);
+    const moduleContext = md.provides.context ?? {};
     Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
   }
   // Get the relevant mappers, which are the ones where the DB is the source-of-truth
   const mappers = modules
-    .map(mod => Object.values(mod.mappers))
+    .map(md => Object.values(md.mappers))
     .flat()
-  for (let mapper of mappers) {
+  for (const mapper of mappers) {
     const e = await mapper.cloud.read(context);
     if (!e || (Array.isArray(e) && !e.length)) {
       console.log('Completely unexpected outcome');
       console.log({ mapper, e, });
     } else {
-      await Promise.all(e.map(async (e: any) => {
-        await orm.save(mapper.entity, e);
+      await Promise.all(e.map(async (entity: any) => {
+        await orm.save(mapper.entity, entity);
       }));
     }
   }
@@ -258,19 +258,19 @@ mod.post('/remove', async (req, res) => {
   // this point when we're actually mutating the database doesn't leave things in a busted state.
   await queryRunner.startTransaction();
   try {
-    for (let mod of leafToRootOrder) {
-      if (mod.migrations?.preinstall) {
-        await mod.migrations.preinstall(queryRunner);
+    for (const md of leafToRootOrder) {
+      if (md.migrations?.preinstall) {
+        await md.migrations.preinstall(queryRunner);
       }
     }
-    for (let mod of rootToLeafOrder) {
-      if (mod.migrations?.preremove) {
-        await mod.migrations.preremove(queryRunner);
+    for (const md of rootToLeafOrder) {
+      if (md.migrations?.preremove) {
+        await md.migrations.preremove(queryRunner);
       }
-      if (mod.migrations?.postremove) {
-        await mod.migrations.postremove(queryRunner);
+      if (md.migrations?.postremove) {
+        await md.migrations.postremove(queryRunner);
       }
-      const e = await orm.findOne(IasqlModule, { name: mod.name, });
+      const e = await orm.findOne(IasqlModule, { name: md.name, });
       await orm.remove(IasqlModule, e);
     }
     await queryRunner.commitTransaction();

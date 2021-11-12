@@ -7,12 +7,14 @@
   "rules": {
     "one-variable-per-declaration": false,
     "ban-types": false,
-    "no-console": false
+    "no-console": false,
+    "max-classes-per-file": 9001
   },
   "rulesDirectory": [],
   "linterOptions": {
     "exclude": [
-      "src/migration/*.ts"
+      "src/migration/*.ts",
+      "src/modules/**/migration/*.ts"
     ]
   }
 }

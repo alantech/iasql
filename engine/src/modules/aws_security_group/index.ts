@@ -106,9 +106,9 @@ export const AwsSecurityGroupModule: Module = new Module({
         },
       }),
       cloud: new Crud({
-        create: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
+        create: async (sg: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          const es = Array.isArray(e) ? e : [e];
+          const es = Array.isArray(sg) ? sg : [sg];
           const out = await Promise.all(es.map(async (e) => {
             // First construct the security group
             const result = await client.createSecurityGroup({
@@ -144,24 +144,24 @@ export const AwsSecurityGroupModule: Module = new Module({
             return newEntity;
           }));
           // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(e)) {
+          if (Array.isArray(sg)) {
             return out;
           } else {
             return out[0];
           }
         },
-        read: async (ctx: Context, id?: string | string[]) => {
+        read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (id) {
-            if (Array.isArray(id)) {
-              return await Promise.all(id.map(async (id) => {
+          if (ids) {
+            if (Array.isArray(ids)) {
+              return await Promise.all(ids.map(async (id) => {
                 return await AwsSecurityGroupModule.utils.sgMapper(
                   await client.getSecurityGroup(id), ctx
                 );
               }));
             } else {
               return await AwsSecurityGroupModule.utils.sgMapper(
-                await client.getSecurityGroup(id), ctx
+                await client.getSecurityGroup(ids), ctx
               );
             }
           } else {
@@ -171,8 +171,8 @@ export const AwsSecurityGroupModule: Module = new Module({
             );
           }
         },
-        update: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
-          const es = Array.isArray(e) ? e : [e];
+        update: async (sg: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
+          const es = Array.isArray(sg) ? sg : [sg];
           return await Promise.all(es.map(async (e) => {
             // AWS does not have a way to update the top-level SecurityGroup entity. You can update
             // the various rules associated with it, but not the name or description of the
@@ -199,9 +199,9 @@ export const AwsSecurityGroupModule: Module = new Module({
             }
           }));
         },
-        delete: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
+        delete: async (sg: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          const es = Array.isArray(e) ? e : [e];
+          const es = Array.isArray(sg) ? sg : [sg];
           await Promise.all(es.map(async (e) => {
             await client.deleteSecurityGroup({
               GroupId: e.groupId,
@@ -258,7 +258,7 @@ export const AwsSecurityGroupModule: Module = new Module({
           // the moment.
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(e) ? e : [e];
-          for (let en of es) {
+          for (const en of es) {
             const GroupId = en?.securityGroup?.groupId;
             if (!GroupId) throw new Error(
               'Cannot create a security group rule for a security group that does not yet exist'
@@ -297,18 +297,18 @@ export const AwsSecurityGroupModule: Module = new Module({
             await AwsSecurityGroupModule.mappers.securityGroupRule.db.update(en, ctx);
           }
         },
-        read: async (ctx: Context, id?: string | string[]) => {
+        read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (id) {
-            if (Array.isArray(id)) {
-              return await Promise.all(id.map(async (id) => {
+          if (ids) {
+            if (Array.isArray(ids)) {
+              return await Promise.all(ids.map(async (id) => {
                 return await AwsSecurityGroupModule.utils.sgrMapper(
                   await client.getSecurityGroupRule(id), ctx
                 );
               }));
             } else {
               return await AwsSecurityGroupModule.utils.sgrMapper(
-                await client.getSecurityGroupRule(id), ctx
+                await client.getSecurityGroupRule(ids), ctx
               );
             }
           } else {
@@ -318,19 +318,19 @@ export const AwsSecurityGroupModule: Module = new Module({
             );
           }
         },
-        update: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => {
+        update: async (sgr: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => {
           // First we create new instances of these records, then we delete the old instances
           // To make sure we don't accidentally delete the wrong things, we clone these entities
-          const es = Array.isArray(e) ? e : [e];
+          const es = Array.isArray(sgr) ? sgr : [sgr];
           const deleteEs = es.map(e => ({ ...e, }));
           await AwsSecurityGroupModule.mappers.securityGroupRule.cloud.create(es, ctx);
           await AwsSecurityGroupModule.mappers.securityGroupRule.cloud.delete(deleteEs, ctx);
         },
-        delete: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => {
-          const es = Array.isArray(e) ? e : [e];
+        delete: async (sgr: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => {
+          const es = Array.isArray(sgr) ? sgr : [sgr];
           const egressDeletesToRun: any = {};
           const ingressDeletesToRun: any = {};
-          for (let en of es) {
+          for (const en of es) {
             const GroupId = en?.securityGroup?.groupId;
             if (!GroupId) throw new Error(
               'Cannot create a security group rule for a security group that does not yet exist'
@@ -344,7 +344,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             }
           }
           const client = await ctx.getAwsClient() as AWS;
-          for (let GroupId of Object.keys(egressDeletesToRun)) {
+          for (const GroupId of Object.keys(egressDeletesToRun)) {
             const res = (await client.deleteSecurityGroupEgressRules([{
               GroupId,
               SecurityGroupRuleIds: egressDeletesToRun[GroupId],
@@ -353,7 +353,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               throw new Error(`Failed to remove the security group rules ${res}`);
             }
           }
-          for (let GroupId of Object.keys(ingressDeletesToRun)) {
+          for (const GroupId of Object.keys(ingressDeletesToRun)) {
             const res = (await client.deleteSecurityGroupIngressRules([{
               GroupId,
               SecurityGroupRuleIds: ingressDeletesToRun[GroupId],
