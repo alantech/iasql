@@ -100,6 +100,9 @@ pub async fn list_dbs() {
 pub async fn stop_db() {
   // TODO figure out better ux/naming
   let dbs = get_dbs().await;
+  if dbs.len() == 0 {
+    return println!("No dbs have been created");
+  }
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
   let resp = get_v1_db(&format!("delete/{}", db)).await;
@@ -117,6 +120,9 @@ pub async fn stop_db() {
 pub async fn check_db() {
   // TODO figure out better ux/naming
   let dbs = get_dbs().await;
+  if dbs.len() == 0 {
+    return println!("No dbs have been created");
+  }
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
   let resp = get_v1_db(&format!("check/{}", db)).await;

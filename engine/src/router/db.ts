@@ -109,8 +109,10 @@ db.get('/', async (req, res) => {
     `)).map((r: any) => r.datname);
     // TODO expose connection string after IaSQL-on-IaSQL
     res.json(aliases);
-  } catch (e) {
-    res.status(500).json(e);
+  } catch (e: any) {
+    res.status(500).end(`failure to list DBs: ${e?.message ?? ''}`);
+  } finally {
+    conn?.close();
   }
 });
 
@@ -120,6 +122,7 @@ db.get('/delete/:dbAlias', async (req, res) => {
   const dbId = config.a0Enabled ? await getId(dbAlias, user.sub) : dbAlias;
   let conn;
   try {
+    if (config.a0Enabled) await delId(dbAlias, user.sub);
     conn = await createConnection({
       name: 'base',
       type: 'postgres',
@@ -130,7 +133,6 @@ db.get('/delete/:dbAlias', async (req, res) => {
     await conn.query(`
       DROP DATABASE ${dbId};
     `);
-    await delId(dbAlias, user.sub);
     res.end(`delete ${dbAlias}`);
   } catch (e: any) {
     res.status(500).end(`failure to drop DB: ${e?.message ?? ''}`);
