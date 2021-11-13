@@ -91,9 +91,27 @@ db.post('/create', async (req, res) => {
 
 db.get('/', async (req, res) => {
   const user: any = req.user;
-  const aliases = config.a0Enabled ? await getAliases(user.sub) : [];
-  // TODO expose connection string after IaSQL-on-IaSQL
-  res.json(aliases);
+  let conn;
+  try {
+    conn = await createConnection({
+      name: 'base',
+      type: 'postgres',
+      username: 'postgres',
+      password: 'test',
+      host: 'postgresql',
+    });
+    const aliases = config.a0Enabled ? await getAliases(user.sub) : (await conn.query(`
+      select datname
+      from pg_database
+      where datname <> 'postgres' and
+      datname <> 'template0' and
+      datname <> 'template1'
+    `)).map((r: any) => r.datname);
+    // TODO expose connection string after IaSQL-on-IaSQL
+    res.json(aliases);
+  } catch (e) {
+    res.status(500).json(e);
+  }
 });
 
 db.get('/delete/:dbAlias', async (req, res) => {
