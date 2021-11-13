@@ -31,6 +31,9 @@ pub struct AWSCLICredentials {
   aws_secret_access_key: String,
 }
 
+const NO_DBS: &str =
+  "No IaSQL dbs to manage an AWS account have been created";
+
 // TODO load regions at startup based on aws services and schema since not all regions support all services.
 // Currently manually listing ec2 regions that do not require opt-in status in alphabetical order
 // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
@@ -94,14 +97,18 @@ pub async fn list_dbs() {
   // TODO after IaSQL-on-IaSQL expose connection string and display
   // everything in a table
   let dbs = get_dbs().await;
-  println!("{}", dbs.join("\n"));
+  if dbs.len() == 0 {
+    println!("{}", NO_DBS);
+  } else {
+    println!("{}", dbs.join("\n"));
+  }
 }
 
 pub async fn stop_db() {
   // TODO figure out better ux/naming
   let dbs = get_dbs().await;
   if dbs.len() == 0 {
-    return println!("No dbs have been created");
+    return println!("{}", NO_DBS);
   }
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
@@ -121,7 +128,7 @@ pub async fn check_db() {
   // TODO figure out better ux/naming
   let dbs = get_dbs().await;
   if dbs.len() == 0 {
-    return println!("No dbs have been created");
+    return println!("{}", NO_DBS);
   }
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
@@ -167,7 +174,7 @@ pub async fn add_db() {
     "awsSecretAccessKey": secret,
   });
   let resp = post_v1_db("create", body).await;
-  let res = match &resp {
+  match &resp {
     Ok(r) => {
       println!("{}", r);
     }
