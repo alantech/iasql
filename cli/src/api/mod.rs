@@ -31,8 +31,7 @@ pub struct AWSCLICredentials {
   aws_secret_access_key: String,
 }
 
-const NO_DBS: &str =
-  "No IaSQL dbs to manage an AWS account have been created";
+const NO_DBS: &str = "No IaSQL dbs to manage an AWS account have been created";
 
 // TODO load regions at startup based on aws services and schema since not all regions support all services.
 // Currently manually listing ec2 regions that do not require opt-in status in alphabetical order
