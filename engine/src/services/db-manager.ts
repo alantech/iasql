@@ -1,9 +1,12 @@
 // Currently just a collection of independent functions for user database management. May eventually
 // grow into something more.
 
+import { randomBytes } from 'crypto'
 import * as fs from 'fs'
 
 import { Connection, } from 'typeorm'
+
+import { IronPlans, } from './gateways/ironplans'
 
 // We only want to do this setup once, then we re-use it. First we get the list of files
 const migrationFiles = fs
@@ -36,3 +39,53 @@ export async function migrate(conn: Connection) {
   await qr.release();
 }
 
+function randomHexValue() {
+  return randomBytes(8)
+    .toString('hex')
+    .toLowerCase()
+}
+
+function toDbKey(dbAlias: string) {
+  return `db:${dbAlias}`;
+}
+
+function fromDbKey(dbAlias: string) {
+  return dbAlias.substr('db:'.length);
+}
+
+function isDbKey(dbAlias: string) {
+  return dbAlias.startsWith('db:');
+}
+
+export async function getAliases(uid: string) {
+  const teamId = await IronPlans.getTeamId(uid);
+  const metadata: any = await IronPlans.getTeamMetadata(teamId);
+  return Object.keys(metadata).filter(isDbKey).map(fromDbKey);
+}
+
+// returns unique db id
+export async function newId(dbAlias: string, email: string, uid: string): Promise<string> {
+  const ipUser = await IronPlans.newUser(email, uid);
+  const dbId = `_${randomHexValue()}`;
+  const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
+  const key = toDbKey(dbAlias);
+  if (metadata.hasOwnProperty(key)) {
+    throw new Error(`db with alias ${dbAlias} already defined`)
+  }
+  metadata[key] = dbId;
+  await IronPlans.setTeamMetadata(ipUser.teamId, metadata);
+  return dbId;
+}
+
+export async function getId(dbAlias: string, uid: string) {
+  const teamId = await IronPlans.getTeamId(uid);
+  const metadata: any = await IronPlans.getTeamMetadata(teamId);
+  return metadata[toDbKey(dbAlias)];
+}
+
+export async function delId(dbAlias: string, uid: string) {
+  const teamId = await IronPlans.getTeamId(uid);
+  const metadata: any = await IronPlans.getTeamMetadata(teamId);
+  delete metadata[toDbKey(dbAlias)];
+  await IronPlans.setTeamMetadata(teamId, metadata);
+}
