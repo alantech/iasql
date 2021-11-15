@@ -197,6 +197,7 @@ db.get('/check/:dbAlias', async (req, res) => {
     const t2 = Date.now();
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
+    let failureCount = -1;
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -278,7 +279,13 @@ db.get('/check/:dbAlias', async (req, res) => {
         if (promiseGenerators.length > 0) {
           ranUpdate = true;
           ranFullUpdate = true;
-          await lazyLoader(promiseGenerators);
+          try {
+            await lazyLoader(promiseGenerators);
+          } catch (e: any) {
+            if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
+            failureCount = e.metadata?.generatorsToRun?.length;
+            ranUpdate = false;
+          }
           const t6 = Date.now();
           console.log(`AWS update time: ${t6 - t5}ms`);
         }
