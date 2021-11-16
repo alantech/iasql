@@ -11,7 +11,8 @@ export class IronPlans {
     }
   });
 
-  static async newUser(email: string, uid: string) {
+  // creates it if it doesn't exist
+  static async getNewOrExistingUser(email: string, uid: string) {
     const resp = await this.client.post('/customers/v1',
       {
         'identity': {
@@ -30,18 +31,6 @@ export class IronPlans {
   // sets the entire team metadata, overwritting any existing value
   static async setTeamMetadata(teamId: string, data: object) {
     await this.client.post(`teams/v1/${teamId}/metadata`, data);
-  }
-
-  // TODO assumes every user has only one team
-  static async getTeamId(uid: string) {
-    let resp = await this.client.get(`/customers/v1?source_id=${uid}`);
-    let body: any = resp.data;
-    if (!body.count) throw new Error(`No customers with ${uid} found`);
-    const ipUid = body.results[0].id;
-    resp = await this.client.get(`/team_memberships/v1?customer_id=${ipUid}`);
-    body = resp.data;
-    if (!body.count) throw new Error(`No teams found for user with uid: ${uid} and IP id: ${ipUid}`);
-    return body.results[0].team_id;
   }
 
   static async getTeamMetadata(teamId: string) {

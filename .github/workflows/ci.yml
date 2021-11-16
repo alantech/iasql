@@ -107,11 +107,11 @@ jobs:
         run: while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
 
       # Check that all migrations are applied
-      - name: Create
+      - name: Add
         run: |
           curl \
           --request POST \
-          --url 'http://localhost:8088/v1/db/create/' \
+          --url 'http://localhost:8088/v1/db/add/' \
           --show-error --silent \
           --header 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' \
           --header 'content-type: application/json' \
@@ -122,17 +122,17 @@ jobs:
             "awsSecretAccessKey": "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           }'
 
-      - name: Check
+      - name: Apply
         run: |
-          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/check/__${{ github.sha }}__
+          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/apply/__${{ github.sha }}__
 
-      - name: Aliases
+      - name: List
         run: |
-          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/
+          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/list
 
-      - name: Delete
+      - name: Remove
         run: |
-          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/delete/__${{ github.sha }}__
+          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/remove/__${{ github.sha }}__
 
       - name: Logs engine
         if: always()

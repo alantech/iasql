@@ -81,7 +81,7 @@ fn get_aws_cli_creds() -> Result<AWSCLICredentialsFile, String> {
 }
 
 async fn get_dbs() -> Vec<String> {
-  let resp = get_v1_db("").await;
+  let resp = get_v1_db("list").await;
   let res = match &resp {
     Ok(r) => r,
     Err(e) => {
@@ -103,7 +103,7 @@ pub async fn list_dbs() {
   }
 }
 
-pub async fn stop_db() {
+pub async fn remove_db() {
   // TODO figure out better ux/naming
   let dbs = get_dbs().await;
   if dbs.len() == 0 {
@@ -111,7 +111,7 @@ pub async fn stop_db() {
   }
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
-  let resp = get_v1_db(&format!("delete/{}", db)).await;
+  let resp = get_v1_db(&format!("remove/{}", db)).await;
   let res = match &resp {
     Ok(r) => r,
     Err(e) => {
@@ -123,7 +123,7 @@ pub async fn stop_db() {
   println!("{}", body);
 }
 
-pub async fn check_db() {
+pub async fn apply_db() {
   // TODO figure out better ux/naming
   let dbs = get_dbs().await;
   if dbs.len() == 0 {
@@ -131,7 +131,7 @@ pub async fn check_db() {
   }
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
-  let resp = get_v1_db(&format!("check/{}", db)).await;
+  let resp = get_v1_db(&format!("apply/{}", db)).await;
   let res = match &resp {
     Ok(r) => r,
     Err(e) => {
@@ -172,7 +172,7 @@ pub async fn add_db() {
     "awsAccessKeyId": access_key,
     "awsSecretAccessKey": secret,
   });
-  let resp = post_v1_db("create", body).await;
+  let resp = post_v1_db("add", body).await;
   match &resp {
     Ok(r) => {
       println!("{}", r);
