@@ -57,15 +57,15 @@ function isDbKey(dbAlias: string) {
   return dbAlias.startsWith('db:');
 }
 
-export async function getAliases(uid: string) {
-  const teamId = await IronPlans.getTeamId(uid);
-  const metadata: any = await IronPlans.getTeamMetadata(teamId);
+export async function getAliases(email: string, uid: string) {
+  const ipUser = await IronPlans.getNewOrExistingUser(email, uid);
+  const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
   return Object.keys(metadata).filter(isDbKey).map(fromDbKey);
 }
 
 // returns unique db id
 export async function newId(dbAlias: string, email: string, uid: string): Promise<string> {
-  const ipUser = await IronPlans.newUser(email, uid);
+  const ipUser = await IronPlans.getNewOrExistingUser(email, uid);
   const dbId = `_${randomHexValue()}`;
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
   const key = toDbKey(dbAlias);
@@ -77,15 +77,15 @@ export async function newId(dbAlias: string, email: string, uid: string): Promis
   return dbId;
 }
 
-export async function getId(dbAlias: string, uid: string) {
-  const teamId = await IronPlans.getTeamId(uid);
-  const metadata: any = await IronPlans.getTeamMetadata(teamId);
+export async function getId(dbAlias: string, email: string, uid: string) {
+  const ipUser = await IronPlans.getNewOrExistingUser(email, uid);
+  const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
   return metadata[toDbKey(dbAlias)];
 }
 
-export async function delId(dbAlias: string, uid: string) {
-  const teamId = await IronPlans.getTeamId(uid);
-  const metadata: any = await IronPlans.getTeamMetadata(teamId);
+export async function delId(dbAlias: string, email: string, uid: string) {
+  const ipUser = await IronPlans.getNewOrExistingUser(email, uid);
+  const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
   delete metadata[toDbKey(dbAlias)];
-  await IronPlans.setTeamMetadata(teamId, metadata);
+  await IronPlans.setTeamMetadata(ipUser.teamId, metadata);
 }
