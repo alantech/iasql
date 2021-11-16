@@ -75,8 +75,7 @@ export const AwsEcrModule: Module = new Module({
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcrModule.utils.repositoryMapper(newObject, ctx);
             // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database, and also make a proper, complete loop for it as the rules
-            // reference their parent in a circular fashion.
+            // replacing in the database.
             newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsEcrModule.mappers.repository.db.update(newEntity, ctx);
@@ -182,8 +181,7 @@ export const AwsEcrModule: Module = new Module({
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcrModule.utils.repositoryPolicyMapper(newObject, ctx);
             // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database, and also make a proper, complete loop for it as the rules
-            // reference their parent in a circular fashion.
+            // replacing in the database.
             newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsEcrModule.mappers.repositoryPolicy.db.update(newEntity, ctx);
