@@ -1,5 +1,6 @@
 FROM node:16
-COPY . .
+WORKDIR /engine/
+COPY . /engine/
 RUN yarn
 RUN yarn build
 EXPOSE 8088
