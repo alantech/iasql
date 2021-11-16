@@ -15,7 +15,7 @@ export const AwsEcrModule: Module = new Module({
     functions: ['create_ecr_repository'],
   },
   utils: {
-    repositoryMapper: async (r: Repository, _ctx: Context) => {
+    repositoryMapper: (r: Repository, _ctx: Context) => {
       const out = new AwsRepository();
       out.repositoryName = r?.repositoryName;
       out.repositoryArn = r?.repositoryArn;
