@@ -29,7 +29,7 @@ if (config.a0Enabled) {
 }
 
 // TODO secure with cors and scope
-db.post('/create', async (req, res) => {
+db.post('/add', async (req, res) => {
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.json(
     `Required key(s) not provided: ${[
@@ -89,8 +89,9 @@ db.post('/create', async (req, res) => {
   }
 });
 
-db.get('/', async (req, res) => {
+db.get('/list', async (req, res) => {
   const user: any = req.user;
+  const email = user[`${config.a0Domain}email`];
   let conn;
   try {
     conn = await createConnection({
@@ -100,7 +101,7 @@ db.get('/', async (req, res) => {
       password: 'test',
       host: 'postgresql',
     });
-    const aliases = config.a0Enabled ? await getAliases(user.sub) : (await conn.query(`
+    const aliases = config.a0Enabled ? await getAliases(email, user.sub) : (await conn.query(`
       select datname
       from pg_database
       where datname <> 'postgres' and
@@ -116,13 +117,14 @@ db.get('/', async (req, res) => {
   }
 });
 
-db.get('/delete/:dbAlias', async (req, res) => {
+db.get('/remove/:dbAlias', async (req, res) => {
   const user: any = req.user;
+  const email = user[`${config.a0Domain}email`];
   const dbAlias = req.params.dbAlias;
-  const dbId = config.a0Enabled ? await getId(dbAlias, user.sub) : dbAlias;
+  const dbId = config.a0Enabled ? await getId(dbAlias, email, user.sub) : dbAlias;
   let conn;
   try {
-    if (config.a0Enabled) await delId(dbAlias, user.sub);
+    if (config.a0Enabled) await delId(dbAlias, email, user.sub);
     conn = await createConnection({
       name: 'base',
       type: 'postgres',
@@ -133,7 +135,7 @@ db.get('/delete/:dbAlias', async (req, res) => {
     await conn.query(`
       DROP DATABASE ${dbId};
     `);
-    res.end(`delete ${dbAlias}`);
+    res.end(`removed ${dbAlias}`);
   } catch (e: any) {
     res.status(500).end(`failure to drop DB: ${e?.message ?? ''}`);
   } finally {
@@ -155,12 +157,13 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
   return out;
 }
 
-db.get('/check/:dbAlias', async (req, res) => {
+db.get('/apply/:dbAlias', async (req, res) => {
   const user: any = req.user;
+  const email = user[`${config.a0Domain}email`];
   const dbAlias = req.params.dbAlias;
-  const dbId = config.a0Enabled ? await getId(dbAlias, user.sub) : dbAlias;
+  const dbId = config.a0Enabled ? await getId(dbAlias, email, user.sub) : dbAlias;
   const t1 = Date.now();
-  console.log(`Checking ${dbAlias}`);
+  console.log(`Applying ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
   try {
     // Construct the ORM client with all of the entities we may wish to query
@@ -197,6 +200,7 @@ db.get('/check/:dbAlias', async (req, res) => {
     const t2 = Date.now();
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
+    let failureCount = -1;
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -278,14 +282,20 @@ db.get('/check/:dbAlias', async (req, res) => {
         if (promiseGenerators.length > 0) {
           ranUpdate = true;
           ranFullUpdate = true;
-          await lazyLoader(promiseGenerators);
+          try {
+            await lazyLoader(promiseGenerators);
+          } catch (e: any) {
+            if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
+            failureCount = e.metadata?.generatorsToRun?.length;
+            ranUpdate = false;
+          }
           const t6 = Date.now();
           console.log(`AWS update time: ${t6 - t5}ms`);
         }
       } while(ranUpdate);
     } while (ranFullUpdate);
     const t7 = Date.now();
-    res.end(`${dbAlias} checked and synced, total time: ${t7 - t1}ms`);
+    res.end(`${dbAlias} applied and synced, total time: ${t7 - t1}ms`);
   } catch (e: any) {
     console.dir(e, { depth: 6, });
     res.status(500).end(`failure to check DB: ${e?.message ?? ''}`);
