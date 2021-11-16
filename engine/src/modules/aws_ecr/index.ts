@@ -21,8 +21,8 @@ export const AwsEcrModule: Module = new Module({
       out.registryId = r?.registryId;
       out.repositoryUri = r?.repositoryUri;
       out.createdAt = r?.createdAt ? new Date(r.createdAt) : r.createdAt;
-      out.imageTagMutability = (r?.imageTagMutability as ImageTagMutability | undefined);
-      out.scanOnPush = r?.imageScanningConfiguration?.scanOnPush;
+      out.imageTagMutability = (r?.imageTagMutability as ImageTagMutability) ?? ImageTagMutability.MUTABLE;
+      out.scanOnPush = r?.imageScanningConfiguration?.scanOnPush ?? false;
       return out;
     },
     repositoryPolicyMapper: async (rp: any, ctx: Context) => {
