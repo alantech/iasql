@@ -58,8 +58,8 @@ jobs:
         --header 'content-type: application/json' \
         --data '{
           "colors": {
-            "page_background": "#95CE3D",
-            "primary": "#3D95CE"
+            "page_background": "#FFFFFF",
+            "primary": "#6CAEDA"
           },
           "logo_url": "https://docs.iasql.com/img/favicon.png"
         }'
