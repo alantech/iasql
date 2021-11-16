@@ -17,13 +17,14 @@ export const AwsEcrModule: Module = new Module({
   utils: {
     repositoryMapper: (r: Repository, _ctx: Context) => {
       const out = new AwsRepository();
-      out.repositoryName = r?.repositoryName ?? 'What?';
-      out.repositoryArn = r?.repositoryArn;
-      out.registryId = r?.registryId;
-      out.repositoryUri = r?.repositoryUri;
-      out.createdAt = r?.createdAt ? new Date(r.createdAt) : r.createdAt;
-      out.imageTagMutability = (r?.imageTagMutability as ImageTagMutability) ?? ImageTagMutability.MUTABLE;
-      out.scanOnPush = r?.imageScanningConfiguration?.scanOnPush ?? false;
+      if (!r?.repositoryName) throw new Error('No repository name defined.');
+      out.repositoryName = r.repositoryName;
+      out.repositoryArn = r.repositoryArn;
+      out.registryId = r.registryId;
+      out.repositoryUri = r.repositoryUri;
+      out.createdAt = r.createdAt ? new Date(r.createdAt) : r.createdAt;
+      out.imageTagMutability = (r.imageTagMutability as ImageTagMutability) ?? ImageTagMutability.MUTABLE;
+      out.scanOnPush = r.imageScanningConfiguration?.scanOnPush ?? false;
       return out;
     },
     repositoryPolicyMapper: async (rp: any, ctx: Context) => {
