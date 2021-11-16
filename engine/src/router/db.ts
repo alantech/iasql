@@ -158,10 +158,13 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
 }
 
 db.get('/apply/:dbAlias', async (req, res) => {
-  const user: any = req.user;
-  const email = user[`${config.a0Domain}email`];
   const dbAlias = req.params.dbAlias;
-  const dbId = config.a0Enabled ? await getId(dbAlias, email, user.sub) : dbAlias;
+  let dbId = dbAlias;
+  if (config.a0Enabled) {
+    const user: any = req.user;
+    const email = user[`${config.a0Domain}email`];
+    dbId = await getId(dbAlias, email, user.sub);
+  }
   const t1 = Date.now();
   console.log(`Applying ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
