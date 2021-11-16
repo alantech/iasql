@@ -218,8 +218,8 @@ db.get('/check/:dbAlias', async (req, res) => {
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: tables.map(t => Object.values(memo.db[t])),
-          cloudEntity: tables.map(t => Object.values(memo.cloud[t])),
+          dbEntity: tables.map(t => memo.cloud[t] ? Object.values(memo.db[t]) : []),
+          cloudEntity: tables.map(t => memo.cloud[t] ? Object.values(memo.cloud[t]) : []),
           comparator: comparators,
           idGen: idGens,
         });
