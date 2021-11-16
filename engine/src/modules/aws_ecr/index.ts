@@ -12,6 +12,7 @@ export const AwsEcrModule: Module = new Module({
   dependencies: ['aws_account'],
   provides: {
     tables: ['aws_repository', 'aws_repository_policy'],
+    functions: ['create_ecr_repository'],
   },
   utils: {
     repositoryMapper: async (r: Repository, _ctx: Context) => {
