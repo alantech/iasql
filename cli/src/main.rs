@@ -9,15 +9,14 @@ extern crate iasql;
 
 #[tokio::main]
 pub async fn main() {
+  // TODO add non-interactive mode support via parameters
   let app = App::new(crate_name!())
     .version(crate_version!())
     .setting(AppSettings::SubcommandRequiredElseHelp)
     .subcommands(
       vec![
-        SubCommand::with_name("login")
-          .arg_from_usage("[NON_INTERACTIVE] -n, --non-interactive 'Enables non-interactive CLI mode useful for CI/CD.'"),
+        SubCommand::with_name("login"),
         SubCommand::with_name("db")
-          .arg_from_usage("[NON_INTERACTIVE] -n, --non-interactive 'Enables non-interactive CLI mode useful for CI/CD.'")
           .setting(AppSettings::SubcommandRequiredElseHelp)
           .alias("database")
           .subcommand(SubCommand::with_name("list"))
@@ -31,8 +30,7 @@ pub async fn main() {
   let matches = app.get_matches();
   match matches.subcommand() {
     ("db", Some(sub_matches)) => {
-      let non_interactive: bool = matches.values_of("NON_INTERACTIVE").is_some();
-      login(non_interactive, false).await;
+      login(false, false).await;
       match sub_matches.subcommand() {
         ("list", _) => list_dbs().await,
         ("add", _) => add_db().await,
@@ -42,9 +40,8 @@ pub async fn main() {
         _ => {}
       };
     }
-    ("login", Some(matches)) => {
-      let non_interactive: bool = matches.values_of("NON_INTERACTIVE").is_some();
-      login(non_interactive, true).await;
+    ("login", _) => {
+      login(false, true).await;
     }
     ("logout", _) => {
       logout();
