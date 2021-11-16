@@ -42,6 +42,8 @@ import {
   ECRClient,
   GetRepositoryPolicyCommand,
   paginateDescribeRepositories,
+  PutImageScanningConfigurationCommand,
+  PutImageTagMutabilityCommand,
   SetRepositoryPolicyCommand,
   SetRepositoryPolicyCommandInput
 } from '@aws-sdk/client-ecr'
@@ -321,12 +323,24 @@ export class AWS {
     return repository.repository;
   }
 
-  // async modifyECRRepository(input: ) {
-  //   const repository = await this.ecrClient.send(
-  //     new CreateRepositoryCommand(input),
-  //   );
-  //   return repository.repository;
-  // }
+  async updateECRRepository(input: { repositoryName: string, scanOnPush: boolean, imageTagMutability: string }) {
+    await Promise.all([
+      this.ecrClient.send(
+        new PutImageScanningConfigurationCommand({
+          repositoryName: input.repositoryName,
+          imageScanningConfiguration: { scanOnPush: input.scanOnPush }
+        }),
+      ),
+      this.ecrClient.send(
+        new PutImageTagMutabilityCommand({
+          repositoryName: input.repositoryName,
+          imageTagMutability: input.imageTagMutability,
+        }),
+      )
+    ]);
+    const repository = await this.getECRRepository(input.repositoryName);
+    return repository;
+  }
 
   async getECRRepositories() {
     const repositories = [];

@@ -38,16 +38,16 @@ export class AwsRepository {
   createdAt?: Date;
 
   @Column({
-    nullable: true,
+    default: ImageTagMutability.MUTABLE,
     type: 'enum',
     enum: ImageTagMutability,
   })
-  imageTagMutability?: ImageTagMutability;
+  imageTagMutability: ImageTagMutability;
 
   @Column({
-    nullable: true,
+    default: false,
   })
-  scanOnPush?: boolean;
+  scanOnPush: boolean;
 
   // TODO: add encriptation configuration entity.
   // @Column({

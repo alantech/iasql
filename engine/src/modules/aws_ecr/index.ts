@@ -5,7 +5,7 @@ import { Repository, } from '@aws-sdk/client-ecr'
 import { AWS, } from '../../services/gateways/aws'
 import { AwsRepository, AwsRepositoryPolicy, ImageTagMutability, } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEcr1636993401097, } from './migration/1636993401097-aws_ecr'
+import { awsEcr1637073323677, } from './migration/1637073323677-aws_ecr'
 
 export const AwsEcrModule: Module = new Module({
   name: 'aws_ecr',
@@ -110,33 +110,17 @@ export const AwsEcrModule: Module = new Module({
           }
         },
         update: async (r: AwsRepository | AwsRepository[], ctx: Context) => {
-          // const es = Array.isArray(r) ? r : [r];
-          // return await Promise.all(es.map(async (e) => {
-          //   // AWS does not have a way to update the top-level SecurityGroup entity. You can update
-          //   // the various rules associated with it, but not the name or description of the
-          //   // SecurityGroup itself. This may seem counter-intuitive, but we only need to create the
-          //   // security group in AWS and *eventually* the old one will be removed. Why? Because on
-          //   // the second pass of the checking algorithm (it always performs another pass if it
-          //   // performed any change, and only stops once it determines nothing needs to be changed
-          //   // anymore), it will see a security group in AWS that it doesn't have a record for and
-          //   // then remove it since the database is supposed to be the source of truth. Further,
-          //   // because of the relations to the security group being by internal ID in the database
-          //   // instead of the string ID, anything depending on the old security group will be moved
-          //   // to the new one on the second pass. However, there is a unique constraint on the
-          //   // `GroupName`, so a temporary state with a random name may be necessary, so we
-          //   // try-catch this call and mutate as necessary.
-          //   try {
-          //     return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
-          //   } catch (_) {
-          //     // We mutate the `GroupName` to something unique and unlikely to collide (we should be
-          //     // too slow to ever collide at a millisecond level). This path doesn't save back to
-          //     // the DB like create does (at least right now, if that changes, we need to rethink
-          //     // this logic here)
-          //     e.groupName = Date.now().toString();
-          //     return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
-          //   }
-          // }));
-          console.log('void');
+          const client = await ctx.getAwsClient() as AWS;
+          const es = Array.isArray(r) ? r : [r];
+          return await Promise.all(es.map(async (e) => {
+            const input = {
+              repositoryName: e.repositoryName!,
+              imageTagMutability: e.imageTagMutability,
+              scanOnPush: e.scanOnPush,
+            };
+            const updatedRepository = await client.updateECRRepository(input);
+            return AwsEcrModule.utils.repositoryMapper(updatedRepository, ctx);
+          }));
         },
         delete: async (r: AwsRepository | AwsRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -263,7 +247,7 @@ export const AwsEcrModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEcr1636993401097.prototype.up,
-    preremove: awsEcr1636993401097.prototype.down,
+    postinstall: awsEcr1637073323677.prototype.up,
+    preremove: awsEcr1637073323677.prototype.down,
   },
 });
