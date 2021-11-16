@@ -66,6 +66,7 @@ export class AWS {
     this.credentials = config.credentials;
     this.region = config.region;
     this.ec2client = new EC2Client(config);
+    this.ecrClient = new ECRClient(config);
   }
 
   async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
