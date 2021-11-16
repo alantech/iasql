@@ -23,11 +23,12 @@ export const AwsEcrModule: Module = new Module({
       out.createdAt = r?.createdAt ? new Date(r.createdAt) : r.createdAt;
       out.imageTagMutability = (r?.imageTagMutability as ImageTagMutability | undefined);
       out.scanOnPush = r?.imageScanningConfiguration?.scanOnPush;
+      return out;
     },
     repositoryPolicyMapper: async (rp: any, ctx: Context) => {
       const out = new AwsRepositoryPolicy();
       out.registryId = rp?.registryId;
-      out.repository = await AwsEcrModule.mappers.repository.cloud.read(ctx, rp?.repositoryName);
+      out.repository = ctx.memo?.db?.AwsRepository?.rp?.repositoryName ?? await AwsEcrModule.mappers.repository.cloud.read(ctx, rp?.repositoryName);
       out.policyText = rp?.policyText ?? false;
       return out;
     },
@@ -35,14 +36,12 @@ export const AwsEcrModule: Module = new Module({
   mappers: {
     repository: new Mapper<AwsRepository>({
       entity: AwsRepository,
-      entityId: (e: AwsRepository) => e.repositoryName ?? '',
+      entityId: (e: AwsRepository) => e?.repositoryName ?? '',
       equals: (a: AwsRepository, b: AwsRepository) => Object.is(a.imageTagMutability, b.imageTagMutability)
         && Object.is(a.scanOnPush, b.scanOnPush),
       source: 'db',
       db: new Crud({
-        create: async (e: AwsRepository | AwsRepository[], ctx: Context) => {
-          await ctx.orm.save(AwsRepository, e);
-        },
+        create: async (e: AwsRepository | AwsRepository[], ctx: Context) => { await ctx.orm.save(AwsRepository, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const r = await ctx.orm.find(AwsRepository, id ? {
             where: {
@@ -51,12 +50,8 @@ export const AwsEcrModule: Module = new Module({
           } : undefined);
           return r;
         },
-        update: async (e: AwsRepository | AwsRepository[], ctx: Context) => {
-          await ctx.orm.save(AwsRepository, e);
-        },
-        delete: async (e: AwsRepository | AwsRepository[], ctx: Context) => {
-          await ctx.orm.remove(AwsRepository, e);
-        },
+        update: async (e: AwsRepository | AwsRepository[], ctx: Context) => { await ctx.orm.save(AwsRepository, e); },
+        delete: async (e: AwsRepository | AwsRepository[], ctx: Context) => { await ctx.orm.remove(AwsRepository, e);},
       }),
       cloud: new Crud({
         create: async (sg: AwsRepository | AwsRepository[], ctx: Context) => {
@@ -166,13 +161,22 @@ export const AwsEcrModule: Module = new Module({
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const out = await ctx.orm.find(AwsRepositoryPolicy, id ? {
             where: {
-              aws_repository: { repository_name: id }
+              repository: { repositoryName: id }
             },
-            relations: ["aws_repository"]
-          } : undefined);
+            relations: ["repository"]
+          } : { relations: ["repository"] });
           return out;
         },
-        update: async (e: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => { await ctx.orm.save(AwsRepositoryPolicy, e); },
+        update: async (rp: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => {
+          const es = Array.isArray(rp) ? rp : [rp];
+          for (const e of es) {
+            if (!e.repository?.id) {
+              const r = await AwsEcrModule.mappers.repository.db.read(ctx, e.repository?.repositoryName);
+              e.repository = r;
+            }
+          }
+          await ctx.orm.save(AwsRepositoryPolicy, es);
+        },
         delete: async (e: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => { await ctx.orm.remove(AwsRepositoryPolicy, e); },
       }),
       cloud: new Crud({
@@ -221,16 +225,38 @@ export const AwsEcrModule: Module = new Module({
                 await client.getECRRepositoryPolicy(ids), ctx
               );
             }
+          } else {
+            const repositories = ctx.memo?.cloud?.AwsRepository ? Object.values(ctx.memo?.cloud?.AwsRepository) : await AwsEcrModule.mappers.repository.cloud.read(ctx);
+            const policies: any = [];
+            for (const r of repositories) {
+              try {
+                const rp = await client.getECRRepositoryPolicy(r.repositoryName);
+                policies.push(rp);
+              } catch (_) {
+                // We try to retrieve the policy for the repositoru, but if any it is not an error
+                continue;
+              }
+            }
+            return await Promise.all(policies.map(async (rp: any) => {
+              return await AwsEcrModule.utils.repositoryPolicyMapper(rp, ctx);
+            }));
           }
         },
         update: async (rp: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => {
-          await AwsEcrModule.mappers.securityGroupRule.cloud.create(rp, ctx);
+          await AwsEcrModule.mappers.repositoryPolicy.cloud.create(rp, ctx);
         },
         delete: async (rp: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(rp) ? rp : [rp];
           await Promise.all(es.map(async (e) => {
-            await client.deleteECRRepositoryPolicy(e.repository?.repositoryName!);
+            try {
+              await client.deleteECRRepositoryPolicy(e.repository?.repositoryName!);
+            } catch (e: any) {
+              // Do nothing if repository not found. It means the repository got deleted first and the policy has already been removed
+              if (e.name !== 'RepositoryNotFoundException') {
+                throw e;
+              }
+            }
           }));
         },
       }),
