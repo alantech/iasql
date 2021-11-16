@@ -217,7 +217,7 @@ export const AwsEcrModule: Module = new Module({
                 const rp = await client.getECRRepositoryPolicy(r.repositoryName);
                 policies.push(rp);
               } catch (_) {
-                // We try to retrieve the policy for the repositoru, but if any it is not an error
+                // We try to retrieve the policy for the repository, but if none it is not an error
                 continue;
               }
             }
