@@ -13,19 +13,17 @@ pub async fn main() {
   let app = App::new(crate_name!())
     .version(crate_version!())
     .setting(AppSettings::SubcommandRequiredElseHelp)
-    .subcommands(
-      vec![
-        SubCommand::with_name("login"),
-        SubCommand::with_name("db")
-          .setting(AppSettings::SubcommandRequiredElseHelp)
-          .alias("database")
-          .subcommand(SubCommand::with_name("list"))
-          .subcommand(SubCommand::with_name("add"))
-          .subcommand(SubCommand::with_name("remove"))
-          .subcommand(SubCommand::with_name("apply")),
-        SubCommand::with_name("logout"),
-      ]
-    );
+    .subcommands(vec![
+      SubCommand::with_name("login"),
+      SubCommand::with_name("db")
+        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .alias("database")
+        .subcommand(SubCommand::with_name("list"))
+        .subcommand(SubCommand::with_name("add"))
+        .subcommand(SubCommand::with_name("remove"))
+        .subcommand(SubCommand::with_name("apply")),
+      SubCommand::with_name("logout"),
+    ]);
 
   let matches = app.get_matches();
   match matches.subcommand() {
