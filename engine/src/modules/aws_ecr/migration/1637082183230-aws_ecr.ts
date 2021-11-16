@@ -13,24 +13,59 @@ export class awsEcr1637082183230 implements MigrationInterface {
             create or replace procedure create_ecr_repository(_name text, _scan_on_push boolean default false, _image_tag_mutability aws_repository_image_tag_mutability_enum default 'MUTABLE')
             language plpgsql
             as $$
-            declare
-                ecr_repository_id integer;
-            begin
-                insert into aws_repository
-                    (repository_name, scan_on_push, image_tag_mutability)
-                values
-                    (_name, _scan_on_push, _image_tag_mutability)
-                on conflict (repository_name)
-                do nothing;
+                declare
+                    ecr_repository_id integer;
+                begin
+                    insert into aws_repository
+                        (repository_name, scan_on_push, image_tag_mutability)
+                    values
+                        (_name, _scan_on_push, _image_tag_mutability)
+                    on conflict (repository_name)
+                    do nothing;
 
-                select id into ecr_repository_id
-                from aws_repository
-                where repository_name = _name
-                order by id desc
-                limit 1;
+                    select id into ecr_repository_id
+                    from aws_repository
+                    where repository_name = _name
+                    order by id desc
+                    limit 1;
 
-                raise info 'repository_id = %', ecr_repository_id;
-            end;
+                    raise info 'repository_id = %', ecr_repository_id;
+                end;
+            $$;
+        `);
+        // Example of use: call create_ecr_repository_policy('sp-test', '{ "Version" : "2012-10-17", "Statement" : [ { "Sid" : "new statement", "Effect" : "Allow", "Principal" : { "AWS" : "arn:aws:iam::257682470237:user/automate" }, "Action" : [ "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CreateRepository", "ecr:DeleteRepositoryPolicy", "ecr:DescribeImageScanFindings", "ecr:DescribeImages", "ecr:DescribeRepositories", "ecr:GetAuthorizationToken", "ecr:GetDownloadUrlForLayer", "ecr:GetLifecyclePolicy", "ecr:GetLifecyclePolicyPreview", "ecr:GetRepositoryPolicy", "ecr:ListImages", "ecr:ListTagsForResource", "ecr:SetRepositoryPolicy" ] } ]}	');
+        await queryRunner.query(`
+            create or replace procedure create_ecr_repository_policy(
+                _repository_name text,
+                _policy_text text
+            )
+            language plpgsql
+            as $$ 
+                declare 
+                    ecr_repository_id integer;
+                    ecr_repository_policy_id integer;
+                begin
+                    select id into ecr_repository_id
+                    from aws_repository
+                    where repository_name = _repository_name
+                    order by id desc
+                    limit 1;
+                
+                    insert into aws_repository_policy
+                        (repository_id, policy_text)
+                    values
+                        (ecr_repository_id, _policy_text)
+                    on conflict ON CONSTRAINT "REL_8d4c5993e3cea3212a32ade4b4"
+                    do nothing;
+                
+                    select id into ecr_repository_policy_id
+                    from aws_repository_policy
+                    where repository_id = ecr_repository_id
+                    order by id desc
+                    limit 1;
+                
+                    raise info 'repository_policy_id = %', ecr_repository_policy_id;
+                end;
             $$;
         `);
     }
