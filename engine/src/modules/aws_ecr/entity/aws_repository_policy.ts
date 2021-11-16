@@ -18,13 +18,6 @@ export class AwsRepositoryPolicy {
   })
   repository?: AwsRepository;
 
-  // // TODO: Update eventually to a generated column based on the Repository value to avoid inconsistencies.
-  // // https://github.com/typeorm/typeorm/pull/6469
-  // @Column({
-  //   unique: true,
-  // })
-  // repositoryName: string;
-
   @Column({
     nullable: true,
   })
