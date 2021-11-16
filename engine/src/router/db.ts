@@ -118,10 +118,14 @@ db.get('/list', async (req, res) => {
 });
 
 db.get('/remove/:dbAlias', async (req, res) => {
-  const user: any = req.user;
-  const email = user[`${config.a0Domain}email`];
   const dbAlias = req.params.dbAlias;
-  const dbId = config.a0Enabled ? await getId(dbAlias, email, user.sub) : dbAlias;
+  let dbId = dbAlias;
+  let user: any, email;
+  if (config.a0Enabled) {
+    user = req.user;
+    email = user[`${config.a0Domain}email`];
+    dbId = await getId(dbAlias, email, user.sub);
+  }
   let conn;
   try {
     if (config.a0Enabled) await delId(dbAlias, email, user.sub);
@@ -158,10 +162,13 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
 }
 
 db.get('/apply/:dbAlias', async (req, res) => {
-  const user: any = req.user;
-  const email = user[`${config.a0Domain}email`];
   const dbAlias = req.params.dbAlias;
-  const dbId = config.a0Enabled ? await getId(dbAlias, email, user.sub) : dbAlias;
+  let dbId = dbAlias;
+  if (config.a0Enabled) {
+    const user: any = req.user;
+    const email = user[`${config.a0Domain}email`];
+    dbId = await getId(dbAlias, email, user.sub);
+  }
   const t1 = Date.now();
   console.log(`Applying ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
@@ -222,8 +229,8 @@ db.get('/apply/:dbAlias', async (req, res) => {
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: tables.map(t => Object.values(memo.db[t])),
-          cloudEntity: tables.map(t => Object.values(memo.cloud[t])),
+          dbEntity: tables.map(t => memo.cloud[t] ? Object.values(memo.db[t]) : []),
+          cloudEntity: tables.map(t => memo.cloud[t] ? Object.values(memo.cloud[t]) : []),
           comparator: comparators,
           idGen: idGens,
         });

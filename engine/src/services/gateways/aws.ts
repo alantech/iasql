@@ -33,6 +33,20 @@ import {
   paginateDescribeSecurityGroups,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
+import {
+  CreateRepositoryCommand,
+  CreateRepositoryCommandInput,
+  DeleteRepositoryCommand,
+  DeleteRepositoryPolicyCommand,
+  DescribeRepositoriesCommand,
+  ECRClient,
+  GetRepositoryPolicyCommand,
+  paginateDescribeRepositories,
+  PutImageScanningConfigurationCommand,
+  PutImageTagMutabilityCommand,
+  SetRepositoryPolicyCommand,
+  SetRepositoryPolicyCommandInput
+} from '@aws-sdk/client-ecr'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -46,6 +60,7 @@ type AWSConfig = {
 
 export class AWS {
   private ec2client: EC2Client
+  private ecrClient: ECRClient
   private credentials: AWSCreds
   public region: string
 
@@ -53,6 +68,7 @@ export class AWS {
     this.credentials = config.credentials;
     this.region = config.region;
     this.ec2client = new EC2Client(config);
+    this.ecrClient = new ECRClient(config);
   }
 
   async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
@@ -298,5 +314,87 @@ export class AWS {
     return await this.ec2client.send(
       new ModifySecurityGroupRulesCommand(i),
     );
+  }
+
+  async createECRRepository(input: CreateRepositoryCommandInput) {
+    const repository = await this.ecrClient.send(
+      new CreateRepositoryCommand(input),
+    );
+    return repository.repository;
+  }
+
+  async updateECRRepository(input: { repositoryName: string, scanOnPush: boolean, imageTagMutability: string }) {
+    await Promise.all([
+      this.ecrClient.send(
+        new PutImageScanningConfigurationCommand({
+          repositoryName: input.repositoryName,
+          imageScanningConfiguration: { scanOnPush: input.scanOnPush }
+        }),
+      ),
+      this.ecrClient.send(
+        new PutImageTagMutabilityCommand({
+          repositoryName: input.repositoryName,
+          imageTagMutability: input.imageTagMutability,
+        }),
+      )
+    ]);
+    const repository = await this.getECRRepository(input.repositoryName);
+    return repository;
+  }
+
+  async getECRRepositories() {
+    const repositories = [];
+    const paginator = paginateDescribeRepositories({
+      client: this.ecrClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      repositories.push(...(page.repositories ?? []));
+    }
+    return {
+      Repositories: repositories, // Make it "look like" the regular query again
+    };
+  }
+
+  async getECRRepository(name: string) {
+    const repositories = await this.ecrClient.send(
+      new DescribeRepositoriesCommand({
+        repositoryNames: [name],
+      }),
+    );
+    return (repositories.repositories ?? [])[0];
+  }
+
+  async deleteECRRepository(name: string) {
+    return await this.ecrClient.send(
+      new DeleteRepositoryCommand({
+        repositoryName: name,
+      }),
+    );
+  }
+
+  async getECRRepositoryPolicy(repositoryName: string) {
+    const policy = await this.ecrClient.send(
+      new GetRepositoryPolicyCommand({
+        repositoryName,
+      })
+    );
+    return policy;
+  }
+
+  async setECRRepositoryPolicy(input: SetRepositoryPolicyCommandInput) {
+    const policy = await this.ecrClient.send(
+      new SetRepositoryPolicyCommand(input)
+    );
+    return policy;
+  }
+
+  async deleteECRRepositoryPolicy(repositoryName: string) {
+    const policy = await this.ecrClient.send(
+      new DeleteRepositoryPolicyCommand({
+        repositoryName,
+      })
+    );
+    return policy;
   }
 }
