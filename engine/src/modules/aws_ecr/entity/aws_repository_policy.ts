@@ -12,11 +12,11 @@ export class AwsRepositoryPolicy {
   })
   registryId?: string;
 
-  @OneToOne(() => AwsRepository, { nullable: true, })
+  @OneToOne(() => AwsRepository, { nullable: false, })
   @JoinColumn({
     name: 'repository_id',
   })
-  repository?: AwsRepository;
+  repository: AwsRepository;
 
   @Column({
     nullable: true,

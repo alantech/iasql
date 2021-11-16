@@ -5,7 +5,7 @@ import { Repository, } from '@aws-sdk/client-ecr'
 import { AWS, } from '../../services/gateways/aws'
 import { AwsRepository, AwsRepositoryPolicy, ImageTagMutability, } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEcr1637073323677, } from './migration/1637073323677-aws_ecr'
+import { awsEcr1637082183230, } from './migration/1637082183230-aws_ecr'
 
 export const AwsEcrModule: Module = new Module({
   name: 'aws_ecr',
@@ -17,7 +17,7 @@ export const AwsEcrModule: Module = new Module({
   utils: {
     repositoryMapper: (r: Repository, _ctx: Context) => {
       const out = new AwsRepository();
-      out.repositoryName = r?.repositoryName;
+      out.repositoryName = r?.repositoryName ?? 'What?';
       out.repositoryArn = r?.repositoryArn;
       out.registryId = r?.registryId;
       out.repositoryUri = r?.repositoryUri;
@@ -114,7 +114,7 @@ export const AwsEcrModule: Module = new Module({
           const es = Array.isArray(r) ? r : [r];
           return await Promise.all(es.map(async (e) => {
             const input = {
-              repositoryName: e.repositoryName!,
+              repositoryName: e.repositoryName,
               imageTagMutability: e.imageTagMutability,
               scanOnPush: e.scanOnPush,
             };
@@ -154,8 +154,8 @@ export const AwsEcrModule: Module = new Module({
         update: async (rp: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => {
           const es = Array.isArray(rp) ? rp : [rp];
           for (const e of es) {
-            if (!e.repository?.id) {
-              const r = await AwsEcrModule.mappers.repository.db.read(ctx, e.repository?.repositoryName);
+            if (!e.repository.id) {
+              const r = await AwsEcrModule.mappers.repository.db.read(ctx, e.repository.repositoryName);
               e.repository = r;
             }
           }
@@ -169,7 +169,7 @@ export const AwsEcrModule: Module = new Module({
           const es = Array.isArray(rp) ? rp : [rp];
           const out = await Promise.all(es.map(async (e) => {
             const result = await client.setECRRepositoryPolicy({
-              repositoryName: e.repository?.repositoryName,
+              repositoryName: e.repository.repositoryName,
               policyText: e.policyText,
             });
             // TODO: Handle if it fails (somehow)
@@ -233,7 +233,7 @@ export const AwsEcrModule: Module = new Module({
           const es = Array.isArray(rp) ? rp : [rp];
           await Promise.all(es.map(async (e) => {
             try {
-              await client.deleteECRRepositoryPolicy(e.repository?.repositoryName!);
+              await client.deleteECRRepositoryPolicy(e.repository.repositoryName!);
             } catch (e: any) {
               // Do nothing if repository not found. It means the repository got deleted first and the policy has already been removed
               if (e.name !== 'RepositoryNotFoundException') {
@@ -246,7 +246,7 @@ export const AwsEcrModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEcr1637073323677.prototype.up,
-    preremove: awsEcr1637073323677.prototype.down,
+    postinstall: awsEcr1637082183230.prototype.up,
+    preremove: awsEcr1637082183230.prototype.down,
   },
 });

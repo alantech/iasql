@@ -13,9 +13,9 @@ export class AwsRepository {
   // TODO: add constraint "must satisfy regular expression '(?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*'"
   @Column({
     unique: true,
-    nullable: true,
+    nullable: false,
   })
-  repositoryName?: string;
+  repositoryName: string;
 
   @Column({
     nullable: true,
