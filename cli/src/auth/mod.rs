@@ -10,7 +10,7 @@ use tokio::time::{sleep, Duration};
 use webbrowser;
 
 use crate::dialoguer as dlg;
-use crate::http::CLIENT;
+use crate::http::request;
 
 const CODE_URL: &'static str = "https://auth.iasql.com/oauth/device/code";
 const CLIENT_ID: &'static str = "FWIYK0GhLdMCLid0hxjmEEwxaifdAkpQ";
@@ -39,7 +39,7 @@ pub fn get_token() -> &'static str {
 }
 
 // Get previously generated access token or generate a new one
-pub async fn login(non_interactive: bool, prompt_reauth: bool) {
+pub async fn login(prompt_reauth: bool) {
   let token = TOKEN.get();
   if token.is_none() {
     let home = std::env::var("HOME").unwrap();
@@ -56,12 +56,13 @@ pub async fn login(non_interactive: bool, prompt_reauth: bool) {
       Err(_) => match std::env::var("AUTH_TOKEN") {
         Ok(token) => TOKEN.set(token).unwrap(),
         Err(_) => {
-          if non_interactive {
-            println!(
-              "Non interactive mode. Token needs to be defined in AUTH_TOKEN environment variable."
-            );
-            std::process::exit(1)
-          }
+          // TODO add non_interactive mode using secret token
+          // if non_interactive {
+          //   println!(
+          //     "Non interactive mode. Token needs to be defined in AUTH_TOKEN environment variable."
+          //   );
+          //   std::process::exit(1)
+          // }
           generate_token().await
         }
       },
@@ -107,10 +108,8 @@ async fn generate_token() {
     .header("Accept", "application/json")
     .body(CODE_BODY.into())
     .unwrap();
-  let resp = CLIENT.request(req).await.expect(ERR);
-  let data = hyper::body::to_bytes(resp.into_body()).await.expect(ERR);
-  let data_str = String::from_utf8(data.to_vec()).expect(ERR);
-  let json: Value = serde_json::from_str(&data_str).expect(ERR);
+  let resp_str = request(req).await.expect(ERR);
+  let json: Value = serde_json::from_str(&resp_str).expect(ERR);
   let device_code = json["device_code"].as_str().unwrap();
   let verification_uri = json["verification_uri_complete"].as_str().unwrap();
   let user_code = json["user_code"].as_str().unwrap();
@@ -150,10 +149,8 @@ async fn generate_token() {
       .header("Accept", "application/json")
       .body(body.to_string().into())
       .unwrap();
-    let resp = CLIENT.request(req).await.expect(ERR);
-    let data = hyper::body::to_bytes(resp.into_body()).await.expect(ERR);
-    let data_str = String::from_utf8(data.to_vec()).expect(ERR);
-    let json: Value = serde_json::from_str(&data_str).expect(ERR);
+    let resp_str = request(req).await.expect(ERR);
+    let json: Value = serde_json::from_str(&resp_str).expect(ERR);
     if let Some(token) = json["access_token"].as_str() {
       let home = std::env::var("HOME").unwrap();
       let dir_name = &format!("{}/{}", home, IASQL_DIR);
