@@ -20,7 +20,7 @@ export const AwsElbModule: Module = new Module({
         throw new Error('Listerner action not defined properly');
       }
       out.actionType = (a.Type as ActionTypeEnum);
-      out.targetGroup = await AwsElbModule.mappers.targetGroup.cloud.read(ctx, a.TargetGroupArn);
+      out.targetGroup = ctx.memo?.db?.AwsAction?.a?.TargetGroupArn ?? await AwsElbModule.mappers.targetGroup.cloud.read(ctx, a.TargetGroupArn);
       return out;
     },
     // repositoryPolicyMapper: async (rp: any, ctx: Context) => {
