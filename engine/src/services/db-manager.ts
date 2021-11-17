@@ -2,6 +2,7 @@
 // grow into something more.
 
 import { randomBytes } from 'crypto'
+import config from '../config';
 import * as fs from 'fs'
 
 import { Connection, } from 'typeorm'
@@ -57,15 +58,20 @@ function isDbKey(dbAlias: string) {
   return dbAlias.startsWith('db:');
 }
 
-export async function getAliases(email: string, uid: string) {
-  const ipUser = await IronPlans.getNewOrExistingUser(email, uid);
+// returns aliases or an empty array if no auth
+export async function getAliases(user: any) {
+  if (!config.a0Enabled) return undefined;
+  const email = user[`${config.a0Domain}email`];
+  const ipUser = await IronPlans.getNewOrExistingUser(email, user.sub);
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
   return Object.keys(metadata).filter(isDbKey).map(fromDbKey);
 }
 
-// returns unique db id
-export async function newId(dbAlias: string, email: string, uid: string): Promise<string> {
-  const ipUser = await IronPlans.getNewOrExistingUser(email, uid);
+// generates and returns unique db id or db alias if no auth
+export async function newId(dbAlias: string, user: any): Promise<string> {
+  if (!config.a0Enabled) return dbAlias;
+  const email = user[`${config.a0Domain}email`];
+  const ipUser = await IronPlans.getNewOrExistingUser(email, user.sub);
   const dbId = `_${randomHexValue()}`;
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
   const key = toDbKey(dbAlias);
@@ -77,15 +83,26 @@ export async function newId(dbAlias: string, email: string, uid: string): Promis
   return dbId;
 }
 
-export async function getId(dbAlias: string, email: string, uid: string) {
-  const ipUser = await IronPlans.getNewOrExistingUser(email, uid);
+// returns unique db id or db alias if no auth
+export async function getId(dbAlias: string, user: any) {
+  if (!config.a0Enabled) return dbAlias;
+  // following the format for this auth0 rule
+  // https://manage.auth0.com/dashboard/us/iasql/rules/rul_D2HobGBMtSmwUNQm
+  // more context here https://community.auth0.com/t/include-email-in-jwt/39778/4
+  const email = user[`${config.a0Domain}email`];
+  const ipUser = await IronPlans.getNewOrExistingUser(email, user.sub);
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
   return metadata[toDbKey(dbAlias)];
 }
 
-export async function delId(dbAlias: string, email: string, uid: string) {
-  const ipUser = await IronPlans.getNewOrExistingUser(email, uid);
+// returns deleted db id or db alias if no auth
+export async function delId(dbAlias: string, user: any) {
+  if (!config.a0Enabled) return dbAlias;
+  const email = user[`${config.a0Domain}email`];
+  const ipUser = await IronPlans.getNewOrExistingUser(email, user.sub);
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
+  const dbId = metadata[toDbKey(dbAlias)];
   delete metadata[toDbKey(dbAlias)];
   await IronPlans.setTeamMetadata(ipUser.teamId, metadata);
+  return dbId;
 }

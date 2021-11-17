@@ -4,9 +4,9 @@ import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 import * as Modules from '../modules'
 import { IasqlModule, } from '../entity'
 import { TypeormWrapper, } from '../services/typeorm'
+import { getId } from '../services/db-manager'
 
 export const mod = express.Router();
-mod.use(express.json());
 
 // Mimicking `apt` in this due to the similarities in environment modules/packages are being managed
 // within. Here's the list of commands `apt` itself claims are commonly used. Which should we
@@ -30,13 +30,15 @@ mod.use(express.json());
 
 // Needed at the beginning
 mod.post('/list', async (req, res) => {
-  if (req.body.all) {
+  const { all, installed, dbAlias } = req.body;
+  if (all) {
     res.json(Object.values(Modules)
     .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name'))
     .map(m => m.name));
-  } else if (req.body.installed && req.body.dbname) {
-    const orm = await TypeormWrapper.createConn(req.body.dbname, {
-      name: req.body.dbname,
+  } else if (installed && dbAlias) {
+    const dbId = await getId(dbAlias, req.user);
+    const orm = await TypeormWrapper.createConn(dbId, {
+      name: dbId,
       type: 'postgres',
       username: 'postgres', // TODO: Should we use the user's account for this?
       password: 'test',
@@ -59,16 +61,17 @@ mod.post('/show', (_req, res) => res.end('ok'));
 
 // Needed at the beginning
 mod.post('/install', async (req, res) => {
-  // TODO: Add security to all of these endpoints
+  const { list, dbAlias } = req.body;
   // Don't do anything if we don't know what database to impact
-  if (!req.body.dbname) return res.json("Missing 'dbname' to install into");
+  if (!dbAlias) return res.json("Missing 'dbAlias' to install into");
+  const dbId = await getId(dbAlias, req.user);
   // Also don't do anything if we don't have any list of modules to install
-  if (!Array.isArray(req.body.list)) return res.json("ERROR: No packages provided in 'list' property");
+  if (!Array.isArray(list)) return res.json("ERROR: No packages provided in 'list' property");
   // Check to make sure that all specified modules actually exist
-  const modules = req.body.list.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
+  const modules = list.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
   if (modules.some((m: any) => m === undefined)) {
     return res.json(`ERROR. The following modules do not exist: ${
-      req.body.list.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
+      list.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
     }`);
   }
   // Grab all of the entities plus the IaSQL Module entity itself and create the TypeORM connection
@@ -80,8 +83,8 @@ mod.post('/install', async (req, res) => {
     .map((m: any) => Object.values(m.mappers).map((ma: any) => ma.entity))
     .flat();
   entities.push(IasqlModule);
-  const orm = await TypeormWrapper.createConn(req.body.dbname, {
-    name: req.body.dbname,
+  const orm = await TypeormWrapper.createConn(dbId, {
+    name: dbId,
     type: 'postgres',
     username: 'postgres',
     password: 'test',
@@ -206,24 +209,25 @@ ${Object.keys(tableCollisions)
 
 // Needed at the beginning
 mod.post('/remove', async (req, res) => {
-  // TODO: Add security to all of these endpoints
+  const { list, dbAlias } = req.body;
   // Don't do anything if we don't know what database to impact
-  if (!req.body.dbname) return res.json("Missing 'dbname' to install into");
+  if (!dbAlias) return res.json("Missing 'dbAlias' to install into");
+  const dbId = await getId(dbAlias, req.user);
   // Also don't do anything if we don't have any list of modules to install
-  if (!Array.isArray(req.body.list)) return res.json("ERROR: No packages provided in 'list' property");
+  if (!Array.isArray(list)) return res.json("ERROR: No packages provided in 'list' property");
   // Check to make sure that all specified modules actually exist
-  const modules = req.body.list.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
+  const modules = list.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
   if (modules.some((m: any) => m === undefined)) {
     return res.json(`ERROR. The following modules do not exist: ${
-      req.body.list.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
+      list.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
     }`);
   }
   // Grab all of the entities from the module plus the IaSQL Module entity itself and create the
   // TypeORM connection with it.
   const entities = modules.map((m: any) => Object.values(m.mappers).map((ma: any) => ma.entity)).flat();
   entities.push(IasqlModule);
-  const orm = await TypeormWrapper.createConn(req.body.dbname, {
-    name: req.body.dbname,
+  const orm = await TypeormWrapper.createConn(dbId, {
+    name: dbId,
     type: 'postgres',
     username: 'postgres',
     password: 'test',

@@ -1,10 +1,7 @@
 import * as express from 'express'
-import jwt from 'express-jwt'
-import jwksRsa from 'jwks-rsa'
 import { createConnection, } from 'typeorm'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import config from '../config'
 import { TypeormWrapper, } from '../services/typeorm'
 import { IasqlModule, } from '../entity'
 import { findDiff, } from '../services/diff'
@@ -14,19 +11,6 @@ import * as Modules from '../modules'
 
 
 export const db = express.Router();
-db.use(express.json());
-
-if (config.a0Enabled) {
-  const checkJwt = jwt({
-    secret: jwksRsa.expressJwtSecret({
-      jwksUri: `${config.a0Domain}.well-known/jwks.json`,
-    }),
-    audience: config.a0Audience,
-    issuer: config.a0Domain,
-    algorithms: ['RS256'],
-  });
-  db.use(checkJwt);
-}
 
 // TODO secure with cors and scope
 db.post('/add', async (req, res) => {
@@ -36,20 +20,7 @@ db.post('/add', async (req, res) => {
       'dbAlias', 'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
-  let dbId;
-  if (config.a0Enabled) {
-    // following the format for this auth0 rule
-    // https://manage.auth0.com/dashboard/us/iasql/rules/rul_D2HobGBMtSmwUNQm
-    // more context here https://community.auth0.com/t/include-email-in-jwt/39778/4
-    const user: any = req.user;
-    const email = user[`${config.a0Domain}email`];
-    dbId = await newId(dbAlias, email, user.sub);
-  } else {
-    // just use alias
-    dbId = dbAlias;
-  }
-  // TODO generate unique id as actual name and store association to alias in ironplans
-  // such that once we auth the user they can use the alias and we map to the id
+  const dbId = await newId(dbAlias, req.user);
   let conn1, conn2;
   try {
     conn1 = await createConnection({
@@ -90,8 +61,6 @@ db.post('/add', async (req, res) => {
 });
 
 db.get('/list', async (req, res) => {
-  const user: any = req.user;
-  const email = user[`${config.a0Domain}email`];
   let conn;
   try {
     conn = await createConnection({
@@ -101,7 +70,8 @@ db.get('/list', async (req, res) => {
       password: 'test',
       host: 'postgresql',
     });
-    const aliases = config.a0Enabled ? await getAliases(email, user.sub) : (await conn.query(`
+    // aliases is undefined when there is no auth so get aliases from DB
+    const aliases = (await getAliases(req.user)) ?? (await conn.query(`
       select datname
       from pg_database
       where datname <> 'postgres' and
@@ -119,16 +89,9 @@ db.get('/list', async (req, res) => {
 
 db.get('/remove/:dbAlias', async (req, res) => {
   const dbAlias = req.params.dbAlias;
-  let dbId = dbAlias;
-  let user: any, email;
-  if (config.a0Enabled) {
-    user = req.user;
-    email = user[`${config.a0Domain}email`];
-    dbId = await getId(dbAlias, email, user.sub);
-  }
+  const dbId = await delId(dbAlias, req.user);
   let conn;
   try {
-    if (config.a0Enabled) await delId(dbAlias, email, user.sub);
     conn = await createConnection({
       name: 'base',
       type: 'postgres',
@@ -163,12 +126,7 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
 
 db.get('/apply/:dbAlias', async (req, res) => {
   const dbAlias = req.params.dbAlias;
-  let dbId = dbAlias;
-  if (config.a0Enabled) {
-    const user: any = req.user;
-    const email = user[`${config.a0Domain}email`];
-    dbId = await getId(dbAlias, email, user.sub);
-  }
+  const dbId = await getId(dbAlias, req.user);
   const t1 = Date.now();
   console.log(`Applying ${dbAlias}`);
   let orm: TypeormWrapper | null = null;

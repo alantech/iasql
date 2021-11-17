@@ -1,8 +1,8 @@
 use std::env;
 
-use clap::{crate_name, crate_version, App, AppSettings, SubCommand};
+use clap::{crate_name, crate_version, App, AppSettings, Arg, SubCommand};
 
-use iasql::api::db;
+use iasql::api::{db, module};
 use iasql::auth;
 
 extern crate iasql;
@@ -24,6 +24,23 @@ pub async fn main() {
           SubCommand::with_name("remove"),
           SubCommand::with_name("apply"),
         ]),
+      SubCommand::with_name("mod")
+        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .alias("module")
+        .subcommands(vec![
+          SubCommand::with_name("list")
+            .setting(AppSettings::SubcommandRequiredElseHelp)
+            .subcommands(vec![
+              SubCommand::with_name("installed").arg(Arg::from_usage("[db]")),
+              SubCommand::with_name("all"),
+            ]),
+          SubCommand::with_name("install")
+            .arg(Arg::from_usage("--db=[DB]"))
+            .arg(Arg::with_name("modules").required(true).min_values(1)),
+          SubCommand::with_name("remove")
+            .arg(Arg::from_usage("--db=[DB]"))
+            .arg(Arg::with_name("modules").required(true).min_values(1)),
+        ]),
       SubCommand::with_name("logout"),
     ]);
 
@@ -36,6 +53,34 @@ pub async fn main() {
         ("add", _) => db::add().await,
         ("remove", _) => db::remove().await,
         ("apply", _) => db::apply().await,
+        // rely on AppSettings::SubcommandRequiredElseHelp
+        _ => {}
+      };
+    }
+    ("mod", Some(sub_matches)) => {
+      auth::login(false).await;
+      match sub_matches.subcommand() {
+        ("list", Some(sub_sub_matches)) => {
+          match sub_sub_matches.subcommand() {
+            ("installed", Some(s_s_s_matches)) => {
+              let db = module::get_or_select_db(s_s_s_matches.value_of("db")).await;
+              module::list(Some(&db)).await;
+            }
+            ("all", _) => module::list(None).await,
+            // rely on AppSettings::SubcommandRequiredElseHelp
+            _ => {}
+          };
+        }
+        ("install", Some(sub_sub_matches)) => {
+          let db = sub_sub_matches.value_of("db");
+          let modules: Vec<&str> = sub_sub_matches.values_of("modules").unwrap().collect();
+          module::install(db, modules).await;
+        }
+        ("remove", Some(sub_sub_matches)) => {
+          let db = sub_sub_matches.value_of("db");
+          let modules: Vec<&str> = sub_sub_matches.values_of("modules").unwrap().collect();
+          module::remove(db, modules).await;
+        }
         // rely on AppSettings::SubcommandRequiredElseHelp
         _ => {}
       };

@@ -1,3 +1,4 @@
+use dialoguer::console::style;
 use indicatif::ProgressBar;
 use serde::{Deserialize, Serialize};
 use serde_ini;
@@ -61,7 +62,7 @@ fn get_aws_cli_creds() -> Result<AWSCLICredentialsFile, String> {
   }
 }
 
-async fn get_dbs() -> Vec<String> {
+pub async fn get_dbs() -> Vec<String> {
   let resp = get_v1("db/list").await;
   let res = match &resp {
     Ok(r) => r,
@@ -70,42 +71,39 @@ async fn get_dbs() -> Vec<String> {
       std::process::exit(1);
     }
   };
-  serde_json::from_str(res).unwrap()
+  let dbs: Vec<String> = serde_json::from_str(res).unwrap();
+  if dbs.len() == 0 {
+    println!("{}", NO_DBS);
+    std::process::exit(1);
+  }
+  return dbs;
 }
 
 pub async fn list() {
   // TODO after IaSQL-on-IaSQL expose connection string and display
   // everything in a table
   let dbs = get_dbs().await;
-  if dbs.len() == 0 {
-    println!("{}", NO_DBS);
-  } else {
-    println!("{}", dbs.join("\n"));
-  }
+  println!("{}", dbs.join("\n"));
 }
 
 pub async fn remove() {
-  // TODO figure out better ux/naming
   let dbs = get_dbs().await;
-  if dbs.len() == 0 {
-    return println!("{}", NO_DBS);
-  }
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
   let resp = get_v1(&format!("db/remove/{}", db)).await;
-  let res = match &resp {
-    Ok(r) => r,
+  match &resp {
+    Ok(_) => println!(
+      "Successfully removed {} db",
+      style(format!("{}", db)).bold()
+    ),
     Err(e) => {
       println!("Err: {:?}", e);
       std::process::exit(1);
     }
   };
-  let body: String = serde_json::from_str(res).unwrap();
-  println!("{}", body);
 }
 
 pub async fn apply() {
-  // TODO figure out better ux/naming
   let dbs = get_dbs().await;
   if dbs.len() == 0 {
     return println!("{}", NO_DBS);
@@ -113,15 +111,16 @@ pub async fn apply() {
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
   let resp = get_v1(&format!("db/apply/{}", db)).await;
-  let res = match &resp {
-    Ok(r) => r,
+  match &resp {
+    Ok(_) => println!(
+      "Successfully applied {} db",
+      style(format!("{}", db)).bold()
+    ),
     Err(e) => {
       println!("Err: {:?}", e);
       std::process::exit(1);
     }
   };
-  let body: String = serde_json::from_str(res).unwrap();
-  println!("{}", body);
 }
 
 pub async fn add() {
@@ -142,24 +141,27 @@ pub async fn add() {
     let secret: String = dlg::input("AWS Secret Access Key");
     (access_key, secret)
   };
-  let db_alias: String = dlg::input("IaSQL DB Alias");
+  let db: String = dlg::input("IaSQL db name");
 
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
   sp.set_message("Creating an IaSQL instance to manage your AWS account");
   let body = json!({
-    "dbAlias": db_alias,
+    "dbAlias": db,
     "awsRegion": region,
     "awsAccessKeyId": access_key,
     "awsSecretAccessKey": secret,
   });
   let resp = post_v1("db/add", body).await;
   match &resp {
-    Ok(r) => {
-      println!("{}", r);
+    Ok(_) => {
+      sp.finish_with_message(&format!(
+        "Successfully added {} db",
+        style(format!("{}", db)).bold()
+      ));
     }
     Err(e) => {
-      println!("Err: {:?}", e);
+      sp.finish_with_message(&format!("Err: {:?}", e));
       std::process::exit(1);
     }
   };
