@@ -10,7 +10,7 @@ export const AwsAccount: Module = new Module({
   name: 'aws_account',
   dependencies: [],
   provides: {
-    tables: ['aws_account', 'aws_vpc', 'aws_subnet',],
+    tables: ['aws_account',],
     context: {
       // This function is `async function () {` instead of `async () => {` because that enables the
       // `this` keyword within the function based on the objec it is being called from, so the
@@ -82,99 +82,99 @@ export const AwsAccount: Module = new Module({
         delete: async (_e: AwsAccountEntity | AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
       }),
     }),
-    vpc: new Mapper<AwsVpc>({
-      entity: AwsVpc,
-      entityId: (e: AwsVpc) => e?.vpcId ?? '',
-      equals: (_a: AwsVpc, _b: AwsVpc) => true, // Do not let vpc updates
-      source: 'db',
-      db: new Crud({
-        create: async (e: AwsVpc | AwsVpc[], ctx: Context) => { await ctx.orm.save(AwsVpc, e); },
-        read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const out = await ctx.orm.find(AwsVpc, id ? {
-            where: {
-              vpcId: Array.isArray(id) ? In(id) : id,
-            },
-          } : undefined);
-          return out;
-        },
-        update: async (vpc: AwsVpc | AwsVpc[], ctx: Context) => {
-          const es = Array.isArray(vpc) ? vpc : [vpc];
-          await ctx.orm.save(AwsVpc, es);
-        },
-        delete: async (e: AwsVpc | AwsVpc[], ctx: Context) => { await ctx.orm.remove(AwsVpc, e); },
-      }),
-      cloud: new Crud({
-        create: async (_vpc: AwsVpc | AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
-        read: async (ctx: Context, ids?: string | string[]) => {
-          const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return await AwsAccount.utils.vpcMapper(
-                  await client.getVpc(id), ctx
-                );
-              }));
-            } else {
-              return await AwsAccount.utils.vpcMapper(
-                await client.getVpc(ids), ctx
-              );
-            }
-          } else {
-            const result = await client.getVpcs();
-            return await Promise.all(result.Vpcs.map((vpc: any) => AwsAccount.utils.vpcMapper(vpc, ctx)));
-          }
-        },
-        update: async (_vpc: AwsVpc | AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
-        delete: async (_vpc: AwsVpc | AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
-      }),
-    }),
-    subnet: new Mapper<AWSSubnet>({
-      entity: AWSSubnet,
-      entityId: (e: AWSSubnet) => e?.subnetId ?? '',
-      equals: (_a: AWSSubnet, _b: AWSSubnet) => true, // Do not let vpc updates
-      source: 'db',
-      db: new Crud({
-        create: async (e: AWSSubnet | AWSSubnet[], ctx: Context) => { await ctx.orm.save(AWSSubnet, e); },
-        read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const out = await ctx.orm.find(AWSSubnet, id ? {
-            where: {
-              subnetId: Array.isArray(id) ? In(id) : id,
-            },
-            relations: ['vpc'],
-          } : { relations: ['vpc'], });
-          return out;
-        },
-        update: async (sn: AWSSubnet | AWSSubnet[], ctx: Context) => {
-          const es = Array.isArray(sn) ? sn : [sn];
-          await ctx.orm.save(AWSSubnet, es);
-        },
-        delete: async (e: AWSSubnet | AWSSubnet[], ctx: Context) => { await ctx.orm.remove(AWSSubnet, e); },
-      }),
-      cloud: new Crud({
-        create: async (_sn: AWSSubnet | AWSSubnet[], _ctx: Context) => { throw new Error('tbd'); },
-        read: async (ctx: Context, ids?: string | string[]) => {
-          const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return await AwsAccount.utils.subnetMapper(
-                  await client.getSubnet(id), ctx
-                );
-              }));
-            } else {
-              return await AwsAccount.utils.subnetMapper(
-                await client.getSubnet(ids), ctx
-              );
-            }
-          } else {
-            const result = await client.getSubnets();
-            return await Promise.all(result.Subnets.map((sn: any) => AwsAccount.utils.subnetMapper(sn, ctx)));
-          }
-        },
-        update: async (_sn: AWSSubnet | AWSSubnet[], _ctx: Context) => { throw new Error('tbd'); },
-        delete: async (_sn: AWSSubnet | AWSSubnet[], _ctx: Context) => { throw new Error('tbd'); },
-      }),
-    }),
+    // vpc: new Mapper<AwsVpc>({
+    //   entity: AwsVpc,
+    //   entityId: (e: AwsVpc) => e?.vpcId ?? '',
+    //   equals: (_a: AwsVpc, _b: AwsVpc) => true, // Do not let vpc updates
+    //   source: 'db',
+    //   db: new Crud({
+    //     create: async (e: AwsVpc | AwsVpc[], ctx: Context) => { await ctx.orm.save(AwsVpc, e); },
+    //     read: async (ctx: Context, id?: string | string[] | undefined) => {
+    //       const out = await ctx.orm.find(AwsVpc, id ? {
+    //         where: {
+    //           vpcId: Array.isArray(id) ? In(id) : id,
+    //         },
+    //       } : undefined);
+    //       return out;
+    //     },
+    //     update: async (vpc: AwsVpc | AwsVpc[], ctx: Context) => {
+    //       const es = Array.isArray(vpc) ? vpc : [vpc];
+    //       await ctx.orm.save(AwsVpc, es);
+    //     },
+    //     delete: async (e: AwsVpc | AwsVpc[], ctx: Context) => { await ctx.orm.remove(AwsVpc, e); },
+    //   }),
+    //   cloud: new Crud({
+    //     create: async (_vpc: AwsVpc | AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
+    //     read: async (ctx: Context, ids?: string | string[]) => {
+    //       const client = await ctx.getAwsClient() as AWS;
+    //       if (ids) {
+    //         if (Array.isArray(ids)) {
+    //           return await Promise.all(ids.map(async (id) => {
+    //             return await AwsAccount.utils.vpcMapper(
+    //               await client.getVpc(id), ctx
+    //             );
+    //           }));
+    //         } else {
+    //           return await AwsAccount.utils.vpcMapper(
+    //             await client.getVpc(ids), ctx
+    //           );
+    //         }
+    //       } else {
+    //         const result = await client.getVpcs();
+    //         return await Promise.all(result.Vpcs.map((vpc: any) => AwsAccount.utils.vpcMapper(vpc, ctx)));
+    //       }
+    //     },
+    //     update: async (_vpc: AwsVpc | AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
+    //     delete: async (_vpc: AwsVpc | AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
+    //   }),
+    // }),
+    // subnet: new Mapper<AWSSubnet>({
+    //   entity: AWSSubnet,
+    //   entityId: (e: AWSSubnet) => e?.subnetId ?? '',
+    //   equals: (_a: AWSSubnet, _b: AWSSubnet) => true, // Do not let vpc updates
+    //   source: 'db',
+    //   db: new Crud({
+    //     create: async (e: AWSSubnet | AWSSubnet[], ctx: Context) => { await ctx.orm.save(AWSSubnet, e); },
+    //     read: async (ctx: Context, id?: string | string[] | undefined) => {
+    //       const out = await ctx.orm.find(AWSSubnet, id ? {
+    //         where: {
+    //           subnetId: Array.isArray(id) ? In(id) : id,
+    //         },
+    //         relations: ['vpc'],
+    //       } : { relations: ['vpc'], });
+    //       return out;
+    //     },
+    //     update: async (sn: AWSSubnet | AWSSubnet[], ctx: Context) => {
+    //       const es = Array.isArray(sn) ? sn : [sn];
+    //       await ctx.orm.save(AWSSubnet, es);
+    //     },
+    //     delete: async (e: AWSSubnet | AWSSubnet[], ctx: Context) => { await ctx.orm.remove(AWSSubnet, e); },
+    //   }),
+    //   cloud: new Crud({
+    //     create: async (_sn: AWSSubnet | AWSSubnet[], _ctx: Context) => { throw new Error('tbd'); },
+    //     read: async (ctx: Context, ids?: string | string[]) => {
+    //       const client = await ctx.getAwsClient() as AWS;
+    //       if (ids) {
+    //         if (Array.isArray(ids)) {
+    //           return await Promise.all(ids.map(async (id) => {
+    //             return await AwsAccount.utils.subnetMapper(
+    //               await client.getSubnet(id), ctx
+    //             );
+    //           }));
+    //         } else {
+    //           return await AwsAccount.utils.subnetMapper(
+    //             await client.getSubnet(ids), ctx
+    //           );
+    //         }
+    //       } else {
+    //         const result = await client.getSubnets();
+    //         return await Promise.all(result.Subnets.map((sn: any) => AwsAccount.utils.subnetMapper(sn, ctx)));
+    //       }
+    //     },
+    //     update: async (_sn: AWSSubnet | AWSSubnet[], _ctx: Context) => { throw new Error('tbd'); },
+    //     delete: async (_sn: AWSSubnet | AWSSubnet[], _ctx: Context) => { throw new Error('tbd'); },
+    //   }),
+    // }),
   },
   migrations: {
     postinstall: awsAccount1637164047096.prototype.up,
