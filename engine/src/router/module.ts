@@ -5,6 +5,7 @@ import * as Modules from '../modules'
 import { IasqlModule, } from '../entity'
 import { TypeormWrapper, } from '../services/typeorm'
 import { getId } from '../services/db-manager'
+import { lazyLoader, } from '../services/lazy-dep'
 
 export const mod = express.Router();
 
@@ -193,17 +194,17 @@ ${Object.keys(tableCollisions)
   const mappers = modules
     .map(md => Object.values(md.mappers))
     .flat()
-  for (const mapper of mappers) {
+  await lazyLoader(mappers.map(mapper => async () => {
     const e = await mapper.cloud.read(context);
     if (!e || (Array.isArray(e) && !e.length)) {
       console.log('Completely unexpected outcome');
       console.log({ mapper, e, });
     } else {
       await Promise.all(e.map(async (entity: any) => {
-        await orm.save(mapper.entity, entity);
+        await mapper.db.create(entity, context);
       }));
     }
-  }
+  }));
   res.json("Done!");
 });
 

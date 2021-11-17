@@ -25,7 +25,7 @@ export const AwsElbModule: Module = new Module({
   name: 'aws_elb',
   dependencies: ['aws_account', 'aws_security_group',],
   provides: {
-    tables: ['aws_action', 'aws_listener', 'aws_load_balancer', 'aws_target_group',],
+    tables: ['aws_target_group', 'aws_load_balancer', 'aws_listener', 'aws_action',],
     // functions: ['create_ecr_repository', 'create_ecr_repository_policy'],
   },
   utils: {
@@ -61,7 +61,7 @@ export const AwsElbModule: Module = new Module({
       out.canonicalHostedZoneId = lb.CanonicalHostedZoneId;
       out.createdTime = lb.CreatedTime ? new Date(lb.CreatedTime) : lb.CreatedTime;
       out.scheme = lb.Scheme as LoadBalancerSchemeEnum;
-      out.state = lb.State as LoadBalancerStateEnum;
+      out.state = lb.State?.Code as LoadBalancerStateEnum;
       out.loadBalancerType = lb.Type as LoadBalancerTypeEnum;
       out.securityGroups = await Promise.all(lb.SecurityGroups?.map(sg => ctx.memo?.db?.AwsSecurityGroup?.sg ?? AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg)) ?? []);
       out.ipAddressType = lb.IpAddressType as IpAddressType;
@@ -120,11 +120,18 @@ export const AwsElbModule: Module = new Module({
     listener: new Mapper<AwsListener>({
       entity: AwsListener,
       entityId: (e: AwsListener) => e?.listenerArn ?? '',
-      equals: (a: AwsListener, b: AwsListener) => Object.is(a.port, b.port)
+      equals: (a: AwsListener, b: AwsListener) => Object.is(a.listenerArn, b.listenerArn)
+        && Object.is(a.port, b.port)
         && Object.is(a.protocol, b.protocol),
       source: 'db',
       db: new Crud({
-        create: async (e: AwsListener | AwsListener[], ctx: Context) => { await ctx.orm.save(AwsListener, e); },
+        create: async (l: AwsListener | AwsListener[], ctx: Context) => {
+          const es = Array.isArray(l) ? l : [l];
+          for (const e of es) {
+            await Promise.all(e.defaultActions?.map(a => AwsElbModule.mappers.action.db.create(a, ctx)) ?? []);
+          }
+          await ctx.orm.save(AwsListener, es);
+        },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const out = await ctx.orm.find(AwsListener, id ? {
             where: {
@@ -141,6 +148,7 @@ export const AwsElbModule: Module = new Module({
               const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
               e.loadBalancer = lb;
             }
+            await Promise.all(e.defaultActions?.map(a => AwsElbModule.mappers.action.db.update(a, ctx)) ?? []);
           }
           await ctx.orm.save(AwsListener, es);
         },
@@ -195,7 +203,7 @@ export const AwsElbModule: Module = new Module({
             }
           } else {
             const loadBalancers = ctx.memo?.cloud?.AwsLoadBalancer ? Object.values(ctx.memo?.cloud?.AwsLoadBalancer) : await AwsElbModule.mappers.loadBalancer.cloud.read(ctx);
-            const loadBalancerArns = loadBalancers.map((lb: any) => lb.LoadBalancerArn);
+            const loadBalancerArns = loadBalancers.map((lb: any) => lb.loadBalancerArn);
             const result = await client.getListeners(loadBalancerArns);
             return await Promise.all(result.Listeners.map(async (l: any) => {
               return await AwsElbModule.utils.listenerMapper(l, ctx);
