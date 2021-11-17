@@ -56,22 +56,37 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
   }
   let all = list_mods(None).await;
   if mods_opt.is_none() {
-    let idxs = dlg::multiselect("Press the Spacebar to (de)select modules to remove and press Enter to submit", &installed);
+    let idxs = dlg::multiselect(
+      "Press the Spacebar to (de)select modules to remove and press Enter to submit",
+      &installed,
+    );
     if idxs.len() == 0 {
       println!("No modules selected");
       std::process::exit(0);
     }
-    installed.into_iter().enumerate().filter(|(i, _)| idxs.contains(&i)).map(|(_, e)| e).collect()
+    installed
+      .into_iter()
+      .enumerate()
+      .filter(|(i, _)| idxs.contains(&i))
+      .map(|(_, e)| e)
+      .collect()
   } else {
     let mods = mods_opt.unwrap();
     let inexistent = mods.iter().find(|e| !all.contains(e));
     if inexistent.is_some() {
-      println!("Err: module {} does not exist", dlg::bold(inexistent.unwrap()));
+      println!(
+        "Err: module {} does not exist",
+        dlg::bold(inexistent.unwrap())
+      );
       std::process::exit(1);
     }
     let is_installed = mods.iter().find(|e| !installed.contains(e));
     if is_installed.is_some() {
-      println!("Err: module {} is not installed in {}", dlg::bold(db), dlg::bold(is_installed.unwrap()));
+      println!(
+        "Err: module {} is not installed in {}",
+        dlg::bold(db),
+        dlg::bold(is_installed.unwrap())
+      );
       std::process::exit(1);
     }
     mods
@@ -83,27 +98,45 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
   let all = list_mods(None).await;
   let installed = list_mods(Some(db)).await;
   if all.len() == installed.len() {
-    println!("All available modules have been installed in {}", dlg::bold(db));
+    println!(
+      "All available modules have been installed in {}",
+      dlg::bold(db)
+    );
     std::process::exit(0);
   }
   if mods_opt.is_none() {
     let available = all.into_iter().filter(|x| !installed.contains(x)).collect();
-    let idxs = dlg::multiselect("Press the Spacebar to (de)select modules to install and press Enter to submit", &available);
+    let idxs = dlg::multiselect(
+      "Press the Spacebar to (de)select modules to install and press Enter to submit",
+      &available,
+    );
     if idxs.len() == 0 {
       println!("No modules selected");
       std::process::exit(0);
     }
-    available.into_iter().enumerate().filter(|(i, _)| idxs.contains(&i)).map(|(_, e)| e).collect()
+    available
+      .into_iter()
+      .enumerate()
+      .filter(|(i, _)| idxs.contains(&i))
+      .map(|(_, e)| e)
+      .collect()
   } else {
     let mods = mods_opt.unwrap();
     let inexistent = mods.iter().find(|e| !all.contains(e));
     if inexistent.is_some() {
-      println!("Err: module {} does not exist", dlg::bold(inexistent.unwrap()));
+      println!(
+        "Err: module {} does not exist",
+        dlg::bold(inexistent.unwrap())
+      );
       std::process::exit(1);
     }
     let is_installed = mods.iter().find(|e| !installed.contains(e));
     if is_installed.is_some() {
-      println!("Err: module {} is already installed in {}", dlg::bold(db), dlg::bold(is_installed.unwrap()));
+      println!(
+        "Err: module {} is already installed in {}",
+        dlg::bold(db),
+        dlg::bold(is_installed.unwrap())
+      );
       std::process::exit(1);
     }
     mods
