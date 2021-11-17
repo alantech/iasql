@@ -1,8 +1,8 @@
 import { In, } from 'typeorm'
-import { Action, } from '@aws-sdk/client-elastic-load-balancing-v2'
+import { Action, Listener, } from '@aws-sdk/client-elastic-load-balancing-v2'
 
 import { AWS, } from '../../services/gateways/aws'
-import { ActionTypeEnum, AwsAction, } from './entity'
+import { ActionTypeEnum, AwsAction, AwsListener, ProtocolEnum, } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsElb1637092695969, } from './migration/1637092695969-aws_elb'
 
@@ -20,16 +20,21 @@ export const AwsElbModule: Module = new Module({
         throw new Error('Listerner action not defined properly');
       }
       out.actionType = (a.Type as ActionTypeEnum);
-      out.targetGroup = ctx.memo?.db?.AwsAction?.a?.TargetGroupArn ?? await AwsElbModule.mappers.targetGroup.cloud.read(ctx, a.TargetGroupArn);
+      out.targetGroup = ctx.memo?.db?.AwsAction?.[a?.TargetGroupArn] ?? await AwsElbModule.mappers.targetGroup.cloud.read(ctx, a.TargetGroupArn);
       return out;
     },
-    // repositoryPolicyMapper: async (rp: any, ctx: Context) => {
-    //   const out = new AwsActionPolicy();
-    //   out.registryId = rp?.registryId;
-    //   out.repository = ctx.memo?.db?.AwsAction?.rp?.repositoryName ?? await AwsEcrModule.mappers.repository.cloud.read(ctx, rp?.repositoryName);
-    //   out.policyText = rp?.policyText ?? false;
-    //   return out;
-    // },
+    listenerMapper: async (l: Listener, ctx: Context) => {
+      const out = new AwsListener();
+      if (!l?.LoadBalancerArn || !l?.Port) {
+        throw new Error('Listerner not defined properly');
+      }
+      out.listenerArn = l?.ListenerArn;
+      out.loadBalancer = ctx.memo?.db?.AwsListener?.[l?.LoadBalancerArn] ?? await AwsElbModule.mappers.loadBalancer.cloud.read(ctx, l?.LoadBalancerArn);
+      out.port = l?.Port;
+      out.protocol = l?.Protocol as ProtocolEnum;
+      out.defaultActions = await Promise.all(l.DefaultActions?.map(a => ctx.memo?.db?.AwsAction?.[a?.TargetGroupArn ?? ''] ?? AwsElbModule.utils.actionMapper(a, ctx)) ?? []);
+      return out;
+    },
   },
   mappers: {
     action: new Mapper<AwsAction>({
@@ -58,115 +63,99 @@ export const AwsElbModule: Module = new Module({
         delete: (_a: AwsAction | AwsAction[], _ctx: Context) => { throw new Error('tbd'); },
       }),
     }),
-    // repositoryPolicy: new Mapper<AwsActionPolicy>({
-    //   entity: AwsActionPolicy,
-    //   entityId: (e: AwsActionPolicy) => e.repository?.repositoryName + '',
-    //   equals: (a: AwsActionPolicy, b: AwsActionPolicy) => Object.is(a.policyText, b.policyText),
-    //   source: 'db',
-    //   db: new Crud({
-    //     create: async (e: AwsActionPolicy | AwsActionPolicy[], ctx: Context) => { await ctx.orm.save(AwsActionPolicy, e); },
-    //     read: async (ctx: Context, id?: string | string[] | undefined) => {
-    //       const out = await ctx.orm.find(AwsActionPolicy, id ? {
-    //         where: {
-    //           repository: { repositoryName: id }
-    //         },
-    //         relations: ["repository"]
-    //       } : { relations: ["repository"] });
-    //       return out;
-    //     },
-    //     update: async (rp: AwsActionPolicy | AwsActionPolicy[], ctx: Context) => {
-    //       const es = Array.isArray(rp) ? rp : [rp];
-    //       for (const e of es) {
-    //         if (!e.repository.id) {
-    //           const r = await AwsEcrModule.mappers.repository.db.read(ctx, e.repository.repositoryName);
-    //           e.repository = r;
-    //         }
-    //       }
-    //       await ctx.orm.save(AwsActionPolicy, es);
-    //     },
-    //     delete: async (e: AwsActionPolicy | AwsActionPolicy[], ctx: Context) => { await ctx.orm.remove(AwsActionPolicy, e); },
-    //   }),
-    //   cloud: new Crud({
-    //     create: async (rp: AwsActionPolicy | AwsActionPolicy[], ctx: Context) => {
-    //       const client = await ctx.getAwsClient() as AWS;
-    //       const es = Array.isArray(rp) ? rp : [rp];
-    //       const out = await Promise.all(es.map(async (e) => {
-    //         const result = await client.setECRRepositoryPolicy({
-    //           repositoryName: e.repository.repositoryName,
-    //           policyText: e.policyText,
-    //         });
-    //         // TODO: Handle if it fails (somehow)
-    //         if (!result.hasOwnProperty('repositoryName')) { // Failure
-    //           throw new Error('what should we do here?');
-    //         }
-    //         // Re-get the inserted record to get all of the relevant records we care about
-    //         const newObject = await client.getECRRepositoryPolicy(result.repositoryName ?? '');
-    //         // We map this into the same kind of entity as `obj`
-    //         const newEntity = await AwsEcrModule.utils.repositoryPolicyMapper(newObject, ctx);
-    //         // We attach the original object's ID to this new one, indicating the exact record it is
-    //         // replacing in the database.
-    //         newEntity.id = e.id;
-    //         // Save the record back into the database to get the new fields updated
-    //         await AwsEcrModule.mappers.repositoryPolicy.db.update(newEntity, ctx);
-    //         return newEntity;
-    //       }));
-    //       // Make sure the dimensionality of the returned data matches the input
-    //       if (Array.isArray(rp)) {
-    //         return out;
-    //       } else {
-    //         return out[0];
-    //       }
-    //     },
-    //     read: async (ctx: Context, ids?: string | string[]) => {
-    //       const client = await ctx.getAwsClient() as AWS;
-    //       if (ids) {
-    //         if (Array.isArray(ids)) {
-    //           return await Promise.all(ids.map(async (id) => {
-    //             return await AwsEcrModule.utils.repositoryPolicyMapper(
-    //               await client.getECRRepositoryPolicy(id), ctx
-    //             );
-    //           }));
-    //         } else {
-    //           return await AwsEcrModule.utils.repositoryPolicyMapper(
-    //             await client.getECRRepositoryPolicy(ids), ctx
-    //           );
-    //         }
-    //       } else {
-    //         const repositories = ctx.memo?.cloud?.AwsAction ? Object.values(ctx.memo?.cloud?.AwsAction) : await AwsEcrModule.mappers.repository.cloud.read(ctx);
-    //         const policies: any = [];
-    //         for (const r of repositories) {
-    //           try {
-    //             const rp = await client.getECRRepositoryPolicy(r.repositoryName);
-    //             policies.push(rp);
-    //           } catch (_) {
-    //             // We try to retrieve the policy for the repository, but if none it is not an error
-    //             continue;
-    //           }
-    //         }
-    //         return await Promise.all(policies.map(async (rp: any) => {
-    //           return await AwsEcrModule.utils.repositoryPolicyMapper(rp, ctx);
-    //         }));
-    //       }
-    //     },
-    //     update: async (rp: AwsActionPolicy | AwsActionPolicy[], ctx: Context) => {
-    //       await AwsEcrModule.mappers.repositoryPolicy.cloud.create(rp, ctx);
-    //     },
-    //     delete: async (rp: AwsActionPolicy | AwsActionPolicy[], ctx: Context) => {
-    //       const client = await ctx.getAwsClient() as AWS;
-    //       const es = Array.isArray(rp) ? rp : [rp];
-    //       await Promise.all(es.map(async (e) => {
-    //         try {
-    //           await client.deleteECRRepositoryPolicy(e.repository.repositoryName!);
-    //         } catch (e: any) {
-    //           // Do nothing if repository not found. It means the repository got deleted first and the policy has already been removed
-    //           if (e.name !== 'RepositoryNotFoundException') {
-    //             throw e;
-    //           }
-    //         }
-    //       }));
-    //     },
-    //   }),
-    // }),
+    listener: new Mapper<AwsListener>({
+      entity: AwsListener,
+      entityId: (e: AwsListener) => e?.listenerArn ?? '',
+      equals: (a: AwsListener, b: AwsListener) => Object.is(a.port, b.port)
+        && Object.is(a.protocol, b.protocol),
+      source: 'db',
+      db: new Crud({
+        create: async (e: AwsListener | AwsListener[], ctx: Context) => { await ctx.orm.save(AwsListener, e); },
+        read: async (ctx: Context, id?: string | string[] | undefined) => {
+          const out = await ctx.orm.find(AwsListener, id ? {
+            where: {
+              listenerArn: Array.isArray(id) ? In(id) : id,
+            },
+            relations: ["loadBalancer"]
+          } : { relations: ["loadBalancer"] });
+          return out;
+        },
+        update: async (l: AwsListener | AwsListener[], ctx: Context) => {
+          const es = Array.isArray(l) ? l : [l];
+          for (const e of es) {
+            if (!e.loadBalancer.id) {
+              const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
+              e.loadBalancer = lb;
+            }
+          }
+          await ctx.orm.save(AwsListener, es);
+        },
+        delete: async (e: AwsListener | AwsListener[], ctx: Context) => { await ctx.orm.remove(AwsListener, e); },
+      }),
+      cloud: new Crud({
+        create: async (l: AwsListener | AwsListener[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          const es = Array.isArray(l) ? l : [l];
+          const out = await Promise.all(es.map(async (e) => {
+            const result = await client.createListener({
+              Port: e.port,
+              Protocol: e.protocol,
+              LoadBalancerArn: e.loadBalancer?.loadBalancerArn,
+              DefaultActions: e.defaultActions?.map(a => ({ Type: a.actionType, TargetGroupArn: a.targetGroup.targetGroupArn })),
+            });
+            // TODO: Handle if it fails (somehow)
+            if (!result?.hasOwnProperty('ListenerArn')) { // Failure
+              throw new Error('what should we do here?');
+            }
+            // Re-get the inserted record to get all of the relevant records we care about
+            const newObject = await client.getListener(result.ListenerArn ?? '');
+            // We map this into the same kind of entity as `obj`
+            const newEntity = await AwsElbModule.utils.listenerMapper(newObject, ctx);
+            // We attach the original object's ID to this new one, indicating the exact record it is
+            // replacing in the database.
+            newEntity.id = e.id;
+            // Save the record back into the database to get the new fields updated
+            await AwsElbModule.mappers.listener.db.update(newEntity, ctx);
+            return newEntity;
+          }));
+          // Make sure the dimensionality of the returned data matches the input
+          if (Array.isArray(l)) {
+            return out;
+          } else {
+            return out[0];
+          }
+        },
+        read: async (ctx: Context, ids?: string | string[]) => {
+          const client = await ctx.getAwsClient() as AWS;
+          if (ids) {
+            if (Array.isArray(ids)) {
+              return await Promise.all(ids.map(async (id) => {
+                return await AwsElbModule.utils.listenerMapper(
+                  await client.getListener(id), ctx
+                );
+              }));
+            } else {
+              return await AwsElbModule.utils.listenerMapper(
+                await client.getListener(ids), ctx
+              );
+            }
+          } else {
+            const loadBalancers = ctx.memo?.cloud?.AwsLoadBalancer ? Object.values(ctx.memo?.cloud?.AwsLoadBalancer) : await AwsElbModule.mappers.loadBalancer.cloud.read(ctx);
+            const loadBalancerArns = loadBalancers.map((lb: any) => lb.LoadBalancerArn);
+            const result = await client.getListeners(loadBalancerArns);
+            return await Promise.all(result.Listeners.map(async (l: any) => {
+              return await AwsElbModule.utils.listenerMapper(l, ctx);
+            }));
+          }
+        },
+        update: async (_l: AwsListener | AwsListener[], _ctx: Context) => {throw new Error('tbd');},
+        delete: async (l: AwsListener | AwsListener[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          const es = Array.isArray(l) ? l : [l];
+          await Promise.all(es.map(e => client.deleteListener(e.listenerArn!)));
+        },
+      }),
+    }),
   },
   migrations: {
     postinstall: awsElb1637092695969.prototype.up,

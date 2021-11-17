@@ -47,6 +47,14 @@ import {
   SetRepositoryPolicyCommand,
   SetRepositoryPolicyCommandInput
 } from '@aws-sdk/client-ecr'
+import {
+  CreateListenerCommand,
+  CreateListenerCommandInput,
+  DeleteListenerCommand,
+  DescribeListenersCommand,
+  ElasticLoadBalancingV2Client,
+  paginateDescribeListeners,
+} from '@aws-sdk/client-elastic-load-balancing-v2'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -61,6 +69,7 @@ type AWSConfig = {
 export class AWS {
   private ec2client: EC2Client
   private ecrClient: ECRClient
+  private elbClient: ElasticLoadBalancingV2Client
   private credentials: AWSCreds
   public region: string
 
@@ -69,6 +78,7 @@ export class AWS {
     this.region = config.region;
     this.ec2client = new EC2Client(config);
     this.ecrClient = new ECRClient(config);
+    this.elbClient = new ElasticLoadBalancingV2Client(config);
   }
 
   async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
@@ -170,7 +180,7 @@ export class AWS {
   async getInstanceType(instanceType: string) {
     return (await this.ec2client.send(
       new DescribeInstanceTypesCommand({
-        InstanceTypes: [ instanceType, ],
+        InstanceTypes: [instanceType,],
       })
     ))?.InstanceTypes?.[0];
   }
@@ -181,7 +191,7 @@ export class AWS {
 
   async getAMI(imageId: string) {
     return (await this.ec2client.send(new DescribeImagesCommand({
-      ImageIds: [ imageId, ],
+      ImageIds: [imageId,],
     })))?.Images?.[0];
   }
 
@@ -191,7 +201,7 @@ export class AWS {
 
   async getRegion(regionName: string) {
     return (await this.ec2client.send(new DescribeRegionsCommand({
-      RegionNames: [ regionName, ],
+      RegionNames: [regionName,],
     })))?.Regions?.[0];
   }
 
@@ -397,4 +407,43 @@ export class AWS {
     );
     return policy;
   }
+
+  async createListener(input: CreateListenerCommandInput) {
+    const create = await this.elbClient.send(
+      new CreateListenerCommand(input),
+    );
+    return create?.Listeners?.pop() ?? null;
+  }
+
+  async getListeners(loadBalancerArns: string[]) {
+    const listeners = [];
+    for (const arn of loadBalancerArns) {
+      const paginator = paginateDescribeListeners({
+        client: this.elbClient,
+        pageSize: 25,
+      }, {
+        LoadBalancerArn: arn,
+      });
+      for await (const page of paginator) {
+        listeners.push(...(page.Listeners ?? []));
+      }
+    }
+    return {
+      Listeners: listeners,
+    };
+  }
+
+  async getListener(arn: string) {
+    const result = await this.elbClient.send(
+      new DescribeListenersCommand({ ListenerArns: [arn], })
+    );
+    return result?.Listeners?.[0];
+  }
+
+  async deleteListener(arn: string) {
+    await this.elbClient.send(
+      new DeleteListenerCommand({ ListenerArn: arn, })
+    );
+  }
+
 }
