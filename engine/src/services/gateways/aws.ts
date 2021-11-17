@@ -401,7 +401,7 @@ export class AWS {
     );
     return policy;
   }
-  
+
   async getVpcs() {
     const vpcs = [];
     const paginator = paginateDescribeVpcs({

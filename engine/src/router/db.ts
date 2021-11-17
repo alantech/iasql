@@ -88,8 +88,8 @@ db.post('/add', async (req, res) => {
           if (existingRecords.length > 0) {
             const id = mapper.entityId(entity);
             if (existingIds.includes(id)) {
-              const i = existingRecords.findIndex((_er, i) => existingIds[i] === id);
-              entity.id = existingRecords[i].id;
+              const ind = existingRecords.findIndex((_er, i) => existingIds[i] === id);
+              entity.id = existingRecords[ind].id;
             }
           }
           await mapper.db.create(entity, context);
