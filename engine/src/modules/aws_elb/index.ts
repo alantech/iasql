@@ -68,25 +68,26 @@ export const AwsElbModule: Module = new Module({
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
       return out;
     },
-    targetGroupMapper: async (tg: TargetGroup, ctx: Context) => {
+    targetGroupMapper: async (tg: any, ctx: Context) => {
       const out = new AwsTargetGroup();
       if (!tg?.TargetGroupName) {
         throw new Error('Target group not defined properly');
       }
       out.targetGroupName = tg.TargetGroupName;
       out.targetType = tg.TargetType as TargetTypeEnum;
-      out.targetGroupArn = tg.TargetGroupArn;
-      out.ipAddressType = tg.IpAddressType as TargetGroupIpAddressTypeEnum;
-      out.protocol = tg.Protocol as ProtocolEnum;
-      out.port = tg.Port;
-      out.healthCheckProtocol = tg.HealthCheckProtocol as ProtocolEnum;
-      out.healthCheckPort = tg.HealthCheckPort;
-      out.healthCheckEnabled = tg.HealthCheckEnabled;
-      out.healthCheckIntervalSeconds = tg.HealthCheckIntervalSeconds;
-      out.healthyThresholdCount = tg.HealthyThresholdCount;
-      out.unhealthyThresholdCount = tg.UnhealthyThresholdCount;
-      out.healthCheckPath = tg.HealthCheckPath;
-      out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum;
+      out.targetGroupArn = tg?.TargetGroupArn ?? null;
+      out.ipAddressType = tg.IpAddressType as TargetGroupIpAddressTypeEnum ?? null;
+      out.protocol = tg.Protocol as ProtocolEnum ?? null;
+      out.port = tg.Port ?? null;
+      out.healthCheckProtocol = tg.HealthCheckProtocol as ProtocolEnum ?? null;
+      out.healthCheckPort = tg.HealthCheckPort ?? null;
+      out.healthCheckEnabled = tg.HealthCheckEnabled ?? null;
+      out.healthCheckIntervalSeconds = tg.HealthCheckIntervalSeconds ?? null;
+      out.healthCheckTimeoutSeconds = tg.healthCheckTimeoutSeconds ?? null;
+      out.healthyThresholdCount = tg.HealthyThresholdCount ?? null;
+      out.unhealthyThresholdCount = tg.UnhealthyThresholdCount ?? null;
+      out.healthCheckPath = tg.HealthCheckPath ?? null;
+      out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum ?? null;
       return out;
     },
   },
@@ -95,7 +96,7 @@ export const AwsElbModule: Module = new Module({
       entity: AwsAction,
       entityId: (e: AwsAction) => e?.targetGroup?.targetGroupArn ?? '',
       equals: (_a: AwsAction, _b: AwsAction) => true, // Do not update actions
-      source: 'db',
+      source: 'none',
       db: new Crud({
         create: async (e: AwsAction | AwsAction[], ctx: Context) => { await ctx.orm.save(AwsAction, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
