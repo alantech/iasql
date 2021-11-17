@@ -149,7 +149,10 @@ pub async fn add() {
   let resp = post_v1("db/add", body).await;
   match &resp {
     Ok(_) => {
-      sp.finish_with_message(&format!("Succesfully added {} db", style(format!("{}", db)).bold()));
+      sp.finish_with_message(&format!(
+        "Succesfully added {} db",
+        style(format!("{}", db)).bold()
+      ));
     }
     Err(e) => {
       sp.finish_with_message(&format!("Err: {:?}", e));

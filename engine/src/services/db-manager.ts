@@ -101,8 +101,8 @@ export async function delId(dbAlias: string, user: any) {
   const email = user[`${config.a0Domain}email`];
   const ipUser = await IronPlans.getNewOrExistingUser(email, user.sub);
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
-  const delId = metadata[toDbKey(dbAlias)];
+  const dbId = metadata[toDbKey(dbAlias)];
   delete metadata[toDbKey(dbAlias)];
   await IronPlans.setTeamMetadata(ipUser.teamId, metadata);
-  return delId;
+  return dbId;
 }

@@ -90,7 +90,7 @@ db.get('/list', async (req, res) => {
 
 db.get('/remove/:dbAlias', async (req, res) => {
   const dbAlias = req.params.dbAlias;
-  let dbId = await delId(dbAlias, req.user);
+  const dbId = await delId(dbAlias, req.user);
   let conn;
   try {
     conn = await createConnection({
