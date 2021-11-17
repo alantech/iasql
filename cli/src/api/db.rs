@@ -92,7 +92,10 @@ pub async fn remove() {
   let db = &dbs[selection];
   let resp = get_v1(&format!("db/remove/{}", db)).await;
   match &resp {
-    Ok(_) => println!("Successfully removed {} db", style(format!("{}", db)).bold()),
+    Ok(_) => println!(
+      "Successfully removed {} db",
+      style(format!("{}", db)).bold()
+    ),
     Err(e) => {
       println!("Err: {:?}", e);
       std::process::exit(1);
@@ -109,7 +112,10 @@ pub async fn apply() {
   let db = &dbs[selection];
   let resp = get_v1(&format!("db/apply/{}", db)).await;
   match &resp {
-    Ok(_) => println!("Successfully applied {} db", style(format!("{}", db)).bold()),
+    Ok(_) => println!(
+      "Successfully applied {} db",
+      style(format!("{}", db)).bold()
+    ),
     Err(e) => {
       println!("Err: {:?}", e);
       std::process::exit(1);
