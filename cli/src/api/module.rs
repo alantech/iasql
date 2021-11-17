@@ -47,7 +47,7 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
 pub async fn remove(db_opt: Option<&str>, mods: Vec<&str>) {
   let db = get_or_select_db(db_opt).await;
   let prompt = format!(
-    "{} to remove the following modules into IaSQL db {}: {}",
+    "{} to remove the following modules from IaSQL db {}: {}",
     style("Press Enter").bold(),
     style(format!("{}", db)).bold(),
     mods.join(", ")
@@ -63,7 +63,7 @@ pub async fn remove(db_opt: Option<&str>, mods: Vec<&str>) {
   let resp = post_v1("module/remove", body).await;
   match &resp {
     Ok(_) => println!(
-      "Succesfully removed the following modules from {}: {}",
+      "Successfully removed the following modules from {}: {}",
       style(format!("{}", db)).bold(),
       mods.join(", ")
     ),
@@ -93,7 +93,7 @@ pub async fn install(db_opt: Option<&str>, mods: Vec<&str>) {
   let resp = post_v1("module/install", body).await;
   match &resp {
     Ok(_) => println!(
-      "Succesfully installed the following modules from {}: {}",
+      "Successfully installed the following modules from {}: {}",
       style(format!("{}", db)).bold(),
       mods.join(", ")
     ),

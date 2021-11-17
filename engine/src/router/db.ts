@@ -70,9 +70,8 @@ db.get('/list', async (req, res) => {
       password: 'test',
       host: 'postgresql',
     });
-    let aliases = await getAliases(req.user);
-    // aliases is empty when there is no auth so get aliases from DB
-    aliases = aliases.length ? aliases : (await conn.query(`
+    // aliases is undefined when there is no auth so get aliases from DB
+    const aliases = (await getAliases(req.user)) ?? (await conn.query(`
       select datname
       from pg_database
       where datname <> 'postgres' and

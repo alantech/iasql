@@ -60,7 +60,7 @@ function isDbKey(dbAlias: string) {
 
 // returns aliases or an empty array if no auth
 export async function getAliases(user: any) {
-  if (!config.a0Enabled) return [];
+  if (!config.a0Enabled) return undefined;
   const email = user[`${config.a0Domain}email`];
   const ipUser = await IronPlans.getNewOrExistingUser(email, user.sub);
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
