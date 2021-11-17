@@ -20,9 +20,9 @@ db.post('/add', async (req, res) => {
       'dbAlias', 'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
-  const dbId = await newId(dbAlias, req.user);
   let conn1, conn2;
   try {
+    const dbId = await newId(dbAlias, req.user);
     conn1 = await createConnection({
       name: 'base', // If you use multiple connections they must have unique names or typeorm bails
       type: 'postgres',
@@ -53,7 +53,7 @@ db.post('/add', async (req, res) => {
     `);
     res.end(`create ${dbAlias}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
-    res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
+    res.status(500).end(`failure to create DB: ${e?.message ?? ''}`);
   } finally {
     await conn1?.close();
     await conn2?.close();
@@ -89,9 +89,9 @@ db.get('/list', async (req, res) => {
 
 db.get('/remove/:dbAlias', async (req, res) => {
   const dbAlias = req.params.dbAlias;
-  const dbId = await delId(dbAlias, req.user);
   let conn;
   try {
+    const dbId = await delId(dbAlias, req.user);
     conn = await createConnection({
       name: 'base',
       type: 'postgres',
@@ -126,11 +126,11 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
 
 db.get('/apply/:dbAlias', async (req, res) => {
   const dbAlias = req.params.dbAlias;
-  const dbId = await getId(dbAlias, req.user);
   const t1 = Date.now();
   console.log(`Applying ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
   try {
+    const dbId = await getId(dbAlias, req.user);
     // Construct the ORM client with all of the entities we may wish to query
     const entities = Object.values(Modules)
       .filter(m => m.hasOwnProperty('mappers'))
