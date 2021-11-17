@@ -1,4 +1,3 @@
-use dialoguer::console::style;
 use indicatif::ProgressBar;
 use serde::{Deserialize, Serialize};
 use serde_ini;
@@ -83,7 +82,8 @@ pub async fn list() {
   // TODO after IaSQL-on-IaSQL expose connection string and display
   // everything in a table
   let dbs = get_dbs().await;
-  println!("{}", dbs.join("\n"));
+  println!("{}", dlg::bold("IaSQL dbs:"));
+  println!(" - {}", dbs.join("\n - "));
 }
 
 pub async fn remove() {
@@ -94,7 +94,7 @@ pub async fn remove() {
   match &resp {
     Ok(_) => println!(
       "Successfully removed {} db",
-      style(format!("{}", db)).bold()
+      dlg::bold(db),
     ),
     Err(e) => {
       println!("Err: {:?}", e);
@@ -114,7 +114,7 @@ pub async fn apply() {
   match &resp {
     Ok(_) => println!(
       "Successfully applied {} db",
-      style(format!("{}", db)).bold()
+      dlg::bold(db),
     ),
     Err(e) => {
       println!("Err: {:?}", e);
@@ -157,7 +157,7 @@ pub async fn add() {
     Ok(_) => {
       sp.finish_with_message(&format!(
         "Successfully added {} db",
-        style(format!("{}", db)).bold()
+        dlg::bold(&db),
       ));
     }
     Err(e) => {

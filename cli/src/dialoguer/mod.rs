@@ -1,4 +1,22 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select, Validator};
+use dialoguer::console::{style, StyledObject};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select, Validator};
+
+pub fn bold(el: &str) -> StyledObject<String> {
+  style(format!("{}", el)).bold()
+}
+
+pub fn green(el: &str) -> StyledObject<String> {
+  style(format!("{}", el)).green()
+}
+
+pub fn multiselect(prompt: &str, items: &Vec<String>) -> Vec<usize> {
+  MultiSelect::with_theme(&ColorfulTheme::default())
+    .with_prompt(prompt)
+    .items(items)
+    .defaults(&[true]) // select the first option to make selection more obvious
+    .interact()
+    .unwrap()
+}
 
 pub fn select_with_default(prompt: &str, items: &Vec<String>, default: usize) -> usize {
   Select::with_theme(&ColorfulTheme::default())
