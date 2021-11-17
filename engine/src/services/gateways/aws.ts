@@ -31,6 +31,10 @@ import {
   paginateDescribeInstances,
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
+  paginateDescribeVpcs,
+  DescribeVpcsCommand,
+  paginateDescribeSubnets,
+  DescribeSubnetsCommand,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -560,6 +564,48 @@ export class AWS {
     await this.elbClient.send(
       new DeleteTargetGroupCommand({ TargetGroupArn: arn, })
     );
+  }
+
+  async getVpcs() {
+    const vpcs = [];
+    const paginator = paginateDescribeVpcs({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      vpcs.push(...(page.Vpcs ?? []));
+    }
+    return {
+      Vpcs: vpcs,
+    };
+  }
+
+  async getVpc(id: string) {
+    const vpcs = await this.ec2client.send(
+      new DescribeVpcsCommand({ VpcIds: [id], })
+    );
+    return vpcs?.Vpcs?.[0];
+  }
+
+  async getSubnets() {
+    const subnets = [];
+    const paginator = paginateDescribeSubnets({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      subnets.push(...(page.Subnets ?? []));
+    }
+    return {
+      Subnets: subnets,
+    };
+  }
+
+  async getSubnet(id: string) {
+    const subnets = await this.ec2client.send(
+      new DescribeSubnetsCommand({ SubnetIds: [id], })
+    );
+    return subnets?.Subnets?.[0];
   }
 
 }
