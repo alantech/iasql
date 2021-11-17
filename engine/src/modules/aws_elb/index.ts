@@ -112,7 +112,7 @@ export const AwsElbModule: Module = new Module({
       }),
       cloud: new Crud({
         create: (_a: AwsAction | AwsAction[], _ctx: Context) => { throw new Error('tbd'); },
-        read: (_ctx: Context, _ids?: string | string[]) => { throw new Error('tbd'); },
+        read: async (_ctx: Context, _ids?: string | string[]) => { /** Do nothing */ },
         update: (_a: AwsAction | AwsAction[], _ctx: Context) => { throw new Error('tbd'); },
         delete: (_a: AwsAction | AwsAction[], _ctx: Context) => { throw new Error('tbd'); },
       }),
