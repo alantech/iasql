@@ -8,9 +8,9 @@ import { awsElb1637092695969, } from './migration/1637092695969-aws_elb'
 
 export const AwsElbModule: Module = new Module({
   name: 'aws_elb',
-  dependencies: ['aws_account', 'aws_security_group'],
+  dependencies: ['aws_account', 'aws_security_group',],
   provides: {
-    tables: ['aws_action',],
+    tables: ['aws_action', 'aws_listener',],
     // functions: ['create_ecr_repository', 'create_ecr_repository_policy'],
   },
   utils: {
@@ -49,21 +49,13 @@ export const AwsElbModule: Module = new Module({
           return a;
         },
         update: async (e: AwsAction | AwsAction[], ctx: Context) => { await ctx.orm.save(AwsAction, e); },
-        delete: async (e: AwsAction | AwsAction[], ctx: Context) => { await ctx.orm.remove(AwsAction, e);},
+        delete: async (e: AwsAction | AwsAction[], ctx: Context) => { await ctx.orm.remove(AwsAction, e); },
       }),
       cloud: new Crud({
-        create: (_a: AwsAction | AwsAction[], _ctx: Context) => {
-          throw new Error('tbd');
-        },
-        read: (_ctx: Context, _ids?: string | string[]) => {
-          throw new Error('tbd');
-        },
-        update: (_a: AwsAction | AwsAction[], _ctx: Context) => {
-          throw new Error('tbd');
-        },
-        delete: (_a: AwsAction | AwsAction[], _ctx: Context) => {
-          throw new Error('tbd');
-        },
+        create: (_a: AwsAction | AwsAction[], _ctx: Context) => { throw new Error('tbd'); },
+        read: (_ctx: Context, _ids?: string | string[]) => { throw new Error('tbd'); },
+        update: (_a: AwsAction | AwsAction[], _ctx: Context) => { throw new Error('tbd'); },
+        delete: (_a: AwsAction | AwsAction[], _ctx: Context) => { throw new Error('tbd'); },
       }),
     }),
     // repositoryPolicy: new Mapper<AwsActionPolicy>({
