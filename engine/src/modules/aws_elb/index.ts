@@ -245,7 +245,7 @@ export const AwsElbModule: Module = new Module({
             return newEntity;
           }));
           // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(l)) {
+          if (Array.isArray(lb)) {
             return out;
           } else {
             return out[0];
