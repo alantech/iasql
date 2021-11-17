@@ -47,7 +47,7 @@ export const AwsEcrModule: Module = new Module({
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const r = await ctx.orm.find(AwsRepository, id ? {
             where: {
-              groupId: Array.isArray(id) ? In(id) : id,
+              repositoryName: Array.isArray(id) ? In(id) : id,
             },
           } : undefined);
           return r;
