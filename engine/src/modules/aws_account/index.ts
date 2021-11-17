@@ -2,15 +2,15 @@ import { In, } from 'typeorm'
 import { Subnet, Vpc, } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../../services/gateways/aws'
-import { 
-  AvailabilityZone, 
-  AvailabilityZoneMessage, 
-  AvailabilityZoneOptInStatus, 
-  AvailabilityZoneState, 
-  AwsAccountEntity, 
+import {
+  AvailabilityZone,
+  AvailabilityZoneMessage,
+  AvailabilityZoneOptInStatus,
+  AvailabilityZoneState,
+  AwsAccountEntity,
   AwsSubnet,
   AwsVpc,
-  Region, 
+  Region,
   VpcState,
   SubnetState,
 } from './entity'
@@ -92,10 +92,6 @@ export const AwsAccount: Module = new Module({
       if (!sn?.SubnetId || !sn?.VpcId) {
         throw new Error('Subnet not defined properly');
       }
-      /*console.dir({
-        sn,
-        azs: ctx.memo?.db?.AvailabilityZone,
-      }, { depth: 4, });*/
       out.state = sn.State as SubnetState;
       out.availabilityZone = ctx.memo?.db?.AvailabilityZone?.[sn?.AvailabilityZone ?? ''] ??
         await AwsAccount.mappers.availabilityZone.cloud.read(ctx, sn.AvailabilityZone);
@@ -226,12 +222,13 @@ export const AwsAccount: Module = new Module({
           for (const entity of es) {
             const azs = await ctx.orm.find(AvailabilityZone);
             if (entity.parentZone) {
-              const az = azs.find((a: any) => a.zoneName === entity?.parentZone?.zoneName);
-              if (az) entity.parentZone.id = az.id;
+              // Linter somehow thinks `az` is being shadowed when it isn't?
+              const az1 = azs.find((a: any) => a.zoneName === entity?.parentZone?.zoneName);
+              if (az1) entity.parentZone.id = az1.id;
               await ctx.orm.save(AvailabilityZone, entity.parentZone);
             }
-            const az = azs.find((a: any) => a.zoneName === entity?.zoneName);
-            if (az) entity.id = az.id;
+            const az2 = azs.find((a: any) => a.zoneName === entity?.zoneName);
+            if (az2) entity.id = az2.id;
             await ctx.orm.save(AvailabilityZone, entity);
           }
         },
@@ -240,21 +237,15 @@ export const AwsAccount: Module = new Module({
           console.log('calling update');
           const es = Array.isArray(e) ? e : [e];
           for (const entity of es) {
+            const azs = await ctx.orm.find(AvailabilityZone);
             if (entity.parentZone) {
-              const az = await ctx.orm.findOne(AvailabilityZone, {
-                where: {
-                  zoneName: entity.parentZone.zoneName,
-                }
-              });
-              if (az) entity.parentZone.id = az.id;
+              // Linter somehow thinks `az` is being shadowed when it isn't?
+              const az1 = azs.find((a: any) => a.zoneName === entity?.parentZone?.zoneName);
+              if (az1) entity.parentZone.id = az1.id;
               await ctx.orm.save(AvailabilityZone, entity.parentZone);
             }
-            const az = await ctx.orm.findOne(AvailabilityZone, {
-              where: {
-                zoneName: entity.zoneName,
-              }
-            });
-            if (az) entity.id = az.id;
+            const az2 = azs.find((a: any) => a.zoneName === entity?.zoneName);
+            if (az2) entity.id = az2.id;
             await ctx.orm.save(AvailabilityZone, entity);
           }
         },
@@ -280,7 +271,7 @@ export const AwsAccount: Module = new Module({
               return AwsAccount.utils.azMapper(
                 availabilityZones.find(az => ids === az?.ZoneName ?? ''),
                 regions,
-                availabilityZones, 
+                availabilityZones,
               );
             }
           } else {
