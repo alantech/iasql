@@ -52,13 +52,20 @@ import {
   CreateListenerCommandInput,
   CreateLoadBalancerCommand,
   CreateLoadBalancerCommandInput,
+  CreateTargetGroupCommand,
+  CreateTargetGroupCommandInput,
   DeleteListenerCommand,
   DeleteLoadBalancerCommand,
+  DeleteTargetGroupCommand,
   DescribeListenersCommand,
   DescribeLoadBalancersCommand,
+  DescribeTargetGroupsCommand,
   ElasticLoadBalancingV2Client,
+  ModifyTargetGroupCommand,
+  ModifyTargetGroupCommandInput,
   paginateDescribeListeners,
   paginateDescribeLoadBalancers,
+  paginateDescribeTargetGroups,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 
 type AWSCreds = {
@@ -511,6 +518,47 @@ export class AWS {
   async deleteLoadBalancer(arn: string) {
     await this.elbClient.send(
       new DeleteLoadBalancerCommand({ LoadBalancerArn: arn, })
+    );
+  }
+
+  async createTargetGroup(input: CreateTargetGroupCommandInput) {
+    const create = await this.elbClient.send(
+      new CreateTargetGroupCommand(input),
+    );
+    return create?.TargetGroups?.pop() ?? null;
+  }
+
+  async updateTargetGroup(input: ModifyTargetGroupCommandInput) {
+    const update = await this.elbClient.send(
+      new ModifyTargetGroupCommand(input),
+    );
+    return update?.TargetGroups?.pop() ?? null;
+  }
+
+  async getTargetGroups() {
+    const targetGroups = [];
+    const paginator = paginateDescribeTargetGroups({
+      client: this.elbClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      targetGroups.push(...(page.TargetGroups ?? []));
+    }
+    return {
+      TargetGroups: targetGroups,
+    };
+  }
+
+  async getTargetGroup(arn: string) {
+    const result = await this.elbClient.send(
+      new DescribeTargetGroupsCommand({ TargetGroupArns: [arn], })
+    );
+    return result?.TargetGroups?.[0];
+  }
+
+  async deleteTargetGroup(arn: string) {
+    await this.elbClient.send(
+      new DeleteTargetGroupCommand({ TargetGroupArn: arn, })
     );
   }
 
