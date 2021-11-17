@@ -75,7 +75,7 @@ export const AwsElbModule: Module = new Module({
       }
       out.targetGroupName = tg.TargetGroupName;
       out.targetType = tg.TargetType as TargetTypeEnum;
-      out.targetGroupArn = tg?.TargetGroupArn ?? null;
+      out.targetGroupArn = tg.TargetGroupArn ?? null;
       out.ipAddressType = tg.IpAddressType as TargetGroupIpAddressTypeEnum ?? null;
       out.protocol = tg.Protocol as ProtocolEnum ?? null;
       out.port = tg.Port ?? null;
@@ -138,8 +138,10 @@ export const AwsElbModule: Module = new Module({
             where: {
               listenerArn: Array.isArray(id) ? In(id) : id,
             },
-            relations: ["loadBalancer"]
-          } : { relations: ["loadBalancer"] });
+            relations: ["loadBalancer", "defaultActions", "defaultActions.targetGroup",],
+          } : {
+            relations: ["loadBalancer", "defaultActions", "defaultActions.targetGroup",]
+          });
           return out;
         },
         update: async (l: AwsListener | AwsListener[], ctx: Context) => {
@@ -149,7 +151,12 @@ export const AwsElbModule: Module = new Module({
               const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
               e.loadBalancer = lb;
             }
-            await Promise.all(e.defaultActions?.map(a => AwsElbModule.mappers.action.db.update(a, ctx)) ?? []);
+            for (const [i, da] of e.defaultActions?.entries() ?? []) {
+              if (!da.id) {
+                const a = await AwsElbModule.mappers.action.db.read(ctx, da.targetGroup.targetGroupArn);
+                da.id = a.id;
+              }
+            }
           }
           await ctx.orm.save(AwsListener, es);
         },
@@ -301,7 +308,7 @@ export const AwsElbModule: Module = new Module({
             }
           } else {
             const result = await client.getLoadBalancers();
-            return await Promise.all(result.LoadBalancers.map((lb: any) =>  AwsElbModule.utils.loadBalancerMapper(lb, ctx)));
+            return await Promise.all(result.LoadBalancers.map((lb: any) => AwsElbModule.utils.loadBalancerMapper(lb, ctx)));
           }
         },
         update: async (_lb: AwsLoadBalancer | AwsLoadBalancer[], _ctx: Context) => { throw new Error('tbd'); },
@@ -402,7 +409,7 @@ export const AwsElbModule: Module = new Module({
             }
           } else {
             const result = await client.getTargetGroups();
-            return await Promise.all(result.TargetGroups.map((tg: any) =>  AwsElbModule.utils.targetGroupMapper(tg, ctx)));
+            return await Promise.all(result.TargetGroups.map((tg: any) => AwsElbModule.utils.targetGroupMapper(tg, ctx)));
           }
         },
         update: async (tg: AwsTargetGroup | AwsTargetGroup[], ctx: Context) => {
