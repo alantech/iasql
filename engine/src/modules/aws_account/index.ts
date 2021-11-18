@@ -21,7 +21,14 @@ export const AwsAccount: Module = new Module({
   name: 'aws_account',
   dependencies: [],
   provides: {
-    tables: ['aws_account', 'region', 'availability_zone', 'availability_zone_message'],
+    tables: [
+      'availability_zone',
+      'availability_zone_message',
+      'aws_account',
+      'aws_subnet',
+      'aws_vpc',
+      'region',
+    ],
     context: {
       // This function is `async function () {` instead of `async () => {` because that enables the
       // `this` keyword within the function based on the objec it is being called from, so the
