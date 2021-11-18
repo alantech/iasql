@@ -79,8 +79,7 @@ db.post('/add', async (req, res) => {
       console.log(`Loading aws_account table ${mapper.entity.name}...`);
       const e = await mapper.cloud.read(context);
       if (!e || (Array.isArray(e) && !e.length)) {
-        console.log('Completely unexpected outcome');
-        console.log({ mapper, e, });
+        console.log(`${mapper.entity.name} has no records in the cloud to store`);
       } else {
         // Since we manually inserted a half-broken record into `region` above, we need extra logic
         // here to make sure the newly-acquired records are properly inserted/updated in the DB. The
