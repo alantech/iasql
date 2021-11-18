@@ -21,7 +21,7 @@ pub async fn main() {
         .subcommands(vec![
           SubCommand::with_name("list"),
           SubCommand::with_name("add"),
-          SubCommand::with_name("remove"),
+          SubCommand::with_name("remove").alias("rm"),
           SubCommand::with_name("apply"),
         ]),
       SubCommand::with_name("mod")
@@ -36,19 +36,20 @@ pub async fn main() {
             ]),
           SubCommand::with_name("install")
             .arg(Arg::from_usage("--db=[DB]"))
-            .arg(Arg::with_name("modules").required(true).min_values(1)),
+            .arg(Arg::with_name("modules").min_values(1)),
           SubCommand::with_name("remove")
+            .alias("rm")
             .arg(Arg::from_usage("--db=[DB]"))
-            .arg(Arg::with_name("modules").required(true).min_values(1)),
+            .arg(Arg::with_name("modules").min_values(1)),
         ]),
       SubCommand::with_name("logout"),
     ]);
 
   let matches = app.get_matches();
   match matches.subcommand() {
-    ("db", Some(sub_matches)) => {
+    ("db", Some(s_matches)) => {
       auth::login(false).await;
-      match sub_matches.subcommand() {
+      match s_matches.subcommand() {
         ("list", _) => db::list().await,
         ("add", _) => db::add().await,
         ("remove", _) => db::remove().await,
@@ -57,11 +58,11 @@ pub async fn main() {
         _ => {}
       };
     }
-    ("mod", Some(sub_matches)) => {
+    ("mod", Some(s_matches)) => {
       auth::login(false).await;
-      match sub_matches.subcommand() {
-        ("list", Some(sub_sub_matches)) => {
-          match sub_sub_matches.subcommand() {
+      match s_matches.subcommand() {
+        ("list", Some(s_s_matches)) => {
+          match s_s_matches.subcommand() {
             ("installed", Some(s_s_s_matches)) => {
               let db = module::get_or_select_db(s_s_s_matches.value_of("db")).await;
               module::list(Some(&db)).await;
@@ -71,15 +72,15 @@ pub async fn main() {
             _ => {}
           };
         }
-        ("install", Some(sub_sub_matches)) => {
-          let db = sub_sub_matches.value_of("db");
-          let modules: Vec<&str> = sub_sub_matches.values_of("modules").unwrap().collect();
-          module::install(db, modules).await;
+        ("install", Some(s_s_matches)) => {
+          let db = module::get_or_select_db(s_s_matches.value_of("db")).await;
+          let modules = module::mods_to_install(&db, s_s_matches.values_of_lossy("modules")).await;
+          module::install(&db, modules).await;
         }
-        ("remove", Some(sub_sub_matches)) => {
-          let db = sub_sub_matches.value_of("db");
-          let modules: Vec<&str> = sub_sub_matches.values_of("modules").unwrap().collect();
-          module::remove(db, modules).await;
+        ("remove", Some(s_s_matches)) => {
+          let db = module::get_or_select_db(s_s_matches.value_of("db")).await;
+          let modules = module::mods_to_rm(&db, s_s_matches.values_of_lossy("modules")).await;
+          module::remove(&db, modules).await;
         }
         // rely on AppSettings::SubcommandRequiredElseHelp
         _ => {}

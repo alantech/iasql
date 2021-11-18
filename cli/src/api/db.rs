@@ -1,4 +1,3 @@
-use dialoguer::console::style;
 use indicatif::ProgressBar;
 use serde::{Deserialize, Serialize};
 use serde_ini;
@@ -83,7 +82,8 @@ pub async fn list() {
   // TODO after IaSQL-on-IaSQL expose connection string and display
   // everything in a table
   let dbs = get_dbs().await;
-  println!("{}", dbs.join("\n"));
+  println!("{}", dlg::bold("IaSQL dbs:"));
+  println!(" - {}", dbs.join("\n - "));
 }
 
 pub async fn remove() {
@@ -92,10 +92,7 @@ pub async fn remove() {
   let db = &dbs[selection];
   let resp = get_v1(&format!("db/remove/{}", db)).await;
   match &resp {
-    Ok(_) => println!(
-      "Successfully removed {} db",
-      style(format!("{}", db)).bold()
-    ),
+    Ok(_) => println!("Successfully removed {} db", dlg::bold(db),),
     Err(e) => {
       println!("Err: {:?}", e);
       std::process::exit(1);
@@ -112,10 +109,7 @@ pub async fn apply() {
   let db = &dbs[selection];
   let resp = get_v1(&format!("db/apply/{}", db)).await;
   match &resp {
-    Ok(_) => println!(
-      "Successfully applied {} db",
-      style(format!("{}", db)).bold()
-    ),
+    Ok(_) => println!("Successfully applied {} db", dlg::bold(db),),
     Err(e) => {
       println!("Err: {:?}", e);
       std::process::exit(1);
@@ -155,10 +149,7 @@ pub async fn add() {
   let resp = post_v1("db/add", body).await;
   match &resp {
     Ok(_) => {
-      sp.finish_with_message(&format!(
-        "Successfully added {} db",
-        style(format!("{}", db)).bold()
-      ));
+      sp.finish_with_message(&format!("Successfully added {} db", dlg::bold(&db),));
     }
     Err(e) => {
       sp.finish_with_message(&format!("Err: {:?}", e));
