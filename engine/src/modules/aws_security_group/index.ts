@@ -66,10 +66,10 @@ export const AwsSecurityGroupModule: Module = new Module({
             } : undefined);
             for (const s of sg) {
               const sgrIds = (await ctx.orm.query(`
-                  select sgr.security_group_rule_id
-                  from aws_security_group_rule sgr
-                  where sgr.security_group_id = ${s.id}
-                `)).map((r: any) => r.security_group_rule_id);
+                select sgr.security_group_rule_id
+                from aws_security_group_rule sgr
+                where sgr.security_group_id = ${s.id}
+              `)).map((r: any) => r.security_group_rule_id);
               if (sgrIds.length > 0) {
                 s.securityGroupRules = await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx, sgrIds);
                 s.securityGroupRules.forEach((sgr: AwsSecurityGroupRule) => sgr.securityGroup = s);
