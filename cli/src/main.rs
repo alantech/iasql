@@ -19,9 +19,9 @@ pub async fn main() {
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .alias("database")
         .subcommands(vec![
-          SubCommand::with_name("list"),
+          SubCommand::with_name("list").visible_alias("ls"),
           SubCommand::with_name("add"),
-          SubCommand::with_name("remove").alias("rm"),
+          SubCommand::with_name("remove").visible_alias("rm"),
           SubCommand::with_name("apply"),
         ]),
       SubCommand::with_name("mod")
@@ -29,16 +29,18 @@ pub async fn main() {
         .alias("module")
         .subcommands(vec![
           SubCommand::with_name("list")
+            .visible_alias("ls")
             .setting(AppSettings::SubcommandRequiredElseHelp)
             .subcommands(vec![
               SubCommand::with_name("installed").arg(Arg::from_usage("[db]")),
               SubCommand::with_name("all"),
             ]),
           SubCommand::with_name("install")
+            .alias("add")
             .arg(Arg::from_usage("--db=[DB]"))
             .arg(Arg::with_name("modules").min_values(1)),
           SubCommand::with_name("remove")
-            .alias("rm")
+            .visible_alias("rm")
             .arg(Arg::from_usage("--db=[DB]"))
             .arg(Arg::with_name("modules").min_values(1)),
         ]),
