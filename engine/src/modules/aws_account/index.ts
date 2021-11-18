@@ -165,12 +165,19 @@ export const AwsAccount: Module = new Module({
       db: new Crud({
         create: async (e: AwsVpc | AwsVpc[], ctx: Context) => { await ctx.orm.save(AwsVpc, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const out = await ctx.orm.find(AwsVpc, id ? {
-            where: {
-              vpcId: Array.isArray(id) ? In(id) : id,
-            },
-          } : undefined);
-          return out;
+          if (!id || Array.isArray(id)) {
+            return await ctx.orm.find(AwsVpc, id ? {
+              where: {
+                vpcId: Array.isArray(id) ? In(id) : id,
+              },
+            } : undefined);
+          } else {
+            return await ctx.orm.findOne(AwsVpc, {
+              where: {
+                vpcId: id,
+              },
+            });
+          }
         },
         update: async (vpc: AwsVpc | AwsVpc[], ctx: Context) => {
           const es = Array.isArray(vpc) ? vpc : [vpc];
@@ -314,13 +321,22 @@ export const AwsAccount: Module = new Module({
       db: new Crud({
         create: async (e: AwsSubnet | AwsSubnet[], ctx: Context) => { await ctx.orm.save(AwsSubnet, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const out = await ctx.orm.find(AwsSubnet, id ? {
-            where: {
-              subnetId: Array.isArray(id) ? In(id) : id,
-            },
-            relations: ['vpc'],
-          } : { relations: ['vpc'], });
-          return out;
+          const relations = ['vpc',];
+          if (!id || Array.isArray(id)) {
+            return await ctx.orm.find(AwsSubnet, id ? {
+              where: {
+                subnetId: Array.isArray(id) ? In(id) : id,
+              },
+              relations,
+            } : { relations });
+          } else {
+            return await ctx.orm.findOne(AwsSubnet, {
+              where: {
+                subnetId: Array.isArray(id) ? In(id) : id,
+              },
+              relations
+            });
+          }
         },
         update: async (sn: AwsSubnet | AwsSubnet[], ctx: Context) => {
           const es = Array.isArray(sn) ? sn : [sn];

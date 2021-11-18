@@ -58,24 +58,30 @@ export const AwsSecurityGroupModule: Module = new Module({
           }
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const sg = await ctx.orm.find(AwsSecurityGroup, id ? {
-            where: {
-              groupId: Array.isArray(id) ? In(id) : id,
-            },
-          } : undefined);
-          if (Array.isArray(sg)) {
+          if (!id || Array.isArray(id)) {
+            const sg = await ctx.orm.find(AwsSecurityGroup, id ? {
+              where: {
+                groupId: Array.isArray(id) ? In(id) : id,
+              },
+            } : undefined);
             for (const s of sg) {
               const sgrIds = (await ctx.orm.query(`
-                select sgr.security_group_rule_id
-                from aws_security_group_rule sgr
-                where sgr.security_group_id = ${s.id}
-              `)).map((r: any) => r.security_group_rule_id);
+                  select sgr.security_group_rule_id
+                  from aws_security_group_rule sgr
+                  where sgr.security_group_id = ${s.id}
+                `)).map((r: any) => r.security_group_rule_id);
               if (sgrIds.length > 0) {
                 s.securityGroupRules = await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx, sgrIds);
                 s.securityGroupRules.forEach((sgr: AwsSecurityGroupRule) => sgr.securityGroup = s);
               }
             }
+            return sg;
           } else {
+            const sg = await ctx.orm.findOne(AwsSecurityGroup, {
+              where: {
+                groupId: id,
+              },
+            });
             const sgrIds = (await ctx.orm.query(`
               select sgr.security_group_rule_id
               from aws_security_group_rule sgr
@@ -85,8 +91,8 @@ export const AwsSecurityGroupModule: Module = new Module({
               sg.securityGroupRules = await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx, sgrIds);
               sg.securityGroupRules.forEach((sgr: AwsSecurityGroupRule) => sgr.securityGroup = sg);
             }
+            return sg;
           }
-          return sg;
         },
         update: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
           await ctx.orm.save(AwsSecurityGroup, e);
@@ -129,7 +135,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             // replacing in the database, and also make a proper, complete loop for it as the rules
             // reference their parent in a circular fashion.
             newEntity.id = e.id;
-            if (e.securityGroupRules?.length > 0) newEntity.securityGroupRules = [ ...e.securityGroupRules];
+            if (e.securityGroupRules?.length > 0) newEntity.securityGroupRules = [...e.securityGroupRules];
             await Promise.all(newEntity.securityGroupRules.map(async (sgr: AwsSecurityGroupRule) => {
               // First, remove the old security group rule from the database
               if (sgr.hasOwnProperty('id')) {
@@ -230,22 +236,39 @@ export const AwsSecurityGroupModule: Module = new Module({
       db: new Crud({
         create: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const out = await ctx.orm.find(AwsSecurityGroupRule, id ? {
-            where: {
-              securityGroupRuleId: Array.isArray(id) ? In(id) : id,
-            },
-          } : undefined);
-          // This is ridiculous. Why can't I access the `security_group_id` field directly?
-          await Promise.all(out.map(async (o: AwsSecurityGroupRule) => {
+          if (!id || Array.isArray(id)) {
+            const out = await ctx.orm.find(AwsSecurityGroupRule, id ? {
+              where: {
+                securityGroupRuleId: Array.isArray(id) ? In(id) : id,
+              },
+            } : undefined);
+            // This is ridiculous. Why can't I access the `security_group_id` field directly?
+            await Promise.all(out.map(async (o: AwsSecurityGroupRule) => {
+              const sgId = (await ctx.orm.query(`
+                select sg.group_id
+                from aws_security_group sg
+                inner join aws_security_group_rule sgr on sgr.security_group_id = sg.id
+                where sgr.id = ${o.id}
+              `))[0].group_id;
+              o.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
+            }));
+            return out;
+          } else {
+            const out = await ctx.orm.findOne(AwsSecurityGroupRule, {
+              where: {
+                securityGroupRuleId: id,
+              },
+            });
+            // This is ridiculous. Why can't I access the `security_group_id` field directly?
             const sgId = (await ctx.orm.query(`
               select sg.group_id
               from aws_security_group sg
               inner join aws_security_group_rule sgr on sgr.security_group_id = sg.id
-              where sgr.id = ${o.id}
+              where sgr.id = ${out.id}
             `))[0].group_id;
-            o.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
-          }));
-          return out;
+            out.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
+            return out;
+          }
         },
         update: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
         delete: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.remove(AwsSecurityGroupRule, e); },
