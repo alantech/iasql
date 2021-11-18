@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsElb1637233900959 implements MigrationInterface {
-    name = 'awsElb1637233900959'
+export class awsElb1637275424293 implements MigrationInterface {
+    name = 'awsElb1637275424293'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "aws_load_balancer_scheme_enum" AS ENUM('internal', 'internet-facing')`);
