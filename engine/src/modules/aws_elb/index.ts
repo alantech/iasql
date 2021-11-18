@@ -21,6 +21,7 @@ import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsElb1637233900959, } from './migration/1637233900959-aws_elb'
 import { AwsAccount, AwsSecurityGroupModule } from '..'
 import { AvailabilityZone } from '../aws_account/entity'
+import { DepError } from '../../services/lazy-dep'
 
 export const AwsElbModule: Module = new Module({
   name: 'aws_elb',
@@ -149,6 +150,7 @@ export const AwsElbModule: Module = new Module({
           for (const e of es) {
             if (!e.loadBalancer.id) {
               const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
+              if (!lb.id) throw new DepError('Error retrieving generated column');
               e.loadBalancer.id = lb.id;
             }
             for (const da of e.defaultActions ?? []) {
@@ -187,11 +189,13 @@ export const AwsElbModule: Module = new Module({
           for (const e of es) {
             if (!e.loadBalancer.id) {
               const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
+              if (!lb.id) throw new DepError('Error retrieving generated column');
               e.loadBalancer.id = lb.id;
             }
             for (const da of e.defaultActions ?? []) {
               if (!da.id) {
                 const a = await AwsElbModule.mappers.action.db.read(ctx, da.targetGroup.targetGroupArn);
+                if (!a.id) throw new DepError('Error retrieving generated column');
                 da.id = a.id;
               }
             }
@@ -324,23 +328,27 @@ export const AwsElbModule: Module = new Module({
             for (const sg of e.securityGroups ?? []) {
               if (!sg.id) {
                 const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
+                if (!g.id) throw new DepError('Error retrieving generated column');
                 sg.id = g.id;
               }
             }
             for (const sn of e.subnets ?? []) {
               if (!sn.id) {
                 const s = await AwsAccount.mappers.subnet.db.read(ctx, sn.subnetId);
+                if (!s.id) throw new DepError('Error retrieving generated column');
                 sn.id = s.id;
               }
             }
             if (!e.vpc.id) {
               const v = await AwsAccount.mappers.vpc.db.read(ctx, e.vpc.vpcId);
+              if (!v.id) throw new DepError('Error retrieving generated column');
               e.vpc.id = v.id;
             }
             for (const az of e.availabilityZones ?? []) {
               if (!az.id) {
                 const availabilityZones = ctx.memo?.db?.AvailabilityZone ? Object.values(ctx.memo?.db?.AvailabilityZone) : await AwsAccount.mappers.availabilityZone.db.read(ctx);
                 const z = availabilityZones.find((a: any) => a.zoneName === az.zoneName);
+                if (!z.id) throw new DepError('Error retrieving generated column');
                 az.id = z.id;
               }
             }
@@ -431,6 +439,7 @@ export const AwsElbModule: Module = new Module({
           for (const e of es) {
             if (!e.vpc.id) {
               const v = await AwsAccount.mappers.vpc.db.read(ctx, e.vpc.vpcId);
+              if (!v.id) throw new DepError('Error retrieving generated column')
               e.vpc.id = v.id;
             }
           }
@@ -459,6 +468,7 @@ export const AwsElbModule: Module = new Module({
           for (const e of es) {
             if (!e.vpc.id) {
               const v = await AwsAccount.mappers.vpc.db.read(ctx, e.vpc.vpcId);
+              if (!v.id) throw new DepError('Error retrieving generated column')
               e.vpc.id = v.id;
             }
           }
