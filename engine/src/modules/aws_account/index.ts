@@ -21,7 +21,14 @@ export const AwsAccount: Module = new Module({
   name: 'aws_account',
   dependencies: [],
   provides: {
-    tables: ['aws_account', 'region', 'availability_zone', 'availability_zone_message'],
+    tables: [
+      'availability_zone',
+      'availability_zone_message',
+      'aws_account',
+      'aws_subnet',
+      'aws_vpc',
+      'region',
+    ],
     context: {
       // This function is `async function () {` instead of `async () => {` because that enables the
       // `this` keyword within the function based on the objec it is being called from, so the
@@ -113,7 +120,13 @@ export const AwsAccount: Module = new Module({
       source: 'db',
       db: new Crud({
         create: async (e: AwsAccountEntity | AwsAccountEntity[], ctx: Context) => { await ctx.orm.save(AwsAccountEntity, e); },
-        read: (ctx: Context, options: any) => ctx.orm.find(AwsAccountEntity, options),
+        read: async (ctx: Context, id?: string | string[] | undefined) => {
+          return await ctx.orm.find(AwsAccountEntity, id ? {
+            where: {
+              id: Array.isArray(id) ? In(id) : id,
+            },
+          } : undefined);
+        },
         update: async (e: AwsAccountEntity | AwsAccountEntity[], ctx: Context) => { await ctx.orm.save(AwsAccountEntity, e); },
         delete: async (e: AwsAccountEntity | AwsAccountEntity[], ctx: Context) => { await ctx.orm.remove(AwsAccountEntity, e); },
       }),
@@ -121,7 +134,13 @@ export const AwsAccount: Module = new Module({
         // We don't actually connect to AWS for this module, because it's meta
         // TODO: Perhaps we should to validate the credentials as being valid?
         create: async (_e: AwsAccountEntity | AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
-        read: async (ctx: Context, options: any) => ctx.orm.find(AwsAccountEntity, options),
+        read: async (ctx: Context, id?: string | string[] | undefined) => {
+          return await ctx.orm.find(AwsAccountEntity, id ? {
+            where: {
+              id: Array.isArray(id) ? In(id) : id,
+            },
+          } : undefined);
+        },
         update: async (_e: AwsAccountEntity | AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
         delete: async (_e: AwsAccountEntity | AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
       }),
@@ -135,7 +154,13 @@ export const AwsAccount: Module = new Module({
       source: 'cloud',
       db: new Crud({
         create: async (e: Region | Region[], ctx: Context) => { await ctx.orm.save(Region, e); },
-        read: (ctx: Context, options: any) => ctx.orm.find(Region, options),
+        read: async (ctx: Context, id?: string | string[] | undefined) => {
+          return await ctx.orm.find(Region, id ? {
+            where: {
+              name: Array.isArray(id) ? In(id) : id,
+            },
+          } : undefined);
+        },
         update: async (e: Region | Region[], ctx: Context) => { await ctx.orm.save(Region, e); },
         delete: async (e: Region | Region[], ctx: Context) => { await ctx.orm.remove(Region, e); },
       }),
@@ -239,7 +264,14 @@ export const AwsAccount: Module = new Module({
             await ctx.orm.save(AvailabilityZone, entity);
           }
         },
-        read: (ctx: Context, options: any) => ctx.orm.find(AvailabilityZone, options),
+        read: async (ctx: Context, id?: string | string[] | undefined) => {
+          const out = await ctx.orm.find(AvailabilityZone, id ? {
+            where: {
+              zoneName: Array.isArray(id) ? In(id) : id,
+            },
+          } : undefined);
+          return out;
+        },
         update: async (e: AvailabilityZone | AvailabilityZone[], ctx: Context) => {
           console.log('calling update');
           const es = Array.isArray(e) ? e : [e];
@@ -301,14 +333,33 @@ export const AwsAccount: Module = new Module({
       source: 'cloud',
       db: new Crud({
         create: async (e: AvailabilityZoneMessage | AvailabilityZoneMessage[], ctx: Context) => { await ctx.orm.save(AvailabilityZoneMessage, e); },
-        read: (ctx: Context, options: any) => ctx.orm.find(AvailabilityZoneMessage, options),
+        read: async (ctx: Context, id?: string | string[] | undefined) => {
+          const out = await ctx.orm.find(AvailabilityZoneMessage, id ? {
+            where: {
+              // TODO: How to split the ID between zoneName and message reliably?
+              availabilityZone: {
+                zoneName: Array.isArray(id) ? In(id) : id,
+              },
+            },
+          } : undefined);
+          return out;
+        },
         update: async (e: AvailabilityZoneMessage | AvailabilityZoneMessage[], ctx: Context) => { await ctx.orm.save(AvailabilityZoneMessage, e); },
         delete: async (e: AvailabilityZoneMessage | AvailabilityZoneMessage[], ctx: Context) => { await ctx.orm.remove(AvailabilityZoneMessage, e); },
       }),
       cloud: new Crud({
-        // TODO: Fill this ine
         create: async (_e: AvailabilityZoneMessage | AvailabilityZoneMessage[], _ctx: Context) => { /* Do nothing */ },
-        read: async (ctx: Context, options: any) => ctx.orm.find(AvailabilityZoneMessage, options),
+        read: async (ctx: Context, id?: string | string[] | undefined) => {
+          const out = await ctx.orm.find(AvailabilityZoneMessage, id ? {
+            where: {
+              // TODO: How to split the ID between zoneName and message reliably?
+              availabilityZone: {
+                zoneName: Array.isArray(id) ? In(id) : id,
+              },
+            },
+          } : undefined);
+          return out;
+        },
         update: async (_e: AvailabilityZoneMessage | AvailabilityZoneMessage[], _ctx: Context) => { /* Do nothing */ },
         delete: async (_e: AvailabilityZoneMessage | AvailabilityZoneMessage[], _ctx: Context) => { /* Do nothing */ },
       }),

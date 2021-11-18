@@ -21,10 +21,10 @@ db.post('/add', async (req, res) => {
       'dbAlias', 'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
-  const dbId = await newId(dbAlias, req.user);
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
   try {
+    const dbId = await newId(dbAlias, req.user);
     console.log('Establishing DB connections...');
     conn1 = await createConnection({
       name: 'base', // If you use multiple connections they must have unique names or typeorm bails
@@ -79,9 +79,12 @@ db.post('/add', async (req, res) => {
       console.log(`Loading aws_account table ${mapper.entity.name}...`);
       const e = await mapper.cloud.read(context);
       if (!e || (Array.isArray(e) && !e.length)) {
-        console.log('Completely unexpected outcome');
-        console.log({ mapper, e, });
+        console.log(`${mapper.entity.name} has no records in the cloud to store`);
       } else {
+        // Since we manually inserted a half-broken record into `region` above, we need extra logic
+        // here to make sure the newly-acquired records are properly inserted/updated in the DB. The
+        // logic here is made generic for all mappers in `aws_account` in case we decide to do this
+        // for other tables in the future above and not have it break unexpectedly.
         const existingRecords: any[] = await orm.find(mapper.entity);
         const existingIds = existingRecords.map((er: any) => mapper.entityId(er));
         for (const entity of e) {
@@ -99,7 +102,7 @@ db.post('/add', async (req, res) => {
     console.log('Done!');
     res.end(`create ${dbAlias}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
-    res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
+    res.status(500).end(`failure to create DB: ${e?.message ?? ''}`);
   } finally {
     await conn1?.close();
     await conn2?.close();
@@ -136,9 +139,9 @@ db.get('/list', async (req, res) => {
 
 db.get('/remove/:dbAlias', async (req, res) => {
   const dbAlias = req.params.dbAlias;
-  const dbId = await delId(dbAlias, req.user);
   let conn;
   try {
+    const dbId = await delId(dbAlias, req.user);
     conn = await createConnection({
       name: 'base',
       type: 'postgres',
@@ -173,11 +176,11 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
 
 db.get('/apply/:dbAlias', async (req, res) => {
   const dbAlias = req.params.dbAlias;
-  const dbId = await getId(dbAlias, req.user);
   const t1 = Date.now();
   console.log(`Applying ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
   try {
+    const dbId = await getId(dbAlias, req.user);
     // Construct the ORM client with all of the entities we may wish to query
     const entities = Object.values(Modules)
       .filter(m => m.hasOwnProperty('mappers'))
