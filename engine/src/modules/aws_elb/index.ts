@@ -151,7 +151,7 @@ export const AwsElbModule: Module = new Module({
               const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
               e.loadBalancer = lb;
             }
-            for (const [i, da] of e.defaultActions?.entries() ?? []) {
+            for (const da of e.defaultActions ?? []) {
               if (!da.id) {
                 const a = await AwsElbModule.mappers.action.db.read(ctx, da.targetGroup.targetGroupArn);
                 da.id = a.id;
