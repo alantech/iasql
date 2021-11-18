@@ -97,8 +97,6 @@ export const AwsElbModule: Module = new Module({
       out.healthCheckPath = tg.HealthCheckPath ?? null;
       out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum ?? null;
       out.vpc = ctx.memo?.db?.AwsVpc?.[tg.VpcId] ?? await AwsAccount.mappers.vpc.db.read(ctx, tg.VpcId);
-      console.log('TARGET GROUP MAPPER')
-      console.dir(out.vpc, {depth:7});
       return out;
     },
   },
@@ -147,16 +145,12 @@ export const AwsElbModule: Module = new Module({
       source: 'db',
       db: new Crud({
         create: async (l: AwsListener | AwsListener[], ctx: Context) => {
-          console.log('create listener')
           const es = Array.isArray(l) ? l : [l];
-          console.dir(es, {depth:7});
           for (const e of es) {
-            console.log('getting load balancer')
             if (!e.loadBalancer.id) {
               const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
               e.loadBalancer.id = lb.id;
             }
-            console.log('getting actions')
             for (const da of e.defaultActions ?? []) {
               if (!da.id) {
                 const a = await AwsElbModule.mappers.action.db.read(ctx, da.targetGroup.targetGroupArn);
@@ -168,10 +162,7 @@ export const AwsElbModule: Module = new Module({
               }
             }
           }
-          console.log('saving listener');
-          console.dir(es, {depth:7});
           await ctx.orm.save(AwsListener, es);
-          console.log('listener saved')
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const relations = ["loadBalancer", "defaultActions", "defaultActions.targetGroup",];
@@ -199,11 +190,8 @@ export const AwsElbModule: Module = new Module({
               e.loadBalancer.id = lb.id;
             }
             for (const da of e.defaultActions ?? []) {
-              console.log('default actions update');
-              console.dir(da, { depth: 7 });
               if (!da.id) {
                 const a = await AwsElbModule.mappers.action.db.read(ctx, da.targetGroup.targetGroupArn);
-                console.dir(a, { depth: 7 })
                 da.id = a.id;
               }
             }
@@ -283,8 +271,6 @@ export const AwsElbModule: Module = new Module({
       source: 'db',
       db: new Crud({
         create: async (lb: AwsLoadBalancer | AwsLoadBalancer[], ctx: Context) => {
-          console.log(' load balancer')
-
           const es = Array.isArray(lb) ? lb : [lb];
           for (const e of es) {
             for (const sg of e.securityGroups ?? []) {
@@ -311,11 +297,7 @@ export const AwsElbModule: Module = new Module({
               }
             }
           }
-          console.log('saving load balancer')
-          console.dir(es, {depth:7});
           await ctx.orm.save(AwsLoadBalancer, es);
-          console.log('load balancer saved')
-
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const relations = ['securityGroups', 'availabilityZones', 'subnets', 'vpc'];
@@ -445,7 +427,6 @@ export const AwsElbModule: Module = new Module({
       source: 'db',
       db: new Crud({
         create: async (tg: AwsTargetGroup | AwsTargetGroup[], ctx: Context) => {
-          console.log('target group')
           const es = Array.isArray(tg) ? tg : [tg];
           for (const e of es) {
             if (!e.vpc.id) {
@@ -453,10 +434,7 @@ export const AwsElbModule: Module = new Module({
               e.vpc.id = v.id;
             }
           }
-          console.log('trying to save target group')
-          console.dir(es, {depth:7})
           await ctx.orm.save(AwsTargetGroup, es);
-          console.log('target group saved')
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const relations = ['vpc'];
@@ -493,8 +471,6 @@ export const AwsElbModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(tg) ? tg : [tg];
           const out = await Promise.all(es.map(async (e) => {
-            console.log('CREATING AWS TARGET GROUP WITH ENTITY')
-            console.dir(e, {depth:7})
             const result = await client.createTargetGroup({
               Name: e.targetGroupName,
               TargetType: e.targetType,
