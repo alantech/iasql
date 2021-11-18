@@ -200,7 +200,7 @@ ${Object.keys(tableCollisions)
       console.log({ mapper, e, });
     } else {
       await Promise.all(e.map(async (entity: any) => {
-        await orm.save(mapper.entity, entity);
+        await mapper.db.create(entity, context);
       }));
     }
   }

@@ -1,4 +1,6 @@
 import {
+  // DescribeInstanceTypesRequest,
+  // TerminateInstancesRequest,
   AuthorizeSecurityGroupEgressCommand,
   AuthorizeSecurityGroupEgressCommandInput,
   AuthorizeSecurityGroupIngressCommand,
@@ -8,14 +10,15 @@ import {
   CreateSecurityGroupRequest,
   DeleteSecurityGroupCommand,
   DeleteSecurityGroupRequest,
-  DescribeInstanceTypesCommand,
-  // DescribeInstanceTypesRequest,
   DescribeAvailabilityZonesCommand,
   DescribeImagesCommand,
+  DescribeInstanceTypesCommand,
   DescribeInstancesCommand,
   DescribeRegionsCommand,
-  DescribeSecurityGroupsCommand,
   DescribeSecurityGroupRulesCommand,
+  DescribeSecurityGroupsCommand,
+  DescribeSubnetsCommand,
+  DescribeVpcsCommand,
   EC2Client,
   ModifySecurityGroupRulesCommand,
   ModifySecurityGroupRulesCommandInput,
@@ -26,11 +29,12 @@ import {
   RevokeSecurityGroupIngressCommandInput,
   RunInstancesCommand,
   TerminateInstancesCommand,
-  // TerminateInstancesRequest,
   paginateDescribeInstanceTypes,
   paginateDescribeInstances,
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
+  paginateDescribeSubnets,
+  paginateDescribeVpcs,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -195,7 +199,7 @@ export class AWS {
     })))?.Regions?.[0];
   }
 
-  async getAvailabilityZones(regions: string[]) {
+  async getAvailabilityZones(regions: string[]): Promise<AvailabilityZone[]> {
     let availabilityZones: AvailabilityZone[] = [];
     for (const region of regions) {
       try {
@@ -209,7 +213,7 @@ export class AWS {
         console.log(`Could not get availability zones for region: ${region}. Error: ${e}`);
       }
     }
-    return { AvailabilityZones: availabilityZones }
+    return availabilityZones;
   }
 
   async getSecurityGroups() {
@@ -396,5 +400,47 @@ export class AWS {
       })
     );
     return policy;
+  }
+
+  async getVpcs() {
+    const vpcs = [];
+    const paginator = paginateDescribeVpcs({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      vpcs.push(...(page.Vpcs ?? []));
+    }
+    return {
+      Vpcs: vpcs,
+    };
+  }
+
+  async getVpc(id: string) {
+    const vpcs = await this.ec2client.send(
+      new DescribeVpcsCommand({ VpcIds: [id], })
+    );
+    return vpcs?.Vpcs?.[0];
+  }
+
+  async getSubnets() {
+    const subnets = [];
+    const paginator = paginateDescribeSubnets({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      subnets.push(...(page.Subnets ?? []));
+    }
+    return {
+      Subnets: subnets,
+    };
+  }
+
+  async getSubnet(id: string) {
+    const subnets = await this.ec2client.send(
+      new DescribeSubnetsCommand({ SubnetIds: [id], })
+    );
+    return subnets?.Subnets?.[0];
   }
 }
