@@ -190,19 +190,12 @@ export const AwsAccount: Module = new Module({
       db: new Crud({
         create: async (e: AwsVpc | AwsVpc[], ctx: Context) => { await ctx.orm.save(AwsVpc, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          if (!id || Array.isArray(id)) {
-            return await ctx.orm.find(AwsVpc, id ? {
-              where: {
-                vpcId: Array.isArray(id) ? In(id) : id,
-              },
-            } : undefined);
-          } else {
-            return await ctx.orm.findOne(AwsVpc, {
-              where: {
-                vpcId: id,
-              },
-            });
-          }
+          const opts = id ? {
+            where: {
+              vpcId: Array.isArray(id) ? In(id) : id,
+            },
+          } : undefined;
+          return (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsVpc, opts) : await ctx.orm.findOne(AwsVpc, opts);
         },
         update: async (vpc: AwsVpc | AwsVpc[], ctx: Context) => {
           const es = Array.isArray(vpc) ? vpc : [vpc];
