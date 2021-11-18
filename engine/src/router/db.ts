@@ -82,6 +82,10 @@ db.post('/add', async (req, res) => {
         console.log('Completely unexpected outcome');
         console.log({ mapper, e, });
       } else {
+        // Since we manually inserted a half-broken record into `region` above, we need extra logic
+        // here to make sure the newly-acquired records are properly inserted/updated in the DB. The
+        // logic here is made generic for all mappers in `aws_account` in case we decide to do this
+        // for other tables in the future above and not have it break unexpectedly.
         const existingRecords: any[] = await orm.find(mapper.entity);
         const existingIds = existingRecords.map((er: any) => mapper.entityId(er));
         for (const entity of e) {

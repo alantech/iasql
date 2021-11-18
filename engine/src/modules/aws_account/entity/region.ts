@@ -6,11 +6,11 @@ export class Region {
   id?: number;
 
   @Column()
-  name?: string;
+  name: string;
 
   @Column()
-  endpoint?: string;
+  endpoint: string;
 
   @Column()
-  optInStatus?: string;
+  optInStatus: string;
 }
