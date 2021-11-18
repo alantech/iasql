@@ -141,7 +141,7 @@ export interface MapperInterface<E> {
   entity:  new () =>  E;
   entityId: (e: E) => string;
   equals: (a: E, b: E) => boolean;
-  source: 'db' | 'cloud' | 'none';
+  source: 'db' | 'cloud';
   db: Crud<E>;
   cloud: Crud<E>;
 }
@@ -150,7 +150,7 @@ export class Mapper<E> {
   entity: new() => E;
   entityId: (e: E) => string;
   equals: (a: E, b: E) => boolean;
-  source: 'db' | 'cloud' | 'none';
+  source: 'db' | 'cloud';
   db: Crud<E>;
   cloud: Crud<E>;
 
