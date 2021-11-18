@@ -1,4 +1,6 @@
 import {
+  // DescribeInstanceTypesRequest,
+  // TerminateInstancesRequest,
   AuthorizeSecurityGroupEgressCommand,
   AuthorizeSecurityGroupEgressCommandInput,
   AuthorizeSecurityGroupIngressCommand,
@@ -8,14 +10,15 @@ import {
   CreateSecurityGroupRequest,
   DeleteSecurityGroupCommand,
   DeleteSecurityGroupRequest,
-  DescribeInstanceTypesCommand,
-  // DescribeInstanceTypesRequest,
   DescribeAvailabilityZonesCommand,
   DescribeImagesCommand,
+  DescribeInstanceTypesCommand,
   DescribeInstancesCommand,
   DescribeRegionsCommand,
-  DescribeSecurityGroupsCommand,
   DescribeSecurityGroupRulesCommand,
+  DescribeSecurityGroupsCommand,
+  DescribeSubnetsCommand,
+  DescribeVpcsCommand,
   EC2Client,
   ModifySecurityGroupRulesCommand,
   ModifySecurityGroupRulesCommandInput,
@@ -26,15 +29,12 @@ import {
   RevokeSecurityGroupIngressCommandInput,
   RunInstancesCommand,
   TerminateInstancesCommand,
-  // TerminateInstancesRequest,
   paginateDescribeInstanceTypes,
   paginateDescribeInstances,
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
-  paginateDescribeVpcs,
-  DescribeVpcsCommand,
   paginateDescribeSubnets,
-  DescribeSubnetsCommand,
+  paginateDescribeVpcs,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -221,7 +221,7 @@ export class AWS {
     })))?.Regions?.[0];
   }
 
-  async getAvailabilityZones(regions: string[]) {
+  async getAvailabilityZones(regions: string[]): Promise<AvailabilityZone[]> {
     let availabilityZones: AvailabilityZone[] = [];
     for (const region of regions) {
       try {
@@ -235,7 +235,7 @@ export class AWS {
         console.log(`Could not get availability zones for region: ${region}. Error: ${e}`);
       }
     }
-    return { AvailabilityZones: availabilityZones }
+    return availabilityZones;
   }
 
   async getSecurityGroups() {
@@ -607,5 +607,4 @@ export class AWS {
     );
     return subnets?.Subnets?.[0];
   }
-
 }

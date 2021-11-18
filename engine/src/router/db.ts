@@ -14,6 +14,7 @@ export const db = express.Router();
 
 // TODO secure with cors and scope
 db.post('/add', async (req, res) => {
+  console.log('Calling /add');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.json(
     `Required key(s) not provided: ${[
@@ -22,7 +23,9 @@ db.post('/add', async (req, res) => {
   );
   const dbId = await newId(dbAlias, req.user);
   let conn1, conn2;
+  let orm: TypeormWrapper | undefined;
   try {
+    console.log('Establishing DB connections...');
     conn1 = await createConnection({
       name: 'base', // If you use multiple connections they must have unique names or typeorm bails
       type: 'postgres',
@@ -44,19 +47,63 @@ db.post('/add', async (req, res) => {
     await migrate(conn2);
     const queryRunner = conn2.createQueryRunner();
     await Modules.AwsAccount.migrations.postinstall?.(queryRunner);
+    console.log('Adding aws_account schema...');
     // TODO: Use the entity for this in the future?
     await conn2.query(`
       INSERT INTO iasql_module VALUES ('aws_account')
     `);
     await conn2.query(`
-      INSERT INTO aws_account (access_key_id, secret_access_key, region) VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}')
+      INSERT INTO region (name, endpoint, opt_in_status) VALUES ('${awsRegion}', '', false)
     `);
+    await conn2.query(`
+      INSERT INTO aws_account (access_key_id, secret_access_key, region_id) VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', 1)
+    `);
+    console.log('Loading aws_account data...');
+    // Manually load the relevant data from the cloud side for the `aws_account` module.
+    // TODO: Figure out how to eliminate *most* of this special-casing for this module in the future
+    const entities = Object.values(Modules.AwsAccount.mappers).map(m => m.entity);
+    entities.push(IasqlModule);
+    orm = await TypeormWrapper.createConn(dbId, {
+      name: dbId + '2',
+      type: 'postgres',
+      username: 'postgres',
+      password: 'test',
+      host: 'postgresql',
+      database: dbId,
+      entities,
+      namingStrategy: new SnakeNamingStrategy(),
+    });
+    const mappers = Object.values(Modules.AwsAccount.mappers);
+    const context: Modules.Context = { orm, memo: {}, ...Modules.AwsAccount.provides.context, };
+    for (const mapper of mappers) {
+      console.log(`Loading aws_account table ${mapper.entity.name}...`);
+      const e = await mapper.cloud.read(context);
+      if (!e || (Array.isArray(e) && !e.length)) {
+        console.log('Completely unexpected outcome');
+        console.log({ mapper, e, });
+      } else {
+        const existingRecords: any[] = await orm.find(mapper.entity);
+        const existingIds = existingRecords.map((er: any) => mapper.entityId(er));
+        for (const entity of e) {
+          if (existingRecords.length > 0) {
+            const id = mapper.entityId(entity);
+            if (existingIds.includes(id)) {
+              const ind = existingRecords.findIndex((_er, i) => existingIds[i] === id);
+              entity.id = existingRecords[ind].id;
+            }
+          }
+          await mapper.db.create(entity, context);
+        }
+      }
+    }
+    console.log('Done!');
     res.end(`create ${dbAlias}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
     res.status(500).end(`failure to create DB: ${e?.message ?? ''}\n${e?.stack ?? ''}`);
   } finally {
     await conn1?.close();
     await conn2?.close();
+    await orm?.dropConn();
   }
 });
 
