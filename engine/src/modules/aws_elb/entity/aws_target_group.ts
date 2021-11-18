@@ -5,7 +5,8 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm'
-// import { Vpc, } from '.'
+
+import { AwsVpc, } from '../../aws_account/entity'
 
 export enum TargetTypeEnum {
   ALB = "alb",
@@ -76,10 +77,11 @@ export class AwsTargetGroup {
   })
   port?: number;
 
-  // TODO: ADD VPC
-  // @ManyToOne(() => Vpc)
-  // @JoinColumn({ name: 'vpc_id', })
-  // vpc?: Vpc;
+  @ManyToOne(() => AwsVpc)
+  @JoinColumn({
+    name: 'vpc_id',
+  })
+  vpc: AwsVpc;
 
   @Column({
     nullable: true,
