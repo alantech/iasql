@@ -35,7 +35,7 @@ export class AwsListener {
   })
   protocol: ProtocolEnum;
 
-  @ManyToMany(() => AwsAction)
+  @ManyToMany(() => AwsAction, { eager: true, cascade: true, })
   @JoinTable()
   defaultActions?: AwsAction[];
 

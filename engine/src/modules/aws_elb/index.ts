@@ -18,7 +18,7 @@ import {
   TargetTypeEnum,
 } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsElb1637233900959, } from './migration/1637233900959-aws_elb'
+import { awsElb1637275424293, } from './migration/1637275424293-aws_elb'
 import { AwsAccount, AwsSecurityGroupModule } from '..'
 import { AvailabilityZone } from '../aws_account/entity'
 import { DepError } from '../../services/lazy-dep'
@@ -50,7 +50,12 @@ export const AwsElbModule: Module = new Module({
       out.port = l?.Port;
       out.protocol = l?.Protocol as ProtocolEnum;
       out.defaultActions = await Promise.all(l.DefaultActions?.map(async a => {
-        const dbAct = ctx.memo?.db?.AwsAction?.[a?.TargetGroupArn!] ?? await AwsElbModule.mappers.action.db.read(ctx, a.TargetGroupArn);
+        const dbAct = await ctx.orm.findOne(AwsAction, {
+          where: {
+            targetGroup: { targetGroupArn: a.TargetGroupArn },
+          },
+          relations: ['targetGroup'],
+        });
         if (!dbAct) return AwsElbModule.utils.actionMapper(a, ctx);
         return dbAct;
       }) ?? []);
@@ -102,41 +107,6 @@ export const AwsElbModule: Module = new Module({
     },
   },
   mappers: {
-    action: new Mapper<AwsAction>({
-      entity: AwsAction,
-      entityId: (e: AwsAction) => e?.targetGroup?.targetGroupArn ?? '',
-      equals: (_a: AwsAction, _b: AwsAction) => true, // Do not update actions
-      source: 'none',
-      db: new Crud({
-        create: async (e: AwsAction | AwsAction[], ctx: Context) => { await ctx.orm.save(AwsAction, e); },
-        read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const relations = ['targetGroup'];
-          if (!id || Array.isArray(id)) {
-            return await ctx.orm.find(AwsAction, id ? {
-              where: {
-                targetGroup: { targetGroupArn: Array.isArray(id) ? In(id) : id },
-              },
-              relations,
-            } : { relations, });
-          } else {
-            return await ctx.orm.findOne(AwsAction, {
-              where: {
-                targetGroup: { targetGroupArn: id },
-              },
-              relations,
-            });
-          }
-        },
-        update: async (e: AwsAction | AwsAction[], ctx: Context) => { await ctx.orm.save(AwsAction, e); },
-        delete: async (e: AwsAction | AwsAction[], ctx: Context) => { await ctx.orm.remove(AwsAction, e); },
-      }),
-      cloud: new Crud({
-        create: (_a: AwsAction | AwsAction[], _ctx: Context) => { throw new Error('tbd'); },
-        read: async (_ctx: Context, _ids?: string | string[]) => { /** Do nothing */ },
-        update: (_a: AwsAction | AwsAction[], _ctx: Context) => { throw new Error('tbd'); },
-        delete: (_a: AwsAction | AwsAction[], _ctx: Context) => { throw new Error('tbd'); },
-      }),
-    }),
     listener: new Mapper<AwsListener>({
       entity: AwsListener,
       entityId: (e: AwsListener) => e?.listenerArn ?? '',
@@ -155,11 +125,14 @@ export const AwsElbModule: Module = new Module({
             }
             for (const da of e.defaultActions ?? []) {
               if (!da.id) {
-                const a = await AwsElbModule.mappers.action.db.read(ctx, da.targetGroup.targetGroupArn);
+                const a = await ctx.orm.findOne(AwsAction, {
+                  where: {
+                    targetGroup: { targetGroupArn: da.targetGroup.targetGroupArn },
+                  },
+                  relations: ['targetGroup'],
+                });
                 if (a?.id) {
                   da.id = a.id;
-                } else {
-                  await AwsElbModule.mappers.action.db.create(da, ctx);
                 }
               }
             }
@@ -167,7 +140,7 @@ export const AwsElbModule: Module = new Module({
           await ctx.orm.save(AwsListener, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const relations = ["loadBalancer", "defaultActions", "defaultActions.targetGroup",];
+          const relations = ["loadBalancer"];
           if (!id || Array.isArray(id)) {
             return await ctx.orm.find(AwsListener, id ? {
               where: {
@@ -194,7 +167,12 @@ export const AwsElbModule: Module = new Module({
             }
             for (const da of e.defaultActions ?? []) {
               if (!da.id) {
-                const a = await AwsElbModule.mappers.action.db.read(ctx, da.targetGroup.targetGroupArn);
+                const a = await ctx.orm.findOne(AwsAction, {
+                  where: {
+                    targetGroup: { targetGroupArn: da.targetGroup.targetGroupArn },
+                  },
+                  relations: ['targetGroup'],
+                });
                 if (!a.id) throw new DepError('Error retrieving generated column');
                 da.id = a.id;
               }
@@ -566,7 +544,7 @@ export const AwsElbModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsElb1637233900959.prototype.up,
-    preremove: awsElb1637233900959.prototype.down,
+    postinstall: awsElb1637275424293.prototype.up,
+    preremove: awsElb1637275424293.prototype.down,
   },
 });
