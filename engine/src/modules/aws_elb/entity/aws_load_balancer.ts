@@ -91,7 +91,7 @@ export class AwsLoadBalancer {
   })
   vpc: AwsVpc;
 
-  // Not in the mapper since is just needes as input for the creation and teh retrieve endpoint
+  // Not in the mapper since is just needed as input for the creation and retrieve endpoints
   // do not return any information related to the subnets
   @ManyToMany(() => AwsSubnet)
   @JoinTable()
