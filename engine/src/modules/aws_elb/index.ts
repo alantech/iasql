@@ -21,7 +21,7 @@ import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsElb1637275424293, } from './migration/1637275424293-aws_elb'
 import { AwsAccount, AwsSecurityGroupModule } from '..'
-import { AvailabilityZone } from '../aws_account/entity'
+import { AvailabilityZone, AwsSubnet } from '../aws_account/entity'
 import { DepError } from '../../services/lazy-dep'
 
 export const AwsElbModule: Module = new Module({
@@ -82,6 +82,8 @@ export const AwsElbModule: Module = new Module({
       out.vpc = ctx.memo?.db?.AwsVpc?.[lb.VpcId] ?? await AwsAccount.mappers.vpc.db.read(ctx, lb.VpcId);
       const availabilityZones = ctx.memo?.db?.AvailabilityZone ? Object.values(ctx.memo?.db?.AvailabilityZone) : await AwsAccount.mappers.availabilityZone.db.read(ctx);
       out.availabilityZones = lb.AvailabilityZones?.map(az => availabilityZones.find((z: any) => z.zoneName === az.ZoneName!) as AvailabilityZone);
+      const subnets = ctx.memo?.db?.AwsSubnet ? Object.values(ctx.memo?.db?.AwsSubnet) : await AwsAccount.mappers.subnet.db.read(ctx);
+      out.subnets = lb.AvailabilityZones?.map(az => subnets.find((sn: AwsSubnet) => sn.subnetId === az.SubnetId));
       return out;
     },
     targetGroupMapper: async (tg: any, ctx: Context) => {
