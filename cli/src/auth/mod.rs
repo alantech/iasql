@@ -10,7 +10,7 @@ use tokio::time::{sleep, Duration};
 use webbrowser;
 
 use crate::dialoguer as dlg;
-use crate::http::request;
+use crate::http::CLIENT;
 
 const CODE_URL: &'static str = "https://auth.iasql.com/oauth/device/code";
 const CLIENT_ID: &'static str = "FWIYK0GhLdMCLid0hxjmEEwxaifdAkpQ";
@@ -108,8 +108,10 @@ async fn generate_token() {
     .header("Accept", "application/json")
     .body(CODE_BODY.into())
     .unwrap();
-  let resp_str = request(req).await.expect(ERR);
-  let json: Value = serde_json::from_str(&resp_str).expect(ERR);
+  let resp = CLIENT.request(req).await.expect(ERR);
+  let data = hyper::body::to_bytes(resp.into_body()).await.expect(ERR);
+  let data_str = String::from_utf8(data.to_vec()).expect(ERR);
+  let json: Value = serde_json::from_str(&data_str).expect(ERR);
   let device_code = json["device_code"].as_str().unwrap();
   let verification_uri = json["verification_uri_complete"].as_str().unwrap();
   let user_code = json["user_code"].as_str().unwrap();
@@ -149,8 +151,10 @@ async fn generate_token() {
       .header("Accept", "application/json")
       .body(body.to_string().into())
       .unwrap();
-    let resp_str = request(req).await.expect(ERR);
-    let json: Value = serde_json::from_str(&resp_str).expect(ERR);
+    let resp = CLIENT.request(req).await.expect(ERR);
+    let data = hyper::body::to_bytes(resp.into_body()).await.expect(ERR);
+    let data_str = String::from_utf8(data.to_vec()).expect(ERR);
+    let json: Value = serde_json::from_str(&data_str).expect(ERR);
     if let Some(token) = json["access_token"].as_str() {
       let home = std::env::var("HOME").unwrap();
       let dir_name = &format!("{}/{}", home, IASQL_DIR);
