@@ -51,6 +51,26 @@ import {
   SetRepositoryPolicyCommand,
   SetRepositoryPolicyCommandInput
 } from '@aws-sdk/client-ecr'
+import {
+  CreateListenerCommand,
+  CreateListenerCommandInput,
+  CreateLoadBalancerCommand,
+  CreateLoadBalancerCommandInput,
+  CreateTargetGroupCommand,
+  CreateTargetGroupCommandInput,
+  DeleteListenerCommand,
+  DeleteLoadBalancerCommand,
+  DeleteTargetGroupCommand,
+  DescribeListenersCommand,
+  DescribeLoadBalancersCommand,
+  DescribeTargetGroupsCommand,
+  ElasticLoadBalancingV2Client,
+  ModifyTargetGroupCommand,
+  ModifyTargetGroupCommandInput,
+  paginateDescribeListeners,
+  paginateDescribeLoadBalancers,
+  paginateDescribeTargetGroups,
+} from '@aws-sdk/client-elastic-load-balancing-v2'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -65,6 +85,7 @@ type AWSConfig = {
 export class AWS {
   private ec2client: EC2Client
   private ecrClient: ECRClient
+  private elbClient: ElasticLoadBalancingV2Client
   private credentials: AWSCreds
   public region: string
 
@@ -73,6 +94,7 @@ export class AWS {
     this.region = config.region;
     this.ec2client = new EC2Client(config);
     this.ecrClient = new ECRClient(config);
+    this.elbClient = new ElasticLoadBalancingV2Client(config);
   }
 
   async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
@@ -174,7 +196,7 @@ export class AWS {
   async getInstanceType(instanceType: string) {
     return (await this.ec2client.send(
       new DescribeInstanceTypesCommand({
-        InstanceTypes: [ instanceType, ],
+        InstanceTypes: [instanceType,],
       })
     ))?.InstanceTypes?.[0];
   }
@@ -185,7 +207,7 @@ export class AWS {
 
   async getAMI(imageId: string) {
     return (await this.ec2client.send(new DescribeImagesCommand({
-      ImageIds: [ imageId, ],
+      ImageIds: [imageId,],
     })))?.Images?.[0];
   }
 
@@ -195,7 +217,7 @@ export class AWS {
 
   async getRegion(regionName: string) {
     return (await this.ec2client.send(new DescribeRegionsCommand({
-      RegionNames: [ regionName, ],
+      RegionNames: [regionName,],
     })))?.Regions?.[0];
   }
 
@@ -400,6 +422,148 @@ export class AWS {
       })
     );
     return policy;
+  }
+
+  async createListener(input: CreateListenerCommandInput) {
+    const create = await this.elbClient.send(
+      new CreateListenerCommand(input),
+    );
+    return create?.Listeners?.pop() ?? null;
+  }
+
+  async getListeners(loadBalancerArns: string[]) {
+    const listeners = [];
+    for (const arn of loadBalancerArns) {
+      const paginator = paginateDescribeListeners({
+        client: this.elbClient,
+        pageSize: 25,
+      }, {
+        LoadBalancerArn: arn,
+      });
+      for await (const page of paginator) {
+        listeners.push(...(page.Listeners ?? []));
+      }
+    }
+    return {
+      Listeners: listeners,
+    };
+  }
+
+  async getListener(arn: string) {
+    const result = await this.elbClient.send(
+      new DescribeListenersCommand({ ListenerArns: [arn], })
+    );
+    return result?.Listeners?.[0];
+  }
+
+  async deleteListener(arn: string) {
+    await this.elbClient.send(
+      new DeleteListenerCommand({ ListenerArn: arn, })
+    );
+  }
+
+  async createLoadBalancer(input: CreateLoadBalancerCommandInput) {
+    const create = await this.elbClient.send(
+      new CreateLoadBalancerCommand(input),
+    );
+    let loadBalancer = create?.LoadBalancers?.pop() ?? null;
+    if (!loadBalancer) return loadBalancer;
+    const waiterInput = new DescribeLoadBalancersCommand({
+      LoadBalancerArns: [loadBalancer?.LoadBalancerArn!],
+    });
+    // TODO: should we use the paginator instead?
+    await createWaiter<ElasticLoadBalancingV2Client, DescribeLoadBalancersCommand>(
+      {
+        client: this.elbClient,
+        // all in seconds
+        maxWaitTime: 600,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      waiterInput,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const lb of data?.LoadBalancers ?? []) {
+            if (lb.State?.Code !== 'active')
+              return { state: WaiterState.RETRY };
+            loadBalancer = lb;
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
+    return loadBalancer;
+  }
+
+  async getLoadBalancers() {
+    const loadBalancers = [];
+    const paginator = paginateDescribeLoadBalancers({
+      client: this.elbClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      loadBalancers.push(...(page.LoadBalancers ?? []));
+    }
+    return {
+      LoadBalancers: loadBalancers,
+    };
+  }
+
+  async getLoadBalancer(arn: string) {
+    const result = await this.elbClient.send(
+      new DescribeLoadBalancersCommand({ LoadBalancerArns: [arn], })
+    );
+    return result?.LoadBalancers?.[0];
+  }
+
+  async deleteLoadBalancer(arn: string) {
+    await this.elbClient.send(
+      new DeleteLoadBalancerCommand({ LoadBalancerArn: arn, })
+    );
+  }
+
+  async createTargetGroup(input: CreateTargetGroupCommandInput) {
+    const create = await this.elbClient.send(
+      new CreateTargetGroupCommand(input),
+    );
+    return create?.TargetGroups?.pop() ?? null;
+  }
+
+  async updateTargetGroup(input: ModifyTargetGroupCommandInput) {
+    const update = await this.elbClient.send(
+      new ModifyTargetGroupCommand(input),
+    );
+    return update?.TargetGroups?.pop() ?? null;
+  }
+
+  async getTargetGroups() {
+    const targetGroups = [];
+    const paginator = paginateDescribeTargetGroups({
+      client: this.elbClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      targetGroups.push(...(page.TargetGroups ?? []));
+    }
+    return {
+      TargetGroups: targetGroups,
+    };
+  }
+
+  async getTargetGroup(arn: string) {
+    const result = await this.elbClient.send(
+      new DescribeTargetGroupsCommand({ TargetGroupArns: [arn], })
+    );
+    return result?.TargetGroups?.[0];
+  }
+
+  async deleteTargetGroup(arn: string) {
+    await this.elbClient.send(
+      new DeleteTargetGroupCommand({ TargetGroupArn: arn, })
+    );
   }
 
   async getVpcs() {

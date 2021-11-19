@@ -9,14 +9,14 @@ export type Context = { [key: string]: any };
 
 export interface CrudInterface<E> {
   create: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
-  read: (ctx: Context, id?: string | string[]) => Promise<E | E[]>;
+  read: (ctx: Context, id?: string | string[]) => Promise<E | E[] | void>;
   update: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
   delete: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
 }
 
 export class Crud<E> {
   createFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
-  readFn: (ctx: Context, id?: string | string[]) => Promise<E | E[]>;
+  readFn: (ctx: Context, id?: string | string[]) => Promise<E | E[] | void>;
   updateFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
   deleteFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
   dest?: 'db' | 'cloud';
@@ -175,6 +175,7 @@ export interface ModuleInterface {
   // version: string; // TODO: Get versioning working
   dependencies: string[];
   provides: {
+    entities: { [key: string]: any, };
     tables?: string[];
     functions?: string[];
     // TODO: What other PSQL things should be tracked?
@@ -232,6 +233,7 @@ export class Module {
   // version: string; // TODO: Get versioning working
   dependencies: string[];
   provides: {
+    entities: { [key: string]: any, };
     tables?: string[];
     functions?: string[];
     context?: Context;

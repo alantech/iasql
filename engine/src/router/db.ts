@@ -183,9 +183,10 @@ db.get('/apply/:dbAlias', async (req, res) => {
     const dbId = await getId(dbAlias, req.user);
     // Construct the ORM client with all of the entities we may wish to query
     const entities = Object.values(Modules)
-      .filter(m => m.hasOwnProperty('mappers'))
-      .map((m: any) => Object.values(m.mappers).map((ma: any) => ma.entity))
-      .flat();
+      .filter(m => m.hasOwnProperty('provides'))
+      .map((m: any) => Object.values(m.provides.entities))
+      .flat()
+      .filter(e => typeof e === 'function') as Function[];
     entities.push(IasqlModule);
     orm = await TypeormWrapper.createConn(dbId, {
       name: dbId,
@@ -237,7 +238,7 @@ db.get('/apply/:dbAlias', async (req, res) => {
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: tables.map(t => memo.cloud[t] ? Object.values(memo.db[t]) : []),
+          dbEntity: tables.map(t => memo.db[t] ? Object.values(memo.db[t]) : []),
           cloudEntity: tables.map(t => memo.cloud[t] ? Object.values(memo.cloud[t]) : []),
           comparator: comparators,
           idGen: idGens,
