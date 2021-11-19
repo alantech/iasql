@@ -9,13 +9,15 @@ import {
   OneToMany,
 } from 'typeorm';
 
-import { BootMode, } from './boot_mode';
-import { CPUArchitecture, } from './cpu_architecture';
-import { EBSBlockDeviceMapping, } from './ebs_block_device_mapping';
-import { Instance } from './instance';
-import { ProductCode, } from './product_code';
-import { StateReason, } from './state_reason';
-import { Tag, } from './tag';
+import {
+  BootMode,
+  CPUArchitecture,
+  EBSBlockDeviceMapping,
+  Instance,
+  ProductCode,
+  StateReason,
+  Tag,
+} from '.';
 
 export enum ImageType {
   KERNEL = 'kernel',

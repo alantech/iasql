@@ -4,6 +4,7 @@ import { Repository, } from '@aws-sdk/client-ecr'
 
 import { AWS, } from '../../services/gateways/aws'
 import { AwsRepository, AwsRepositoryPolicy, ImageTagMutability, } from './entity'
+import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsEcr1637082183230, } from './migration/1637082183230-aws_ecr'
 import * as allEntities from './entity'

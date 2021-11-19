@@ -2,6 +2,7 @@ import { In, } from 'typeorm'
 
 import { AWS, } from '../../services/gateways/aws'
 import { AwsSecurityGroup, AwsSecurityGroupRule, } from './entity'
+import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsSecurityGroup1636587967230, } from './migration/1636587967230-aws_security_group'
 import * as allEntities from './entity'

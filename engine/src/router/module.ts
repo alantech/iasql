@@ -143,6 +143,10 @@ ${Object.keys(tableCollisions)
     return 0;
   });
   const leafToRootOrder = [...rootToLeafOrder].reverse();
+  console.dir({
+    rootToLeafOrder,
+    leafToRootOrder,
+  }, { depth: 4, });
   // Actually run the installation. First running all of the preinstall scripts from leaf-to-root,
   // then all of the postinstall scripts from root-to-leaf. Wrapped in a transaction so any failure
   // at this point when we're actually mutating the database doesn't leave things in a busted state.
@@ -150,14 +154,18 @@ ${Object.keys(tableCollisions)
   try {
     for (const md of leafToRootOrder) {
       if (md.migrations?.preinstall) {
+        console.log('huh');
         await md.migrations.preinstall(queryRunner);
       }
     }
     for (const md of rootToLeafOrder) {
       if (md.migrations?.preinstall) {
+        console.log('huh');
         await md.migrations.preinstall(queryRunner);
       }
       if (md.migrations?.postinstall) {
+        console.log('expected');
+        console.log(md.migrations.postinstall.toString());
         await md.migrations.postinstall(queryRunner);
       }
       const e = new IasqlModule();
@@ -170,10 +178,11 @@ ${Object.keys(tableCollisions)
     await queryRunner.commitTransaction();
   } catch (e) {
     await queryRunner.rollbackTransaction();
-    return res.json(`Error: ${(e as any).message}`);
+    return res.status(500).json(`Error: ${(e as any).message}`);
   } finally {
     await queryRunner.release();
   }
+  console.log('made it!');
   // For all newly installed modules, query the cloud state, if any, and save it to the database.
   // Since the context requires all installed modules and that has changed, for simplicity's sake
   // we're re-loading the modules and constructing the context that way, first, but then iterating
