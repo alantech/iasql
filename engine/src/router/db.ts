@@ -257,9 +257,6 @@ db.get('/apply/:dbAlias', async (req, res) => {
           .map(r => {
             const name = r.table;
             console.log(`Checking ${name}`);
-            if (name === 'AwsListener') {
-              console.dir(r.diff, {depth:7});
-            }
             const outArr = [];
             if (r.diff.entitiesInDbOnly.length > 0) {
               console.log(`${name} has records to create`);
