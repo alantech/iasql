@@ -161,27 +161,28 @@ export const AwsEc2Module: Module = new Module({
       db: new Crud({
         create: async (e: AMI | AMI[], ctx: Context) => {
           const es = Array.isArray(e) ? e : [e];
-          for (const entity of es) {
+          // Deduplicate CPUArchitecture and BootMode ahead of time, preserving an ID if it exists
+          const cpuArches: { [key: string]: CPUArchitecture, } = {};
+          const bootModes: { [key: string]: BootMode, } = {};
+          es.forEach((entity: AMI) => {
             if (entity.cpuArchitecture) {
-              const cpuarches = await ctx.orm.find(CPUArchitecture)
-              const cpuarch = cpuarches.find((cpua: CPUArchitecture) =>
-                cpua.cpuArchitecture === entity.cpuArchitecture.cpuArchitecture
-              );
-              if (cpuarch) {
-                entity.cpuArchitecture.id = cpuarch.id;
-              }
+              const arch = entity.cpuArchitecture.cpuArchitecture;
+              cpuArches[arch] = cpuArches[arch] ?? entity.cpuArchitecture;
+              if (entity.cpuArchitecture.id) cpuArches[arch].id = entity.cpuArchitecture.id;
+              entity.cpuArchitecture = cpuArches[arch];
             }
             if (entity.bootMode) {
-              const bootmodes = await ctx.orm.find(BootMode)
-              const bootmode = bootmodes.find((bt: BootMode) =>
-                bt.mode === entity.bootMode.mode
-              );
-              if (bootmode) {
-                entity.bootMode.id = bootmode.id;
-              }
+              const bm = entity.bootMode.mode;
+              bootModes[bm] = bootModes[bm] ?? entity.bootMode;
+              if (entity.bootMode.id) bootModes[bm].id = entity.bootMode.id;
+              entity.bootMode = bootModes[bm];
             }
-            await ctx.orm.save(AMI, entity);
-          }
+          });
+          // Pre-save these sub-records first
+          await ctx.orm.save(CPUArchitecture, Object.values(cpuArches));
+          await ctx.orm.save(BootMode, Object.values(bootModes));
+          // Now save the AMI records
+          await ctx.orm.save(AMI, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           return await ctx.orm.find(AMI, id ? {
