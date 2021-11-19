@@ -43,9 +43,223 @@ export class awsElb1637275424293 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "aws_load_balancer_security_groups_aws_security_group" ADD CONSTRAINT "FK_db1c32e5ebacdf20b2ffad7a37a" FOREIGN KEY ("aws_security_group_id") REFERENCES "aws_security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "aws_listener_default_actions_aws_action" ADD CONSTRAINT "FK_d8aa3feff946c2b366fad035de1" FOREIGN KEY ("aws_listener_id") REFERENCES "aws_listener"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "aws_listener_default_actions_aws_action" ADD CONSTRAINT "FK_3a5ce81218da8536275396ca4d9" FOREIGN KEY ("aws_action_id") REFERENCES "aws_action"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        // Example of use: call create_aws_load_balancer('test-sp2', 'internal', 'vpc-41895538', 'network', array['subnet-68312820', 'subnet-a58a84c3'], 'ipv4');
+        await queryRunner.query(`
+            create or replace procedure create_aws_load_balancer(
+                _name text,
+                _scheme aws_load_balancer_scheme_enum,
+                _vpc_id text,
+                _elb_type aws_load_balancer_load_balancer_type_enum,
+                _subnet_ids text [],
+                _ip_address_type aws_load_balancer_ip_address_type_enum,
+                _security_group_names text [] default null
+            )
+            language plpgsql
+            as $$
+            declare
+                elb_vpc_id integer;
+                aux_az_id integer;
+                az record;
+                az_id integer;
+                sn record;
+                sn_id integer;
+                sg record;
+                sg_id integer;
+                load_balancer_id integer;
+            begin
+                select id into elb_vpc_id
+                from aws_vpc
+                where vpc_id = _vpc_id
+                order by id desc
+                limit 1;
+            
+                insert into aws_load_balancer
+                    (load_balancer_name, scheme, vpc_id, load_balancer_type, ip_address_type)
+                values
+                    (_name, _scheme, elb_vpc_id, _elb_type, _ip_address_type)
+                on conflict (load_balancer_name)
+                do nothing;
+            
+                select id into load_balancer_id
+                from aws_load_balancer
+                where load_balancer_name = _name
+                order by id desc
+                limit 1;
+            
+                select aws_subnet_id into sn_id
+                from aws_load_balancer_subnets_aws_subnet
+                where aws_load_balancer_id = load_balancer_id
+                limit 1;
+            
+                if sn_id is null then
+                    for sn in
+                        select id
+                        from aws_subnet
+                        where subnet_id = any(_subnet_ids)
+                    loop
+                        insert into aws_load_balancer_subnets_aws_subnet
+                            (aws_load_balancer_id, aws_subnet_id)
+                        values
+                            (load_balancer_id, sn.id);
+                    end loop;
+                end if;
+            
+                select availability_zone_id into az_id
+                from aws_load_balancer_availability_zones_availability_zone
+                where aws_load_balancer_id = load_balancer_id
+                limit 1;
+            
+                if az_id is null then
+                    for az in
+                        select id
+                        from availability_zone
+                        where id in (
+                            select availability_zone_id
+                            from aws_subnet
+                            where subnet_id = any(_subnet_ids)
+                        )
+                    loop
+                        insert into aws_load_balancer_availability_zones_availability_zone
+                            (aws_load_balancer_id, availability_zone_id)
+                        values
+                            (load_balancer_id, az.id);
+                    end loop;
+                end if;
+            
+                select aws_security_group_id into sg_id
+                from aws_load_balancer_security_groups_aws_security_group
+                where aws_load_balancer_id = load_balancer_id
+                limit 1;
+            
+                if sg_id is null then
+                    for sg in
+                        select id
+                        from aws_security_group
+                        where group_name = any(_security_group_names)
+                    loop
+                        insert into aws_load_balancer_security_groups_aws_security_group
+                            (aws_load_balancer_id, aws_security_group_id)
+                        values
+                            (load_balancer_id, sg.id);
+                    end loop;
+                end if;
+            
+                raise info 'aws_load_balancer_id = %', load_balancer_id;
+            end;
+            $$;
+        `);
+        // Example of use: call create_aws_target_group('test-sp2', 'ip', 8888, 'vpc-41895538', 'TCP');
+        await queryRunner.query(`
+            create or replace procedure create_aws_target_group(
+                _name text,
+                _target_type aws_target_group_target_type_enum,
+                _port integer,
+                _vpc_id text,
+                _protocol aws_target_group_protocol_enum
+            )
+            language plpgsql
+            as $$
+            declare 
+                tg_vpc_id integer;
+                target_group_id integer;
+            begin
+                select id into tg_vpc_id
+                from aws_vpc
+                where vpc_id = _vpc_id
+                order by id desc
+                limit 1;
+            
+                insert into aws_target_group
+                    (target_group_name, target_type, protocol, port, vpc_id)
+                values
+                    (_name, _target_type, _protocol, _port, tg_vpc_id)
+                on conflict (target_group_name)
+                do nothing;
+            
+                select id into target_group_id
+                from aws_target_group
+                where target_group_name = _name
+                order by id desc
+                limit 1;
+            
+                raise info 'aws_target_group_id = %', target_group_id;
+            end;
+            $$;
+        `);
+        // Example of use: call create_aws_listener('test-sp2', 8888, 'TCP', 'forward', 'test-sp2');
+        await queryRunner.query(`
+            create or replace procedure create_aws_listener(
+                _load_balancer_name text,
+                _port integer,
+                _protocol aws_listener_protocol_enum,
+                _action_type aws_action_action_type_enum,
+                _target_group_name text
+            )
+            language plpgsql
+            as $$
+            declare
+                a_id integer;
+                l_id integer;
+                lb_id integer;
+                tg_id integer;
+            begin
+                select id into tg_id
+                from aws_target_group
+                where target_group_name = _target_group_name;
+            
+                insert into aws_action
+                    (action_type, target_group_id)
+                select  _action_type, tg_id    
+                where tg_id not in (
+                    select target_group_id
+                    from aws_action
+                    where target_group_id = tg_id and action_type = _action_type
+                );
+            
+                select id into a_id
+                from aws_action
+                where target_group_id = tg_id and action_type = _action_type
+                order by id desc
+                limit 1;
+            
+                select id into lb_id
+                from aws_load_balancer
+                where load_balancer_name = _load_balancer_name
+                limit 1;
+            
+                select id into l_id
+                from aws_listener
+                where aws_load_balancer_id = lb_id and port = _port and protocol = _protocol
+                order by id desc
+                limit 1;
+            
+                if l_id is null then
+                    insert into aws_listener
+                        (aws_load_balancer_id, port, protocol)
+                    values 
+                        (lb_id, _port, _protocol);
+            
+                    select id into l_id
+                    from aws_listener
+                    order by id desc
+                    limit 1;
+            
+                    insert into aws_listener_default_actions_aws_action
+                        (aws_listener_id, aws_action_id)
+                    values 
+                        (lb_id, a_id);
+                end if;
+            
+                raise info 'aws_listener_id = %', l_id;
+            end; 
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP procedure create_aws_listener;`);
+        await queryRunner.query(`DROP procedure create_aws_target_group;`);
+        await queryRunner.query(`DROP procedure create_aws_load_balancer;`);
         await queryRunner.query(`ALTER TABLE "aws_listener_default_actions_aws_action" DROP CONSTRAINT "FK_3a5ce81218da8536275396ca4d9"`);
         await queryRunner.query(`ALTER TABLE "aws_listener_default_actions_aws_action" DROP CONSTRAINT "FK_d8aa3feff946c2b366fad035de1"`);
         await queryRunner.query(`ALTER TABLE "aws_load_balancer_security_groups_aws_security_group" DROP CONSTRAINT "FK_db1c32e5ebacdf20b2ffad7a37a"`);

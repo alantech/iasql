@@ -30,7 +30,7 @@ export const AwsElbModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['aws_target_group', 'aws_load_balancer', 'aws_listener', 'aws_action',],
-    // functions: ['create_ecr_repository', 'create_ecr_repository_policy'],
+    functions: ['create_aws_listener', 'create_aws_target_group', 'create_aws_load_balancer',],
   },
   utils: {
     actionMapper: async (a: Action, ctx: Context) => {
