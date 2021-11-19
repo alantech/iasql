@@ -17,7 +17,7 @@ pub enum HttpError {
   Other(String),
 }
 
-static CLIENT: Lazy<Client<HttpsConnector<HttpConnector>>> =
+pub static CLIENT: Lazy<Client<HttpsConnector<HttpConnector>>> =
   Lazy::new(|| Client::builder().build::<_, Body>(HttpsConnector::new()));
 
 fn get_url() -> &'static str {
