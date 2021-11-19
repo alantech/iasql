@@ -1,5 +1,6 @@
 export * from './aws_account'
 export * from './aws_ecr'
+export * from './aws_ecs'
 export * from './aws_elb'
 export * from './aws_security_group'
 export * from './interfaces'
