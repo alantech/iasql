@@ -16,11 +16,13 @@ import {
 } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsAccount1637177234221, } from './migration/1637177234221-aws_account'
+import * as allEntities from './entity'
 
 export const AwsAccount: Module = new Module({
   name: 'aws_account',
   dependencies: [],
   provides: {
+    entities: allEntities,
     tables: [
       'availability_zone',
       'availability_zone_message',
@@ -190,12 +192,12 @@ export const AwsAccount: Module = new Module({
       db: new Crud({
         create: async (e: AwsVpc | AwsVpc[], ctx: Context) => { await ctx.orm.save(AwsVpc, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const out = await ctx.orm.find(AwsVpc, id ? {
+          const opts = id ? {
             where: {
               vpcId: Array.isArray(id) ? In(id) : id,
             },
-          } : undefined);
-          return out;
+          } : undefined;
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsVpc, opts) : await ctx.orm.findOne(AwsVpc, opts);
         },
         update: async (vpc: AwsVpc | AwsVpc[], ctx: Context) => {
           const es = Array.isArray(vpc) ? vpc : [vpc];
@@ -365,13 +367,14 @@ export const AwsAccount: Module = new Module({
       db: new Crud({
         create: async (e: AwsSubnet | AwsSubnet[], ctx: Context) => { await ctx.orm.save(AwsSubnet, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const out = await ctx.orm.find(AwsSubnet, id ? {
+          const relations = ['vpc',];
+          const opts = id ? {
             where: {
               subnetId: Array.isArray(id) ? In(id) : id,
             },
-            relations: ['vpc'],
-          } : { relations: ['vpc'], });
-          return out;
+            relations,
+          } : { relations };
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsSubnet, opts) : await ctx.orm.findOne(AwsSubnet, opts);
         },
         update: async (sn: AwsSubnet | AwsSubnet[], ctx: Context) => {
           const es = Array.isArray(sn) ? sn : [sn];

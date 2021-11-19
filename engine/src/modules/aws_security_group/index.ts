@@ -4,11 +4,13 @@ import { AWS, } from '../../services/gateways/aws'
 import { AwsSecurityGroup, AwsSecurityGroupRule, } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsSecurityGroup1636587967230, } from './migration/1636587967230-aws_security_group'
+import * as allEntities from './entity'
 
 export const AwsSecurityGroupModule: Module = new Module({
   name: 'aws_security_group',
   dependencies: ['aws_account'],
   provides: {
+    entities: allEntities,
     tables: ['aws_security_group', 'aws_security_group_rule'],
   },
   utils: {
@@ -58,11 +60,12 @@ export const AwsSecurityGroupModule: Module = new Module({
           }
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const sg = await ctx.orm.find(AwsSecurityGroup, id ? {
+          const opts = id ? {
             where: {
               groupId: Array.isArray(id) ? In(id) : id,
             },
-          } : undefined);
+          } : undefined;
+          const sg = (!id || Array.isArray(id)) ? await ctx.orm.find(AwsSecurityGroup, opts) : await ctx.orm.findOne(AwsSecurityGroup, opts);
           if (Array.isArray(sg)) {
             for (const s of sg) {
               const sgrIds = (await ctx.orm.query(`
@@ -129,7 +132,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             // replacing in the database, and also make a proper, complete loop for it as the rules
             // reference their parent in a circular fashion.
             newEntity.id = e.id;
-            if (e.securityGroupRules?.length > 0) newEntity.securityGroupRules = [ ...e.securityGroupRules];
+            if (e.securityGroupRules?.length > 0) newEntity.securityGroupRules = [...e.securityGroupRules];
             await Promise.all(newEntity.securityGroupRules.map(async (sgr: AwsSecurityGroupRule) => {
               // First, remove the old security group rule from the database
               if (sgr.hasOwnProperty('id')) {
@@ -230,22 +233,34 @@ export const AwsSecurityGroupModule: Module = new Module({
       db: new Crud({
         create: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const out = await ctx.orm.find(AwsSecurityGroupRule, id ? {
+          const opts = id ? {
             where: {
               securityGroupRuleId: Array.isArray(id) ? In(id) : id,
             },
-          } : undefined);
-          // This is ridiculous. Why can't I access the `security_group_id` field directly?
-          await Promise.all(out.map(async (o: AwsSecurityGroupRule) => {
+          } : undefined;
+          const sgr = (!id || Array.isArray(id)) ? await ctx.orm.find(AwsSecurityGroupRule, opts) : await ctx.orm.findOne(AwsSecurityGroupRule, opts);
+          if (Array.isArray(sgr)) {
+            // This is ridiculous. Why can't I access the `security_group_id` field directly?
+            await Promise.all(sgr.map(async (o: AwsSecurityGroupRule) => {
+              const sgId = (await ctx.orm.query(`
+                select sg.group_id
+                from aws_security_group sg
+                inner join aws_security_group_rule sgr on sgr.security_group_id = sg.id
+                where sgr.id = ${o.id}
+              `))[0].group_id;
+              o.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
+            }));
+          } else {
+            // This is ridiculous. Why can't I access the `security_group_id` field directly?
             const sgId = (await ctx.orm.query(`
               select sg.group_id
               from aws_security_group sg
               inner join aws_security_group_rule sgr on sgr.security_group_id = sg.id
-              where sgr.id = ${o.id}
+              where sgr.id = ${sgr.id}
             `))[0].group_id;
-            o.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
-          }));
-          return out;
+            sgr.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
+          }
+          return sgr;
         },
         update: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
         delete: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.remove(AwsSecurityGroupRule, e); },

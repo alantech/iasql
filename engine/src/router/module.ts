@@ -5,6 +5,7 @@ import * as Modules from '../modules'
 import { IasqlModule, } from '../entity'
 import { TypeormWrapper, } from '../services/typeorm'
 import { getId } from '../services/db-manager'
+import { lazyLoader, } from '../services/lazy-dep'
 
 export const mod = express.Router();
 
@@ -79,9 +80,10 @@ mod.post('/install', async (req, res) => {
   // module to acquire the cloud records, it may use one or more other modules it depends on, so
   // we just load them all into the TypeORM client.
   const entities = Object.values(Modules)
-    .filter(m => m.hasOwnProperty('mappers'))
-    .map((m: any) => Object.values(m.mappers).map((ma: any) => ma.entity))
-    .flat();
+    .filter(m => m.hasOwnProperty('provides'))
+    .map((m: any) => Object.values(m.provides.entities))
+    .flat()
+    .filter(e => typeof e === 'function') as Function[];
   entities.push(IasqlModule);
   const orm = await TypeormWrapper.createConn(dbId, {
     name: dbId,
@@ -193,7 +195,7 @@ ${Object.keys(tableCollisions)
   const mappers = modules
     .map(md => Object.values(md.mappers))
     .flat()
-  for (const mapper of mappers) {
+  await lazyLoader(mappers.map(mapper => async () => {
     const e = await mapper.cloud.read(context);
     if (!e || (Array.isArray(e) && !e.length)) {
       console.log('Completely unexpected outcome');
@@ -203,7 +205,7 @@ ${Object.keys(tableCollisions)
         await mapper.db.create(entity, context);
       }));
     }
-  }
+  }));
   res.json("Done!");
 });
 
