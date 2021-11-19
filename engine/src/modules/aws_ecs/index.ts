@@ -29,7 +29,7 @@ export const AwsEcsModule: Module = new Module({
     cluster: new Mapper<Cluster>({
       entity: Cluster,
       entityId: (e: Cluster) => e?.clusterName ?? 'default',
-      equals: (_a: Cluster, _b: Cluster) => true,  // No updates
+      equals: (_a: Cluster, _b: Cluster) => true,  // TODO: Fill in when updates supported
       source: 'db',
       db: new Crud({
         create: async (c: Cluster | Cluster[], ctx: Context) => { await ctx.orm.save(Cluster, c);},
