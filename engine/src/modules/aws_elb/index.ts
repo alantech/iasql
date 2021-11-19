@@ -143,21 +143,13 @@ export const AwsElbModule: Module = new Module({
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const relations = ["loadBalancer"];
-          if (!id || Array.isArray(id)) {
-            return await ctx.orm.find(AwsListener, id ? {
-              where: {
-                listenerArn: Array.isArray(id) ? In(id) : id,
-              },
-              relations,
-            } : { relations });
-          } else {
-            return await ctx.orm.findOne(AwsListener, {
-              where: {
-                listenerArn: id,
-              },
-              relations,
-            });
-          }
+          const opts = id ? {
+            where: {
+              listenerArn: Array.isArray(id) ? In(id) : id,
+            },
+            relations,
+          } : { relations }
+          return (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsListener, opts) : await ctx.orm.findOne(AwsListener, opts);
         },
         update: async (l: AwsListener | AwsListener[], ctx: Context) => {
           const es = Array.isArray(l) ? l : [l];
@@ -285,22 +277,13 @@ export const AwsElbModule: Module = new Module({
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const relations = ['securityGroups', 'availabilityZones', 'subnets', 'vpc'];
-          if (!id || Array.isArray(id)) {
-            return await ctx.orm.find(AwsLoadBalancer, id ? {
-              where: {
-                loadBalancerArn: Array.isArray(id) ? In(id) : id,
-              },
-              relations
-            } : { relations });
-          } else {
-            return await ctx.orm.findOne(AwsLoadBalancer, {
-              where: {
-                loadBalancerArn: id,
-              },
-              relations
-            });
-          }
-
+          const opts = id ? {
+            where: {
+              loadBalancerArn: Array.isArray(id) ? In(id) : id,
+            },
+            relations
+          } : { relations };
+          return (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsLoadBalancer, opts) : await ctx.orm.findOne(AwsLoadBalancer, opts);
         },
         update: async (lb: AwsLoadBalancer | AwsLoadBalancer[], ctx: Context) => {
           const es = Array.isArray(lb) ? lb : [lb];
@@ -427,21 +410,13 @@ export const AwsElbModule: Module = new Module({
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const relations = ['vpc'];
-          if (!id || Array.isArray(id)) {
-            return await ctx.orm.find(AwsTargetGroup, id ? {
-              where: {
-                targetGroupArn: Array.isArray(id) ? In(id) : id,
-              },
-              relations,
-            } : { relations, });
-          } else {
-            return await ctx.orm.findOne(AwsTargetGroup, {
-              where: {
-                targetGroupArn: id,
-              },
-              relations,
-            });
-          }
+          const opts = id ? {
+            where: {
+              targetGroupArn: Array.isArray(id) ? In(id) : id,
+            },
+            relations,
+          } : { relations, };
+          return (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsTargetGroup, opts) : await ctx.orm.findOne(AwsTargetGroup, opts);
         },
         update: async (tg: AwsTargetGroup | AwsTargetGroup[], ctx: Context) => {
           const es = Array.isArray(tg) ? tg : [tg];

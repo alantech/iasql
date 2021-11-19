@@ -60,12 +60,13 @@ export const AwsSecurityGroupModule: Module = new Module({
           }
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          if (!id || Array.isArray(id)) {
-            const sg = await ctx.orm.find(AwsSecurityGroup, id ? {
-              where: {
-                groupId: Array.isArray(id) ? In(id) : id,
-              },
-            } : undefined);
+          const opts = id ? {
+            where: {
+              groupId: Array.isArray(id) ? In(id) : id,
+            },
+          } : undefined;
+          const sg = (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsSecurityGroup, opts) : await ctx.orm.findOne(AwsSecurityGroup, opts);
+          if (Array.isArray(sg)) {
             for (const s of sg) {
               const sgrIds = (await ctx.orm.query(`
                 select sgr.security_group_rule_id
@@ -77,13 +78,7 @@ export const AwsSecurityGroupModule: Module = new Module({
                 s.securityGroupRules.forEach((sgr: AwsSecurityGroupRule) => sgr.securityGroup = s);
               }
             }
-            return sg;
           } else {
-            const sg = await ctx.orm.findOne(AwsSecurityGroup, {
-              where: {
-                groupId: id,
-              },
-            });
             const sgrIds = (await ctx.orm.query(`
               select sgr.security_group_rule_id
               from aws_security_group_rule sgr
@@ -93,8 +88,8 @@ export const AwsSecurityGroupModule: Module = new Module({
               sg.securityGroupRules = await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx, sgrIds);
               sg.securityGroupRules.forEach((sgr: AwsSecurityGroupRule) => sgr.securityGroup = sg);
             }
-            return sg;
           }
+          return sg;
         },
         update: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
           await ctx.orm.save(AwsSecurityGroup, e);
@@ -238,14 +233,15 @@ export const AwsSecurityGroupModule: Module = new Module({
       db: new Crud({
         create: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          if (!id || Array.isArray(id)) {
-            const out = await ctx.orm.find(AwsSecurityGroupRule, id ? {
-              where: {
-                securityGroupRuleId: Array.isArray(id) ? In(id) : id,
-              },
-            } : undefined);
+          const opts = id ? {
+            where: {
+              securityGroupRuleId: Array.isArray(id) ? In(id) : id,
+            },
+          } : undefined;
+          const sgr = (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsSecurityGroupRule, opts) : await ctx.orm.findOne(AwsSecurityGroupRule, opts);
+          if (Array.isArray(sgr)) {
             // This is ridiculous. Why can't I access the `security_group_id` field directly?
-            await Promise.all(out.map(async (o: AwsSecurityGroupRule) => {
+            await Promise.all(sgr.map(async (o: AwsSecurityGroupRule) => {
               const sgId = (await ctx.orm.query(`
                 select sg.group_id
                 from aws_security_group sg
@@ -254,23 +250,17 @@ export const AwsSecurityGroupModule: Module = new Module({
               `))[0].group_id;
               o.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
             }));
-            return out;
           } else {
-            const out = await ctx.orm.findOne(AwsSecurityGroupRule, {
-              where: {
-                securityGroupRuleId: id,
-              },
-            });
             // This is ridiculous. Why can't I access the `security_group_id` field directly?
             const sgId = (await ctx.orm.query(`
               select sg.group_id
               from aws_security_group sg
               inner join aws_security_group_rule sgr on sgr.security_group_id = sg.id
-              where sgr.id = ${out.id}
+              where sgr.id = ${sgr.id}
             `))[0].group_id;
-            out.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
-            return out;
+            sgr.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
           }
+          return sgr;
         },
         update: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
         delete: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.remove(AwsSecurityGroupRule, e); },

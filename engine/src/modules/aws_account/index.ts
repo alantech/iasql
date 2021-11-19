@@ -368,21 +368,13 @@ export const AwsAccount: Module = new Module({
         create: async (e: AwsSubnet | AwsSubnet[], ctx: Context) => { await ctx.orm.save(AwsSubnet, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const relations = ['vpc',];
-          if (!id || Array.isArray(id)) {
-            return await ctx.orm.find(AwsSubnet, id ? {
-              where: {
-                subnetId: Array.isArray(id) ? In(id) : id,
-              },
-              relations,
-            } : { relations });
-          } else {
-            return await ctx.orm.findOne(AwsSubnet, {
-              where: {
-                subnetId: Array.isArray(id) ? In(id) : id,
-              },
-              relations
-            });
-          }
+          const opts = id ? {
+            where: {
+              subnetId: Array.isArray(id) ? In(id) : id,
+            },
+            relations,
+          } : { relations };
+          return (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsSubnet, opts) : await ctx.orm.findOne(AwsSubnet, opts);
         },
         update: async (sn: AwsSubnet | AwsSubnet[], ctx: Context) => {
           const es = Array.isArray(sn) ? sn : [sn];
