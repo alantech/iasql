@@ -210,9 +210,7 @@ ${Object.keys(tableCollisions)
       console.log('Completely unexpected outcome');
       console.log({ mapper, e, });
     } else {
-      await Promise.all(e.map(async (entity: any) => {
-        await mapper.db.create(entity, context);
-      }));
+      await mapper.db.create(e, context);
     }
   }));
   res.json("Done!");

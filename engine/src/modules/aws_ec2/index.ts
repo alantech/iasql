@@ -1,11 +1,26 @@
-import { In, } from 'typeorm'
+import { In, Table, } from 'typeorm'
 import { Image, } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../../services/gateways/aws'
-import { AMI, } from './entity'
+import {
+  AMI,
+  CPUArchitecture,
+  ImageType,
+  AMIPlatform,
+  ProductCode,
+  AMIImageState,
+  EBSBlockDeviceMapping,
+  EBSBlockDeviceType,
+  EBSBlockDeviceVolumeType,
+  HypervisorType,
+  AMIDeviceType,
+  StateReason,
+  BootMode,
+  Tag,
+} from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEc21637043091787, } from './migration/1637043091787-aws_ec2'
+import { awsEc21637358975142, } from './migration/1637358975142-aws_ec2'
 
 export const AwsEc2Module: Module = new Module({
   name: 'aws_ec2',
@@ -72,8 +87,68 @@ export const AwsEc2Module: Module = new Module({
   utils: {
     amiMapper: async (ami: Image, _ctx: Context) => {
       const out = new AMI();
+      if (ami.Architecture) {
+        out.cpuArchitecture = new CPUArchitecture();
+        out.cpuArchitecture.cpuArchitecture = ami.Architecture;
+      }
+      if (ami.CreationDate) out.creationDate = new Date(ami.CreationDate);
       out.imageId = ami.ImageId;
+      out.imageLocation = ami.ImageLocation;
+      if (ami.ImageType) out.imageType = ami.ImageType as ImageType;
+      out.public = ami.Public;
+      out.kernelId = ami.KernelId;
+      out.ownerId = ami.OwnerId;
+      if (ami.Platform) out.platform = ami.Platform as AMIPlatform;
+      out.platformDetails = ami.PlatformDetails;
+      out.usageOperation = ami.UsageOperation;
+      out.productCodes = ami.ProductCodes?.map(pc => {
+        const o2 = new ProductCode();
+        o2.productCodeId = pc.ProductCodeId;
+        o2.productCodeType = pc.ProductCodeType;
+        return o2;
+      }) ?? [];
+      out.ramdiskId = ami.RamdiskId;
+      if (ami.State) out.state = ami.State as AMIImageState;
+      out.blockDeviceMappings = ami.BlockDeviceMappings?.map(bdm => {
+        const o3 = new EBSBlockDeviceMapping();
+        o3.deviceName = bdm.DeviceName;
+        if (bdm.Ebs) {
+          o3.ebs = new EBSBlockDeviceType();
+          o3.ebs.deleteOnTermination = bdm.Ebs?.DeleteOnTermination;
+          o3.ebs.encrypted = bdm.Ebs?.Encrypted;
+          o3.ebs.iops = bdm.Ebs?.Iops;
+          o3.ebs.kmsKeyId = bdm.Ebs?.KmsKeyId;
+          o3.ebs.outpostArn = bdm.Ebs?.OutpostArn;
+          o3.ebs.snapshotId = bdm.Ebs?.SnapshotId;
+          o3.ebs.throughput = bdm.Ebs?.Throughput;
+          o3.ebs.volumeSize = bdm.Ebs?.VolumeSize;
+          if (bdm.Ebs?.VolumeType) o3.ebs.volumeType = bdm.Ebs?.VolumeType as EBSBlockDeviceVolumeType;
+        }
+        o3.noDevice = bdm.NoDevice;
+        o3.virtualName = bdm.VirtualName;
+        return o3;
+      }) ?? [];
       out.description = ami.Description;
+      out.enaSupport = ami.EnaSupport;
+      if (ami.Hypervisor) out.hypervisor = ami.Hypervisor as HypervisorType;
+      out.imageOwnerAlias = ami.ImageOwnerAlias;
+      out.name = ami.Name;
+      out.rootDeviceName = ami.RootDeviceName;
+      if (ami.RootDeviceType) out.rootDeviceType = ami.RootDeviceType as AMIDeviceType;
+      out.sriovNetSupport = ami.SriovNetSupport;
+      if (ami.StateReason) out.stateReason = ami.StateReason as StateReason;
+      if (ami.BootMode) {
+        out.bootMode = new BootMode();
+        out.bootMode.mode = ami.BootMode;
+      }
+      if (ami.DeprecationTime) out.deprecationTime = new Date(ami.DeprecationTime)
+      out.tags = ami.Tags?.map(t => {
+        const o4 = new Tag();
+        if (t.Key) o4.key = t.Key;
+        if (t.Value) o4.value = t.Value;
+        return o4;
+      }) ?? [];
+      // TODO: Attach instances once we have the mapper for them
       return out;
     },
   },
@@ -84,7 +159,30 @@ export const AwsEc2Module: Module = new Module({
       equals: (a: AMI, b: AMI) => Object.is(a.imageId, b.imageId),
       source: 'cloud',
       db: new Crud({
-        create: async (e: AMI | AMI[], ctx: Context) => { await ctx.orm.save(AMI, e); },
+        create: async (e: AMI | AMI[], ctx: Context) => {
+          const es = Array.isArray(e) ? e : [e];
+          for (const entity of es) {
+            if (entity.cpuArchitecture) {
+              const cpuarches = await ctx.orm.find(CPUArchitecture)
+              const cpuarch = cpuarches.find((cpua: CPUArchitecture) =>
+                cpua.cpuArchitecture === entity.cpuArchitecture.cpuArchitecture
+              );
+              if (cpuarch) {
+                entity.cpuArchitecture.id = cpuarch.id;
+              }
+            }
+            if (entity.bootMode) {
+              const bootmodes = await ctx.orm.find(BootMode)
+              const bootmode = bootmodes.find((bt: BootMode) =>
+                bt.mode === entity.bootMode.mode
+              );
+              if (bootmode) {
+                entity.bootMode.id = bootmode.id;
+              }
+            }
+            await ctx.orm.save(AMI, entity);
+          }
+        },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           return await ctx.orm.find(AMI, id ? {
             where: {
@@ -124,7 +222,7 @@ export const AwsEc2Module: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEc21637043091787.prototype.up,
-    predown: awsEc21637043091787.prototype.down,
+    postinstall: awsEc21637358975142.prototype.up,
+    preremove: awsEc21637358975142.prototype.down,
   },
 });

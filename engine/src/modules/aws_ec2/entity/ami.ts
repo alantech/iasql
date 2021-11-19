@@ -178,7 +178,7 @@ export class AMI {
   @Column({
     nullable: true,
   })
-  sirovNetSupport?: string;
+  sriovNetSupport?: string;
 
   @ManyToOne(() => StateReason, { cascade: true, })
   @JoinColumn({

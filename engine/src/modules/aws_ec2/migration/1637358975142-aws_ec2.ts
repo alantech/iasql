@@ -1,24 +1,25 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEc21637043091787 implements MigrationInterface {
-    name = 'awsEc21637043091787'
+export class awsEc21637358975142 implements MigrationInterface {
+    name = 'awsEc21637358975142'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "boot_mode" ("id" SERIAL NOT NULL, "mode" character varying NOT NULL, CONSTRAINT "UQ_88a9fac6831af2d520a0947c113" UNIQUE ("mode"), CONSTRAINT "PK_114728d4fa02f297923c52ae1e3" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "cpu_architecture" ("id" SERIAL NOT NULL, "cpu_architecture" character varying NOT NULL, CONSTRAINT "UQ_7a43b53cf9f82afd0f7a426fed9" UNIQUE ("cpu_architecture"), CONSTRAINT "PK_4374571b2fdb60c03e8876a5059" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "device_type" ("id" SERIAL NOT NULL, "device_type" character varying NOT NULL, CONSTRAINT "UQ_c49ce8ef8706f45c5650b2ed6ba" UNIQUE ("device_type"), CONSTRAINT "PK_f8d1c0daa8abde339c1056535a0" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TYPE "disk_info_disk_type_enum" AS ENUM('hdd', 'ssd')`);
+        await queryRunner.query(`CREATE TABLE "disk_info" ("id" SERIAL NOT NULL, "size_in_gb" numeric NOT NULL, "count" integer NOT NULL, "disk_type" "disk_info_disk_type_enum" NOT NULL, CONSTRAINT "PK_a145ea93c1809aa3ab0eaa8c0c2" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "ebs_block_device_type_volume_type_enum" AS ENUM('gp2', 'gp3', 'io1', 'io2', 'sc1', 'st1', 'standard')`);
         await queryRunner.query(`CREATE TABLE "ebs_block_device_type" ("id" SERIAL NOT NULL, "delete_on_termination" boolean, "iops" integer, "snapshot_id" character varying, "volume_size" integer, "volume_type" "ebs_block_device_type_volume_type_enum", "kms_key_id" character varying, "throughput" integer, "outpost_arn" character varying, "encrypted" boolean, CONSTRAINT "PK_0b63a25f83033ddd456af000a16" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "ebs_block_device_mapping" ("id" SERIAL NOT NULL, "device_name" character varying, "virtual_name" character varying, "no_device" character varying, "ebs_block_device_type_id" integer, CONSTRAINT "PK_2fab1aa5f825fcde18dff90524b" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "device_type" ("id" SERIAL NOT NULL, "device_type" character varying NOT NULL, CONSTRAINT "UQ_c49ce8ef8706f45c5650b2ed6ba" UNIQUE ("device_type"), CONSTRAINT "PK_f8d1c0daa8abde339c1056535a0" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "ebs_optimized_info" ("id" SERIAL NOT NULL, "baseline_bandwidth_in_mbps" numeric NOT NULL, "baseline_throughput_in_m_bps" numeric NOT NULL, "baseline_iops" numeric NOT NULL, "maximum_bandwidth_in_mbps" numeric NOT NULL, "maximum_throughput_in_m_bps" numeric NOT NULL, "maximum_iops" numeric NOT NULL, CONSTRAINT "PK_b30c043be425c0015e97bc91c80" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TYPE "disk_info_disk_type_enum" AS ENUM('hdd', 'ssd')`);
-        await queryRunner.query(`CREATE TABLE "disk_info" ("id" SERIAL NOT NULL, "size_in_gb" numeric NOT NULL, "count" integer NOT NULL, "disk_type" "disk_info_disk_type_enum" NOT NULL, CONSTRAINT "PK_a145ea93c1809aa3ab0eaa8c0c2" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "instance_storage_info_nvme_support_enum" AS ENUM('required', 'supported', 'unsupported')`);
         await queryRunner.query(`CREATE TABLE "instance_storage_info" ("id" SERIAL NOT NULL, "total_size_in_gb" numeric NOT NULL, "nvme_support" "instance_storage_info_nvme_support_enum" NOT NULL, CONSTRAINT "PK_7a8c50e616d5415a68253bddf47" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "ebs_info_ebs_optimized_support_enum" AS ENUM('default', 'supported', 'unsupported')`);
         await queryRunner.query(`CREATE TYPE "ebs_info_encryption_support_enum" AS ENUM('supported', 'unsupported')`);
         await queryRunner.query(`CREATE TYPE "ebs_info_nvme_support_enum" AS ENUM('required', 'supported', 'unsupported')`);
         await queryRunner.query(`CREATE TABLE "ebs_info" ("id" SERIAL NOT NULL, "ebs_optimized_support" "ebs_info_ebs_optimized_support_enum" NOT NULL, "encryption_support" "ebs_info_encryption_support_enum" NOT NULL, "nvme_support" "ebs_info_nvme_support_enum" NOT NULL, "ebs_optimized_info_id" integer, CONSTRAINT "PK_9012f4f7e784c479f53e0f195f5" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "efa_info" ("id" SERIAL NOT NULL, "maximum_efa_interfaces" integer NOT NULL, CONSTRAINT "PK_4f369baf517168abda55b75180d" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "fpga_device_memory_info" ("id" SERIAL NOT NULL, "size_in_mi_b" numeric NOT NULL, CONSTRAINT "PK_54bbcc5b13a900209e1e5ee1cf7" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "fpga_device_info" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "manufacturer" character varying NOT NULL, "count" integer NOT NULL, "fpga_device_memory_info_id" integer, CONSTRAINT "PK_6d50c7a37c3b72c0c9ff98b2369" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "fpga_info" ("id" SERIAL NOT NULL, "total_fpga_memory_in_mi_b" numeric NOT NULL, CONSTRAINT "PK_2d6188cbef48d727e6c3e9675c4" PRIMARY KEY ("id"))`);
@@ -28,7 +29,6 @@ export class awsEc21637043091787 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "inference_device_info" ("id" SERIAL NOT NULL, "count" integer NOT NULL, "name" character varying NOT NULL, "manufacturer" character varying NOT NULL, CONSTRAINT "PK_fa829b22aa5feefb03fab5fbae9" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "inference_accelerator_info" ("id" SERIAL NOT NULL, CONSTRAINT "PK_67ef5a210c7303d30e4a5e14eae" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "instance_type_value" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, CONSTRAINT "UQ_c044ed3e55560e10baf272f73fa" UNIQUE ("name"), CONSTRAINT "PK_3b0d5d2848fd758c86da5752587" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "efa_info" ("id" SERIAL NOT NULL, "maximum_efa_interfaces" integer NOT NULL, CONSTRAINT "PK_4f369baf517168abda55b75180d" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "network_card_info" ("id" SERIAL NOT NULL, "network_card_index" integer NOT NULL, "network_performance" character varying NOT NULL, "maximum_network_interfaces" integer NOT NULL, CONSTRAINT "PK_5ba7818deb23194370050a59df1" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "network_info_ena_support_enum" AS ENUM('required', 'supported', 'unsupported')`);
         await queryRunner.query(`CREATE TABLE "network_info" ("id" SERIAL NOT NULL, "network_performance" character varying NOT NULL, "maximum_network_interfaces" integer NOT NULL, "maximum_network_cards" integer NOT NULL, "default_network_card_index" integer NOT NULL, "ipv4addresses_per_interface" integer NOT NULL, "ipv6addresses_per_interface" integer NOT NULL, "ipv6supported" boolean NOT NULL, "ena_support" "network_info_ena_support_enum" NOT NULL, "efa_supported" boolean NOT NULL, "encryption_in_transit_supported" boolean NOT NULL, "efa_info_id" integer, CONSTRAINT "PK_81214b7c50e1372b56fa9db1139" PRIMARY KEY ("id"))`);
@@ -51,7 +51,7 @@ export class awsEc21637043091787 implements MigrationInterface {
         await queryRunner.query(`CREATE TYPE "ami_state_enum" AS ENUM('available', 'deregistered', 'error', 'failed', 'invalid', 'pending', 'transient')`);
         await queryRunner.query(`CREATE TYPE "ami_hypervisor_enum" AS ENUM('ovm', 'xen')`);
         await queryRunner.query(`CREATE TYPE "ami_root_device_type_enum" AS ENUM('ebs', 'instance-store')`);
-        await queryRunner.query(`CREATE TABLE "ami" ("id" SERIAL NOT NULL, "creation_date" TIMESTAMP WITH TIME ZONE, "image_id" character varying, "image_location" character varying, "image_type" "ami_image_type_enum", "public" boolean, "kernel_id" character varying, "owner_id" character varying, "platform" "ami_platform_enum", "platform_details" character varying, "usage_operation" character varying, "ramdisk_id" character varying, "state" "ami_state_enum", "description" character varying, "ena_support" boolean, "hypervisor" "ami_hypervisor_enum", "image_owner_alias" character varying, "name" character varying, "root_device_name" character varying, "root_device_type" "ami_root_device_type_enum", "sirov_net_support" character varying, "deprecation_time" TIMESTAMP WITH TIME ZONE, "cpu_architecture_id" integer, "state_reason_id" integer, "boot_mode_id" integer, CONSTRAINT "PK_a54bc72b5479c0b113aa1da8016" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "ami" ("id" SERIAL NOT NULL, "creation_date" TIMESTAMP WITH TIME ZONE, "image_id" character varying, "image_location" character varying, "image_type" "ami_image_type_enum", "public" boolean, "kernel_id" character varying, "owner_id" character varying, "platform" "ami_platform_enum", "platform_details" character varying, "usage_operation" character varying, "ramdisk_id" character varying, "state" "ami_state_enum", "description" character varying, "ena_support" boolean, "hypervisor" "ami_hypervisor_enum", "image_owner_alias" character varying, "name" character varying, "root_device_name" character varying, "root_device_type" "ami_root_device_type_enum", "sriov_net_support" character varying, "deprecation_time" TIMESTAMP WITH TIME ZONE, "cpu_architecture_id" integer, "state_reason_id" integer, "boot_mode_id" integer, CONSTRAINT "PK_a54bc72b5479c0b113aa1da8016" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "instance_storage_info_disks_disk_info" ("instance_storage_info_id" integer NOT NULL, "disk_info_id" integer NOT NULL, CONSTRAINT "PK_29972402e9acbaeecc17e8380a5" PRIMARY KEY ("instance_storage_info_id", "disk_info_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_38834f60efde0aff7c836645a2" ON "instance_storage_info_disks_disk_info" ("instance_storage_info_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_1be4a83d4a7526415a1e7faccc" ON "instance_storage_info_disks_disk_info" ("disk_info_id") `);
@@ -310,7 +310,6 @@ export class awsEc21637043091787 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "network_info"`);
         await queryRunner.query(`DROP TYPE "network_info_ena_support_enum"`);
         await queryRunner.query(`DROP TABLE "network_card_info"`);
-        await queryRunner.query(`DROP TABLE "efa_info"`);
         await queryRunner.query(`DROP TABLE "instance_type_value"`);
         await queryRunner.query(`DROP TABLE "inference_accelerator_info"`);
         await queryRunner.query(`DROP TABLE "inference_device_info"`);
@@ -320,19 +319,20 @@ export class awsEc21637043091787 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "fpga_info"`);
         await queryRunner.query(`DROP TABLE "fpga_device_info"`);
         await queryRunner.query(`DROP TABLE "fpga_device_memory_info"`);
+        await queryRunner.query(`DROP TABLE "efa_info"`);
         await queryRunner.query(`DROP TABLE "ebs_info"`);
         await queryRunner.query(`DROP TYPE "ebs_info_nvme_support_enum"`);
         await queryRunner.query(`DROP TYPE "ebs_info_encryption_support_enum"`);
         await queryRunner.query(`DROP TYPE "ebs_info_ebs_optimized_support_enum"`);
         await queryRunner.query(`DROP TABLE "instance_storage_info"`);
         await queryRunner.query(`DROP TYPE "instance_storage_info_nvme_support_enum"`);
-        await queryRunner.query(`DROP TABLE "disk_info"`);
-        await queryRunner.query(`DROP TYPE "disk_info_disk_type_enum"`);
         await queryRunner.query(`DROP TABLE "ebs_optimized_info"`);
-        await queryRunner.query(`DROP TABLE "device_type"`);
         await queryRunner.query(`DROP TABLE "ebs_block_device_mapping"`);
         await queryRunner.query(`DROP TABLE "ebs_block_device_type"`);
         await queryRunner.query(`DROP TYPE "ebs_block_device_type_volume_type_enum"`);
+        await queryRunner.query(`DROP TABLE "disk_info"`);
+        await queryRunner.query(`DROP TYPE "disk_info_disk_type_enum"`);
+        await queryRunner.query(`DROP TABLE "device_type"`);
         await queryRunner.query(`DROP TABLE "cpu_architecture"`);
         await queryRunner.query(`DROP TABLE "boot_mode"`);
     }
