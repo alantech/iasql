@@ -183,9 +183,10 @@ db.get('/apply/:dbAlias', async (req, res) => {
     const dbId = await getId(dbAlias, req.user);
     // Construct the ORM client with all of the entities we may wish to query
     const entities = Object.values(Modules)
-      .filter(m => m.hasOwnProperty('mappers'))
-      .map((m: any) => Object.values(m.mappers).map((ma: any) => ma.entity))
-      .flat();
+      .filter(m => m.hasOwnProperty('provides'))
+      .map((m: any) => Object.values(m.provides.entities))
+      .flat()
+      .filter(e => typeof e === 'function') as Function[];
     entities.push(IasqlModule);
     orm = await TypeormWrapper.createConn(dbId, {
       name: dbId,
@@ -256,6 +257,9 @@ db.get('/apply/:dbAlias', async (req, res) => {
           .map(r => {
             const name = r.table;
             console.log(`Checking ${name}`);
+            if (name === 'AwsListener') {
+              console.dir(r.diff, {depth:7});
+            }
             const outArr = [];
             if (r.diff.entitiesInDbOnly.length > 0) {
               console.log(`${name} has records to create`);

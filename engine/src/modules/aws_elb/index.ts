@@ -17,6 +17,7 @@ import {
   TargetGroupIpAddressTypeEnum,
   TargetTypeEnum,
 } from './entity'
+import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsElb1637275424293, } from './migration/1637275424293-aws_elb'
 import { AwsAccount, AwsSecurityGroupModule } from '..'
@@ -27,6 +28,7 @@ export const AwsElbModule: Module = new Module({
   name: 'aws_elb',
   dependencies: ['aws_account', 'aws_security_group',],
   provides: {
+    entities: allEntities,
     tables: ['aws_target_group', 'aws_load_balancer', 'aws_listener', 'aws_action',],
     // functions: ['create_ecr_repository', 'create_ecr_repository_policy'],
   },

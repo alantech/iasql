@@ -80,9 +80,10 @@ mod.post('/install', async (req, res) => {
   // module to acquire the cloud records, it may use one or more other modules it depends on, so
   // we just load them all into the TypeORM client.
   const entities = Object.values(Modules)
-    .filter(m => m.hasOwnProperty('mappers'))
-    .map((m: any) => Object.values(m.mappers).map((ma: any) => ma.entity))
-    .flat();
+    .filter(m => m.hasOwnProperty('provides'))
+    .map((m: any) => Object.values(m.provides.entities))
+    .flat()
+    .filter(e => typeof e === 'function') as Function[];
   entities.push(IasqlModule);
   const orm = await TypeormWrapper.createConn(dbId, {
     name: dbId,

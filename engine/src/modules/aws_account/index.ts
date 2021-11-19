@@ -16,11 +16,13 @@ import {
 } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsAccount1637177234221, } from './migration/1637177234221-aws_account'
+import * as allEntities from './entity'
 
 export const AwsAccount: Module = new Module({
   name: 'aws_account',
   dependencies: [],
   provides: {
+    entities: allEntities,
     tables: [
       'availability_zone',
       'availability_zone_message',

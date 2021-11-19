@@ -6,11 +6,13 @@ import { AWS, } from '../../services/gateways/aws'
 import { AwsRepository, AwsRepositoryPolicy, ImageTagMutability, } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsEcr1637082183230, } from './migration/1637082183230-aws_ecr'
+import * as allEntities from './entity'
 
 export const AwsEcrModule: Module = new Module({
   name: 'aws_ecr',
   dependencies: ['aws_account'],
   provides: {
+    entities: allEntities,
     tables: ['aws_repository', 'aws_repository_policy'],
     functions: ['create_ecr_repository', 'create_ecr_repository_policy'],
   },

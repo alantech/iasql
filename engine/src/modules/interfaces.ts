@@ -175,6 +175,7 @@ export interface ModuleInterface {
   // version: string; // TODO: Get versioning working
   dependencies: string[];
   provides: {
+    entities: { [key: string]: any, };
     tables?: string[];
     functions?: string[];
     // TODO: What other PSQL things should be tracked?
@@ -232,6 +233,7 @@ export class Module {
   // version: string; // TODO: Get versioning working
   dependencies: string[];
   provides: {
+    entities: { [key: string]: any, };
     tables?: string[];
     functions?: string[];
     context?: Context;
