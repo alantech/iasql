@@ -5,7 +5,6 @@ import { AwsSecurityGroup, AwsSecurityGroupRule, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsSecurityGroup1636587967230, } from './migration/1636587967230-aws_security_group'
-import * as allEntities from './entity'
 
 export const AwsSecurityGroupModule: Module = new Module({
   name: 'aws_security_group',
