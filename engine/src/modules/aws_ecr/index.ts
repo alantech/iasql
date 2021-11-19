@@ -7,6 +7,7 @@ import { AwsRepository, AwsRepositoryPolicy, ImageTagMutability, } from './entit
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsEcr1637082183230, } from './migration/1637082183230-aws_ecr'
 import * as allEntities from './entity'
+import { DepError } from '../../services/lazy-dep'
 
 export const AwsEcrModule: Module = new Module({
   name: 'aws_ecr',
@@ -32,7 +33,7 @@ export const AwsEcrModule: Module = new Module({
     repositoryPolicyMapper: async (rp: any, ctx: Context) => {
       const out = new AwsRepositoryPolicy();
       out.registryId = rp?.registryId;
-      out.repository = ctx.memo?.db?.AwsRepository?.rp?.repositoryName ?? await AwsEcrModule.mappers.repository.cloud.read(ctx, rp?.repositoryName);
+      out.repository = ctx.memo?.cloud?.AwsRepository?.[rp.repositoryName] ?? await AwsEcrModule.mappers.repository.cloud.read(ctx, rp?.repositoryName);
       out.policyText = rp?.policyText ?? false;
       return out;
     },
@@ -47,12 +48,12 @@ export const AwsEcrModule: Module = new Module({
       db: new Crud({
         create: async (e: AwsRepository | AwsRepository[], ctx: Context) => { await ctx.orm.save(AwsRepository, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const r = await ctx.orm.find(AwsRepository, id ? {
+          const opts = id ? {
             where: {
               repositoryName: Array.isArray(id) ? In(id) : id,
             },
-          } : undefined);
-          return r;
+          } : undefined;
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsRepository, opts) : await ctx.orm.findOne(AwsRepository, opts);
         },
         update: async (e: AwsRepository | AwsRepository[], ctx: Context) => { await ctx.orm.save(AwsRepository, e); },
         delete: async (e: AwsRepository | AwsRepository[], ctx: Context) => { await ctx.orm.remove(AwsRepository, e);},
@@ -146,20 +147,22 @@ export const AwsEcrModule: Module = new Module({
       db: new Crud({
         create: async (e: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => { await ctx.orm.save(AwsRepositoryPolicy, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const out = await ctx.orm.find(AwsRepositoryPolicy, id ? {
+          const relations = ['repository',];
+          const opts = id ? {
             where: {
               repository: { repositoryName: id }
             },
-            relations: ["repository"]
-          } : { relations: ["repository"] });
-          return out;
+            relations,
+          } : { relations, };
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsRepositoryPolicy, opts) : await ctx.orm.findOne(AwsRepositoryPolicy, opts);
         },
         update: async (rp: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => {
           const es = Array.isArray(rp) ? rp : [rp];
           for (const e of es) {
             if (!e.repository.id) {
               const r = await AwsEcrModule.mappers.repository.db.read(ctx, e.repository.repositoryName);
-              e.repository = r;
+              if (!r?.id) throw new DepError('Error retrieving generated column');
+              e.repository.id = r.id;
             }
           }
           await ctx.orm.save(AwsRepositoryPolicy, es);
