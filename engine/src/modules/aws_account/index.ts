@@ -197,7 +197,7 @@ export const AwsAccount: Module = new Module({
               vpcId: Array.isArray(id) ? In(id) : id,
             },
           } : undefined;
-          return (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsVpc, opts) : await ctx.orm.findOne(AwsVpc, opts);
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsVpc, opts) : await ctx.orm.findOne(AwsVpc, opts);
         },
         update: async (vpc: AwsVpc | AwsVpc[], ctx: Context) => {
           const es = Array.isArray(vpc) ? vpc : [vpc];
@@ -374,7 +374,7 @@ export const AwsAccount: Module = new Module({
             },
             relations,
           } : { relations };
-          return (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsSubnet, opts) : await ctx.orm.findOne(AwsSubnet, opts);
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsSubnet, opts) : await ctx.orm.findOne(AwsSubnet, opts);
         },
         update: async (sn: AwsSubnet | AwsSubnet[], ctx: Context) => {
           const es = Array.isArray(sn) ? sn : [sn];

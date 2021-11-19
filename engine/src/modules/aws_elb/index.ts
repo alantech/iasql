@@ -148,8 +148,8 @@ export const AwsElbModule: Module = new Module({
               listenerArn: Array.isArray(id) ? In(id) : id,
             },
             relations,
-          } : { relations }
-          return (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsListener, opts) : await ctx.orm.findOne(AwsListener, opts);
+          } : { relations };
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsListener, opts) : await ctx.orm.findOne(AwsListener, opts);
         },
         update: async (l: AwsListener | AwsListener[], ctx: Context) => {
           const es = Array.isArray(l) ? l : [l];
@@ -283,7 +283,7 @@ export const AwsElbModule: Module = new Module({
             },
             relations
           } : { relations };
-          return (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsLoadBalancer, opts) : await ctx.orm.findOne(AwsLoadBalancer, opts);
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsLoadBalancer, opts) : await ctx.orm.findOne(AwsLoadBalancer, opts);
         },
         update: async (lb: AwsLoadBalancer | AwsLoadBalancer[], ctx: Context) => {
           const es = Array.isArray(lb) ? lb : [lb];
@@ -416,7 +416,7 @@ export const AwsElbModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          return (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsTargetGroup, opts) : await ctx.orm.findOne(AwsTargetGroup, opts);
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsTargetGroup, opts) : await ctx.orm.findOne(AwsTargetGroup, opts);
         },
         update: async (tg: AwsTargetGroup | AwsTargetGroup[], ctx: Context) => {
           const es = Array.isArray(tg) ? tg : [tg];

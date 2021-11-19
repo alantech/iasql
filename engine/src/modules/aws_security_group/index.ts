@@ -65,7 +65,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               groupId: Array.isArray(id) ? In(id) : id,
             },
           } : undefined;
-          const sg = (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsSecurityGroup, opts) : await ctx.orm.findOne(AwsSecurityGroup, opts);
+          const sg = (!id || Array.isArray(id)) ? await ctx.orm.find(AwsSecurityGroup, opts) : await ctx.orm.findOne(AwsSecurityGroup, opts);
           if (Array.isArray(sg)) {
             for (const s of sg) {
               const sgrIds = (await ctx.orm.query(`
@@ -238,7 +238,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               securityGroupRuleId: Array.isArray(id) ? In(id) : id,
             },
           } : undefined;
-          const sgr = (Array.isArray(id) || !opts) ? await ctx.orm.find(AwsSecurityGroupRule, opts) : await ctx.orm.findOne(AwsSecurityGroupRule, opts);
+          const sgr = (!id || Array.isArray(id)) ? await ctx.orm.find(AwsSecurityGroupRule, opts) : await ctx.orm.findOne(AwsSecurityGroupRule, opts);
           if (Array.isArray(sgr)) {
             // This is ridiculous. Why can't I access the `security_group_id` field directly?
             await Promise.all(sgr.map(async (o: AwsSecurityGroupRule) => {
