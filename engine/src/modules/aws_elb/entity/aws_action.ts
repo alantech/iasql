@@ -28,7 +28,7 @@ export class AwsAction {
   })
   actionType: ActionTypeEnum;
 
-  @ManyToOne(() => AwsTargetGroup, { nullable: false, })
+  @ManyToOne(() => AwsTargetGroup, { nullable: false, eager: true, })
   @JoinColumn({
     name: 'target_group_id',
   })
