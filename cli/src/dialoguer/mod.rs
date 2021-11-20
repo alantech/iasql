@@ -10,10 +10,17 @@ pub fn green(el: &str) -> StyledObject<String> {
 }
 
 pub fn multiselect(prompt: &str, items: &Vec<String>) -> Vec<usize> {
-  MultiSelect::with_theme(&ColorfulTheme::default())
+  // Override ColorfulTheme multiselect default styling for better UX
+  // checked_item_prefix: style("✔".to_string()).for_stderr().green(),
+  // unchecked_item_prefix: style("✔".to_string()).for_stderr().black(),
+  let theme = ColorfulTheme {
+    checked_item_prefix: style(format!(" [{}]", green("✔"))).for_stderr(),
+    unchecked_item_prefix: style(" [ ]".to_string()).for_stderr(),
+    ..ColorfulTheme::default()
+  };
+  MultiSelect::with_theme(&theme)
     .with_prompt(prompt)
     .items(items)
-    .defaults(&[true]) // select the first option to make selection more obvious
     .interact()
     .unwrap()
 }
