@@ -4,7 +4,10 @@
 // - unchecked_item_prefix
 // - multiselect_active_item_prefix
 // - format_multi_select_prompt_item
-use dialoguer::{console::{style, Style, StyledObject}, theme::Theme};
+use dialoguer::{
+  console::{style, Style, StyledObject},
+  theme::Theme,
+};
 use std::fmt;
 
 /// A colorful theme
@@ -53,298 +56,294 @@ pub struct ColorfulTheme {
 
 impl Default for ColorfulTheme {
   fn default() -> ColorfulTheme {
-      ColorfulTheme {
-          defaults_style: Style::new().for_stderr().cyan(),
-          prompt_style: Style::new().for_stderr().bold(),
-          prompt_prefix: style("?".to_string()).for_stderr().yellow(),
-          prompt_suffix: style("›".to_string()).for_stderr().black().bright(),
-          success_prefix: style("✔".to_string()).for_stderr().green(),
-          success_suffix: style("·".to_string()).for_stderr().black().bright(),
-          error_prefix: style("✘".to_string()).for_stderr().red(),
-          error_style: Style::new().for_stderr().red(),
-          hint_style: Style::new().for_stderr().black().bright(),
-          values_style: Style::new().for_stderr().green(),
-          active_item_style: Style::new().for_stderr().cyan(),
-          inactive_item_style: Style::new().for_stderr(),
-          active_item_prefix: style("❯".to_string()).for_stderr().green(),
-          multiselect_active_item_prefix: style("❯".to_string()).for_stderr().cyan(),
-          inactive_item_prefix: style(" ".to_string()).for_stderr(),
-          checked_item_prefix: style("[✔]".to_string()).green().for_stderr(),
-          unchecked_item_prefix: style("[ ]".to_string()).for_stderr(),
-          picked_item_prefix: style("❯".to_string()).for_stderr().green(),
-          unpicked_item_prefix: style(" ".to_string()).for_stderr(),
-          inline_selections: true,
-      }
+    ColorfulTheme {
+      defaults_style: Style::new().for_stderr().cyan(),
+      prompt_style: Style::new().for_stderr().bold(),
+      prompt_prefix: style("?".to_string()).for_stderr().yellow(),
+      prompt_suffix: style("›".to_string()).for_stderr().black().bright(),
+      success_prefix: style("✔".to_string()).for_stderr().green(),
+      success_suffix: style("·".to_string()).for_stderr().black().bright(),
+      error_prefix: style("✘".to_string()).for_stderr().red(),
+      error_style: Style::new().for_stderr().red(),
+      hint_style: Style::new().for_stderr().black().bright(),
+      values_style: Style::new().for_stderr().green(),
+      active_item_style: Style::new().for_stderr().cyan(),
+      inactive_item_style: Style::new().for_stderr(),
+      active_item_prefix: style("❯".to_string()).for_stderr().green(),
+      multiselect_active_item_prefix: style("❯".to_string()).for_stderr().cyan(),
+      inactive_item_prefix: style(" ".to_string()).for_stderr(),
+      checked_item_prefix: style("[✔]".to_string()).green().for_stderr(),
+      unchecked_item_prefix: style("[ ]".to_string()).for_stderr(),
+      picked_item_prefix: style("❯".to_string()).for_stderr().green(),
+      unpicked_item_prefix: style(" ".to_string()).for_stderr(),
+      inline_selections: true,
+    }
   }
 }
 
 impl Theme for ColorfulTheme {
   /// Formats a prompt.
   fn format_prompt(&self, f: &mut dyn fmt::Write, prompt: &str) -> fmt::Result {
-      if !prompt.is_empty() {
-          write!(
-              f,
-              "{} {} ",
-              &self.prompt_prefix,
-              self.prompt_style.apply_to(prompt)
-          )?;
-      }
+    if !prompt.is_empty() {
+      write!(
+        f,
+        "{} {} ",
+        &self.prompt_prefix,
+        self.prompt_style.apply_to(prompt)
+      )?;
+    }
 
-      write!(f, "{}", &self.prompt_suffix)
+    write!(f, "{}", &self.prompt_suffix)
   }
 
   /// Formats an error
   fn format_error(&self, f: &mut dyn fmt::Write, err: &str) -> fmt::Result {
-      write!(
-          f,
-          "{} {}",
-          &self.error_prefix,
-          self.error_style.apply_to(err)
-      )
+    write!(
+      f,
+      "{} {}",
+      &self.error_prefix,
+      self.error_style.apply_to(err)
+    )
   }
 
   /// Formats an input prompt.
   fn format_input_prompt(
-      &self,
-      f: &mut dyn fmt::Write,
-      prompt: &str,
-      default: Option<&str>,
+    &self,
+    f: &mut dyn fmt::Write,
+    prompt: &str,
+    default: Option<&str>,
   ) -> fmt::Result {
-      if !prompt.is_empty() {
-          write!(
-              f,
-              "{} {} ",
-              &self.prompt_prefix,
-              self.prompt_style.apply_to(prompt)
-          )?;
-      }
+    if !prompt.is_empty() {
+      write!(
+        f,
+        "{} {} ",
+        &self.prompt_prefix,
+        self.prompt_style.apply_to(prompt)
+      )?;
+    }
 
-      match default {
-          Some(default) => write!(
-              f,
-              "{} {} ",
-              self.hint_style.apply_to(&format!("({})", default)),
-              &self.prompt_suffix
-          ),
-          None => write!(f, "{} ", &self.prompt_suffix),
-      }
+    match default {
+      Some(default) => write!(
+        f,
+        "{} {} ",
+        self.hint_style.apply_to(&format!("({})", default)),
+        &self.prompt_suffix
+      ),
+      None => write!(f, "{} ", &self.prompt_suffix),
+    }
   }
 
   /// Formats a confirm prompt.
   fn format_confirm_prompt(
-      &self,
-      f: &mut dyn fmt::Write,
-      prompt: &str,
-      default: Option<bool>,
+    &self,
+    f: &mut dyn fmt::Write,
+    prompt: &str,
+    default: Option<bool>,
   ) -> fmt::Result {
-      if !prompt.is_empty() {
-          write!(
-              f,
-              "{} {} ",
-              &self.prompt_prefix,
-              self.prompt_style.apply_to(prompt)
-          )?;
-      }
+    if !prompt.is_empty() {
+      write!(
+        f,
+        "{} {} ",
+        &self.prompt_prefix,
+        self.prompt_style.apply_to(prompt)
+      )?;
+    }
 
-      match default {
-          None => write!(
-              f,
-              "{} {}",
-              self.hint_style.apply_to("(y/n)"),
-              &self.prompt_suffix
-          ),
-          Some(true) => write!(
-              f,
-              "{} {} {}",
-              self.hint_style.apply_to("(y/n)"),
-              &self.prompt_suffix,
-              self.defaults_style.apply_to("yes")
-          ),
-          Some(false) => write!(
-              f,
-              "{} {} {}",
-              self.hint_style.apply_to("(y/n)"),
-              &self.prompt_suffix,
-              self.defaults_style.apply_to("no")
-          ),
-      }
+    match default {
+      None => write!(
+        f,
+        "{} {}",
+        self.hint_style.apply_to("(y/n)"),
+        &self.prompt_suffix
+      ),
+      Some(true) => write!(
+        f,
+        "{} {} {}",
+        self.hint_style.apply_to("(y/n)"),
+        &self.prompt_suffix,
+        self.defaults_style.apply_to("yes")
+      ),
+      Some(false) => write!(
+        f,
+        "{} {} {}",
+        self.hint_style.apply_to("(y/n)"),
+        &self.prompt_suffix,
+        self.defaults_style.apply_to("no")
+      ),
+    }
   }
 
   /// Formats a confirm prompt after selection.
   fn format_confirm_prompt_selection(
-      &self,
-      f: &mut dyn fmt::Write,
-      prompt: &str,
-      selection: Option<bool>,
+    &self,
+    f: &mut dyn fmt::Write,
+    prompt: &str,
+    selection: Option<bool>,
   ) -> fmt::Result {
-      if !prompt.is_empty() {
-          write!(
-              f,
-              "{} {} ",
-              &self.success_prefix,
-              self.prompt_style.apply_to(prompt)
-          )?;
-      }
-      let selection = selection.map(|b| if b { "yes" } else { "no" });
+    if !prompt.is_empty() {
+      write!(
+        f,
+        "{} {} ",
+        &self.success_prefix,
+        self.prompt_style.apply_to(prompt)
+      )?;
+    }
+    let selection = selection.map(|b| if b { "yes" } else { "no" });
 
-      match selection {
-          Some(selection) => {
-              write!(
-                  f,
-                  "{} {}",
-                  &self.success_suffix,
-                  self.values_style.apply_to(selection)
-              )
-          }
-          None => {
-              write!(f, "{}", &self.success_suffix)
-          }
+    match selection {
+      Some(selection) => {
+        write!(
+          f,
+          "{} {}",
+          &self.success_suffix,
+          self.values_style.apply_to(selection)
+        )
       }
+      None => {
+        write!(f, "{}", &self.success_suffix)
+      }
+    }
   }
 
   /// Formats an input prompt after selection.
   fn format_input_prompt_selection(
-      &self,
-      f: &mut dyn fmt::Write,
-      prompt: &str,
-      sel: &str,
+    &self,
+    f: &mut dyn fmt::Write,
+    prompt: &str,
+    sel: &str,
   ) -> fmt::Result {
-      if !prompt.is_empty() {
-          write!(
-              f,
-              "{} {} ",
-              &self.success_prefix,
-              self.prompt_style.apply_to(prompt)
-          )?;
-      }
-
+    if !prompt.is_empty() {
       write!(
-          f,
-          "{} {}",
-          &self.success_suffix,
-          self.values_style.apply_to(sel)
-      )
+        f,
+        "{} {} ",
+        &self.success_prefix,
+        self.prompt_style.apply_to(prompt)
+      )?;
+    }
+
+    write!(
+      f,
+      "{} {}",
+      &self.success_suffix,
+      self.values_style.apply_to(sel)
+    )
   }
 
   /// Formats a password prompt after selection.
-  fn format_password_prompt_selection(
-      &self,
-      f: &mut dyn fmt::Write,
-      prompt: &str,
-  ) -> fmt::Result {
-      self.format_input_prompt_selection(f, prompt, "********")
+  fn format_password_prompt_selection(&self, f: &mut dyn fmt::Write, prompt: &str) -> fmt::Result {
+    self.format_input_prompt_selection(f, prompt, "********")
   }
 
   /// Formats a multi select prompt after selection.
   fn format_multi_select_prompt_selection(
-      &self,
-      f: &mut dyn fmt::Write,
-      prompt: &str,
-      selections: &[&str],
+    &self,
+    f: &mut dyn fmt::Write,
+    prompt: &str,
+    selections: &[&str],
   ) -> fmt::Result {
-      if !prompt.is_empty() {
-          write!(
-              f,
-              "{} {} ",
-              &self.success_prefix,
-              self.prompt_style.apply_to(prompt)
-          )?;
+    if !prompt.is_empty() {
+      write!(
+        f,
+        "{} {} ",
+        &self.success_prefix,
+        self.prompt_style.apply_to(prompt)
+      )?;
+    }
+
+    write!(f, "{} ", &self.success_suffix)?;
+
+    if self.inline_selections {
+      for (idx, sel) in selections.iter().enumerate() {
+        write!(
+          f,
+          "{}{}",
+          if idx == 0 { "" } else { ", " },
+          self.values_style.apply_to(sel)
+        )?;
       }
+    }
 
-      write!(f, "{} ", &self.success_suffix)?;
-
-      if self.inline_selections {
-          for (idx, sel) in selections.iter().enumerate() {
-              write!(
-                  f,
-                  "{}{}",
-                  if idx == 0 { "" } else { ", " },
-                  self.values_style.apply_to(sel)
-              )?;
-          }
-      }
-
-      Ok(())
+    Ok(())
   }
 
   /// Formats a select prompt item.
   fn format_select_prompt_item(
-      &self,
-      f: &mut dyn fmt::Write,
-      text: &str,
-      active: bool,
+    &self,
+    f: &mut dyn fmt::Write,
+    text: &str,
+    active: bool,
   ) -> fmt::Result {
-      let details = match active {
-          true => (
-              &self.active_item_prefix,
-              self.active_item_style.apply_to(text),
-          ),
-          false => (
-              &self.inactive_item_prefix,
-              self.inactive_item_style.apply_to(text),
-          ),
-      };
+    let details = match active {
+      true => (
+        &self.active_item_prefix,
+        self.active_item_style.apply_to(text),
+      ),
+      false => (
+        &self.inactive_item_prefix,
+        self.inactive_item_style.apply_to(text),
+      ),
+    };
 
-      write!(f, "{} {}", details.0, details.1)
+    write!(f, "{} {}", details.0, details.1)
   }
 
   /// Formats a multi select prompt item.
   fn format_multi_select_prompt_item(
-      &self,
-      f: &mut dyn fmt::Write,
-      text: &str,
-      checked: bool,
-      active: bool,
+    &self,
+    f: &mut dyn fmt::Write,
+    text: &str,
+    checked: bool,
+    active: bool,
   ) -> fmt::Result {
-      let details = match (checked, active) {
-          (true, true) => (
-              &self.multiselect_active_item_prefix,
-              &self.checked_item_prefix,
-              self.active_item_style.apply_to(text),
-          ),
-          (true, false) => (
-              &self.inactive_item_prefix,
-              &self.checked_item_prefix,
-              self.inactive_item_style.apply_to(text),
-          ),
-          (false, true) => (
-              &self.multiselect_active_item_prefix,
-              &self.unchecked_item_prefix,
-              self.active_item_style.apply_to(text),
-          ),
-          (false, false) => (
-              &self.inactive_item_prefix,
-              &self.unchecked_item_prefix,
-              self.inactive_item_style.apply_to(text),
-          ),
-      };
+    let details = match (checked, active) {
+      (true, true) => (
+        &self.multiselect_active_item_prefix,
+        &self.checked_item_prefix,
+        self.active_item_style.apply_to(text),
+      ),
+      (true, false) => (
+        &self.inactive_item_prefix,
+        &self.checked_item_prefix,
+        self.inactive_item_style.apply_to(text),
+      ),
+      (false, true) => (
+        &self.multiselect_active_item_prefix,
+        &self.unchecked_item_prefix,
+        self.active_item_style.apply_to(text),
+      ),
+      (false, false) => (
+        &self.inactive_item_prefix,
+        &self.unchecked_item_prefix,
+        self.inactive_item_style.apply_to(text),
+      ),
+    };
 
-      write!(f, "{} {} {}", details.0, details.1, details.2)
+    write!(f, "{} {} {}", details.0, details.1, details.2)
   }
 
   /// Formats a sort prompt item.
   fn format_sort_prompt_item(
-      &self,
-      f: &mut dyn fmt::Write,
-      text: &str,
-      picked: bool,
-      active: bool,
+    &self,
+    f: &mut dyn fmt::Write,
+    text: &str,
+    picked: bool,
+    active: bool,
   ) -> fmt::Result {
-      let details = match (picked, active) {
-          (true, true) => (
-              &self.picked_item_prefix,
-              self.active_item_style.apply_to(text),
-          ),
-          (false, true) => (
-              &self.unpicked_item_prefix,
-              self.active_item_style.apply_to(text),
-          ),
-          (_, false) => (
-              &self.unpicked_item_prefix,
-              self.inactive_item_style.apply_to(text),
-          ),
-      };
+    let details = match (picked, active) {
+      (true, true) => (
+        &self.picked_item_prefix,
+        self.active_item_style.apply_to(text),
+      ),
+      (false, true) => (
+        &self.unpicked_item_prefix,
+        self.active_item_style.apply_to(text),
+      ),
+      (_, false) => (
+        &self.unpicked_item_prefix,
+        self.inactive_item_style.apply_to(text),
+      ),
+    };
 
-      write!(f, "{} {}", details.0, details.1)
+    write!(f, "{} {}", details.0, details.1)
   }
 }
