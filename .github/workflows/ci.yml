@@ -95,7 +95,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
           AWS_REGION: us-east-1
-          A0_ENABLED: true
+          A0_ENABLED: false # Temporary, please revert 
           A0_DOMAIN: https://auth.iasql.com/
           A0_AUDIENCE: https://api.iasql.com
 
