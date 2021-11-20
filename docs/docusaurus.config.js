@@ -98,6 +98,7 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
         ],
       },
       prism: {
+        additionalLanguages: ['powershell'],
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
       },
