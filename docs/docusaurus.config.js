@@ -52,6 +52,8 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
           alt: 'logo',
           src: 'img/logo.png',
           srcDark: 'img/logo_dark.png',
+          href: 'https://iasql.com',
+          target: '_self',
         },
         items: [
           {
