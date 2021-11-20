@@ -5,7 +5,7 @@ on:
       - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
 # pushing releases to an empty public repo since this repo is private
-name: Release CLI in alantech/iasql-releases
+name: Release CLI in iasql/releases
 
 defaults:
   run:
@@ -31,7 +31,7 @@ jobs:
         # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
         # to push to alantech/iasql-releases
         token: ${{ secrets.GH_PAT }}
-        repository: alantech/iasql-releases
+        repository: iasql/releases
         files: /tmp/iasql-ubuntu.tar.gz
 
   windows:
@@ -52,7 +52,7 @@ jobs:
         # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
         # to push to alantech/iasql-releases
         token: ${{ secrets.GH_PAT }}
-        repository: alantech/iasql-releases
+        repository: iasql/releases
         files: D:\a\iasql\iasql\cli\iasql-windows.zip
 
   macos:
@@ -74,5 +74,5 @@ jobs:
         # default GITHUB_TOKEN only has access to this repo so using @depombo's PAT
         # to push to alantech/iasql-releases
         token: ${{ secrets.GH_PAT }}
-        repository: alantech/iasql-releases
+        repository: iasql/releases
         files: /tmp/iasql-macos.tar.gz
