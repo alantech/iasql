@@ -1,5 +1,5 @@
-const lightCodeTheme = require('prism-react-renderer/themes/github');
-const darkCodeTheme = require('prism-react-renderer/themes/dracula');
+const lightCodeTheme = require('prism-react-renderer/themes/nightOwlLight');
+const darkCodeTheme = require('prism-react-renderer/themes/nightOwl');
 
 const baseConfig = {
   url: 'https://docs.iasql.com',
@@ -19,9 +19,7 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
   trailingSlash: true,
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/logo.png',
-  organizationName: 'alantech', // Usually your GitHub org/user name.
-  projectName: 'iasql', // Usually your repo name.
+  favicon: 'img/favicon.png',
 
   customFields: config,
 
@@ -44,20 +42,18 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
+      colorMode: {
+        respectPrefersColorScheme: true,
+      },
       navbar: {
         title: '',
         logo: {
+          width: '70',
           alt: 'logo',
           src: 'img/logo.png',
           srcDark: 'img/logo_dark.png',
         },
         items: [
-          {
-            to: 'https://iasql.com',
-            target: '_self',
-            label: 'Home',
-            position: 'right'
-          },
           {
             to: 'https://blog.iasql.com',
             target: '_self',
@@ -67,19 +63,19 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
         ],
       },
       footer: {
-        style: 'dark',
+        style: 'light',
         links: [
           {
             title: 'Product',
             items: [
               {
                 label: 'Home',
-                to: 'https://iasql.com',
+                href: 'https://iasql.com',
                 target: '_self',
               },
               {
                 label: 'Blog',
-                to: 'https://blog.iasql.com',
+                href: 'https://blog.iasql.com',
                 target: '_self',
               },
             ],
