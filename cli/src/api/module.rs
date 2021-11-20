@@ -34,7 +34,7 @@ pub async fn list(db: Option<&str>) {
 pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
   let dbs = get_dbs().await;
   if db_opt.is_none() {
-    let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
+    let selection = dlg::select_with_default("Pick IaSQL db", &dbs, 0);
     let db = &dbs[selection];
     db.clone()
   } else {
