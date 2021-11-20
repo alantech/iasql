@@ -57,7 +57,7 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
   let all = list_mods(None).await;
   if mods_opt.is_none() {
     let idxs = dlg::multiselect(
-      "Press the Spacebar to (de)select modules to remove and press Enter to submit",
+      "Use arrows to move, space to (de)select modules to remove and enter to submit",
       &installed,
     );
     if idxs.len() == 0 {
@@ -107,7 +107,7 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
   if mods_opt.is_none() {
     let available = all.into_iter().filter(|x| !installed.contains(x)).collect();
     let idxs = dlg::multiselect(
-      "Press the Spacebar to (de)select modules to install and press Enter to submit",
+      "Use arrows to move, space to (de)select modules to install and enter to submit",
       &available,
     );
     if idxs.len() == 0 {
