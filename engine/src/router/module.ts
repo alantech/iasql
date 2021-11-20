@@ -150,18 +150,14 @@ ${Object.keys(tableCollisions)
   try {
     for (const md of leafToRootOrder) {
       if (md.migrations?.preinstall) {
-        console.log('huh');
         await md.migrations.preinstall(queryRunner);
       }
     }
     for (const md of rootToLeafOrder) {
       if (md.migrations?.preinstall) {
-        console.log('huh');
         await md.migrations.preinstall(queryRunner);
       }
       if (md.migrations?.postinstall) {
-        console.log('expected');
-        console.log(md.migrations.postinstall.toString());
         await md.migrations.postinstall(queryRunner);
       }
       const e = new IasqlModule();
