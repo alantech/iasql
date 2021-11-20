@@ -143,10 +143,6 @@ ${Object.keys(tableCollisions)
     return 0;
   });
   const leafToRootOrder = [...rootToLeafOrder].reverse();
-  console.dir({
-    rootToLeafOrder,
-    leafToRootOrder,
-  }, { depth: 4, });
   // Actually run the installation. First running all of the preinstall scripts from leaf-to-root,
   // then all of the postinstall scripts from root-to-leaf. Wrapped in a transaction so any failure
   // at this point when we're actually mutating the database doesn't leave things in a busted state.
@@ -182,7 +178,6 @@ ${Object.keys(tableCollisions)
   } finally {
     await queryRunner.release();
   }
-  console.log('made it!');
   // For all newly installed modules, query the cloud state, if any, and save it to the database.
   // Since the context requires all installed modules and that has changed, for simplicity's sake
   // we're re-loading the modules and constructing the context that way, first, but then iterating
@@ -233,7 +228,11 @@ mod.post('/remove', async (req, res) => {
   }
   // Grab all of the entities from the module plus the IaSQL Module entity itself and create the
   // TypeORM connection with it.
-  const entities = modules.map((m: any) => Object.values(m.mappers).map((ma: any) => ma.entity)).flat();
+  const entities = Object.values(Modules)
+    .filter(m => m.hasOwnProperty('provides'))
+    .map((m: any) => Object.values(m.provides.entities))
+    .flat()
+    .filter(e => typeof e === 'function') as Function[];
   entities.push(IasqlModule);
   const orm = await TypeormWrapper.createConn(dbId, {
     name: dbId,
