@@ -1,5 +1,8 @@
 use dialoguer::console::{style, StyledObject};
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select, Validator};
+use dialoguer::{Confirm, Input, MultiSelect, Select, Validator};
+use theme::ColorfulTheme;
+
+pub mod theme;
 
 pub fn bold(el: &str) -> StyledObject<String> {
   style(format!("{}", el)).bold()
@@ -10,15 +13,7 @@ pub fn green(el: &str) -> StyledObject<String> {
 }
 
 pub fn multiselect(prompt: &str, items: &Vec<String>) -> Vec<usize> {
-  // Override ColorfulTheme multiselect default styling for better UX
-  // checked_item_prefix: style("✔".to_string()).for_stderr().green(),
-  // unchecked_item_prefix: style("✔".to_string()).for_stderr().black(),
-  let theme = ColorfulTheme {
-    checked_item_prefix: style(format!(" [{}]", green("✔"))).for_stderr(),
-    unchecked_item_prefix: style(" [ ]".to_string()).for_stderr(),
-    ..ColorfulTheme::default()
-  };
-  MultiSelect::with_theme(&theme)
+  MultiSelect::with_theme(&ColorfulTheme::default())
     .with_prompt(prompt)
     .items(items)
     .interact()
