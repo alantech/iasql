@@ -2,7 +2,7 @@
 // Changes:
 // - checked_item_prefix
 // - unchecked_item_prefix
-// - multiselect_active_item_prefix
+// - active_item_prefix
 // - format_multi_select_prompt_item
 use dialoguer::{
   console::{style, Style, StyledObject},
@@ -38,8 +38,6 @@ pub struct ColorfulTheme {
   pub inactive_item_style: Style,
   /// Active item in select prefix value and style
   pub active_item_prefix: StyledObject<String>,
-  /// Active item in multiselect prefix value and style
-  pub multiselect_active_item_prefix: StyledObject<String>,
   /// Inctive item in select prefix value and style
   pub inactive_item_prefix: StyledObject<String>,
   /// Checked item in multi select prefix value and style
@@ -69,8 +67,7 @@ impl Default for ColorfulTheme {
       values_style: Style::new().for_stderr().green(),
       active_item_style: Style::new().for_stderr().cyan(),
       inactive_item_style: Style::new().for_stderr(),
-      active_item_prefix: style("❯".to_string()).for_stderr().green(),
-      multiselect_active_item_prefix: style("❯".to_string()).for_stderr().cyan(),
+      active_item_prefix: style("❯".to_string()).for_stderr().cyan(),
       inactive_item_prefix: style(" ".to_string()).for_stderr(),
       checked_item_prefix: style("[✔]".to_string()).green().for_stderr(),
       unchecked_item_prefix: style("[ ]".to_string()).for_stderr(),
@@ -297,7 +294,7 @@ impl Theme for ColorfulTheme {
   ) -> fmt::Result {
     let details = match (checked, active) {
       (true, true) => (
-        &self.multiselect_active_item_prefix,
+        &self.active_item_prefix,
         &self.checked_item_prefix,
         self.active_item_style.apply_to(text),
       ),
@@ -307,7 +304,7 @@ impl Theme for ColorfulTheme {
         self.inactive_item_style.apply_to(text),
       ),
       (false, true) => (
-        &self.multiselect_active_item_prefix,
+        &self.active_item_prefix,
         &self.unchecked_item_prefix,
         self.active_item_style.apply_to(text),
       ),
