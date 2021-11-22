@@ -14,11 +14,6 @@ struct Module {
   dependencies: Vec<String>,
 }
 
-struct DisplayMod {
-  name: String,
-  dependencies: String,
-}
-
 async fn list_mod_names(db: Option<&str>) -> Vec<String> {
   list_mods(db).await.into_iter().map(|x| x.name).collect()
 }
@@ -58,6 +53,10 @@ pub async fn list(db: Option<&str>) {
     ..Column::default()
   };
   table.columns.insert(1, column);
+  struct DisplayMod {
+    name: String,
+    dependencies: String,
+  }
   let mods: Vec<DisplayMod> = list_mods(db)
     .await
     .iter()
