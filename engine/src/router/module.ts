@@ -32,10 +32,11 @@ export const mod = express.Router();
 // Needed at the beginning
 mod.post('/list', async (req, res) => {
   const { all, installed, dbAlias } = req.body;
-  if (all) {
-    res.json(Object.values(Modules)
+  const allModules = Object.values(Modules)
     .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name'))
-    .map(m => m.name));
+    .map((m: any) => ({'name': m.name, 'dependencies': m.dependencies}));
+  if (all) {
+    res.json(allModules);
   } else if (installed && dbAlias) {
     const dbId = await getId(dbAlias, req.user);
     const orm = await TypeormWrapper.createConn(dbId, {
@@ -48,9 +49,10 @@ mod.post('/list', async (req, res) => {
       namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
     });
     const modules = await orm.find(IasqlModule);
-    res.json(modules.map((m: IasqlModule) => m.name));
+    const installed = modules.map((m: IasqlModule) => (m.name));
+    res.json(allModules.filter(m => installed.includes(m.name)));
   } else {
-    res.end(JSON.stringify("ERROR", undefined, '  '));
+    res.status(500).end('failure to list modules. invalid request parameters');
   }
 });
 
@@ -168,9 +170,9 @@ ${Object.keys(tableCollisions)
       await orm.save(IasqlModule, e);
     }
     await queryRunner.commitTransaction();
-  } catch (e) {
+  } catch (e: any) {
     await queryRunner.rollbackTransaction();
-    return res.status(500).json(`Error: ${(e as any).message}`);
+    return res.status(500).end(`failure to install module: ${e?.message ?? ''}`);
   } finally {
     await queryRunner.release();
   }
@@ -282,9 +284,9 @@ mod.post('/remove', async (req, res) => {
       await orm.remove(IasqlModule, e);
     }
     await queryRunner.commitTransaction();
-  } catch (e) {
+  } catch (e: any) {
     await queryRunner.rollbackTransaction();
-    return res.json(`Error: ${(e as any).message}`);
+    return res.status(500).end(`failure to remove module: ${e?.message ?? ''}`);
   } finally {
     await queryRunner.release();
   }
