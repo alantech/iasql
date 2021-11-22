@@ -49,8 +49,8 @@ mod.post('/list', async (req, res) => {
       namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
     });
     const modules = await orm.find(IasqlModule);
-    const installed = modules.map((m: IasqlModule) => (m.name));
-    res.json(allModules.filter(m => installed.includes(m.name)));
+    const modsInstalled = modules.map((m: IasqlModule) => (m.name));
+    res.json(allModules.filter(m => modsInstalled.includes(m.name)));
   } else {
     res.status(500).end('failure to list modules. invalid request parameters');
   }

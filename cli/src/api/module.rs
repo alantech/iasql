@@ -49,7 +49,7 @@ pub async fn list(db: Option<&str>) {
   let mut table = AsciiTable::default();
   table.max_width = 140;
   let column = Column {
-    header: "Name".into(),
+    header: "Module Name".into(),
     ..Column::default()
   };
   table.columns.insert(0, column);
@@ -73,7 +73,6 @@ pub async fn list(db: Option<&str>) {
     row.push(&m.dependencies);
     mod_data.push(row);
   }
-  println!("{}:\n", dlg::bold("IaSQL Modules"));
   table.print(mod_data);
 }
 
