@@ -84,8 +84,8 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
     if is_installed.is_some() {
       println!(
         "Err: module {} is not installed in {}",
-        dlg::bold(db),
-        dlg::bold(is_installed.unwrap())
+        dlg::bold(is_installed.unwrap()),
+        dlg::bold(db)
       );
       std::process::exit(1);
     }
@@ -134,8 +134,8 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
     if is_installed.is_some() {
       println!(
         "Err: module {} is already installed in {}",
-        dlg::bold(db),
-        dlg::bold(is_installed.unwrap())
+        dlg::bold(is_installed.unwrap()),
+        dlg::bold(db)
       );
       std::process::exit(1);
     }
