@@ -15,7 +15,7 @@ struct Module {
 }
 
 async fn list_mod_names(db: Option<&str>) -> Vec<String> {
-  list_mods(db).await.into_iter().map(|x| x.name).collect()
+  list_mods(db).await.into_iter().map(|m| m.name).collect()
 }
 
 async fn list_mods(db: Option<&str>) -> Vec<Module> {
