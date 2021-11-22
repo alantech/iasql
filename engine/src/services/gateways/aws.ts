@@ -71,6 +71,16 @@ import {
   paginateDescribeLoadBalancers,
   paginateDescribeTargetGroups,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
+import {
+  CreateClusterCommand,
+  CreateClusterCommandInput,
+  DeleteClusterCommand,
+  DescribeClustersCommand,
+  ECSClient,
+  paginateListClusters,
+  paginateListTasks,
+  waitUntilTasksStopped,
+} from '@aws-sdk/client-ecs'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -86,6 +96,7 @@ export class AWS {
   private ec2client: EC2Client
   private ecrClient: ECRClient
   private elbClient: ElasticLoadBalancingV2Client
+  private ecsClient: ECSClient
   private credentials: AWSCreds
   public region: string
 
@@ -95,6 +106,7 @@ export class AWS {
     this.ec2client = new EC2Client(config);
     this.ecrClient = new ECRClient(config);
     this.elbClient = new ElasticLoadBalancingV2Client(config);
+    this.ecsClient = new ECSClient(config);
   }
 
   async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
@@ -606,5 +618,73 @@ export class AWS {
       new DescribeSubnetsCommand({ SubnetIds: [id], })
     );
     return subnets?.Subnets?.[0];
+  }
+
+  async createCluster(input: CreateClusterCommandInput) {
+    const result = await this.ecsClient.send(
+      new CreateClusterCommand(input)
+    );
+    return result.cluster;
+  }
+
+  async getClusters() {
+    const clusterArns: string[] = [];
+    const paginator = paginateListClusters({
+      client: this.ecsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      clusterArns.push(...(page.clusterArns ?? []));
+    }
+    const result = await this.ecsClient.send(
+      new DescribeClustersCommand({
+        clusters: clusterArns
+      })
+    );
+    return result.clusters;
+  }
+
+  async getCluster(id: string) {
+    const cluster = await this.ecsClient.send(
+      new DescribeClustersCommand({
+        clusters: [id]
+      })
+    );
+    return cluster.clusters?.[0];
+  }
+
+  async getTasksArns(cluster: string) {
+    const tasksArns: string[] = [];
+    const paginator = paginateListTasks({
+      client: this.ecsClient,
+      pageSize: 25,
+    }, {
+      cluster,
+    });
+    for await (const page of paginator) {
+      tasksArns.push(...(page.taskArns ?? []));
+    }
+    return tasksArns;
+  }
+
+  async deleteCluster(name: string) {
+    const tasks = await this.getTasksArns(name);
+    if (tasks.length) {
+      await waitUntilTasksStopped({
+        client: this.ecsClient,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      }, {
+        cluster: name,
+        tasks,
+      });
+    }
+    await this.ecsClient.send(
+      new DeleteClusterCommand({
+        cluster: name,
+      })
+    );
   }
 }
