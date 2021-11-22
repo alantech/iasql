@@ -1,5 +1,8 @@
 use dialoguer::console::{style, StyledObject};
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select, Validator};
+use dialoguer::{Confirm, Input, MultiSelect, Select, Validator};
+use theme::ColorfulTheme;
+
+pub mod theme;
 
 pub fn bold(el: &str) -> StyledObject<String> {
   style(format!("{}", el)).bold()
@@ -13,7 +16,6 @@ pub fn multiselect(prompt: &str, items: &Vec<String>) -> Vec<usize> {
   MultiSelect::with_theme(&ColorfulTheme::default())
     .with_prompt(prompt)
     .items(items)
-    .defaults(&[true]) // select the first option to make selection more obvious
     .interact()
     .unwrap()
 }

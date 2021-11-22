@@ -1,4 +1,5 @@
 export * from './aws_account'
+export * from './aws_ec2'
 export * from './aws_ecr'
 export * from './aws_ecs'
 export * from './aws_elb'
