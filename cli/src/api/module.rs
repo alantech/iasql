@@ -80,11 +80,11 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
       );
       std::process::exit(1);
     }
-    let is_installed = mods.iter().find(|e| !installed.contains(e));
-    if is_installed.is_some() {
+    let missing = mods.iter().find(|e| !installed.contains(e));
+    if missing.is_some() {
       println!(
         "Err: module {} is not installed in {}",
-        dlg::bold(is_installed.unwrap()),
+        dlg::bold(missing.unwrap()),
         dlg::bold(db)
       );
       std::process::exit(1);
@@ -130,7 +130,7 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
       );
       std::process::exit(1);
     }
-    let is_installed = mods.iter().find(|e| !installed.contains(e));
+    let is_installed = mods.iter().find(|e| installed.contains(e));
     if is_installed.is_some() {
       println!(
         "Err: module {} is already installed in {}",
