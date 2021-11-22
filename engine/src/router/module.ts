@@ -170,7 +170,7 @@ ${Object.keys(tableCollisions)
     await queryRunner.commitTransaction();
   } catch (e) {
     await queryRunner.rollbackTransaction();
-    return res.json(`Error: ${(e as any).message}`);
+    return res.status(500).json(`Error: ${(e as any).message}`);
   } finally {
     await queryRunner.release();
   }
@@ -201,9 +201,7 @@ ${Object.keys(tableCollisions)
       console.log('Completely unexpected outcome');
       console.log({ mapper, e, });
     } else {
-      await Promise.all(e.map(async (entity: any) => {
-        await mapper.db.create(entity, context);
-      }));
+      await mapper.db.create(e, context);
     }
   }));
   res.json("Done!");
@@ -226,7 +224,11 @@ mod.post('/remove', async (req, res) => {
   }
   // Grab all of the entities from the module plus the IaSQL Module entity itself and create the
   // TypeORM connection with it.
-  const entities = modules.map((m: any) => Object.values(m.mappers).map((ma: any) => ma.entity)).flat();
+  const entities = Object.values(Modules)
+    .filter(m => m.hasOwnProperty('provides'))
+    .map((m: any) => Object.values(m.provides.entities))
+    .flat()
+    .filter(e => typeof e === 'function') as Function[];
   entities.push(IasqlModule);
   const orm = await TypeormWrapper.createConn(dbId, {
     name: dbId,
