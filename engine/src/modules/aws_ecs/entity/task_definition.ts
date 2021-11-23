@@ -84,7 +84,7 @@ export class TaskDefinition {
   })
   taskDefinitionArn?: string;
 
-  @ManyToMany(() => Container, { eager: true, })
+  @ManyToMany(() => Container)
   @JoinTable()
   containers: Container[];
 
@@ -129,7 +129,7 @@ export class TaskDefinition {
   })
   status?: TaskDefinitionStatus;
 
-  @ManyToMany(() => Compatibility, { cascade: true, eager: true, })
+  @ManyToMany(() => Compatibility)
   @JoinTable()
   reqCompatibilities?: Compatibility[];
 

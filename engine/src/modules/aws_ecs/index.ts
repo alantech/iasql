@@ -54,12 +54,10 @@ export const AwsEcsModule: Module = new Module({
       const imageTag = c.image?.split(':');
       if (!imageTag[0]?.includes('amazonaws.com')) {
         out.dockerImage = imageTag[0];
-        // out.repository = null;
         out.tag = imageTag[1];
       } else {
-        const repositories = ctx.memo?.cloud?.AwsRepository ?? await AwsEcrModule.mappers.repository.cloud.read(ctx);
+        const repositories = ctx.memo?.db?.AwsRepository ?? await AwsEcrModule.mappers.repository.db.read(ctx);
         out.repository = repositories.find((r: any) => r.repositoryUri === imageTag[0]);
-        // out.dockerImage = null;
         out.tag = imageTag[1];
       }
       return out;
@@ -73,7 +71,7 @@ export const AwsEcsModule: Module = new Module({
       out.networkMode = td.networkMode;
       out.reqCompatibilities = td.requiresCompatibilities?.map((rc: any) => {
         const rc2 = new Compatibility();
-        rc2.name = rc.name;
+        rc2.name = rc;
         return rc2;
       }) ?? [];
       out.revision = td.revision;
@@ -169,15 +167,28 @@ export const AwsEcsModule: Module = new Module({
       db: new Crud({
         create: async (e: TaskDefinition | TaskDefinition[], ctx: Context) => {
           const es = Array.isArray(e) ? e : [e];
-          es.map(async (entity: TaskDefinition) => {
+          // Deduplicate Compatibility ahead of time, preserving an ID if it exists
+          const compatibilities: { [key: string]: Compatibility, } = {};
+          es.forEach((entity: TaskDefinition) => {
+            if (entity.reqCompatibilities) {
+              entity.reqCompatibilities.forEach(rc => {
+                const name: any = rc.name;
+                compatibilities[name] = compatibilities[name] ?? rc;
+                if (rc.id) compatibilities[name].id = rc.id;
+                rc = compatibilities[name];
+              })
+            }
+          });
+          await ctx.orm.save(Compatibility, Object.values(compatibilities));
+          await Promise.all(es.map(async (entity: TaskDefinition) => {
             if (entity.containers) {
               await ctx.orm.save(Container, entity.containers);
             }
-          });
+          }));
           await ctx.orm.save(TaskDefinition, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const relations = ['containers', 'containers.portMappings', 'containers.environment'];
+          const relations = ['reqCompatibilities','containers', 'containers.portMappings', 'containers.environment'];
           const opts = id ? {
             where: {
               name: Array.isArray(id) ? In(id) : id,
