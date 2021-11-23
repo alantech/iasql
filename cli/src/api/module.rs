@@ -1,10 +1,24 @@
+use ascii_table::{AsciiTable, Column};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
+
+use std::fmt::Display;
 
 use crate::api::db::get_dbs;
 use crate::dialoguer as dlg;
 use crate::http::post_v1;
 
-async fn list_mods(db: Option<&str>) -> Vec<String> {
+#[derive(Deserialize, Debug, Clone, Serialize)]
+struct Module {
+  name: String,
+  dependencies: Vec<String>,
+}
+
+async fn list_mod_names(db: Option<&str>) -> Vec<String> {
+  list_mods(db).await.into_iter().map(|m| m.name).collect()
+}
+
+async fn list_mods(db: Option<&str>) -> Vec<Module> {
   let body = if db.is_none() {
     json!({
       "all": true,
@@ -27,8 +41,38 @@ async fn list_mods(db: Option<&str>) -> Vec<String> {
 }
 
 pub async fn list(db: Option<&str>) {
-  let mods: Vec<String> = list_mods(db).await;
-  println!(" - {}", mods.join("\n - "));
+  let mut table = AsciiTable::default();
+  table.max_width = 140;
+  let column = Column {
+    header: "Module Name".into(),
+    ..Column::default()
+  };
+  table.columns.insert(0, column);
+  let column = Column {
+    header: "Dependent Modules".into(),
+    ..Column::default()
+  };
+  table.columns.insert(1, column);
+  struct DisplayMod {
+    name: String,
+    dependencies: String,
+  }
+  let mods: Vec<DisplayMod> = list_mods(db)
+    .await
+    .iter()
+    .map(|m| DisplayMod {
+      name: m.name.clone(),
+      dependencies: m.dependencies.join(", "),
+    })
+    .collect();
+  let mut mod_data: Vec<Vec<&dyn Display>> = vec![];
+  for m in mods.iter() {
+    let mut row: Vec<&dyn Display> = Vec::new();
+    row.push(&m.name);
+    row.push(&m.dependencies);
+    mod_data.push(row);
+  }
+  table.print(mod_data);
 }
 
 pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
@@ -49,12 +93,12 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
 
 // Gets and validates mods to remove or prompts selection
 pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> {
-  let installed = list_mods(Some(db)).await;
+  let installed = list_mod_names(Some(db)).await;
   if installed.len() == 0 {
     println!("No modules have been installed in {}", dlg::bold(db));
     std::process::exit(0);
   }
-  let all = list_mods(None).await;
+  let all = list_mod_names(None).await;
   if mods_opt.is_none() {
     let idxs = dlg::multiselect(
       "Use arrows to move, space to (de)select modules and enter to submit",
@@ -95,8 +139,8 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
 
 // Gets and validates mods to install or prompts selection
 pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> {
-  let all = list_mods(None).await;
-  let installed = list_mods(Some(db)).await;
+  let all = list_mod_names(None).await;
+  let installed = list_mod_names(Some(db)).await;
   if all.len() == installed.len() {
     println!(
       "All available modules have been installed in {}",

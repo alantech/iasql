@@ -90,9 +90,18 @@ pub async fn remove() {
   let dbs = get_dbs().await;
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
+  let prompt = format!(
+    "{} to remove the {} IaSQL db",
+    dlg::bold("Press Enter"),
+    dlg::bold(db)
+  );
+  let removal = dlg::confirm_with_default(&prompt, true);
+  if !removal {
+    return println!("Not removing {} IaSQL db", dlg::bold(db));
+  }
   let resp = get_v1(&format!("db/remove/{}", db)).await;
   match &resp {
-    Ok(_) => println!("Successfully removed {} db", dlg::bold(db),),
+    Ok(_) => println!("Successfully removed {} IaSQL db", dlg::bold(db),),
     Err(e) => {
       println!("Err: {:?}", e);
       std::process::exit(1);
