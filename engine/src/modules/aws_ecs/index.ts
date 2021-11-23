@@ -56,7 +56,7 @@ export const AwsEcsModule: Module = new Module({
         out.dockerImage = imageTag[0];
         out.tag = imageTag[1];
       } else {
-        const repositories = ctx.memo?.db?.AwsRepository ?? await AwsEcrModule.mappers.repository.db.read(ctx);
+        const repositories = ctx.memo?.db?.AwsRepository ? Object.values(ctx.memo?.db?.AwsRepository) : await AwsEcrModule.mappers.repository.db.read(ctx);
         out.repository = repositories.find((r: any) => r.repositoryUri === imageTag[0]);
         out.tag = imageTag[1];
       }
@@ -64,16 +64,32 @@ export const AwsEcsModule: Module = new Module({
     },
     taskDefinitionMapper: async (td: any, ctx: Context) => {
       const out = new TaskDefinition();
-      out.containers = await Promise.all(td.containerDefinitions.map((tdc: any) => AwsEcsModule.utils.containerMapper(tdc, ctx)));
+      out.containers = await Promise.all(td.containerDefinitions.map(async (tdc: any) => {
+        const container = await ctx.orm.findOne(Container, {
+          where: {
+            name: tdc.name,
+          },
+        });
+        if (!container) return AwsEcsModule.utils.containerMapper(tdc, ctx);
+        return container;
+      }));
       out.cpuMemory = `${+td.cpu / 1024}vCPU-${+td.memory / 1024}GB` as CpuMemCombination;
       out.executionRoleArn = td.executionRoleArn;
       out.family = td.family;
       out.networkMode = td.networkMode;
-      out.reqCompatibilities = td.requiresCompatibilities?.map((rc: any) => {
-        const rc2 = new Compatibility();
-        rc2.name = rc;
-        return rc2;
-      }) ?? [];
+      out.reqCompatibilities = await Promise.all(td.requiresCompatibilities?.map(async (rc: any) => {
+        const comp = await ctx.orm.findOne(Compatibility, {
+          where: {
+            name: rc,
+          },
+        });
+        if (!comp) {
+          const rc2 = new Compatibility();
+          rc2.name = rc;
+          return rc2;
+        }
+        return comp;
+      })) ?? [];
       out.revision = td.revision;
       out.status = td.status;
       out.taskDefinitionArn = td.taskDefinitionArn;
@@ -88,7 +104,7 @@ export const AwsEcsModule: Module = new Module({
       equals: (_a: Cluster, _b: Cluster) => true,  // TODO: Fill in when updates supported
       source: 'db',
       db: new Crud({
-        create: async (c: Cluster | Cluster[], ctx: Context) => { await ctx.orm.save(Cluster, c);},
+        create: async (c: Cluster | Cluster[], ctx: Context) => { await ctx.orm.save(Cluster, c); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const opts = id ? {
             where: {
@@ -97,7 +113,7 @@ export const AwsEcsModule: Module = new Module({
           } : undefined;
           return (!id || Array.isArray(id)) ? await ctx.orm.find(Cluster, opts) : await ctx.orm.findOne(Cluster, opts);
         },
-        update: async (c: Cluster | Cluster[], ctx: Context) => { await ctx.orm.save(Cluster, c);},
+        update: async (c: Cluster | Cluster[], ctx: Context) => { await ctx.orm.save(Cluster, c); },
         delete: async (c: Cluster | Cluster[], ctx: Context) => { await ctx.orm.remove(Cluster, c); },
       }),
       cloud: new Crud({
@@ -188,7 +204,7 @@ export const AwsEcsModule: Module = new Module({
           await ctx.orm.save(TaskDefinition, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const relations = ['reqCompatibilities','containers', 'containers.portMappings', 'containers.environment'];
+          const relations = ['reqCompatibilities', 'containers', 'containers.portMappings', 'containers.environment', 'containers.repository'];
           const opts = id ? {
             where: {
               name: Array.isArray(id) ? In(id) : id,
@@ -199,6 +215,19 @@ export const AwsEcsModule: Module = new Module({
         },
         update: async (e: TaskDefinition | TaskDefinition[], ctx: Context) => {
           const es = Array.isArray(e) ? e : [e];
+          // Deduplicate Compatibility ahead of time, preserving an ID if it exists
+          const compatibilities: { [key: string]: Compatibility, } = {};
+          es.forEach((entity: TaskDefinition) => {
+            if (entity.reqCompatibilities) {
+              entity.reqCompatibilities.forEach(rc => {
+                const name: any = rc.name;
+                compatibilities[name] = compatibilities[name] ?? rc;
+                if (rc.id) compatibilities[name].id = rc.id;
+                rc = compatibilities[name];
+              })
+            }
+          });
+          await ctx.orm.save(Compatibility, Object.values(compatibilities));
           es.map(async (entity: TaskDefinition) => {
             if (entity.containers) {
               await ctx.orm.save(Container, entity.containers);
@@ -216,7 +245,7 @@ export const AwsEcsModule: Module = new Module({
             const input: any = {
               family: e.family,
               containerDefinitions: e.containers.map(c => {
-                const container: any = {...c};
+                const container: any = { ...c };
                 container.image = `${c.repository ? c.repository.repositoryUri : c.dockerImage}:${c.tag}`;
                 return container;
               }),
