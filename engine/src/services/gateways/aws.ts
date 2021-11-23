@@ -75,10 +75,15 @@ import {
   CreateClusterCommand,
   CreateClusterCommandInput,
   DeleteClusterCommand,
+  DeregisterTaskDefinitionCommand,
   DescribeClustersCommand,
+  DescribeTaskDefinitionCommand,
   ECSClient,
   paginateListClusters,
+  paginateListTaskDefinitions,
   paginateListTasks,
+  RegisterTaskDefinitionCommand,
+  RegisterTaskDefinitionCommandInput,
   waitUntilTasksStopped,
 } from '@aws-sdk/client-ecs'
 
@@ -684,6 +689,50 @@ export class AWS {
     await this.ecsClient.send(
       new DeleteClusterCommand({
         cluster: name,
+      })
+    );
+  }
+
+  async createTaskDefinition(input: RegisterTaskDefinitionCommandInput) {
+    const taskDefinition = await this.ecsClient.send(
+      new RegisterTaskDefinitionCommand(input)
+    );
+    return taskDefinition.taskDefinition;
+  }
+
+  async getTaskDefinitions() {
+    const taskDefinitions: any[] = [];
+    const taskDefinitionArns: string[] = [];
+    const paginator = paginateListTaskDefinitions({
+      client: this.ecsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      taskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
+    }
+    await Promise.all(taskDefinitionArns.map(async arn => {
+      taskDefinitions.push(await this.getTaskDefinition(arn));
+      return arn;
+    }));
+    return {
+      taskDefinitions,
+    };
+  }
+
+  // :id could be `family:revision` or ARN
+  async getTaskDefinition(id: string) {
+    const taskDefinition = await this.ecsClient.send(
+      new DescribeTaskDefinitionCommand({
+        taskDefinition: id
+      })
+    );
+    return taskDefinition.taskDefinition;
+  }
+
+  async deleteTaskDefinition(name: string) {
+    await this.ecsClient.send(
+      new DeregisterTaskDefinitionCommand({
+        taskDefinition: name
       })
     );
   }

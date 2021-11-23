@@ -1,1 +1,6 @@
+export * from './compatibility'
+export * from './container'
 export * from './cluster'
+export * from './env_variable'
+export * from './port_mapping'
+export * from './task_definition'
