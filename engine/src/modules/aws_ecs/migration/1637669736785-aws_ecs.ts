@@ -124,20 +124,20 @@ export class awsEcs1637669736785 implements MigrationInterface {
                 limit 1;
                 
                 if pm_id is null then
-                insert into port_mapping
-                    (container_port, host_port, protocol)
-                values
-                    (_container_port, _host_port, _protocol);
-                
-                select id into pm_id
-                from port_mapping
-                order by id desc
-                limit 1;
-                
-                insert into container_port_mappings_port_mapping
-                    (container_id, port_mapping_id)
-                values
-                    (c_id, pm_id);
+                    insert into port_mapping
+                        (container_port, host_port, protocol)
+                    values
+                        (_container_port, _host_port, _protocol);
+                    
+                    select id into pm_id
+                    from port_mapping
+                    order by id desc
+                    limit 1;
+                    
+                    insert into container_port_mappings_port_mapping
+                        (container_id, port_mapping_id)
+                    values
+                        (c_id, pm_id);
                 end if;
             
                 select env_variable_id into ev_id
@@ -146,34 +146,112 @@ export class awsEcs1637669736785 implements MigrationInterface {
                 limit 1;
                 
                 if ev_id is null then
-                for key, val in
-                    select *
-                    from json_each_text (_environment_variables)
-                loop
-                    insert into env_variable
-                    (name, value)
-                    values
-                    (key, val);
-                
-                    select id into ev_id
-                    from env_variable
-                    order by id desc
-                    limit 1;
-                
-                    insert into container_environment_env_variable
-                    (container_id, env_variable_id)
-                    values
-                    (c_id, ev_id);
-                end loop;
+                    for key, val in
+                        select *
+                        from json_each_text (_environment_variables)
+                    loop
+                        insert into env_variable
+                        (name, value)
+                        values
+                        (key, val);
+                    
+                        select id into ev_id
+                        from env_variable
+                        order by id desc
+                        limit 1;
+                    
+                        insert into container_environment_env_variable
+                        (container_id, env_variable_id)
+                        values
+                        (c_id, ev_id);
+                    end loop;
                 end if;
             
                 raise info 'container_id = %', c_id;
             end;
             $$;
         `);
+        // Example of use: call create_task_definition('test-sp', 'arn', 'arn', 'awsvpc', array['FARGATE', 'EXTERNAL']::compatibility_name_enum[], '0.5vCPU-4GB', array['postgresql']);
+        await queryRunner.query(`
+            create or replace procedure create_task_definition(
+                _family text,
+                _task_role_arn text,
+                _execution_role_arn text,
+                _network_mode task_definition_network_mode_enum,
+                _req_compatibilities compatibility_name_enum[],
+                _cpu_memory task_definition_cpu_memory_enum,
+                _container_definition_names text[]
+            )
+            language plpgsql
+            as $$ 
+            declare 
+                task_definition_id integer;
+                rev integer;
+                comp record;
+                cont record;
+            begin
+                select revision into rev
+                from task_definition
+                where family = _family
+                order by revision desc
+                limit 1;
+            
+                if rev is null then
+                rev := 1;
+                else
+                rev := rev + 1;
+                end if;
+            
+                insert into task_definition
+                    (family, revision, task_role_arn, execution_role_arn, network_mode, cpu_memory)
+                values
+                    (_family, rev, _task_role_arn, _execution_role_arn, _network_mode, _cpu_memory);
+            
+                select id into task_definition_id
+                from task_definition
+                order by id desc
+                limit 1;
+            
+                insert into compatibility
+                    (name)
+                select comp_name
+                from (
+                    select unnest(_req_compatibilities) as comp_name
+                ) as comp_arr
+                where not exists (
+                    select id from compatibility where name = comp_arr.comp_name
+                );
+            
+                for comp in
+                    select id
+                    from compatibility
+                    where name = any(_req_compatibilities)
+                loop
+                    insert into task_definition_req_compatibilities_compatibility
+                        (task_definition_id, compatibility_id)
+                    values
+                        (task_definition_id, comp.id);
+                end loop;
+            
+                for cont in
+                    select id
+                    from container
+                    where name = any(_container_definition_names)
+                loop
+                    insert into task_definition_containers_container
+                        (task_definition_id, container_id)
+                    values
+                        (task_definition_id, cont.id);
+                end loop;
+            
+                raise info 'task_definition_id = %', task_definition_id;
+            end;
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP procedure create_task_definition;`);
         await queryRunner.query(`DROP procedure create_container_definition;`);
         await queryRunner.query(`DROP procedure create_ecs_cluster;`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" DROP CONSTRAINT "FK_f19b7360a189526c59b4387a953"`);
