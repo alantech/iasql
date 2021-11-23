@@ -4,8 +4,6 @@ import {
   Column,
   ManyToMany,
   JoinTable,
-  ManyToOne,
-  JoinColumn,
 } from 'typeorm';
 import { Container, Compatibility } from '.';
 
@@ -87,14 +85,6 @@ export class TaskDefinition {
   @ManyToMany(() => Container)
   @JoinTable()
   containers: Container[];
-
-  // // TODO: Remove this on modular form? this es a work around to force containers join table insertions
-  // @noDiff
-  // @ManyToOne(() => Container, { eager: true, })
-  // @JoinColumn({
-  //   name: 'container_id',
-  // })
-  // container: Container;
 
   @Column()
   family: string;
