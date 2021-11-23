@@ -12,7 +12,7 @@ import {
 } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEcs1637344460351, } from './migration/1637344460351-aws_ecs'
+import { awsEcs1637663991341, } from './migration/1637663991341-aws_ecs'
 import { AwsEcrModule } from '..'
 
 export const AwsEcsModule: Module = new Module({
@@ -264,13 +264,18 @@ export const AwsEcsModule: Module = new Module({
             return await Promise.all(result.taskDefinitions.map(async (td: any) => AwsEcsModule.utils.taskDefinitionMapper(td, ctx)));
           }
         },
-        update: async (_c: TaskDefinition | TaskDefinition[], _ctx: Context) => { throw new Error('Cannot update task definitions. Create a new revision'); },
-        delete: async (_c: TaskDefinition | TaskDefinition[], _ctx: Context) => { /** TODO */ },
+        update: async (_td: TaskDefinition | TaskDefinition[], _ctx: Context) => { throw new Error('Cannot update task definitions. Create a new revision'); },
+        delete: async (td: TaskDefinition | TaskDefinition[], ctx: Context) => {
+          // TODO: once service implemented, do not delete task if it is being used by a service
+          const client = await ctx.getAwsClient() as AWS;
+          const es = Array.isArray(td) ? td : [td];
+          await Promise.all(es.map(e => client.deleteTaskDefinition(e.taskDefinitionArn!)));
+        },
       }),
     }),
   },
   migrations: {
-    postinstall: awsEcs1637344460351.prototype.up,
-    preremove: awsEcs1637344460351.prototype.down,
+    postinstall: awsEcs1637663991341.prototype.up,
+    preremove: awsEcs1637663991341.prototype.down,
   },
 });
