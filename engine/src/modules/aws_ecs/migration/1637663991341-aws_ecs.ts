@@ -4,7 +4,6 @@ export class awsEcs1637663991341 implements MigrationInterface {
     name = 'awsEcs1637663991341'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "aws_load_balancer" RENAME COLUMN "customer_owned_ipv4pool" TO "customer_owned_ipv4_pool"`);
         await queryRunner.query(`CREATE TABLE "cluster" ("id" SERIAL NOT NULL, "cluster_name" character varying NOT NULL, "cluster_arn" character varying, "cluster_status" character varying, CONSTRAINT "UQ_45ffb6495d51fdc55df46102ce7" UNIQUE ("cluster_name"), CONSTRAINT "PK_b09d39b9491ce5cb1e8407761fd" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."compatibility_name_enum" AS ENUM('EC2', 'EXTERNAL', 'FARGATE')`);
         await queryRunner.query(`CREATE TABLE "compatibility" ("id" SERIAL NOT NULL, "name" "public"."compatibility_name_enum" NOT NULL, CONSTRAINT "UQ_794090c3afd5f43dba2c9fcd631" UNIQUE ("name"), CONSTRAINT "PK_254bde74086e8e3ef50174c3e60" PRIMARY KEY ("id"))`);
@@ -28,12 +27,6 @@ export class awsEcs1637663991341 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "task_definition_req_compatibilities_compatibility" ("task_definition_id" integer NOT NULL, "compatibility_id" integer NOT NULL, CONSTRAINT "PK_baf64abcea837eac4b5a95a63d9" PRIMARY KEY ("task_definition_id", "compatibility_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_0909ccc9eddf3c92a777291256" ON "task_definition_req_compatibilities_compatibility" ("task_definition_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_f19b7360a189526c59b4387a95" ON "task_definition_req_compatibilities_compatibility" ("compatibility_id") `);
-        await queryRunner.query(`ALTER TABLE "network_info" DROP COLUMN "ipv4addresses_per_interface"`);
-        await queryRunner.query(`ALTER TABLE "network_info" DROP COLUMN "ipv6supported"`);
-        await queryRunner.query(`ALTER TABLE "network_info" DROP COLUMN "ipv6addresses_per_interface"`);
-        await queryRunner.query(`ALTER TABLE "network_info" ADD "ipv4_addresses_per_interface" integer NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "network_info" ADD "ipv6_addresses_per_interface" integer NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "network_info" ADD "ipv6_supported" boolean NOT NULL`);
         await queryRunner.query(`ALTER TABLE "container" ADD CONSTRAINT "FK_50a8e46cefb58596f984657aa54" FOREIGN KEY ("repository_id") REFERENCES "aws_repository"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "container_port_mappings_port_mapping" ADD CONSTRAINT "FK_4f24b4df268d81f6b0d73329557" FOREIGN KEY ("container_id") REFERENCES "container"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "container_port_mappings_port_mapping" ADD CONSTRAINT "FK_d191532cf18e6888e27a8c13e4d" FOREIGN KEY ("port_mapping_id") REFERENCES "port_mapping"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
@@ -81,12 +74,6 @@ export class awsEcs1637663991341 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "container_port_mappings_port_mapping" DROP CONSTRAINT "FK_d191532cf18e6888e27a8c13e4d"`);
         await queryRunner.query(`ALTER TABLE "container_port_mappings_port_mapping" DROP CONSTRAINT "FK_4f24b4df268d81f6b0d73329557"`);
         await queryRunner.query(`ALTER TABLE "container" DROP CONSTRAINT "FK_50a8e46cefb58596f984657aa54"`);
-        await queryRunner.query(`ALTER TABLE "network_info" DROP COLUMN "ipv6_supported"`);
-        await queryRunner.query(`ALTER TABLE "network_info" DROP COLUMN "ipv6_addresses_per_interface"`);
-        await queryRunner.query(`ALTER TABLE "network_info" DROP COLUMN "ipv4_addresses_per_interface"`);
-        await queryRunner.query(`ALTER TABLE "network_info" ADD "ipv6addresses_per_interface" integer NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "network_info" ADD "ipv6supported" boolean NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "network_info" ADD "ipv4addresses_per_interface" integer NOT NULL`);
         await queryRunner.query(`DROP INDEX "public"."IDX_f19b7360a189526c59b4387a95"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_0909ccc9eddf3c92a777291256"`);
         await queryRunner.query(`DROP TABLE "task_definition_req_compatibilities_compatibility"`);
@@ -110,7 +97,6 @@ export class awsEcs1637663991341 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "compatibility"`);
         await queryRunner.query(`DROP TYPE "public"."compatibility_name_enum"`);
         await queryRunner.query(`DROP TABLE "cluster"`);
-        await queryRunner.query(`ALTER TABLE "aws_load_balancer" RENAME COLUMN "customer_owned_ipv4_pool" TO "customer_owned_ipv4pool"`);
     }
 
 }
