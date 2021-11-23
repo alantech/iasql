@@ -62,9 +62,9 @@ export class awsEcs1637669736785 implements MigrationInterface {
             $$;
         `);
         // Example of use:
-        // call create_container_definition('test-sp', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4',_docker_image := 'postgres');
-        // call create_container_definition('test-sp2', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4',_ecr_repository_name := 'test2');
-        // call create_container_definition('test-sp2', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4');
+        // docker image: call create_container_definition('test-sp', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4',_docker_image := 'postgres');
+        // ecr repository: call create_container_definition('test-sp2', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4',_ecr_repository_name := 'test2');
+        // error example: call create_container_definition('test-sp2', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4');
         await queryRunner.query(`
             create or replace procedure create_container_definition(
                 _name text,
