@@ -21,7 +21,7 @@ export const AwsEcsModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['cluster',],
-    functions: ['create_ecs_cluster',],
+    functions: ['create_ecs_cluster', 'create_container_definition', 'create_task_definition',],
   },
   utils: {
     clusterMapper: (c: any, _ctx: Context) => {
