@@ -20,7 +20,7 @@ import {
 } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEc21637358975142, } from './migration/1637358975142-aws_ec2'
+import { awsEc21637666428184, } from './migration/1637666428184-aws_ec2'
 
 export const AwsEc2Module: Module = new Module({
   name: 'aws_ec2',
@@ -223,7 +223,7 @@ export const AwsEc2Module: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEc21637358975142.prototype.up,
-    preremove: awsEc21637358975142.prototype.down,
+    postinstall: awsEc21637666428184.prototype.up,
+    preremove: awsEc21637666428184.prototype.down,
   },
 });
