@@ -17,7 +17,7 @@ import { AwsEcrModule } from '..'
 
 export const AwsEcsModule: Module = new Module({
   name: 'aws_ecs',
-  dependencies: ['aws_account',],
+  dependencies: ['aws_account', 'aws_ecr',],
   provides: {
     entities: allEntities,
     tables: ['cluster',],
