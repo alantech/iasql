@@ -3,6 +3,6 @@ sidebar_position: 2
 slug: '/module'
 ---
 
-# IaSQL Module
+# Module
 
 Coming soon

@@ -3,9 +3,9 @@ sidebar_position: 1
 slug: '/'
 ---
 
-# Getting started
+# Getting Started
 
-[IaSQL](https://iasql.com) is a SaaS to manage infrastructure via a [CLI](/install) that provisions a Postgres database loaded with tables representing AWS services. The rows in the tables represent the infrastructure in your AWS account. Which tables are loaded into an [IaSQL database](/database) is configured based on what [IaSQL modules](/module) are installed in the db. Once the desired modules are installed, simply connect to the database with the PG connection string using your preferred method, run `INSERT` or `UPDATE` queries, and finally run the `apply` CLI command to provision infrastructure in your AWS account.
+[IaSQL](https://iasql.com) is a SaaS to manage infrastructure as SQL via a [CLI](/before/#install-cli) that provisions a Postgres database loaded with tables representing AWS services. The rows in the tables represent the infrastructure in your AWS account. Which tables are loaded into an [IaSQL database](/database) is configured based on what [IaSQL modules](/module) are installed in the db. Once the desired modules are installed, simply connect to the database with the PG connection string using your preferred method, run `INSERT` or `UPDATE` queries, and finally run the `apply` CLI command to provision infrastructure in your AWS account.
 
 ## What part of the documentation should I look at?
 

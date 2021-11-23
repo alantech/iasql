@@ -3,6 +3,6 @@ sidebar_position: 1
 slug: '/database'
 ---
 
-# IaSQL Database
+# Database
 
 Coming soon
