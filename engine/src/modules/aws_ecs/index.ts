@@ -12,7 +12,7 @@ import {
 } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEcs1637663991341, } from './migration/1637663991341-aws_ecs'
+import { awsEcs1637669736785, } from './migration/1637669736785-aws_ecs'
 import { AwsEcrModule } from '..'
 
 export const AwsEcsModule: Module = new Module({
@@ -275,7 +275,7 @@ export const AwsEcsModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEcs1637663991341.prototype.up,
-    preremove: awsEcs1637663991341.prototype.down,
+    postinstall: awsEcs1637669736785.prototype.up,
+    preremove: awsEcs1637669736785.prototype.down,
   },
 });
