@@ -19,7 +19,7 @@ import {
 } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsElb1637275424293, } from './migration/1637275424293-aws_elb'
+import { awsElb1637666608609, } from './migration/1637666608609-aws_elb'
 import { AwsAccount, AwsSecurityGroupModule } from '..'
 import { AvailabilityZone, AwsSubnet } from '../aws_account/entity'
 import { DepError } from '../../services/lazy-dep'
@@ -523,7 +523,7 @@ export const AwsElbModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsElb1637275424293.prototype.up,
-    preremove: awsElb1637275424293.prototype.down,
+    postinstall: awsElb1637666608609.prototype.up,
+    preremove: awsElb1637666608609.prototype.down,
   },
 });
