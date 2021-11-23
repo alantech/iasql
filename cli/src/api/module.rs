@@ -49,7 +49,7 @@ pub async fn list(db: Option<&str>) {
   };
   table.columns.insert(0, column);
   let column = Column {
-    header: "Dependencies".into(),
+    header: "Dependent Modules".into(),
     ..Column::default()
   };
   table.columns.insert(1, column);
