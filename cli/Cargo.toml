@@ -9,6 +9,7 @@ edition = "2018"
 ascii_table = "3.0"
 clap = "2.33.1"
 dialoguer = "0.8.0"
+futures = "0.3.18"
 hyper = { version = "0.14", features = ["client", "http1", "http2", "runtime", "server"] }
 hyper-tls = "0.5" # needed for HTTPS w/ hyper
 indicatif = "0.15.0"

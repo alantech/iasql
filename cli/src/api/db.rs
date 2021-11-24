@@ -7,6 +7,7 @@ use serde_json::json;
 use std::fmt::Display;
 use std::fs::OpenOptions;
 use std::io::BufReader;
+use std::process::exit;
 
 use crate::dialoguer as dlg;
 use crate::http::{get_v1, post_v1};
@@ -69,13 +70,13 @@ pub async fn get_dbs() -> Vec<String> {
     Ok(r) => r,
     Err(e) => {
       eprintln!("{} Failed to get dbs: {}", dlg::err_prefix(), e.message);
-      std::process::exit(1);
+      exit(1);
     }
   };
   let dbs: Vec<String> = serde_json::from_str(res).unwrap();
   if dbs.len() == 0 {
     println!("{} {}", dlg::warn_prefix(), NO_DBS);
-    std::process::exit(1);
+    exit(1);
   }
   return dbs;
 }
@@ -112,7 +113,7 @@ pub async fn remove() {
     Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
       eprintln!("{} Failed to remove: {}", dlg::err_prefix(), e.message);
-      std::process::exit(1);
+      exit(1);
     }
   };
 }
@@ -129,7 +130,7 @@ pub async fn apply() {
     Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
       eprintln!("{} Failed to apply: {}", dlg::err_prefix(), e.message);
-      std::process::exit(1);
+      exit(1);
     }
   };
 }
@@ -172,7 +173,7 @@ pub async fn add() {
     Err(e) => {
       sp.finish_and_clear();
       eprintln!("{} Failed to add: {}", dlg::err_prefix(), e.message);
-      std::process::exit(1);
+      exit(1);
     }
   };
 }
