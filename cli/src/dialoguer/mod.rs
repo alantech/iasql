@@ -10,6 +10,10 @@ pub fn bold(el: &str) -> StyledObject<String> {
   style(format!("{}", el)).bold()
 }
 
+pub fn red(el: &str) -> StyledObject<String> {
+  style(format!("{}", el)).red()
+}
+
 pub fn warn_prefix() -> StyledObject<String> {
   let t = &ColorfulTheme::default();
   t.warn_prefix.clone()
