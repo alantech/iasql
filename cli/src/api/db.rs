@@ -97,19 +97,11 @@ pub async fn remove() {
   );
   let removal = dlg::confirm_with_default(&prompt, true);
   if !removal {
-    return println!(
-      "{} Did not remove db {}",
-      dlg::warn_prefix(),
-      dlg::bold(db)
-    );
+    return println!("{} Did not remove db {}", dlg::warn_prefix(), dlg::bold(db));
   }
   let resp = get_v1(&format!("db/remove/{}", db)).await;
   match &resp {
-    Ok(_) => println!(
-      "{} Removed db {}",
-      dlg::success_prefix(),
-      dlg::bold(db)
-    ),
+    Ok(_) => println!("{} Removed db {}", dlg::success_prefix(), dlg::bold(db)),
     Err(e) => {
       eprintln!(
         "{} Failed to remove db {}: {}",
@@ -131,7 +123,11 @@ pub async fn apply() {
   let db = &dbs[selection];
   let resp = get_v1(&format!("db/apply/{}", db)).await;
   match &resp {
-    Ok(_) => println!("{} apply on db {} done", dlg::success_prefix(), dlg::bold(db)),
+    Ok(_) => println!(
+      "{} apply on db {} done",
+      dlg::success_prefix(),
+      dlg::bold(db)
+    ),
     Err(e) => {
       eprintln!(
         "{} Failed to apply on db {}: {}",
