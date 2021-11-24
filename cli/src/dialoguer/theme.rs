@@ -1,8 +1,10 @@
 // Implement own theme from ColorfulTheme to fully own UX on multiselect
-// Changes:
+// Modfied:
 // - checked_item_prefix
 // - unchecked_item_prefix
 // - active_item_prefix
+// - error_style
+// Added
 // - format_multi_select_prompt_item
 // - warn_prefix
 use dialoguer::{
@@ -66,7 +68,7 @@ impl Default for ColorfulTheme {
       success_suffix: style("·".to_string()).for_stderr().black().bright(),
       warn_prefix: style("!".to_string()).for_stderr().yellow(),
       error_prefix: style("✘".to_string()).for_stderr().red(),
-      error_style: Style::new().for_stderr().red(),
+      error_style: Style::new().for_stderr(),
       hint_style: Style::new().for_stderr().black().bright(),
       values_style: Style::new().for_stderr().green(),
       active_item_style: Style::new().for_stderr().cyan(),
