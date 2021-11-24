@@ -102,7 +102,7 @@ db.post('/add', async (req, res) => {
     console.log('Done!');
     res.end(`create ${dbAlias}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
-    res.status(500).end(`failure to create DB: ${e?.message ?? ''}`);
+    res.status(500).end(`${e?.message ?? ''}`);
   } finally {
     await conn1?.close();
     await conn2?.close();
@@ -131,7 +131,7 @@ db.get('/list', async (req, res) => {
     // TODO expose connection string after IaSQL-on-IaSQL
     res.json(aliases);
   } catch (e: any) {
-    res.status(500).end(`failure to list DBs: ${e?.message ?? ''}`);
+    res.status(500).end(`${e?.message ?? ''}`);
   } finally {
     conn?.close();
   }
@@ -154,7 +154,7 @@ db.get('/remove/:dbAlias', async (req, res) => {
     `);
     res.end(`removed ${dbAlias}`);
   } catch (e: any) {
-    res.status(500).end(`failure to drop DB: ${e?.message ?? ''}`);
+    res.status(500).end(`${e?.message ?? ''}`);
   } finally {
     conn?.close();
   }
@@ -314,7 +314,7 @@ db.get('/apply/:dbAlias', async (req, res) => {
     res.end(`${dbAlias} applied and synced, total time: ${t7 - t1}ms`);
   } catch (e: any) {
     console.dir(e, { depth: 6, });
-    res.status(500).end(`failure to check DB: ${e?.message ?? ''}`);
+    res.status(500).end(`${e?.message ?? ''}`);
   } finally {
     orm?.dropConn();
   }
