@@ -156,9 +156,6 @@ ${Object.keys(tableCollisions)
       }
     }
     for (const md of rootToLeafOrder) {
-      if (md.migrations?.preinstall) {
-        await md.migrations.preinstall(queryRunner);
-      }
       if (md.migrations?.postinstall) {
         await md.migrations.postinstall(queryRunner);
       }
@@ -269,14 +266,11 @@ mod.post('/remove', async (req, res) => {
   await queryRunner.startTransaction();
   try {
     for (const md of leafToRootOrder) {
-      if (md.migrations?.preinstall) {
-        await md.migrations.preinstall(queryRunner);
-      }
-    }
-    for (const md of rootToLeafOrder) {
       if (md.migrations?.preremove) {
         await md.migrations.preremove(queryRunner);
       }
+    }
+    for (const md of rootToLeafOrder) {
       if (md.migrations?.postremove) {
         await md.migrations.postremove(queryRunner);
       }
