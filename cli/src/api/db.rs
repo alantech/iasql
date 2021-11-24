@@ -91,14 +91,14 @@ pub async fn remove() {
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
   let prompt = format!(
-    "{} to remove the {} db",
+    "{} to remove the db {}",
     dlg::bold("Press Enter"),
     dlg::bold(db)
   );
   let removal = dlg::confirm_with_default(&prompt, true);
   if !removal {
     return println!(
-      "{} Did not remove {} db",
+      "{} Did not remove db {}",
       dlg::warn_prefix(),
       dlg::bold(db)
     );
@@ -106,7 +106,7 @@ pub async fn remove() {
   let resp = get_v1(&format!("db/remove/{}", db)).await;
   match &resp {
     Ok(_) => println!(
-      "{} Removed {} db",
+      "{} Removed db {}",
       dlg::success_prefix(),
       dlg::bold(db)
     ),
@@ -131,7 +131,7 @@ pub async fn apply() {
   let db = &dbs[selection];
   let resp = get_v1(&format!("db/apply/{}", db)).await;
   match &resp {
-    Ok(_) => println!("{} Applied {} db", dlg::success_prefix(), dlg::bold(db)),
+    Ok(_) => println!("{} apply on db {} done", dlg::success_prefix(), dlg::bold(db)),
     Err(e) => {
       eprintln!(
         "{} Failed to apply on db {}: {}",
@@ -177,7 +177,7 @@ pub async fn add() {
   match &resp {
     Ok(_) => {
       sp.finish_and_clear();
-      println!("{} Added {} db", dlg::success_prefix(), dlg::bold(&db));
+      println!("{} Added db {}", dlg::success_prefix(), dlg::bold(&db));
     }
     Err(e) => {
       sp.finish_and_clear();
