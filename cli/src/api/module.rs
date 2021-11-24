@@ -33,7 +33,11 @@ async fn list_mods(db: Option<&str>) -> Vec<Module> {
   let res = match &resp {
     Ok(r) => r,
     Err(e) => {
-      println!("Err: {:?}", e);
+      eprintln!(
+        "{} Failed to list modules: {}",
+        dlg::err_prefix(),
+        e.message
+      );
       std::process::exit(1);
     }
   };
@@ -84,7 +88,11 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
   } else {
     let db = db_opt.unwrap();
     if !dbs.contains(&db.to_owned()) {
-      println!("Err: db with name {} does not exist", db);
+      eprintln!(
+        "{} No db with the name {} exists",
+        dlg::err_prefix(),
+        dlg::bold(db)
+      );
       std::process::exit(1);
     }
     db.to_string()
@@ -95,7 +103,11 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
 pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> {
   let installed = list_mod_names(Some(db)).await;
   if installed.len() == 0 {
-    println!("No modules have been installed in {}", dlg::bold(db));
+    print!(
+      "{} No modules have been installed in db {}",
+      dlg::warn_prefix(),
+      dlg::bold(db)
+    );
     std::process::exit(0);
   }
   let all = list_mod_names(None).await;
@@ -105,7 +117,7 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
       &installed,
     );
     if idxs.len() == 0 {
-      println!("No modules selected");
+      println!("{} No modules selected", dlg::warn_prefix());
       std::process::exit(0);
     }
     installed
@@ -118,16 +130,18 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
     let mods = mods_opt.unwrap();
     let inexistent = mods.iter().find(|e| !all.contains(e));
     if inexistent.is_some() {
-      println!(
-        "Err: module {} does not exist",
+      eprint!(
+        "{} No module with the name {} exists",
+        dlg::err_prefix(),
         dlg::bold(inexistent.unwrap())
       );
       std::process::exit(1);
     }
     let missing = mods.iter().find(|e| !installed.contains(e));
     if missing.is_some() {
-      println!(
-        "Err: module {} is not installed in {}",
+      eprintln!(
+        "{} Module {} is not installed in db {}",
+        dlg::err_prefix(),
         dlg::bold(missing.unwrap()),
         dlg::bold(db)
       );
@@ -143,7 +157,8 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
   let installed = list_mod_names(Some(db)).await;
   if all.len() == installed.len() {
     println!(
-      "All available modules have been installed in {}",
+      "{} db {} has all available modules installed",
+      dlg::warn_prefix(),
       dlg::bold(db)
     );
     std::process::exit(0);
@@ -155,7 +170,7 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
       &available,
     );
     if idxs.len() == 0 {
-      println!("No modules selected");
+      println!("{} No modules selected", dlg::warn_prefix());
       std::process::exit(0);
     }
     available
@@ -168,16 +183,18 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
     let mods = mods_opt.unwrap();
     let inexistent = mods.iter().find(|e| !all.contains(e));
     if inexistent.is_some() {
-      println!(
-        "Err: module {} does not exist",
+      eprintln!(
+        "{} No module with the name {} exists",
+        dlg::err_prefix(),
         dlg::bold(inexistent.unwrap())
       );
       std::process::exit(1);
     }
     let is_installed = mods.iter().find(|e| installed.contains(e));
     if is_installed.is_some() {
-      println!(
-        "Err: module {} is already installed in {}",
+      eprintln!(
+        "{} Module {} is already installed in db {}",
+        dlg::err_prefix(),
         dlg::bold(is_installed.unwrap()),
         dlg::bold(db)
       );
@@ -189,14 +206,14 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
 
 pub async fn remove(db: &str, mods: Vec<String>) {
   let prompt = format!(
-    "{} to remove the following modules from IaSQL db {}: {}",
+    "{} to remove the following modules from db {}: {}",
     dlg::bold("Press Enter"),
     dlg::bold(db),
     mods.join(", ")
   );
   let removal = dlg::confirm_with_default(&prompt, true);
   if !removal {
-    return println!("Not removing any modules");
+    return println!("{} Not removing any modules", dlg::warn_prefix());
   }
   let body = json!({
     "list": mods,
@@ -205,12 +222,17 @@ pub async fn remove(db: &str, mods: Vec<String>) {
   let resp = post_v1("module/remove", body).await;
   match &resp {
     Ok(_) => println!(
-      "Successfully removed the following modules from {}: {}",
+      "{} Removed the following modules from db {}: {}",
+      dlg::success_prefix(),
       dlg::bold(db),
       mods.join(", ")
     ),
     Err(e) => {
-      println!("Err: {:?}", e);
+      eprintln!(
+        "{} Failed to remove modules: {}",
+        dlg::err_prefix(),
+        e.message
+      );
       std::process::exit(1);
     }
   };
@@ -218,14 +240,14 @@ pub async fn remove(db: &str, mods: Vec<String>) {
 
 pub async fn install(db: &str, mods: Vec<String>) {
   let prompt = format!(
-    "{} to install the following modules into IaSQL db {}: {}",
+    "{} to install the following modules into db {}: {}",
     dlg::bold("Press Enter"),
     dlg::bold(db),
     mods.join(", ")
   );
   let installation = dlg::confirm_with_default(&prompt, true);
   if !installation {
-    return println!("Not installing any modules");
+    return println!("{} Not installing any modules", dlg::warn_prefix());
   }
   let body = json!({
     "list": mods,
@@ -234,12 +256,17 @@ pub async fn install(db: &str, mods: Vec<String>) {
   let resp = post_v1("module/install", body).await;
   match &resp {
     Ok(_) => println!(
-      "Successfully installed the following modules from {}: {}",
+      "{} Installed the following modules in db {}: {}",
+      dlg::success_prefix(),
       dlg::bold(db),
       mods.join(", ")
     ),
     Err(e) => {
-      println!("Err: {:?}", e);
+      eprintln!(
+        "{} Failed to install modules: {}",
+        dlg::err_prefix(),
+        e.message
+      );
       std::process::exit(1);
     }
   };
