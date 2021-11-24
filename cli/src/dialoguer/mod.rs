@@ -1,5 +1,7 @@
-use dialoguer::console::{style, StyledObject};
-use dialoguer::{Confirm, Input, MultiSelect, Select, Validator};
+use dialoguer::{
+  console::{style, StyledObject},
+  Confirm, Input, MultiSelect, Select, Validator,
+};
 use theme::ColorfulTheme;
 
 pub mod theme;
@@ -8,8 +10,19 @@ pub fn bold(el: &str) -> StyledObject<String> {
   style(format!("{}", el)).bold()
 }
 
-pub fn green(el: &str) -> StyledObject<String> {
-  style(format!("{}", el)).green()
+pub fn warn_prefix() -> StyledObject<String> {
+  let t = &ColorfulTheme::default();
+  t.warn_prefix.clone()
+}
+
+pub fn err_prefix() -> StyledObject<String> {
+  let t = &ColorfulTheme::default();
+  t.error_prefix.clone()
+}
+
+pub fn success_prefix() -> StyledObject<String> {
+  let t = &ColorfulTheme::default();
+  t.success_prefix.clone()
 }
 
 pub fn multiselect(prompt: &str, items: &Vec<String>) -> Vec<usize> {

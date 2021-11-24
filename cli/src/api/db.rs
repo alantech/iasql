@@ -66,13 +66,13 @@ pub async fn get_dbs() -> Vec<String> {
   let res = match &resp {
     Ok(r) => r,
     Err(e) => {
-      println!("Err: {:?}", e);
+      eprintln!("{} Failed to get dbs: {}", dlg::err_prefix(), e.message);
       std::process::exit(1);
     }
   };
   let dbs: Vec<String> = serde_json::from_str(res).unwrap();
   if dbs.len() == 0 {
-    println!("{}", NO_DBS);
+    println!("{} {}", dlg::warn_prefix(), NO_DBS);
     std::process::exit(1);
   }
   return dbs;
@@ -91,19 +91,24 @@ pub async fn remove() {
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
   let prompt = format!(
-    "{} to remove the {} IaSQL db",
+    "{} to remove the db {}",
     dlg::bold("Press Enter"),
     dlg::bold(db)
   );
   let removal = dlg::confirm_with_default(&prompt, true);
   if !removal {
-    return println!("Not removing {} IaSQL db", dlg::bold(db));
+    return println!("{} Did not remove db {}", dlg::warn_prefix(), dlg::bold(db));
   }
   let resp = get_v1(&format!("db/remove/{}", db)).await;
   match &resp {
-    Ok(_) => println!("Successfully removed {} IaSQL db", dlg::bold(db),),
+    Ok(_) => println!("{} Removed db {}", dlg::success_prefix(), dlg::bold(db)),
     Err(e) => {
-      println!("Err: {:?}", e);
+      eprintln!(
+        "{} Failed to remove db {}: {}",
+        dlg::err_prefix(),
+        dlg::bold(db),
+        e.message
+      );
       std::process::exit(1);
     }
   };
@@ -112,15 +117,24 @@ pub async fn remove() {
 pub async fn apply() {
   let dbs = get_dbs().await;
   if dbs.len() == 0 {
-    return println!("{}", NO_DBS);
+    return println!("{} {}", dlg::warn_prefix(), NO_DBS);
   }
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
   let resp = get_v1(&format!("db/apply/{}", db)).await;
   match &resp {
-    Ok(_) => println!("Successfully applied {} db", dlg::bold(db),),
+    Ok(_) => println!(
+      "{} apply on db {} done",
+      dlg::success_prefix(),
+      dlg::bold(db)
+    ),
     Err(e) => {
-      println!("Err: {:?}", e);
+      eprintln!(
+        "{} Failed to apply on db {}: {}",
+        dlg::err_prefix(),
+        dlg::bold(db),
+        e.message
+      );
       std::process::exit(1);
     }
   };
@@ -158,10 +172,17 @@ pub async fn add() {
   let resp = post_v1("db/add", body).await;
   match &resp {
     Ok(_) => {
-      sp.finish_with_message(&format!("Successfully added {} db", dlg::bold(&db),));
+      sp.finish_and_clear();
+      println!("{} Added db {}", dlg::success_prefix(), dlg::bold(&db));
     }
     Err(e) => {
-      sp.finish_with_message(&format!("Err: {:?}", e));
+      sp.finish_and_clear();
+      eprintln!(
+        "{} Failed to add db {}: {}",
+        dlg::err_prefix(),
+        dlg::bold(&db),
+        e.message
+      );
       std::process::exit(1);
     }
   };

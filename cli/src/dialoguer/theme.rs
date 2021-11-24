@@ -1,9 +1,12 @@
 // Implement own theme from ColorfulTheme to fully own UX on multiselect
-// Changes:
+// Modfied:
 // - checked_item_prefix
 // - unchecked_item_prefix
 // - active_item_prefix
+// - error_style
+// Added
 // - format_multi_select_prompt_item
+// - warn_prefix
 use dialoguer::{
   console::{style, Style, StyledObject},
   theme::Theme,
@@ -24,6 +27,8 @@ pub struct ColorfulTheme {
   pub success_prefix: StyledObject<String>,
   /// Prompt on success suffix value and style
   pub success_suffix: StyledObject<String>,
+  /// Warning prefix value and style
+  pub warn_prefix: StyledObject<String>,
   /// Error prefix value and style
   pub error_prefix: StyledObject<String>,
   /// The style for error message
@@ -61,8 +66,9 @@ impl Default for ColorfulTheme {
       prompt_suffix: style("›".to_string()).for_stderr().black().bright(),
       success_prefix: style("✔".to_string()).for_stderr().green(),
       success_suffix: style("·".to_string()).for_stderr().black().bright(),
+      warn_prefix: style("!".to_string()).for_stderr().yellow(),
       error_prefix: style("✘".to_string()).for_stderr().red(),
-      error_style: Style::new().for_stderr().red(),
+      error_style: Style::new().for_stderr(),
       hint_style: Style::new().for_stderr().black().bright(),
       values_style: Style::new().for_stderr().green(),
       active_item_style: Style::new().for_stderr().cyan(),
