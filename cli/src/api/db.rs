@@ -111,11 +111,7 @@ pub async fn remove() {
   match &resp {
     Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
-      eprintln!(
-        "{} Failed to remove: {}",
-        dlg::err_prefix(),
-        e.message
-      );
+      eprintln!("{} Failed to remove: {}", dlg::err_prefix(), e.message);
       std::process::exit(1);
     }
   };
@@ -130,17 +126,9 @@ pub async fn apply() {
   let db = &dbs[selection];
   let resp = get_v1(&format!("db/apply/{}", db)).await;
   match &resp {
-    Ok(_) => println!(
-      "{} {}",
-      dlg::success_prefix(),
-      dlg::bold("Done")
-    ),
+    Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
-      eprintln!(
-        "{} Failed to apply: {}",
-        dlg::err_prefix(),
-        e.message
-      );
+      eprintln!("{} Failed to apply: {}", dlg::err_prefix(), e.message);
       std::process::exit(1);
     }
   };
@@ -183,11 +171,7 @@ pub async fn add() {
     }
     Err(e) => {
       sp.finish_and_clear();
-      eprintln!(
-        "{} Failed to add: {}",
-        dlg::err_prefix(),
-        e.message
-      );
+      eprintln!("{} Failed to add: {}", dlg::err_prefix(), e.message);
       std::process::exit(1);
     }
   };

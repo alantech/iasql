@@ -103,10 +103,7 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
 pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> {
   let installed = list_mod_names(Some(db)).await;
   if installed.len() == 0 {
-    print!(
-      "{} No modules have been installed",
-      dlg::warn_prefix(),
-    );
+    print!("{} No modules have been installed", dlg::warn_prefix(),);
     std::process::exit(0);
   }
   let all = list_mod_names(None).await;
@@ -154,10 +151,7 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
   let all = list_mod_names(None).await;
   let installed = list_mod_names(Some(db)).await;
   if all.len() == installed.len() {
-    println!(
-      "{} all available modules installed",
-      dlg::warn_prefix(),
-    );
+    println!("{} all available modules installed", dlg::warn_prefix(),);
     std::process::exit(0);
   }
   if mods_opt.is_none() {
@@ -211,11 +205,7 @@ pub async fn remove(db: &str, mods: Vec<String>) {
   });
   let resp = post_v1("module/remove", body).await;
   match &resp {
-    Ok(_) => println!(
-      "{} {}",
-      dlg::success_prefix(),
-      dlg::bold("Done"),
-    ),
+    Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done"),),
     Err(e) => {
       eprintln!(
         "{} Failed to remove modules: {}",
@@ -238,11 +228,7 @@ pub async fn install(db: &str, mods: Vec<String>) {
   });
   let resp = post_v1("module/install", body).await;
   match &resp {
-    Ok(_) => println!(
-      "{} {}",
-      dlg::success_prefix(),
-      dlg::bold("Done")
-    ),
+    Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
       eprintln!(
         "{} Failed to install modules: {}",
