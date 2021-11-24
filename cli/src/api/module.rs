@@ -149,12 +149,13 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
 
 // Gets and validates mods to install or prompts selection
 pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> {
-  let (all, installed) = join!(list_mod_names(None), list_mod_names(Some(db)));
+  let (all_infos, installed) = join!(list_mods(None), list_mod_names(Some(db)));
+  let all: Vec<String> = all_infos.iter().map(|m| m.name.clone()).collect();
   if all.len() == installed.len() {
     println!("{} all available modules installed", dlg::warn_prefix(),);
     exit(0);
   };
-  if mods_opt.is_none() {
+  let mut mods = if mods_opt.is_none() {
     let available = all.into_iter().filter(|x| !installed.contains(x)).collect();
     let idxs = dlg::multiselect(
       "Use arrows to move, space to (de)select modules and enter to submit",
@@ -191,7 +192,18 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
       exit(1);
     }
     mods
+  };
+  // add dependent modules not explicitly called out
+  for md in all_infos.into_iter() {
+    if mods.contains(&md.name) {
+      for dmd in md.dependencies {
+        if !installed.contains(&dmd) && !mods.contains(&dmd) {
+          mods.push(dmd)
+        }
+      }
+    }
   }
+  mods
 }
 
 pub async fn remove(db: &str, mods: Vec<String>) {
