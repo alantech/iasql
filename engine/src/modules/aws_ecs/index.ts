@@ -386,15 +386,14 @@ export const AwsEcsModule: Module = new Module({
           // await ctx.orm.save(Service, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          // TODO
-          // const relations = [''];
-          // const opts = id ? {
-          //   where: {
-          //     arn: Array.isArray(id) ? In(id) : id,
-          //   },
-          //   relations,
-          // } : { relations, };
-          // return (!id || Array.isArray(id)) ? await ctx.orm.find(Service, opts) : await ctx.orm.findOne(Service, opts);
+          const relations = ['cluster', 'task', 'network', 'loadBalancers'];
+          const opts = id ? {
+            where: {
+              arn: Array.isArray(id) ? In(id) : id,
+            },
+            relations,
+          } : { relations, };
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(Service, opts) : await ctx.orm.findOne(Service, opts);
         },
         update: async (e: Service | Service[], ctx: Context) => {
           // TODO
