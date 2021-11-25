@@ -62,9 +62,363 @@ export class awsEcs1637756035104 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "task_definition_containers_container" ADD CONSTRAINT "FK_8645e90b3981ca6e9e5e3c213b2" FOREIGN KEY ("container_id") REFERENCES "container"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" ADD CONSTRAINT "FK_0909ccc9eddf3c92a7772912562" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" ADD CONSTRAINT "FK_f19b7360a189526c59b4387a953" FOREIGN KEY ("compatibility_id") REFERENCES "compatibility"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        // Example of use: call create_ecs_cluster('test-sp');
+        await queryRunner.query(`
+            create or replace procedure create_ecs_cluster(_name text)
+            language plpgsql
+            as $$
+            declare 
+                cluster_id integer;
+            begin
+                insert into cluster
+                    (cluster_name)
+                values
+                    (_name)
+                on conflict (cluster_name)
+                do nothing;
+            
+                select id into cluster_id
+                from cluster
+                where cluster_name = _name
+                order by id desc
+                limit 1;
+            
+                raise info 'cluster_id = %', cluster_id;
+            end;
+            $$;
+        `);
+        // Example of use:
+        // docker image: call create_container_definition('test-sp', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4',_docker_image := 'postgres');
+        // ecr repository: call create_container_definition('test-sp2', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4',_ecr_repository_name := 'test2');
+        // error example: call create_container_definition('test-sp2', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4');
+        await queryRunner.query(`
+            create or replace procedure create_container_definition(
+                _name text,
+                _essential boolean,
+                _memory_reservation integer,
+                _host_port integer,
+                _container_port integer,
+                _protocol port_mapping_protocol_enum,
+                _environment_variables json,
+                _image_tag text,
+                _docker_image text default null,
+                _ecr_repository_name text default null
+            )
+            language plpgsql
+            as $$
+            declare 
+                c_id integer;
+                pm_id integer;
+                key text;
+                val text;
+                ev_id integer;
+                ecr_repository_id integer;
+            begin
+            
+                assert (_docker_image is null and _ecr_repository_name is not null) or (_docker_image is not null and _ecr_repository_name is null), '_docker_image or _ecr_repository_name need to be defined';
+            
+                if _ecr_repository_name is not null then
+                select id into ecr_repository_id
+                from aws_repository
+                where repository_name = _ecr_repository_name
+                limit 1;
+            
+                insert into container
+                    (name, repository_id, tag, essential, memory_reservation)
+                values
+                    (_name, ecr_repository_id, _image_tag, _essential, _memory_reservation)
+                on conflict (name)
+                do nothing;
+                else
+                insert into container
+                    (name, docker_image, tag, essential, memory_reservation)
+                values
+                    (_name, _docker_image, _image_tag, _essential, _memory_reservation)
+                on conflict (name)
+                do nothing;
+                end if;
+            
+                select id into c_id
+                from container
+                where name = _name
+                order by id desc
+                limit 1;
+            
+                select port_mapping_id into pm_id
+                from container_port_mappings_port_mapping
+                where container_id = c_id
+                limit 1;
+                
+                if pm_id is null then
+                    insert into port_mapping
+                        (container_port, host_port, protocol)
+                    values
+                        (_container_port, _host_port, _protocol);
+                    
+                    select id into pm_id
+                    from port_mapping
+                    order by id desc
+                    limit 1;
+                    
+                    insert into container_port_mappings_port_mapping
+                        (container_id, port_mapping_id)
+                    values
+                        (c_id, pm_id);
+                end if;
+            
+                select env_variable_id into ev_id
+                from container_environment_env_variable
+                where container_id = c_id
+                limit 1;
+                
+                if ev_id is null then
+                    for key, val in
+                        select *
+                        from json_each_text (_environment_variables)
+                    loop
+                        insert into env_variable
+                        (name, value)
+                        values
+                        (key, val);
+                    
+                        select id into ev_id
+                        from env_variable
+                        order by id desc
+                        limit 1;
+                    
+                        insert into container_environment_env_variable
+                        (container_id, env_variable_id)
+                        values
+                        (c_id, ev_id);
+                    end loop;
+                end if;
+            
+                raise info 'container_id = %', c_id;
+            end;
+            $$;
+        `);
+        // Example of use: call create_task_definition('test-sp', 'arn', 'arn', 'awsvpc', array['FARGATE', 'EXTERNAL']::compatibility_name_enum[], '0.5vCPU-4GB', array['postgresql']);
+        await queryRunner.query(`
+            create or replace procedure create_task_definition(
+                _family text,
+                _task_role_arn text,
+                _execution_role_arn text,
+                _network_mode task_definition_network_mode_enum,
+                _req_compatibilities compatibility_name_enum[],
+                _cpu_memory task_definition_cpu_memory_enum,
+                _container_definition_names text[]
+            )
+            language plpgsql
+            as $$ 
+            declare 
+                task_definition_id integer;
+                rev integer;
+                comp record;
+                cont record;
+            begin
+                select revision into rev
+                from task_definition
+                where family = _family
+                order by revision desc
+                limit 1;
+            
+                if rev is null then
+                rev := 1;
+                else
+                rev := rev + 1;
+                end if;
+            
+                insert into task_definition
+                    (family, revision, task_role_arn, execution_role_arn, network_mode, cpu_memory)
+                values
+                    (_family, rev, _task_role_arn, _execution_role_arn, _network_mode, _cpu_memory);
+            
+                select id into task_definition_id
+                from task_definition
+                order by id desc
+                limit 1;
+            
+                insert into compatibility
+                    (name)
+                select comp_name
+                from (
+                    select unnest(_req_compatibilities) as comp_name
+                ) as comp_arr
+                where not exists (
+                    select id from compatibility where name = comp_arr.comp_name
+                );
+            
+                for comp in
+                    select id
+                    from compatibility
+                    where name = any(_req_compatibilities)
+                loop
+                    insert into task_definition_req_compatibilities_compatibility
+                        (task_definition_id, compatibility_id)
+                    values
+                        (task_definition_id, comp.id);
+                end loop;
+            
+                for cont in
+                    select id
+                    from container
+                    where name = any(_container_definition_names)
+                loop
+                    insert into task_definition_containers_container
+                        (task_definition_id, container_id)
+                    values
+                        (task_definition_id, cont.id);
+                end loop;
+            
+                raise info 'task_definition_id = %', task_definition_id;
+            end;
+            $$;
+        `);
+        // Example of use: call create_ecs_service('test-12345', 'iasql', 'postgres:3', 1, 'FARGATE', 'REPLICA', array['subnet-68312820'], array['default'], 'ENABLED', 'iasql-postgresql', 'iasql-postgresql');
+        await queryRunner.query(`
+            create or replace procedure create_ecs_service(
+                _name text,
+                _cluster_name text,
+                _task_definition_family text,
+                _desired_count integer,
+                _launch_type service_launch_type_enum,
+                _scheduling_strategy service_scheduling_strategy_enum,
+                _subnet_ids text[],
+                _secutiry_group_names text[],
+                _assign_public_ip aws_vpc_conf_assign_public_ip_enum,
+                _target_group_name text default null,
+                _load_balancer_name text default null
+            )
+            language plpgsql
+            as $$ 
+                declare
+                    service_id integer;
+                    task_def_id integer;
+                    sn_id integer;
+                    aws_vpc_conf_id integer;
+                    cluster_id integer;
+                    elb_id integer;
+                    target_group_id integer;
+                    c_name text;
+                    c_port integer;
+                    service_load_balancer_id integer;
+                    sn record;
+                    sg record;
+                begin
+                    select id into service_id
+                    from service
+                    where name = _name
+                    order by id desc
+                    limit 1;
+            
+                    if service_id is null then
+                        select id into sn_id
+                        from aws_subnet
+                        where subnet_id = any(_subnet_ids)
+                        limit 1;
+            
+                        insert into aws_vpc_conf
+                            (assign_public_ip)
+                        values
+                            (_assign_public_ip);
+            
+                        select id into aws_vpc_conf_id
+                        from aws_vpc_conf
+                        order by id desc
+                        limit 1;
+            
+                        for sn in
+                            select id
+                            from aws_subnet
+                            where subnet_id = any(_subnet_ids)
+                        loop
+                            insert into aws_vpc_conf_subnets_aws_subnet
+                                (aws_vpc_conf_id, aws_subnet_id)
+                            values
+                                (aws_vpc_conf_id, sn.id);
+                        end loop;
+            
+                        for sg in
+                            select id
+                            from aws_security_group
+                            where group_name = any(_secutiry_group_names)
+                        loop
+                            insert into aws_vpc_conf_security_groups_aws_security_group
+                                (aws_vpc_conf_id, aws_security_group_id)
+                            values
+                                (aws_vpc_conf_id, sg.id);
+                        end loop;
+            
+                        select id into task_def_id
+                        from task_definition
+                        where family = _task_definition_family
+                        order by revision desc
+                        limit 1;
+            
+                        assert task_def_id > 0, 'Task definition not found';
+            
+                        select id into cluster_id
+                        from cluster
+                        where cluster_name = _cluster_name
+                        limit 1;
+            
+                        assert cluster_id > 0, 'Cluster not found';
+            
+                        insert into service
+                            (name,cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
+                        values
+                            (_name, cluster_id, task_def_id, _desired_count, _launch_type, _scheduling_strategy, aws_vpc_conf_id);
+            
+                        select id into service_id
+                        from service
+                        order by id desc
+                        limit 1;
+            
+                        select id into elb_id
+                        from aws_load_balancer
+                        where load_balancer_name = _load_balancer_name
+                        limit 1;
+            
+                        select id into target_group_id
+                        from aws_target_group
+                        where target_group_name = _target_group_name
+                        limit 1;
+            
+                        select c.name, pm.container_port into c_name, c_port
+                        from task_definition td
+                            left join task_definition_containers_container tdc on td.id = tdc.task_definition_id
+                            left join container c on c.id = tdc.container_id
+                            left join container_port_mappings_port_mapping cpm on cpm.container_id = c.id
+                            left join port_mapping pm on pm.id = cpm.port_mapping_id
+                        where td.id = task_def_id
+                        limit 1;
+            
+                        insert into service_load_balancer
+                            (container_name, container_port, target_group_id, elb_id)
+                        values
+                            (c_name, c_port, target_group_id, elb_id);
+            
+                        select id into service_load_balancer_id
+                        from service_load_balancer
+                        order by id desc
+                        limit 1;
+            
+                        insert into service_load_balancers_service_load_balancer
+                            (service_id, service_load_balancer_id)
+                        values
+                            (service_id, service_load_balancer_id);
+                    end if;
+                    raise info 'service_id = %', service_id;
+                end;
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP procedure create_ecs_service;`);
+        await queryRunner.query(`DROP procedure create_task_definition;`);
+        await queryRunner.query(`DROP procedure create_container_definition;`);
+        await queryRunner.query(`DROP procedure create_ecs_cluster;`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" DROP CONSTRAINT "FK_f19b7360a189526c59b4387a953"`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" DROP CONSTRAINT "FK_0909ccc9eddf3c92a7772912562"`);
         await queryRunner.query(`ALTER TABLE "task_definition_containers_container" DROP CONSTRAINT "FK_8645e90b3981ca6e9e5e3c213b2"`);
