@@ -70,7 +70,7 @@ export class Service {
   })
   schedulingStrategy?: SchedulingStrategy;
 
-  @OneToOne(() => AwsVpcConf, { nullable: true, })
+  @OneToOne(() => AwsVpcConf, { cascade: true, nullable: true, })
   @JoinColumn({
     name: 'aws_vpc_conf_id',
   })
