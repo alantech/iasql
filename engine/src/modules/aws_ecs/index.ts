@@ -72,7 +72,7 @@ export const AwsEcsModule: Module = new Module({
     },
     taskDefinitionMapper: async (td: any, ctx: Context) => {
       const out = new TaskDefinition();
-      out.containers = await Promise.all(td.containerDefinitions.map(async (tdc: any) => {
+      const containers: Container[] = await Promise.all(td.containerDefinitions.map(async (tdc: any) => {
         const container = await ctx.orm.findOne(Container, {
           where: {
             name: tdc.name,
@@ -81,7 +81,7 @@ export const AwsEcsModule: Module = new Module({
         if (!container) return AwsEcsModule.utils.containerMapper(tdc, ctx);
         return container;
       }));
-      out.containers = out.containers.filter(c => c !== null );
+      out.containers = containers.filter(c => c !== null );
       out.cpuMemory = `${+(td.cpu ?? '256') / 1024}vCPU-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
       out.executionRoleArn = td.executionRoleArn;
       out.family = td.family;
@@ -260,6 +260,24 @@ export const AwsEcsModule: Module = new Module({
           });
           await ctx.orm.save(Compatibility, Object.values(compatibilities));
           await ctx.orm.save(Container, Object.values(containers));
+          const savedContainers = await ctx.orm.find(Container);
+          const savedCompatibilities = await ctx.orm.find(Compatibility);
+          es.forEach(e => {
+            if (e.containers?.length) {
+              e.containers.forEach(ec => {
+                const c = savedContainers.find((sc:any) => sc.name === ec.name);
+                if (!c.id) throw new DepError('Container need to be loaded first');
+                ec.id = c.id;
+              })
+            }
+            if (e.reqCompatibilities?.length) {
+              e.reqCompatibilities.forEach(rc => {
+                const c = savedCompatibilities.find((sc:any) => sc.name === rc.name);
+                if (!c.id) throw new DepError('Compatibilities need to be loaded first');
+                rc.id = c.id;
+              })
+            }
+          });
           await ctx.orm.save(TaskDefinition, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
