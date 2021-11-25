@@ -74,16 +74,23 @@ import {
 import {
   CreateClusterCommand,
   CreateClusterCommandInput,
+  CreateServiceCommand,
+  CreateServiceCommandInput,
   DeleteClusterCommand,
+  DeleteServiceCommand,
   DeregisterTaskDefinitionCommand,
   DescribeClustersCommand,
+  DescribeServicesCommand,
   DescribeTaskDefinitionCommand,
   ECSClient,
   paginateListClusters,
+  paginateListServices,
   paginateListTaskDefinitions,
   paginateListTasks,
   RegisterTaskDefinitionCommand,
   RegisterTaskDefinitionCommandInput,
+  UpdateServiceCommand,
+  UpdateServiceCommandInput,
   waitUntilTasksStopped,
 } from '@aws-sdk/client-ecs'
 
@@ -672,8 +679,8 @@ export class AWS {
     return tasksArns;
   }
 
-  async deleteCluster(name: string) {
-    const tasks = await this.getTasksArns(name);
+  async deleteCluster(id: string) {
+    const tasks = await this.getTasksArns(id);
     if (tasks.length) {
       await waitUntilTasksStopped({
         client: this.ecsClient,
@@ -682,13 +689,13 @@ export class AWS {
         minDelay: 1,
         maxDelay: 4,
       }, {
-        cluster: name,
+        cluster: id,
         tasks,
       });
     }
     await this.ecsClient.send(
       new DeleteClusterCommand({
-        cluster: name,
+        cluster: id,
       })
     );
   }
@@ -703,11 +710,22 @@ export class AWS {
   async getTaskDefinitions() {
     const taskDefinitions: any[] = [];
     const taskDefinitionArns: string[] = [];
-    const paginator = paginateListTaskDefinitions({
+    const activePaginator = paginateListTaskDefinitions({
       client: this.ecsClient,
       pageSize: 25,
-    }, {});
-    for await (const page of paginator) {
+    }, {
+      status: 'ACTIVE',
+    });
+    for await (const page of activePaginator) {
+      taskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
+    }
+    const inactivePaginator = paginateListTaskDefinitions({
+      client: this.ecsClient,
+      pageSize: 25,
+    }, {
+      status: 'INACTIVE',
+    });
+    for await (const page of inactivePaginator) {
       taskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
     }
     await Promise.all(taskDefinitionArns.map(async arn => {
@@ -735,5 +753,64 @@ export class AWS {
         taskDefinition: name
       })
     );
+  }
+
+  async createService(input: CreateServiceCommandInput) {
+    const result = await this.ecsClient.send(
+      new CreateServiceCommand(input)
+    );
+    return result.service;
+  }
+
+  async updateService(input: UpdateServiceCommandInput) {
+    const result = await this.ecsClient.send(
+      new UpdateServiceCommand(input)
+    );
+    return result.service;
+  }
+
+  async getServices(clusterIds: string[]) {
+    const services = [];
+    for (const id of clusterIds) {
+      const serviceArns: string[] = [];
+      const paginator = paginateListServices({
+        client: this.ecsClient,
+        pageSize: 25,
+      }, {
+        cluster: id,
+      });
+      for await (const page of paginator) {
+        serviceArns.push(...(page.serviceArns ?? []));
+      }
+      if (serviceArns.length) {
+        const result = await this.ecsClient.send(
+          new DescribeServicesCommand({
+            cluster: id,
+            services: serviceArns
+          })
+        );
+        services.push(...(result.services ?? []));
+      }
+    }
+    return services;
+  }
+
+  async getService(id: string, cluster: string) {
+    const result = await this.ecsClient.send(
+      new DescribeServicesCommand({
+        services: [id],
+        cluster,
+      })
+    );
+    return result.services?.[0];
+  }
+
+  async deleteService(name: string, cluster: string) {
+    await this.ecsClient.send(
+      new DeleteServiceCommand({
+        service: name,
+        cluster,
+      })
+    )
   }
 }
