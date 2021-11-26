@@ -52,7 +52,7 @@ mod.post('/list', async (req, res) => {
     const modsInstalled = modules.map((m: IasqlModule) => (m.name));
     res.json(allModules.filter(m => modsInstalled.includes(m.name)));
   } else {
-    res.status(500).end('failure to list modules. invalid request parameters');
+    res.status(400).end('Invalid request parameters');
   }
 });
 
@@ -66,14 +66,14 @@ mod.post('/show', (_req, res) => res.end('ok'));
 mod.post('/install', async (req, res) => {
   const { list, dbAlias } = req.body;
   // Don't do anything if we don't know what database to impact
-  if (!dbAlias) return res.json("Missing 'dbAlias' to install into");
+  if (!dbAlias) return res.status(400).json("Missing 'dbAlias' to install into");
   const dbId = await getId(dbAlias, req.user);
   // Also don't do anything if we don't have any list of modules to install
-  if (!Array.isArray(list)) return res.json("ERROR: No packages provided in 'list' property");
+  if (!Array.isArray(list)) return res.status(400).json("No packages provided in 'list' property");
   // Check to make sure that all specified modules actually exist
   const modules = list.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
   if (modules.some((m: any) => m === undefined)) {
-    return res.json(`ERROR. The following modules do not exist: ${
+    return res.status(400).json(`The following modules do not exist: ${
       list.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
     }`);
   }
@@ -108,7 +108,7 @@ mod.post('/install', async (req, res) => {
   }
   // See if we need to abort because now there's nothing to do
   if (modules.length === 0) {
-    return res.json("All modules already installed. Aborting");
+    return res.status(400).json("All modules already installed");
   }
   // Scan the database and see if there are any collisions
   const tables = (await queryRunner.query(`
@@ -156,9 +156,6 @@ ${Object.keys(tableCollisions)
       }
     }
     for (const md of rootToLeafOrder) {
-      if (md.migrations?.preinstall) {
-        await md.migrations.preinstall(queryRunner);
-      }
       if (md.migrations?.postinstall) {
         await md.migrations.postinstall(queryRunner);
       }
@@ -172,7 +169,7 @@ ${Object.keys(tableCollisions)
     await queryRunner.commitTransaction();
   } catch (e: any) {
     await queryRunner.rollbackTransaction();
-    return res.status(500).end(`failure to install module: ${e?.message ?? ''}`);
+    return res.status(500).end(`${e?.message ?? ''}`);
   } finally {
     await queryRunner.release();
   }
@@ -213,14 +210,14 @@ ${Object.keys(tableCollisions)
 mod.post('/remove', async (req, res) => {
   const { list, dbAlias } = req.body;
   // Don't do anything if we don't know what database to impact
-  if (!dbAlias) return res.json("Missing 'dbAlias' to install into");
+  if (!dbAlias) return res.status(400).json("Missing 'dbAlias' to install into");
   const dbId = await getId(dbAlias, req.user);
   // Also don't do anything if we don't have any list of modules to install
-  if (!Array.isArray(list)) return res.json("ERROR: No packages provided in 'list' property");
+  if (!Array.isArray(list)) return res.status(400).json("No packages provided in 'list' property");
   // Check to make sure that all specified modules actually exist
   const modules = list.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
   if (modules.some((m: any) => m === undefined)) {
-    return res.json(`ERROR. The following modules do not exist: ${
+    return res.status(400).json(`The following modules do not exist: ${
       list.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
     }`);
   }
@@ -253,7 +250,7 @@ mod.post('/remove', async (req, res) => {
   }
   // See if we need to abort because now there's nothing to do
   if (modules.length === 0) {
-    return res.json("All modules already removed. Aborting");
+    return res.status(400).json("All modules already removed.");
   }
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = [...modules].sort((a, b) => {
@@ -269,14 +266,11 @@ mod.post('/remove', async (req, res) => {
   await queryRunner.startTransaction();
   try {
     for (const md of leafToRootOrder) {
-      if (md.migrations?.preinstall) {
-        await md.migrations.preinstall(queryRunner);
-      }
-    }
-    for (const md of rootToLeafOrder) {
       if (md.migrations?.preremove) {
         await md.migrations.preremove(queryRunner);
       }
+    }
+    for (const md of rootToLeafOrder) {
       if (md.migrations?.postremove) {
         await md.migrations.postremove(queryRunner);
       }
@@ -286,7 +280,7 @@ mod.post('/remove', async (req, res) => {
     await queryRunner.commitTransaction();
   } catch (e: any) {
     await queryRunner.rollbackTransaction();
-    return res.status(500).end(`failure to remove module: ${e?.message ?? ''}`);
+    return res.status(500).end(`${e?.message ?? ''}`);
   } finally {
     await queryRunner.release();
   }

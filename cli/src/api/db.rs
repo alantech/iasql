@@ -1,10 +1,13 @@
+use ascii_table::{AsciiTable, Column};
 use indicatif::ProgressBar;
 use serde::{Deserialize, Serialize};
 use serde_ini;
 use serde_json::json;
 
+use std::fmt::Display;
 use std::fs::OpenOptions;
 use std::io::BufReader;
+use std::process::exit;
 
 use crate::dialoguer as dlg;
 use crate::http::{get_v1, post_v1};
@@ -66,45 +69,51 @@ pub async fn get_dbs() -> Vec<String> {
   let res = match &resp {
     Ok(r) => r,
     Err(e) => {
-      println!("Err: {:?}", e);
-      std::process::exit(1);
+      eprintln!("{} Failed to get dbs: {}", dlg::err_prefix(), e.message);
+      exit(1);
     }
   };
   let dbs: Vec<String> = serde_json::from_str(res).unwrap();
   if dbs.len() == 0 {
-    println!("{}", NO_DBS);
-    std::process::exit(1);
+    println!("{} {}", dlg::warn_prefix(), NO_DBS);
+    exit(1);
   }
   return dbs;
 }
 
 pub async fn list() {
-  // TODO after IaSQL-on-IaSQL expose connection string and display
-  // everything in a table
+  // TODO after IaSQL-on-IaSQL expose connection string
   let dbs = get_dbs().await;
-  println!("{}", dlg::bold("IaSQL dbs:"));
-  println!(" - {}", dbs.join("\n - "));
+  let mut table = AsciiTable::default();
+  table.max_width = 140;
+  let column = Column {
+    header: "Database Name".into(),
+    ..Column::default()
+  };
+  table.columns.insert(0, column);
+  let mut db_data: Vec<Vec<&dyn Display>> = vec![];
+  for db in dbs.iter() {
+    let mut row: Vec<&dyn Display> = Vec::new();
+    row.push(db);
+    db_data.push(row);
+  }
+  table.print(db_data);
 }
 
 pub async fn remove() {
   let dbs = get_dbs().await;
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
-  let prompt = format!(
-    "{} to remove the {} IaSQL db",
-    dlg::bold("Press Enter"),
-    dlg::bold(db)
-  );
-  let removal = dlg::confirm_with_default(&prompt, true);
+  let removal = dlg::confirm_with_default("Press enter to confirm removal", true);
   if !removal {
-    return println!("Not removing {} IaSQL db", dlg::bold(db));
+    return println!("{} Did not remove", dlg::warn_prefix());
   }
   let resp = get_v1(&format!("db/remove/{}", db)).await;
   match &resp {
-    Ok(_) => println!("Successfully removed {} IaSQL db", dlg::bold(db),),
+    Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
-      println!("Err: {:?}", e);
-      std::process::exit(1);
+      eprintln!("{} Failed to remove: {}", dlg::err_prefix(), e.message);
+      exit(1);
     }
   };
 }
@@ -112,16 +121,16 @@ pub async fn remove() {
 pub async fn apply() {
   let dbs = get_dbs().await;
   if dbs.len() == 0 {
-    return println!("{}", NO_DBS);
+    return println!("{} {}", dlg::warn_prefix(), NO_DBS);
   }
   let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
   let db = &dbs[selection];
   let resp = get_v1(&format!("db/apply/{}", db)).await;
   match &resp {
-    Ok(_) => println!("Successfully applied {} db", dlg::bold(db),),
+    Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
-      println!("Err: {:?}", e);
-      std::process::exit(1);
+      eprintln!("{} Failed to apply: {}", dlg::err_prefix(), e.message);
+      exit(1);
     }
   };
 }
@@ -148,7 +157,7 @@ pub async fn add() {
 
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
-  sp.set_message("Creating an IaSQL instance to manage your AWS account");
+  sp.set_message("Creating an IaSQL db to manage your AWS account");
   let body = json!({
     "dbAlias": db,
     "awsRegion": region,
@@ -158,11 +167,13 @@ pub async fn add() {
   let resp = post_v1("db/add", body).await;
   match &resp {
     Ok(_) => {
-      sp.finish_with_message(&format!("Successfully added {} db", dlg::bold(&db),));
+      sp.finish_and_clear();
+      println!("{} {}", dlg::success_prefix(), dlg::bold("Done"));
     }
     Err(e) => {
-      sp.finish_with_message(&format!("Err: {:?}", e));
-      std::process::exit(1);
+      sp.finish_and_clear();
+      eprintln!("{} Failed to add: {}", dlg::err_prefix(), e.message);
+      exit(1);
     }
   };
 }

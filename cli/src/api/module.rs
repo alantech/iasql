@@ -1,8 +1,10 @@
 use ascii_table::{AsciiTable, Column};
+use futures::join;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use std::fmt::Display;
+use std::process::exit;
 
 use crate::api::db::get_dbs;
 use crate::dialoguer as dlg;
@@ -33,8 +35,12 @@ async fn list_mods(db: Option<&str>) -> Vec<Module> {
   let res = match &resp {
     Ok(r) => r,
     Err(e) => {
-      println!("Err: {:?}", e);
-      std::process::exit(1);
+      eprintln!(
+        "{} Failed to list modules: {}",
+        dlg::err_prefix(),
+        e.message
+      );
+      exit(1);
     }
   };
   serde_json::from_str(res).unwrap()
@@ -84,8 +90,12 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
   } else {
     let db = db_opt.unwrap();
     if !dbs.contains(&db.to_owned()) {
-      println!("Err: db with name {} does not exist", db);
-      std::process::exit(1);
+      eprintln!(
+        "{} No db with the name {} exists",
+        dlg::err_prefix(),
+        dlg::red(db)
+      );
+      exit(1);
     }
     db.to_string()
   }
@@ -93,20 +103,19 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
 
 // Gets and validates mods to remove or prompts selection
 pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> {
-  let installed = list_mod_names(Some(db)).await;
+  let (installed, all) = join!(list_mod_names(Some(db)), list_mod_names(None));
   if installed.len() == 0 {
-    println!("No modules have been installed in {}", dlg::bold(db));
-    std::process::exit(0);
+    print!("{} No modules have been installed", dlg::warn_prefix(),);
+    exit(0);
   }
-  let all = list_mod_names(None).await;
   if mods_opt.is_none() {
     let idxs = dlg::multiselect(
       "Use arrows to move, space to (de)select modules and enter to submit",
       &installed,
     );
     if idxs.len() == 0 {
-      println!("No modules selected");
-      std::process::exit(0);
+      println!("{} No modules selected", dlg::warn_prefix());
+      exit(0);
     }
     installed
       .into_iter()
@@ -118,20 +127,21 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
     let mods = mods_opt.unwrap();
     let inexistent = mods.iter().find(|e| !all.contains(e));
     if inexistent.is_some() {
-      println!(
-        "Err: module {} does not exist",
-        dlg::bold(inexistent.unwrap())
+      eprint!(
+        "{} No module with the name {} exists",
+        dlg::err_prefix(),
+        dlg::red(inexistent.unwrap())
       );
-      std::process::exit(1);
+      exit(1);
     }
     let missing = mods.iter().find(|e| !installed.contains(e));
     if missing.is_some() {
-      println!(
-        "Err: module {} is not installed in {}",
-        dlg::bold(missing.unwrap()),
-        dlg::bold(db)
+      eprintln!(
+        "{} Module {} is not installed",
+        dlg::err_prefix(),
+        dlg::red(missing.unwrap()),
       );
-      std::process::exit(1);
+      exit(1);
     }
     mods
   }
@@ -139,15 +149,11 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
 
 // Gets and validates mods to install or prompts selection
 pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> {
-  let all = list_mod_names(None).await;
-  let installed = list_mod_names(Some(db)).await;
+  let (all, installed) = join!(list_mod_names(None), list_mod_names(Some(db)));
   if all.len() == installed.len() {
-    println!(
-      "All available modules have been installed in {}",
-      dlg::bold(db)
-    );
-    std::process::exit(0);
-  }
+    println!("{} all available modules installed", dlg::warn_prefix(),);
+    exit(0);
+  };
   if mods_opt.is_none() {
     let available = all.into_iter().filter(|x| !installed.contains(x)).collect();
     let idxs = dlg::multiselect(
@@ -155,8 +161,8 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
       &available,
     );
     if idxs.len() == 0 {
-      println!("No modules selected");
-      std::process::exit(0);
+      println!("{} No modules selected", dlg::warn_prefix());
+      exit(0);
     }
     available
       .into_iter()
@@ -168,35 +174,31 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
     let mods = mods_opt.unwrap();
     let inexistent = mods.iter().find(|e| !all.contains(e));
     if inexistent.is_some() {
-      println!(
-        "Err: module {} does not exist",
-        dlg::bold(inexistent.unwrap())
+      eprintln!(
+        "{} No module with the name {} exists",
+        dlg::err_prefix(),
+        dlg::red(inexistent.unwrap())
       );
-      std::process::exit(1);
+      exit(1);
     }
     let is_installed = mods.iter().find(|e| installed.contains(e));
     if is_installed.is_some() {
-      println!(
-        "Err: module {} is already installed in {}",
-        dlg::bold(is_installed.unwrap()),
-        dlg::bold(db)
+      eprintln!(
+        "{} Module {} is already installed",
+        dlg::err_prefix(),
+        dlg::red(is_installed.unwrap()),
       );
-      std::process::exit(1);
+      exit(1);
     }
     mods
   }
 }
 
 pub async fn remove(db: &str, mods: Vec<String>) {
-  let prompt = format!(
-    "{} to remove the following modules from IaSQL db {}: {}",
-    dlg::bold("Press Enter"),
-    dlg::bold(db),
-    mods.join(", ")
-  );
-  let removal = dlg::confirm_with_default(&prompt, true);
+  let removal = dlg::confirm_with_default("Press enter to confirm module removal", true);
   if !removal {
-    return println!("Not removing any modules");
+    println!("{} No modules were removed", dlg::warn_prefix());
+    exit(0);
   }
   let body = json!({
     "list": mods,
@@ -204,28 +206,23 @@ pub async fn remove(db: &str, mods: Vec<String>) {
   });
   let resp = post_v1("module/remove", body).await;
   match &resp {
-    Ok(_) => println!(
-      "Successfully removed the following modules from {}: {}",
-      dlg::bold(db),
-      mods.join(", ")
-    ),
+    Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done"),),
     Err(e) => {
-      println!("Err: {:?}", e);
-      std::process::exit(1);
+      eprintln!(
+        "{} Failed to remove modules: {}",
+        dlg::err_prefix(),
+        e.message
+      );
+      exit(1);
     }
   };
 }
 
 pub async fn install(db: &str, mods: Vec<String>) {
-  let prompt = format!(
-    "{} to install the following modules into IaSQL db {}: {}",
-    dlg::bold("Press Enter"),
-    dlg::bold(db),
-    mods.join(", ")
-  );
-  let installation = dlg::confirm_with_default(&prompt, true);
+  let installation = dlg::confirm_with_default("Press enter to confirm module installation", true);
   if !installation {
-    return println!("Not installing any modules");
+    println!("{} No modules were installed", dlg::warn_prefix());
+    exit(0);
   }
   let body = json!({
     "list": mods,
@@ -233,14 +230,14 @@ pub async fn install(db: &str, mods: Vec<String>) {
   });
   let resp = post_v1("module/install", body).await;
   match &resp {
-    Ok(_) => println!(
-      "Successfully installed the following modules from {}: {}",
-      dlg::bold(db),
-      mods.join(", ")
-    ),
+    Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
-      println!("Err: {:?}", e);
-      std::process::exit(1);
+      eprintln!(
+        "{} Failed to install modules: {}",
+        dlg::err_prefix(),
+        e.message
+      );
+      exit(1);
     }
   };
 }
