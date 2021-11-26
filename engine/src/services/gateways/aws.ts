@@ -712,7 +712,7 @@ export class AWS {
     const taskDefinitionArns: string[] = [];
     const activePaginator = paginateListTaskDefinitions({
       client: this.ecsClient,
-      pageSize: 25,
+      pageSize: 100,
     }, {
       status: 'ACTIVE',
     });
@@ -721,17 +721,17 @@ export class AWS {
     }
     const inactivePaginator = paginateListTaskDefinitions({
       client: this.ecsClient,
-      pageSize: 25,
+      pageSize: 100,
     }, {
       status: 'INACTIVE',
     });
     for await (const page of inactivePaginator) {
       taskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
     }
-    await Promise.all(taskDefinitionArns.map(async arn => {
+    // Do not run them in parallel to avoid AWS throttling error
+    for (const arn of taskDefinitionArns) {
       taskDefinitions.push(await this.getTaskDefinition(arn));
-      return arn;
-    }));
+    }
     return {
       taskDefinitions,
     };
