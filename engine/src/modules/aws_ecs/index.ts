@@ -138,9 +138,9 @@ export const AwsEcsModule: Module = new Module({
         const awsVpcConf = new AwsVpcConf();
         awsVpcConf.assignPublicIp = networkConf.assignPublicIp;
         awsVpcConf.securityGroups = await Promise.all(networkConf.securityGroups?.map(async (sg: string) =>
-          ctx.memo?.db?.AwsSecurityGroup?.sg ?? await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg)) ?? []);
-        awsVpcConf.subnets = await Promise.all(networkConf.subnets?.map(async (s: string) =>
-          ctx.memo?.db?.AwsSubnets?.s ?? await AwsAccount.mappers.subnet.db.read(ctx, s)) ?? []);
+          ctx.memo?.db?.AwsSecurityGroup?.[sg] ?? await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg)) ?? []);
+        awsVpcConf.subnets = await Promise.all(networkConf.subnets?.map(async (sn: string) =>
+          ctx.memo?.db?.AwsSubnets?.[sn] ?? await AwsAccount.mappers.subnet.db.read(ctx, sn)) ?? []);
         out.network = awsVpcConf;
       }
       out.schedulingStrategy = s.schedulingStrategy as SchedulingStrategy;
@@ -262,16 +262,16 @@ export const AwsEcsModule: Module = new Module({
           await ctx.orm.save(Container, Object.values(containers));
           const savedContainers = await ctx.orm.find(Container);
           const savedCompatibilities = await ctx.orm.find(Compatibility);
-          es.forEach(e => {
-            if (e.containers?.length) {
-              e.containers.forEach(ec => {
+          es.forEach(entity => {
+            if (entity.containers?.length) {
+              entity.containers.forEach(ec => {
                 const c = savedContainers.find((sc:any) => sc.name === ec.name);
                 if (!c.id) throw new DepError('Container need to be loaded first');
                 ec.id = c.id;
               })
             }
-            if (e.reqCompatibilities?.length) {
-              e.reqCompatibilities.forEach(rc => {
+            if (entity.reqCompatibilities?.length) {
+              entity.reqCompatibilities.forEach(rc => {
                 const c = savedCompatibilities.find((sc:any) => sc.name === rc.name);
                 if (!c.id) throw new DepError('Compatibilities need to be loaded first');
                 rc.id = c.id;
