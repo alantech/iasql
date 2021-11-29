@@ -40,7 +40,7 @@ do $$
     end loop;
 
     call create_aws_target_group(
-      iasql_engine_target_group, 'ip', iasql_engine_port, default_vpc, 'TCP'
+      iasql_engine_target_group, 'ip', iasql_engine_port, default_vpc, 'HTTP'
     );
 
     call create_aws_target_group(
@@ -48,10 +48,10 @@ do $$
     );
 
     call create_aws_load_balancer(
-      iasql_engine_load_balancer, 'internet-facing', default_vpc, 'network', default_subnets, 'ipv4'
+      iasql_engine_load_balancer, 'internet-facing', default_vpc, 'application', default_subnets, 'ipv4'
     );
 
-    call create_aws_listener(iasql_engine_load_balancer, iasql_engine_port, 'TCP', 'forward', iasql_engine_target_group);
+    call create_aws_listener(iasql_engine_load_balancer, 443, 'HTTPS', 'forward', iasql_engine_target_group);
 
     call create_aws_load_balancer(
       iasql_postgres_load_balancer, 'internet-facing', default_vpc, 'network', default_subnets, 'ipv4'
@@ -80,7 +80,7 @@ do $$
 
     call create_aws_security_group(
       iasql_engine_security_group, iasql_engine_security_group,
-      ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_engine_port || ', "toPort": ' || iasql_engine_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
+      ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_engine_port || ', "toPort": ' || iasql_engine_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": false, "ipProtocol": "tcp", "fromPort": "443", "toPort": "443", "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
 
     call create_ecs_service(
