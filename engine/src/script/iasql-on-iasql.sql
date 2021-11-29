@@ -40,7 +40,7 @@ do $$
     end loop;
 
     call create_aws_target_group(
-      iasql_engine_target_group, 'ip', iasql_engine_port, default_vpc, 'HTTP'
+      iasql_engine_target_group, 'ip', iasql_engine_port, default_vpc, 'HTTP', '/health'
     );
 
     call create_aws_target_group(
