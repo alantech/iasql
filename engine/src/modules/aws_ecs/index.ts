@@ -528,10 +528,14 @@ export const AwsEcsModule: Module = new Module({
             return AwsEcsModule.utils.serviceMapper(updatedService, ctx);
           }));
         },
-        delete: async (td: Service | Service[], ctx: Context) => {
+        delete: async (s: Service | Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          const es = Array.isArray(td) ? td : [td];
-          await Promise.all(es.map(e => client.deleteService(e.name, e.cluster?.clusterArn!)));
+          const es = Array.isArray(s) ? s : [s];
+          await Promise.all(es.map(async e => {
+            e.desiredCount = 0;
+            await AwsEcsModule.mappers.service.cloud.update(e, ctx);
+            return client.deleteService(e.name, e.cluster?.clusterArn!)
+          }));
         },
       }),
     }),
