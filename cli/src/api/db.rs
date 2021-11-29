@@ -129,7 +129,13 @@ pub async fn apply() {
   match &resp {
     Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
-      eprintln!("{} Failed to apply: {}", dlg::err_prefix(), e.message);
+      eprintln!(
+        "{} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Failed to apply"),
+        dlg::suffix(),
+        e.message
+      );
       exit(1);
     }
   };
@@ -172,7 +178,13 @@ pub async fn add() {
     }
     Err(e) => {
       sp.finish_and_clear();
-      eprintln!("{} Failed to add: {}", dlg::err_prefix(), e.message);
+      eprintln!(
+        "{} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Failed to add"),
+        dlg::suffix(),
+        e.message
+      );
       exit(1);
     }
   };
