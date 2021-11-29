@@ -18,10 +18,6 @@ pub fn green(el: &str) -> StyledObject<String> {
   style(format!("{}", el)).green()
 }
 
-pub fn gray(el: &str) -> StyledObject<String> {
-  style(format!("{}", el)).black().bright()
-}
-
 pub fn warn_prefix() -> StyledObject<String> {
   let t = &ColorfulTheme::default();
   t.warn_prefix.clone()
