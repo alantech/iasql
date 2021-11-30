@@ -844,8 +844,29 @@ export class AWS {
   }
 
   async deleteDBInstance(deleteInput: DeleteDBInstanceMessage) {
-    return await this.rdsClient.send(
+    await this.rdsClient.send(
       new DeleteDBInstanceCommand(deleteInput),
+    );
+    const inputCommand = new DescribeDBInstancesCommand({
+      DBInstanceIdentifier: deleteInput.DBInstanceIdentifier,
+    });
+    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
+      {
+        client: this.rdsClient,
+        // all in seconds
+        maxWaitTime: 120,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      inputCommand,
+      async (client, cmd) => {
+        const data = await client.send(cmd);
+        for (const dbInstance of data?.DBInstances ?? []) {
+          if (dbInstance.DBInstanceStatus !== 'deleting')
+            return { state: WaiterState.RETRY };
+        }
+        return { state: WaiterState.SUCCESS };
+      },
     );
   }
 
