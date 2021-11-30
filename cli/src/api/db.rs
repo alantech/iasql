@@ -72,7 +72,7 @@ pub async fn get_dbs() -> Vec<String> {
       eprintln!(
         "{} {} {} {}",
         dlg::err_prefix(),
-        dlg::bold("Failed to get databases"),
+        dlg::bold("Failed to get all dbs"),
         dlg::divider(),
         e.message
       );
