@@ -227,6 +227,7 @@ export const AwsEc2Module: Module = new Module({
           o3.name = f.Name ?? '';
           return o3;
         }) ?? [];
+        o2.totalFPGAMemoryInMiB = i2.TotalFpgaMemoryInMiB ?? 0;
       }
       out.freeTierEligible = instanceType.FreeTierEligible ?? false;
       if (instanceType.GpuInfo) {
@@ -246,130 +247,131 @@ export const AwsEc2Module: Module = new Module({
           o3.name = g.Name ?? '';
           return o3;
         }) ?? [];
-        out.hibernationSupported = instanceType.HibernationSupported ?? false;
-        if (instanceType.Hypervisor) out.hypervisor = instanceType.Hypervisor as InstanceTypeHypervisor;
-        if (instanceType.InferenceAcceleratorInfo) {
-          const i2 = instanceType.InferenceAcceleratorInfo;
-          const o2 = new InferenceAcceleratorInfo();
-          out.inferenceAcceleratorInfo = o2;
-          o2.accelerators = i2.Accelerators?.map(a => {
-            const o3 = new InferenceDeviceInfo();
-            o3.count = a.Count ?? 0;
-            o3.manufacturer = a.Manufacturer ?? '';
-            o3.name = a.Name ?? '';
-            return o3;
-          }) ?? [];
-        }
-        out.instances = []; // TODO: Add this once instance mapper written
-        if (instanceType.InstanceStorageInfo) {
-          const i2 = instanceType.InstanceStorageInfo;
-          const o2 = new InstanceStorageInfo();
-          out.instanceStorageInfo = o2;
-          o2.disks = i2.Disks?.map(d => {
-            const o3 = new DiskInfo();
-            o3.count = d.Count ?? 0;
-            if (d.Type) o3.diskType = d.Type as DiskType;
-            o3.sizeInGB = d.SizeInGB ?? 0;
-            return o3;
-          }) ?? [];
-          if (i2.NvmeSupport) o2.NVMESupport = i2.NvmeSupport as EphemeralNVMESupport;
-          o2.totalSizeInGB = i2.TotalSizeInGB ?? 0;
-        }
-        out.instanceStorageSupported = instanceType.InstanceStorageSupported ?? false;
-        if (instanceType.InstanceType) {
-          const o2 = new InstanceTypeValue();
-          out.instanceType = o2;
-          o2.name = instanceType.InstanceType;
-        }
-        out.memorySizeInMiB = instanceType.MemoryInfo?.SizeInMiB ?? 0;
-        if (instanceType.NetworkInfo) {
-          const i2 = instanceType.NetworkInfo;
-          const o2 = new NetworkInfo();
-          out.networkInfo = o2;
-          o2.defaultNetworkCardIndex = i2.DefaultNetworkCardIndex ?? 0;
-          if (i2.EfaInfo) {
-            const i3 = i2.EfaInfo;
-            const o3 = new EFAInfo();
-            o2.efaInfo = o3;
-            o3.maximumEFAInterfaces = i3.MaximumEfaInterfaces ?? 0;
-          }
-          o2.efaSupported = i2.EfaSupported ?? false;
-          if (i2.EnaSupport) o2.enaSupport = i2.EnaSupport as ENASupport;
-          o2.encryptionInTransitSupported = i2.EncryptionInTransitSupported ?? false;
-          o2.ipv4AddressesPerInterface = i2.Ipv4AddressesPerInterface ?? 0;
-          o2.ipv6AddressesPerInterface = i2.Ipv6AddressesPerInterface ?? 0;
-          o2.ipv6Supported = i2.Ipv6Supported ?? false;
-          o2.maximumNetworkCards = i2.MaximumNetworkCards ?? 0;
-          o2.maximumNetworkInterfaces = i2.MaximumNetworkInterfaces ?? 0;
-          o2.networkCards = i2.NetworkCards?.map(n => {
-            const o3 = new NetworkCardInfo();
-            o3.maximumNetworkInterfaces = n.MaximumNetworkInterfaces ?? 0;
-            o3.networkCardIndex = n.NetworkCardIndex ?? 0;
-            o3.networkPerformance = n.NetworkPerformance ?? '';
-            return o3;
-          }) ?? [];
-          o2.networkPerformance = i2.NetworkPerformance ?? '';
-        }
-        if (instanceType.PlacementGroupInfo) {
-          const i2 = instanceType.PlacementGroupInfo;
-          const o2 = new PlacementGroupInfo();
-          out.placementGroupInfo = o2;
-          o2.supportedStrategies = i2.SupportedStrategies?.map(s => {
-            const o3 = new PlacementGroupStrategy();
-            o3.strategy = s;
-            return o3;
-          }) ?? [];
-        }
-        if (instanceType.ProcessorInfo) {
-          const i2 = instanceType.ProcessorInfo;
-          const o2 = new ProcessorInfo();
-          out.processorInfo = o2;
-          o2.supportedArchitectures = i2.SupportedArchitectures?.map(a => {
-            const o3 = new CPUArchitecture();
-            o3.cpuArchitecture = a;
-            return o3;
-          }) ?? [];
-          o2.sustainedClockSpeedInGHz = i2.SustainedClockSpeedInGhz ?? 0;
-        }
-        out.regions = []; // TODO: How to determine this?
-        out.supportedBootModes = instanceType.SupportedBootModes?.map(bm => {
-          const o2 = new BootMode();
-          o2.mode = bm;
-          return o2;
+        o2.totalGPUMemoryInMiB = i2.TotalGpuMemoryInMiB ?? 0;
+      }
+      out.hibernationSupported = instanceType.HibernationSupported ?? false;
+      if (instanceType.Hypervisor) out.hypervisor = instanceType.Hypervisor as InstanceTypeHypervisor;
+      if (instanceType.InferenceAcceleratorInfo) {
+        const i2 = instanceType.InferenceAcceleratorInfo;
+        const o2 = new InferenceAcceleratorInfo();
+        out.inferenceAcceleratorInfo = o2;
+        o2.accelerators = i2.Accelerators?.map(a => {
+          const o3 = new InferenceDeviceInfo();
+          o3.count = a.Count ?? 0;
+          o3.manufacturer = a.Manufacturer ?? '';
+          o3.name = a.Name ?? '';
+          return o3;
         }) ?? [];
-        out.supportedRootDeviceTypes = instanceType.SupportedRootDeviceTypes?.map(rdt => {
-          const o2 = new DeviceType();
-          o2.deviceType = rdt;
-          return o2;
+      }
+      out.instances = []; // TODO: Add this once instance mapper written
+      if (instanceType.InstanceStorageInfo) {
+        const i2 = instanceType.InstanceStorageInfo;
+        const o2 = new InstanceStorageInfo();
+        out.instanceStorageInfo = o2;
+        o2.disks = i2.Disks?.map(d => {
+          const o3 = new DiskInfo();
+          o3.count = d.Count ?? 0;
+          if (d.Type) o3.diskType = d.Type as DiskType;
+          o3.sizeInGB = d.SizeInGB ?? 0;
+          return o3;
         }) ?? [];
-        out.supportedUsageClasses = instanceType.SupportedUsageClasses?.map(uc => {
-          const o2 = new UsageClass();
-          o2.usageClass = uc;
-          return o2;
-        }) ?? [];
-        out.supportedVirtualizationTypes = instanceType.SupportedVirtualizationTypes?.map(vt => {
-          const o2 = new VirtualizationType();
-          o2.virtualizationType = vt;
-          return o2;
-        }) ?? [];
-        if (instanceType.VCpuInfo) {
-          const i2 = instanceType.VCpuInfo;
-          const o2 = new VCPUInfo();
-          out.vCPUInfo = o2;
-          o2.defaultCores = i2.DefaultCores ?? 0;
-          o2.defaultThreadsPerCore = i2.DefaultThreadsPerCore ?? 0;
-          o2.defaultVCPUs = i2.DefaultVCpus ?? 0;
-          o2.validCores = i2.ValidCores?.map(vc => {
-            const o3 = new ValidCore();
-            o3.count = vc;
-            return o3;
-          }) ?? [];
-          o2.validThreadsPerCore = i2.ValidThreadsPerCore?.map(vtc => {
-            const o3 = new ValidThreadsPerCore();
-            o3.count = vtc;
-            return o3;
-          }) ?? [];
+        if (i2.NvmeSupport) o2.NVMESupport = i2.NvmeSupport as EphemeralNVMESupport;
+        o2.totalSizeInGB = i2.TotalSizeInGB ?? 0;
+      }
+      out.instanceStorageSupported = instanceType.InstanceStorageSupported ?? false;
+      if (instanceType.InstanceType) {
+        const o2 = new InstanceTypeValue();
+        out.instanceType = o2;
+        o2.name = instanceType.InstanceType;
+      }
+      out.memorySizeInMiB = instanceType.MemoryInfo?.SizeInMiB ?? 0;
+      if (instanceType.NetworkInfo) {
+        const i2 = instanceType.NetworkInfo;
+        const o2 = new NetworkInfo();
+        out.networkInfo = o2;
+        o2.defaultNetworkCardIndex = i2.DefaultNetworkCardIndex ?? 0;
+        if (i2.EfaInfo) {
+          const i3 = i2.EfaInfo;
+          const o3 = new EFAInfo();
+          o2.efaInfo = o3;
+          o3.maximumEFAInterfaces = i3.MaximumEfaInterfaces ?? 0;
         }
+        o2.efaSupported = i2.EfaSupported ?? false;
+        if (i2.EnaSupport) o2.enaSupport = i2.EnaSupport as ENASupport;
+        o2.encryptionInTransitSupported = i2.EncryptionInTransitSupported ?? false;
+        o2.ipv4AddressesPerInterface = i2.Ipv4AddressesPerInterface ?? 0;
+        o2.ipv6AddressesPerInterface = i2.Ipv6AddressesPerInterface ?? 0;
+        o2.ipv6Supported = i2.Ipv6Supported ?? false;
+        o2.maximumNetworkCards = i2.MaximumNetworkCards ?? 0;
+        o2.maximumNetworkInterfaces = i2.MaximumNetworkInterfaces ?? 0;
+        o2.networkCards = i2.NetworkCards?.map(n => {
+          const o3 = new NetworkCardInfo();
+          o3.maximumNetworkInterfaces = n.MaximumNetworkInterfaces ?? 0;
+          o3.networkCardIndex = n.NetworkCardIndex ?? 0;
+          o3.networkPerformance = n.NetworkPerformance ?? '';
+          return o3;
+        }) ?? [];
+        o2.networkPerformance = i2.NetworkPerformance ?? '';
+      }
+      if (instanceType.PlacementGroupInfo) {
+        const i2 = instanceType.PlacementGroupInfo;
+        const o2 = new PlacementGroupInfo();
+        out.placementGroupInfo = o2;
+        o2.supportedStrategies = i2.SupportedStrategies?.map(s => {
+          const o3 = new PlacementGroupStrategy();
+          o3.strategy = s;
+          return o3;
+        }) ?? [];
+      }
+      if (instanceType.ProcessorInfo) {
+        const i2 = instanceType.ProcessorInfo;
+        const o2 = new ProcessorInfo();
+        out.processorInfo = o2;
+        o2.supportedArchitectures = i2.SupportedArchitectures?.map(a => {
+          const o3 = new CPUArchitecture();
+          o3.cpuArchitecture = a;
+          return o3;
+        }) ?? [];
+        o2.sustainedClockSpeedInGHz = i2.SustainedClockSpeedInGhz ?? 0;
+      }
+      out.regions = []; // TODO: How to determine this?
+      out.supportedBootModes = instanceType.SupportedBootModes?.map(bm => {
+        const o2 = new BootMode();
+        o2.mode = bm;
+        return o2;
+      }) ?? [];
+      out.supportedRootDeviceTypes = instanceType.SupportedRootDeviceTypes?.map(rdt => {
+        const o2 = new DeviceType();
+        o2.deviceType = rdt;
+        return o2;
+      }) ?? [];
+      out.supportedUsageClasses = instanceType.SupportedUsageClasses?.map(uc => {
+        const o2 = new UsageClass();
+        o2.usageClass = uc;
+        return o2;
+      }) ?? [];
+      out.supportedVirtualizationTypes = instanceType.SupportedVirtualizationTypes?.map(vt => {
+        const o2 = new VirtualizationType();
+        o2.virtualizationType = vt;
+        return o2;
+      }) ?? [];
+      if (instanceType.VCpuInfo) {
+        const i2 = instanceType.VCpuInfo;
+        const o2 = new VCPUInfo();
+        out.vCPUInfo = o2;
+        o2.defaultCores = i2.DefaultCores ?? 0;
+        o2.defaultThreadsPerCore = i2.DefaultThreadsPerCore ?? 0;
+        o2.defaultVCPUs = i2.DefaultVCpus ?? 0;
+        o2.validCores = i2.ValidCores?.map(vc => {
+          const o3 = new ValidCore();
+          o3.count = vc;
+          return o3;
+        }) ?? [];
+        o2.validThreadsPerCore = i2.ValidThreadsPerCore?.map(vtc => {
+          const o3 = new ValidThreadsPerCore();
+          o3.count = vtc;
+          return o3;
+        }) ?? [];
       }
       return out;
     },
@@ -399,6 +401,15 @@ export const AwsEc2Module: Module = new Module({
               if (entity.bootMode.id) bootModes[bm].id = entity.bootMode.id;
               entity.bootMode = bootModes[bm];
             }
+          });
+          // Load the sub-records from the database, if any, to associate the correct IDs
+          (await ctx.orm.find(CPUArchitecture)).forEach((a: CPUArchitecture) => {
+            cpuArches[a.cpuArchitecture] = cpuArches[a.cpuArchitecture] ?? a;
+            cpuArches[a.cpuArchitecture].id = a.id;
+          });
+          (await ctx.orm.find(BootMode)).forEach((b: BootMode) => {
+            bootModes[b.mode] = bootModes[b.mode] ?? b;
+            bootModes[b.mode].id = b.id;
           });
           // Pre-save these sub-records first
           await ctx.orm.save(CPUArchitecture, Object.values(cpuArches));
@@ -443,8 +454,8 @@ export const AwsEc2Module: Module = new Module({
     }),
     instanceType: new Mapper<InstanceType>({
       entity: InstanceType,
-      entityId: (_e: InstanceType) => '', // TODO
-      equals: (_a: InstanceType, _b: InstanceType) => true, // TODO
+      entityId: (e: InstanceType) => e.instanceType.name,
+      equals: (a: InstanceType, b: InstanceType) => a.instanceType.name === b.instanceType.name, // TODO
       source: 'cloud',
       db: new Crud({
         create: async (e: InstanceType | InstanceType[], ctx: Context) => {
@@ -457,6 +468,9 @@ export const AwsEc2Module: Module = new Module({
           const strategies: { [key: string]: PlacementGroupStrategy, } = {};
           const cpuArches: { [key: string]: CPUArchitecture, } = {};
           const bootModes: { [key: string]: BootMode, } = {};
+          const rootTypeDevices: { [key: string]: DeviceType, } = {};
+          const usageClasses: { [key: string]: UsageClass, } = {};
+          const virtualizationTypes: { [key: string]: VirtualizationType, } = {};
           es.forEach((entity: InstanceType) => {
             if (entity.fpgaInfo) {
               entity.fpgaInfo.fpgas.forEach((f, i) => {
@@ -485,13 +499,47 @@ export const AwsEc2Module: Module = new Module({
               entity.instanceType = instanceTypes[name];
             }
             if (entity.placementGroupInfo) {
-              entity.placementGroupInfo.supportedStrategies.map((s, i) => {
+              entity.placementGroupInfo.supportedStrategies.forEach((s, i) => {
                 const strat = s.strategy;
                 strategies[strat] = strategies[strat] ?? s;
                 entity.placementGroupInfo.supportedStrategies[i] = strategies[strat];
               });
             }
-            // TODO: cpu architectures, boot modes, root device types, usage classes, virtualization types, valid cores?, valid threads per core?
+            if (entity.processorInfo) {
+              entity.processorInfo.supportedArchitectures.forEach((a, i) => {
+                const arch = a.cpuArchitecture;
+                cpuArches[arch] = cpuArches[arch] ?? a;
+                entity.processorInfo.supportedArchitectures[i] = cpuArches[arch];
+              });
+            }
+            if (entity.supportedBootModes) {
+              entity.supportedBootModes.forEach((b, i) => {
+                const { mode, } = b;
+                bootModes[mode] = bootModes[mode] ?? b;
+                entity.supportedBootModes[i] = bootModes[mode];
+              });
+            }
+            if (entity.supportedRootDeviceTypes) {
+              entity.supportedRootDeviceTypes.forEach((r, i) => {
+                const { deviceType, } = r;
+                rootTypeDevices[deviceType] = rootTypeDevices[deviceType] ?? r;
+                entity.supportedRootDeviceTypes[i] = rootTypeDevices[deviceType];
+              });
+            }
+            if (entity.supportedUsageClasses) {
+              entity.supportedUsageClasses.forEach((u, i) => {
+                const { usageClass, } = u;
+                usageClasses[usageClass] = usageClasses[usageClass] ?? u;
+                entity.supportedUsageClasses[i] = usageClasses[usageClass];
+              });
+            }
+            if (entity.supportedVirtualizationTypes) {
+              entity.supportedVirtualizationTypes.forEach((v, i) => {
+                const { virtualizationType, } = v;
+                virtualizationTypes[virtualizationType] = virtualizationTypes[virtualizationType] ?? v;
+                entity.supportedVirtualizationTypes[i] = virtualizationTypes[virtualizationType];
+              });
+            }
           });
           // Pre-save these sub-records first
           await ctx.orm.save(FPGADeviceInfo, Object.values(fpgas));
@@ -501,6 +549,9 @@ export const AwsEc2Module: Module = new Module({
           await ctx.orm.save(PlacementGroupStrategy, Object.values(strategies));
           await ctx.orm.save(CPUArchitecture, Object.values(cpuArches));
           await ctx.orm.save(BootMode, Object.values(bootModes));
+          await ctx.orm.save(DeviceType, Object.values(rootTypeDevices));
+          await ctx.orm.save(UsageClass, Object.values(usageClasses));
+          await ctx.orm.save(VirtualizationType, Object.values(virtualizationTypes));
           // Now save the InstanceType records
           await ctx.orm.save(InstanceType, es);
         },
