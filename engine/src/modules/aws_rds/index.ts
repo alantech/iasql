@@ -184,19 +184,16 @@ export const AwsRdsModule: Module = new Module({
             // 2. In order to create a new RDS instance is necessary a MasterPassword. The first insertion of the RDS instance have the master password plain text,
             //    it creates the instance and then remove the value from DB since it does not come on the AWS response. For the update we do not know which password use
             //    so we should need to ask for a password field for every update?
-            let instanceParams: any = {
+            const instanceParams: any = {
               DBInstanceClass: e.dbInstanceClass,
               EngineVersion: e.engine.engineVersion,
               DBInstanceIdentifier: e.dbInstanceIdentifier,
               AllocatedStorage: e.allocatedStorage,
               ApplyImmediately: true,
             };
-            // If a password value has been insterted, we update it.
+            // If a password value has been inserted, we update it.
             if (e.masterUserPassword) {
-              instanceParams = {
-                ...instanceParams,
-                MasterUserPassword: e.masterUserPassword,
-              };
+              instanceParams.MasterUserPassword = e.masterUserPassword;
             }
             const result = await client.updateDBInstance(instanceParams);
             // TODO: Handle if it fails (somehow)
