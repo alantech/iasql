@@ -138,6 +138,9 @@ export const AwsRdsModule: Module = new Module({
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database.
             newEntity.id = e.id;
+            // TODO: save password with bcrypt?
+            // Clean password
+            newEntity.masterUserPassword = null;
             // Save the record back into the database to get the new fields updated
             await AwsRdsModule.mappers.rds.db.update(newEntity, ctx);
             return newEntity;
@@ -207,6 +210,9 @@ export const AwsRdsModule: Module = new Module({
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database.
             newEntity.id = e.id;
+            // TODO: save password with bcrypt?
+            // Clean password
+            newEntity.masterUserPassword = null;
             // Save the record back into the database to get the new fields updated
             await AwsRdsModule.mappers.rds.db.update(newEntity, ctx);
             return newEntity;
