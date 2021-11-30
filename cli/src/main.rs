@@ -81,7 +81,7 @@ pub async fn main() {
         }
         ("remove", Some(s_s_matches)) => {
           let db = module::get_or_select_db(s_s_matches.value_of("db")).await;
-          let modules = module::mods_to_rm(&db, s_s_matches.values_of_lossy("modules")).await;
+          let modules = module::mods_to_remove(&db, s_s_matches.values_of_lossy("modules")).await;
           module::remove(&db, modules).await;
         }
         // rely on AppSettings::SubcommandRequiredElseHelp

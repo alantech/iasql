@@ -18,6 +18,18 @@ pub fn green(el: &str) -> StyledObject<String> {
   style(format!("{}", el)).green()
 }
 
+pub fn gray(el: &str) -> StyledObject<String> {
+  style(format!("{}", el)).black().bright()
+}
+
+pub fn yellow(el: &str) -> StyledObject<String> {
+  style(format!("{}", el)).yellow()
+}
+
+pub fn white(el: &str) -> StyledObject<String> {
+  style(format!("{}", el)).white()
+}
+
 pub fn warn_prefix() -> StyledObject<String> {
   let t = &ColorfulTheme::default();
   t.warn_prefix.clone()
@@ -33,7 +45,7 @@ pub fn success_prefix() -> StyledObject<String> {
   t.success_prefix.clone()
 }
 
-pub fn suffix() -> StyledObject<String> {
+pub fn divider() -> StyledObject<String> {
   let t = &ColorfulTheme::default();
   t.success_suffix.clone()
 }

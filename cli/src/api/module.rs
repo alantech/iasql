@@ -36,8 +36,10 @@ async fn list_mods(db: Option<&str>) -> Vec<Module> {
     Ok(r) => r,
     Err(e) => {
       eprintln!(
-        "{} Failed to list modules: {}",
+        "{} {} {} {}",
         dlg::err_prefix(),
+        dlg::bold("Failed to list modules"),
+        dlg::divider(),
         e.message
       );
       exit(1);
@@ -91,8 +93,10 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
     let db = db_opt.unwrap();
     if !dbs.contains(&db.to_owned()) {
       eprintln!(
-        "{} No db with the name {} exists",
+        "{} {} {} {}",
         dlg::err_prefix(),
+        dlg::bold("Nonexistent db"),
+        dlg::divider(),
         dlg::red(db)
       );
       exit(1);
@@ -102,15 +106,17 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
 }
 
 // Gets and validates mods to remove or prompts selection
-pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> {
+pub async fn mods_to_remove(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> {
   let (all_infos, installed_infos) = join!(list_mods(None), list_mods(Some(db)));
   let all: Vec<String> = all_infos.iter().map(|m| m.name.clone()).collect();
   let installed: Vec<String> = installed_infos.iter().map(|m| m.name.clone()).collect();
   if installed.len() == 0 {
     print!(
-      "{} {}",
+      "{} {} {} {}",
       dlg::warn_prefix(),
-      dlg::bold("No modules have been installed")
+      dlg::bold("No modules have been installed in db"),
+      dlg::divider(),
+      dlg::red(db),
     );
     exit(0);
   }
@@ -121,9 +127,11 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
     );
     if idxs.len() == 0 {
       println!(
-        "{} {}",
+        "{} {} {} {}",
         dlg::warn_prefix(),
-        dlg::bold("No modules selected")
+        dlg::bold("No modules selected for removal from db"),
+        dlg::divider(),
+        dlg::yellow(db),
       );
       exit(0);
     }
@@ -141,9 +149,9 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
       eprint!(
         "{} {} {} {}",
         dlg::err_prefix(),
-        dlg::bold("No module with the name"),
+        dlg::bold("Nonexistent module"),
+        dlg::divider(),
         dlg::red(inexistent.unwrap()),
-        dlg::bold("exists")
       );
       exit(1);
     }
@@ -153,9 +161,9 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
       eprintln!(
         "{} {} {} {}",
         dlg::err_prefix(),
-        dlg::bold("Module"),
+        dlg::bold("Module already removed"),
+        dlg::divider(),
         dlg::red(missing.unwrap()),
-        dlg::bold("is not installed"),
       );
       exit(1);
     }
@@ -167,12 +175,13 @@ pub async fn mods_to_rm(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> 
       for dmd in md.dependencies {
         if mods.contains(&dmd) {
           eprintln!(
-            "{} {} {} {} {}",
+            "{} {} {} {} {} {}",
             dlg::err_prefix(),
-            dlg::bold("Module"),
+            dlg::bold("Installed module"),
+            dlg::gray(&md.name),
+            dlg::bold("depends on module selected for removal"),
+            dlg::divider(),
             dlg::red(&dmd),
-            dlg::bold("depends on module"),
-            dlg::red(&md.name),
           );
           exit(1);
         }
@@ -187,7 +196,11 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
   let (all_infos, installed) = join!(list_mods(None), list_mod_names(Some(db)));
   let all: Vec<String> = all_infos.iter().map(|m| m.name.clone()).collect();
   if all.len() == installed.len() {
-    println!("{} all available modules installed", dlg::warn_prefix(),);
+    println!(
+      "{} {}",
+      dlg::warn_prefix(),
+      dlg::bold("All available modules are installed")
+    );
     exit(0);
   };
   let mut mods = if mods_opt.is_none() {
@@ -198,9 +211,11 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
     );
     if idxs.len() == 0 {
       println!(
-        "{} {}",
+        "{} {} {} {}",
         dlg::warn_prefix(),
-        dlg::bold("No modules selected")
+        dlg::bold("No modules selected for installation in db"),
+        dlg::divider(),
+        dlg::yellow(db),
       );
       exit(0);
     }
@@ -217,9 +232,9 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
       eprintln!(
         "{} {} {} {}",
         dlg::err_prefix(),
-        dlg::bold("No module with the name"),
+        dlg::bold("Module name does not exist"),
+        dlg::divider(),
         dlg::red(inexistent.unwrap()),
-        dlg::bold("exists")
       );
       exit(1);
     }
@@ -228,9 +243,9 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
       eprintln!(
         "{} {} {} {}",
         dlg::err_prefix(),
-        dlg::bold("Module"),
+        dlg::bold("Module is already installed"),
+        dlg::divider(),
         dlg::red(is_installed.unwrap()),
-        dlg::bold("is already installed"),
       );
       exit(1);
     }
@@ -247,24 +262,28 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
       }
     }
   }
-  println!(
-    "{} {} {} {}",
-    dlg::success_prefix(),
-    dlg::bold("Dependent modules also needed for installation"),
-    dlg::suffix(),
-    dlg::green(&deps.join(","))
-  );
-  mods.append(&mut deps);
+  if deps.len() > 0 {
+    mods.append(&mut deps);
+    println!(
+      "{} {} {} {}",
+      dlg::success_prefix(),
+      dlg::bold("Dependent modules also needed for installation"),
+      dlg::divider(),
+      dlg::green(&deps.join(&format!("{} ", dlg::white(","))))
+    );
+  }
   mods
 }
 
 pub async fn remove(db: &str, mods: Vec<String>) {
-  let removal = dlg::confirm_with_default("Press enter to confirm removal", true);
+  let removal = dlg::confirm_with_default("Confirm removal", true);
   if !removal {
     println!(
-      "{} {}",
+      "{} {} {} {}",
       dlg::warn_prefix(),
-      dlg::bold("No modules were removed")
+      dlg::bold("No modules were removed from db"),
+      dlg::divider(),
+      dlg::yellow(db),
     );
     exit(0);
   }
@@ -274,13 +293,15 @@ pub async fn remove(db: &str, mods: Vec<String>) {
   });
   let resp = post_v1("module/remove", body).await;
   match &resp {
-    Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done"),),
+    Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
       eprintln!(
-        "{} {} {} {}",
+        "{} {} {} {} {} {}",
         dlg::err_prefix(),
-        dlg::bold("Failed to remove modules"),
-        dlg::suffix(),
+        dlg::bold("Failed to remove modules from db"),
+        dlg::divider(),
+        dlg::red(db),
+        dlg::divider(),
         &e.message
       );
       exit(1);
@@ -289,12 +310,14 @@ pub async fn remove(db: &str, mods: Vec<String>) {
 }
 
 pub async fn install(db: &str, mods: Vec<String>) {
-  let installation = dlg::confirm_with_default("Press enter to confirm installation", true);
+  let installation = dlg::confirm_with_default("Confirm installation", true);
   if !installation {
     println!(
-      "{} {}",
+      "{} {} {} {}",
       dlg::warn_prefix(),
-      dlg::bold("No modules were installed")
+      dlg::bold("No modules were installed in db"),
+      dlg::divider(),
+      dlg::yellow(db),
     );
     exit(0);
   }
@@ -307,10 +330,12 @@ pub async fn install(db: &str, mods: Vec<String>) {
     Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
       eprintln!(
-        "{} {} {} {}",
+        "{} {} {} {} {} {}",
         dlg::err_prefix(),
-        dlg::bold("Failed to install modules"),
-        dlg::suffix(),
+        dlg::bold("Failed to install modules in db"),
+        dlg::divider(),
+        dlg::red(db),
+        dlg::divider(),
         &e.message
       );
       exit(1);
