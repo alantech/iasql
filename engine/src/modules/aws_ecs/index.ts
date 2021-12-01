@@ -395,7 +395,7 @@ export const AwsEcsModule: Module = new Module({
             } else {
               if (e.status === 'INACTIVE') {
                 const dbTd = await AwsEcsModule.mappers.taskDefinition.db.read(ctx, e.taskDefinitionArn);
-                // TODO: temporally create again the task defenition inactive if deleted from DB to avoid infite loops.
+                // TODO: temporarily create again the task definition inactive if deleted from DB to avoid infinite loops.
                 // Eventually, forbid task definitons to be deleted from database.
                 if (!dbTd) {
                   await AwsEcsModule.mappers.taskDefinition.db.create(e, ctx);
