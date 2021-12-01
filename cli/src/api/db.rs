@@ -69,14 +69,20 @@ pub async fn get_dbs() -> Vec<String> {
   let res = match &resp {
     Ok(r) => r,
     Err(e) => {
-      eprintln!("{} Failed to get dbs: {}", dlg::err_prefix(), e.message);
+      eprintln!(
+        "{} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Failed to get all dbs"),
+        dlg::divider(),
+        e.message
+      );
       exit(1);
     }
   };
   let dbs: Vec<String> = serde_json::from_str(res).unwrap();
   if dbs.len() == 0 {
-    println!("{} {}", dlg::warn_prefix(), NO_DBS);
-    exit(1);
+    println!("{} {}", dlg::warn_prefix(), dlg::bold(NO_DBS));
+    exit(0);
   }
   return dbs;
 }
@@ -106,13 +112,28 @@ pub async fn remove() {
   let db = &dbs[selection];
   let removal = dlg::confirm_with_default("Press enter to confirm removal", true);
   if !removal {
-    return println!("{} Did not remove", dlg::warn_prefix());
+    println!(
+      "{} {} {} {}",
+      dlg::warn_prefix(),
+      dlg::bold("Did not remove db"),
+      dlg::divider(),
+      dlg::yellow(db)
+    );
+    exit(0);
   }
   let resp = get_v1(&format!("db/remove/{}", db)).await;
   match &resp {
     Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
-      eprintln!("{} Failed to remove: {}", dlg::err_prefix(), e.message);
+      eprintln!(
+        "{} {} {} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Failed to remove db"),
+        dlg::divider(),
+        dlg::red(db),
+        dlg::divider(),
+        e.message
+      );
       exit(1);
     }
   };
@@ -129,7 +150,15 @@ pub async fn apply() {
   match &resp {
     Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
-      eprintln!("{} Failed to apply: {}", dlg::err_prefix(), e.message);
+      eprintln!(
+        "{} {} {} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Failed to run apply on db"),
+        dlg::divider(),
+        dlg::red(db),
+        dlg::divider(),
+        e.message
+      );
       exit(1);
     }
   };
@@ -172,7 +201,15 @@ pub async fn add() {
     }
     Err(e) => {
       sp.finish_and_clear();
-      eprintln!("{} Failed to add: {}", dlg::err_prefix(), e.message);
+      eprintln!(
+        "{} {} {} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Failed to add db"),
+        dlg::divider(),
+        dlg::red(&db),
+        dlg::divider(),
+        e.message
+      );
       exit(1);
     }
   };

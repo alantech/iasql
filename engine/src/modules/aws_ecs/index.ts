@@ -81,7 +81,7 @@ export const AwsEcsModule: Module = new Module({
         if (!container) return AwsEcsModule.utils.containerMapper(tdc, ctx);
         return container;
       }));
-      out.containers = containers.filter(c => c !== null );
+      out.containers = containers.filter(c => c !== null);
       out.cpuMemory = `${+(td.cpu ?? '256') / 1024}vCPU-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
       out.executionRoleArn = td.executionRoleArn;
       out.family = td.family;
@@ -265,14 +265,14 @@ export const AwsEcsModule: Module = new Module({
           es.forEach(entity => {
             if (entity.containers?.length) {
               entity.containers.forEach(ec => {
-                const c = savedContainers.find((sc:any) => sc.name === ec.name);
+                const c = savedContainers.find((sc: any) => sc.name === ec.name);
                 if (!c.id) throw new DepError('Container need to be loaded first');
                 ec.id = c.id;
               })
             }
             if (entity.reqCompatibilities?.length) {
               entity.reqCompatibilities.forEach(rc => {
-                const c = savedCompatibilities.find((sc:any) => sc.name === rc.name);
+                const c = savedCompatibilities.find((sc: any) => sc.name === rc.name);
                 if (!c.id) throw new DepError('Compatibilities need to be loaded first');
                 rc.id = c.id;
               })
@@ -284,7 +284,7 @@ export const AwsEcsModule: Module = new Module({
           const relations = ['reqCompatibilities', 'containers', 'containers.portMappings', 'containers.environment', 'containers.repository'];
           const opts = id ? {
             where: {
-              name: Array.isArray(id) ? In(id) : id,
+              taskDefinitionArn: Array.isArray(id) ? In(id) : id,
             },
             relations,
           } : { relations, };
@@ -383,10 +383,32 @@ export const AwsEcsModule: Module = new Module({
         },
         update: async (_td: TaskDefinition | TaskDefinition[], _ctx: Context) => { throw new Error('Cannot update task definitions. Create a new revision'); },
         delete: async (td: TaskDefinition | TaskDefinition[], ctx: Context) => {
-          // TODO: once service implemented, do not delete task if it is being used by a service
+          // Do not delete task if it is being used by a service
+          const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsModule.mappers.service.cloud.read(ctx);
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(td) ? td : [td];
-          await Promise.all(es.map(e => client.deleteTaskDefinition(e.taskDefinitionArn!)));
+          const esWithServiceAttached = [];
+          const esToDelete = [];
+          for (const e of es) {
+            if (Object.values(services).find((s: any) => s.task?.taskDefinitionArn === e.taskDefinitionArn)) {
+              esWithServiceAttached.push(e);
+            } else {
+              if (e.status === 'INACTIVE') {
+                const dbTd = await AwsEcsModule.mappers.taskDefinition.db.read(ctx, e.taskDefinitionArn);
+                // TODO: temporarily create again the task definition inactive if deleted from DB to avoid infinite loops.
+                // Eventually, forbid task definitons to be deleted from database.
+                if (!dbTd) {
+                  await AwsEcsModule.mappers.taskDefinition.db.create(e, ctx);
+                }
+              } else {
+                esToDelete.push(e)
+              }
+            }
+          };
+          await Promise.all(esToDelete.map(e => client.deleteTaskDefinition(e.taskDefinitionArn!)));
+          if (esWithServiceAttached.length) {
+            throw new DepError('Some tasks could not be deleted. They are attached to an existing service.')
+          }
         },
       }),
     }),
@@ -400,7 +422,7 @@ export const AwsEcsModule: Module = new Module({
       db: new Crud({
         create: async (e: Service | Service[], ctx: Context) => {
           const es = Array.isArray(e) ? e : [e];
-          await Promise.all(es.map( async (entity: any) => {
+          await Promise.all(es.map(async (entity: any) => {
             if (!entity.cluster?.id) {
               throw new DepError('Clusters need to be loaded first');
             }
@@ -424,7 +446,7 @@ export const AwsEcsModule: Module = new Module({
         },
         update: async (e: Service | Service[], ctx: Context) => {
           const es = Array.isArray(e) ? e : [e];
-          await Promise.all(es.map( async (entity: any) => {
+          await Promise.all(es.map(async (entity: any) => {
             if (!entity.cluster?.id) {
               throw new DepError('Clusters need to be loaded first');
             }
@@ -505,7 +527,7 @@ export const AwsEcsModule: Module = new Module({
             } else {
               const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsModule.mappers.serivce.cloud.read(ctx);
               const service = services.find((s: any) => s.name === ids);
-              return await AwsEcsModule.utils.taskDefinitionMapper(
+              return await AwsEcsModule.utils.serviceMapper(
                 await client.getService(ids, service.cluster.clusterArn), ctx
               );
             }
