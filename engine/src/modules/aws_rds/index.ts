@@ -16,6 +16,7 @@ export const AwsRdsModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['engine_version', 'rds',],
+    functions: ['create_rds',],
   },
   utils: {
     engineVersionMapper: (e: any, _ctx: Context) => {
@@ -125,6 +126,8 @@ export const AwsRdsModule: Module = new Module({
               MasterUsername: e.masterUsername,
               MasterUserPassword: e.masterUserPassword,
               AllocatedStorage: e.allocatedStorage,
+              VpcSecurityGroupIds: e.vpcSecurityGroups?.map(sg => sg.groupId!) ?? [],
+              AvailabilityZone: e.availabilityZone.zoneName,
             }
             const result = await client.createDBInstance(instanceParams);
             // TODO: Handle if it fails (somehow)
