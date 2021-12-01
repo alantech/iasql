@@ -1,5 +1,5 @@
 use ascii_table::{AsciiTable, Column};
-use futures::join;
+use futures::future::join_all;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -14,10 +14,6 @@ use crate::http::post_v1;
 struct Module {
   name: String,
   dependencies: Vec<String>,
-}
-
-async fn list_mod_names(db: Option<&str>) -> Vec<String> {
-  list_mods(db).await.into_iter().map(|m| m.name).collect()
 }
 
 async fn list_mods(db: Option<&str>) -> Vec<Module> {
@@ -107,7 +103,10 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
 
 // Gets and validates mods to remove or prompts selection
 pub async fn mods_to_remove(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> {
-  let (all_infos, installed_infos) = join!(list_mods(None), list_mods(Some(db)));
+  let futs = vec![list_mods(None), list_mods(Some(db))];
+  let res = join_all(futs).await;
+  let all_infos = &res[0];
+  let installed_infos = &res[1];
   let all: Vec<String> = all_infos.iter().map(|m| m.name.clone()).collect();
   let installed: Vec<String> = installed_infos.iter().map(|m| m.name.clone()).collect();
   if installed.len() == 0 {
@@ -172,7 +171,7 @@ pub async fn mods_to_remove(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Stri
   // check no module is depended on by remaining modules
   for md in installed_infos.into_iter() {
     if !mods.contains(&md.name) {
-      for dmd in md.dependencies {
+      for dmd in &md.dependencies {
         if mods.contains(&dmd) {
           eprintln!(
             "{} {} {} {} {} {}",
@@ -193,8 +192,11 @@ pub async fn mods_to_remove(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Stri
 
 // Gets and validates mods to install or prompts selection
 pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<String> {
-  let (all_infos, installed) = join!(list_mods(None), list_mod_names(Some(db)));
+  let futs = vec![list_mods(None), list_mods(Some(db))];
+  let res = join_all(futs).await;
+  let all_infos = &res[0];
   let all: Vec<String> = all_infos.iter().map(|m| m.name.clone()).collect();
+  let installed: Vec<String> = res[1].iter().map(|m| m.name.clone()).collect();
   if all.len() == installed.len() {
     println!(
       "{} {}",
@@ -255,9 +257,9 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
   let mut deps = vec![];
   for md in all_infos.into_iter() {
     if mods.contains(&md.name) {
-      for dmd in md.dependencies {
+      for dmd in &md.dependencies {
         if !installed.contains(&dmd) && !mods.contains(&dmd) {
-          deps.push(dmd)
+          deps.push(dmd.clone())
         }
       }
     }
