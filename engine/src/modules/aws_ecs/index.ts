@@ -109,7 +109,13 @@ export const AwsEcsModule: Module = new Module({
       const out = new Service();
       out.arn = s.serviceArn;
       if (s.clusterArn) {
-        out.cluster = await ctx.orm.findOne(Cluster, { where: { clusterArn: s.clusterArn } });
+        // try to retrieve cluster from db
+        let cluster = await ctx.orm.findOne(Cluster, { where: { clusterArn: s.clusterArn } });
+        if (!cluster) {
+          // If not, try from cloud. The cluster could be in a deleting process and we still need some cluster properties to perform the delete action.
+          cluster = await AwsEcsModule.mappers.cluster.cloud.read(ctx, s.clusterArn);
+        }
+        out.cluster = cluster;
       }
       out.desiredCount = s.desiredCount;
       out.launchType = s.launchType as LaunchType;
