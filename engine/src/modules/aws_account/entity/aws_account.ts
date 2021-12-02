@@ -15,7 +15,7 @@ export class AwsAccountEntity {
   @Column()
   secretAccessKey: string;
 
-  @ManyToOne(() => Region, { eager: true, cascade: true, })
+  @ManyToOne(() => Region, { eager: true, })
   @JoinColumn({
     name: 'region_id',
   })

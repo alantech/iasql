@@ -391,7 +391,6 @@ export const AwsEc2Module: Module = new Module({
         ctx,
         (await AwsAccount.mappers.awsAccount.db.read(ctx))[0].region.name,
       );
-      console.dir({ out, }, { depth: 4, });
       return out;
     },
   },
@@ -437,11 +436,16 @@ export const AwsEc2Module: Module = new Module({
           await ctx.orm.save(AMI, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          return await ctx.orm.find(AMI, id ? {
+          const out = await ctx.orm.find(AMI, id ? {
             where: {
               imageId: Array.isArray(id) ? In(id) : id,
             },
           } : undefined);
+          if (Array.isArray(id) || Object.is(undefined, id)) {
+            return out;
+          } else {
+            return out[0];
+          }
         },
         update: async (e: AMI | AMI[], ctx: Context) => { await ctx.orm.save(AMI, e); },
         delete: async (e: AMI | AMI[], ctx: Context) => { await ctx.orm.remove(AMI, e); },
@@ -576,7 +580,7 @@ export const AwsEc2Module: Module = new Module({
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           // TypeORM where clause not working correctly, again
-          const ids = Array.isArray(id) ? id : [id].filter(id => !!id);
+          const ids = Array.isArray(id) ? id : [id].filter(i => !!i);
           const allInstances = await ctx.orm.find(InstanceType);
           const out = allInstances.filter((i: InstanceType) => ids.includes(i.instanceType.name));
           return Array.isArray(id) || id === undefined ? out : out[0];
@@ -608,14 +612,11 @@ export const AwsEc2Module: Module = new Module({
     instance: new Mapper<Instance>({
       entity: Instance,
       entityId: (i: Instance) => i.instanceId ?? '',
-      equals: (a: Instance, b: Instance) => {
-        console.dir({ a, b, }, { depth: 4, });
-        return Object.is(a.instanceId, b.instanceId) &&
-          AwsEc2Module.mappers.ami.equals(a, b) &&
-          Object.is(a.region.name, b.region.name) &&
-          Object.is(a.instanceType.instanceType.name, b.instanceType.instanceType.name) &&
-          a.securityGroups.length === b.securityGroups.length;
-      }, // TODO: Better security group testing
+      equals: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
+        AwsEc2Module.mappers.ami.equals(a.ami, b.ami) &&
+        Object.is(a.region.name, b.region.name) &&
+        Object.is(a.instanceType.instanceType.name, b.instanceType.instanceType.name) &&
+        a.securityGroups.length === b.securityGroups.length, // TODO: Better security group testing
       source: 'db',
       db: new Crud({
         create: async (e: Instance | Instance[], ctx: Context) => { await ctx.orm.save(Instance, e); },
@@ -657,6 +658,7 @@ export const AwsEc2Module: Module = new Module({
           const is = (await client.getInstances())?.Instances ?? [];
           const out = await Promise.all(is
             .filter(i => !Array.isArray(ids) || ids.includes(i?.InstanceId ?? 'what'))
+            .filter((i: InstanceAWS) => (i?.State?.Code ?? 9001) < 32)
             .map(i => AwsEc2Module.utils.instanceMapper(i, ctx)));
           return out;
         },
