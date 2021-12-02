@@ -621,11 +621,16 @@ export const AwsEc2Module: Module = new Module({
       db: new Crud({
         create: async (e: Instance | Instance[], ctx: Context) => { await ctx.orm.save(Instance, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          return await ctx.orm.find(Instance, id ? {
+          const out = await ctx.orm.find(Instance, id ? {
             where: {
               instanceId: Array.isArray(id) ? In(id) : id,
             },
           } : undefined);
+          if (Array.isArray(id) || Object.is(undefined, id)) {
+            return out;
+          } else {
+            return out[0];
+          }
         },
         update: async (e: Instance | Instance[], ctx: Context) => { await ctx.orm.save(Instance, e); },
         delete: async (e: Instance | Instance[], ctx: Context) => { await ctx.orm.remove(Instance, e); },
