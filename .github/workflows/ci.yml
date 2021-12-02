@@ -65,6 +65,24 @@ jobs:
       - name: Run tests
         run: yarn test
 
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Check out repo
+        uses: actions/checkout@v2
+      # Node is required for npm
+      - name: Set up Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+      # Install and build Docusaurus website
+      - name: Build Docusaurus website
+        run: |
+          cd docs
+          npm install
+          npm run build
+
   db:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest

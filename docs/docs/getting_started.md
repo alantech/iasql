@@ -12,6 +12,6 @@ slug: '/'
 A high-level overview of how the IaSQL documentation is organized will help you know how to quickly find what you are looking for:
 
 * The [quickstart](/quickstart) will guide you from 0 to a sample Node.js HTTP server deployed in your AWS account with IaSQL. Start here if you’re new to IaSQL.
-* [How-to guides](/how-to-guides) are recipes. They guide you through the steps involved in addressing key problems and use-cases. They are more advanced than the quickstart and assume some knowledge of how IaSQL works.
+* [How-to guides](/How-to Guides) are recipes. They guide you through the steps involved in addressing key problems and use-cases. They are more advanced than the quickstart and assume some knowledge of how IaSQL works.
 * [Concepts](/concepts) provides useful background and describes at a fairly high level the internals of how IaSQL works.
-* Technical [reference](/reference) for built-in APIs. They describe how it works and how to use it but assume some knowledge of how IaSQL works.
+* Technical [reference](/Reference) for built-in APIs. They describe how it works and how to use it but assume some knowledge of how IaSQL works.
