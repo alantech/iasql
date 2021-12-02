@@ -194,16 +194,25 @@ ${Object.keys(tableCollisions)
   const mappers = modules
     .map(md => Object.values(md.mappers))
     .flat()
-  await lazyLoader(mappers.map(mapper => async () => {
-    const e = await mapper.cloud.read(context);
-    if (!e || (Array.isArray(e) && !e.length)) {
-      console.log('Completely unexpected outcome');
-      console.log({ mapper, e, });
-    } else {
-      await mapper.db.create(e, context);
+  try {
+    await lazyLoader(mappers.map(mapper => async () => {
+      console.log(`before read ${mapper.entity.name}`)
+      const e = await mapper.cloud.read(context);
+      console.log(`after read ${mapper.entity.name}`)
+      if (!e || (Array.isArray(e) && !e.length)) {
+        console.log('Completely unexpected outcome');
+        console.log({ mapper, e, });
+      } else {
+        console.log(`before create ${mapper.entity.name}`)
+        await mapper.db.create(e, context);
+        console.log(`after create ${mapper.entity.name}`)
     }
-  }));
-  res.json("Done!");
+    }));
+    res.json("Done!");
+  } catch (e) {
+    console.error(e);
+    res.status(500).end('Error installing module');
+  }
 });
 
 // Needed at the beginning
