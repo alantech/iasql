@@ -20,11 +20,12 @@ do $$
     iasql_postgres_image_tag text := '13.4';
     iasql_engine_task_definition text := 'iasql-engine-task-definition';
     iasql_postgres_task_definition text := 'iasql-postgres-task-definition';
-    iasql_ecs_task_execution_role text := 'arn:aws:iam::257682470237:role/ecsTaskExecutionRole';
+    iasql_ecs_task_execution_role text := 'arn:aws:iam::547931376551:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS';
     iasql_engine_security_group text := 'iasql-engine-security-group';
     iasql_postgres_security_group text := 'iasql-postgres-security-group';
     iasql_engine_service text := 'iasql-engine-service';
     iasql_postgres_service text := 'iasql-postgres-service';
+    iasql_postgres_rds text := 'iasql-postgres-rds';
   begin
     select vpc_id, id into default_vpc, default_vpc_id
     from aws_vpc
@@ -43,26 +44,16 @@ do $$
       iasql_engine_target_group, 'ip', iasql_engine_port, default_vpc, 'HTTP', '/health'
     );
 
-    call create_aws_target_group(
-      iasql_postgres_target_group, 'ip', iasql_postgres_port, default_vpc, 'TCP'
-    );
-
     call create_aws_load_balancer(
       iasql_engine_load_balancer, 'internet-facing', default_vpc, 'application', default_subnets, 'ipv4'
     );
 
-    call create_aws_listener(iasql_engine_load_balancer, 443, 'HTTPS', 'forward', iasql_engine_target_group);
-
-    call create_aws_load_balancer(
-      iasql_postgres_load_balancer, 'internet-facing', default_vpc, 'network', default_subnets, 'ipv4'
-    );
-
-    call create_aws_listener(iasql_postgres_load_balancer, iasql_postgres_port, 'TCP', 'forward', iasql_postgres_target_group);
+    call create_aws_listener(iasql_engine_load_balancer, 8088, 'HTTP', 'forward', iasql_engine_target_group);
 
     call create_ecr_repository(iasql_engine_repository);
 
     call create_ecr_repository_policy(
-      iasql_engine_repository, '{ "Version" : "2012-10-17", "Statement" : [ { "Sid" : "new statement", "Effect" : "Allow", "Principal" : { "AWS" : "arn:aws:iam::257682470237:user/automate" }, "Action" : [ "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CreateRepository", "ecr:DeleteRepositoryPolicy", "ecr:DescribeImageScanFindings", "ecr:DescribeImages", "ecr:DescribeRepositories", "ecr:GetAuthorizationToken", "ecr:GetDownloadUrlForLayer", "ecr:GetLifecyclePolicy", "ecr:GetLifecyclePolicyPreview", "ecr:GetRepositoryPolicy", "ecr:ListImages", "ecr:ListTagsForResource", "ecr:SetRepositoryPolicy" ] } ]}	'
+      iasql_engine_repository, '{ "Version" : "2012-10-17", "Statement" : [ { "Sid" : "new statement", "Effect" : "Allow", "Principal" : { "AWS" : [ "arn:aws:iam::547931376551:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS", "arn:aws:iam::547931376551:user/dfellis", "arn:aws:iam::547931376551:user/aguillenv", "arn:aws:iam::547931376551:user/depombo" ] }, "Action" : [ "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CreateRepository", "ecr:DeleteRepositoryPolicy", "ecr:DescribeImageScanFindings", "ecr:DescribeImages", "ecr:DescribeRepositories", "ecr:GetAuthorizationToken", "ecr:GetDownloadUrlForLayer", "ecr:GetLifecyclePolicy", "ecr:GetLifecyclePolicyPreview", "ecr:GetRepositoryPolicy", "ecr:ListImages", "ecr:ListTagsForResource", "ecr:SetRepositoryPolicy" ] } ]}'
     );
 
     call create_ecs_cluster(iasql_cluster);
@@ -88,24 +79,41 @@ do $$
       'REPLICA', default_subnets, array[iasql_engine_security_group], 'ENABLED', iasql_engine_target_group
     );
 
-    call create_container_definition(
-      iasql_postgres_container, true, 8192, iasql_postgres_port, iasql_postgres_port, 'tcp',
-      ('{"PORT": ' || iasql_postgres_port || ',"POSTGRES_PASSWORD": "test"}')::json, iasql_postgres_image_tag,
-      _docker_image := iasql_postgres_docker_image
-    );
-
-    call create_task_definition(
-      iasql_postgres_task_definition, iasql_ecs_task_execution_role, iasql_ecs_task_execution_role,
-      'awsvpc', array['FARGATE']::compatibility_name_enum[], '2vCPU-8GB', array[iasql_postgres_container]
-    );
-
     call create_aws_security_group(
       iasql_postgres_security_group, iasql_postgres_security_group,
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_postgres_port || ', "toPort": ' || iasql_postgres_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
 
-    call create_ecs_service(
-      iasql_postgres_service, iasql_cluster, iasql_postgres_task_definition, 1, 'FARGATE',
-      'REPLICA', default_subnets, array[iasql_postgres_security_group], 'ENABLED', iasql_postgres_target_group
-    );
-  end iasql $$;
+    call create_rds(iasql_postgres_rds, 1024, 'db.m5.large', 'postgres', '13.4', 'iasql', '4l4nU$3r', 'us-east-2a', array[iasql_postgres_security_group]);
+
+    -- TODO: Restore once we manage our own iasql instance
+    
+    
+    -- call create_aws_target_group(
+    --   iasql_postgres_target_group, 'ip', iasql_postgres_port, default_vpc, 'TCP'
+    -- );
+
+    -- call create_aws_listener(iasql_postgres_load_balancer, iasql_postgres_port, 'TCP', 'forward', iasql_postgres_target_group);
+
+    -- call create_aws_load_balancer(
+    --   iasql_postgres_load_balancer, 'internet-facing', default_vpc, 'network', default_subnets, 'ipv4'
+    -- );
+
+    -- call create_container_definition(
+    --   iasql_postgres_container, true, 8192, iasql_postgres_port, iasql_postgres_port, 'tcp',
+    --   ('{"PORT": ' || iasql_postgres_port || ',"POSTGRES_PASSWORD": "test"}')::json, iasql_postgres_image_tag,
+    --   _docker_image := iasql_postgres_docker_image
+    -- );
+
+    -- call create_task_definition(
+    --   iasql_postgres_task_definition, iasql_ecs_task_execution_role, iasql_ecs_task_execution_role,
+    --   'awsvpc', array['FARGATE']::compatibility_name_enum[], '2vCPU-8GB', array[iasql_postgres_container]
+    -- );
+
+    -- call create_ecs_service(
+    --   iasql_postgres_service, iasql_cluster, iasql_postgres_task_definition, 1, 'FARGATE',
+    --   'REPLICA', default_subnets, array[iasql_postgres_security_group], 'ENABLED', iasql_postgres_target_group
+    -- );
+
+  end iasql
+$$;
