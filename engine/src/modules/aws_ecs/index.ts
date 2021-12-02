@@ -227,7 +227,17 @@ export const AwsEcsModule: Module = new Module({
         delete: async (c: Cluster | Cluster[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(c) ? c : [c];
-          await Promise.all(es.map(e => client.deleteCluster(e.clusterName)));
+          await Promise.all(es.map(async e => {
+            if (e.clusterStatus === 'INACTIVE' && e.clusterName === 'default') {
+              const dbCluster = await AwsEcsModule.mappers.cluster.db.read(ctx, e.clusterArn);
+              // TODO: temporarily create again the default inactive cluster if deleted from DB to avoid infinite loops.
+              if (!dbCluster) {
+                await AwsEcsModule.mappers.cluster.db.create(e, ctx);
+              }
+            } else {
+              return await client.deleteCluster(e.clusterName)
+            }
+          }));
         },
       }),
     }),
