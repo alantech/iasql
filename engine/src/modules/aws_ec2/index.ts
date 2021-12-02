@@ -1,55 +1,58 @@
-import { Image, InstanceTypeInfo, } from '@aws-sdk/client-ec2'
+import { Image, InstanceTypeInfo, Instance as InstanceAWS, } from '@aws-sdk/client-ec2'
 import { In, } from 'typeorm'
 
 import * as allEntities from './entity'
 import {
   AMI,
-  CPUArchitecture,
-  ImageType,
-  AMIPlatform,
-  ProductCode,
+  AMIDeviceType,
   AMIImageState,
-  EBSInfo,
-  EBSOptimizedInfo,
+  AMIPlatform,
+  BootMode,
+  CPUArchitecture,
+  DeviceType,
+  DiskInfo,
+  DiskType,
   EBSBlockDeviceMapping,
   EBSBlockDeviceType,
   EBSBlockDeviceVolumeType,
-  HypervisorType,
-  AMIDeviceType,
-  StateReason,
-  BootMode,
-  Tag,
-  InstanceType,
-  EBSOptimizedSupport,
   EBSEncryptionSupport,
-  EphemeralNVMESupport,
-  FPGAInfo,
-  FPGADeviceInfo,
-  FPGADeviceMemoryInfo,
-  GPUInfo,
-  GPUDeviceInfo,
-  GPUDeviceMemoryInfo,
-  InstanceTypeHypervisor,
-  InferenceAcceleratorInfo,
-  InferenceDeviceInfo,
-  InstanceStorageInfo,
-  DiskInfo,
-  DiskType,
-  InstanceTypeValue,
-  NetworkInfo,
+  EBSInfo,
+  EBSOptimizedInfo,
+  EBSOptimizedSupport,
   EFAInfo,
   ENASupport,
+  EphemeralNVMESupport,
+  FPGADeviceInfo,
+  FPGADeviceMemoryInfo,
+  FPGAInfo,
+  GPUDeviceInfo,
+  GPUDeviceMemoryInfo,
+  GPUInfo,
+  HypervisorType,
+  ImageType,
+  InferenceAcceleratorInfo,
+  InferenceDeviceInfo,
+  Instance,
+  InstanceStorageInfo,
+  InstanceType,
+  InstanceTypeHypervisor,
+  InstanceTypeValue,
   NetworkCardInfo,
+  NetworkInfo,
   PlacementGroupInfo,
   PlacementGroupStrategy,
   ProcessorInfo,
-  DeviceType,
+  ProductCode,
+  StateReason,
+  Tag,
   UsageClass,
-  VirtualizationType,
   VCPUInfo,
   ValidCore,
   ValidThreadsPerCore,
+  VirtualizationType,
 } from './entity'
+import { AwsSecurityGroupModule, } from '../aws_security_group'
+import { AwsAccount, } from '../aws_account'
 import { AWS, } from '../../services/gateways/aws'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsEc21637666428184, } from './migration/1637666428184-aws_ec2'
@@ -375,6 +378,21 @@ export const AwsEc2Module: Module = new Module({
       }
       return out;
     },
+    instanceMapper: async (instance: InstanceAWS, ctx: Context) => {
+      const out = new Instance();
+      out.instanceId = instance.InstanceId;
+      out.ami = await AwsEc2Module.mappers.ami.db.read(ctx, instance.ImageId);
+      out.instanceType = await AwsEc2Module.mappers.instanceType.db.read(ctx, instance.InstanceType);
+      out.securityGroups = await AwsSecurityGroupModule.mappers.securityGroup.db.read(
+        ctx,
+        instance.SecurityGroups?.map(sg => sg.GroupId).filter(id => !!id) as string[],
+      );
+      out.region = await AwsAccount.mappers.region.db.read(
+        ctx,
+        (await AwsAccount.mappers.awsAccount.db.read(ctx))[0].region.name,
+      );
+      return out;
+    },
   },
   mappers: {
     ami: new Mapper<AMI>({
@@ -418,11 +436,16 @@ export const AwsEc2Module: Module = new Module({
           await ctx.orm.save(AMI, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          return await ctx.orm.find(AMI, id ? {
+          const out = await ctx.orm.find(AMI, id ? {
             where: {
-              groupId: Array.isArray(id) ? In(id) : id,
+              imageId: Array.isArray(id) ? In(id) : id,
             },
           } : undefined);
+          if (Array.isArray(id) || Object.is(undefined, id)) {
+            return out;
+          } else {
+            return out[0];
+          }
         },
         update: async (e: AMI | AMI[], ctx: Context) => { await ctx.orm.save(AMI, e); },
         delete: async (e: AMI | AMI[], ctx: Context) => { await ctx.orm.remove(AMI, e); },
@@ -556,11 +579,11 @@ export const AwsEc2Module: Module = new Module({
           await ctx.orm.save(InstanceType, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          return await ctx.orm.find(InstanceType, id ? {
-            where: {
-              groupId: Array.isArray(id) ? In(id) : id,
-            },
-          } : undefined);
+          // TypeORM where clause not working correctly, again
+          const ids = Array.isArray(id) ? id : [id].filter(i => !!i);
+          const allInstances = await ctx.orm.find(InstanceType);
+          const out = allInstances.filter((i: InstanceType) => ids.includes(i.instanceType.name));
+          return Array.isArray(id) || id === undefined ? out : out[0];
         },
         update: async (e: InstanceType | InstanceType[], ctx: Context) => { await ctx.orm.save(InstanceType, e); },
         delete: async (e: InstanceType | InstanceType[], ctx: Context) => { await ctx.orm.remove(InstanceType, e); },
@@ -572,14 +595,10 @@ export const AwsEc2Module: Module = new Module({
           if (ids) {
             if (Array.isArray(ids)) {
               return await Promise.all(ids.map(async (id) => {
-                return AwsEc2Module.utils.instanceTypeMapper(
-                  await client.getInstanceType(id), ctx
-                );
+                return AwsEc2Module.utils.instanceTypeMapper(await client.getInstanceType(id));
               }));
             } else {
-              return AwsEc2Module.utils.instanceTypeMapper(
-                await client.getInstanceType(ids), ctx
-              );
+              return AwsEc2Module.utils.instanceTypeMapper(await client.getInstanceType(ids));
             }
           } else {
             const instanceTypes = (await client.getInstanceTypes())?.InstanceTypes ?? [];
@@ -588,6 +607,77 @@ export const AwsEc2Module: Module = new Module({
         },
         update: async (_i: InstanceType | InstanceType[], _ctx: Context) => { /* Nope */ },
         delete: async (_i: InstanceType | InstanceType[], _ctx: Context) => { /* Nope */ },
+      }),
+    }),
+    instance: new Mapper<Instance>({
+      entity: Instance,
+      entityId: (i: Instance) => i.instanceId ?? '',
+      equals: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
+        AwsEc2Module.mappers.ami.equals(a.ami, b.ami) &&
+        Object.is(a.region.name, b.region.name) &&
+        Object.is(a.instanceType.instanceType.name, b.instanceType.instanceType.name) &&
+        a.securityGroups.length === b.securityGroups.length, // TODO: Better security group testing
+      source: 'db',
+      db: new Crud({
+        create: async (e: Instance | Instance[], ctx: Context) => { await ctx.orm.save(Instance, e); },
+        read: async (ctx: Context, id?: string | string[] | undefined) => {
+          const out = await ctx.orm.find(Instance, id ? {
+            where: {
+              instanceId: Array.isArray(id) ? In(id) : id,
+            },
+          } : undefined);
+          if (Array.isArray(id) || Object.is(undefined, id)) {
+            return out;
+          } else {
+            return out[0];
+          }
+        },
+        update: async (e: Instance | Instance[], ctx: Context) => { await ctx.orm.save(Instance, e); },
+        delete: async (e: Instance | Instance[], ctx: Context) => { await ctx.orm.remove(Instance, e); },
+      }),
+      cloud: new Crud({
+        create: async (e: Instance | Instance[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          const es = Array.isArray(e) ? e : [e];
+          for (const instance of es) {
+            if (instance.ami.imageId) {
+              const instanceId = await client.newInstance(
+                instance.instanceType.instanceType.name,
+                instance.ami.imageId,
+                instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[],
+              );
+              if (!instanceId) { // then who?
+                throw new Error('should not be possible');
+              }
+              instance.instanceId = instanceId;
+              await AwsEc2Module.mappers.instance.db.update(instance, ctx);
+            }
+          }
+        },
+        read: async (ctx: Context, ids?: string | string[]) => {
+          const client = await ctx.getAwsClient() as AWS;
+          if (ids && !Array.isArray(ids)) {
+            const i = await client.getInstance(ids);
+            return await AwsEc2Module.utils.instanceMapper(i, ctx);
+          }
+          const is = (await client.getInstances())?.Instances ?? [];
+          const out = await Promise.all(is
+            .filter(i => !Array.isArray(ids) || ids.includes(i?.InstanceId ?? 'what'))
+            .filter((i: InstanceAWS) => (i?.State?.Code ?? 9001) < 32)
+            .map(i => AwsEc2Module.utils.instanceMapper(i, ctx)));
+          return out;
+        },
+        update: async (e: Instance | Instance[], ctx: Context) => {
+          // The second pass should remove the old instances
+          await AwsEc2Module.mappers.instance.cloud.create(e, ctx);
+        },
+        delete: async (e: Instance | Instance[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          const es = Array.isArray(e) ? e : [e];
+          for (const entity of es) {
+            if (entity.instanceId) await client.terminateInstance(entity.instanceId);
+          }
+        },
       }),
     }),
   },
