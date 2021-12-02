@@ -118,6 +118,10 @@ export const AwsRdsModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(rds) ? rds : [rds];
           const out = await Promise.all(es.map(async (e) => {
+            const securityGroupIds = e.vpcSecurityGroups?.map(sg => {
+              if (!sg.groupId) throw new DepError('Security group need to exists.')
+              return sg.groupId;
+            }) ?? []
             const instanceParams = {
               DBInstanceIdentifier: e.dbInstanceIdentifier,
               DBInstanceClass: e.dbInstanceClass,
@@ -126,7 +130,7 @@ export const AwsRdsModule: Module = new Module({
               MasterUsername: e.masterUsername,
               MasterUserPassword: e.masterUserPassword,
               AllocatedStorage: e.allocatedStorage,
-              VpcSecurityGroupIds: e.vpcSecurityGroups?.map(sg => sg.groupId!) ?? [],
+              VpcSecurityGroupIds: securityGroupIds,
               AvailabilityZone: e.availabilityZone.zoneName,
             }
             const result = await client.createDBInstance(instanceParams);
