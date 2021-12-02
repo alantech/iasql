@@ -34,9 +34,21 @@ export const AwsEcrModule: Module = new Module({
       const out = new AwsRepositoryPolicy();
       out.registryId = rp?.registryId;
       out.repository = ctx.memo?.cloud?.AwsRepository?.[rp.repositoryName] ?? await AwsEcrModule.mappers.repository.cloud.read(ctx, rp?.repositoryName);
-      out.policyText = rp?.policyText ?? false;
+      out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
       return out;
     },
+    policyComparisonEq: (a: any, b: any) => {
+      // From https://stackoverflow.com/questions/44792629/how-to-compare-two-objects-with-nested-array-of-object-using-loop
+      let same = true;
+      for (const [key, value] of Object.entries(a)) {
+        if (typeof value === 'object') {
+          same = AwsEcrModule.utils.policyComparisonEq(a[key], b[key]);
+        } else {
+          if (a[key] !== b[key]) same = false;
+        }
+      }
+      return same;
+    }
   },
   mappers: {
     repository: new Mapper<AwsRepository>({
@@ -56,7 +68,7 @@ export const AwsEcrModule: Module = new Module({
           return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsRepository, opts) : await ctx.orm.findOne(AwsRepository, opts);
         },
         update: async (e: AwsRepository | AwsRepository[], ctx: Context) => { await ctx.orm.save(AwsRepository, e); },
-        delete: async (e: AwsRepository | AwsRepository[], ctx: Context) => { await ctx.orm.remove(AwsRepository, e);},
+        delete: async (e: AwsRepository | AwsRepository[], ctx: Context) => { await ctx.orm.remove(AwsRepository, e); },
       }),
       cloud: new Crud({
         create: async (sg: AwsRepository | AwsRepository[], ctx: Context) => {
@@ -142,7 +154,14 @@ export const AwsEcrModule: Module = new Module({
     repositoryPolicy: new Mapper<AwsRepositoryPolicy>({
       entity: AwsRepositoryPolicy,
       entityId: (e: AwsRepositoryPolicy) => e.repository?.repositoryName + '',
-      equals: (a: AwsRepositoryPolicy, b: AwsRepositoryPolicy) => Object.is(a.policyText, b.policyText),
+      equals: (a: AwsRepositoryPolicy, b: AwsRepositoryPolicy) => {
+        try {
+          return AwsEcrModule.utils.policyComparisonEq(JSON.parse(a.policyText!), JSON.parse(b.policyText!));
+        } catch (e) {
+          console.error(e);
+          return false;
+        }
+      },
       source: 'db',
       db: new Crud({
         create: async (e: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => { await ctx.orm.save(AwsRepositoryPolicy, e); },
