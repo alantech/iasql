@@ -99,6 +99,44 @@ db.post('/add', async (req, res) => {
         }
       }
     }
+    console.log('Creating account for user...');
+    // Create a randomly generated username and password, 8 char username [a-zA-Z][a-zA-Z0-9]{7} and
+    // 16 char password [a-zA-Z0-9!@#$%^*]{16}
+    const userFirstCharCharset = [
+      Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+      Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+    ].flat();
+    const userRestCharCharset = [
+      ...userFirstCharCharset,
+      Array(10).fill('0').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+    ].flat();
+    const passwordCharset = [
+      ...userRestCharCharset,
+      '!@#$%^*'.split(''),
+    ].flat();
+    const randChar = (a: Array<string>): string => a[Math.random() * a.length];
+    const randUser = [
+      randChar(userFirstCharCharset),
+      Array(7).fill('').map(() => randChar(userRestCharCharset)),
+    ].flat().join('');
+    const randPass = Array(16).fill('').map(() => randChar(passwordCharset)).join('');
+    console.log({
+      randUser,
+      randPass,
+      dbId,
+    });
+    await conn2.query(`
+      CREATE ROLE ${randUser} LOGIN PASSWORD '${randPass}';
+      GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${randUser};
+      GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${randUser};
+      GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${randUser};
+      GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${randUser};
+      GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${randUser};
+      GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${randUser};
+    `);
+    await conn2.query(`
+      CREATE ROLE ${randUser} LOGIN PASSWORD '${randPass}'
+    `);
     console.log('Done!');
     res.end(`create ${dbAlias}: ${JSON.stringify(resp1)}`);
   } catch (e: any) {
