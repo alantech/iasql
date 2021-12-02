@@ -108,7 +108,9 @@ export const AwsEcsModule: Module = new Module({
     serviceMapper: async (s: any, ctx: Context) => {
       const out = new Service();
       out.arn = s.serviceArn;
-      out.cluster = s.clusterArn && ctx.memo?.db?.Cluster?.[s.clusterArn] ? ctx.memo?.db?.Cluster?.[s.clusterArn] : await AwsEcsModule.mappers.cluster.db.read(ctx, s.clusterArn);
+      if (s.clusterArn) {
+        out.cluster = await ctx.orm.findOne(Cluster, { where: { clusterArn: s.clusterArn } });
+      }
       out.desiredCount = s.desiredCount;
       out.launchType = s.launchType as LaunchType;
       out.loadBalancers = await Promise.all(s.loadBalancers?.map(async (slb: any) => {
