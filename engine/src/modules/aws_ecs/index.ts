@@ -120,7 +120,7 @@ export const AwsEcsModule: Module = new Module({
           slb2.elb = loadBalancers.find((lb: AwsLoadBalancer) => lb.loadBalancerName === slb.loadBalancerName);
         }
         if (slb.targetGroupArn) {
-          // TODO: review this logic after discuss if it makes sense to memo an empty entity when it is not found in DB
+          // TODO: Work around using `ctx.orm.find` to avoid temporal memo empty objects.
           const targetGroup = ctx.memo?.db?.AwsTargetGroup?.[slb.targetGroupArn] ?? await AwsElbModule.mappers.targetGroup.db.read(ctx, slb.targetGroupArn);
           if (targetGroup?.targetGroupArn) {
             slb2.targetGroup = targetGroup;
