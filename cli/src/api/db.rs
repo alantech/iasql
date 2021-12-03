@@ -73,8 +73,7 @@ pub async fn get_or_input_db(db_opt: Option<&str>) -> String {
   if db_opt.is_none() {
     dlg::input("IaSQL db name")
   } else {
-    let db = db_opt.unwrap();
-    db.to_string()
+    db_opt.unwrap().to_string()
   }
 }
 
