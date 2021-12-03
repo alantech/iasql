@@ -69,6 +69,32 @@ fn get_aws_cli_creds() -> Result<HashMap<String, AWSCLICredentials>, String> {
   }
 }
 
+pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
+  let dbs = get_dbs().await;
+  if dbs.len() == 0 {
+    println!("{} {}", dlg::warn_prefix(), dlg::bold(NO_DBS));
+    exit(0);
+  }
+  if db_opt.is_none() {
+    let selection = dlg::select_with_default("Pick IaSQL db", &dbs, 0);
+    let db = &dbs[selection];
+    db.clone()
+  } else {
+    let db = db_opt.unwrap();
+    if !dbs.contains(&db.to_owned()) {
+      eprintln!(
+        "{} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Nonexistent db"),
+        dlg::divider(),
+        dlg::red(db)
+      );
+      exit(1);
+    }
+    db.to_string()
+  }
+}
+
 pub async fn get_dbs() -> Vec<String> {
   let resp = get_v1("db/list").await;
   let res = match &resp {
@@ -111,10 +137,7 @@ pub async fn list() {
   table.print(db_data);
 }
 
-pub async fn remove() {
-  let dbs = get_dbs().await;
-  let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
-  let db = &dbs[selection];
+pub async fn remove(db: &str) {
   let removal = dlg::confirm_with_default("Press enter to confirm removal", true);
   if !removal {
     println!(
@@ -144,13 +167,7 @@ pub async fn remove() {
   };
 }
 
-pub async fn apply() {
-  let dbs = get_dbs().await;
-  if dbs.len() == 0 {
-    return println!("{} {}", dlg::warn_prefix(), NO_DBS);
-  }
-  let selection = dlg::select_with_default("Pick IaSQL db:", &dbs, 0);
-  let db = &dbs[selection];
+pub async fn apply(db: &str) {
   let resp = get_v1(&format!("db/apply/{}", db)).await;
   match &resp {
     Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
@@ -169,7 +186,23 @@ pub async fn apply() {
   };
 }
 
-pub async fn add() {
+pub async fn add(db_opt: Option<&str>) {
+  let db = if db_opt.is_none() {
+    dlg::input("IaSQL db name")
+  } else {
+    db_opt.unwrap().to_string()
+  };
+  let dbs = get_dbs().await;
+  if dbs.contains(&db.to_owned()) {
+    eprintln!(
+      "{} {} {} {}",
+      dlg::err_prefix(),
+      dlg::bold("Name already in use by another db"),
+      dlg::divider(),
+      dlg::red(&db)
+    );
+    exit(1);
+  }
   let regions = &get_aws_regions();
   let default = regions.iter().position(|s| s == "us-east-2").unwrap_or(0);
   let selection = dlg::select_with_default("Pick AWS region", regions, default);
@@ -197,7 +230,6 @@ pub async fn add() {
     let secret: String = dlg::input("AWS Secret Access Key");
     (access_key, secret)
   };
-  let db: String = dlg::input("IaSQL db name");
 
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
