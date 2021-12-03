@@ -330,7 +330,10 @@ export const AwsElbModule: Module = new Module({
             const result = await client.createLoadBalancer({
               Name: e.loadBalancerName,
               Subnets: e.subnets?.map(sn => sn.subnetId!),
-              SecurityGroups: e.securityGroups?.map(sg => sg.groupId!),
+              SecurityGroups: e.securityGroups?.map(sg => {
+                if (!sg.groupId) throw new DepError('Security group need to be loaded first');
+                return sg.groupId;
+              }),
               Scheme: e.scheme,
               Type: e.loadBalancerType,
               IpAddressType: e.ipAddressType,
