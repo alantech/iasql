@@ -21,7 +21,9 @@ pub async fn main() {
         .subcommands(vec![
           SubCommand::with_name("list").visible_alias("ls"),
           SubCommand::with_name("add").arg(Arg::from_usage("[db]")),
-          SubCommand::with_name("remove").visible_alias("rm").arg(Arg::from_usage("[db]")),
+          SubCommand::with_name("remove")
+            .visible_alias("rm")
+            .arg(Arg::from_usage("[db]")),
           SubCommand::with_name("apply").arg(Arg::from_usage("[db]")),
         ]),
       SubCommand::with_name("mod")
@@ -56,15 +58,15 @@ pub async fn main() {
         ("add", Some(s_s_matches)) => {
           let db = db::get_or_input_db(s_s_matches.value_of("db")).await;
           db::add(&db).await
-        },
+        }
         ("remove", Some(s_s_matches)) => {
           let db = db::get_or_select_db(s_s_matches.value_of("db")).await;
           db::remove(&db).await
-        },
+        }
         ("apply", Some(s_s_matches)) => {
           let db = db::get_or_select_db(s_s_matches.value_of("db")).await;
           db::apply(&db).await
-        },
+        }
         // rely on AppSettings::SubcommandRequiredElseHelp
         _ => {}
       };
