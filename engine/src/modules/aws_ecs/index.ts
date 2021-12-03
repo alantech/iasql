@@ -236,7 +236,7 @@ export const AwsEcsModule: Module = new Module({
           await Promise.all(es.map(async e => {
             if (e.clusterStatus === 'INACTIVE' && e.clusterName === 'default') {
               const dbCluster = await AwsEcsModule.mappers.cluster.db.read(ctx, e.clusterArn);
-              // TODO: temporarily create again the default inactive cluster if deleted from DB to avoid infinite loops.
+              // Temporarily create again the default inactive cluster if deleted from DB to avoid infinite loops.
               if (!dbCluster) {
                 await AwsEcsModule.mappers.cluster.db.create(e, ctx);
               }
@@ -414,8 +414,8 @@ export const AwsEcsModule: Module = new Module({
             } else {
               if (e.status === 'INACTIVE') {
                 const dbTd = await AwsEcsModule.mappers.taskDefinition.db.read(ctx, e.taskDefinitionArn);
-                // TODO: temporarily create again the task definition inactive if deleted from DB to avoid infinite loops.
-                // Eventually, forbid task definitons to be deleted from database.
+                // Temporarily create again the task definition inactive if deleted from DB to avoid infinite loops.
+                // ? Eventually, forbid task definitons to be deleted from database.
                 if (!dbTd) {
                   await AwsEcsModule.mappers.taskDefinition.db.create(e, ctx);
                 }
