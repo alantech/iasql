@@ -58,9 +58,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          const sg = (!id || Array.isArray(id)) ? await ctx.orm.find(AwsSecurityGroup, opts) : await ctx.orm.findOne(AwsSecurityGroup, opts);
-          console.dir({ name: 'sg', sg }, {depth:4});
-          return sg;
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsSecurityGroup, opts) : await ctx.orm.findOne(AwsSecurityGroup, opts);
         },
         update: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroup, e); },
         delete: async (e: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => { await ctx.orm.remove(AwsSecurityGroup, e); },
@@ -186,9 +184,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          const sgr = (!id || Array.isArray(id)) ? await ctx.orm.find(AwsSecurityGroupRule, opts) : await ctx.orm.findOne(AwsSecurityGroupRule, opts);
-          console.dir({ name: 'sgr', sgr }, {depth:4});
-          return sgr;
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsSecurityGroupRule, opts) : await ctx.orm.findOne(AwsSecurityGroupRule, opts);
         },
         update: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.save(AwsSecurityGroupRule, e); },
         delete: async (e: AwsSecurityGroupRule | AwsSecurityGroupRule[], ctx: Context) => { await ctx.orm.remove(AwsSecurityGroupRule, e); },
