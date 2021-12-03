@@ -63,3 +63,47 @@ This is assuming no one user is able to overload the Postgres database. We may n
 We can then make the job to poll the various databases an actual cron job and then schedule work for any database that has a difference between representation and reality. For now we can just manually trigger that per database name with a simple `/check/<dbname>` HTTP request on our test server, which gives us the added benefit of being able to pause changes to our test AWS accounts if/when it doesn't do what we expected and we want to figure out why.
 
 The actual execution requires access to credentials. While we're testing we can just use the local credentials on our machines, but in reality, we'll need to use something like the AWS Secrets Manager to hold on to them. Later on we may make our own "vault" service to tackle this problem because that service gets expensive fast, especially with how we're proposing to use it.
+
+### Beta IaSQL-on-IaSQL configuration
+
+#### SQL script
+
+The `/src/script/iasql-on-iasql.sql` script runs all the stored procedures calls necessary to create IaSQL. The first time all the resources will be inserted in database and created on AWS using `db apply`. 
+
+The current stored procedures have being created to run one time and the following will do nothing if you try to create the same resource again in order to avoid resource duplication. There are two exceptions to this rule, the `create_task_definition` and the `create_ecs_service` procedures. The first one will create a new version for the task definiton to be attached to the ecs service and the second will update the service using the latest task definition available.
+
+Following this logic, the next time we execute again the `iasql-on-iasql.sql` script will create a new task and update the engine service.
+
+#### Engine HTTPS configuration
+
+Since we are not able to create AWS load balancer listeners with HTTPS certificates using IaSQL yet, we have to do this process manually. For this we have to request or generate a valid certificate and go to the AWS console and follow this steps:
+
+  1. Go to EC2 > Load Balancers
+  2. Select `iasql-engine-load-balancer`
+  3. Add Listener (Listeners tab)
+  4. Choose HTTPS protocol with port 443
+  5. Add Action `forward` to target group `iasql-engine-target-group`
+  6. Add certificate 
+
+#### RDS: force SSL connections
+
+Since we are not able to create AWS RDS Parameter Groups using IaSQL yet, we have to do this process manually. For this we have to follow this steps:
+
+  1. Go to RDS > Parameter Groups
+  2. Create Parameter group
+    - family: postgres 13
+    - type: db parameter group
+    - group name: `ssl-postgres-13`
+    - description: `ssl-postgres-13`
+  3. Edit the parameter group created
+    - Filter by `rds.force_ssl`
+    - Select `rds.force_ssl` option
+    - Update value to `1`
+    - Save
+  4. Go to Databases
+  5. Modify `iasql-postgres-rds`
+    - Go to Additional configuration section
+    - Update DB parameter group with `ssl-postgres-13`
+    - Continue
+    - Select Apply immediately and save
+  6. Reboot `iasql-postgres-rds` instance
