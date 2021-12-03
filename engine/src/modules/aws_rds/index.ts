@@ -119,7 +119,7 @@ export const AwsRdsModule: Module = new Module({
           const es = Array.isArray(rds) ? rds : [rds];
           const out = await Promise.all(es.map(async (e) => {
             const securityGroupIds = e.vpcSecurityGroups?.map(sg => {
-              if (!sg.groupId) throw new DepError('Security group need to exists.')
+              if (!sg.groupId) throw new DepError('Security group needs to exist')
               return sg.groupId;
             }) ?? []
             const instanceParams = {
