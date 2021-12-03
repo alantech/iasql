@@ -100,7 +100,7 @@ db.post('/add', async (req, res) => {
       }
     }
     console.log('Creating account for user...');
-    // Create a randomly generated username and password, 8 char username [a-zA-Z][a-zA-Z0-9]{7} and
+    // Create a randomly generated username and password, an 8 char username [a-z][a-z0-9]{7} and a
     // 16 char password [a-zA-Z0-9!@#$%^*]{16}
     const userFirstCharCharset = [
       Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
