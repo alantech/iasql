@@ -241,7 +241,7 @@ export const AwsRdsModule: Module = new Module({
               // FinalDBSnapshotIdentifier: undefined,
               // DeleteAutomatedBackups: false,
             };
-            await client.deleteDBInstance(input);
+            return client.deleteDBInstance(input);
           }));
         },
       }),
