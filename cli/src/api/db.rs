@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_ini;
 use serde_json::json;
 
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs::OpenOptions;
 use std::io::BufReader;
@@ -11,11 +12,6 @@ use std::process::exit;
 
 use crate::dialoguer as dlg;
 use crate::http::{get_v1, post_v1};
-
-#[derive(Deserialize, Debug, Clone, Serialize)]
-pub struct AWSCLICredentialsFile {
-  default: AWSCLICredentials,
-}
 
 #[derive(Deserialize, Debug, Clone, Serialize)]
 pub struct AWSCLICredentials {
@@ -59,7 +55,7 @@ fn get_aws_regions() -> Vec<String> {
   ];
 }
 
-fn get_aws_cli_creds() -> Result<AWSCLICredentialsFile, String> {
+fn get_aws_cli_creds() -> Result<HashMap<String, AWSCLICredentials>, String> {
   let home = std::env::var("HOME").unwrap();
   let file_name = &format!("{}/.aws/credentials", home);
   let file = OpenOptions::new().read(true).open(file_name);
@@ -184,8 +180,18 @@ pub async fn add() {
       "Default AWS CLI credentials found. Do you wish to use those?",
       true,
     ) {
-    let creds = aws_cli_creds.unwrap().default;
-    (creds.aws_access_key_id, creds.aws_secret_access_key)
+    let all_creds = aws_cli_creds.unwrap();
+    let profiles: Vec<String> = all_creds.keys().cloned().collect();
+    let selection = if profiles.len() > 1 {
+      dlg::select_with_default("Pick AWS Profile", &profiles, 0)
+    } else {
+      0
+    };
+    let creds = all_creds.get(&profiles[selection]).unwrap();
+    (
+      creds.aws_access_key_id.clone(),
+      creds.aws_secret_access_key.clone(),
+    )
   } else {
     let access_key: String = dlg::input("AWS Access Key ID");
     let secret: String = dlg::input("AWS Secret Access Key");
