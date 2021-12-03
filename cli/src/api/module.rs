@@ -6,7 +6,6 @@ use serde_json::json;
 use std::fmt::Display;
 use std::process::exit;
 
-use crate::api::db::get_dbs;
 use crate::dialoguer as dlg;
 use crate::http::post_v1;
 
@@ -77,28 +76,6 @@ pub async fn list(db: Option<&str>) {
     mod_data.push(row);
   }
   table.print(mod_data);
-}
-
-pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
-  let dbs = get_dbs().await;
-  if db_opt.is_none() {
-    let selection = dlg::select_with_default("Pick IaSQL db", &dbs, 0);
-    let db = &dbs[selection];
-    db.clone()
-  } else {
-    let db = db_opt.unwrap();
-    if !dbs.contains(&db.to_owned()) {
-      eprintln!(
-        "{} {} {} {}",
-        dlg::err_prefix(),
-        dlg::bold("Nonexistent db"),
-        dlg::divider(),
-        dlg::red(db)
-      );
-      exit(1);
-    }
-    db.to_string()
-  }
 }
 
 // Gets and validates mods to remove or prompts selection
