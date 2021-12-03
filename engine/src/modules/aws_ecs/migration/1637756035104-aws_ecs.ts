@@ -407,6 +407,16 @@ export class awsEcs1637756035104 implements MigrationInterface {
                             (service_id, service_load_balancer_id)
                         values
                             (service_id, service_load_balancer_id);
+                    else
+                        select id into task_def_id
+                        from task_definition
+                        where family = _task_definition_family
+                        order by revision desc
+                        limit 1;
+
+                        update service
+                        set task_definition_id = task_def_id
+                        where id = service_id;
                     end if;
                     raise info 'service_id = %', service_id;
                 end;

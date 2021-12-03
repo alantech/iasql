@@ -16,6 +16,7 @@ export const AwsRdsModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['engine_version', 'rds',],
+    functions: ['create_rds',],
   },
   utils: {
     engineVersionMapper: (e: any, _ctx: Context) => {
@@ -117,6 +118,10 @@ export const AwsRdsModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(rds) ? rds : [rds];
           const out = await Promise.all(es.map(async (e) => {
+            const securityGroupIds = e.vpcSecurityGroups?.map(sg => {
+              if (!sg.groupId) throw new DepError('Security group needs to exist')
+              return sg.groupId;
+            }) ?? []
             const instanceParams = {
               DBInstanceIdentifier: e.dbInstanceIdentifier,
               DBInstanceClass: e.dbInstanceClass,
@@ -125,6 +130,8 @@ export const AwsRdsModule: Module = new Module({
               MasterUsername: e.masterUsername,
               MasterUserPassword: e.masterUserPassword,
               AllocatedStorage: e.allocatedStorage,
+              VpcSecurityGroupIds: securityGroupIds,
+              AvailabilityZone: e.availabilityZone.zoneName,
             }
             const result = await client.createDBInstance(instanceParams);
             // TODO: Handle if it fails (somehow)
@@ -138,9 +145,6 @@ export const AwsRdsModule: Module = new Module({
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database.
             newEntity.id = e.id;
-            // TODO: save password with bcrypt?
-            // Clean password
-            newEntity.masterUserPassword = null;
             // Save the record back into the database to get the new fields updated
             await AwsRdsModule.mappers.rds.db.update(newEntity, ctx);
             return newEntity;
@@ -207,9 +211,6 @@ export const AwsRdsModule: Module = new Module({
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database.
             newEntity.id = e.id;
-            // TODO: save password with bcrypt?
-            // Clean password
-            newEntity.masterUserPassword = null;
             // Save the record back into the database to get the new fields updated
             await AwsRdsModule.mappers.rds.db.update(newEntity, ctx);
             return newEntity;
@@ -234,7 +235,7 @@ export const AwsRdsModule: Module = new Module({
               // FinalDBSnapshotIdentifier: undefined,
               // DeleteAutomatedBackups: false,
             };
-            await client.deleteDBInstance(input);
+            return client.deleteDBInstance(input);
           }));
         },
       }),

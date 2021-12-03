@@ -931,7 +931,7 @@ export class AWS {
       {
         client: this.rdsClient,
         // all in seconds
-        maxWaitTime: 120,
+        maxWaitTime: 600,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -939,7 +939,7 @@ export class AWS {
       async (client, cmd) => {
         const data = await client.send(cmd);
         for (const dbInstance of data?.DBInstances ?? []) {
-          if (dbInstance.DBInstanceStatus !== 'deleting')
+          if (dbInstance.DBInstanceStatus === 'deleting')
             return { state: WaiterState.RETRY };
         }
         return { state: WaiterState.SUCCESS };

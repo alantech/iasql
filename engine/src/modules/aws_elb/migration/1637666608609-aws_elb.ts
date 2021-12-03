@@ -148,14 +148,15 @@ export class awsElb1637666608609 implements MigrationInterface {
             end;
             $$;
         `);
-        // Example of use: call create_aws_target_group('test-sp2', 'ip', 8888, 'vpc-41895538', 'TCP');
+        // Example of use: call create_aws_target_group('test-sp2', 'ip', 8888, 'vpc-41895538', 'TCP', '/health');
         await queryRunner.query(`
             create or replace procedure create_aws_target_group(
                 _name text,
                 _target_type aws_target_group_target_type_enum,
                 _port integer,
                 _vpc_id text,
-                _protocol aws_target_group_protocol_enum
+                _protocol aws_target_group_protocol_enum,
+                _health_check_path text default null
             )
             language plpgsql
             as $$
@@ -170,9 +171,9 @@ export class awsElb1637666608609 implements MigrationInterface {
                 limit 1;
             
                 insert into aws_target_group
-                    (target_group_name, target_type, protocol, port, vpc_id)
+                    (target_group_name, target_type, protocol, port, vpc_id, health_check_path)
                 values
-                    (_name, _target_type, _protocol, _port, tg_vpc_id)
+                    (_name, _target_type, _protocol, _port, tg_vpc_id, _health_check_path)
                 on conflict (target_group_name)
                 do nothing;
             
