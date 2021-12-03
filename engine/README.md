@@ -107,3 +107,30 @@ Since we are not able to create AWS RDS Parameter Groups using IaSQL yet, we hav
     - Continue
     - Select Apply immediately and save
   6. Reboot `iasql-postgres-rds` instance
+
+
+#### Pushing engine image to engine ECR
+
+- Login to ECR repository
+
+  ```sh
+  aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 547931376551.dkr.ecr.us-east-2.amazonaws.com
+  ```
+
+- Build image
+
+  ```sh
+  docker build -t iasql-engine-repository .
+  ```
+
+- Tag image
+
+  ```sh
+  docker tag iasql-engine-repository:latest 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository:latest
+  ```
+
+- Push image
+
+  ```sh
+  docker push 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository:latest
+  ```
