@@ -69,14 +69,6 @@ fn get_aws_cli_creds() -> Result<HashMap<String, AWSCLICredentials>, String> {
   }
 }
 
-pub async fn get_or_input_db(db_opt: Option<&str>) -> String {
-  if db_opt.is_none() {
-    dlg::input("IaSQL db name")
-  } else {
-    db_opt.unwrap().to_string()
-  }
-}
-
 pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
   let dbs = get_dbs().await;
   if dbs.len() == 0 {
@@ -194,7 +186,23 @@ pub async fn apply(db: &str) {
   };
 }
 
-pub async fn add(db: &str) {
+pub async fn add(db_opt: Option<&str>) {
+  let db = if db_opt.is_none() {
+    dlg::input("IaSQL db name")
+  } else {
+    db_opt.unwrap().to_string()
+  };
+  let dbs = get_dbs().await;
+  if dbs.contains(&db.to_owned()) {
+    eprintln!(
+      "{} {} {} {}",
+      dlg::err_prefix(),
+      dlg::bold("Name already in use by another db"),
+      dlg::divider(),
+      dlg::red(&db)
+    );
+    exit(1);
+  }
   let regions = &get_aws_regions();
   let default = regions.iter().position(|s| s == "us-east-2").unwrap_or(0);
   let selection = dlg::select_with_default("Pick AWS region", regions, default);

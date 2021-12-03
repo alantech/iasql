@@ -55,10 +55,7 @@ pub async fn main() {
       auth::login(false).await;
       match s_matches.subcommand() {
         ("list", _) => db::list().await,
-        ("add", Some(s_s_matches)) => {
-          let db = db::get_or_input_db(s_s_matches.value_of("db")).await;
-          db::add(&db).await
-        }
+        ("add", Some(s_s_matches)) => db::add(s_s_matches.value_of("db")).await,
         ("remove", Some(s_s_matches)) => {
           let db = db::get_or_select_db(s_s_matches.value_of("db")).await;
           db::remove(&db).await
