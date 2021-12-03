@@ -104,7 +104,6 @@ db.post('/add', async (req, res) => {
     // 16 char password [a-zA-Z0-9!@#$%^*]{16}
     const userFirstCharCharset = [
       Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-      Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
     ].flat();
     const userRestCharCharset = [
       ...userFirstCharCharset,
@@ -112,33 +111,32 @@ db.post('/add', async (req, res) => {
     ].flat();
     const passwordCharset = [
       ...userRestCharCharset,
+      Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
       '!@#$%^*'.split(''),
     ].flat();
-    const randChar = (a: Array<string>): string => a[Math.random() * a.length];
-    const randUser = [
+    const randChar = (a: Array<string>): string => a[Math.floor(Math.random() * a.length)];
+    const user = [
       randChar(userFirstCharCharset),
       Array(7).fill('').map(() => randChar(userRestCharCharset)),
     ].flat().join('');
-    const randPass = Array(16).fill('').map(() => randChar(passwordCharset)).join('');
-    console.log({
-      randUser,
-      randPass,
-      dbId,
-    });
+    const pass = Array(16).fill('').map(() => randChar(passwordCharset)).join('');
     await conn2.query(`
-      CREATE ROLE ${randUser} LOGIN PASSWORD '${randPass}';
-      GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${randUser};
-      GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${randUser};
-      GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${randUser};
-      GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${randUser};
-      GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${randUser};
-      GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${randUser};
-    `);
-    await conn2.query(`
-      CREATE ROLE ${randUser} LOGIN PASSWORD '${randPass}'
+      CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
+      GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user};
+      GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${user};
+      GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${user};
+      GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${user};
+      GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${user};
+      GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${user};
+      GRANT CONNECT ON DATABASE ${dbId} TO ${user};
     `);
     console.log('Done!');
-    res.end(`create ${dbAlias}: ${JSON.stringify(resp1)}`);
+    res.json({
+      dbAlias,
+      dbId,
+      user,
+      pass,
+    });
   } catch (e: any) {
     res.status(500).end(`${e?.message ?? ''}`);
   } finally {
