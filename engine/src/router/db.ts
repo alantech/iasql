@@ -120,6 +120,10 @@ db.post('/add', async (req, res) => {
       Array(7).fill('').map(() => randChar(userRestCharCharset)),
     ].flat().join('');
     const pass = Array(16).fill('').map(() => randChar(passwordCharset)).join('');
+    // TODO: The permissions below work just fine, but prevent the users from creating their own
+    // tables. We want to allow that in the future, but not sure the precise details of how, as
+    // the various options have their own trade-offs and potential sources of bugs to worry about.
+    // But we'll want to decide (before public launch?) one of them and replace this
     await conn2.query(`
       CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
       GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user};
