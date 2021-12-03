@@ -114,7 +114,7 @@ db.post('/add', async (req, res) => {
       Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
       '!@#$%^*'.split(''),
     ].flat();
-    const randChar = (a: Array<string>): string => a[Math.floor(Math.random() * a.length)];
+    const randChar = (a: string[]): string => a[Math.floor(Math.random() * a.length)];
     const user = [
       randChar(userFirstCharCharset),
       Array(7).fill('').map(() => randChar(userRestCharCharset)),

@@ -24,6 +24,7 @@ pub struct AWSCLICredentials {
 }
 
 #[derive(Deserialize, Debug, Clone, Serialize)]
+#[allow(non_snake_case)]
 pub struct AddDbResponse {
   dbId: String,
   dbAlias: String,
