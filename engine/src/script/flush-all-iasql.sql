@@ -1,3 +1,5 @@
+-- Script to remove all iasql records from DB without running `db rm` command.
+-- Use for local iasql-on-iasql testing
 -- TODO: improve this script, for now only works if all tables exists
 
 do $$
