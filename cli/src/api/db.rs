@@ -23,6 +23,15 @@ pub struct AWSCLICredentials {
   aws_secret_access_key: String,
 }
 
+#[derive(Deserialize, Debug, Clone, Serialize)]
+#[allow(non_snake_case)]
+pub struct AddDbResponse {
+  dbId: String,
+  dbAlias: String,
+  user: String,
+  pass: String,
+}
+
 const NO_DBS: &str = "No IaSQL dbs to manage an AWS account have been created";
 
 // TODO load regions at startup based on aws services and schema since not all regions support all services.
@@ -194,13 +203,56 @@ pub async fn add() {
     "awsSecretAccessKey": secret,
   });
   let resp = post_v1("db/add", body).await;
+  sp.finish_and_clear();
   match &resp {
-    Ok(_) => {
-      sp.finish_and_clear();
+    Ok(res) => {
+      let db_metadata: AddDbResponse = serde_json::from_str(res).unwrap();
       println!("{} {}", dlg::success_prefix(), dlg::bold("Done"));
+      let mut table = AsciiTable::default();
+      table.max_width = 140;
+      table.columns.insert(
+        0,
+        Column {
+          header: "IaSQL Server".to_string(),
+          ..Column::default()
+        },
+      );
+      table.columns.insert(
+        1,
+        Column {
+          header: "Database".to_string(),
+          ..Column::default()
+        },
+      );
+      table.columns.insert(
+        2,
+        Column {
+          header: "Username".to_string(),
+          ..Column::default()
+        },
+      );
+      table.columns.insert(
+        3,
+        Column {
+          header: "Password".to_string(),
+          ..Column::default()
+        },
+      );
+      let server = format!("{}", dlg::bold("db.iasql.com"));
+      let db = format!("{}", dlg::bold(&db_metadata.dbId));
+      let user = format!("{}", dlg::bold(&db_metadata.user));
+      let pass = format!("{}", dlg::bold(&db_metadata.pass));
+      let db_data = vec![vec![&server, &db, &user, &pass]];
+      table.print(db_data);
+      println!(
+        "{} {}",
+        dlg::warn_prefix(),
+        dlg::bold(
+          "This is the only time we will show you these credentials, be sure to save them.",
+        ),
+      );
     }
     Err(e) => {
-      sp.finish_and_clear();
       eprintln!(
         "{} {} {} {} {} {}",
         dlg::err_prefix(),
