@@ -210,22 +210,34 @@ pub async fn add() {
       println!("{} {}", dlg::success_prefix(), dlg::bold("Done"));
       let mut table = AsciiTable::default();
       table.max_width = 140;
-      table.columns.insert(0, Column {
-        header: "IaSQL Server".to_string(),
-        ..Column::default()
-      });
-      table.columns.insert(1, Column {
-        header: "Database".to_string(),
-        ..Column::default()
-      });
-      table.columns.insert(2, Column {
-        header: "Username".to_string(),
-        ..Column::default()
-      });
-      table.columns.insert(3, Column {
-        header: "Password".to_string(),
-        ..Column::default()
-      });
+      table.columns.insert(
+        0,
+        Column {
+          header: "IaSQL Server".to_string(),
+          ..Column::default()
+        },
+      );
+      table.columns.insert(
+        1,
+        Column {
+          header: "Database".to_string(),
+          ..Column::default()
+        },
+      );
+      table.columns.insert(
+        2,
+        Column {
+          header: "Username".to_string(),
+          ..Column::default()
+        },
+      );
+      table.columns.insert(
+        3,
+        Column {
+          header: "Password".to_string(),
+          ..Column::default()
+        },
+      );
       let server = format!("{}", dlg::bold("db.iasql.com"));
       let db = format!("{}", dlg::bold(&db_metadata.dbId));
       let user = format!("{}", dlg::bold(&db_metadata.user));
