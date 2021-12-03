@@ -18,7 +18,7 @@ const config = process.env.IASQL_ENV === 'local' ? Object.assign(baseConfig, loc
   baseUrl: '/',
   trailingSlash: true,
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
+  onBrokenMarkdownLinks: 'throw',
   favicon: 'img/favicon.png',
 
   customFields: config,
