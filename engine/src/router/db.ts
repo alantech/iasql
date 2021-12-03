@@ -99,8 +99,48 @@ db.post('/add', async (req, res) => {
         }
       }
     }
+    console.log('Creating account for user...');
+    // Create a randomly generated username and password, an 8 char username [a-z][a-z0-9]{7} and a
+    // 16 char password [a-zA-Z0-9!@#$%^*]{16}
+    const userFirstCharCharset = [
+      Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+    ].flat();
+    const userRestCharCharset = [
+      ...userFirstCharCharset,
+      Array(10).fill('0').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+    ].flat();
+    const passwordCharset = [
+      ...userRestCharCharset,
+      Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+      '!@#$%^*'.split(''),
+    ].flat();
+    const randChar = (a: string[]): string => a[Math.floor(Math.random() * a.length)];
+    const user = [
+      randChar(userFirstCharCharset),
+      Array(7).fill('').map(() => randChar(userRestCharCharset)),
+    ].flat().join('');
+    const pass = Array(16).fill('').map(() => randChar(passwordCharset)).join('');
+    // TODO: The permissions below work just fine, but prevent the users from creating their own
+    // tables. We want to allow that in the future, but not sure the precise details of how, as
+    // the various options have their own trade-offs and potential sources of bugs to worry about.
+    // But we'll want to decide (before public launch?) one of them and replace this
+    await conn2.query(`
+      CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
+      GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user};
+      GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${user};
+      GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${user};
+      GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${user};
+      GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${user};
+      GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${user};
+      GRANT CONNECT ON DATABASE ${dbId} TO ${user};
+    `);
     console.log('Done!');
-    res.end(`create ${dbAlias}: ${JSON.stringify(resp1)}`);
+    res.json({
+      dbAlias,
+      dbId,
+      user,
+      pass,
+    });
   } catch (e: any) {
     res.status(500).end(`${e?.message ?? ''}`);
   } finally {
