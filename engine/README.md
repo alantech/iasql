@@ -83,7 +83,14 @@ Since we are not able to create AWS load balancer listeners with HTTPS certifica
   3. Add Listener (Listeners tab)
   4. Choose HTTPS protocol with port 443
   5. Add Action `forward` to target group `iasql-engine-target-group`
-  6. Add certificate 
+  6. Add certificate
+
+---
+**IMPORTANT!!!!**
+
+This listener need to be added every time after a `db apply` is executed!!! :(
+
+---
 
 #### RDS: force SSL connections
 
@@ -111,19 +118,19 @@ Since we are not able to create AWS RDS Parameter Groups using IaSQL yet, we hav
 
 #### Pushing engine image to engine ECR
 
-- Login to ECR repository
+- Login to ECR repository. Probably you will need to update this command if you have your `iasql` org credentials in an specific profile passing the `--profile` option.
 
   ```sh
   aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 547931376551.dkr.ecr.us-east-2.amazonaws.com
   ```
 
-- Build image
+- Build image (Optional)
 
   ```sh
   docker build -t iasql-engine-repository .
   ```
 
-- Tag image
+- Tag image. Replace the first argument if your local image has another name
 
   ```sh
   docker tag iasql-engine-repository:latest 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository:latest
