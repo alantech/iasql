@@ -341,6 +341,7 @@ export const AwsEcsModule: Module = new Module({
               family: e.family,
               containerDefinitions: e.containers.map(c => {
                 const container: any = { ...c };
+                if (c.repository && !c.repository?.repositoryUri) throw new DepError('Repository need to be created first');
                 container.image = `${c.repository ? c.repository.repositoryUri : c.dockerImage}:${c.tag}`;
                 return container;
               }),
