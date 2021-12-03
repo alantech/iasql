@@ -194,16 +194,21 @@ ${Object.keys(tableCollisions)
   const mappers = modules
     .map(md => Object.values(md.mappers))
     .flat()
-  await lazyLoader(mappers.map(mapper => async () => {
-    const e = await mapper.cloud.read(context);
-    if (!e || (Array.isArray(e) && !e.length)) {
-      console.log('Completely unexpected outcome');
-      console.log({ mapper, e, });
-    } else {
-      await mapper.db.create(e, context);
+  try {
+    await lazyLoader(mappers.map(mapper => async () => {
+      const e = await mapper.cloud.read(context);
+      if (!e || (Array.isArray(e) && !e.length)) {
+        console.log('Completely unexpected outcome');
+        console.log({ mapper, e, });
+      } else {
+        await mapper.db.create(e, context);
     }
-  }));
-  res.json("Done!");
+    }));
+    res.json("Done!");
+  } catch (e: any) {
+    console.error(e);
+    res.status(500).end(`${e?.message ?? ''}`);
+  }
 });
 
 // Needed at the beginning

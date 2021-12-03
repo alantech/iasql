@@ -108,7 +108,15 @@ export const AwsEcsModule: Module = new Module({
     serviceMapper: async (s: any, ctx: Context) => {
       const out = new Service();
       out.arn = s.serviceArn;
-      out.cluster = s.clusterArn && ctx.memo?.db?.Cluster?.[s.clusterArn] ? ctx.memo?.db?.Cluster?.[s.clusterArn] : await AwsEcsModule.mappers.cluster.db.read(ctx, s.clusterArn);
+      if (s.clusterArn) {
+        // try to retrieve cluster from db
+        let cluster = await ctx.orm.findOne(Cluster, { where: { clusterArn: s.clusterArn } });
+        if (!cluster) {
+          // If not, try from cloud. The cluster could be in a deleting process and we still need some cluster properties to perform the delete action.
+          cluster = await AwsEcsModule.mappers.cluster.cloud.read(ctx, s.clusterArn);
+        }
+        out.cluster = cluster;
+      }
       out.desiredCount = s.desiredCount;
       out.launchType = s.launchType as LaunchType;
       out.loadBalancers = await Promise.all(s.loadBalancers?.map(async (slb: any) => {
@@ -225,7 +233,17 @@ export const AwsEcsModule: Module = new Module({
         delete: async (c: Cluster | Cluster[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(c) ? c : [c];
-          await Promise.all(es.map(e => client.deleteCluster(e.clusterName)));
+          await Promise.all(es.map(async e => {
+            if (e.clusterStatus === 'INACTIVE' && e.clusterName === 'default') {
+              const dbCluster = await AwsEcsModule.mappers.cluster.db.read(ctx, e.clusterArn);
+              // Temporarily create again the default inactive cluster if deleted from DB to avoid infinite loops.
+              if (!dbCluster) {
+                await AwsEcsModule.mappers.cluster.db.create(e, ctx);
+              }
+            } else {
+              return await client.deleteCluster(e.clusterName)
+            }
+          }));
         },
       }),
     }),
@@ -323,6 +341,7 @@ export const AwsEcsModule: Module = new Module({
               family: e.family,
               containerDefinitions: e.containers.map(c => {
                 const container: any = { ...c };
+                if (c.repository && !c.repository?.repositoryUri) throw new DepError('Repository need to be created first');
                 container.image = `${c.repository ? c.repository.repositoryUri : c.dockerImage}:${c.tag}`;
                 return container;
               }),
@@ -395,8 +414,8 @@ export const AwsEcsModule: Module = new Module({
             } else {
               if (e.status === 'INACTIVE') {
                 const dbTd = await AwsEcsModule.mappers.taskDefinition.db.read(ctx, e.taskDefinitionArn);
-                // TODO: temporarily create again the task definition inactive if deleted from DB to avoid infinite loops.
-                // Eventually, forbid task definitons to be deleted from database.
+                // Temporarily create again the task definition inactive if deleted from DB to avoid infinite loops.
+                // ? Eventually, forbid task definitons to be deleted from database.
                 if (!dbTd) {
                   await AwsEcsModule.mappers.taskDefinition.db.create(e, ctx);
                 }
