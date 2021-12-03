@@ -15,6 +15,7 @@ do $$
     iasql_postgres_docker_image text := 'postgres';
     iasql_cluster text := 'iasql-cluster';
     iasql_engine_container text := 'iasql-engine-container';
+    iasql_engine_container_memory_reservation integer := 8192;
     iasql_engine_image_tag text := 'latest';
     iasql_postgres_container text := 'iasql-postgres-container';
     iasql_postgres_image_tag text := '13.4';
@@ -24,8 +25,16 @@ do $$
     iasql_engine_security_group text := 'iasql-engine-security-group';
     iasql_postgres_security_group text := 'iasql-postgres-security-group';
     iasql_engine_service text := 'iasql-engine-service';
+    iasql_engine_service_desired_count integer := 1;
     iasql_postgres_service text := 'iasql-postgres-service';
     iasql_postgres_rds text := 'iasql-postgres-rds';
+    iasql_postgres_rds_allocated_storage integer := 1024; -- 1TiB in MiB
+    iasql_postgres_rds_db_instance_class text := 'db.m5.large';
+    iasql_postgres_rds_db_engine text := 'postgres';
+    iasql_postgres_rds_db_engine_version text := '13.4';
+    iasql_postgres_rds_db_username text := 'iasql';
+    iasql_postgres_rds_db_password text := '4l4nU$3r';
+    iasql_postgres_rds_db_az text := 'us-east-2';
   begin
     select vpc_id, id into default_vpc, default_vpc_id
     from aws_vpc
@@ -48,10 +57,12 @@ do $$
       iasql_engine_load_balancer, 'internet-facing', default_vpc, 'application', default_subnets, 'ipv4'
     );
 
-    call create_aws_listener(iasql_engine_load_balancer, 8088, 'HTTP', 'forward', iasql_engine_target_group);
+    -- TODO: update this listener once HTTPS can be configure via IaSQL
+    call create_aws_listener(iasql_engine_load_balancer, iasql_engine_port, 'HTTP', 'forward', iasql_engine_target_group);
 
     call create_ecr_repository(iasql_engine_repository);
 
+    -- TODO: how to handle better this hard coded policy?
     call create_ecr_repository_policy(
       iasql_engine_repository, '{ "Version" : "2012-10-17", "Statement" : [ { "Sid" : "new statement", "Effect" : "Allow", "Principal" : { "AWS" : [ "arn:aws:iam::547931376551:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS", "arn:aws:iam::547931376551:user/dfellis", "arn:aws:iam::547931376551:user/aguillenv", "arn:aws:iam::547931376551:user/depombo" ] }, "Action" : [ "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CreateRepository", "ecr:DeleteRepositoryPolicy", "ecr:DescribeImageScanFindings", "ecr:DescribeImages", "ecr:DescribeRepositories", "ecr:GetAuthorizationToken", "ecr:GetDownloadUrlForLayer", "ecr:GetLifecyclePolicy", "ecr:GetLifecyclePolicyPreview", "ecr:GetRepositoryPolicy", "ecr:ListImages", "ecr:ListTagsForResource", "ecr:SetRepositoryPolicy" ] } ]}'
     );
@@ -59,7 +70,7 @@ do $$
     call create_ecs_cluster(iasql_cluster);
 
     call create_container_definition(
-      iasql_engine_container, true, 8192, iasql_engine_port, iasql_engine_port, 'tcp',
+      iasql_engine_container, true, iasql_engine_container_memory_reservation, iasql_engine_port, iasql_engine_port, 'tcp',
       ('{"PORT": ' || iasql_engine_port || '}')::json, iasql_engine_image_tag,
       _ecr_repository_name := iasql_engine_repository
     );
@@ -75,7 +86,7 @@ do $$
     );
 
     call create_ecs_service(
-      iasql_engine_service, iasql_cluster, iasql_engine_task_definition, 1, 'FARGATE',
+      iasql_engine_service, iasql_cluster, iasql_engine_task_definition, iasql_engine_service_desired_count, 'FARGATE',
       'REPLICA', default_subnets, array[iasql_engine_security_group], 'ENABLED', iasql_engine_target_group
     );
 
@@ -84,7 +95,12 @@ do $$
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_postgres_port || ', "toPort": ' || iasql_postgres_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
 
-    call create_rds(iasql_postgres_rds, 1024, 'db.m5.large', 'postgres', '13.4', 'iasql', '4l4nU$3r', 'us-east-2a', array[iasql_postgres_security_group]);
+    call create_rds(
+      iasql_postgres_rds, iasql_postgres_rds_allocated_storage, iasql_postgres_rds_db_instance_class,
+      iasql_postgres_rds_db_engine, iasql_postgres_rds_db_engine_version, iasql_postgres_rds_db_username,
+      iasql_postgres_rds_db_password, iasql_postgres_rds_db_az, array[iasql_postgres_security_group]
+    );
+
 
     -- TODO: Restore once we manage our own iasql instance
     
