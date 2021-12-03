@@ -14,7 +14,7 @@ export const AwsSecurityGroupModule: Module = new Module({
     tables: ['aws_security_group', 'aws_security_group_rule'],
   },
   utils: {
-    sgMapper: (sg: any, _ctx: Context) => {
+    sgMapper: (sg: any) => {
       const out = new AwsSecurityGroup();
       out.description = sg.Description;
       out.groupName = sg.GroupName;
