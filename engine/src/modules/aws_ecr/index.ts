@@ -158,7 +158,6 @@ export const AwsEcrModule: Module = new Module({
         try {
           return AwsEcrModule.utils.policyComparisonEq(JSON.parse(a.policyText!), JSON.parse(b.policyText!));
         } catch (e) {
-          console.error(e);
           return false;
         }
       },
