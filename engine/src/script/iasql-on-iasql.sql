@@ -34,7 +34,7 @@ do $$
     iasql_postgres_rds_db_engine_version text := '13.4';
     iasql_postgres_rds_db_username text := 'iasql';
     iasql_postgres_rds_db_password text := '4l4nU$3r';
-    iasql_postgres_rds_db_az text := 'us-east-2';
+    iasql_postgres_rds_db_az text := 'us-east-2a';
   begin
     select vpc_id, id into default_vpc, default_vpc_id
     from aws_vpc
