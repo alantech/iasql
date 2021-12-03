@@ -64,7 +64,7 @@ export class awsRds1638273752147 implements MigrationInterface {
                     limit 1;
             
                     -- Security groups
-            
+
                     for sg in
                         select id
                         from aws_security_group
@@ -73,7 +73,9 @@ export class awsRds1638273752147 implements MigrationInterface {
                         insert into rds_vpc_security_groups_aws_security_group
                             (rds_id, aws_security_group_id)
                         values
-                            (rds_instance_id, sg.id);
+                            (rds_instance_id, sg.id)
+                        on conflict ON CONSTRAINT "PK_30edb9d50aef608d12995047c4e"
+                        do nothing;
                     end loop;
             
                     raise info 'rds_instance_id = %', rds_instance_id;
