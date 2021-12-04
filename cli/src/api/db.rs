@@ -28,8 +28,6 @@ pub struct AddDbResponse {
   pass: String,
 }
 
-const NO_DBS: &str = "No IaSQL dbs to manage an AWS account have been created";
-
 // TODO load regions at startup based on aws services and schema since not all regions support all services.
 // Currently manually listing ec2 regions that do not require opt-in status in alphabetical order
 // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
@@ -72,7 +70,11 @@ fn get_aws_cli_creds() -> Result<HashMap<String, AWSCLICredentials>, String> {
 pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
   let dbs = get_dbs().await;
   if dbs.len() == 0 {
-    println!("{} {}", dlg::warn_prefix(), dlg::bold(NO_DBS));
+    println!(
+      "{} {}",
+      dlg::warn_prefix(),
+      dlg::bold("No IaSQL dbs to manage an AWS account have been created")
+    );
     exit(0);
   }
   if db_opt.is_none() {
@@ -110,12 +112,7 @@ pub async fn get_dbs() -> Vec<String> {
       exit(1);
     }
   };
-  let dbs: Vec<String> = serde_json::from_str(res).unwrap();
-  if dbs.len() == 0 {
-    println!("{} {}", dlg::warn_prefix(), dlg::bold(NO_DBS));
-    exit(0);
-  }
-  return dbs;
+  serde_json::from_str(res).unwrap()
 }
 
 pub async fn list() {
