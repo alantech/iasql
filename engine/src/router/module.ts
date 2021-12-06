@@ -139,12 +139,23 @@ ${Object.keys(tableCollisions)
 }`);
   }
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
-  const rootToLeafOrder = [...modules].sort((a, b) => {
-    // Assuming no dependency loops
-    if (a.dependencies.includes(b.name)) return 1;
-    if (b.dependencies.includes(a.name)) return -1;
-    return 0;
-  });
+  const rootToLeafOrder = (() => {
+    const moduleList = [...modules];
+    const sortedModuleNames: { [key: string]: boolean } = {};
+    const sortedModules = [];
+    do {
+      const mod = moduleList.pop();
+      if (!mod) break;
+      if (
+        (mod.dependencies.length ?? 0) === 0 ||
+        mod.dependencies.every(dep => sortedModuleNames[dep])
+      ) {
+        sortedModuleNames[mod.name] = true;
+        sortedModules.push(mod);
+      }
+    } while (moduleList.length > 0);
+    return sortedModules;
+  })();
   const leafToRootOrder = [...rootToLeafOrder].reverse();
   // Actually run the installation. First running all of the preinstall scripts from leaf-to-root,
   // then all of the postinstall scripts from root-to-leaf. Wrapped in a transaction so any failure
