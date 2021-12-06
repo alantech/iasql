@@ -23,7 +23,6 @@ export class TypeormWrapper {
     if (connMan.has(dbname)) {
       throw new Error(`Connection ${dbname} already exists`)
     }
-    connectionConfig = connectionConfig ?? typeorm.connectionConfig;
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
       ...connectionConfig,
