@@ -19,6 +19,7 @@ const baseConnConfig: PostgresConnectionOptions = {
   username: config.dbUser,
   password: config.dbPassword,
   host: config.dbHost,
+  database: 'postgres',
 };
 
 // TODO secure with cors and scope
