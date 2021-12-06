@@ -6,6 +6,7 @@ import { IasqlModule, } from '../entity'
 import { TypeormWrapper, } from '../services/typeorm'
 import { getId } from '../services/db-manager'
 import { lazyLoader, } from '../services/lazy-dep'
+import { handleErrorMessage } from '.'
 
 export const mod = express.Router();
 
@@ -207,7 +208,7 @@ ${Object.keys(tableCollisions)
     res.json("Done!");
   } catch (e: any) {
     console.error(e);
-    res.status(500).end(`${e?.message ?? ''}`);
+    res.status(500).end(`${handleErrorMessage(e)}`);
   }
 });
 
@@ -285,7 +286,7 @@ mod.post('/remove', async (req, res) => {
     await queryRunner.commitTransaction();
   } catch (e: any) {
     await queryRunner.rollbackTransaction();
-    return res.status(500).end(`${e?.message ?? ''}`);
+    return res.status(500).end(`${handleErrorMessage(e)}`);
   } finally {
     await queryRunner.release();
   }
