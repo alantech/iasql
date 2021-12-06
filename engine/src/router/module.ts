@@ -5,8 +5,9 @@ import * as Modules from '../modules'
 import { IasqlModule, } from '../entity'
 import { TypeormWrapper, } from '../services/typeorm'
 import { getId } from '../services/db-manager'
-import { lazyLoader, } from '../services/lazy-dep'
 import { handleErrorMessage } from '.'
+import { lazyLoader, } from '../services/lazy-dep'
+import { sortModules, } from '../services/mod-sort'
 
 export const mod = express.Router();
 
@@ -62,29 +63,6 @@ mod.post('/search', (_req, res) => res.end('ok'));
 
 // Needed when we have metadata attached to the packages to even show
 mod.post('/show', (_req, res) => res.end('ok'));
-
-export const sortModules = (modules: Modules.ModuleInterface[], existingModules: string[]) => {
-  const moduleList = [...modules];
-  const sortedModuleNames: { [key: string]: boolean } = {};
-  const sortedModules = [];
-  // Put all of the existing modules into the sortedModuleNames hash so they can be used for the
-  // checks
-  existingModules.forEach((m: string) => sortedModuleNames[m] = true);
-  do {
-    const m = moduleList.shift();
-    if (!m) break;
-    if (
-      (m.dependencies.length ?? 0) === 0 ||
-      m.dependencies.every(dep => sortedModuleNames[dep])
-    ) {
-      sortedModuleNames[m.name] = true;
-      sortedModules.push(m);
-    } else {
-      moduleList.push(m);
-    }
-  } while (moduleList.length > 0);
-  return sortedModules;
-}
 
 // Needed at the beginning
 mod.post('/install', async (req, res) => {
