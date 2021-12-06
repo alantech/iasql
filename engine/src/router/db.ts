@@ -20,6 +20,7 @@ const baseConnConfig: PostgresConnectionOptions = {
   password: config.dbPassword,
   host: config.dbHost,
   database: 'postgres',
+  extra: { ssl: config.dbHost === 'postgresql' ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
 };
 
 // TODO secure with cors and scope
