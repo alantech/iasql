@@ -1,6 +1,6 @@
 use ascii_table::{AsciiTable, Column};
-use indicatif::ProgressBar;
 use futures::future::join_all;
+use indicatif::ProgressBar;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
