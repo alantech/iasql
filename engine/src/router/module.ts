@@ -147,7 +147,7 @@ ${Object.keys(tableCollisions)
     // checks
     existingModules.forEach((m: string) => sortedModuleNames[m] = true);
     do {
-      const m = moduleList.pop();
+      const m = moduleList.shift();
       if (!m) break;
       if (
         (m.dependencies.length ?? 0) === 0 ||
