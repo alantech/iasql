@@ -25,7 +25,7 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
       if (results[i].status === 'fulfilled') {
         continue;
       }
-      failures.push(results[i]);
+      failures.push(new Error((results[i] as PromiseRejectedResult).reason ?? 'An unexpected error occurred'));
       generatorsToRerun.push(generatorsToRun[i]);
     }
     if (generatorsToRun.length === generatorsToRerun.length) break;
