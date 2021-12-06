@@ -143,6 +143,9 @@ ${Object.keys(tableCollisions)
     const moduleList = [...modules];
     const sortedModuleNames: { [key: string]: boolean } = {};
     const sortedModules = [];
+    // Put all of the existing modules into the sortedModuleNames hash so they can be used for the
+    // checks
+    existingModules.forEach((m: string) => sortedModuleNames[m] = true);
     do {
       const m = moduleList.pop();
       if (!m) break;
