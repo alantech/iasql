@@ -29,10 +29,15 @@ pub static CLIENT: Lazy<Client<HttpsConnector<HttpConnector>>> =
   Lazy::new(|| Client::builder().build::<_, Body>(HttpsConnector::new()));
 
 fn get_url() -> &'static str {
-  let env = std::env::var("IASQL_ENV").unwrap_or("production".to_string());
+  let default = if cfg!(debug_assertions) {
+    "local"
+  } else {
+    "production"
+  };
+  let env = std::env::var("IASQL_ENV").unwrap_or(default.to_string());
   match env.as_str() {
     "local" => "http://localhost:8088",
-    _ => "http://localhost:8088",
+    _ => "https://api.iasql.com",
   }
 }
 
