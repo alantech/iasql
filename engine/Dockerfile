@@ -4,7 +4,4 @@ COPY . /engine/
 RUN yarn
 RUN yarn build
 EXPOSE 8088
-ENV DB_USER=$DB_USER
-ENV DB_HOST=$DB_HOST
-ENV DB_PASSWORD=$DB_PASSWORD
 CMD yarn start
