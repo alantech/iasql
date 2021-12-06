@@ -5,8 +5,9 @@ import * as Modules from '../modules'
 import { IasqlModule, } from '../entity'
 import { TypeormWrapper, } from '../services/typeorm'
 import { getId } from '../services/db-manager'
-import { lazyLoader, } from '../services/lazy-dep'
 import { handleErrorMessage } from '.'
+import { lazyLoader, } from '../services/lazy-dep'
+import { sortModules, } from '../services/mod-sort'
 
 export const mod = express.Router();
 
@@ -124,12 +125,7 @@ ${Object.keys(tableCollisions)
 }`);
   }
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
-  const rootToLeafOrder = [...modules].sort((a, b) => {
-    // Assuming no dependency loops
-    if (a.dependencies.includes(b.name)) return 1;
-    if (b.dependencies.includes(a.name)) return -1;
-    return 0;
-  });
+  const rootToLeafOrder = sortModules(modules, existingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
   // Actually run the installation. First running all of the preinstall scripts from leaf-to-root,
   // then all of the postinstall scripts from root-to-leaf. Wrapped in a transaction so any failure
@@ -235,13 +231,9 @@ mod.post('/remove', async (req, res) => {
   if (modules.length === 0) {
     return res.status(400).json("All modules already removed.");
   }
+  const remainingModules = existingModules.filter((m: string) => !modules.some(m2 => m2.name === m));
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
-  const rootToLeafOrder = [...modules].sort((a, b) => {
-    // Assuming no dependency loops
-    if (a.dependencies.includes(b.name)) return 1;
-    if (b.dependencies.includes(a.name)) return -1;
-    return 0;
-  });
+  const rootToLeafOrder = sortModules(modules, remainingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
   // Actually run the removal. First running all of the preremove scripts from leaf-to-root, then
   // all of the postremove scripts from root-to-leaf. Wrapped in a transaction so any failure at
