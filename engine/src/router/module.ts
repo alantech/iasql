@@ -1,5 +1,5 @@
 import * as express from 'express'
-import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
 import * as Modules from '../modules'
 import { IasqlModule, } from '../entity'
@@ -40,15 +40,8 @@ mod.post('/list', async (req, res) => {
     res.json(allModules);
   } else if (installed && dbAlias) {
     const dbId = await getId(dbAlias, req.user);
-    const orm = await TypeormWrapper.createConn(dbId, {
-      name: dbId,
-      type: 'postgres',
-      username: 'postgres', // TODO: Should we use the user's account for this?
-      password: 'test',
-      host: 'postgresql',
-      entities: [IasqlModule],
-      namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
-    });
+    const entities: Function[] = [IasqlModule];
+    const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const modules = await orm.find(IasqlModule);
     const modsInstalled = modules.map((m: IasqlModule) => (m.name));
     res.json(allModules.filter(m => modsInstalled.includes(m.name)));
@@ -88,15 +81,7 @@ mod.post('/install', async (req, res) => {
     .flat()
     .filter(e => typeof e === 'function') as Function[];
   entities.push(IasqlModule);
-  const orm = await TypeormWrapper.createConn(dbId, {
-    name: dbId,
-    type: 'postgres',
-    username: 'postgres',
-    password: 'test',
-    host: 'postgresql',
-    entities,
-    namingStrategy: new SnakeNamingStrategy(),
-  });
+  const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already installed and prune them from the list
@@ -235,15 +220,7 @@ mod.post('/remove', async (req, res) => {
     .flat()
     .filter(e => typeof e === 'function') as Function[];
   entities.push(IasqlModule);
-  const orm = await TypeormWrapper.createConn(dbId, {
-    name: dbId,
-    type: 'postgres',
-    username: 'postgres',
-    password: 'test',
-    host: 'postgresql',
-    entities,
-    namingStrategy: new SnakeNamingStrategy(),
-  });
+  const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already removed and prune them from the list
