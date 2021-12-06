@@ -144,14 +144,16 @@ ${Object.keys(tableCollisions)
     const sortedModuleNames: { [key: string]: boolean } = {};
     const sortedModules = [];
     do {
-      const mod = moduleList.pop();
-      if (!mod) break;
+      const m = moduleList.pop();
+      if (!m) break;
       if (
-        (mod.dependencies.length ?? 0) === 0 ||
-        mod.dependencies.every(dep => sortedModuleNames[dep])
+        (m.dependencies.length ?? 0) === 0 ||
+        m.dependencies.every(dep => sortedModuleNames[dep])
       ) {
-        sortedModuleNames[mod.name] = true;
-        sortedModules.push(mod);
+        sortedModuleNames[m.name] = true;
+        sortedModules.push(m);
+      } else {
+        moduleList.push(m);
       }
     } while (moduleList.length > 0);
     return sortedModules;
