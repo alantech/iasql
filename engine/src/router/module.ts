@@ -276,8 +276,9 @@ mod.post('/remove', async (req, res) => {
   if (modules.length === 0) {
     return res.status(400).json("All modules already removed.");
   }
+  const remainingModules = existingModules.filter((m: string) => !modules.some(m2 => m2.name === m));
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
-  const rootToLeafOrder = sortModules(modules, existingModules);
+  const rootToLeafOrder = sortModules(modules, remainingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
   // Actually run the removal. First running all of the preremove scripts from leaf-to-root, then
   // all of the postremove scripts from root-to-leaf. Wrapped in a transaction so any failure at
