@@ -1,7 +1,8 @@
 import * as express from 'express'
 import { createConnection, } from 'typeorm'
-import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
+import config from '../config';
 import { TypeormWrapper, } from '../services/typeorm'
 import { IasqlModule, } from '../entity'
 import { findDiff, } from '../services/diff'
@@ -11,6 +12,14 @@ import * as Modules from '../modules'
 
 
 export const db = express.Router();
+
+const baseConnConfig: PostgresConnectionOptions = {
+  name: 'base', // If you use multiple connections they must have unique names or typeorm bails
+  type: 'postgres',
+  username: config.dbUser,
+  password: config.dbPassword,
+  host: config.dbHost,
+};
 
 // TODO secure with cors and scope
 db.post('/add', async (req, res) => {
@@ -26,22 +35,13 @@ db.post('/add', async (req, res) => {
   try {
     const dbId = await newId(dbAlias, req.user);
     console.log('Establishing DB connections...');
-    conn1 = await createConnection({
-      name: 'base', // If you use multiple connections they must have unique names or typeorm bails
-      type: 'postgres',
-      username: 'postgres',
-      password: 'test',
-      host: 'postgresql',
-    });
-    const resp1 = await conn1.query(`
+    conn1 = await createConnection(baseConnConfig);
+    await conn1.query(`
       CREATE DATABASE ${dbId};
     `);
     conn2 = await createConnection({
+      ...baseConnConfig,
       name: dbId,
-      type: 'postgres',
-      username: 'postgres',
-      password: 'test',
-      host: 'postgresql',
       database: dbId,
     });
     await migrate(conn2);
@@ -61,18 +61,9 @@ db.post('/add', async (req, res) => {
     console.log('Loading aws_account data...');
     // Manually load the relevant data from the cloud side for the `aws_account` module.
     // TODO: Figure out how to eliminate *most* of this special-casing for this module in the future
-    const entities = Object.values(Modules.AwsAccount.mappers).map(m => m.entity);
+    const entities: Function[] = Object.values(Modules.AwsAccount.mappers).map(m => m.entity);
     entities.push(IasqlModule);
-    orm = await TypeormWrapper.createConn(dbId, {
-      name: dbId + '2',
-      type: 'postgres',
-      username: 'postgres',
-      password: 'test',
-      host: 'postgresql',
-      database: dbId,
-      entities,
-      namingStrategy: new SnakeNamingStrategy(),
-    });
+    orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const mappers = Object.values(Modules.AwsAccount.mappers);
     const context: Modules.Context = { orm, memo: {}, ...Modules.AwsAccount.provides.context, };
     for (const mapper of mappers) {
@@ -153,13 +144,7 @@ db.post('/add', async (req, res) => {
 db.get('/list', async (req, res) => {
   let conn;
   try {
-    conn = await createConnection({
-      name: 'base',
-      type: 'postgres',
-      username: 'postgres',
-      password: 'test',
-      host: 'postgresql',
-    });
+    conn = await createConnection(baseConnConfig);
     // aliases is undefined when there is no auth so get aliases from DB
     const aliases = (await getAliases(req.user)) ?? (await conn.query(`
       select datname
@@ -182,13 +167,7 @@ db.get('/remove/:dbAlias', async (req, res) => {
   let conn;
   try {
     const dbId = await delId(dbAlias, req.user);
-    conn = await createConnection({
-      name: 'base',
-      type: 'postgres',
-      username: 'postgres',
-      password: 'test',
-      host: 'postgresql',
-    });
+    conn = await createConnection(baseConnConfig);
     await conn.query(`
       DROP DATABASE ${dbId};
     `);
@@ -228,15 +207,7 @@ db.get('/apply/:dbAlias', async (req, res) => {
       .flat()
       .filter(e => typeof e === 'function') as Function[];
     entities.push(IasqlModule);
-    orm = await TypeormWrapper.createConn(dbId, {
-      name: dbId,
-      type: 'postgres',
-      username: 'postgres', // TODO: This should use the user's account, once that's a thing
-      password: 'test',
-      host: 'postgresql',
-      entities,
-      namingStrategy: new SnakeNamingStrategy(),
-    });
+    orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
     const memo: any = {}; // TODO: Stronger typing here

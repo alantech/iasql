@@ -3,19 +3,20 @@ import { Connection, createConnection, EntityTarget, getConnectionManager, } fro
 import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
+import config from '../config';
 
 export class TypeormWrapper {
   private connection: Connection
   private connectionConfig: PostgresConnectionOptions = {
     type: 'postgres',
-    username: 'postgres',
-    password: 'test',
-    host: 'postgresql',
+    username: config.dbUser,
+    password: config.dbPassword,
+    host: config.dbHost,
     entities: [`${__dirname}/../entity/**/*.js`],
-    namingStrategy: new SnakeNamingStrategy(),
+    namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
   }
 
-  static async createConn(database: string, connectionConfig?: PostgresConnectionOptions): Promise<TypeormWrapper> {
+  static async createConn(database: string, connectionConfig: PostgresConnectionOptions): Promise<TypeormWrapper> {
     const typeorm = new TypeormWrapper();
     const connMan = getConnectionManager();
     const dbname = `database-${randomInt(200000)}`;
@@ -24,6 +25,7 @@ export class TypeormWrapper {
     }
     connectionConfig = connectionConfig ?? typeorm.connectionConfig;
     const connOpts: PostgresConnectionOptions = {
+      ...typeorm.connectionConfig,
       ...connectionConfig,
       name: dbname, // TODO improve connection name handling
       database,
