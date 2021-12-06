@@ -63,6 +63,29 @@ mod.post('/search', (_req, res) => res.end('ok'));
 // Needed when we have metadata attached to the packages to even show
 mod.post('/show', (_req, res) => res.end('ok'));
 
+export const sortModules = (modules: Modules.ModuleInterface[], existingModules: string[]) => {
+  const moduleList = [...modules];
+  const sortedModuleNames: { [key: string]: boolean } = {};
+  const sortedModules = [];
+  // Put all of the existing modules into the sortedModuleNames hash so they can be used for the
+  // checks
+  existingModules.forEach((m: string) => sortedModuleNames[m] = true);
+  do {
+    const m = moduleList.shift();
+    if (!m) break;
+    if (
+      (m.dependencies.length ?? 0) === 0 ||
+      m.dependencies.every(dep => sortedModuleNames[dep])
+    ) {
+      sortedModuleNames[m.name] = true;
+      sortedModules.push(m);
+    } else {
+      moduleList.push(m);
+    }
+  } while (moduleList.length > 0);
+  return sortedModules;
+}
+
 // Needed at the beginning
 mod.post('/install', async (req, res) => {
   const { list, dbAlias } = req.body;
@@ -139,28 +162,7 @@ ${Object.keys(tableCollisions)
 }`);
   }
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
-  const rootToLeafOrder = (() => {
-    const moduleList = [...modules];
-    const sortedModuleNames: { [key: string]: boolean } = {};
-    const sortedModules = [];
-    // Put all of the existing modules into the sortedModuleNames hash so they can be used for the
-    // checks
-    existingModules.forEach((m: string) => sortedModuleNames[m] = true);
-    do {
-      const m = moduleList.shift();
-      if (!m) break;
-      if (
-        (m.dependencies.length ?? 0) === 0 ||
-        m.dependencies.every(dep => sortedModuleNames[dep])
-      ) {
-        sortedModuleNames[m.name] = true;
-        sortedModules.push(m);
-      } else {
-        moduleList.push(m);
-      }
-    } while (moduleList.length > 0);
-    return sortedModules;
-  })();
+  const rootToLeafOrder = sortModules(modules, existingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
   // Actually run the installation. First running all of the preinstall scripts from leaf-to-root,
   // then all of the postinstall scripts from root-to-leaf. Wrapped in a transaction so any failure
@@ -275,12 +277,7 @@ mod.post('/remove', async (req, res) => {
     return res.status(400).json("All modules already removed.");
   }
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
-  const rootToLeafOrder = [...modules].sort((a, b) => {
-    // Assuming no dependency loops
-    if (a.dependencies.includes(b.name)) return 1;
-    if (b.dependencies.includes(a.name)) return -1;
-    return 0;
-  });
+  const rootToLeafOrder = sortModules(modules, existingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
   // Actually run the removal. First running all of the preremove scripts from leaf-to-root, then
   // all of the postremove scripts from root-to-leaf. Wrapped in a transaction so any failure at
