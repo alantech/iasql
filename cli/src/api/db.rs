@@ -165,7 +165,11 @@ pub async fn remove(db: &str) {
 }
 
 pub async fn apply(db: &str) {
+  let sp = ProgressBar::new_spinner();
+  sp.enable_steady_tick(10);
+  sp.set_message("Apply in progress");
   let resp = get_v1(&format!("db/apply/{}", db)).await;
+  sp.finish_and_clear();
   match &resp {
     Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
