@@ -10,13 +10,13 @@ import { lazyLoader, } from '../services/lazy-dep'
 export const mod = express.Router();
 
 const sortModules = (modules: Modules.ModuleInterface[]): Modules.ModuleInterface[] => {
-  const commonModule = 'aws_account';
+  const modulesNames = modules.map(m => m.name);
   const sorted: Modules.ModuleInterface[] = [];
   for (const m of modules) {
-    if (m.dependencies.length === 1 && m.dependencies.includes(commonModule)) {
+    if (!m.dependencies?.length) {
       sorted.push(m);
     } else {
-      if (m.dependencies.filter(d => d !== commonModule).every(d => sorted.map(s => s.name).includes(d))) {
+      if (m.dependencies.filter(d => modulesNames.includes(d)).every(d => sorted.map(s => s.name).includes(d))) {
         sorted.push(m);
       } else {
         modules.push(m);
