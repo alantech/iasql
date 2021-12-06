@@ -36,7 +36,7 @@ db.post('/add', async (req, res) => {
     const dbId = await newId(dbAlias, req.user);
     console.log('Establishing DB connections...');
     conn1 = await createConnection(baseConnConfig);
-    const resp1 = await conn1.query(`
+    await conn1.query(`
       CREATE DATABASE ${dbId};
     `);
     conn2 = await createConnection({
@@ -63,7 +63,7 @@ db.post('/add', async (req, res) => {
     // TODO: Figure out how to eliminate *most* of this special-casing for this module in the future
     const entities: Function[] = Object.values(Modules.AwsAccount.mappers).map(m => m.entity);
     entities.push(IasqlModule);
-    orm = await TypeormWrapper.createConn(dbId, entities);
+    orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const mappers = Object.values(Modules.AwsAccount.mappers);
     const context: Modules.Context = { orm, memo: {}, ...Modules.AwsAccount.provides.context, };
     for (const mapper of mappers) {
@@ -207,7 +207,7 @@ db.get('/apply/:dbAlias', async (req, res) => {
       .flat()
       .filter(e => typeof e === 'function') as Function[];
     entities.push(IasqlModule);
-    orm = await TypeormWrapper.createConn(dbId, entities);
+    orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
     const memo: any = {}; // TODO: Stronger typing here

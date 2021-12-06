@@ -1,4 +1,5 @@
 import * as express from 'express'
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
 import * as Modules from '../modules'
 import { IasqlModule, } from '../entity'
@@ -38,7 +39,8 @@ mod.post('/list', async (req, res) => {
     res.json(allModules);
   } else if (installed && dbAlias) {
     const dbId = await getId(dbAlias, req.user);
-    const orm = await TypeormWrapper.createConn(dbId, [IasqlModule]);
+    const entities: Function[] = [IasqlModule];
+    const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const modules = await orm.find(IasqlModule);
     const modsInstalled = modules.map((m: IasqlModule) => (m.name));
     res.json(allModules.filter(m => modsInstalled.includes(m.name)));
@@ -78,7 +80,7 @@ mod.post('/install', async (req, res) => {
     .flat()
     .filter(e => typeof e === 'function') as Function[];
   entities.push(IasqlModule);
-  const orm = await TypeormWrapper.createConn(dbId, entities);
+  const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already installed and prune them from the list
@@ -217,7 +219,7 @@ mod.post('/remove', async (req, res) => {
     .flat()
     .filter(e => typeof e === 'function') as Function[];
   entities.push(IasqlModule);
-  const orm = await TypeormWrapper.createConn(dbId, entities);
+  const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already removed and prune them from the list
