@@ -106,95 +106,97 @@ export class awsEcs1637756035104 implements MigrationInterface {
             )
             language plpgsql
             as $$
-            declare 
-                c_id integer;
-                pm_id integer;
-                key text;
-                val text;
-                ev_id integer;
-                ecr_repository_id integer;
-            begin
+                declare
+                    c_id integer;
+                    pm_id integer;
+                    key text;
+                    val text;
+                    ev_id integer;
+                    ecr_repository_id integer;
+                begin
             
-                assert (_docker_image is null and _ecr_repository_name is not null) or (_docker_image is not null and _ecr_repository_name is null), '_docker_image or _ecr_repository_name need to be defined';
+                    assert (_docker_image is null and _ecr_repository_name is not null) or (_docker_image is not null and _ecr_repository_name is null), '_docker_image or _ecr_repository_name need to be defined';
             
-                if _ecr_repository_name is not null then
-                select id into ecr_repository_id
-                from aws_repository
-                where repository_name = _ecr_repository_name
-                limit 1;
+                    if _ecr_repository_name is not null then
+                        select id into ecr_repository_id
+                        from aws_repository
+                        where repository_name = _ecr_repository_name
+                        limit 1;
             
-                insert into container
-                    (name, repository_id, tag, essential, memory_reservation)
-                values
-                    (_name, ecr_repository_id, _image_tag, _essential, _memory_reservation)
-                on conflict (name)
-                do nothing;
-                else
-                insert into container
-                    (name, docker_image, tag, essential, memory_reservation)
-                values
-                    (_name, _docker_image, _image_tag, _essential, _memory_reservation)
-                on conflict (name)
-                do nothing;
-                end if;
+                        insert into container
+                            (name, repository_id, tag, essential, memory_reservation)
+                        values
+                            (_name, ecr_repository_id, _image_tag, _essential, _memory_reservation)
+                        on conflict (name)
+                        do update set repository_id = ecr_repository_id, tag = _image_tag, essential = _essential, memory_reservation = _memory_reservation;
+                    else
+                        insert into container
+                            (name, docker_image, tag, essential, memory_reservation)
+                        values
+                            (_name, _docker_image, _image_tag, _essential, _memory_reservation)
+                        on conflict (name)
+                        do update set docker_image = _docker_image, tag = _image_tag, essential = _essential, memory_reservation = _memory_reservation;
+                    end if;
             
-                select id into c_id
-                from container
-                where name = _name
-                order by id desc
-                limit 1;
+                    select id into c_id
+                    from container
+                    where name = _name
+                    order by id desc
+                    limit 1;
             
-                select port_mapping_id into pm_id
-                from container_port_mappings_port_mapping
-                where container_id = c_id
-                limit 1;
-                
-                if pm_id is null then
-                    insert into port_mapping
-                        (container_port, host_port, protocol)
-                    values
-                        (_container_port, _host_port, _protocol);
-                    
                     select id into pm_id
                     from port_mapping
+                    where container_port = _container_port and host_port = _host_port and protocol = _protocol
                     order by id desc
                     limit 1;
                     
-                    insert into container_port_mappings_port_mapping
-                        (container_id, port_mapping_id)
-                    values
-                        (c_id, pm_id);
-                end if;
+                    if pm_id is null then
+                        insert into port_mapping
+                            (container_port, host_port, protocol)
+                        values
+                            (_container_port, _host_port, _protocol);
+                        
+                        select id into pm_id
+                        from port_mapping
+                        order by id desc
+                        limit 1;
+                        
+                        insert into container_port_mappings_port_mapping
+                            (container_id, port_mapping_id)
+                        values
+                            (c_id, pm_id);
+                    end if;
             
-                select env_variable_id into ev_id
-                from container_environment_env_variable
-                where container_id = c_id
-                limit 1;
-                
-                if ev_id is null then
                     for key, val in
                         select *
                         from json_each_text (_environment_variables)
                     loop
-                        insert into env_variable
-                        (name, value)
-                        values
-                        (key, val);
-                    
                         select id into ev_id
                         from env_variable
+                        where name = key and value = val
                         order by id desc
                         limit 1;
-                    
-                        insert into container_environment_env_variable
-                        (container_id, env_variable_id)
-                        values
-                        (c_id, ev_id);
-                    end loop;
-                end if;
             
-                raise info 'container_id = %', c_id;
-            end;
+                        if ev_id is null then
+                            insert into env_variable
+                                (name, value)
+                            values
+                                (key, val);
+                        
+                            select id into ev_id
+                            from env_variable
+                            order by id desc
+                            limit 1;
+                        
+                            insert into container_environment_env_variable
+                                (container_id, env_variable_id)
+                            values
+                                (c_id, ev_id);
+                        end if;
+                    end loop;
+            
+                    raise info 'container_id = %', c_id;
+                end;
             $$;
         `);
         // Example of use: call create_task_definition('test-sp', 'arn', 'arn', 'awsvpc', array['FARGATE', 'EXTERNAL']::compatibility_name_enum[], '0.5vCPU-4GB', array['postgresql']);
