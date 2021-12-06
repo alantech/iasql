@@ -74,7 +74,7 @@ do $$
 
     call create_container_definition(
       iasql_engine_container, true, iasql_engine_container_memory_reservation, iasql_engine_port, iasql_engine_port, 'tcp',
-      ('{"PORT": ' || iasql_engine_port || ', "DB_HOST": ' || iasql_db_host || ', "DB_USER": ' || iasql_db_user || '}')::json, iasql_engine_image_tag,
+      ('{"PORT": ' || iasql_engine_port || ', "DB_HOST": "' || iasql_db_host || '", "DB_USER": "' || iasql_db_user || '"}')::json, iasql_engine_image_tag,
       _ecr_repository_name := iasql_engine_repository
     );
 
