@@ -3,29 +3,30 @@ import { Connection, createConnection, EntityTarget, getConnectionManager, } fro
 import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
+import config from '../config';
 
 export class TypeormWrapper {
   private connection: Connection
   private connectionConfig: PostgresConnectionOptions = {
     type: 'postgres',
-    username: 'postgres',
-    password: 'test',
-    host: 'postgresql',
-    entities: [`${__dirname}/../entity/**/*.js`],
-    namingStrategy: new SnakeNamingStrategy(),
+    username: config.dbUser,
+    password: config.dbPassword,
+    host: config.dbHost,
+    namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
   }
 
-  static async createConn(database: string, connectionConfig?: PostgresConnectionOptions): Promise<TypeormWrapper> {
+  static async createConn(database: string, entities?: string[] | Function[]): Promise<TypeormWrapper> {
     const typeorm = new TypeormWrapper();
     const connMan = getConnectionManager();
     const dbname = `database-${randomInt(200000)}`;
     if (connMan.has(dbname)) {
       throw new Error(`Connection ${dbname} already exists`)
     }
-    connectionConfig = connectionConfig ?? typeorm.connectionConfig;
+    entities = entities ?? [`${__dirname}/../entity/**/*.js`];
     const connOpts: PostgresConnectionOptions = {
-      ...connectionConfig,
+      ...typeorm.connectionConfig,
       name: dbname, // TODO improve connection name handling
+      entities,
       database,
     }
     typeorm.connection = await createConnection(connOpts);
