@@ -12,6 +12,7 @@ export class TypeormWrapper {
     username: config.dbUser,
     password: config.dbPassword,
     host: config.dbHost,
+    entities: [`${__dirname}/../entity/**/*.js`],
     namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
   }
 
