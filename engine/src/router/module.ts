@@ -8,6 +8,7 @@ import { getDbUser, getId } from '../services/db-manager'
 import { handleErrorMessage } from '.'
 import { lazyLoader, } from '../services/lazy-dep'
 import { sortModules, } from '../services/mod-sort'
+import config from '../config'
 
 export const mod = express.Router();
 
@@ -150,15 +151,18 @@ ${Object.keys(tableCollisions)
       );
       await orm.save(IasqlModule, e);
     }
-    await orm.query(`
-      GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${dbUser};
-      GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${dbUser};
-      GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${dbUser};
-      GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${dbUser};
-      GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${dbUser};
-      GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${dbUser};
-      GRANT CONNECT ON DATABASE ${dbId} TO ${dbUser};
-    `);
+    // Only do this if a0 is enabled. Otherwise, you cannot grant these privileges to the default postgres user, the query gets stuck
+    if (config.a0Enabled) {
+      await orm.query(`
+        GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${dbUser};
+        GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${dbUser};
+        GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${dbUser};
+        GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${dbUser};
+        GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${dbUser};
+        GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${dbUser};
+        GRANT CONNECT ON DATABASE ${dbId} TO ${dbUser};
+      `);
+    }
     await queryRunner.commitTransaction();
   } catch (e: any) {
     await queryRunner.rollbackTransaction();
