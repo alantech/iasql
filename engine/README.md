@@ -131,7 +131,7 @@ Since we are not able to create AWS RDS Parameter Groups using IaSQL yet, we hav
 - Build image (Optional)
 
   ```sh
-  docker build --build-arg DB_USER=iasql --build-arg DB_HOST=db.iasql.com --build-arg DB_PASSWORD=4l4nU$3r -t iasql-engine-repository .
+  docker build -t iasql-engine-repository .
   ```
 
 - Tag image. Replace the first argument if your local image has another name
