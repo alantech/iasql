@@ -1,5 +1,6 @@
 use ascii_table::{AsciiTable, Column};
 use futures::future::join_all;
+use indicatif::ProgressBar;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -242,7 +243,6 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
     }
   }
   if deps.len() > 0 {
-    mods.append(&mut deps);
     println!(
       "{} {} {} {}",
       dlg::success_prefix(),
@@ -250,6 +250,7 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
       dlg::divider(),
       dlg::green(&deps.join(&format!("{} ", dlg::white(","))))
     );
+    mods.append(&mut deps);
   }
   mods
 }
@@ -304,7 +305,11 @@ pub async fn install(db: &str, mods: Vec<String>) {
     "list": mods,
     "dbAlias": db,
   });
+  let sp = ProgressBar::new_spinner();
+  sp.enable_steady_tick(10);
+  sp.set_message("Module installation in progress");
   let resp = post_v1("module/install", body).await;
+  sp.finish_and_clear();
   match &resp {
     Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {

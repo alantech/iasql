@@ -9,6 +9,7 @@ import { findDiff, } from '../services/diff'
 import { lazyLoader, } from '../services/lazy-dep'
 import { delId, getAliases, getId, migrate, newId, } from '../services/db-manager'
 import * as Modules from '../modules'
+import { handleErrorMessage } from '.'
 
 
 export const db = express.Router();
@@ -135,7 +136,7 @@ db.post('/add', async (req, res) => {
       pass,
     });
   } catch (e: any) {
-    res.status(500).end(`${e?.message ?? ''}`);
+    res.status(500).end(`${handleErrorMessage(e)}`);
   } finally {
     await conn1?.close();
     await conn2?.close();
@@ -158,7 +159,7 @@ db.get('/list', async (req, res) => {
     // TODO expose connection string after IaSQL-on-IaSQL
     res.json(aliases);
   } catch (e: any) {
-    res.status(500).end(`${e?.message ?? ''}`);
+    res.status(500).end(`${handleErrorMessage(e)}`);
   } finally {
     conn?.close();
   }
@@ -175,7 +176,7 @@ db.get('/remove/:dbAlias', async (req, res) => {
     `);
     res.end(`removed ${dbAlias}`);
   } catch (e: any) {
-    res.status(500).end(`${e?.message ?? ''}`);
+    res.status(500).end(`${handleErrorMessage(e)}`);
   } finally {
     conn?.close();
   }
@@ -327,7 +328,7 @@ db.get('/apply/:dbAlias', async (req, res) => {
     res.end(`${dbAlias} applied and synced, total time: ${t7 - t1}ms`);
   } catch (e: any) {
     console.dir(e, { depth: 6, });
-    res.status(500).end(`${e?.message ?? ''}`);
+    res.status(500).end(`${handleErrorMessage(e)}`);
   } finally {
     orm?.dropConn();
   }

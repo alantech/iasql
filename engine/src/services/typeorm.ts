@@ -24,7 +24,6 @@ export class TypeormWrapper {
     if (connMan.has(dbname)) {
       throw new Error(`Connection ${dbname} already exists`)
     }
-    connectionConfig = connectionConfig ?? typeorm.connectionConfig;
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
       ...connectionConfig,
@@ -53,7 +52,7 @@ export class TypeormWrapper {
 
   async save(entity: EntityTarget<any>, value: any) {
     const repository = this.connection.manager.getRepository(entity);
-    const batchSize = 500;
+    const batchSize = 100; // Determined through trial-and-error with a large, slow entity
     if (value && Array.isArray(value) && value.length > batchSize) {
       for (let i = 0; i < value.length; i += batchSize) {
         const batch = value.slice(i, i + batchSize);

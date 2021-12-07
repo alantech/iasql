@@ -6,6 +6,14 @@ import { db, } from './db'
 import config from '../config'
 import { mod, } from './module'
 
+export function handleErrorMessage(e: any): string {
+  let err = e?.message ?? '';
+  if (e.metadata?.failures) {
+    err = e.metadata.failures.map((f: Error) => f?.message).join('\n');
+  }
+  return err;
+}
+
 const v1 = express.Router();
 v1.use(express.json());
 
