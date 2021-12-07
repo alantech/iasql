@@ -4,7 +4,7 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 import * as Modules from '../modules'
 import { IasqlModule, } from '../entity'
 import { TypeormWrapper, } from '../services/typeorm'
-import { getId } from '../services/db-manager'
+import { getDbUser, getId } from '../services/db-manager'
 import { handleErrorMessage } from '.'
 import { lazyLoader, } from '../services/lazy-dep'
 import { sortModules, } from '../services/mod-sort'
@@ -124,6 +124,8 @@ ${Object.keys(tableCollisions)
 .join('\n')
 }`);
   }
+  // Get db user to GRANT access for new modules
+  const dbUser = await getDbUser(req.user);
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(modules, existingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
@@ -148,6 +150,15 @@ ${Object.keys(tableCollisions)
       );
       await orm.save(IasqlModule, e);
     }
+    await orm.query(`
+      GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${dbUser};
+      GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${dbUser};
+      GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${dbUser};
+      GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${dbUser};
+      GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${dbUser};
+      GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${dbUser};
+      GRANT CONNECT ON DATABASE ${dbId} TO ${dbUser};
+    `);
     await queryRunner.commitTransaction();
   } catch (e: any) {
     await queryRunner.rollbackTransaction();

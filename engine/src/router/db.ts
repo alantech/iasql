@@ -7,7 +7,7 @@ import { TypeormWrapper, } from '../services/typeorm'
 import { IasqlModule, } from '../entity'
 import { findDiff, } from '../services/diff'
 import { lazyLoader, } from '../services/lazy-dep'
-import { delId, getAliases, getId, migrate, newId, } from '../services/db-manager'
+import { delId, getAliases, getId, migrate, newId, setDbUser, } from '../services/db-manager'
 import * as Modules from '../modules'
 import { handleErrorMessage } from '.'
 
@@ -114,6 +114,7 @@ db.post('/add', async (req, res) => {
       Array(7).fill('').map(() => randChar(userRestCharCharset)),
     ].flat().join('');
     const pass = Array(16).fill('').map(() => randChar(passwordCharset)).join('');
+    await setDbUser(user, req.user);
     // TODO: The permissions below work just fine, but prevent the users from creating their own
     // tables. We want to allow that in the future, but not sure the precise details of how, as
     // the various options have their own trade-offs and potential sources of bugs to worry about.

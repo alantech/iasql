@@ -106,3 +106,27 @@ export async function delId(dbAlias: string, user: any) {
   await IronPlans.setTeamMetadata(ipUser.teamId, metadata);
   return dbId;
 }
+
+// returns unique db user or default db user if no auth
+export async function getDbUser(user: any) {
+  if (!config.a0Enabled) return config.dbUser;
+  const email = user[`${config.a0Domain}email`];
+  const ipUser = await IronPlans.getNewOrExistingUser(email, user.sub);
+  const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
+  console.dir(metadata, {depth:4})
+  return metadata.dbUser;
+}
+
+// sets unique db user and return it or just return default db user
+export async function setDbUser(dbUser: string, user: any) {
+  if (!config.a0Enabled) return config.dbUser;
+  const email = user[`${config.a0Domain}email`];
+  const ipUser = await IronPlans.getNewOrExistingUser(email, user.sub);
+  const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
+  if (metadata.hasOwnProperty('dbUser')) {
+    throw new Error(`user ${dbUser} already defined`)
+  }
+  metadata.dbUser = dbUser;
+  await IronPlans.setTeamMetadata(ipUser.teamId, metadata);
+  return dbUser;
+}
