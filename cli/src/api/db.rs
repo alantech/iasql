@@ -68,15 +68,7 @@ fn get_aws_cli_creds() -> Result<HashMap<String, AWSCLICredentials>, String> {
 }
 
 pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
-  let dbs = get_dbs().await;
-  if dbs.len() == 0 {
-    println!(
-      "{} {}",
-      dlg::warn_prefix(),
-      dlg::bold("No IaSQL dbs to manage an AWS account have been created")
-    );
-    exit(0);
-  }
+  let dbs = get_dbs(true).await;
   if db_opt.is_none() {
     let selection = dlg::select_with_default("Pick IaSQL db", &dbs, 0);
     let db = &dbs[selection];
@@ -97,7 +89,7 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
   }
 }
 
-pub async fn get_dbs() -> Vec<String> {
+pub async fn get_dbs(exit_if_none: bool) -> Vec<String> {
   let resp = get_v1("db/list").await;
   let res = match &resp {
     Ok(r) => r,
@@ -112,12 +104,20 @@ pub async fn get_dbs() -> Vec<String> {
       exit(1);
     }
   };
-  serde_json::from_str(res).unwrap()
+  let dbs: Vec<String> = serde_json::from_str(res).unwrap();
+  if exit_if_none && dbs.len() == 0 {
+    println!(
+      "{} {}",
+      dlg::warn_prefix(),
+      dlg::bold("No IaSQL dbs to manage an AWS account have been created")
+    );
+    exit(0);
+  }
+  dbs
 }
 
 pub async fn list() {
-  // TODO after IaSQL-on-IaSQL expose connection string
-  let dbs = get_dbs().await;
+  let dbs = get_dbs(true).await;
   let mut table = AsciiTable::default();
   table.max_width = 140;
   let column = Column {
@@ -193,7 +193,7 @@ pub async fn add(db_opt: Option<&str>) {
   } else {
     db_opt.unwrap().to_string()
   };
-  let dbs = get_dbs().await;
+  let dbs = get_dbs(false).await;
   if dbs.contains(&db.to_owned()) {
     eprintln!(
       "{} {} {} {}",
