@@ -7,7 +7,7 @@ import { TypeormWrapper, } from '../services/typeorm'
 import { IasqlModule, } from '../entity'
 import { findDiff, } from '../services/diff'
 import { lazyLoader, } from '../services/lazy-dep'
-import { delId, getAliases, getId, migrate, newId, } from '../services/db-manager'
+import { delMetadata, getAliases, getMetadata, migrate, setMetadata, } from '../services/db-manager'
 import * as Modules from '../modules'
 import { handleErrorMessage } from '.'
 
@@ -20,6 +20,8 @@ const baseConnConfig: PostgresConnectionOptions = {
   username: config.dbUser,
   password: config.dbPassword,
   host: config.dbHost,
+  database: 'postgres',
+  extra: { ssl: config.dbHost === 'postgresql' ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
 };
 
 // TODO secure with cors and scope
@@ -34,7 +36,28 @@ db.post('/add', async (req, res) => {
   let conn1, conn2;
   let orm: TypeormWrapper | undefined;
   try {
-    const dbId = await newId(dbAlias, req.user);
+    console.log('Creating account for user...');
+    // Create a randomly generated username and password, an 8 char username [a-z][a-z0-9]{7} and a
+    // 16 char password [a-zA-Z0-9!@#$%^*]{16}
+    const userFirstCharCharset = [
+      Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+    ].flat();
+    const userRestCharCharset = [
+      ...userFirstCharCharset,
+      Array(10).fill('0').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+    ].flat();
+    const passwordCharset = [
+      ...userRestCharCharset,
+      Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+      '!?#$%^*'.split(''),
+    ].flat();
+    const randChar = (a: string[]): string => a[Math.floor(Math.random() * a.length)];
+    const user = [
+      randChar(userFirstCharCharset),
+      Array(7).fill('').map(() => randChar(userRestCharCharset)),
+    ].flat().join('');
+    const pass = Array(16).fill('').map(() => randChar(passwordCharset)).join('');
+    const { dbId } = await setMetadata(dbAlias, user, req.user);
     console.log('Establishing DB connections...');
     conn1 = await createConnection(baseConnConfig);
     await conn1.query(`
@@ -91,27 +114,6 @@ db.post('/add', async (req, res) => {
         }
       }
     }
-    console.log('Creating account for user...');
-    // Create a randomly generated username and password, an 8 char username [a-z][a-z0-9]{7} and a
-    // 16 char password [a-zA-Z0-9!?#$%^*]{16}
-    const userFirstCharCharset = [
-      Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-    ].flat();
-    const userRestCharCharset = [
-      ...userFirstCharCharset,
-      Array(10).fill('0').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-    ].flat();
-    const passwordCharset = [
-      ...userRestCharCharset,
-      Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-      '!?#$%^*'.split(''),
-    ].flat();
-    const randChar = (a: string[]): string => a[Math.floor(Math.random() * a.length)];
-    const user = [
-      randChar(userFirstCharCharset),
-      Array(7).fill('').map(() => randChar(userRestCharCharset)),
-    ].flat().join('');
-    const pass = Array(16).fill('').map(() => randChar(passwordCharset)).join('');
     // TODO: The permissions below work just fine, but prevent the users from creating their own
     // tables. We want to allow that in the future, but not sure the precise details of how, as
     // the various options have their own trade-offs and potential sources of bugs to worry about.
@@ -166,12 +168,17 @@ db.get('/remove/:dbAlias', async (req, res) => {
   const dbAlias = req.params.dbAlias;
   let conn;
   try {
-    const dbId = await getId(dbAlias, req.user);
+    const { dbId, dbUser } = await getMetadata(dbAlias, req.user);
     conn = await createConnection(baseConnConfig);
     await conn.query(`
       DROP DATABASE ${dbId} WITH (FORCE);
     `);
-    await delId(dbAlias, req.user);
+    if (config.a0Enabled) {
+      await conn.query(`
+        DROP ROLE ${dbUser};
+      `);
+    }
+    await delMetadata(dbAlias, req.user);
     res.end(`removed ${dbAlias}`);
   } catch (e: any) {
     res.status(500).end(`${handleErrorMessage(e)}`);
@@ -200,7 +207,7 @@ db.get('/apply/:dbAlias', async (req, res) => {
   console.log(`Applying ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
   try {
-    const dbId = await getId(dbAlias, req.user);
+    const { dbId } = await getMetadata(dbAlias, req.user);
     // Construct the ORM client with all of the entities we may wish to query
     const entities = Object.values(Modules)
       .filter(m => m.hasOwnProperty('provides'))
