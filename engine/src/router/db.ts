@@ -118,6 +118,7 @@ db.post('/add', async (req, res) => {
     // tables. We want to allow that in the future, but not sure the precise details of how, as
     // the various options have their own trade-offs and potential sources of bugs to worry about.
     // But we'll want to decide (before public launch?) one of them and replace this
+    // TODO: #2, also try to roll back the `GRANT CREATE` to something a bit narrower in the future
     await conn2.query(`
       CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
       GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user};
@@ -127,6 +128,7 @@ db.post('/add', async (req, res) => {
       GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${user};
       GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${user};
       GRANT CONNECT ON DATABASE ${dbId} TO ${user};
+      GRANT CREATE ON SCHEMA public TO ${user};
     `);
     console.log('Done!');
     res.json({
