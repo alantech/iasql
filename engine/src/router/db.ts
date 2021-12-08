@@ -49,7 +49,7 @@ db.post('/add', async (req, res) => {
     const passwordCharset = [
       ...userRestCharCharset,
       Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-      '!@#$%^*'.split(''),
+      '!?#$%^*'.split(''),
     ].flat();
     const randChar = (a: string[]): string => a[Math.floor(Math.random() * a.length)];
     const user = [
