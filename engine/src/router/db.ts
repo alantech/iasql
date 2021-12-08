@@ -156,7 +156,6 @@ db.get('/list', async (req, res) => {
       datname <> 'template0' and
       datname <> 'template1'
     `)).map((r: any) => r.datname);
-    // TODO expose connection string after IaSQL-on-IaSQL
     res.json(aliases);
   } catch (e: any) {
     res.status(500).end(`${handleErrorMessage(e)}`);
@@ -169,16 +168,17 @@ db.get('/remove/:dbAlias', async (req, res) => {
   const dbAlias = req.params.dbAlias;
   let conn;
   try {
-    const { dbId, dbUser } = await delMetadata(dbAlias, req.user);
+    const { dbId, dbUser } = await getMetadata(dbAlias, req.user);
     conn = await createConnection(baseConnConfig);
     await conn.query(`
-      DROP DATABASE ${dbId};
+      DROP DATABASE ${dbId} WITH (FORCE);
     `);
     if (config.a0Enabled) {
       await conn.query(`
         DROP ROLE ${dbUser};
       `);
     }
+    await delMetadata(dbAlias, req.user);
     res.end(`removed ${dbAlias}`);
   } catch (e: any) {
     res.status(500).end(`${handleErrorMessage(e)}`);
