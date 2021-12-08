@@ -169,7 +169,7 @@ db.get('/remove/:dbAlias', async (req, res) => {
     const dbId = await getId(dbAlias, req.user);
     conn = await createConnection(baseConnConfig);
     await conn.query(`
-      DROP DATABASE ${dbId} FORCE;
+      DROP DATABASE ${dbId} WITH FORCE;
     `);
     await delId(dbAlias, req.user);
     res.end(`removed ${dbAlias}`);
