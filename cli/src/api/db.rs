@@ -67,6 +67,19 @@ fn get_aws_cli_creds() -> Result<HashMap<String, AWSCLICredentials>, String> {
   }
 }
 
+fn get_server() -> &'static str {
+  let default = if cfg!(debug_assertions) {
+    "local"
+  } else {
+    "production"
+  };
+  let env = std::env::var("IASQL_ENV").unwrap_or(default.to_string());
+  match env.as_str() {
+    "local" => "localhost:5432",
+    _ => "db.iasql.com",
+  }
+}
+
 pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
   let dbs = get_dbs(true).await;
   if db_opt.is_none() {
@@ -277,7 +290,7 @@ pub async fn add(db_opt: Option<&str>) {
           ..Column::default()
         },
       );
-      let server = format!("{}", dlg::bold("db.iasql.com"));
+      let server = format!("{}", dlg::bold(get_server()));
       let db = format!("{}", dlg::bold(&db_metadata.dbId));
       let user = format!("{}", dlg::bold(&db_metadata.user));
       let pass = format!("{}", dlg::bold(&db_metadata.pass));
