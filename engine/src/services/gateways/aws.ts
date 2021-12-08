@@ -111,6 +111,14 @@ import {
   ModifyDBInstanceCommandInput,
 } from '@aws-sdk/client-rds'
 
+import {
+  CloudWatchLogsClient,
+  CreateLogGroupCommand,
+  DeleteLogGroupCommand,
+  DescribeLogGroupsCommand,
+  paginateDescribeLogGroups,
+} from '@aws-sdk/client-cloudwatch-logs'
+
 type AWSCreds = {
   accessKeyId: string,
   secretAccessKey: string
@@ -127,6 +135,7 @@ export class AWS {
   private elbClient: ElasticLoadBalancingV2Client
   private ecsClient: ECSClient
   private rdsClient: RDSClient
+  private cwClient: CloudWatchLogsClient
   private credentials: AWSCreds
   public region: string
 
@@ -138,6 +147,7 @@ export class AWS {
     this.elbClient = new ElasticLoadBalancingV2Client(config);
     this.ecsClient = new ECSClient(config);
     this.rdsClient = new RDSClient(config);
+    this.cwClient = new CloudWatchLogsClient(config);
   }
 
   async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
@@ -1004,6 +1014,36 @@ export class AWS {
       },
     );
     return updatedDBInstance;
+  }
+
+  async createLogGroup(groupName: string) {
+    await this.cwClient.send(
+      new CreateLogGroupCommand({
+        logGroupName: groupName,
+      }),
+    );
+  }
+
+  async getLogGroups(groupName?: string) {
+    const logGroups = [];
+    const paginator = paginateDescribeLogGroups({
+      client: this.cwClient,
+      pageSize: 25,
+    }, {
+      logGroupNamePrefix: groupName,
+    });
+    for await (const page of paginator) {
+      logGroups.push(...(page.logGroups ?? []));
+    }
+    return logGroups;
+  }
+
+  async deleteLogGroup(groupName: string) {
+    await this.cwClient.send(
+      new DeleteLogGroupCommand({
+        logGroupName: groupName,
+      }),
+    );
   }
 
 }
