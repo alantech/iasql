@@ -4,11 +4,11 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 import * as Modules from '../modules'
 import { IasqlModule, } from '../entity'
 import { TypeormWrapper, } from '../services/typeorm'
-import { getDbUser, getId } from '../services/db-manager'
 import { handleErrorMessage } from '.'
 import { lazyLoader, } from '../services/lazy-dep'
 import { sortModules, } from '../services/mod-sort'
 import config from '../config'
+import { getMetadata } from '../services/db-manager';
 
 export const mod = express.Router();
 
@@ -41,7 +41,7 @@ mod.post('/list', async (req, res) => {
   if (all) {
     res.json(allModules);
   } else if (installed && dbAlias) {
-    const dbId = await getId(dbAlias, req.user);
+    const { dbId } = await getMetadata(dbAlias, req.user);
     const entities: Function[] = [IasqlModule];
     const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const modules = await orm.find(IasqlModule);
@@ -63,7 +63,7 @@ mod.post('/install', async (req, res) => {
   const { list, dbAlias } = req.body;
   // Don't do anything if we don't know what database to impact
   if (!dbAlias) return res.status(400).json("Missing 'dbAlias' to install into");
-  const dbId = await getId(dbAlias, req.user);
+  const { dbId, dbUser } = await getMetadata(dbAlias, req.user);
   // Also don't do anything if we don't have any list of modules to install
   if (!Array.isArray(list)) return res.status(400).json("No packages provided in 'list' property");
   // Check to make sure that all specified modules actually exist
@@ -125,8 +125,6 @@ ${Object.keys(tableCollisions)
 .join('\n')
 }`);
   }
-  // Get db user to GRANT access for new modules
-  const dbUser = await getDbUser(req.user);
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(modules, existingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
@@ -151,6 +149,7 @@ ${Object.keys(tableCollisions)
       );
       await orm.save(IasqlModule, e);
     }
+    await queryRunner.commitTransaction();
     // Only do this if a0 is enabled. Otherwise, you cannot grant these privileges to the default postgres user, the query gets stuck
     if (config.a0Enabled) {
       await orm.query(`
@@ -160,10 +159,8 @@ ${Object.keys(tableCollisions)
         GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${dbUser};
         GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${dbUser};
         GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${dbUser};
-        GRANT CONNECT ON DATABASE ${dbId} TO ${dbUser};
       `);
     }
-    await queryRunner.commitTransaction();
   } catch (e: any) {
     await queryRunner.rollbackTransaction();
     return res.status(500).end(`${e?.message ?? ''}`);
@@ -213,7 +210,7 @@ mod.post('/remove', async (req, res) => {
   const { list, dbAlias } = req.body;
   // Don't do anything if we don't know what database to impact
   if (!dbAlias) return res.status(400).json("Missing 'dbAlias' to install into");
-  const dbId = await getId(dbAlias, req.user);
+  const { dbId } = await getMetadata(dbAlias, req.user);
   // Also don't do anything if we don't have any list of modules to install
   if (!Array.isArray(list)) return res.status(400).json("No packages provided in 'list' property");
   // Check to make sure that all specified modules actually exist
