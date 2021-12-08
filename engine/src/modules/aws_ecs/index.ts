@@ -343,6 +343,15 @@ export const AwsEcsModule: Module = new Module({
                 const container: any = { ...c };
                 if (c.repository && !c.repository?.repositoryUri) throw new DepError('Repository need to be created first');
                 container.image = `${c.repository ? c.repository.repositoryUri : c.dockerImage}:${c.tag}`;
+                // TODO: use cloud watch group
+                container.logConfiguration = {
+                  logDriver: 'awslogs',
+                  options: {
+                    "awslogs-group": `awslogs-${e.family}`,
+                    "awslogs-region": client.region,
+                    "awslogs-stream-prefix": `awslogs-${c.name}`
+                  }
+                };
                 return container;
               }),
               requiresCompatibilities: e.reqCompatibilities?.map(c => c.name!) ?? [],
