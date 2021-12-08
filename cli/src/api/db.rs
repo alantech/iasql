@@ -177,11 +177,42 @@ pub async fn remove(db: &str) {
   };
 }
 
+pub async fn plan(db: &str) {
+  let sp = ProgressBar::new_spinner();
+  sp.enable_steady_tick(10);
+  sp.set_message("Plan in progress");
+  // call apply with dryRun set to true
+  let body = json!({
+    "dbAlias": db,
+    "dryRun": true,
+  });
+  let resp = post_v1("db/apply/", body).await;
+  sp.finish_and_clear();
+  match &resp {
+    Ok(r) => println!("{}", r),
+    Err(e) => {
+      eprintln!(
+        "{} {} {} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Failed to run plan on db"),
+        dlg::divider(),
+        dlg::red(db),
+        dlg::divider(),
+        e.message
+      );
+      exit(1);
+    }
+  };
+}
+
 pub async fn apply(db: &str) {
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
   sp.set_message("Apply in progress");
-  let resp = get_v1(&format!("db/apply/{}", db)).await;
+  let body = json!({
+    "dbAlias": db,
+  });
+  let resp = post_v1("db/apply/", body).await;
   sp.finish_and_clear();
   match &resp {
     Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),

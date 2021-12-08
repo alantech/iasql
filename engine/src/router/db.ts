@@ -203,8 +203,8 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
   return out;
 }
 
-db.get('/apply/:dbAlias', async (req, res) => {
-  const dbAlias = req.params.dbAlias;
+db.post('/apply', async (req, res) => {
+  const { dbAlias, dryRun } = req.body;
   const t1 = Date.now();
   console.log(`Applying ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
@@ -238,6 +238,9 @@ db.get('/apply/:dbAlias', async (req, res) => {
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
     let failureCount = -1;
+    const toCreate: any[] = [];
+    const toUpdate: any[] = [];
+    const toDelete: any[] = [];
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -271,7 +274,11 @@ db.get('/apply/:dbAlias', async (req, res) => {
         }
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+          toCreate.push(...r.diff.entitiesInDbOnly);
+          toDelete.push(...r.diff.entitiesInAwsOnly);
+          toUpdate.push(...r.diff.entitiesChanged);
         });
+        if (dryRun) return res.json({toCreate, toUpdate, toDelete});
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - t4}ms`);
         const promiseGenerators = records
@@ -332,7 +339,8 @@ db.get('/apply/:dbAlias', async (req, res) => {
       } while(ranUpdate);
     } while (ranFullUpdate);
     const t7 = Date.now();
-    res.end(`${dbAlias} applied and synced, total time: ${t7 - t1}ms`);
+    console.log(`${dbAlias} applied and synced, total time: ${t7 - t1}ms`);
+    res.json({toCreate, toUpdate, toDelete});
   } catch (e: any) {
     console.dir(e, { depth: 6, });
     res.status(500).end(`${handleErrorMessage(e)}`);
