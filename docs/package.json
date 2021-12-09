@@ -37,5 +37,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "resolutions": {
+    "nth-check": "2.0.1",
+    "trim": "0.0.3"
   }
 }
