@@ -38,7 +38,7 @@ jobs:
       run: |
         sudo apt install checkinstall -y
         iasqlversion=$(echo ${{github.ref}} | sed "s/refs\/tags\/v//")
-        echo "Infrastructure as SQL (IaSQL) CLI client\n\n" | sudo checkinstall --install=no -D --pkgversion=${iasqlversion} --pkglicense=Proprietary --maintainer=hello@iasql.com --pkggroup="IaSQL" --nodoc --deldesc=yes --delspec=yes --backup=no
+        echo "Infrastructure as SQL (IaSQL) CLI client\n\n" | sudo checkinstall --install=no -D --pkgname=iasql --pkgversion=${iasqlversion} --pkglicense=Proprietary --maintainer=hello@iasql.com --pkggroup="IaSQL" --nodoc --deldesc=yes --delspec=yes --backup=no
         cp ./cli_${iasqlversion}-1_amd64.deb /tmp/iasql_ubuntu_amd64.deb
 
     - name: Upload IaSQL Debian package
