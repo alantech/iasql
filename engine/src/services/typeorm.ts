@@ -52,11 +52,13 @@ export class TypeormWrapper {
 
   async save(entity: EntityTarget<any>, value: any) {
     const repository = this.connection.manager.getRepository(entity);
-    const batchSize = 100; // Determined through trial-and-error with a large, slow entity
-    if (value && Array.isArray(value) && value.length > batchSize) {
+    const batchTriggerSize = 100;
+    // Postgres limit for values in a batch insert is 32767, this allows an entity with ~30 columns
+    const batchSize = 1000;
+    if (value && Array.isArray(value) && value.length > batchTriggerSize) {
       for (let i = 0; i < value.length; i += batchSize) {
         const batch = value.slice(i, i + batchSize);
-        await repository.save(batch);
+        await repository.insert(batch);
       }
     } else {
       await repository.save(value);
