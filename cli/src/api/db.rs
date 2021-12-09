@@ -68,20 +68,6 @@ fn get_aws_cli_creds() -> Result<HashMap<String, AWSCLICredentials>, String> {
   }
 }
 
-pub fn get_dump(path: &str) -> Result<String, String> {
-  let home = std::env::var("HOME").unwrap();
-  let file_name = &format!("{}/{}", home, path);
-  let file = OpenOptions::new().read(true).open(file_name);
-  if let Err(err) = file {
-    return Err(err.to_string());
-  }
-  let reader = BufReader::new(file.unwrap());
-  match serde_ini::from_bufread(reader) {
-    Ok(creds) => Ok(creds),
-    Err(err) => Err(err.to_string()),
-  }
-}
-
 fn get_server() -> &'static str {
   let default = if cfg!(debug_assertions) {
     "local"
