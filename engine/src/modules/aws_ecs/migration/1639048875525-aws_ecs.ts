@@ -136,14 +136,14 @@ export class awsEcs1639048875525 implements MigrationInterface {
                         values
                             (_name, ecr_repository_id, _image_tag, _essential, _memory_reservation, cw_log_group_id)
                         on conflict (name)
-                        do update set repository_id = ecr_repository_id, tag = _image_tag, essential = _essential, memory_reservation = _memory_reservation;
+                        do update set repository_id = ecr_repository_id, tag = _image_tag, essential = _essential, memory_reservation = _memory_reservation, log_group_id = cw_log_group_id;
                     else
                         insert into container
                             (name, docker_image, tag, essential, memory_reservation, log_group_id)
                         values
                             (_name, _docker_image, _image_tag, _essential, _memory_reservation, cw_log_group_id)
                         on conflict (name)
-                        do update set docker_image = _docker_image, tag = _image_tag, essential = _essential, memory_reservation = _memory_reservation;
+                        do update set docker_image = _docker_image, tag = _image_tag, essential = _essential, memory_reservation = _memory_reservation, log_group_id = cw_log_group_id;
                     end if;
             
                     select id into c_id
