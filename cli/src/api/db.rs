@@ -219,6 +219,18 @@ fn emit_plan_segment(crupde: HashMap<String, PlanMeta>, mode_str: &str) {
   }
 }
 
+fn maybe_planned_nothing(plan_response: &PlanResponse) {
+  if plan_response.toCreate.keys().len() == 0
+    && plan_response.toUpdate.keys().len() == 0
+    && plan_response.toDelete.keys().len() == 0
+  {
+    println!(
+      "{} No difference detected between IaSQL and your cloud settings",
+      dlg::warn_prefix(),
+    );
+  }
+}
+
 pub async fn plan(db: &str) {
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
@@ -233,6 +245,7 @@ pub async fn plan(db: &str) {
   match &resp {
     Ok(r) => {
       let plan_response: PlanResponse = serde_json::from_str(r).unwrap();
+      maybe_planned_nothing(&plan_response);
       emit_plan_segment(plan_response.toCreate, &dlg::green("create").to_string());
       emit_plan_segment(plan_response.toUpdate, &dlg::yellow("update").to_string());
       emit_plan_segment(plan_response.toDelete, &dlg::red("delete").to_string());
@@ -264,6 +277,7 @@ pub async fn apply(db: &str) {
   match &resp {
     Ok(r) => {
       let plan_response: PlanResponse = serde_json::from_str(r).unwrap();
+      maybe_planned_nothing(&plan_response);
       emit_plan_segment(plan_response.toCreate, &dlg::green("create").to_string());
       emit_plan_segment(plan_response.toUpdate, &dlg::yellow("update").to_string());
       emit_plan_segment(plan_response.toDelete, &dlg::red("delete").to_string());
