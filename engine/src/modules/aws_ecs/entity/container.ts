@@ -8,9 +8,11 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm'
-import { AwsRepository } from '../../aws_ecr/entity/aws_repository';
-import { EnvVariable } from './env_variable';
-import { PortMapping } from './port_mapping';
+
+import { LogGroup } from '../../aws_cloudwatch/entity'
+import { AwsRepository } from '../../aws_ecr/entity/aws_repository'
+import { EnvVariable } from './env_variable'
+import { PortMapping } from './port_mapping'
 
 @Check(`"docker_image" is not null or "repository_id" is not null`)
 @Entity()
@@ -64,4 +66,10 @@ export class Container {
   @ManyToMany(() => EnvVariable, { cascade: true, eager: true, })
   @JoinTable()
   environment?: EnvVariable[];
+
+  @ManyToOne(() => LogGroup, { nullable: true, })
+  @JoinColumn({
+    name: 'log_group_id',
+  })
+  logGroup?: LogGroup;
 }
