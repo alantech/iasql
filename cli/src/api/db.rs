@@ -123,11 +123,11 @@ pub async fn get_or_input_db(db_opt: Option<&str>) -> String {
   db
 }
 
-pub fn get_or_input_dump_arg(dump_opt: Option<&str>) -> String {
-  if dump_opt.is_none() {
-    dlg::input("Dump file")
+pub fn get_or_input_arg(arg_opt: Option<&str>, in_title: &str) -> String {
+  if arg_opt.is_none() {
+    dlg::input(in_title)
   } else {
-    dump_opt.unwrap().to_string()
+    arg_opt.unwrap().to_string()
   }
 }
 
@@ -156,6 +156,33 @@ async fn get_dbs(exit_if_none: bool) -> Vec<String> {
     exit(0);
   }
   dbs
+}
+
+pub fn export(conn_str: String, dump_file: String) {
+  let df = if !dump_file.ends_with(".sql") { format!("{}.sql", dump_file) } else { dump_file };
+  let res = std::process::Command::new("pg_dump").args(["--inserts", "-x", "-f", &df, &conn_str]).output();
+  if let Err(_) = res {
+    // TODO ensure version match PG in prod used for import
+    eprintln!(
+      "{} {}",
+      dlg::err_prefix(),
+      dlg::bold("psql, or pg_dump, must be installed"),
+    );
+    exit(1);
+  }
+  let cmd = res.unwrap();
+  if cmd.status.success() {
+    println!("{} {}", dlg::success_prefix(), dlg::bold("Done"));
+  } else {
+    eprintln!(
+      "{} {} {} {}",
+      dlg::err_prefix(),
+      dlg::bold("Failed to export db"),
+      dlg::divider(),
+      String::from_utf8_lossy(&cmd.stderr)
+    );
+    exit(cmd.status.code().unwrap_or(1));
+  }
 }
 
 pub async fn list() {

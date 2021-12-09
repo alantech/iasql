@@ -23,7 +23,10 @@ pub async fn main() {
           SubCommand::with_name("add").arg(Arg::from_usage("[db]")),
           SubCommand::with_name("import")
             .arg(Arg::from_usage("[db]"))
-            .arg(Arg::from_usage("[dump]")),
+            .arg(Arg::from_usage("[dump_file]")),
+          SubCommand::with_name("export")
+            .arg(Arg::from_usage("[conn_str]"))
+            .arg(Arg::from_usage("[dump_file]")),
           SubCommand::with_name("remove")
             .visible_alias("rm")
             .arg(Arg::from_usage("[db]")),
@@ -64,8 +67,13 @@ pub async fn main() {
         }
         ("import", Some(s_s_matches)) => {
           let db = db::get_or_input_db(s_s_matches.value_of("db")).await;
-          let dump_file = db::get_or_input_dump_arg(s_s_matches.value_of("dump"));
+          let dump_file = db::get_or_input_arg(s_s_matches.value_of("dump_file"), "Dump file");
           db::import(&db, &dump_file).await
+        }
+        ("export", Some(s_s_matches)) => {
+          let conn_str = db::get_or_input_arg(s_s_matches.value_of("conn_str"), "PG connection string");
+          let dump_file = db::get_or_input_arg(s_s_matches.value_of("dump_file"), "Dump file");
+          db::export(conn_str, dump_file);
         }
         ("remove", Some(s_s_matches)) => {
           let db = db::get_or_select_db(s_s_matches.value_of("db")).await;
