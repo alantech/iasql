@@ -203,8 +203,8 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
   return out;
 }
 
-db.get('/apply/:dbAlias', async (req, res) => {
-  const dbAlias = req.params.dbAlias;
+db.post('/apply', async (req, res) => {
+  const { dbAlias, dryRun } = req.body;
   const t1 = Date.now();
   console.log(`Applying ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
@@ -238,6 +238,11 @@ db.get('/apply/:dbAlias', async (req, res) => {
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
     let failureCount = -1;
+    // Crupde = CR-UP-DE, Create/Update/Delete
+    type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
+    const toCreate: Crupde = {};
+    const toUpdate: Crupde = {};
+    const toDelete: Crupde = {};
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -269,8 +274,35 @@ db.get('/apply/:dbAlias', async (req, res) => {
         if (!records.length) { // Only possible on just-created databases
           return res.end(`${dbAlias} checked and synced, total time: ${t4 - t1}ms`);
         }
+        const updatePlan = (
+          crupde: Crupde,
+          entityName: string,
+          mapper: Modules.MapperInterface<any>,
+          es: any[]
+        ) => {
+          const rs = es.map((e: any) => mapper.entityPrint(e));
+          crupde[entityName] = crupde[entityName] ?? {
+            columns: Object.keys(rs[0]),
+            records: rs.map((r2: any) => Object.values(r2)),
+          };
+        }
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+          if (r.diff.entitiesInDbOnly.length > 0) {
+            updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInDbOnly);
+          }
+          if (r.diff.entitiesInAwsOnly.length > 0) {
+            updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInAwsOnly);
+          }
+          if (r.diff.entitiesChanged.length > 0) {
+            updatePlan(toUpdate, r.table, r.mapper, r.diff.entitiesChanged.map((e: any) => e.db));
+          }
+        });
+        if (dryRun) return res.json({
+          iasqlPlanVersion: 1,
+          toCreate,
+          toUpdate,
+          toDelete,
         });
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - t4}ms`);
@@ -332,7 +364,13 @@ db.get('/apply/:dbAlias', async (req, res) => {
       } while(ranUpdate);
     } while (ranFullUpdate);
     const t7 = Date.now();
-    res.end(`${dbAlias} applied and synced, total time: ${t7 - t1}ms`);
+    console.log(`${dbAlias} applied and synced, total time: ${t7 - t1}ms`);
+    res.json({
+      iasqlPlanVersion: 1,
+      toCreate,
+      toUpdate,
+      toDelete,
+    });
   } catch (e: any) {
     console.dir(e, { depth: 6, });
     res.status(500).end(`${handleErrorMessage(e)}`);

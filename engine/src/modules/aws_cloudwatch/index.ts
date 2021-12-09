@@ -28,7 +28,13 @@ export const AwsCloudwatchModule: Module = new Module({
     logGroup: new Mapper<LogGroup>({
       entity: LogGroup,
       entityId: (e: LogGroup) => e?.logGroupName,
-      equals: (a: LogGroup, b: LogGroup) => true,
+      entityPrint: (e: LogGroup) => ({
+        id: e?.id?.toString() ?? '',
+        logGroupName: e?.logGroupName ?? '',
+        logGroupArn: e?.logGroupArn ?? '',
+        creationTime: e?.creationTime?.toISOString() ?? '',
+      }),
+      equals: (_a: LogGroup, _b: LogGroup) => true, // TODO: Fix this
       source: 'db',
       db: new Crud({
         create: async (e: LogGroup | LogGroup[], ctx: Context) => { await ctx.orm.save(LogGroup, e); },
