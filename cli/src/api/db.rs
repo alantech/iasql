@@ -159,8 +159,14 @@ async fn get_dbs(exit_if_none: bool) -> Vec<String> {
 }
 
 pub fn export(conn_str: String, dump_file: String) {
-  let df = if !dump_file.ends_with(".sql") { format!("{}.sql", dump_file) } else { dump_file };
-  let res = std::process::Command::new("pg_dump").args(["--inserts", "-x", "-f", &df, &conn_str]).output();
+  let df = if !dump_file.ends_with(".sql") {
+    format!("{}.sql", dump_file)
+  } else {
+    dump_file
+  };
+  let res = std::process::Command::new("pg_dump")
+    .args(["--inserts", "-x", "-f", &df, &conn_str])
+    .output();
   if let Err(_) = res {
     // TODO ensure version match PG in prod used for import
     eprintln!(

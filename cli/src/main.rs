@@ -71,7 +71,8 @@ pub async fn main() {
           db::import(&db, &dump_file).await
         }
         ("export", Some(s_s_matches)) => {
-          let conn_str = db::get_or_input_arg(s_s_matches.value_of("conn_str"), "PG connection string");
+          let conn_str =
+            db::get_or_input_arg(s_s_matches.value_of("conn_str"), "PG connection string");
           let dump_file = db::get_or_input_arg(s_s_matches.value_of("dump_file"), "Dump file");
           db::export(conn_str, dump_file);
         }
