@@ -121,7 +121,6 @@ db.post('/import', async (req, res) => {
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
   let conn1, conn2;
-  let orm: TypeormWrapper | undefined;
   try {
     console.log('Creating account for user...');
     const [user, pass] = dbMan.genUserAndPass();
