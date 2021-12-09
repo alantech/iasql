@@ -14,3 +14,7 @@ clean:
 .PHONY: install
 install: target/release/iasql
 	cp target/release/iasql /usr/local/bin/iasql
+
+.PHONY: version
+version:
+	./.version.sh $(version)
