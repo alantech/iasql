@@ -64,6 +64,49 @@ function isDbKey(dbAlias: string) {
   return dbAlias.startsWith('db:');
 }
 
+// TODO: The permissions below work just fine, but prevent the users from creating their own
+// tables. We want to allow that in the future, but not sure the precise details of how, as
+// the various options have their own trade-offs and potential sources of bugs to worry about.
+// But we'll want to decide (before public launch?) one of them and replace this
+// TODO: #2, also try to roll back the `GRANT CREATE` to something a bit narrower in the future
+export function genPermissionsQuery(user: string, pass: string, dbId: string) {
+  return `
+    CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user};
+    GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${user};
+    GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${user};
+    GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${user};
+    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${user};
+    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${user};
+    GRANT CONNECT ON DATABASE ${dbId} TO ${user};
+    GRANT CREATE ON SCHEMA public TO ${user};
+  `
+}
+
+// Create a randomly generated username and password, an 8 char username [a-z][a-z0-9]{7} and a
+// 16 char password [a-zA-Z0-9!@#$%^*]{16}
+export function genUserAndPass(): [string, string] {
+    const userFirstCharCharset = [
+      Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+    ].flat();
+    const userRestCharCharset = [
+      ...userFirstCharCharset,
+      Array(10).fill('0').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+    ].flat();
+    const passwordCharset = [
+      ...userRestCharCharset,
+      Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+      '!?#$%^*'.split(''),
+    ].flat();
+    const randChar = (a: string[]): string => a[Math.floor(Math.random() * a.length)];
+    const user = [
+      randChar(userFirstCharCharset),
+      Array(7).fill('').map(() => randChar(userRestCharCharset)),
+    ].flat().join('');
+    const pass = Array(16).fill('').map(() => randChar(passwordCharset)).join('');
+    return [user, pass];
+}
+
 // returns aliases or an empty array if no auth
 export async function getAliases(user: any) {
   if (!config.a0Enabled) return undefined;
