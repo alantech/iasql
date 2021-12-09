@@ -80,8 +80,8 @@ jobs:
       - name: Build Docusaurus website
         run: |
           cd ../docs
-          npm install
-          npm run build
+          yarn
+          yarn build
 
   db:
     # The type of runner that the job will run on
