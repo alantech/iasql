@@ -31,12 +31,13 @@ db.post('/add', async (req, res) => {
       'dbAlias', 'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
-  let conn1, conn2;
+  let conn1, conn2, dbId;
   let orm: TypeormWrapper | undefined;
   try {
     console.log('Creating account for user...');
     const [user, pass] = dbMan.genUserAndPass();
-    const { dbId } = await dbMan.setMetadata(dbAlias, user, req.user);
+    const meta = await dbMan.setMetadata(dbAlias, user, req.user);
+    dbId = meta.dbId;
     console.log('Establishing DB connections...');
     conn1 = await createConnection(baseConnConfig);
     await conn1.query(`
@@ -102,7 +103,8 @@ db.post('/add', async (req, res) => {
       pass,
     });
   } catch (e: any) {
-    // delete metadata in IP
+    // delete db in psql and metadata in IP
+    await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
     await dbMan.delMetadata(dbAlias, req.user);
     res.status(500).end(`${handleErrorMessage(e)}`);
   } finally {
@@ -120,29 +122,24 @@ db.post('/import', async (req, res) => {
       'dump', 'dbAlias', 'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
-  let conn1, conn2;
+  let conn1, conn2, dbId;
   try {
     console.log('Creating account for user...');
     const [user, pass] = dbMan.genUserAndPass();
-    const { dbId } = await dbMan.setMetadata(dbAlias, user, req.user);
+    const meta = await dbMan.setMetadata(dbAlias, user, req.user);
+    dbId = meta.dbId;
     console.log('Establishing DB connections...');
     conn1 = await createConnection(baseConnConfig);
-    await conn1.query(`
-      CREATE DATABASE ${dbId};
-    `);
-
+    await conn1.query(`CREATE DATABASE ${dbId};`);
     conn2 = await createConnection({
       ...baseConnConfig,
       name: dbId,
       database: dbId,
     });
-
-    // Restore dump
+    // Restore dump and wrap it in a try catch
+    // that drops the database on error
     console.log('Restoring schema and data from dump...');
-    await conn2.query(`
-      ${dump};
-    `);
-
+    await conn2.query(dump);
     // Update aws_account schema
     const regions = await conn2.query(`
       SELECT id from public.region WHERE name = '${awsRegion}' LIMIT 1;
@@ -161,9 +158,9 @@ db.post('/import', async (req, res) => {
       user,
       pass,
     });
-    res.end("Done");
   } catch (e: any) {
-    // delete metadata in IP
+    // delete db in psql and metadata in IP
+    await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
     await dbMan.delMetadata(dbAlias, req.user);
     res.status(500).end(`${handleErrorMessage(e)}`);
   } finally {
