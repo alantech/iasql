@@ -31,12 +31,14 @@ db.post('/add', async (req, res) => {
       'dbAlias', 'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
-  let conn1, conn2, dbId;
+  let conn1, conn2, dbId, dbUser;
   let orm: TypeormWrapper | undefined;
   try {
     console.log('Creating account for user...');
-    const [user, pass] = dbMan.genUserAndPass();
-    const meta = await dbMan.setMetadata(dbAlias, user, req.user);
+    const dbGen = dbMan.genUserAndPass();
+    dbUser = dbGen[0];
+    const dbPass = dbGen[1];
+    const meta = await dbMan.setMetadata(dbAlias, dbUser, req.user);
     dbId = meta.dbId;
     console.log('Establishing DB connections...');
     conn1 = await createConnection(baseConnConfig);
@@ -94,17 +96,22 @@ db.post('/add', async (req, res) => {
         }
       }
     }
-    await conn2.query(dbMan.genPermissionsQuery(user, pass, dbId));
+    await conn2.query(dbMan.genPermissionsQuery(dbUser, dbPass, dbId));
     console.log('Done!');
     res.json({
-      dbAlias,
-      dbId,
-      user,
-      pass,
+      alias: dbAlias,
+      id: dbId,
+      user: dbUser,
+      password: dbPass,
     });
   } catch (e: any) {
     // delete db in psql and metadata in IP
     await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
+    if (config.a0Enabled) {
+      await conn1?.query(`
+         DROP ROLE IF EXISTS ${dbUser};
+       `);
+     }
     await dbMan.delMetadata(dbAlias, req.user);
     res.status(500).end(`${handleErrorMessage(e)}`);
   } finally {
@@ -122,11 +129,13 @@ db.post('/import', async (req, res) => {
       'dump', 'dbAlias', 'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
-  let conn1, conn2, dbId;
+  let conn1, conn2, dbId, dbUser;
   try {
     console.log('Creating account for user...');
-    const [user, pass] = dbMan.genUserAndPass();
-    const meta = await dbMan.setMetadata(dbAlias, user, req.user);
+    const dbGen = dbMan.genUserAndPass();
+    dbUser = dbGen[0];
+    const dbPass = dbGen[1];
+    const meta = await dbMan.setMetadata(dbAlias, dbUser, req.user);
     dbId = meta.dbId;
     console.log('Establishing DB connections...');
     conn1 = await createConnection(baseConnConfig);
@@ -150,17 +159,22 @@ db.post('/import', async (req, res) => {
       WHERE id = 1;
     `);
     // Grant permissions
-    await conn2.query(dbMan.genPermissionsQuery(user, pass, dbId));
+    await conn2.query(dbMan.genPermissionsQuery(dbUser, dbPass, dbId));
     console.log('Done!');
     res.json({
-      dbAlias,
-      dbId,
-      user,
-      pass,
+      alias: dbAlias,
+      id: dbId,
+      user: dbUser,
+      password: dbPass,
     });
   } catch (e: any) {
     // delete db in psql and metadata in IP
     await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
+    if (config.a0Enabled) {
+      await conn1?.query(`
+         DROP ROLE IF EXISTS ${dbUser};
+       `);
+     }
     await dbMan.delMetadata(dbAlias, req.user);
     res.status(500).end(`${handleErrorMessage(e)}`);
   } finally {

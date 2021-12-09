@@ -21,12 +21,11 @@ pub struct AWSCLICredentials {
 }
 
 #[derive(Deserialize, Debug, Clone, Serialize)]
-#[allow(non_snake_case)]
 pub struct NewDbResponse {
-  dbId: String,
-  dbAlias: String,
+  id: String,
+  alias: String,
   user: String,
-  pass: String,
+  password: String,
 }
 
 // TODO load regions at startup based on aws services and schema since not all regions support all services.
@@ -184,7 +183,7 @@ pub fn export(conn_str: String, dump_file: String) {
       "{} {} {} {}",
       dlg::err_prefix(),
       dlg::bold("Failed to export db"),
-      dlg::divider(),
+      "\n",
       String::from_utf8_lossy(&cmd.stderr)
     );
     exit(cmd.status.code().unwrap_or(1));
@@ -328,9 +327,9 @@ fn display_new_db(db_metadata: NewDbResponse) {
     },
   );
   let server = format!("{}", dlg::bold(get_server()));
-  let db = format!("{}", dlg::bold(&db_metadata.dbId));
+  let db = format!("{}", dlg::bold(&db_metadata.id));
   let user = format!("{}", dlg::bold(&db_metadata.user));
-  let pass = format!("{}", dlg::bold(&db_metadata.pass));
+  let pass = format!("{}", dlg::bold(&db_metadata.password));
   let db_data = vec![vec![&server, &db, &user, &pass]];
   table.print(db_data);
   println!(
