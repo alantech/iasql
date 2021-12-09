@@ -238,9 +238,11 @@ db.post('/apply', async (req, res) => {
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
     let failureCount = -1;
-    const toCreate: { [key: string]: { columns: string[], records: string[][], }, } = {};
-    const toUpdate: { [key: string]: { columns: string[], records: string[][], }, } = {};
-    const toDelete: { [key: string]: { columns: string[], records: string[][], }, } = {};
+    // Crupde = CR-UP-DE, Create/Update/Delete
+    type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
+    const toCreate: Crupde = {};
+    const toUpdate: Crupde = {};
+    const toDelete: Crupde = {};
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -272,30 +274,28 @@ db.post('/apply', async (req, res) => {
         if (!records.length) { // Only possible on just-created databases
           return res.end(`${dbAlias} checked and synced, total time: ${t4 - t1}ms`);
         }
+        const updatePlan = (
+          crupde: Crupde,
+          entityName: string,
+          mapper: Modules.MapperInterface<any>,
+          es: any[]
+        ) => {
+          const rs = es.map((e: any) => mapper.entityPrint(e));
+          crupde[entityName] = crupde[entityName] ?? {
+            columns: Object.keys(rs[0]),
+            records: rs.map((r2: any) => Object.values(r2)),
+          };
+        }
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
-          // TODO: Refactor such that entities define how they should be rendered for planning
           if (r.diff.entitiesInDbOnly.length > 0) {
-            const rs = r.diff.entitiesInDbOnly.map((e: any) => r.mapper.entityPrint(e));
-            console.log({ rs, });
-            toCreate[r.table] = toCreate[r.table] ?? {
-              columns: Object.keys(rs[0]),
-              records: rs.map((r2: any) => Object.values(r2)),
-            };
+            updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInDbOnly);
           }
           if (r.diff.entitiesInAwsOnly.length > 0) {
-            const rs = r.diff.entitiesInAwsOnly.map((e: any) => r.mapper.entityPrint(e));
-            toDelete[r.table] = toDelete[r.table] ?? {
-              columns: Object.keys(rs[0]),
-              records: rs.map((r2: any) => Object.values(r2)),
-            };
+            updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInAwsOnly);
           }
           if (r.diff.entitiesChanged.length > 0) {
-            const rs = r.diff.entitiesChanged.map((e: any) => r.mapper.entityPrint(e.db));
-            toUpdate[r.table] = toUpdate[r.table] ?? {
-              columns: Object.keys(rs[0]),
-              records: rs.map((r2: any) => Object.values(r2)),
-            };
+            updatePlan(toUpdate, r.table, r.mapper, r.diff.entitiesChanged.map((e: any) => e.db));
           }
         });
         if (dryRun) return res.json({
@@ -365,7 +365,12 @@ db.post('/apply', async (req, res) => {
     } while (ranFullUpdate);
     const t7 = Date.now();
     console.log(`${dbAlias} applied and synced, total time: ${t7 - t1}ms`);
-    res.json({toCreate, toUpdate, toDelete});
+    res.json({
+      iasqlPlanVersion: 1,
+      toCreate,
+      toUpdate,
+      toDelete,
+    });
   } catch (e: any) {
     console.dir(e, { depth: 6, });
     res.status(500).end(`${handleErrorMessage(e)}`);
