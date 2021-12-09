@@ -221,10 +221,13 @@ pub async fn plan(db: &str) {
         let mut table = AsciiTable::default();
         table.max_width = 160;
         for (i, column) in meta.columns.iter().enumerate() {
-          table.columns.insert(i, Column {
-            header: column.to_string(),
-            ..Column::default()
-          });
+          table.columns.insert(
+            i,
+            Column {
+              header: column.to_string(),
+              ..Column::default()
+            },
+          );
         }
         table.print(meta.records.clone());
       }
@@ -242,10 +245,13 @@ pub async fn plan(db: &str) {
         let mut table = AsciiTable::default();
         table.max_width = 140;
         for (i, column) in meta.columns.iter().enumerate() {
-          table.columns.insert(i, Column {
-            header: column.to_string(),
-            ..Column::default()
-          });
+          table.columns.insert(
+            i,
+            Column {
+              header: column.to_string(),
+              ..Column::default()
+            },
+          );
         }
         table.print(meta.records.clone());
       }
@@ -263,14 +269,17 @@ pub async fn plan(db: &str) {
         let mut table = AsciiTable::default();
         table.max_width = 140;
         for (i, column) in meta.columns.iter().enumerate() {
-          table.columns.insert(i, Column {
-            header: column.to_string(),
-            ..Column::default()
-          });
+          table.columns.insert(
+            i,
+            Column {
+              header: column.to_string(),
+              ..Column::default()
+            },
+          );
         }
         table.print(meta.records.clone());
       }
-    },
+    }
     Err(e) => {
       eprintln!(
         "{} {} {} {} {} {}",
