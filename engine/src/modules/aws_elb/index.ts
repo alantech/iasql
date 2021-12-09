@@ -36,10 +36,13 @@ export const AwsElbModule: Module = new Module({
     actionMapper: async (a: Action, ctx: Context) => {
       const out = new AwsAction();
       if (!a?.Type || !a?.TargetGroupArn) {
-        throw new Error('Listerner action not defined properly');
+        throw new Error('Listener\'s default action not defined properly');
       }
       out.actionType = (a.Type as ActionTypeEnum);
-      out.targetGroup = ctx.memo?.db?.TargetGroup?.[a?.TargetGroupArn] ?? await AwsElbModule.mappers.targetGroup.db.read(ctx, a.TargetGroupArn);
+      const targetGroups = ctx.memo?.db?.TargetGroup ? Object.values(ctx.memo?.db?.TargetGroup) : await AwsElbModule.mappers.targetGroup.db.read(ctx);
+      const targetGroup = targetGroups?.find((tg: any) => tg.targetGroupArn === a?.TargetGroupArn);
+      if (!targetGroup) throw new Error('Target groups need to be loaded first');
+      out.targetGroup = targetGroup;
       return out;
     },
     listenerMapper: async (l: Listener, ctx: Context) => {
