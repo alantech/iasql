@@ -192,6 +192,33 @@ pub async fn remove(db: &str) {
   };
 }
 
+fn emit_plan_segment(crupde: HashMap<String, PlanMeta>, mode_str: &str) {
+  for key in crupde.keys() {
+    let meta = crupde.get(key).unwrap();
+    let count = meta.records.len();
+    let record_text = if count == 1 { "record" } else { "records" };
+    println!(
+      "{} has {} {} to {}",
+      dlg::bold(key),
+      dlg::bold(&format!("{}", count)),
+      dlg::bold(record_text),
+      mode_str,
+    );
+    let mut table = AsciiTable::default();
+    table.max_width = 160;
+    for (i, column) in meta.columns.iter().enumerate() {
+      table.columns.insert(
+        i,
+        Column {
+          header: column.to_string(),
+          ..Column::default()
+        },
+      );
+    }
+    table.print(meta.records.clone());
+  }
+}
+
 pub async fn plan(db: &str) {
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
@@ -206,79 +233,9 @@ pub async fn plan(db: &str) {
   match &resp {
     Ok(r) => {
       let plan_response: PlanResponse = serde_json::from_str(r).unwrap();
-      // TODO: DRY this somehow
-      for key in plan_response.toCreate.keys() {
-        let meta = plan_response.toCreate.get(key).unwrap();
-        let count = meta.records.len();
-        let record_text = if count == 1 { "record" } else { "records" };
-        println!(
-          "{} has {} {} to {}",
-          dlg::bold(key),
-          dlg::bold(&format!("{}", count)),
-          dlg::bold(record_text),
-          dlg::green("create"),
-        );
-        let mut table = AsciiTable::default();
-        table.max_width = 160;
-        for (i, column) in meta.columns.iter().enumerate() {
-          table.columns.insert(
-            i,
-            Column {
-              header: column.to_string(),
-              ..Column::default()
-            },
-          );
-        }
-        table.print(meta.records.clone());
-      }
-      for key in plan_response.toUpdate.keys() {
-        let meta = plan_response.toUpdate.get(key).unwrap();
-        let count = meta.records.len();
-        let record_text = if count == 1 { "record" } else { "records" };
-        println!(
-          "{} has {} {} to {}",
-          dlg::bold(key),
-          dlg::bold(&format!("{}", count)),
-          dlg::bold(record_text),
-          dlg::yellow("update"),
-        );
-        let mut table = AsciiTable::default();
-        table.max_width = 140;
-        for (i, column) in meta.columns.iter().enumerate() {
-          table.columns.insert(
-            i,
-            Column {
-              header: column.to_string(),
-              ..Column::default()
-            },
-          );
-        }
-        table.print(meta.records.clone());
-      }
-      for key in plan_response.toDelete.keys() {
-        let meta = plan_response.toDelete.get(key).unwrap();
-        let count = meta.records.len();
-        let record_text = if count == 1 { "record" } else { "records" };
-        println!(
-          "{} has {} {} to {}",
-          dlg::bold(key),
-          dlg::bold(&format!("{}", count)),
-          dlg::bold(record_text),
-          dlg::red("delete"),
-        );
-        let mut table = AsciiTable::default();
-        table.max_width = 140;
-        for (i, column) in meta.columns.iter().enumerate() {
-          table.columns.insert(
-            i,
-            Column {
-              header: column.to_string(),
-              ..Column::default()
-            },
-          );
-        }
-        table.print(meta.records.clone());
-      }
+      emit_plan_segment(plan_response.toCreate, &dlg::green("create").to_string());
+      emit_plan_segment(plan_response.toUpdate, &dlg::yellow("update").to_string());
+      emit_plan_segment(plan_response.toDelete, &dlg::red("delete").to_string());
     }
     Err(e) => {
       eprintln!(
@@ -305,7 +262,13 @@ pub async fn apply(db: &str) {
   let resp = post_v1("db/apply/", body).await;
   sp.finish_and_clear();
   match &resp {
-    Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
+    Ok(r) => {
+      let plan_response: PlanResponse = serde_json::from_str(r).unwrap();
+      emit_plan_segment(plan_response.toCreate, &dlg::green("create").to_string());
+      emit_plan_segment(plan_response.toUpdate, &dlg::yellow("update").to_string());
+      emit_plan_segment(plan_response.toDelete, &dlg::red("delete").to_string());
+      println!("{} {}", dlg::success_prefix(), dlg::bold("Done"));
+    }
     Err(e) => {
       eprintln!(
         "{} {} {} {} {} {}",
