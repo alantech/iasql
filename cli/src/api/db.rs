@@ -5,6 +5,7 @@ use serde_ini;
 use serde_json::json;
 
 use std::collections::HashMap;
+use std::error::Error;
 use std::fmt::Display;
 use std::fs::OpenOptions;
 use std::io::BufReader;
@@ -21,7 +22,7 @@ pub struct AWSCLICredentials {
 
 #[derive(Deserialize, Debug, Clone, Serialize)]
 #[allow(non_snake_case)]
-pub struct AddDbResponse {
+pub struct NewDbResponse {
   dbId: String,
   dbAlias: String,
   user: String,
@@ -56,6 +57,20 @@ fn get_aws_regions() -> Vec<String> {
 fn get_aws_cli_creds() -> Result<HashMap<String, AWSCLICredentials>, String> {
   let home = std::env::var("HOME").unwrap();
   let file_name = &format!("{}/.aws/credentials", home);
+  let file = OpenOptions::new().read(true).open(file_name);
+  if let Err(err) = file {
+    return Err(err.to_string());
+  }
+  let reader = BufReader::new(file.unwrap());
+  match serde_ini::from_bufread(reader) {
+    Ok(creds) => Ok(creds),
+    Err(err) => Err(err.to_string()),
+  }
+}
+
+pub fn get_dump(path: &str) -> Result<String, String> {
+  let home = std::env::var("HOME").unwrap();
+  let file_name = &format!("{}/{}", home, path);
   let file = OpenOptions::new().read(true).open(file_name);
   if let Err(err) = file {
     return Err(err.to_string());
@@ -102,7 +117,35 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
   }
 }
 
-pub async fn get_dbs(exit_if_none: bool) -> Vec<String> {
+pub async fn get_or_input_db(db_opt: Option<&str>) -> String {
+  let db = if db_opt.is_none() {
+    dlg::input("IaSQL db name")
+  } else {
+    db_opt.unwrap().to_string()
+  };
+  let dbs = get_dbs(false).await;
+  if dbs.contains(&db.to_owned()) {
+    eprintln!(
+      "{} {} {} {}",
+      dlg::err_prefix(),
+      dlg::bold("Name already in use by another db"),
+      dlg::divider(),
+      dlg::red(&db)
+    );
+    exit(1);
+  }
+  db
+}
+
+pub fn get_or_input_dump_arg(dump_opt: Option<&str>) -> String {
+  if dump_opt.is_none() {
+    dlg::input("Dump file")
+  } else {
+    dump_opt.unwrap().to_string()
+  }
+}
+
+async fn get_dbs(exit_if_none: bool) -> Vec<String> {
   let resp = get_v1("db/list").await;
   let res = match &resp {
     Ok(r) => r,
@@ -200,33 +243,21 @@ pub async fn apply(db: &str) {
   };
 }
 
-pub async fn add(db_opt: Option<&str>) {
-  let db = if db_opt.is_none() {
-    dlg::input("IaSQL db name")
-  } else {
-    db_opt.unwrap().to_string()
-  };
-  let dbs = get_dbs(false).await;
-  if dbs.contains(&db.to_owned()) {
-    eprintln!(
-      "{} {} {} {}",
-      dlg::err_prefix(),
-      dlg::bold("Name already in use by another db"),
-      dlg::divider(),
-      dlg::red(&db)
-    );
-    exit(1);
-  }
+fn provide_aws_region() -> String {
   let regions = &get_aws_regions();
   let default = regions.iter().position(|s| s == "us-east-2").unwrap_or(0);
   let selection = dlg::select_with_default("Pick AWS region", regions, default);
-  let region = &regions[selection];
+  regions[selection].clone()
+}
+
+fn provide_aws_creds() -> (String, String) {
   let aws_cli_creds = get_aws_cli_creds();
-  let (access_key, secret) = if aws_cli_creds.is_ok()
+  if aws_cli_creds.is_ok()
     && dlg::confirm_with_default(
       "Default AWS CLI credentials found. Do you wish to use those?",
       true,
-    ) {
+    )
+  {
     let all_creds = aws_cli_creds.unwrap();
     let profiles: Vec<String> = all_creds.keys().cloned().collect();
     let selection = if profiles.len() > 1 {
@@ -243,8 +274,56 @@ pub async fn add(db_opt: Option<&str>) {
     let access_key: String = dlg::input("AWS Access Key ID");
     let secret: String = dlg::input("AWS Secret Access Key");
     (access_key, secret)
-  };
+  }
+}
 
+fn display_new_db(db_metadata: NewDbResponse) {
+  let mut table = AsciiTable::default();
+  table.max_width = 140;
+  table.columns.insert(
+    0,
+    Column {
+      header: "IaSQL Server".to_string(),
+      ..Column::default()
+    },
+  );
+  table.columns.insert(
+    1,
+    Column {
+      header: "Database".to_string(),
+      ..Column::default()
+    },
+  );
+  table.columns.insert(
+    2,
+    Column {
+      header: "Username".to_string(),
+      ..Column::default()
+    },
+  );
+  table.columns.insert(
+    3,
+    Column {
+      header: "Password".to_string(),
+      ..Column::default()
+    },
+  );
+  let server = format!("{}", dlg::bold(get_server()));
+  let db = format!("{}", dlg::bold(&db_metadata.dbId));
+  let user = format!("{}", dlg::bold(&db_metadata.user));
+  let pass = format!("{}", dlg::bold(&db_metadata.pass));
+  let db_data = vec![vec![&server, &db, &user, &pass]];
+  table.print(db_data);
+  println!(
+    "{} {}",
+    dlg::warn_prefix(),
+    dlg::bold("This is the only time we will show you these credentials, be sure to save them.",),
+  );
+}
+
+pub async fn add(db: &str) {
+  let region = provide_aws_region();
+  let (access_key, secret) = provide_aws_creds();
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
   sp.set_message("Creating an IaSQL db to manage your AWS account");
@@ -258,57 +337,73 @@ pub async fn add(db_opt: Option<&str>) {
   sp.finish_and_clear();
   match &resp {
     Ok(res) => {
-      let db_metadata: AddDbResponse = serde_json::from_str(res).unwrap();
       println!("{} {}", dlg::success_prefix(), dlg::bold("Done"));
-      let mut table = AsciiTable::default();
-      table.max_width = 140;
-      table.columns.insert(
-        0,
-        Column {
-          header: "IaSQL Server".to_string(),
-          ..Column::default()
-        },
-      );
-      table.columns.insert(
-        1,
-        Column {
-          header: "Database".to_string(),
-          ..Column::default()
-        },
-      );
-      table.columns.insert(
-        2,
-        Column {
-          header: "Username".to_string(),
-          ..Column::default()
-        },
-      );
-      table.columns.insert(
-        3,
-        Column {
-          header: "Password".to_string(),
-          ..Column::default()
-        },
-      );
-      let server = format!("{}", dlg::bold(get_server()));
-      let db = format!("{}", dlg::bold(&db_metadata.dbId));
-      let user = format!("{}", dlg::bold(&db_metadata.user));
-      let pass = format!("{}", dlg::bold(&db_metadata.pass));
-      let db_data = vec![vec![&server, &db, &user, &pass]];
-      table.print(db_data);
-      println!(
-        "{} {}",
-        dlg::warn_prefix(),
-        dlg::bold(
-          "This is the only time we will show you these credentials, be sure to save them.",
-        ),
-      );
+      let db_metadata: NewDbResponse = serde_json::from_str(res).unwrap();
+      display_new_db(db_metadata);
     }
     Err(e) => {
       eprintln!(
         "{} {} {} {} {} {}",
         dlg::err_prefix(),
         dlg::bold("Failed to add db"),
+        dlg::divider(),
+        dlg::red(&db),
+        dlg::divider(),
+        e.message
+      );
+      exit(1);
+    }
+  };
+}
+
+fn str_from_file(file: &str) -> Result<String, Box<dyn Error>> {
+  let mut source_path = std::env::current_dir().unwrap();
+  source_path.push(file);
+  Ok(std::fs::read_to_string(source_path)?.parse()?)
+}
+
+pub async fn import(db: &str, dump_file: &str) {
+  let dump_res = str_from_file(dump_file);
+  let dump = match &dump_res {
+    Ok(d) => d,
+    Err(e) => {
+      eprintln!(
+        "{} {} {} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Failed to parse dump file"),
+        dlg::divider(),
+        dlg::red(&dump_file),
+        dlg::divider(),
+        e
+      );
+      exit(1);
+    }
+  };
+  let region = provide_aws_region();
+  let (access_key, secret) = provide_aws_creds();
+  let sp = ProgressBar::new_spinner();
+  sp.enable_steady_tick(10);
+  sp.set_message("Importing an IaSQL db from dump");
+  let body = json!({
+    "dbAlias": db,
+    "awsRegion": region,
+    "awsAccessKeyId": access_key,
+    "awsSecretAccessKey": secret,
+    "dump": dump
+  });
+  let resp = post_v1("db/import", body).await;
+  sp.finish_and_clear();
+  match &resp {
+    Ok(res) => {
+      println!("{} {}", dlg::success_prefix(), dlg::bold("Done"));
+      let db_metadata: NewDbResponse = serde_json::from_str(res).unwrap();
+      display_new_db(db_metadata);
+    }
+    Err(e) => {
+      eprintln!(
+        "{} {} {} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Failed to import db"),
         dlg::divider(),
         dlg::red(&db),
         dlg::divider(),
