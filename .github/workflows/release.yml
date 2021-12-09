@@ -34,6 +34,20 @@ jobs:
         repository: iasql/releases
         files: /tmp/iasql-ubuntu.tar.gz
 
+    - name: Generate IaSQL Debian package
+      run: |
+        sudo apt install checkinstall -y
+        iasqlversion=$(echo ${{github.ref}} | sed "s/refs\/tags\/v//")
+        echo "Infrastructure as SQL (IaSQL) CLI client" | sudo checkinstall --install=no -D --pkgname=iasql --pkgversion=${iasqlversion} --pkglicense=Proprietary --maintainer=hello@iasql.com --pkggroup="IaSQL" --nodoc --deldesc=yes --delspec=yes --backup=no
+        cp ./iasql_${iasqlversion}-1_amd64.deb /tmp/iasql_ubuntu_amd64.deb
+
+    - name: Upload IaSQL Debian package
+      uses: softprops/action-gh-release@v1
+      with:
+        token: ${{ secrets.GH_PAT }}
+        repository: iasql/releases
+        files: /tmp/iasql_ubuntu_amd64.deb
+
   windows:
     runs-on: windows-latest
 
