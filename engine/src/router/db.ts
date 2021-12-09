@@ -169,7 +169,6 @@ db.post('/import', async (req, res) => {
   } finally {
     await conn1?.close();
     await conn2?.close();
-    await orm?.dropConn();
   }
 });
 
