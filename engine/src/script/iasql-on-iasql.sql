@@ -35,6 +35,7 @@ do $$
     iasql_postgres_rds_db_username text := 'iasql';
     iasql_postgres_rds_db_password text := '4l4nU$3r';
     iasql_postgres_rds_db_az text := 'us-east-2a';
+    iasql_engine_cloud_watch_log_group text := 'iasql-engine-log-group';
   begin
     select vpc_id, id into default_vpc, default_vpc_id
     from aws_vpc
@@ -69,10 +70,12 @@ do $$
 
     call create_ecs_cluster(iasql_cluster);
 
+    call create_cloudwatch_log_group(iasql_engine_cloud_watch_log_group);
+
     call create_container_definition(
       iasql_engine_container, true, iasql_engine_container_memory_reservation, iasql_engine_port, iasql_engine_port, 'tcp',
       ('{"PORT": ' || iasql_engine_port || '}')::json, iasql_engine_image_tag,
-      _ecr_repository_name := iasql_engine_repository
+      _ecr_repository_name := iasql_engine_repository, _cloud_watch_log_group := iasql_engine_cloud_watch_log_group
     );
 
     call create_task_definition(
