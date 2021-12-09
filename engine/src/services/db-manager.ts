@@ -146,7 +146,7 @@ export async function getMetadata(dbAlias: string, user: any): Promise<IPMetadat
   const email = user[`${config.a0Domain}email`];
   const ipUser = await IronPlans.getNewOrExistingUser(email, user.sub);
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
-  console.dir(metadata, {depth:2});
+  // console.dir(metadata, {depth:2});
   return { dbId: metadata[toDbKey(dbAlias)], dbUser: metadata[toUserKey(dbAlias)] };
 }
 

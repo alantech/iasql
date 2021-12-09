@@ -107,11 +107,9 @@ db.post('/add', async (req, res) => {
   } catch (e: any) {
     // delete db in psql and metadata in IP
     await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
-    if (config.a0Enabled) {
-      await conn1?.query(`
-         DROP ROLE IF EXISTS ${dbUser};
-       `);
-     }
+    await conn1?.query(`
+      DROP ROLE IF EXISTS ${dbUser};
+    `);
     await dbMan.delMetadata(dbAlias, req.user);
     res.status(500).end(`${handleErrorMessage(e)}`);
   } finally {
@@ -170,11 +168,9 @@ db.post('/import', async (req, res) => {
   } catch (e: any) {
     // delete db in psql and metadata in IP
     await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
-    if (config.a0Enabled) {
-      await conn1?.query(`
-         DROP ROLE IF EXISTS ${dbUser};
-       `);
-     }
+    await conn1?.query(`
+      DROP ROLE IF EXISTS ${dbUser};
+    `);
     await dbMan.delMetadata(dbAlias, req.user);
     res.status(500).end(`${handleErrorMessage(e)}`);
   } finally {
@@ -210,11 +206,11 @@ db.get('/remove/:dbAlias', async (req, res) => {
     const { dbId, dbUser } = await dbMan.getMetadata(dbAlias, req.user);
     conn = await createConnection(baseConnConfig);
     await conn.query(`
-      DROP DATABASE ${dbId} WITH (FORCE);
+      DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);
     `);
     if (config.a0Enabled) {
       await conn.query(`
-        DROP ROLE ${dbUser};
+        DROP ROLE IF EXISTS ${dbUser};
       `);
     }
     await dbMan.delMetadata(dbAlias, req.user);
