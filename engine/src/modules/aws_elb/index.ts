@@ -22,6 +22,7 @@ import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsElb1637666608609, } from './migration/1637666608609-aws_elb'
 import { AwsAccount, AwsSecurityGroupModule } from '..'
 import { AvailabilityZone, AwsSubnet } from '../aws_account/entity'
+import { AwsSecurityGroup } from '../aws_security_group/entity'
 
 export const AwsElbModule: Module = new Module({
   name: 'aws_elb',
@@ -75,7 +76,12 @@ export const AwsElbModule: Module = new Module({
       out.scheme = lb.Scheme as LoadBalancerSchemeEnum;
       out.state = lb.State?.Code as LoadBalancerStateEnum;
       out.loadBalancerType = lb.Type as LoadBalancerTypeEnum;
-      out.securityGroups = await Promise.all(lb.SecurityGroups?.map(sg => ctx.memo?.db?.AwsSecurityGroup?.[sg] ?? AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg)) ?? []);
+      const securityGroups = ctx.memo?.db?.AwsSecurityGroup ? Object.values(ctx.memo?.db?.AwsSecurityGroup) : await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx);
+      out.securityGroups = lb.SecurityGroups?.map((sg: string) => {
+        const r = securityGroups.find((g: any) => g.groupId === sg) as AwsSecurityGroup;
+        if (!r) throw new Error('Security groups need to be loaded');
+        return r;
+      });
       out.ipAddressType = lb.IpAddressType as IpAddressType;
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
       out.vpc = ctx.memo?.db?.AwsVpc?.[lb.VpcId] ?? await AwsAccount.mappers.vpc.db.read(ctx, lb.VpcId);
