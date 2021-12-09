@@ -208,11 +208,9 @@ db.get('/remove/:dbAlias', async (req, res) => {
     await conn.query(`
       DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);
     `);
-    if (config.a0Enabled) {
-      await conn.query(`
-        DROP ROLE IF EXISTS ${dbUser};
-      `);
-    }
+    await conn.query(`
+      DROP ROLE IF EXISTS ${dbUser};
+    `);
     await dbMan.delMetadata(dbAlias, req.user);
     res.end(`removed ${dbAlias}`);
   } catch (e: any) {
