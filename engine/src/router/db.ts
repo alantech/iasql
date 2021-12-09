@@ -208,7 +208,7 @@ db.get('/remove/:dbAlias', async (req, res) => {
     await conn.query(`
       DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);
     `);
-    console.log({ dbUser, config.a0Enabled })
+    console.log({ dbUser, auth: config.a0Enabled })
     await conn.query(`
       DROP ROLE IF EXISTS ${dbUser};
     `);
