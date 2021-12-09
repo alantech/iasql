@@ -9,7 +9,7 @@ VERSION=$1
 echo Release Version: ${VERSION}
 
 # Update the package metadata with the specified version
-IASQL="$(sed "s/^version = .*$/version = \"${VERSION}\"/" ./Cargo.toml)" && echo "${AVM}" > avm/Cargo.toml
+IASQL="$(sed "s/^version = .*$/version = \"${VERSION}\"/" ./Cargo.toml)" && echo "${IASQL}" > Cargo.toml
 
 # Make sure the lockfiles are updated, too
 cargo build
