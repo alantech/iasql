@@ -114,6 +114,14 @@ export const AwsElbModule: Module = new Module({
     listener: new Mapper<AwsListener>({
       entity: AwsListener,
       entityId: (e: AwsListener) => e?.listenerArn ?? '',
+      entityPrint: (e: AwsListener) => ({
+        id: e?.id?.toString() ?? '',
+        listenerArn: e?.listenerArn ?? '',
+        loadBalancer: e?.loadBalancer?.loadBalancerName ?? '',
+        port: e?.port?.toString() ?? '',
+        protocol: e?.protocol ?? ProtocolEnum.HTTPS, // TODO: Which?
+        defaultActions: e?.defaultActions?.map(da => da.actionType).join(', ') ?? '',
+      }),
       equals: (a: AwsListener, b: AwsListener) => Object.is(a.listenerArn, b.listenerArn)
         && Object.is(a.port, b.port)
         && Object.is(a.protocol, b.protocol),
@@ -245,6 +253,23 @@ export const AwsElbModule: Module = new Module({
     loadBalancer: new Mapper<AwsLoadBalancer>({
       entity: AwsLoadBalancer,
       entityId: (e: AwsLoadBalancer) => e?.loadBalancerArn ?? '',
+      entityPrint: (e: AwsLoadBalancer) => ({
+        id: e?.id?.toString() ?? '',
+        loadBalancerName: e?.loadBalancerName ?? '',
+        loadBalancerArn: e?.loadBalancerArn ?? '',
+        dnsName: e?.dnsName ?? '',
+        canonicalHostedZoneId: e?.canonicalHostedZoneId ?? '',
+        createdTime: e?.createdTime?.toISOString() ?? '',
+        scheme: e?.scheme ?? LoadBalancerSchemeEnum.INTERNET_FACING, // TODO: Which?
+        state: e?.state ?? LoadBalancerStateEnum.ACTIVE, // TODO: Which?
+        loadBalancerType: e?.loadBalancerType ?? LoadBalancerTypeEnum.APPLICATION, // TODO: Which?
+        vpc: e?.vpc?.vpcId ?? '',
+        subnets: e?.subnets?.map(s => s.subnetArn ?? '').join(', ') ?? '',
+        availabilityZones: e?.availabilityZones?.map(az => az.zoneName).join(', ') ?? '',
+        securityGroups: e?.securityGroups?.map(sg => sg.groupName ?? '').join(', ') ?? '',
+        ipAddressType: e?.ipAddressType ?? IpAddressType.DUALSTACK, // TODO: Which?
+        customerOwnedIpv4Pool: e?.customerOwnedIpv4Pool ?? '',
+      }),
       equals: (_a: AwsLoadBalancer, _b: AwsLoadBalancer) => true, //  Do not let load balancer updates
       source: 'db',
       db: new Crud({
@@ -391,6 +416,23 @@ export const AwsElbModule: Module = new Module({
     targetGroup: new Mapper<AwsTargetGroup>({
       entity: AwsTargetGroup,
       entityId: (e: AwsTargetGroup) => e?.targetGroupArn ?? '',
+      entityPrint: (e: AwsTargetGroup) => ({
+        id: e?.id?.toString() ?? '',
+        targetGroupName: e?.targetGroupName ?? '',
+        targetGroupArn: e?.targetGroupArn ?? '',
+        ipAddressType: e?.ipAddressType ?? TargetGroupIpAddressTypeEnum.IPV4, // TODO: Which?
+        protocol: e?.protocol ?? ProtocolEnum.HTTPS, // TODO: Which?
+        port: e?.port?.toString() ?? '',
+        vpc: e?.vpc?.vpcId ?? '',
+        healthCheckProtocol: e?.healthCheckProtocol ?? ProtocolEnum.HTTP, // TODO: Which?
+        healthCheckPort: e?.healthCheckPort?.toString() ?? '',
+        healthCheckEnabled: e?.healthCheckEnabled?.toString() ?? '',
+        healthCheckIntervalSeconds: e?.healthCheckIntervalSeconds?.toString() ?? '',
+        healthCheckTimeoutSeconds: e?.healthCheckTimeoutSeconds?.toString() ?? '',
+        unhealthyThresholdCount: e?.unhealthyThresholdCount?.toString() ?? '',
+        healthCheckPath: e?.healthCheckPath ?? '',
+        protocolVersion: e?.protocolVersion ?? ProtocolVersionEnum.HTTP1, // TODO: Which?
+      }),
       equals: (a: AwsTargetGroup, b: AwsTargetGroup) => Object.is(a.targetGroupArn, b.targetGroupArn)
         && Object.is(a.healthCheckProtocol, b.healthCheckProtocol)
         && Object.is(a.healthCheckPort, b.healthCheckPort)

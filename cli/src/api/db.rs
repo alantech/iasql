@@ -28,6 +28,21 @@ pub struct AddDbResponse {
   pass: String,
 }
 
+#[derive(Deserialize, Debug, Clone, Serialize)]
+#[allow(non_snake_case)]
+pub struct PlanMeta {
+  columns: Vec<String>,
+  records: Vec<Vec<String>>,
+}
+#[derive(Deserialize, Debug, Clone, Serialize)]
+#[allow(non_snake_case)]
+pub struct PlanResponse {
+  iasqlPlanVersion: i32,
+  toCreate: HashMap<String, PlanMeta>,
+  toUpdate: HashMap<String, PlanMeta>,
+  toDelete: HashMap<String, PlanMeta>,
+}
+
 // TODO load regions at startup based on aws services and schema since not all regions support all services.
 // Currently manually listing ec2 regions that do not require opt-in status in alphabetical order
 // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
@@ -177,14 +192,97 @@ pub async fn remove(db: &str) {
   };
 }
 
+fn emit_plan_segment(crupde: HashMap<String, PlanMeta>, mode_str: &str) {
+  for key in crupde.keys() {
+    let meta = crupde.get(key).unwrap();
+    let count = meta.records.len();
+    let record_text = if count == 1 { "record" } else { "records" };
+    println!(
+      "{} has {} {} to {}",
+      dlg::bold(key),
+      dlg::bold(&format!("{}", count)),
+      dlg::bold(record_text),
+      mode_str,
+    );
+    let mut table = AsciiTable::default();
+    table.max_width = 160;
+    for (i, column) in meta.columns.iter().enumerate() {
+      table.columns.insert(
+        i,
+        Column {
+          header: column.to_string(),
+          ..Column::default()
+        },
+      );
+    }
+    table.print(meta.records.clone());
+  }
+}
+
+fn maybe_planned_nothing(plan_response: &PlanResponse) {
+  if plan_response.toCreate.keys().len() == 0
+    && plan_response.toUpdate.keys().len() == 0
+    && plan_response.toDelete.keys().len() == 0
+  {
+    println!(
+      "{} No difference detected between IaSQL and your cloud settings",
+      dlg::warn_prefix(),
+    );
+  }
+}
+
+pub async fn plan(db: &str) {
+  let sp = ProgressBar::new_spinner();
+  sp.enable_steady_tick(10);
+  sp.set_message("Plan in progress");
+  // call apply with dryRun set to true
+  let body = json!({
+    "dbAlias": db,
+    "dryRun": true,
+  });
+  let resp = post_v1("db/apply/", body).await;
+  sp.finish_and_clear();
+  match &resp {
+    Ok(r) => {
+      let plan_response: PlanResponse = serde_json::from_str(r).unwrap();
+      maybe_planned_nothing(&plan_response);
+      emit_plan_segment(plan_response.toCreate, &dlg::green("create").to_string());
+      emit_plan_segment(plan_response.toUpdate, &dlg::yellow("update").to_string());
+      emit_plan_segment(plan_response.toDelete, &dlg::red("delete").to_string());
+    }
+    Err(e) => {
+      eprintln!(
+        "{} {} {} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Failed to run plan on db"),
+        dlg::divider(),
+        dlg::red(db),
+        dlg::divider(),
+        e.message
+      );
+      exit(1);
+    }
+  };
+}
+
 pub async fn apply(db: &str) {
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
   sp.set_message("Apply in progress");
-  let resp = get_v1(&format!("db/apply/{}", db)).await;
+  let body = json!({
+    "dbAlias": db,
+  });
+  let resp = post_v1("db/apply/", body).await;
   sp.finish_and_clear();
   match &resp {
-    Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
+    Ok(r) => {
+      let plan_response: PlanResponse = serde_json::from_str(r).unwrap();
+      maybe_planned_nothing(&plan_response);
+      emit_plan_segment(plan_response.toCreate, &dlg::green("create").to_string());
+      emit_plan_segment(plan_response.toUpdate, &dlg::yellow("update").to_string());
+      emit_plan_segment(plan_response.toDelete, &dlg::red("delete").to_string());
+      println!("{} {}", dlg::success_prefix(), dlg::bold("Done"));
+    }
     Err(e) => {
       eprintln!(
         "{} {} {} {} {} {}",

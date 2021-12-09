@@ -25,6 +25,7 @@ pub async fn main() {
             .visible_alias("rm")
             .arg(Arg::from_usage("[db]")),
           SubCommand::with_name("apply").arg(Arg::from_usage("[db]")),
+          SubCommand::with_name("plan").arg(Arg::from_usage("[db]")),
         ]),
       SubCommand::with_name("mod")
         .setting(AppSettings::SubcommandRequiredElseHelp)
@@ -63,6 +64,10 @@ pub async fn main() {
         ("apply", Some(s_s_matches)) => {
           let db = db::get_or_select_db(s_s_matches.value_of("db")).await;
           db::apply(&db).await
+        }
+        ("plan", Some(s_s_matches)) => {
+          let db = db::get_or_select_db(s_s_matches.value_of("db")).await;
+          db::plan(&db).await
         }
         // rely on AppSettings::SubcommandRequiredElseHelp
         _ => {}

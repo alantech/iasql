@@ -398,6 +398,10 @@ export const AwsEc2Module: Module = new Module({
     ami: new Mapper<AMI>({
       entity: AMI,
       entityId: (e: AMI) => e.imageId ?? '',
+      // TODO: source: cloud entityPrint not needed (yet)
+      entityPrint: (e: AMI) => ({
+        id: e.id?.toString() ?? '',
+      }),
       equals: (a: AMI, b: AMI) => Object.is(a.imageId, b.imageId),
       source: 'cloud',
       db: new Crud({
@@ -478,6 +482,10 @@ export const AwsEc2Module: Module = new Module({
     instanceType: new Mapper<InstanceType>({
       entity: InstanceType,
       entityId: (e: InstanceType) => e.instanceType.name,
+      // TODO: source: cloud entityPrint not needed (yet)
+      entityPrint: (e: InstanceType) => ({
+        id: e.id?.toString() ?? '',
+      }),
       equals: (a: InstanceType, b: InstanceType) => a.instanceType.name === b.instanceType.name, // TODO
       source: 'cloud',
       db: new Crud({
@@ -612,6 +620,14 @@ export const AwsEc2Module: Module = new Module({
     instance: new Mapper<Instance>({
       entity: Instance,
       entityId: (i: Instance) => i.instanceId ?? '',
+      entityPrint: (e: Instance) => ({
+        id: e.id?.toString() ?? '',
+        instanceId: e.instanceId ?? '',
+        ami: e.ami?.imageId ?? '',
+        region: e.region?.name ?? '',
+        instanceType: e.instanceType?.instanceType?.name ?? '',
+        securityGroups: e.securityGroups?.map(sg => sg.groupName ?? '').join(', '),
+      }),
       equals: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
         AwsEc2Module.mappers.ami.equals(a.ami, b.ami) &&
         Object.is(a.region.name, b.region.name) &&
