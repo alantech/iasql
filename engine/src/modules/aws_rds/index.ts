@@ -8,7 +8,6 @@ import { AwsAccount, AwsSecurityGroupModule } from '..'
 import { AvailabilityZone } from '../aws_account/entity'
 import { AwsSecurityGroup } from '../aws_security_group/entity'
 import { awsRds1638273752147 } from './migration/1638273752147-aws_rds'
-import { DepError } from '../../services/lazy-dep'
 
 export const AwsRdsModule: Module = new Module({
   name: 'aws_rds',
@@ -37,7 +36,7 @@ export const AwsRdsModule: Module = new Module({
       out.endpointHostedZoneId = rds?.Endpoint?.HostedZoneId;
       out.endpointPort = rds?.Endpoint?.Port;
       const engineVersions = ctx.memo?.db?.EngineVersion ? Object.values(ctx.memo?.db?.EngineVersion) : await AwsRdsModule.mappers.engineVersion.db.read(ctx);
-      if (!engineVersions?.length) throw new DepError('Engine versions need to be loaded first')
+      if (!engineVersions?.length) throw new Error('Engine versions need to be loaded first')
       out.engine = engineVersions.find((ev: any) => ev.engineVersionKey === `${rds?.Engine}:${rds?.EngineVersion}`) as EngineVersion;
       out.masterUsername = rds?.MasterUsername;
       const securityGroups = ctx.memo?.db?.AwsSecurityGroup ? Object.values(ctx.memo?.db?.AwsSecurityGroup) : await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx);
@@ -119,7 +118,7 @@ export const AwsRdsModule: Module = new Module({
           const es = Array.isArray(rds) ? rds : [rds];
           const out = await Promise.all(es.map(async (e) => {
             const securityGroupIds = e.vpcSecurityGroups?.map(sg => {
-              if (!sg.groupId) throw new DepError('Security group needs to exist')
+              if (!sg.groupId) throw new Error('Security group needs to exist')
               return sg.groupId;
             }) ?? []
             const instanceParams = {

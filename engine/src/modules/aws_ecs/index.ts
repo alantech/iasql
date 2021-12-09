@@ -20,7 +20,6 @@ import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsEcs1637756035104, } from './migration/1637756035104-aws_ecs'
 import { AwsAccount, AwsEcrModule, AwsElbModule, AwsSecurityGroupModule } from '..'
 import { AwsLoadBalancer } from '../aws_elb/entity'
-import { DepError } from '../../services/lazy-dep'
 
 export const AwsEcsModule: Module = new Module({
   name: 'aws_ecs',
@@ -284,14 +283,14 @@ export const AwsEcsModule: Module = new Module({
             if (entity.containers?.length) {
               entity.containers.forEach(ec => {
                 const c = savedContainers.find((sc: any) => sc.name === ec.name);
-                if (!c.id) throw new DepError('Container need to be loaded first');
+                if (!c.id) throw new Error('Container need to be loaded first');
                 ec.id = c.id;
               })
             }
             if (entity.reqCompatibilities?.length) {
               entity.reqCompatibilities.forEach(rc => {
                 const c = savedCompatibilities.find((sc: any) => sc.name === rc.name);
-                if (!c.id) throw new DepError('Compatibilities need to be loaded first');
+                if (!c.id) throw new Error('Compatibilities need to be loaded first');
                 rc.id = c.id;
               })
             }
@@ -341,7 +340,7 @@ export const AwsEcsModule: Module = new Module({
               family: e.family,
               containerDefinitions: e.containers.map(c => {
                 const container: any = { ...c };
-                if (c.repository && !c.repository?.repositoryUri) throw new DepError('Repository need to be created first');
+                if (c.repository && !c.repository?.repositoryUri) throw new Error('Repository need to be created first');
                 container.image = `${c.repository ? c.repository.repositoryUri : c.dockerImage}:${c.tag}`;
                 return container;
               }),
@@ -426,7 +425,7 @@ export const AwsEcsModule: Module = new Module({
           };
           await Promise.all(esToDelete.map(e => client.deleteTaskDefinition(e.taskDefinitionArn!)));
           if (esWithServiceAttached.length) {
-            throw new DepError('Some tasks could not be deleted. They are attached to an existing service.')
+            throw new Error('Some tasks could not be deleted. They are attached to an existing service.')
           }
         },
       }),
@@ -443,11 +442,11 @@ export const AwsEcsModule: Module = new Module({
           const es = Array.isArray(e) ? e : [e];
           await Promise.all(es.map(async (entity: any) => {
             if (!entity.cluster?.id) {
-              throw new DepError('Clusters need to be loaded first');
+              throw new Error('Clusters need to be loaded first');
             }
             if (!entity.task?.id) {
               const td = await AwsEcsModule.mappers.taskDefinition.db.read(ctx, entity.task?.taskDefinitionArn);
-              if (!td?.id) throw new DepError('Task definitions need to be loaded first');
+              if (!td?.id) throw new Error('Task definitions need to be loaded first');
               entity.task.id = td.id;
             }
           }));
@@ -467,11 +466,11 @@ export const AwsEcsModule: Module = new Module({
           const es = Array.isArray(e) ? e : [e];
           await Promise.all(es.map(async (entity: any) => {
             if (!entity.cluster?.id) {
-              throw new DepError('Clusters need to be loaded first');
+              throw new Error('Clusters need to be loaded first');
             }
             if (!entity.task?.id) {
               const td = await AwsEcsModule.mappers.taskDefinition.db.read(ctx, entity.task?.taskDefinitionArn);
-              if (!td?.id) throw new DepError('Task definitions need to be loaded first');
+              if (!td?.id) throw new Error('Task definitions need to be loaded first');
               entity.task.id = td.id;
             }
           }));
