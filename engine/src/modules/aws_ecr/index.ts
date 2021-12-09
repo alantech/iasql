@@ -61,8 +61,8 @@ export const AwsEcrModule: Module = new Module({
         registryId: e?.registryId ?? '',
         repositoryUri: e?.repositoryUri ?? '',
         createdAt: e?.createdAt?.toISOString() ?? '',
-        imageTagMutability: e?.imageTagMutability ?? ImageTagMutability.MUTABLE, // TODO: Default?
-        scanOnPush: e?.scanOnPush?.toString() ?? 'false', // TODO: Default?
+        imageTagMutability: e?.imageTagMutability ?? ImageTagMutability.MUTABLE,
+        scanOnPush: e?.scanOnPush?.toString() ?? 'false',
       }),
       equals: (a: AwsRepository, b: AwsRepository) => Object.is(a.imageTagMutability, b.imageTagMutability)
         && Object.is(a.scanOnPush, b.scanOnPush),

@@ -280,7 +280,7 @@ export const AwsEcsModule: Module = new Module({
         revision: e?.revision?.toString() ?? '',
         taskRoleArn: e?.taskRoleArn ?? '',
         executionRoleArn: e?.executionRoleArn ?? '',
-        networkMode: e?.networkMode ?? NetworkMode.AWSVPC, // TODO: Which?
+        networkMode: e?.networkMode ?? '',
         status: e?.status ?? TaskDefinitionStatus.ACTIVE, // TODO: Which?
         reqCompatibilities: e?.reqCompatibilities?.map(c => c?.name ?? '').join(', ') ?? '',
         cpuMemory: e?.cpuMemory ?? CpuMemCombination['1vCPU-2GB'], // TODO: Which?
