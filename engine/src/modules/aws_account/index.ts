@@ -118,6 +118,12 @@ export const AwsAccount: Module = new Module({
     awsAccount: new Mapper<AwsAccountEntity>({
       entity: AwsAccountEntity,
       entityId: (e: AwsAccountEntity) => e.id + '',
+      entityPrint: (e: AwsAccountEntity) => ({
+        id: e.id?.toString() ?? '',
+        accessKeyId: e.accessKeyId ?? '',
+        secretAccessKey: e.secretAccessKey ?? '',
+        region: e?.region?.name ?? '',
+      }),
       equals: (_a: AwsAccountEntity, _b: AwsAccountEntity) => true,
       source: 'db',
       db: new Crud({
@@ -150,6 +156,10 @@ export const AwsAccount: Module = new Module({
     region: new Mapper<Region>({
       entity: Region,
       entityId: (e: Region) => e.name ?? '',
+      // TODO: source: cloud entityPrint not needed (yet)
+      entityPrint: (e: Region) => ({
+        id: e.id?.toString() ?? '',
+      }),
       equals: (a: Region, b: Region) => Object.is(a.endpoint, b.endpoint) &&
         Object.is(a.name, b.name) &&
         Object.is(a.optInStatus, b.optInStatus),
@@ -187,6 +197,13 @@ export const AwsAccount: Module = new Module({
     vpc: new Mapper<AwsVpc>({
       entity: AwsVpc,
       entityId: (e: AwsVpc) => e?.vpcId ?? '',
+      entityPrint: (e: AwsVpc) => ({
+        id: e.id?.toString() ?? '',
+        vpcId: e.vpcId ?? '',
+        cidrBlock: e.cidrBlock ?? '',
+        isDefault: e.isDefault.toString() ?? 'false',
+        state: e?.state ?? VpcState.AVAILABLE, // TODO: What's the right "default" here?
+      }),
       equals: (_a: AwsVpc, _b: AwsVpc) => true, // Do not let vpc updates
       source: 'db',
       db: new Crud({
@@ -233,6 +250,10 @@ export const AwsAccount: Module = new Module({
     availabilityZone: new Mapper<AvailabilityZone>({
       entity: AvailabilityZone,
       entityId: (e: AvailabilityZone) => e.zoneName,
+      // TODO: source: cloud entityPrint not needed (yet)
+      entityPrint: (e: AvailabilityZone) => ({
+        id: e.id?.toString() ?? '',
+      }),
       equals: (a: AvailabilityZone, b: AvailabilityZone) => Object.is(a.zoneName, b.zoneName) &&
         Object.is(a.zoneId, b.zoneId) &&
         Object.is(a.groupName, b.groupName) &&
@@ -324,6 +345,10 @@ export const AwsAccount: Module = new Module({
     availabilityZoneMessage: new Mapper<AvailabilityZoneMessage>({
       entity: AvailabilityZoneMessage,
       entityId: (e: AvailabilityZoneMessage) => e.availabilityZone.zoneName + e.message,
+      // TODO: source: cloud entityPrint not needed (yet)
+      entityPrint: (e: AvailabilityZoneMessage) => ({
+        id: e.id?.toString() ?? '',
+      }),
       equals: (_a: AvailabilityZoneMessage, _b: AvailabilityZoneMessage) => true, // TODO: Fill this in
       source: 'cloud',
       db: new Crud({
@@ -362,6 +387,16 @@ export const AwsAccount: Module = new Module({
     subnet: new Mapper<AwsSubnet>({
       entity: AwsSubnet,
       entityId: (e: AwsSubnet) => e?.subnetId ?? '',
+      entityPrint: (e: AwsSubnet) => ({
+        id: e.id?.toString() ?? '',
+        availabilityZone: e?.availabilityZone?.zoneName ?? '',
+        availableIpAddressCount: e?.availableIpAddressCount?.toString() ?? '',
+        cidrBlock: e?.cidrBlock ?? '',
+        ownerId: e?.ownerId ?? '',
+        state: e.state ?? SubnetState.AVAILABLE,
+        subnetArn: e?.subnetArn ?? '',
+        subnetId: e?.subnetId ?? '',
+      }),
       equals: (_a: AwsSubnet, _b: AwsSubnet) => true, // Do not let vpc updates
       source: 'db',
       db: new Crud({

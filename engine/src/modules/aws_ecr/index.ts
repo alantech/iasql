@@ -54,6 +54,16 @@ export const AwsEcrModule: Module = new Module({
     repository: new Mapper<AwsRepository>({
       entity: AwsRepository,
       entityId: (e: AwsRepository) => e?.repositoryName ?? '',
+      entityPrint: (e: AwsRepository) => ({
+        id: e?.id?.toString() ?? '',
+        repositoryName: e?.repositoryName ?? '',
+        repositoryArn: e?.repositoryArn ?? '',
+        registryId: e?.registryId ?? '',
+        repositoryUri: e?.repositoryUri ?? '',
+        createdAt: e?.createdAt?.toISOString() ?? '',
+        imageTagMutability: e?.imageTagMutability ?? ImageTagMutability.MUTABLE, // TODO: Default?
+        scanOnPush: e?.scanOnPush?.toString() ?? 'false', // TODO: Default?
+      }),
       equals: (a: AwsRepository, b: AwsRepository) => Object.is(a.imageTagMutability, b.imageTagMutability)
         && Object.is(a.scanOnPush, b.scanOnPush),
       source: 'db',
@@ -154,6 +164,12 @@ export const AwsEcrModule: Module = new Module({
     repositoryPolicy: new Mapper<AwsRepositoryPolicy>({
       entity: AwsRepositoryPolicy,
       entityId: (e: AwsRepositoryPolicy) => e.repository?.repositoryName + '',
+      entityPrint: (e: AwsRepositoryPolicy) => ({
+        id: e?.id?.toString() ?? '',
+        registryId: e?.registryId ?? '',
+        repository: e?.repository?.repositoryName ?? '',
+        policyText: e?.policyText ?? '',
+      }),
       equals: (a: AwsRepositoryPolicy, b: AwsRepositoryPolicy) => {
         try {
           return AwsEcrModule.utils.policyComparisonEq(JSON.parse(a.policyText!), JSON.parse(b.policyText!));

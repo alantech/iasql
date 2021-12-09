@@ -42,6 +42,15 @@ export const AwsSecurityGroupModule: Module = new Module({
     securityGroup: new Mapper<AwsSecurityGroup>({
       entity: AwsSecurityGroup,
       entityId: (e: AwsSecurityGroup) => e.groupId ?? '',
+      entityPrint: (e: AwsSecurityGroup) => ({
+        id: e?.id?.toString() ?? '',
+        description: e?.description ?? '',
+        groupName: e?.groupName ?? '',
+        ownerId: e?.ownerId ?? '',
+        groupId: e?.groupId ?? '',
+        vpcId: e?.vpcId ?? '',
+        securityGroupRules: e?.securityGroupRules?.map(sgr => sgr.securityGroupRuleId ?? '').join(', ') ?? '',
+      }),
       equals: (a: AwsSecurityGroup, b: AwsSecurityGroup) => Object.is(a.description, b.description) &&
         Object.is(a.groupName, b.groupName) &&
         Object.is(a.ownerId, b.ownerId) &&
@@ -164,7 +173,20 @@ export const AwsSecurityGroupModule: Module = new Module({
     }),
     securityGroupRule: new Mapper<AwsSecurityGroupRule>({
       entity: AwsSecurityGroupRule,
-      entityId: (e: AwsSecurityGroupRule) => e.securityGroupRuleId + '',
+      entityId: (e: AwsSecurityGroupRule) => e?.securityGroupRuleId ?? e?.id?.toString() ?? '',
+      entityPrint: (e: AwsSecurityGroupRule) => ({
+        id: e?.id?.toString() ?? '',
+        securityGroupRuleId: e?.securityGroupRuleId ?? '',
+        securityGroup: e?.securityGroup?.groupName ?? '',
+        isEgress: e?.isEgress?.toString() ?? '',
+        ipProtocol: e?.ipProtocol ?? '',
+        fromPort: e?.fromPort?.toString() ?? '',
+        toPort: e?.toPort?.toString() ?? '',
+        cidrIpv4: e?.cidrIpv4 ?? '',
+        cidrIpv6: e?.cidrIpv6 ?? '',
+        prefixListId: e?.prefixListId ?? '',
+        description: e?.description ?? '',
+      }),
       equals: (a: AwsSecurityGroupRule, b: AwsSecurityGroupRule) => Object.is(a.isEgress, b.isEgress) &&
         Object.is(a.ipProtocol, b.ipProtocol) &&
         Object.is(a.fromPort, b.fromPort) &&

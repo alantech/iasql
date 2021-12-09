@@ -238,9 +238,9 @@ db.post('/apply', async (req, res) => {
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
     let failureCount = -1;
-    const toCreate: any[] = [];
-    const toUpdate: any[] = [];
-    const toDelete: any[] = [];
+    const toCreate: { [key: string]: { columns: string[], records: string[][], }, } = {};
+    const toUpdate: { [key: string]: { columns: string[], records: string[][], }, } = {};
+    const toDelete: { [key: string]: { columns: string[], records: string[][], }, } = {};
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -274,11 +274,36 @@ db.post('/apply', async (req, res) => {
         }
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
-          toCreate.push(...r.diff.entitiesInDbOnly);
-          toDelete.push(...r.diff.entitiesInAwsOnly);
-          toUpdate.push(...r.diff.entitiesChanged);
+          // TODO: Refactor such that entities define how they should be rendered for planning
+          if (r.diff.entitiesInDbOnly.length > 0) {
+            const rs = r.diff.entitiesInDbOnly.map((e: any) => r.mapper.entityPrint(e));
+            console.log({ rs, });
+            toCreate[r.table] = toCreate[r.table] ?? {
+              columns: Object.keys(rs[0]),
+              records: rs.map((r2: any) => Object.values(r2)),
+            };
+          }
+          if (r.diff.entitiesInAwsOnly.length > 0) {
+            const rs = r.diff.entitiesInAwsOnly.map((e: any) => r.mapper.entityPrint(e));
+            toDelete[r.table] = toDelete[r.table] ?? {
+              columns: Object.keys(rs[0]),
+              records: rs.map((r2: any) => Object.values(r2)),
+            };
+          }
+          if (r.diff.entitiesChanged.length > 0) {
+            const rs = r.diff.entitiesChanged.map((e: any) => r.mapper.entityPrint(e.db));
+            toUpdate[r.table] = toUpdate[r.table] ?? {
+              columns: Object.keys(rs[0]),
+              records: rs.map((r2: any) => Object.values(r2)),
+            };
+          }
         });
-        if (dryRun) return res.json({toCreate, toUpdate, toDelete});
+        if (dryRun) return res.json({
+          iasqlPlanVersion: 1,
+          toCreate,
+          toUpdate,
+          toDelete,
+        });
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - t4}ms`);
         const promiseGenerators = records

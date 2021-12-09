@@ -140,6 +140,7 @@ export class Crud<E> {
 export interface MapperInterface<E> {
   entity:  new () =>  E;
   entityId: (e: E) => string;
+  entityPrint: (e: E) => { [key: string]: string, };
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
   db: Crud<E>;
@@ -149,6 +150,7 @@ export interface MapperInterface<E> {
 export class Mapper<E> {
   entity: new() => E;
   entityId: (e: E) => string;
+  entityPrint: (e: E) => { [key: string]: string, };
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
   db: Crud<E>;
@@ -157,6 +159,7 @@ export class Mapper<E> {
   constructor(def: MapperInterface<E>) {
     this.entity = def.entity;
     this.entityId = def.entityId;
+    this.entityPrint = def.entityPrint;
     this.equals = def.equals;
     this.source = def.source;
     this.db = def.db;

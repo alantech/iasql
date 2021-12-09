@@ -9,6 +9,7 @@ import {
   CpuMemCombination,
   EnvVariable,
   LaunchType,
+  NetworkMode,
   PortMapping,
   SchedulingStrategy,
   Service,
@@ -178,6 +179,12 @@ export const AwsEcsModule: Module = new Module({
     cluster: new Mapper<Cluster>({
       entity: Cluster,
       entityId: (e: Cluster) => e?.clusterArn ?? 'default',
+      entityPrint: (e: Cluster) => ({
+        id: e?.id?.toString() ?? '',
+        clusterName: e?.clusterName ?? '',
+        clusterArn: e?.clusterArn ?? '',
+        clusterStatus: e?.clusterStatus ?? '',
+      }),
       equals: (_a: Cluster, _b: Cluster) => true,  // TODO: Fill in when updates supported
       source: 'db',
       db: new Crud({
@@ -265,6 +272,19 @@ export const AwsEcsModule: Module = new Module({
     taskDefinition: new Mapper<TaskDefinition>({
       entity: TaskDefinition,
       entityId: (e: TaskDefinition) => e?.taskDefinitionArn ?? '',
+      entityPrint: (e: TaskDefinition) => ({
+        id: e?.id?.toString() ?? '',
+        taskDefinitionArn: e?.taskDefinitionArn ?? '',
+        containers: e?.containers?.map(c => c?.name  ?? '').join(', ') ?? '',
+        family: e?.family ?? '',
+        revision: e?.revision?.toString() ?? '',
+        taskRoleArn: e?.taskRoleArn ?? '',
+        executionRoleArn: e?.executionRoleArn ?? '',
+        networkMode: e?.networkMode ?? NetworkMode.AWSVPC, // TODO: Which?
+        status: e?.status ?? TaskDefinitionStatus.ACTIVE, // TODO: Which?
+        reqCompatibilities: e?.reqCompatibilities?.map(c => c?.name ?? '').join(', ') ?? '',
+        cpuMemory: e?.cpuMemory ?? CpuMemCombination['1vCPU-2GB'], // TODO: Which?
+      }),
       equals: (_a: TaskDefinition, _b: TaskDefinition) => true,  // TODO: Fill in when updates supported
       source: 'db',
       db: new Crud({
@@ -460,6 +480,19 @@ export const AwsEcsModule: Module = new Module({
     service: new Mapper<Service>({
       entity: Service,
       entityId: (e: Service) => e?.arn ?? '',
+      entityPrint: (e: Service) => ({
+        id: e?.id?.toString() ?? '',
+        name: e?.name ?? '',
+        arn: e?.arn ?? '',
+        status: e?.status ?? '',
+        cluster: e?.cluster?.clusterName ?? '',
+        task: e?.task?.taskDefinitionArn ?? '',
+        desiredCount: e?.desiredCount?.toString() ?? '',
+        launchType: e?.launchType ?? LaunchType.EC2, // TODO: Which?
+        schedulingStrategy: e?.schedulingStrategy ?? SchedulingStrategy.REPLICA, // TODO: Which?
+        network: e?.network?.assignPublicIp ?? '',
+        loadBalancers: e?.loadBalancers?.map(lb => lb.elb?.loadBalancerName ?? '').join(', ') ?? '',
+      }),
       equals: (a: Service, b: Service) => Object.is(a.desiredCount, b.desiredCount)
         && Object.is(a.task?.taskDefinitionArn, b.task?.taskDefinitionArn)
         && Object.is(a.cluster?.clusterName, b.cluster?.clusterName),

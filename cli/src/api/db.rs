@@ -28,6 +28,21 @@ pub struct AddDbResponse {
   pass: String,
 }
 
+#[derive(Deserialize, Debug, Clone, Serialize)]
+#[allow(non_snake_case)]
+pub struct PlanMeta {
+  columns: Vec<String>,
+  records: Vec<Vec<String>>,
+}
+#[derive(Deserialize, Debug, Clone, Serialize)]
+#[allow(non_snake_case)]
+pub struct PlanResponse {
+  iasqlPlanVersion: i32,
+  toCreate: HashMap<String, PlanMeta>,
+  toUpdate: HashMap<String, PlanMeta>,
+  toDelete: HashMap<String, PlanMeta>,
+}
+
 // TODO load regions at startup based on aws services and schema since not all regions support all services.
 // Currently manually listing ec2 regions that do not require opt-in status in alphabetical order
 // https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
@@ -189,7 +204,73 @@ pub async fn plan(db: &str) {
   let resp = post_v1("db/apply/", body).await;
   sp.finish_and_clear();
   match &resp {
-    Ok(r) => println!("{}", r),
+    Ok(r) => {
+      let plan_response: PlanResponse = serde_json::from_str(r).unwrap();
+      // TODO: DRY this somehow
+      for key in plan_response.toCreate.keys() {
+        let meta = plan_response.toCreate.get(key).unwrap();
+        let count = meta.records.len();
+        let record_text = if count == 1 { "record" } else { "records" };
+        println!(
+          "{} has {} {} to {}",
+          dlg::bold(key),
+          dlg::bold(&format!("{}", count)),
+          dlg::bold(record_text),
+          dlg::green("create"),
+        );
+        let mut table = AsciiTable::default();
+        table.max_width = 160;
+        for (i, column) in meta.columns.iter().enumerate() {
+          table.columns.insert(i, Column {
+            header: column.to_string(),
+            ..Column::default()
+          });
+        }
+        table.print(meta.records.clone());
+      }
+      for key in plan_response.toUpdate.keys() {
+        let meta = plan_response.toUpdate.get(key).unwrap();
+        let count = meta.records.len();
+        let record_text = if count == 1 { "record" } else { "records" };
+        println!(
+          "{} has {} {} to {}",
+          dlg::bold(key),
+          dlg::bold(&format!("{}", count)),
+          dlg::bold(record_text),
+          dlg::yellow("update"),
+        );
+        let mut table = AsciiTable::default();
+        table.max_width = 140;
+        for (i, column) in meta.columns.iter().enumerate() {
+          table.columns.insert(i, Column {
+            header: column.to_string(),
+            ..Column::default()
+          });
+        }
+        table.print(meta.records.clone());
+      }
+      for key in plan_response.toDelete.keys() {
+        let meta = plan_response.toDelete.get(key).unwrap();
+        let count = meta.records.len();
+        let record_text = if count == 1 { "record" } else { "records" };
+        println!(
+          "{} has {} {} to {}",
+          dlg::bold(key),
+          dlg::bold(&format!("{}", count)),
+          dlg::bold(record_text),
+          dlg::red("delete"),
+        );
+        let mut table = AsciiTable::default();
+        table.max_width = 140;
+        for (i, column) in meta.columns.iter().enumerate() {
+          table.columns.insert(i, Column {
+            header: column.to_string(),
+            ..Column::default()
+          });
+        }
+        table.print(meta.records.clone());
+      }
+    },
     Err(e) => {
       eprintln!(
         "{} {} {} {} {} {}",
