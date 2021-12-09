@@ -86,9 +86,9 @@ export const AwsEcsModule: Module = new Module({
           },
         });
         if (!container) {
-          const c = AwsEcsModule.utils.containerMapper(tdc, ctx);
+          const c = await AwsEcsModule.utils.containerMapper(tdc, ctx);
           // For INACTIVE tasks it is not necessary to exists a cloud watch log group to link since it could have been deleted.
-          if (tdc?.logConfiguration?.options?.['awslogs-group'] && !c.logGroup && td.status === TaskDefinitionStatus.ACTIVE) {
+          if (!!tdc?.logConfiguration?.options?.['awslogs-group'] && !c.logGroup && td.status === TaskDefinitionStatus.ACTIVE) {
             throw new Error('Cloudwatch log groups need to be loaded first')
           }
           return c;
