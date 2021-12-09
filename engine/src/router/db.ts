@@ -144,12 +144,12 @@ db.post('/import', async (req, res) => {
     `);
 
     // Update aws_account schema
-    await conn2.query(`
-      INSERT INTO public.region (name, endpoint, opt_in_status) VALUES ('${awsRegion}', '', false)
+    const regions = await conn2.query(`
+      SELECT id from public.region WHERE name = '${awsRegion}' LIMIT 1;
     `);
     await conn2.query(`
       UPDATE public.aws_account
-      SET access_key_id = '${awsAccessKeyId}', secret_access_key = '${awsSecretAccessKey}', region_id = 1
+      SET access_key_id = '${awsAccessKeyId}', secret_access_key = '${awsSecretAccessKey}', region_id = '${regions[0].id}'
       WHERE id = 1;
     `);
     // Grant permissions
