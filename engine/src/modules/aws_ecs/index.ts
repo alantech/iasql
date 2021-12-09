@@ -14,17 +14,18 @@ import {
   Service,
   ServiceLoadBalancer,
   TaskDefinition,
+  TaskDefinitionStatus,
 } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEcs1637756035104, } from './migration/1637756035104-aws_ecs'
-import { AwsAccount, AwsEcrModule, AwsElbModule, AwsSecurityGroupModule } from '..'
+import { AwsAccount, AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
 import { AwsLoadBalancer } from '../aws_elb/entity'
 import { DepError } from '../../services/lazy-dep'
+import { awsEcs1639048875525 } from './migration/1639048875525-aws_ecs'
 
 export const AwsEcsModule: Module = new Module({
   name: 'aws_ecs',
-  dependencies: ['aws_account', 'aws_ecr', 'aws_elb', 'aws_security_group',],
+  dependencies: ['aws_account', 'aws_ecr', 'aws_elb', 'aws_security_group', 'aws_cloudwatch',],
   provides: {
     entities: allEntities,
     tables: ['cluster', 'container', 'env_variable', 'port_mapping', 'compatibility', 'task_definition', 'aws_vpc_conf', 'service', 'service_load_balancer'],
@@ -68,6 +69,13 @@ export const AwsEcsModule: Module = new Module({
         out.repository = repository;
       }
       out.tag = imageTag[1];
+      // TODO: eventually handle more log drivers
+      if (c.logConfiguration?.logDriver === 'awslogs') {
+        const groupName = c.logConfiguration.options['awslogs-group'];
+        const logGroups = ctx.memo?.db?.LogGroup ? Object.values(ctx.memo?.db?.LogGroup) : await AwsCloudwatchModule.mappers.logGroup.db.read(ctx);
+        const logGroup = logGroups.find((lg: any) => lg.logGroupName === groupName);
+        out.logGroup = logGroup;
+      }
       return out;
     },
     taskDefinitionMapper: async (td: any, ctx: Context) => {
@@ -78,7 +86,14 @@ export const AwsEcsModule: Module = new Module({
             name: tdc.name,
           },
         });
-        if (!container) return AwsEcsModule.utils.containerMapper(tdc, ctx);
+        if (!container) {
+          const c = AwsEcsModule.utils.containerMapper(tdc, ctx);
+          // For INACTIVE tasks it is not necessary to exists a cloud watch log group to link since it could have been deleted.
+          if (tdc?.logConfiguration?.options?.['awslogs-group'] && !c.logGroup && td.status === TaskDefinitionStatus.ACTIVE) {
+            throw new Error('Cloudwatch log groups need to be loaded first')
+          }
+          return c;
+        }
         return container;
       }));
       out.containers = containers.filter(c => c !== null);
@@ -299,7 +314,7 @@ export const AwsEcsModule: Module = new Module({
           await ctx.orm.save(TaskDefinition, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const relations = ['reqCompatibilities', 'containers', 'containers.portMappings', 'containers.environment', 'containers.repository'];
+          const relations = ['reqCompatibilities', 'containers', 'containers.portMappings', 'containers.environment', 'containers.repository', 'containers.logGroup'];
           const opts = id ? {
             where: {
               taskDefinitionArn: Array.isArray(id) ? In(id) : id,
@@ -343,15 +358,17 @@ export const AwsEcsModule: Module = new Module({
                 const container: any = { ...c };
                 if (c.repository && !c.repository?.repositoryUri) throw new DepError('Repository need to be created first');
                 container.image = `${c.repository ? c.repository.repositoryUri : c.dockerImage}:${c.tag}`;
-                // TODO: use cloud watch group
-                container.logConfiguration = {
-                  logDriver: 'awslogs',
-                  options: {
-                    "awslogs-group": `awslogs-${e.family}`,
-                    "awslogs-region": client.region,
-                    "awslogs-stream-prefix": `awslogs-${c.name}`
-                  }
-                };
+                if (container.logGroup) {
+                  // TODO: improve log configuration
+                  container.logConfiguration = {
+                    logDriver: 'awslogs',
+                    options: {
+                      "awslogs-group": container.logGroup.logGroupName,
+                      "awslogs-region": client.region,
+                      "awslogs-stream-prefix": `awslogs-${c.name}`
+                    }
+                  };
+                }
                 return container;
               }),
               requiresCompatibilities: e.reqCompatibilities?.map(c => c.name!) ?? [],
@@ -591,7 +608,7 @@ export const AwsEcsModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEcs1637756035104.prototype.up,
-    preremove: awsEcs1637756035104.prototype.down,
+    postinstall: awsEcs1639048875525.prototype.up,
+    preremove: awsEcs1639048875525.prototype.down,
   },
 });
