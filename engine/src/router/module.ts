@@ -7,8 +7,7 @@ import { TypeormWrapper, } from '../services/typeorm'
 import { handleErrorMessage } from '.'
 import { lazyLoader, } from '../services/lazy-dep'
 import { sortModules, } from '../services/mod-sort'
-import config from '../config'
-import { getMetadata } from '../services/db-manager';
+import * as dbMan from '../services/db-manager';
 
 export const mod = express.Router();
 
@@ -41,7 +40,7 @@ mod.post('/list', async (req, res) => {
   if (all) {
     res.json(allModules);
   } else if (installed && dbAlias) {
-    const { dbId } = await getMetadata(dbAlias, req.user);
+    const { dbId } = await dbMan.getMetadata(dbAlias, req.user);
     const entities: Function[] = [IasqlModule];
     const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const modules = await orm.find(IasqlModule);
@@ -63,7 +62,7 @@ mod.post('/install', async (req, res) => {
   const { list, dbAlias } = req.body;
   // Don't do anything if we don't know what database to impact
   if (!dbAlias) return res.status(400).json("Missing 'dbAlias' to install into");
-  const { dbId, dbUser } = await getMetadata(dbAlias, req.user);
+  const { dbId, dbUser } = await dbMan.getMetadata(dbAlias, req.user);
   // Also don't do anything if we don't have any list of modules to install
   if (!Array.isArray(list)) return res.status(400).json("No packages provided in 'list' property");
   // Check to make sure that all specified modules actually exist
@@ -150,17 +149,7 @@ ${Object.keys(tableCollisions)
       await orm.save(IasqlModule, e);
     }
     await queryRunner.commitTransaction();
-    // Only do this if a0 is enabled. Otherwise, you cannot grant these privileges to the default postgres user, the query gets stuck
-    if (config.a0Enabled) {
-      await orm.query(`
-        GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${dbUser};
-        GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${dbUser};
-        GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${dbUser};
-        GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${dbUser};
-        GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${dbUser};
-        GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${dbUser};
-      `);
-    }
+    await orm.query(dbMan.grantPostgresRoleQuery(dbUser));
   } catch (e: any) {
     await queryRunner.rollbackTransaction();
     return res.status(500).end(`${e?.message ?? ''}`);
@@ -210,7 +199,7 @@ mod.post('/remove', async (req, res) => {
   const { list, dbAlias } = req.body;
   // Don't do anything if we don't know what database to impact
   if (!dbAlias) return res.status(400).json("Missing 'dbAlias' to install into");
-  const { dbId } = await getMetadata(dbAlias, req.user);
+  const { dbId } = await dbMan.getMetadata(dbAlias, req.user);
   // Also don't do anything if we don't have any list of modules to install
   if (!Array.isArray(list)) return res.status(400).json("No packages provided in 'list' property");
   // Check to make sure that all specified modules actually exist
