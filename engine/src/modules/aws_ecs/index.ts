@@ -80,19 +80,14 @@ export const AwsEcsModule: Module = new Module({
     },
     taskDefinitionMapper: async (td: any, ctx: Context) => {
       const out = new TaskDefinition();
-      const containers: ContainerDefinition[] = await Promise.all(td.containerDefinitions.map(async (tdc: any) => {
+      out.containers = await Promise.all(td.containerDefinitions.map(async (tdc: any) => {
         const cd = await AwsEcsModule.utils.containerDefinitionMapper(tdc, ctx);
         // For INACTIVE tasks it is not necessary to exists a cloud watch log group to link since it could have been deleted.
         if (!!tdc?.logConfiguration?.options?.['awslogs-group'] && !cd?.logGroup && td.status === TaskDefinitionStatus.ACTIVE) {
           throw new Error('Cloudwatch log groups need to be loaded first')
         }
-        // For INACTIVE tasks it is not necessary to exists a ecr repository to link since it could have been deleted.
-        if (!cd?.repository && !cd?.dockerImage && td.status === TaskDefinitionStatus.ACTIVE) {
-          throw new Error('Invalid container image')
-        }
         return cd;
       }));
-      out.containers = containers.filter(c => c !== null);
       out.cpuMemory = `${+(td.cpu ?? '256') / 1024}vCPU-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
       out.executionRoleArn = td.executionRoleArn;
       out.family = td.family;
@@ -301,9 +296,25 @@ export const AwsEcsModule: Module = new Module({
                 rc = compatibilities[name];
               })
             }
+            const containers: any = entity?.containers?.map(cd => {
+              // For INACTIVE tasks it is not necessary to exists a ecr repository to link since it could have been deleted.
+              if (!cd?.repository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.ACTIVE) {
+                throw new Error('Invalid container image')
+              } else if (!cd?.repository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.INACTIVE) {
+                return null;
+              } else {
+                return cd;
+              }
+            });
+            entity.containers = containers?.filter((c: any) => c !== null);
+
           });
           await ctx.orm.save(Compatibility, Object.values(compatibilities));
-          await Promise.all(es.map(async (entity: TaskDefinition) => ctx.orm.save(ContainerDefinition, entity.containers)));
+          await Promise.all(es.map(async (entity: TaskDefinition) => {
+            if (entity.containers) {
+              await ctx.orm.save(ContainerDefinition, entity.containers);
+            }
+          }));
           const savedCompatibilities = await ctx.orm.find(Compatibility);
           es.forEach(entity => {
             if (entity.reqCompatibilities?.length) {
@@ -339,6 +350,17 @@ export const AwsEcsModule: Module = new Module({
                 rc = compatibilities[name];
               })
             }
+            const containers: any = entity?.containers?.map(cd => {
+              // For INACTIVE tasks it is not necessary to exists a ecr repository to link since it could have been deleted.
+              if (!cd?.repository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.ACTIVE) {
+                throw new Error('Invalid container image')
+              } else if (!cd?.repository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.INACTIVE) {
+                return null;
+              } else {
+                return cd;
+              }
+            });
+            entity.containers = containers?.filter((c: any) => c !== null);
           });
           await ctx.orm.save(Compatibility, Object.values(compatibilities));
           await Promise.all(es.map(async (entity: TaskDefinition) => {
