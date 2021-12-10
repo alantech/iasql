@@ -59,11 +59,11 @@ export class Container {
   })
   memoryReservation?: number;
 
-  @ManyToMany(() => PortMapping, { cascade: true, eager: true, })
+  @ManyToMany(() => PortMapping, { cascade: true, })
   @JoinTable()
   portMappings?: PortMapping[];
 
-  @ManyToMany(() => EnvVariable, { cascade: true, eager: true, })
+  @ManyToMany(() => EnvVariable, { cascade: true, })
   @JoinTable()
   environment?: EnvVariable[];
 

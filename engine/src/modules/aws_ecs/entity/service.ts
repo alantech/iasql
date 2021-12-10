@@ -76,7 +76,7 @@ export class Service {
   })
   network?: AwsVpcConf;
 
-  @ManyToMany(() => ServiceLoadBalancer, { cascade: true, eager: true, })
+  @ManyToMany(() => ServiceLoadBalancer, { cascade: true, })
   @JoinTable()
   loadBalancers?: ServiceLoadBalancer[];
 }
