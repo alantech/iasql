@@ -2,7 +2,6 @@ import * as express from 'express'
 import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
-import config from '../config';
 import { TypeormWrapper, } from '../services/typeorm'
 import { IasqlModule, } from '../entity'
 import { findDiff, } from '../services/diff'
@@ -12,16 +11,6 @@ import * as Modules from '../modules'
 import { handleErrorMessage } from '.'
 
 export const db = express.Router();
-
-const baseConnConfig: PostgresConnectionOptions = {
-  name: 'base', // If you use multiple connections they must have unique names or typeorm bails
-  type: 'postgres',
-  username: config.dbUser,
-  password: config.dbPassword,
-  host: config.dbHost,
-  database: 'postgres',
-  extra: { ssl: config.dbHost === 'postgresql' ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
-};
 
 db.post('/add', async (req, res) => {
   console.log('Calling /add');
@@ -41,12 +30,12 @@ db.post('/add', async (req, res) => {
     const meta = await dbMan.setMetadata(dbAlias, dbUser, req.user);
     dbId = meta.dbId;
     console.log('Establishing DB connections...');
-    conn1 = await createConnection(baseConnConfig);
+    conn1 = await createConnection(dbMan.baseConnConfig);
     await conn1.query(`
       CREATE DATABASE ${dbId};
     `);
     conn2 = await createConnection({
-      ...baseConnConfig,
+      ...dbMan.baseConnConfig,
       name: dbId,
       database: dbId,
     });
@@ -96,7 +85,8 @@ db.post('/add', async (req, res) => {
         }
       }
     }
-    await conn2.query(dbMan.genPermissionsQuery(dbUser, dbPass, dbId));
+    await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
+    await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
     console.log('Done!');
     res.json({
       alias: dbAlias,
@@ -107,9 +97,7 @@ db.post('/add', async (req, res) => {
   } catch (e: any) {
     // delete db in psql and metadata in IP
     await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
-    await conn1?.query(`
-      DROP ROLE IF EXISTS ${dbUser};
-    `);
+    if (dbUser) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser));
     await dbMan.delMetadata(dbAlias, req.user);
     res.status(500).end(`${handleErrorMessage(e)}`);
   } finally {
@@ -136,10 +124,10 @@ db.post('/import', async (req, res) => {
     const meta = await dbMan.setMetadata(dbAlias, dbUser, req.user);
     dbId = meta.dbId;
     console.log('Establishing DB connections...');
-    conn1 = await createConnection(baseConnConfig);
+    conn1 = await createConnection(dbMan.baseConnConfig);
     await conn1.query(`CREATE DATABASE ${dbId};`);
     conn2 = await createConnection({
-      ...baseConnConfig,
+      ...dbMan.baseConnConfig,
       name: dbId,
       database: dbId,
     });
@@ -157,7 +145,8 @@ db.post('/import', async (req, res) => {
       WHERE id = 1;
     `);
     // Grant permissions
-    await conn2.query(dbMan.genPermissionsQuery(dbUser, dbPass, dbId));
+    await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
+    await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
     console.log('Done!');
     res.json({
       alias: dbAlias,
@@ -182,7 +171,7 @@ db.post('/import', async (req, res) => {
 db.get('/list', async (req, res) => {
   let conn;
   try {
-    conn = await createConnection(baseConnConfig);
+    conn = await createConnection(dbMan.baseConnConfig);
     // aliases is undefined when there is no auth so get aliases from DB
     const aliases = (await dbMan.getAliases(req.user)) ?? (await conn.query(`
       select datname
@@ -204,14 +193,11 @@ db.get('/remove/:dbAlias', async (req, res) => {
   let conn;
   try {
     const { dbId, dbUser } = await dbMan.getMetadata(dbAlias, req.user);
-    conn = await createConnection(baseConnConfig);
+    conn = await createConnection(dbMan.baseConnConfig);
     await conn.query(`
       DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);
     `);
-    console.log(config)
-    await conn.query(`
-      DROP ROLE IF EXISTS ${dbUser};
-    `);
+    await conn.query(dbMan.dropPostgresRoleQuery(dbUser));
     await dbMan.delMetadata(dbAlias, req.user);
     res.end(`removed ${dbAlias}`);
   } catch (e: any) {
