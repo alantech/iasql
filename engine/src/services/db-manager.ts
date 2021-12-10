@@ -1,12 +1,10 @@
-// Currently just a collection of independent functions for user database management. May eventually
-// grow into something more.
-
 import { randomBytes } from 'crypto'
-import config from '../config';
 import * as fs from 'fs'
 
 import { Connection, } from 'typeorm'
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
+import config from '../config';
 import { IronPlans, } from './gateways/ironplans'
 
 type IPMetadata = { dbId: string, dbUser: string };
@@ -62,6 +60,73 @@ function fromDbKey(dbAlias: string) {
 
 function isDbKey(dbAlias: string) {
   return dbAlias.startsWith('db:');
+}
+
+export const baseConnConfig: PostgresConnectionOptions = {
+  name: 'base', // If you use multiple connections they must have unique names or typeorm bails
+  type: 'postgres',
+  username: config.dbUser,
+  password: config.dbPassword,
+  host: config.dbHost,
+  database: 'postgres',
+  extra: { ssl: config.dbHost === 'postgresql' ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
+};
+
+// TODO: The permissions below work just fine, but prevent the users from creating their own
+// tables. We want to allow that in the future, but not sure the precise details of how, as
+// the various options have their own trade-offs and potential sources of bugs to worry about.
+// But we'll want to decide (before public launch?) one of them and replace this
+// TODO: #2, also try to roll back the `GRANT CREATE` to something a bit narrower in the future
+export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
+  // Only do this if a0 is enabled. Otherwise, you cannot grant these privileges to the default postgres user, the query gets stuck
+  return config.a0Enabled ? `
+    CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
+    GRANT CONNECT ON DATABASE ${dbId} TO ${user};
+    GRANT CREATE ON SCHEMA public TO ${user};
+  ` : '';
+}
+
+export function grantPostgresRoleQuery(user: string) {
+  // Only do this if a0 is enabled. Otherwise, you cannot grant these privileges to the default postgres user, the query gets stuck
+  return config.a0Enabled ? `
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user};
+    GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${user};
+    GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${user};
+    GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${user};
+    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${user};
+    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${user};
+  ` : '';
+}
+
+export function dropPostgresRoleQuery(user: string) {
+  // Only do this if a0 is enabled. Otherwise, you cannot grant these privileges to the default postgres user, the query gets stuck
+  return config.a0Enabled ? `
+    DROP ROLE IF EXISTS ${user};
+  ` : '';
+}
+
+// Create a randomly generated username and password, an 8 char username [a-z][a-z0-9]{7} and a
+// 16 char password [a-zA-Z0-9!@#$%^*]{16}
+export function genUserAndPass(): [string, string] {
+    const userFirstCharCharset = [
+      Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+    ].flat();
+    const userRestCharCharset = [
+      ...userFirstCharCharset,
+      Array(10).fill('0').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+    ].flat();
+    const passwordCharset = [
+      ...userRestCharCharset,
+      Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+      '!?#$%^*'.split(''),
+    ].flat();
+    const randChar = (a: string[]): string => a[Math.floor(Math.random() * a.length)];
+    const user = [
+      randChar(userFirstCharCharset),
+      Array(7).fill('').map(() => randChar(userRestCharCharset)),
+    ].flat().join('');
+    const pass = Array(16).fill('').map(() => randChar(passwordCharset)).join('');
+    return [user, pass];
 }
 
 // returns aliases or an empty array if no auth

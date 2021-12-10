@@ -80,8 +80,8 @@ jobs:
       - name: Build Docusaurus website
         run: |
           cd ../docs
-          npm install
-          npm run build
+          yarn
+          yarn build
 
   db:
     # The type of runner that the job will run on
@@ -142,7 +142,7 @@ jobs:
 
       - name: Apply
         run: |
-          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/apply/__${{ github.sha }}__
+          curl -X POST -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -H "Content-Type: application/json" -f -s -S http://localhost:8088/v1/db/apply -d '{"dbAlias": "__${{ github.sha }}__"}'
 
       - name: List
         run: |

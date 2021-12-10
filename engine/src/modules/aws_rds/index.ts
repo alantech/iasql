@@ -48,6 +48,10 @@ export const AwsRdsModule: Module = new Module({
     engineVersion: new Mapper<EngineVersion>({
       entity: EngineVersion,
       entityId: (e: EngineVersion) => e?.engineVersionKey ?? '',
+      // TODO: source: cloud entityPrint not needed (yet)
+      entityPrint: (e: EngineVersion) => ({
+        id: e.id?.toString() ?? '',
+      }),
       equals: (_a: EngineVersion, _b: EngineVersion) => true,
       source: 'cloud',
       db: new Crud({
@@ -93,6 +97,19 @@ export const AwsRdsModule: Module = new Module({
     rds: new Mapper<RDS>({
       entity: RDS,
       entityId: (e: RDS) => e.dbInstanceIdentifier + '',
+      entityPrint: (e: RDS) => ({
+        id: e?.id?.toString() ?? '',
+        dbInstanceIdentifier: e?.dbInstanceIdentifier ?? '',
+        allocatedStorage: e?.allocatedStorage?.toString() ?? '',
+        dbInstanceClass: e?.dbInstanceClass ?? '',
+        engine: e?.engine?.engine ?? '',
+        masterUserPassword: e?.masterUserPassword ?? '',
+        masterUsername: e?.masterUsername ?? '',
+        vpcSecurityGroups: e?.vpcSecurityGroups?.map(sg => sg.groupName ?? '').join(', ') ?? '',
+        endpointAddr: e?.endpointAddr ?? '',
+        endpointPort: e?.endpointPort?.toString() ?? '',
+        endpointHostedZoneId: e?.endpointHostedZoneId ?? '',
+      }),
       equals: (a: RDS, b: RDS) => Object.is(a.engine.engineVersionKey, b.engine.engineVersionKey)
         && Object.is(a.dbInstanceClass, b.dbInstanceClass)
         && Object.is(a.allocatedStorage, b.allocatedStorage),

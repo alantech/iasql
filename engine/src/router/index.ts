@@ -15,7 +15,8 @@ export function handleErrorMessage(e: any): string {
 }
 
 const v1 = express.Router();
-v1.use(express.json());
+// 10 GB post payload limit for import dumps
+v1.use(express.json({ limit: '10000MB' }));
 
 if (config.a0Enabled) {
   const checkJwt = jwt({
@@ -29,6 +30,7 @@ if (config.a0Enabled) {
   v1.use(checkJwt);
 }
 
+// TODO secure with cors and scope
 v1.use('/db', db)
 v1.use('/module', mod)
 
