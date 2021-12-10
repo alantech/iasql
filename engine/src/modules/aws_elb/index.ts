@@ -160,7 +160,7 @@ export const AwsElbModule: Module = new Module({
           await ctx.orm.save(AwsListener, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const relations = ["loadBalancer"];
+          const relations = ['loadBalancer', 'defaultActions', 'defaultActions.targetGroup'];
           const opts = id ? {
             where: {
               listenerArn: Array.isArray(id) ? In(id) : id,
@@ -287,6 +287,7 @@ export const AwsElbModule: Module = new Module({
             for (const sg of e.securityGroups ?? []) {
               if (!sg.id) {
                 const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
+                if (!g?.id) throw new Error('Security groups need to be loaded first');
                 sg.id = g.id;
               }
             }
@@ -326,7 +327,7 @@ export const AwsElbModule: Module = new Module({
             for (const sg of e.securityGroups ?? []) {
               if (!sg.id) {
                 const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
-                if (!g.id) throw new Error('Error retrieving generated column');
+                if (!g?.id) throw new Error('Security Groups need to be loaded first');
                 sg.id = g.id;
               }
             }
@@ -360,13 +361,14 @@ export const AwsElbModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(lb) ? lb : [lb];
           const out = await Promise.all(es.map(async (e) => {
+            const securityGroups = e.securityGroups?.map(sg => {
+              if (!sg.groupId) throw new Error('Security group need to be loaded first');
+              return sg.groupId;
+            });
             const result = await client.createLoadBalancer({
               Name: e.loadBalancerName,
               Subnets: e.subnets?.map(sn => sn.subnetId!),
-              SecurityGroups: e.securityGroups?.map(sg => {
-                if (!sg.groupId) throw new Error('Security group need to be loaded first');
-                return sg.groupId;
-              }),
+              SecurityGroups: securityGroups,
               Scheme: e.scheme,
               Type: e.loadBalancerType,
               IpAddressType: e.ipAddressType,
