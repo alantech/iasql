@@ -5,11 +5,10 @@ import {
   AwsVpcConf,
   Cluster,
   Compatibility,
-  Container,
+  ContainerDefinition,
   CpuMemCombination,
   EnvVariable,
   LaunchType,
-  NetworkMode,
   PortMapping,
   SchedulingStrategy,
   Service,
@@ -21,14 +20,14 @@ import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsAccount, AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
 import { AwsLoadBalancer } from '../aws_elb/entity'
-import { awsEcs1639048875525 } from './migration/1639048875525-aws_ecs'
+import { awsEcs1639139612537 } from './migration/1639139612537-aws_ecs'
 
 export const AwsEcsModule: Module = new Module({
   name: 'aws_ecs',
   dependencies: ['aws_account', 'aws_ecr', 'aws_elb', 'aws_security_group', 'aws_cloudwatch',],
   provides: {
     entities: allEntities,
-    tables: ['cluster', 'container', 'env_variable', 'port_mapping', 'compatibility', 'task_definition', 'aws_vpc_conf', 'service', 'service_load_balancer'],
+    tables: ['cluster', 'container_definition', 'env_variable', 'port_mapping', 'compatibility', 'task_definition', 'aws_vpc_conf', 'service', 'service_load_balancer'],
     functions: ['create_ecs_cluster', 'create_container_definition', 'create_task_definition', 'create_ecs_service'],
   },
   utils: {
@@ -39,9 +38,10 @@ export const AwsEcsModule: Module = new Module({
       out.clusterStatus = c.status ?? null;
       return out;
     },
-    containerMapper: async (c: any, ctx: Context) => {
-      const out = new Container();
+    containerDefinitionMapper: async (c: any, ctx: Context) => {
+      const out = new ContainerDefinition();
       out.cpu = c?.cpu;
+      // TODO: remove env var duplications
       out.environment = c.environment?.map((e: any) => {
         const e2 = new EnvVariable();
         e2.name = e.name;
@@ -52,6 +52,7 @@ export const AwsEcsModule: Module = new Module({
       out.memory = c.memory;
       out.memoryReservation = c.memoryReservation;
       out.name = c.name;
+      // TODO: remove port mapping duplications
       out.portMappings = c.portMappings?.map((pm: any) => {
         const pm2 = new PortMapping();
         pm2.containerPort = pm.containerPort;
@@ -65,7 +66,6 @@ export const AwsEcsModule: Module = new Module({
       } else {
         const repositories = ctx.memo?.db?.AwsRepository ? Object.values(ctx.memo?.db?.AwsRepository) : await AwsEcrModule.mappers.repository.db.read(ctx);
         const repository = repositories.find((r: any) => r.repositoryUri === imageTag[0]);
-        if (!repository) return null;
         out.repository = repository;
       }
       out.tag = imageTag[1];
@@ -80,21 +80,17 @@ export const AwsEcsModule: Module = new Module({
     },
     taskDefinitionMapper: async (td: any, ctx: Context) => {
       const out = new TaskDefinition();
-      const containers: Container[] = await Promise.all(td.containerDefinitions.map(async (tdc: any) => {
-        const container = await ctx.orm.findOne(Container, {
-          where: {
-            name: tdc.name,
-          },
-        });
-        if (!container) {
-          const c = await AwsEcsModule.utils.containerMapper(tdc, ctx);
-          // For INACTIVE tasks it is not necessary to exists a cloud watch log group to link since it could have been deleted.
-          if (!!tdc?.logConfiguration?.options?.['awslogs-group'] && !c.logGroup && td.status === TaskDefinitionStatus.ACTIVE) {
-            throw new Error('Cloudwatch log groups need to be loaded first')
-          }
-          return c;
+      const containers: ContainerDefinition[] = await Promise.all(td.containerDefinitions.map(async (tdc: any) => {
+        const cd = await AwsEcsModule.utils.containerDefinitionMapper(tdc, ctx);
+        // For INACTIVE tasks it is not necessary to exists a cloud watch log group to link since it could have been deleted.
+        if (!!tdc?.logConfiguration?.options?.['awslogs-group'] && !cd?.logGroup && td.status === TaskDefinitionStatus.ACTIVE) {
+          throw new Error('Cloudwatch log groups need to be loaded first')
         }
-        return container;
+        // For INACTIVE tasks it is not necessary to exists a ecr repository to link since it could have been deleted.
+        if (!cd?.repository && !cd?.dockerImage && td.status === TaskDefinitionStatus.ACTIVE) {
+          throw new Error('Invalid container image')
+        }
+        return cd;
       }));
       out.containers = containers.filter(c => c !== null);
       out.cpuMemory = `${+(td.cpu ?? '256') / 1024}vCPU-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
@@ -143,14 +139,12 @@ export const AwsEcsModule: Module = new Module({
           slb2.elb = loadBalancers.find((lb: AwsLoadBalancer) => lb.loadBalancerName === slb.loadBalancerName);
         }
         if (slb.targetGroupArn) {
-          // TODO: Work around using `ctx.orm.find` to avoid temporal memo empty objects.
-          const targetGroup = ctx.memo?.db?.AwsTargetGroup?.[slb.targetGroupArn] ?? await AwsElbModule.mappers.targetGroup.db.read(ctx, slb.targetGroupArn);
+          const targetGroups = ctx.memo?.db?.AwsTargetGroup ?  Object.values(ctx.memo?.db?.AwsTargetGroup) : await AwsElbModule.mappers.targetGroup.db.read(ctx);
+          const targetGroup = targetGroups.find((tg: any) => tg.targetGroupArn === slb.targetGroupArn);
           if (targetGroup?.targetGroupArn) {
             slb2.targetGroup = targetGroup;
           } else {
-            if (ctx.memo?.db?.AwsTargetGroup?.[slb.targetGroupArn]) {
-              delete ctx.memo.db.AwsTargetGroup[slb.targetGroupArn];
-            }
+            throw new Error('Target groups need to be loaded first')
           }
         }
         return slb2;
@@ -160,8 +154,12 @@ export const AwsEcsModule: Module = new Module({
         const networkConf = s.networkConfiguration.awsvpcConfiguration;
         const awsVpcConf = new AwsVpcConf();
         awsVpcConf.assignPublicIp = networkConf.assignPublicIp;
-        awsVpcConf.securityGroups = await Promise.all(networkConf.securityGroups?.map(async (sg: string) =>
-          ctx.memo?.db?.AwsSecurityGroup?.[sg] ?? await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg)) ?? []);
+        const securityGroups = ctx.memo?.db?.AwsSecurityGroup ? Object.values(ctx.memo?.db?.AwsSecurityGroup) : await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx);
+        awsVpcConf.securityGroups = networkConf.securityGroups?.map((sg: string) => {
+          const securityGroup = securityGroups.find((g: any) => g.groupId === sg);
+          if (!securityGroup) throw new Error('Security groups need to be loaded first');
+          return securityGroup;
+        }) ?? [];
         awsVpcConf.subnets = await Promise.all(networkConf.subnets?.map(async (sn: string) =>
           ctx.memo?.db?.AwsSubnets?.[sn] ?? await AwsAccount.mappers.subnet.db.read(ctx, sn)) ?? []);
         out.network = awsVpcConf;
@@ -169,7 +167,10 @@ export const AwsEcsModule: Module = new Module({
       out.schedulingStrategy = s.schedulingStrategy as SchedulingStrategy;
       out.status = s.status;
       if (s.taskDefinition) {
-        out.task = ctx.memo?.cloud?.TaskDefinition?.[s.taskDefinition] ?? await AwsEcsModule.mappers.taskDefinition.cloud.read(ctx, s.taskDefinition);
+        const taskDefinitions = ctx.memo?.cloud?.TaskDefinition ? Object.values(ctx.memo?.cloud?.TaskDefinition) : await AwsEcsModule.mappers.taskDefinition.cloud.read(ctx);
+        const taskDefinition = taskDefinitions.find((t: any) => t.taskDefinitionArn === s.taskDefinition);
+        if (!taskDefinition) throw new Error('Task definitions need to be loaded first');
+        out.task = taskDefinition;
       }
       return out;
     },
@@ -291,7 +292,6 @@ export const AwsEcsModule: Module = new Module({
           const es = Array.isArray(e) ? e : [e];
           // Deduplicate Compatibility ahead of time, preserving an ID if it exists
           const compatibilities: { [key: string]: Compatibility, } = {};
-          const containers: { [key: string]: Container, } = {};
           es.forEach((entity: TaskDefinition) => {
             if (entity.reqCompatibilities) {
               entity.reqCompatibilities.forEach(rc => {
@@ -301,27 +301,11 @@ export const AwsEcsModule: Module = new Module({
                 rc = compatibilities[name];
               })
             }
-            if (entity.containers) {
-              entity.containers.forEach(c => {
-                const name: any = c.name;
-                containers[name] = containers[name] ?? c;
-                if (c.id) containers[name].id = c.id;
-                c = containers[name];
-              })
-            }
           });
           await ctx.orm.save(Compatibility, Object.values(compatibilities));
-          await ctx.orm.save(Container, Object.values(containers));
-          const savedContainers = await ctx.orm.find(Container);
+          await Promise.all(es.map(async (entity: TaskDefinition) => ctx.orm.save(ContainerDefinition, entity.containers)));
           const savedCompatibilities = await ctx.orm.find(Compatibility);
           es.forEach(entity => {
-            if (entity.containers?.length) {
-              entity.containers.forEach(ec => {
-                const c = savedContainers.find((sc: any) => sc.name === ec.name);
-                if (!c.id) throw new Error('Container need to be loaded first');
-                ec.id = c.id;
-              })
-            }
             if (entity.reqCompatibilities?.length) {
               entity.reqCompatibilities.forEach(rc => {
                 const c = savedCompatibilities.find((sc: any) => sc.name === rc.name);
@@ -357,11 +341,11 @@ export const AwsEcsModule: Module = new Module({
             }
           });
           await ctx.orm.save(Compatibility, Object.values(compatibilities));
-          es.map(async (entity: TaskDefinition) => {
+          await Promise.all(es.map(async (entity: TaskDefinition) => {
             if (entity.containers) {
-              await ctx.orm.save(Container, entity.containers);
+              await ctx.orm.save(ContainerDefinition, entity.containers);
             }
-          });
+          }));
           await ctx.orm.save(TaskDefinition, es);
         },
         delete: async (c: TaskDefinition | TaskDefinition[], ctx: Context) => { await ctx.orm.remove(TaskDefinition, c); },
@@ -415,6 +399,14 @@ export const AwsEcsModule: Module = new Module({
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database.
             newEntity.id = e.id;
+            // Keep container definition ids to avoid duplicates
+            e.containers?.forEach(c => {
+              newEntity?.containers?.forEach((nc: any) => {
+                if (nc.name === c.name) {
+                  nc.id = c.id;
+                }
+              })
+            });
             // Save the record back into the database to get the new fields updated
             await AwsEcsModule.mappers.taskDefinition.db.update(newEntity, ctx);
             return newEntity;
@@ -640,7 +632,7 @@ export const AwsEcsModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEcs1639048875525.prototype.up,
-    preremove: awsEcs1639048875525.prototype.down,
+    postinstall: awsEcs1639139612537.prototype.up,
+    preremove: awsEcs1639139612537.prototype.down,
   },
 });
