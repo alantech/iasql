@@ -79,7 +79,6 @@ export const baseConnConfig: PostgresConnectionOptions = {
 // TODO: #2, also try to roll back the `GRANT CREATE` to something a bit narrower in the future
 export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
   // Only do this if a0 is enabled. Otherwise, you cannot grant these privileges to the default postgres user, the query gets stuck
-  console.log(config);
   return config.a0Enabled ? `
     CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
     GRANT CONNECT ON DATABASE ${dbId} TO ${user};
