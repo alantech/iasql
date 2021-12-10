@@ -101,8 +101,6 @@ export function grantPostgresRoleQuery(user: string) {
 
 export function dropPostgresRoleQuery(user: string) {
   // Only do this if a0 is enabled. Otherwise, you cannot grant these privileges to the default postgres user, the query gets stuck
-  console.log('config');
-  console.log(config);
   return config.a0Enabled ? `
     DROP ROLE IF EXISTS ${user};
   ` : '';
