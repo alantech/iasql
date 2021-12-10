@@ -37,8 +37,8 @@ do $$
     iasql_postgres_rds_db_az text := 'us-east-2a';
     iasql_db_host text := 'db.iasql.com';
     iasql_db_user text := 'iasql';
-    iasql_db_password text;  -- Do not commit db password value
-    iasql_ip_secret text; -- Do not commit ip secret value
+    iasql_db_password text := '<DB_PASSWORD>';  -- Do not commit db password value
+    iasql_ip_secret text := '<IRONPLANS_TOKEN>'; -- Do not commit ip secret value
     iasql_a0_enabled text := 'true';
     iasql_a0_domain text := 'https://auth.iasql.com/';
     iasql_a0_audience text := 'https://api.iasql.com';
@@ -81,7 +81,7 @@ do $$
 
     call create_container_definition(
       iasql_engine_container, true, iasql_engine_container_memory_reservation, iasql_engine_port, iasql_engine_port, 'tcp',
-      ('{"PORT": ' || iasql_engine_port || ', "DB_HOST": "' || iasql_db_host || '", "DB_USER": "' || iasql_db_user || '", "A0_ENABLED": "' || iasql_a0_enabled || '", "A0_DOMAIN": "' || iasql_a0_domain || '", "A0_AUDIENCE": "' || iasql_a0_audience || '"}')::json, iasql_engine_image_tag,
+      ('{"PORT": ' || iasql_engine_port || ', "DB_HOST": "' || iasql_db_host || '", "DB_USER": "' || iasql_db_user || '", "A0_ENABLED": "' || iasql_a0_enabled || '", "A0_DOMAIN": "' || iasql_a0_domain || '", "A0_AUDIENCE": "' || iasql_a0_audience || '", "DB_PASSWORD": "' || iasql_db_password || '", "IRONPLANS_TOKEN": "' || iasql_ip_secret || '"}')::json, iasql_engine_image_tag,
       _ecr_repository_name := iasql_engine_repository, _cloud_watch_log_group := iasql_engine_cloud_watch_log_group
     );
 
