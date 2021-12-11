@@ -77,6 +77,18 @@ export const AwsSecurityGroupModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(sg) ? sg : [sg];
           const out = await Promise.all(es.map(async (e) => {
+            // Special behavior here. You can't delete the 'default' security group, so if you're
+            // trying to create it, something is seriously wrong.
+            if (e.groupName === 'default') {
+              // First, delete this bad record
+              ctx.orm.remove(AwsSecurityGroup, e);
+              // We're just gonna get the actual AWS entry for the default security group and
+              // return that instead
+              const actualEntity = ctx?.memo?.cloud?.AwsSecurityGroup?.find(
+                (a: AwsSecurityGroup) => a.groupName === 'default'
+              );
+              return actualEntity;
+            }
             // First construct the security group
             const result = await client.createSecurityGroup({
               Description: e.description,
@@ -130,28 +142,43 @@ export const AwsSecurityGroupModule: Module = new Module({
         update: async (sg: AwsSecurityGroup | AwsSecurityGroup[], ctx: Context) => {
           const es = Array.isArray(sg) ? sg : [sg];
           return await Promise.all(es.map(async (e) => {
-            // AWS does not have a way to update the top-level SecurityGroup entity. You can update
-            // the various rules associated with it, but not the name or description of the
-            // SecurityGroup itself. This may seem counter-intuitive, but we only need to create the
-            // security group in AWS and *eventually* the old one will be removed. Why? Because on
-            // the second pass of the checking algorithm (it always performs another pass if it
-            // performed any change, and only stops once it determines nothing needs to be changed
-            // anymore), it will see a security group in AWS that it doesn't have a record for and
-            // then remove it since the database is supposed to be the source of truth. Further,
-            // because of the relations to the security group being by internal ID in the database
-            // instead of the string ID, anything depending on the old security group will be moved
-            // to the new one on the second pass. However, there is a unique constraint on the
-            // `GroupName`, so a temporary state with a random name may be necessary, so we
-            // try-catch this call and mutate as necessary.
-            try {
-              return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
-            } catch (_) {
-              // We mutate the `GroupName` to something unique and unlikely to collide (we should be
-              // too slow to ever collide at a millisecond level). This path doesn't save back to
-              // the DB like create does (at least right now, if that changes, we need to rethink
-              // this logic here)
-              e.groupName = Date.now().toString();
-              return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
+            // Special behavior here. You're not allowed to mess with the "default" SecurityGroup.
+            // You can mess with its rules, but not this record itself, so any attempt to update it
+            // is instead turned into *restoring* the value in the database to match the cloud value
+            if (e.groupName === 'default') {
+              const cloudRecord = ctx?.memo?.cloud?.AwsSecurityGroup?.[e.groupId ?? ''];
+              await AwsSecurityGroupModule.mappers.securityGroup.db.update(cloudRecord, ctx);
+              const rules = ctx?.memo?.cloud?.AwsSecurityGroupRule ?? [];
+              const relevantRules = rules.filter(
+                (r: AwsSecurityGroupRule) => r.securityGroup.groupId === e.groupId
+              );
+              if (relevantRules.length > 0) {
+                await AwsSecurityGroupModule.mappers.securityGroupRule.db.update(relevantRules, ctx);
+              }
+            } else {
+              // AWS does not have a way to update the top-level SecurityGroup entity. You can
+              // update the various rules associated with it, but not the name or description of the
+              // SecurityGroup itself. This may seem counter-intuitive, but we only need to create
+              // the security group in AWS and *eventually* the old one will be removed. Why?
+              // Because on the second pass of the checking algorithm (it always performs another
+              // pass if it performed any change, and only stops once it determines nothing needs to
+              // be changed anymore), it will see a security group in AWS that it doesn't have a
+              // record for and then remove it since the database is supposed to be the source of
+              // truth. Further, because of the relations to the security group being by internal ID
+              // in the database instead of the string ID, anything depending on the old security
+              // group will be moved to the new one on the second pass. However, there is a unique
+              // constraint on the `GroupName`, so a temporary state with a random name may be
+              // necessary, so we try-catch this call and mutate as necessary.
+              try {
+                return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
+              } catch (_) {
+                // We mutate the `GroupName` to something unique and unlikely to collide (we should
+                // be too slow to ever collide at a millisecond level). This path doesn't save back
+                // to the DB like create does (at least right now, if that changes, we need to
+                // rethink this logic here)
+                e.groupName = Date.now().toString();
+                return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
+              }
             }
           }));
         },
@@ -159,14 +186,33 @@ export const AwsSecurityGroupModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(sg) ? sg : [sg];
           await Promise.all(es.map(async (e) => {
-            await client.deleteSecurityGroup({
-              GroupId: e.groupId,
-            });
-            // Also need to delete the security group rules associated with this security group,
-            // if any
-            const rules = await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx);
-            const relevantRules = rules.filter((r: AwsSecurityGroupRule) => r.securityGroup.groupId === e.groupId);
-            await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(relevantRules, ctx);
+            // Special behavior here. You're not allowed to mess with the "default" SecurityGroup.
+            // You can mess with its rules, but not this record itself, so any attempt to update it
+            // is instead turned into *restoring* the value in the database to match the cloud value
+            if (e.groupName === 'default') {
+              // For delete, we have un-memoed the record, but the record passed in *is* the one
+              // we're interested in, which makes it a bit simpler here
+              const cloudRecord = e;
+              await AwsSecurityGroupModule.mappers.securityGroup.db.update(cloudRecord, ctx);
+              const rules = ctx?.memo?.cloud?.AwsSecurityGroupRule ?? [];
+              const relevantRules = rules.filter(
+                (r: AwsSecurityGroupRule) => r.securityGroup.groupId === e.groupId
+              );
+              if (relevantRules.length > 0) {
+                await AwsSecurityGroupModule.mappers.securityGroupRule.db.update(relevantRules, ctx);
+              }
+            } else {
+              await client.deleteSecurityGroup({
+                GroupId: e.groupId,
+              });
+              // Also need to delete the security group rules associated with this security group,
+              // if any
+              const rules = await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx);
+              const relevantRules = rules.filter(
+                (r: AwsSecurityGroupRule) => r.securityGroup.groupId === e.groupId
+              );
+              await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(relevantRules, ctx);
+            }
           }));
         },
       }),
