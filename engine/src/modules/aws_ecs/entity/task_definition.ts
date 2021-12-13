@@ -5,7 +5,7 @@ import {
   ManyToMany,
   JoinTable,
 } from 'typeorm';
-import { Container, Compatibility } from '.';
+import { ContainerDefinition, Compatibility } from '.';
 
 export enum NetworkMode {
   AWSVPC = "awsvpc",
@@ -82,9 +82,9 @@ export class TaskDefinition {
   })
   taskDefinitionArn?: string;
 
-  @ManyToMany(() => Container)
+  @ManyToMany(() => ContainerDefinition)
   @JoinTable()
-  containers: Container[];
+  containers: ContainerDefinition[];
 
   @Column()
   family: string;

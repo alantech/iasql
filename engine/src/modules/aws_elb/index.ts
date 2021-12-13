@@ -22,7 +22,7 @@ import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsElb1637666608609, } from './migration/1637666608609-aws_elb'
 import { AwsAccount, AwsSecurityGroupModule } from '..'
 import { AvailabilityZone, AwsSubnet } from '../aws_account/entity'
-import { DepError } from '../../services/lazy-dep'
+import { AwsSecurityGroup } from '../aws_security_group/entity'
 
 export const AwsElbModule: Module = new Module({
   name: 'aws_elb',
@@ -36,10 +36,13 @@ export const AwsElbModule: Module = new Module({
     actionMapper: async (a: Action, ctx: Context) => {
       const out = new AwsAction();
       if (!a?.Type || !a?.TargetGroupArn) {
-        throw new Error('Listerner action not defined properly');
+        throw new Error('Listener\'s default action not defined properly');
       }
       out.actionType = (a.Type as ActionTypeEnum);
-      out.targetGroup = ctx.memo?.db?.TargetGroup?.[a?.TargetGroupArn] ?? await AwsElbModule.mappers.targetGroup.db.read(ctx, a.TargetGroupArn);
+      const targetGroups = ctx.memo?.db?.TargetGroup ? Object.values(ctx.memo?.db?.TargetGroup) : await AwsElbModule.mappers.targetGroup.db.read(ctx);
+      const targetGroup = targetGroups?.find((tg: any) => tg.targetGroupArn === a?.TargetGroupArn);
+      if (!targetGroup) throw new Error('Target groups need to be loaded first');
+      out.targetGroup = targetGroup;
       return out;
     },
     listenerMapper: async (l: Listener, ctx: Context) => {
@@ -76,7 +79,12 @@ export const AwsElbModule: Module = new Module({
       out.scheme = lb.Scheme as LoadBalancerSchemeEnum;
       out.state = lb.State?.Code as LoadBalancerStateEnum;
       out.loadBalancerType = lb.Type as LoadBalancerTypeEnum;
-      out.securityGroups = await Promise.all(lb.SecurityGroups?.map(sg => ctx.memo?.db?.AwsSecurityGroup?.[sg] ?? AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg)) ?? []);
+      const securityGroups = ctx.memo?.db?.AwsSecurityGroup ? Object.values(ctx.memo?.db?.AwsSecurityGroup) : await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx);
+      out.securityGroups = lb.SecurityGroups?.map((sg: string) => {
+        const r = securityGroups.find((g: any) => g.groupId === sg) as AwsSecurityGroup;
+        if (!r) throw new Error('Security groups need to be loaded');
+        return r;
+      });
       out.ipAddressType = lb.IpAddressType as IpAddressType;
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
       out.vpc = ctx.memo?.db?.AwsVpc?.[lb.VpcId] ?? await AwsAccount.mappers.vpc.db.read(ctx, lb.VpcId);
@@ -132,7 +140,7 @@ export const AwsElbModule: Module = new Module({
           for (const e of es) {
             if (!e.loadBalancer.id) {
               const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
-              if (!lb.id) throw new DepError('Error retrieving generated column');
+              if (!lb.id) throw new Error('Error retrieving generated column');
               e.loadBalancer.id = lb.id;
             }
             for (const da of e.defaultActions ?? []) {
@@ -152,7 +160,7 @@ export const AwsElbModule: Module = new Module({
           await ctx.orm.save(AwsListener, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const relations = ["loadBalancer"];
+          const relations = ['loadBalancer', 'defaultActions', 'defaultActions.targetGroup'];
           const opts = id ? {
             where: {
               listenerArn: Array.isArray(id) ? In(id) : id,
@@ -166,7 +174,7 @@ export const AwsElbModule: Module = new Module({
           for (const e of es) {
             if (!e.loadBalancer.id) {
               const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
-              if (!lb.id) throw new DepError('Error retrieving generated column');
+              if (!lb.id) throw new Error('Error retrieving generated column');
               e.loadBalancer.id = lb.id;
             }
             for (const da of e.defaultActions ?? []) {
@@ -177,7 +185,7 @@ export const AwsElbModule: Module = new Module({
                   },
                   relations: ['targetGroup'],
                 });
-                if (!a.id) throw new DepError('Error retrieving generated column');
+                if (!a.id) throw new Error('Error retrieving generated column');
                 da.id = a.id;
               }
             }
@@ -279,6 +287,7 @@ export const AwsElbModule: Module = new Module({
             for (const sg of e.securityGroups ?? []) {
               if (!sg.id) {
                 const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
+                if (!g?.id) throw new Error('Security groups need to be loaded first');
                 sg.id = g.id;
               }
             }
@@ -318,27 +327,27 @@ export const AwsElbModule: Module = new Module({
             for (const sg of e.securityGroups ?? []) {
               if (!sg.id) {
                 const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
-                if (!g.id) throw new DepError('Error retrieving generated column');
+                if (!g?.id) throw new Error('Security Groups need to be loaded first');
                 sg.id = g.id;
               }
             }
             for (const sn of e.subnets ?? []) {
               if (!sn.id) {
                 const s = await AwsAccount.mappers.subnet.db.read(ctx, sn.subnetId);
-                if (!s.id) throw new DepError('Error retrieving generated column');
+                if (!s.id) throw new Error('Error retrieving generated column');
                 sn.id = s.id;
               }
             }
             if (!e.vpc.id) {
               const v = await AwsAccount.mappers.vpc.db.read(ctx, e.vpc.vpcId);
-              if (!v.id) throw new DepError('Error retrieving generated column');
+              if (!v.id) throw new Error('Error retrieving generated column');
               e.vpc.id = v.id;
             }
             for (const az of e.availabilityZones ?? []) {
               if (!az.id) {
                 const availabilityZones = ctx.memo?.db?.AvailabilityZone ? Object.values(ctx.memo?.db?.AvailabilityZone) : await AwsAccount.mappers.availabilityZone.db.read(ctx);
                 const z = availabilityZones.find((a: any) => a.zoneName === az.zoneName);
-                if (!z.id) throw new DepError('Error retrieving generated column');
+                if (!z.id) throw new Error('Error retrieving generated column');
                 az.id = z.id;
               }
             }
@@ -352,13 +361,14 @@ export const AwsElbModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(lb) ? lb : [lb];
           const out = await Promise.all(es.map(async (e) => {
+            const securityGroups = e.securityGroups?.map(sg => {
+              if (!sg.groupId) throw new Error('Security group need to be loaded first');
+              return sg.groupId;
+            });
             const result = await client.createLoadBalancer({
               Name: e.loadBalancerName,
               Subnets: e.subnets?.map(sn => sn.subnetId!),
-              SecurityGroups: e.securityGroups?.map(sg => {
-                if (!sg.groupId) throw new DepError('Security group need to be loaded first');
-                return sg.groupId;
-              }),
+              SecurityGroups: securityGroups,
               Scheme: e.scheme,
               Type: e.loadBalancerType,
               IpAddressType: e.ipAddressType,
@@ -449,7 +459,7 @@ export const AwsElbModule: Module = new Module({
           for (const e of es) {
             if (!e.vpc.id) {
               const v = await AwsAccount.mappers.vpc.db.read(ctx, e.vpc.vpcId);
-              if (!v.id) throw new DepError('Error retrieving generated column')
+              if (!v.id) throw new Error('Error retrieving generated column')
               e.vpc.id = v.id;
             }
           }
@@ -470,7 +480,7 @@ export const AwsElbModule: Module = new Module({
           for (const e of es) {
             if (!e.vpc.id) {
               const v = await AwsAccount.mappers.vpc.db.read(ctx, e.vpc.vpcId);
-              if (!v.id) throw new DepError('Error retrieving generated column')
+              if (!v.id) throw new Error('Error retrieving generated column')
               e.vpc.id = v.id;
             }
           }

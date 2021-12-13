@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEcs1639048875525 implements MigrationInterface {
-    name = 'awsEcs1639048875525'
+export class awsEcs1639139612537 implements MigrationInterface {
+    name = 'awsEcs1639139612537'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."aws_vpc_conf_assign_public_ip_enum" AS ENUM('DISABLED', 'ENABLED')`);
@@ -12,7 +12,7 @@ export class awsEcs1639048875525 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "env_variable" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "value" character varying NOT NULL, CONSTRAINT "PK_87fd48bd952a768fcf07b9c9ff5" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."port_mapping_protocol_enum" AS ENUM('tcp', 'udp')`);
         await queryRunner.query(`CREATE TABLE "port_mapping" ("id" SERIAL NOT NULL, "container_port" integer, "host_port" integer, "protocol" "public"."port_mapping_protocol_enum" NOT NULL, CONSTRAINT "PK_d39258100f33186bb74757e25d0" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "container" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "docker_image" character varying, "tag" character varying NOT NULL, "essential" boolean NOT NULL DEFAULT false, "cpu" integer, "memory" integer, "memory_reservation" integer, "repository_id" integer, "log_group_id" integer, CONSTRAINT "UQ_14f850c34e63edcdfd0aa66d316" UNIQUE ("name"), CONSTRAINT "CHK_4a442d3380af1328ebdd9b4154" CHECK ("docker_image" is not null or "repository_id" is not null), CONSTRAINT "PK_74656f796df3346fa6ec89fa727" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "container_definition" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "docker_image" character varying, "tag" character varying NOT NULL, "essential" boolean NOT NULL DEFAULT false, "cpu" integer, "memory" integer, "memory_reservation" integer, "repository_id" integer, "log_group_id" integer, CONSTRAINT "CHK_b653e12fefb5d2a2936e2a6426" CHECK ("docker_image" is not null or "repository_id" is not null), CONSTRAINT "PK_79458e199ec6b2264a0735fd99e" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."service_launch_type_enum" AS ENUM('EC2', 'EXTERNAL', 'FARGATE')`);
         await queryRunner.query(`CREATE TYPE "public"."service_scheduling_strategy_enum" AS ENUM('DAEMON', 'REPLICA')`);
         await queryRunner.query(`CREATE TABLE "service" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "status" character varying, "desired_count" integer NOT NULL, "launch_type" "public"."service_launch_type_enum" NOT NULL, "scheduling_strategy" "public"."service_scheduling_strategy_enum" NOT NULL, "cluster_id" integer, "task_definition_id" integer, "aws_vpc_conf_id" integer, CONSTRAINT "UQ_7806a14d42c3244064b4a1706ca" UNIQUE ("name"), CONSTRAINT "REL_aeef40fe1f9b32afe23174bb9a" UNIQUE ("aws_vpc_conf_id"), CONSTRAINT "PK_85a21558c006647cd76fdce044b" PRIMARY KEY ("id"))`);
@@ -27,23 +27,23 @@ export class awsEcs1639048875525 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "aws_vpc_conf_security_groups_aws_security_group" ("aws_vpc_conf_id" integer NOT NULL, "aws_security_group_id" integer NOT NULL, CONSTRAINT "PK_381c06538cc2ceecfc32c5d1d0d" PRIMARY KEY ("aws_vpc_conf_id", "aws_security_group_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_8116cb0c3612c3d1aaffbb8668" ON "aws_vpc_conf_security_groups_aws_security_group" ("aws_vpc_conf_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_aac9c17252dad57f56f18df04c" ON "aws_vpc_conf_security_groups_aws_security_group" ("aws_security_group_id") `);
-        await queryRunner.query(`CREATE TABLE "container_port_mappings_port_mapping" ("container_id" integer NOT NULL, "port_mapping_id" integer NOT NULL, CONSTRAINT "PK_86bba0922c06aa2d94b3c4b6bcb" PRIMARY KEY ("container_id", "port_mapping_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_4f24b4df268d81f6b0d7332955" ON "container_port_mappings_port_mapping" ("container_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_d191532cf18e6888e27a8c13e4" ON "container_port_mappings_port_mapping" ("port_mapping_id") `);
-        await queryRunner.query(`CREATE TABLE "container_environment_env_variable" ("container_id" integer NOT NULL, "env_variable_id" integer NOT NULL, CONSTRAINT "PK_b85f80a4400af9ce2478c06baca" PRIMARY KEY ("container_id", "env_variable_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_63d6af02003fa2878f4928aa39" ON "container_environment_env_variable" ("container_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_d0380f31a79b12d5840246dbfa" ON "container_environment_env_variable" ("env_variable_id") `);
+        await queryRunner.query(`CREATE TABLE "container_definition_port_mappings_port_mapping" ("container_definition_id" integer NOT NULL, "port_mapping_id" integer NOT NULL, CONSTRAINT "PK_cd68e8ce9f3e67cc4c5d7594261" PRIMARY KEY ("container_definition_id", "port_mapping_id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_1c9e7dd2ccbf3da95dc83aade5" ON "container_definition_port_mappings_port_mapping" ("container_definition_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_cf0edf6692e95228082e81bd11" ON "container_definition_port_mappings_port_mapping" ("port_mapping_id") `);
+        await queryRunner.query(`CREATE TABLE "container_definition_environment_env_variable" ("container_definition_id" integer NOT NULL, "env_variable_id" integer NOT NULL, CONSTRAINT "PK_3a96c31ab1a8d525e39bd193279" PRIMARY KEY ("container_definition_id", "env_variable_id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_5db64a61c31484513dd1507099" ON "container_definition_environment_env_variable" ("container_definition_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_8bcc496c6c0336cb275758ec97" ON "container_definition_environment_env_variable" ("env_variable_id") `);
         await queryRunner.query(`CREATE TABLE "service_load_balancers_service_load_balancer" ("service_id" integer NOT NULL, "service_load_balancer_id" integer NOT NULL, CONSTRAINT "PK_76e9299dcd9aa45dc8838447d6d" PRIMARY KEY ("service_id", "service_load_balancer_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_07133468e6971294c9960d7b25" ON "service_load_balancers_service_load_balancer" ("service_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_e6e5bf1aa2a280f96dd7afaf7e" ON "service_load_balancers_service_load_balancer" ("service_load_balancer_id") `);
-        await queryRunner.query(`CREATE TABLE "task_definition_containers_container" ("task_definition_id" integer NOT NULL, "container_id" integer NOT NULL, CONSTRAINT "PK_0f4d88ef28c8dd5c832f6b59455" PRIMARY KEY ("task_definition_id", "container_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_150cf61597f886a39e6c4a60e3" ON "task_definition_containers_container" ("task_definition_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_8645e90b3981ca6e9e5e3c213b" ON "task_definition_containers_container" ("container_id") `);
+        await queryRunner.query(`CREATE TABLE "task_definition_containers_container_definition" ("task_definition_id" integer NOT NULL, "container_definition_id" integer NOT NULL, CONSTRAINT "PK_71f4fa65784389868575144e940" PRIMARY KEY ("task_definition_id", "container_definition_id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_b52ff2172cca7171edecacf99c" ON "task_definition_containers_container_definition" ("task_definition_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_9e80552f2df19a542a657b6759" ON "task_definition_containers_container_definition" ("container_definition_id") `);
         await queryRunner.query(`CREATE TABLE "task_definition_req_compatibilities_compatibility" ("task_definition_id" integer NOT NULL, "compatibility_id" integer NOT NULL, CONSTRAINT "PK_baf64abcea837eac4b5a95a63d9" PRIMARY KEY ("task_definition_id", "compatibility_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_0909ccc9eddf3c92a777291256" ON "task_definition_req_compatibilities_compatibility" ("task_definition_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_f19b7360a189526c59b4387a95" ON "task_definition_req_compatibilities_compatibility" ("compatibility_id") `);
-        await queryRunner.query(`ALTER TABLE "container" ADD CONSTRAINT "FK_50a8e46cefb58596f984657aa54" FOREIGN KEY ("repository_id") REFERENCES "aws_repository"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "container" ADD CONSTRAINT "FK_8c282c3d4495a970477de88bf44" FOREIGN KEY ("log_group_id") REFERENCES "log_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "container_definition" ADD CONSTRAINT "FK_c0c1887e471b1f7c33007a2f420" FOREIGN KEY ("repository_id") REFERENCES "aws_repository"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "container_definition" ADD CONSTRAINT "FK_88e7fb5cc14188b19b08d7e305d" FOREIGN KEY ("log_group_id") REFERENCES "log_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "service" ADD CONSTRAINT "FK_b1570c701dd1adce1391f2f25e7" FOREIGN KEY ("cluster_id") REFERENCES "cluster"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "service" ADD CONSTRAINT "FK_4518e1b3072a8f68c3bc747338e" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "service" ADD CONSTRAINT "FK_aeef40fe1f9b32afe23174bb9af" FOREIGN KEY ("aws_vpc_conf_id") REFERENCES "aws_vpc_conf"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
@@ -53,14 +53,14 @@ export class awsEcs1639048875525 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "aws_vpc_conf_subnets_aws_subnet" ADD CONSTRAINT "FK_57c773d400b4b807bb63e167c57" FOREIGN KEY ("aws_subnet_id") REFERENCES "aws_subnet"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "aws_vpc_conf_security_groups_aws_security_group" ADD CONSTRAINT "FK_8116cb0c3612c3d1aaffbb86683" FOREIGN KEY ("aws_vpc_conf_id") REFERENCES "aws_vpc_conf"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "aws_vpc_conf_security_groups_aws_security_group" ADD CONSTRAINT "FK_aac9c17252dad57f56f18df04cb" FOREIGN KEY ("aws_security_group_id") REFERENCES "aws_security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "container_port_mappings_port_mapping" ADD CONSTRAINT "FK_4f24b4df268d81f6b0d73329557" FOREIGN KEY ("container_id") REFERENCES "container"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "container_port_mappings_port_mapping" ADD CONSTRAINT "FK_d191532cf18e6888e27a8c13e4d" FOREIGN KEY ("port_mapping_id") REFERENCES "port_mapping"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "container_environment_env_variable" ADD CONSTRAINT "FK_63d6af02003fa2878f4928aa39d" FOREIGN KEY ("container_id") REFERENCES "container"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "container_environment_env_variable" ADD CONSTRAINT "FK_d0380f31a79b12d5840246dbfa6" FOREIGN KEY ("env_variable_id") REFERENCES "env_variable"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "container_definition_port_mappings_port_mapping" ADD CONSTRAINT "FK_1c9e7dd2ccbf3da95dc83aade5d" FOREIGN KEY ("container_definition_id") REFERENCES "container_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "container_definition_port_mappings_port_mapping" ADD CONSTRAINT "FK_cf0edf6692e95228082e81bd11b" FOREIGN KEY ("port_mapping_id") REFERENCES "port_mapping"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "container_definition_environment_env_variable" ADD CONSTRAINT "FK_5db64a61c31484513dd1507099e" FOREIGN KEY ("container_definition_id") REFERENCES "container_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "container_definition_environment_env_variable" ADD CONSTRAINT "FK_8bcc496c6c0336cb275758ec97e" FOREIGN KEY ("env_variable_id") REFERENCES "env_variable"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "service_load_balancers_service_load_balancer" ADD CONSTRAINT "FK_07133468e6971294c9960d7b25a" FOREIGN KEY ("service_id") REFERENCES "service"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "service_load_balancers_service_load_balancer" ADD CONSTRAINT "FK_e6e5bf1aa2a280f96dd7afaf7ec" FOREIGN KEY ("service_load_balancer_id") REFERENCES "service_load_balancer"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "task_definition_containers_container" ADD CONSTRAINT "FK_150cf61597f886a39e6c4a60e3a" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "task_definition_containers_container" ADD CONSTRAINT "FK_8645e90b3981ca6e9e5e3c213b2" FOREIGN KEY ("container_id") REFERENCES "container"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "task_definition_containers_container_definition" ADD CONSTRAINT "FK_b52ff2172cca7171edecacf99c7" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "task_definition_containers_container_definition" ADD CONSTRAINT "FK_9e80552f2df19a542a657b67595" FOREIGN KEY ("container_definition_id") REFERENCES "container_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" ADD CONSTRAINT "FK_0909ccc9eddf3c92a7772912562" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" ADD CONSTRAINT "FK_f19b7360a189526c59b4387a953" FOREIGN KEY ("compatibility_id") REFERENCES "compatibility"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         // Example of use: call create_ecs_cluster('test-sp');
@@ -89,11 +89,12 @@ export class awsEcs1639048875525 implements MigrationInterface {
             $$;
         `);
         // Example of use:
-        // docker image: call create_container_definition('test-sp', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4',_docker_image := 'postgres');
-        // ecr repository: call create_container_definition('test-sp2', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4',_ecr_repository_name := 'test2');
-        // error example: call create_container_definition('test-sp2', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4');
+        // docker image: call create_container_definition('task-test-sp', 'test-sp', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4',_docker_image := 'postgres');
+        // ecr repository: call create_container_definition('task-test-sp', 'test-sp2', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4',_ecr_repository_name := 'test2');
+        // error example: call create_container_definition('task-test-sp', 'test-sp2', false, 4096, 8080, 8080, 'tcp', '{"a": "123", "b": 456}', '13.4');
         await queryRunner.query(`
             create or replace procedure create_container_definition(
+                _task_definition_family text,
                 _name text,
                 _essential boolean,
                 _memory_reservation integer,
@@ -116,6 +117,7 @@ export class awsEcs1639048875525 implements MigrationInterface {
                     ev_id integer;
                     ecr_repository_id integer;
                     cw_log_group_id integer;
+                    td_id integer;
                 begin
             
                     assert (_docker_image is null and _ecr_repository_name is not null) or (_docker_image is not null and _ecr_repository_name is null), '_docker_image or _ecr_repository_name need to be defined';
@@ -131,23 +133,19 @@ export class awsEcs1639048875525 implements MigrationInterface {
                         where repository_name = _ecr_repository_name
                         limit 1;
             
-                        insert into container
+                        insert into container_definition
                             (name, repository_id, tag, essential, memory_reservation, log_group_id)
                         values
-                            (_name, ecr_repository_id, _image_tag, _essential, _memory_reservation, cw_log_group_id)
-                        on conflict (name)
-                        do update set repository_id = ecr_repository_id, tag = _image_tag, essential = _essential, memory_reservation = _memory_reservation;
+                            (_name, ecr_repository_id, _image_tag, _essential, _memory_reservation, cw_log_group_id);
                     else
-                        insert into container
+                        insert into container_definition
                             (name, docker_image, tag, essential, memory_reservation, log_group_id)
                         values
-                            (_name, _docker_image, _image_tag, _essential, _memory_reservation, cw_log_group_id)
-                        on conflict (name)
-                        do update set docker_image = _docker_image, tag = _image_tag, essential = _essential, memory_reservation = _memory_reservation;
+                            (_name, _docker_image, _image_tag, _essential, _memory_reservation, cw_log_group_id);
                     end if;
             
                     select id into c_id
-                    from container
+                    from container_definition
                     where name = _name
                     order by id desc
                     limit 1;
@@ -168,12 +166,12 @@ export class awsEcs1639048875525 implements MigrationInterface {
                         from port_mapping
                         order by id desc
                         limit 1;
-                        
-                        insert into container_port_mappings_port_mapping
-                            (container_id, port_mapping_id)
-                        values
-                            (c_id, pm_id);
                     end if;
+
+                    insert into container_definition_port_mappings_port_mapping
+                        (container_definition_id, port_mapping_id)
+                    values
+                        (c_id, pm_id);
             
                     for key, val in
                         select *
@@ -195,19 +193,29 @@ export class awsEcs1639048875525 implements MigrationInterface {
                             from env_variable
                             order by id desc
                             limit 1;
-                        
-                            insert into container_environment_env_variable
-                                (container_id, env_variable_id)
-                            values
-                                (c_id, ev_id);
                         end if;
+                        insert into container_definition_environment_env_variable
+                            (container_definition_id, env_variable_id)
+                        values
+                            (c_id, ev_id);
                     end loop;
+
+                    select id into td_id
+                    from task_definition
+                    where family = _task_definition_family
+                    order by revision desc
+                    limit 1;
+
+                    insert into task_definition_containers_container_definition
+                        (task_definition_id, container_definition_id)
+                    values
+                        (td_id, c_id);
             
-                    raise info 'container_id = %', c_id;
+                    raise info 'container_definition_id = %', c_id;
                 end;
             $$;
         `);
-        // Example of use: call create_task_definition('test-sp', 'arn', 'arn', 'awsvpc', array['FARGATE', 'EXTERNAL']::compatibility_name_enum[], '0.5vCPU-4GB', array['postgresql']);
+        // Example of use: call create_task_definition('test-sp', 'arn', 'arn', 'awsvpc', array['FARGATE', 'EXTERNAL']::compatibility_name_enum[], '0.5vCPU-4GB');
         await queryRunner.query(`
             create or replace procedure create_task_definition(
                 _family text,
@@ -215,8 +223,7 @@ export class awsEcs1639048875525 implements MigrationInterface {
                 _execution_role_arn text,
                 _network_mode task_definition_network_mode_enum,
                 _req_compatibilities compatibility_name_enum[],
-                _cpu_memory task_definition_cpu_memory_enum,
-                _container_definition_names text[]
+                _cpu_memory task_definition_cpu_memory_enum
             )
             language plpgsql
             as $$ 
@@ -224,7 +231,6 @@ export class awsEcs1639048875525 implements MigrationInterface {
                 task_definition_id integer;
                 rev integer;
                 comp record;
-                cont record;
             begin
                 select revision into rev
                 from task_definition
@@ -233,9 +239,9 @@ export class awsEcs1639048875525 implements MigrationInterface {
                 limit 1;
             
                 if rev is null then
-                rev := 1;
+                    rev := 1;
                 else
-                rev := rev + 1;
+                    rev := rev + 1;
                 end if;
             
                 insert into task_definition
@@ -267,17 +273,6 @@ export class awsEcs1639048875525 implements MigrationInterface {
                         (task_definition_id, compatibility_id)
                     values
                         (task_definition_id, comp.id);
-                end loop;
-            
-                for cont in
-                    select id
-                    from container
-                    where name = any(_container_definition_names)
-                loop
-                    insert into task_definition_containers_container
-                        (task_definition_id, container_id)
-                    values
-                        (task_definition_id, cont.id);
                 end loop;
             
                 raise info 'task_definition_id = %', task_definition_id;
@@ -397,8 +392,8 @@ export class awsEcs1639048875525 implements MigrationInterface {
                         select c.name, pm.container_port into c_name, c_port
                         from task_definition td
                             left join task_definition_containers_container tdc on td.id = tdc.task_definition_id
-                            left join container c on c.id = tdc.container_id
-                            left join container_port_mappings_port_mapping cpm on cpm.container_id = c.id
+                            left join container_definition c on c.id = tdc.container_definition_id
+                            left join container_port_mappings_port_mapping cpm on cpm.container_definition_id = c.id
                             left join port_mapping pm on pm.id = cpm.port_mapping_id
                         where td.id = task_def_id
                         limit 1;
@@ -441,14 +436,14 @@ export class awsEcs1639048875525 implements MigrationInterface {
         await queryRunner.query(`DROP procedure create_ecs_cluster;`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" DROP CONSTRAINT "FK_f19b7360a189526c59b4387a953"`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" DROP CONSTRAINT "FK_0909ccc9eddf3c92a7772912562"`);
-        await queryRunner.query(`ALTER TABLE "task_definition_containers_container" DROP CONSTRAINT "FK_8645e90b3981ca6e9e5e3c213b2"`);
-        await queryRunner.query(`ALTER TABLE "task_definition_containers_container" DROP CONSTRAINT "FK_150cf61597f886a39e6c4a60e3a"`);
+        await queryRunner.query(`ALTER TABLE "task_definition_containers_container_definition" DROP CONSTRAINT "FK_9e80552f2df19a542a657b67595"`);
+        await queryRunner.query(`ALTER TABLE "task_definition_containers_container_definition" DROP CONSTRAINT "FK_b52ff2172cca7171edecacf99c7"`);
         await queryRunner.query(`ALTER TABLE "service_load_balancers_service_load_balancer" DROP CONSTRAINT "FK_e6e5bf1aa2a280f96dd7afaf7ec"`);
         await queryRunner.query(`ALTER TABLE "service_load_balancers_service_load_balancer" DROP CONSTRAINT "FK_07133468e6971294c9960d7b25a"`);
-        await queryRunner.query(`ALTER TABLE "container_environment_env_variable" DROP CONSTRAINT "FK_d0380f31a79b12d5840246dbfa6"`);
-        await queryRunner.query(`ALTER TABLE "container_environment_env_variable" DROP CONSTRAINT "FK_63d6af02003fa2878f4928aa39d"`);
-        await queryRunner.query(`ALTER TABLE "container_port_mappings_port_mapping" DROP CONSTRAINT "FK_d191532cf18e6888e27a8c13e4d"`);
-        await queryRunner.query(`ALTER TABLE "container_port_mappings_port_mapping" DROP CONSTRAINT "FK_4f24b4df268d81f6b0d73329557"`);
+        await queryRunner.query(`ALTER TABLE "container_definition_environment_env_variable" DROP CONSTRAINT "FK_8bcc496c6c0336cb275758ec97e"`);
+        await queryRunner.query(`ALTER TABLE "container_definition_environment_env_variable" DROP CONSTRAINT "FK_5db64a61c31484513dd1507099e"`);
+        await queryRunner.query(`ALTER TABLE "container_definition_port_mappings_port_mapping" DROP CONSTRAINT "FK_cf0edf6692e95228082e81bd11b"`);
+        await queryRunner.query(`ALTER TABLE "container_definition_port_mappings_port_mapping" DROP CONSTRAINT "FK_1c9e7dd2ccbf3da95dc83aade5d"`);
         await queryRunner.query(`ALTER TABLE "aws_vpc_conf_security_groups_aws_security_group" DROP CONSTRAINT "FK_aac9c17252dad57f56f18df04cb"`);
         await queryRunner.query(`ALTER TABLE "aws_vpc_conf_security_groups_aws_security_group" DROP CONSTRAINT "FK_8116cb0c3612c3d1aaffbb86683"`);
         await queryRunner.query(`ALTER TABLE "aws_vpc_conf_subnets_aws_subnet" DROP CONSTRAINT "FK_57c773d400b4b807bb63e167c57"`);
@@ -458,23 +453,23 @@ export class awsEcs1639048875525 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "service" DROP CONSTRAINT "FK_aeef40fe1f9b32afe23174bb9af"`);
         await queryRunner.query(`ALTER TABLE "service" DROP CONSTRAINT "FK_4518e1b3072a8f68c3bc747338e"`);
         await queryRunner.query(`ALTER TABLE "service" DROP CONSTRAINT "FK_b1570c701dd1adce1391f2f25e7"`);
-        await queryRunner.query(`ALTER TABLE "container" DROP CONSTRAINT "FK_8c282c3d4495a970477de88bf44"`);
-        await queryRunner.query(`ALTER TABLE "container" DROP CONSTRAINT "FK_50a8e46cefb58596f984657aa54"`);
+        await queryRunner.query(`ALTER TABLE "container_definition" DROP CONSTRAINT "FK_88e7fb5cc14188b19b08d7e305d"`);
+        await queryRunner.query(`ALTER TABLE "container_definition" DROP CONSTRAINT "FK_c0c1887e471b1f7c33007a2f420"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_f19b7360a189526c59b4387a95"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_0909ccc9eddf3c92a777291256"`);
         await queryRunner.query(`DROP TABLE "task_definition_req_compatibilities_compatibility"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_8645e90b3981ca6e9e5e3c213b"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_150cf61597f886a39e6c4a60e3"`);
-        await queryRunner.query(`DROP TABLE "task_definition_containers_container"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_9e80552f2df19a542a657b6759"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_b52ff2172cca7171edecacf99c"`);
+        await queryRunner.query(`DROP TABLE "task_definition_containers_container_definition"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_e6e5bf1aa2a280f96dd7afaf7e"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_07133468e6971294c9960d7b25"`);
         await queryRunner.query(`DROP TABLE "service_load_balancers_service_load_balancer"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_d0380f31a79b12d5840246dbfa"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_63d6af02003fa2878f4928aa39"`);
-        await queryRunner.query(`DROP TABLE "container_environment_env_variable"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_d191532cf18e6888e27a8c13e4"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_4f24b4df268d81f6b0d7332955"`);
-        await queryRunner.query(`DROP TABLE "container_port_mappings_port_mapping"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_8bcc496c6c0336cb275758ec97"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_5db64a61c31484513dd1507099"`);
+        await queryRunner.query(`DROP TABLE "container_definition_environment_env_variable"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_cf0edf6692e95228082e81bd11"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_1c9e7dd2ccbf3da95dc83aade5"`);
+        await queryRunner.query(`DROP TABLE "container_definition_port_mappings_port_mapping"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_aac9c17252dad57f56f18df04c"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_8116cb0c3612c3d1aaffbb8668"`);
         await queryRunner.query(`DROP TABLE "aws_vpc_conf_security_groups_aws_security_group"`);
@@ -489,7 +484,7 @@ export class awsEcs1639048875525 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "service"`);
         await queryRunner.query(`DROP TYPE "public"."service_scheduling_strategy_enum"`);
         await queryRunner.query(`DROP TYPE "public"."service_launch_type_enum"`);
-        await queryRunner.query(`DROP TABLE "container"`);
+        await queryRunner.query(`DROP TABLE "container_definition"`);
         await queryRunner.query(`DROP TABLE "port_mapping"`);
         await queryRunner.query(`DROP TYPE "public"."port_mapping_protocol_enum"`);
         await queryRunner.query(`DROP TABLE "env_variable"`);
