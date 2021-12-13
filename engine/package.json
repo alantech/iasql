@@ -9,15 +9,15 @@
     "lint": "tslint --project .",
     "test": "jest -i",
     "coverage": "jest -i --coverage",
-    "start": "export $(cat .env | xargs) && if [ \"$IASQL_ENV\" = \"local\" ]; then yarn start:dev; else yarn serve; fi",
+    "start": "if [ \"$IASQL_ENV\" = \"local\" ]; then yarn start:dev; else yarn serve; fi",
     "serve": "node --max_old_space_size=8192 dist/index.js",
     "start:dev": "nodemon -e ts -w ./src -x yarn start:dev:watch",
     "start:dev:watch": "yarn build && yarn serve",
     "gen-sql": "ts-node ./node_modules/.bin/typeorm migration:generate -n",
     "migrate": "ts-node ./node_modules/.bin/typeorm migration:run",
     "gen-module": "./.module_migration.sh",
-    "docker-compose:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
-    "docker-compose": "docker-compose -f docker-compose.yml up --build"
+    "docker-compose:dev": "docker-compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "docker-compose": "docker-compose --env-file .env -f docker-compose.yml up --build"
   },
   "repository": {
     "type": "git",
