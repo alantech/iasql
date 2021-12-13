@@ -7,7 +7,6 @@ import { AwsRepository, AwsRepositoryPolicy, ImageTagMutability, } from './entit
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsEcr1637082183230, } from './migration/1637082183230-aws_ecr'
-import { DepError } from '../../services/lazy-dep'
 
 export const AwsEcrModule: Module = new Module({
   name: 'aws_ecr',
@@ -195,7 +194,7 @@ export const AwsEcrModule: Module = new Module({
           for (const e of es) {
             if (!e.repository.id) {
               const r = await AwsEcrModule.mappers.repository.db.read(ctx, e.repository.repositoryName);
-              if (!r?.id) throw new DepError('Error retrieving generated column');
+              if (!r?.id) throw new Error('Error retrieving generated column');
               e.repository.id = r.id;
             }
           }
