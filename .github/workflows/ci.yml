@@ -107,7 +107,7 @@ jobs:
           echo A0_DOMAIN=${A0_DOMAIN} >> .env
           echo A0_AUDIENCE=${A0_AUDIENCE} >> .env
           echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN} >> .env
-          docker-compose up --build --detach
+          docker-compose --env-file .env up --build --detach
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
