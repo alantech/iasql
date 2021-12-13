@@ -9,7 +9,7 @@
     "lint": "tslint --project .",
     "test": "jest -i",
     "coverage": "jest -i --coverage",
-    "start": "ls && export $(cat .env | xargs) && if [ \"$IASQL_ENV\" = \"local\" ]; then yarn start:dev; else yarn serve; fi",
+    "start": "pwd && ls -la && cat .env && export $(cat .env | xargs) && if [ \"$IASQL_ENV\" = \"local\" ]; then yarn start:dev; else yarn serve; fi",
     "serve": "node --max_old_space_size=8192 dist/index.js",
     "start:dev": "nodemon -e ts -w ./src -x yarn start:dev:watch",
     "start:dev:watch": "yarn build && yarn serve",
