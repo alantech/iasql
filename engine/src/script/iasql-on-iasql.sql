@@ -37,8 +37,8 @@ do $$
     iasql_postgres_rds_db_az text := 'us-east-2a';
     iasql_db_host text := 'db.iasql.com';
     iasql_db_user text := 'iasql';
-    iasql_db_password text := '*';  -- Do not commit db password value
-    iasql_ip_secret text := '*'; -- Do not commit ip secret value
+    iasql_db_password text := '<DB_PASSWORD>';  -- Do not commit db password value
+    iasql_ip_secret text := '<IRONPLANS_TOKEN>'; -- Do not commit ip secret value
     iasql_a0_enabled text := 'true';
     iasql_a0_domain text := 'https://auth.iasql.com/';
     iasql_a0_audience text := 'https://api.iasql.com';
