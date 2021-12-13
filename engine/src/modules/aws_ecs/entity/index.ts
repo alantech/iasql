@@ -1,6 +1,6 @@
 export * from './aws_vpc_conf'
 export * from './compatibility'
-export * from './container'
+export * from './container_definition'
 export * from './cluster'
 export * from './env_variable'
 export * from './port_mapping'

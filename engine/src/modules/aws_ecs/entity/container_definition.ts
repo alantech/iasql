@@ -16,11 +16,11 @@ import { PortMapping } from './port_mapping'
 
 @Check(`"docker_image" is not null or "repository_id" is not null`)
 @Entity()
-export class Container {
+export class ContainerDefinition {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @Column({ unique: true, })
+  @Column()
   name: string;
 
   // TODO: add constraint  Up to 255 letters (uppercase and lowercase), numbers, hyphens, underscores, colons, periods, forward slashes, and number signs are allowed.
@@ -59,11 +59,11 @@ export class Container {
   })
   memoryReservation?: number;
 
-  @ManyToMany(() => PortMapping, { cascade: true, eager: true, })
+  @ManyToMany(() => PortMapping, { cascade: true, })
   @JoinTable()
   portMappings?: PortMapping[];
 
-  @ManyToMany(() => EnvVariable, { cascade: true, eager: true, })
+  @ManyToMany(() => EnvVariable, { cascade: true, })
   @JoinTable()
   environment?: EnvVariable[];
 
