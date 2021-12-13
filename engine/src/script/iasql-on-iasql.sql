@@ -33,7 +33,7 @@ do $$
     iasql_postgres_rds_db_engine text := 'postgres';
     iasql_postgres_rds_db_engine_version text := '13.4';
     iasql_postgres_rds_db_username text := 'iasql';
-    iasql_postgres_rds_db_password text := '4l4nU$3r';
+    iasql_postgres_rds_db_password text := '<DB_PASSWORD>';  -- Do not commit db password value
     iasql_postgres_rds_db_az text := 'us-east-2a';
     iasql_db_host text := 'db.iasql.com';
     iasql_db_user text := 'iasql';
