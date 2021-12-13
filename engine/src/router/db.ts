@@ -9,12 +9,14 @@ import { lazyLoader, } from '../services/lazy-dep'
 import * as dbMan from '../services/db-manager'
 import * as Modules from '../modules'
 import { handleErrorMessage } from '.'
+import config from '../config'
 
 export const db = express.Router();
 
 db.post('/add', async (req, res) => {
   console.log('Calling /add');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
+  console.log(`TEST ENV VARIABLES config a0 enables = ${config.a0Enabled} toke ${config.ironPlansTk}`)
   if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.json(
     `Required key(s) not provided: ${[
       'dbAlias', 'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
