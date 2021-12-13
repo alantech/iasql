@@ -9,7 +9,6 @@ import { lazyLoader, } from '../services/lazy-dep'
 import * as dbMan from '../services/db-manager'
 import * as Modules from '../modules'
 import { handleErrorMessage } from '.'
-import config from '../config'
 
 export const db = express.Router();
 
