@@ -4,3 +4,4 @@ dist/
 .vscode
 coverage/
 iasql-on-iasql.out.sql
+.deploy-env
