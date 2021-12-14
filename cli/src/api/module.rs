@@ -255,13 +255,13 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
   mods
 }
 
-pub async fn remove(db: &str, mods: Vec<String>) {
-  let removal = dlg::confirm_with_default("Confirm removal", true);
+pub async fn uninstall(db: &str, mods: Vec<String>) {
+  let removal = dlg::confirm_with_default("Confirm uninstall", true);
   if !removal {
     println!(
       "{} {} {} {}",
       dlg::warn_prefix(),
-      dlg::bold("No modules were removed from db"),
+      dlg::bold("No modules were uninstalled from db"),
       dlg::divider(),
       dlg::yellow(db),
     );
@@ -271,14 +271,14 @@ pub async fn remove(db: &str, mods: Vec<String>) {
     "list": mods,
     "dbAlias": db,
   });
-  let resp = post_v1("module/remove", body).await;
+  let resp = post_v1("module/uninstall", body).await;
   match &resp {
     Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
     Err(e) => {
       eprintln!(
         "{} {} {} {} {} {}",
         dlg::err_prefix(),
-        dlg::bold("Failed to remove modules from db"),
+        dlg::bold("Failed to uninstall modules from db"),
         dlg::divider(),
         dlg::red(db),
         dlg::divider(),

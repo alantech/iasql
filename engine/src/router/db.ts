@@ -12,8 +12,8 @@ import { handleErrorMessage } from '.'
 
 export const db = express.Router();
 
-db.post('/add', async (req, res) => {
-  console.log('Calling /add');
+db.post('/new', async (req, res) => {
+  console.log('Calling /new');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.json(
     `Required key(s) not provided: ${[

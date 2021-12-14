@@ -195,13 +195,13 @@ ${Object.keys(tableCollisions)
 });
 
 // Needed at the beginning
-mod.post('/remove', async (req, res) => {
+mod.post('/uninstall', async (req, res) => {
   const { list, dbAlias } = req.body;
   // Don't do anything if we don't know what database to impact
-  if (!dbAlias) return res.status(400).json("Missing 'dbAlias' to install into");
+  if (!dbAlias) return res.status(400).json("Missing 'dbAlias' to uninstall from");
   const { dbId } = await dbMan.getMetadata(dbAlias, req.user);
   // Also don't do anything if we don't have any list of modules to install
-  if (!Array.isArray(list)) return res.status(400).json("No packages provided in 'list' property");
+  if (!Array.isArray(list)) return res.status(400).json("No modules provided in 'list' property");
   // Check to make sure that all specified modules actually exist
   const modules = list.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
   if (modules.some((m: any) => m === undefined)) {
@@ -220,7 +220,7 @@ mod.post('/remove', async (req, res) => {
   const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
-  // See what modules are already removed and prune them from the list
+  // See what modules are already uninstalled and prune them from the list
   const existingModules = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
   for (let i = 0; i < modules.length; i++) {
     if (!existingModules.includes(modules[i].name)) {
@@ -230,7 +230,7 @@ mod.post('/remove', async (req, res) => {
   }
   // See if we need to abort because now there's nothing to do
   if (modules.length === 0) {
-    return res.status(400).json("All modules already removed.");
+    return res.status(400).json("All modules already uninstalled.");
   }
   const remainingModules = existingModules.filter((m: string) => !modules.some(m2 => m2.name === m));
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
