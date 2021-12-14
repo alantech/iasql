@@ -126,14 +126,13 @@ export class Crud<E> {
   }
 
   async update(e: E | E[], ctx: Context) {
-    // Memoize before and after the actual logic to make sure the unique ID is reserved
-    this.memo(e, ctx);
     return this.memo(await this.updateFn(e, ctx), ctx);
   }
 
   async delete(e: E | E[], ctx: Context) {
+    const out = await this.deleteFn(e, ctx);
     this.unmemo(e, ctx); // Remove deleted record(s) from the memo
-    return await this.deleteFn(e, ctx);
+    return out;
   }
 }
 
