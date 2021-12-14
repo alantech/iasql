@@ -168,9 +168,60 @@ export class awsEc21637666428184 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "ami_block_device_mappings_ebs_block_device_mapping" ADD CONSTRAINT "FK_65afc657dede946a97fc1c8cfb1" FOREIGN KEY ("ebs_block_device_mapping_id") REFERENCES "ebs_block_device_mapping"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "ami_tags_tag" ADD CONSTRAINT "FK_4e9018eb6d3190fe63deccaa7c3" FOREIGN KEY ("ami_id") REFERENCES "ami"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "ami_tags_tag" ADD CONSTRAINT "FK_eb692930a8f8d93d0b9b083752e" FOREIGN KEY ("tag_id") REFERENCES "tag"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        // Example of use: call create_ec2_instance('amzn-ami-hvm-%', 't2.micro', array['default'])
+        await queryRunner.query(`
+            create or replace procedure create_ec2_instance(_ami_name text, _instance_type text, _security_group_names text[])
+            language plpgsql
+            as $$ 
+                declare
+                    ami_id integer;
+                    instance_type_id integer;
+                    instance_id integer;
+                    sg record;
+                begin
+                    select id into ami_id
+                    from ami
+                    where name like _ami_name
+                    order by creation_date desc
+                    limit 1;
+            
+                    select id into instance_type_id
+                    from instance_type
+                    where instance_type_value_id in (
+                        select id
+                        from instance_type_value
+                        where name = _instance_type
+                    );
+            
+                    insert into instance
+                        (ami_id, instance_type_id)
+                    values
+                        (ami_id, instance_type_id);
+            
+                    select id into instance_id
+                    from instance
+                    order by id desc
+                    limit 1;
+            
+                    for sg in
+                        select id
+                        from aws_security_group
+                        where group_name = any(_security_group_names)
+                    loop
+                        insert into
+                            instance_security_groups_aws_security_group (instance_id, aws_security_group_id)
+                        values
+                            (instance_id, sg.id);
+                    end loop;
+            
+                    raise info 'ec2_instance_id = %', instance_id;
+                end;
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP procedure create_ec2_instance;`);
         await queryRunner.query(`ALTER TABLE "ami_tags_tag" DROP CONSTRAINT "FK_eb692930a8f8d93d0b9b083752e"`);
         await queryRunner.query(`ALTER TABLE "ami_tags_tag" DROP CONSTRAINT "FK_4e9018eb6d3190fe63deccaa7c3"`);
         await queryRunner.query(`ALTER TABLE "ami_block_device_mappings_ebs_block_device_mapping" DROP CONSTRAINT "FK_65afc657dede946a97fc1c8cfb1"`);
