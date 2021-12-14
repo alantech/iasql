@@ -14,6 +14,10 @@ pub fn red(el: &str) -> StyledObject<String> {
   style(format!("{}", el)).red()
 }
 
+pub fn cyan(el: &str) -> StyledObject<String> {
+  style(format!("{}", el)).cyan()
+}
+
 pub fn green(el: &str) -> StyledObject<String> {
   style(format!("{}", el)).green()
 }
