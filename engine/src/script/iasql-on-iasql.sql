@@ -43,6 +43,7 @@ do $$
     iasql_a0_domain text := 'https://auth.iasql.com/';
     iasql_a0_audience text := 'https://api.iasql.com';
     iasql_engine_cloud_watch_log_group text := 'iasql-engine-log-group';
+    iasql_sentry_enabled text := 'true';
     iasql_sentry_dsn text := 'https://e257e8d6646e4657b4f556efc1de31e8@o1090662.ingest.sentry.io/6106929';
   begin
     select vpc_id, id into default_vpc, default_vpc_id
@@ -87,7 +88,7 @@ do $$
 
     call create_container_definition(
       iasql_engine_task_definition, iasql_engine_container, true, iasql_engine_container_memory_reservation, iasql_engine_port, iasql_engine_port, 'tcp',
-      ('{"PORT": ' || iasql_engine_port || ', "SENTRY_DSN": "' || iasql_sentry_dsn || ', "DB_HOST": "' || iasql_db_host || '", "DB_USER": "' || iasql_db_user || '", "A0_ENABLED": "' || iasql_a0_enabled || '", "A0_DOMAIN": "' || iasql_a0_domain || '", "A0_AUDIENCE": "' || iasql_a0_audience || '", "DB_PASSWORD": "' || iasql_db_password || '", "IRONPLANS_TOKEN": "' || iasql_ip_secret || '"}')::json, iasql_engine_image_tag,
+      ('{"PORT": ' || iasql_engine_port || ', "SENTRY_ENABLED": "' || iasql_sentry_enabled || ', "SENTRY_DSN": "' || iasql_sentry_dsn || ', "DB_HOST": "' || iasql_db_host || '", "DB_USER": "' || iasql_db_user || '", "A0_ENABLED": "' || iasql_a0_enabled || '", "A0_DOMAIN": "' || iasql_a0_domain || '", "A0_AUDIENCE": "' || iasql_a0_audience || '", "DB_PASSWORD": "' || iasql_db_password || '", "IRONPLANS_TOKEN": "' || iasql_ip_secret || '"}')::json, iasql_engine_image_tag,
       _ecr_repository_name := iasql_engine_repository, _cloud_watch_log_group := iasql_engine_cloud_watch_log_group
     );
 
