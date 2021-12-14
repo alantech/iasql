@@ -9,4 +9,5 @@ export default {
   a0Enabled: process.env.A0_ENABLED === 'true',
   a0Domain: process.env.A0_DOMAIN,
   a0Audience:  process.env.A0_AUDIENCE, // id of this api in auth0
+  sentryDsn: process.env.SENTRY_DSN,
 };
