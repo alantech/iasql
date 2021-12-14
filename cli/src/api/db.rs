@@ -165,7 +165,7 @@ async fn get_dbs(exit_if_none: bool) -> Vec<String> {
     println!(
       "{} {}",
       dlg::warn_prefix(),
-      dlg::bold("No IaSQL dbs to manage an AWS account have been created")
+      dlg::bold("No dbs to manage cloud resources have been created")
     );
     exit(0);
   }
@@ -286,7 +286,7 @@ fn maybe_planned_nothing(plan_response: &PlanResponse) {
     && plan_response.toDelete.keys().len() == 0
   {
     println!(
-      "{} No difference detected between IaSQL and your cloud settings",
+      "{} No difference detected between db and your cloud settings",
       dlg::warn_prefix(),
     );
   }
@@ -399,14 +399,14 @@ fn display_new_db(db_metadata: NewDbResponse) {
   table.columns.insert(
     0,
     Column {
-      header: "IaSQL Server".to_string(),
+      header: "Database Server".to_string(),
       ..Column::default()
     },
   );
   table.columns.insert(
     1,
     Column {
-      header: "Database".to_string(),
+      header: "Database Name".to_string(),
       ..Column::default()
     },
   );
@@ -437,19 +437,19 @@ fn display_new_db(db_metadata: NewDbResponse) {
   );
 }
 
-pub async fn add(db: &str) {
+pub async fn new(db: &str) {
   let region = provide_aws_region();
   let (access_key, secret) = provide_aws_creds();
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
-  sp.set_message("Creating an IaSQL db to manage your AWS account");
+  sp.set_message("Creating a db to manage your cloud settings");
   let body = json!({
     "dbAlias": db,
     "awsRegion": region,
     "awsAccessKeyId": access_key,
     "awsSecretAccessKey": secret,
   });
-  let resp = post_v1("db/add", body).await;
+  let resp = post_v1("db/new", body).await;
   sp.finish_and_clear();
   match &resp {
     Ok(res) => {
@@ -461,7 +461,7 @@ pub async fn add(db: &str) {
       eprintln!(
         "{} {} {} {} {} {}",
         dlg::err_prefix(),
-        dlg::bold("Failed to add db"),
+        dlg::bold("Failed to add new db"),
         dlg::divider(),
         dlg::red(&db),
         dlg::divider(),
@@ -499,7 +499,7 @@ pub async fn import(db: &str, dump_file: &str) {
   let (access_key, secret) = provide_aws_creds();
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
-  sp.set_message("Importing an IaSQL db from dump");
+  sp.set_message("Creating a new db to manage cloud resources from a dump");
   let body = json!({
     "dbAlias": db,
     "awsRegion": region,

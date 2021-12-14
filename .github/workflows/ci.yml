@@ -125,11 +125,11 @@ jobs:
         run: while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
 
       # Check that all migrations are applied
-      - name: Add
+      - name: New
         run: |
           curl \
           --request POST \
-          --url 'http://localhost:8088/v1/db/add/' \
+          --url 'http://localhost:8088/v1/db/new/' \
           --show-error --silent --fail \
           --header 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' \
           --header 'content-type: application/json' \

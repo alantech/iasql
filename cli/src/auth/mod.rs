@@ -2,7 +2,6 @@ use std::fs::{create_dir, read_to_string, remove_file, File};
 use std::io::prelude::*;
 use std::path::Path;
 
-use dialoguer::console::style;
 use hyper::Request;
 use once_cell::sync::OnceCell;
 use serde_json::{json, Value};
@@ -86,13 +85,17 @@ pub fn logout() {
         }
         remove_file(file_name).unwrap();
         println!(
-          "{}",
-          style("IaSQL has removed the stored credentials").bold()
+          "{} {}",
+          dlg::success_prefix(),
+          dlg::bold("Removed stored credentials for IaSQL client")
         )
       }
       Err(_) => println!(
-        "No stored credentials found. Call {} to generate them.",
-        style("iasql login").bold()
+        "{} {} {} {}",
+        dlg::warn_prefix(),
+        dlg::bold("No stored credentials found. To generate them call"),
+        dlg::divider(),
+        dlg::yellow("iasql login")
       ),
     };
   };
@@ -115,27 +118,32 @@ async fn generate_token() {
   let device_code = json["device_code"].as_str().unwrap();
   let verification_uri = json["verification_uri_complete"].as_str().unwrap();
   let user_code = json["user_code"].as_str().unwrap();
-  let prompt = format!(
-    "{} to authenticate the IaSQL CLI in your web browser",
-    style("Press Enter").bold(),
-  );
-  if !dlg::confirm_with_default(&prompt, true) {
+  if !dlg::confirm_with_default(
+    "Press Enter to authenticate the IaSQL CLI in your web browser",
+    true,
+  ) {
     return;
   }
   println!(
-    "{} Your one-time code is: {}",
-    style("!").yellow(),
-    style(user_code).bold()
+    "{} {} {} {}",
+    dlg::warn_prefix(),
+    dlg::bold("Your one-time code is"),
+    dlg::divider(),
+    dlg::cyan(user_code)
   );
   let prompt = format!(
-    "{} to open https://auth.iasql.com in your browser",
-    style("Press Enter").bold(),
+    "{} {} {}",
+    dlg::bold("Press Enter to open"),
+    dlg::cyan("https://auth.iasql.com"),
+    dlg::bold("in your browser"),
   );
   let open_browser = dlg::confirm_with_default(&prompt, true);
   if !open_browser || (open_browser && webbrowser::open(verification_uri).is_err()) {
     println!(
-      "Open the following url in your browser: {}",
-      style(verification_uri).bold()
+      "{} {} {}",
+      dlg::bold("Open the following url in your browser"),
+      dlg::divider(),
+      dlg::cyan(verification_uri)
     );
   }
   let interval = json["interval"].as_u64().unwrap();
@@ -171,18 +179,24 @@ async fn generate_token() {
       let mut file = File::create(file_name).expect(ERR);
       file.write_all(token.as_bytes()).expect(ERR);
       TOKEN.set(token.to_string()).unwrap();
-      let prompt = format!(
-        "Authentication complete. {} to continue...",
-        style("Press Enter").bold(),
-      );
-      if dlg::confirm_with_default(&prompt, true) {
-        println!("Welcome to IaSQL!");
+      if dlg::confirm_with_default("Authentication complete. Press Enter to continue...", true) {
+        println!(
+          "{} {}",
+          dlg::success_prefix(),
+          dlg::bold("Welcome to IaSQL!")
+        );
         return;
       }
       return;
     } else if let Some(error) = json["error"].as_str() {
       if error != "authorization_pending" {
-        println!("Authentication failed. Please try again. Err: {}", error);
+        println!(
+          "{} {} {} {}",
+          dlg::err_prefix(),
+          dlg::bold("Authentication failed. Please try again"),
+          dlg::divider(),
+          error
+        );
         std::process::exit(1);
       }
     }
