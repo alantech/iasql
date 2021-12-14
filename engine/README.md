@@ -68,7 +68,11 @@ The actual execution requires access to credentials. While we're testing we can 
 
 #### SQL script
 
-The `/src/script/iasql-on-iasql.sql` script runs all the stored procedures calls necessary to create IaSQL. The first time all the resources will be inserted in database and created on AWS using `db apply`. 
+There are two ways to use the iasql-on-iasql script as it currently stands: first-time spin-up of a new AWS account, and follow-up updates
+
+#### First-Time Spin-Up
+
+The `/src/script/iasql-on-iasql.sql` script runs all the stored procedures calls necessary to create IaSQL. The first time all the resources will be inserted in database and created on AWS using `apply`. 
 
 The current stored procedures have being created to run one time and the following will do nothing if you try to create the same resource again in order to avoid resource duplication. The stored procuedures related to `aws_ecs` module are the exception to this rule, specifically, the `create_container_definition`, `create_task_definition` and `create_ecs_service` procedures. 
 
@@ -92,7 +96,7 @@ Since we are not able to create AWS load balancer listeners with HTTPS certifica
 ---
 **IMPORTANT!!!!**
 
-This listener need to be added every time after a `db apply` is executed!!! :(
+This listener need to be added every time after a `apply` is executed!!! :(
 
 ---
 
@@ -145,3 +149,13 @@ Since we are not able to create AWS RDS Parameter Groups using IaSQL yet, we hav
   ```sh
   docker push 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository:latest
   ```
+
+#### Follow-up Updates
+
+This path is much simpler and requires zero manual configuration.
+
+1. Build the new engine docker image and push into the engine ECR repository, as described above.
+2. Run the `iasql-on-iasql.sql` script on your local database.
+3. Run `iasql apply` as before.
+
+The load balancer does *NOT* need to be reconfigured, and Fargate will do a Red-Black deployment swapping from the old Docker container to the new one over the course of 5-10 minutes, providing zero downtime to end-users.
