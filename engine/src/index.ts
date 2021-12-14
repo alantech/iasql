@@ -21,15 +21,17 @@ app.get('/health', (_, res) => res.send('ok'));
 app.use('/v1', v1);
 app.get('/debug-error', (req, res) => { throw new Error("Testing error handling!") });
 // The error handler must be before any other error middleware and after all controllers
-app.use(
-  sentry.Handlers.errorHandler({
-    shouldHandleError(error) {
-      // Capture all 4xx and 5xx errors
-      if ((error?.status ?? 500) >= 400) return true;
-      return false;
-    },
-  })
-);
+if (config.sentryEnabled) {
+  app.use(
+    sentry.Handlers.errorHandler({
+      shouldHandleError(error) {
+        // Capture all 4xx and 5xx errors
+        if ((error?.status ?? 500) >= 400) return true;
+        return false;
+      },
+    })
+  );
+}
 
 app.use((error: any, _req: any, res: any, _next: any) => {
   // The error id is attached to `res.sentry` to be returned
