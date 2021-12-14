@@ -8,19 +8,18 @@ import { v1 } from './router';
 
 const port = config.port;
 const app = express();
-sentry.init({
-  dsn: config.sentryDsn,
-});
 
-// RequestHandler creates a separate execution context using domains, so that every
-// transaction/span/breadcrumb is attached to its own Hub instance
-app.use(sentry.Handlers.requestHandler());
-
+if (config.sentryEnabled) {
+  sentry.init({
+    dsn: config.sentryDsn,
+  });
+  // RequestHandler creates a separate execution context using domains, so that every
+  // transaction/span/breadcrumb is attached to its own Hub instance
+  app.use(sentry.Handlers.requestHandler());
+}
 app.get('/health', (_, res) => res.send('ok'));
 app.use('/v1', v1);
-app.get("/debug-sentry", function mainHandler(req, res) {
-  throw new Error("My first Sentry error!");
-});
+app.get('/debug-error', (req, res) => { throw new Error("Testing error handling!") });
 // The error handler must be before any other error middleware and after all controllers
 app.use(
   sentry.Handlers.errorHandler({
@@ -36,9 +35,11 @@ app.use((error: any, _req: any, res: any, _next: any) => {
   // The error id is attached to `res.sentry` to be returned
   // and optionally displayed to the user for support.
   console.error(inspect(error));
+  let msg = error.message || inspect(error);
+  if (config.sentryEnabled) msg += `\nPlease provide this error ID when reporting this bug: ${res.sentry}\n`;
   return res
     .status(error.statusCode || error.status || 500)
-    .end(`${error.message || inspect(error)}\nPlease provide this error ID when reporting this bug: ${res.sentry}\n`);
+    .end(msg);
 });
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
