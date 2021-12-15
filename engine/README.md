@@ -87,7 +87,7 @@ The actual execution requires access to credentials. While we're testing we can 
 
 ##### Prepare iasql-on-iasql.sql script
 
-This step creates an untracked iasql-on-iasql.out.sql script with the credentials replaced based on environment vairables values.
+This step creates an untracked iasql-on-iasql.out.sql script with the credentials replaced based on environment variables values.
 
 ```sh
 export $(cat .deploy-env | xargs) && sed "s/<DB_PASSWORD>/${DB_PASSWORD}/g;s/<IRONPLANS_TOKEN>/${IRONPLANS_TOKEN}/g" ./src/script/iasql-on-iasql.sql > ./src/script/iasql-on-iasql.out.sql
