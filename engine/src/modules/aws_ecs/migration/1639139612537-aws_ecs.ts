@@ -391,9 +391,9 @@ export class awsEcs1639139612537 implements MigrationInterface {
             
                         select c.name, pm.container_port into c_name, c_port
                         from task_definition td
-                            left join task_definition_containers_container tdc on td.id = tdc.task_definition_id
+                            left join task_definition_containers_container_definition tdc on td.id = tdc.task_definition_id
                             left join container_definition c on c.id = tdc.container_definition_id
-                            left join container_port_mappings_port_mapping cpm on cpm.container_definition_id = c.id
+                            left join container_definition_port_mappings_port_mapping cpm on cpm.container_definition_id = c.id
                             left join port_mapping pm on pm.id = cpm.port_mapping_id
                         where td.id = task_def_id
                         limit 1;
