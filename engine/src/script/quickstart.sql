@@ -10,14 +10,14 @@ do $$
     target_group_health_path text := '/';
     load_balancer text := 'quickstart-load-balancer';
     repository text := 'quickstart-repository';
-    repository_policy text := '{ "Version" : "2012-10-17", "Statement" : [ { "Sid" : "new statement", "Effect" : "Allow", "Principal" : { "AWS" : [ "arn:aws:iam::547931376551:role/AWSECSTaskExecution", "arn:aws:iam::547931376551:user/dfellis", "arn:aws:iam::547931376551:user/aguillenv", "arn:aws:iam::547931376551:user/depombo" ] }, "Action" : [ "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CreateRepository", "ecr:DeleteRepositoryPolicy", "ecr:DescribeImageScanFindings", "ecr:DescribeImages", "ecr:DescribeRepositories", "ecr:GetAuthorizationToken", "ecr:GetDownloadUrlForLayer", "ecr:GetLifecyclePolicy", "ecr:GetLifecyclePolicyPreview", "ecr:GetRepositoryPolicy", "ecr:ListImages", "ecr:ListTagsForResource", "ecr:SetRepositoryPolicy" ] } ]}';
+    repository_policy text := '{ "Version" : "2012-10-17", "Statement" : []}';
     quickstart_cluster text := 'quickstart-cluster';
     container text := 'quickstart-container';
-    container_memory_reservation integer := 8192;
+    container_memory_reservation integer := 8192; -- in MiB
     image_tag text := 'latest';
     task_definition text := 'quickstart-task-definition';
     task_definition_resources text := '2vCPU-8GB';
-    ecs_task_execution_role text := '<AWS_ECS_EXEC_ROLE>';
+    ecs_task_execution_role text := '<AWS_ECS_EXEC_ROLE>';  -- Need to be filled
     security_group text := 'quickstart-security-group';
     service text := 'quickstart-service';
     service_desired_count integer := 1;
