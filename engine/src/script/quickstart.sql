@@ -1,37 +1,38 @@
 do $$
 <<quickstart>>
   declare
+    project_name text := 'quickstart';
     default_vpc text;
     default_vpc_id integer;
     sn record;
     default_subnets text[];
     port integer := 8088;
-    target_group text := 'quickstart-target-group';
+    target_group text := project_name || '-target-group';
     target_group_health_path text := '/';
-    load_balancer text := 'quickstart-load-balancer';
-    repository text := 'quickstart-repository';
+    load_balancer text := project_name || '-load-balancer';
+    repository text := project_name || '-repository';
     repository_policy text := '{ "Version" : "2012-10-17", "Statement" : []}';
-    quickstart_cluster text := 'quickstart-cluster';
-    container text := 'quickstart-container';
+    quickstart_cluster text := project_name || '-cluster';
+    container text := project_name || '-container';
     container_memory_reservation integer := 8192; -- in MiB
     image_tag text := 'latest';
-    task_definition text := 'quickstart-task-definition';
+    task_definition text := project_name || '-task-definition';
     task_definition_resources text := '2vCPU-8GB';
     ecs_task_execution_role text := '<AWS_ECS_EXEC_ROLE>';  -- Need to be filled
-    security_group text := 'quickstart-security-group';
-    service text := 'quickstart-service';
+    security_group text := project_name || '-security-group';
+    service text := project_name || '-service';
     service_desired_count integer := 1;
-    cloud_watch_log_group text := 'quickstart-log-group';
-    quickstart_rds text := 'quickstart-rds';
-    quickstart_rds_port integer := 5432;
-    quickstart_rds_security_group text := 'quickstart-rds';
-    quickstart_rds_allocated_storage integer := 1024; -- 1TiB in MiB
-    quickstart_rds_db_instance_class text := 'db.m5.large';
-    quickstart_rds_db_engine text := 'postgres';
-    quickstart_rds_db_engine_version text := '13.4';
-    quickstart_rds_db_username text := 'iasql';
-    quickstart_rds_db_password text := '<DB_PASSWORD>';  -- Do not commit db password value
-    quickstart_rds_db_az text := 'us-east-2a';
+    cloud_watch_log_group text := project_name || '-log-group';
+    rds text := project_name || '-rds';
+    rds_port integer := 5432;
+    rds_security_group text := project_name || '-rds';
+    rds_allocated_storage integer := 1024; -- 1TiB in MiB
+    rds_db_instance_class text := 'db.m5.large';
+    rds_db_engine text := 'postgres';
+    rds_db_engine_version text := '13.4';
+    rds_db_username text := 'iasql';
+    rds_db_password text := '<DB_PASSWORD>';  -- Do not commit db password value
+    rds_db_az text := 'us-east-2a';
   begin
     select vpc_id, id into default_vpc, default_vpc_id
     from aws_vpc
@@ -86,14 +87,14 @@ do $$
     );
 
     call create_aws_security_group(
-      quickstart_rds_security_group, quickstart_rds_security_group,
-      ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || quickstart_rds_port || ', "toPort": ' || quickstart_rds_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
+      rds_security_group, rds_security_group,
+      ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || rds_port || ', "toPort": ' || rds_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
 
     call create_rds(
-      quickstart_rds, quickstart_rds_allocated_storage, quickstart_rds_db_instance_class,
-      quickstart_rds_db_engine, quickstart_rds_db_engine_version, quickstart_rds_db_username,
-      quickstart_rds_db_password, quickstart_rds_db_az, array[iasql_postgres_security_group]
+      rds, rds_allocated_storage, rds_db_instance_class,
+      rds_db_engine, rds_db_engine_version, rds_db_username,
+      rds_db_password, rds_db_az, array[iasql_postgres_security_group]
     );
 
   end quickstart
