@@ -59,12 +59,17 @@ do $$
       default_subnets := array_append(default_subnets, sn.subnet_id::text);
     end loop;
 
+    call create_aws_security_group(
+      iasql_engine_security_group, iasql_engine_security_group,
+      ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_engine_port || ', "toPort": ' || iasql_engine_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": false, "ipProtocol": "tcp", "fromPort": "443", "toPort": "443", "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
+    );
+
     call create_aws_target_group(
       iasql_engine_target_group, 'ip', iasql_engine_port, default_vpc, 'HTTP', '/health'
     );
 
     call create_aws_load_balancer(
-      iasql_engine_load_balancer, 'internet-facing', default_vpc, 'application', default_subnets, 'ipv4'
+      iasql_engine_load_balancer, 'internet-facing', default_vpc, 'application', default_subnets, 'ipv4', array[iasql_engine_security_group]
     );
 
     -- TODO: update this listener once HTTPS can be configure via IaSQL
@@ -90,11 +95,6 @@ do $$
       iasql_engine_task_definition, iasql_engine_container, true, iasql_engine_container_memory_reservation, iasql_engine_port, iasql_engine_port, 'tcp',
       ('{"PORT": ' || iasql_engine_port || ', "SENTRY_ENABLED": "' || iasql_sentry_enabled || '", "SENTRY_DSN": "' || iasql_sentry_dsn || '", "DB_HOST": "' || iasql_db_host || '", "DB_USER": "' || iasql_db_user || '", "A0_ENABLED": "' || iasql_a0_enabled || '", "A0_DOMAIN": "' || iasql_a0_domain || '", "A0_AUDIENCE": "' || iasql_a0_audience || '", "DB_PASSWORD": "' || iasql_db_password || '", "IRONPLANS_TOKEN": "' || iasql_ip_secret || '"}')::json, iasql_engine_image_tag,
       _ecr_repository_name := iasql_engine_repository, _cloud_watch_log_group := iasql_engine_cloud_watch_log_group
-    );
-
-    call create_aws_security_group(
-      iasql_engine_security_group, iasql_engine_security_group,
-      ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_engine_port || ', "toPort": ' || iasql_engine_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": false, "ipProtocol": "tcp", "fromPort": "443", "toPort": "443", "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
 
     call create_ecs_service(
