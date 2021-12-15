@@ -55,7 +55,7 @@ import TabItem from '@theme/TabItem';
 ```bash
 $ iasql new
 
-✔ IaSQL db name · prod
+✔ IaSQL db name · startup
 ✔ Pick AWS region · us-east-2
 ✔ Default AWS CLI credentials found. Do you wish to use those? · yes
 ✔ Pick AWS Profile · default
@@ -68,3 +68,22 @@ $ iasql new
 ! This is the only time we will show you these credentials, be sure to save them.
 ```
 
+## Add cloud services to manage with `prod` database
+
+```bash
+$ iasql install
+
+✔ Pick IaSQL db · prod
+? Use arrows to move, space to (de)select modules and enter to submit ›
+  [✔] aws_cloudwatch
+  [ ] aws_ec2
+  [✔] aws_ecr
+  [✔] aws_ecs
+  [✔] aws_elb
+  [✔] aws_rds
+❯ [✔] aws_security_group
+✔ Confirm installation · yes
+✔ Done
+```
+
+## Connect to IaSQL PG
