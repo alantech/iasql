@@ -35,7 +35,7 @@ psql -h localhost -p 5432 -U postgres -d iasql -f ./src/script/iasql-on-iasql.ou
 
 # IaSQL db apply. Using local debug version
 echo "\nApplying changes from iasql db..."
-cargo run --manifest-path=../cli/Cargo.toml -- db apply iasql
+cargo run --manifest-path=../cli/Cargo.toml -- apply iasql
 
 # Clean and leave just the last image
 echo "\nCleaning docker images..."
