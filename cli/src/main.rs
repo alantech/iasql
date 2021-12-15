@@ -16,8 +16,8 @@ pub async fn main() {
     .setting(AppSettings::SubcommandRequiredElseHelp)
     .subcommands(vec![
       SubCommand::with_name("login").about("Obtain and save credentials for the IaSQL service"),
-      SubCommand::with_name("new")
-        .about("Create a db to manage cloud resources")
+      SubCommand::with_name("start")
+        .about("Start managing cloud resources from an account via a new PG db")
         .arg(Arg::from_usage("[db]")),
       SubCommand::with_name("import")
         .about("Create a db from a previously exported dump")
@@ -27,9 +27,8 @@ pub async fn main() {
         .about("Export a db dump to backup your infrastructure or import it into another db")
         .arg(Arg::from_usage("[conn_str]"))
         .arg(Arg::from_usage("[dump_file]")),
-      SubCommand::with_name("remove")
-        .about("Remove a db and stop managing the cloud resources within it")
-        .visible_alias("rm")
+      SubCommand::with_name("stop")
+        .about("Stop managing cloud resources in an account and drop the PG db")
         .arg(Arg::from_usage("[db]")),
       SubCommand::with_name("apply")
         .about("Create, delete or update the resources in a db")
@@ -37,12 +36,12 @@ pub async fn main() {
       SubCommand::with_name("plan")
         .about("Display a preview of the resources in a db to be modified on the next `apply`")
         .arg(Arg::from_usage("[db]")),
-      SubCommand::with_name("install")
-        .about("Install mods in a given db")
+      SubCommand::with_name("add")
+        .about("Add tables corresponding to a cloud service, or module, in a PG db")
         .arg(Arg::from_usage("--db=[DB]"))
         .arg(Arg::with_name("modules").min_values(1)),
-      SubCommand::with_name("uninstall")
-        .about("Uninstall mods from a given db")
+      SubCommand::with_name("remove")
+        .about("Remove tables corresponding to a cloud service, or module, in a PG db")
         .arg(Arg::from_usage("--db=[DB]"))
         .arg(Arg::with_name("modules").min_values(1)),
       SubCommand::with_name("logout")
