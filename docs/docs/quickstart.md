@@ -11,6 +11,8 @@ In this tutorial we will deploy an HTTP server and database via IaSQL to your AW
 
 1. Follow the steps in this [guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-prereqs.html#getting-started-prereqs-iam) to sign up to AWS, create an IAM user account and create credentials for it.
 
+Note: You will need to have a ECS execution role. If you don't have it follow this instructions: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html
+
 2. Now we will create a credentials file for the IAM role you just created. The file must be named `credentials` and is located underneath `.aws/` directory in your home directory.
 
 import Tabs from '@theme/Tabs';
@@ -63,12 +65,15 @@ $ iasql new
 ┌─────────────────┬───────────────────┬──────────┬──────────────────┐
 │ Database Server │ Database Name     │ Username │ Password         │
 ├─────────────────┼───────────────────┼──────────┼──────────────────┤
-│ db.iasql.com    │ _ec99f4322819c561 │ cbdy43d0 │ PI?$6nbzOfas!mRC │
+│ db.iasql.com    │ _4b2bb09a59a411e4 │ d0va6ywg │ nfdDh#EP4CyzveFr │
 └─────────────────┴───────────────────┴──────────┴──────────────────┘
+✔ As a PG connection string · postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4
 ! This is the only time we will show you these credentials, be sure to save them.
 ```
 
 ## Add cloud services to manage with `prod` database
+
+Install the following modules to the db: `aws_cloudwatch`, `aws_ecr`, `aws_ecs`, `aws_elb` and `aws_security_group`.
 
 ```bash
 $ iasql install
@@ -86,4 +91,77 @@ $ iasql install
 ✔ Done
 ```
 
-## Connect to IaSQL PG
+## Spin up your cloud resources
+
+1. Take this sql script, modify the first set of variables and run it on your db
+<!--TODO link to script -->
+
+
+2. Install `psql` in your command line by following the instructions for your corresponding OS [here](https://www.postgresql.org/download/)
+
+3. Invoke `psql` with the connection string provided on db creation and the SQL script
+
+```sql
+psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4 -f <path>/<to>/quickstart.sql
+```
+
+4. Apply the changes described in the db to your cloud account
+
+```sh
+iasql apply
+```
+<!--TODO Fill out with table -->
+
+## Login, build and push your code to the container registry
+
+1. Grab your new `ECR URI` from your DB
+```sql
+psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4
+_4b2bb09a59a411e4=> select repository_uri
+from aws_ecr
+where repository_name = <repository-name>
+```
+
+<!--TODO link to install docker -->
+
+2. Login to AWS ECR by copying the command below and using the correct `ECR URI`
+
+```sh
+aws ecr get-login-password --region us-east-2 --profile default | docker login --username AWS --password-stdin <ECR URI>
+```
+
+<!--TODO link to download hello_iasql folder -->
+
+
+3. Build your image locally
+
+```sh
+docker build -t <repository-name> <path to Dockerfile>
+```
+
+4. Tag your image
+
+```sh
+docker tag <image-name>:latest <ECR URI>:latest
+```
+
+- Push your image
+
+```sh
+docker push <ECR URI>:latest
+```
+
+6. Grab your load balancer DNS and access your service!
+```sql
+psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4
+_4b2bb09a59a411e4=> select dns_name
+from aws_load_balancer
+where load_balancer_name = <load-balancer-name>
+```
+
+## Deploy new code
+
+Run `deploy.sh`....
+
+<!--TODO can we also do this for the section above -->
+
