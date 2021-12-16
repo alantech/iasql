@@ -248,7 +248,7 @@ export class awsElb1637666608609 implements MigrationInterface {
                     insert into aws_listener_default_actions_aws_action
                         (aws_listener_id, aws_action_id)
                     values 
-                        (lb_id, a_id);
+                        (l_id, a_id);
                 end if;
             
                 raise info 'aws_listener_id = %', l_id;
