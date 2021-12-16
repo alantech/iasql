@@ -64,25 +64,62 @@ We can then make the job to poll the various databases an actual cron job and th
 
 The actual execution requires access to credentials. While we're testing we can just use the local credentials on our machines, but in reality, we'll need to use something like the AWS Secrets Manager to hold on to them. Later on we may make our own "vault" service to tackle this problem because that service gets expensive fast, especially with how we're proposing to use it.
 
-### Beta IaSQL-on-IaSQL configuration
+### Beta IaSQL-on-IaSQL
 
-#### SQL script
+##### Pre-requisites
 
-There are two ways to use the iasql-on-iasql script as it currently stands: first-time spin-up of a new AWS account, and follow-up updates
+  - Engine running locally
+  - Have your organization credentials under the `iasql` AWS profile
+  - Add a DB called `iasql` using organization credentials
+  - Add the following modules to the added `iasql` DB:
+    -  aws_cloudwatch
+    -  aws_ecr
+    -  aws_ecs
+    -  aws_elb
+    -  aws_rds
+    -  aws_security_group
+  - `.deploy-env` environment file defined with the following variables:
+    - PGPASSWORD
+    - DB_PASSWORD
+    - IRONPLANS_TOKEN
 
-#### First-Time Spin-Up
+#### First-Time deployment
 
-The `/src/script/iasql-on-iasql.sql` script runs all the stored procedures calls necessary to create IaSQL. The first time all the resources will be inserted in database and created on AWS using `apply`. 
+##### Prepare iasql-on-iasql.sql script
 
-The current stored procedures have being created to run one time and the following will do nothing if you try to create the same resource again in order to avoid resource duplication. The stored procuedures related to `aws_ecs` module are the exception to this rule, specifically, the `create_container_definition`, `create_task_definition` and `create_ecs_service` procedures. 
+This step creates an untracked iasql-on-iasql.out.sql script with the credentials replaced based on environment variables values.
 
-- `create_container_definition`: It will update the container if values are differet and it will add new port mapping or environment variables if do not exists.
-- `create_task_definition`: It will create a new version for the task definiton to be attached to the ecs service
-- `create_ecs_service`: It will update the service using the latest task definition available.
+```sh
+export $(cat .deploy-env | xargs) && sed "s/<DB_PASSWORD>/${DB_PASSWORD}/g;s/<IRONPLANS_TOKEN>/${IRONPLANS_TOKEN}/g" ./src/script/iasql-on-iasql.sql > ./src/script/iasql-on-iasql.out.sql
+```
 
-Following this logic, the next time we execute again the `iasql-on-iasql.sql` script will create a new task and update the engine service.
+##### Execute sql script.
 
-#### Engine HTTPS configuration
+This script make all the inserts necessary for iasql.
+
+```sh
+psql -h localhost -p 5432 -U postgres -d iasql -f ./src/script/iasql-on-iasql.out.sql
+```
+
+##### Apply db changes. (Using the local instance running)
+
+```sh
+iasql db apply
+```
+
+##### Configure correctly the deploy.sh
+
+  - Grab the ECR URL. Could be find in your db > aws_ecr table > repository_uri column. This could be also grabbed from the AWS UI console.
+  - Set the ECR URL in the `Login`, `Tag`, `Push` and `Clean` sections.
+
+##### Execute deploy script
+
+```sh
+./deploy.sh
+```
+
+<!-- TODO: remove this section once https://github.com/iasql/iasql/issues/204 is closed -->
+#### Configure load balancer HTTPS listener
 
 Since we are not able to create AWS load balancer listeners with HTTPS certificates using IaSQL yet, we have to do this process manually. For this we have to request or generate a valid certificate and go to the AWS console and follow this steps:
 
@@ -93,14 +130,8 @@ Since we are not able to create AWS load balancer listeners with HTTPS certifica
   5. Add Action `forward` to target group `iasql-engine-target-group`
   6. Add certificate
 
----
-**IMPORTANT!!!!**
-
-This listener need to be added every time after a `apply` is executed!!! :(
-
----
-
-#### RDS: force SSL connections
+<!-- TODO: remove this section once https://github.com/iasql/iasql/issues/204 is closed -->
+#### Force SSL connections to DB
 
 Since we are not able to create AWS RDS Parameter Groups using IaSQL yet, we have to do this process manually. For this we have to follow this steps:
 
@@ -123,6 +154,49 @@ Since we are not able to create AWS RDS Parameter Groups using IaSQL yet, we hav
     - Select Apply immediately and save
   6. Reboot `iasql-postgres-rds` instance
 
+
+#### Follow-up deployment
+
+##### Execute deploy script
+
+  ```sh
+  ./deploy.sh
+  ```
+
+---------
+  Run script from `/engine` directory
+---------
+
+---------
+  The load balancer does *NOT* need to be reconfigured, and Fargate will do a Red-Black deployment swapping from the old Docker container to the new one over the course of 5-10 minutes, providing zero downtime to end-users.
+---------
+
+### Beta IaSQL-on-IaSQL configuration details
+
+#### Deployment script
+
+This script is used for follow up updates once iasql-on-iasql is already in place. This script execute the following steps:
+
+  - Login to aws container registry
+  - Build engine image
+  - Tag image
+  - Push image
+  - Prepare iasql-on-iasql.sql script. This step creates an untracked iasql-on-iasql.out.sql script with the credentials replaced based on environment vairables values
+  - Run iasql-on-iasql.out.sql script. This will create a new container definition, a new task definition and update the service to use the newly defined task definition.
+  - IaSQL db apply. Using local debug version
+  - Clean and leave just the lastest image created
+
+#### SQL script
+
+The `/src/script/iasql-on-iasql.sql` script runs all the stored procedures calls necessary to create IaSQL. The first time all the resources will be inserted in database and created on AWS using `apply`. 
+
+The current stored procedures have being created to run one time and the following will do nothing if you try to create the same resource again in order to avoid resource duplication. The stored procuedures related to `aws_ecs` module are the exception to this rule, specifically, the `create_container_definition`, `create_task_definition` and `create_ecs_service` procedures. 
+
+- `create_container_definition`: It will update the container if values are differet and it will add new port mapping or environment variables if do not exists.
+- `create_task_definition`: It will create a new version for the task definiton to be attached to the ecs service
+- `create_ecs_service`: It will update the service using the latest task definition available.
+
+Following this logic, the next time we execute again the `iasql-on-iasql.sql` script will create a new task and update the engine service.
 
 #### Pushing engine image to engine ECR
 
@@ -149,13 +223,3 @@ Since we are not able to create AWS RDS Parameter Groups using IaSQL yet, we hav
   ```sh
   docker push 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository:latest
   ```
-
-#### Follow-up Updates
-
-This path is much simpler and requires zero manual configuration.
-
-1. Build the new engine docker image and push into the engine ECR repository, as described above.
-2. Run the `iasql-on-iasql.sql` script on your local database.
-3. Run `iasql apply` as before.
-
-The load balancer does *NOT* need to be reconfigured, and Fargate will do a Red-Black deployment swapping from the old Docker container to the new one over the course of 5-10 minutes, providing zero downtime to end-users.
