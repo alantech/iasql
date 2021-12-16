@@ -1,9 +1,7 @@
 import { In, } from 'typeorm'
 
-import { Repository, } from '@aws-sdk/client-ecr'
-
 import { AWS, } from '../../services/gateways/aws'
-import { AwsRepository, AwsRepositoryPolicy, ImageTagMutability, } from './entity'
+import { AwsPublicRepository, AwsRepository, AwsRepositoryPolicy, ImageTagMutability, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsEcr1637082183230, } from './migration/1637082183230-aws_ecr'
@@ -17,7 +15,17 @@ export const AwsEcrModule: Module = new Module({
     functions: ['create_ecr_repository', 'create_ecr_repository_policy'],
   },
   utils: {
-    repositoryMapper: (r: Repository, _ctx: Context) => {
+    publicRepositoryMapper: (r: any, _ctx: Context) => {
+      const out = new AwsRepository();
+      if (!r?.repositoryName) throw new Error('No repository name defined.');
+      out.repositoryName = r.repositoryName;
+      out.repositoryArn = r.repositoryArn;
+      out.registryId = r.registryId;
+      out.repositoryUri = r.repositoryUri;
+      out.createdAt = r.createdAt ? new Date(r.createdAt) : r.createdAt;
+      return out;
+    },
+    repositoryMapper: (r: any, _ctx: Context) => {
       const out = new AwsRepository();
       if (!r?.repositoryName) throw new Error('No repository name defined.');
       out.repositoryName = r.repositoryName;
@@ -50,6 +58,103 @@ export const AwsEcrModule: Module = new Module({
     }
   },
   mappers: {
+    publicRepository: new Mapper<AwsPublicRepository>({
+      entity: AwsPublicRepository,
+      entityId: (e: AwsPublicRepository) => e?.repositoryName ?? '',
+      entityPrint: (e: AwsPublicRepository) => ({
+        id: e?.id?.toString() ?? '',
+        repositoryName: e?.repositoryName ?? '',
+        repositoryArn: e?.repositoryArn ?? '',
+        registryId: e?.registryId ?? '',
+        repositoryUri: e?.repositoryUri ?? '',
+        createdAt: e?.createdAt?.toISOString() ?? '',
+      }),
+      equals: (a: AwsPublicRepository, b: AwsPublicRepository) => Object.is(a.repositoryName, b.repositoryName),
+      source: 'db',
+      db: new Crud({
+        create: async (e: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => { await ctx.orm.save(AwsPublicRepository, e); },
+        read: async (ctx: Context, id?: string | string[] | undefined) => {
+          const opts = id ? {
+            where: {
+              repositoryName: Array.isArray(id) ? In(id) : id,
+            },
+          } : undefined;
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsPublicRepository, opts) : await ctx.orm.findOne(AwsPublicRepository, opts);
+        },
+        update: async (e: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => { await ctx.orm.save(AwsPublicRepository, e); },
+        delete: async (e: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => { await ctx.orm.remove(AwsPublicRepository, e); },
+      }),
+      cloud: new Crud({
+        create: async (sg: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          const es = Array.isArray(sg) ? sg : [sg];
+          const out = await Promise.all(es.map(async (e) => {
+            const result = await client.createECRPubRepository({
+              repositoryName: e.repositoryName,
+            });
+            // TODO: Handle if it fails (somehow)
+            if (!result?.hasOwnProperty('repositoryArn')) { // Failure
+              throw new Error('what should we do here?');
+            }
+            // Re-get the inserted record to get all of the relevant records we care about
+            const newObject = await client.getECRPubRepository(result.repositoryName ?? '');
+            // We map this into the same kind of entity as `obj`
+            const newEntity = await AwsEcrModule.utils.publicRepositoryMapper(newObject, ctx);
+            // We attach the original object's ID to this new one, indicating the exact record it is
+            // replacing in the database.
+            newEntity.id = e.id;
+            // Save the record back into the database to get the new fields updated
+            await AwsEcrModule.mappers.publicRepository.db.update(newEntity, ctx);
+            return newEntity;
+          }));
+          // Make sure the dimensionality of the returned data matches the input
+          if (Array.isArray(sg)) {
+            return out;
+          } else {
+            return out[0];
+          }
+        },
+        read: async (ctx: Context, ids?: string | string[]) => {
+          const client = await ctx.getAwsClient() as AWS;
+          if (ids) {
+            if (Array.isArray(ids)) {
+              return await Promise.all(ids.map(async (id) => {
+                return await AwsEcrModule.utils.publicRepositoryMapper(
+                  await client.getECRPubRepository(id), ctx
+                );
+              }));
+            } else {
+              return await AwsEcrModule.utils.publicRepositoryMapper(
+                await client.getECRPubRepository(ids), ctx
+              );
+            }
+          } else {
+            const repositories = (await client.getECRPubRepositories())?.Repositories ?? [];
+            return await Promise.all(
+              repositories.map((r: any) => AwsEcrModule.utils.publicRepositoryMapper(r, ctx))
+            );
+          }
+        },
+        update: async (r: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => {
+          const es = Array.isArray(r) ? r : [r];
+          return await Promise.all(es.map(async (e) => {
+            try {
+              return await AwsEcrModule.mappers.publicRepository.cloud.create(e, ctx);
+            } catch (_) {
+              e.repositoryName = Date.now().toString();
+              return await AwsEcrModule.mappers.publicRepository.cloud.create(e, ctx);
+            }
+          }));
+        },
+        delete: async (r: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          const es = Array.isArray(r) ? r : [r];
+          await Promise.all(es.map(async (e) => {
+            await client.deleteECRPubRepository(e.repositoryName!);
+          }));
+        },
+      }),
+    }),
     repository: new Mapper<AwsRepository>({
       entity: AwsRepository,
       entityId: (e: AwsRepository) => e?.repositoryName ?? '',
