@@ -5,7 +5,7 @@ slug: '/quickstart'
 
 # Quickstart
 
-In this tutorial we will deploy an HTTP server and database via IaSQL to your AWS account using the following cloud services: ECS, ECR, RDS and ELB.
+In this tutorial we will deploy an HTTP server via IaSQL to your AWS account using the following cloud services: ECS, ECR and ELB.
 
 ## Setup your AWS account with programmatic access
 
@@ -73,7 +73,7 @@ $ iasql new
 
 ## Add cloud services to manage with `prod` database
 
-Install the following modules to the db: `aws_cloudwatch`, `aws_ecr`, `aws_ecs`, `aws_elb` and `aws_security_group`.
+Install the following modules for the db: `aws_cloudwatch`, `aws_ecr`, `aws_ecs`, `aws_elb` and `aws_security_group`.
 
 ```bash
 $ iasql install
@@ -85,7 +85,7 @@ $ iasql install
   [✔] aws_ecr
   [✔] aws_ecs
   [✔] aws_elb
-  [✔] aws_rds
+  [ ] aws_rds
 ❯ [✔] aws_security_group
 ✔ Confirm installation · yes
 ✔ Done
