@@ -1,7 +1,12 @@
+import { promisify, } from 'util'
+import { exec as execNode, } from 'child_process'
+const exec = promisify(execNode);
+
 import * as express from 'express'
 import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
+import config from '../config'
 import { TypeormWrapper, } from '../services/typeorm'
 import { IasqlModule, } from '../entity'
 import { findDiff, } from '../services/diff'
@@ -110,7 +115,7 @@ db.post('/new', async (req, res) => {
 db.post('/import', async (req, res) => {
   console.log('Calling /import');
   const {dump, dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
-  if (!dump || !dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.json(
+  if (!dump || !dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
     `Required key(s) not provided: ${[
       'dump', 'dbAlias', 'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
@@ -166,6 +171,27 @@ db.post('/import', async (req, res) => {
     await conn1?.close();
     await conn2?.close();
   }
+});
+
+db.post('/export', async (req, res) => {
+  console.log('Calling /export');
+  const { dbAlias, } = req.body;
+  if (!dbAlias) return res.status(400).json(
+    `Required key(s) not provided: ${[
+      'dbAlias',
+    ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
+  );
+  let dbId;
+  try {
+    const res = await dbMan.getMetadata(dbAlias, req.user);
+    dbId = res.dbId;
+    //dbUser = res.dbUser;
+  } catch (e: any) {
+    res.status(500).end(`${handleErrorMessage(e)}`);
+  }
+  const pgUrl = `postgres://${config.dbUser}:${config.dbPassword}@${config.dbHost}/${dbId}`;
+  const { stdout, } = await exec(`pg_dump --inserts -x ${pgUrl}`, { shell: '/bin/bash', });
+  res.json(stdout);
 });
 
 db.get('/list', async (req, res) => {

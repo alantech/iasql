@@ -25,7 +25,7 @@ pub async fn main() {
         .arg(Arg::from_usage("[dump_file]")),
       SubCommand::with_name("export")
         .about("Export a db dump to backup your infrastructure or import it into another db")
-        .arg(Arg::from_usage("[conn_str]"))
+        .arg(Arg::from_usage("[db]"))
         .arg(Arg::from_usage("[dump_file]")),
       SubCommand::with_name("remove")
         .about("Remove a db and stop managing the cloud resources within it")
@@ -75,10 +75,9 @@ pub async fn main() {
       db::import(&db, &dump_file).await
     }
     ("export", Some(s_matches)) => {
-      // TODO allow providing PG connection string by parts: user, password, host, db
-      let conn_str = db::get_or_input_arg(s_matches.value_of("conn_str"), "PG connection string");
+      let db = db::get_or_select_db(s_matches.value_of("db")).await;
       let dump_file = db::get_or_input_arg(s_matches.value_of("dump_file"), "Dump file");
-      db::export(conn_str, dump_file);
+      db::export(&db, dump_file).await;
     }
     ("remove", Some(s_matches)) => {
       let db = db::get_or_select_db(s_matches.value_of("db")).await;
