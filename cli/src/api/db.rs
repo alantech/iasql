@@ -430,6 +430,14 @@ fn display_new_db(db_metadata: NewDbResponse) {
   let pass = format!("{}", dlg::bold(&db_metadata.password));
   let db_data = vec![vec![&server, &db, &user, &pass]];
   table.print(db_data);
+  let conn_str = format!("postgres://{}:{}@{}/{}", user, pass, server, db);
+  println!(
+    "{} {} {} {}",
+    dlg::success_prefix(),
+    dlg::bold("As a PG connection string"),
+    dlg::divider(),
+    dlg::bold(&conn_str),
+  );
   println!(
     "{} {}",
     dlg::warn_prefix(),

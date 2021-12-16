@@ -75,6 +75,7 @@ pub async fn main() {
       db::import(&db, &dump_file).await
     }
     ("export", Some(s_matches)) => {
+      // TODO allow providing PG connection string by parts: user, password, host, db
       let conn_str = db::get_or_input_arg(s_matches.value_of("conn_str"), "PG connection string");
       let dump_file = db::get_or_input_arg(s_matches.value_of("dump_file"), "Dump file");
       db::export(conn_str, dump_file);
