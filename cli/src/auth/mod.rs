@@ -134,7 +134,7 @@ async fn generate_token() {
   let prompt = format!(
     "{} {} {}",
     dlg::bold("Press Enter to open"),
-    dlg::cyan("https://auth.iasql.com"),
+    dlg::cyan(verification_uri),
     dlg::bold("in your browser"),
   );
   let open_browser = dlg::confirm_with_default(&prompt, true);
