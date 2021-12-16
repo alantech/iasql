@@ -183,9 +183,8 @@ db.post('/export', async (req, res) => {
   );
   let dbId;
   try {
-    const res = await dbMan.getMetadata(dbAlias, req.user);
-    dbId = res.dbId;
-    //dbUser = res.dbUser;
+    const meta = await dbMan.getMetadata(dbAlias, req.user);
+    dbId = meta.dbId;
   } catch (e: any) {
     res.status(500).end(`${handleErrorMessage(e)}`);
   }
