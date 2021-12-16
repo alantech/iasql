@@ -90,7 +90,7 @@ fn get_server() -> &'static str {
   };
   let env = std::env::var("IASQL_ENV").unwrap_or(default.to_string());
   match env.as_str() {
-    "local" => "localhost:5432",
+    "local" => "127.0.0.1:5432",
     _ => "db.iasql.com",
   }
 }
