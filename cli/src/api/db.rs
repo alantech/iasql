@@ -7,7 +7,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Display;
-use std::fs::OpenOptions;
+use std::fs::{write, OpenOptions};
 use std::io::BufReader;
 use std::process::exit;
 
@@ -172,37 +172,52 @@ async fn get_dbs(exit_if_none: bool) -> Vec<String> {
   dbs
 }
 
-pub fn export(conn_str: String, dump_file: String) {
+pub async fn export(db: &str, dump_file: String) {
+  let sp = ProgressBar::new_spinner();
+  sp.enable_steady_tick(10);
+  sp.set_message("Export in progress");
   let df = if !dump_file.ends_with(".sql") {
     format!("{}.sql", dump_file)
   } else {
     dump_file
   };
-  let res = std::process::Command::new("pg_dump")
-    .args(["--inserts", "-x", "-f", &df, &conn_str])
-    .output();
-  if let Err(_) = res {
-    // TODO ensure version match PG in prod used for import
-    eprintln!(
-      "{} {}",
-      dlg::err_prefix(),
-      dlg::bold("psql, or pg_dump, must be installed"),
-    );
-    exit(1);
-  }
-  let cmd = res.unwrap();
-  if cmd.status.success() {
-    println!("{} {}", dlg::success_prefix(), dlg::bold("Done"));
-  } else {
-    eprintln!(
-      "{} {} {} {}",
-      dlg::err_prefix(),
-      dlg::bold("Failed to export db"),
-      "\n",
-      String::from_utf8_lossy(&cmd.stderr)
-    );
-    exit(cmd.status.code().unwrap_or(1));
-  }
+  let body = json!({
+    "dbAlias": db,
+  });
+  let resp = post_v1("db/export/", body).await;
+  sp.finish_and_clear();
+  match &resp {
+    Ok(r) => {
+      let export_response: String = serde_json::from_str(r).unwrap();
+      match write(df, export_response) {
+        Ok(_) => println!("{} {}", dlg::success_prefix(), dlg::bold("Done")),
+        Err(e) => {
+          eprintln!(
+            "{} {} {} {} {} {}",
+            dlg::err_prefix(),
+            dlg::bold("Failed to export db"),
+            dlg::divider(),
+            dlg::red(db),
+            dlg::divider(),
+            e
+          );
+          exit(1);
+        }
+      };
+    }
+    Err(e) => {
+      eprintln!(
+        "{} {} {} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Failed to export db"),
+        dlg::divider(),
+        dlg::red(db),
+        dlg::divider(),
+        e.message
+      );
+      exit(1);
+    }
+  };
 }
 
 pub async fn list() {
