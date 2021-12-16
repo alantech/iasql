@@ -11,8 +11,6 @@ In this tutorial we will deploy an HTTP server via IaSQL to your AWS account usi
 
 1. Follow the steps in this [guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-prereqs.html#getting-started-prereqs-iam) to sign up to AWS, create an IAM user account and create credentials for it.
 
-Note: You will need to have a ECS execution role. If you don't have it follow this instructions: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html
-
 2. Now we will create a credentials file for the IAM role you just created. The file must be named `credentials` and is located underneath `.aws/` directory in your home directory.
 
 import Tabs from '@theme/Tabs';
