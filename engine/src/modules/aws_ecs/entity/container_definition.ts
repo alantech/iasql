@@ -10,11 +10,11 @@ import {
 } from 'typeorm'
 
 import { LogGroup } from '../../aws_cloudwatch/entity'
-import { AwsRepository } from '../../aws_ecr/entity/aws_repository'
+import { AwsPublicRepository, AwsRepository } from '../../aws_ecr/entity'
 import { EnvVariable } from './env_variable'
 import { PortMapping } from './port_mapping'
 
-@Check(`"docker_image" is not null or "repository_id" is not null`)
+@Check(`"docker_image" is not null or "repository_id" is not null  or "public_repository_id" is not null`)
 @Entity()
 export class ContainerDefinition {
   @PrimaryGeneratedColumn()
@@ -32,6 +32,12 @@ export class ContainerDefinition {
     name: "repository_id"
   })
   repository?: AwsRepository;
+
+  @ManyToOne(() => AwsPublicRepository, { nullable: true, })
+  @JoinColumn({
+    name: "public_repository_id"
+  })
+  publicRepository?: AwsPublicRepository;
 
   @Column()
   tag: string;
