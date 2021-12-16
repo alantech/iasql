@@ -110,7 +110,6 @@ import {
   ModifyDBInstanceCommand,
   ModifyDBInstanceCommandInput,
 } from '@aws-sdk/client-rds'
-
 import {
   CloudWatchLogsClient,
   CreateLogGroupCommand,
@@ -118,6 +117,14 @@ import {
   DescribeLogGroupsCommand,
   paginateDescribeLogGroups,
 } from '@aws-sdk/client-cloudwatch-logs'
+import {
+  CreateRepositoryCommand as CreatePubRepositoryCommand,
+  CreateRepositoryCommandInput as CreatePubRepositoryCommandInput,
+  DeleteRepositoryCommand as DeletePubRepositoryCommand,
+  DescribeRepositoriesCommand as DescribePubRepositoriesCommand,
+  ECRPUBLICClient,
+  paginateDescribeRepositories as paginateDescribePubRepositories,
+} from '@aws-sdk/client-ecr-public'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -136,6 +143,7 @@ export class AWS {
   private ecsClient: ECSClient
   private rdsClient: RDSClient
   private cwClient: CloudWatchLogsClient
+  private ecrPubClient: ECRPUBLICClient
   private credentials: AWSCreds
   public region: string
 
@@ -148,6 +156,8 @@ export class AWS {
     this.ecsClient = new ECSClient(config);
     this.rdsClient = new RDSClient(config);
     this.cwClient = new CloudWatchLogsClient(config);
+    // Service endpoint only available in 'us-esat-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
+    this.ecrPubClient = new ECRPUBLICClient({credentials: config.credentials, region: 'us-east-1'});
   }
 
   async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
@@ -1046,4 +1056,41 @@ export class AWS {
     );
   }
 
+  async createECRPubRepository(input: CreatePubRepositoryCommandInput) {
+    const repository = await this.ecrPubClient.send(
+      new CreatePubRepositoryCommand(input),
+    );
+    return repository.repository;
+  }
+
+  async getECRPubRepositories() {
+    const repositories = [];
+    const paginator = paginateDescribePubRepositories({
+      client: this.ecrPubClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      repositories.push(...(page.repositories ?? []));
+    }
+    return {
+      Repositories: repositories, // Make it "look like" the regular query again
+    };
+  }
+
+  async getECRPubRepository(name: string) {
+    const repositories = await this.ecrPubClient.send(
+      new DescribePubRepositoriesCommand({
+        repositoryNames: [name],
+      }),
+    );
+    return (repositories.repositories ?? [])[0];
+  }
+
+  async deleteECRPubRepository(name: string) {
+    return await this.ecrPubClient.send(
+      new DeletePubRepositoryCommand({
+        repositoryName: name,
+      }),
+    );
+  }
 }

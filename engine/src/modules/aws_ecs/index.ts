@@ -20,7 +20,7 @@ import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsAccount, AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
 import { AwsLoadBalancer } from '../aws_elb/entity'
-import { awsEcs1639139612537 } from './migration/1639139612537-aws_ecs'
+import { awsEcs1639678263049 } from './migration/1639678263049-aws_ecs'
 
 export const AwsEcsModule: Module = new Module({
   name: 'aws_ecs',
@@ -61,12 +61,16 @@ export const AwsEcsModule: Module = new Module({
         return pm2;
       }) ?? [];
       const imageTag = c.image?.split(':');
-      if (!imageTag[0]?.includes('amazonaws.com')) {
-        out.dockerImage = imageTag[0];
-      } else {
+      if (imageTag[0]?.includes('amazonaws.com')) {
         const repositories = ctx.memo?.db?.AwsRepository ? Object.values(ctx.memo?.db?.AwsRepository) : await AwsEcrModule.mappers.repository.db.read(ctx);
         const repository = repositories.find((r: any) => r.repositoryUri === imageTag[0]);
         out.repository = repository;
+      } else if (imageTag[0]?.includes('public.ecr.aws')) {
+        const publicRepositories = ctx.memo?.db?.AwsPublicRepository ? Object.values(ctx.memo?.db?.AwsPublicRepository) : await AwsEcrModule.mappers.publicRepository.db.read(ctx);
+        const publicRepository = publicRepositories.find((r: any) => r.repositoryUri === imageTag[0]);
+        out.publicRepository = publicRepository;
+      } else {
+        out.dockerImage = imageTag[0];
       }
       out.tag = imageTag[1];
       // TODO: eventually handle more log drivers
@@ -298,9 +302,9 @@ export const AwsEcsModule: Module = new Module({
             }
             const containers: any = entity?.containers?.map(cd => {
               // For INACTIVE tasks it is not necessary to exists a ecr repository to link since it could have been deleted.
-              if (!cd?.repository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.ACTIVE) {
+              if (!cd?.repository && !cd?.publicRepository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.ACTIVE) {
                 throw new Error('Invalid container image')
-              } else if (!cd?.repository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.INACTIVE) {
+              } else if (!cd?.repository && !cd?.publicRepository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.INACTIVE) {
                 return null;
               } else {
                 return cd;
@@ -328,7 +332,7 @@ export const AwsEcsModule: Module = new Module({
           await ctx.orm.save(TaskDefinition, es);
         },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const relations = ['reqCompatibilities', 'containers', 'containers.portMappings', 'containers.environment', 'containers.repository', 'containers.logGroup'];
+          const relations = ['reqCompatibilities', 'containers', 'containers.portMappings', 'containers.environment', 'containers.repository', 'containers.publicRepository', 'containers.logGroup'];
           const opts = id ? {
             where: {
               taskDefinitionArn: Array.isArray(id) ? In(id) : id,
@@ -352,9 +356,9 @@ export const AwsEcsModule: Module = new Module({
             }
             const containers: any = entity?.containers?.map(cd => {
               // For INACTIVE tasks it is not necessary to exists a ecr repository to link since it could have been deleted.
-              if (!cd?.repository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.ACTIVE) {
+              if (!cd?.repository && !cd?.publicRepository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.ACTIVE) {
                 throw new Error('Invalid container image')
-              } else if (!cd?.repository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.INACTIVE) {
+              } else if (!cd?.repository && !cd?.publicRepository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.INACTIVE) {
                 return null;
               } else {
                 return cd;
@@ -382,7 +386,8 @@ export const AwsEcsModule: Module = new Module({
               containerDefinitions: e.containers.map(c => {
                 const container: any = { ...c };
                 if (c.repository && !c.repository?.repositoryUri) throw new Error('Repository need to be created first');
-                container.image = `${c.repository ? c.repository.repositoryUri : c.dockerImage}:${c.tag}`;
+                if (c.publicRepository && !c.publicRepository?.repositoryUri) throw new Error('Public repository need to be created first');
+                container.image = `${c.repository ? c.repository.repositoryUri : c.publicRepository ? c.publicRepository.repositoryUri : c.dockerImage}:${c.tag}`;
                 if (container.logGroup) {
                   // TODO: improve log configuration
                   container.logConfiguration = {
@@ -654,7 +659,7 @@ export const AwsEcsModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEcs1639139612537.prototype.up,
-    preremove: awsEcs1639139612537.prototype.down,
+    postinstall: awsEcs1639678263049.prototype.up,
+    preremove: awsEcs1639678263049.prototype.down,
   },
 });

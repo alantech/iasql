@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEcs1639139612537 implements MigrationInterface {
-    name = 'awsEcs1639139612537'
+export class awsEcs1639678263049 implements MigrationInterface {
+    name = 'awsEcs1639678263049'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."aws_vpc_conf_assign_public_ip_enum" AS ENUM('DISABLED', 'ENABLED')`);
@@ -12,7 +12,7 @@ export class awsEcs1639139612537 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "env_variable" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "value" character varying NOT NULL, CONSTRAINT "PK_87fd48bd952a768fcf07b9c9ff5" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."port_mapping_protocol_enum" AS ENUM('tcp', 'udp')`);
         await queryRunner.query(`CREATE TABLE "port_mapping" ("id" SERIAL NOT NULL, "container_port" integer, "host_port" integer, "protocol" "public"."port_mapping_protocol_enum" NOT NULL, CONSTRAINT "PK_d39258100f33186bb74757e25d0" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "container_definition" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "docker_image" character varying, "tag" character varying NOT NULL, "essential" boolean NOT NULL DEFAULT false, "cpu" integer, "memory" integer, "memory_reservation" integer, "repository_id" integer, "log_group_id" integer, CONSTRAINT "CHK_b653e12fefb5d2a2936e2a6426" CHECK ("docker_image" is not null or "repository_id" is not null), CONSTRAINT "PK_79458e199ec6b2264a0735fd99e" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "container_definition" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "docker_image" character varying, "tag" character varying NOT NULL, "essential" boolean NOT NULL DEFAULT false, "cpu" integer, "memory" integer, "memory_reservation" integer, "repository_id" integer, "public_repository_id" integer, "log_group_id" integer, CONSTRAINT "CHK_0047d7f99860fa8a248ce642a0" CHECK ("docker_image" is not null or "repository_id" is not null  or "public_repository_id" is not null), CONSTRAINT "PK_79458e199ec6b2264a0735fd99e" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."service_launch_type_enum" AS ENUM('EC2', 'EXTERNAL', 'FARGATE')`);
         await queryRunner.query(`CREATE TYPE "public"."service_scheduling_strategy_enum" AS ENUM('DAEMON', 'REPLICA')`);
         await queryRunner.query(`CREATE TABLE "service" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "status" character varying, "desired_count" integer NOT NULL, "launch_type" "public"."service_launch_type_enum" NOT NULL, "scheduling_strategy" "public"."service_scheduling_strategy_enum" NOT NULL, "cluster_id" integer, "task_definition_id" integer, "aws_vpc_conf_id" integer, CONSTRAINT "UQ_7806a14d42c3244064b4a1706ca" UNIQUE ("name"), CONSTRAINT "REL_aeef40fe1f9b32afe23174bb9a" UNIQUE ("aws_vpc_conf_id"), CONSTRAINT "PK_85a21558c006647cd76fdce044b" PRIMARY KEY ("id"))`);
@@ -43,6 +43,7 @@ export class awsEcs1639139612537 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX "IDX_0909ccc9eddf3c92a777291256" ON "task_definition_req_compatibilities_compatibility" ("task_definition_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_f19b7360a189526c59b4387a95" ON "task_definition_req_compatibilities_compatibility" ("compatibility_id") `);
         await queryRunner.query(`ALTER TABLE "container_definition" ADD CONSTRAINT "FK_c0c1887e471b1f7c33007a2f420" FOREIGN KEY ("repository_id") REFERENCES "aws_repository"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "container_definition" ADD CONSTRAINT "FK_de350ceda5a3f4f5f8786518e6f" FOREIGN KEY ("public_repository_id") REFERENCES "aws_public_repository"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "container_definition" ADD CONSTRAINT "FK_88e7fb5cc14188b19b08d7e305d" FOREIGN KEY ("log_group_id") REFERENCES "log_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "service" ADD CONSTRAINT "FK_b1570c701dd1adce1391f2f25e7" FOREIGN KEY ("cluster_id") REFERENCES "cluster"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "service" ADD CONSTRAINT "FK_4518e1b3072a8f68c3bc747338e" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
@@ -105,6 +106,7 @@ export class awsEcs1639139612537 implements MigrationInterface {
                 _image_tag text,
                 _docker_image text default null,
                 _ecr_repository_name text default null,
+                _ecr_public_repository_name text default null,
                 _cloud_watch_log_group text default null
             )
             language plpgsql
@@ -116,11 +118,12 @@ export class awsEcs1639139612537 implements MigrationInterface {
                     val text;
                     ev_id integer;
                     ecr_repository_id integer;
+                    ecr_public_repository_id integer;
                     cw_log_group_id integer;
                     td_id integer;
                 begin
             
-                    assert (_docker_image is null and _ecr_repository_name is not null) or (_docker_image is not null and _ecr_repository_name is null), '_docker_image or _ecr_repository_name need to be defined';
+                    assert (_docker_image is null and _ecr_public_repository_name is null and _ecr_repository_name is not null) or (_docker_image is not null and _ecr_public_repository_name is null and _ecr_repository_name is null) or (_docker_image is null and _ecr_public_repository_name is not null and _ecr_repository_name is null), '_docker_image, _ecr_repository_name or _ecr_public_repository_name need to be defined';
             
                     select id into cw_log_group_id
                     from log_group
@@ -137,6 +140,16 @@ export class awsEcs1639139612537 implements MigrationInterface {
                             (name, repository_id, tag, essential, memory_reservation, log_group_id)
                         values
                             (_name, ecr_repository_id, _image_tag, _essential, _memory_reservation, cw_log_group_id);
+                    elsif _ecr_public_repository_name is not null then
+                        select id into ecr_public_repository_id
+                        from aws_public_repository
+                        where repository_name = _ecr_public_repository_name
+                        limit 1;
+            
+                        insert into container_definition
+                            (name, public_repository_id, tag, essential, memory_reservation, log_group_id)
+                        values
+                            (_name, ecr_public_repository_id, _image_tag, _essential, _memory_reservation, cw_log_group_id);
                     else
                         insert into container_definition
                             (name, docker_image, tag, essential, memory_reservation, log_group_id)
@@ -454,6 +467,7 @@ export class awsEcs1639139612537 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "service" DROP CONSTRAINT "FK_4518e1b3072a8f68c3bc747338e"`);
         await queryRunner.query(`ALTER TABLE "service" DROP CONSTRAINT "FK_b1570c701dd1adce1391f2f25e7"`);
         await queryRunner.query(`ALTER TABLE "container_definition" DROP CONSTRAINT "FK_88e7fb5cc14188b19b08d7e305d"`);
+        await queryRunner.query(`ALTER TABLE "container_definition" DROP CONSTRAINT "FK_de350ceda5a3f4f5f8786518e6f"`);
         await queryRunner.query(`ALTER TABLE "container_definition" DROP CONSTRAINT "FK_c0c1887e471b1f7c33007a2f420"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_f19b7360a189526c59b4387a95"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_0909ccc9eddf3c92a777291256"`);
