@@ -1,5 +1,8 @@
 import { In, } from 'typeorm'
 
+import { Repository, } from '@aws-sdk/client-ecr'
+import { Repository as PublicRepository, } from '@aws-sdk/client-ecr-public'
+
 import { AWS, } from '../../services/gateways/aws'
 import { AwsPublicRepository, AwsRepository, AwsRepositoryPolicy, ImageTagMutability, } from './entity'
 import * as allEntities from './entity'
@@ -15,7 +18,7 @@ export const AwsEcrModule: Module = new Module({
     functions: ['create_ecr_repository', 'create_ecr_repository_policy'],
   },
   utils: {
-    publicRepositoryMapper: (r: any, _ctx: Context) => {
+    publicRepositoryMapper: (r: PublicRepository, _ctx: Context) => {
       const out = new AwsRepository();
       if (!r?.repositoryName) throw new Error('No repository name defined.');
       out.repositoryName = r.repositoryName;
@@ -25,7 +28,7 @@ export const AwsEcrModule: Module = new Module({
       out.createdAt = r.createdAt ? new Date(r.createdAt) : r.createdAt;
       return out;
     },
-    repositoryMapper: (r: any, _ctx: Context) => {
+    repositoryMapper: (r: Repository, _ctx: Context) => {
       const out = new AwsRepository();
       if (!r?.repositoryName) throw new Error('No repository name defined.');
       out.repositoryName = r.repositoryName;
