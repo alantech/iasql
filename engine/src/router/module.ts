@@ -173,20 +173,34 @@ ${Object.keys(tableCollisions)
     const moduleContext = md.provides.context ?? {};
     Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
   }
-  // Get the relevant mappers, which are the ones where the DB is the source-of-truth
-  const mappers = modules
-    .map(md => Object.values(md.mappers))
-    .flat()
+
   try {
-    await lazyLoader(mappers.map(mapper => async () => {
-      const e = await mapper.cloud.read(context);
-      if (!e || (Array.isArray(e) && !e.length)) {
-        console.log('Completely unexpected outcome');
-        console.log({ mapper, e, });
-      } else {
-        await mapper.db.create(e, context);
+    for (const md of rootToLeafOrder) {
+      // Get the relevant mappers, which are the ones where the DB is the source-of-truth
+      const mappers = Object.values(md.mappers);
+      await lazyLoader(mappers.map(mapper => async () => {
+        let e;
+        try {
+          e = await mapper.cloud.read(context);
+        } catch (err) {
+          console.log(`Error reading from cloud entitiy ${mapper.entity.name}`);
+          console.error(err);
+          throw err;
+        }
+        if (!e || (Array.isArray(e) && !e.length)) {
+          console.log('Completely unexpected outcome');
+          console.log({ mapper, e, });
+        } else {
+          try {
+            await mapper.db.create(e, context);
+          } catch (err) {
+            console.log(`Error importing from cloud entitiy ${mapper.entity.name}`);
+            console.error(err);
+            throw err;
+          }
+        }
+      }));
     }
-    }));
     res.json("Done!");
   } catch (e: any) {
     console.error(e);
