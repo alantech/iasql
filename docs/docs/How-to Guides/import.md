@@ -1,6 +1,5 @@
 ---
-sidebar_position: 3
-slug: '/import'
+sidebar_position: 5
 ---
 
 # Import existing infra

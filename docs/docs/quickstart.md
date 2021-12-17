@@ -1,11 +1,16 @@
 ---
 sidebar_position: 3
-slug: '/quickstart'
 ---
 
 # Quickstart
 
-In this tutorial we will deploy an HTTP server via IaSQL to your AWS account using the following cloud services: ECS, ECR and ELB.
+In this tutorial we will use IaSQL to deploy a Node.js HTTP server within a docker container on your AWS account using ECS, ECR and ELB. The container image will be hosted as a public repository in ECR and deployed to ECS using Fargate.
+
+:::tip
+
+All the code from this tutorial can be found in this [template repository](https://github.com/iasql/quickstart) which you can use to [create a new Github repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template) for your IaSQL project.
+
+:::
 
 ## Setup your AWS account with programmatic access
 
@@ -46,11 +51,11 @@ import TabItem from '@theme/TabItem';
   </TabItem>
 </Tabs>
 
-## Start managing your AWS account with IaSQL
+## Start managing your AWS account with an IaSQL db
 
 1. [Install](/install) the IaSQL service CLI
 
-2. Let's provision a new PG db to manage your AWS account with `iasql new` which will prompt you to enter a name for the db, pick an AWS region and pick an AWS profile if you have more than one.
+2. Provision a new PG db to manage your AWS account by running `iasql new`. The CLI will prompt you to enter a name for the db, pick an AWS region and pick an AWS profile if you have more than one.
 
 ```bash
 $ iasql new
@@ -69,9 +74,9 @@ $ iasql new
 ! This is the only time we will show you these credentials, be sure to save them.
 ```
 
-## Add cloud services to manage with `prod` database
+## Add the necessary cloud services to your database
 
-Install the following modules for the db: `aws_cloudwatch`, `aws_ecr`, `aws_ecs`, `aws_elb` and `aws_security_group`.
+Run `iasql install` to add the following modules on your prod db: `aws_cloudwatch`, `aws_ecr`, `aws_ecs`, `aws_elb` and `aws_security_group`.
 
 ```bash
 $ iasql install
@@ -89,15 +94,11 @@ $ iasql install
 ✔ Done
 ```
 
-## Spin up your cloud resources
+## Connect to your db and provision cloud resources
 
-1. Take this sql script, modify the first set of variables and run it on your db
-<!--TODO link to script -->
+1. Install `psql` in your command line by following the instructions for your corresponding OS [here](https://www.postgresql.org/download/)
 
-
-2. Install `psql` in your command line by following the instructions for your corresponding OS [here](https://www.postgresql.org/download/)
-
-3. Invoke `psql` with the connection string provided on db creation and the SQL script
+2. Take the [SQL script from the repository for this quickstart](https://github.com/iasql/quickstart/blob/main/quickstart.sql) and run it on your db by invoking `psql` with the connection string provided on db creation:
 
 ```sql
 psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4 -f <path>/<to>/quickstart.sql
@@ -120,16 +121,11 @@ from aws_ecr
 where repository_name = <repository-name>
 ```
 
-<!--TODO link to install docker -->
-
-2. Login to AWS ECR by copying the command below and using the correct `ECR URI`
+2. Login to AWS ECR using the AWS CLI. Run the following command and using the correct `ECR URI`
 
 ```sh
 aws ecr get-login-password --region us-east-2 --profile default | docker login --username AWS --password-stdin <ECR URI>
 ```
-
-<!--TODO link to download hello_iasql folder -->
-
 
 3. Build your image locally
 
@@ -156,10 +152,4 @@ _4b2bb09a59a411e4=> select dns_name
 from aws_load_balancer
 where load_balancer_name = <load-balancer-name>
 ```
-
-## Deploy new code
-
-Run `deploy.sh`....
-
-<!--TODO can we also do this for the section above -->
 

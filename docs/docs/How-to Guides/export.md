@@ -1,10 +1,13 @@
 ---
-sidebar_position: 2
-slug: '/export'
+sidebar_position: 4
 ---
 
-# Export IaSQL infra
+# Export infrastructure
 
-Export infrastructure from an IaSQL DB
+Exporting infrastructure from an IaSQL DB outputs a SQL dump file that can then be used to create backups for your infrastructure, or as input for `iasql import` in order to stand up test environments.
 
-Coming soon
+```bash
+$ iasql export
+
+
+```
