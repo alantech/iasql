@@ -17,6 +17,9 @@ if (config.sentryEnabled) {
   // transaction/span/breadcrumb is attached to its own Hub instance
   app.use(sentry.Handlers.requestHandler());
 }
+app.get('/health', (_, res) => res.send('ok'));
+app.use('/v1', v1);
+app.get('/debug-error', (req, res) => { throw new Error("Testing error handling!") });
 // The error handler must be before any other error middleware and after all controllers
 if (config.sentryEnabled) {
   app.use(
@@ -29,10 +32,6 @@ if (config.sentryEnabled) {
     })
   );
 }
-app.get('/health', (_, res) => res.send('ok'));
-app.use('/v1', v1);
-app.get('/debug-500', (req, res) => { res.status(500).end('fail') });
-app.get('/debug-throw', (req, res) => { throw new Error("Testing error handling!") });
 
 app.use((error: any, _req: any, res: any, _next: any) => {
   // The error id is attached to `res.sentry` to be returned
