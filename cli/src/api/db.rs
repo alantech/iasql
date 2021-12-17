@@ -90,7 +90,7 @@ fn get_server() -> &'static str {
   };
   let env = std::env::var("IASQL_ENV").unwrap_or(default.to_string());
   match env.as_str() {
-    "local" => "localhost:5432",
+    "local" => "127.0.0.1:5432",
     _ => "db.iasql.com",
   }
 }
@@ -98,7 +98,19 @@ fn get_server() -> &'static str {
 pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
   let dbs = get_dbs(true).await;
   if db_opt.is_none() {
-    let selection = dlg::select_with_default("Pick IaSQL db", &dbs, 0);
+    let selection = if dbs.len() > 1 {
+      dlg::select_with_default("Pick IaSQL db", &dbs, 0)
+    } else {
+      // if only one db, skip selection
+      println!(
+        "{} {} {} {}",
+        dlg::success_prefix(),
+        dlg::bold("IaSQL db"),
+        dlg::divider(),
+        dlg::bold(&dbs[0]),
+      );
+      0
+    };
     let db = &dbs[selection];
     db.clone()
   } else {
@@ -308,6 +320,17 @@ fn maybe_planned_nothing(plan_response: &PlanResponse) {
 }
 
 pub async fn plan(db: &str) {
+  let confirmation = dlg::confirm_with_default("Press enter to confirm plan", true);
+  if !confirmation {
+    println!(
+      "{} {} {} {}",
+      dlg::warn_prefix(),
+      dlg::bold("Did not run plan on db"),
+      dlg::divider(),
+      dlg::yellow(db)
+    );
+    exit(0);
+  }
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
   sp.set_message("Plan in progress");
@@ -342,6 +365,17 @@ pub async fn plan(db: &str) {
 }
 
 pub async fn apply(db: &str) {
+  let confirmation = dlg::confirm_with_default("Press enter to confirm apply", true);
+  if !confirmation {
+    println!(
+      "{} {} {} {}",
+      dlg::warn_prefix(),
+      dlg::bold("Did not run apply on db"),
+      dlg::divider(),
+      dlg::yellow(db)
+    );
+    exit(0);
+  }
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
   sp.set_message("Apply in progress");

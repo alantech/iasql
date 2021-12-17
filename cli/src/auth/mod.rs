@@ -134,7 +134,7 @@ async fn generate_token() {
   let prompt = format!(
     "{} {} {}",
     dlg::bold("Press Enter to open"),
-    dlg::cyan("https://auth.iasql.com"),
+    dlg::cyan(verification_uri),
     dlg::bold("in your browser"),
   );
   let open_browser = dlg::confirm_with_default(&prompt, true);
@@ -179,14 +179,11 @@ async fn generate_token() {
       let mut file = File::create(file_name).expect(ERR);
       file.write_all(token.as_bytes()).expect(ERR);
       TOKEN.set(token.to_string()).unwrap();
-      if dlg::confirm_with_default("Authentication complete. Press Enter to continue...", true) {
-        println!(
-          "{} {}",
-          dlg::success_prefix(),
-          dlg::bold("Welcome to IaSQL!")
-        );
-        return;
-      }
+      println!(
+        "{} {}",
+        dlg::success_prefix(),
+        dlg::bold("Authentication complete. Welcome to IaSQL!")
+      );
       return;
     } else if let Some(error) = json["error"].as_str() {
       if error != "authorization_pending" {
