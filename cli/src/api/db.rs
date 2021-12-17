@@ -107,7 +107,7 @@ pub async fn get_or_select_db(db_opt: Option<&str>) -> String {
         dlg::success_prefix(),
         dlg::bold("IaSQL db"),
         dlg::divider(),
-        dlg::bold(&dbs[0]),
+        dlg::green(&dbs[0]),
       );
       0
     };
