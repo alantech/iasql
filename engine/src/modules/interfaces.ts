@@ -80,6 +80,7 @@ export class Crud<E> {
     if (id) {
       const dest = this.dest ?? 'What?';
       const entityName = this.entity?.name ?? 'What?';
+      const entityId = this.entityId ?? ((_e: E) => { return 'What?'; });
       if (Array.isArray(id)) {
         const missing: string[] = [];
         const vals = id.map(i => {
@@ -98,7 +99,9 @@ export class Crud<E> {
           }
         });
         if (missing.length === 0) return vals;
-        const missingVals = this.memo(await this.readFn(ctx, missing), ctx) as E[];
+        const missingVals = (this.memo(await this.readFn(ctx, missing), ctx) as E[]).sort(
+          (a: E, b: E) => missing.indexOf(entityId(a)) - missing.indexOf(entityId(b))
+        );
         // The order is the same in both lists, so we can cheat and do a single pass
         for (let i = 0, j = 0; i < vals.length; i++) {
           if (vals[i] === missing[j]) {
