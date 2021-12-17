@@ -188,7 +188,10 @@ db.post('/export', async (req, res) => {
   } catch (e: any) {
     res.status(500).end(`${handleErrorMessage(e)}`);
   }
-  const pgUrl = `postgres://${config.dbUser}:${config.dbPassword}@${config.dbHost}/${dbId}`;
+  // Using the main user and password, not the users' own account here
+  const pgUrl = `postgres://${encodeURIComponent(config.dbUser)}:${encodeURIComponent(
+    config.dbPassword
+  )}@${config.dbHost}/${dbId}`;
   const { stdout, } = await exec(`pg_dump --inserts -x ${pgUrl}`, { shell: '/bin/bash', });
   res.json(stdout);
 });
