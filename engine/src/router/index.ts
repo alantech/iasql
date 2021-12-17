@@ -1,6 +1,8 @@
 import * as express from 'express'
 import jwt from 'express-jwt'
 import jwksRsa from 'jwks-rsa'
+import * as sentry from "@sentry/node"
+
 
 import { db, } from './db'
 import config from '../config'
@@ -11,6 +13,7 @@ export function handleErrorMessage(e: any): string {
   if (e.metadata?.failures) {
     err = e.metadata.failures.map((f: Error) => f?.message).join('\n');
   }
+  if (config.sentryEnabled) err += `\nPlease provide this error ID when reporting this bug: ${sentry.captureException(e)}`;
   return err;
 }
 
