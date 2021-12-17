@@ -95,6 +95,7 @@ export function grantPostgresRoleQuery(user: string) {
     GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${user};
     GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${user};
     GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${user};
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${user};
   ` : '';
 }
 
