@@ -3,9 +3,6 @@ name: DOCS
 on:
   push:
     branches: [main]
-  # Temporary to deploy this PR for calls
-  pull_request:
-    branches: [main]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
