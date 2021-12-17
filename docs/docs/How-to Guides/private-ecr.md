@@ -1,5 +1,6 @@
 ---
 sidebar_position: 6
+slug: '/private-ecr'
 ---
 
 # Publish a container image to a private repository in AWS ECR
