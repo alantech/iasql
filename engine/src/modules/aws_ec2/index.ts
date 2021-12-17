@@ -385,7 +385,7 @@ export const AwsEc2Module: Module = new Module({
       out.instanceType = await AwsEc2Module.mappers.instanceType.db.read(ctx, instance.InstanceType);
       out.securityGroups = await AwsSecurityGroupModule.mappers.securityGroup.db.read(
         ctx,
-        instance.SecurityGroups?.map(sg => sg.GroupId).filter(id => !!id) as string[],
+        [...new Set(instance.SecurityGroups?.map(sg => sg.GroupId).filter(id => !!id)).values()] as string[],
       );
       out.region = await AwsAccount.mappers.region.db.read(
         ctx,
@@ -660,7 +660,7 @@ export const AwsEc2Module: Module = new Module({
               const instanceId = await client.newInstance(
                 instance.instanceType.instanceType.name,
                 instance.ami.imageId,
-                instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[],
+                [...new Set(instance.securityGroups.map(sg => sg.groupId).filter(id => !!id)).values()] as string[],
               );
               if (!instanceId) { // then who?
                 throw new Error('should not be possible');
