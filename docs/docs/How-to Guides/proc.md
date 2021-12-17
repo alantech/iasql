@@ -2,7 +2,7 @@
 sidebar_position: 3
 ---
 
-# Inspect and use stored procedures
+# Inspect stored procedures
 
 IaSQL provides multiple [Postgres used-defined stored procedures](https://www.postgresql.org/docs/current/xproc.html) with each module, or cloud service, you add to your db to help you simplify and DRY out your infrastructure declarations. It is also possible for you to define your own stored procedures!
 
