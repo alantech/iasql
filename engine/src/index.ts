@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import express from 'express';
 import { inspect } from 'util';
-import * as sentry from "@sentry/node";
+import * as sentry from '@sentry/node';
 
 import config from './config';
 import { v1 } from './router';
@@ -38,7 +38,7 @@ app.use((error: any, _req: any, res: any, _next: any) => {
   // and optionally displayed to the user for support.
   console.error(inspect(error));
   let msg = error.message || inspect(error);
-  if (config.sentryEnabled) msg += `\nPlease provide this error ID when reporting this bug: ${res.sentry}\n`;
+  if (config.sentryEnabled) msg += `\nPlease provide this error ID when reporting this bug: ${res.sentry}`;
   return res
     .status(error.statusCode || error.status || 500)
     .end(msg);
