@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import express from 'express';
 import { inspect } from 'util';
-import * as sentry from "@sentry/node";
+import * as sentry from '@sentry/node';
 
 import config from './config';
 import { v1 } from './router';

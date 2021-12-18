@@ -1,7 +1,7 @@
 import * as express from 'express'
 import jwt from 'express-jwt'
 import jwksRsa from 'jwks-rsa'
-import * as sentry from "@sentry/node"
+import * as sentry from '@sentry/node'
 
 import { db, } from './db'
 import config from '../config'
