@@ -3,7 +3,6 @@ import jwt from 'express-jwt'
 import jwksRsa from 'jwks-rsa'
 import * as sentry from "@sentry/node"
 
-
 import { db, } from './db'
 import config from '../config'
 import { mod, } from './module'
