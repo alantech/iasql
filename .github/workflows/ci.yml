@@ -64,6 +64,11 @@ jobs:
 
       - name: Run tests
         run: yarn test
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
+          AWS_REGION: us-east-1
 
   docs:
     runs-on: ubuntu-latest
@@ -82,83 +87,3 @@ jobs:
           cd ../docs
           yarn
           yarn build
-
-  db:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-
-      # Set up Node.js
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
-        with:
-          node-version: 16.x
-
-      - name: Install dependencies
-        run: yarn
-
-      - name: Docker build and run --detach
-        run: |
-          echo A0_ENABLED=${A0_ENABLED} >> .env
-          echo A0_DOMAIN=${A0_DOMAIN} >> .env
-          echo A0_AUDIENCE=${A0_AUDIENCE} >> .env
-          echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN} >> .env
-          docker-compose --env-file .env up --build --detach
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
-          AWS_REGION: us-east-1
-          A0_ENABLED: true
-          A0_DOMAIN: https://auth.iasql.com/
-          A0_AUDIENCE: https://api.iasql.com
-
-      - name: Docker ps -a
-        run: docker ps -a
-
-      # Waiting for listening port
-      - name: Health
-        run: while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
-
-      # Check that all migrations are applied
-      - name: New
-        run: |
-          curl \
-          --request POST \
-          --url 'http://localhost:8088/v1/db/new/' \
-          --show-error --silent --fail \
-          --header 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' \
-          --header 'content-type: application/json' \
-          --data '{
-            "dbAlias": "__${{ github.sha }}__",
-            "awsRegion": "us-east-1",
-            "awsAccessKeyId": "${{ secrets.AWS_ACCESS_KEY_ID }}",
-            "awsSecretAccessKey": "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          }'
-
-      - name: Apply
-        run: |
-          curl -X POST -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -H "Content-Type: application/json" -f -s -S http://localhost:8088/v1/db/apply -d '{"dbAlias": "__${{ github.sha }}__"}'
-
-      - name: List
-        run: |
-          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/list
-
-      - name: Remove
-        run: |
-          curl -H 'authorization: Bearer ${{ secrets.A0_IASQL_API_TOKEN }}' -f -s -S http://localhost:8088/v1/db/remove/__${{ github.sha }}__
-
-      - name: Logs engine
-        if: always()
-        run: docker logs engine_change_engine_1
-
-      - name: Logs psql
-        if: always()
-        run: docker logs engine_postgresql_1
-
-      - name: Docker stop
-        run: docker stop $(docker ps -q)
