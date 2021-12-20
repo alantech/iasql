@@ -2,7 +2,8 @@ import { execSync, } from 'child_process'
 
 jest.setTimeout(30000);
 
-const sha = execSync('git rev-parse HEAD'); // Could do this with $() but requires nasty escaping
+// Could use $() but requires nasty escaping
+const sha = execSync('git rev-parse HEAD', { encoding: 'utf8', }).trim();
 
 beforeAll(() => {
   // Set up the env file
