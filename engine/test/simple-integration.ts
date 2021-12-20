@@ -2,6 +2,8 @@ import { execSync, } from 'child_process'
 
 jest.setTimeout(30000);
 
+const sha = execSync('git rev-parse HEAD'); // Could do this with $() but requires nasty escaping
+
 beforeAll(() => {
   // Set up the env file
   execSync('echo AO_ENABLED=true >> .env');
@@ -35,7 +37,7 @@ describe('Basic integration testing', () => {
       --header 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
       --header 'content-type: application/json' \
       --data '{
-        "dbAlias": "__$(git rev-parse HEAD)__",
+        "dbAlias": "__${sha}__",
         "awsRegion": "us-east-1",
         "awsAccessKeyId": "${process.env.AWS_ACCESS_KEY_ID}",
         "awsSecretAccessKey": "${process.env.AWS_SECRET_ACCESS_KEY}"
@@ -52,7 +54,7 @@ describe('Basic integration testing', () => {
         -f \
         -s \
         -S http://localhost:8088/v1/db/apply \
-        -d '{"dbAlias": "__$(git rev-parse HEAD)__"}'
+        -d '{"dbAlias": "__${sha}__"}'
     `);
   });
 
@@ -72,7 +74,7 @@ describe('Basic integration testing', () => {
         -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
         -f \
         -s \
-        -S http://localhost:8088/v1/db/remove/__$(git rev-parse HEAD)__
+        -S http://localhost:8088/v1/db/remove/__${sha}__
     `);
   });
 });
