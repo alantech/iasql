@@ -34,7 +34,7 @@ export const AwsCloudwatchModule: Module = new Module({
         logGroupArn: e?.logGroupArn ?? '',
         creationTime: e?.creationTime?.toISOString() ?? '',
       }),
-      equals: (_a: LogGroup, _b: LogGroup) => true, // TODO: Fix this
+      equals: (a: LogGroup, b: LogGroup) => Object.is(a.logGroupName, b.logGroupName),
       source: 'db',
       db: new Crud({
         create: async (e: LogGroup | LogGroup[], ctx: Context) => { await ctx.orm.save(LogGroup, e); },
@@ -95,7 +95,17 @@ export const AwsCloudwatchModule: Module = new Module({
             );
           }
         },
-        update: async (_lg: LogGroup | LogGroup[], _ctx: Context) => { /** TODO */ },
+        update: async (lg: LogGroup | LogGroup[], ctx: Context) => {
+          const es = Array.isArray(lg) ? lg : [lg];
+          return await Promise.all(es.map(async (e) => {
+            try {
+              return await AwsCloudwatchModule.mappers.logGroup.cloud.create(e, ctx);
+            } catch (_) {
+              e.logGroupName = Date.now().toString();
+              return await AwsCloudwatchModule.mappers.logGroup.cloud.create(e, ctx);
+            }
+          }));
+        },
         delete: async (lg: LogGroup | LogGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(lg) ? lg : [lg];
