@@ -167,11 +167,12 @@ export const AwsAccount: Module = new Module({
       db: new Crud({
         create: async (e: Region | Region[], ctx: Context) => { await ctx.orm.save(Region, e); },
         read: async (ctx: Context, id?: string | string[] | undefined) => {
-          return await ctx.orm.find(Region, id ? {
+          const opts = id ? {
             where: {
               name: Array.isArray(id) ? In(id) : id,
             },
-          } : undefined);
+          } : undefined;
+          return (!id || Array.isArray(id)) ? await ctx.orm.find(Region, opts) : await ctx.orm.findOne(Region, opts);
         },
         update: async (e: Region | Region[], ctx: Context) => { await ctx.orm.save(Region, e); },
         delete: async (e: Region | Region[], ctx: Context) => { await ctx.orm.remove(Region, e); },
