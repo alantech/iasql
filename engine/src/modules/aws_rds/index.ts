@@ -55,31 +55,29 @@ export const AwsRdsModule: Module = new Module({
       equals: (_a: EngineVersion, _b: EngineVersion) => true,
       source: 'cloud',
       db: new Crud({
-        create: (e: EngineVersion | EngineVersion[], ctx: Context) => ctx.orm.save(EngineVersion, e),
-        read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const opts = id ? {
+        create: (e: EngineVersion[], ctx: Context) => ctx.orm.save(EngineVersion, e),
+        read: async (ctx: Context, ids?: string[]) => {
+          const opts = ids ? {
             where: {
-              engineVersionKey: Array.isArray(id) ? In(id) : id,
+              engineVersionKey: In(ids),
             },
           } : undefined;
           return await ctx.orm.find(EngineVersion, opts);
         },
-        update: (e: EngineVersion | EngineVersion[], ctx: Context) => ctx.orm.save(EngineVersion, e),
-        delete: (e: EngineVersion | EngineVersion[], ctx: Context) => ctx.orm.remove(EngineVersion, e),
+        update: (e: EngineVersion[], ctx: Context) => ctx.orm.save(EngineVersion, e),
+        delete: (e: EngineVersion[], ctx: Context) => ctx.orm.remove(EngineVersion, e),
       }),
       cloud: new Crud({
-        create: async (_e: EngineVersion | EngineVersion[], _ctx: Context) => { /** Noop */ },
-        read: async (ctx: Context, ids?: string | string[]) => {
+        create: async (_e: EngineVersion[], _ctx: Context) => { /** Noop */ },
+        read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const evs = Array.isArray(ids) ?
             await Promise.all(ids.map(id => client.getEngineVersion(id))) :
-            ids === undefined ?
-              (await client.getEngineVersions()).DBEngineVersions :
-              [await client.getEngineVersion(ids)];
+            (await client.getEngineVersions()).DBEngineVersions;
           return await Promise.all(evs.map(ev => AwsRdsModule.utils.engineVersionMapper(ev, ctx)));
         },
-        update: async (_e: EngineVersion | EngineVersion[], _ctx: Context) => {/** Noop */ },
-        delete: async (_e: EngineVersion | EngineVersion[], _ctx: Context) => {/** Noop */ },
+        update: async (_e: EngineVersion[], _ctx: Context) => {/** Noop */ },
+        delete: async (_e: EngineVersion[], _ctx: Context) => {/** Noop */ },
       }),
     }),
     rds: new Mapper<RDS>({
@@ -103,24 +101,23 @@ export const AwsRdsModule: Module = new Module({
         && Object.is(a.allocatedStorage, b.allocatedStorage),
       source: 'db',
       db: new Crud({
-        create: (rds: RDS | RDS[], ctx: Context) => ctx.orm.save(RDS, rds),
-        read: async (ctx: Context, id?: string | string[] | undefined) => {
+        create: (rds: RDS[], ctx: Context) => ctx.orm.save(RDS, rds),
+        read: async (ctx: Context, ids?: string[]) => {
           const relations = ['engine', 'vpcSecurityGroups', 'availabilityZone'];
-          const opts = id ? {
+          const opts = ids ? {
             where: {
-              dbInstanceIdentifier: Array.isArray(id) ? In(id) : id,
+              dbInstanceIdentifier: In(ids),
             },
             relations,
           } : { relations, };
           return await ctx.orm.find(RDS, opts);
         },
-        update: async (rds: RDS | RDS[], ctx: Context) => { await ctx.orm.save(RDS, rds); },
-        delete: async (rds: RDS | RDS[], ctx: Context) => { await ctx.orm.remove(RDS, rds); },
+        update: async (rds: RDS[], ctx: Context) => { await ctx.orm.save(RDS, rds); },
+        delete: async (rds: RDS[], ctx: Context) => { await ctx.orm.remove(RDS, rds); },
       }),
       cloud: new Crud({
-        create: async (rds: RDS | RDS[], ctx: Context) => {
+        create: async (es: RDS[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          const es = Array.isArray(rds) ? rds : [rds];
           return await Promise.all(es.map(async (e) => {
             const securityGroupIds = e.vpcSecurityGroups?.map(sg => {
               if (!sg.groupId) throw new Error('Security group needs to exist')
@@ -154,18 +151,15 @@ export const AwsRdsModule: Module = new Module({
             return newEntity;
           }));
         },
-        read: async (ctx: Context, ids?: string | string[]) => {
+        read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const rdses = Array.isArray(ids) ?
             await Promise.all(ids.map(id => client.getDBInstance(id))) :
-            ids === undefined ?
-              (await client.getDBInstances()).DBInstances :
-              [await client.getDBInstance(ids)];
+            (await client.getDBInstances()).DBInstances;
           return await Promise.all(rdses.map(rds => AwsRdsModule.utils.rdsMapper(rds, ctx)));
         },
-        update: async (rds: RDS | RDS[], ctx: Context) => {
+        update: async (es: RDS[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          const es = Array.isArray(rds) ? rds : [rds];
           return await Promise.all(es.map(async (e) => {
             // Doing an actual update of some of the properties that can change.
             // Discarded delete + re-create for two reasons
@@ -202,9 +196,8 @@ export const AwsRdsModule: Module = new Module({
             return newEntity;
           }));
         },
-        delete: async (rds: RDS | RDS[], ctx: Context) => {
+        delete: async (es: RDS[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          const es = Array.isArray(rds) ? rds : [rds];
           await Promise.all(es.map(async (e) => {
             const input = {
               DBInstanceIdentifier: e.dbInstanceIdentifier,

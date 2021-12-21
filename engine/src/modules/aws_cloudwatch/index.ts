@@ -37,20 +37,19 @@ export const AwsCloudwatchModule: Module = new Module({
       equals: (_a: LogGroup, _b: LogGroup) => true, // TODO: Fix this
       source: 'db',
       db: new Crud({
-        create: (e: LogGroup | LogGroup[], ctx: Context) => ctx.orm.save(LogGroup, e),
-        read: (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(LogGroup, id ? {
+        create: (e: LogGroup[], ctx: Context) => ctx.orm.save(LogGroup, e),
+        read: (ctx: Context, ids?: string[]) => ctx.orm.find(LogGroup, ids ? {
           where: {
-            logGroupName: Array.isArray(id) ? In(id) : id,
+            logGroupName: In(ids),
           },
         } : undefined),
-        update: (e: LogGroup | LogGroup[], ctx: Context) => ctx.orm.save(LogGroup, e),
-        delete: (e: LogGroup | LogGroup[], ctx: Context) => ctx.orm.remove(LogGroup, e),
+        update: (e: LogGroup[], ctx: Context) => ctx.orm.save(LogGroup, e),
+        delete: (e: LogGroup[], ctx: Context) => ctx.orm.remove(LogGroup, e),
       }),
       cloud: new Crud({
-        create: async (lg: LogGroup | LogGroup[], ctx: Context) => {
+        create: async (lg: LogGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          const es = Array.isArray(lg) ? lg : [lg];
-          return await Promise.all(es.map(async (e) => {
+          return await Promise.all(lg.map(async (e) => {
             await client.createLogGroup(e.logGroupName);
             // Re-get the inserted record to get all of the relevant records we care about
             const logGroups = await client.getLogGroups(e.logGroupName);
@@ -65,23 +64,18 @@ export const AwsCloudwatchModule: Module = new Module({
             return newEntity;
           }));
         },
-        read: async (ctx: Context, ids?: string | string[]) => {
+        read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          ids = Array.isArray(ids) ?
-            ids :
-            ids === undefined ?
-              [] :
-              [ids];
+          ids = Array.isArray(ids) ? ids : []
           const logGroups = (await Promise.all(ids.map(id => client.getLogGroups(id)))).flat();
           return await Promise.all(
             logGroups.map((lg: any) => AwsCloudwatchModule.utils.logGroupMapper(lg, ctx))
           );
         },
-        update: async (_lg: LogGroup | LogGroup[], _ctx: Context) => { /** TODO */ },
-        delete: async (lg: LogGroup | LogGroup[], ctx: Context) => {
+        update: async (_lg: LogGroup[], _ctx: Context) => { /** TODO */ },
+        delete: async (lg: LogGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          const es = Array.isArray(lg) ? lg : [lg];
-          await Promise.all(es.map((e) => client.deleteLogGroup(e.logGroupName)));
+          await Promise.all(lg.map((e) => client.deleteLogGroup(e.logGroupName)));
         },
       }),
     }),

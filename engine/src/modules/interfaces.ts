@@ -8,17 +8,17 @@ import { QueryRunner, } from 'typeorm'
 export type Context = { [key: string]: any };
 
 export interface CrudInterface<E> {
-  create: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
-  read: (ctx: Context, id?: string | string[]) => Promise<E | E[] | void>;
-  update: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
-  delete: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
+  create: (e: E[], ctx: Context) => Promise<void | E[]>;
+  read: (ctx: Context, ids?: string[]) => Promise<E[] | void>;
+  update: (e: E[], ctx: Context) => Promise<void | E[]>;
+  delete: (e: E[], ctx: Context) => Promise<void | E[]>;
 }
 
 export class Crud<E> {
-  createFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
-  readFn: (ctx: Context, id?: string | string[]) => Promise<E | E[] | void>;
-  updateFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
-  deleteFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
+  createFn: (e: E[], ctx: Context) => Promise<void | E[]>;
+  readFn: (ctx: Context, ids?: string[]) => Promise<E[] | void>;
+  updateFn: (e: E[], ctx: Context) => Promise<void | E[]>;
+  deleteFn: (e: E[], ctx: Context) => Promise<void | E[]>;
   dest?: 'db' | 'cloud';
   entity?: new () => E;
   entityId?: (e: E) => string;
@@ -72,6 +72,7 @@ export class Crud<E> {
 
   async create(e: E | E[], ctx: Context) {
     console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} create`);
+    e = Array.isArray(e) ? e : [e];
     // Memoize before and after the actual logic to make sure the unique ID is reserved
     this.memo(e, ctx);
     return this.memo(await this.createFn(e, ctx), ctx, e);
@@ -124,19 +125,21 @@ export class Crud<E> {
         } else {
           return ctx.memo[dest][entityName][id];
         }
-        return this.memo(await this.readFn(ctx, id), ctx, id);
+        return this.memo(await this.readFn(ctx, [id]), ctx, id);
       }
     }
-    return this.memo(await this.readFn(ctx, id), ctx, id);
+    return this.memo(await this.readFn(ctx), ctx, id);
   }
 
   async update(e: E | E[], ctx: Context) {
     console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} update`);
+    e = Array.isArray(e) ? e : [e];
     return this.memo(await this.updateFn(e, ctx), ctx, e);
   }
 
   async delete(e: E | E[], ctx: Context) {
     console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} delete`);
+    e = Array.isArray(e) ? e : [e];
     const out = await this.deleteFn(e, ctx);
     this.unmemo(e, ctx); // Remove deleted record(s) from the memo
     if (!Array.isArray(e) && Array.isArray(out)) {

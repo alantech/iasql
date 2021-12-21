@@ -127,26 +127,26 @@ export const AwsAccount: Module = new Module({
       equals: (_a: AwsAccountEntity, _b: AwsAccountEntity) => true,
       source: 'db',
       db: new Crud({
-        create: (e: AwsAccountEntity | AwsAccountEntity[], ctx: Context) => ctx.orm.save(AwsAccountEntity, e),
-        read: (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(AwsAccountEntity, id ? {
+        create: (e: AwsAccountEntity[], ctx: Context) => ctx.orm.save(AwsAccountEntity, e),
+        read: (ctx: Context, ids?: string[]) => ctx.orm.find(AwsAccountEntity, ids ? {
           where: {
-            id: Array.isArray(id) ? In(id) : id,
+            id: In(ids),
           },
         } : undefined),
-        update: (e: AwsAccountEntity | AwsAccountEntity[], ctx: Context) => ctx.orm.save(AwsAccountEntity, e),
-        delete: (e: AwsAccountEntity | AwsAccountEntity[], ctx: Context) => ctx.orm.remove(AwsAccountEntity, e),
+        update: (e: AwsAccountEntity[], ctx: Context) => ctx.orm.save(AwsAccountEntity, e),
+        delete: (e: AwsAccountEntity[], ctx: Context) => ctx.orm.remove(AwsAccountEntity, e),
       }),
       cloud: new Crud({
         // We don't actually connect to AWS for this module, because it's meta
         // TODO: Perhaps we should to validate the credentials as being valid?
-        create: async (_e: AwsAccountEntity | AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
-        read: (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(AwsAccountEntity, id ? {
+        create: async (_e: AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
+        read: (ctx: Context, ids?: string[]) => ctx.orm.find(AwsAccountEntity, ids ? {
           where: {
-            id: Array.isArray(id) ? In(id) : id,
+            id: In(ids),
           },
         } : undefined),
-        update: async (_e: AwsAccountEntity | AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
-        delete: async (_e: AwsAccountEntity | AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
+        update: async (_e: AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
+        delete: async (_e: AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
       }),
     }),
     region: new Mapper<Region>({
@@ -161,31 +161,26 @@ export const AwsAccount: Module = new Module({
         Object.is(a.optInStatus, b.optInStatus),
       source: 'cloud',
       db: new Crud({
-        create: (e: Region | Region[], ctx: Context) => ctx.orm.save(Region, e),
-        read: (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(Region, id ? {
+        create: (e: Region[], ctx: Context) => ctx.orm.save(Region, e),
+        read: (ctx: Context, ids?: string[]) => ctx.orm.find(Region, ids ? {
           where: {
-            name: Array.isArray(id) ? In(id) : id,
+            name: In(ids),
           },
         } : undefined),
-        update: (e: Region | Region[], ctx: Context) => ctx.orm.save(Region, e),
-        delete: (e: Region | Region[], ctx: Context) => ctx.orm.remove(Region, e),
+        update: (e: Region[], ctx: Context) => ctx.orm.save(Region, e),
+        delete: (e: Region[], ctx: Context) => ctx.orm.remove(Region, e),
       }),
       cloud: new Crud({
-        create: async (_e: Region | Region[], _ctx: Context) => { /* Do nothing */ },
-        read: async (ctx: Context, ids?: string | string[]) => {
+        create: async (_e: Region[], _ctx: Context) => { /* Do nothing */ },
+        read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids && !Array.isArray(ids)) {
-            const r = await client.getRegion(ids);
-            return AwsAccount.utils.regionMapper(r);
-          }
           const rs = (await client.getRegions())?.Regions ?? [];
-          const out = rs
-            .filter(r => !Array.isArray(ids) || ids.includes(r?.RegionName ?? 'what'))
+          return rs
+            .filter(r => !ids || ids.includes(r?.RegionName ?? 'what'))
             .map(AwsAccount.utils.regionMapper);
-          return out;
         },
-        update: async (_e: Region | Region[], _ctx: Context) => { /* Do nothing */ },
-        delete: async (_e: Region | Region[], _ctx: Context) => { /* Do nothing */ },
+        update: async (_e: Region[], _ctx: Context) => { /* Do nothing */ },
+        delete: async (_e: Region[], _ctx: Context) => { /* Do nothing */ },
       }),
     }),
     vpc: new Mapper<AwsVpc>({
@@ -201,28 +196,26 @@ export const AwsAccount: Module = new Module({
       equals: (_a: AwsVpc, _b: AwsVpc) => true, // Do not let vpc updates
       source: 'db',
       db: new Crud({
-        create: (e: AwsVpc | AwsVpc[], ctx: Context) => ctx.orm.save(AwsVpc, e),
-        read: (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(AwsVpc, id ? {
+        create: (e: AwsVpc[], ctx: Context) => ctx.orm.save(AwsVpc, e),
+        read: (ctx: Context, ids?: string[]) => ctx.orm.find(AwsVpc, ids ? {
           where: {
-            vpcId: Array.isArray(id) ? In(id) : id,
+            vpcId: In(ids),
           },
         } : undefined),
-        update: (vpc: AwsVpc | AwsVpc[], ctx: Context) => ctx.orm.save(AwsVpc, vpc),
-        delete: (e: AwsVpc | AwsVpc[], ctx: Context) => ctx.orm.remove(AwsVpc, e),
+        update: (vpc: AwsVpc[], ctx: Context) => ctx.orm.save(AwsVpc, vpc),
+        delete: (e: AwsVpc[], ctx: Context) => ctx.orm.remove(AwsVpc, e),
       }),
       cloud: new Crud({
-        create: async (_vpc: AwsVpc | AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
-        read: async (ctx: Context, ids?: string | string[]) => {
+        create: async (_vpc: AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
+        read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const vpcs = Array.isArray(ids) ?
             await Promise.all(ids.map((id) => client.getVpc(id))) :
-            ids === undefined ?
-              (await client.getVpcs()).Vpcs :
-              [await client.getVpc(ids)];
+            (await client.getVpcs()).Vpcs;
           return await Promise.all(vpcs.map(vpc => AwsAccount.utils.vpcMapper(vpc, ctx)));
         },
-        update: async (_vpc: AwsVpc | AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
-        delete: async (_vpc: AwsVpc | AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
+        update: async (_vpc: AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
+        delete: async (_vpc: AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
       }),
     }),
     availabilityZone: new Mapper<AvailabilityZone>({
@@ -242,8 +235,7 @@ export const AwsAccount: Module = new Module({
         Object.is(a.state, b.state),
       source: 'cloud',
       db: new Crud({
-        create: async (e: AvailabilityZone | AvailabilityZone[], ctx: Context) => {
-          const es = Array.isArray(e) ? e : [e];
+        create: async (es: AvailabilityZone[], ctx: Context) => {
           for (const entity of es) {
             const azs = await ctx.orm.find(AvailabilityZone);
             if (entity.parentZone) {
@@ -257,15 +249,12 @@ export const AwsAccount: Module = new Module({
             await ctx.orm.save(AvailabilityZone, entity);
           }
         },
-        read: (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(
-          AvailabilityZone,
-          id ? {
-            where: {
-              zoneName: Array.isArray(id) ? In(id) : id,
-            },
-          } : undefined),
-        update: async (e: AvailabilityZone | AvailabilityZone[], ctx: Context) => {
-          const es = Array.isArray(e) ? e : [e];
+        read: (ctx: Context, ids?: string[]) => ctx.orm.find(AvailabilityZone, ids ? {
+          where: {
+            zoneName: In(ids),
+          },
+        } : undefined),
+        update: async (es: AvailabilityZone[], ctx: Context) => {
           for (const entity of es) {
             const azs = await ctx.orm.find(AvailabilityZone);
             if (entity.parentZone) {
@@ -279,22 +268,18 @@ export const AwsAccount: Module = new Module({
             await ctx.orm.save(AvailabilityZone, entity);
           }
         },
-        delete: (e: AvailabilityZone | AvailabilityZone[], ctx: Context) => ctx.orm.remove(
-          AvailabilityZone,
-          e,
-        ),
+        delete: (es: AvailabilityZone[], ctx: Context) => ctx.orm.remove(AvailabilityZone, es),
       }),
       cloud: new Crud({
-        create: async (_e: AvailabilityZone | AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
-        read: async (ctx: Context, id?: string | string[]) => {
-          const ids = Array.isArray(id) ? id : [id];
+        create: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
+        read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const regions = (await AwsAccount.mappers.region.db.read(ctx))
             .filter((r: Region) => r.optInStatus !== AvailabilityZoneOptInStatus.NOT_OPTED_IN);
           const regionNames = regions.map((r: Region) => r.name);
           const availabilityZones = await client.getAvailabilityZones(regionNames);
           // TODO: Can it be simplified further?
-          if (id) {
+          if (ids) {
             const azs = availabilityZones.filter(az => ids.includes(az?.ZoneName ?? ''));
             // Linearized to make sure the nested parentAvailabilityZone and the outer reference
             // to the same object actually get the same object in memory so TypeORM doesn't do
@@ -309,8 +294,8 @@ export const AwsAccount: Module = new Module({
             );
           }
         },
-        update: async (_e: AvailabilityZone | AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
-        delete: async (_e: AvailabilityZone | AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
+        update: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
+        delete: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
       }),
     }),
     availabilityZoneMessage: new Mapper<AvailabilityZoneMessage>({
@@ -323,37 +308,33 @@ export const AwsAccount: Module = new Module({
       equals: (_a: AvailabilityZoneMessage, _b: AvailabilityZoneMessage) => true, // TODO: Fill this in
       source: 'cloud',
       db: new Crud({
-        create: (e: AvailabilityZoneMessage | AvailabilityZoneMessage[], ctx: Context) => ctx
+        create: (e: AvailabilityZoneMessage[], ctx: Context) => ctx
           .orm.save(AvailabilityZoneMessage, e),
-        read: (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(
-          AvailabilityZoneMessage,
-          id ? {
-            where: {
-              // TODO: How to split the ID between zoneName and message reliably?
-              availabilityZone: {
-                zoneName: Array.isArray(id) ? In(id) : id,
-              },
+        read: (ctx: Context, ids?: string[]) => ctx.orm.find(AvailabilityZoneMessage, ids ? {
+          where: {
+            // TODO: How to split the ID between zoneName and message reliably?
+            availabilityZone: {
+              zoneName: In(ids),
             },
-          } : undefined),
-        update: (e: AvailabilityZoneMessage | AvailabilityZoneMessage[], ctx: Context) => ctx
-        .orm.save(AvailabilityZoneMessage, e),
-        delete: (e: AvailabilityZoneMessage | AvailabilityZoneMessage[], ctx: Context) => ctx
-        .orm.remove(AvailabilityZoneMessage, e),
+          },
+        } : undefined),
+        update: (e: AvailabilityZoneMessage[], ctx: Context) => ctx
+          .orm.save(AvailabilityZoneMessage, e),
+        delete: (e: AvailabilityZoneMessage[], ctx: Context) => ctx
+          .orm.remove(AvailabilityZoneMessage, e),
       }),
       cloud: new Crud({
-        create: async (_e: AvailabilityZoneMessage | AvailabilityZoneMessage[], _ctx: Context) => { /* Do nothing */ },
-        read: (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(
-          AvailabilityZoneMessage,
-          id ? {
-            where: {
-              // TODO: How to split the ID between zoneName and message reliably?
-              availabilityZone: {
-                zoneName: Array.isArray(id) ? In(id) : id,
-              },
+        create: async (_e: AvailabilityZoneMessage[], _ctx: Context) => { /* Do nothing */ },
+        read: (ctx: Context, ids?: string[]) => ctx.orm.find(AvailabilityZoneMessage, ids ? {
+          where: {
+            // TODO: How to split the ID between zoneName and message reliably?
+            availabilityZone: {
+              zoneName: In(ids),
             },
-          } : undefined),
-        update: async (_e: AvailabilityZoneMessage | AvailabilityZoneMessage[], _ctx: Context) => { /* Do nothing */ },
-        delete: async (_e: AvailabilityZoneMessage | AvailabilityZoneMessage[], _ctx: Context) => { /* Do nothing */ },
+          },
+        } : undefined),
+        update: async (_e: AvailabilityZoneMessage[], _ctx: Context) => { /* Do nothing */ },
+        delete: async (_e: AvailabilityZoneMessage[], _ctx: Context) => { /* Do nothing */ },
       }),
     }),
     subnet: new Mapper<AwsSubnet>({
@@ -372,29 +353,27 @@ export const AwsAccount: Module = new Module({
       equals: (_a: AwsSubnet, _b: AwsSubnet) => true, // Do not let vpc updates
       source: 'db',
       db: new Crud({
-        create: (e: AwsSubnet | AwsSubnet[], ctx: Context) => ctx.orm.save(AwsSubnet, e),
-        read: (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(AwsSubnet, id ? {
-            where: {
-              subnetId: Array.isArray(id) ? In(id) : id,
-            },
-            relations: [ 'vpc', ],
-          } : { relations: [ 'vpc', ], }),
-        update: (sn: AwsSubnet | AwsSubnet[], ctx: Context) => ctx.orm.save(AwsSubnet, sn),
-        delete: (e: AwsSubnet | AwsSubnet[], ctx: Context) => ctx.orm.remove(AwsSubnet, e),
+        create: (e: AwsSubnet[], ctx: Context) => ctx.orm.save(AwsSubnet, e),
+        read: (ctx: Context, ids?: string[]) => ctx.orm.find(AwsSubnet, ids ? {
+          where: {
+            subnetId: In(ids),
+          },
+          relations: [ 'vpc', ],
+        } : { relations: [ 'vpc', ], }),
+        update: (sn: AwsSubnet[], ctx: Context) => ctx.orm.save(AwsSubnet, sn),
+        delete: (e: AwsSubnet[], ctx: Context) => ctx.orm.remove(AwsSubnet, e),
       }),
       cloud: new Crud({
-        create: async (_sn: AwsSubnet | AwsSubnet[], _ctx: Context) => { throw new Error('tbd'); },
-        read: async (ctx: Context, ids?: string | string[]) => {
+        create: async (_sn: AwsSubnet[], _ctx: Context) => { throw new Error('tbd'); },
+        read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const subnets = ids === undefined ?
             (await client.getSubnets()).Subnets :
-            Array.isArray(ids) ?
-              await Promise.all(ids.map(id => client.getSubnet(id))) :
-              [await client.getSubnet(ids)];
+            await Promise.all(ids.map(id => client.getSubnet(id)));
           return await Promise.all(subnets.map(sn => AwsAccount.utils.subnetMapper(sn, ctx)));
         },
-        update: async (_sn: AwsSubnet | AwsSubnet[], _ctx: Context) => { throw new Error('tbd'); },
-        delete: async (_sn: AwsSubnet | AwsSubnet[], _ctx: Context) => { throw new Error('tbd'); },
+        update: async (_sn: AwsSubnet[], _ctx: Context) => { throw new Error('tbd'); },
+        delete: async (_sn: AwsSubnet[], _ctx: Context) => { throw new Error('tbd'); },
       }),
     }),
   },
