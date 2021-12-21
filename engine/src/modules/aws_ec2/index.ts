@@ -439,41 +439,24 @@ export const AwsEc2Module: Module = new Module({
           // Now save the AMI records
           await ctx.orm.save(AMI, es);
         },
-        read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const out = await ctx.orm.find(AMI, id ? {
-            where: {
-              imageId: Array.isArray(id) ? In(id) : id,
-            },
-          } : undefined);
-          if (Array.isArray(id) || Object.is(undefined, id)) {
-            return out;
-          } else {
-            return out[0];
-          }
-        },
-        update: async (e: AMI | AMI[], ctx: Context) => { await ctx.orm.save(AMI, e); },
-        delete: async (e: AMI | AMI[], ctx: Context) => { await ctx.orm.remove(AMI, e); },
+        read: (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(AMI, id ? {
+          where: {
+            imageId: Array.isArray(id) ? In(id) : id,
+          },
+        } : undefined),
+        update: (e: AMI | AMI[], ctx: Context) => ctx.orm.save(AMI, e),
+        delete: (e: AMI | AMI[], ctx: Context) => ctx.orm.remove(AMI, e),
       }),
       cloud: new Crud({
         create: async (_ami: AMI | AMI[], _ctx: Context) => { /* Do nothing, not allowed */ },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return AwsEc2Module.utils.amiMapper(
-                  await client.getAMI(id), ctx
-                );
-              }));
-            } else {
-              return AwsEc2Module.utils.amiMapper(
-                await client.getAMI(ids), ctx
-              );
-            }
-          } else {
-            const amis = (await client.getAMIs())?.Images ?? [];
-            return amis.map(AwsEc2Module.utils.amiMapper);
-          }
+          const amis = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getAMI(id))) :
+            ids === undefined ?
+              (await client.getAMIs()).Images ?? [] :
+              [await client.getAMI(ids)];
+          return amis.map(AwsEc2Module.utils.amiMapper);
         },
         update: async (_ami: AMI | AMI[], _ctx: Context) => { /* Nope */ },
         delete: async (_ami: AMI | AMI[], _ctx: Context) => { /* Nope */ },
@@ -590,28 +573,21 @@ export const AwsEc2Module: Module = new Module({
           // TypeORM where clause not working correctly, again
           const ids = Array.isArray(id) ? id : [id].filter(i => !!i);
           const allInstances = await ctx.orm.find(InstanceType);
-          const out = allInstances.filter((i: InstanceType) => ids.includes(i.instanceType.name));
-          return Array.isArray(id) || id === undefined ? out : out[0];
+          return allInstances.filter((i: InstanceType) => ids.includes(i.instanceType.name));
         },
-        update: async (e: InstanceType | InstanceType[], ctx: Context) => { await ctx.orm.save(InstanceType, e); },
-        delete: async (e: InstanceType | InstanceType[], ctx: Context) => { await ctx.orm.remove(InstanceType, e); },
+        update: (e: InstanceType | InstanceType[], ctx: Context) => ctx.orm.save(InstanceType, e),
+        delete: (e: InstanceType | InstanceType[], ctx: Context) => ctx.orm.remove(InstanceType, e),
       }),
       cloud: new Crud({
         create: async (_i: InstanceType | InstanceType[], _ctx: Context) => { /* Do nothing, not allowed */ },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return AwsEc2Module.utils.instanceTypeMapper(await client.getInstanceType(id));
-              }));
-            } else {
-              return AwsEc2Module.utils.instanceTypeMapper(await client.getInstanceType(ids));
-            }
-          } else {
-            const instanceTypes = (await client.getInstanceTypes())?.InstanceTypes ?? [];
-            return instanceTypes.map(AwsEc2Module.utils.instanceTypeMapper);
-          }
+          const instanceTypes = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getInstanceType(id))) :
+            ids === undefined ?
+              (await client.getInstanceTypes()).InstanceTypes ?? [] :
+              [await client.getInstanceType(ids)];
+          return instanceTypes.map(AwsEc2Module.utils.instanceTypeMapper);
         },
         update: async (_i: InstanceType | InstanceType[], _ctx: Context) => { /* Nope */ },
         delete: async (_i: InstanceType | InstanceType[], _ctx: Context) => { /* Nope */ },
@@ -635,21 +611,14 @@ export const AwsEc2Module: Module = new Module({
         a.securityGroups.length === b.securityGroups.length, // TODO: Better security group testing
       source: 'db',
       db: new Crud({
-        create: async (e: Instance | Instance[], ctx: Context) => { await ctx.orm.save(Instance, e); },
-        read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const out = await ctx.orm.find(Instance, id ? {
-            where: {
-              instanceId: Array.isArray(id) ? In(id) : id,
-            },
-          } : undefined);
-          if (Array.isArray(id) || Object.is(undefined, id)) {
-            return out;
-          } else {
-            return out[0];
-          }
-        },
-        update: async (e: Instance | Instance[], ctx: Context) => { await ctx.orm.save(Instance, e); },
-        delete: async (e: Instance | Instance[], ctx: Context) => { await ctx.orm.remove(Instance, e); },
+        create: (e: Instance | Instance[], ctx: Context) => ctx.orm.save(Instance, e),
+        read: (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(Instance, id ? {
+          where: {
+            instanceId: Array.isArray(id) ? In(id) : id,
+          },
+        } : undefined),
+        update: (e: Instance | Instance[], ctx: Context) => ctx.orm.save(Instance, e),
+        delete: (e: Instance | Instance[], ctx: Context) => ctx.orm.remove(Instance, e),
       }),
       cloud: new Crud({
         create: async (e: Instance | Instance[], ctx: Context) => {
@@ -672,21 +641,16 @@ export const AwsEc2Module: Module = new Module({
         },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids && !Array.isArray(ids)) {
-            const i = await client.getInstance(ids);
-            return await AwsEc2Module.utils.instanceMapper(i, ctx);
-          }
-          const is = (await client.getInstances())?.Instances ?? [];
-          const out = await Promise.all(is
-            .filter(i => !Array.isArray(ids) || ids.includes(i?.InstanceId ?? 'what'))
-            .filter((i: InstanceAWS) => (i?.State?.Code ?? 9001) < 32)
-            .map(i => AwsEc2Module.utils.instanceMapper(i, ctx)));
-          return out;
+          const instances = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getInstance(id))) :
+            ids === undefined ?
+              (await client.getInstances()).Instances ?? [] :
+              [await client.getInstance(ids)];
+          return await Promise.all(instances.map(i => AwsEc2Module.utils.instanceMapper(i, ctx)));
         },
-        update: async (e: Instance | Instance[], ctx: Context) => {
-          // The second pass should remove the old instances
-          await AwsEc2Module.mappers.instance.cloud.create(e, ctx);
-        },
+        // The second pass should remove the old instances
+        update: (e: Instance | Instance[], ctx: Context) => AwsEc2Module
+          .mappers.instance.cloud.create(e, ctx),
         delete: async (e: Instance | Instance[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(e) ? e : [e];

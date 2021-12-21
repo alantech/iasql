@@ -187,23 +187,22 @@ export const AwsEcsModule: Module = new Module({
       equals: (_a: Cluster, _b: Cluster) => true,  // TODO: Fill in when updates supported
       source: 'db',
       db: new Crud({
-        create: async (c: Cluster | Cluster[], ctx: Context) => { await ctx.orm.save(Cluster, c); },
-        read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const opts = id ? {
+        create: (c: Cluster | Cluster[], ctx: Context) => ctx.orm.save(Cluster, c),
+        read: async (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(
+          Cluster,
+          id ? {
             where: {
               clusterArn: Array.isArray(id) ? In(id) : id,
             },
-          } : undefined;
-          return (!id || Array.isArray(id)) ? await ctx.orm.find(Cluster, opts) : await ctx.orm.findOne(Cluster, opts);
-        },
-        update: async (c: Cluster | Cluster[], ctx: Context) => { await ctx.orm.save(Cluster, c); },
-        delete: async (c: Cluster | Cluster[], ctx: Context) => { await ctx.orm.remove(Cluster, c); },
+          } : undefined),
+        update: (c: Cluster | Cluster[], ctx: Context) => ctx.orm.save(Cluster, c),
+        delete: (c: Cluster | Cluster[], ctx: Context) => ctx.orm.remove(Cluster, c),
       }),
       cloud: new Crud({
         create: async (c: Cluster | Cluster[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(c) ? c : [c];
-          const out = await Promise.all(es.map(async (e) => {
+          return await Promise.all(es.map(async (e) => {
             const result = await client.createCluster({
               clusterName: e.clusterName,
             });
@@ -222,33 +221,15 @@ export const AwsEcsModule: Module = new Module({
             await AwsEcsModule.mappers.cluster.db.update(newEntity, ctx);
             return newEntity;
           }));
-          // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(c)) {
-            return out;
-          } else {
-            return out[0];
-          }
         },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return await AwsEcsModule.utils.clusterMapper(
-                  await client.getCluster(id), ctx
-                );
-              }));
-            } else {
-              return await AwsEcsModule.utils.clusterMapper(
-                await client.getCluster(ids), ctx
-              );
-            }
-          } else {
-            const clusters = await client.getClusters() ?? [];
-            return await Promise.all(clusters.map(async (c: any) => {
-              return await AwsEcsModule.utils.clusterMapper(c, ctx);
-            }));
-          }
+          const clusters = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getCluster(id))) :
+            ids === undefined ?
+              await client.getClusters() ?? [] :
+              [await client.getCluster(ids)];
+          return await Promise.all(clusters.map(c => AwsEcsModule.utils.clusterMapper(c, ctx)));
         },
         update: async (_c: Cluster | Cluster[], _ctx: Context) => { throw new Error('tbd'); },
         delete: async (c: Cluster | Cluster[], ctx: Context) => {
@@ -311,7 +292,6 @@ export const AwsEcsModule: Module = new Module({
               }
             });
             entity.containers = containers?.filter((c: any) => c !== null);
-
           });
           await ctx.orm.save(Compatibility, Object.values(compatibilities));
           await Promise.all(es.map(async (entity: TaskDefinition) => {
@@ -339,7 +319,7 @@ export const AwsEcsModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          return (!id || Array.isArray(id)) ? await ctx.orm.find(TaskDefinition, opts) : await ctx.orm.findOne(TaskDefinition, opts);
+          return await ctx.orm.find(TaskDefinition, opts);
         },
         update: async (e: TaskDefinition | TaskDefinition[], ctx: Context) => {
           const es = Array.isArray(e) ? e : [e];
@@ -374,13 +354,13 @@ export const AwsEcsModule: Module = new Module({
           }));
           await ctx.orm.save(TaskDefinition, es);
         },
-        delete: async (c: TaskDefinition | TaskDefinition[], ctx: Context) => { await ctx.orm.remove(TaskDefinition, c); },
+        delete: (c: TaskDefinition | TaskDefinition[], ctx: Context) => ctx.orm.remove(TaskDefinition, c),
       }),
       cloud: new Crud({
         create: async (td: TaskDefinition | TaskDefinition[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(td) ? td : [td];
-          const out = await Promise.all(es.map(async (e) => {
+          return await Promise.all(es.map(async (e) => {
             const input: any = {
               family: e.family,
               containerDefinitions: e.containers.map(c => {
@@ -438,31 +418,17 @@ export const AwsEcsModule: Module = new Module({
             await AwsEcsModule.mappers.taskDefinition.db.update(newEntity, ctx);
             return newEntity;
           }));
-          // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(td)) {
-            return out;
-          } else {
-            return out[0];
-          }
         },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return await AwsEcsModule.utils.taskDefinitionMapper(
-                  await client.getTaskDefinition(id), ctx
-                );
-              }));
-            } else {
-              return await AwsEcsModule.utils.taskDefinitionMapper(
-                await client.getTaskDefinition(ids), ctx
-              );
-            }
-          } else {
-            const result = await client.getTaskDefinitions();
-            return await Promise.all(result.taskDefinitions.map(async (td: any) => await AwsEcsModule.utils.taskDefinitionMapper(td, ctx)));
-          }
+          const taskDefs = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getTaskDefinition(id))) :
+            ids === undefined ?
+              (await client.getTaskDefinitions()).taskDefinitions ?? [] :
+              [await client.getTaskDefinition(ids)];
+          return await Promise.all(taskDefs.map(
+            td => AwsEcsModule.utils.taskDefinitionMapper(td, ctx)
+          ));
         },
         update: async (_td: TaskDefinition | TaskDefinition[], _ctx: Context) => { throw new Error('Cannot update task definitions. Create a new revision'); },
         delete: async (td: TaskDefinition | TaskDefinition[], ctx: Context) => {
@@ -538,7 +504,7 @@ export const AwsEcsModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          return (!id || Array.isArray(id)) ? await ctx.orm.find(Service, opts) : await ctx.orm.findOne(Service, opts);
+          return await ctx.orm.find(Service, opts);
         },
         update: async (e: Service | Service[], ctx: Context) => {
           const es = Array.isArray(e) ? e : [e];
@@ -554,13 +520,13 @@ export const AwsEcsModule: Module = new Module({
           }));
           await ctx.orm.save(Service, es);
         },
-        delete: async (e: Service | Service[], ctx: Context) => { await ctx.orm.remove(Service, e); },
+        delete: (e: Service | Service[], ctx: Context) => ctx.orm.remove(Service, e),
       }),
       cloud: new Crud({
         create: async (s: Service | Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(s) ? s : [s];
-          const out = await Promise.all(es.map(async (e) => {
+          return await Promise.all(es.map(async (e) => {
             const input: any = {
               serviceName: e.name,
               taskDefinition: e.task?.taskDefinitionArn,
@@ -602,26 +568,21 @@ export const AwsEcsModule: Module = new Module({
             await AwsEcsModule.mappers.service.db.update(newEntity, ctx);
             return newEntity;
           }));
-          // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(s)) {
-            return out;
-          } else {
-            return out[0];
-          }
         },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
+          // TODO: Refactor this. I don't think the `ids` branch has been tested, either. So I don't want to touch it
           if (ids) {
             if (Array.isArray(ids)) {
               return await Promise.all(ids.map(async (id) => {
-                const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsModule.mappers.serivce.cloud.read(ctx);
+                const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsModule.mappers.service.cloud.read(ctx);
                 const service = services.find((s: any) => s.name === id);
                 return await AwsEcsModule.utils.serviceMapper(
                   await client.getService(id, service.cluster.clusterArn), ctx
                 );
               }));
             } else {
-              const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsModule.mappers.serivce.cloud.read(ctx);
+              const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsModule.mappers.service.cloud.read(ctx);
               const service = services.find((s: any) => s.name === ids);
               return await AwsEcsModule.utils.serviceMapper(
                 await client.getService(ids, service.cluster.clusterArn), ctx

@@ -167,7 +167,7 @@ export const AwsElbModule: Module = new Module({
             },
             relations,
           } : { relations };
-          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsListener, opts) : await ctx.orm.findOne(AwsListener, opts);
+          return await ctx.orm.find(AwsListener, opts);
         },
         update: async (l: AwsListener | AwsListener[], ctx: Context) => {
           const es = Array.isArray(l) ? l : [l];
@@ -192,13 +192,13 @@ export const AwsElbModule: Module = new Module({
           }
           await ctx.orm.save(AwsListener, es);
         },
-        delete: async (e: AwsListener | AwsListener[], ctx: Context) => { await ctx.orm.remove(AwsListener, e); },
+        delete: (e: AwsListener | AwsListener[], ctx: Context) => ctx.orm.remove(AwsListener, e),
       }),
       cloud: new Crud({
         create: async (l: AwsListener | AwsListener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(l) ? l : [l];
-          const out = await Promise.all(es.map(async (e) => {
+          return await Promise.all(es.map(async (e) => {
             const result = await client.createListener({
               Port: e.port,
               Protocol: e.protocol,
@@ -220,35 +220,22 @@ export const AwsElbModule: Module = new Module({
             await AwsElbModule.mappers.listener.db.update(newEntity, ctx);
             return newEntity;
           }));
-          // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(l)) {
-            return out;
-          } else {
-            return out[0];
-          }
         },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return await AwsElbModule.utils.listenerMapper(
-                  await client.getListener(id), ctx
-                );
-              }));
-            } else {
-              return await AwsElbModule.utils.listenerMapper(
-                await client.getListener(ids), ctx
-              );
-            }
-          } else {
-            const loadBalancers = ctx.memo?.cloud?.AwsLoadBalancer ? Object.values(ctx.memo?.cloud?.AwsLoadBalancer) : await AwsElbModule.mappers.loadBalancer.cloud.read(ctx);
-            const loadBalancerArns = loadBalancers.map((lb: any) => lb.loadBalancerArn);
-            const result = await client.getListeners(loadBalancerArns);
-            return await Promise.all(result.Listeners.map(async (l: any) => {
-              return await AwsElbModule.utils.listenerMapper(l, ctx);
-            }));
-          }
+          const listeners = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getListener(id))) :
+            ids === undefined ?
+              await (async () => {
+                // TODO: Should this behavior be standard?
+                const loadBalancers = ctx.memo?.cloud?.AwsLoadBalancer ?
+                  Object.values(ctx.memo?.cloud?.AwsLoadBalancer) :
+                  await AwsElbModule.mappers.loadBalancer.cloud.read(ctx);
+                const loadBalancerArns = loadBalancers.map((lb: any) => lb.loadBalancerArn);
+                return (await client.getListeners(loadBalancerArns)).Listeners;
+              })() :
+            [await client.getListener(ids)];
+          return await Promise.all(listeners.map(l => AwsElbModule.utils.listenerMapper(l, ctx)));
         },
         update: async (_l: AwsListener | AwsListener[], _ctx: Context) => { throw new Error('tbd'); },
         delete: async (l: AwsListener | AwsListener[], ctx: Context) => {
@@ -319,7 +306,7 @@ export const AwsElbModule: Module = new Module({
             },
             relations
           } : { relations };
-          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsLoadBalancer, opts) : await ctx.orm.findOne(AwsLoadBalancer, opts);
+          return await ctx.orm.find(AwsLoadBalancer, opts);
         },
         update: async (lb: AwsLoadBalancer | AwsLoadBalancer[], ctx: Context) => {
           const es = Array.isArray(lb) ? lb : [lb];
@@ -354,13 +341,13 @@ export const AwsElbModule: Module = new Module({
           }
           await ctx.orm.save(AwsLoadBalancer, es);
         },
-        delete: async (e: AwsLoadBalancer | AwsLoadBalancer[], ctx: Context) => { await ctx.orm.remove(AwsLoadBalancer, e); },
+        delete: (e: AwsLoadBalancer | AwsLoadBalancer[], ctx: Context) => ctx.orm.remove(AwsLoadBalancer, e),
       }),
       cloud: new Crud({
         create: async (lb: AwsLoadBalancer | AwsLoadBalancer[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(lb) ? lb : [lb];
-          const out = await Promise.all(es.map(async (e) => {
+          return await Promise.all(es.map(async (e) => {
             const securityGroups = e.securityGroups?.map(sg => {
               if (!sg.groupId) throw new Error('Security group need to be loaded first');
               return sg.groupId;
@@ -389,31 +376,15 @@ export const AwsElbModule: Module = new Module({
             await AwsElbModule.mappers.loadBalancer.db.update(newEntity, ctx);
             return newEntity;
           }));
-          // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(lb)) {
-            return out;
-          } else {
-            return out[0];
-          }
         },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return await AwsElbModule.utils.loadBalancerMapper(
-                  await client.getLoadBalancer(id), ctx
-                );
-              }));
-            } else {
-              return await AwsElbModule.utils.loadBalancerMapper(
-                await client.getLoadBalancer(ids), ctx
-              );
-            }
-          } else {
-            const result = await client.getLoadBalancers();
-            return await Promise.all(result.LoadBalancers.map((lb: any) => AwsElbModule.utils.loadBalancerMapper(lb, ctx)));
-          }
+          const lbs = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getLoadBalancer(id))) :
+            ids === undefined ?
+              (await client.getLoadBalancers()).LoadBalancers :
+              [await client.getLoadBalancer(ids)];
+          return await Promise.all(lbs.map(lb => AwsElbModule.utils.loadBalancerMapper(lb, ctx)));
         },
         update: async (_lb: AwsLoadBalancer | AwsLoadBalancer[], _ctx: Context) => { throw new Error('tbd'); },
         delete: async (lb: AwsLoadBalancer | AwsLoadBalancer[], ctx: Context) => {
@@ -473,7 +444,7 @@ export const AwsElbModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsTargetGroup, opts) : await ctx.orm.findOne(AwsTargetGroup, opts);
+          return await ctx.orm.find(AwsTargetGroup, opts);
         },
         update: async (tg: AwsTargetGroup | AwsTargetGroup[], ctx: Context) => {
           const es = Array.isArray(tg) ? tg : [tg];
@@ -486,13 +457,13 @@ export const AwsElbModule: Module = new Module({
           }
           await ctx.orm.save(AwsTargetGroup, es);
         },
-        delete: async (e: AwsTargetGroup | AwsTargetGroup[], ctx: Context) => { await ctx.orm.remove(AwsTargetGroup, e); },
+        delete: (e: AwsTargetGroup | AwsTargetGroup[], ctx: Context) => ctx.orm.remove(AwsTargetGroup, e),
       }),
       cloud: new Crud({
         create: async (tg: AwsTargetGroup | AwsTargetGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(tg) ? tg : [tg];
-          const out = await Promise.all(es.map(async (e) => {
+          return await Promise.all(es.map(async (e) => {
             const result = await client.createTargetGroup({
               Name: e.targetGroupName,
               TargetType: e.targetType,
@@ -525,31 +496,15 @@ export const AwsElbModule: Module = new Module({
             await AwsElbModule.mappers.targetGroup.db.update(newEntity, ctx);
             return newEntity;
           }));
-          // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(tg)) {
-            return out;
-          } else {
-            return out[0];
-          }
         },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return await AwsElbModule.utils.targetGroupMapper(
-                  await client.getTargetGroup(id), ctx
-                );
-              }));
-            } else {
-              return await AwsElbModule.utils.targetGroupMapper(
-                await client.getTargetGroup(ids), ctx
-              );
-            }
-          } else {
-            const result = await client.getTargetGroups();
-            return await Promise.all(result.TargetGroups.map((tg: any) => AwsElbModule.utils.targetGroupMapper(tg, ctx)));
-          }
+          const tgs = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getTargetGroup(id))) :
+            ids === undefined ?
+              (await client.getTargetGroups()).TargetGroups :
+              [await client.getTargetGroup(ids)];
+          return await Promise.all(tgs.map(tg => AwsElbModule.utils.targetGroupMapper(tg, ctx)));
         },
         update: async (tg: AwsTargetGroup | AwsTargetGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;

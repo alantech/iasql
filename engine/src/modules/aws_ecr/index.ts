@@ -75,23 +75,23 @@ export const AwsEcrModule: Module = new Module({
       equals: (a: AwsPublicRepository, b: AwsPublicRepository) => Object.is(a.repositoryName, b.repositoryName),
       source: 'db',
       db: new Crud({
-        create: async (e: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => { await ctx.orm.save(AwsPublicRepository, e); },
-        read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const opts = id ? {
+        create: (e: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => ctx.orm.save(AwsPublicRepository, e),
+        read: async (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(
+          AwsPublicRepository,
+          id ? {
             where: {
               repositoryName: Array.isArray(id) ? In(id) : id,
             },
-          } : undefined;
-          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsPublicRepository, opts) : await ctx.orm.findOne(AwsPublicRepository, opts);
-        },
-        update: async (e: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => { await ctx.orm.save(AwsPublicRepository, e); },
-        delete: async (e: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => { await ctx.orm.remove(AwsPublicRepository, e); },
+          } : undefined,
+        ),
+        update: (e: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => ctx.orm.save(AwsPublicRepository, e),
+        delete: (e: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => ctx.orm.remove(AwsPublicRepository, e),
       }),
       cloud: new Crud({
         create: async (sg: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(sg) ? sg : [sg];
-          const out = await Promise.all(es.map(async (e) => {
+          return await Promise.all(es.map(async (e) => {
             const result = await client.createECRPubRepository({
               repositoryName: e.repositoryName,
             });
@@ -110,33 +110,17 @@ export const AwsEcrModule: Module = new Module({
             await AwsEcrModule.mappers.publicRepository.db.update(newEntity, ctx);
             return newEntity;
           }));
-          // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(sg)) {
-            return out;
-          } else {
-            return out[0];
-          }
         },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return await AwsEcrModule.utils.publicRepositoryMapper(
-                  await client.getECRPubRepository(id), ctx
-                );
-              }));
-            } else {
-              return await AwsEcrModule.utils.publicRepositoryMapper(
-                await client.getECRPubRepository(ids), ctx
-              );
-            }
-          } else {
-            const repositories = (await client.getECRPubRepositories())?.Repositories ?? [];
-            return await Promise.all(
-              repositories.map((r: any) => AwsEcrModule.utils.publicRepositoryMapper(r, ctx))
-            );
-          }
+          const ecrs = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getECRPubRepository(id))) :
+            ids === undefined ?
+              (await client.getECRPubRepositories()).Repositories ?? [] :
+              [await client.getECRPubRepository(ids)];
+          return await Promise.all(ecrs.map(
+            ecr => AwsEcrModule.utils.publicRepositoryMapper(ecr, ctx)
+          ));
         },
         update: async (r: AwsPublicRepository | AwsPublicRepository[], ctx: Context) => {
           const es = Array.isArray(r) ? r : [r];
@@ -175,23 +159,22 @@ export const AwsEcrModule: Module = new Module({
         && Object.is(a.scanOnPush, b.scanOnPush),
       source: 'db',
       db: new Crud({
-        create: async (e: AwsRepository | AwsRepository[], ctx: Context) => { await ctx.orm.save(AwsRepository, e); },
-        read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const opts = id ? {
+        create: (e: AwsRepository | AwsRepository[], ctx: Context) => ctx.orm.save(AwsRepository, e),
+        read: async (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(
+          AwsRepository,
+          id ? {
             where: {
               repositoryName: Array.isArray(id) ? In(id) : id,
             },
-          } : undefined;
-          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsRepository, opts) : await ctx.orm.findOne(AwsRepository, opts);
-        },
-        update: async (e: AwsRepository | AwsRepository[], ctx: Context) => { await ctx.orm.save(AwsRepository, e); },
-        delete: async (e: AwsRepository | AwsRepository[], ctx: Context) => { await ctx.orm.remove(AwsRepository, e); },
+          } : undefined),
+        update: (e: AwsRepository | AwsRepository[], ctx: Context) => ctx.orm.save(AwsRepository, e),
+        delete: (e: AwsRepository | AwsRepository[], ctx: Context) => ctx.orm.remove(AwsRepository, e),
       }),
       cloud: new Crud({
         create: async (sg: AwsRepository | AwsRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(sg) ? sg : [sg];
-          const out = await Promise.all(es.map(async (e) => {
+          return await Promise.all(es.map(async (e) => {
             const result = await client.createECRRepository({
               repositoryName: e.repositoryName,
               imageTagMutability: e.imageTagMutability,
@@ -214,33 +197,17 @@ export const AwsEcrModule: Module = new Module({
             await AwsEcrModule.mappers.repository.db.update(newEntity, ctx);
             return newEntity;
           }));
-          // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(sg)) {
-            return out;
-          } else {
-            return out[0];
-          }
         },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return await AwsEcrModule.utils.repositoryMapper(
-                  await client.getECRRepository(id), ctx
-                );
-              }));
-            } else {
-              return await AwsEcrModule.utils.repositoryMapper(
-                await client.getECRRepository(ids), ctx
-              );
-            }
-          } else {
-            const repositories = (await client.getECRRepositories())?.Repositories ?? [];
-            return await Promise.all(
-              repositories.map((r: any) => AwsEcrModule.utils.repositoryMapper(r, ctx))
-            );
-          }
+          const ecrs = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getECRRepository(id))) :
+            ids === undefined ?
+              (await client.getECRRepositories()).Repositories ?? [] :
+              [await client.getECRRepository(ids)];
+          return await Promise.all(ecrs.map(
+            ecr => AwsEcrModule.utils.repositoryMapper(ecr, ctx)
+          ));
         },
         update: async (r: AwsRepository | AwsRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -286,17 +253,15 @@ export const AwsEcrModule: Module = new Module({
       },
       source: 'db',
       db: new Crud({
-        create: async (e: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => { await ctx.orm.save(AwsRepositoryPolicy, e); },
-        read: async (ctx: Context, id?: string | string[] | undefined) => {
-          const relations = ['repository',];
-          const opts = id ? {
+        create: (e: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => ctx.orm.save(AwsRepositoryPolicy, e),
+        read: async (ctx: Context, id?: string | string[] | undefined) => ctx.orm.find(
+          AwsRepositoryPolicy,
+          id ? {
             where: {
               repository: { repositoryName: id }
             },
-            relations,
-          } : { relations, };
-          return (!id || Array.isArray(id)) ? await ctx.orm.find(AwsRepositoryPolicy, opts) : await ctx.orm.findOne(AwsRepositoryPolicy, opts);
-        },
+            relations: [ 'repository', ],
+          } : { relations: [ 'repository', ], }),
         update: async (rp: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => {
           const es = Array.isArray(rp) ? rp : [rp];
           for (const e of es) {
@@ -308,13 +273,13 @@ export const AwsEcrModule: Module = new Module({
           }
           await ctx.orm.save(AwsRepositoryPolicy, es);
         },
-        delete: async (e: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => { await ctx.orm.remove(AwsRepositoryPolicy, e); },
+        delete: (e: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => ctx.orm.remove(AwsRepositoryPolicy, e),
       }),
       cloud: new Crud({
         create: async (rp: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(rp) ? rp : [rp];
-          const out = await Promise.all(es.map(async (e) => {
+          return await Promise.all(es.map(async (e) => {
             const result = await client.setECRRepositoryPolicy({
               repositoryName: e.repository.repositoryName,
               policyText: e.policyText,
@@ -334,27 +299,17 @@ export const AwsEcrModule: Module = new Module({
             await AwsEcrModule.mappers.repositoryPolicy.db.update(newEntity, ctx);
             return newEntity;
           }));
-          // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(rp)) {
-            return out;
-          } else {
-            return out[0];
-          }
         },
         read: async (ctx: Context, ids?: string | string[]) => {
+          // TODO: Can this function be refactored to be simpler?
           const client = await ctx.getAwsClient() as AWS;
           if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return await AwsEcrModule.utils.repositoryPolicyMapper(
-                  await client.getECRRepositoryPolicy(id), ctx
-                );
-              }));
-            } else {
+            ids = Array.isArray(ids) ? ids : [ids];
+            return await Promise.all(ids.map(async (id) => {
               return await AwsEcrModule.utils.repositoryPolicyMapper(
-                await client.getECRRepositoryPolicy(ids), ctx
+                await client.getECRRepositoryPolicy(id), ctx
               );
-            }
+            }));
           } else {
             const repositories = ctx.memo?.cloud?.AwsRepository ? Object.values(ctx.memo?.cloud?.AwsRepository) : await AwsEcrModule.mappers.repository.cloud.read(ctx);
             const policies: any = [];
@@ -372,9 +327,7 @@ export const AwsEcrModule: Module = new Module({
             }));
           }
         },
-        update: async (rp: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => {
-          await AwsEcrModule.mappers.repositoryPolicy.cloud.create(rp, ctx);
-        },
+        update: (rp: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => AwsEcrModule.mappers.repositoryPolicy.cloud.create(rp, ctx),
         delete: async (rp: AwsRepositoryPolicy | AwsRepositoryPolicy[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(rp) ? rp : [rp];

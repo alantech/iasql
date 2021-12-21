@@ -55,40 +55,28 @@ export const AwsRdsModule: Module = new Module({
       equals: (_a: EngineVersion, _b: EngineVersion) => true,
       source: 'cloud',
       db: new Crud({
-        create: async (e: EngineVersion | EngineVersion[], ctx: Context) => { await ctx.orm.save(EngineVersion, e); },
+        create: (e: EngineVersion | EngineVersion[], ctx: Context) => ctx.orm.save(EngineVersion, e),
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const opts = id ? {
             where: {
               engineVersionKey: Array.isArray(id) ? In(id) : id,
             },
           } : undefined;
-          return (!id || Array.isArray(id)) ? await ctx.orm.find(EngineVersion, opts) : await ctx.orm.findOne(EngineVersion, opts);
+          return await ctx.orm.find(EngineVersion, opts);
         },
-        update: async (e: EngineVersion | EngineVersion[], ctx: Context) => { await ctx.orm.save(EngineVersion, e); },
-        delete: async (e: EngineVersion | EngineVersion[], ctx: Context) => { await ctx.orm.remove(EngineVersion, e); },
+        update: (e: EngineVersion | EngineVersion[], ctx: Context) => ctx.orm.save(EngineVersion, e),
+        delete: (e: EngineVersion | EngineVersion[], ctx: Context) => ctx.orm.remove(EngineVersion, e),
       }),
       cloud: new Crud({
         create: async (_e: EngineVersion | EngineVersion[], _ctx: Context) => { /** Noop */ },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return await AwsRdsModule.utils.engineVersionMapper(
-                  await client.getEngineVersion(id), ctx
-                );
-              }));
-            } else {
-              return await AwsRdsModule.utils.engineVersionMapper(
-                await client.getEngineVersion(ids), ctx
-              );
-            }
-          } else {
-            const engineVersions = (await client.getEngineVersions())?.DBEngineVersions ?? [];
-            return await Promise.all(
-              engineVersions.filter(e => e.Engine === 'postgres').map((e: any) => AwsRdsModule.utils.engineVersionMapper(e, ctx))
-            );
-          }
+          const evs = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getEngineVersion(id))) :
+            ids === undefined ?
+              (await client.getEngineVersions()).DBEngineVersions :
+              [await client.getEngineVersion(ids)];
+          return await Promise.all(evs.map(ev => AwsRdsModule.utils.engineVersionMapper(ev, ctx)));
         },
         update: async (_e: EngineVersion | EngineVersion[], _ctx: Context) => {/** Noop */ },
         delete: async (_e: EngineVersion | EngineVersion[], _ctx: Context) => {/** Noop */ },
@@ -115,7 +103,7 @@ export const AwsRdsModule: Module = new Module({
         && Object.is(a.allocatedStorage, b.allocatedStorage),
       source: 'db',
       db: new Crud({
-        create: async (rds: RDS | RDS[], ctx: Context) => { await ctx.orm.save(RDS, rds); },
+        create: (rds: RDS | RDS[], ctx: Context) => ctx.orm.save(RDS, rds),
         read: async (ctx: Context, id?: string | string[] | undefined) => {
           const relations = ['engine', 'vpcSecurityGroups', 'availabilityZone'];
           const opts = id ? {
@@ -124,7 +112,7 @@ export const AwsRdsModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          return (!id || Array.isArray(id)) ? await ctx.orm.find(RDS, opts) : await ctx.orm.findOne(RDS, opts);
+          return await ctx.orm.find(RDS, opts);
         },
         update: async (rds: RDS | RDS[], ctx: Context) => { await ctx.orm.save(RDS, rds); },
         delete: async (rds: RDS | RDS[], ctx: Context) => { await ctx.orm.remove(RDS, rds); },
@@ -133,7 +121,7 @@ export const AwsRdsModule: Module = new Module({
         create: async (rds: RDS | RDS[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(rds) ? rds : [rds];
-          const out = await Promise.all(es.map(async (e) => {
+          return await Promise.all(es.map(async (e) => {
             const securityGroupIds = e.vpcSecurityGroups?.map(sg => {
               if (!sg.groupId) throw new Error('Security group needs to exist')
               return sg.groupId;
@@ -165,38 +153,20 @@ export const AwsRdsModule: Module = new Module({
             await AwsRdsModule.mappers.rds.db.update(newEntity, ctx);
             return newEntity;
           }));
-          // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(rds)) {
-            return out;
-          } else {
-            return out[0];
-          }
         },
         read: async (ctx: Context, ids?: string | string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            if (Array.isArray(ids)) {
-              return await Promise.all(ids.map(async (id) => {
-                return await AwsRdsModule.utils.rdsMapper(
-                  await client.getDBInstance(id), ctx
-                );
-              }));
-            } else {
-              return await AwsRdsModule.utils.rdsMapper(
-                await client.getDBInstance(ids), ctx
-              );
-            }
-          } else {
-            const dbInstances = (await client.getDBInstances())?.DBInstances ?? [];
-            return await Promise.all(
-              dbInstances.map((rds: any) => AwsRdsModule.utils.rdsMapper(rds, ctx))
-            );
-          }
+          const rdses = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getDBInstance(id))) :
+            ids === undefined ?
+              (await client.getDBInstances()).DBInstances :
+              [await client.getDBInstance(ids)];
+          return await Promise.all(rdses.map(rds => AwsRdsModule.utils.rdsMapper(rds, ctx)));
         },
         update: async (rds: RDS | RDS[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const es = Array.isArray(rds) ? rds : [rds];
-          const out = await Promise.all(es.map(async (e) => {
+          return await Promise.all(es.map(async (e) => {
             // Doing an actual update of some of the properties that can change.
             // Discarded delete + re-create for two reasons
             // 1. Db identifier should be unique and is the one defined by the user. We could update the current one
@@ -231,12 +201,6 @@ export const AwsRdsModule: Module = new Module({
             await AwsRdsModule.mappers.rds.db.update(newEntity, ctx);
             return newEntity;
           }));
-          // Make sure the dimensionality of the returned data matches the input
-          if (Array.isArray(rds)) {
-            return out;
-          } else {
-            return out[0];
-          }
         },
         delete: async (rds: RDS | RDS[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
