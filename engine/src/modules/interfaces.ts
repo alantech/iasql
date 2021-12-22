@@ -139,9 +139,9 @@ export class Crud<E> {
 
   async delete(e: E | E[], ctx: Context) {
     console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} delete`);
-    e = Array.isArray(e) ? e : [e];
-    const out = await this.deleteFn(e, ctx);
-    this.unmemo(e, ctx); // Remove deleted record(s) from the memo
+    const es = Array.isArray(e) ? e : [e];
+    const out = await this.deleteFn(es, ctx);
+    this.unmemo(es, ctx); // Remove deleted record(s) from the memo
     if (!Array.isArray(e) && Array.isArray(out)) {
       return out[0];
     } else {
