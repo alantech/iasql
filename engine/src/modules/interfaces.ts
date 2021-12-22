@@ -72,10 +72,10 @@ export class Crud<E> {
 
   async create(e: E | E[], ctx: Context) {
     console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} create`);
-    e = Array.isArray(e) ? e : [e];
+    const es = Array.isArray(e) ? e : [e];
     // Memoize before and after the actual logic to make sure the unique ID is reserved
     this.memo(e, ctx);
-    return this.memo(await this.createFn(e, ctx), ctx, e);
+    return this.memo(await this.createFn(es, ctx), ctx, e);
   }
 
   async read(ctx: Context, id?: string | string[]) {
@@ -133,8 +133,8 @@ export class Crud<E> {
 
   async update(e: E | E[], ctx: Context) {
     console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} update`);
-    e = Array.isArray(e) ? e : [e];
-    return this.memo(await this.updateFn(e, ctx), ctx, e);
+    const es = Array.isArray(e) ? e : [e];
+    return this.memo(await this.updateFn(es, ctx), ctx, e);
   }
 
   async delete(e: E | E[], ctx: Context) {
