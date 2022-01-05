@@ -111,6 +111,26 @@ describe('Security Group Integration Testing', () => {
 
   it('applies the security group change (last time)', runApply);
 
+  // Special testing involving the default security group you can't edit or delete
+  
+  it('tries to delete the default security group', query(`
+    DELETE FROM aws_security_group WHERE group_name = 'default';
+  `));
+
+  it('applies the security group change which will restore the record', runApply);
+
+  it('tries to change the default security group description', query(`
+    UPDATE aws_security_group SET description = 'Not the default' where group_name = 'default';
+  `));
+
+  it('applies the security group change which will restore the record', runApply);
+
+  it('tries to change the default security group id which triggers simultaneous create/delete', query(`
+    UPDATE aws_security_group SET group_id = 'remakethis' where group_name = 'default';
+  `));
+
+  it('applies the security group change which will restore the record', runApply);
+
   it('deletes the test db', (done) => void iasql
     .remove('sgtest', 'not-needed')
     .then(...finish(done)));
