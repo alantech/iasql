@@ -71,9 +71,13 @@ describe('Security Group Integration Testing', () => {
 
   it('applies the security group change', runApply);
 
-  it('adds a security group rule', query(`
+  it('adds security group rules', query(`
     INSERT INTO aws_security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT true, 'tcp', 443, 443, '0.0.0.0/8', '${prefix}testrule', id
+    FROM aws_security_group
+    WHERE group_name = '${prefix}sgtest';
+    INSERT INTO aws_security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv6, description, security_group_id)
+    SELECT false, 'tcp', 22, 22, '::/8', '${prefix}testrule2', id
     FROM aws_security_group
     WHERE group_name = '${prefix}sgtest';
   `));
@@ -82,6 +86,7 @@ describe('Security Group Integration Testing', () => {
 
   it('updates the security group rule', query(`
     UPDATE aws_security_group_rule SET to_port = 8443 WHERE description = '${prefix}testrule';
+    UPDATE aws_security_group_rule SET to_port = 8022 WHERE description = '${prefix}testrule2';
   `));
 
   it('applies the security group rule change (again)', runApply);
@@ -94,6 +99,7 @@ describe('Security Group Integration Testing', () => {
 
   it('deletes the security group rule', query(`
     DELETE FROM aws_security_group_rule WHERE description = '${prefix}testrule';
+    DELETE FROM aws_security_group_rule WHERE description = '${prefix}testrule2';
   `));
 
   it('applies the security group rule change (last time)', runApply);
