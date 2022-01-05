@@ -43,6 +43,14 @@ function query(queryString: string) {
   }
 }
 
+const chars = [
+  Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+  Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+  Array(10).fill('0').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+].flat();
+const randChar = (): string => chars[Math.floor(Math.random() * chars.length)];
+const prefix = Array(7).fill('').map(() => randChar()).join('');
+
 describe('Security Group Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
     'sgtest',
@@ -58,41 +66,41 @@ describe('Security Group Integration Testing', () => {
 
   it('adds a new security group', query(`  
     INSERT INTO aws_security_group (description, group_name)
-    VALUES ('Security Group Test', 'sgtest');
+    VALUES ('Security Group Test', '${prefix}sgtest');
   `));
 
   it('applies the security group change', runApply);
 
   it('adds a security group rule', query(`
     INSERT INTO aws_security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-    SELECT true, 'tcp', 443, 443, '0.0.0.0/8', 'testrule', id
+    SELECT true, 'tcp', 443, 443, '0.0.0.0/8', '${prefix}testrule', id
     FROM aws_security_group
-    WHERE group_name = 'sgtest';
+    WHERE group_name = '${prefix}sgtest';
   `));
 
   it('applies the security group rule change', runApply);
 
   it('updates the security group rule', query(`
-    UPDATE aws_security_group_rule SET to_port = 8443 WHERE description = 'testrule';
+    UPDATE aws_security_group_rule SET to_port = 8443 WHERE description = '${prefix}testrule';
   `));
 
   it('applies the security group rule change (again)', runApply);
 
   it('updates the security group', query(`
-    UPDATE aws_security_group SET group_name = 'sgtest2' WHERE group_name = 'sgtest';
+    UPDATE aws_security_group SET group_name = '${prefix}sgtest2' WHERE group_name = '${prefix}sgtest';
   `));
 
   it('applies the security group change (again)', runApply);
 
   it('deletes the security group rule', query(`
-    DELETE FROM aws_security_group_rule WHERE description = 'testrule';
+    DELETE FROM aws_security_group_rule WHERE description = '${prefix}testrule';
   `));
 
   it('applies the security group rule change (last time)', runApply);
 
   it('deletes the security group', query(`
     DELETE FROM aws_security_group
-    WHERE group_name = 'sgtest2';
+    WHERE group_name = '${prefix}sgtest2';
   `));
 
   it('applies the security group change (last time)', runApply);
