@@ -12,7 +12,7 @@ beforeAll(() => {
   execSync('echo AO_AUDIENCE=https://api.iasql.com >> .testenv');
   execSync('echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN} >> .testenv');
   // Build the docker containers
-  execSync('docker-compose --env-file ./.testenv up --build --detach');
+  execSync('docker-compose --env-file ../engine/.testenv up --build --detach');
   // Wait for them to be usable
   execSync('while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;');
 });
