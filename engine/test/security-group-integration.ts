@@ -132,13 +132,13 @@ describe('Security Group Integration Testing', () => {
     UPDATE aws_security_group SET description = 'Not the default' where group_name = 'default';
   `));
 
-  it('applies the security group change which will restore the record', runApply);
+  it('applies the security group change which will undo this change', runApply);
 
   it('tries to change the default security group id which triggers simultaneous create/delete', query(`
     UPDATE aws_security_group SET group_id = 'remakethis' where group_name = 'default';
   `));
 
-  it('applies the security group change which will restore the record', runApply);
+  it('applies the security group change which will recreate the record', runApply);
 
   it('deletes the test db', (done) => void iasql
     .remove('sgtest', 'not-needed')
