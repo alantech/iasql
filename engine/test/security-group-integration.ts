@@ -4,7 +4,7 @@ import { createConnection, } from 'typeorm'
 
 import * as iasql from '../src/services/iasql'
 
-jest.setTimeout(120000);
+jest.setTimeout(240000);
 
 beforeAll(() => {
   execSync('cd test && docker-compose up -d && sleep 5');
