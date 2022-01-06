@@ -7,12 +7,12 @@ const sha = execSync('git rev-parse HEAD', { encoding: 'utf8', }).trim();
 
 beforeAll(() => {
   // Set up the env file
-  execSync('echo AO_ENABLED=true >> .testenv');
-  execSync('echo AO_DOMAIN=https://auth.iasql.com/ >> .testenv');
-  execSync('echo AO_AUDIENCE=https://api.iasql.com >> .testenv');
-  execSync('echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN} >> .testenv');
+  execSync('echo AO_ENABLED=true >> .env');
+  execSync('echo AO_DOMAIN=https://auth.iasql.com/ >> ..env');
+  execSync('echo AO_AUDIENCE=https://api.iasql.com >> .env');
+  execSync('echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN} >> .env');
   // Build the docker containers
-  execSync('docker-compose --env-file ../engine/.testenv up --build --detach');
+  execSync('docker-compose --env-file .env up --build --detach');
   // Wait for them to be usable
   execSync('while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;');
 });
@@ -25,7 +25,6 @@ afterAll(() => {
   console.log(execSync('docker logs engine_postgresql_1', { encoding: 'utf8', }));
   // Terminate the docker container
   execSync('docker stop $(docker ps -q)');
-  execSync('rm .testenv');
 });
 
 describe('Basic integration testing', () => {
