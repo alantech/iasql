@@ -8,7 +8,7 @@ const sha = execSync('git rev-parse HEAD', { encoding: 'utf8', }).trim();
 beforeAll(() => {
   // Set up the env file
   execSync('echo AO_ENABLED=true >> .env');
-  execSync('echo AO_DOMAIN=https://auth.iasql.com/ >> ..env');
+  execSync('echo AO_DOMAIN=https://auth.iasql.com/ >> .env');
   execSync('echo AO_AUDIENCE=https://api.iasql.com >> .env');
   execSync('echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN} >> .env');
   // Build the docker containers

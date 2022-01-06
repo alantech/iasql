@@ -24,6 +24,7 @@ function runApply(done: (e?: any) => {}) {
 
 function query(queryString: string) {
   return function (done: (e?: any) => {}) {
+    console.log(queryString);
     createConnection({
       name: 'sgtest',
       type: 'postgres',
