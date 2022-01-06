@@ -5,6 +5,7 @@ export default {
   dbUser: process.env.DB_USER || 'postgres',
   dbPassword: process.env.DB_PASSWORD || 'test',
   dbPort: process.env.DB_PORT || 5432,
+  dbForceSSL: process.env.DB_FORCE_SSL === 'true',
   ironPlansTk: process.env.IRONPLANS_TOKEN,
   a0Enabled: process.env.A0_ENABLED === 'true',
   a0Domain: process.env.A0_DOMAIN,
