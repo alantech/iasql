@@ -4,7 +4,7 @@ import { createConnection, } from 'typeorm'
 
 import * as iasql from '../src/services/iasql'
 
-jest.setTimeout(240000);
+jest.setTimeout(120000);
 
 beforeAll(() => {
   execSync('cd test && docker-compose up -d && sleep 5');
@@ -113,11 +113,16 @@ describe('Security Group Integration Testing', () => {
 
   // Special testing involving the default security group you can't edit or delete
   
-  it('tries to delete the default security group', query(`
+  it('clears out any default security group rules if they exist', query(`
     DELETE FROM aws_security_group_rule
     USING aws_security_group
     WHERE aws_security_group_rule.security_group_id = aws_security_group.id
     AND aws_security_group.group_name = 'default';
+  `));
+
+  it('applies this change', runApply);
+  
+  it('tries to delete the default security group', query(`
     DELETE FROM aws_security_group WHERE group_name = 'default';
   `));
 
