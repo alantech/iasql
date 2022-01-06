@@ -208,6 +208,8 @@ export const AwsSecurityGroupModule: Module = new Module({
               // For delete, we have un-memoed the record, but the record passed in *is* the one
               // we're interested in, which makes it a bit simpler here
               await AwsSecurityGroupModule.mappers.securityGroup.db.update(e, ctx);
+              // Make absolutely sure it shows up in the memo
+              ctx.memo.db.AwsSecurityGroup[e.groupId ?? ''] = e;
               const rules = ctx?.memo?.cloud?.AwsSecurityGroupRule ?? [];
               const relevantRules = rules.filter(
                 (r: AwsSecurityGroupRule) => r.securityGroup.groupId === e.groupId

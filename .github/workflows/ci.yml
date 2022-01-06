@@ -63,12 +63,13 @@ jobs:
         run: yarn
 
       - name: Run tests
-        run: yarn test
+        run: yarn coverage
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
           AWS_REGION: us-east-1
+          DB_HOST: localhost
 
   docs:
     runs-on: ubuntu-latest
