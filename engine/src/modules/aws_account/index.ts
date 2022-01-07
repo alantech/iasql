@@ -2,6 +2,7 @@ import { In, } from 'typeorm'
 import { Subnet, Vpc, } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../../services/gateways/aws'
+import { AWSCloudControl, } from '../../services/gateways/aws-cc'
 import {
   AvailabilityZone,
   AvailabilityZoneMessage,
@@ -52,6 +53,19 @@ export const AwsAccount: Module = new Module({
         return this.awsClient;
       },
       awsClient: null, // Just reserving this name to guard against collisions between modules.
+      async getAwsCloudControlClient() {
+        if (this.awsCloudControlClient) return this.awsCloudControlClient;
+        const awsCreds = await this.orm.findOne(AwsAccount.mappers.awsAccount.entity);
+        this.awsCloudControlClient = new AWSCloudControl({
+          region: awsCreds.region.name,
+          credentials: {
+            accessKeyId: awsCreds.accessKeyId,
+            secretAccessKey: awsCreds.secretAccessKey,
+          },
+        });
+        return this.awsCloudControlClient;
+      },
+      awsCloudControlClient: null, // Just reserving this name to guard against collisions between modules.
     },
   },
   utils: {
