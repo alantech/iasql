@@ -279,6 +279,7 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
     type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
     const toCreate: Crupde = {};
     const toUpdate: Crupde = {};
+    const toReplace: Crupde = {};
     const toDelete: Crupde = {};
     do {
       ranFullUpdate = false;
@@ -310,9 +311,10 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
         console.log(`AWS Mapping time: ${t4 - t3}ms`);
         if (!records.length) { // Only possible on just-created databases
           return {
-            iasqlPlanVersion: 1,
+            iasqlPlanVersion: 2,
             toCreate: {},
             toUpdate: {},
+            toReplace: {},
             toDelete: {},
           };
         }
@@ -337,13 +339,30 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
             updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInAwsOnly);
           }
           if (r.diff.entitiesChanged.length > 0) {
-            updatePlan(toUpdate, r.table, r.mapper, r.diff.entitiesChanged.map((e: any) => e.db));
+            const updates: any[] = [];
+            const replaces: any[] = [];
+            r.diff.entitiesChanged.forEach((e: any) => {
+              const isUpdate = r.mapper.cloud.updateOrReplace(e.cloud, e.db) === 'update';
+              if (isUpdate) {
+                updates.push(e.db);
+              } else {
+                replaces.push(e.db);
+              }
+            });
+            console.dir({
+              table: r.table,
+              updates,
+              replaces,
+            });
+            if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
+            if (replaces.length > 0) updatePlan(toReplace, r.table, r.mapper, replaces);
           }
         });
         if (dryRun) return {
-          iasqlPlanVersion: 1,
+          iasqlPlanVersion: 2,
           toCreate,
           toUpdate,
+          toReplace,
           toDelete,
         };
         const t5 = Date.now();
@@ -408,9 +427,10 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
     const t7 = Date.now();
     console.log(`${dbAlias} applied and synced, total time: ${t7 - t1}ms`);
     return {
-      iasqlPlanVersion: 1,
+      iasqlPlanVersion: 2,
       toCreate,
       toUpdate,
+      toReplace,
       toDelete,
     };
   } catch (e: any) {

@@ -10,6 +10,7 @@ export type Context = { [key: string]: any };
 export interface CrudInterface<E> {
   create: (e: E[], ctx: Context) => Promise<void | E[]>;
   read: (ctx: Context, ids?: string[]) => Promise<E[] | void>;
+  updateOrReplace?: (prev: E, next: E) => 'update' | 'replace';
   update: (e: E[], ctx: Context) => Promise<void | E[]>;
   delete: (e: E[], ctx: Context) => Promise<void | E[]>;
 }
@@ -18,6 +19,7 @@ export class Crud<E> {
   createFn: (e: E[], ctx: Context) => Promise<void | E[]>;
   readFn: (ctx: Context, ids?: string[]) => Promise<E[] | void>;
   updateFn: (e: E[], ctx: Context) => Promise<void | E[]>;
+  updateOrReplaceFn: (prev: E, next: E) => 'update' | 'replace';
   deleteFn: (e: E[], ctx: Context) => Promise<void | E[]>;
   dest?: 'db' | 'cloud';
   entity?: new () => E;
@@ -26,6 +28,7 @@ export class Crud<E> {
   constructor(def: CrudInterface<E>) {
     this.createFn = def.create;
     this.readFn = def.read;
+    this.updateOrReplaceFn = def.updateOrReplace ?? (() => 'update');
     this.updateFn = def.update
     this.deleteFn = def.delete;
   }
@@ -147,6 +150,10 @@ export class Crud<E> {
     } else {
       return out;
     }
+  }
+
+  updateOrReplace(prev: E, next: E): 'update' | 'replace' {
+    return this.updateOrReplaceFn(prev, next);
   }
 }
 
