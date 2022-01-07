@@ -349,7 +349,10 @@ pub async fn plan(db: &str) {
       maybe_planned_nothing(&plan_response);
       emit_plan_segment(plan_response.toCreate, &dlg::green("create").to_string());
       emit_plan_segment(plan_response.toUpdate, &dlg::yellow("update").to_string());
-      emit_plan_segment(plan_response.toReplace, &dlg::magenta("replace").to_string());
+      emit_plan_segment(
+        plan_response.toReplace,
+        &dlg::magenta("replace").to_string(),
+      );
       emit_plan_segment(plan_response.toDelete, &dlg::red("delete").to_string());
     }
     Err(e) => {
@@ -393,7 +396,10 @@ pub async fn apply(db: &str) {
       maybe_planned_nothing(&plan_response);
       emit_plan_segment(plan_response.toCreate, &dlg::green("create").to_string());
       emit_plan_segment(plan_response.toUpdate, &dlg::yellow("update").to_string());
-      emit_plan_segment(plan_response.toReplace, &dlg::magenta("replace").to_string());
+      emit_plan_segment(
+        plan_response.toReplace,
+        &dlg::magenta("replace").to_string(),
+      );
       emit_plan_segment(plan_response.toDelete, &dlg::red("delete").to_string());
       println!("{} {}", dlg::success_prefix(), dlg::bold("Done"));
     }
