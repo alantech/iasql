@@ -8,17 +8,17 @@ import { QueryRunner, } from 'typeorm'
 export type Context = { [key: string]: any };
 
 export interface CrudInterface<E> {
-  create: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
-  read: (ctx: Context, id?: string | string[]) => Promise<E | E[] | void>;
-  update: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
-  delete: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
+  create: (e: E[], ctx: Context) => Promise<void | E[]>;
+  read: (ctx: Context, ids?: string[]) => Promise<E[] | void>;
+  update: (e: E[], ctx: Context) => Promise<void | E[]>;
+  delete: (e: E[], ctx: Context) => Promise<void | E[]>;
 }
 
 export class Crud<E> {
-  createFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
-  readFn: (ctx: Context, id?: string | string[]) => Promise<E | E[] | void>;
-  updateFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
-  deleteFn: (e: E | E[], ctx: Context) => Promise<void | E | E[]>;
+  createFn: (e: E[], ctx: Context) => Promise<void | E[]>;
+  readFn: (ctx: Context, ids?: string[]) => Promise<E[] | void>;
+  updateFn: (e: E[], ctx: Context) => Promise<void | E[]>;
+  deleteFn: (e: E[], ctx: Context) => Promise<void | E[]>;
   dest?: 'db' | 'cloud';
   entity?: new () => E;
   entityId?: (e: E) => string;
@@ -30,7 +30,7 @@ export class Crud<E> {
     this.deleteFn = def.delete;
   }
 
-  memo(entity: void | E | E[], ctx: Context) {
+  memo(entity: void | E | E[], ctx: Context, input?: any | any[]) {
     if (!entity) return;
     const es = Array.isArray(entity) ? entity : [entity];
     const dest = this.dest ?? 'What?';
@@ -49,7 +49,7 @@ export class Crud<E> {
         es[i] = realE;
       }
     });
-    if (Array.isArray(entity)) {
+    if (Array.isArray(entity) && (Array.isArray(input) || input === undefined)) {
       return entity;
     } else {
       // To return the possibly-changed entity instead of the original input one
@@ -71,12 +71,15 @@ export class Crud<E> {
   }
 
   async create(e: E | E[], ctx: Context) {
+    console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} create`);
+    const es = Array.isArray(e) ? e : [e];
     // Memoize before and after the actual logic to make sure the unique ID is reserved
     this.memo(e, ctx);
-    return this.memo(await this.createFn(e, ctx), ctx);
+    return this.memo(await this.createFn(es, ctx), ctx, e);
   }
 
   async read(ctx: Context, id?: string | string[]) {
+    console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} read`);
     if (id) {
       const dest = this.dest ?? 'What?';
       const entityName = this.entity?.name ?? 'What?';
@@ -99,7 +102,7 @@ export class Crud<E> {
           }
         });
         if (missing.length === 0) return vals;
-        const missingVals = (this.memo(await this.readFn(ctx, missing), ctx) as E[]).sort(
+        const missingVals = (this.memo(await this.readFn(ctx, missing), ctx, missing) as E[]).sort(
           (a: E, b: E) => missing.indexOf(entityId(a)) - missing.indexOf(entityId(b))
         );
         // The order is the same in both lists, so we can cheat and do a single pass
@@ -122,20 +125,28 @@ export class Crud<E> {
         } else {
           return ctx.memo[dest][entityName][id];
         }
-        return this.memo(await this.readFn(ctx, id), ctx);
+        return this.memo(await this.readFn(ctx, [id]), ctx, id);
       }
     }
-    return this.memo(await this.readFn(ctx, id), ctx);
+    return this.memo(await this.readFn(ctx), ctx, id);
   }
 
   async update(e: E | E[], ctx: Context) {
-    return this.memo(await this.updateFn(e, ctx), ctx);
+    console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} update`);
+    const es = Array.isArray(e) ? e : [e];
+    return this.memo(await this.updateFn(es, ctx), ctx, e);
   }
 
   async delete(e: E | E[], ctx: Context) {
-    const out = await this.deleteFn(e, ctx);
-    this.unmemo(e, ctx); // Remove deleted record(s) from the memo
-    return out;
+    console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} delete`);
+    const es = Array.isArray(e) ? e : [e];
+    const out = await this.deleteFn(es, ctx);
+    this.unmemo(es, ctx); // Remove deleted record(s) from the memo
+    if (!Array.isArray(e) && Array.isArray(out)) {
+      return out[0];
+    } else {
+      return out;
+    }
   }
 }
 
