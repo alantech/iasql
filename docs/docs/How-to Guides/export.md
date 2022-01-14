@@ -9,6 +9,4 @@ Exporting infrastructure from an IaSQL DB outputs a SQL dump file as input for `
 
 ```bash
 $ iasql export
-
-
 ```
