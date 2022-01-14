@@ -30,6 +30,10 @@ pub fn yellow(el: &str) -> StyledObject<String> {
   style(format!("{}", el)).yellow()
 }
 
+pub fn magenta(el: &str) -> StyledObject<String> {
+  style(format!("{}", el)).magenta()
+}
+
 pub fn white(el: &str) -> StyledObject<String> {
   style(format!("{}", el)).white()
 }
