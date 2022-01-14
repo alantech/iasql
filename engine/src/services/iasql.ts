@@ -349,11 +349,6 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
                 replaces.push(e.db);
               }
             });
-            console.dir({
-              table: r.table,
-              updates,
-              replaces,
-            });
             if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
             if (replaces.length > 0) updatePlan(toReplace, r.table, r.mapper, replaces);
           }
