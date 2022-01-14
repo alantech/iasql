@@ -5,7 +5,7 @@ slug: '/'
 
 # Getting Started
 
-[IaSQL](https://iasql.com) is a SaaS to manage cloud infrastructure as relational data and infrastructure changes as SQL. Our [CLI](/install) provisions a Postgres database and you can then add tables representing cloud services, or modules. The rows in the tables represent the infrastructure in your cloud account. Which tables are loaded into an [IaSQL database](/database) is configured based on what [IaSQL modules](/module) are installed in a db. Every IaSQL module represents a cloud service like `aws_ec2` or `aws_elb`. Once the desired modules are installed, simply connect to the database with the PG connection string using your preferred method, run `INSERT` or `UPDATE` queries, and finally run the `apply` CLI command to provision infrastructure in your cloud account.
+[IaSQL](https://iasql.com) is a SaaS to manage cloud infrastructure as relational data and infrastructure changes as SQL. Our [CLI](/install) provisions a Postgres database and you can then add tables representing cloud services, or modules. The rows in the tables represent the infrastructure in your cloud account. Which tables are loaded into an [IaSQL database](/database) is configured based on what [IaSQL modules](/module) are installed in a db. Every IaSQL module represents a cloud service like `aws_ec2` or `aws_elb`. Once the desired modules are installed, simply connect to the database with the PG connection string displayed on `iasql new` using your preferred way to [connect](/connect) to Postgres, run `INSERT` or `UPDATE` queries, and finally run the `apply` CLI command to provision infrastructure in your cloud account.
 
 ## What part of the documentation should I look at?
 
