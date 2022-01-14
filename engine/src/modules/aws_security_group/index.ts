@@ -128,6 +128,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             (await client.getSecurityGroups()).SecurityGroups;
           return await Promise.all(sgs.map(sg => AwsSecurityGroupModule.utils.sgMapper(sg, ctx)));
         },
+        updateOrReplace: () => 'replace',
         update: (es: AwsSecurityGroup[], ctx: Context) => Promise.all(es.map(async (e) => {
           // Special behavior here. You're not allowed to mess with the "default" SecurityGroup.
           // You can mess with its rules, but not this record itself, so any attempt to update it
@@ -301,6 +302,8 @@ export const AwsSecurityGroupModule: Module = new Module({
             (await client.getSecurityGroupRules()).SecurityGroupRules;
           return await Promise.all(sgrs.map(sgr => AwsSecurityGroupModule.utils.sgrMapper(sgr, ctx)));
         },
+        // TODO: Edit rules when possible in the future
+        updateOrReplace: () => 'replace',
         update: async (es: AwsSecurityGroupRule[], ctx: Context) => {
           // First we create new instances of these records, then we delete the old instances
           // To make sure we don't accidentally delete the wrong things, we clone these entities
