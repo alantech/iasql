@@ -230,7 +230,9 @@ export const AwsAccount: Module = new Module({
         Object.is(a.groupName, b.groupName) &&
         Object.is(a.networkBorderGroup, b.networkBorderGroup) &&
         Object.is(a.optInStatus, b.optInStatus) &&
-        Object.is(a?.parentZone?.zoneName, b?.parentZone?.zoneName) &&
+        // TODO: Restore this in the equality check when we can be sure the db sourced records
+        // include the parentZone correctly (see below)
+        // Object.is(a?.parentZone?.zoneName, b?.parentZone?.zoneName) &&
         Object.is(a.region.name, b.region.name) &&
         Object.is(a.state, b.state),
       source: 'cloud',
@@ -249,6 +251,9 @@ export const AwsAccount: Module = new Module({
             await ctx.orm.save(AvailabilityZone, entity);
           }
         },
+        // TODO: This needs to grab and attach the `parentZone` when defined to be correct, but
+        // TypeORM cannot handle self-recursive entities properly, so we would have to do this by
+        // hand
         read: (ctx: Context, ids?: string[]) => ctx.orm.find(AvailabilityZone, ids ? {
           where: {
             zoneName: In(ids),

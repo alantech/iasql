@@ -436,6 +436,193 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
   }
 }
 
+export async function sync(dbAlias: string, dryRun: boolean, user: any) {
+  const t1 = Date.now();
+  console.log(`Syncing ${dbAlias}`);
+  let orm: TypeormWrapper | null = null;
+  try {
+    const { dbId } = await dbMan.getMetadata(dbAlias, user);
+    // Construct the ORM client with all of the entities we may wish to query
+    const entities = Object.values(Modules)
+      .filter(m => m.hasOwnProperty('provides'))
+      .map((m: any) => Object.values(m.provides.entities))
+      .flat()
+      .filter(e => typeof e === 'function') as Function[];
+    entities.push(IasqlModule);
+    orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
+    // Find all of the installed modules, and create the context object only for these
+    const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
+    const memo: any = {}; // TODO: Stronger typing here
+    const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
+    for (const name of moduleNames) {
+      const mod = Object.values(Modules).find(m => m.name === name) as Modules.ModuleInterface;
+      if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
+      const moduleContext = mod.provides.context ?? {};
+      Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
+    }
+    // Get the mappers, regardless of source-of-truth
+    const mappers = Object.values(Modules)
+      .filter(mod => moduleNames.includes(mod.name))
+      .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
+      .flat();
+    const t2 = Date.now();
+    console.log(`Setup took ${t2 - t1}ms`);
+    let ranFullUpdate = false;
+    let failureCount = -1;
+    // Crupde = CR-UP-DE, Create/Update/Delete
+    type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
+    const toCreate: Crupde = {};
+    const toUpdate: Crupde = {};
+    const toReplace: Crupde = {}; // Not actually used in sync mode, at least right now
+    const toDelete: Crupde = {};
+    do {
+      ranFullUpdate = false;
+      const tables = mappers.map(mapper => mapper.entity.name);
+      memo.cloud = {}; // Flush the cloud entities on the outer loop to restore the actual intended state
+      await lazyLoader(mappers.map(mapper => async () => {
+        await mapper.cloud.read(context);
+      }));
+      const comparators = mappers.map(mapper => mapper.equals);
+      const idGens = mappers.map(mapper => mapper.entityId);
+      let ranUpdate = false;
+      do {
+        ranUpdate = false;
+        memo.db = {}; // Flush the DB entities on the inner loop to track changes to the state
+        await lazyLoader(mappers.map(mapper => async () => {
+          await mapper.db.read(context);
+        }));
+        const t3 = Date.now();
+        console.log(`Record acquisition time: ${t3 - t2}ms`);
+        const records = colToRow({
+          table: tables,
+          mapper: mappers,
+          dbEntity: tables.map(t => memo.db[t] ? Object.values(memo.db[t]) : []),
+          cloudEntity: tables.map(t => memo.cloud[t] ? Object.values(memo.cloud[t]) : []),
+          comparator: comparators,
+          idGen: idGens,
+        });
+        const t4 = Date.now();
+        console.log(`AWS Mapping time: ${t4 - t3}ms`);
+        if (!records.length) { // Only possible on just-created databases
+          return {
+            iasqlPlanVersion: 2,
+            toCreate: {},
+            toUpdate: {},
+            toReplace: {},
+            toDelete: {},
+          };
+        }
+        const updatePlan = (
+          crupde: Crupde,
+          entityName: string,
+          mapper: Modules.MapperInterface<any>,
+          es: any[]
+        ) => {
+          const rs = es.map((e: any) => mapper.entityPrint(e));
+          crupde[entityName] = crupde[entityName] ?? {
+            columns: Object.keys(rs[0]),
+            records: rs.map((r2: any) => Object.values(r2)),
+          };
+        }
+        records.forEach(r => {
+          r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+          if (r.diff.entitiesInDbOnly.length > 0) {
+            updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
+          }
+          if (r.diff.entitiesInAwsOnly.length > 0) {
+            updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInAwsOnly);
+          }
+          if (r.diff.entitiesChanged.length > 0) {
+            const updates: any[] = [];
+            r.diff.entitiesChanged.forEach((e: any) => {
+              updates.push(e.cloud);
+            });
+            if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
+          }
+        });
+        if (dryRun) return {
+          iasqlPlanVersion: 2,
+          toCreate,
+          toUpdate,
+          toReplace,
+          toDelete,
+        };
+        const t5 = Date.now();
+        console.log(`Diff time: ${t5 - t4}ms`);
+        const promiseGenerators = records
+          .map(r => {
+            const name = r.table;
+            console.log(`Checking ${name}`);
+            const outArr = [];
+            if (r.diff.entitiesInAwsOnly.length > 0) {
+              console.log(`${name} has records to create`);
+              outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
+                const out = await r.mapper.db.create(e, context);
+                if (out) {
+                  const es = Array.isArray(out) ? out : [out];
+                  es.forEach(e2 => {
+                    // Mutate the original entity with the returned entity's properties so the actual
+                    // record created is what is compared the next loop through
+                    Object.keys(e2).forEach(k => e[k] = e2[k]);
+                  });
+                }
+              }));
+            }
+            if (r.diff.entitiesChanged.length > 0) {
+              console.log(`${name} has records to update`);
+              outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
+                const out = await r.mapper.db.update(ec.db, context); // Assuming SoT is the DB
+                if (out) {
+                  const es = Array.isArray(out) ? out : [out];
+                  es.forEach(e2 => {
+                    // Mutate the original entity with the returned entity's properties so the actual
+                    // record created is what is compared the next loop through
+                    Object.keys(e2).forEach(k => ec.cloud[k] = e2[k]);
+                  });
+                }
+              }));
+            }
+            if (r.diff.entitiesInDbOnly.length > 0) {
+              console.log(`${name} has records to delete`);
+              outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
+                await r.mapper.db.delete(e, context);
+              }));
+            }
+            return outArr;
+          })
+          .flat(9001);
+        if (promiseGenerators.length > 0) {
+          ranUpdate = true;
+          ranFullUpdate = true;
+          try {
+            await lazyLoader(promiseGenerators);
+          } catch (e: any) {
+            if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
+            failureCount = e.metadata?.generatorsToRun?.length;
+            ranUpdate = false;
+          }
+          const t6 = Date.now();
+          console.log(`AWS update time: ${t6 - t5}ms`);
+        }
+      } while(ranUpdate);
+    } while (ranFullUpdate);
+    const t7 = Date.now();
+    console.log(`${dbAlias} synced, total time: ${t7 - t1}ms`);
+    return {
+      iasqlPlanVersion: 2,
+      toCreate,
+      toUpdate,
+      toReplace,
+      toDelete,
+    };
+  } catch (e: any) {
+    console.dir(e, { depth: 6, });
+    throw e;
+  } finally {
+    orm?.dropConn();
+  }
+}
+
 export async function modules(all: boolean, installed: boolean, dbAlias: string, user: any) {
   const allModules = Object.values(Modules)
     .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name'))
@@ -514,6 +701,16 @@ ${Object.keys(tableCollisions)
 .map(m => `Module ${m} collides with tables: ${tableCollisions[m].join(', ')}`)
 .join('\n')
 }`);
+  }
+  // We're now good to go with installing the requested modules. To make sure they install correctly
+  // we first need to sync the existing modules to make sure there are no records the newly-added
+  // modules have a dependency on.
+  try {
+    await sync(dbAlias, false, user);
+  } catch (e) {
+    console.log('Sync during module install failed');
+    console.log(e);
+    throw e;
   }
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(mods, existingModules);
