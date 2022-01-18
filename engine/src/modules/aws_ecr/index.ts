@@ -121,14 +121,16 @@ export const AwsEcrModule: Module = new Module({
           ));
         },
         updateOrReplace: () => 'update',
-        update: (es: AwsPublicRepository[], ctx: Context) => Promise.all(es.map(async (e) => {
-          try {
-            return await AwsEcrModule.mappers.publicRepository.cloud.create(e, ctx);
-          } catch (_) {
-            e.repositoryName = Date.now().toString();
-            return await AwsEcrModule.mappers.publicRepository.cloud.create(e, ctx);
-          }
-        })),
+        update: async (es: AwsPublicRepository[], ctx: Context) => {
+          // Right now we can only modify AWS-generated fields in the database.
+          // This implies that on `update`s we only have to restore the db values with the cloud records.
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.AwsPublicRepository?.[e.repositoryName ?? ''];
+            cloudRecord.id = e.id;
+            await AwsEcrModule.mappers.publicRepository.db.update(cloudRecord, ctx);
+            return cloudRecord;
+          }));
+        },
         delete: async (es: AwsPublicRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(async (e) => {
