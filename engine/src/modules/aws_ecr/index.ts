@@ -152,7 +152,12 @@ export const AwsEcrModule: Module = new Module({
         imageTagMutability: e?.imageTagMutability ?? ImageTagMutability.MUTABLE,
         scanOnPush: e?.scanOnPush?.toString() ?? 'false',
       }),
-      equals: (a: AwsRepository, b: AwsRepository) => Object.is(a.imageTagMutability, b.imageTagMutability)
+      equals: (a: AwsRepository, b: AwsRepository) => Object.is(a.repositoryName, b.repositoryName)
+        && Object.is(a.repositoryArn, b.repositoryArn)
+        && Object.is(a.registryId, b.registryId)
+        && Object.is(a.repositoryUri, b.repositoryUri)
+        && Object.is(a.createdAt?.getTime(), b.createdAt?.getTime())
+        && Object.is(a.imageTagMutability, b.imageTagMutability)
         && Object.is(a.scanOnPush, b.scanOnPush),
       source: 'db',
       db: new Crud({
@@ -201,16 +206,23 @@ export const AwsEcrModule: Module = new Module({
             ecr => AwsEcrModule.utils.repositoryMapper(ecr, ctx)
           ));
         },
+        updateOrReplace: () => 'update',
         update: async (es: AwsRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
-            const input = {
-              repositoryName: e.repositoryName,
-              imageTagMutability: e.imageTagMutability,
-              scanOnPush: e.scanOnPush,
-            };
-            const updatedRepository = await client.updateECRRepository(input);
-            return AwsEcrModule.utils.repositoryMapper(updatedRepository, ctx);
+            const cloudRecord = ctx?.memo?.cloud?.AwsRepository?.[e.repositoryName ?? ''];
+            let updatedRecord = { ...cloudRecord };
+            if (cloudRecord?.imageTagMutability !== e.imageTagMutability) {
+              const updatedRepository = await client.updateECRRepositoryImageTagMutability(e.repositoryName, e.imageTagMutability);
+              updatedRecord = AwsEcrModule.utils.repositoryMapper(updatedRepository, ctx);
+            }
+            if (cloudRecord?.scanOnPush !== e.scanOnPush) {
+              const updatedRepository = await client.updateECRRepositoryImageScanningConfiguration(e.repositoryName, e.scanOnPush);
+              updatedRecord = AwsEcrModule.utils.repositoryMapper(updatedRepository, ctx);
+            }
+            updatedRecord.id = e.id;
+            await AwsEcrModule.mappers.repository.db.update(updatedRecord, ctx);
+            return updatedRecord;
           }));
         },
         delete: async (es: AwsRepository[], ctx: Context) => {
