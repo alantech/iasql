@@ -34,7 +34,9 @@ export const AwsCloudwatchModule: Module = new Module({
         logGroupArn: e?.logGroupArn ?? '',
         creationTime: e?.creationTime?.toISOString() ?? '',
       }),
-      equals: (_a: LogGroup, _b: LogGroup) => true, // TODO: Fix this
+      equals: (a: LogGroup, b: LogGroup) => Object.is(a.logGroupName, b.logGroupName)
+        && Object.is(a.logGroupArn, b.logGroupArn)
+        && Object.is(a.creationTime?.getTime(), b.creationTime?.getTime()),
       source: 'db',
       db: new Crud({
         create: (e: LogGroup[], ctx: Context) => ctx.orm.save(LogGroup, e),
@@ -66,13 +68,24 @@ export const AwsCloudwatchModule: Module = new Module({
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          ids = Array.isArray(ids) ? ids : []
-          const logGroups = (await Promise.all(ids.map(id => client.getLogGroups(id)))).flat();
+          const logGroups = Array.isArray(ids) ?
+            await Promise.all(ids.map(id => client.getLogGroups(id))) :
+            (await client.getLogGroups()) ?? [];
           return await Promise.all(
             logGroups.map((lg: any) => AwsCloudwatchModule.utils.logGroupMapper(lg, ctx))
           );
         },
-        update: async (_lg: LogGroup[], _ctx: Context) => { /** TODO */ },
+        updateOrReplace: () => 'update',
+        update: async (es: LogGroup[], ctx: Context) => {
+          // Right now we can only modify AWS-generated fields in the database.
+          // This implies that on `update`s we only have to restore the values for those records.
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.LogGroup?.[e.logGroupName ?? ''];
+            cloudRecord.id = e.id;
+            await AwsCloudwatchModule.mappers.logGroup.db.update(cloudRecord, ctx);
+            return cloudRecord;
+          }));
+        },
         delete: async (lg: LogGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(lg.map((e) => client.deleteLogGroup(e.logGroupName)));
