@@ -248,7 +248,9 @@ export const AwsEcrModule: Module = new Module({
       }),
       equals: (a: AwsRepositoryPolicy, b: AwsRepositoryPolicy) => {
         try {
-          return AwsEcrModule.utils.policyComparisonEq(JSON.parse(a.policyText!), JSON.parse(b.policyText!));
+          return Object.is(a.registryId, b.registryId)
+            && Object.is(a.repository.repositoryName, b.repository.repositoryName)
+            && AwsEcrModule.utils.policyComparisonEq(JSON.parse(a.policyText!), JSON.parse(b.policyText!));
         } catch (e) {
           return false;
         }
@@ -324,8 +326,23 @@ export const AwsEcrModule: Module = new Module({
             }));
           }
         },
-        update: (rp: AwsRepositoryPolicy[], ctx: Context) => AwsEcrModule
-          .mappers.repositoryPolicy.cloud.create(rp, ctx),
+        updateOrReplace: () => 'update',
+        update: async (es: AwsRepositoryPolicy[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.AwsRepositoryPolicy?.[e.repository.repositoryName ?? ''];
+            try {
+              if (AwsEcrModule.utils.policyComparisonEq(JSON.parse(cloudRecord.policyText!), JSON.parse(e.policyText!))) {
+                return AwsEcrModule.mappers.repositoryPolicy.cloud.create(e, ctx);
+              }
+            } catch (e) {
+              console.log('Error comparing policy records');
+            }
+            cloudRecord.id = e.id;
+            await AwsEcrModule.mappers.repositoryPolicy.db.update(cloudRecord, ctx);
+            return cloudRecord;
+          }));
+        },
         delete: async (es: AwsRepositoryPolicy[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(async (e) => {
