@@ -72,7 +72,11 @@ export const AwsEcrModule: Module = new Module({
         repositoryUri: e?.repositoryUri ?? '',
         createdAt: e?.createdAt?.toISOString() ?? '',
       }),
-      equals: (a: AwsPublicRepository, b: AwsPublicRepository) => Object.is(a.repositoryName, b.repositoryName),
+      equals: (a: AwsPublicRepository, b: AwsPublicRepository) => Object.is(a.repositoryName, b.repositoryName)
+        && Object.is(a.repositoryArn, b.repositoryArn)
+        && Object.is(a.registryId, b.registryId)
+        && Object.is(a.repositoryUri, b.repositoryUri)
+        && Object.is(a.createdAt?.getTime(), b.createdAt?.getTime()),
       source: 'db',
       db: new Crud({
         create: (e: AwsPublicRepository[], ctx: Context) => ctx.orm.save(AwsPublicRepository, e),
@@ -116,6 +120,7 @@ export const AwsEcrModule: Module = new Module({
             ecr => AwsEcrModule.utils.publicRepositoryMapper(ecr, ctx)
           ));
         },
+        updateOrReplace: () => 'update',
         update: (es: AwsPublicRepository[], ctx: Context) => Promise.all(es.map(async (e) => {
           try {
             return await AwsEcrModule.mappers.publicRepository.cloud.create(e, ctx);
