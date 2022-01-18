@@ -412,22 +412,25 @@ export class AWS {
     return repository.repository;
   }
 
-  async updateECRRepository(input: { repositoryName: string, scanOnPush: boolean, imageTagMutability: string }) {
-    await Promise.all([
-      this.ecrClient.send(
-        new PutImageScanningConfigurationCommand({
-          repositoryName: input.repositoryName,
-          imageScanningConfiguration: { scanOnPush: input.scanOnPush }
-        }),
-      ),
-      this.ecrClient.send(
-        new PutImageTagMutabilityCommand({
-          repositoryName: input.repositoryName,
-          imageTagMutability: input.imageTagMutability,
-        }),
-      )
-    ]);
-    const repository = await this.getECRRepository(input.repositoryName);
+  async updateECRRepositoryImageScanningConfiguration(repositoryName: string, scanOnPush: boolean) {
+    await this.ecrClient.send(
+      new PutImageScanningConfigurationCommand({
+        repositoryName,
+        imageScanningConfiguration: { scanOnPush }
+      }),
+    );
+    const repository = await this.getECRRepository(repositoryName);
+    return repository;
+  }
+
+  async updateECRRepositoryImageTagMutability(repositoryName: string, imageTagMutability: string) {
+    await this.ecrClient.send(
+      new PutImageTagMutabilityCommand({
+        repositoryName,
+        imageTagMutability,
+      }),
+    );
+    const repository = await this.getECRRepository(repositoryName);
     return repository;
   }
 
