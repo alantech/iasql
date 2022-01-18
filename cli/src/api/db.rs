@@ -40,6 +40,7 @@ pub struct PlanResponse {
   iasqlPlanVersion: i32,
   toCreate: HashMap<String, PlanMeta>,
   toUpdate: HashMap<String, PlanMeta>,
+  toReplace: HashMap<String, PlanMeta>,
   toDelete: HashMap<String, PlanMeta>,
 }
 
@@ -310,6 +311,7 @@ fn emit_plan_segment(crupde: HashMap<String, PlanMeta>, mode_str: &str) {
 fn maybe_planned_nothing(plan_response: &PlanResponse) {
   if plan_response.toCreate.keys().len() == 0
     && plan_response.toUpdate.keys().len() == 0
+    && plan_response.toReplace.keys().len() == 0
     && plan_response.toDelete.keys().len() == 0
   {
     println!(
@@ -347,6 +349,10 @@ pub async fn plan(db: &str) {
       maybe_planned_nothing(&plan_response);
       emit_plan_segment(plan_response.toCreate, &dlg::green("create").to_string());
       emit_plan_segment(plan_response.toUpdate, &dlg::yellow("update").to_string());
+      emit_plan_segment(
+        plan_response.toReplace,
+        &dlg::magenta("replace").to_string(),
+      );
       emit_plan_segment(plan_response.toDelete, &dlg::red("delete").to_string());
     }
     Err(e) => {
@@ -390,6 +396,10 @@ pub async fn apply(db: &str) {
       maybe_planned_nothing(&plan_response);
       emit_plan_segment(plan_response.toCreate, &dlg::green("create").to_string());
       emit_plan_segment(plan_response.toUpdate, &dlg::yellow("update").to_string());
+      emit_plan_segment(
+        plan_response.toReplace,
+        &dlg::magenta("replace").to_string(),
+      );
       emit_plan_segment(plan_response.toDelete, &dlg::red("delete").to_string());
       println!("{} {}", dlg::success_prefix(), dlg::bold("Done"));
     }

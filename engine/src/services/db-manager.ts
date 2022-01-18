@@ -69,7 +69,7 @@ export const baseConnConfig: PostgresConnectionOptions = {
   password: config.dbPassword,
   host: config.dbHost,
   database: 'postgres',
-  extra: { ssl: config.dbHost === 'postgresql' ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
+  extra: { ssl: ['postgresql', 'localhost'].includes(config.dbHost) ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
 };
 
 // TODO: The permissions below work just fine, but prevent the users from creating their own

@@ -14,7 +14,7 @@ export class TypeormWrapper {
     host: config.dbHost,
     entities: [`${__dirname}/../entity/**/*.js`],
     namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
-    extra: { ssl: config.dbHost === 'postgresql' ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
+    extra: { ssl: ['postgresql', 'localhost'].includes(config.dbHost) ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
   }
 
   static async createConn(database: string, connectionConfig: PostgresConnectionOptions): Promise<TypeormWrapper> {
