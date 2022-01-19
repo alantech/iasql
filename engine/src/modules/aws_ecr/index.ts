@@ -49,12 +49,16 @@ export const AwsEcrModule: Module = new Module({
     },
     policyComparisonEq: (a: any, b: any) => {
       // From https://stackoverflow.com/questions/44792629/how-to-compare-two-objects-with-nested-array-of-object-using-loop
-      let same = true;
+      let same = Object.keys(a).length === Object.keys(b).length;
+      if (!same) return same;
       for (const [key, value] of Object.entries(a)) {
         if (typeof value === 'object') {
           same = AwsEcrModule.utils.policyComparisonEq(a[key], b[key]);
         } else {
-          if (a[key] !== b[key]) same = false;
+          if (a[key] !== b[key]) {
+            same = false;
+            break;
+          };
         }
       }
       return same;
