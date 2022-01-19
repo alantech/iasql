@@ -47,8 +47,6 @@ jobs:
           node-version: "16"
       # Install and build /engine
       - name: Build engine
-        env:
-          GITHUB_SHA: ${{ github.sha }}
         run: |
           cd engine
           yarn
