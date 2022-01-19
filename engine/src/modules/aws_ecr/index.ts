@@ -332,11 +332,10 @@ export const AwsEcrModule: Module = new Module({
         },
         updateOrReplace: () => 'update',
         update: async (es: AwsRepositoryPolicy[], ctx: Context) => {
-          const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
             const cloudRecord = ctx?.memo?.cloud?.AwsRepositoryPolicy?.[e.repository.repositoryName ?? ''];
             try {
-              if (AwsEcrModule.utils.policyComparisonEq(JSON.parse(cloudRecord.policyText!), JSON.parse(e.policyText!))) {
+              if (!AwsEcrModule.utils.policyComparisonEq(JSON.parse(cloudRecord.policyText!), JSON.parse(e.policyText!))) {
                 return AwsEcrModule.mappers.repositoryPolicy.cloud.create(e, ctx);
               }
             } catch (e) {
