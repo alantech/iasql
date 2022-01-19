@@ -49,8 +49,7 @@ jobs:
       - name: Build engine
         run: |
           cd engine
-          yarn 
-          yarn build
+          yarn
       - name: Create Sentry release
         uses: getsentry/action-release@v1
         env:
