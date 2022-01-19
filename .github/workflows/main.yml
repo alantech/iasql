@@ -50,6 +50,7 @@ jobs:
         run: |
           cd engine
           yarn
+          yarn build
       - name: Create Sentry release
         uses: getsentry/action-release@v1
         env:
@@ -57,4 +58,4 @@ jobs:
           SENTRY_ORG: iasql
           SENTRY_PROJECT: engine
         with:
-          sourcemaps: './dist'
+          sourcemaps: './engine/dist'
