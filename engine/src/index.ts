@@ -13,7 +13,6 @@ const app = express();
 if (config.sentryEnabled) {
   sentry.init({
     dsn: config.sentryDsn,
-    release: config.sentryRelease,
     integrations: [
       new RewriteFrames({
         root: config.rootDir,
