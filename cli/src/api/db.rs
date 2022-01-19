@@ -418,6 +418,54 @@ pub async fn apply(db: &str) {
   };
 }
 
+pub async fn sync(db: &str) {
+  let confirmation = dlg::confirm_with_default("Press enter to confirm sync", true);
+  if !confirmation {
+    println!(
+      "{} {} {} {}",
+      dlg::warn_prefix(),
+      dlg::bold("Did not run sync on db"),
+      dlg::divider(),
+      dlg::yellow(db)
+    );
+    exit(0);
+  }
+  let sp = ProgressBar::new_spinner();
+  sp.enable_steady_tick(10);
+  sp.set_message("Sync in progress");
+  let body = json!({
+    "dbAlias": db,
+  });
+  let resp = post_v1("db/sync/", body).await;
+  sp.finish_and_clear();
+  match &resp {
+    Ok(r) => {
+      let plan_response: PlanResponse = serde_json::from_str(r).unwrap();
+      maybe_planned_nothing(&plan_response);
+      emit_plan_segment(plan_response.toCreate, &dlg::green("create").to_string());
+      emit_plan_segment(plan_response.toUpdate, &dlg::yellow("update").to_string());
+      emit_plan_segment(
+        plan_response.toReplace,
+        &dlg::magenta("replace").to_string(),
+      );
+      emit_plan_segment(plan_response.toDelete, &dlg::red("delete").to_string());
+      println!("{} {}", dlg::success_prefix(), dlg::bold("Done"));
+    }
+    Err(e) => {
+      eprintln!(
+        "{} {} {} {} {} {}",
+        dlg::err_prefix(),
+        dlg::bold("Failed to run sync on db"),
+        dlg::divider(),
+        dlg::red(db),
+        dlg::divider(),
+        e.message
+      );
+      exit(1);
+    }
+  };
+}
+
 fn provide_aws_region() -> String {
   let regions = &get_aws_regions();
   let default = regions.iter().position(|s| s == "us-east-2").unwrap_or(0);
