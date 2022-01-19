@@ -61,3 +61,4 @@ jobs:
           sourcemaps: "./engine/dist"
           environment: production
           version: v0.2.2
+          url_prefix: "~"
