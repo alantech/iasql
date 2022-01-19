@@ -13,4 +13,5 @@ export default {
   a0Audience:  process.env.A0_AUDIENCE, // id of this api in auth0
   sentryEnabled: process.env.SENTRY_ENABLED  === 'true',
   sentryDsn: process.env.SENTRY_DSN,
+  sentryRelease: process.env.GITHUB_SHA || '',
 };
