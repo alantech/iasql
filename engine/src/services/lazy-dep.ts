@@ -27,7 +27,7 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
       }
       const reason = (results[i] as PromiseRejectedResult).reason;
       const err = new Error((reason ?? 'An unexpected error occurred'));
-      err.stack = reason.stack ?? 'No stacktrace';
+      err.stack = reason.stack ?? err.stack;
       failures.push(err);
       generatorsToRerun.push(generatorsToRun[i]);
     }
