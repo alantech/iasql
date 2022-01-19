@@ -1,5 +1,6 @@
 // env variables set locally on .env via `yarn run watch` or thorugh docker compose
 export default {
+  rootDir: __dirname || process.cwd(),
   port: process.env.PORT,
   dbHost: process.env.DB_HOST || 'postgresql',
   dbUser: process.env.DB_USER || 'postgres',
