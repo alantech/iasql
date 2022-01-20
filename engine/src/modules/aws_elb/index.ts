@@ -500,6 +500,18 @@ export const AwsElbModule: Module = new Module({
             (await client.getTargetGroups()).TargetGroups;
           return await Promise.all(tgs.map(tg => AwsElbModule.utils.targetGroupMapper(tg, ctx)));
         },
+        updateOrReplace: (prev: AwsTargetGroup, next: AwsTargetGroup) => {
+          if (!(Object.is(prev.targetGroupName, next.targetGroupName)
+              && Object.is(prev.targetType, next.targetType)
+              && Object.is(prev.vpc.id, next.vpc.id)
+              && Object.is(prev.port, next.port)
+              && Object.is(prev.protocol, next.protocol)
+              && Object.is(prev.ipAddressType, next.ipAddressType)
+              && Object.is(prev.protocolVersion, next.protocolVersion))) {
+            return 'replace';
+          }
+          return 'update';
+        },
         update: async (es: AwsTargetGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
