@@ -49,12 +49,16 @@ export const AwsEcrModule: Module = new Module({
     },
     policyComparisonEq: (a: any, b: any) => {
       // From https://stackoverflow.com/questions/44792629/how-to-compare-two-objects-with-nested-array-of-object-using-loop
-      let same = true;
+      let same = Object.keys(a).length === Object.keys(b).length;
+      if (!same) return same;
       for (const [key, value] of Object.entries(a)) {
         if (typeof value === 'object') {
           same = AwsEcrModule.utils.policyComparisonEq(a[key], b[key]);
         } else {
-          if (a[key] !== b[key]) same = false;
+          if (a[key] !== b[key]) {
+            same = false;
+            break;
+          };
         }
       }
       return same;
@@ -72,7 +76,11 @@ export const AwsEcrModule: Module = new Module({
         repositoryUri: e?.repositoryUri ?? '',
         createdAt: e?.createdAt?.toISOString() ?? '',
       }),
-      equals: (a: AwsPublicRepository, b: AwsPublicRepository) => Object.is(a.repositoryName, b.repositoryName),
+      equals: (a: AwsPublicRepository, b: AwsPublicRepository) => Object.is(a.repositoryName, b.repositoryName)
+        && Object.is(a.repositoryArn, b.repositoryArn)
+        && Object.is(a.registryId, b.registryId)
+        && Object.is(a.repositoryUri, b.repositoryUri)
+        && Object.is(a.createdAt?.getTime(), b.createdAt?.getTime()),
       source: 'db',
       db: new Crud({
         create: (e: AwsPublicRepository[], ctx: Context) => ctx.orm.save(AwsPublicRepository, e),
@@ -116,14 +124,17 @@ export const AwsEcrModule: Module = new Module({
             ecr => AwsEcrModule.utils.publicRepositoryMapper(ecr, ctx)
           ));
         },
-        update: (es: AwsPublicRepository[], ctx: Context) => Promise.all(es.map(async (e) => {
-          try {
-            return await AwsEcrModule.mappers.publicRepository.cloud.create(e, ctx);
-          } catch (_) {
-            e.repositoryName = Date.now().toString();
-            return await AwsEcrModule.mappers.publicRepository.cloud.create(e, ctx);
-          }
-        })),
+        updateOrReplace: () => 'update',
+        update: async (es: AwsPublicRepository[], ctx: Context) => {
+          // Right now we can only modify AWS-generated fields in the database.
+          // This implies that on `update`s we only have to restore the db values with the cloud records.
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.AwsPublicRepository?.[e.repositoryName ?? ''];
+            cloudRecord.id = e.id;
+            await AwsEcrModule.mappers.publicRepository.db.update(cloudRecord, ctx);
+            return cloudRecord;
+          }));
+        },
         delete: async (es: AwsPublicRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(async (e) => {
@@ -145,7 +156,12 @@ export const AwsEcrModule: Module = new Module({
         imageTagMutability: e?.imageTagMutability ?? ImageTagMutability.MUTABLE,
         scanOnPush: e?.scanOnPush?.toString() ?? 'false',
       }),
-      equals: (a: AwsRepository, b: AwsRepository) => Object.is(a.imageTagMutability, b.imageTagMutability)
+      equals: (a: AwsRepository, b: AwsRepository) => Object.is(a.repositoryName, b.repositoryName)
+        && Object.is(a.repositoryArn, b.repositoryArn)
+        && Object.is(a.registryId, b.registryId)
+        && Object.is(a.repositoryUri, b.repositoryUri)
+        && Object.is(a.createdAt?.getTime(), b.createdAt?.getTime())
+        && Object.is(a.imageTagMutability, b.imageTagMutability)
         && Object.is(a.scanOnPush, b.scanOnPush),
       source: 'db',
       db: new Crud({
@@ -194,16 +210,23 @@ export const AwsEcrModule: Module = new Module({
             ecr => AwsEcrModule.utils.repositoryMapper(ecr, ctx)
           ));
         },
+        updateOrReplace: () => 'update',
         update: async (es: AwsRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
-            const input = {
-              repositoryName: e.repositoryName,
-              imageTagMutability: e.imageTagMutability,
-              scanOnPush: e.scanOnPush,
-            };
-            const updatedRepository = await client.updateECRRepository(input);
-            return AwsEcrModule.utils.repositoryMapper(updatedRepository, ctx);
+            const cloudRecord = ctx?.memo?.cloud?.AwsRepository?.[e.repositoryName ?? ''];
+            let updatedRecord = { ...cloudRecord };
+            if (cloudRecord?.imageTagMutability !== e.imageTagMutability) {
+              const updatedRepository = await client.updateECRRepositoryImageTagMutability(e.repositoryName, e.imageTagMutability);
+              updatedRecord = AwsEcrModule.utils.repositoryMapper(updatedRepository, ctx);
+            }
+            if (cloudRecord?.scanOnPush !== e.scanOnPush) {
+              const updatedRepository = await client.updateECRRepositoryImageScanningConfiguration(e.repositoryName, e.scanOnPush);
+              updatedRecord = AwsEcrModule.utils.repositoryMapper(updatedRepository, ctx);
+            }
+            updatedRecord.id = e.id;
+            await AwsEcrModule.mappers.repository.db.update(updatedRecord, ctx);
+            return updatedRecord;
           }));
         },
         delete: async (es: AwsRepository[], ctx: Context) => {
@@ -229,7 +252,9 @@ export const AwsEcrModule: Module = new Module({
       }),
       equals: (a: AwsRepositoryPolicy, b: AwsRepositoryPolicy) => {
         try {
-          return AwsEcrModule.utils.policyComparisonEq(JSON.parse(a.policyText!), JSON.parse(b.policyText!));
+          return Object.is(a.registryId, b.registryId)
+            && Object.is(a.repository.repositoryName, b.repository.repositoryName)
+            && AwsEcrModule.utils.policyComparisonEq(JSON.parse(a.policyText!), JSON.parse(b.policyText!));
         } catch (e) {
           return false;
         }
@@ -305,8 +330,22 @@ export const AwsEcrModule: Module = new Module({
             }));
           }
         },
-        update: (rp: AwsRepositoryPolicy[], ctx: Context) => AwsEcrModule
-          .mappers.repositoryPolicy.cloud.create(rp, ctx),
+        updateOrReplace: () => 'update',
+        update: async (es: AwsRepositoryPolicy[], ctx: Context) => {
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.AwsRepositoryPolicy?.[e.repository.repositoryName ?? ''];
+            try {
+              if (!AwsEcrModule.utils.policyComparisonEq(JSON.parse(cloudRecord.policyText!), JSON.parse(e.policyText!))) {
+                return AwsEcrModule.mappers.repositoryPolicy.cloud.create(e, ctx);
+              }
+            } catch (e) {
+              console.log('Error comparing policy records');
+            }
+            cloudRecord.id = e.id;
+            await AwsEcrModule.mappers.repositoryPolicy.db.update(cloudRecord, ctx);
+            return cloudRecord;
+          }));
+        },
         delete: async (es: AwsRepositoryPolicy[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(async (e) => {
