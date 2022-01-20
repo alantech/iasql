@@ -76,3 +76,12 @@ db.post('/apply', async (req, res) => {
     res.status(500).end(`${handleErrorMessage(e)}`);
   }
 });
+
+db.post('/sync', async (req, res) => {
+  const { dbAlias, dryRun } = req.body;
+  try {
+    res.json(await iasql.sync(dbAlias, dryRun, req.user));
+  } catch (e) {
+    res.status(500).end(`${handleErrorMessage(e)}`);
+  }
+});

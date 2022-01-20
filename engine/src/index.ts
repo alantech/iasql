@@ -2,7 +2,6 @@ import 'reflect-metadata';
 import express from 'express';
 import { inspect } from 'util';
 import * as sentry from '@sentry/node';
-import { RewriteFrames } from "@sentry/integrations";
 
 import config from './config';
 import { v1 } from './router';
@@ -13,11 +12,6 @@ const app = express();
 if (config.sentryEnabled) {
   sentry.init({
     dsn: config.sentryDsn,
-    integrations: [
-      new RewriteFrames({
-        root: config.rootDir,
-      }),
-    ],
   });
   // RequestHandler creates a separate execution context using domains, so that every
   // transaction/span/breadcrumb is attached to its own Hub instance

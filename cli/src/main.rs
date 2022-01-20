@@ -37,6 +37,9 @@ pub async fn main() {
       SubCommand::with_name("plan")
         .about("Display a preview of the resources in a db to be modified on the next `apply`")
         .arg(Arg::from_usage("[db]")),
+      SubCommand::with_name("sync")
+        .about("Synchronize db with the current state of the cloud")
+        .arg(Arg::from_usage("[db]")),
       SubCommand::with_name("install")
         .about("Install mods in a given db")
         .arg(Arg::from_usage("--db=[DB]"))
@@ -90,6 +93,10 @@ pub async fn main() {
     ("plan", Some(s_matches)) => {
       let db = db::get_or_select_db(s_matches.value_of("db")).await;
       db::plan(&db).await
+    }
+    ("sync", Some(s_matches)) => {
+      let db = db::get_or_select_db(s_matches.value_of("db")).await;
+      db::sync(&db).await
     }
     ("dbs", _) => {
       db::list().await;
