@@ -1,4 +1,3 @@
-export * from './ami'
 export * from './boot_mode'
 export * from './cpu_architecture'
 export * from './device_type'

@@ -1,20 +1,13 @@
-import { Image, InstanceTypeInfo, Instance as InstanceAWS, } from '@aws-sdk/client-ec2'
+import { InstanceTypeInfo, Instance as InstanceAWS, } from '@aws-sdk/client-ec2'
 import { In, } from 'typeorm'
 
 import * as allEntities from './entity'
 import {
-  AMI,
-  AMIDeviceType,
-  AMIImageState,
-  AMIPlatform,
   BootMode,
   CPUArchitecture,
   DeviceType,
   DiskInfo,
   DiskType,
-  EBSBlockDeviceMapping,
-  EBSBlockDeviceType,
-  EBSBlockDeviceVolumeType,
   EBSEncryptionSupport,
   EBSInfo,
   EBSOptimizedInfo,
@@ -28,8 +21,6 @@ import {
   GPUDeviceInfo,
   GPUDeviceMemoryInfo,
   GPUInfo,
-  HypervisorType,
-  ImageType,
   InferenceAcceleratorInfo,
   InferenceDeviceInfo,
   Instance,
@@ -42,9 +33,6 @@ import {
   PlacementGroupInfo,
   PlacementGroupStrategy,
   ProcessorInfo,
-  ProductCode,
-  StateReason,
-  Tag,
   UsageClass,
   VCPUInfo,
   ValidCore,
@@ -52,10 +40,9 @@ import {
   VirtualizationType,
 } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
-import { AwsAccount, } from '../aws_account'
 import { AWS, } from '../../services/gateways/aws'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEc21637666428184, } from './migration/1637666428184-aws_ec2'
+import { awsEc21642623854742 } from './migration/1642623854742-aws_ec2'
 
 export const AwsEc2Module: Module = new Module({
   name: 'aws_ec2',
@@ -63,10 +50,6 @@ export const AwsEc2Module: Module = new Module({
   provides: {
     entities: allEntities,
     tables: [
-      'ami',
-      'ami_block_device_mappings_ebs_block_device_mapping',
-      'ami_product_codes_product_code',
-      'ami_tags_tag',
       'boot_mode',
       'cpu_architecture',
       'device_type',
@@ -120,72 +103,6 @@ export const AwsEc2Module: Module = new Module({
     ],
   },
   utils: {
-    amiMapper: (ami: Image) => {
-      const out = new AMI();
-      if (ami.Architecture) {
-        out.cpuArchitecture = new CPUArchitecture();
-        out.cpuArchitecture.cpuArchitecture = ami.Architecture;
-      }
-      if (ami.CreationDate) out.creationDate = new Date(ami.CreationDate);
-      out.imageId = ami.ImageId;
-      out.imageLocation = ami.ImageLocation;
-      if (ami.ImageType) out.imageType = ami.ImageType as ImageType;
-      out.public = ami.Public;
-      out.kernelId = ami.KernelId;
-      out.ownerId = ami.OwnerId;
-      if (ami.Platform) out.platform = ami.Platform as AMIPlatform;
-      out.platformDetails = ami.PlatformDetails;
-      out.usageOperation = ami.UsageOperation;
-      out.productCodes = ami.ProductCodes?.map(pc => {
-        const o2 = new ProductCode();
-        o2.productCodeId = pc.ProductCodeId;
-        o2.productCodeType = pc.ProductCodeType;
-        return o2;
-      }) ?? [];
-      out.ramdiskId = ami.RamdiskId;
-      if (ami.State) out.state = ami.State as AMIImageState;
-      out.blockDeviceMappings = ami.BlockDeviceMappings?.map(bdm => {
-        const o3 = new EBSBlockDeviceMapping();
-        o3.deviceName = bdm.DeviceName;
-        if (bdm.Ebs) {
-          o3.ebs = new EBSBlockDeviceType();
-          o3.ebs.deleteOnTermination = bdm.Ebs?.DeleteOnTermination;
-          o3.ebs.encrypted = bdm.Ebs?.Encrypted;
-          o3.ebs.iops = bdm.Ebs?.Iops;
-          o3.ebs.kmsKeyId = bdm.Ebs?.KmsKeyId;
-          o3.ebs.outpostArn = bdm.Ebs?.OutpostArn;
-          o3.ebs.snapshotId = bdm.Ebs?.SnapshotId;
-          o3.ebs.throughput = bdm.Ebs?.Throughput;
-          o3.ebs.volumeSize = bdm.Ebs?.VolumeSize;
-          if (bdm.Ebs?.VolumeType) o3.ebs.volumeType = bdm.Ebs?.VolumeType as EBSBlockDeviceVolumeType;
-        }
-        o3.noDevice = bdm.NoDevice;
-        o3.virtualName = bdm.VirtualName;
-        return o3;
-      }) ?? [];
-      out.description = ami.Description;
-      out.enaSupport = ami.EnaSupport;
-      if (ami.Hypervisor) out.hypervisor = ami.Hypervisor as HypervisorType;
-      out.imageOwnerAlias = ami.ImageOwnerAlias;
-      out.name = ami.Name;
-      out.rootDeviceName = ami.RootDeviceName;
-      if (ami.RootDeviceType) out.rootDeviceType = ami.RootDeviceType as AMIDeviceType;
-      out.sriovNetSupport = ami.SriovNetSupport;
-      if (ami.StateReason) out.stateReason = ami.StateReason as StateReason;
-      if (ami.BootMode) {
-        out.bootMode = new BootMode();
-        out.bootMode.mode = ami.BootMode;
-      }
-      if (ami.DeprecationTime) out.deprecationTime = new Date(ami.DeprecationTime)
-      out.tags = ami.Tags?.map(t => {
-        const o4 = new Tag();
-        if (t.Key) o4.key = t.Key;
-        if (t.Value) o4.value = t.Value;
-        return o4;
-      }) ?? [];
-      // TODO: Attach instances once we have the mapper for them
-      return out;
-    },
     instanceTypeMapper: (instanceType: InstanceTypeInfo) => {
       const out = new InstanceType();
       out.autoRecoverySupported = instanceType.AutoRecoverySupported ?? false;
@@ -381,84 +298,16 @@ export const AwsEc2Module: Module = new Module({
     instanceMapper: async (instance: InstanceAWS, ctx: Context) => {
       const out = new Instance();
       out.instanceId = instance.InstanceId;
-      out.ami = await AwsEc2Module.mappers.ami.db.read(ctx, instance.ImageId);
+      out.ami = instance.ImageId ?? '';
       out.instanceType = await AwsEc2Module.mappers.instanceType.db.read(ctx, instance.InstanceType);
       out.securityGroups = await AwsSecurityGroupModule.mappers.securityGroup.db.read(
         ctx,
         instance.SecurityGroups?.map(sg => sg.GroupId).filter(id => !!id) as string[],
       );
-      out.region = await AwsAccount.mappers.region.db.read(
-        ctx,
-        (await AwsAccount.mappers.awsAccount.db.read(ctx))[0].region.name,
-      );
       return out;
     },
   },
   mappers: {
-    ami: new Mapper<AMI>({
-      entity: AMI,
-      entityId: (e: AMI) => e.imageId ?? '',
-      // TODO: source: cloud entityPrint not needed (yet)
-      entityPrint: (e: AMI) => ({
-        id: e.id?.toString() ?? '',
-      }),
-      equals: (a: AMI, b: AMI) => Object.is(a.imageId, b.imageId),
-      source: 'cloud',
-      db: new Crud({
-        create: async (es: AMI[], ctx: Context) => {
-          // Deduplicate CPUArchitecture and BootMode ahead of time, preserving an ID if it exists
-          const cpuArches: { [key: string]: CPUArchitecture, } = {};
-          const bootModes: { [key: string]: BootMode, } = {};
-          es.forEach((entity: AMI) => {
-            if (entity.cpuArchitecture) {
-              const arch = entity.cpuArchitecture.cpuArchitecture;
-              cpuArches[arch] = cpuArches[arch] ?? entity.cpuArchitecture;
-              if (entity.cpuArchitecture.id) cpuArches[arch].id = entity.cpuArchitecture.id;
-              entity.cpuArchitecture = cpuArches[arch];
-            }
-            if (entity.bootMode) {
-              const bm = entity.bootMode.mode;
-              bootModes[bm] = bootModes[bm] ?? entity.bootMode;
-              if (entity.bootMode.id) bootModes[bm].id = entity.bootMode.id;
-              entity.bootMode = bootModes[bm];
-            }
-          });
-          // Load the sub-records from the database, if any, to associate the correct IDs
-          (await ctx.orm.find(CPUArchitecture)).forEach((a: CPUArchitecture) => {
-            cpuArches[a.cpuArchitecture] = cpuArches[a.cpuArchitecture] ?? a;
-            cpuArches[a.cpuArchitecture].id = a.id;
-          });
-          (await ctx.orm.find(BootMode)).forEach((b: BootMode) => {
-            bootModes[b.mode] = bootModes[b.mode] ?? b;
-            bootModes[b.mode].id = b.id;
-          });
-          // Pre-save these sub-records first
-          await ctx.orm.save(CPUArchitecture, Object.values(cpuArches));
-          await ctx.orm.save(BootMode, Object.values(bootModes));
-          // Now save the AMI records
-          await ctx.orm.save(AMI, es);
-        },
-        read: (ctx: Context, ids?: string[]) => ctx.orm.find(AMI, ids ? {
-          where: {
-            imageId: In(ids),
-          },
-        } : undefined),
-        update: (e: AMI[], ctx: Context) => ctx.orm.save(AMI, e),
-        delete: (e: AMI[], ctx: Context) => ctx.orm.remove(AMI, e),
-      }),
-      cloud: new Crud({
-        create: async (_ami: AMI[], _ctx: Context) => { /* Do nothing, not allowed */ },
-        read: async (ctx: Context, ids?: string[]) => {
-          const client = await ctx.getAwsClient() as AWS;
-          const amis = Array.isArray(ids) ?
-            await Promise.all(ids.map(id => client.getAMI(id))) :
-            (await client.getAMIs()).Images ?? [];
-          return amis.map(AwsEc2Module.utils.amiMapper);
-        },
-        update: async (_ami: AMI[], _ctx: Context) => { /* Nope */ },
-        delete: async (_ami: AMI[], _ctx: Context) => { /* Nope */ },
-      }),
-    }),
     instanceType: new Mapper<InstanceType>({
       entity: InstanceType,
       entityId: (e: InstanceType) => e.instanceType.name,
@@ -593,14 +442,12 @@ export const AwsEc2Module: Module = new Module({
       entityPrint: (e: Instance) => ({
         id: e.id?.toString() ?? '',
         instanceId: e.instanceId ?? '',
-        ami: e.ami?.imageId ?? '',
-        region: e.region?.name ?? '',
+        ami: e.ami ?? '',
         instanceType: e.instanceType?.instanceType?.name ?? '',
         securityGroups: e.securityGroups?.map(sg => sg.groupName ?? '').join(', '),
       }),
       equals: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
-        AwsEc2Module.mappers.ami.equals(a.ami, b.ami) &&
-        Object.is(a.region.name, b.region.name) &&
+        Object.is(a.ami, b.ami) &&
         Object.is(a.instanceType.instanceType.name, b.instanceType.instanceType.name) &&
         a.securityGroups.length === b.securityGroups.length, // TODO: Better security group testing
       source: 'db',
@@ -618,10 +465,10 @@ export const AwsEc2Module: Module = new Module({
         create: async (es: Instance[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const instance of es) {
-            if (instance.ami.imageId) {
+            if (instance.ami) {
               const instanceId = await client.newInstance(
                 instance.instanceType.instanceType.name,
-                instance.ami.imageId,
+                instance.ami,
                 instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[],
               );
               if (!instanceId) { // then who?
@@ -651,7 +498,7 @@ export const AwsEc2Module: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEc21637666428184.prototype.up,
-    preremove: awsEc21637666428184.prototype.down,
+    postinstall: awsEc21642623854742.prototype.up,
+    preremove: awsEc21642623854742.prototype.down,
   },
 });
