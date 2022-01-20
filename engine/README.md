@@ -20,11 +20,18 @@ Instead of a centralized linear list of migrations, we have a module-based appro
 
 Development of a new module is expected to follow this pattern:
 
-
 1. Create the module directory, and create `entity` and `migration` directories inside of it.
 2. Create the entity or entities in the `entity` directory and export them all from the `index.ts` file (or just define them in there).
 3. Run the `yarn gen-module my_new_module_name` script and have it generate the migration file. (`my_new_module_name` needs to match the directory name for the module in question.)
 4. Write the module's `index.ts` file. It must implement the `MapperInterface` inside of `modules/interfaces.ts`, which also requires importing and constructing `Mapper` and `Crud` objects. The auto-generated migration files can be imported and attached as appropriate. Generally `up` is attached to `postinstall` and `down` is attached to `preremove`. The other migration hooks are for more complex situations.
+
+Development of an existing module is expected to follow this pattern:
+
+1. Remove the entities and migrations of the dependent modules, if any.
+2. Remove the migration of the module you are trying to modify and comment out the usage of this migration in the module index file.
+3. Make the changes to the entities that you want to make.
+4. Run the `yarn gen-module my_new_module_name` script and have it generate a new migration file. (`my_new_module_name` needs to match the directory name for the module in question.)
+5. Attach the new migration file to the index file and git restore dependent modules.
 
 Currently the modules do not support versioning. This documentation will be updated when that is no longer true.
 
