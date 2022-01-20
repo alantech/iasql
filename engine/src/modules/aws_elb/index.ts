@@ -407,6 +407,13 @@ export const AwsElbModule: Module = new Module({
         protocolVersion: e?.protocolVersion ?? ProtocolVersionEnum.HTTP1, // TODO: Which?
       }),
       equals: (a: AwsTargetGroup, b: AwsTargetGroup) => Object.is(a.targetGroupArn, b.targetGroupArn)
+        && Object.is(a.targetGroupName, b.targetGroupName)
+        && Object.is(a.targetType, b.targetType)
+        && Object.is(a.ipAddressType, b.ipAddressType)
+        && Object.is(a.protocol, b.protocol)
+        && Object.is(a.port, b.port)
+        && Object.is(a.vpc.id, b.vpc.id)
+        && Object.is(a.protocolVersion, b.protocolVersion)
         && Object.is(a.healthCheckProtocol, b.healthCheckProtocol)
         && Object.is(a.healthCheckPort, b.healthCheckPort)
         && Object.is(a.healthCheckPath, b.healthCheckPath)
