@@ -67,7 +67,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     dbName,
     'not-needed').then(...finish(done)));
 
-  it('adds a new log group', query(`  
+  it('adds a new log group', query(`
     INSERT INTO log_group (log_group_name)
     VALUES ('${prefix}lgtest');
   `));
