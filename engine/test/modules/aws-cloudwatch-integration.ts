@@ -1,7 +1,7 @@
 import { execSync, } from 'child_process'
 
-import * as iasql from '../src/services/iasql'
-import { getPrefix, query, runApply, finish, } from './helpers'
+import * as iasql from '../../src/services/iasql'
+import { getPrefix, query, runApply, finish, } from '../helpers'
 
 jest.setTimeout(240000);
 
