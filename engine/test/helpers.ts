@@ -30,7 +30,7 @@ export function runApply(dbAlias: string, done: (e?: any) => {}) {
   iasql.apply(dbAlias, false, 'not-needed').then(...finish(done));
 }
 
-export function query(queryString: string, dbAlias: string) {
+export function runQuery(dbAlias: string, queryString: string) {
   return function (done: (e?: any) => {}) {
     console.log(queryString);
     createConnection({
