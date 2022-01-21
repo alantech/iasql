@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEc21642623854742 implements MigrationInterface {
-    name = 'awsEc21642623854742'
+export class awsEc21642725211643 implements MigrationInterface {
+    name = 'awsEc21642725211643'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "boot_mode" ("id" SERIAL NOT NULL, "mode" character varying NOT NULL, CONSTRAINT "UQ_88a9fac6831af2d520a0947c113" UNIQUE ("mode"), CONSTRAINT "PK_114728d4fa02f297923c52ae1e3" PRIMARY KEY ("id"))`);
@@ -28,7 +28,6 @@ export class awsEc21642623854742 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "gpu_info" ("id" SERIAL NOT NULL, "total_gpu_memory_in_mi_b" numeric NOT NULL, CONSTRAINT "PK_b1f6c1b4319c4c09341f425dcf3" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "inference_device_info" ("id" SERIAL NOT NULL, "count" integer NOT NULL, "name" character varying NOT NULL, "manufacturer" character varying NOT NULL, CONSTRAINT "PK_fa829b22aa5feefb03fab5fbae9" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "inference_accelerator_info" ("id" SERIAL NOT NULL, CONSTRAINT "PK_67ef5a210c7303d30e4a5e14eae" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "instance_type_value" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, CONSTRAINT "UQ_c044ed3e55560e10baf272f73fa" UNIQUE ("name"), CONSTRAINT "PK_3b0d5d2848fd758c86da5752587" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "network_card_info" ("id" SERIAL NOT NULL, "network_card_index" integer NOT NULL, "network_performance" character varying NOT NULL, "maximum_network_interfaces" integer NOT NULL, CONSTRAINT "PK_5ba7818deb23194370050a59df1" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."network_info_ena_support_enum" AS ENUM('required', 'supported', 'unsupported')`);
         await queryRunner.query(`CREATE TABLE "network_info" ("id" SERIAL NOT NULL, "network_performance" character varying NOT NULL, "maximum_network_interfaces" integer NOT NULL, "maximum_network_cards" integer NOT NULL, "default_network_card_index" integer NOT NULL, "ipv4_addresses_per_interface" integer NOT NULL, "ipv6_addresses_per_interface" integer NOT NULL, "ipv6_supported" boolean NOT NULL, "ena_support" "public"."network_info_ena_support_enum" NOT NULL, "efa_supported" boolean NOT NULL, "encryption_in_transit_supported" boolean NOT NULL, "efa_info_id" integer, CONSTRAINT "PK_81214b7c50e1372b56fa9db1139" PRIMARY KEY ("id"))`);
@@ -41,7 +40,7 @@ export class awsEc21642623854742 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "vcpu_info" ("id" SERIAL NOT NULL, "default_vcp_us" integer NOT NULL, "default_cores" integer NOT NULL, "default_threads_per_core" integer NOT NULL, CONSTRAINT "PK_124ca200f80f5ae0c9af443427a" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "virtualization_type" ("id" SERIAL NOT NULL, "virtualization_type" character varying NOT NULL, CONSTRAINT "UQ_0d05e6087e782c5a437b40d8d2b" UNIQUE ("virtualization_type"), CONSTRAINT "PK_d798c8354c1647240be159f6f56" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."instance_type_hypervisor_enum" AS ENUM('nitro', 'xen')`);
-        await queryRunner.query(`CREATE TABLE "instance_type" ("id" SERIAL NOT NULL, "current_generation" boolean NOT NULL, "free_tier_eligible" boolean NOT NULL, "bare_metal" boolean NOT NULL, "hypervisor" "public"."instance_type_hypervisor_enum", "memory_size_in_mi_b" numeric NOT NULL, "instance_storage_supported" boolean NOT NULL, "hibernation_supported" boolean NOT NULL, "burstable_performance_supported" boolean NOT NULL, "dedicated_hosts_supported" boolean NOT NULL, "auto_recovery_supported" boolean NOT NULL, "instance_type_value_id" integer, "processor_info_id" integer, "v_cpu_info_id" integer, "instance_storage_info_id" integer, "ebs_info_id" integer, "network_info_id" integer, "gpu_info_id" integer, "fpga_info_id" integer, "placement_group_info_id" integer, "inference_accelerator_info_id" integer, CONSTRAINT "REL_0194b635f62bbecb4295bd1491" UNIQUE ("instance_type_value_id"), CONSTRAINT "PK_2ff067127c52f0f23049642883a" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "instance_type" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "current_generation" boolean NOT NULL, "free_tier_eligible" boolean NOT NULL, "bare_metal" boolean NOT NULL, "hypervisor" "public"."instance_type_hypervisor_enum", "memory_size_in_mi_b" numeric NOT NULL, "instance_storage_supported" boolean NOT NULL, "hibernation_supported" boolean NOT NULL, "burstable_performance_supported" boolean NOT NULL, "dedicated_hosts_supported" boolean NOT NULL, "auto_recovery_supported" boolean NOT NULL, "processor_info_id" integer, "v_cpu_info_id" integer, "instance_storage_info_id" integer, "ebs_info_id" integer, "network_info_id" integer, "gpu_info_id" integer, "fpga_info_id" integer, "placement_group_info_id" integer, "inference_accelerator_info_id" integer, CONSTRAINT "PK_2ff067127c52f0f23049642883a" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "instance" ("id" SERIAL NOT NULL, "instance_id" character varying, "ami" character varying NOT NULL, "instance_type_id" integer, CONSTRAINT "PK_eaf60e4a0c399c9935413e06474" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "product_code" ("id" SERIAL NOT NULL, "product_code_id" character varying, "product_code_type" character varying, CONSTRAINT "PK_6f2664014f87822b6a6b9ad1c95" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "state_reason" ("id" SERIAL NOT NULL, "code" character varying NOT NULL, "message" character varying NOT NULL, CONSTRAINT "PK_09ff61ed06d22468a89038dea9b" PRIMARY KEY ("id"))`);
@@ -99,7 +98,6 @@ export class awsEc21642623854742 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "fpga_device_info" ADD CONSTRAINT "FK_c83fc8695a42bc116e46db17bf6" FOREIGN KEY ("fpga_device_memory_info_id") REFERENCES "fpga_device_memory_info"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "gpu_device_info" ADD CONSTRAINT "FK_175d0ad17acc9c353077ba5d4e3" FOREIGN KEY ("gpu_device_memory_info_id") REFERENCES "gpu_device_memory_info"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "network_info" ADD CONSTRAINT "FK_5abc0ca3d03456246a6d1eacc84" FOREIGN KEY ("efa_info_id") REFERENCES "efa_info"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "instance_type" ADD CONSTRAINT "FK_0194b635f62bbecb4295bd1491b" FOREIGN KEY ("instance_type_value_id") REFERENCES "instance_type_value"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "instance_type" ADD CONSTRAINT "FK_837d9c5af92d3108647ba0f6190" FOREIGN KEY ("processor_info_id") REFERENCES "processor_info"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "instance_type" ADD CONSTRAINT "FK_a82e73fc00bf3488ee9d93055a7" FOREIGN KEY ("v_cpu_info_id") REFERENCES "vcpu_info"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "instance_type" ADD CONSTRAINT "FK_1867d2499134bd841f6dd932161" FOREIGN KEY ("instance_storage_info_id") REFERENCES "instance_storage_info"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
@@ -154,11 +152,7 @@ export class awsEc21642623854742 implements MigrationInterface {
                 begin
                     select id into instance_type_id
                     from instance_type
-                    where instance_type_value_id in (
-                        select id
-                        from instance_type_value
-                        where name = _instance_type
-                    );
+                    where name = _instance_type;
 
                     insert into instance
                         (ami, instance_type_id)
@@ -231,7 +225,6 @@ export class awsEc21642623854742 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "instance_type" DROP CONSTRAINT "FK_1867d2499134bd841f6dd932161"`);
         await queryRunner.query(`ALTER TABLE "instance_type" DROP CONSTRAINT "FK_a82e73fc00bf3488ee9d93055a7"`);
         await queryRunner.query(`ALTER TABLE "instance_type" DROP CONSTRAINT "FK_837d9c5af92d3108647ba0f6190"`);
-        await queryRunner.query(`ALTER TABLE "instance_type" DROP CONSTRAINT "FK_0194b635f62bbecb4295bd1491b"`);
         await queryRunner.query(`ALTER TABLE "network_info" DROP CONSTRAINT "FK_5abc0ca3d03456246a6d1eacc84"`);
         await queryRunner.query(`ALTER TABLE "gpu_device_info" DROP CONSTRAINT "FK_175d0ad17acc9c353077ba5d4e3"`);
         await queryRunner.query(`ALTER TABLE "fpga_device_info" DROP CONSTRAINT "FK_c83fc8695a42bc116e46db17bf6"`);
@@ -302,7 +295,6 @@ export class awsEc21642623854742 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "network_info"`);
         await queryRunner.query(`DROP TYPE "public"."network_info_ena_support_enum"`);
         await queryRunner.query(`DROP TABLE "network_card_info"`);
-        await queryRunner.query(`DROP TABLE "instance_type_value"`);
         await queryRunner.query(`DROP TABLE "inference_accelerator_info"`);
         await queryRunner.query(`DROP TABLE "inference_device_info"`);
         await queryRunner.query(`DROP TABLE "gpu_info"`);
