@@ -109,7 +109,7 @@ export const AwsElbModule: Module = new Module({
       out.healthCheckPort = tg.HealthCheckPort ?? null;
       out.healthCheckEnabled = tg.HealthCheckEnabled ?? null;
       out.healthCheckIntervalSeconds = tg.HealthCheckIntervalSeconds ?? null;
-      out.healthCheckTimeoutSeconds = tg.healthCheckTimeoutSeconds ?? null;
+      out.healthCheckTimeoutSeconds = tg.HealthCheckTimeoutSeconds ?? null;
       out.healthyThresholdCount = tg.HealthyThresholdCount ?? null;
       out.unhealthyThresholdCount = tg.UnhealthyThresholdCount ?? null;
       out.healthCheckPath = tg.HealthCheckPath ?? null;
@@ -407,6 +407,13 @@ export const AwsElbModule: Module = new Module({
         protocolVersion: e?.protocolVersion ?? ProtocolVersionEnum.HTTP1, // TODO: Which?
       }),
       equals: (a: AwsTargetGroup, b: AwsTargetGroup) => Object.is(a.targetGroupArn, b.targetGroupArn)
+        && Object.is(a.targetGroupName, b.targetGroupName)
+        && Object.is(a.targetType, b.targetType)
+        && Object.is(a.ipAddressType, b.ipAddressType)
+        && Object.is(a.protocol, b.protocol)
+        && Object.is(a.port, b.port)
+        && Object.is(a.vpc.id, b.vpc.id)
+        && Object.is(a.protocolVersion, b.protocolVersion)
         && Object.is(a.healthCheckProtocol, b.healthCheckProtocol)
         && Object.is(a.healthCheckPort, b.healthCheckPort)
         && Object.is(a.healthCheckPath, b.healthCheckPath)
@@ -493,21 +500,44 @@ export const AwsElbModule: Module = new Module({
             (await client.getTargetGroups()).TargetGroups;
           return await Promise.all(tgs.map(tg => AwsElbModule.utils.targetGroupMapper(tg, ctx)));
         },
+        updateOrReplace: (prev: AwsTargetGroup, next: AwsTargetGroup) => {
+          if (!(Object.is(prev.targetGroupName, next.targetGroupName)
+              && Object.is(prev.targetType, next.targetType)
+              && Object.is(prev.vpc.id, next.vpc.id)
+              && Object.is(prev.port, next.port)
+              && Object.is(prev.protocol, next.protocol)
+              && Object.is(prev.ipAddressType, next.ipAddressType)
+              && Object.is(prev.protocolVersion, next.protocolVersion))) {
+            return 'replace';
+          }
+          return 'update';
+        },
         update: async (es: AwsTargetGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
-            const updatedTargetGroup = await client.updateTargetGroup({
-              TargetGroupArn: e.targetGroupArn,
-              HealthCheckProtocol: e.healthCheckProtocol,
-              HealthCheckPort: e.healthCheckPort,
-              HealthCheckPath: e.healthCheckPath,
-              HealthCheckEnabled: e.healthCheckEnabled,
-              HealthCheckIntervalSeconds: e.healthCheckIntervalSeconds,
-              HealthCheckTimeoutSeconds: e.healthCheckTimeoutSeconds,
-              HealthyThresholdCount: e.healthyThresholdCount,
-              UnhealthyThresholdCount: e.unhealthyThresholdCount,
-            });
-            return AwsElbModule.utils.targetGroupMapper(updatedTargetGroup, ctx);
+            const cloudRecord = ctx?.memo?.cloud?.AwsTargetGroup?.[e.targetGroupArn ?? ''];
+            const isUpdate = AwsElbModule.mappers.targetGroup.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            if (isUpdate) {
+              const updatedTargetGroup = await client.updateTargetGroup({
+                TargetGroupArn: e.targetGroupArn,
+                // TODO: make this properties not nullable but with default values
+                HealthCheckProtocol: e.healthCheckProtocol, // TODO: this one defaults to protocol
+                HealthCheckPort: e.healthCheckPort,
+                HealthCheckPath: e.healthCheckPath, // TODO: EXCEPT THIS ONE
+                HealthCheckEnabled: e.healthCheckEnabled,
+                HealthCheckIntervalSeconds: e.healthCheckIntervalSeconds,
+                HealthCheckTimeoutSeconds: e.healthCheckTimeoutSeconds,
+                HealthyThresholdCount: e.healthyThresholdCount,
+                UnhealthyThresholdCount: e.unhealthyThresholdCount,
+              });
+              return AwsElbModule.utils.targetGroupMapper(updatedTargetGroup, ctx);
+            } else {
+              // We need to delete the current cloud record and create the new one.
+              // The id will be the same in database since `e` will keep it.
+              // TODO: what to do when a load balancer depends on the target group??
+              await AwsElbModule.mappers.targetGroup.cloud.delete(cloudRecord, ctx);
+              return await AwsElbModule.mappers.targetGroup.cloud.create(e, ctx);
+            }
           }));
         },
         delete: async (es: AwsTargetGroup[], ctx: Context) => {
