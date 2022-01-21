@@ -1,8 +1,7 @@
 import { execSync, } from 'child_process'
 
-import { createConnection, } from 'typeorm'
-
 import * as iasql from '../src/services/iasql'
+import { getPrefix, query, runApply, finish, } from './helpers'
 
 jest.setTimeout(240000);
 
@@ -14,41 +13,14 @@ afterAll(() => {
   execSync('cd test && docker-compose down');
 });
 
-function finish(done: (e?: any) => {}) {
-  return [() => done(), (e: any) => { done(e); }];
-}
-
-function runApply(done: (e?: any) => {}) {
-  iasql.apply('sgtest', false, 'not-needed').then(...finish(done));
-}
-
-function query(queryString: string) {
-  return function (done: (e?: any) => {}) {
-    console.log(queryString);
-    createConnection({
-      name: 'sgtest',
-      type: 'postgres',
-      username: 'postgres',
-      password: 'test',
-      host: 'localhost',
-      port: 5432,
-      database: 'sgtest',
-      extra: { ssl: false, },
-    }).then((conn) => {
-      conn.query(queryString).then(() => {
-        conn.close().then(...finish(done));
-      }, (e) => {
-        conn.close().then(() => done(e), (e2) => done(e2));
-      });
-    }, done);
-  }
-}
+const prefix = getPrefix();
+const dbAlias = 'sgtest';
 
 console.log('------------ security group prefix!!', prefix)
 
 describe('Security Group Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
-    'sgtest',
+    dbAlias,
     'us-west-2',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
@@ -56,15 +28,15 @@ describe('Security Group Integration Testing', () => {
 
   it('installs the security group module', (done) => void iasql.install(
     ['aws_security_group'],
-    'sgtest',
+    dbAlias,
     'not-needed').then(...finish(done)));
 
   it('adds a new security group', query(`  
     INSERT INTO aws_security_group (description, group_name)
     VALUES ('Security Group Test', '${prefix}sgtest');
-  `));
+  `, dbAlias));
 
-  it('applies the security group change', runApply);
+  it('applies the security group change', (done) => runApply(done, dbAlias));
 
   it('adds security group rules', query(`
     INSERT INTO aws_security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
@@ -75,36 +47,36 @@ describe('Security Group Integration Testing', () => {
     SELECT false, 'tcp', 22, 22, '::/8', '${prefix}testrule2', id
     FROM aws_security_group
     WHERE group_name = '${prefix}sgtest';
-  `));
+  `, dbAlias));
 
-  it('applies the security group rule change', runApply);
+  it('applies the security group rule change', (done) => runApply(done, dbAlias));
 
   it('updates the security group rule', query(`
     UPDATE aws_security_group_rule SET to_port = 8443 WHERE description = '${prefix}testrule';
     UPDATE aws_security_group_rule SET to_port = 8022 WHERE description = '${prefix}testrule2';
-  `));
+  `, dbAlias));
 
-  it('applies the security group rule change (again)', runApply);
+  it('applies the security group rule change (again)', (done) => runApply(done, dbAlias));
 
   it('updates the security group', query(`
     UPDATE aws_security_group SET group_name = '${prefix}sgtest2' WHERE group_name = '${prefix}sgtest';
-  `));
+  `, dbAlias));
 
-  it('applies the security group change (again)', runApply);
+  it('applies the security group change (again)', (done) => runApply(done, dbAlias));
 
   it('deletes the security group rule', query(`
     DELETE FROM aws_security_group_rule WHERE description = '${prefix}testrule';
     DELETE FROM aws_security_group_rule WHERE description = '${prefix}testrule2';
-  `));
+  `, dbAlias));
 
-  it('applies the security group rule change (last time)', runApply);
+  it('applies the security group rule change (last time)', (done) => runApply(done, dbAlias));
 
   it('deletes the security group', query(`
     DELETE FROM aws_security_group
     WHERE group_name = '${prefix}sgtest2';
-  `));
+  `, dbAlias));
 
-  it('applies the security group change (last time)', runApply);
+  it('applies the security group change (last time)', (done) => runApply(done, dbAlias));
 
   // Special testing involving the default security group you can't edit or delete
   
@@ -113,29 +85,29 @@ describe('Security Group Integration Testing', () => {
     USING aws_security_group
     WHERE aws_security_group_rule.security_group_id = aws_security_group.id
     AND aws_security_group.group_name = 'default';
-  `));
+  `, dbAlias));
 
-  it('applies this change', runApply);
+  it('applies this change', (done) => runApply(done, dbAlias));
   
   it('tries to delete the default security group', query(`
     DELETE FROM aws_security_group WHERE group_name = 'default';
-  `));
+  `, dbAlias));
 
-  it('applies the security group change which will restore the record', runApply);
+  it('applies the security group change which will restore the record', (done) => runApply(done, dbAlias));
 
   it('tries to change the default security group description', query(`
     UPDATE aws_security_group SET description = 'Not the default' where group_name = 'default';
-  `));
+  `, dbAlias));
 
-  it('applies the security group change which will undo this change', runApply);
+  it('applies the security group change which will undo this change', (done) => runApply(done, dbAlias));
 
   it('tries to change the default security group id which triggers simultaneous create/delete', query(`
     UPDATE aws_security_group SET group_id = 'remakethis' where group_name = 'default';
-  `));
+  `, dbAlias));
 
-  it('applies the security group change which will recreate the record', runApply);
+  it('applies the security group change which will recreate the record', (done) => runApply(done, dbAlias));
 
   it('deletes the test db', (done) => void iasql
-    .remove('sgtest', 'not-needed')
+    .remove(dbAlias, 'not-needed')
     .then(...finish(done)));
 });
