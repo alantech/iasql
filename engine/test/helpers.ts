@@ -1,6 +1,17 @@
+import { execSync, } from 'child_process'
+
 import { createConnection, } from 'typeorm'
 
 import * as iasql from '../src/services/iasql'
+
+export function execComposeUp() {
+  execSync('cd test && docker-compose up -d && sleep 5');
+}
+
+export function execComposeDown() {
+  execSync('cd test && docker-compose down');
+}
+
 export function getPrefix(){
   const chars = [
     Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
