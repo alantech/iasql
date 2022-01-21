@@ -15,7 +15,7 @@ export function finish(done: (e?: any) => {}) {
   return [() => done(), (e: any) => { done(e); }];
 }
 
-export function runApply(done: (e?: any) => {}, dbAlias: string) {
+export function runApply(dbAlias: string, done: (e?: any) => {}) {
   iasql.apply(dbAlias, false, 'not-needed').then(...finish(done));
 }
 
