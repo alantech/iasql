@@ -1,18 +1,8 @@
-import { execSync, } from 'child_process'
 
 import { createConnection, } from 'typeorm'
 
 import * as iasql from '../src/services/iasql'
 
-jest.setTimeout(240000);
-
-beforeAll(() => {
-  execSync('cd test && docker-compose up -d && sleep 5');
-});
-
-afterAll(() => {
-  execSync('cd test && docker-compose down');
-});
 
 function finish(done: (e?: any) => {}) {
   return [() => done(), (e: any) => { done(e); }];
