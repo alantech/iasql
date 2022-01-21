@@ -1,17 +1,5 @@
-import { execSync, } from 'child_process'
-
 import * as iasql from '../src/services/iasql'
 import { getPrefix, query, runApply, finish, } from './helpers'
-
-jest.setTimeout(240000);
-
-beforeAll(() => {
-  execSync('cd test && docker-compose up -d && sleep 5');
-});
-
-afterAll(() => {
-  execSync('cd test && docker-compose down');
-});
 
 const prefix = getPrefix();
 const dbAlias = 'cwtest';
