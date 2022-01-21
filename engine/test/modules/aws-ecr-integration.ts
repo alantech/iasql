@@ -14,10 +14,8 @@ afterAll(() => {
 });
 
 const prefix = getPrefix();
-console.log('---- ECR PREFIX ', prefix);
 const dbAlias = 'ecrtest';
 const repositoryName = prefix.toLowerCase() + dbAlias;
-console.log('---- ECR repo name ', repositoryName);
 const pubRepositoryName = 'public' + prefix.toLowerCase() + dbAlias;
 const policyMock = '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
 const updatePolicyMock = '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage" ] } ]}';
