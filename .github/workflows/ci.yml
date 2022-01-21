@@ -6,7 +6,7 @@ name: CI
 # events but only for the main branch
 on:
   push:
-    branches: [main, dry-tests]
+    branches: [main]
   pull_request:
     branches: [main]
 
