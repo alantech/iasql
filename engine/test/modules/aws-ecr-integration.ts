@@ -14,8 +14,10 @@ afterAll(() => {
 });
 
 const prefix = getPrefix();
+console.log('---- ECR PREFIX ', prefix);
 const dbAlias = 'ecrtest';
-const repositoryName = prefix + dbAlias;
+const repositoryName = 'a' + prefix + dbAlias;
+console.log('---- ECR repo name ', repositoryName);
 const pubRepositoryName = 'public' + prefix + dbAlias;
 const policyMock = '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
 const updatePolicyMock = '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage" ] } ]}';
