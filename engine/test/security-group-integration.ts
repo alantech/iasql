@@ -44,13 +44,7 @@ function query(queryString: string) {
   }
 }
 
-const chars = [
-  Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-  Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-  Array(10).fill('0').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-].flat();
-const randChar = (): string => chars[Math.floor(Math.random() * chars.length)];
-const prefix = Array(7).fill('').map(() => randChar()).join('');
+console.log('------------ security group prefix!!', prefix)
 
 describe('Security Group Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
