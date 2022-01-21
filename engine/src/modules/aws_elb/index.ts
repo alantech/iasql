@@ -131,8 +131,12 @@ export const AwsElbModule: Module = new Module({
         defaultActions: e?.defaultActions?.map(da => da.actionType).join(', ') ?? '',
       }),
       equals: (a: AwsListener, b: AwsListener) => Object.is(a.listenerArn, b.listenerArn)
+        && Object.is(a.loadBalancer.loadBalancerArn, b.loadBalancer.loadBalancerArn)
         && Object.is(a.port, b.port)
-        && Object.is(a.protocol, b.protocol),
+        && Object.is(a.protocol, b.protocol)
+        && Object.is(a.defaultActions?.length, b.defaultActions?.length)
+        && (a?.defaultActions?.every(ada => !!(b?.defaultActions?.find(bda => Object.is(ada.actionType, bda.actionType)
+          && Object.is(ada.targetGroup.targetGroupArn, bda.targetGroup.targetGroupArn)))) ?? false),
       source: 'db',
       db: new Crud({
         create: async (es: AwsListener[], ctx: Context) => {
@@ -232,7 +236,7 @@ export const AwsElbModule: Module = new Module({
             })();
           return await Promise.all(listeners.map(l => AwsElbModule.utils.listenerMapper(l, ctx)));
         },
-        update: async (_l: AwsListener[], _ctx: Context) => { throw new Error('tbd'); },
+        update: async (es: AwsListener[], ctx: Context) => { throw new Error('tbd'); },
         delete: async (es: AwsListener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(e => client.deleteListener(e.listenerArn!)));
@@ -501,13 +505,15 @@ export const AwsElbModule: Module = new Module({
           return await Promise.all(tgs.map(tg => AwsElbModule.utils.targetGroupMapper(tg, ctx)));
         },
         updateOrReplace: (prev: AwsTargetGroup, next: AwsTargetGroup) => {
-          if (!(Object.is(prev.targetGroupName, next.targetGroupName)
+          if (
+            !(Object.is(prev.targetGroupName, next.targetGroupName)
               && Object.is(prev.targetType, next.targetType)
               && Object.is(prev.vpc.id, next.vpc.id)
               && Object.is(prev.port, next.port)
               && Object.is(prev.protocol, next.protocol)
               && Object.is(prev.ipAddressType, next.ipAddressType)
-              && Object.is(prev.protocolVersion, next.protocolVersion))) {
+              && Object.is(prev.protocolVersion, next.protocolVersion))
+          ) {
             return 'replace';
           }
           return 'update';
