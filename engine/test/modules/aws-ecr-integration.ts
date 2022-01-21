@@ -57,10 +57,9 @@ describe('ECR Integration Testing', () => {
   
     it('adds a new repository policy', query(`
       INSERT INTO aws_repository_policy (repository_id, policy_text)
-      VALUES
-        SELECT id, '${policyMock}'
-        FROM aws_repository
-        WHERE repository_name = '${repositoryName}';
+      SELECT id, '${policyMock}'
+      FROM aws_repository
+      WHERE repository_name = '${repositoryName}';
     `, dbAlias));
   
     it('applies the change', (done) => runApply(done, dbAlias));
