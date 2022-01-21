@@ -1,4 +1,4 @@
-import { InstanceTypeInfo, Instance as InstanceAWS, } from '@aws-sdk/client-ec2'
+import { InstanceTypeInfo, Instance as InstanceAWS, State, } from '@aws-sdk/client-ec2'
 import { In, } from 'typeorm'
 
 import * as allEntities from './entity'
@@ -427,7 +427,8 @@ export const AwsEc2Module: Module = new Module({
     }),
     instance: new Mapper<Instance>({
       entity: Instance,
-      entityId: (i: Instance) => i.instanceId ?? '',
+      // fallback to our id when the instance hasn't been created
+      entityId: (i: Instance) => i.instanceId ?? (i.id?.toString() ?? ''),
       entityPrint: (e: Instance) => ({
         id: e.id?.toString() ?? '',
         instanceId: e.instanceId ?? '',
@@ -470,9 +471,10 @@ export const AwsEc2Module: Module = new Module({
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
+          // ignore instances in "Terminated" and "Deleting" state
           const instances = Array.isArray(ids) ?
             await Promise.all(ids.map(id => client.getInstance(id))) :
-            (await client.getInstances()).Instances ?? [];
+            (await client.getInstances()).Instances.filter(i => i.State !== State.Deleted && i.State !== State.Deleting) ?? [];
           return await Promise.all(instances.map(i => AwsEc2Module.utils.instanceMapper(i, ctx)));
         },
         // The second pass should remove the old instances
