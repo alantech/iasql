@@ -427,7 +427,8 @@ export const AwsEc2Module: Module = new Module({
     }),
     instance: new Mapper<Instance>({
       entity: Instance,
-      entityId: (i: Instance) => i.instanceId ?? '',
+      // fallback to our id when the instance hasn't been created
+      entityId: (i: Instance) => i.instanceId ?? (i.id?.toString() ?? ''),
       entityPrint: (e: Instance) => ({
         id: e.id?.toString() ?? '',
         instanceId: e.instanceId ?? '',
@@ -473,7 +474,11 @@ export const AwsEc2Module: Module = new Module({
           const instances = Array.isArray(ids) ?
             await Promise.all(ids.map(id => client.getInstance(id))) :
             (await client.getInstances()).Instances ?? [];
-          return await Promise.all(instances.map(i => AwsEc2Module.utils.instanceMapper(i, ctx)));
+          // ignore instances in "Terminated" and "Shutting down" state
+          return await Promise.all(instances
+            .filter(i => i?.State?.Name !== "terminated" && i?.State?.Name !== "shutting-down")
+            .map(i => AwsEc2Module.utils.instanceMapper(i, ctx))
+          );
         },
         // The second pass should remove the old instances
         update: (e: Instance[], ctx: Context) => AwsEc2Module.mappers.instance.cloud.create(e, ctx),
