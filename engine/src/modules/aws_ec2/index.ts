@@ -471,10 +471,10 @@ export const AwsEc2Module: Module = new Module({
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          // ignore instances in "Terminated" and "Deleting" state
           const instances = Array.isArray(ids) ?
             await Promise.all(ids.map(id => client.getInstance(id))) :
             (await client.getInstances()).Instances ?? [];
+          // ignore instances in "Terminated" and "Shutting down" state
           return await Promise.all(instances.filter(i => i?.State?.Name !== "terminated" && i?.State?.Name !== "shutting-down").map(i => AwsEc2Module.utils.instanceMapper(i, ctx)));
         },
         // The second pass should remove the old instances
