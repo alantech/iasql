@@ -474,8 +474,8 @@ export const AwsEc2Module: Module = new Module({
           // ignore instances in "Terminated" and "Deleting" state
           const instances = Array.isArray(ids) ?
             await Promise.all(ids.map(id => client.getInstance(id))) :
-            (await client.getInstances()).Instances.filter(i => i.State !== State.Deleted && i.State !== State.Deleting) ?? [];
-          return await Promise.all(instances.map(i => AwsEc2Module.utils.instanceMapper(i, ctx)));
+            (await client.getInstances()).Instances ?? [];
+          return await Promise.all(instances.filter(i => i?.State !== State.Deleted && i?.State !== State.Deleting).map(i => AwsEc2Module.utils.instanceMapper(i, ctx)));
         },
         // The second pass should remove the old instances
         update: (e: Instance[], ctx: Context) => AwsEc2Module.mappers.instance.cloud.create(e, ctx),
