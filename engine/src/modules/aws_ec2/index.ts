@@ -475,7 +475,10 @@ export const AwsEc2Module: Module = new Module({
             await Promise.all(ids.map(id => client.getInstance(id))) :
             (await client.getInstances()).Instances ?? [];
           // ignore instances in "Terminated" and "Shutting down" state
-          return await Promise.all(instances.filter(i => i?.State?.Name !== "terminated" && i?.State?.Name !== "shutting-down").map(i => AwsEc2Module.utils.instanceMapper(i, ctx)));
+          return await Promise.all(instances
+            .filter(i => i?.State?.Name !== "terminated" && i?.State?.Name !== "shutting-down")
+            .map(i => AwsEc2Module.utils.instanceMapper(i, ctx))
+          );
         },
         // The second pass should remove the old instances
         update: (e: Instance[], ctx: Context) => AwsEc2Module.mappers.instance.cloud.create(e, ctx),
