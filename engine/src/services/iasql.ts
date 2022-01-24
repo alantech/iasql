@@ -7,7 +7,7 @@ import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
 import config from '../config'
-import { lazyLoader, } from '../services/lazy-dep'
+import { DepError, lazyLoader, } from '../services/lazy-dep'
 import { findDiff, } from '../services/diff'
 import { TypeormWrapper, } from './typeorm'
 import { IasqlModule, } from '../entity'
@@ -281,6 +281,10 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
     const toUpdate: Crupde = {};
     const toReplace: Crupde = {};
     const toDelete: Crupde = {};
+    let createCount = -1;
+    let updateCount = -1;
+    let replaceCount = -1;
+    let deleteCount = -1;
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -360,6 +364,36 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
           toReplace,
           toDelete,
         };
+        const nextCreateCount = Object.values(toCreate)
+          .map(r => r.records.length)
+          .reduce((cumu, curr) => cumu + curr, 0);
+        const nextUpdateCount = Object.values(toUpdate)
+          .map(r => r.records.length)
+          .reduce((cumu, curr) => cumu + curr, 0);
+        const nextReplaceCount = Object.values(toReplace)
+          .map(r => r.records.length)
+          .reduce((cumu, curr) => cumu + curr, 0);
+        const nextDeleteCount = Object.values(toDelete)
+          .map(r => r.records.length)
+          .reduce((cumu, curr) => cumu + curr, 0);
+        if (
+          createCount === nextCreateCount &&
+          updateCount === nextUpdateCount &&
+          replaceCount === nextReplaceCount &&
+          deleteCount === nextDeleteCount
+        ) {
+          throw new DepError('Forward progress halted. All remaining DB changes failing to apply.', {
+            toCreate,
+            toUpdate,
+            toReplace,
+            toDelete,
+          });
+        } else {
+          createCount = nextCreateCount;
+          updateCount = nextUpdateCount;
+          replaceCount = nextReplaceCount;
+          deleteCount = nextDeleteCount;
+        }
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - t4}ms`);
         const promiseGenerators = records
@@ -475,6 +509,10 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
     const toUpdate: Crupde = {};
     const toReplace: Crupde = {}; // Not actually used in sync mode, at least right now
     const toDelete: Crupde = {};
+    let createCount = -1;
+    let updateCount = -1;
+    let replaceCount = -1;
+    let deleteCount = -1;
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -547,6 +585,36 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
           toReplace,
           toDelete,
         };
+        const nextCreateCount = Object.values(toCreate)
+          .map(r => r.records.length)
+          .reduce((cumu, curr) => cumu + curr, 0);
+        const nextUpdateCount = Object.values(toUpdate)
+          .map(r => r.records.length)
+          .reduce((cumu, curr) => cumu + curr, 0);
+        const nextReplaceCount = Object.values(toReplace)
+          .map(r => r.records.length)
+          .reduce((cumu, curr) => cumu + curr, 0);
+        const nextDeleteCount = Object.values(toDelete)
+          .map(r => r.records.length)
+          .reduce((cumu, curr) => cumu + curr, 0);
+        if (
+          createCount === nextCreateCount &&
+          updateCount === nextUpdateCount &&
+          replaceCount === nextReplaceCount &&
+          deleteCount === nextDeleteCount
+        ) {
+          throw new DepError('Forward progress halted. All remaining Cloud changes failing to apply.', {
+            toCreate,
+            toUpdate,
+            toReplace,
+            toDelete,
+          });
+        } else {
+          createCount = nextCreateCount;
+          updateCount = nextUpdateCount;
+          replaceCount = nextReplaceCount;
+          deleteCount = nextDeleteCount;
+        }
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - t4}ms`);
         const promiseGenerators = records
