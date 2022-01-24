@@ -435,7 +435,35 @@ export const AwsElbModule: Module = new Module({
           }
           return 'update';
         },
-        update: async (_lb: AwsLoadBalancer[], _ctx: Context) => { throw new Error('tbd'); },
+        update: async (es: AwsLoadBalancer[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.AwsLoadBalancer?.[e.loadBalancerArn ?? ''];
+            let updatedRecord = { ...cloudRecord };
+            const isUpdate = AwsElbModule.mappers.targetGroup.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            if (isUpdate) {
+              // Update ip address type
+              if (!Object.is(cloudRecord.ipAddressType, e.ipAddressType)) {
+                const updatedLoadBalancer = await client.updateLoadBalancerIPAddressType({
+                  LoadBalancerArn: e.loadBalancerArn,
+                  IpAddressType: e.ipAddressType,
+                });
+                updatedRecord = AwsElbModule.utils.loadBalancerMapper(updatedLoadBalancer, ctx);
+              }
+              // TODO: Update subnets
+              // TODO: Update security groups
+              // Restore auto generated values
+              updatedRecord.id = e.id;
+              await AwsElbModule.mappers.repository.db.update(updatedRecord, ctx);
+              return updatedRecord;
+            } else {
+              // We need to delete the current cloud record and create the new one.
+              // The id will be the same in database since `e` will keep it.
+              await AwsElbModule.mappers.loadBalancer.cloud.delete(cloudRecord, ctx);
+              return await AwsElbModule.mappers.loadBalancer.cloud.create(e, ctx);
+            }
+          }));
+        },
         delete: async (es: AwsLoadBalancer[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(e => client.deleteLoadBalancer(e.loadBalancerArn!)));

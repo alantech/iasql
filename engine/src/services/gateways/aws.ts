@@ -72,6 +72,8 @@ import {
   paginateDescribeListeners,
   paginateDescribeLoadBalancers,
   paginateDescribeTargetGroups,
+  SetIpAddressTypeCommand,
+  SetIpAddressTypeCommandInput,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 import {
   CreateClusterCommand,
@@ -570,6 +572,14 @@ export class AWS {
         }
       },
     );
+    return loadBalancer;
+  }
+
+  async updateLoadBalancerIPAddressType(input: SetIpAddressTypeCommandInput) {
+    await this.elbClient.send(
+      new SetIpAddressTypeCommand(input),
+    );
+    const loadBalancer = await this.getLoadBalancer(input.LoadBalancerArn!);
     return loadBalancer;
   }
 
