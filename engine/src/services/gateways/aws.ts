@@ -74,6 +74,8 @@ import {
   paginateDescribeTargetGroups,
   SetIpAddressTypeCommand,
   SetIpAddressTypeCommandInput,
+  SetSubnetsCommand,
+  SetSubnetsCommandInput,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 import {
   CreateClusterCommand,
@@ -578,6 +580,14 @@ export class AWS {
   async updateLoadBalancerIPAddressType(input: SetIpAddressTypeCommandInput) {
     await this.elbClient.send(
       new SetIpAddressTypeCommand(input),
+    );
+    const loadBalancer = await this.getLoadBalancer(input.LoadBalancerArn!);
+    return loadBalancer;
+  }
+
+  async updateLoadBalancerSubnets(input: SetSubnetsCommandInput) {
+    await this.elbClient.send(
+      new SetSubnetsCommand(input),
     );
     const loadBalancer = await this.getLoadBalancer(input.LoadBalancerArn!);
     return loadBalancer;
