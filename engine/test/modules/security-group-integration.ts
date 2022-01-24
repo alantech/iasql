@@ -28,7 +28,7 @@ describe('Security Group Integration Testing', () => {
   it('adds a new security group', query(`  
     INSERT INTO aws_security_group (description, group_name)
     VALUES ('Security Group Test', '${prefix}sgtest');
-  `, dbAlias));
+  `));
 
   it('applies the security group change', apply);
 
@@ -41,34 +41,34 @@ describe('Security Group Integration Testing', () => {
     SELECT false, 'tcp', 22, 22, '::/8', '${prefix}testrule2', id
     FROM aws_security_group
     WHERE group_name = '${prefix}sgtest';
-  `, dbAlias));
+  `));
 
   it('applies the security group rule change', apply);
 
   it('updates the security group rule', query(`
     UPDATE aws_security_group_rule SET to_port = 8443 WHERE description = '${prefix}testrule';
     UPDATE aws_security_group_rule SET to_port = 8022 WHERE description = '${prefix}testrule2';
-  `, dbAlias));
+  `));
 
   it('applies the security group rule change (again)', apply);
 
   it('updates the security group', query(`
     UPDATE aws_security_group SET group_name = '${prefix}sgtest2' WHERE group_name = '${prefix}sgtest';
-  `, dbAlias));
+  `));
 
   it('applies the security group change (again)', apply);
 
   it('deletes the security group rule', query(`
     DELETE FROM aws_security_group_rule WHERE description = '${prefix}testrule';
     DELETE FROM aws_security_group_rule WHERE description = '${prefix}testrule2';
-  `, dbAlias));
+  `));
 
   it('applies the security group rule change (last time)', apply);
 
   it('deletes the security group', query(`
     DELETE FROM aws_security_group
     WHERE group_name = '${prefix}sgtest2';
-  `, dbAlias));
+  `));
 
   it('applies the security group change (last time)', apply);
 
@@ -79,25 +79,25 @@ describe('Security Group Integration Testing', () => {
     USING aws_security_group
     WHERE aws_security_group_rule.security_group_id = aws_security_group.id
     AND aws_security_group.group_name = 'default';
-  `, dbAlias));
+  `));
 
   it('applies this change', apply);
   
   it('tries to delete the default security group', query(`
     DELETE FROM aws_security_group WHERE group_name = 'default';
-  `, dbAlias));
+  `));
 
   it('applies the security group change which will restore the record', apply);
 
   it('tries to change the default security group description', query(`
     UPDATE aws_security_group SET description = 'Not the default' where group_name = 'default';
-  `, dbAlias));
+  `));
 
   it('applies the security group change which will undo this change', apply);
 
   it('tries to change the default security group id which triggers simultaneous create/delete', query(`
     UPDATE aws_security_group SET group_id = 'remakethis' where group_name = 'default';
-  `, dbAlias));
+  `));
 
   it('applies the security group change which will recreate the record', apply);
 
