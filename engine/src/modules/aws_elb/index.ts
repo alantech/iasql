@@ -289,7 +289,22 @@ export const AwsElbModule: Module = new Module({
         ipAddressType: e?.ipAddressType ?? IpAddressType.DUALSTACK, // TODO: Which?
         customerOwnedIpv4Pool: e?.customerOwnedIpv4Pool ?? '',
       }),
-      equals: (_a: AwsLoadBalancer, _b: AwsLoadBalancer) => true, //  Do not let load balancer updates
+      equals: (a: AwsLoadBalancer, b: AwsLoadBalancer) => Object.is(a.availabilityZones?.length, b.availabilityZones?.length)
+        && (a.availabilityZones?.every(aaz => !!b.availabilityZones?.find(baz => Object.is(aaz.zoneId, baz.zoneId))) ?? false)
+        && Object.is(a.canonicalHostedZoneId, b.canonicalHostedZoneId)
+        && Object.is(a.createdTime?.getTime(), b.createdTime?.getTime())
+        && Object.is(a.customerOwnedIpv4Pool, b.customerOwnedIpv4Pool)
+        && Object.is(a.dnsName, b.dnsName)
+        && Object.is(a.ipAddressType, b.ipAddressType)
+        && Object.is(a.loadBalancerName, b.loadBalancerName)
+        && Object.is(a.loadBalancerType, b.loadBalancerType)
+        && Object.is(a.scheme, b.scheme)
+        && Object.is(a.securityGroups?.length, b.securityGroups?.length)
+        && (a.securityGroups?.every(asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
+        && Object.is(a.state, b.state)
+        && Object.is(a.subnets?.length, b.subnets?.length)
+        && (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn.subnetId, bsn.subnetId))) ?? false)
+        && Object.is(a.vpc.vpcId, b.vpc.vpcId),
       source: 'db',
       db: new Crud({
         create: async (es: AwsLoadBalancer[], ctx: Context) => {
