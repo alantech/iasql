@@ -128,11 +128,15 @@ export const AwsElbModule: Module = new Module({
         loadBalancer: e?.loadBalancer?.loadBalancerName ?? '',
         port: e?.port?.toString() ?? '',
         protocol: e?.protocol ?? ProtocolEnum.HTTPS, // TODO: Which?
-        defaultActions: e?.defaultActions?.map(da => da.actionType).join(', ') ?? '',
+        defaultActions: e?.defaultActions?.map(da => `${da.actionType}: ${da.targetGroup.targetGroupName}`).join(', ') ?? '',
       }),
       equals: (a: AwsListener, b: AwsListener) => Object.is(a.listenerArn, b.listenerArn)
+        && Object.is(a.loadBalancer.loadBalancerArn, b.loadBalancer.loadBalancerArn)
         && Object.is(a.port, b.port)
-        && Object.is(a.protocol, b.protocol),
+        && Object.is(a.protocol, b.protocol)
+        && Object.is(a.defaultActions?.length, b.defaultActions?.length)
+        && (a?.defaultActions?.every(ada => !!(b?.defaultActions?.find(bda => Object.is(ada.actionType, bda.actionType)
+          && Object.is(ada.targetGroup.targetGroupArn, bda.targetGroup.targetGroupArn)))) ?? false),
       source: 'db',
       db: new Crud({
         create: async (es: AwsListener[], ctx: Context) => {
@@ -232,7 +236,33 @@ export const AwsElbModule: Module = new Module({
             })();
           return await Promise.all(listeners.map(l => AwsElbModule.utils.listenerMapper(l, ctx)));
         },
-        update: async (_l: AwsListener[], _ctx: Context) => { throw new Error('tbd'); },
+        updateOrReplace: (prev: AwsListener, next: AwsListener) => {
+          if (!Object.is(prev.loadBalancer.loadBalancerArn, next.loadBalancer.loadBalancerArn)) {
+            return 'replace';
+          }
+          return 'update';
+        },
+        update: async (es: AwsListener[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.AwsListener?.[e.listenerArn ?? ''];
+            const isUpdate = AwsElbModule.mappers.listener.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            if (isUpdate) {
+              const updatedListener = await client.updateListener({
+                ListenerArn: e.listenerArn,
+                Port: e.port,
+                Protocol: e.protocol,
+                DefaultActions: e.defaultActions?.map(a => ({ Type: a.actionType, TargetGroupArn: a.targetGroup.targetGroupArn })),
+              });
+              return AwsElbModule.utils.listenerMapper(updatedListener, ctx);
+            } else {
+              // We need to delete the current cloud record and create the new one.
+              // The id in database will be the same `e` will keep it.
+              await AwsElbModule.mappers.listener.cloud.delete(cloudRecord, ctx);
+              return await AwsElbModule.mappers.listener.cloud.create(e, ctx);
+            }
+          }));
+        },
         delete: async (es: AwsListener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(e => client.deleteListener(e.listenerArn!)));
@@ -501,13 +531,15 @@ export const AwsElbModule: Module = new Module({
           return await Promise.all(tgs.map(tg => AwsElbModule.utils.targetGroupMapper(tg, ctx)));
         },
         updateOrReplace: (prev: AwsTargetGroup, next: AwsTargetGroup) => {
-          if (!(Object.is(prev.targetGroupName, next.targetGroupName)
+          if (
+            !(Object.is(prev.targetGroupName, next.targetGroupName)
               && Object.is(prev.targetType, next.targetType)
               && Object.is(prev.vpc.id, next.vpc.id)
               && Object.is(prev.port, next.port)
               && Object.is(prev.protocol, next.protocol)
               && Object.is(prev.ipAddressType, next.ipAddressType)
-              && Object.is(prev.protocolVersion, next.protocolVersion))) {
+              && Object.is(prev.protocolVersion, next.protocolVersion))
+          ) {
             return 'replace';
           }
           return 'update';

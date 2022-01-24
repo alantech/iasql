@@ -65,6 +65,8 @@ import {
   DescribeLoadBalancersCommand,
   DescribeTargetGroupsCommand,
   ElasticLoadBalancingV2Client,
+  ModifyListenerCommand,
+  ModifyListenerCommandInput,
   ModifyTargetGroupCommand,
   ModifyTargetGroupCommandInput,
   paginateDescribeListeners,
@@ -495,6 +497,13 @@ export class AWS {
       new CreateListenerCommand(input),
     );
     return create?.Listeners?.pop() ?? null;
+  }
+
+  async updateListener(input: ModifyListenerCommandInput) {
+    const update = await this.elbClient.send(
+      new ModifyListenerCommand(input),
+    );
+    return update?.Listeners?.pop() ?? null;
   }
 
   async getListeners(loadBalancerArns: string[]) {
