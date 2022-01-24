@@ -9,8 +9,8 @@ afterAll(execComposeDown);
 
 const prefix = getPrefix();
 const dbAlias = 'ecrtest';
-const repositoryName = prefix.toLowerCase() + dbAlias;
-const pubRepositoryName = 'public' + prefix.toLowerCase() + dbAlias;
+const repositoryName = prefix + dbAlias;
+const pubRepositoryName = 'public' + prefix + dbAlias;
 const policyMock = '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
 const updatePolicyMock = '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage" ] } ]}';
 const apply = runApply.bind(null, dbAlias);
