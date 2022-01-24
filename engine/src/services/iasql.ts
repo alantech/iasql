@@ -285,6 +285,7 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
     let updateCount = -1;
     let replaceCount = -1;
     let deleteCount = -1;
+    let spinCount = 0;
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -382,17 +383,21 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
           replaceCount === nextReplaceCount &&
           deleteCount === nextDeleteCount
         ) {
+          spinCount++;
+        } else {
+          createCount = nextCreateCount;
+          updateCount = nextUpdateCount;
+          replaceCount = nextReplaceCount;
+          deleteCount = nextDeleteCount;
+          spinCount = 0;
+        }
+        if (spinCount === 3) {
           throw new DepError('Forward progress halted. All remaining DB changes failing to apply.', {
             toCreate,
             toUpdate,
             toReplace,
             toDelete,
           });
-        } else {
-          createCount = nextCreateCount;
-          updateCount = nextUpdateCount;
-          replaceCount = nextReplaceCount;
-          deleteCount = nextDeleteCount;
         }
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - t4}ms`);
@@ -513,6 +518,7 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
     let updateCount = -1;
     let replaceCount = -1;
     let deleteCount = -1;
+    let spinCount = 0;
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -603,17 +609,21 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
           replaceCount === nextReplaceCount &&
           deleteCount === nextDeleteCount
         ) {
+          spinCount++;
+        } else {
+          createCount = nextCreateCount;
+          updateCount = nextUpdateCount;
+          replaceCount = nextReplaceCount;
+          deleteCount = nextDeleteCount;
+          spinCount = 0;
+        }
+        if (spinCount === 3) {
           throw new DepError('Forward progress halted. All remaining Cloud changes failing to apply.', {
             toCreate,
             toUpdate,
             toReplace,
             toDelete,
           });
-        } else {
-          createCount = nextCreateCount;
-          updateCount = nextUpdateCount;
-          replaceCount = nextReplaceCount;
-          deleteCount = nextDeleteCount;
         }
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - t4}ms`);
