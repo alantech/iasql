@@ -236,6 +236,12 @@ export const AwsElbModule: Module = new Module({
             })();
           return await Promise.all(listeners.map(l => AwsElbModule.utils.listenerMapper(l, ctx)));
         },
+        updateOrReplace: (prev: AwsListener, next: AwsListener) => {
+          if (!Object.is(prev.loadBalancer.loadBalancerArn, next.loadBalancer.loadBalancerArn)) {
+            return 'replace';
+          }
+          return 'update';
+        },
         update: async (es: AwsListener[], ctx: Context) => { throw new Error('tbd'); },
         delete: async (es: AwsListener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
