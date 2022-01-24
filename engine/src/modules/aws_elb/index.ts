@@ -424,6 +424,17 @@ export const AwsElbModule: Module = new Module({
             (await client.getLoadBalancers()).LoadBalancers;
           return await Promise.all(lbs.map(lb => AwsElbModule.utils.loadBalancerMapper(lb, ctx)));
         },
+        updateOrReplace: (prev: AwsLoadBalancer, next: AwsLoadBalancer) => {
+          if (
+            !(Object.is(prev.loadBalancerName, next.loadBalancerName)
+              && Object.is(prev.loadBalancerType, next.loadBalancerType)
+              && Object.is(prev.scheme, next.scheme)
+              && Object.is(prev.vpc.vpcId, next.vpc.vpcId))
+          ) {
+            return 'replace';
+          }
+          return 'update';
+        },
         update: async (_lb: AwsLoadBalancer[], _ctx: Context) => { throw new Error('tbd'); },
         delete: async (es: AwsLoadBalancer[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
