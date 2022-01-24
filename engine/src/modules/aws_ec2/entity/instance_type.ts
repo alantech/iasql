@@ -6,7 +6,6 @@ import {
   ManyToMany,
   ManyToOne,
   OneToMany,
-  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
@@ -19,7 +18,6 @@ import { GPUInfo, } from './gpu_info';
 import { InferenceAcceleratorInfo, } from './inference_accelerator_info';
 import { Instance, } from './instance';
 import { InstanceStorageInfo, } from './instance_storage_info';
-import { InstanceTypeValue, } from './instance_type_value';
 import { NetworkInfo, } from './network_info';
 import { PlacementGroupInfo, } from './placement_group_info';
 import { ProcessorInfo, } from './processor_info';
@@ -38,11 +36,8 @@ export class InstanceType {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @OneToOne(() => InstanceTypeValue, { cascade: true, eager: true, })
-  @JoinColumn({
-    name: 'instance_type_value_id',
-  })
-  instanceType: InstanceTypeValue;
+  @Column()
+  name: string;
 
   @Column()
   currentGeneration: boolean;

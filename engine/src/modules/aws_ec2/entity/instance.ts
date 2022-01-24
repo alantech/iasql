@@ -7,11 +7,9 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { AMI, } from './ami'
 import { InstanceType, } from './instance_type'
 // TODO: Is there a better way to deal with cross-module entities?
 import { AwsSecurityGroup, } from '../../aws_security_group/entity';
-import { Region, } from '../../aws_account/entity/region'
 
 // TODO complete instance schema
 @Entity()
@@ -24,17 +22,8 @@ export class Instance {
   })
   instanceId?: string;
 
-  @ManyToOne(() => AMI, { eager: true, })
-  @JoinColumn({
-    name: 'ami_id',
-  })
-  ami: AMI;
-
-  @ManyToOne(() => Region, { eager: true, })
-  @JoinColumn({
-    name: 'region_id',
-  })
-  region: Region;
+  @Column()
+  ami: string;
 
   @ManyToOne(() => InstanceType, { eager: true, })
   @JoinColumn({
