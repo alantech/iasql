@@ -27,7 +27,6 @@ import {
   InstanceStorageInfo,
   InstanceType,
   InstanceTypeHypervisor,
-  InstanceTypeValue,
   NetworkCardInfo,
   NetworkInfo,
   PlacementGroupInfo,
@@ -42,7 +41,7 @@ import {
 import { AwsSecurityGroupModule, } from '../aws_security_group'
 import { AWS, } from '../../services/gateways/aws'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEc21642623854742 } from './migration/1642623854742-aws_ec2'
+import { awsEc21642725211643 } from './migration/1642725211643-aws_ec2'
 
 export const AwsEc2Module: Module = new Module({
   name: 'aws_ec2',
@@ -81,7 +80,6 @@ export const AwsEc2Module: Module = new Module({
       'instance_type_supported_boot_modes_boot_mode',
       'instance_type_supported_root_device_types_device_type',
       'instance_type_supported_usage_classes_usage_class',
-      'instance_type_value',
       'network_card_info',
       'network_info',
       'network_info_network_cards_network_card_info',
@@ -200,9 +198,7 @@ export const AwsEc2Module: Module = new Module({
       }
       out.instanceStorageSupported = instanceType.InstanceStorageSupported ?? false;
       if (instanceType.InstanceType) {
-        const o2 = new InstanceTypeValue();
-        out.instanceType = o2;
-        o2.name = instanceType.InstanceType;
+        out.name = instanceType.InstanceType;
       }
       out.memorySizeInMiB = instanceType.MemoryInfo?.SizeInMiB ?? 0;
       if (instanceType.NetworkInfo) {
@@ -310,12 +306,12 @@ export const AwsEc2Module: Module = new Module({
   mappers: {
     instanceType: new Mapper<InstanceType>({
       entity: InstanceType,
-      entityId: (e: InstanceType) => e.instanceType.name,
+      entityId: (e: InstanceType) => e.name,
       // TODO: source: cloud entityPrint not needed (yet)
       entityPrint: (e: InstanceType) => ({
         id: e.id?.toString() ?? '',
       }),
-      equals: (a: InstanceType, b: InstanceType) => a.instanceType.name === b.instanceType.name, // TODO
+      equals: (a: InstanceType, b: InstanceType) => a.name === b.name, // TODO
       source: 'cloud',
       db: new Crud({
         create: async (es: InstanceType[], ctx: Context) => {
@@ -323,7 +319,6 @@ export const AwsEc2Module: Module = new Module({
           const fpgas: { [key: string]: FPGADeviceInfo, } = {};
           const gpus: { [key: string]: GPUDeviceInfo, } = {};
           const accelerators: { [key: string]: InferenceDeviceInfo, } = {};
-          const instanceTypes: { [key: string]: InstanceTypeValue, } = {};
           const strategies: { [key: string]: PlacementGroupStrategy, } = {};
           const cpuArches: { [key: string]: CPUArchitecture, } = {};
           const bootModes: { [key: string]: BootMode, } = {};
@@ -351,11 +346,6 @@ export const AwsEc2Module: Module = new Module({
                 accelerators[name] = accelerators[name] ?? a;
                 entity.inferenceAcceleratorInfo.accelerators[i] = accelerators[name];
               });
-            }
-            if (entity.instanceType) {
-              const name = entity.instanceType.name;
-              instanceTypes[name] = instanceTypes[name] ?? entity.instanceType;
-              entity.instanceType = instanceTypes[name];
             }
             if (entity.placementGroupInfo) {
               entity.placementGroupInfo.supportedStrategies.forEach((s, i) => {
@@ -404,7 +394,6 @@ export const AwsEc2Module: Module = new Module({
           await ctx.orm.save(FPGADeviceInfo, Object.values(fpgas));
           await ctx.orm.save(GPUDeviceInfo, Object.values(gpus));
           await ctx.orm.save(InferenceDeviceInfo, Object.values(accelerators));
-          await ctx.orm.save(InstanceTypeValue, Object.values(instanceTypes));
           await ctx.orm.save(PlacementGroupStrategy, Object.values(strategies));
           await ctx.orm.save(CPUArchitecture, Object.values(cpuArches));
           await ctx.orm.save(BootMode, Object.values(bootModes));
@@ -418,7 +407,7 @@ export const AwsEc2Module: Module = new Module({
           // TypeORM where clause not working correctly, again
           ids = Array.isArray(ids) ? ids : [];
           const allInstances = await ctx.orm.find(InstanceType);
-          return allInstances.filter((i: InstanceType) => (ids as string[]).includes(i.instanceType.name));
+          return allInstances.filter((i: InstanceType) => (ids as string[]).includes(i.name));
         },
         update: (e: InstanceType[], ctx: Context) => ctx.orm.save(InstanceType, e),
         delete: (e: InstanceType[], ctx: Context) => ctx.orm.remove(InstanceType, e),
@@ -438,17 +427,18 @@ export const AwsEc2Module: Module = new Module({
     }),
     instance: new Mapper<Instance>({
       entity: Instance,
-      entityId: (i: Instance) => i.instanceId ?? '',
+      // fallback to our id when the instance hasn't been created
+      entityId: (i: Instance) => i.instanceId ?? (i.id?.toString() ?? ''),
       entityPrint: (e: Instance) => ({
         id: e.id?.toString() ?? '',
         instanceId: e.instanceId ?? '',
         ami: e.ami ?? '',
-        instanceType: e.instanceType?.instanceType?.name ?? '',
+        instanceType: e.instanceType?.name ?? '',
         securityGroups: e.securityGroups?.map(sg => sg.groupName ?? '').join(', '),
       }),
       equals: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
         Object.is(a.ami, b.ami) &&
-        Object.is(a.instanceType.instanceType.name, b.instanceType.instanceType.name) &&
+        Object.is(a.instanceType.name, b.instanceType.name) &&
         a.securityGroups.length === b.securityGroups.length, // TODO: Better security group testing
       source: 'db',
       db: new Crud({
@@ -467,7 +457,7 @@ export const AwsEc2Module: Module = new Module({
           for (const instance of es) {
             if (instance.ami) {
               const instanceId = await client.newInstance(
-                instance.instanceType.instanceType.name,
+                instance.instanceType.name,
                 instance.ami,
                 instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[],
               );
@@ -484,7 +474,11 @@ export const AwsEc2Module: Module = new Module({
           const instances = Array.isArray(ids) ?
             await Promise.all(ids.map(id => client.getInstance(id))) :
             (await client.getInstances()).Instances ?? [];
-          return await Promise.all(instances.map(i => AwsEc2Module.utils.instanceMapper(i, ctx)));
+          // ignore instances in "Terminated" and "Shutting down" state
+          return await Promise.all(instances
+            .filter(i => i?.State?.Name !== "terminated" && i?.State?.Name !== "shutting-down")
+            .map(i => AwsEc2Module.utils.instanceMapper(i, ctx))
+          );
         },
         // The second pass should remove the old instances
         update: (e: Instance[], ctx: Context) => AwsEc2Module.mappers.instance.cloud.create(e, ctx),
@@ -498,7 +492,7 @@ export const AwsEc2Module: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEc21642623854742.prototype.up,
-    preremove: awsEc21642623854742.prototype.down,
+    postinstall: awsEc21642725211643.prototype.up,
+    preremove: awsEc21642725211643.prototype.down,
   },
 });

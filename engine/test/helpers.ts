@@ -1,6 +1,17 @@
+import { execSync, } from 'child_process'
+
 import { createConnection, } from 'typeorm'
 
 import * as iasql from '../src/services/iasql'
+
+export function execComposeUp() {
+  execSync('cd test && docker-compose up -d && sleep 5');
+}
+
+export function execComposeDown() {
+  execSync('cd test && docker-compose down');
+}
+
 export function getPrefix(){
   const chars = [
     Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
@@ -15,11 +26,11 @@ export function finish(done: (e?: any) => {}) {
   return [() => done(), (e: any) => { done(e); }];
 }
 
-export function runApply(done: (e?: any) => {}, dbAlias: string) {
+export function runApply(dbAlias: string, done: (e?: any) => {}) {
   iasql.apply(dbAlias, false, 'not-needed').then(...finish(done));
 }
 
-export function query(queryString: string, dbAlias: string) {
+export function runQuery(dbAlias: string, queryString: string) {
   return function (done: (e?: any) => {}) {
     console.log(queryString);
     createConnection({
