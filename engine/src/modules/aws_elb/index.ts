@@ -242,7 +242,27 @@ export const AwsElbModule: Module = new Module({
           }
           return 'update';
         },
-        update: async (es: AwsListener[], ctx: Context) => { throw new Error('tbd'); },
+        update: async (es: AwsListener[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.AwsListener?.[e.listenerArn ?? ''];
+            const isUpdate = AwsElbModule.mappers.listener.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            if (isUpdate) {
+              const updatedListener = await client.updateListener({
+                ListenerArn: e.listenerArn,
+                Port: e.port,
+                Protocol: e.protocol,
+                DefaultActions: e.defaultActions?.map(a => ({ Type: a.actionType, TargetGroupArn: a.targetGroup.targetGroupArn })),
+              });
+              return AwsElbModule.utils.listenerMapper(updatedListener, ctx);
+            } else {
+              // We need to delete the current cloud record and create the new one.
+              // The id in database will be the same `e` will keep it.
+              await AwsElbModule.mappers.listener.cloud.delete(cloudRecord, ctx);
+              return await AwsElbModule.mappers.listener.cloud.create(e, ctx);
+            }
+          }));
+        },
         delete: async (es: AwsListener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(e => client.deleteListener(e.listenerArn!)));
