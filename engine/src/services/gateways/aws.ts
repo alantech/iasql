@@ -74,6 +74,8 @@ import {
   paginateDescribeTargetGroups,
   SetIpAddressTypeCommand,
   SetIpAddressTypeCommandInput,
+  SetSecurityGroupsCommand,
+  SetSecurityGroupsCommandInput,
   SetSubnetsCommand,
   SetSubnetsCommandInput,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
@@ -588,6 +590,14 @@ export class AWS {
   async updateLoadBalancerSubnets(input: SetSubnetsCommandInput) {
     await this.elbClient.send(
       new SetSubnetsCommand(input),
+    );
+    const loadBalancer = await this.getLoadBalancer(input.LoadBalancerArn!);
+    return loadBalancer;
+  }
+
+  async updateLoadBalancerSecurityGroups(input: SetSecurityGroupsCommandInput) {
+    await this.elbClient.send(
+      new SetSecurityGroupsCommand(input),
     );
     const loadBalancer = await this.getLoadBalancer(input.LoadBalancerArn!);
     return loadBalancer;

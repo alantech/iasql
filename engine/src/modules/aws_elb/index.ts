@@ -456,11 +456,19 @@ export const AwsElbModule: Module = new Module({
                 const updatedLoadBalancer = await client.updateLoadBalancerSubnets({
                   LoadBalancerArn: e.loadBalancerArn,
                   IpAddressType: e.ipAddressType,
-                  Subnets: e.subnets?.map(sn => sn.subnetId),
+                  Subnets: e.subnets?.filter(sn => !!sn.subnetId).map(sn => sn.subnetId!),
                 });
                 updatedRecord = AwsElbModule.utils.loadBalancerMapper(updatedLoadBalancer, ctx);
               }
-              // TODO: Update security groups
+              // Update security groups
+              if (!Object.is(cloudRecord.securityGroups?.length, e.securityGroups?.length)
+                && !(cloudRecord.securityGroups?.every((csg: any) => !!e.securityGroups?.find(esg => Object.is(csg.groupId, esg.groupId))) ?? false)) {
+                const updatedLoadBalancer = await client.updateLoadBalancerSecurityGroups({
+                  LoadBalancerArn: e.loadBalancerArn,
+                  SecurityGroups: e.securityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!),
+                });
+                updatedRecord = AwsElbModule.utils.loadBalancerMapper(updatedLoadBalancer, ctx);
+              }
               // Restore auto generated values
               updatedRecord.id = e.id;
               await AwsElbModule.mappers.repository.db.update(updatedRecord, ctx);
