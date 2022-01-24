@@ -15,6 +15,12 @@ import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
 import * as Modules from '../modules'
 
+// Crupde = CR-UP-DE, Create/Update/Delete
+type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
+export function recordCount(crupde: Crupde) {
+  return Object.values(crupde).map(r => r.records.length).reduce((cumu, curr) => cumu + curr, 0);
+}
+
 export async function add(
   dbAlias: string,
   awsRegion: string,
@@ -275,8 +281,6 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
     let failureCount = -1;
-    // Crupde = CR-UP-DE, Create/Update/Delete
-    type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
     const toCreate: Crupde = {};
     const toUpdate: Crupde = {};
     const toReplace: Crupde = {};
@@ -365,18 +369,10 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
           toReplace,
           toDelete,
         };
-        const nextCreateCount = Object.values(toCreate)
-          .map(r => r.records.length)
-          .reduce((cumu, curr) => cumu + curr, 0);
-        const nextUpdateCount = Object.values(toUpdate)
-          .map(r => r.records.length)
-          .reduce((cumu, curr) => cumu + curr, 0);
-        const nextReplaceCount = Object.values(toReplace)
-          .map(r => r.records.length)
-          .reduce((cumu, curr) => cumu + curr, 0);
-        const nextDeleteCount = Object.values(toDelete)
-          .map(r => r.records.length)
-          .reduce((cumu, curr) => cumu + curr, 0);
+        const nextCreateCount = recordCount(toCreate);
+        const nextUpdateCount = recordCount(toUpdate);
+        const nextReplaceCount = recordCount(toReplace);
+        const nextDeleteCount = recordCount(toDelete);
         if (
           createCount === nextCreateCount &&
           updateCount === nextUpdateCount &&
@@ -508,8 +504,6 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
     let failureCount = -1;
-    // Crupde = CR-UP-DE, Create/Update/Delete
-    type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
     const toCreate: Crupde = {};
     const toUpdate: Crupde = {};
     const toReplace: Crupde = {}; // Not actually used in sync mode, at least right now
@@ -591,18 +585,10 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
           toReplace,
           toDelete,
         };
-        const nextCreateCount = Object.values(toCreate)
-          .map(r => r.records.length)
-          .reduce((cumu, curr) => cumu + curr, 0);
-        const nextUpdateCount = Object.values(toUpdate)
-          .map(r => r.records.length)
-          .reduce((cumu, curr) => cumu + curr, 0);
-        const nextReplaceCount = Object.values(toReplace)
-          .map(r => r.records.length)
-          .reduce((cumu, curr) => cumu + curr, 0);
-        const nextDeleteCount = Object.values(toDelete)
-          .map(r => r.records.length)
-          .reduce((cumu, curr) => cumu + curr, 0);
+        const nextCreateCount = recordCount(toCreate);
+        const nextUpdateCount = recordCount(toUpdate);
+        const nextReplaceCount = recordCount(toReplace);
+        const nextDeleteCount = recordCount(toDelete);
         if (
           createCount === nextCreateCount &&
           updateCount === nextUpdateCount &&
