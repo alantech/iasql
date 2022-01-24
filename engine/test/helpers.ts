@@ -19,7 +19,7 @@ export function getPrefix(){
     Array(10).fill('0').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
   ].flat();
   const randChar = (): string => chars[Math.floor(Math.random() * chars.length)];
-  return Array(7).fill('').map(() => randChar()).join('');
+  return Array(7).fill('').map(() => randChar()).join('').toLowerCase();
 }
 
 export function finish(done: (e?: any) => {}) {
