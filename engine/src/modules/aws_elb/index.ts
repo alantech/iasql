@@ -128,7 +128,7 @@ export const AwsElbModule: Module = new Module({
         loadBalancer: e?.loadBalancer?.loadBalancerName ?? '',
         port: e?.port?.toString() ?? '',
         protocol: e?.protocol ?? ProtocolEnum.HTTPS, // TODO: Which?
-        defaultActions: e?.defaultActions?.map(da => da.actionType).join(', ') ?? '',
+        defaultActions: e?.defaultActions?.map(da => `${da.actionType}: ${da.targetGroup.targetGroupName}`).join(', ') ?? '',
       }),
       equals: (a: AwsListener, b: AwsListener) => Object.is(a.listenerArn, b.listenerArn)
         && Object.is(a.loadBalancer.loadBalancerArn, b.loadBalancer.loadBalancerArn)
