@@ -1,5 +1,5 @@
 import { In, } from 'typeorm'
-import { Action, Listener, LoadBalancer, } from '@aws-sdk/client-elastic-load-balancing-v2'
+import { Action, CreateLoadBalancerCommandInput, Listener, LoadBalancer, } from '@aws-sdk/client-elastic-load-balancing-v2'
 
 import { AWS, } from '../../services/gateways/aws'
 import {
@@ -84,7 +84,7 @@ export const AwsElbModule: Module = new Module({
         const r = securityGroups.find((g: any) => g.groupId === sg) as AwsSecurityGroup;
         if (!r) throw new Error('Security groups need to be loaded');
         return r;
-      });
+      }) ?? [];
       out.ipAddressType = lb.IpAddressType as IpAddressType;
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
       out.vpc = ctx.memo?.db?.AwsVpc?.[lb.VpcId] ?? await AwsAccount.mappers.vpc.db.read(ctx, lb.VpcId);
@@ -293,7 +293,9 @@ export const AwsElbModule: Module = new Module({
         && (a.availabilityZones?.every(aaz => !!b.availabilityZones?.find(baz => Object.is(aaz.zoneId, baz.zoneId))) ?? false)
         && Object.is(a.canonicalHostedZoneId, b.canonicalHostedZoneId)
         && Object.is(a.createdTime?.getTime(), b.createdTime?.getTime())
-        && Object.is(a.customerOwnedIpv4Pool, b.customerOwnedIpv4Pool)
+        // This property might be comparing null vs undefined
+        // tslint:disable-next-line: triple-equals
+        && a.customerOwnedIpv4Pool == b.customerOwnedIpv4Pool
         && Object.is(a.dnsName, b.dnsName)
         && Object.is(a.ipAddressType, b.ipAddressType)
         && Object.is(a.loadBalancerName, b.loadBalancerName)
@@ -305,6 +307,26 @@ export const AwsElbModule: Module = new Module({
         && Object.is(a.subnets?.length, b.subnets?.length)
         && (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn.subnetId, bsn.subnetId))) ?? false)
         && Object.is(a.vpc.vpcId, b.vpc.vpcId),
+      // equals: (a: AwsLoadBalancer, b: AwsLoadBalancer) => {
+        
+      //   if (Object.is(a.availabilityZones?.length, b.availabilityZones?.length)) console.log('1')
+      //   if ((a.availabilityZones?.every(aaz => !!b.availabilityZones?.find(baz => Object.is(aaz.zoneId, baz.zoneId))) ?? false)) console.log('2')
+      //   if ( Object.is(a.canonicalHostedZoneId, b.canonicalHostedZoneId)) console.log('3')
+      //   if ( Object.is(a.createdTime?.getTime(), b.createdTime?.getTime())) console.log('4')
+      //   if ( Object.is(a.customerOwnedIpv4Pool, b.customerOwnedIpv4Pool)) console.log('5')
+      //   if ( Object.is(a.dnsName, b.dnsName)) console.log('6')
+      //   if ( Object.is(a.ipAddressType, b.ipAddressType)) console.log('7')
+      //   if ( Object.is(a.loadBalancerName, b.loadBalancerName)) console.log('8')
+      //   if ( Object.is(a.loadBalancerType, b.loadBalancerType)) console.log('9')
+      //   if ( Object.is(a.scheme, b.scheme)) console.log('10')
+      //   if ( Object.is(a.securityGroups?.length, b.securityGroups?.length)) console.log('11')
+      //   if ( (a.securityGroups?.every(asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)) console.log('12')
+      //   if ( Object.is(a.state, b.state)) console.log('13')
+      //   if ( Object.is(a.subnets?.length, b.subnets?.length)) console.log('14')
+      //   if ( (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn.subnetId, bsn.subnetId))) ?? false)) console.log('15')
+      //   if ( Object.is(a.vpc.vpcId, b.vpc.vpcId)) console.log('16')
+      //   return true
+      // },
       source: 'db',
       db: new Crud({
         create: async (es: AwsLoadBalancer[], ctx: Context) => {
@@ -392,15 +414,18 @@ export const AwsElbModule: Module = new Module({
               if (!sg.groupId) throw new Error('Security group need to be loaded first');
               return sg.groupId;
             });
-            const result = await client.createLoadBalancer({
+            const input: CreateLoadBalancerCommandInput = {
               Name: e.loadBalancerName,
               Subnets: e.subnets?.map(sn => sn.subnetId!),
-              SecurityGroups: securityGroups,
               Scheme: e.scheme,
               Type: e.loadBalancerType,
               IpAddressType: e.ipAddressType,
               CustomerOwnedIpv4Pool: e.customerOwnedIpv4Pool,
-            });
+            };
+            if (e.loadBalancerType === LoadBalancerTypeEnum.APPLICATION) {
+              input.SecurityGroups = securityGroups;
+            }
+            const result = await client.createLoadBalancer(input);
             // TODO: Handle if it fails (somehow)
             if (!result?.hasOwnProperty('LoadBalancerArn')) { // Failure
               throw new Error('what should we do here?');
@@ -425,6 +450,11 @@ export const AwsElbModule: Module = new Module({
           return await Promise.all(lbs.map(lb => AwsElbModule.utils.loadBalancerMapper(lb, ctx)));
         },
         updateOrReplace: (prev: AwsLoadBalancer, next: AwsLoadBalancer) => {
+          console.log(Object.is(prev.loadBalancerName, next.loadBalancerName))
+          console.log(Object.is(prev.loadBalancerType, next.loadBalancerType))
+          console.log(Object.is(prev.scheme, next.scheme))
+          console.log(Object.is(prev.vpc.vpcId, next.vpc.vpcId))
+          console.log(!(Object.is(prev.loadBalancerName, next.loadBalancerName) && Object.is(prev.loadBalancerType, next.loadBalancerType) && Object.is(prev.scheme, next.scheme) && Object.is(prev.vpc.vpcId, next.vpc.vpcId)))
           if (
             !(Object.is(prev.loadBalancerName, next.loadBalancerName)
               && Object.is(prev.loadBalancerType, next.loadBalancerType)
@@ -440,10 +470,13 @@ export const AwsElbModule: Module = new Module({
           return await Promise.all(es.map(async (e) => {
             const cloudRecord = ctx?.memo?.cloud?.AwsLoadBalancer?.[e.loadBalancerArn ?? ''];
             let updatedRecord = { ...cloudRecord };
-            const isUpdate = AwsElbModule.mappers.targetGroup.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            const isUpdate = AwsElbModule.mappers.loadBalancer.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            console.log(`-------- IS UPDATE?? ${isUpdate}`)
             if (isUpdate) {
               // Update ip address type
+              console.log(`-------- IS ip address type?? ${!Object.is(cloudRecord.ipAddressType, e.ipAddressType)}`)
               if (!Object.is(cloudRecord.ipAddressType, e.ipAddressType)) {
+                console.log('------ UPDATING IP ADDRESS TYPE')
                 const updatedLoadBalancer = await client.updateLoadBalancerIPAddressType({
                   LoadBalancerArn: e.loadBalancerArn,
                   IpAddressType: e.ipAddressType,
@@ -451,18 +484,17 @@ export const AwsElbModule: Module = new Module({
                 updatedRecord = AwsElbModule.utils.loadBalancerMapper(updatedLoadBalancer, ctx);
               }
               // Update subnets
-              if (!Object.is(cloudRecord.subnets?.length, e.subnets?.length)
-                && !(cloudRecord.subnets?.every((csn: any) => !!e.subnets?.find(esn => Object.is(csn.subnetId, esn.subnetId))) ?? false)) {
+              if (!(Object.is(cloudRecord.subnets?.length, e.subnets?.length)
+                && (cloudRecord.subnets?.every((csn: any) => !!e.subnets?.find(esn => Object.is(csn.subnetId, esn.subnetId))) ?? false))) {
+                console.log('------ UPDATING SUBNETS')
                 const updatedLoadBalancer = await client.updateLoadBalancerSubnets({
                   LoadBalancerArn: e.loadBalancerArn,
-                  IpAddressType: e.ipAddressType,
                   Subnets: e.subnets?.filter(sn => !!sn.subnetId).map(sn => sn.subnetId!),
                 });
                 updatedRecord = AwsElbModule.utils.loadBalancerMapper(updatedLoadBalancer, ctx);
               }
               // Update security groups
-              if (!Object.is(cloudRecord.securityGroups?.length, e.securityGroups?.length)
-                && !(cloudRecord.securityGroups?.every((csg: any) => !!e.securityGroups?.find(esg => Object.is(csg.groupId, esg.groupId))) ?? false)) {
+              if (!(Object.is(cloudRecord.securityGroups?.length, e.securityGroups?.length) && (cloudRecord.securityGroups?.every((csg: any) => !!e.securityGroups?.find(esg => Object.is(csg.groupId, esg.groupId))) ?? false))) {
                 const updatedLoadBalancer = await client.updateLoadBalancerSecurityGroups({
                   LoadBalancerArn: e.loadBalancerArn,
                   SecurityGroups: e.securityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!),
@@ -471,9 +503,10 @@ export const AwsElbModule: Module = new Module({
               }
               // Restore auto generated values
               updatedRecord.id = e.id;
-              await AwsElbModule.mappers.repository.db.update(updatedRecord, ctx);
+              await AwsElbModule.mappers.loadBalancer.db.update(updatedRecord, ctx);
               return updatedRecord;
             } else {
+              console.log('------- THIS IS BEIUNG EXECUTED SOME HOWWWW')
               // We need to delete the current cloud record and create the new one.
               // The id will be the same in database since `e` will keep it.
               await AwsElbModule.mappers.loadBalancer.cloud.delete(cloudRecord, ctx);
