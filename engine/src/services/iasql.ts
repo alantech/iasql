@@ -700,7 +700,7 @@ export async function modules(all: boolean, installed: boolean, dbAlias: string,
     const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const mods = await orm.find(IasqlModule);
     const modsInstalled = mods.map((m: IasqlModule) => (m.name));
-    return allModules.filter(m => modsInstalled.includes(m.name) && m.name !== 'aws_account');
+    return allModules.filter(m => modsInstalled.includes(m.name));
   } else {
     throw new Error('Invalid request parameters');
   }
