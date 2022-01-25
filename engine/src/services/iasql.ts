@@ -688,9 +688,10 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
 }
 
 export async function modules(all: boolean, installed: boolean, dbAlias: string, user: any) {
+  // TODO rm special casing for aws_account
   const allModules = Object.values(Modules)
-    .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name'))
-    .map((m: any) => ({'name': m.name, 'dependencies': m.dependencies}));
+    .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && m.name !== 'aws_account')
+    .map((m: any) => ({'name': m.name, 'dependencies': m.dependencies.filter((d: any) => d !== 'aws_account')}));
   if (all) {
     return allModules;
   } else if (installed && dbAlias) {
@@ -699,7 +700,7 @@ export async function modules(all: boolean, installed: boolean, dbAlias: string,
     const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const mods = await orm.find(IasqlModule);
     const modsInstalled = mods.map((m: IasqlModule) => (m.name));
-    return allModules.filter(m => modsInstalled.includes(m.name));
+    return allModules.filter(m => modsInstalled.includes(m.name) && m.name !== 'aws_account');
   } else {
     throw new Error('Invalid request parameters');
   }
