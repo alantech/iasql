@@ -140,6 +140,7 @@ export class awsEc21643082760075 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "instance_type_availability_zones_availability_zone" ADD CONSTRAINT "FK_412917c37df7b4fd87130c5b328" FOREIGN KEY ("availability_zone_id") REFERENCES "availability_zone"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups_aws_security_group" ADD CONSTRAINT "FK_ee3dfb3bef7cf8a5123b107167c" FOREIGN KEY ("instance_id") REFERENCES "instance"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups_aws_security_group" ADD CONSTRAINT "FK_0bc4c00d7c86a81c48482a2773d" FOREIGN KEY ("aws_security_group_id") REFERENCES "aws_security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        // Example of use: call create_ec2_instance('ami-0fdffa9be142bf7f4', 't2.micro', array['default'])
         await queryRunner.query(`
             create or replace procedure create_ec2_instance(_ami_id text, _instance_type text, _security_group_names text[])
             language plpgsql
