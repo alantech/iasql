@@ -30,7 +30,7 @@ Development of an existing module is expected to follow this pattern:
 1. Remove the entities and migrations of the dependent modules, if any.
 2. Remove the migration of the module you are trying to modify and comment out the usage of this migration in the module index file.
 3. Make the changes to the entities that you want to make.
-4. Run the `yarn gen-module my_new_module_name` script and have it generate a new migration file. (`my_new_module_name` needs to match the directory name for the module in question.)
+4. Run the `yarn gen-module my_existing_module_name` script and have it generate a new migration file. (`my_existing_module_name` needs to match the directory name for the module in question.)
 5. Attach the new migration file to the index file and git restore dependent modules.
 
 Currently the modules do not support versioning. This documentation will be updated when that is no longer true.

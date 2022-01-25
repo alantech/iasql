@@ -41,7 +41,7 @@ import {
 import { AwsSecurityGroupModule, } from '../aws_security_group'
 import { AWS, } from '../../services/gateways/aws'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEc21642725211643 } from './migration/1642725211643-aws_ec2'
+import { awsEc21643082760075 } from './migration/1643082760075-aws_ec2'
 
 export const AwsEc2Module: Module = new Module({
   name: 'aws_ec2',
@@ -492,7 +492,7 @@ export const AwsEc2Module: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEc21642725211643.prototype.up,
-    preremove: awsEc21642725211643.prototype.down,
+    postinstall: awsEc21643082760075.prototype.up,
+    preremove: awsEc21643082760075.prototype.down,
   },
 });
