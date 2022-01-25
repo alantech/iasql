@@ -307,26 +307,6 @@ export const AwsElbModule: Module = new Module({
         && Object.is(a.subnets?.length, b.subnets?.length)
         && (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn.subnetId, bsn.subnetId))) ?? false)
         && Object.is(a.vpc.vpcId, b.vpc.vpcId),
-      // equals: (a: AwsLoadBalancer, b: AwsLoadBalancer) => {
-        
-      //   if (Object.is(a.availabilityZones?.length, b.availabilityZones?.length)) console.log('1')
-      //   if ((a.availabilityZones?.every(aaz => !!b.availabilityZones?.find(baz => Object.is(aaz.zoneId, baz.zoneId))) ?? false)) console.log('2')
-      //   if ( Object.is(a.canonicalHostedZoneId, b.canonicalHostedZoneId)) console.log('3')
-      //   if ( Object.is(a.createdTime?.getTime(), b.createdTime?.getTime())) console.log('4')
-      //   if ( Object.is(a.customerOwnedIpv4Pool, b.customerOwnedIpv4Pool)) console.log('5')
-      //   if ( Object.is(a.dnsName, b.dnsName)) console.log('6')
-      //   if ( Object.is(a.ipAddressType, b.ipAddressType)) console.log('7')
-      //   if ( Object.is(a.loadBalancerName, b.loadBalancerName)) console.log('8')
-      //   if ( Object.is(a.loadBalancerType, b.loadBalancerType)) console.log('9')
-      //   if ( Object.is(a.scheme, b.scheme)) console.log('10')
-      //   if ( Object.is(a.securityGroups?.length, b.securityGroups?.length)) console.log('11')
-      //   if ( (a.securityGroups?.every(asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)) console.log('12')
-      //   if ( Object.is(a.state, b.state)) console.log('13')
-      //   if ( Object.is(a.subnets?.length, b.subnets?.length)) console.log('14')
-      //   if ( (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn.subnetId, bsn.subnetId))) ?? false)) console.log('15')
-      //   if ( Object.is(a.vpc.vpcId, b.vpc.vpcId)) console.log('16')
-      //   return true
-      // },
       source: 'db',
       db: new Crud({
         create: async (es: AwsLoadBalancer[], ctx: Context) => {
@@ -450,11 +430,6 @@ export const AwsElbModule: Module = new Module({
           return await Promise.all(lbs.map(lb => AwsElbModule.utils.loadBalancerMapper(lb, ctx)));
         },
         updateOrReplace: (prev: AwsLoadBalancer, next: AwsLoadBalancer) => {
-          console.log(Object.is(prev.loadBalancerName, next.loadBalancerName))
-          console.log(Object.is(prev.loadBalancerType, next.loadBalancerType))
-          console.log(Object.is(prev.scheme, next.scheme))
-          console.log(Object.is(prev.vpc.vpcId, next.vpc.vpcId))
-          console.log(!(Object.is(prev.loadBalancerName, next.loadBalancerName) && Object.is(prev.loadBalancerType, next.loadBalancerType) && Object.is(prev.scheme, next.scheme) && Object.is(prev.vpc.vpcId, next.vpc.vpcId)))
           if (
             !(Object.is(prev.loadBalancerName, next.loadBalancerName)
               && Object.is(prev.loadBalancerType, next.loadBalancerType)
@@ -471,12 +446,9 @@ export const AwsElbModule: Module = new Module({
             const cloudRecord = ctx?.memo?.cloud?.AwsLoadBalancer?.[e.loadBalancerArn ?? ''];
             let updatedRecord = { ...cloudRecord };
             const isUpdate = AwsElbModule.mappers.loadBalancer.cloud.updateOrReplace(cloudRecord, e) === 'update';
-            console.log(`-------- IS UPDATE?? ${isUpdate}`)
             if (isUpdate) {
               // Update ip address type
-              console.log(`-------- IS ip address type?? ${!Object.is(cloudRecord.ipAddressType, e.ipAddressType)}`)
               if (!Object.is(cloudRecord.ipAddressType, e.ipAddressType)) {
-                console.log('------ UPDATING IP ADDRESS TYPE')
                 const updatedLoadBalancer = await client.updateLoadBalancerIPAddressType({
                   LoadBalancerArn: e.loadBalancerArn,
                   IpAddressType: e.ipAddressType,
@@ -486,7 +458,6 @@ export const AwsElbModule: Module = new Module({
               // Update subnets
               if (!(Object.is(cloudRecord.subnets?.length, e.subnets?.length)
                 && (cloudRecord.subnets?.every((csn: any) => !!e.subnets?.find(esn => Object.is(csn.subnetId, esn.subnetId))) ?? false))) {
-                console.log('------ UPDATING SUBNETS')
                 const updatedLoadBalancer = await client.updateLoadBalancerSubnets({
                   LoadBalancerArn: e.loadBalancerArn,
                   Subnets: e.subnets?.filter(sn => !!sn.subnetId).map(sn => sn.subnetId!),
@@ -506,7 +477,6 @@ export const AwsElbModule: Module = new Module({
               await AwsElbModule.mappers.loadBalancer.db.update(updatedRecord, ctx);
               return updatedRecord;
             } else {
-              console.log('------- THIS IS BEIUNG EXECUTED SOME HOWWWW')
               // We need to delete the current cloud record and create the new one.
               // The id will be the same in database since `e` will keep it.
               await AwsElbModule.mappers.loadBalancer.cloud.delete(cloudRecord, ctx);
