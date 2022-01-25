@@ -7,13 +7,19 @@ import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
 import config from '../config'
-import { lazyLoader, } from '../services/lazy-dep'
+import { DepError, lazyLoader, } from '../services/lazy-dep'
 import { findDiff, } from '../services/diff'
 import { TypeormWrapper, } from './typeorm'
 import { IasqlModule, } from '../entity'
 import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
 import * as Modules from '../modules'
+
+// Crupde = CR-UP-DE, Create/Update/Delete
+type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
+export function recordCount(crupde: Crupde) {
+  return Object.values(crupde).map(r => r.records.length).reduce((cumu, curr) => cumu + curr, 0);
+}
 
 export async function add(
   dbAlias: string,
@@ -275,12 +281,15 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
     let failureCount = -1;
-    // Crupde = CR-UP-DE, Create/Update/Delete
-    type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
     const toCreate: Crupde = {};
     const toUpdate: Crupde = {};
     const toReplace: Crupde = {};
     const toDelete: Crupde = {};
+    let createCount = -1;
+    let updateCount = -1;
+    let replaceCount = -1;
+    let deleteCount = -1;
+    let spinCount = 0;
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -360,6 +369,32 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
           toReplace,
           toDelete,
         };
+        const nextCreateCount = recordCount(toCreate);
+        const nextUpdateCount = recordCount(toUpdate);
+        const nextReplaceCount = recordCount(toReplace);
+        const nextDeleteCount = recordCount(toDelete);
+        if (
+          createCount === nextCreateCount &&
+          updateCount === nextUpdateCount &&
+          replaceCount === nextReplaceCount &&
+          deleteCount === nextDeleteCount
+        ) {
+          spinCount++;
+        } else {
+          createCount = nextCreateCount;
+          updateCount = nextUpdateCount;
+          replaceCount = nextReplaceCount;
+          deleteCount = nextDeleteCount;
+          spinCount = 0;
+        }
+        if (spinCount === 3) {
+          throw new DepError('Forward progress halted. All remaining DB changes failing to apply.', {
+            toCreate,
+            toUpdate,
+            toReplace,
+            toDelete,
+          });
+        }
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - t4}ms`);
         const promiseGenerators = records
@@ -469,12 +504,15 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
     console.log(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
     let failureCount = -1;
-    // Crupde = CR-UP-DE, Create/Update/Delete
-    type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
     const toCreate: Crupde = {};
     const toUpdate: Crupde = {};
     const toReplace: Crupde = {}; // Not actually used in sync mode, at least right now
     const toDelete: Crupde = {};
+    let createCount = -1;
+    let updateCount = -1;
+    let replaceCount = -1;
+    let deleteCount = -1;
+    let spinCount = 0;
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -547,6 +585,32 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
           toReplace,
           toDelete,
         };
+        const nextCreateCount = recordCount(toCreate);
+        const nextUpdateCount = recordCount(toUpdate);
+        const nextReplaceCount = recordCount(toReplace);
+        const nextDeleteCount = recordCount(toDelete);
+        if (
+          createCount === nextCreateCount &&
+          updateCount === nextUpdateCount &&
+          replaceCount === nextReplaceCount &&
+          deleteCount === nextDeleteCount
+        ) {
+          spinCount++;
+        } else {
+          createCount = nextCreateCount;
+          updateCount = nextUpdateCount;
+          replaceCount = nextReplaceCount;
+          deleteCount = nextDeleteCount;
+          spinCount = 0;
+        }
+        if (spinCount === 3) {
+          throw new DepError('Forward progress halted. All remaining Cloud changes failing to apply.', {
+            toCreate,
+            toUpdate,
+            toReplace,
+            toDelete,
+          });
+        }
         const t5 = Date.now();
         console.log(`Diff time: ${t5 - t4}ms`);
         const promiseGenerators = records
