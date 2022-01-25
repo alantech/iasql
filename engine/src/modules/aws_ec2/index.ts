@@ -296,6 +296,7 @@ export const AwsEc2Module: Module = new Module({
       out.instanceId = instance.InstanceId;
       out.ami = instance.ImageId ?? '';
       out.instanceType = await AwsEc2Module.mappers.instanceType.db.read(ctx, instance.InstanceType);
+      if (!out.instanceType) throw new Error('Cannot create Instance object without a valid InstanceType in the Database');
       out.securityGroups = await AwsSecurityGroupModule.mappers.securityGroup.db.read(
         ctx,
         instance.SecurityGroups?.map(sg => sg.GroupId).filter(id => !!id) as string[],
