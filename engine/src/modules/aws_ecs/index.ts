@@ -138,7 +138,7 @@ export const AwsEcsModule: Module = new Module({
           slb2.elb = loadBalancers.find((lb: AwsLoadBalancer) => lb.loadBalancerName === slb.loadBalancerName);
         }
         if (slb.targetGroupArn) {
-          const targetGroups = ctx.memo?.db?.AwsTargetGroup ?  Object.values(ctx.memo?.db?.AwsTargetGroup) : await AwsElbModule.mappers.targetGroup.db.read(ctx);
+          const targetGroups = ctx.memo?.db?.AwsTargetGroup ? Object.values(ctx.memo?.db?.AwsTargetGroup) : await AwsElbModule.mappers.targetGroup.db.read(ctx);
           const targetGroup = targetGroups.find((tg: any) => tg.targetGroupArn === slb.targetGroupArn);
           if (targetGroup?.targetGroupArn) {
             slb2.targetGroup = targetGroup;
@@ -173,6 +173,21 @@ export const AwsEcsModule: Module = new Module({
       }
       return out;
     },
+    containersEq: (a: ContainerDefinition, b: ContainerDefinition) => Object.is(a.cpu, b.cpu)
+      && Object.is(a.dockerImage, b.dockerImage)
+      && Object.is(a.environment?.length, b.environment?.length)
+      && a.environment?.every(ae => !!b.environment?.find(be => Object.is(ae.name, be.name) && Object.is(ae.value, be.value)))
+      && Object.is(a.essential, b.essential)
+      && AwsCloudwatchModule.mappers.logGroup.equals(a.logGroup, b.logGroup)
+      && Object.is(a.memory, b.memory)
+      && Object.is(a.memoryReservation, b.memoryReservation)
+      && Object.is(a.name, b.name)
+      && Object.is(a.portMappings?.length, b.portMappings?.length)
+      && a.portMappings?.every(apm => !!b.portMappings?.find(
+        bpm => Object.is(apm.hostPort, bpm.hostPort) && Object.is(apm.containerPort, bpm.containerPort) && Object.is(apm.protocol, bpm.protocol)))
+      && Object.is(a.publicRepository?.repositoryName, b.publicRepository?.repositoryName)
+      && Object.is(a.repository?.repositoryName, b.repository?.repositoryName)
+      && Object.is(a.tag, b.tag),
   },
   mappers: {
     cluster: new Mapper<Cluster>({
@@ -264,7 +279,7 @@ export const AwsEcsModule: Module = new Module({
       entityPrint: (e: TaskDefinition) => ({
         id: e?.id?.toString() ?? '',
         taskDefinitionArn: e?.taskDefinitionArn ?? '',
-        containers: e?.containers?.map(c => c?.name  ?? '').join(', ') ?? '',
+        containers: e?.containers?.map(c => c?.name ?? '').join(', ') ?? '',
         family: e?.family ?? '',
         revision: e?.revision?.toString() ?? '',
         taskRoleArn: e?.taskRoleArn ?? '',
@@ -274,7 +289,18 @@ export const AwsEcsModule: Module = new Module({
         reqCompatibilities: e?.reqCompatibilities?.map(c => c?.name ?? '').join(', ') ?? '',
         cpuMemory: e?.cpuMemory ?? CpuMemCombination['1vCPU-2GB'], // TODO: Which?
       }),
-      equals: (_a: TaskDefinition, _b: TaskDefinition) => true,  // TODO: Fill in when updates supported
+      equals: (a: TaskDefinition, b: TaskDefinition) => Object.is(a.containers.length, b.containers.length)
+        && a.containers.every(ac => !!b.containers.find(bc => AwsEcsModule.utils.containersEq(ac, bc)))
+        && Object.is(a.cpuMemory, b.cpuMemory)
+        && Object.is(a.executionRoleArn, b.executionRoleArn)
+        && Object.is(a.family, b.family)
+        && Object.is(a.networkMode, b.networkMode)
+        && Object.is(a.reqCompatibilities?.length, b.reqCompatibilities?.length)
+        && (a.reqCompatibilities?.every(arc => !!b.reqCompatibilities?.find(brc => Object.is(arc.name, brc.name))) ?? false)
+        && Object.is(a.revision, b.revision)
+        && Object.is(a.status, b.status)
+        && Object.is(a.taskDefinitionArn, b.taskDefinitionArn)
+        && Object.is(a.taskRoleArn, b.taskRoleArn),
       source: 'db',
       db: new Crud({
         create: async (es: TaskDefinition[], ctx: Context) => {
@@ -390,7 +416,7 @@ export const AwsEcsModule: Module = new Module({
                   c.publicRepository ?
                     c.publicRepository.repositoryUri :
                     c.dockerImage
-                }:${c.tag}`;
+                  }:${c.tag}`;
                 if (container.logGroup) {
                   // TODO: improve log configuration
                   container.logConfiguration = {
