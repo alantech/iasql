@@ -40,7 +40,7 @@ export const AwsEcsModule: Module = new Module({
     },
     containerDefinitionMapper: async (c: any, ctx: Context) => {
       const out = new ContainerDefinition();
-      out.cpu = c?.cpu;
+      out.cpu = c?.cpu ?? null;
       // TODO: remove env var duplications
       out.environment = c.environment?.map((e: any) => {
         const e2 = new EnvVariable();
@@ -48,9 +48,9 @@ export const AwsEcsModule: Module = new Module({
         e2.value = e.value;
         return e2;
       }) ?? [];
-      out.essential = c.essential;
-      out.memory = c.memory;
-      out.memoryReservation = c.memoryReservation;
+      out.essential = c.essential ?? null;
+      out.memory = c.memory ?? null;
+      out.memoryReservation = c.memoryReservation ?? null;
       out.name = c.name;
       // TODO: remove port mapping duplications
       out.portMappings = c.portMappings?.map((pm: any) => {
@@ -65,14 +65,20 @@ export const AwsEcsModule: Module = new Module({
         const repositories = ctx.memo?.db?.AwsRepository ? Object.values(ctx.memo?.db?.AwsRepository) : await AwsEcrModule.mappers.repository.db.read(ctx);
         const repository = repositories.find((r: any) => r.repositoryUri === imageTag[0]);
         out.repository = repository;
+        out.dockerImage = imageTag[-1] ?? null;
+        out.publicRepository = imageTag[-1] ?? null;
       } else if (imageTag[0]?.includes('public.ecr.aws')) {
         const publicRepositories = ctx.memo?.db?.AwsPublicRepository ? Object.values(ctx.memo?.db?.AwsPublicRepository) : await AwsEcrModule.mappers.publicRepository.db.read(ctx);
         const publicRepository = publicRepositories.find((r: any) => r.repositoryUri === imageTag[0]);
         out.publicRepository = publicRepository;
+        out.dockerImage = imageTag[-1] ?? null;
+        out.repository = imageTag[-1] ?? null;
       } else {
         out.dockerImage = imageTag[0];
+        out.repository = imageTag[-1] ?? null;
+        out.publicRepository = imageTag[-1] ?? null;
       }
-      out.tag = imageTag[1];
+      out.tag = imageTag[1] ?? null;
       // TODO: eventually handle more log drivers
       if (c.logConfiguration?.logDriver === 'awslogs') {
         const groupName = c.logConfiguration.options['awslogs-group'];
@@ -80,6 +86,7 @@ export const AwsEcsModule: Module = new Module({
         const logGroup = logGroups.find((lg: any) => lg.logGroupName === groupName);
         out.logGroup = logGroup;
       }
+      if (!out.logGroup) out.logGroup = c.logConfiguration?.undefinedprop ?? null;
       return out;
     },
     taskDefinitionMapper: async (td: any, ctx: Context) => {
@@ -93,9 +100,9 @@ export const AwsEcsModule: Module = new Module({
         return cd;
       }));
       out.cpuMemory = `${+(td.cpu ?? '256') / 1024}vCPU-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
-      out.executionRoleArn = td.executionRoleArn;
+      out.executionRoleArn = td.executionRoleArn ?? null;
       out.family = td.family;
-      out.networkMode = td.networkMode;
+      out.networkMode = td.networkMode ?? null;
       out.reqCompatibilities = await Promise.all(td.requiresCompatibilities?.map(async (rc: any) => {
         const comp = await ctx.orm.findOne(Compatibility, {
           where: {
@@ -112,7 +119,7 @@ export const AwsEcsModule: Module = new Module({
       out.revision = td.revision;
       out.status = td.status;
       out.taskDefinitionArn = td.taskDefinitionArn;
-      out.taskRoleArn = td.taskRoleArn;
+      out.taskRoleArn = td.taskRoleArn ?? null;
       return out;
     },
     serviceMapper: async (s: any, ctx: Context) => {
@@ -289,9 +296,7 @@ export const AwsEcsModule: Module = new Module({
         reqCompatibilities: e?.reqCompatibilities?.map(c => c?.name ?? '').join(', ') ?? '',
         cpuMemory: e?.cpuMemory ?? CpuMemCombination['1vCPU-2GB'], // TODO: Which?
       }),
-      equals: (a: TaskDefinition, b: TaskDefinition) => Object.is(a.containers.length, b.containers.length)
-        && a.containers.every(ac => !!b.containers.find(bc => AwsEcsModule.utils.containersEq(ac, bc)))
-        && Object.is(a.cpuMemory, b.cpuMemory)
+      equals: (a: TaskDefinition, b: TaskDefinition) => Object.is(a.cpuMemory, b.cpuMemory)
         && Object.is(a.executionRoleArn, b.executionRoleArn)
         && Object.is(a.family, b.family)
         && Object.is(a.networkMode, b.networkMode)
@@ -300,7 +305,9 @@ export const AwsEcsModule: Module = new Module({
         && Object.is(a.revision, b.revision)
         && Object.is(a.status, b.status)
         && Object.is(a.taskDefinitionArn, b.taskDefinitionArn)
-        && Object.is(a.taskRoleArn, b.taskRoleArn),
+        && Object.is(a.taskRoleArn, b.taskRoleArn)
+        && (a.status === TaskDefinitionStatus.ACTIVE && b.status === TaskDefinitionStatus.ACTIVE ? Object.is(a.containers.length, b.containers.length)
+          && a.containers.every(ac => !!b.containers.find(bc => AwsEcsModule.utils.containersEq(ac, bc))) : true),
       source: 'db',
       db: new Crud({
         create: async (es: TaskDefinition[], ctx: Context) => {
@@ -478,6 +485,7 @@ export const AwsEcsModule: Module = new Module({
           ));
         },
         // TODO: Do the delete and recreate as specified here
+        // TODO: JUST CREATE A NEW TASK DEFINITION ON UPDATE ACTIVE AND AUTOCOMPLETE FOR INACTIVE TASKS?
         update: async (_td: TaskDefinition[], _ctx: Context) => { throw new Error('Cannot update task definitions. Create a new revision'); },
         delete: async (es: TaskDefinition[], ctx: Context) => {
           // Do not delete task if it is being used by a service
