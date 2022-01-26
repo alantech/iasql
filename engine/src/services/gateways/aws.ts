@@ -72,6 +72,12 @@ import {
   paginateDescribeListeners,
   paginateDescribeLoadBalancers,
   paginateDescribeTargetGroups,
+  SetIpAddressTypeCommand,
+  SetIpAddressTypeCommandInput,
+  SetSecurityGroupsCommand,
+  SetSecurityGroupsCommandInput,
+  SetSubnetsCommand,
+  SetSubnetsCommandInput,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 import {
   CreateClusterCommand,
@@ -570,6 +576,30 @@ export class AWS {
         }
       },
     );
+    return loadBalancer;
+  }
+
+  async updateLoadBalancerIPAddressType(input: SetIpAddressTypeCommandInput) {
+    await this.elbClient.send(
+      new SetIpAddressTypeCommand(input),
+    );
+    const loadBalancer = await this.getLoadBalancer(input.LoadBalancerArn!);
+    return loadBalancer;
+  }
+
+  async updateLoadBalancerSubnets(input: SetSubnetsCommandInput) {
+    await this.elbClient.send(
+      new SetSubnetsCommand(input),
+    );
+    const loadBalancer = await this.getLoadBalancer(input.LoadBalancerArn!);
+    return loadBalancer;
+  }
+
+  async updateLoadBalancerSecurityGroups(input: SetSecurityGroupsCommandInput) {
+    await this.elbClient.send(
+      new SetSecurityGroupsCommand(input),
+    );
+    const loadBalancer = await this.getLoadBalancer(input.LoadBalancerArn!);
     return loadBalancer;
   }
 

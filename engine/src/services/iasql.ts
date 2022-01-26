@@ -387,7 +387,7 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
           deleteCount = nextDeleteCount;
           spinCount = 0;
         }
-        if (spinCount === 3) {
+        if (spinCount === 4) {
           throw new DepError('Forward progress halted. All remaining DB changes failing to apply.', {
             toCreate,
             toUpdate,
@@ -603,7 +603,7 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
           deleteCount = nextDeleteCount;
           spinCount = 0;
         }
-        if (spinCount === 3) {
+        if (spinCount === 4) {
           throw new DepError('Forward progress halted. All remaining Cloud changes failing to apply.', {
             toCreate,
             toUpdate,
