@@ -229,25 +229,17 @@ export const AwsEcsModule: Module = new Module({
           return await Promise.all(clusters.map(c => AwsEcsModule.utils.clusterMapper(c, ctx)));
         },
         updateOrReplace: (prev: Cluster, next: Cluster) => {
-          if (!Object.is(prev.clusterName, next.clusterName)) return 'replace';
+          // TODO: think about how a cluster replace would work. When you delete a cluster AWS deletes all its children,
+          // meaning that running services will be deleted and would need to be recreated and reatteched on a replacement?
+          // if (!Object.is(prev.clusterName, next.clusterName)) return 'replace';
           return 'update';
         },
         update: async (es: Cluster[], ctx: Context) => {
-          const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
             const cloudRecord = ctx?.memo?.cloud?.Cluster?.[e.clusterArn ?? ''];
-            const isUpdate = AwsEcsModule.mappers.cluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
-            if (isUpdate) {
-              // Restore auto generated values
-              cloudRecord.id = e.id;
-              await AwsEcsModule.mappers.cluster.db.update(cloudRecord, ctx);
-              return cloudRecord;
-            } else {
-              // We need to delete the current cloud record and create the new one.
-              // The id in database will be the same `e` will keep it.
-              await AwsEcsModule.mappers.cluster.cloud.delete(cloudRecord, ctx);
-              return await AwsEcsModule.mappers.cluster.cloud.create(e, ctx);
-            }
+            cloudRecord.id = e.id;
+            await AwsEcsModule.mappers.cluster.db.update(cloudRecord, ctx);
+            return cloudRecord;
           }));
         },
         delete: async (es: Cluster[], ctx: Context) => {
