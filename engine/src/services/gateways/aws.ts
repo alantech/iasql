@@ -761,6 +761,18 @@ export class AWS {
   }
 
   async deleteCluster(id: string) {
+    const clusterServices = await this.getServices([id]);
+    if (clusterServices.length) {
+      await Promise.all(clusterServices.filter(s => !!s.serviceName).map(async s => {
+        s.desiredCount = 0;
+        await this.updateService({
+          service: s.serviceName,
+          cluster: id,
+          desiredCount: s.desiredCount,
+        });
+        return this.deleteService(s.serviceName!, id);
+      }));
+    }
     const tasks = await this.getTasksArns(id);
     if (tasks.length) {
       await waitUntilTasksStopped({
