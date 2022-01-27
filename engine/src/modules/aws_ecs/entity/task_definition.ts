@@ -4,6 +4,7 @@ import {
   Column,
   ManyToMany,
   JoinTable,
+  AfterLoad,
 } from 'typeorm';
 import { ContainerDefinition, Compatibility } from '.';
 
@@ -129,4 +130,11 @@ export class TaskDefinition {
     enum: CpuMemCombination,
   })
   cpuMemory: CpuMemCombination;
+
+  @AfterLoad()
+  updateNulls() {
+    Object.keys(this).forEach(k => {
+      if ((this as any)[k] === null) (this as any)[k] = undefined;
+    });
+  }
 }

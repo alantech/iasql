@@ -48,7 +48,7 @@ export const AwsEcsModule: Module = new Module({
         e2.value = e.value;
         return e2;
       }) ?? [];
-      out.essential = c.essential ?? null;
+      out.essential = c.essential;
       out.memory = c.memory;
       out.memoryReservation = c.memoryReservation;
       out.name = c.name;
@@ -72,7 +72,7 @@ export const AwsEcsModule: Module = new Module({
       } else {
         out.dockerImage = imageTag[0];
       }
-      out.tag = imageTag[1] ?? null;
+      out.tag = imageTag[1];
       // TODO: eventually handle more log drivers
       if (c.logConfiguration?.logDriver === 'awslogs') {
         const groupName = c.logConfiguration.options['awslogs-group'];
@@ -93,9 +93,9 @@ export const AwsEcsModule: Module = new Module({
         return cd;
       }));
       out.cpuMemory = `${+(td.cpu ?? '256') / 1024}vCPU-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
-      out.executionRoleArn = td.executionRoleArn ?? null;
+      out.executionRoleArn = td.executionRoleArn;
       out.family = td.family;
-      out.networkMode = td.networkMode ?? null;
+      out.networkMode = td.networkMode;
       out.reqCompatibilities = await Promise.all(td.requiresCompatibilities?.map(async (rc: any) => {
         const comp = await ctx.orm.findOne(Compatibility, {
           where: {
@@ -112,7 +112,7 @@ export const AwsEcsModule: Module = new Module({
       out.revision = td.revision;
       out.status = td.status;
       out.taskDefinitionArn = td.taskDefinitionArn;
-      out.taskRoleArn = td.taskRoleArn ?? null;
+      out.taskRoleArn = td.taskRoleArn;
       return out;
     },
     serviceMapper: async (s: any, ctx: Context) => {
