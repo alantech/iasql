@@ -74,7 +74,12 @@ export const AwsRdsModule: Module = new Module({
           const evs = Array.isArray(ids) ?
             await Promise.all(ids.map(id => client.getEngineVersion(id))) :
             (await client.getEngineVersions()).DBEngineVersions;
-          return await Promise.all(evs.map(ev => AwsRdsModule.utils.engineVersionMapper(ev, ctx)));
+          // TODO: Remove this once we have a better handle on making sure the AWS API returns
+          // unique data
+          const evIdx: any = {};
+          evs.forEach((ev: any) => evIdx[ev.EngineVersionKey] = ev);
+          const evs2 = Object.values(evIdx);
+          return await Promise.all(evs2.map(ev => AwsRdsModule.utils.engineVersionMapper(ev, ctx)));
         },
         update: async (_e: EngineVersion[], _ctx: Context) => {/** Noop */ },
         delete: async (_e: EngineVersion[], _ctx: Context) => {/** Noop */ },
