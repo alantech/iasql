@@ -40,7 +40,7 @@ export const AwsEcsModule: Module = new Module({
     },
     containerDefinitionMapper: async (c: any, ctx: Context) => {
       const out = new ContainerDefinition();
-      out.cpu = c?.cpu ?? null;
+      out.cpu = c?.cpu;
       // TODO: remove env var duplications
       out.environment = c.environment?.map((e: any) => {
         const e2 = new EnvVariable();
@@ -48,9 +48,9 @@ export const AwsEcsModule: Module = new Module({
         e2.value = e.value;
         return e2;
       }) ?? [];
-      out.essential = c.essential ?? null;
-      out.memory = c.memory ?? null;
-      out.memoryReservation = c.memoryReservation ?? null;
+      out.essential = c.essential;
+      out.memory = c.memory;
+      out.memoryReservation = c.memoryReservation;
       out.name = c.name;
       // TODO: remove port mapping duplications
       out.portMappings = c.portMappings?.map((pm: any) => {
@@ -65,20 +65,14 @@ export const AwsEcsModule: Module = new Module({
         const repositories = ctx.memo?.db?.AwsRepository ? Object.values(ctx.memo?.db?.AwsRepository) : await AwsEcrModule.mappers.repository.db.read(ctx);
         const repository = repositories.find((r: any) => r.repositoryUri === imageTag[0]);
         out.repository = repository;
-        out.dockerImage = imageTag[-1] ?? null;
-        out.publicRepository = imageTag[-1] ?? null;
       } else if (imageTag[0]?.includes('public.ecr.aws')) {
         const publicRepositories = ctx.memo?.db?.AwsPublicRepository ? Object.values(ctx.memo?.db?.AwsPublicRepository) : await AwsEcrModule.mappers.publicRepository.db.read(ctx);
         const publicRepository = publicRepositories.find((r: any) => r.repositoryUri === imageTag[0]);
         out.publicRepository = publicRepository;
-        out.dockerImage = imageTag[-1] ?? null;
-        out.repository = imageTag[-1] ?? null;
       } else {
         out.dockerImage = imageTag[0];
-        out.repository = imageTag[-1] ?? null;
-        out.publicRepository = imageTag[-1] ?? null;
       }
-      out.tag = imageTag[1] ?? null;
+      out.tag = imageTag[1];
       // TODO: eventually handle more log drivers
       if (c.logConfiguration?.logDriver === 'awslogs') {
         const groupName = c.logConfiguration.options['awslogs-group'];
@@ -86,7 +80,6 @@ export const AwsEcsModule: Module = new Module({
         const logGroup = logGroups.find((lg: any) => lg.logGroupName === groupName);
         out.logGroup = logGroup;
       }
-      if (!out.logGroup) out.logGroup = c.logConfiguration?.undefinedprop ?? null;
       return out;
     },
     taskDefinitionMapper: async (td: any, ctx: Context) => {
@@ -100,9 +93,9 @@ export const AwsEcsModule: Module = new Module({
         return cd;
       }));
       out.cpuMemory = `${+(td.cpu ?? '256') / 1024}vCPU-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
-      out.executionRoleArn = td.executionRoleArn ?? null;
+      out.executionRoleArn = td.executionRoleArn;
       out.family = td.family;
-      out.networkMode = td.networkMode ?? null;
+      out.networkMode = td.networkMode;
       out.reqCompatibilities = await Promise.all(td.requiresCompatibilities?.map(async (rc: any) => {
         const comp = await ctx.orm.findOne(Compatibility, {
           where: {
@@ -119,7 +112,7 @@ export const AwsEcsModule: Module = new Module({
       out.revision = td.revision;
       out.status = td.status;
       out.taskDefinitionArn = td.taskDefinitionArn;
-      out.taskRoleArn = td.taskRoleArn ?? null;
+      out.taskRoleArn = td.taskRoleArn;
       return out;
     },
     serviceMapper: async (s: any, ctx: Context) => {
@@ -185,7 +178,7 @@ export const AwsEcsModule: Module = new Module({
       && Object.is(a.environment?.length, b.environment?.length)
       && a.environment?.every(ae => !!b.environment?.find(be => Object.is(ae.name, be.name) && Object.is(ae.value, be.value)))
       && Object.is(a.essential, b.essential)
-      && AwsCloudwatchModule.mappers.logGroup.equals(a.logGroup, b.logGroup)
+      && Object.is(a.logGroup?.logGroupArn, b.logGroup?.logGroupArn)
       && Object.is(a.memory, b.memory)
       && Object.is(a.memoryReservation, b.memoryReservation)
       && Object.is(a.name, b.name)
