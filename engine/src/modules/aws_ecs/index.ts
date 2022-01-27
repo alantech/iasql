@@ -184,7 +184,9 @@ export const AwsEcsModule: Module = new Module({
         clusterArn: e?.clusterArn ?? '',
         clusterStatus: e?.clusterStatus ?? '',
       }),
-      equals: (_a: Cluster, _b: Cluster) => true,  // TODO: Fill in when updates supported
+      equals: (a: Cluster, b: Cluster) => Object.is(a.clusterArn, b.clusterArn)
+        && Object.is(a.clusterName, b.clusterName)
+        && Object.is(a.clusterStatus, b.clusterStatus),
       source: 'db',
       db: new Crud({
         create: (c: Cluster[], ctx: Context) => ctx.orm.save(Cluster, c),
@@ -226,7 +228,26 @@ export const AwsEcsModule: Module = new Module({
             await client.getClusters() ?? [];
           return await Promise.all(clusters.map(c => AwsEcsModule.utils.clusterMapper(c, ctx)));
         },
-        update: async (_c: Cluster[], _ctx: Context) => { throw new Error('tbd'); },
+        updateOrReplace: (prev: Cluster, next: Cluster) => {
+          if (!Object.is(prev.clusterName, next.clusterName)) return 'replace';
+          return 'update';
+        },
+        update: async (es: Cluster[], ctx: Context) => {
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.Cluster?.[e.clusterArn ?? ''];
+            const isUpdate = AwsEcsModule.mappers.cluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            if (isUpdate) {
+              cloudRecord.id = e.id;
+              await AwsEcsModule.mappers.cluster.db.update(cloudRecord, ctx);
+              return cloudRecord;
+            } else {
+              // We need to delete the current cloud record and create the new one.
+              // The id in database will be the same `e` will keep it.
+              await AwsEcsModule.mappers.cluster.cloud.delete(cloudRecord, ctx);
+              return await AwsEcsModule.mappers.cluster.cloud.create(e, ctx);
+            }
+          }));
+        },
         delete: async (es: Cluster[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(async e => {
