@@ -185,7 +185,7 @@ export const AwsEcsModule: Module = new Module({
       && Object.is(a.environment?.length, b.environment?.length)
       && a.environment?.every(ae => !!b.environment?.find(be => Object.is(ae.name, be.name) && Object.is(ae.value, be.value)))
       && Object.is(a.essential, b.essential)
-      && AwsCloudwatchModule.mappers.logGroup.equals(a.logGroup, b.logGroup)
+      && Object.is(a.logGroup?.logGroupArn, b.logGroup?.logGroupArn)
       && Object.is(a.memory, b.memory)
       && Object.is(a.memoryReservation, b.memoryReservation)
       && Object.is(a.name, b.name)

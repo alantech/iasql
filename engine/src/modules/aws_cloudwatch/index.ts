@@ -34,9 +34,9 @@ export const AwsCloudwatchModule: Module = new Module({
         logGroupArn: e?.logGroupArn ?? '',
         creationTime: e?.creationTime?.toISOString() ?? '',
       }),
-      equals: (a: LogGroup, b: LogGroup) => Object.is(a?.logGroupName, b?.logGroupName)
-        && Object.is(a?.logGroupArn, b?.logGroupArn)
-        && Object.is(a?.creationTime?.getTime(), b?.creationTime?.getTime()),
+      equals: (a: LogGroup, b: LogGroup) => Object.is(a.logGroupName, b.logGroupName)
+        && Object.is(a.logGroupArn, b.logGroupArn)
+        && Object.is(a.creationTime?.getTime(), b.creationTime?.getTime()),
       source: 'db',
       db: new Crud({
         create: (e: LogGroup[], ctx: Context) => ctx.orm.save(LogGroup, e),
