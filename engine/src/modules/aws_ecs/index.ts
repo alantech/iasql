@@ -484,9 +484,24 @@ export const AwsEcsModule: Module = new Module({
             td => AwsEcsModule.utils.taskDefinitionMapper(td, ctx)
           ));
         },
-        // TODO: Do the delete and recreate as specified here
-        // TODO: JUST CREATE A NEW TASK DEFINITION ON UPDATE ACTIVE AND AUTOCOMPLETE FOR INACTIVE TASKS?
-        update: async (_td: TaskDefinition[], _ctx: Context) => { throw new Error('Cannot update task definitions. Create a new revision'); },
+        updateOrReplace: () => 'update',
+        update: async (es: TaskDefinition[], ctx: Context) => {
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.TaskDefinition?.[e.taskDefinitionArn ?? ''];
+            // Any change in a task definition will imply the creation of a new revision and to restore the previous value.
+            const newRecord = { ...e };
+            cloudRecord.id = e.id;
+            newRecord.id = undefined;
+            newRecord.taskDefinitionArn = '';
+            newRecord.containers = newRecord.containers.map(c => {
+              c.id = undefined;
+              return c;
+            })
+            await AwsEcsModule.mappers.taskDefinition.db.create(newRecord, ctx);
+            await AwsEcsModule.mappers.taskDefinition.db.update(cloudRecord, ctx);
+            return cloudRecord;
+          }));
+        },
         delete: async (es: TaskDefinition[], ctx: Context) => {
           // Do not delete task if it is being used by a service
           const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsModule.mappers.service.cloud.read(ctx);
