@@ -40,7 +40,7 @@ export const AwsEcsModule: Module = new Module({
     },
     containerDefinitionMapper: async (c: any, ctx: Context) => {
       const out = new ContainerDefinition();
-      out.cpu = c?.cpu ?? null;
+      out.cpu = c?.cpu;
       // TODO: remove env var duplications
       out.environment = c.environment?.map((e: any) => {
         const e2 = new EnvVariable();
@@ -49,8 +49,8 @@ export const AwsEcsModule: Module = new Module({
         return e2;
       }) ?? [];
       out.essential = c.essential ?? null;
-      out.memory = c.memory ?? null;
-      out.memoryReservation = c.memoryReservation ?? null;
+      out.memory = c.memory;
+      out.memoryReservation = c.memoryReservation;
       out.name = c.name;
       // TODO: remove port mapping duplications
       out.portMappings = c.portMappings?.map((pm: any) => {
@@ -65,18 +65,12 @@ export const AwsEcsModule: Module = new Module({
         const repositories = ctx.memo?.db?.AwsRepository ? Object.values(ctx.memo?.db?.AwsRepository) : await AwsEcrModule.mappers.repository.db.read(ctx);
         const repository = repositories.find((r: any) => r.repositoryUri === imageTag[0]);
         out.repository = repository;
-        out.dockerImage = imageTag[-1] ?? null;
-        out.publicRepository = imageTag[-1] ?? null;
       } else if (imageTag[0]?.includes('public.ecr.aws')) {
         const publicRepositories = ctx.memo?.db?.AwsPublicRepository ? Object.values(ctx.memo?.db?.AwsPublicRepository) : await AwsEcrModule.mappers.publicRepository.db.read(ctx);
         const publicRepository = publicRepositories.find((r: any) => r.repositoryUri === imageTag[0]);
         out.publicRepository = publicRepository;
-        out.dockerImage = imageTag[-1] ?? null;
-        out.repository = imageTag[-1] ?? null;
       } else {
         out.dockerImage = imageTag[0];
-        out.repository = imageTag[-1] ?? null;
-        out.publicRepository = imageTag[-1] ?? null;
       }
       out.tag = imageTag[1] ?? null;
       // TODO: eventually handle more log drivers
@@ -86,7 +80,6 @@ export const AwsEcsModule: Module = new Module({
         const logGroup = logGroups.find((lg: any) => lg.logGroupName === groupName);
         out.logGroup = logGroup;
       }
-      if (!out.logGroup) out.logGroup = c.logConfiguration?.undefinedprop ?? null;
       return out;
     },
     taskDefinitionMapper: async (td: any, ctx: Context) => {
