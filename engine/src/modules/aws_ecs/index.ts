@@ -195,6 +195,11 @@ export const AwsEcsModule: Module = new Module({
       && Object.is(a.publicRepository?.repositoryName, b.publicRepository?.repositoryName)
       && Object.is(a.repository?.repositoryName, b.repository?.repositoryName)
       && Object.is(a.tag, b.tag),
+    serviceNetworkEq: (a: AwsVpcConf, b: AwsVpcConf) => Object.is(a?.assignPublicIp, b?.assignPublicIp)
+      && Object.is(a?.securityGroups?.length, b?.securityGroups?.length)
+      && (a?.securityGroups?.every(asg => !!b?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
+      && Object.is(a?.subnets?.length, b?.subnets?.length)
+      && (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn.subnetId, bsn.subnetId))) ?? false),
   },
   mappers: {
     cluster: new Mapper<Cluster>({
@@ -555,7 +560,15 @@ export const AwsEcsModule: Module = new Module({
       }),
       equals: (a: Service, b: Service) => Object.is(a.desiredCount, b.desiredCount)
         && Object.is(a.task?.taskDefinitionArn, b.task?.taskDefinitionArn)
-        && Object.is(a.cluster?.clusterName, b.cluster?.clusterName),
+        && Object.is(a.cluster?.clusterName, b.cluster?.clusterName)
+        && Object.is(a.arn, b.arn)
+        && Object.is(a.launchType, b.launchType)
+        && Object.is(a.loadBalancers?.length, b.loadBalancers?.length)
+        && (a.loadBalancers?.every(alb => !!b.loadBalancers?.find(blb => Object.is(alb.elb?.loadBalancerArn, blb.elb?.loadBalancerArn))) ?? false)
+        && Object.is(a.name, b.name)
+        && AwsEcsModule.utils.serviceNetworkEq(a.network, b.network)
+        && Object.is(a.schedulingStrategy, b.schedulingStrategy)
+        && Object.is(a.status, b.status),
       source: 'db',
       db: new Crud({
         create: async (es: Service[], ctx: Context) => {
