@@ -7,6 +7,7 @@ import {
   Check,
   ManyToOne,
   JoinColumn,
+  AfterLoad,
 } from 'typeorm'
 
 import { LogGroup } from '../../aws_cloudwatch/entity'
@@ -78,4 +79,11 @@ export class ContainerDefinition {
     name: 'log_group_id',
   })
   logGroup?: LogGroup;
+
+  @AfterLoad()
+  updateNulls() {
+    Object.keys(this).forEach(k => {
+      if ((this as any)[k] === null) (this as any)[k] = undefined;
+    });
+  }
 }
