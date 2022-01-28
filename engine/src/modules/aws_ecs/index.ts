@@ -188,6 +188,11 @@ export const AwsEcsModule: Module = new Module({
       && Object.is(a.publicRepository?.repositoryName, b.publicRepository?.repositoryName)
       && Object.is(a.repository?.repositoryName, b.repository?.repositoryName)
       && Object.is(a.tag, b.tag),
+    serviceNetworkEq: (a: AwsVpcConf, b: AwsVpcConf) => Object.is(a?.assignPublicIp, b?.assignPublicIp)
+      && Object.is(a?.securityGroups?.length, b?.securityGroups?.length)
+      && (a?.securityGroups?.every(asg => !!b?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
+      && Object.is(a?.subnets?.length, b?.subnets?.length)
+      && (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn.subnetId, bsn.subnetId))) ?? false),
   },
   mappers: {
     cluster: new Mapper<Cluster>({
@@ -548,7 +553,15 @@ export const AwsEcsModule: Module = new Module({
       }),
       equals: (a: Service, b: Service) => Object.is(a.desiredCount, b.desiredCount)
         && Object.is(a.task?.taskDefinitionArn, b.task?.taskDefinitionArn)
-        && Object.is(a.cluster?.clusterName, b.cluster?.clusterName),
+        && Object.is(a.cluster?.clusterName, b.cluster?.clusterName)
+        && Object.is(a.arn, b.arn)
+        && Object.is(a.launchType, b.launchType)
+        && Object.is(a.loadBalancers?.length, b.loadBalancers?.length)
+        && (a.loadBalancers?.every(alb => !!b.loadBalancers?.find(blb => Object.is(alb.elb?.loadBalancerArn, blb.elb?.loadBalancerArn))) ?? false)
+        && Object.is(a.name, b.name)
+        && AwsEcsModule.utils.serviceNetworkEq(a.network, b.network)
+        && Object.is(a.schedulingStrategy, b.schedulingStrategy)
+        && Object.is(a.status, b.status),
       source: 'db',
       db: new Crud({
         create: async (es: Service[], ctx: Context) => {
@@ -661,23 +674,51 @@ export const AwsEcsModule: Module = new Module({
             return await Promise.all(result.map(async (s) => AwsEcsModule.utils.serviceMapper(s, ctx)));
           }
         },
+        updateOrReplace: (prev: Service, next: Service) => {
+          if (!(Object.is(prev.name, next.name) && Object.is(prev.launchType, next.launchType)
+            && Object.is(prev.schedulingStrategy, next.schedulingStrategy) && Object.is(prev.cluster?.clusterArn, next.cluster?.clusterArn)
+            && AwsEcsModule.utils.serviceNetworkEq(prev.network, next.network))) {
+            return 'replace';
+          }
+          return 'update';
+        },
         update: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
-            const updatedService = await client.updateService({
-              service: e.name,
-              taskDefinition: e.task?.taskDefinitionArn,
-              cluster: e.cluster?.clusterName,
-              desiredCount: e.desiredCount,
-            });
-            return AwsEcsModule.utils.serviceMapper(updatedService, ctx);
+            const cloudRecord = ctx?.memo?.cloud?.Service?.[e.arn ?? ''];
+            const isUpdate = AwsEcsModule.mappers.service.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            if (isUpdate) {
+              // Desired count or task definition
+              if (!(Object.is(e.desiredCount, cloudRecord.desiredCount) && Object.is(e.task?.taskDefinitionArn, cloudRecord.task?.taskDefinitionArn))) {
+                const updatedService = await client.updateService({
+                  service: e.name,
+                  cluster: e.cluster?.clusterName,
+                  taskDefinition: e.task?.taskDefinitionArn,
+                  desiredCount: e.desiredCount,
+                });
+                return AwsEcsModule.utils.serviceMapper(updatedService, ctx);
+              }
+              // Restore values
+              cloudRecord.id = e.id;
+              await AwsEcsModule.mappers.service.db.update(cloudRecord, ctx);
+              return cloudRecord;
+            } else {
+              // We need to delete the current cloud record and create the new one.
+              // The id in database will be the same `e` will keep it.
+              await AwsEcsModule.mappers.service.cloud.delete(cloudRecord, ctx);
+              return await AwsEcsModule.mappers.service.cloud.create(e, ctx);
+            }
           }));
         },
         delete: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(async e => {
             e.desiredCount = 0;
-            await AwsEcsModule.mappers.service.cloud.update(e, ctx);
+            await client.updateService({
+              service: e.name,
+              cluster: e.cluster?.clusterName,
+              desiredCount: e.desiredCount,
+            });
             return client.deleteService(e.name, e.cluster?.clusterArn!)
           }));
         },
