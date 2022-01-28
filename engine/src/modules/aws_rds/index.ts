@@ -40,7 +40,7 @@ export const AwsRdsModule: Module = new Module({
       out.engine = engineVersions.find((ev: any) => ev.engineVersionKey === `${rds?.Engine}:${rds?.EngineVersion}`) as EngineVersion;
       out.masterUsername = rds?.MasterUsername;
       const securityGroups = ctx.memo?.db?.AwsSecurityGroup ? Object.values(ctx.memo?.db?.AwsSecurityGroup) : await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx);
-      out.vpcSecurityGroups = rds?.VpcSecurityGroups?.map((sg: any) => securityGroups.find((g: any) => g.groupId === sg.groupId) as AwsSecurityGroup);
+      out.vpcSecurityGroups = rds?.VpcSecurityGroups?.map((sg: any) => securityGroups.find((g: any) => g.groupId === sg.VpcSecurityGroupId) as AwsSecurityGroup);
       return out;
     },
   },
@@ -108,7 +108,7 @@ export const AwsRdsModule: Module = new Module({
         && Object.is(a.endpointAddr, b.endpointAddr)
         && Object.is(a.endpointHostedZoneId, b.endpointHostedZoneId)
         && Object.is(a.endpointPort, b.endpointPort)
-        // && !Object.is(a.masterUserPassword, null) // TODO: Special case, if master password defined, will update the instance password
+        && !a.masterUserPassword  // Special case, if master password defined, will update the instance password
         && Object.is(a.masterUsername, b.masterUsername)
         && Object.is(a.vpcSecurityGroups.length, b.vpcSecurityGroups.length)
         && (a.vpcSecurityGroups?.every(asg => !!b.vpcSecurityGroups.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
@@ -172,42 +172,33 @@ export const AwsRdsModule: Module = new Module({
             (await client.getDBInstances()).DBInstances;
           return await Promise.all(rdses.map(rds => AwsRdsModule.utils.rdsMapper(rds, ctx)));
         },
+        updateOrReplace: () => 'update',
         update: async (es: RDS[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
-            // Doing an actual update of some of the properties that can change.
-            // Discarded delete + re-create for two reasons
-            // 1. Db identifier should be unique and is the one defined by the user. We could update the current one
-            //    with a temporary name (which could cause a diff later while is not deleted yet?) create the new one with the old name and then delete.
-            // 2. In order to create a new RDS instance is necessary a MasterPassword. The first insertion of the RDS instance have the master password plain text,
-            //    it creates the instance and then remove the value from DB since it does not come on the AWS response. For the update we do not know which password use
-            //    so we should need to ask for a password field for every update?
-            const instanceParams: any = {
-              DBInstanceClass: e.dbInstanceClass,
-              EngineVersion: e.engine.engineVersion,
-              DBInstanceIdentifier: e.dbInstanceIdentifier,
-              AllocatedStorage: e.allocatedStorage,
-              ApplyImmediately: true,
-            };
-            // If a password value has been inserted, we update it.
-            if (e.masterUserPassword) {
-              instanceParams.MasterUserPassword = e.masterUserPassword;
+            const cloudRecord = ctx?.memo?.cloud?.RDS?.[e.dbInstanceIdentifier ?? ''];
+            if (!(Object.is(e.dbInstanceClass, cloudRecord.dbInstanceClass)
+              && Object.is(e.engine.engineVersionKey, cloudRecord.engine.engineVersionKey)
+              && Object.is(e.allocatedStorage, cloudRecord.allocatedStorage)
+              && !Object.is(e.masterUserPassword, null))) {
+              const instanceParams: any = {
+                DBInstanceClass: e.dbInstanceClass,
+                EngineVersion: e.engine.engineVersion,
+                DBInstanceIdentifier: e.dbInstanceIdentifier,
+                AllocatedStorage: e.allocatedStorage,
+                ApplyImmediately: true,
+              };
+              // If a password value has been inserted, we update it.
+              if (e.masterUserPassword) {
+                instanceParams.MasterUserPassword = e.masterUserPassword;
+              }
+              const result = await client.updateDBInstance(instanceParams);
+              return AwsRdsModule.utils.rdsMapper(result, ctx);
             }
-            const result = await client.updateDBInstance(instanceParams);
-            // TODO: Handle if it fails (somehow)
-            if (!result?.hasOwnProperty('DBInstanceIdentifier')) { // Failure
-              throw new Error('what should we do here?');
-            }
-            // Re-get the inserted record to get all of the relevant records we care about
-            const newObject = await client.getDBInstance(result.DBInstanceIdentifier ?? '');
-            // We map this into the same kind of entity as `obj`
-            const newEntity = await AwsRdsModule.utils.rdsMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
-            // Save the record back into the database to get the new fields updated
-            await AwsRdsModule.mappers.rds.db.update(newEntity, ctx);
-            return newEntity;
+            // Restore autogenerated values
+            cloudRecord.id = e.id;
+            await AwsRdsModule.mappers.rds.db.update(cloudRecord, ctx);
+            return cloudRecord;
           }));
         },
         delete: async (es: RDS[], ctx: Context) => {
