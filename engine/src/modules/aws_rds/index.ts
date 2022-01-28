@@ -103,6 +103,15 @@ export const AwsRdsModule: Module = new Module({
       }),
       equals: (a: RDS, b: RDS) => Object.is(a.engine.engineVersionKey, b.engine.engineVersionKey)
         && Object.is(a.dbInstanceClass, b.dbInstanceClass)
+        && Object.is(a.availabilityZone.zoneId, b.availabilityZone.zoneId)
+        && Object.is(a.dbInstanceIdentifier, b.dbInstanceIdentifier)
+        && Object.is(a.endpointAddr, b.endpointAddr)
+        && Object.is(a.endpointHostedZoneId, b.endpointHostedZoneId)
+        && Object.is(a.endpointPort, b.endpointPort)
+        // && !Object.is(a.masterUserPassword, null) // TODO: Special case, if master password defined, will update the instance password
+        && Object.is(a.masterUsername, b.masterUsername)
+        && Object.is(a.vpcSecurityGroups.length, b.vpcSecurityGroups.length)
+        && (a.vpcSecurityGroups?.every(asg => !!b.vpcSecurityGroups.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
         && Object.is(a.allocatedStorage, b.allocatedStorage),
       source: 'db',
       db: new Crud({
