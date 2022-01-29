@@ -78,15 +78,21 @@ export class Crud<E> {
     const es = Array.isArray(e) ? e : [e];
     // Memoize before and after the actual logic to make sure the unique ID is reserved
     this.memo(e, ctx);
-    return this.memo(await this.createFn(es, ctx), ctx, e);
+    try {
+      return this.memo(await this.createFn(es, ctx), ctx, e);
+    } catch (err) {
+      // Unmemo if it failed
+      this.unmemo(e, ctx);
+      throw err;
+    }
   }
 
   async read(ctx: Context, id?: string | string[]) {
     console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} read`);
+    const entityId = this.entityId ?? ((_e: E) => { return 'What?'; });
     if (id) {
       const dest = this.dest ?? 'What?';
       const entityName = this.entity?.name ?? 'What?';
-      const entityId = this.entityId ?? ((_e: E) => { return 'What?'; });
       if (Array.isArray(id)) {
         const missing: string[] = [];
         const vals = id.map(i => {
@@ -128,10 +134,27 @@ export class Crud<E> {
         } else {
           return ctx.memo[dest][entityName][id];
         }
-        return this.memo(await this.readFn(ctx, [id]), ctx, id);
+        const out = await this.readFn(ctx, [id]);
+        if (!out || out.length === 0) {
+          // Don't memo in this case, just pass it through, also remove the registered placeholder
+          delete ctx.memo[dest][entityName][id];
+          return out;
+        } else if (Array.isArray(out)) {
+          return this.memo(out[0], ctx, id);
+        } else {
+          return this.memo(out, ctx, id);
+        }
       }
     }
-    return this.memo(await this.readFn(ctx), ctx, id);
+    const out = await this.readFn(ctx);
+    if (!out || out.length === 0) {
+      // Don't memo in this case, just pass it through
+      return out;
+    } else if (Array.isArray(out)) {
+      return this.memo(out, ctx, out.map(entityId));
+    } else {
+      return this.memo(out[0], ctx, entityId(out[0]));
+    }
   }
 
   async update(e: E | E[], ctx: Context) {

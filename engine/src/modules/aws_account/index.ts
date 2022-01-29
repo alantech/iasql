@@ -102,15 +102,18 @@ export const AwsAccount: Module = new Module({
         throw new Error('Subnet not defined properly');
       }
       out.state = sn.State as SubnetState;
-      out.availabilityZone = ctx.memo?.db?.AvailabilityZone?.[sn?.AvailabilityZone ?? ''] ??
+      out.availabilityZone = await AwsAccount.mappers.availabilityZone.db.read(ctx, sn.AvailabilityZone) ??
         await AwsAccount.mappers.availabilityZone.cloud.read(ctx, sn.AvailabilityZone);
-      out.vpc = ctx.memo?.db?.AwsVpc?.[sn.VpcId] ??
+      out.vpc = await AwsAccount.mappers.vpc.db.read(ctx, sn.VpcId) ??
         await AwsAccount.mappers.vpc.cloud.read(ctx, sn.VpcId);
       out.availableIpAddressCount = sn.AvailableIpAddressCount;
       out.cidrBlock = sn.CidrBlock;
       out.subnetId = sn.SubnetId;
       out.ownerId = sn.OwnerId;
       out.subnetArn = sn.SubnetArn;
+      console.log({
+        out,
+      });
       return out;
     },
   },
@@ -171,7 +174,10 @@ export const AwsAccount: Module = new Module({
         delete: (e: Region[], ctx: Context) => ctx.orm.remove(Region, e),
       }),
       cloud: new Crud({
-        create: async (_e: Region[], _ctx: Context) => { /* Do nothing */ },
+        create: async (e: Region[], ctx: Context) => {
+          // If we detect regions in the DB that aren't in AWS, we should just remove them
+          await AwsAccount.mappers.region.db.delete(e, ctx);
+        },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const rs = (await client.getRegions())?.Regions ?? [];
@@ -179,8 +185,15 @@ export const AwsAccount: Module = new Module({
             .filter(r => !ids || ids.includes(r?.RegionName ?? 'what'))
             .map(AwsAccount.utils.regionMapper);
         },
-        update: async (_e: Region[], _ctx: Context) => { /* Do nothing */ },
-        delete: async (_e: Region[], _ctx: Context) => { /* Do nothing */ },
+        update: async (e: Region[], ctx: Context) => {
+          // Ideally, we just revert these records, but it is easier to delete and recreate in a
+          // second pass
+          await AwsAccount.mappers.region.db.delete(e, ctx);
+        },
+        delete: async (e: Region[], ctx: Context) => {
+          // If we detect regions missing from the DB, we should just insert them
+          await AwsAccount.mappers.region.db.create(e, ctx);
+        },
       }),
     }),
     vpc: new Mapper<AwsVpc>({
@@ -190,10 +203,13 @@ export const AwsAccount: Module = new Module({
         id: e.id?.toString() ?? '',
         vpcId: e.vpcId ?? '',
         cidrBlock: e.cidrBlock ?? '',
-        isDefault: e.isDefault.toString() ?? 'false',
+        isDefault: e.isDefault?.toString() ?? 'false',
         state: e?.state ?? VpcState.AVAILABLE, // TODO: What's the right "default" here?
       }),
-      equals: (_a: AwsVpc, _b: AwsVpc) => true, // Do not let vpc updates
+      equals: (a: AwsVpc, b: AwsVpc) => Object.is(a.vpcId, b.vpcId) &&
+        Object.is(a.cidrBlock, b.cidrBlock) &&
+        Object.is(a.isDefault, b.isDefault) &&
+        Object.is(a.state, b.state),
       source: 'db',
       db: new Crud({
         create: (e: AwsVpc[], ctx: Context) => ctx.orm.save(AwsVpc, e),
@@ -206,7 +222,11 @@ export const AwsAccount: Module = new Module({
         delete: (e: AwsVpc[], ctx: Context) => ctx.orm.remove(AwsVpc, e),
       }),
       cloud: new Crud({
-        create: async (_vpc: AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
+        create: async (vpc: AwsVpc[], ctx: Context) => { 
+          // TODO: You can totally CRUD VPCs: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ec2/classes/createvpccommand.html
+          // We need to figure out how to handle this
+          await AwsAccount.mappers.vpc.db.delete(vpc, ctx);
+        },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const vpcs = Array.isArray(ids) ?
@@ -214,8 +234,14 @@ export const AwsAccount: Module = new Module({
             (await client.getVpcs()).Vpcs;
           return await Promise.all(vpcs.map(vpc => AwsAccount.utils.vpcMapper(vpc, ctx)));
         },
-        update: async (_vpc: AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
-        delete: async (_vpc: AwsVpc[], _ctx: Context) => { throw new Error('tbd'); },
+        update: async (vpc: AwsVpc[], ctx: Context) => {
+          // TODO: Handle this correctly in the future
+          await AwsAccount.mappers.vpc.db.delete(vpc, ctx);
+        },
+        delete: async (vpc: AwsVpc[], ctx: Context) => {
+          // TODO: Handle this correctly in the future
+          await AwsAccount.mappers.vpc.db.create(vpc, ctx);
+        },
       }),
     }),
     availabilityZone: new Mapper<AvailabilityZone>({
@@ -276,14 +302,17 @@ export const AwsAccount: Module = new Module({
         delete: (es: AvailabilityZone[], ctx: Context) => ctx.orm.remove(AvailabilityZone, es),
       }),
       cloud: new Crud({
-        create: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
+        create: async (e: AvailabilityZone[], ctx: Context) => {
+          // Availability Zones cannot be created by the user, so simply delete these from the DB
+          await AwsAccount.mappers.availabilityZone.db.delete(e, ctx);
+        },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          const regions = (await AwsAccount.mappers.region.db.read(ctx))
+          const regions = (await AwsAccount.mappers.region.cloud.read(ctx))
             .filter((r: Region) => r.optInStatus !== AvailabilityZoneOptInStatus.NOT_OPTED_IN);
           const regionNames = regions.map((r: Region) => r.name);
           const availabilityZones = await client.getAvailabilityZones(regionNames);
-          // TODO: Can it be simplified further?
+          // TODO: Can it be simplified https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ec2/classes/createvpccommand.htmlfurther?
           if (ids) {
             const azs = availabilityZones.filter(az => ids.includes(az?.ZoneName ?? ''));
             // Linearized to make sure the nested parentAvailabilityZone and the outer reference
@@ -299,8 +328,15 @@ export const AwsAccount: Module = new Module({
             );
           }
         },
-        update: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
-        delete: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
+        update: async (e: AvailabilityZone[], ctx: Context) => {
+          // Availability Zones cannot be changed, so delete these changes and the second pass will
+          // restore the original state
+          await AwsAccount.mappers.availabilityZone.db.delete(e, ctx);
+        },
+        delete: async (e: AvailabilityZone[], ctx: Context) => {
+          // Availability Zones cannot be deleted, so restore these values into the DB
+          await AwsAccount.mappers.availabilityZone.db.create(e, ctx);
+        },
       }),
     }),
     availabilityZoneMessage: new Mapper<AvailabilityZoneMessage>({
@@ -329,7 +365,10 @@ export const AwsAccount: Module = new Module({
           .orm.remove(AvailabilityZoneMessage, e),
       }),
       cloud: new Crud({
-        create: async (_e: AvailabilityZoneMessage[], _ctx: Context) => { /* Do nothing */ },
+        create: async (e: AvailabilityZoneMessage[], ctx: Context) => {
+          // Read-only table, restore it
+          await AwsAccount.mappers.availabilityZoneMessage.db.delete(e, ctx);
+        },
         read: (ctx: Context, ids?: string[]) => ctx.orm.find(AvailabilityZoneMessage, ids ? {
           where: {
             // TODO: How to split the ID between zoneName and message reliably?
@@ -338,13 +377,19 @@ export const AwsAccount: Module = new Module({
             },
           },
         } : undefined),
-        update: async (_e: AvailabilityZoneMessage[], _ctx: Context) => { /* Do nothing */ },
-        delete: async (_e: AvailabilityZoneMessage[], _ctx: Context) => { /* Do nothing */ },
+        update: async (e: AvailabilityZoneMessage[], ctx: Context) => {
+          // Read-only table, restore it
+          await AwsAccount.mappers.availabilityZoneMessage.db.delete(e, ctx);
+        },
+        delete: async (e: AvailabilityZoneMessage[], ctx: Context) => {
+          // Read-only table, restore it
+          await AwsAccount.mappers.availabilityZoneMessage.db.create(e, ctx);
+        },
       }),
     }),
     subnet: new Mapper<AwsSubnet>({
       entity: AwsSubnet,
-      entityId: (e: AwsSubnet) => e?.subnetId ?? '',
+      entityId: (e: AwsSubnet) => e.subnetId ?? '',
       entityPrint: (e: AwsSubnet) => ({
         id: e.id?.toString() ?? '',
         availabilityZone: e?.availabilityZone?.zoneName ?? '',
@@ -355,7 +400,7 @@ export const AwsAccount: Module = new Module({
         subnetArn: e?.subnetArn ?? '',
         subnetId: e?.subnetId ?? '',
       }),
-      equals: (_a: AwsSubnet, _b: AwsSubnet) => true, // Do not let vpc updates
+      equals: (a: AwsSubnet, b: AwsSubnet) => Object.is(a.subnetId, b.subnetId), // TODO: Improve
       source: 'db',
       db: new Crud({
         create: (e: AwsSubnet[], ctx: Context) => ctx.orm.save(AwsSubnet, e),
@@ -369,7 +414,10 @@ export const AwsAccount: Module = new Module({
         delete: (e: AwsSubnet[], ctx: Context) => ctx.orm.remove(AwsSubnet, e),
       }),
       cloud: new Crud({
-        create: async (_sn: AwsSubnet[], _ctx: Context) => { throw new Error('tbd'); },
+        create: async (sn: AwsSubnet[], ctx: Context) => {
+          // TODO: Users can have custom subnets, add support for it: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ec2/classes/createsubnetcommand.html
+          await AwsAccount.mappers.subnet.db.delete(sn, ctx);
+        },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const subnets = ids === undefined ?
@@ -377,8 +425,15 @@ export const AwsAccount: Module = new Module({
             await Promise.all(ids.map(id => client.getSubnet(id)));
           return await Promise.all(subnets.map(sn => AwsAccount.utils.subnetMapper(sn, ctx)));
         },
-        update: async (_sn: AwsSubnet[], _ctx: Context) => { throw new Error('tbd'); },
-        delete: async (_sn: AwsSubnet[], _ctx: Context) => { throw new Error('tbd'); },
+        update: async (sn: AwsSubnet[], ctx: Context) => {
+          // TODO: Do the right thing
+          await AwsAccount.mappers.subnet.db.delete(sn, ctx);
+        },
+        delete: async (sn: AwsSubnet[], ctx: Context) => {
+          // TODO: Do the right thing
+          await AwsAccount.mappers.subnet.db.create(sn, ctx);
+          console.dir(ctx.memo, { depth: 4, });
+        },
       }),
     }),
   },
