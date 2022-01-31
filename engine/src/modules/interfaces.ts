@@ -134,17 +134,18 @@ export class Crud<E> {
         } else {
           return ctx.memo[dest][entityName][id];
         }
-        const out = await this.readFn(ctx, [id]);
-        if (!out || out.length === 0) {
+        // Linter thinks this is shadowing the other one on line 152 because JS hoisting nonsense
+        const o = await this.readFn(ctx, [id]);
+        if (!o || o.length === 0) {
           // Don't memo in this case, just pass it through, also remove the registered placeholder
           delete ctx.memo[dest][entityName][id];
-          return out;
-        } else if (Array.isArray(out) && out.length === 1) {
-          return this.memo(out[0], ctx, id);
+          return o;
+        } else if (Array.isArray(o) && o.length === 1) {
+          return this.memo(o[0], ctx, id);
         } else {
           // Don't memo in this case, just pass it through, also remove the registered placeholder
           delete ctx.memo[dest][entityName][id];
-          return out;
+          return o;
         }
       }
     }

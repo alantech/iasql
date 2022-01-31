@@ -222,7 +222,7 @@ export const AwsAccount: Module = new Module({
         delete: (e: AwsVpc[], ctx: Context) => ctx.orm.remove(AwsVpc, e),
       }),
       cloud: new Crud({
-        create: async (vpc: AwsVpc[], ctx: Context) => { 
+        create: async (vpc: AwsVpc[], ctx: Context) => {
           // TODO: You can totally CRUD VPCs: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ec2/classes/createvpccommand.html
           // We need to figure out how to handle this
           await AwsAccount.mappers.vpc.db.delete(vpc, ctx);
