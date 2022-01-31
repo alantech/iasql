@@ -111,9 +111,6 @@ export const AwsAccount: Module = new Module({
       out.subnetId = sn.SubnetId;
       out.ownerId = sn.OwnerId;
       out.subnetArn = sn.SubnetArn;
-      console.log({
-        out,
-      });
       return out;
     },
   },
@@ -308,8 +305,10 @@ export const AwsAccount: Module = new Module({
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          const regions = (await AwsAccount.mappers.region.cloud.read(ctx))
-            .filter((r: Region) => r.optInStatus !== AvailabilityZoneOptInStatus.NOT_OPTED_IN);
+          const regions = (
+            await AwsAccount.mappers.region.db.read(ctx) ??
+            await AwsAccount.mappers.region.cloud.read(ctx)
+          ).filter((r: Region) => r.optInStatus !== AvailabilityZoneOptInStatus.NOT_OPTED_IN);
           const regionNames = regions.map((r: Region) => r.name);
           const availabilityZones = await client.getAvailabilityZones(regionNames);
           // TODO: Can it be simplified https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ec2/classes/createvpccommand.htmlfurther?

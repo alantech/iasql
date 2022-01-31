@@ -3,7 +3,6 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
-  getPrefix,
   runApply,
   runQuery,
   runSync,
@@ -15,7 +14,6 @@ beforeAll(execComposeUp);
 
 afterAll(execComposeDown);
 
-const prefix = getPrefix();
 const dbAlias = 'accounttest';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
@@ -95,4 +93,39 @@ describe('AwsAccount Integration Testing', () => {
   it('has all vpcs again', query(`
     SELECT * FROM aws_vpc
   `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
-}); 
+
+  it('creates a new availability zone', query(`
+    INSERT INTO availability_zone (state, opt_in_status, region_id, zone_name, zone_id, group_name, network_border_group)
+    VALUES ('available', 'not-opted-in', 1, 'fake zone', 'fake', 'fakery', 'fACK');
+  `));
+
+  it('not removed when you apply as it is a cloud source-of-truth table', apply);
+
+  it('still there', query(`
+    SELECT * FROM availability_zone WHERE zone_name = 'fake zone'
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('actually removes it when you re-sync the db', sync);
+
+  it('really gone', query(`
+    SELECT * FROM availability_zone WHERE zone_name = 'fake zone'
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  describe('availability zone deletion', () => {
+    let availabilityZoneName = '';
+
+    beforeAll(query(`
+      SELECT zone_name FROM availability_zone WHERE parent_zone_id IS NULL LIMIT 1;
+    `, (res: any[]) => availabilityZoneName = res[0].zone_name));
+
+    it('deletes an availability zone', (done) => query(`
+      DELETE FROM availability_zone WHERE zone_name = '${availabilityZoneName}';
+    `)(done));
+
+    it('is restored with a sync', sync);
+
+    it('really there', (done) => query(`
+      SELECT * FROM availability_zone WHERE zone_name = '${availabilityZoneName}'
+    `, (res: any[]) => expect(res.length).toBe(1))(done));
+  });
+});
