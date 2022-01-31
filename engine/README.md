@@ -14,6 +14,23 @@ docker-compose up --build
 
 which will bring up the postgres engine and node.js server.
 
+### Local Testing
+
+To run the integration tests locally make sure to set the following environment variables and run `yarn coverage:local`.
+And make sure you set following environment variables.
+
+```
+DB_HOST=localhost
+PORT=8088
+SENTRY_ENABLED=false
+AWS_REGION=us-east-1
+IRONPLANS_TOKEN=
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+```
+
+To run a specific test file only, simply pass it as a parameter `yarn coverage:local test/modules/aws-cloudwatch-integration.ts`
+
 ### Module Development
 
 Instead of a centralized linear list of migrations, we have a module-based approach to allow different collections of tables to be inserted or removed as desired by the end users. These modules need to declare what modules they depend on and what resources (tables, stored procedures, etc) they depend on.
