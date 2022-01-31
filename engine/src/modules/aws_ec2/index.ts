@@ -440,7 +440,8 @@ export const AwsEc2Module: Module = new Module({
       equals: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
         Object.is(a.ami, b.ami) &&
         Object.is(a.instanceType.name, b.instanceType.name) &&
-        a.securityGroups.length === b.securityGroups.length, // TODO: Better security group testing
+        a.securityGroups.length === b.securityGroups.length &&
+        a.securityGroups.every((value, index) => value === b.securityGroups[index]),
       source: 'db',
       db: new Crud({
         create: (e: Instance[], ctx: Context) => ctx.orm.save(Instance, e),
