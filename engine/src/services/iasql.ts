@@ -343,9 +343,13 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
           if (r.diff.entitiesInDbOnly.length > 0) {
             updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInDbOnly);
+          } else {
+            delete toCreate[r.table];
           }
           if (r.diff.entitiesInAwsOnly.length > 0) {
             updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInAwsOnly);
+          } else {
+            delete toDelete[r.table];
           }
           if (r.diff.entitiesChanged.length > 0) {
             const updates: any[] = [];
@@ -358,8 +362,16 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
                 replaces.push(e.db);
               }
             });
-            if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
-            if (replaces.length > 0) updatePlan(toReplace, r.table, r.mapper, replaces);
+            if (updates.length > 0) {
+              updatePlan(toUpdate, r.table, r.mapper, updates);
+            } else {
+              delete toUpdate[r.table];
+            }
+            if (replaces.length > 0) {
+              updatePlan(toReplace, r.table, r.mapper, replaces);
+            } else {
+              delete toReplace[r.table];
+            }
           }
         });
         if (dryRun) return {
@@ -566,16 +578,24 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
           if (r.diff.entitiesInDbOnly.length > 0) {
             updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
+          } else {
+            delete toDelete[r.table];
           }
           if (r.diff.entitiesInAwsOnly.length > 0) {
             updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInAwsOnly);
+          } else {
+            delete toCreate[r.table];
           }
           if (r.diff.entitiesChanged.length > 0) {
             const updates: any[] = [];
             r.diff.entitiesChanged.forEach((e: any) => {
               updates.push(e.cloud);
             });
-            if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
+            if (updates.length > 0) {
+              updatePlan(toUpdate, r.table, r.mapper, updates);
+            } else {
+              delete toUpdate[r.table];
+            }
           }
         });
         if (dryRun) return {

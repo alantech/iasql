@@ -30,7 +30,11 @@ export function runApply(dbAlias: string, done: (e?: any) => {}) {
   iasql.apply(dbAlias, false, 'not-needed').then(...finish(done));
 }
 
-export function runQuery(dbAlias: string, queryString: string) {
+export function runSync(dbAlias: string, done: (e?: any) => {}) {
+  iasql.sync(dbAlias, false, 'not-needed').then(...finish(done));
+}
+
+export function runQuery(dbAlias: string, queryString: string, assertFn?: (res: any[]) => void) {
   return function (done: (e?: any) => {}) {
     console.log(queryString);
     createConnection({
@@ -43,8 +47,19 @@ export function runQuery(dbAlias: string, queryString: string) {
       database: dbAlias,
       extra: { ssl: false, },
     }).then((conn) => {
-      conn.query(queryString).then(() => {
-        conn.close().then(...finish(done));
+      conn.query(queryString).then((res: any[]) => {
+        conn.close().then(...finish((_e?: any) => {
+          if (assertFn) {
+            try {
+              assertFn(res);
+            } catch (e: any) {
+              done(e);
+              return {};
+            }
+          }
+          done();
+          return {};
+        }));
       }, (e) => {
         conn.close().then(() => done(e), (e2) => done(e2));
       });
