@@ -139,10 +139,12 @@ export class Crud<E> {
           // Don't memo in this case, just pass it through, also remove the registered placeholder
           delete ctx.memo[dest][entityName][id];
           return out;
-        } else if (Array.isArray(out)) {
+        } else if (Array.isArray(out) && out.length === 1) {
           return this.memo(out[0], ctx, id);
         } else {
-          return this.memo(out, ctx, id);
+          // Don't memo in this case, just pass it through, also remove the registered placeholder
+          delete ctx.memo[dest][entityName][id];
+          return out;
         }
       }
     }
@@ -150,10 +152,8 @@ export class Crud<E> {
     if (!out || out.length === 0) {
       // Don't memo in this case, just pass it through
       return out;
-    } else if (Array.isArray(out)) {
-      return this.memo(out, ctx, out.map(entityId));
     } else {
-      return this.memo(out[0], ctx, entityId(out[0]));
+      return this.memo(out, ctx, out.map(entityId));
     }
   }
 
