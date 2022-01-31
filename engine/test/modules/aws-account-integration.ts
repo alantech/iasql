@@ -82,8 +82,8 @@ describe('AwsAccount Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('deletes all vpc and subnet records', query(`
-    DELETE FROM aws_subnet WHERE 1=1;
-    DELETE FROM aws_vpc WHERE 1=1;
+    DELETE FROM aws_subnet;
+    DELETE FROM aws_vpc;
   `));
 
   it('restores them even on apply since they are db source-of-truth', apply);
