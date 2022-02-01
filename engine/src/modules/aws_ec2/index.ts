@@ -440,10 +440,9 @@ export const AwsEc2Module: Module = new Module({
       equals: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
         Object.is(a.ami, b.ami) &&
         Object.is(a.instanceType.name, b.instanceType.name) &&
-        a.securityGroups.length === b.securityGroups.length &&
-        a.securityGroups.every(as => b.securityGroups
-          .filter(bs => AwsSecurityGroupModule.mappers.securityGroup.equals(as, bs))
-          .length === 1
+        Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
+        a.securityGroups?.every(as => !!b.securityGroups?
+          .find(bs => Object.is(as.groupId, bs.groupId))
         ),
       source: 'db',
       db: new Crud({
