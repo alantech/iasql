@@ -36,9 +36,12 @@ describe('EC2 Integration Testing', () => {
       recordId = res[0].id;
     })((e?: any) => {
       if (!!e) return done(e);
+      // TODO get inserts without sp to work
+      // INSERT INTO instance (ami, instance_type_id)
+      // VALUES ('${ubuntuAmiId}', ${recordId}), ('${amznAmiId}', ${recordId});
       query(`
-        INSERT INTO instance (ami, instance_type_id)
-        VALUES ('${ubuntuAmiId}', ${recordId}), ('${amznAmiId}', ${recordId});
+        CALL create_ec2_instance('${ubuntuAmiId}', 't2.micro', array['default']);
+        CALL create_ec2_instance('${amznAmiId}', 't2.micro', array['default']);
       `)((e?: any) => {
         if (!!e) return done(e);
         done();

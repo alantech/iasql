@@ -467,12 +467,7 @@ export const AwsEc2Module: Module = new Module({
                 throw new Error('should not be possible');
               }
               instance.instanceId = instanceId;
-              // DB comparison fails without this if created outside the SP because there are no
-              // security groups in the DB and in cloud there is one, because when you create an
-              // instance without security group it assigns the default one automatically
-              const freshInstance = await AwsEc2Module.utils.instanceMapper((await client.getInstance(instanceId)), ctx);
-              console.log('FRESH', freshInstance.securityGroups);
-              await AwsEc2Module.mappers.instance.db.update(freshInstance, ctx);
+              await AwsEc2Module.mappers.instance.db.update(instance, ctx);
             }
           }
         },
