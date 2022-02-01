@@ -290,7 +290,7 @@ export const AwsElbModule: Module = new Module({
         customerOwnedIpv4Pool: e?.customerOwnedIpv4Pool ?? '',
       }),
       equals: (a: AwsLoadBalancer, b: AwsLoadBalancer) => Object.is(a.availabilityZones?.length, b.availabilityZones?.length)
-        && (a.availabilityZones?.every(aaz => !!b.availabilityZones?.find(baz => Object.is(aaz.zoneId, baz.zoneId))) ?? false)
+        && (a.availabilityZones?.filter(aaz => !!aaz).every(aaz => !!b.availabilityZones?.filter(baz => !!baz).find(baz => Object.is(aaz.zoneId, baz.zoneId))) ?? false)
         && Object.is(a.canonicalHostedZoneId, b.canonicalHostedZoneId)
         && Object.is(a.createdTime?.getTime(), b.createdTime?.getTime())
         // This property might be comparing null vs undefined
