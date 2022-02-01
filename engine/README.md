@@ -23,7 +23,6 @@ And make sure you set following environment variables.
 DB_HOST=localhost
 PORT=8088
 SENTRY_ENABLED=false
-AWS_REGION=us-east-1
 IRONPLANS_TOKEN=
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
