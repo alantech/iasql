@@ -19,7 +19,7 @@ const tgName = `${prefix}${dbAlias}tg`;
 const lbName = `${prefix}${dbAlias}lb`;
 const tgType = TargetTypeEnum.IP;
 const port = 5678;
-const protocol = ProtocolEnum.TCP;
+const protocol = ProtocolEnum.HTTP;
 const lbScheme = LoadBalancerSchemeEnum.INTERNAL;
 const lbType = LoadBalancerTypeEnum.NETWORK;
 const lbIPAddressType = IpAddressType.IPV4;
@@ -43,7 +43,7 @@ describe('ELB Integration Testing', () => {
     INSERT INTO aws_target_group (target_group_name, target_type, protocol, port, vpc_id, health_check_path)
     SELECT '${tgName}', '${tgType}', '${protocol}', ${port}, id, '/health'
     FROM aws_vpc
-    WHERE vpc_id = 'default'
+    WHERE is_default = true
     ORDER BY id DESC
     LIMIT 1;
   `));
@@ -104,7 +104,6 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', apply);
 
-  // TODO: LISTENER TESTS USING THE CREATED TARGET GROUP AND LOAD BALANCER
   it('adds a new listener', query(`
     BEGIN;
       INSERT INTO aws_action (action_type, target_group_id)
@@ -171,7 +170,6 @@ describe('ELB Integration Testing', () => {
   `));
 
   it('applies the change (last time)', apply);
-
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
