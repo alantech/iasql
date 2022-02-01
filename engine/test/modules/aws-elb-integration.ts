@@ -20,8 +20,8 @@ const lbName = `${prefix}${dbAlias}lb`;
 const tgType = TargetTypeEnum.IP;
 const port = 5678;
 const protocol = ProtocolEnum.HTTP;
-const lbScheme = LoadBalancerSchemeEnum.INTERNAL;
-const lbType = LoadBalancerTypeEnum.NETWORK;
+const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
+const lbType = LoadBalancerTypeEnum.APPLICATION;
 const lbIPAddressType = IpAddressType.IPV4;
 
 describe('ELB Integration Testing', () => {
@@ -66,18 +66,18 @@ describe('ELB Integration Testing', () => {
   // TODO: add security groups insert when testing application load balancer integration
   it('adds a new load balancer', query(`
     INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc_id, load_balancer_type, ip_address_type)
-    SELECT '${lbName}', '${lbScheme}', id,  '${lbType}', '${lbIPAddressType}'
+    SELECT '${lbName}', '${lbScheme}', id, '${lbType}', '${lbIPAddressType}'
     FROM aws_vpc
-    WHERE vpc_id = 'default'
-    order by id desc
-    limit 1;
+    WHERE is_default = true
+    ORDER BY id DESC
+    LIMIT 1;
     INSERT INTO aws_load_balancer_subnets_aws_subnet (aws_load_balancer_id, aws_subnet_id)
     SELECT aws_load_balancer.id, aws_subnet.id
     FROM aws_load_balancer
     INNER JOIN aws_vpc ON aws_vpc.id = aws_load_balancer.vpc_id
     INNER JOIN aws_subnet ON aws_vpc.id = aws_subnet.vpc_id
     WHERE aws_load_balancer.load_balancer_name = '${lbName}'
-    LIMIT 1;
+    LIMIT 2;
     INSERT INTO aws_load_balancer_availability_zones_availability_zone (aws_load_balancer_id, availability_zone_id)
     SELECT aws_load_balancer.id, availability_zone.id
     FROM aws_load_balancer
@@ -85,7 +85,7 @@ describe('ELB Integration Testing', () => {
     INNER JOIN aws_subnet ON aws_load_balancer_subnets_aws_subnet.aws_subnet_id = aws_subnet.id
     INNER JOIN availability_zone ON availability_zone.id = aws_subnet.availability_zone_id
     WHERE aws_load_balancer.load_balancer_name = '${lbName}'
-    LIMIT 1;
+    LIMIT 2;
   `));
 
   it('applies the change', apply);
@@ -99,7 +99,7 @@ describe('ELB Integration Testing', () => {
   // TODO: add load balancer update of subnets or security group
 
   it('tries to update a target group field (replace)', query(`
-    UPDATE aws_load_balancer SET scheme = '${LoadBalancerSchemeEnum.INTERNET_FACING}' WHERE load_balancer_name = '${lbName}';
+    UPDATE aws_load_balancer SET scheme = '${LoadBalancerSchemeEnum.INTERNAL}' WHERE load_balancer_name = '${lbName}';
   `));
 
   it('applies the change', apply);
@@ -144,6 +144,19 @@ describe('ELB Integration Testing', () => {
   it('applies the change', apply);
 
   it('deletes the listener', query(`
+    DELETE FROM aws_action
+    WHERE id IN (
+      SELECT aws_action_id
+      FROM aws_listener_default_actions_aws_action
+      WHERE aws_listener_id IN (
+        SELECT aws_listener.id
+        FROM aws_listener
+        INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+        WHERE load_balancer_name = '${lbName}'
+        ORDER BY aws_listener.id DESC
+        LIMIT 1
+      )
+    );
     DELETE FROM aws_listener
     WHERE id IN (
       SELECT aws_listener.id
