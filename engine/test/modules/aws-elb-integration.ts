@@ -48,6 +48,14 @@ describe('ELB Integration Testing', () => {
     LIMIT 1;
   `));
 
+  it('check aws_target_group insertion', query(`
+    SELECT *
+    FROM aws_target_group
+    WHERE target_group_name = '${tgName}'
+    ORDER BY id DESC
+    LIMIT 1;
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
   it('applies the change', apply);
 
   it('tries to update a target group field', query(`
@@ -65,28 +73,55 @@ describe('ELB Integration Testing', () => {
   // Load balancer
   // TODO: add security groups insert when testing application load balancer integration
   it('adds a new load balancer', query(`
-    INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc_id, load_balancer_type, ip_address_type)
-    SELECT '${lbName}', '${lbScheme}', id, '${lbType}', '${lbIPAddressType}'
-    FROM aws_vpc
-    WHERE is_default = true
+    BEGIN;
+      INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc_id, load_balancer_type, ip_address_type)
+      SELECT '${lbName}', '${lbScheme}', id, '${lbType}', '${lbIPAddressType}'
+      FROM aws_vpc
+      WHERE is_default = true
+      ORDER BY id DESC
+      LIMIT 1;
+      INSERT INTO aws_load_balancer_subnets_aws_subnet (aws_load_balancer_id, aws_subnet_id)
+      SELECT aws_load_balancer.id, aws_subnet.id
+      FROM aws_load_balancer
+      INNER JOIN aws_vpc ON aws_vpc.id = aws_load_balancer.vpc_id
+      INNER JOIN aws_subnet ON aws_vpc.id = aws_subnet.vpc_id
+      WHERE aws_load_balancer.load_balancer_name = '${lbName}'
+      LIMIT 2;
+      INSERT INTO aws_load_balancer_availability_zones_availability_zone (aws_load_balancer_id, availability_zone_id)
+      SELECT aws_load_balancer.id, availability_zone.id
+      FROM aws_load_balancer
+      INNER JOIN aws_load_balancer_subnets_aws_subnet ON aws_load_balancer_subnets_aws_subnet.aws_load_balancer_id = aws_load_balancer.id
+      INNER JOIN aws_subnet ON aws_load_balancer_subnets_aws_subnet.aws_subnet_id = aws_subnet.id
+      INNER JOIN availability_zone ON availability_zone.id = aws_subnet.availability_zone_id
+      WHERE aws_load_balancer.load_balancer_name = '${lbName}'
+      LIMIT 2;
+    COMMIT;
+  `));
+
+
+  it('check aws_load_balancer insertion', query(`
+    SELECT *
+    FROM aws_load_balancer
+    WHERE load_balancer_name = '${lbName}'
     ORDER BY id DESC
     LIMIT 1;
-    INSERT INTO aws_load_balancer_subnets_aws_subnet (aws_load_balancer_id, aws_subnet_id)
-    SELECT aws_load_balancer.id, aws_subnet.id
-    FROM aws_load_balancer
-    INNER JOIN aws_vpc ON aws_vpc.id = aws_load_balancer.vpc_id
-    INNER JOIN aws_subnet ON aws_vpc.id = aws_subnet.vpc_id
-    WHERE aws_load_balancer.load_balancer_name = '${lbName}'
-    LIMIT 2;
-    INSERT INTO aws_load_balancer_availability_zones_availability_zone (aws_load_balancer_id, availability_zone_id)
-    SELECT aws_load_balancer.id, availability_zone.id
-    FROM aws_load_balancer
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check aws_load_balancer_subnets_aws_subnet insertion', query(`
+    SELECT *
+    FROM aws_load_balancer_subnets_aws_subnet
+    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_load_balancer_subnets_aws_subnet.aws_load_balancer_id
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
+
+  it('check aws_load_balancer_availability_zones_availability_zone insertion', query(`
+    SELECT DISTINCT aws_load_balancer_availability_zones_availability_zone.availability_zone_id
+    FROM aws_load_balancer_availability_zones_availability_zone
+    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_load_balancer_availability_zones_availability_zone.aws_load_balancer_id
     INNER JOIN aws_load_balancer_subnets_aws_subnet ON aws_load_balancer_subnets_aws_subnet.aws_load_balancer_id = aws_load_balancer.id
     INNER JOIN aws_subnet ON aws_load_balancer_subnets_aws_subnet.aws_subnet_id = aws_subnet.id
-    INNER JOIN availability_zone ON availability_zone.id = aws_subnet.availability_zone_id
-    WHERE aws_load_balancer.load_balancer_name = '${lbName}'
-    LIMIT 2;
-  `));
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('applies the change', apply);
 
@@ -125,6 +160,21 @@ describe('ELB Integration Testing', () => {
       LIMIT 1;
     COMMIT;
   `));
+
+  it('check aws_listener insertion', query(`
+    SELECT *
+    FROM aws_listener
+    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check aws_listener_default_actions_aws_action insertion', query(`
+    SELECT *
+    FROM aws_listener_default_actions_aws_action
+    INNER JOIN aws_listener ON aws_listener.id = aws_listener_default_actions_aws_action.aws_listener_id
+    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies the change', apply);
 
