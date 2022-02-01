@@ -53,15 +53,15 @@ describe('EC2 Integration Testing', () => {
 
   it('set both ec2 instances to the same ami', query(`
     UPDATE instance
-    SET ami = ${ubuntuAmiId}
-    WHERE ami = ${amznAmiId};
+    SET ami = '${ubuntuAmiId}'
+    WHERE ami = '${amznAmiId}';
   `));
 
   it('applies the instances change', apply);
 
   it('deletes both ec2 instances', query(`
     DELETE FROM instance
-    WHERE ami = ${ubuntuAmiId};
+    WHERE ami = '${ubuntuAmiId}';
   `));
 
   it('applies the instances deletion', apply);
