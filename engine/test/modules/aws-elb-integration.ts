@@ -104,36 +104,59 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', apply);
 
-  // TODO: LOAD BALANCER TESTS USING THE CREATED TARGET GROUP AND LISTENER
-  // it('adds a new targetGroup', query(`
-  //   INSERT INTO aws_target_group (target_group_name, target_type, protocol, port, vpc_id, health_check_path)
-  //   SELECT '${tgName}', '${tgType}', '${protocol}', ${port}, id, '/'
-  //   FROM aws_vpc
-  //   WHERE vpc_id = 'default'
-  //   order by id desc
-  //   limit 1;
-  // `));
+  // TODO: LISTENER TESTS USING THE CREATED TARGET GROUP AND LOAD BALANCER
+  it('adds a new listener', query(`
+    BEGIN;
+      INSERT INTO aws_action (action_type, target_group_id)
+      SELECT  'forward', id
+      FROM aws_target_group
+      WHERE target_group_name = '${tgName}'
+      ORDER BY id DESC
+      LIMIT 1;
+      INSERT INTO aws_listener (aws_load_balancer_id, port, protocol)
+      SELECT id, ${port}, '${protocol}'
+      FROM aws_load_balancer
+      WHERE load_balancer_name = '${lbName}'
+      ORDER BY id DESC
+      LIMIT 1;
+      INSERT INTO aws_listener_default_actions_aws_action (aws_listener_id, aws_action_id)
+      SELECT aws_listener.id, aws_action.id
+      FROM aws_listener, aws_action
+      ORDER BY aws_listener.id DESC
+      LIMIT 1;
+    COMMIT;
+  `));
 
-  // it('applies the change', apply);
+  it('applies the change', apply);
 
-  // it('tries to update a target group field', query(`
-  //   UPDATE aws_target_group SET health_check_path = '/health' WHERE target_group_name = '${tgName}';
-  // `));
+  it('tries to update a listener field', query(`
+    UPDATE aws_listener
+    SET port = ${port + 1}
+    WHERE id IN (
+      SELECT aws_listener.id
+      FROM aws_listener
+      INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+      WHERE load_balancer_name = '${lbName}'
+      ORDER BY aws_listener.id DESC
+      LIMIT 1
+    );
+  `));
 
-  // it('applies the change', apply);
+  it('applies the change', apply);
 
-  // it('tries to update a target group field (replace)', query(`
-  //   UPDATE aws_target_group SET port = 5677 WHERE target_group_name = '${tgName}';
-  // `));
+  it('deletes the listener', query(`
+    DELETE FROM aws_listener
+    WHERE id IN (
+      SELECT aws_listener.id
+      FROM aws_listener
+      INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+      WHERE load_balancer_name = '${lbName}'
+      ORDER BY aws_listener.id DESC
+      LIMIT 1
+    );
+  `));
 
-  // it('applies the change', apply);
-
-  // it('deletes the target group', query(`
-  //   DELETE FROM aws_target_group
-  //   WHERE target_group_name = '${tgName}';
-  // `));
-
-  // it('applies the change (last time)', apply);
+  it('applies the change', apply);
 
   it('deletes the load balancer', query(`
     DELETE FROM aws_load_balancer
