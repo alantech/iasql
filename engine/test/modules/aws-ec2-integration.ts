@@ -1,7 +1,7 @@
 import * as iasql from '../../src/services/iasql'
 import { runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
 
-jest.setTimeout(24000);
+jest.setTimeout(240000);
 
 beforeAll(execComposeUp);
 
