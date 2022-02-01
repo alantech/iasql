@@ -441,9 +441,7 @@ export const AwsEc2Module: Module = new Module({
         Object.is(a.ami, b.ami) &&
         Object.is(a.instanceType.name, b.instanceType.name) &&
         Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
-        a.securityGroups?.every(as => !!b.securityGroups?
-          .find(bs => Object.is(as.groupId, bs.groupId))
-        ),
+        a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
       source: 'db',
       db: new Crud({
         create: (e: Instance[], ctx: Context) => ctx.orm.save(Instance, e),
