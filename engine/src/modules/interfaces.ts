@@ -110,7 +110,11 @@ export class Crud<E> {
             return val;
           }
         });
-        if (missing.length === 0) return vals;
+        if (missing.length === 0) {
+          console.log(`Full cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
+          return vals;
+        }
+        console.log(`Partial cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
         const missingVals = (this.memo(await this.readFn(ctx, missing), ctx, missing) as E[]).sort(
           (a: E, b: E) => missing.indexOf(entityId(a)) - missing.indexOf(entityId(b))
         );
@@ -130,8 +134,10 @@ export class Crud<E> {
         ctx.memo[dest] = ctx.memo[dest] ?? {};
         ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
         if (!ctx.memo[dest][entityName][id]) {
+          console.log(`Cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
           ctx.memo[dest][entityName][id] = new (this.entity as new () => E)();
         } else {
+          console.log(`Cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
           return ctx.memo[dest][entityName][id];
         }
         // Linter thinks this is shadowing the other one on line 152 because JS hoisting nonsense
@@ -149,6 +155,7 @@ export class Crud<E> {
         }
       }
     }
+    console.log(`Full cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
     const out = await this.readFn(ctx);
     if (!out || out.length === 0) {
       // Don't memo in this case, just pass it through
