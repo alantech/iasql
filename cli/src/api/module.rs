@@ -231,6 +231,27 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
     }
     mods
   };
+  // add dependent modules not explicitly called out
+  let mut deps = vec![];
+  for md in all_infos.into_iter() {
+    if mods.contains(&md.name) {
+      for dmd in &md.dependencies {
+        if !installed.contains(&dmd) && !mods.contains(&dmd) {
+          deps.push(dmd.clone())
+        }
+      }
+    }
+  }
+  if deps.len() > 0 {
+    println!(
+      "{} {} {} {}",
+      dlg::success_prefix(),
+      dlg::bold("Dependent modules also needed for installation"),
+      dlg::divider(),
+      dlg::green(&deps.join(&format!("{} ", dlg::white(","))))
+    );
+    mods.append(&mut deps);
+  }
   mods
 }
 

@@ -729,14 +729,20 @@ export async function modules(all: boolean, installed: boolean, dbAlias: string,
 export async function install(moduleList: string[], dbAlias: string, user: any) {
   const { dbId, dbUser } = await dbMan.getMetadata(dbAlias, user);
   // Check to make sure that all specified modules actually exist
-  let mods = moduleList.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
+  const mods = moduleList.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {
     throw new Error(`The following modules do not exist: ${
       moduleList.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
     }`);
   }
-  const depMods = mods.map((n: Modules.ModuleInterface) => Object.values(Modules).find(m => n.dependencies.includes(m.name))) as Modules.ModuleInterface[];
-  mods = [...new Set([...mods ,...depMods])];
+  // Check to make sure that all dependent modules are in the list
+  const missingDeps = mods.map((m: Modules.ModuleInterface) => m.dependencies.find(d => !moduleList.includes(d)));
+  // TODO rm special casing for aws_account
+  if (missingDeps.some((m: any) => m !== undefined && m !== 'aws_account')) {
+    throw new Error(`The provided modules depend on the following modules: ${
+      missingDeps.filter(n => n !== undefined).join(' , ')
+    }`);
+  }
   // Grab all of the entities plus the IaSQL Module entity itself and create the TypeORM connection
   // with it. Theoretically only need the module in question at first, but when we try to use the
   // module to acquire the cloud records, it may use one or more other modules it depends on, so

@@ -33,7 +33,7 @@ describe('ELB Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the elb module', (done) => void iasql.install(
-    ['aws_elb'],
+    ['aws_security_group', 'aws_elb'],
     dbAlias,
     'not-needed').then(...finish(done)));
 

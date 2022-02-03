@@ -25,7 +25,7 @@ describe('EC2 Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the ec2 module', (done) => void iasql.install(
-    ['aws_ec2'],
+    ['aws_ec2', 'aws_security_group'],
     dbAlias,
     'not-needed').then(...finish(done)));
 
