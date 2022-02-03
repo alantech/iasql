@@ -735,6 +735,14 @@ export async function install(moduleList: string[], dbAlias: string, user: any) 
       moduleList.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
     }`);
   }
+  // Check to make sure that all dependent modules are in the list
+  const missingDeps = mods.map((m: Modules.ModuleInterface) => m.dependencies.find(d => !moduleList.includes(d)));
+  // TODO rm special casing for aws_account
+  if (missingDeps.some((m: any) => m !== undefined && m !== 'aws_account')) {
+    throw new Error(`The provided modules depend on the following modules: ${
+      missingDeps.filter(n => n !== undefined).join(' , ')
+    }`);
+  }
   // Grab all of the entities plus the IaSQL Module entity itself and create the TypeORM connection
   // with it. Theoretically only need the module in question at first, but when we try to use the
   // module to acquire the cloud records, it may use one or more other modules it depends on, so
