@@ -372,20 +372,7 @@ export const AwsEcsModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          const tasks = await ctx.orm.find(TaskDefinition, opts);
-          tasks.forEach((t: TaskDefinition) => {
-            Object.keys(t).forEach(k => {
-              if ((t as any)[k] === null) (t as any)[k] = undefined;
-              if (k === 'containers' && Array.isArray(t.containers)) {
-                t.containers.forEach((c: ContainerDefinition) => {
-                  Object.keys(c).forEach(j => {
-                    if ((c as any)[j] === null) (c as any)[j] = undefined;
-                  });
-                });
-              }
-            });
-          });
-          return tasks;
+          return await ctx.orm.find(TaskDefinition, opts);
         },
         update: async (es: TaskDefinition[], ctx: Context) => {
           // Deduplicate Compatibility ahead of time, preserving an ID if it exists
@@ -515,10 +502,6 @@ export const AwsEcsModule: Module = new Module({
               c.id = undefined;
               return c;
             });
-            console.log({
-              newRecord,
-              cloudRecord,
-            });
             await AwsEcsModule.mappers.taskDefinition.db.create(newRecord, ctx);
             await AwsEcsModule.mappers.taskDefinition.db.update(cloudRecord, ctx);
             return cloudRecord;
@@ -612,26 +595,7 @@ export const AwsEcsModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          const services = await ctx.orm.find(Service, opts);
-          services.forEach((s: Service) => {
-            Object.keys(s).forEach(k => {
-              if ((s as any)[k] === null) (s as any)[k] = undefined;
-            });
-            const t = s.task;
-            if (!!t) {
-              Object.keys(t).forEach(k => {
-                if ((t as any)[k] === null) (t as any)[k] = undefined;
-                if (k === 'containers' && Array.isArray(t.containers)) {
-                  t.containers.forEach((c: ContainerDefinition) => {
-                    Object.keys(c).forEach(j => {
-                      if ((c as any)[j] === null) (c as any)[j] = undefined;
-                    });
-                  });
-                }
-              });
-            }
-          });
-          return services;
+          return await ctx.orm.find(Service, opts);
         },
         update: async (es: Service[], ctx: Context) => {
           await Promise.all(es.map(async (entity: any) => {
