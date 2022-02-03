@@ -171,19 +171,19 @@ describe('ECS Integration Testing', () => {
 
   it('applies adds a new task definition with container definition', apply);
 
-  // it('deletes task definitions', query(`
-  //   DELETE FROM task_definition
-  //   WHERE family = '${tdFamily}';
-  // `));
+  it('deletes task definitions', query(`
+    DELETE FROM task_definition
+    WHERE family = '${tdFamily}';
+  `));
 
-  // it('applies deletes task definitions', apply);
+  it('applies deletes task definitions', apply);
 
-  // it('deletes the cluster', query(`
-  //   DELETE FROM cluster
-  //   WHERE cluster_name = '${newClusterName}';
-  // `));
+  it('deletes the cluster', query(`
+    DELETE FROM cluster
+    WHERE cluster_name = '${newClusterName}';
+  `));
 
-  // it('applies deletes the cluster', apply);
+  it('applies deletes the cluster', apply);
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
