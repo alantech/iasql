@@ -1,13 +1,15 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToMany,
-  JoinTable,
-  Check,
-  ManyToOne,
-  JoinColumn,
   AfterLoad,
+  AfterInsert,
+  AfterUpdate,
+  Check,
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  PrimaryGeneratedColumn,
 } from 'typeorm'
 
 import { LogGroup } from '../../aws_cloudwatch/entity'
@@ -81,9 +83,12 @@ export class ContainerDefinition {
   logGroup?: LogGroup;
 
   @AfterLoad()
+  @AfterInsert()
+  @AfterUpdate()
   updateNulls() {
+    const that: any = this;
     Object.keys(this).forEach(k => {
-      if ((this as any)[k] === null) (this as any)[k] = undefined;
+      if (that[k] === null) that[k] = undefined;
     });
   }
 }
