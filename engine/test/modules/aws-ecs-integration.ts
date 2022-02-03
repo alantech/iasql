@@ -1,5 +1,5 @@
 import { LoadBalancerStateEnum } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { CompatibilityValues, CpuMemCombination, NetworkMode, TaskDefinitionStatus } from '../../src/modules/aws_ecs/entity';
+import { CompatibilityValues, CpuMemCombination, LaunchType, NetworkMode, SchedulingStrategy, TaskDefinitionStatus } from '../../src/modules/aws_ecs/entity';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
 
@@ -34,6 +34,9 @@ const tdCpuMem = CpuMemCombination['2vCPU-8GB'];
 const tdCompatibility = CompatibilityValues.FARGATE;
 const tdActive = TaskDefinitionStatus.ACTIVE;
 const tdInactive = TaskDefinitionStatus.INACTIVE;
+const serviceDesiredCount = 1;
+const serviceSchedulingStrategy = SchedulingStrategy.REPLICA;
+const serviceLaunchType = LaunchType.FARGATE;
 
 describe('ECS Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.add(
@@ -171,19 +174,98 @@ describe('ECS Integration Testing', () => {
 
   it('applies adds a new task definition with container definition', apply);
 
-  it('deletes task definitions', query(`
-    DELETE FROM task_definition
-    WHERE family = '${tdFamily}';
+  // todo: test task definition update
+
+  // Service
+  // todo: add service load balancer relation
+  it('adds a new service', query(`
+    BEGIN;
+      INSERT INTO aws_vpc_conf (assign_public_ip)
+      VALUES ('ENABLED');
+
+      INSERT INTO aws_vpc_conf_subnets_aws_subnet (aws_vpc_conf_id, aws_subnet_id)
+      SELECT aws_vpc_conf.id, aws_subnet.id
+      FROM aws_vpc_conf, aws_subnet
+      INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
+      WHERE aws_vpc.is_default = true
+      ORDER BY aws_vpc_conf.id, aws_subnet.id DESC
+      LIMIT 1;
+
+      INSERT INTO aws_vpc_conf_security_groups_aws_security_group (aws_vpc_conf_id, aws_security_group_id)
+      SELECT aws_vpc_conf.id, aws_security_group.id
+      FROM aws_vpc_conf, aws_security_group
+      WHERE aws_security_group.group_name = 'default'
+      ORDER BY aws_vpc_conf.id, aws_security_group.id DESC
+      LIMIT 1;
+
+      INSERT INTO service (name, cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
+      SELECT '${serviceName}', cluster.id, task_definition.id, ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', aws_vpc_conf.id
+      FROM cluster, aws_vpc_conf, task_definition
+      WHERE task_definition.family = '${tdFamily}' AND task_definition.status = '${tdActive}' AND cluster.cluster_name = '${clusterName}'
+      ORDER BY aws_vpc_conf.id, task_definition.revision DESC
+      LIMIT 1;
+    COMMIT;
   `));
 
-  it('applies deletes task definitions', apply);
+  // todo: check inserts
+  it('check aws_vpc_conf insertion', query(`
+    SELECT *
+    FROM aws_vpc_conf;
+  `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
 
-  it('deletes the cluster', query(`
-    DELETE FROM cluster
-    WHERE cluster_name = '${newClusterName}';
-  `));
+  it('check aws_vpc_conf_subnets_aws_subnet insertion', query(`
+    SELECT *
+    FROM aws_vpc_conf_subnets_aws_subnet
+    INNER JOIN aws_subnet ON aws_subnet.id = aws_vpc_conf_subnets_aws_subnet.aws_subnet_id
+    INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
+    WHERE aws_vpc.is_default = true
+    LIMIT 1;
+  `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
 
-  it('applies deletes the cluster', apply);
+  it('check aws_vpc_conf_security_groups_aws_security_group insertion', query(`
+    SELECT *
+    FROM aws_vpc_conf_security_groups_aws_security_group
+    INNER JOIN aws_security_group ON aws_security_group.id = aws_vpc_conf_security_groups_aws_security_group.aws_security_group_id
+    WHERE aws_security_group.group_name = 'default'
+    LIMIT 1;
+  `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
+  it('check service insertion', query(`
+    SELECT *
+    FROM service;
+  `, (res: any[]) => {
+    console.log('*************')
+    console.log(res)
+    return expect(res.length).toBe(1)
+  }));
+
+  // todo: test service update
+
+  // todo: delete service
+
+  it('check service insertion', query(`
+  SELECT *
+  FROM cluster, aws_vpc_conf, task_definition
+  ORDER BY aws_vpc_conf.id, task_definition.revision DESC;
+`, (res: any[]) => {
+  console.log('*************')
+  console.dir({res},{depth:5})
+  return expect(res.length).toBe(1)
+}));
+
+  // it('deletes task definitions', query(`
+  //   DELETE FROM task_definition
+  //   WHERE family = '${tdFamily}';
+  // `));
+
+  // it('applies deletes task definitions', apply);
+
+  // it('deletes the cluster', query(`
+  //   DELETE FROM cluster
+  //   WHERE cluster_name = '${newClusterName}';
+  // `));
+
+  // it('applies deletes the cluster', apply);
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
