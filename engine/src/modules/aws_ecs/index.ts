@@ -497,7 +497,7 @@ export const AwsEcsModule: Module = new Module({
             const newRecord = { ...e };
             cloudRecord.id = e.id;
             newRecord.id = undefined;
-            newRecord.taskDefinitionArn = '';
+            newRecord.taskDefinitionArn = undefined;
             newRecord.containers = newRecord.containers.map(c => {
               c.id = undefined;
               return c;
@@ -521,7 +521,7 @@ export const AwsEcsModule: Module = new Module({
                 const dbTd = await AwsEcsModule.mappers.taskDefinition.db.read(ctx, e.taskDefinitionArn);
                 // Temporarily create again the task definition inactive if deleted from DB to avoid infinite loops.
                 // ? Eventually, forbid task definitons to be deleted from database.
-                if (!dbTd) {
+                if (!dbTd || (Array.isArray(dbTd) && !dbTd.length)) {
                   await AwsEcsModule.mappers.taskDefinition.db.create(e, ctx);
                 }
               } else {
