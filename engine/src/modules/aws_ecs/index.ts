@@ -411,6 +411,7 @@ export const AwsEcsModule: Module = new Module({
       cloud: new Crud({
         create: async (es: TaskDefinition[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
+
           return await Promise.all(es.map(async (e) => {
             const input: any = {
               family: e.family,
@@ -500,7 +501,7 @@ export const AwsEcsModule: Module = new Module({
             newRecord.containers = newRecord.containers.map(c => {
               c.id = undefined;
               return c;
-            })
+            });
             await AwsEcsModule.mappers.taskDefinition.db.create(newRecord, ctx);
             await AwsEcsModule.mappers.taskDefinition.db.update(cloudRecord, ctx);
             return cloudRecord;
@@ -661,17 +662,23 @@ export const AwsEcsModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           // TODO: Refactor this. I don't think the `ids` branch has been tested, either. So I don't want to touch it
           if (ids) {
-            return await Promise.all(ids.map(async (id) => {
-              const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsModule.mappers.service.cloud.read(ctx);
+            const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsModule.mappers.service.cloud.read(ctx);
+            const out = [];
+            for (const id of ids) {
               const service = services.find((s: any) => s.name === id);
-              return await AwsEcsModule.utils.serviceMapper(
+              out.push(await AwsEcsModule.utils.serviceMapper(
                 await client.getService(id, service.cluster.clusterArn), ctx
-              );
-            }));
+              ));
+            }
+            return out;
           } else {
             const clusters = ctx.memo?.cloud?.Cluster ? Object.values(ctx.memo?.cloud?.Cluster) : await AwsEcsModule.mappers.cluster.cloud.read(ctx);
             const result = await client.getServices(clusters?.map((c: any) => c.clusterArn) ?? []);
-            return await Promise.all(result.map(async (s) => AwsEcsModule.utils.serviceMapper(s, ctx)));
+            const out = [];
+            for (const s of result) {
+              out.push(await AwsEcsModule.utils.serviceMapper(s, ctx));
+            }
+            return out;
           }
         },
         updateOrReplace: (prev: Service, next: Service) => {

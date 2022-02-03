@@ -1,10 +1,12 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToMany,
-  JoinTable,
   AfterLoad,
+  AfterInsert,
+  AfterUpdate,
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ContainerDefinition, Compatibility } from '.';
 
@@ -132,9 +134,12 @@ export class TaskDefinition {
   cpuMemory: CpuMemCombination;
 
   @AfterLoad()
+  @AfterInsert()
+  @AfterUpdate()
   updateNulls() {
+    const that: any = this;
     Object.keys(this).forEach(k => {
-      if ((this as any)[k] === null) (this as any)[k] = undefined;
+      if (that[k] === null) that[k] = undefined;
     });
   }
 }

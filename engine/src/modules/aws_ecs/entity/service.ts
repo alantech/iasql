@@ -1,12 +1,15 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
+  AfterLoad,
+  AfterInsert,
+  AfterUpdate,
   Column,
+  Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToOne,
-  ManyToMany,
-  JoinTable,
+  PrimaryGeneratedColumn,
 } from 'typeorm'
 import { AwsVpcConf, Cluster, ServiceLoadBalancer, TaskDefinition } from '.';
 
@@ -79,4 +82,14 @@ export class Service {
   @ManyToMany(() => ServiceLoadBalancer, { cascade: true, })
   @JoinTable()
   loadBalancers?: ServiceLoadBalancer[];
+
+  @AfterLoad()
+  @AfterInsert()
+  @AfterUpdate()
+  updateNulls() {
+    const that: any = this;
+    Object.keys(this).forEach(k => {
+      if (that[k] === null) that[k] = undefined;
+    });
+  }
 }
