@@ -52,6 +52,7 @@ describe('EC2 Integration Testing', () => {
   it('applies the created instances', apply);
 
   // TODO fix infinite loop on apply
+  // https://github.com/iasql/iasql/issues/387
   // it('set both ec2 instances to the same ami', query(`
   //   UPDATE instance
   //   SET ami = '${ubuntuAmiId}'
