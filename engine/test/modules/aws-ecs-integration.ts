@@ -1,4 +1,3 @@
-import { LoadBalancerStateEnum } from '@aws-sdk/client-elastic-load-balancing-v2';
 import { CompatibilityValues, CpuMemCombination, LaunchType, NetworkMode, SchedulingStrategy, TaskDefinitionStatus } from '../../src/modules/aws_ecs/entity';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
@@ -37,6 +36,8 @@ const tdInactive = TaskDefinitionStatus.INACTIVE;
 const serviceDesiredCount = 1;
 const serviceSchedulingStrategy = SchedulingStrategy.REPLICA;
 const serviceLaunchType = LaunchType.FARGATE;
+const serviceTargetGroupName = `${serviceName}tg`;
+const serviceLoadBalancerName = `${serviceName}lb`;
 
 describe('ECS Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.add(
@@ -176,6 +177,49 @@ describe('ECS Integration Testing', () => {
 
   // todo: test task definition update
 
+  // Service dependency
+  it('adds service dependencies', query(`
+    BEGIN;
+      DO
+      $$
+      DECLARE default_vpc text;
+      BEGIN
+          SELECT vpc_id into default_vpc
+          FROM aws_vpc
+          WHERE is_default = true
+          LIMIT 1;
+          CALL create_aws_target_group('${serviceTargetGroupName}', 'ip', ${hostPort}, default_vpc, 'HTTP', '/health');
+      END
+      $$;
+
+      DO
+      $$
+      DECLARE default_vpc text;
+              default_vpc_id integer;
+              subnets text[];
+      BEGIN
+          SELECT vpc_id, id INTO default_vpc, default_vpc_id
+          FROM aws_vpc
+          WHERE is_default = true
+          LIMIT 1;
+
+          SELECT ARRAY(
+            SELECT subnet_id
+            FROM aws_subnet
+            WHERE vpc_id = default_vpc_id) INTO subnets;
+
+          CALL create_aws_load_balancer(
+            '${serviceLoadBalancerName}', 'internet-facing', default_vpc, 'application', subnets, 'ipv4', array['default']
+          );
+      END
+      $$;
+
+      CALL create_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
+    COMMIT;
+  `));
+
+  it('applies service dependencies', apply);
+
   // Service
   // todo: add service load balancer relation
   it('adds a new service', query(`
@@ -215,6 +259,40 @@ describe('ECS Integration Testing', () => {
       )
       INSERT INTO service (name, cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
       SELECT '${serviceName}', (select id from cl), (select id from td), ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', (select id from avc);
+
+      WITH c AS (
+        SELECT container_definition.name as name
+        FROM container_definition
+        INNER JOIN task_definition_containers_container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
+        INNER JOIN task_definition ON task_definition_containers_container_definition.task_definition_id = task_definition.id
+        WHERE task_definition.family = '${tdFamily}' AND task_definition.status = '${tdActive}'
+        ORDER BY task_definition.revision DESC
+      ), tg AS (
+        SELECT id
+        FROM aws_target_group
+        WHERE target_group_name = '${serviceTargetGroupName}'
+        LIMIT 1
+      ), elb AS (
+        SELECT id
+        FROM aws_load_balancer
+        WHERE load_balancer_name = '${serviceLoadBalancerName}'
+        LIMIT 1
+      )
+      INSERT INTO service_load_balancer (container_name, container_port, target_group_id, elb_id)
+      SELECT (select name from c), ${hostPort}, (select id from tg), (select id from elb);
+
+      WITH s AS (
+        SELECT id
+        FROM service
+        WHERE name = '${serviceName}'
+      ), slb AS (
+        SELECT id
+        FROM service_load_balancer
+        ORDER BY id DESC
+        LIMIT 1
+      )
+      INSERT INTO service_load_balancers_service_load_balancer (service_id, service_load_balancer_id)
+      SELECT (SELECT id FROM s), (select id from slb);
     COMMIT;
   `));
 
@@ -245,6 +323,15 @@ describe('ECS Integration Testing', () => {
     SELECT *
     FROM service
     WHERE name = '${serviceName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check service_load_balancer insertion', query(`
+    SELECT *
+    FROM service_load_balancers_service_load_balancer
+    INNER JOIN service_load_balancer ON service_load_balancer.id = service_load_balancers_service_load_balancer.service_load_balancer_id
+    INNER JOIN service ON service.id = service_load_balancers_service_load_balancer.service_id
+    INNER JOIN aws_load_balancer ON aws_load_balancer.id = service_load_balancer.elb_id
+    WHERE service.name = '${serviceName}' AND aws_load_balancer.load_balancer_name = '${serviceLoadBalancerName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   // todo: test service update
