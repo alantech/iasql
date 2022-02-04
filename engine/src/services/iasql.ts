@@ -341,6 +341,9 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
         }
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+          // if (r.mapper.entity.name === 'TaskDefinition' || r.mapper.entity.name === 'AwsLoadBalancer' || r.mapper.entity.name === 'AwsListener') {
+          //   console.dir(r.diff, {depth:5})
+          // }
           if (r.diff.entitiesInDbOnly.length > 0) {
             updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInDbOnly);
           } else {
