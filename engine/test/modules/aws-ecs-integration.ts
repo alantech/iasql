@@ -266,6 +266,7 @@ describe('ECS Integration Testing', () => {
         FROM task_definition
         WHERE family = '${tdFamily}' AND status = '${tdActive}'
         ORDER BY revision DESC
+        LIMIT 1
       )
       INSERT INTO service (name, cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
       SELECT '${serviceName}', (select id from cl), (select id from td), ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', (select id from avc);
