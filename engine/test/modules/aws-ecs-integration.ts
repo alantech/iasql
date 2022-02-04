@@ -198,12 +198,23 @@ describe('ECS Integration Testing', () => {
       ORDER BY aws_vpc_conf.id, aws_security_group.id DESC
       LIMIT 1;
 
+      WITH cl AS (
+        SELECT id
+        FROM cluster
+        WHERE cluster_name = '${clusterName}'
+      ), avc AS (
+        SELECT id
+        FROM aws_vpc_conf
+        ORDER BY id DESC
+        LIMIT 1
+      ), td AS (
+        SELECT id
+        FROM task_definition
+        WHERE family = '${tdFamily}' AND status = '${tdActive}'
+        ORDER BY revision DESC
+      )
       INSERT INTO service (name, cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
-      SELECT '${serviceName}', cluster.id, task_definition.id, ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', aws_vpc_conf.id
-      FROM cluster, aws_vpc_conf, task_definition
-      WHERE task_definition.family = '${tdFamily}' AND task_definition.status = '${tdActive}' AND cluster.cluster_name = '${clusterName}'
-      ORDER BY aws_vpc_conf.id, task_definition.revision DESC
-      LIMIT 1;
+      SELECT '${serviceName}', (select id from cl), (select id from td), ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', (select id from avc);
     COMMIT;
   `));
 
@@ -232,12 +243,9 @@ describe('ECS Integration Testing', () => {
 
   it('check service insertion', query(`
     SELECT *
-    FROM service;
-  `, (res: any[]) => {
-    console.log('*************')
-    console.log(res)
-    return expect(res.length).toBe(1)
-  }));
+    FROM service
+    WHERE name = '${serviceName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
 
   // todo: test service update
 
