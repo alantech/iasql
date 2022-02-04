@@ -17,8 +17,11 @@ import * as Modules from '../modules'
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
-export function recordCount(crupde: Crupde) {
-  return Object.values(crupde).map(r => r.records.length).reduce((cumu, curr) => cumu + curr, 0);
+export function recordCount(records: { [key: string]: any, }[]): [number, number, number] {
+  const dbCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInDbOnly.length, 0);
+  const cloudCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInAwsOnly.length, 0);
+  const bothCount = records.reduce((cumu, r) => cumu + r.diff.entitiesChanged.length, 0);
+  return [ dbCount, cloudCount, bothCount, ];
 }
 
 export async function add(
@@ -285,10 +288,9 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
     const toUpdate: Crupde = {};
     const toReplace: Crupde = {};
     const toDelete: Crupde = {};
-    let createCount = -1;
-    let updateCount = -1;
-    let replaceCount = -1;
-    let deleteCount = -1;
+    let dbCount = -1;
+    let cloudCount = -1;
+    let bothCount = -1;
     let spinCount = 0;
     do {
       ranFullUpdate = false;
@@ -343,13 +345,9 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
           if (r.diff.entitiesInDbOnly.length > 0) {
             updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInDbOnly);
-          } else {
-            delete toCreate[r.table];
           }
           if (r.diff.entitiesInAwsOnly.length > 0) {
             updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInAwsOnly);
-          } else {
-            delete toDelete[r.table];
           }
           if (r.diff.entitiesChanged.length > 0) {
             const updates: any[] = [];
@@ -362,16 +360,8 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
                 replaces.push(e.db);
               }
             });
-            if (updates.length > 0) {
-              updatePlan(toUpdate, r.table, r.mapper, updates);
-            } else {
-              delete toUpdate[r.table];
-            }
-            if (replaces.length > 0) {
-              updatePlan(toReplace, r.table, r.mapper, replaces);
-            } else {
-              delete toReplace[r.table];
-            }
+            if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
+            if (replaces.length > 0) updatePlan(toReplace, r.table, r.mapper, replaces);
           }
         });
         if (dryRun) return {
@@ -381,22 +371,17 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
           toReplace,
           toDelete,
         };
-        const nextCreateCount = recordCount(toCreate);
-        const nextUpdateCount = recordCount(toUpdate);
-        const nextReplaceCount = recordCount(toReplace);
-        const nextDeleteCount = recordCount(toDelete);
+        const [ nextDbCount, nextCloudCount, nextBothCount, ] = recordCount(records);
         if (
-          createCount === nextCreateCount &&
-          updateCount === nextUpdateCount &&
-          replaceCount === nextReplaceCount &&
-          deleteCount === nextDeleteCount
+          dbCount === nextDbCount &&
+          cloudCount === nextCloudCount &&
+          bothCount === nextBothCount
         ) {
           spinCount++;
         } else {
-          createCount = nextCreateCount;
-          updateCount = nextUpdateCount;
-          replaceCount = nextReplaceCount;
-          deleteCount = nextDeleteCount;
+          dbCount = nextDbCount;
+          cloudCount = nextCloudCount;
+          bothCount = nextBothCount;
           spinCount = 0;
         }
         if (spinCount === 4) {
@@ -520,10 +505,9 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
     const toUpdate: Crupde = {};
     const toReplace: Crupde = {}; // Not actually used in sync mode, at least right now
     const toDelete: Crupde = {};
-    let createCount = -1;
-    let updateCount = -1;
-    let replaceCount = -1;
-    let deleteCount = -1;
+    let dbCount = -1;
+    let cloudCount = -1;
+    let bothCount = -1;
     let spinCount = 0;
     do {
       ranFullUpdate = false;
@@ -578,24 +562,16 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
           if (r.diff.entitiesInDbOnly.length > 0) {
             updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
-          } else {
-            delete toDelete[r.table];
           }
           if (r.diff.entitiesInAwsOnly.length > 0) {
             updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInAwsOnly);
-          } else {
-            delete toCreate[r.table];
           }
           if (r.diff.entitiesChanged.length > 0) {
             const updates: any[] = [];
             r.diff.entitiesChanged.forEach((e: any) => {
               updates.push(e.cloud);
             });
-            if (updates.length > 0) {
-              updatePlan(toUpdate, r.table, r.mapper, updates);
-            } else {
-              delete toUpdate[r.table];
-            }
+            if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
           }
         });
         if (dryRun) return {
@@ -605,22 +581,17 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
           toReplace,
           toDelete,
         };
-        const nextCreateCount = recordCount(toCreate);
-        const nextUpdateCount = recordCount(toUpdate);
-        const nextReplaceCount = recordCount(toReplace);
-        const nextDeleteCount = recordCount(toDelete);
+        const [ nextDbCount, nextCloudCount, nextBothCount, ] = recordCount(records);
         if (
-          createCount === nextCreateCount &&
-          updateCount === nextUpdateCount &&
-          replaceCount === nextReplaceCount &&
-          deleteCount === nextDeleteCount
+          dbCount === nextDbCount &&
+          cloudCount === nextCloudCount &&
+          bothCount === nextBothCount
         ) {
           spinCount++;
         } else {
-          createCount = nextCreateCount;
-          updateCount = nextUpdateCount;
-          replaceCount = nextReplaceCount;
-          deleteCount = nextDeleteCount;
+          dbCount = nextDbCount;
+          cloudCount = nextCloudCount;
+          bothCount = nextBothCount;
           spinCount = 0;
         }
         if (spinCount === 4) {
