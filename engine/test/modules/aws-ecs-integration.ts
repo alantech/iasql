@@ -379,6 +379,42 @@ describe('ECS Integration Testing', () => {
 
   it('applies deletes the cluster', apply);
 
+  it('deletes dependencies',  query(`
+    DELETE FROM log_group
+    WHERE log_group_name = '${logGroupName}';
+
+    DELETE FROM aws_action
+    WHERE id IN (
+      SELECT aws_action_id
+      FROM aws_listener_default_actions_aws_action
+      WHERE aws_listener_id IN (
+        SELECT aws_listener.id
+        FROM aws_listener
+        INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+        WHERE load_balancer_name = '${serviceLoadBalancerName}'
+        ORDER BY aws_listener.id DESC
+        LIMIT 1
+      )
+    );
+    DELETE FROM aws_listener
+    WHERE id IN (
+      SELECT aws_listener.id
+      FROM aws_listener
+      INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+      WHERE load_balancer_name = '${serviceLoadBalancerName}'
+      ORDER BY aws_listener.id DESC
+      LIMIT 1
+    );
+
+    DELETE FROM aws_load_balancer
+    WHERE load_balancer_name = '${serviceLoadBalancerName}';
+
+    DELETE FROM aws_target_group
+    WHERE target_group_name = '${serviceTargetGroupName}';
+  `));
+
+  it('applies deletes dependencies', apply);
+
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
     .then(...finish(done)));
