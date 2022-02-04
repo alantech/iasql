@@ -277,7 +277,7 @@ describe('ECS Integration Testing', () => {
         INNER JOIN task_definition ON task_definition_containers_container_definition.task_definition_id = task_definition.id
         WHERE task_definition.family = '${tdFamily}' AND task_definition.status = '${tdActive}'
         ORDER BY task_definition.family, task_definition.revision DESC
-        LIMIT 1;
+        LIMIT 1
       ), tg AS (
         SELECT id
         FROM aws_target_group
