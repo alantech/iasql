@@ -380,9 +380,6 @@ describe('ECS Integration Testing', () => {
   it('applies deletes the cluster', apply);
 
   it('deletes dependencies',  query(`
-    DELETE FROM log_group
-    WHERE log_group_name = '${logGroupName}';
-
     DELETE FROM aws_action
     WHERE id IN (
       SELECT aws_action_id
