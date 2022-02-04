@@ -249,31 +249,26 @@ describe('ECS Integration Testing', () => {
 
   // todo: test service update
 
-  // todo: delete service
+  it('deletes service', query(`
+    DELETE FROM service
+    WHERE name = '${serviceName}';
+  `));
 
-  it('check service insertion', query(`
-  SELECT *
-  FROM cluster, aws_vpc_conf, task_definition
-  ORDER BY aws_vpc_conf.id, task_definition.revision DESC;
-`, (res: any[]) => {
-  console.log('*************')
-  console.dir({res},{depth:5})
-  return expect(res.length).toBe(1)
-}));
+  it('applies deletes service', apply);
 
-  // it('deletes task definitions', query(`
-  //   DELETE FROM task_definition
-  //   WHERE family = '${tdFamily}';
-  // `));
+  it('deletes task definitions', query(`
+    DELETE FROM task_definition
+    WHERE family = '${tdFamily}';
+  `));
 
-  // it('applies deletes task definitions', apply);
+  it('applies deletes task definitions', apply);
 
-  // it('deletes the cluster', query(`
-  //   DELETE FROM cluster
-  //   WHERE cluster_name = '${newClusterName}';
-  // `));
+  it('deletes the cluster', query(`
+    DELETE FROM cluster
+    WHERE cluster_name = '${newClusterName}';
+  `));
 
-  // it('applies deletes the cluster', apply);
+  it('applies deletes the cluster', apply);
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
