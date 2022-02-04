@@ -32,12 +32,12 @@ const tdNetworkMode = NetworkMode.AWSVPC;
 const tdCpuMem = CpuMemCombination['2vCPU-8GB'];
 const tdCompatibility = CompatibilityValues.FARGATE;
 const tdActive = TaskDefinitionStatus.ACTIVE;
-const tdInactive = TaskDefinitionStatus.INACTIVE;
 const serviceDesiredCount = 1;
 const serviceSchedulingStrategy = SchedulingStrategy.REPLICA;
 const serviceLaunchType = LaunchType.FARGATE;
 const serviceTargetGroupName = `${serviceName}tg`;
 const serviceLoadBalancerName = `${serviceName}lb`;
+const newServiceName = `${serviceName}replace`;
 
 describe('ECS Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.add(
@@ -175,7 +175,18 @@ describe('ECS Integration Testing', () => {
 
   it('applies adds a new task definition with container definition', apply);
 
-  // todo: test task definition update
+  it('tries to update a task definition', query(`
+    WITH td AS (
+      SELECT revision
+      FROM task_definition
+      WHERE family = '${tdFamily}' AND status = '${tdActive}'
+      ORDER BY family, revision DESC
+      LIMIT 1
+    )
+    UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td);
+  `));
+
+  it('applies tries to update a task definition field', apply);
 
   // Service dependency
   it('adds service dependencies', query(`
@@ -221,7 +232,6 @@ describe('ECS Integration Testing', () => {
   it('applies service dependencies', apply);
 
   // Service
-  // todo: add service load balancer relation
   it('adds a new service', query(`
     BEGIN;
       INSERT INTO aws_vpc_conf (assign_public_ip)
@@ -245,7 +255,7 @@ describe('ECS Integration Testing', () => {
       WITH cl AS (
         SELECT id
         FROM cluster
-        WHERE cluster_name = '${clusterName}'
+        WHERE cluster_name = '${newClusterName}'
       ), avc AS (
         SELECT id
         FROM aws_vpc_conf
@@ -272,14 +282,9 @@ describe('ECS Integration Testing', () => {
         FROM aws_target_group
         WHERE target_group_name = '${serviceTargetGroupName}'
         LIMIT 1
-      ), elb AS (
-        SELECT id
-        FROM aws_load_balancer
-        WHERE load_balancer_name = '${serviceLoadBalancerName}'
-        LIMIT 1
       )
       INSERT INTO service_load_balancer (container_name, container_port, target_group_id, elb_id)
-      SELECT (select name from c), ${hostPort}, (select id from tg), (select id from elb);
+      SELECT (select name from c), ${hostPort}, (select id from tg), null; -- insert either target group or load balancer
 
       WITH s AS (
         SELECT id
@@ -296,7 +301,6 @@ describe('ECS Integration Testing', () => {
     COMMIT;
   `));
 
-  // todo: check inserts
   it('check aws_vpc_conf insertion', query(`
     SELECT *
     FROM aws_vpc_conf;
@@ -330,15 +334,31 @@ describe('ECS Integration Testing', () => {
     FROM service_load_balancers_service_load_balancer
     INNER JOIN service_load_balancer ON service_load_balancer.id = service_load_balancers_service_load_balancer.service_load_balancer_id
     INNER JOIN service ON service.id = service_load_balancers_service_load_balancer.service_id
-    INNER JOIN aws_load_balancer ON aws_load_balancer.id = service_load_balancer.elb_id
-    WHERE service.name = '${serviceName}' AND aws_load_balancer.load_balancer_name = '${serviceLoadBalancerName}';
+    INNER JOIN aws_target_group ON aws_target_group.id = service_load_balancer.target_group_id
+    WHERE service.name = '${serviceName}' AND aws_target_group.target_group_name = '${serviceTargetGroupName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  // todo: test service update
+  it('tries to update a service (update)', query(`
+    UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
+  `));
+
+  it('applies tries to update a service (update)', apply);
+
+  it('tries to update a service (restore)', query(`
+    UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
+  `));
+
+  it('applies tries to update a service (restore)', apply);
+
+  it('tries to update a service (replace)', query(`
+    UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
+  `));
+
+  it('applies tries to update a service (replace)', apply);
 
   it('deletes service', query(`
     DELETE FROM service
-    WHERE name = '${serviceName}';
+    WHERE name = '${newServiceName}';
   `));
 
   it('applies deletes service', apply);
