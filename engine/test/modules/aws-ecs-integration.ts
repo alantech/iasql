@@ -359,6 +359,12 @@ describe('ECS Integration Testing', () => {
   it('applies tries to update a service (replace)', apply);
 
   it('deletes service', query(`
+    DELETE FROM service_load_balancers_service_load_balancer
+    INNER JOIN service_load_balancer ON service_load_balancer.id = service_load_balancers_service_load_balancer.service_load_balancer_id
+    INNER JOIN service ON service.id = service_load_balancers_service_load_balancer.service_id
+    INNER JOIN aws_target_group ON aws_target_group.id = service_load_balancer.target_group_id
+    WHERE service.name = '${serviceName}' AND aws_target_group.target_group_name = '${serviceTargetGroupName}';
+
     DELETE FROM service
     WHERE name = '${newServiceName}';
   `));
