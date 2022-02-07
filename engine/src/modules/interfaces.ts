@@ -145,7 +145,7 @@ export class Crud<E> {
         if (!o || o.length === 0) {
           // Don't memo in this case, just pass it through, also remove the registered placeholder
           delete ctx.memo[dest][entityName][id];
-          return o;
+          return undefined;
         } else if (Array.isArray(o) && o.length === 1) {
           return this.memo(o[0], ctx, id);
         } else {

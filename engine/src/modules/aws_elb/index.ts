@@ -39,8 +39,9 @@ export const AwsElbModule: Module = new Module({
         throw new Error('Listener\'s default action not defined properly');
       }
       out.actionType = (a.Type as ActionTypeEnum);
-      const targetGroups = ctx.memo?.db?.TargetGroup ? Object.values(ctx.memo?.db?.TargetGroup) : await AwsElbModule.mappers.targetGroup.db.read(ctx);
-      const targetGroup = targetGroups?.find((tg: any) => tg.targetGroupArn === a?.TargetGroupArn);
+      // const targetGroups = ctx.memo?.db?.TargetGroup ? Object.values(ctx.memo?.db?.TargetGroup) : await AwsElbModule.mappers.targetGroup.db.read(ctx);
+      // const targetGroup = targetGroups?.find((tg: any) => tg.targetGroupArn === a?.TargetGroupArn);
+      const targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, a?.TargetGroupArn) ?? await AwsElbModule.mappers.targetGroup.cloud.read(ctx, a?.TargetGroupArn);
       if (!targetGroup) throw new Error('Target groups need to be loaded first');
       out.targetGroup = targetGroup;
       return out;
@@ -79,12 +80,16 @@ export const AwsElbModule: Module = new Module({
       out.scheme = lb.Scheme as LoadBalancerSchemeEnum;
       out.state = lb.State?.Code as LoadBalancerStateEnum;
       out.loadBalancerType = lb.Type as LoadBalancerTypeEnum;
-      const securityGroups = ctx.memo?.db?.AwsSecurityGroup ? Object.values(ctx.memo?.db?.AwsSecurityGroup) : await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx);
-      out.securityGroups = lb.SecurityGroups?.map((sg: string) => {
-        const r = securityGroups.find((g: any) => g.groupId === sg) as AwsSecurityGroup;
-        if (!r) throw new Error('Security groups need to be loaded');
-        return r;
-      }) ?? [];
+      // const securityGroups = ctx.memo?.db?.AwsSecurityGroup ? Object.values(ctx.memo?.db?.AwsSecurityGroup) : await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx);
+      // out.securityGroups = lb.SecurityGroups?.map((sg: string) => {
+      //   const r = securityGroups.find((g: any) => g.groupId === sg) as AwsSecurityGroup;
+      //   if (!r) throw new Error('Security groups need to be loaded');
+      //   return r;
+      // }) ?? [];
+      console.log('++++++++++++++++', lb.SecurityGroups)
+      out.securityGroups = lb.SecurityGroups?.length ? 
+        await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, lb.SecurityGroups) ?? await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, lb.SecurityGroups)
+        : [];
       out.ipAddressType = lb.IpAddressType as IpAddressType;
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
       out.vpc = ctx.memo?.db?.AwsVpc?.[lb.VpcId] ?? await AwsAccount.mappers.vpc.db.read(ctx, lb.VpcId);
