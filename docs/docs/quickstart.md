@@ -95,6 +95,19 @@ $ iasql install
 ✔ Done
 ```
 
+:::note
+
+Short command
+
+```bash
+$ iasql install --db prod aws_cloudwatch aws_ecr aws_ecs aws_elb aws_security_group
+
+✔ Confirm installation · yes
+✔ Done
+```
+
+:::
+
 ## Connect to your db and provision cloud resources
 
 1. Install `psql` in your command line by following the instructions for your corresponding OS [here](https://www.postgresql.org/download/)
@@ -184,22 +197,28 @@ AwsLoadBalancer has 1 record to create
 
 1. Grab your new `ECR URI` from your DB
 ```sql
-psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4
-_4b2bb09a59a411e4=> SELECT repository_uri
+psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4 -c "
+SELECT repository_uri
 FROM aws_public_repository
-WHERE repository_name = '<project-name>-repository';
+WHERE repository_name = '<project-name>-repository';"
 ```
 
 2. Login to AWS ECR using the AWS CLI. Run the following command and using the correct `<ECR-URI>` and AWS `<profile>`
 
 ```bash
-aws ecr get-login-password --region us-east-1 --profile <profile> | docker login --username AWS --password-stdin <ECR-URI>
+aws ecr-public get-login-password --region us-east-1 --profile <profile> | docker login --username AWS --password-stdin <ECR-URI>
 ```
+
+:::note
+
+Do not change the region value to login public repositories.
+
+:::
 
 3. Build your image locally
 
 ```bash
-docker build -t <project-name>-repository hello-iasql/Dockerfile
+docker build -t <project-name>-repository hello-iasql
 ```
 
 4. Tag your image
@@ -216,10 +235,10 @@ docker push <ECR URI>:latest
 
 6. Grab your load balancer DNS and access your service!
 ```sql
-psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4
-_4b2bb09a59a411e4=> SELECT dns_name
+psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4 -c "
+SELECT dns_name
 FROM aws_load_balancer
-WHERE load_balancer_name = '<project-name>-load-balancer'
+WHERE load_balancer_name = '<project-name>-load-balancer';"
 ```
 
 7. Connect to your service!
