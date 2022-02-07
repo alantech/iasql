@@ -8,7 +8,7 @@ import {
   runSync,
 } from '../helpers'
 
-jest.setTimeout(240000);
+jest.setTimeout(360000);
 
 beforeAll(execComposeUp);
 
