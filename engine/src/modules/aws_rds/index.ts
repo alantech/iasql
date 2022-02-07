@@ -104,7 +104,7 @@ export const AwsRdsModule: Module = new Module({
       }),
       equals: (a: RDS, b: RDS) => Object.is(a.engine.engineVersionKey, b.engine.engineVersionKey)
         && Object.is(a.dbInstanceClass, b.dbInstanceClass)
-        && Object.is(a.availabilityZone.zoneId, b.availabilityZone.zoneId)
+        && Object.is(a.availabilityZone?.zoneId, b.availabilityZone?.zoneId)
         && Object.is(a.dbInstanceIdentifier, b.dbInstanceIdentifier)
         && Object.is(a.endpointAddr, b.endpointAddr)
         && Object.is(a.endpointHostedZoneId, b.endpointHostedZoneId)
