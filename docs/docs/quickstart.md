@@ -196,7 +196,7 @@ AwsLoadBalancer has 1 record to create
 ## Login, build and push your code to the container registry
 
 1. Grab your new `ECR URI` from your DB
-```sql
+```bash
 psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4 -c "
 SELECT repository_uri
 FROM aws_public_repository
@@ -234,7 +234,7 @@ docker push <ECR URI>:latest
 ```
 
 6. Grab your load balancer DNS and access your service!
-```sql
+```bash
 psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4 -c "
 SELECT dns_name
 FROM aws_load_balancer
