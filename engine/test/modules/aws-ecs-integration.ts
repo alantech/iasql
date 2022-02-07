@@ -237,20 +237,29 @@ describe('ECS Integration Testing', () => {
       INSERT INTO aws_vpc_conf (assign_public_ip)
       VALUES ('ENABLED');
 
+      WITH avc AS (
+        SELECT id
+        FROM aws_vpc_conf
+        ORDER BY id DESC
+        LIMIT 1
+      ), sn AS (
+        SELECT aws_subnet.id
+        FROM aws_subnet
+        INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
+        WHERE aws_vpc.is_default = true
+        ORDER BY aws_subnet.id DESC
+        LIMIT 1
+      )
       INSERT INTO aws_vpc_conf_subnets_aws_subnet (aws_vpc_conf_id, aws_subnet_id)
-      SELECT aws_vpc_conf.id, aws_subnet.id
-      FROM aws_vpc_conf, aws_subnet
-      INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
-      WHERE aws_vpc.is_default = true
-      ORDER BY aws_vpc_conf.id, aws_subnet.id DESC
-      LIMIT 1;
+      SELECT (select id from avc), (select id from sn);
 
       INSERT INTO aws_vpc_conf_security_groups_aws_security_group (aws_vpc_conf_id, aws_security_group_id)
       SELECT aws_vpc_conf.id, aws_security_group.id
       FROM aws_vpc_conf, aws_security_group
       WHERE aws_security_group.group_name = 'default'
       ORDER BY aws_vpc_conf.id, aws_security_group.id DESC
-      LIMIT 1;
+      LIMIT 1
+      ON CONFLICT DO NOTHING;
 
       WITH cl AS (
         SELECT id
@@ -359,11 +368,9 @@ describe('ECS Integration Testing', () => {
   it('applies tries to update a service (replace)', apply);
 
   it('deletes service', query(`
-    DELETE FROM service_load_balancers_service_load_balancer
-    INNER JOIN service_load_balancer ON service_load_balancer.id = service_load_balancers_service_load_balancer.service_load_balancer_id
-    INNER JOIN service ON service.id = service_load_balancers_service_load_balancer.service_id
-    INNER JOIN aws_target_group ON aws_target_group.id = service_load_balancer.target_group_id
-    WHERE service.name = '${serviceName}' AND aws_target_group.target_group_name = '${serviceTargetGroupName}';
+    DELETE FROM service_load_balancer
+    USING aws_target_group
+    WHERE aws_target_group.target_group_name = '${serviceTargetGroupName}';
 
     DELETE FROM service
     WHERE name = '${newServiceName}';
@@ -385,7 +392,7 @@ describe('ECS Integration Testing', () => {
 
   it('applies deletes the cluster', apply);
 
-  it('deletes dependencies',  query(`
+  it('deletes dependencies', query(`
     DELETE FROM aws_action
     WHERE id IN (
       SELECT aws_action_id
@@ -408,15 +415,23 @@ describe('ECS Integration Testing', () => {
       ORDER BY aws_listener.id DESC
       LIMIT 1
     );
+  `));
 
+  it('applies deletes dependencies', apply);
+
+  it('deletes dependencies 2', query(`
     DELETE FROM aws_load_balancer
     WHERE load_balancer_name = '${serviceLoadBalancerName}';
+  `));
 
+  it('applies deletes dependencies 2', apply);
+
+  it('deletes dependencies 3', query(`
     DELETE FROM aws_target_group
     WHERE target_group_name = '${serviceTargetGroupName}';
   `));
 
-  it('applies deletes dependencies', apply);
+  it('applies deletes dependencies 3', apply);
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
