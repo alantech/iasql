@@ -211,7 +211,7 @@ aws ecr-public get-login-password --region us-east-1 --profile <profile> | docke
 
 :::note
 
-Do not change the region value to login public repositories.
+The region *must* be `us-east-1` for public repositories.
 
 :::
 
