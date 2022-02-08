@@ -628,7 +628,7 @@ export class AWS {
     await this.elbClient.send(
       new DeleteLoadBalancerCommand({ LoadBalancerArn: arn, })
     );
-    // We wait it is completely deleted to avoid issues deletign dependent resources.
+    // We wait it is completely deleted to avoid issues deleting dependent resources.
     const input = new DescribeLoadBalancersCommand({ LoadBalancerArns: [arn], });
     await createWaiter<ElasticLoadBalancingV2Client, DescribeLoadBalancersCommand>(
       {
