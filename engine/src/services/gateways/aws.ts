@@ -628,6 +628,26 @@ export class AWS {
     await this.elbClient.send(
       new DeleteLoadBalancerCommand({ LoadBalancerArn: arn, })
     );
+    // We wait it is completely deleted to avoid issues deleting dependent resources.
+    const input = new DescribeLoadBalancersCommand({ LoadBalancerArns: [arn], });
+    await createWaiter<ElasticLoadBalancingV2Client, DescribeLoadBalancersCommand>(
+      {
+        client: this.elbClient,
+        // all in seconds
+        maxWaitTime: 30,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (client, cmd) => {
+        try {
+          await client.send(cmd);
+          return { state: WaiterState.RETRY };
+        } catch (_) {
+          return { state: WaiterState.SUCCESS };
+        }
+      },
+    );
   }
 
   async createTargetGroup(input: CreateTargetGroupCommandInput) {
