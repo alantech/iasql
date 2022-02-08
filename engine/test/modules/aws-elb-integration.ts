@@ -3,7 +3,7 @@ import { IpAddressType, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEn
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
 
-jest.setTimeout(240000);
+jest.setTimeout(360000);
 
 beforeAll(execComposeUp);
 
