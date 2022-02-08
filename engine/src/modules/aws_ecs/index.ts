@@ -62,13 +62,26 @@ export const AwsEcsModule: Module = new Module({
       }) ?? [];
       const imageTag = c.image?.split(':');
       if (imageTag[0]?.includes('amazonaws.com')) {
-        const repositories = ctx.memo?.db?.AwsRepository ? Object.values(ctx.memo?.db?.AwsRepository) : await AwsEcrModule.mappers.repository.db.read(ctx);
-        const repository = repositories.find((r: any) => r.repositoryUri === imageTag[0]);
-        out.repository = repository;
+        const repositoryName = imageTag[0].split('/')[2] ?? null;
+        try {
+          const repository = await AwsEcrModule.mappers.repository.db.read(ctx, repositoryName) ?? await AwsEcrModule.mappers.repository.cloud.read(ctx, repositoryName);
+          out.repository = repository;
+        } catch (e) {
+          // Repository could have been deleted
+          console.error(e);
+          out.repository = undefined;
+        }
       } else if (imageTag[0]?.includes('public.ecr.aws')) {
-        const publicRepositories = ctx.memo?.db?.AwsPublicRepository ? Object.values(ctx.memo?.db?.AwsPublicRepository) : await AwsEcrModule.mappers.publicRepository.db.read(ctx);
-        const publicRepository = publicRepositories.find((r: any) => r.repositoryUri === imageTag[0]);
-        out.publicRepository = publicRepository;
+        const publicRepositoryName = imageTag[0].split('/')[2] ?? null;
+        try {
+          const publicRepository = await AwsEcrModule.mappers.publicRepository.db.read(ctx, publicRepositoryName) ?? await AwsEcrModule.mappers.publicRepository.cloud.read(ctx, publicRepositoryName);
+          console.log({publicRepository},{depth:5})
+          out.publicRepository = publicRepository;
+        } catch (e) {
+          // Repository could have been deleted
+          console.error(e);
+          out.publicRepository = undefined;
+        }
       } else {
         out.dockerImage = imageTag[0];
       }
@@ -84,14 +97,15 @@ export const AwsEcsModule: Module = new Module({
     },
     taskDefinitionMapper: async (td: any, ctx: Context) => {
       const out = new TaskDefinition();
-      out.containers = await Promise.all(td.containerDefinitions.map(async (tdc: any) => {
+      out.containers = [];
+      for (const tdc of td.containerDefinitions) {
         const cd = await AwsEcsModule.utils.containerDefinitionMapper(tdc, ctx);
         // For INACTIVE tasks it is not necessary to exists a cloud watch log group to link since it could have been deleted.
         if (!!tdc?.logConfiguration?.options?.['awslogs-group'] && !cd?.logGroup && td.status === TaskDefinitionStatus.ACTIVE) {
           throw new Error('Cloudwatch log groups need to be loaded first')
         }
-        return cd;
-      }));
+        out.containers.push(cd);
+      }
       out.cpuMemory = `${+(td.cpu ?? '256') / 1024}vCPU-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
       out.executionRoleArn = td.executionRoleArn;
       out.family = td.family;
@@ -173,8 +187,8 @@ export const AwsEcsModule: Module = new Module({
       out.schedulingStrategy = s.schedulingStrategy as SchedulingStrategy;
       out.status = s.status;
       if (s.taskDefinition) {
-        const taskDefinitions = ctx.memo?.cloud?.TaskDefinition ? Object.values(ctx.memo?.cloud?.TaskDefinition) : await AwsEcsModule.mappers.taskDefinition.cloud.read(ctx);
-        const taskDefinition = taskDefinitions.find((t: any) => t.taskDefinitionArn === s.taskDefinition);
+        const taskDefinition = await AwsEcsModule.mappers.taskDefinition.db.read(ctx, s.taskDefinition) ??
+          await AwsEcsModule.mappers.taskDefinition.cloud.read(ctx, s.taskDefinition);
         if (!taskDefinition) throw new Error('Task definitions need to be loaded first');
         out.task = taskDefinition;
       }
@@ -492,9 +506,11 @@ export const AwsEcsModule: Module = new Module({
           const taskDefs = Array.isArray(ids) ?
             await Promise.all(ids.map(id => client.getTaskDefinition(id))) :
             (await client.getTaskDefinitions()).taskDefinitions ?? [];
-          return await Promise.all(taskDefs.map(
-            td => AwsEcsModule.utils.taskDefinitionMapper(td, ctx)
-          ));
+          const tds = [];
+          for (const td of taskDefs) {
+            tds.push(await AwsEcsModule.utils.taskDefinitionMapper(td, ctx))
+          }
+          return tds;
         },
         updateOrReplace: () => 'update',
         update: async (es: TaskDefinition[], ctx: Context) => {
