@@ -74,8 +74,8 @@ export const AwsEcsModule: Module = new Module({
       } else if (imageTag[0]?.includes('public.ecr.aws')) {
         const publicRepositoryName = imageTag[0].split('/')[2] ?? null;
         try {
-          const publicRepository = await AwsEcrModule.mappers.publicRepository.db.read(ctx, publicRepositoryName) ?? await AwsEcrModule.mappers.publicRepository.cloud.read(ctx, publicRepositoryName);
-          console.log({publicRepository},{depth:5})
+          const publicRepository = await AwsEcrModule.mappers.publicRepository.db.read(ctx, publicRepositoryName) ??
+            await AwsEcrModule.mappers.publicRepository.cloud.read(ctx, publicRepositoryName);
           out.publicRepository = publicRepository;
         } catch (e) {
           // Repository could have been deleted
@@ -152,10 +152,8 @@ export const AwsEcsModule: Module = new Module({
           slb2.elb = loadBalancers.find((lb: AwsLoadBalancer) => lb.loadBalancerName === slb.loadBalancerName);
         }
         if (slb.targetGroupArn) {
-          // const targetGroups = ctx.memo?.db?.AwsTargetGroup ? Object.values(ctx.memo?.db?.AwsTargetGroup) : await AwsElbModule.mappers.targetGroup.db.read(ctx);
-          // const targetGroup = targetGroups.find((tg: any) => tg.targetGroupArn === slb.targetGroupArn);
-          const targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, slb.targetGroupArn) ?? await AwsElbModule.mappers.targetGroup.cloud.read(ctx, slb.targetGroupArn);
-          // console.dir({targetGroup}, {depth:5})
+          const targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, slb.targetGroupArn) ??
+            await AwsElbModule.mappers.targetGroup.cloud.read(ctx, slb.targetGroupArn);
           if (targetGroup?.targetGroupArn) {
             slb2.targetGroup = targetGroup;
           } else {
@@ -169,17 +167,10 @@ export const AwsEcsModule: Module = new Module({
         const networkConf = s.networkConfiguration.awsvpcConfiguration;
         const awsVpcConf = new AwsVpcConf();
         awsVpcConf.assignPublicIp = networkConf.assignPublicIp;
-        // const securityGroups = ctx.memo?.db?.AwsSecurityGroup ? Object.values(ctx.memo?.db?.AwsSecurityGroup) : await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx);
-        // awsVpcConf.securityGroups = networkConf.securityGroups?.map((sg: string) => {
-        //   const securityGroup = securityGroups.find((g: any) => g.groupId === sg);
-        //   if (!securityGroup) throw new Error('Security groups need to be loaded first');
-        //   return securityGroup;
-        // }) ?? [];
-        console.log('+++++', networkConf.securityGroups)
-        awsVpcConf.securityGroups = networkConf.securityGroups?.length ? 
-          await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, networkConf.securityGroups) ?? await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, networkConf.securityGroups)
+        awsVpcConf.securityGroups = networkConf.securityGroups?.length ?
+          await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, networkConf.securityGroups) ??
+            await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, networkConf.securityGroups)
           : []
-        console.dir({sg: awsVpcConf.securityGroups});
         awsVpcConf.subnets = await Promise.all(networkConf.subnets?.map(async (sn: string) =>
           ctx.memo?.db?.AwsSubnets?.[sn] ?? await AwsAccount.mappers.subnet.db.read(ctx, sn)) ?? []);
         out.network = awsVpcConf;
