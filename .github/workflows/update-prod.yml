@@ -1,0 +1,41 @@
+# This is a basic workflow to help you get started with Actions
+
+name: PROD
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the main branch
+on:
+  # TODO remove once PR is ready
+  pull_request:
+    branches: [update-prod]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: ./engine
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Run deploy script
+        run: ./deploy.sh
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN_PROD }}
