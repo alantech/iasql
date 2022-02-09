@@ -218,21 +218,21 @@ describe('ELB Integration Testing', () => {
     );
   `));
 
-  // it('applies the change', apply);
+  it('applies the change', apply);
 
   it('deletes the load balancer', query(`
     DELETE FROM aws_load_balancer
     WHERE load_balancer_name = '${lbName}';
   `));
 
-  // it('applies the change', apply);
+  it('applies the change', apply);
 
   it('deletes the target group', query(`
     DELETE FROM aws_target_group
     WHERE target_group_name = '${tgName}';
   `));
 
-  // it('applies the change (last time)', apply);
+  it('applies the change (last time)', apply);
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
