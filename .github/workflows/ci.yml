@@ -62,7 +62,7 @@ jobs:
           echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0]): .}) | add')"
       - id: set-test-module-names
         name: Set modules tests names
-        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0])'"
+        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0])')"
       # - id: set-test-common
       #   name: Set common tests
       #   run: echo "::set-output name=test-common::$(yarn test --testPathIgnorePatterns **/modules/* --listTests --json)"
