@@ -470,7 +470,7 @@ fn provide_aws_region() -> String {
   // check env variables first which take precedence
   let region_env = std::env::var("AWS_REGION");
   if region_env.is_ok() {
-    region_env.unwrap()
+    return region_env.unwrap()
   }
   let regions = &get_aws_regions();
   let default = regions.iter().position(|s| s == "us-east-2").unwrap_or(0);
@@ -483,7 +483,7 @@ fn provide_aws_creds() -> (String, String) {
   let key_env = std::env::var("AWS_ACCESS_KEY_ID");
   let secret_env = std::env::var("AWS_SECRET_ACCESS_KEY");
   if key_env.is_ok() && secret_env.is_ok() {
-    (
+    return (
       key_env.unwrap(),
       secret_env.unwrap(),
     )
