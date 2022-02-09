@@ -82,14 +82,14 @@ describe('ECR Integration Testing', () => {
       WHERE ar.repository_name = '${repositoryName}' AND ar.id = arp.repository_id;
     `));
 
-    it('applies the log group change (last time)', apply);
+    // it('applies the log group change (last time)', apply);
 
     it('deletes the repository', query(`
       DELETE FROM aws_repository
       WHERE repository_name = '${repositoryName}';
     `));
   
-    it('applies the log group change (last time)', apply);
+    // it('applies the log group change (last time)', apply);
   });
 
   describe('public repository', () => {
@@ -111,7 +111,7 @@ describe('ECR Integration Testing', () => {
       WHERE repository_name = '${pubRepositoryName}';
     `));
   
-    it('applies the log group change (last time)', apply);
+    // it('applies the log group change (last time)', apply);
   });
 
   it('deletes the test db', (done) => void iasql
