@@ -46,7 +46,7 @@ jobs:
           touch .deploy-env
           echo PGPASSWORD=${secrets.PGPASSWORD} >> .deploy-env
           echo DB_PASSWORD=${secrets.DB_PASSWORD} >> .deploy-env
-          echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN_PROD} >> .deploy-env
+          echo IRONPLANS_TOKEN=${secrets.IRONPLANS_TOKEN_PROD} >> .deploy-env
 
       - name: Run deploy script
         run: ./deploy.sh
