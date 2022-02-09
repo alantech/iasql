@@ -59,10 +59,12 @@ jobs:
       - id: set-test-modules
         name: Set modules tests
         run: >
-          echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0]): .}) | add')"
+          echo "::set-output name=test-modules::$(npx jest **/modules/aws-ecr-integration.ts --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0]): .}) | add')"
+        # echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0]): .}) | add')"
       - id: set-test-module-names
         name: Set modules tests names
-        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0])')"
+        # run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0])')"
+        run: echo "::set-output name=test-module-names::$(npx jest **/modules/aws-ecr-integration.ts --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0])')"
       # - id: set-test-common
       #   name: Set common tests
       #   run: echo "::set-output name=test-common::$(yarn test --testPathIgnorePatterns **/modules/* --listTests --json)"
@@ -91,9 +93,16 @@ jobs:
         run: yarn
 
       - name: Run modules tests
-        run: echo $MODULES | jq '."${{matrix.chunk}}"'
+        run: echo $MODULES | jq '."${{matrix.chunk}}"' | yarn coverage
         env:
           MODULES: ${{ needs.setup-test.outputs['test-modules'] }}
+          MATRIX_AWS_ACCESS_KEY_ID: AWS_ACCESS_KEY_ID_${{matrix.chunk}}
+          MATRIX_AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY_${{matrix.chunk}}
+          AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
+          IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
+          AWS_REGION: us-east-1
+          DB_HOST: localhost
 
 
       # - name: Run tests
