@@ -28,24 +28,28 @@ jobs:
         with:
           node-version: 16.x
 
-      - name: Create env file
+      - name: Create .env file
         run: |
           touch .env
           echo AO_ENABLED=true >> .env
           echo AO_DOMAIN=https://auth.iasql.com/ >> .env
-          echo AO_AUDIENCE=https://api.iasql.com >> .env'
-          echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN_PROD} >> .env'
+          echo AO_AUDIENCE=https://api.iasql.com >> .env
+          echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN_PROD} >> .env
 
       - name: Start iasql
         run: |
           docker-compose --env-file .env up --build --detach
           while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
 
+      - name: Create .deploy-env file
+        run: |
+          touch .deploy-env
+          echo PGPASSWORD=secrets.PGPASSWORD >> .deploy-env
+          echo DB_PASSWORD=secrets.DB_PASSWORD >> .deploy-env
+          echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN_PROD} >> .deploy-env
+
       - name: Run deploy script
         run: ./deploy.sh
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
-          PGPASSWORD: ${{ secrets.PGPASSWORD }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN_PROD }}
