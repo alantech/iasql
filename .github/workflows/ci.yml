@@ -58,7 +58,7 @@ jobs:
       - run: npm install
       - id: set-test-modules
         name: Set modules tests
-        run: echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({ (. | split("/") | .[-1] | split(".") | .[0]: .}) | add')"
+        run: echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0]): .}) | add')"
       - id: set-test-module-names
         name: Set modules tests names
         run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c '.[] | split("/") | .[-1] | split(".") | .[0]')"
