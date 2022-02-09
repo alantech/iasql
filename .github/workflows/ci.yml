@@ -54,8 +54,6 @@ jobs:
       test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
       set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
     steps:
-      - uses: actions/checkout@v2
-      - run: npm install
       - id: set-test-modules
         name: Set modules tests
         run: >
@@ -73,11 +71,11 @@ jobs:
     needs:
       - setup-test
 
-    name: test (${{ matrix.name }})
+    name: test (${{ matrix.chunk }})
 
     strategy:
       matrix:
-        name: ${{ fromJson(needs.setup-test.outputs['set-test-module-names']) }}
+        chunk: ${{ fromJson(needs.setup-test.outputs['set-test-module-names']) }}
 
     steps:
       - uses: actions/checkout@v2
@@ -91,7 +89,7 @@ jobs:
         run: yarn
 
       - name: Run modules tests
-        run: echo $MODULES | jq '.matrix.name | @text' | echo
+        run: echo $MODULES | jq '.matrix.chunk | @text' | echo
         env:
           MODULES: ${{ needs.setup-test.outputs['test-modules'] }}
 
