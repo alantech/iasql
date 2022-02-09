@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: PROD
+name: iasql-on-iasql
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch
@@ -17,7 +17,7 @@ defaults:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  deploy:
+  deploy-prod:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,8 +28,16 @@ jobs:
         with:
           node-version: 16.x
 
-      - name: Install dependencies
-        run: yarn
+      - name: Create env file
+        run: |
+          touch .env
+          echo AO_ENABLED=true >> .env
+          echo AO_DOMAIN=https://auth.iasql.com/ >> .env
+          echo AO_AUDIENCE=https://api.iasql.com >> .env');
+          echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN} >> .env');
+
+      - name: Start iasql
+        run: docker-compose --env-file .env up --build --detach
 
       - name: Run deploy script
         run: ./deploy.sh
@@ -39,4 +47,3 @@ jobs:
           PGPASSWORD: ${{ secrets.PGPASSWORD }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN_PROD }}
-          DB_HOST: localhost
