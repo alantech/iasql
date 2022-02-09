@@ -34,7 +34,7 @@ jobs:
           echo AO_ENABLED=true >> .env
           echo AO_DOMAIN=https://auth.iasql.com/ >> .env
           echo AO_AUDIENCE=https://api.iasql.com >> .env');
-          echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN} >> .env');
+          echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN_PROD} >> .env');
 
       - name: Start iasql
         run: docker-compose --env-file .env up --build --detach
