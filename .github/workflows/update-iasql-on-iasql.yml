@@ -51,7 +51,7 @@ jobs:
           cat .deploy-env
 
       - name: Run deploy script
-        run: ./deploy.sh
+        run: ./deploy-ci.sh
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
