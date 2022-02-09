@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: iasql-on-iasql
+name: IaSQL-ON-IaSQL
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch
@@ -33,8 +33,8 @@ jobs:
           touch .env
           echo AO_ENABLED=true >> .env
           echo AO_DOMAIN=https://auth.iasql.com/ >> .env
-          echo AO_AUDIENCE=https://api.iasql.com >> .env');
-          echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN_PROD} >> .env');
+          echo AO_AUDIENCE=https://api.iasql.com >> .env'
+          echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN_PROD} >> .env'
 
       - name: Start iasql
         run: docker-compose --env-file .env up --build --detach
