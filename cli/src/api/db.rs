@@ -469,7 +469,7 @@ pub async fn sync(db: &str) {
 fn provide_aws_region() -> String {
   // check env variables first which take precedence
   let region_env = std::env::var("AWS_REGION");
-  if region_env.is_ok {
+  if region_env.is_ok() {
     region_env.unwrap()
   }
   let regions = &get_aws_regions();
