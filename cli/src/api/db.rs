@@ -467,6 +467,11 @@ pub async fn sync(db: &str) {
 }
 
 fn provide_aws_region() -> String {
+  // check env variables first which take precedence
+  let region_env = std::env::var("AWS_REGION");
+  if region_env.is_ok {
+    region_env.unwrap()
+  }
   let regions = &get_aws_regions();
   let default = regions.iter().position(|s| s == "us-east-2").unwrap_or(0);
   let selection = dlg::select_with_default("Pick AWS region", regions, default);
@@ -474,6 +479,15 @@ fn provide_aws_region() -> String {
 }
 
 fn provide_aws_creds() -> (String, String) {
+  // check env variables first which take precedence
+  let key_env = std::env::var("AWS_ACCESS_KEY_ID");
+  let secret_env = std::env::var("AWS_SECRET_ACCESS_KEY");
+  if key_env.is_ok() && secret_env.is_ok() {
+    (
+      key_env.unwrap(),
+      secret_env.unwrap(),
+    )
+  }
   let aws_cli_creds = get_aws_cli_creds();
   if aws_cli_creds.is_ok()
     && dlg::confirm_with_default(

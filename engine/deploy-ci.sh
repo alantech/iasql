@@ -11,7 +11,7 @@ set -e
 
 # Login. Review your profile
 echo "\nDocker login..."
-aws ecr get-login-password --region us-east-2 --profile iasql | docker login --username AWS --password-stdin 547931376551.dkr.ecr.us-east-2.amazonaws.com
+aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 547931376551.dkr.ecr.us-east-2.amazonaws.com
 
 # Build
 echo "\nBuilding image..."
@@ -28,6 +28,10 @@ docker push 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository
 # Prepare iasql-on-iasql.sql script
 echo "\nPreparing iasql script..."
 export $(cat .deploy-env | xargs) && sed "s/<DB_PASSWORD>/${DB_PASSWORD}/g;s/<IRONPLANS_TOKEN>/${IRONPLANS_TOKEN}/g" ./src/script/iasql-on-iasql.sql > ./src/script/iasql-on-iasql.out.sql
+
+# IaSQL db new. Using local debug version
+echo "\Creating an iasql db..."
+cargo run --manifest-path=../cli/Cargo.toml -- new iasql
 
 # Update service. Set PGPASSWORD environment variable to avoid interaction
 echo "\nUpdating iasql db..."
