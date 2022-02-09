@@ -7,7 +7,7 @@ name: PROD
 on:
   # TODO remove once PR is ready
   pull_request:
-    branches: [update-prod]
+    branches: [main]
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
