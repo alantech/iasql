@@ -34,7 +34,8 @@ jobs:
           echo AO_ENABLED=true >> .env
           echo AO_DOMAIN=https://auth.iasql.com/ >> .env
           echo AO_AUDIENCE=https://api.iasql.com >> .env
-          echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN_PROD} >> .env
+          echo IRONPLANS_TOKEN=${{ secrets. IRONPLANS_TOKEN_PROD }} >> .env
+          cat .env
 
       - name: Start iasql
         run: |
@@ -44,9 +45,10 @@ jobs:
       - name: Create .deploy-env file
         run: |
           touch .deploy-env
-          echo PGPASSWORD=${secrets.PGPASSWORD} >> .deploy-env
-          echo DB_PASSWORD=${secrets.DB_PASSWORD} >> .deploy-env
-          echo IRONPLANS_TOKEN=${secrets.IRONPLANS_TOKEN_PROD} >> .deploy-env
+          echo PGPASSWORD=${{ secrets.PGPASSWORD }} >> .deploy-env
+          echo DB_PASSWORD=${{ secrets.DB_PASSWORD }} >> .deploy-env
+          echo IRONPLANS_TOKEN=${{ secrets.IRONPLANS_TOKEN_PROD }} >> .deploy-env
+          cat .deploy-env
 
       - name: Run deploy script
         run: ./deploy.sh
