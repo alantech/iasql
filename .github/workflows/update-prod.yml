@@ -39,3 +39,4 @@ jobs:
           PGPASSWORD: ${{ secrets.PGPASSWORD }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN_PROD }}
+          DB_HOST: localhost
