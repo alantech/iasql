@@ -91,7 +91,7 @@ jobs:
         run: yarn
 
       - name: Run modules tests
-        run: echo $MODULES | jq '.matrix.chunk' | echo
+        run: echo $MODULES | jq '.${{matrix.chunk}}' | echo
         env:
           MODULES: ${{ needs.setup-test.outputs['test-modules'] }}
 
