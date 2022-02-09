@@ -59,12 +59,12 @@ jobs:
       - id: set-test-modules
         name: Set modules tests
         run: >
-          echo "::set-output name=test-modules::$(npx jest **/modules/aws-ecr-integration.ts --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
+          echo "::set-output name=test-modules::$(npx jest **/modules/aws-ecr-integration.ts **/modules/aws-elb-integration.ts --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
         # echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0]): .}) | add')"
       - id: set-test-module-names
         name: Set modules tests names
         # run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0])')"
-        run: echo "::set-output name=test-module-names::$(npx jest **/modules/aws-ecr-integration.ts --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+        run: echo "::set-output name=test-module-names::$(npx jest **/modules/aws-ecr-integration.ts **/modules/aws-elb-integration.ts --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
       # - id: set-test-common
       #   name: Set common tests
       #   run: echo "::set-output name=test-common::$(yarn test --testPathIgnorePatterns **/modules/* --listTests --json)"
@@ -75,15 +75,15 @@ jobs:
     needs:
       - setup-test
 
-    name: test (${{ matrix.chunk }})
+    name: test (${{ matrix.module }})
 
     strategy:
       matrix:
-        chunk: ${{ fromJson(needs.setup-test.outputs['set-test-module-names']) }}
+        module: ${{ fromJson(needs.setup-test.outputs['set-test-module-names']) }}
 
     env:
-      MATRIX_AWS_ACCESS_KEY_ID: AWS_ACCESS_KEY_ID_${{matrix.chunk}}
-      MATRIX_AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY_${{matrix.chunk}} 
+      MATRIX_AWS_ACCESS_KEY_ID: AWS_ACCESS_KEY_ID_${{matrix.module}}
+      MATRIX_AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY_${{matrix.module}} 
 
     steps:
       - uses: actions/checkout@v2
@@ -97,7 +97,7 @@ jobs:
         run: yarn
 
       - name: Run modules tests
-        run:  yarn coverage $(echo $MODULES | jq -r '."${{matrix.chunk}}"')
+        run:  yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
         env:
           MODULES: ${{ needs.setup-test.outputs['test-modules'] }}
           AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
