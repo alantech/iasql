@@ -223,7 +223,7 @@ Following this logic, the next time we execute again the `iasql-on-iasql.sql` sc
 
 #### Pushing engine image to engine ECR
 
-- Login to ECR repository. Probably you will need to update this command if you have your `iasql` org credentials in an specific profile passing the `--profile` option.
+- Login to ECR repository. Probably you will need to update this command if you have your `iasql` org credentials in an specific profile setting the `AWS_PROFILE` to that.
 
   ```sh
   aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 547931376551.dkr.ecr.us-east-2.amazonaws.com

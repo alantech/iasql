@@ -4,6 +4,8 @@
 ## - PGPASSWORD environment variable defined in .deploy-env
 ## - DB_PASSWORD environment variable defined in .deploy-env
 ## - IRONPLANS_TOKEN environment variable defined in .deploy-env
+## - AWS_PROFILE if not using environment variables
+##   https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
 #!/bin/bash
 
 # Fail on error
@@ -11,7 +13,7 @@ set -e
 
 # Login. Review your profile
 echo "\nDocker login..."
-aws ecr get-login-password --region us-east-2 --profile iasql | docker login --username AWS --password-stdin 547931376551.dkr.ecr.us-east-2.amazonaws.com
+aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 547931376551.dkr.ecr.us-east-2.amazonaws.com
 
 # Build
 echo "\nBuilding image..."
