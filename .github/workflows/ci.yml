@@ -55,7 +55,7 @@ jobs:
       set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
     steps:
       - uses: actions/checkout@v2
-      # - run: npm install
+      - run: yarn
       - id: set-test-modules
         name: Set modules tests
         run: >
