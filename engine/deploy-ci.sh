@@ -11,7 +11,7 @@ set -e
 
 # Login. Review your profile
 echo "\nDocker login..."
-aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 547931376551.dkr.ecr.us-east-2.amazonaws.com
+aws ecr get-login-password | docker login --username AWS --password-stdin 547931376551.dkr.ecr.us-east-2.amazonaws.com
 
 # Build
 echo "\nBuilding image..."
