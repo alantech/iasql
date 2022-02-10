@@ -20,7 +20,7 @@ import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsAccount, AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
 import { AwsLoadBalancer } from '../aws_elb/entity'
-import { awsEcs1639678263049 } from './migration/1639678263049-aws_ecs'
+import { awsEcs1644462413818 } from './migration/1644462413818-aws_ecs'
 
 export const AwsEcsModule: Module = new Module({
   name: 'aws_ecs',
@@ -204,7 +204,7 @@ export const AwsEcsModule: Module = new Module({
       && Object.is(a?.securityGroups?.length, b?.securityGroups?.length)
       && (a?.securityGroups?.every(asg => !!b?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
       && Object.is(a?.subnets?.length, b?.subnets?.length)
-      && (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn.subnetId, bsn.subnetId))) ?? false),
+      && (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false),
   },
   mappers: {
     cluster: new Mapper<Cluster>({
@@ -641,7 +641,7 @@ export const AwsEcsModule: Module = new Module({
             if (e.network) {
               input.networkConfiguration = {
                 awsvpcConfiguration: {
-                  subnets: e.network.subnets.map(sn => sn.subnetId!),
+                  subnets: e.network.subnets,
                   securityGroups: e.network.securityGroups.map(sg => sg.groupId!),
                   assignPublicIp: e.network.assignPublicIp,
                 }
@@ -747,7 +747,7 @@ export const AwsEcsModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEcs1639678263049.prototype.up,
-    preremove: awsEcs1639678263049.prototype.down,
+    postinstall: awsEcs1644462413818.prototype.up,
+    preremove: awsEcs1644462413818.prototype.down,
   },
 });
