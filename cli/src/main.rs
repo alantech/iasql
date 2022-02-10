@@ -19,10 +19,6 @@ pub async fn main() {
       SubCommand::with_name("new")
         .about("Create a db to manage cloud resources")
         .arg(Arg::from_usage("[db]")),
-      SubCommand::with_name("import")
-        .about("Create a db from a previously exported dump")
-        .arg(Arg::from_usage("[db]"))
-        .arg(Arg::from_usage("[dump_file]")),
       SubCommand::with_name("export")
         .about("Export a db dump to backup your infrastructure or import it into another db")
         .arg(Arg::from_usage("[db]"))
