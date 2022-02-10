@@ -26,7 +26,7 @@ export const AwsAccount: Module = new Module({
         if (this.awsClient) return this.awsClient;
         const awsCreds = await this.orm.findOne(AwsAccount.mappers.awsAccount.entity);
         this.awsClient = new AWS({
-          region: awsCreds.region.name,
+          region: awsCreds.region,
           credentials: {
             accessKeyId: awsCreds.accessKeyId,
             secretAccessKey: awsCreds.secretAccessKey,
