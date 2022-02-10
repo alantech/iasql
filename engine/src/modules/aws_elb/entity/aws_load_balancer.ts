@@ -2,14 +2,11 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
-  JoinColumn,
   ManyToMany,
   JoinTable,
 } from 'typeorm'
 
 import { AwsSecurityGroup } from '../../aws_security_group/entity'
-import { AvailabilityZone, AwsSubnet, AwsVpc, } from '../../aws_account/entity'
 
 export enum LoadBalancerSchemeEnum {
   INTERNAL = "internal",
@@ -85,21 +82,13 @@ export class AwsLoadBalancer {
   })
   loadBalancerType: LoadBalancerTypeEnum;
 
-  @ManyToOne(() => AwsVpc)
-  @JoinColumn({
-    name: 'vpc_id'
-  })
-  vpc: AwsVpc;
+  vpc: string;
 
   // Not in the mapper since is just needed as input for the creation and retrieve endpoints
   // do not return any information related to the subnets
-  @ManyToMany(() => AwsSubnet)
-  @JoinTable()
-  subnets?: AwsSubnet[];
+  subnets?: string[];
 
-  @ManyToMany(() => AvailabilityZone)
-  @JoinTable()
-  availabilityZones?: AvailabilityZone[];
+  availabilityZones?: string[];
 
   @ManyToMany(() => AwsSecurityGroup)
   @JoinTable()

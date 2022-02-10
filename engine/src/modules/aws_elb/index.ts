@@ -21,7 +21,6 @@ import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsElb1637666608609, } from './migration/1637666608609-aws_elb'
 import { AwsAccount, AwsSecurityGroupModule } from '..'
-import { AvailabilityZone, AwsSubnet } from '../aws_account/entity'
 
 export const AwsElbModule: Module = new Module({
   name: 'aws_elb',
@@ -84,11 +83,9 @@ export const AwsElbModule: Module = new Module({
         : [];
       out.ipAddressType = lb.IpAddressType as IpAddressType;
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
-      out.vpc = ctx.memo?.db?.AwsVpc?.[lb.VpcId] ?? await AwsAccount.mappers.vpc.db.read(ctx, lb.VpcId);
-      const availabilityZones = await AwsAccount.mappers.availabilityZone.db.read(ctx) ?? await AwsAccount.mappers.availabilityZone.cloud.read(ctx);
-      out.availabilityZones = lb.AvailabilityZones?.map(az => availabilityZones.find((z: any) => z.zoneName === az.ZoneName!) as AvailabilityZone);
-      const subnets = ctx.memo?.db?.AwsSubnet ? Object.values(ctx.memo?.db?.AwsSubnet) : await AwsAccount.mappers.subnet.db.read(ctx);
-      out.subnets = lb.AvailabilityZones?.map(az => subnets.find((sn: AwsSubnet) => sn.subnetId === az.SubnetId));
+      out.vpc = lb.VpcId;
+      out.availabilityZones = lb.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
+      out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
       return out;
     },
     targetGroupMapper: async (tg: any, ctx: Context) => {
@@ -279,15 +276,15 @@ export const AwsElbModule: Module = new Module({
         scheme: e?.scheme ?? LoadBalancerSchemeEnum.INTERNET_FACING, // TODO: Which?
         state: e?.state ?? LoadBalancerStateEnum.ACTIVE, // TODO: Which?
         loadBalancerType: e?.loadBalancerType ?? LoadBalancerTypeEnum.APPLICATION, // TODO: Which?
-        vpc: e?.vpc?.vpcId ?? '',
-        subnets: e?.subnets?.map(s => s.subnetArn ?? '').join(', ') ?? '',
-        availabilityZones: e?.availabilityZones?.map(az => az.zoneName).join(', ') ?? '',
+        vpc: e?.vpc ?? '',
+        subnets: e?.subnets?.join(', ') ?? '',
+        availabilityZones: e?.availabilityZones?.join(', ') ?? '',
         securityGroups: e?.securityGroups?.map(sg => sg.groupName ?? '').join(', ') ?? '',
         ipAddressType: e?.ipAddressType ?? IpAddressType.DUALSTACK, // TODO: Which?
         customerOwnedIpv4Pool: e?.customerOwnedIpv4Pool ?? '',
       }),
       equals: (a: AwsLoadBalancer, b: AwsLoadBalancer) => Object.is(a.availabilityZones?.length, b.availabilityZones?.length)
-        && (a.availabilityZones?.filter(aaz => !!aaz).every(aaz => !!b.availabilityZones?.filter(baz => !!baz).find(baz => Object.is(aaz.zoneId, baz.zoneId))) ?? false)
+        && (a.availabilityZones?.filter(aaz => !!aaz).every(aaz => !!b.availabilityZones?.filter(baz => !!baz).find(baz => Object.is(aaz, baz))) ?? false)
         && Object.is(a.canonicalHostedZoneId, b.canonicalHostedZoneId)
         && Object.is(a.createdTime?.getTime(), b.createdTime?.getTime())
         // This property might be comparing null vs undefined
@@ -302,8 +299,8 @@ export const AwsElbModule: Module = new Module({
         && (a.securityGroups?.every(asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
         && Object.is(a.state, b.state)
         && Object.is(a.subnets?.length, b.subnets?.length)
-        && (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn.subnetId, bsn.subnetId))) ?? false)
-        && Object.is(a.vpc.vpcId, b.vpc.vpcId),
+        && (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
+        && Object.is(a.vpc, b.vpc),
       source: 'db',
       db: new Crud({
         create: async (es: AwsLoadBalancer[], ctx: Context) => {
@@ -313,25 +310,6 @@ export const AwsElbModule: Module = new Module({
                 const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
                 if (!g?.id) throw new Error('Security groups need to be loaded first');
                 sg.id = g.id;
-              }
-            }
-            for (const sn of e.subnets ?? []) {
-              if (!sn.id) {
-                const s = await AwsAccount.mappers.subnet.db.read(ctx, sn.subnetId);
-                sn.id = s.id;
-              }
-            }
-            if (!e.vpc.id) {
-              const v = await AwsAccount.mappers.vpc.db.read(ctx, e.vpc.vpcId);
-              e.vpc.id = v.id;
-            }
-            for (const az of e.availabilityZones ?? []) {
-              if (!az.id) {
-                const availabilityZones = ctx.memo?.db?.AvailabilityZone ?
-                  Object.values(ctx.memo?.db?.AvailabilityZone) :
-                  await AwsAccount.mappers.availabilityZone.db.read(ctx);
-                const z = availabilityZones.find((a: any) => a.zoneName === az.zoneName);
-                az.id = z.id;
               }
             }
           }
@@ -356,28 +334,6 @@ export const AwsElbModule: Module = new Module({
                 sg.id = g.id;
               }
             }
-            for (const sn of e.subnets ?? []) {
-              if (!sn.id) {
-                const s = await AwsAccount.mappers.subnet.db.read(ctx, sn.subnetId);
-                if (!s.id) throw new Error('Error retrieving generated column');
-                sn.id = s.id;
-              }
-            }
-            if (!e.vpc.id) {
-              const v = await AwsAccount.mappers.vpc.db.read(ctx, e.vpc.vpcId);
-              if (!v.id) throw new Error('Error retrieving generated column');
-              e.vpc.id = v.id;
-            }
-            for (const az of e.availabilityZones ?? []) {
-              if (!az.id) {
-                const availabilityZones = ctx.memo?.db?.AvailabilityZone ?
-                  Object.values(ctx.memo?.db?.AvailabilityZone) :
-                  await AwsAccount.mappers.availabilityZone.db.read(ctx);
-                const z = availabilityZones.find((a: any) => a.zoneName === az.zoneName);
-                if (!z.id) throw new Error('Error retrieving generated column');
-                az.id = z.id;
-              }
-            }
           }
           await ctx.orm.save(AwsLoadBalancer, es);
         },
@@ -393,7 +349,7 @@ export const AwsElbModule: Module = new Module({
             });
             const input: CreateLoadBalancerCommandInput = {
               Name: e.loadBalancerName,
-              Subnets: e.subnets?.map(sn => sn.subnetId!),
+              Subnets: e.subnets,
               Scheme: e.scheme,
               Type: e.loadBalancerType,
               IpAddressType: e.ipAddressType,
@@ -431,7 +387,7 @@ export const AwsElbModule: Module = new Module({
             !(Object.is(prev.loadBalancerName, next.loadBalancerName)
               && Object.is(prev.loadBalancerType, next.loadBalancerType)
               && Object.is(prev.scheme, next.scheme)
-              && Object.is(prev.vpc.vpcId, next.vpc.vpcId))
+              && Object.is(prev.vpc, next.vpc))
           ) {
             return 'replace';
           }
@@ -454,10 +410,10 @@ export const AwsElbModule: Module = new Module({
               }
               // Update subnets
               if (!(Object.is(cloudRecord.subnets?.length, e.subnets?.length)
-                && (cloudRecord.subnets?.every((csn: any) => !!e.subnets?.find(esn => Object.is(csn.subnetId, esn.subnetId))) ?? false))) {
+                && (cloudRecord.subnets?.every((csn: any) => !!e.subnets?.find(esn => Object.is(csn, esn))) ?? false))) {
                 const updatedLoadBalancer = await client.updateLoadBalancerSubnets({
                   LoadBalancerArn: e.loadBalancerArn,
-                  Subnets: e.subnets?.filter(sn => !!sn.subnetId).map(sn => sn.subnetId!),
+                  Subnets: e.subnets?.filter(sn => !!sn),
                 });
                 updatedRecord = AwsElbModule.utils.loadBalancerMapper(updatedLoadBalancer, ctx);
               }

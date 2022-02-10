@@ -1,11 +1,10 @@
 import { In, } from 'typeorm'
 
 import { AWS, } from '../../services/gateways/aws'
-import { RDS, EngineVersion, } from './entity'
+import { RDS, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { AwsAccount, AwsSecurityGroupModule } from '..'
-import { AvailabilityZone } from '../aws_account/entity'
+import { AwsSecurityGroupModule } from '..'
 import { AwsSecurityGroup } from '../aws_security_group/entity'
 import { awsRds1638273752147 } from './migration/1638273752147-aws_rds'
 import { ModifyDBInstanceCommandInput } from '@aws-sdk/client-rds'
@@ -19,18 +18,10 @@ export const AwsRdsModule: Module = new Module({
     functions: ['create_rds',],
   },
   utils: {
-    engineVersionMapper: (e: any, _ctx: Context) => {
-      const out = new EngineVersion();
-      out.engine = e.Engine;
-      out.engineVersion = e.EngineVersion;
-      out.engineVersionKey = `${e.Engine}:${e.EngineVersion}`;
-      return out;
-    },
     rdsMapper: async (rds: any, ctx: Context) => {
       const out = new RDS();
       out.allocatedStorage = rds?.AllocatedStorage;
-      const availabilityZones = ctx.memo?.db?.AvailabilityZone ? Object.values(ctx.memo?.db?.AvailabilityZone) : await AwsAccount.mappers.availabilityZone.db.read(ctx);
-      out.availabilityZone = availabilityZones.find((z: any) => z.zoneName === rds?.AvailabilityZone) as AvailabilityZone;
+      out.availabilityZone = rds?.AvailabilityZone;
       out.dbInstanceClass = rds?.DBInstanceClass;
       out.dbInstanceIdentifier = rds?.DBInstanceIdentifier;
       out.endpointAddr = rds?.Endpoint?.Address;
@@ -38,7 +29,7 @@ export const AwsRdsModule: Module = new Module({
       out.endpointPort = rds?.Endpoint?.Port;
       const engineVersions = ctx.memo?.db?.EngineVersion ? Object.values(ctx.memo?.db?.EngineVersion) : await AwsRdsModule.mappers.engineVersion.db.read(ctx);
       if (!engineVersions?.length) throw new Error('Engine versions need to be loaded first')
-      out.engine = engineVersions.find((ev: any) => ev.engineVersionKey === `${rds?.Engine}:${rds?.EngineVersion}`) as EngineVersion;
+      out.engine = `${rds?.Engine}:${rds?.EngineVersion}`;
       out.masterUsername = rds?.MasterUsername;
       const securityGroups = ctx.memo?.db?.AwsSecurityGroup ? Object.values(ctx.memo?.db?.AwsSecurityGroup) : await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx);
       out.vpcSecurityGroups = rds?.VpcSecurityGroups?.map((sg: any) => securityGroups.find((g: any) => g.groupId === sg.VpcSecurityGroupId) as AwsSecurityGroup);
@@ -46,46 +37,6 @@ export const AwsRdsModule: Module = new Module({
     },
   },
   mappers: {
-    engineVersion: new Mapper<EngineVersion>({
-      entity: EngineVersion,
-      entityId: (e: EngineVersion) => e?.engineVersionKey ?? '',
-      // TODO: source: cloud entityPrint not needed (yet)
-      entityPrint: (e: EngineVersion) => ({
-        id: e.id?.toString() ?? '',
-      }),
-      equals: (_a: EngineVersion, _b: EngineVersion) => true,
-      source: 'cloud',
-      db: new Crud({
-        create: (e: EngineVersion[], ctx: Context) => ctx.orm.save(EngineVersion, e),
-        read: async (ctx: Context, ids?: string[]) => {
-          const opts = ids ? {
-            where: {
-              engineVersionKey: In(ids),
-            },
-          } : undefined;
-          return await ctx.orm.find(EngineVersion, opts);
-        },
-        update: (e: EngineVersion[], ctx: Context) => ctx.orm.save(EngineVersion, e),
-        delete: (e: EngineVersion[], ctx: Context) => ctx.orm.remove(EngineVersion, e),
-      }),
-      cloud: new Crud({
-        create: async (_e: EngineVersion[], _ctx: Context) => { /** Noop */ },
-        read: async (ctx: Context, ids?: string[]) => {
-          const client = await ctx.getAwsClient() as AWS;
-          const evs = Array.isArray(ids) ?
-            await Promise.all(ids.map(id => client.getEngineVersion(id))) :
-            (await client.getEngineVersions()).DBEngineVersions;
-          // TODO: Remove this once we have a better handle on making sure the AWS API returns
-          // unique data
-          const evIdx: any = {};
-          evs.forEach((ev: any) => evIdx[ev.EngineVersionKey] = ev);
-          const evs2 = Object.values(evIdx);
-          return await Promise.all(evs2.map(ev => AwsRdsModule.utils.engineVersionMapper(ev, ctx)));
-        },
-        update: async (_e: EngineVersion[], _ctx: Context) => {/** Noop */ },
-        delete: async (_e: EngineVersion[], _ctx: Context) => {/** Noop */ },
-      }),
-    }),
     rds: new Mapper<RDS>({
       entity: RDS,
       entityId: (e: RDS) => e.dbInstanceIdentifier + '',
@@ -94,7 +45,7 @@ export const AwsRdsModule: Module = new Module({
         dbInstanceIdentifier: e?.dbInstanceIdentifier ?? '',
         allocatedStorage: e?.allocatedStorage?.toString() ?? '',
         dbInstanceClass: e?.dbInstanceClass ?? '',
-        engine: e?.engine?.engine ?? '',
+        engine: e?.engine ?? '',
         masterUserPassword: e?.masterUserPassword ?? '',
         masterUsername: e?.masterUsername ?? '',
         vpcSecurityGroups: e?.vpcSecurityGroups?.map(sg => sg.groupName ?? '').join(', ') ?? '',
@@ -102,9 +53,9 @@ export const AwsRdsModule: Module = new Module({
         endpointPort: e?.endpointPort?.toString() ?? '',
         endpointHostedZoneId: e?.endpointHostedZoneId ?? '',
       }),
-      equals: (a: RDS, b: RDS) => Object.is(a.engine.engineVersionKey, b.engine.engineVersionKey)
+      equals: (a: RDS, b: RDS) => Object.is(a.engine, b.engine)
         && Object.is(a.dbInstanceClass, b.dbInstanceClass)
-        && Object.is(a.availabilityZone?.zoneId, b.availabilityZone?.zoneId)
+        && Object.is(a.availabilityZone, b.availabilityZone)
         && Object.is(a.dbInstanceIdentifier, b.dbInstanceIdentifier)
         && Object.is(a.endpointAddr, b.endpointAddr)
         && Object.is(a.endpointHostedZoneId, b.endpointHostedZoneId)
@@ -138,16 +89,17 @@ export const AwsRdsModule: Module = new Module({
               if (!sg.groupId) throw new Error('Security group needs to exist')
               return sg.groupId;
             }) ?? []
+            const [Engine, EngineVersion] = e.engine.split(':');
             const instanceParams = {
               DBInstanceIdentifier: e.dbInstanceIdentifier,
               DBInstanceClass: e.dbInstanceClass,
-              Engine: e.engine.engine,
-              EngineVersion: e.engine.engineVersion,
+              Engine,
+              EngineVersion,
               MasterUsername: e.masterUsername,
               MasterUserPassword: e.masterUserPassword,
               AllocatedStorage: e.allocatedStorage,
               VpcSecurityGroupIds: securityGroupIds,
-              AvailabilityZone: e.availabilityZone.zoneName,
+              AvailabilityZone: e.availabilityZone,
             }
             const result = await client.createDBInstance(instanceParams);
             // TODO: Handle if it fails (somehow)
@@ -180,14 +132,14 @@ export const AwsRdsModule: Module = new Module({
             const cloudRecord = ctx?.memo?.cloud?.RDS?.[e.dbInstanceIdentifier ?? ''];
             let updatedRecord = { ...cloudRecord };
             if (!(Object.is(e.dbInstanceClass, cloudRecord.dbInstanceClass)
-              && Object.is(e.engine.engineVersionKey, cloudRecord.engine.engineVersionKey)
+              && Object.is(e.engine, cloudRecord.engine)
               && Object.is(e.allocatedStorage, cloudRecord.allocatedStorage)
               && !e.masterUserPassword
               && Object.is(e.vpcSecurityGroups.length, cloudRecord.vpcSecurityGroups.length)
               && (e.vpcSecurityGroups?.every(esg => !!cloudRecord.vpcSecurityGroups.find((csg: any) => Object.is(esg.groupId, csg.groupId))) ?? false))) {
               const instanceParams: ModifyDBInstanceCommandInput = {
                 DBInstanceClass: e.dbInstanceClass,
-                EngineVersion: e.engine.engineVersion,
+                EngineVersion: e.engine.split(':')[1],
                 DBInstanceIdentifier: e.dbInstanceIdentifier,
                 AllocatedStorage: e.allocatedStorage,
                 VpcSecurityGroupIds: e.vpcSecurityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!) ?? [],
