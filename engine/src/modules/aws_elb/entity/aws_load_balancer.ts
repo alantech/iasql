@@ -82,12 +82,15 @@ export class AwsLoadBalancer {
   })
   loadBalancerType: LoadBalancerTypeEnum;
 
+  @Column()
   vpc: string;
 
   // Not in the mapper since is just needed as input for the creation and retrieve endpoints
   // do not return any information related to the subnets
+  @Column("text", { array: true, })
   subnets?: string[];
 
+  @Column("text", { array: true, })
   availabilityZones?: string[];
 
   @ManyToMany(() => AwsSecurityGroup)

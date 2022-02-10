@@ -1,9 +1,7 @@
 import {
+  Column,
   Entity,
   PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
 } from 'typeorm'
 
 export enum TargetTypeEnum {
@@ -75,6 +73,7 @@ export class AwsTargetGroup {
   })
   port?: number;
 
+  @Column()
   vpc: string;
 
   @Column({
