@@ -3,9 +3,9 @@ import { execSync, } from 'child_process'
 import { createConnection, EntityTarget, } from 'typeorm'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import * as Entities from '../src/entity'
-import { TypeormWrapper, } from '../src/services/typeorm'
-import { migrate, } from '../src/services/db-manager'
+import * as Entities from '../../src/entity'
+import { TypeormWrapper, } from '../../src/services/typeorm'
+import { migrate, } from '../../src/services/db-manager'
 
 jest.setTimeout(30000);
 

@@ -66,7 +66,7 @@ jobs:
 
   common-test:
     runs-on: ubuntu-latest
-    name: Common tests
+    name: common tests
     steps:
       - uses: actions/checkout@v2
 
@@ -79,7 +79,7 @@ jobs:
         run: yarn
 
       - name: Run common tests
-        run:  yarn coverage --testPathIgnorePatterns **/modules/*
+        run:  yarn coverage **/common/*
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
@@ -91,7 +91,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - setup-module-test
-    name: Module test ${{ matrix.module }}
+    name: module test ${{ matrix.module }}
     strategy:
       fail-fast: false
       matrix:

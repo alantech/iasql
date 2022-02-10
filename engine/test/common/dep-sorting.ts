@@ -1,5 +1,5 @@
-import { sortModules, } from '../src/services/mod-sort'
-import { ModuleInterface, } from '../src/modules/interfaces'
+import { sortModules, } from '../../src/services/mod-sort'
+import { ModuleInterface, } from '../../src/modules/interfaces'
 
 const fakeMod = (name: string, dependencies: string[]) => ({
   name,
