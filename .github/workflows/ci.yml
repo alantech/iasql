@@ -48,22 +48,6 @@ jobs:
       - name: Run style linter
         run: cd ../cli && cargo fmt -- --check
 
-  setup-module-test:
-    runs-on: ubuntu-latest
-    outputs:
-      test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
-      set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
-    steps:
-      - uses: actions/checkout@v2
-      - run: yarn
-      - id: set-test-modules
-        name: Set modules tests
-        run: >
-          echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
-      - id: set-test-module-names
-        name: Set modules tests names
-        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
-
   common-test:
     runs-on: ubuntu-latest
     name: common tests
@@ -86,6 +70,22 @@ jobs:
           IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
           AWS_REGION: us-east-1
           DB_HOST: localhost
+
+  setup-module-test:
+    runs-on: ubuntu-latest
+    outputs:
+      test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
+      set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
+    steps:
+      - uses: actions/checkout@v2
+      - run: yarn
+      - id: set-test-modules
+        name: Set modules tests
+        run: >
+          echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
+      - id: set-test-module-names
+        name: Set modules tests names
+        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
 
   module-test:
     runs-on: ubuntu-latest
