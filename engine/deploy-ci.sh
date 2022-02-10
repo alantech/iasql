@@ -31,7 +31,7 @@ export $(cat .deploy-env | xargs) && sed "s/<DB_PASSWORD>/${DB_PASSWORD}/g;s/<IR
 
 # IaSQL db new. Using local debug version
 echo "\Creating an iasql db..."
-cargo run --manifest-path=../cli/Cargo.toml -- new iasql
+export $(cat .deploy-env | xargs) && cargo run --manifest-path=../cli/Cargo.toml -- new iasql
 
 # Update service. Set PGPASSWORD environment variable to avoid interaction
 echo "\nUpdating iasql db..."
