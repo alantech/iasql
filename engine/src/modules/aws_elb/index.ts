@@ -19,8 +19,8 @@ import {
 } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsElb1637666608609, } from './migration/1637666608609-aws_elb'
-import { AwsAccount, AwsSecurityGroupModule } from '..'
+import { AwsSecurityGroupModule } from '..'
+import { awsElb1644461764668, } from './migration/1644461764668-aws_elb'
 
 export const AwsElbModule: Module = new Module({
   name: 'aws_elb',
@@ -88,7 +88,7 @@ export const AwsElbModule: Module = new Module({
       out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
       return out;
     },
-    targetGroupMapper: async (tg: any, ctx: Context) => {
+    targetGroupMapper: async (tg: any, _ctx: Context) => {
       const out = new AwsTargetGroup();
       if (!tg?.TargetGroupName) {
         throw new Error('Target group not defined properly');
@@ -108,7 +108,7 @@ export const AwsElbModule: Module = new Module({
       out.unhealthyThresholdCount = tg.UnhealthyThresholdCount ?? null;
       out.healthCheckPath = tg.HealthCheckPath ?? null;
       out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum ?? null;
-      out.vpc = ctx.memo?.db?.AwsVpc?.[tg.VpcId] ?? await AwsAccount.mappers.vpc.db.read(ctx, tg.VpcId);
+      out.vpc = tg.VpcId;
       return out;
     },
   },
@@ -453,7 +453,7 @@ export const AwsElbModule: Module = new Module({
         ipAddressType: e?.ipAddressType ?? TargetGroupIpAddressTypeEnum.IPV4, // TODO: Which?
         protocol: e?.protocol ?? ProtocolEnum.HTTPS, // TODO: Which?
         port: e?.port?.toString() ?? '',
-        vpc: e?.vpc?.vpcId ?? '',
+        vpc: e?.vpc ?? '',
         healthCheckProtocol: e?.healthCheckProtocol ?? ProtocolEnum.HTTP, // TODO: Which?
         healthCheckPort: e?.healthCheckPort?.toString() ?? '',
         healthCheckEnabled: e?.healthCheckEnabled?.toString() ?? '',
@@ -469,7 +469,7 @@ export const AwsElbModule: Module = new Module({
         && Object.is(a.ipAddressType, b.ipAddressType)
         && Object.is(a.protocol, b.protocol)
         && Object.is(a.port, b.port)
-        && Object.is(a.vpc.id, b.vpc.id)
+        && Object.is(a.vpc, b.vpc)
         && Object.is(a.protocolVersion, b.protocolVersion)
         && Object.is(a.healthCheckProtocol, b.healthCheckProtocol)
         && Object.is(a.healthCheckPort, b.healthCheckPort)
@@ -482,13 +482,6 @@ export const AwsElbModule: Module = new Module({
       source: 'db',
       db: new Crud({
         create: async (es: AwsTargetGroup[], ctx: Context) => {
-          for (const e of es) {
-            if (!e.vpc.id) {
-              const v = await AwsAccount.mappers.vpc.db.read(ctx, e.vpc.vpcId);
-              if (!v.id) throw new Error('Error retrieving generated column')
-              e.vpc.id = v.id;
-            }
-          }
           await ctx.orm.save(AwsTargetGroup, es);
         },
         read: async (ctx: Context, ids?: string[]) => {
@@ -502,13 +495,6 @@ export const AwsElbModule: Module = new Module({
           return await ctx.orm.find(AwsTargetGroup, opts);
         },
         update: async (es: AwsTargetGroup[], ctx: Context) => {
-          for (const e of es) {
-            if (!e.vpc.id) {
-              const v = await AwsAccount.mappers.vpc.db.read(ctx, e.vpc.vpcId);
-              if (!v.id) throw new Error('Error retrieving generated column')
-              e.vpc.id = v.id;
-            }
-          }
           await ctx.orm.save(AwsTargetGroup, es);
         },
         delete: (e: AwsTargetGroup[], ctx: Context) => ctx.orm.remove(AwsTargetGroup, e),
@@ -521,7 +507,7 @@ export const AwsElbModule: Module = new Module({
               Name: e.targetGroupName,
               TargetType: e.targetType,
               Port: e.port,
-              VpcId: e.vpc?.vpcId,
+              VpcId: e.vpc,
               Protocol: e.protocol,
               ProtocolVersion: e.protocolVersion,
               IpAddressType: e.ipAddressType,
@@ -561,7 +547,7 @@ export const AwsElbModule: Module = new Module({
           if (
             !(Object.is(prev.targetGroupName, next.targetGroupName)
               && Object.is(prev.targetType, next.targetType)
-              && Object.is(prev.vpc.id, next.vpc.id)
+              && Object.is(prev.vpc, next.vpc)
               && Object.is(prev.port, next.port)
               && Object.is(prev.protocol, next.protocol)
               && Object.is(prev.ipAddressType, next.ipAddressType)
@@ -607,7 +593,7 @@ export const AwsElbModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsElb1637666608609.prototype.up,
-    preremove: awsElb1637666608609.prototype.down,
+    postinstall: awsElb1644461764668.prototype.up,
+    preremove: awsElb1644461764668.prototype.down,
   },
 });
