@@ -17,6 +17,7 @@ export class AwsAccountEntity {
   @Column()
   secretAccessKey: string;
 
+  @Column()
   region: string;
 }
 
