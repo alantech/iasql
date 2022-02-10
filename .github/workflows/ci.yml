@@ -48,7 +48,7 @@ jobs:
   #     - name: Run style linter
   #       run: cd ../cli && cargo fmt -- --check
 
-  setup-test:
+  setup-module-test:
     runs-on: ubuntu-latest
     outputs:
       test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
@@ -63,19 +63,39 @@ jobs:
       - id: set-test-module-names
         name: Set modules tests names
         run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
-      # - id: set-test-common
-      #   name: Set common tests
-      #   run: echo "::set-output name=test-common::$(yarn test --testPathIgnorePatterns **/modules/* --listTests --json)"
 
-  test:
+  common-test:
+    runs-on: ubuntu-latest
+    name: Common tests
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Run common tests
+        run:  yarn coverage --testPathIgnorePatterns **/modules/*
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
+          IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
+          AWS_REGION: us-east-1
+          DB_HOST: localhost
+
+    module-test:
     runs-on: ubuntu-latest
     needs:
-      - setup-test
-    name: test (${{ matrix.module }})
+      - setup-module-test
+    name: Module test ${{ matrix.module }}
     strategy:
       fail-fast: false
       matrix:
-        module: ${{ fromJson(needs.setup-test.outputs['set-test-module-names']) }}
+        module: ${{ fromJson(needs.setup-module-test.outputs['set-test-module-names']) }}
 
     env:
       MATRIX_AWS_ACCESS_KEY_ID: AWS_ACCESS_KEY_ID_${{matrix.module}}
@@ -95,22 +115,12 @@ jobs:
       - name: Run modules tests
         run:  yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
         env:
-          MODULES: ${{ needs.setup-test.outputs['test-modules'] }}
+          MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
           AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
           IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
           AWS_REGION: us-east-1
           DB_HOST: localhost
-
-
-      # - name: Run tests
-      #   run: yarn coverage
-      #   env:
-      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
-      #     AWS_REGION: us-east-1
-      #     DB_HOST: localhost
 
   # docs:
   #   runs-on: ubuntu-latest
