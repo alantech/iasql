@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEcs1644518325187 implements MigrationInterface {
-    name = 'awsEcs1644518325187'
+export class awsEcs1644524364293 implements MigrationInterface {
+    name = 'awsEcs1644524364293'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."aws_vpc_conf_assign_public_ip_enum" AS ENUM('DISABLED', 'ENABLED')`);
