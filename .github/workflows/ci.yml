@@ -73,6 +73,7 @@ jobs:
       - setup-test
     name: test (${{ matrix.module }})
     strategy:
+      fail-fast: false
       matrix:
         module: ${{ fromJson(needs.setup-test.outputs['set-test-module-names']) }}
 
