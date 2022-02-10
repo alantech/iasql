@@ -87,7 +87,7 @@ jobs:
           AWS_REGION: us-east-1
           DB_HOST: localhost
 
-    module-test:
+  module-test:
     runs-on: ubuntu-latest
     needs:
       - setup-module-test
