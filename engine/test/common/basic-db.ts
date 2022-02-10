@@ -78,7 +78,7 @@ describe('Basic DB testing', () => {
         host: 'localhost',
         port: 5432,
         database: 'postgres',
-        entities: [`${__dirname}/../src/entity/**/*.ts`],
+        entities: [`${__dirname}/../../src/entity/**/*.ts`],
         namingStrategy: new SnakeNamingStrategy(),
       });
       const finds = [];
