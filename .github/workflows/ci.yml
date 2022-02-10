@@ -59,24 +59,19 @@ jobs:
       - id: set-test-modules
         name: Set modules tests
         run: >
-          echo "::set-output name=test-modules::$(npx jest **/modules/aws-ecr-integration.ts **/modules/aws-elb-integration.ts --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
-        # echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0]): .}) | add')"
+          echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
       - id: set-test-module-names
         name: Set modules tests names
-        # run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0])')"
-        run: echo "::set-output name=test-module-names::$(npx jest **/modules/aws-ecr-integration.ts **/modules/aws-elb-integration.ts --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
       # - id: set-test-common
       #   name: Set common tests
       #   run: echo "::set-output name=test-common::$(yarn test --testPathIgnorePatterns **/modules/* --listTests --json)"
 
   test:
     runs-on: ubuntu-latest
-
     needs:
       - setup-test
-
     name: test (${{ matrix.module }})
-
     strategy:
       matrix:
         module: ${{ fromJson(needs.setup-test.outputs['set-test-module-names']) }}
