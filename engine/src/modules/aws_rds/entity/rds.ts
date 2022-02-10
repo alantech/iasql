@@ -1,9 +1,9 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
-  ManyToMany,
+  Entity,
   JoinTable,
+  ManyToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm'
 
 import { AwsSecurityGroup, } from '../../aws_security_group/entity'
@@ -27,6 +27,7 @@ export class RDS {
   })
   allocatedStorage: number;
 
+  @Column()
   availabilityZone: string;
 
   // TODO: make this an entity eventually?
@@ -37,6 +38,7 @@ export class RDS {
   @Column()
   dbInstanceClass: string;
 
+  @Column()
   engine: string;
 
   // ? How to handle this? It is used just for creation and if an update is needed. After creation / update the value is removed from db

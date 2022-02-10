@@ -7,7 +7,7 @@ import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import { AwsSecurityGroup } from '../aws_security_group/entity'
-import { awsRds1644460624182 } from './migration/1644460624182-aws_rds'
+import { awsRds1644523981372, } from './migration/1644523981372-aws_rds'
 
 export const AwsRdsModule: Module = new Module({
   name: 'aws_rds',
@@ -181,7 +181,7 @@ export const AwsRdsModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsRds1644460624182.prototype.up,
-    preremove: awsRds1644460624182.prototype.down,
+    postinstall: awsRds1644523981372.prototype.up,
+    preremove: awsRds1644523981372.prototype.down,
   },
 });
