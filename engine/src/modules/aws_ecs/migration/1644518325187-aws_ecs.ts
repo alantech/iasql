@@ -1,11 +1,11 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEcs1644462413818 implements MigrationInterface {
-    name = 'awsEcs1644462413818'
+export class awsEcs1644518325187 implements MigrationInterface {
+    name = 'awsEcs1644518325187'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."aws_vpc_conf_assign_public_ip_enum" AS ENUM('DISABLED', 'ENABLED')`);
-        await queryRunner.query(`CREATE TABLE "aws_vpc_conf" ("id" SERIAL NOT NULL, "assign_public_ip" "public"."aws_vpc_conf_assign_public_ip_enum", CONSTRAINT "PK_23873df17bd3e0744254b4ccd9d" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "aws_vpc_conf" ("id" SERIAL NOT NULL, "subnets" text array NOT NULL, "assign_public_ip" "public"."aws_vpc_conf_assign_public_ip_enum", CONSTRAINT "PK_23873df17bd3e0744254b4ccd9d" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "cluster" ("id" SERIAL NOT NULL, "cluster_name" character varying NOT NULL, "cluster_arn" character varying, "cluster_status" character varying, CONSTRAINT "UQ_45ffb6495d51fdc55df46102ce7" UNIQUE ("cluster_name"), CONSTRAINT "PK_b09d39b9491ce5cb1e8407761fd" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."compatibility_name_enum" AS ENUM('EC2', 'EXTERNAL', 'FARGATE')`);
         await queryRunner.query(`CREATE TABLE "compatibility" ("id" SERIAL NOT NULL, "name" "public"."compatibility_name_enum" NOT NULL, CONSTRAINT "UQ_794090c3afd5f43dba2c9fcd631" UNIQUE ("name"), CONSTRAINT "PK_254bde74086e8e3ef50174c3e60" PRIMARY KEY ("id"))`);
