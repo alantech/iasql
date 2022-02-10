@@ -17,7 +17,7 @@ docker image prune -f
 # Next, spin them back up so we have a database
 docker-compose up --build --detach
 sleep 5 # Just in case
-psql postgresql://postgres:test@localhost/postgres -c "CREATE DATABASE __example__"
+psql postgresql://postgres:test@localhost:5432/postgres -c "CREATE DATABASE __example__"
 
 # Now, we need to move out of the root directory to pull our trickery below
 cd src
