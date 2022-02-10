@@ -987,7 +987,7 @@ export class AWS {
       pageSize: 25,
     }, {});
     for await (const page of paginator) {
-      dbInstances.push(...(page.DBInstances ?? []));
+      dbInstances.push(...(page.DBInstances?.filter(dbInstance => dbInstance.DBInstanceStatus === 'available') ?? []));
     }
     return {
       DBInstances: dbInstances, // Make it "look like" the regular query again
