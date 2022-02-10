@@ -23,12 +23,12 @@ export class awsEc21644459507734 implements MigrationInterface {
                        (ami, instance_type)
                    values
                        (_ami_id, _instance_type);
--
+
                    select id into instance_id
                    from instance
                    order by id desc
                    limit 1;
--
+
                    for sg in
                        select id
                        from aws_security_group
@@ -39,7 +39,7 @@ export class awsEc21644459507734 implements MigrationInterface {
                        values
                            (instance_id, sg.id);
                    end loop;
--
+
                    raise info 'ec2_instance_id = %', instance_id;
                end;
            $$;
