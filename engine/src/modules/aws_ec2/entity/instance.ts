@@ -22,6 +22,7 @@ export class Instance {
   @Column()
   ami: string;
 
+  @Column()
   instanceType: string;
 
   @ManyToMany(() => AwsSecurityGroup, { eager: true, })

@@ -1,10 +1,10 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEc21644459507734 implements MigrationInterface {
-    name = 'awsEc21644459507734'
+export class awsEc21644465928055 implements MigrationInterface {
+    name = 'awsEc21644465928055'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`CREATE TABLE "instance" ("id" SERIAL NOT NULL, "instance_id" character varying, "ami" character varying NOT NULL, CONSTRAINT "PK_eaf60e4a0c399c9935413e06474" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "instance" ("id" SERIAL NOT NULL, "instance_id" character varying, "ami" character varying NOT NULL, "instance_type" character varying NOT NULL, CONSTRAINT "PK_eaf60e4a0c399c9935413e06474" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "instance_security_groups_aws_security_group" ("instance_id" integer NOT NULL, "aws_security_group_id" integer NOT NULL, CONSTRAINT "PK_80d249a863573caab7243ff1b07" PRIMARY KEY ("instance_id", "aws_security_group_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_ee3dfb3bef7cf8a5123b107167" ON "instance_security_groups_aws_security_group" ("instance_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_0bc4c00d7c86a81c48482a2773" ON "instance_security_groups_aws_security_group" ("aws_security_group_id") `);
@@ -44,7 +44,6 @@ export class awsEc21644459507734 implements MigrationInterface {
                end;
            $$;
        `);
-
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
