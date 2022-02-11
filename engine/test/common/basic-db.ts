@@ -3,9 +3,9 @@ import { execSync, } from 'child_process'
 import { createConnection, EntityTarget, } from 'typeorm'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import * as Entities from '../src/entity'
-import { TypeormWrapper, } from '../src/services/typeorm'
-import { migrate, } from '../src/services/db-manager'
+import * as Entities from '../../src/entity'
+import { TypeormWrapper, } from '../../src/services/typeorm'
+import { migrate, } from '../../src/services/db-manager'
 
 jest.setTimeout(30000);
 
@@ -78,7 +78,7 @@ describe('Basic DB testing', () => {
         host: 'localhost',
         port: 5432,
         database: 'postgres',
-        entities: [`${__dirname}/../src/entity/**/*.ts`],
+        entities: [`${__dirname}/../../src/entity/**/*.ts`],
         namingStrategy: new SnakeNamingStrategy(),
       });
       const finds = [];
