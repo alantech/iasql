@@ -13,13 +13,12 @@ export function execComposeDown() {
 }
 
 export function getPrefix(){
-  const chars = [
-    Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-    Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-    Array(10).fill('0').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-  ].flat();
+  const lowerCaseLetters = Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i));
+  const digits = Array(10).fill('0').map((c, i) => String.fromCharCode(c.charCodeAt() + i));
+  const chars = [ lowerCaseLetters, digits, ].flat();
   const randChar = (): string => chars[Math.floor(Math.random() * chars.length)];
-  return Array(7).fill('').map(() => randChar()).join('').toLowerCase();
+  const randLetter = (): string => lowerCaseLetters[Math.floor(Math.random() * lowerCaseLetters.length)];
+  return randLetter() + Array(6).fill('').map(() => randChar()).join('');
 }
 
 export function finish(done: (e?: any) => {}) {
