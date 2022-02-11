@@ -60,3 +60,11 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
           AWS_REGION: us-east-2
+
+      - name: Logs engine
+          if: always()
+          run: docker logs engine_change_engine_1
+
+      - name: Logs psql
+        if: always()
+        run: docker logs engine_postgresql_1
