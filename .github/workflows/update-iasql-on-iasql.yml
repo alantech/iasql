@@ -48,8 +48,8 @@ jobs:
           echo PGPASSWORD=${{ secrets.PGPASSWORD }} >> .deploy-env
           echo DB_PASSWORD=${{ secrets.DB_PASSWORD }} >> .deploy-env
           echo IRONPLANS_TOKEN=${{ secrets.IRONPLANS_TOKEN_PROD }} >> .deploy-env
-          echo AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} >> .deploy-env
-          echo AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} >> .deploy-env
+          echo AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID_PROD }} >> .deploy-env
+          echo AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }} >> .deploy-env
           echo AWS_REGION=us-east-2 >> .deploy-env
           echo AUTH_TOKEN=${{ secrets.A0_IASQL_API_TOKEN }} >> .deploy-env
           cat .deploy-env
