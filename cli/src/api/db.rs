@@ -472,6 +472,7 @@ fn provide_aws_region() -> String {
   if region_env.is_ok() {
     return region_env.unwrap()
   }
+  panic!("No region in env");
   let regions = &get_aws_regions();
   let default = regions.iter().position(|s| s == "us-east-2").unwrap_or(0);
   let selection = dlg::select_with_default("Pick AWS region", regions, default);
@@ -488,6 +489,7 @@ fn provide_aws_creds() -> (String, String) {
       secret_env.unwrap(),
     )
   }
+  panic!("No creds in env");
   let aws_cli_creds = get_aws_cli_creds();
   if aws_cli_creds.is_ok()
     && dlg::confirm_with_default(
@@ -567,9 +569,6 @@ fn display_new_db(db_metadata: NewDbResponse) {
 }
 
 pub async fn new(db: &str) {
-  for (key, value) in std::env::vars() {
-    println!("{}: {}", key, value);
-  }
   let region = provide_aws_region();
   let (access_key, secret) = provide_aws_creds();
   let sp = ProgressBar::new_spinner();
