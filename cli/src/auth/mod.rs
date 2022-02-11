@@ -62,6 +62,7 @@ pub async fn login(prompt_reauth: bool) {
           //   );
           //   std::process::exit(1)
           // }
+          panic!("No auth token");
           generate_token().await
         }
       },

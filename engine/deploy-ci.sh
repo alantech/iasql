@@ -4,6 +4,7 @@
 ## - PGPASSWORD environment variable defined in .deploy-env
 ## - DB_PASSWORD environment variable defined in .deploy-env
 ## - IRONPLANS_TOKEN environment variable defined in .deploy-env
+## - AUTH_TOKEN environment variable defined in .deploy-env
 #!/bin/bash
 
 # Fail on error
@@ -28,6 +29,8 @@ docker push 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository
 # Prepare iasql-on-iasql.sql script
 echo "\nPreparing iasql script..."
 export $(cat .deploy-env | xargs) && sed "s/<DB_PASSWORD>/${DB_PASSWORD}/g;s/<IRONPLANS_TOKEN>/${IRONPLANS_TOKEN}/g" ./src/script/iasql-on-iasql.sql > ./src/script/iasql-on-iasql.out.sql
+
+cat .deploy-env
 
 # IaSQL db new. Using local debug version
 echo "\Creating an iasql db..."
