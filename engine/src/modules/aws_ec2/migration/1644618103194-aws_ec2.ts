@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEc21644520252722 implements MigrationInterface {
-    name = 'awsEc21644520252722'
+export class awsEc21644618103194 implements MigrationInterface {
+    name = 'awsEc21644618103194'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "boot_mode" ("id" SERIAL NOT NULL, "mode" character varying NOT NULL, CONSTRAINT "UQ_88a9fac6831af2d520a0947c113" UNIQUE ("mode"), CONSTRAINT "PK_114728d4fa02f297923c52ae1e3" PRIMARY KEY ("id"))`);
@@ -185,7 +185,7 @@ export class awsEc21644520252722 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP procedure create_or_update_ec2_instance`);
+        await queryRunner.query(`DROP PROCEDURE create_or_update_ec2_instance`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups_aws_security_group" DROP CONSTRAINT "FK_0bc4c00d7c86a81c48482a2773d"`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups_aws_security_group" DROP CONSTRAINT "FK_ee3dfb3bef7cf8a5123b107167c"`);
         await queryRunner.query(`ALTER TABLE "instance_type_availability_zones_availability_zone" DROP CONSTRAINT "FK_412917c37df7b4fd87130c5b328"`);

@@ -144,6 +144,8 @@ type AWSConfig = {
   region: string
 }
 
+export const IASQL_EC2_TAG_NAME = 'IaSQL_Name';
+
 export class AWS {
   private ec2client: EC2Client
   private ecrClient: ECRClient
@@ -179,7 +181,7 @@ export class AWS {
         {
           ResourceType: 'instance',
           Tags: [
-            { Key: 'Name', Value: name },
+            { Key: IASQL_EC2_TAG_NAME, Value: name },
             { Key: 'owner', Value: 'iasql-change-engine' },
           ],
         },

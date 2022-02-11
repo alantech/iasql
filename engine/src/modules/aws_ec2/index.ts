@@ -39,9 +39,9 @@ import {
   VirtualizationType,
 } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
-import { AWS, } from '../../services/gateways/aws'
+import { AWS, IASQL_EC2_TAG_NAME } from '../../services/gateways/aws'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEc21644520252722 } from './migration/1644520252722-aws_ec2'
+import { awsEc21644618103194 } from './migration/1644618103194-aws_ec2'
 
 export const AwsEc2Module: Module = new Module({
   name: 'aws_ec2',
@@ -295,7 +295,7 @@ export const AwsEc2Module: Module = new Module({
       const out = new Instance();
       out.instanceId = instance.InstanceId;
       // for instances created outside IaSQL, set the name to the instance ID
-      out.name = instance.Tags?.filter(t => t.Key === 'Name' && t.Value !== undefined).pop()?.Value ?? (instance.InstanceId ?? '');
+      out.name = instance.Tags?.filter(t => t.Key === IASQL_EC2_TAG_NAME && t.Value !== undefined).pop()?.Value ?? (instance.InstanceId ?? '');
       out.ami = instance.ImageId ?? '';
       out.instanceType = await AwsEc2Module.mappers.instanceType.db.read(ctx, instance.InstanceType);
       if (!out.instanceType) throw new Error('Cannot create Instance object without a valid InstanceType in the Database');
@@ -493,7 +493,7 @@ export const AwsEc2Module: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEc21644520252722.prototype.up,
-    preremove: awsEc21644520252722.prototype.down,
+    postinstall: awsEc21644618103194.prototype.up,
+    preremove: awsEc21644618103194.prototype.down,
   },
 });

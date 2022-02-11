@@ -26,7 +26,7 @@ export class Instance {
   ami: string;
 
   @Column({
-    unique: true
+    unique: true,
   })
   name: string;
 
