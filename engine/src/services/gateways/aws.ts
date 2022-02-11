@@ -388,10 +388,14 @@ export class AWS {
   async deleteSecurityGroupEgressRules(is: RevokeSecurityGroupEgressCommandInput[]) {
     const reses = [];
     for (const i of is) {
-      const res = await this.ec2client.send(
-        new RevokeSecurityGroupEgressCommand(i)
-      );
-      reses.push(res);
+      try {
+        const res = await this.ec2client.send(
+          new RevokeSecurityGroupEgressCommand(i)
+        );
+        reses.push(res);
+      } catch (e) {
+        reses.push({Return: false, Error: e});
+      }
     }
     return reses;
   }
