@@ -6,10 +6,10 @@ name: CI
 # events but only for the main branch
 on:
   # TODO rm comment once PR works
-  #push:
-  #  branches: [main]
-  #pull_request:
-  #  branches: [main]
+  push:
+   branches: [main]
+  pull_request:
+   branches: [main]
 
 defaults:
   run:
