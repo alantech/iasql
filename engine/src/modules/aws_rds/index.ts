@@ -5,8 +5,6 @@ import { RDS, EngineVersion, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsAccount, AwsSecurityGroupModule } from '..'
-import { AvailabilityZone } from '../aws_account/entity'
-import { AwsSecurityGroup } from '../aws_security_group/entity'
 import { awsRds1638273752147 } from './migration/1638273752147-aws_rds'
 import { ModifyDBInstanceCommandInput } from '@aws-sdk/client-rds'
 
@@ -29,19 +27,23 @@ export const AwsRdsModule: Module = new Module({
     rdsMapper: async (rds: any, ctx: Context) => {
       const out = new RDS();
       out.allocatedStorage = rds?.AllocatedStorage;
-      const availabilityZones = ctx.memo?.db?.AvailabilityZone ? Object.values(ctx.memo?.db?.AvailabilityZone) : await AwsAccount.mappers.availabilityZone.db.read(ctx);
-      out.availabilityZone = availabilityZones.find((z: any) => z.zoneName === rds?.AvailabilityZone) as AvailabilityZone;
+      out.availabilityZone = await AwsAccount.mappers.availabilityZone.db.read(ctx, rds.AvailabilityZone) ??
+        await AwsAccount.mappers.availabilityZone.cloud.read(ctx, rds.AvailabilityZone);
       out.dbInstanceClass = rds?.DBInstanceClass;
       out.dbInstanceIdentifier = rds?.DBInstanceIdentifier;
       out.endpointAddr = rds?.Endpoint?.Address;
       out.endpointHostedZoneId = rds?.Endpoint?.HostedZoneId;
       out.endpointPort = rds?.Endpoint?.Port;
-      const engineVersions = ctx.memo?.db?.EngineVersion ? Object.values(ctx.memo?.db?.EngineVersion) : await AwsRdsModule.mappers.engineVersion.db.read(ctx);
-      if (!engineVersions?.length) throw new Error('Engine versions need to be loaded first')
-      out.engine = engineVersions.find((ev: any) => ev.engineVersionKey === `${rds?.Engine}:${rds?.EngineVersion}`) as EngineVersion;
+      const rdsEngineVersionKey = `${rds?.Engine}:${rds?.EngineVersion}`;
+      out.engine = await AwsRdsModule.mappers.engineVersion.db.read(ctx, rdsEngineVersionKey) ??
+        await AwsRdsModule.mappers.engineVersion.cloud.read(ctx, rdsEngineVersionKey);
+      if (!out.engine) throw new Error('Engine versions need to be loaded first')
       out.masterUsername = rds?.MasterUsername;
-      const securityGroups = ctx.memo?.db?.AwsSecurityGroup ? Object.values(ctx.memo?.db?.AwsSecurityGroup) : await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx);
-      out.vpcSecurityGroups = rds?.VpcSecurityGroups?.map((sg: any) => securityGroups.find((g: any) => g.groupId === sg.VpcSecurityGroupId) as AwsSecurityGroup);
+      const vpcSecurityGroupIds = rds?.VpcSecurityGroups?.filter((vpcsg: any) => !!vpcsg?.VpcSecurityGroupId).map((vpcsg: any) => vpcsg?.VpcSecurityGroupId);
+      out.vpcSecurityGroups = vpcSecurityGroupIds ?
+        await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, vpcSecurityGroupIds) ??
+          await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, vpcSecurityGroupIds)
+        : [];
       return out;
     },
   },
@@ -88,7 +90,7 @@ export const AwsRdsModule: Module = new Module({
     }),
     rds: new Mapper<RDS>({
       entity: RDS,
-      entityId: (e: RDS) => e.dbInstanceIdentifier + '',
+      entityId: (e: RDS) => e.dbInstanceIdentifier ?? '',
       entityPrint: (e: RDS) => ({
         id: e?.id?.toString() ?? '',
         dbInstanceIdentifier: e?.dbInstanceIdentifier ?? '',
@@ -161,6 +163,9 @@ export const AwsRdsModule: Module = new Module({
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database.
             newEntity.id = e.id;
+            // Set password as null to avoid infinite loop trying to update the password.
+            // Reminder: Password need to be null since when we read RDS instances from AWS this property is not retrieved
+            newEntity.masterUserPassword = null;
             // Save the record back into the database to get the new fields updated
             await AwsRdsModule.mappers.rds.db.update(newEntity, ctx);
             return newEntity;
