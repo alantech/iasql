@@ -30,8 +30,6 @@ docker push 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository
 echo "\nPreparing iasql script..."
 export $(cat .deploy-env | xargs) && sed "s/<DB_PASSWORD>/${DB_PASSWORD}/g;s/<IRONPLANS_TOKEN>/${IRONPLANS_TOKEN}/g" ./src/script/iasql-on-iasql.sql > ./src/script/iasql-on-iasql.out.sql
 
-cat .deploy-env
-
 # IaSQL db new. Using local debug version
 echo "\Creating an iasql db..."
 export $(cat .deploy-env | xargs) && cargo run --manifest-path=../cli/Cargo.toml -- new iasql
