@@ -567,6 +567,9 @@ fn display_new_db(db_metadata: NewDbResponse) {
 }
 
 pub async fn new(db: &str) {
+  for (key, value) in env::vars() {
+    println!("{}: {}", key, value);
+  }
   let region = provide_aws_region();
   let (access_key, secret) = provide_aws_creds();
   let sp = ProgressBar::new_spinner();
