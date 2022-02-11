@@ -25,6 +25,11 @@ export class Instance {
   @Column()
   ami: string;
 
+  @Column({
+    unique: true
+  })
+  name: string;
+
   @ManyToOne(() => InstanceType, { eager: true, nullable: false })
   @JoinColumn({
     name: 'instance_type_id',

@@ -168,7 +168,7 @@ export class AWS {
     this.ecrPubClient = new ECRPUBLICClient({credentials: config.credentials, region: 'us-east-1'});
   }
 
-  async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
+  async newInstance(name: string, instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
     const instanceParams = {
       ImageId: amiId,
       InstanceType: instanceType,
@@ -178,7 +178,10 @@ export class AWS {
       TagSpecifications: [
         {
           ResourceType: 'instance',
-          Tags: [{ Key: 'owner', Value: 'iasql-change-engine' }],
+          Tags: [
+            { Key: 'Name', Value: name },
+            { Key: 'owner', Value: 'iasql-change-engine' },
+          ],
         },
       ],
       UserData: undefined,

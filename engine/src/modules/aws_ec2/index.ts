@@ -41,7 +41,7 @@ import {
 import { AwsSecurityGroupModule, } from '../aws_security_group'
 import { AWS, } from '../../services/gateways/aws'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEc21643082760075 } from './migration/1643082760075-aws_ec2'
+import { awsEc21644520252722 } from './migration/1644520252722-aws_ec2'
 
 export const AwsEc2Module: Module = new Module({
   name: 'aws_ec2',
@@ -294,6 +294,8 @@ export const AwsEc2Module: Module = new Module({
     instanceMapper: async (instance: InstanceAWS, ctx: Context) => {
       const out = new Instance();
       out.instanceId = instance.InstanceId;
+      // for instances created outside IaSQL, set the name to the instance ID
+      out.name = instance.Tags?.filter(t => t.Key === 'Name' && t.Value !== undefined).pop()?.Value ?? (instance.InstanceId ?? '');
       out.ami = instance.ImageId ?? '';
       out.instanceType = await AwsEc2Module.mappers.instanceType.db.read(ctx, instance.InstanceType);
       if (!out.instanceType) throw new Error('Cannot create Instance object without a valid InstanceType in the Database');
@@ -428,20 +430,16 @@ export const AwsEc2Module: Module = new Module({
     }),
     instance: new Mapper<Instance>({
       entity: Instance,
-      // fallback to our id when the instance hasn't been created
-      entityId: (i: Instance) => i.instanceId ?? (i.id?.toString() ?? ''),
+      entityId: (i: Instance) => i.name,
       entityPrint: (e: Instance) => ({
+        name: e.name,
         id: e.id?.toString() ?? '',
         instanceId: e.instanceId ?? '',
         ami: e.ami ?? '',
         instanceType: e.instanceType?.name ?? '',
         securityGroups: e.securityGroups?.map(sg => sg.groupName ?? '').join(', '),
       }),
-      equals: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
-        Object.is(a.ami, b.ami) &&
-        Object.is(a.instanceType.name, b.instanceType.name) &&
-        Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
-        a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
+      equals: (a: Instance, b: Instance) => Object.is(a.name, b.name),
       source: 'db',
       db: new Crud({
         create: (e: Instance[], ctx: Context) => ctx.orm.save(Instance, e),
@@ -459,6 +457,7 @@ export const AwsEc2Module: Module = new Module({
           for (const instance of es) {
             if (instance.ami) {
               const instanceId = await client.newInstance(
+                instance.name,
                 instance.instanceType.name,
                 instance.ami,
                 instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[],
@@ -494,7 +493,7 @@ export const AwsEc2Module: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEc21643082760075.prototype.up,
-    preremove: awsEc21643082760075.prototype.down,
+    postinstall: awsEc21644520252722.prototype.up,
+    preremove: awsEc21644520252722.prototype.down,
   },
 });
