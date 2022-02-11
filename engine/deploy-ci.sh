@@ -35,7 +35,7 @@ echo "\Creating an iasql db..."
 export $(cat .deploy-env | xargs) && cargo run --manifest-path=../cli/Cargo.toml -- new iasql
 
 echo "\Installing modules in iasql db..."
-cargo run --manifest-path=../cli/Cargo.toml -- install aws_cloudwatch aws_ecr aws_ecs aws_elb aws_rds aws_security_group --db=iasql --noninteractive
+cargo run --manifest-path=../cli/Cargo.toml -- install aws_security_group aws_cloudwatch aws_ecr aws_ecs aws_elb aws_rds --db=iasql --noninteractive
 
 # Update service. Set PGPASSWORD environment variable to avoid interaction
 echo "\nUpdating iasql db..."
