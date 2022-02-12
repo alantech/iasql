@@ -10,6 +10,13 @@
 # Fail on error
 set -e
 
+# IaSQL db new. Using local debug version
+echo "\Creating an iasql db..."
+export $(cat .deploy-env | xargs) && cargo run --manifest-path=../cli/Cargo.toml -- new iasql
+
+echo "\Installing modules in iasql db..."
+cargo run --manifest-path=../cli/Cargo.toml -- install aws_security_group aws_elb aws_cloudwatch aws_ecr aws_ecs aws_rds --db=iasql --noninteractive
+
 # Login. Review your profile
 echo "\nDocker login..."
 aws ecr get-login-password | docker login --username AWS --password-stdin 547931376551.dkr.ecr.us-east-2.amazonaws.com
@@ -29,13 +36,6 @@ docker push 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository
 # Prepare iasql-on-iasql.sql script
 echo "\nPreparing iasql script..."
 export $(cat .deploy-env | xargs) && sed "s/<DB_PASSWORD>/${DB_PASSWORD}/g;s/<IRONPLANS_TOKEN>/${IRONPLANS_TOKEN}/g" ./src/script/iasql-on-iasql.sql > ./src/script/iasql-on-iasql.out.sql
-
-# IaSQL db new. Using local debug version
-echo "\Creating an iasql db..."
-export $(cat .deploy-env | xargs) && cargo run --manifest-path=../cli/Cargo.toml -- new iasql
-
-echo "\Installing modules in iasql db..."
-cargo run --manifest-path=../cli/Cargo.toml -- install aws_security_group aws_elb aws_cloudwatch aws_ecr aws_ecs aws_rds --db=iasql --noninteractive
 
 # Update service. Set PGPASSWORD environment variable to avoid interaction
 echo "\nUpdating iasql db..."
