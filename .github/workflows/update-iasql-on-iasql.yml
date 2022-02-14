@@ -35,7 +35,6 @@ jobs:
           echo AO_DOMAIN=https://auth.iasql.com/ >> .env
           echo AO_AUDIENCE=https://api.iasql.com >> .env
           echo IRONPLANS_TOKEN=${{ secrets. IRONPLANS_TOKEN_PROD }} >> .env
-          cat .env
 
       - name: Start iasql
         run: |
