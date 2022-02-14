@@ -6,7 +6,6 @@ import { RDS, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
-import { AwsSecurityGroup } from '../aws_security_group/entity'
 import { awsRds1644523981372, } from './migration/1644523981372-aws_rds'
 
 export const AwsRdsModule: Module = new Module({
@@ -31,15 +30,18 @@ export const AwsRdsModule: Module = new Module({
       if (!engineVersions?.length) throw new Error('Engine versions need to be loaded first')
       out.engine = `${rds?.Engine}:${rds?.EngineVersion}`;
       out.masterUsername = rds?.MasterUsername;
-      const securityGroups = ctx.memo?.db?.AwsSecurityGroup ? Object.values(ctx.memo?.db?.AwsSecurityGroup) : await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx);
-      out.vpcSecurityGroups = rds?.VpcSecurityGroups?.map((sg: any) => securityGroups.find((g: any) => g.groupId === sg.VpcSecurityGroupId) as AwsSecurityGroup);
+      const vpcSecurityGroupIds = rds?.VpcSecurityGroups?.filter((vpcsg: any) => !!vpcsg?.VpcSecurityGroupId).map((vpcsg: any) => vpcsg?.VpcSecurityGroupId);
+      out.vpcSecurityGroups = vpcSecurityGroupIds ?
+        await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, vpcSecurityGroupIds) ??
+          await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, vpcSecurityGroupIds)
+        : [];
       return out;
     },
   },
   mappers: {
     rds: new Mapper<RDS>({
       entity: RDS,
-      entityId: (e: RDS) => e.dbInstanceIdentifier + '',
+      entityId: (e: RDS) => e.dbInstanceIdentifier ?? '',
       entityPrint: (e: RDS) => ({
         id: e?.id?.toString() ?? '',
         dbInstanceIdentifier: e?.dbInstanceIdentifier ?? '',
@@ -113,6 +115,9 @@ export const AwsRdsModule: Module = new Module({
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database.
             newEntity.id = e.id;
+            // Set password as null to avoid infinite loop trying to update the password.
+            // Reminder: Password need to be null since when we read RDS instances from AWS this property is not retrieved
+            newEntity.masterUserPassword = null;
             // Save the record back into the database to get the new fields updated
             await AwsRdsModule.mappers.rds.db.update(newEntity, ctx);
             return newEntity;

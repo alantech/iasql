@@ -62,7 +62,7 @@ export const AwsEcsModule: Module = new Module({
       }) ?? [];
       const imageTag = c.image?.split(':');
       if (imageTag[0]?.includes('amazonaws.com')) {
-        const repositoryName = imageTag[0].split('/')[2] ?? null;
+        const repositoryName = imageTag[0].split('/')[1] ?? null;
         try {
           const repository = await AwsEcrModule.mappers.repository.db.read(ctx, repositoryName) ?? await AwsEcrModule.mappers.repository.cloud.read(ctx, repositoryName);
           out.repository = repository;

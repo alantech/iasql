@@ -38,7 +38,7 @@ pub fn get_token() -> &'static str {
 }
 
 // Get previously generated access token or generate a new one
-pub async fn login(prompt_reauth: bool) {
+pub async fn login(prompt_reauth: bool, noninteractive: bool) {
   let token = TOKEN.get();
   if token.is_none() {
     let home = std::env::var("HOME").unwrap();
@@ -55,13 +55,12 @@ pub async fn login(prompt_reauth: bool) {
       Err(_) => match std::env::var("AUTH_TOKEN") {
         Ok(token) => TOKEN.set(token).unwrap(),
         Err(_) => {
-          // TODO add non_interactive mode using secret token
-          // if non_interactive {
-          //   println!(
-          //     "Non interactive mode. Token needs to be defined in AUTH_TOKEN environment variable."
-          //   );
-          //   std::process::exit(1)
-          // }
+          if noninteractive {
+            println!(
+              "Non interactive mode. Token needs to be defined in AUTH_TOKEN environment variable."
+            );
+            std::process::exit(1);
+          }
           generate_token().await
         }
       },
@@ -69,19 +68,21 @@ pub async fn login(prompt_reauth: bool) {
   };
 }
 
-pub fn logout() {
+pub fn logout(noninteractive: bool) {
   let token = TOKEN.get();
   if token.is_none() {
     let home = std::env::var("HOME").unwrap();
     let file_name = &format!("{}/{}", home, TOKEN_FILE);
     match read_to_string(file_name) {
       Ok(_) => {
-        let prompt = format!(
-          "Do wish to remove the credentials stored in {}?",
-          TOKEN_FILE
-        );
-        if !dlg::confirm_with_default(&prompt, true) {
-          return;
+        if !noninteractive {
+          let prompt = format!(
+            "Do wish to remove the credentials stored in {}?",
+            TOKEN_FILE
+          );
+          if !dlg::confirm_with_default(&prompt, true) {
+            return;
+          }
         }
         remove_file(file_name).unwrap();
         println!(
