@@ -39,9 +39,9 @@ const serviceTargetGroupName = `${serviceName}tg`;
 const serviceLoadBalancerName = `${serviceName}lb`;
 const newServiceName = `${serviceName}replace`;
 const repositoryName = `${prefix}${dbAlias}repository`;
-const containerNameRespository = `${prefix}${dbAlias}containerrepository`;
+const containerNameRepository = `${prefix}${dbAlias}containerrepository`;
 const publicRepositoryName = `${prefix}${dbAlias}publicrepository`;
-const containerNamePublicRespository = `${prefix}${dbAlias}containerpublicrepository`;
+const containerNamePublicRepository = `${prefix}${dbAlias}containerpublicrepository`;
 
 describe('ECS Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.add(
@@ -450,7 +450,7 @@ describe('ECS Integration Testing', () => {
           WHERE log_group_name = '${logGroupName}'
         )
         INSERT INTO container_definition (name, repository_id, tag, essential, memory_reservation, log_group_id)
-        SELECT '${containerNameRespository}', (select id from r), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, (select id from lg);
+        SELECT '${containerNameRepository}', (select id from r), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, (select id from lg);
 
         INSERT INTO port_mapping (container_port, host_port, protocol)
         VALUES ('${containerPort}', '${hostPort}', '${protocol}');
@@ -459,13 +459,13 @@ describe('ECS Integration Testing', () => {
         SELECT container_definition.id, port_mapping.id
         FROM container_definition, port_mapping
         WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
-          AND container_definition.name = '${containerNameRespository}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
+          AND container_definition.name = '${containerNameRepository}' AND container_definition.repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND container_definition.tag = '${imageTag}'
         LIMIT 1;
 
         INSERT INTO task_definition_containers_container_definition (task_definition_id, container_definition_id)
         SELECT task_definition.id, container_definition.id
         FROM container_definition, task_definition
-        WHERE container_definition.name = '${containerNameRespository}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
+        WHERE container_definition.name = '${containerNameRepository}' AND container_definition.repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND container_definition.tag = '${imageTag}'
           AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL
         LIMIT 1;
 
@@ -475,7 +475,7 @@ describe('ECS Integration Testing', () => {
     it('check container definition insertion', query(`
       SELECT *
       FROM container_definition
-      WHERE name = '${containerNameRespository}' AND repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND tag = '${imageTag}';
+      WHERE name = '${containerNameRepository}' AND repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
 
@@ -485,7 +485,7 @@ describe('ECS Integration Testing', () => {
       INNER JOIN container_definition ON container_definition.id = container_definition_port_mappings_port_mapping.container_definition_id
       INNER JOIN port_mapping ON port_mapping.id = container_definition_port_mappings_port_mapping.port_mapping_id
       WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
-        AND container_definition.name = '${containerNameRespository}' AND container_definition.repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND container_definition.tag = '${imageTag}';
+        AND container_definition.name = '${containerNameRepository}' AND container_definition.repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND container_definition.tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
 
     it('check task_definition_containers_container_definition insertion', query(`
@@ -493,7 +493,7 @@ describe('ECS Integration Testing', () => {
       FROM task_definition_containers_container_definition
       INNER JOIN container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
       INNER JOIN task_definition ON task_definition.id = task_definition_containers_container_definition.task_definition_id
-      WHERE container_definition.name = '${containerNameRespository}' AND container_definition.repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND container_definition.tag = '${imageTag}'
+      WHERE container_definition.name = '${containerNameRepository}' AND container_definition.repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND container_definition.tag = '${imageTag}'
         AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL;
     `, (res: any[]) => expect(res.length).toBe(1)));
 
@@ -775,7 +775,7 @@ describe('ECS Integration Testing', () => {
           WHERE log_group_name = '${logGroupName}'
         )
         INSERT INTO container_definition (name, public_repository_id, tag, essential, memory_reservation, log_group_id)
-        SELECT '${containerNamePublicRespository}', (select id from r), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, (select id from lg);
+        SELECT '${containerNamePublicRepository}', (select id from r), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, (select id from lg);
 
         INSERT INTO port_mapping (container_port, host_port, protocol)
         VALUES ('${containerPort}', '${hostPort}', '${protocol}');
@@ -784,13 +784,13 @@ describe('ECS Integration Testing', () => {
         SELECT container_definition.id, port_mapping.id
         FROM container_definition, port_mapping
         WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
-          AND container_definition.name = '${containerNamePublicRespository}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
+          AND container_definition.name = '${containerNamePublicRepository}' AND container_definition.public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND container_definition.tag = '${imageTag}'
         LIMIT 1;
 
         INSERT INTO task_definition_containers_container_definition (task_definition_id, container_definition_id)
         SELECT task_definition.id, container_definition.id
         FROM container_definition, task_definition
-        WHERE container_definition.name = '${containerNamePublicRespository}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
+        WHERE container_definition.name = '${containerNamePublicRepository}' AND container_definition.public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND container_definition.tag = '${imageTag}'
           AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL
         LIMIT 1;
 
@@ -800,7 +800,7 @@ describe('ECS Integration Testing', () => {
     it('check container definition insertion', query(`
       SELECT *
       FROM container_definition
-      WHERE name = '${containerNamePublicRespository}' AND public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND tag = '${imageTag}';
+      WHERE name = '${containerNamePublicRepository}' AND public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
 
@@ -810,7 +810,7 @@ describe('ECS Integration Testing', () => {
       INNER JOIN container_definition ON container_definition.id = container_definition_port_mappings_port_mapping.container_definition_id
       INNER JOIN port_mapping ON port_mapping.id = container_definition_port_mappings_port_mapping.port_mapping_id
       WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
-        AND container_definition.name = '${containerNamePublicRespository}' AND container_definition.public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND container_definition.tag = '${imageTag}';
+        AND container_definition.name = '${containerNamePublicRepository}' AND container_definition.public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND container_definition.tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
 
     it('check task_definition_containers_container_definition insertion', query(`
@@ -818,7 +818,7 @@ describe('ECS Integration Testing', () => {
       FROM task_definition_containers_container_definition
       INNER JOIN container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
       INNER JOIN task_definition ON task_definition.id = task_definition_containers_container_definition.task_definition_id
-      WHERE container_definition.name = '${containerNamePublicRespository}' AND container_definition.public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND container_definition.tag = '${imageTag}'
+      WHERE container_definition.name = '${containerNamePublicRepository}' AND container_definition.public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND container_definition.tag = '${imageTag}'
         AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL;
     `, (res: any[]) => expect(res.length).toBe(1)));
 
