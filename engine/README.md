@@ -38,7 +38,7 @@ Common tests are inside `test/common/` directory. This tests run sequentially an
 
 #### Modules
 
-Modules tests are inside `test/modules/` directory. Modules tests run in parallel and the use an specific account for the module to avoid rate limits per account. To add a new test:
+Modules tests are inside `test/modules/` directory. Modules tests run in parallel with each other but sequentially within each module file and each use a specific account per module to avoid rate limits per account. To add a new test:
 
 - Create the test file inside `test/modules`. The current pattern to name the file is `aws-<aws-service>-integration`.
 - Create a new AWS account under the `iasql` organization:
