@@ -15,6 +15,8 @@ const query = runQuery.bind(null, dbAlias);
 
 // Test constants
 const serviceName = `${prefix}${dbAlias}service`;
+const serviceRepositoryName = `${prefix}${dbAlias}servicerepository`;
+const servicePublicRepositoryName = `${prefix}${dbAlias}servicepublicrepository`;
 const clusterName = `${prefix}${dbAlias}cluster`;
 const newClusterName = `${prefix}${dbAlias}clusternew`;
 const logGroupName = `${prefix}${dbAlias}loggroup`;
@@ -27,6 +29,8 @@ const containerPort = 6379;
 const hostPort = 6379;
 const protocol = 'tcp';
 const tdFamily = `${prefix}${dbAlias}td`;
+const tdRepositoryFamily = `${prefix}${dbAlias}tdrepository`;
+const tdPublicRepositoryFamily = `${prefix}${dbAlias}tdpublicrepository`;
 const taskExecRole = 'arn:aws:iam::852372565011:role/ecsTaskExecutionRole';
 const tdNetworkMode = NetworkMode.AWSVPC;
 const tdCpuMem = CpuMemCombination['2vCPU-8GB'];
@@ -38,6 +42,8 @@ const serviceLaunchType = LaunchType.FARGATE;
 const serviceTargetGroupName = `${serviceName}tg`;
 const serviceLoadBalancerName = `${serviceName}lb`;
 const newServiceName = `${serviceName}replace`;
+const newServiceRepositoryName = `${serviceRepositoryName}replace`;
+const newServicePublicRepositoryName = `${servicePublicRepositoryName}replace`;
 const repositoryName = `${prefix}${dbAlias}repository`;
 const containerNameRepository = `${prefix}${dbAlias}containerrepository`;
 const publicRepositoryName = `${prefix}${dbAlias}publicrepository`;
@@ -409,7 +415,7 @@ describe('ECS Integration Testing', () => {
     it('adds a new task definition', query(`
       BEGIN;
         INSERT INTO task_definition (family, revision, task_role_arn, execution_role_arn, network_mode, cpu_memory)
-        VALUES ('${tdFamily}', 1, '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', '${tdCpuMem}');
+        VALUES ('${tdRepositoryFamily}', 1, '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', '${tdCpuMem}');
 
         INSERT INTO compatibility (name)
         VALUES ('${tdCompatibility}')
@@ -419,7 +425,7 @@ describe('ECS Integration Testing', () => {
         INSERT INTO task_definition_req_compatibilities_compatibility (task_definition_id, compatibility_id)
         SELECT task_definition.id, compatibility.id
         FROM task_definition, compatibility
-        WHERE task_definition.family = '${tdFamily}' AND task_definition.status IS NULL AND compatibility.name = '${tdCompatibility}'
+        WHERE task_definition.family = '${tdRepositoryFamily}' AND task_definition.status IS NULL AND compatibility.name = '${tdCompatibility}'
         ORDER BY task_definition.family, task_definition.revision DESC;
       COMMIT;
     `));
@@ -427,14 +433,14 @@ describe('ECS Integration Testing', () => {
     it('check task_definition insertion', query(`
       SELECT *
       FROM task_definition
-      WHERE family = '${tdFamily}' AND status IS NULL;
+      WHERE family = '${tdRepositoryFamily}' AND status IS NULL;
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('check task_definition_req_compatibilities_compatibility insertion', query(`
       SELECT *
       FROM task_definition_req_compatibilities_compatibility
       INNER JOIN task_definition ON task_definition.id = task_definition_req_compatibilities_compatibility.task_definition_id
-      WHERE task_definition.family = '${tdFamily}' AND status IS NULL;
+      WHERE task_definition.family = '${tdRepositoryFamily}' AND status IS NULL;
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     // Container definition
@@ -466,7 +472,7 @@ describe('ECS Integration Testing', () => {
         SELECT task_definition.id, container_definition.id
         FROM container_definition, task_definition
         WHERE container_definition.name = '${containerNameRepository}' AND container_definition.repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND container_definition.tag = '${imageTag}'
-          AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL
+          AND task_definition.family = '${tdRepositoryFamily}' AND task_definition.status IS NULL
         LIMIT 1;
 
       COMMIT;
@@ -494,7 +500,7 @@ describe('ECS Integration Testing', () => {
       INNER JOIN container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
       INNER JOIN task_definition ON task_definition.id = task_definition_containers_container_definition.task_definition_id
       WHERE container_definition.name = '${containerNameRepository}' AND container_definition.repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND container_definition.tag = '${imageTag}'
-        AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL;
+        AND task_definition.family = '${tdRepositoryFamily}' AND task_definition.status IS NULL;
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('applies adds a new task definition with container definition', apply);
@@ -503,11 +509,11 @@ describe('ECS Integration Testing', () => {
       WITH td AS (
         SELECT revision
         FROM task_definition
-        WHERE family = '${tdFamily}' AND status = '${tdActive}'
+        WHERE family = '${tdRepositoryFamily}' AND status = '${tdActive}'
         ORDER BY family, revision DESC
         LIMIT 1
       )
-      UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td);
+      UPDATE task_definition SET revision = 55 WHERE family = '${tdRepositoryFamily}' AND revision IN (SELECT revision FROM td);
     `));
 
     it('applies tries to update a task definition field', apply);
@@ -597,19 +603,19 @@ describe('ECS Integration Testing', () => {
         ), td AS (
           SELECT id
           FROM task_definition
-          WHERE family = '${tdFamily}' AND status = '${tdActive}'
+          WHERE family = '${tdRepositoryFamily}' AND status = '${tdActive}'
           ORDER BY revision DESC
           LIMIT 1
         )
         INSERT INTO service (name, cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
-        SELECT '${serviceName}', (select id from cl), (select id from td), ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', (select id from avc);
+        SELECT '${serviceRepositoryName}', (select id from cl), (select id from td), ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', (select id from avc);
 
         WITH c AS (
           SELECT container_definition.name as name
           FROM container_definition
           INNER JOIN task_definition_containers_container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
           INNER JOIN task_definition ON task_definition_containers_container_definition.task_definition_id = task_definition.id
-          WHERE task_definition.family = '${tdFamily}' AND task_definition.status = '${tdActive}'
+          WHERE task_definition.family = '${tdRepositoryFamily}' AND task_definition.status = '${tdActive}'
           ORDER BY task_definition.family, task_definition.revision DESC
           LIMIT 1
         ), tg AS (
@@ -624,7 +630,7 @@ describe('ECS Integration Testing', () => {
         WITH s AS (
           SELECT id
           FROM service
-          WHERE name = '${serviceName}'
+          WHERE name = '${serviceRepositoryName}'
         ), slb AS (
           SELECT id
           FROM service_load_balancer
@@ -661,7 +667,7 @@ describe('ECS Integration Testing', () => {
     it('check service insertion', query(`
       SELECT *
       FROM service
-      WHERE name = '${serviceName}';
+      WHERE name = '${serviceRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('check service_load_balancer insertion', query(`
@@ -670,23 +676,23 @@ describe('ECS Integration Testing', () => {
       INNER JOIN service_load_balancer ON service_load_balancer.id = service_load_balancers_service_load_balancer.service_load_balancer_id
       INNER JOIN service ON service.id = service_load_balancers_service_load_balancer.service_id
       INNER JOIN aws_target_group ON aws_target_group.id = service_load_balancer.target_group_id
-      WHERE service.name = '${serviceName}' AND aws_target_group.target_group_name = '${serviceTargetGroupName}';
+      WHERE service.name = '${serviceRepositoryName}' AND aws_target_group.target_group_name = '${serviceTargetGroupName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('tries to update a service (update)', query(`
-      UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
+      UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceRepositoryName}';
     `));
 
     it('applies tries to update a service (update)', apply);
 
     it('tries to update a service (restore)', query(`
-      UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
+      UPDATE service SET status = 'fake' WHERE name = '${serviceRepositoryName}';
     `));
 
     it('applies tries to update a service (restore)', apply);
 
     it('tries to update a service (replace)', query(`
-      UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
+      UPDATE service SET name = '${newServiceRepositoryName}' WHERE name = '${serviceRepositoryName}';
     `));
 
     it('applies tries to update a service (replace)', apply);
@@ -697,14 +703,14 @@ describe('ECS Integration Testing', () => {
       WHERE aws_target_group.target_group_name = '${serviceTargetGroupName}';
 
       DELETE FROM service
-      WHERE name = '${newServiceName}';
+      WHERE name = '${newServiceRepositoryName}';
     `));
 
     it('applies deletes service', apply);
 
     it('deletes task_definition, container_definition and aws_repository', query(`
       DELETE FROM task_definition
-      WHERE family = '${tdFamily}';
+      WHERE family = '${tdRepositoryFamily}';
 
       DELETE FROM container_definition
       WHERE name = '${containerNameRepository}';
@@ -733,7 +739,7 @@ describe('ECS Integration Testing', () => {
     it('adds a new task definition', query(`
       BEGIN;
         INSERT INTO task_definition (family, revision, task_role_arn, execution_role_arn, network_mode, cpu_memory)
-        VALUES ('${tdFamily}', 1, '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', '${tdCpuMem}');
+        VALUES ('${tdPublicRepositoryFamily}', 1, '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', '${tdCpuMem}');
 
         INSERT INTO compatibility (name)
         VALUES ('${tdCompatibility}')
@@ -743,7 +749,7 @@ describe('ECS Integration Testing', () => {
         INSERT INTO task_definition_req_compatibilities_compatibility (task_definition_id, compatibility_id)
         SELECT task_definition.id, compatibility.id
         FROM task_definition, compatibility
-        WHERE task_definition.family = '${tdFamily}' AND task_definition.status IS NULL AND compatibility.name = '${tdCompatibility}'
+        WHERE task_definition.family = '${tdPublicRepositoryFamily}' AND task_definition.status IS NULL AND compatibility.name = '${tdCompatibility}'
         ORDER BY task_definition.family, task_definition.revision DESC;
       COMMIT;
     `));
@@ -751,14 +757,14 @@ describe('ECS Integration Testing', () => {
     it('check task_definition insertion', query(`
       SELECT *
       FROM task_definition
-      WHERE family = '${tdFamily}' AND status IS NULL;
+      WHERE family = '${tdPublicRepositoryFamily}' AND status IS NULL;
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('check task_definition_req_compatibilities_compatibility insertion', query(`
       SELECT *
       FROM task_definition_req_compatibilities_compatibility
       INNER JOIN task_definition ON task_definition.id = task_definition_req_compatibilities_compatibility.task_definition_id
-      WHERE task_definition.family = '${tdFamily}' AND status IS NULL;
+      WHERE task_definition.family = '${tdPublicRepositoryFamily}' AND status IS NULL;
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     // Container definition
@@ -790,7 +796,7 @@ describe('ECS Integration Testing', () => {
         SELECT task_definition.id, container_definition.id
         FROM container_definition, task_definition
         WHERE container_definition.name = '${containerNamePublicRepository}' AND container_definition.public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND container_definition.tag = '${imageTag}'
-          AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL
+          AND task_definition.family = '${tdPublicRepositoryFamily}' AND task_definition.status IS NULL
         LIMIT 1;
 
       COMMIT;
@@ -818,7 +824,7 @@ describe('ECS Integration Testing', () => {
       INNER JOIN container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
       INNER JOIN task_definition ON task_definition.id = task_definition_containers_container_definition.task_definition_id
       WHERE container_definition.name = '${containerNamePublicRepository}' AND container_definition.public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND container_definition.tag = '${imageTag}'
-        AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL;
+        AND task_definition.family = '${tdPublicRepositoryFamily}' AND task_definition.status IS NULL;
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('applies adds a new task definition with container definition', apply);
@@ -827,11 +833,11 @@ describe('ECS Integration Testing', () => {
       WITH td AS (
         SELECT revision
         FROM task_definition
-        WHERE family = '${tdFamily}' AND status = '${tdActive}'
+        WHERE family = '${tdPublicRepositoryFamily}' AND status = '${tdActive}'
         ORDER BY family, revision DESC
         LIMIT 1
       )
-      UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td);
+      UPDATE task_definition SET revision = 55 WHERE family = '${tdPublicRepositoryFamily}' AND revision IN (SELECT revision FROM td);
     `));
 
     it('applies tries to update a task definition field', apply);
@@ -921,19 +927,19 @@ describe('ECS Integration Testing', () => {
         ), td AS (
           SELECT id
           FROM task_definition
-          WHERE family = '${tdFamily}' AND status = '${tdActive}'
+          WHERE family = '${tdPublicRepositoryFamily}' AND status = '${tdActive}'
           ORDER BY revision DESC
           LIMIT 1
         )
         INSERT INTO service (name, cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
-        SELECT '${serviceName}', (select id from cl), (select id from td), ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', (select id from avc);
+        SELECT '${servicePublicRepositoryName}', (select id from cl), (select id from td), ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', (select id from avc);
 
         WITH c AS (
           SELECT container_definition.name as name
           FROM container_definition
           INNER JOIN task_definition_containers_container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
           INNER JOIN task_definition ON task_definition_containers_container_definition.task_definition_id = task_definition.id
-          WHERE task_definition.family = '${tdFamily}' AND task_definition.status = '${tdActive}'
+          WHERE task_definition.family = '${tdPublicRepositoryFamily}' AND task_definition.status = '${tdActive}'
           ORDER BY task_definition.family, task_definition.revision DESC
           LIMIT 1
         ), tg AS (
@@ -948,7 +954,7 @@ describe('ECS Integration Testing', () => {
         WITH s AS (
           SELECT id
           FROM service
-          WHERE name = '${serviceName}'
+          WHERE name = '${servicePublicRepositoryName}'
         ), slb AS (
           SELECT id
           FROM service_load_balancer
@@ -985,7 +991,7 @@ describe('ECS Integration Testing', () => {
     it('check service insertion', query(`
       SELECT *
       FROM service
-      WHERE name = '${serviceName}';
+      WHERE name = '${servicePublicRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('check service_load_balancer insertion', query(`
@@ -994,23 +1000,23 @@ describe('ECS Integration Testing', () => {
       INNER JOIN service_load_balancer ON service_load_balancer.id = service_load_balancers_service_load_balancer.service_load_balancer_id
       INNER JOIN service ON service.id = service_load_balancers_service_load_balancer.service_id
       INNER JOIN aws_target_group ON aws_target_group.id = service_load_balancer.target_group_id
-      WHERE service.name = '${serviceName}' AND aws_target_group.target_group_name = '${serviceTargetGroupName}';
+      WHERE service.name = '${servicePublicRepositoryName}' AND aws_target_group.target_group_name = '${serviceTargetGroupName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('tries to update a service (update)', query(`
-      UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
+      UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${servicePublicRepositoryName}';
     `));
 
     it('applies tries to update a service (update)', apply);
 
     it('tries to update a service (restore)', query(`
-      UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
+      UPDATE service SET status = 'fake' WHERE name = '${servicePublicRepositoryName}';
     `));
 
     it('applies tries to update a service (restore)', apply);
 
     it('tries to update a service (replace)', query(`
-      UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
+      UPDATE service SET name = '${newServicePublicRepositoryName}' WHERE name = '${servicePublicRepositoryName}';
     `));
 
     it('applies tries to update a service (replace)', apply);
@@ -1021,14 +1027,14 @@ describe('ECS Integration Testing', () => {
       WHERE aws_target_group.target_group_name = '${serviceTargetGroupName}';
 
       DELETE FROM service
-      WHERE name = '${newServiceName}';
+      WHERE name = '${newServicePublicRepositoryName}';
     `));
 
     it('applies deletes service', apply);
 
     it('deletes task_definition, container_definition and aws_public_repository', query(`
       DELETE FROM task_definition
-      WHERE family = '${tdFamily}';
+      WHERE family = '${tdPublicRepositoryFamily}';
 
       DELETE FROM container_definition
       WHERE name = '${containerNamePublicRepository}';
