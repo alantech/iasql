@@ -47,4 +47,4 @@ cargo run --manifest-path=../cli/Cargo.toml -- apply iasql --noninteractive
 
 # Clean and leave just the last image
 echo "\nCleaning docker images..."
-docker rmi $(docker images -q 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository | tail -n +2)
+if [ $(docker images -q 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository | wc -l) -gt 2 ]; then docker rmi $(docker images -q 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository | tail -n +2); fi
