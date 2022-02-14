@@ -925,6 +925,29 @@ export class AWS {
         cluster,
       })
     )
+    // We wait it is completely deleted to avoid issues deleting dependent resources.
+    const input = new DescribeServicesCommand({
+      services: [name],
+      cluster,
+    });
+    await createWaiter<ECSClient, DescribeServicesCommand>(
+      {
+        client: this.ecsClient,
+        // all in seconds
+        maxWaitTime: 30,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (client, cmd) => {
+        const data = await client.send(cmd);
+        if (data.services?.length && data.services[0].status === 'DRAINING') {
+          return { state: WaiterState.RETRY };
+        } else {
+          return { state: WaiterState.SUCCESS };
+        }
+      },
+    );
   }
 
   async getEngineVersions() {
