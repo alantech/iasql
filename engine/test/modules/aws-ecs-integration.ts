@@ -702,19 +702,18 @@ describe('ECS Integration Testing', () => {
 
     it('applies deletes service', apply);
 
-    it('deletes task definitions', query(`
+    it('deletes task_definition, container_definition and aws_repository', query(`
       DELETE FROM task_definition
       WHERE family = '${tdFamily}';
-    `));
 
-    it('applies deletes task definitions', apply);
+      DELETE FROM container_definition
+      WHERE name = '${containerNameRepository}';
 
-    it('deletes aws_repository', query(`
       DELETE FROM aws_repository
       WHERE repository_name = '${repositoryName}';
     `));
 
-    it('applies deletes aws_repository', apply);
+    it('applies deletes task_definition, container_definition and aws_repository', apply);
   });
 
   // Service spinning up a task definition with container using a public ecr
@@ -1027,19 +1026,18 @@ describe('ECS Integration Testing', () => {
 
     it('applies deletes service', apply);
 
-    it('deletes task definitions', query(`
+    it('deletes task_definition, container_definition and aws_public_repository', query(`
       DELETE FROM task_definition
       WHERE family = '${tdFamily}';
-    `));
 
-    it('applies deletes task definitions', apply);
+      DELETE FROM container_definition
+      WHERE name = '${containerNamePublicRepository}';
 
-    it('deletes aws_public_repository', query(`
       DELETE FROM aws_public_repository
       WHERE repository_name = '${publicRepositoryName}';
     `));
 
-    it('applies deletes aws_public_repository', apply);
+    it('applies deletes task_definition, container_definition and aws_public_repository', apply);
   });
 
   it('deletes the cluster', query(`
