@@ -477,7 +477,7 @@ pub async fn sync(db: &str, noninteractive: bool) {
 fn provide_aws_region(noninteractive: bool) -> String {
   let region_env = std::env::var("AWS_REGION");
   if region_env.is_ok() {
-    return region_env.unwrap()
+    return region_env.unwrap();
   } else if region_env.is_err() && noninteractive {
     println!(
       "Non interactive mode. Region needs to be defined in AWS_REGION environment variable."
@@ -494,10 +494,7 @@ fn provide_aws_creds(noninteractive: bool) -> (String, String) {
   let key_env = std::env::var("AWS_ACCESS_KEY_ID");
   let secret_env = std::env::var("AWS_SECRET_ACCESS_KEY");
   if key_env.is_ok() && secret_env.is_ok() {
-    return (
-      key_env.unwrap(),
-      secret_env.unwrap(),
-    )
+    return (key_env.unwrap(), secret_env.unwrap());
   } else if (key_env.is_err() || secret_env.is_err()) && noninteractive {
     println!(
       "Non interactive mode. AWS credentials needs to be defined in AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables."
