@@ -38,6 +38,10 @@ const serviceLaunchType = LaunchType.FARGATE;
 const serviceTargetGroupName = `${serviceName}tg`;
 const serviceLoadBalancerName = `${serviceName}lb`;
 const newServiceName = `${serviceName}replace`;
+const repositoryName = `${prefix}${dbAlias}repository`;
+const containerNameRespository = `${prefix}${dbAlias}containerrepository`;
+const publicRepositoryName = `${prefix}${dbAlias}publicrepository`;
+const containerNamePublicRespository = `${prefix}${dbAlias}containerpublicrepository`;
 
 describe('ECS Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.add(
@@ -88,302 +92,955 @@ describe('ECS Integration Testing', () => {
 
   it('applies adds container dependencies', apply);
 
-  // Task definition
-  it('adds a new task definition', query(`
-    BEGIN;
-      INSERT INTO task_definition (family, revision, task_role_arn, execution_role_arn, network_mode, cpu_memory)
-      VALUES ('${tdFamily}', 1, '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', '${tdCpuMem}');
+  // Service spinning up a task definition with container using a docker image
+  describe('Docker image', () => {
+    // Task definition
+    it('adds a new task definition', query(`
+      BEGIN;
+        INSERT INTO task_definition (family, revision, task_role_arn, execution_role_arn, network_mode, cpu_memory)
+        VALUES ('${tdFamily}', 1, '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', '${tdCpuMem}');
 
-      INSERT INTO compatibility (name)
-      VALUES ('${tdCompatibility}')
-      ON CONFLICT (name)
-      DO NOTHING;
+        INSERT INTO compatibility (name)
+        VALUES ('${tdCompatibility}')
+        ON CONFLICT (name)
+        DO NOTHING;
 
-      INSERT INTO task_definition_req_compatibilities_compatibility (task_definition_id, compatibility_id)
-      SELECT task_definition.id, compatibility.id
-      FROM task_definition, compatibility
-      WHERE task_definition.family = '${tdFamily}' AND task_definition.status IS NULL AND compatibility.name = '${tdCompatibility}'
-      ORDER BY task_definition.family, task_definition.revision DESC;
-    COMMIT;
-  `));
+        INSERT INTO task_definition_req_compatibilities_compatibility (task_definition_id, compatibility_id)
+        SELECT task_definition.id, compatibility.id
+        FROM task_definition, compatibility
+        WHERE task_definition.family = '${tdFamily}' AND task_definition.status IS NULL AND compatibility.name = '${tdCompatibility}'
+        ORDER BY task_definition.family, task_definition.revision DESC;
+      COMMIT;
+    `));
 
-  it('check task_definition insertion', query(`
-    SELECT *
-    FROM task_definition
-    WHERE family = '${tdFamily}' AND status IS NULL;
-  `, (res: any[]) => expect(res.length).toBe(1)));
-
-  it('check task_definition_req_compatibilities_compatibility insertion', query(`
-    SELECT *
-    FROM task_definition_req_compatibilities_compatibility
-    INNER JOIN task_definition ON task_definition.id = task_definition_req_compatibilities_compatibility.task_definition_id
-    WHERE task_definition.family = '${tdFamily}' AND status IS NULL;
-  `, (res: any[]) => expect(res.length).toBe(1)));
-
-  // Container definition
-  it('adds a new container definition', query(`
-    BEGIN;
-      INSERT INTO container_definition (name, docker_image, tag, essential, memory_reservation, log_group_id)
-      SELECT '${containerName}', '${image}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, id
-      FROM log_group
-      WHERE log_group_name = '${logGroupName}';
-
-      INSERT INTO port_mapping (container_port, host_port, protocol)
-      VALUES ('${containerPort}', '${hostPort}', '${protocol}');
-
-      INSERT INTO container_definition_port_mappings_port_mapping (container_definition_id, port_mapping_id)
-      SELECT container_definition.id, port_mapping.id
-      FROM container_definition, port_mapping
-      WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
-        AND container_definition.name = '${containerName}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
-      LIMIT 1;
-
-      INSERT INTO task_definition_containers_container_definition (task_definition_id, container_definition_id)
-      SELECT task_definition.id, container_definition.id
-      FROM container_definition, task_definition
-      WHERE container_definition.name = '${containerName}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
-        AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL
-      LIMIT 1;
-
-    COMMIT;
-  `));
-
-  it('check container definition insertion', query(`
-    SELECT *
-    FROM container_definition
-    WHERE name = '${containerName}' AND docker_image = '${image}' AND tag = '${imageTag}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
-
-
-  it('check container_definition_port_mappings_port_mapping insertion', query(`
-    SELECT *
-    FROM container_definition_port_mappings_port_mapping
-    INNER JOIN container_definition ON container_definition.id = container_definition_port_mappings_port_mapping.container_definition_id
-    INNER JOIN port_mapping ON port_mapping.id = container_definition_port_mappings_port_mapping.port_mapping_id
-    WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
-      AND container_definition.name = '${containerName}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}';
-  `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
-
-  it('check task_definition_containers_container_definition insertion', query(`
-    SELECT *
-    FROM task_definition_containers_container_definition
-    INNER JOIN container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
-    INNER JOIN task_definition ON task_definition.id = task_definition_containers_container_definition.task_definition_id
-    WHERE container_definition.name = '${containerName}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
-      AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL;
-  `, (res: any[]) => expect(res.length).toBe(1)));
-
-  it('applies adds a new task definition with container definition', apply);
-
-  it('tries to update a task definition', query(`
-    WITH td AS (
-      SELECT revision
+    it('check task_definition insertion', query(`
+      SELECT *
       FROM task_definition
-      WHERE family = '${tdFamily}' AND status = '${tdActive}'
-      ORDER BY family, revision DESC
-      LIMIT 1
-    )
-    UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td);
-  `));
+      WHERE family = '${tdFamily}' AND status IS NULL;
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('applies tries to update a task definition field', apply);
+    it('check task_definition_req_compatibilities_compatibility insertion', query(`
+      SELECT *
+      FROM task_definition_req_compatibilities_compatibility
+      INNER JOIN task_definition ON task_definition.id = task_definition_req_compatibilities_compatibility.task_definition_id
+      WHERE task_definition.family = '${tdFamily}' AND status IS NULL;
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
-  // Service dependency
-  it('adds service dependencies', query(`
-    BEGIN;
-      DO
-      $$
-      DECLARE default_vpc text;
-      BEGIN
-          SELECT vpc_id into default_vpc
-          FROM aws_vpc
-          WHERE is_default = true
-          LIMIT 1;
-          CALL create_aws_target_group('${serviceTargetGroupName}', 'ip', ${hostPort}, default_vpc, 'HTTP', '/health');
-      END
-      $$;
+    // Container definition
+    it('adds a new container definition', query(`
+      BEGIN;
+        INSERT INTO container_definition (name, docker_image, tag, essential, memory_reservation, log_group_id)
+        SELECT '${containerName}', '${image}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, id
+        FROM log_group
+        WHERE log_group_name = '${logGroupName}';
 
-      DO
-      $$
-      DECLARE default_vpc text;
-              default_vpc_id integer;
-              subnets text[];
-      BEGIN
-          SELECT vpc_id, id INTO default_vpc, default_vpc_id
-          FROM aws_vpc
-          WHERE is_default = true
-          LIMIT 1;
+        INSERT INTO port_mapping (container_port, host_port, protocol)
+        VALUES ('${containerPort}', '${hostPort}', '${protocol}');
 
-          SELECT ARRAY(
-            SELECT subnet_id
-            FROM aws_subnet
-            WHERE vpc_id = default_vpc_id) INTO subnets;
+        INSERT INTO container_definition_port_mappings_port_mapping (container_definition_id, port_mapping_id)
+        SELECT container_definition.id, port_mapping.id
+        FROM container_definition, port_mapping
+        WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
+          AND container_definition.name = '${containerName}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
+        LIMIT 1;
 
-          CALL create_aws_load_balancer(
-            '${serviceLoadBalancerName}', 'internet-facing', default_vpc, 'application', subnets, 'ipv4', array['default']
-          );
-      END
-      $$;
+        INSERT INTO task_definition_containers_container_definition (task_definition_id, container_definition_id)
+        SELECT task_definition.id, container_definition.id
+        FROM container_definition, task_definition
+        WHERE container_definition.name = '${containerName}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
+          AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL
+        LIMIT 1;
 
-      CALL create_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
-    COMMIT;
-  `));
+      COMMIT;
+    `));
 
-  it('applies service dependencies', apply);
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerName}' AND docker_image = '${image}' AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
-  // Service
-  it('adds a new service', query(`
-    BEGIN;
-      INSERT INTO aws_vpc_conf (assign_public_ip)
-      VALUES ('ENABLED');
 
-      WITH avc AS (
-        SELECT id
-        FROM aws_vpc_conf
-        ORDER BY id DESC
-        LIMIT 1
-      ), sn AS (
-        SELECT aws_subnet.id
-        FROM aws_subnet
-        INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
-        WHERE aws_vpc.is_default = true
-        ORDER BY aws_subnet.id DESC
-        LIMIT 1
-      )
-      INSERT INTO aws_vpc_conf_subnets_aws_subnet (aws_vpc_conf_id, aws_subnet_id)
-      SELECT (select id from avc), (select id from sn);
+    it('check container_definition_port_mappings_port_mapping insertion', query(`
+      SELECT *
+      FROM container_definition_port_mappings_port_mapping
+      INNER JOIN container_definition ON container_definition.id = container_definition_port_mappings_port_mapping.container_definition_id
+      INNER JOIN port_mapping ON port_mapping.id = container_definition_port_mappings_port_mapping.port_mapping_id
+      WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
+        AND container_definition.name = '${containerName}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
 
-      INSERT INTO aws_vpc_conf_security_groups_aws_security_group (aws_vpc_conf_id, aws_security_group_id)
-      SELECT aws_vpc_conf.id, aws_security_group.id
-      FROM aws_vpc_conf, aws_security_group
-      WHERE aws_security_group.group_name = 'default'
-      ORDER BY aws_vpc_conf.id, aws_security_group.id DESC
-      LIMIT 1
-      ON CONFLICT DO NOTHING;
+    it('check task_definition_containers_container_definition insertion', query(`
+      SELECT *
+      FROM task_definition_containers_container_definition
+      INNER JOIN container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
+      INNER JOIN task_definition ON task_definition.id = task_definition_containers_container_definition.task_definition_id
+      WHERE container_definition.name = '${containerName}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
+        AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL;
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
-      WITH cl AS (
-        SELECT id
-        FROM cluster
-        WHERE cluster_name = '${newClusterName}'
-      ), avc AS (
-        SELECT id
-        FROM aws_vpc_conf
-        ORDER BY id DESC
-        LIMIT 1
-      ), td AS (
-        SELECT id
+    it('applies adds a new task definition with container definition', apply);
+
+    it('tries to update a task definition', query(`
+      WITH td AS (
+        SELECT revision
         FROM task_definition
         WHERE family = '${tdFamily}' AND status = '${tdActive}'
-        ORDER BY revision DESC
+        ORDER BY family, revision DESC
         LIMIT 1
       )
-      INSERT INTO service (name, cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
-      SELECT '${serviceName}', (select id from cl), (select id from td), ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', (select id from avc);
+      UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td);
+    `));
 
-      WITH c AS (
-        SELECT container_definition.name as name
-        FROM container_definition
-        INNER JOIN task_definition_containers_container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
-        INNER JOIN task_definition ON task_definition_containers_container_definition.task_definition_id = task_definition.id
-        WHERE task_definition.family = '${tdFamily}' AND task_definition.status = '${tdActive}'
-        ORDER BY task_definition.family, task_definition.revision DESC
+    it('applies tries to update a task definition field', apply);
+
+    // Service dependency
+    it('adds service dependencies', query(`
+      BEGIN;
+        DO
+        $$
+        DECLARE default_vpc text;
+        BEGIN
+            SELECT vpc_id into default_vpc
+            FROM aws_vpc
+            WHERE is_default = true
+            LIMIT 1;
+            CALL create_aws_target_group('${serviceTargetGroupName}', 'ip', ${hostPort}, default_vpc, 'HTTP', '/health');
+        END
+        $$;
+
+        DO
+        $$
+        DECLARE default_vpc text;
+                default_vpc_id integer;
+                subnets text[];
+        BEGIN
+            SELECT vpc_id, id INTO default_vpc, default_vpc_id
+            FROM aws_vpc
+            WHERE is_default = true
+            LIMIT 1;
+
+            SELECT ARRAY(
+              SELECT subnet_id
+              FROM aws_subnet
+              WHERE vpc_id = default_vpc_id) INTO subnets;
+
+            CALL create_aws_load_balancer(
+              '${serviceLoadBalancerName}', 'internet-facing', default_vpc, 'application', subnets, 'ipv4', array['default']
+            );
+        END
+        $$;
+
+        CALL create_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
+      COMMIT;
+    `));
+
+    it('applies service dependencies', apply);
+
+    // Service
+    it('adds a new service', query(`
+      BEGIN;
+        INSERT INTO aws_vpc_conf (assign_public_ip)
+        VALUES ('ENABLED');
+
+        WITH avc AS (
+          SELECT id
+          FROM aws_vpc_conf
+          ORDER BY id DESC
+          LIMIT 1
+        ), sn AS (
+          SELECT aws_subnet.id
+          FROM aws_subnet
+          INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
+          WHERE aws_vpc.is_default = true
+          ORDER BY aws_subnet.id DESC
+          LIMIT 1
+        )
+        INSERT INTO aws_vpc_conf_subnets_aws_subnet (aws_vpc_conf_id, aws_subnet_id)
+        SELECT (select id from avc), (select id from sn);
+
+        INSERT INTO aws_vpc_conf_security_groups_aws_security_group (aws_vpc_conf_id, aws_security_group_id)
+        SELECT aws_vpc_conf.id, aws_security_group.id
+        FROM aws_vpc_conf, aws_security_group
+        WHERE aws_security_group.group_name = 'default'
+        ORDER BY aws_vpc_conf.id, aws_security_group.id DESC
         LIMIT 1
-      ), tg AS (
-        SELECT id
-        FROM aws_target_group
-        WHERE target_group_name = '${serviceTargetGroupName}'
+        ON CONFLICT DO NOTHING;
+
+        WITH cl AS (
+          SELECT id
+          FROM cluster
+          WHERE cluster_name = '${newClusterName}'
+        ), avc AS (
+          SELECT id
+          FROM aws_vpc_conf
+          ORDER BY id DESC
+          LIMIT 1
+        ), td AS (
+          SELECT id
+          FROM task_definition
+          WHERE family = '${tdFamily}' AND status = '${tdActive}'
+          ORDER BY revision DESC
+          LIMIT 1
+        )
+        INSERT INTO service (name, cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
+        SELECT '${serviceName}', (select id from cl), (select id from td), ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', (select id from avc);
+
+        WITH c AS (
+          SELECT container_definition.name as name
+          FROM container_definition
+          INNER JOIN task_definition_containers_container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
+          INNER JOIN task_definition ON task_definition_containers_container_definition.task_definition_id = task_definition.id
+          WHERE task_definition.family = '${tdFamily}' AND task_definition.status = '${tdActive}'
+          ORDER BY task_definition.family, task_definition.revision DESC
+          LIMIT 1
+        ), tg AS (
+          SELECT id
+          FROM aws_target_group
+          WHERE target_group_name = '${serviceTargetGroupName}'
+          LIMIT 1
+        )
+        INSERT INTO service_load_balancer (container_name, container_port, target_group_id, elb_id)
+        SELECT (select name from c), ${hostPort}, (select id from tg), null; -- insert either target group or load balancer
+
+        WITH s AS (
+          SELECT id
+          FROM service
+          WHERE name = '${serviceName}'
+        ), slb AS (
+          SELECT id
+          FROM service_load_balancer
+          ORDER BY id DESC
+          LIMIT 1
+        )
+        INSERT INTO service_load_balancers_service_load_balancer (service_id, service_load_balancer_id)
+        SELECT (SELECT id FROM s), (select id from slb);
+      COMMIT;
+    `));
+
+    it('check aws_vpc_conf insertion', query(`
+      SELECT *
+      FROM aws_vpc_conf;
+    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
+    it('check aws_vpc_conf_subnets_aws_subnet insertion', query(`
+      SELECT *
+      FROM aws_vpc_conf_subnets_aws_subnet
+      INNER JOIN aws_subnet ON aws_subnet.id = aws_vpc_conf_subnets_aws_subnet.aws_subnet_id
+      INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
+      WHERE aws_vpc.is_default = true
+      LIMIT 1;
+    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
+    it('check aws_vpc_conf_security_groups_aws_security_group insertion', query(`
+      SELECT *
+      FROM aws_vpc_conf_security_groups_aws_security_group
+      INNER JOIN aws_security_group ON aws_security_group.id = aws_vpc_conf_security_groups_aws_security_group.aws_security_group_id
+      WHERE aws_security_group.group_name = 'default'
+      LIMIT 1;
+    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check service_load_balancer insertion', query(`
+      SELECT *
+      FROM service_load_balancers_service_load_balancer
+      INNER JOIN service_load_balancer ON service_load_balancer.id = service_load_balancers_service_load_balancer.service_load_balancer_id
+      INNER JOIN service ON service.id = service_load_balancers_service_load_balancer.service_id
+      INNER JOIN aws_target_group ON aws_target_group.id = service_load_balancer.target_group_id
+      WHERE service.name = '${serviceName}' AND aws_target_group.target_group_name = '${serviceTargetGroupName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('tries to update a service (update)', query(`
+      UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
+    `));
+
+    it('applies tries to update a service (update)', apply);
+
+    it('tries to update a service (restore)', query(`
+      UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
+    `));
+
+    it('applies tries to update a service (restore)', apply);
+
+    it('tries to update a service (replace)', query(`
+      UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
+    `));
+
+    it('applies tries to update a service (replace)', apply);
+
+    it('deletes service', query(`
+      DELETE FROM service_load_balancer
+      USING aws_target_group
+      WHERE aws_target_group.target_group_name = '${serviceTargetGroupName}';
+
+      DELETE FROM service
+      WHERE name = '${newServiceName}';
+    `));
+
+    it('applies deletes service', apply);
+
+    it('deletes task definitions', query(`
+      DELETE FROM task_definition
+      WHERE family = '${tdFamily}';
+    `));
+
+    it('applies deletes task definitions', apply);
+  });
+
+  // Service spinning up a task definition with container using a private ecr
+  describe('Private ECR', () => {
+    // ECR
+    it('adds a new ECR', query(`
+      CALL create_ecr_repository('${repositoryName}');
+    `));
+
+    it('check aws_repository insertion', query(`
+      SELECT *
+      FROM aws_repository
+      WHERE repository_name = '${repositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    // Task definition
+    it('adds a new task definition', query(`
+      BEGIN;
+        INSERT INTO task_definition (family, revision, task_role_arn, execution_role_arn, network_mode, cpu_memory)
+        VALUES ('${tdFamily}', 1, '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', '${tdCpuMem}');
+
+        INSERT INTO compatibility (name)
+        VALUES ('${tdCompatibility}')
+        ON CONFLICT (name)
+        DO NOTHING;
+
+        INSERT INTO task_definition_req_compatibilities_compatibility (task_definition_id, compatibility_id)
+        SELECT task_definition.id, compatibility.id
+        FROM task_definition, compatibility
+        WHERE task_definition.family = '${tdFamily}' AND task_definition.status IS NULL AND compatibility.name = '${tdCompatibility}'
+        ORDER BY task_definition.family, task_definition.revision DESC;
+      COMMIT;
+    `));
+
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdFamily}' AND status IS NULL;
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check task_definition_req_compatibilities_compatibility insertion', query(`
+      SELECT *
+      FROM task_definition_req_compatibilities_compatibility
+      INNER JOIN task_definition ON task_definition.id = task_definition_req_compatibilities_compatibility.task_definition_id
+      WHERE task_definition.family = '${tdFamily}' AND status IS NULL;
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    // Container definition
+    it('adds a new container definition', query(`
+      BEGIN;
+        WITH r AS (
+          SELECT id
+          FROM aws_repository
+          WHERE repository_name = '${repositoryName}'
+        ), lg AS (
+          SELECT id
+          FROM log_group
+          WHERE log_group_name = '${logGroupName}'
+        )
+        INSERT INTO container_definition (name, repository_id, tag, essential, memory_reservation, log_group_id)
+        SELECT '${containerNameRespository}', (select id from r), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, (select id from lg);
+
+        INSERT INTO port_mapping (container_port, host_port, protocol)
+        VALUES ('${containerPort}', '${hostPort}', '${protocol}');
+
+        INSERT INTO container_definition_port_mappings_port_mapping (container_definition_id, port_mapping_id)
+        SELECT container_definition.id, port_mapping.id
+        FROM container_definition, port_mapping
+        WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
+          AND container_definition.name = '${containerNameRespository}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
+        LIMIT 1;
+
+        INSERT INTO task_definition_containers_container_definition (task_definition_id, container_definition_id)
+        SELECT task_definition.id, container_definition.id
+        FROM container_definition, task_definition
+        WHERE container_definition.name = '${containerNameRespository}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
+          AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL
+        LIMIT 1;
+
+      COMMIT;
+    `));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNameRespository}' AND repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+
+    it('check container_definition_port_mappings_port_mapping insertion', query(`
+      SELECT *
+      FROM container_definition_port_mappings_port_mapping
+      INNER JOIN container_definition ON container_definition.id = container_definition_port_mappings_port_mapping.container_definition_id
+      INNER JOIN port_mapping ON port_mapping.id = container_definition_port_mappings_port_mapping.port_mapping_id
+      WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
+        AND container_definition.name = '${containerNameRespository}' AND container_definition.repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND container_definition.tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
+    it('check task_definition_containers_container_definition insertion', query(`
+      SELECT *
+      FROM task_definition_containers_container_definition
+      INNER JOIN container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
+      INNER JOIN task_definition ON task_definition.id = task_definition_containers_container_definition.task_definition_id
+      WHERE container_definition.name = '${containerNameRespository}' AND container_definition.repository_id IN (SELECT id FROM aws_repository WHERE repository_name='${repositoryName}') AND container_definition.tag = '${imageTag}'
+        AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL;
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('applies adds a new task definition with container definition', apply);
+
+    it('tries to update a task definition', query(`
+      WITH td AS (
+        SELECT revision
+        FROM task_definition
+        WHERE family = '${tdFamily}' AND status = '${tdActive}'
+        ORDER BY family, revision DESC
         LIMIT 1
       )
-      INSERT INTO service_load_balancer (container_name, container_port, target_group_id, elb_id)
-      SELECT (select name from c), ${hostPort}, (select id from tg), null; -- insert either target group or load balancer
+      UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td);
+    `));
 
-      WITH s AS (
-        SELECT id
-        FROM service
-        WHERE name = '${serviceName}'
-      ), slb AS (
-        SELECT id
-        FROM service_load_balancer
-        ORDER BY id DESC
+    it('applies tries to update a task definition field', apply);
+
+    // Service dependency
+    it('adds service dependencies', query(`
+      BEGIN;
+        DO
+        $$
+        DECLARE default_vpc text;
+        BEGIN
+            SELECT vpc_id into default_vpc
+            FROM aws_vpc
+            WHERE is_default = true
+            LIMIT 1;
+            CALL create_aws_target_group('${serviceTargetGroupName}', 'ip', ${hostPort}, default_vpc, 'HTTP', '/health');
+        END
+        $$;
+
+        DO
+        $$
+        DECLARE default_vpc text;
+                default_vpc_id integer;
+                subnets text[];
+        BEGIN
+            SELECT vpc_id, id INTO default_vpc, default_vpc_id
+            FROM aws_vpc
+            WHERE is_default = true
+            LIMIT 1;
+
+            SELECT ARRAY(
+              SELECT subnet_id
+              FROM aws_subnet
+              WHERE vpc_id = default_vpc_id) INTO subnets;
+
+            CALL create_aws_load_balancer(
+              '${serviceLoadBalancerName}', 'internet-facing', default_vpc, 'application', subnets, 'ipv4', array['default']
+            );
+        END
+        $$;
+
+        CALL create_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
+      COMMIT;
+    `));
+
+    it('applies service dependencies', apply);
+
+    // Service
+    it('adds a new service', query(`
+      BEGIN;
+        INSERT INTO aws_vpc_conf (assign_public_ip)
+        VALUES ('ENABLED');
+
+        WITH avc AS (
+          SELECT id
+          FROM aws_vpc_conf
+          ORDER BY id DESC
+          LIMIT 1
+        ), sn AS (
+          SELECT aws_subnet.id
+          FROM aws_subnet
+          INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
+          WHERE aws_vpc.is_default = true
+          ORDER BY aws_subnet.id DESC
+          LIMIT 1
+        )
+        INSERT INTO aws_vpc_conf_subnets_aws_subnet (aws_vpc_conf_id, aws_subnet_id)
+        SELECT (select id from avc), (select id from sn);
+
+        INSERT INTO aws_vpc_conf_security_groups_aws_security_group (aws_vpc_conf_id, aws_security_group_id)
+        SELECT aws_vpc_conf.id, aws_security_group.id
+        FROM aws_vpc_conf, aws_security_group
+        WHERE aws_security_group.group_name = 'default'
+        ORDER BY aws_vpc_conf.id, aws_security_group.id DESC
+        LIMIT 1
+        ON CONFLICT DO NOTHING;
+
+        WITH cl AS (
+          SELECT id
+          FROM cluster
+          WHERE cluster_name = '${newClusterName}'
+        ), avc AS (
+          SELECT id
+          FROM aws_vpc_conf
+          ORDER BY id DESC
+          LIMIT 1
+        ), td AS (
+          SELECT id
+          FROM task_definition
+          WHERE family = '${tdFamily}' AND status = '${tdActive}'
+          ORDER BY revision DESC
+          LIMIT 1
+        )
+        INSERT INTO service (name, cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
+        SELECT '${serviceName}', (select id from cl), (select id from td), ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', (select id from avc);
+
+        WITH c AS (
+          SELECT container_definition.name as name
+          FROM container_definition
+          INNER JOIN task_definition_containers_container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
+          INNER JOIN task_definition ON task_definition_containers_container_definition.task_definition_id = task_definition.id
+          WHERE task_definition.family = '${tdFamily}' AND task_definition.status = '${tdActive}'
+          ORDER BY task_definition.family, task_definition.revision DESC
+          LIMIT 1
+        ), tg AS (
+          SELECT id
+          FROM aws_target_group
+          WHERE target_group_name = '${serviceTargetGroupName}'
+          LIMIT 1
+        )
+        INSERT INTO service_load_balancer (container_name, container_port, target_group_id, elb_id)
+        SELECT (select name from c), ${hostPort}, (select id from tg), null; -- insert either target group or load balancer
+
+        WITH s AS (
+          SELECT id
+          FROM service
+          WHERE name = '${serviceName}'
+        ), slb AS (
+          SELECT id
+          FROM service_load_balancer
+          ORDER BY id DESC
+          LIMIT 1
+        )
+        INSERT INTO service_load_balancers_service_load_balancer (service_id, service_load_balancer_id)
+        SELECT (SELECT id FROM s), (select id from slb);
+      COMMIT;
+    `));
+
+    it('check aws_vpc_conf insertion', query(`
+      SELECT *
+      FROM aws_vpc_conf;
+    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
+    it('check aws_vpc_conf_subnets_aws_subnet insertion', query(`
+      SELECT *
+      FROM aws_vpc_conf_subnets_aws_subnet
+      INNER JOIN aws_subnet ON aws_subnet.id = aws_vpc_conf_subnets_aws_subnet.aws_subnet_id
+      INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
+      WHERE aws_vpc.is_default = true
+      LIMIT 1;
+    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
+    it('check aws_vpc_conf_security_groups_aws_security_group insertion', query(`
+      SELECT *
+      FROM aws_vpc_conf_security_groups_aws_security_group
+      INNER JOIN aws_security_group ON aws_security_group.id = aws_vpc_conf_security_groups_aws_security_group.aws_security_group_id
+      WHERE aws_security_group.group_name = 'default'
+      LIMIT 1;
+    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check service_load_balancer insertion', query(`
+      SELECT *
+      FROM service_load_balancers_service_load_balancer
+      INNER JOIN service_load_balancer ON service_load_balancer.id = service_load_balancers_service_load_balancer.service_load_balancer_id
+      INNER JOIN service ON service.id = service_load_balancers_service_load_balancer.service_id
+      INNER JOIN aws_target_group ON aws_target_group.id = service_load_balancer.target_group_id
+      WHERE service.name = '${serviceName}' AND aws_target_group.target_group_name = '${serviceTargetGroupName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('tries to update a service (update)', query(`
+      UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
+    `));
+
+    it('applies tries to update a service (update)', apply);
+
+    it('tries to update a service (restore)', query(`
+      UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
+    `));
+
+    it('applies tries to update a service (restore)', apply);
+
+    it('tries to update a service (replace)', query(`
+      UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
+    `));
+
+    it('applies tries to update a service (replace)', apply);
+
+    it('deletes service', query(`
+      DELETE FROM service_load_balancer
+      USING aws_target_group
+      WHERE aws_target_group.target_group_name = '${serviceTargetGroupName}';
+
+      DELETE FROM service
+      WHERE name = '${newServiceName}';
+    `));
+
+    it('applies deletes service', apply);
+
+    it('deletes task definitions', query(`
+      DELETE FROM task_definition
+      WHERE family = '${tdFamily}';
+    `));
+
+    it('applies deletes task definitions', apply);
+
+    it('deletes aws_repository', query(`
+      DELETE FROM aws_repository
+      WHERE repository_name = '${repositoryName}';
+    `));
+
+    it('applies deletes aws_repository', apply);
+  });
+
+  // Service spinning up a task definition with container using a public ecr
+  describe('Public ECR', () => {
+    // ECR
+    it('adds a new public ECR', query(`
+      CALL create_ecr_public_repository('${publicRepositoryName}');
+    `));
+
+    it('check aws_public_repository insertion', query(`
+      SELECT *
+      FROM aws_public_repository
+      WHERE repository_name = '${publicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    // Task definition
+    it('adds a new task definition', query(`
+      BEGIN;
+        INSERT INTO task_definition (family, revision, task_role_arn, execution_role_arn, network_mode, cpu_memory)
+        VALUES ('${tdFamily}', 1, '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', '${tdCpuMem}');
+
+        INSERT INTO compatibility (name)
+        VALUES ('${tdCompatibility}')
+        ON CONFLICT (name)
+        DO NOTHING;
+
+        INSERT INTO task_definition_req_compatibilities_compatibility (task_definition_id, compatibility_id)
+        SELECT task_definition.id, compatibility.id
+        FROM task_definition, compatibility
+        WHERE task_definition.family = '${tdFamily}' AND task_definition.status IS NULL AND compatibility.name = '${tdCompatibility}'
+        ORDER BY task_definition.family, task_definition.revision DESC;
+      COMMIT;
+    `));
+
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdFamily}' AND status IS NULL;
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check task_definition_req_compatibilities_compatibility insertion', query(`
+      SELECT *
+      FROM task_definition_req_compatibilities_compatibility
+      INNER JOIN task_definition ON task_definition.id = task_definition_req_compatibilities_compatibility.task_definition_id
+      WHERE task_definition.family = '${tdFamily}' AND status IS NULL;
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    // Container definition
+    it('adds a new container definition', query(`
+      BEGIN;
+        WITH r AS (
+          SELECT id
+          FROM aws_public_repository
+          WHERE repository_name = '${publicRepositoryName}'
+        ), lg AS (
+          SELECT id
+          FROM log_group
+          WHERE log_group_name = '${logGroupName}'
+        )
+        INSERT INTO container_definition (name, public_repository_id, tag, essential, memory_reservation, log_group_id)
+        SELECT '${containerNamePublicRespository}', (select id from r), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, (select id from lg);
+
+        INSERT INTO port_mapping (container_port, host_port, protocol)
+        VALUES ('${containerPort}', '${hostPort}', '${protocol}');
+
+        INSERT INTO container_definition_port_mappings_port_mapping (container_definition_id, port_mapping_id)
+        SELECT container_definition.id, port_mapping.id
+        FROM container_definition, port_mapping
+        WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
+          AND container_definition.name = '${containerNamePublicRespository}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
+        LIMIT 1;
+
+        INSERT INTO task_definition_containers_container_definition (task_definition_id, container_definition_id)
+        SELECT task_definition.id, container_definition.id
+        FROM container_definition, task_definition
+        WHERE container_definition.name = '${containerNamePublicRespository}' AND container_definition.docker_image = '${image}' AND container_definition.tag = '${imageTag}'
+          AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL
+        LIMIT 1;
+
+      COMMIT;
+    `));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNamePublicRespository}' AND public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+
+    it('check container_definition_port_mappings_port_mapping insertion', query(`
+      SELECT *
+      FROM container_definition_port_mappings_port_mapping
+      INNER JOIN container_definition ON container_definition.id = container_definition_port_mappings_port_mapping.container_definition_id
+      INNER JOIN port_mapping ON port_mapping.id = container_definition_port_mappings_port_mapping.port_mapping_id
+      WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
+        AND container_definition.name = '${containerNamePublicRespository}' AND container_definition.public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND container_definition.tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
+    it('check task_definition_containers_container_definition insertion', query(`
+      SELECT *
+      FROM task_definition_containers_container_definition
+      INNER JOIN container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
+      INNER JOIN task_definition ON task_definition.id = task_definition_containers_container_definition.task_definition_id
+      WHERE container_definition.name = '${containerNamePublicRespository}' AND container_definition.public_repository_id IN (SELECT id FROM aws_public_repository WHERE repository_name='${publicRepositoryName}') AND container_definition.tag = '${imageTag}'
+        AND task_definition.family = '${tdFamily}' AND task_definition.status IS NULL;
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('applies adds a new task definition with container definition', apply);
+
+    it('tries to update a task definition', query(`
+      WITH td AS (
+        SELECT revision
+        FROM task_definition
+        WHERE family = '${tdFamily}' AND status = '${tdActive}'
+        ORDER BY family, revision DESC
         LIMIT 1
       )
-      INSERT INTO service_load_balancers_service_load_balancer (service_id, service_load_balancer_id)
-      SELECT (SELECT id FROM s), (select id from slb);
-    COMMIT;
-  `));
+      UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td);
+    `));
 
-  it('check aws_vpc_conf insertion', query(`
-    SELECT *
-    FROM aws_vpc_conf;
-  `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+    it('applies tries to update a task definition field', apply);
 
-  it('check aws_vpc_conf_subnets_aws_subnet insertion', query(`
-    SELECT *
-    FROM aws_vpc_conf_subnets_aws_subnet
-    INNER JOIN aws_subnet ON aws_subnet.id = aws_vpc_conf_subnets_aws_subnet.aws_subnet_id
-    INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
-    WHERE aws_vpc.is_default = true
-    LIMIT 1;
-  `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+    // Service dependency
+    it('adds service dependencies', query(`
+      BEGIN;
+        DO
+        $$
+        DECLARE default_vpc text;
+        BEGIN
+            SELECT vpc_id into default_vpc
+            FROM aws_vpc
+            WHERE is_default = true
+            LIMIT 1;
+            CALL create_aws_target_group('${serviceTargetGroupName}', 'ip', ${hostPort}, default_vpc, 'HTTP', '/health');
+        END
+        $$;
 
-  it('check aws_vpc_conf_security_groups_aws_security_group insertion', query(`
-    SELECT *
-    FROM aws_vpc_conf_security_groups_aws_security_group
-    INNER JOIN aws_security_group ON aws_security_group.id = aws_vpc_conf_security_groups_aws_security_group.aws_security_group_id
-    WHERE aws_security_group.group_name = 'default'
-    LIMIT 1;
-  `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+        DO
+        $$
+        DECLARE default_vpc text;
+                default_vpc_id integer;
+                subnets text[];
+        BEGIN
+            SELECT vpc_id, id INTO default_vpc, default_vpc_id
+            FROM aws_vpc
+            WHERE is_default = true
+            LIMIT 1;
 
-  it('check service insertion', query(`
-    SELECT *
-    FROM service
-    WHERE name = '${serviceName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+            SELECT ARRAY(
+              SELECT subnet_id
+              FROM aws_subnet
+              WHERE vpc_id = default_vpc_id) INTO subnets;
 
-  it('check service_load_balancer insertion', query(`
-    SELECT *
-    FROM service_load_balancers_service_load_balancer
-    INNER JOIN service_load_balancer ON service_load_balancer.id = service_load_balancers_service_load_balancer.service_load_balancer_id
-    INNER JOIN service ON service.id = service_load_balancers_service_load_balancer.service_id
-    INNER JOIN aws_target_group ON aws_target_group.id = service_load_balancer.target_group_id
-    WHERE service.name = '${serviceName}' AND aws_target_group.target_group_name = '${serviceTargetGroupName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+            CALL create_aws_load_balancer(
+              '${serviceLoadBalancerName}', 'internet-facing', default_vpc, 'application', subnets, 'ipv4', array['default']
+            );
+        END
+        $$;
 
-  it('tries to update a service (update)', query(`
-    UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
-  `));
+        CALL create_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
+      COMMIT;
+    `));
 
-  it('applies tries to update a service (update)', apply);
+    it('applies service dependencies', apply);
 
-  it('tries to update a service (restore)', query(`
-    UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
-  `));
+    // Service
+    it('adds a new service', query(`
+      BEGIN;
+        INSERT INTO aws_vpc_conf (assign_public_ip)
+        VALUES ('ENABLED');
 
-  it('applies tries to update a service (restore)', apply);
+        WITH avc AS (
+          SELECT id
+          FROM aws_vpc_conf
+          ORDER BY id DESC
+          LIMIT 1
+        ), sn AS (
+          SELECT aws_subnet.id
+          FROM aws_subnet
+          INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
+          WHERE aws_vpc.is_default = true
+          ORDER BY aws_subnet.id DESC
+          LIMIT 1
+        )
+        INSERT INTO aws_vpc_conf_subnets_aws_subnet (aws_vpc_conf_id, aws_subnet_id)
+        SELECT (select id from avc), (select id from sn);
 
-  it('tries to update a service (replace)', query(`
-    UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
-  `));
+        INSERT INTO aws_vpc_conf_security_groups_aws_security_group (aws_vpc_conf_id, aws_security_group_id)
+        SELECT aws_vpc_conf.id, aws_security_group.id
+        FROM aws_vpc_conf, aws_security_group
+        WHERE aws_security_group.group_name = 'default'
+        ORDER BY aws_vpc_conf.id, aws_security_group.id DESC
+        LIMIT 1
+        ON CONFLICT DO NOTHING;
 
-  it('applies tries to update a service (replace)', apply);
+        WITH cl AS (
+          SELECT id
+          FROM cluster
+          WHERE cluster_name = '${newClusterName}'
+        ), avc AS (
+          SELECT id
+          FROM aws_vpc_conf
+          ORDER BY id DESC
+          LIMIT 1
+        ), td AS (
+          SELECT id
+          FROM task_definition
+          WHERE family = '${tdFamily}' AND status = '${tdActive}'
+          ORDER BY revision DESC
+          LIMIT 1
+        )
+        INSERT INTO service (name, cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
+        SELECT '${serviceName}', (select id from cl), (select id from td), ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', (select id from avc);
 
-  it('deletes service', query(`
-    DELETE FROM service_load_balancer
-    USING aws_target_group
-    WHERE aws_target_group.target_group_name = '${serviceTargetGroupName}';
+        WITH c AS (
+          SELECT container_definition.name as name
+          FROM container_definition
+          INNER JOIN task_definition_containers_container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
+          INNER JOIN task_definition ON task_definition_containers_container_definition.task_definition_id = task_definition.id
+          WHERE task_definition.family = '${tdFamily}' AND task_definition.status = '${tdActive}'
+          ORDER BY task_definition.family, task_definition.revision DESC
+          LIMIT 1
+        ), tg AS (
+          SELECT id
+          FROM aws_target_group
+          WHERE target_group_name = '${serviceTargetGroupName}'
+          LIMIT 1
+        )
+        INSERT INTO service_load_balancer (container_name, container_port, target_group_id, elb_id)
+        SELECT (select name from c), ${hostPort}, (select id from tg), null; -- insert either target group or load balancer
 
-    DELETE FROM service
-    WHERE name = '${newServiceName}';
-  `));
+        WITH s AS (
+          SELECT id
+          FROM service
+          WHERE name = '${serviceName}'
+        ), slb AS (
+          SELECT id
+          FROM service_load_balancer
+          ORDER BY id DESC
+          LIMIT 1
+        )
+        INSERT INTO service_load_balancers_service_load_balancer (service_id, service_load_balancer_id)
+        SELECT (SELECT id FROM s), (select id from slb);
+      COMMIT;
+    `));
 
-  it('applies deletes service', apply);
+    it('check aws_vpc_conf insertion', query(`
+      SELECT *
+      FROM aws_vpc_conf;
+    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
 
-  it('deletes task definitions', query(`
-    DELETE FROM task_definition
-    WHERE family = '${tdFamily}';
-  `));
+    it('check aws_vpc_conf_subnets_aws_subnet insertion', query(`
+      SELECT *
+      FROM aws_vpc_conf_subnets_aws_subnet
+      INNER JOIN aws_subnet ON aws_subnet.id = aws_vpc_conf_subnets_aws_subnet.aws_subnet_id
+      INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
+      WHERE aws_vpc.is_default = true
+      LIMIT 1;
+    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
 
-  it('applies deletes task definitions', apply);
+    it('check aws_vpc_conf_security_groups_aws_security_group insertion', query(`
+      SELECT *
+      FROM aws_vpc_conf_security_groups_aws_security_group
+      INNER JOIN aws_security_group ON aws_security_group.id = aws_vpc_conf_security_groups_aws_security_group.aws_security_group_id
+      WHERE aws_security_group.group_name = 'default'
+      LIMIT 1;
+    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check service_load_balancer insertion', query(`
+      SELECT *
+      FROM service_load_balancers_service_load_balancer
+      INNER JOIN service_load_balancer ON service_load_balancer.id = service_load_balancers_service_load_balancer.service_load_balancer_id
+      INNER JOIN service ON service.id = service_load_balancers_service_load_balancer.service_id
+      INNER JOIN aws_target_group ON aws_target_group.id = service_load_balancer.target_group_id
+      WHERE service.name = '${serviceName}' AND aws_target_group.target_group_name = '${serviceTargetGroupName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('tries to update a service (update)', query(`
+      UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
+    `));
+
+    it('applies tries to update a service (update)', apply);
+
+    it('tries to update a service (restore)', query(`
+      UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
+    `));
+
+    it('applies tries to update a service (restore)', apply);
+
+    it('tries to update a service (replace)', query(`
+      UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
+    `));
+
+    it('applies tries to update a service (replace)', apply);
+
+    it('deletes service', query(`
+      DELETE FROM service_load_balancer
+      USING aws_target_group
+      WHERE aws_target_group.target_group_name = '${serviceTargetGroupName}';
+
+      DELETE FROM service
+      WHERE name = '${newServiceName}';
+    `));
+
+    it('applies deletes service', apply);
+
+    it('deletes task definitions', query(`
+      DELETE FROM task_definition
+      WHERE family = '${tdFamily}';
+    `));
+
+    it('applies deletes task definitions', apply);
+
+    it('deletes aws_public_repository', query(`
+      DELETE FROM aws_public_repository
+      WHERE repository_name = '${publicRepositoryName}';
+    `));
+
+    it('applies deletes aws_public_repository', apply);
+  });
 
   it('deletes the cluster', query(`
     DELETE FROM cluster
