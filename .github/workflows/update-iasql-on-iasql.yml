@@ -51,7 +51,6 @@ jobs:
           echo AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }} >> .deploy-env
           echo AWS_REGION=us-east-2 >> .deploy-env
           echo AUTH_TOKEN=${{ secrets.A0_IASQL_API_TOKEN }} >> .deploy-env
-          cat .deploy-env
 
       - name: Run deploy script
         run: ./deploy-ci.sh
