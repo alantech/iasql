@@ -251,17 +251,19 @@ pub async fn list() {
   table.print(db_data);
 }
 
-pub async fn remove(db: &str) {
-  let removal = dlg::confirm_with_default("Press enter to confirm removal", true);
-  if !removal {
-    println!(
-      "{} {} {} {}",
-      dlg::warn_prefix(),
-      dlg::bold("Did not remove db"),
-      dlg::divider(),
-      dlg::yellow(db)
-    );
-    exit(0);
+pub async fn remove(db: &str, noninteractive: bool) {
+  if !noninteractive {
+    let removal = dlg::confirm_with_default("Press enter to confirm removal", true);
+    if !removal {
+      println!(
+        "{} {} {} {}",
+        dlg::warn_prefix(),
+        dlg::bold("Did not remove db"),
+        dlg::divider(),
+        dlg::yellow(db)
+      );
+      exit(0);
+    }
   }
   let resp = get_v1(&format!("db/remove/{}", db)).await;
   match &resp {
@@ -321,17 +323,19 @@ fn maybe_planned_nothing(plan_response: &PlanResponse) {
   }
 }
 
-pub async fn plan(db: &str) {
-  let confirmation = dlg::confirm_with_default("Press enter to confirm plan", true);
-  if !confirmation {
-    println!(
-      "{} {} {} {}",
-      dlg::warn_prefix(),
-      dlg::bold("Did not run plan on db"),
-      dlg::divider(),
-      dlg::yellow(db)
-    );
-    exit(0);
+pub async fn plan(db: &str, noninteractive: bool) {
+  if !noninteractive {
+    let confirmation = dlg::confirm_with_default("Press enter to confirm plan", true);
+    if !confirmation {
+      println!(
+        "{} {} {} {}",
+        dlg::warn_prefix(),
+        dlg::bold("Did not run plan on db"),
+        dlg::divider(),
+        dlg::yellow(db)
+      );
+      exit(0);
+    }
   }
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
@@ -370,17 +374,19 @@ pub async fn plan(db: &str) {
   };
 }
 
-pub async fn apply(db: &str) {
-  let confirmation = dlg::confirm_with_default("Press enter to confirm apply", true);
-  if !confirmation {
-    println!(
-      "{} {} {} {}",
-      dlg::warn_prefix(),
-      dlg::bold("Did not run apply on db"),
-      dlg::divider(),
-      dlg::yellow(db)
-    );
-    exit(0);
+pub async fn apply(db: &str, noninteractive: bool) {
+  if !noninteractive {
+    let confirmation = dlg::confirm_with_default("Press enter to confirm apply", true);
+    if !confirmation {
+      println!(
+        "{} {} {} {}",
+        dlg::warn_prefix(),
+        dlg::bold("Did not run apply on db"),
+        dlg::divider(),
+        dlg::yellow(db)
+      );
+      exit(0);
+    }
   }
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
@@ -418,17 +424,19 @@ pub async fn apply(db: &str) {
   };
 }
 
-pub async fn sync(db: &str) {
-  let confirmation = dlg::confirm_with_default("Press enter to confirm sync", true);
-  if !confirmation {
-    println!(
-      "{} {} {} {}",
-      dlg::warn_prefix(),
-      dlg::bold("Did not run sync on db"),
-      dlg::divider(),
-      dlg::yellow(db)
-    );
-    exit(0);
+pub async fn sync(db: &str, noninteractive: bool) {
+  if !noninteractive {
+    let confirmation = dlg::confirm_with_default("Press enter to confirm sync", true);
+    if !confirmation {
+      println!(
+        "{} {} {} {}",
+        dlg::warn_prefix(),
+        dlg::bold("Did not run sync on db"),
+        dlg::divider(),
+        dlg::yellow(db)
+      );
+      exit(0);
+    }
   }
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
@@ -466,14 +474,33 @@ pub async fn sync(db: &str) {
   };
 }
 
-fn provide_aws_region() -> String {
+fn provide_aws_region(noninteractive: bool) -> String {
+  let region_env = std::env::var("AWS_REGION");
+  if region_env.is_ok() {
+    return region_env.unwrap();
+  } else if region_env.is_err() && noninteractive {
+    println!(
+      "Non interactive mode. Region needs to be defined in AWS_REGION environment variable."
+    );
+    std::process::exit(1);
+  }
   let regions = &get_aws_regions();
   let default = regions.iter().position(|s| s == "us-east-2").unwrap_or(0);
   let selection = dlg::select_with_default("Pick AWS region", regions, default);
   regions[selection].clone()
 }
 
-fn provide_aws_creds() -> (String, String) {
+fn provide_aws_creds(noninteractive: bool) -> (String, String) {
+  let key_env = std::env::var("AWS_ACCESS_KEY_ID");
+  let secret_env = std::env::var("AWS_SECRET_ACCESS_KEY");
+  if key_env.is_ok() && secret_env.is_ok() {
+    return (key_env.unwrap(), secret_env.unwrap());
+  } else if (key_env.is_err() || secret_env.is_err()) && noninteractive {
+    println!(
+      "Non interactive mode. AWS credentials needs to be defined in AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables."
+    );
+    std::process::exit(1);
+  }
   let aws_cli_creds = get_aws_cli_creds();
   if aws_cli_creds.is_ok()
     && dlg::confirm_with_default(
@@ -552,9 +579,9 @@ fn display_new_db(db_metadata: NewDbResponse) {
   );
 }
 
-pub async fn new(db: &str) {
-  let region = provide_aws_region();
-  let (access_key, secret) = provide_aws_creds();
+pub async fn new(db: &str, noninteractive: bool) {
+  let region = provide_aws_region(noninteractive);
+  let (access_key, secret) = provide_aws_creds(noninteractive);
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
   sp.set_message("Creating a db to manage your cloud settings");
@@ -593,7 +620,7 @@ fn str_from_file(file: &str) -> Result<String, Box<dyn Error>> {
   Ok(std::fs::read_to_string(source_path)?.parse()?)
 }
 
-pub async fn import(db: &str, dump_file: &str) {
+pub async fn import(db: &str, dump_file: &str, noninteractive: bool) {
   let dump_res = str_from_file(dump_file);
   let dump = match &dump_res {
     Ok(d) => d,
@@ -610,8 +637,8 @@ pub async fn import(db: &str, dump_file: &str) {
       exit(1);
     }
   };
-  let region = provide_aws_region();
-  let (access_key, secret) = provide_aws_creds();
+  let region = provide_aws_region(noninteractive);
+  let (access_key, secret) = provide_aws_creds(noninteractive);
   let sp = ProgressBar::new_spinner();
   sp.enable_steady_tick(10);
   sp.set_message("Creating a new db to manage cloud resources from a dump");
