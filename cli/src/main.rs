@@ -15,100 +15,135 @@ pub async fn main() {
     .about(crate_description!())
     .setting(AppSettings::SubcommandRequiredElseHelp)
     .subcommands(vec![
-      SubCommand::with_name("login").about("Obtain and save credentials for the IaSQL service"),
+      SubCommand::with_name("login")
+        .about("Obtain and save credentials for the IaSQL service")
+        .arg(Arg::from_usage("--noninteractive")),
       SubCommand::with_name("new")
         .about("Create a db to manage cloud resources")
-        .arg(Arg::from_usage("[db]")),
+        .arg(Arg::from_usage("[db]"))
+        .arg(Arg::from_usage("--noninteractive")),
       SubCommand::with_name("export")
         .about("Export a db dump to backup your infrastructure or import it into another db")
         .arg(Arg::from_usage("[db]"))
-        .arg(Arg::from_usage("[dump_file]")),
+        .arg(Arg::from_usage("[dump_file]"))
+        .arg(Arg::from_usage("--noninteractive")),
       SubCommand::with_name("remove")
         .about("Remove a db and stop managing the cloud resources within it")
         .visible_alias("rm")
-        .arg(Arg::from_usage("[db]")),
+        .arg(Arg::from_usage("[db]"))
+        .arg(Arg::from_usage("--noninteractive")),
       SubCommand::with_name("apply")
         .about("Create, delete or update the resources in a db")
-        .arg(Arg::from_usage("[db]")),
+        .arg(Arg::from_usage("[db]"))
+        .arg(Arg::from_usage("--noninteractive")),
       SubCommand::with_name("plan")
         .about("Display a preview of the resources in a db to be modified on the next `apply`")
-        .arg(Arg::from_usage("[db]")),
+        .arg(Arg::from_usage("[db]"))
+        .arg(Arg::from_usage("--noninteractive")),
       SubCommand::with_name("sync")
         .about("Synchronize db with the current state of the cloud")
-        .arg(Arg::from_usage("[db]")),
+        .arg(Arg::from_usage("[db]"))
+        .arg(Arg::from_usage("--noninteractive")),
       SubCommand::with_name("install")
         .about("Install mods in a given db")
         .arg(Arg::from_usage("--db=[DB]"))
-        .arg(Arg::with_name("modules").min_values(1)),
+        .arg(Arg::with_name("modules").min_values(1))
+        .arg(Arg::from_usage("--noninteractive")),
       SubCommand::with_name("uninstall")
         .about("Uninstall mods from a given db")
         .arg(Arg::from_usage("--db=[DB]"))
-        .arg(Arg::with_name("modules").min_values(1)),
+        .arg(Arg::with_name("modules").min_values(1))
+        .arg(Arg::from_usage("--noninteractive")),
       SubCommand::with_name("logout")
-        .about("Remove locally-stored credentials for the IaSQL service"),
+        .about("Remove locally-stored credentials for the IaSQL service")
+        .arg(Arg::from_usage("--noninteractive")),
       SubCommand::with_name("dbs")
         .alias("databases")
-        .about("List all dbs"),
+        .about("List all dbs")
+        .arg(Arg::from_usage("--noninteractive")),
       SubCommand::with_name("mods")
         .alias("modules")
         .about("List all modules or list the modules installed in a given database")
-        .arg(Arg::from_usage("[db]")),
+        .arg(Arg::from_usage("[db]"))
+        .arg(Arg::from_usage("--noninteractive")),
     ]);
 
-  let matches = app.get_matches();
-  if let Some("logout") = matches.subcommand_name() {
-    return auth::logout();
-  } else if let Some("login") = matches.subcommand_name() {
-    return auth::login(true).await;
-  } else {
-    auth::login(false).await;
-  };
-  match matches.subcommand() {
+  match app.get_matches().subcommand() {
+    ("login", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::login(true, noninteractive).await;
+    }
+    ("logout", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::logout(noninteractive);
+    }
     ("new", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::login(false, noninteractive).await;
       let db = db::get_or_input_db(s_matches.value_of("db")).await;
-      db::new(&db).await
+      db::new(&db, noninteractive).await;
     }
     ("import", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::login(false, noninteractive).await;
       let db = db::get_or_input_db(s_matches.value_of("db")).await;
       let dump_file = db::get_or_input_arg(s_matches.value_of("dump_file"), "Dump file");
-      db::import(&db, &dump_file).await
+      db::import(&db, &dump_file, noninteractive).await;
     }
     ("export", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::login(false, noninteractive).await;
       let db = db::get_or_select_db(s_matches.value_of("db")).await;
       let dump_file = db::get_or_input_arg(s_matches.value_of("dump_file"), "Dump file");
       db::export(&db, dump_file).await;
     }
     ("remove", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::login(false, noninteractive).await;
       let db = db::get_or_select_db(s_matches.value_of("db")).await;
-      db::remove(&db).await
+      db::remove(&db, noninteractive).await;
     }
     ("apply", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::login(false, noninteractive).await;
       let db = db::get_or_select_db(s_matches.value_of("db")).await;
-      db::apply(&db).await
+      db::apply(&db, noninteractive).await;
     }
     ("plan", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::login(false, noninteractive).await;
       let db = db::get_or_select_db(s_matches.value_of("db")).await;
-      db::plan(&db).await
+      db::plan(&db, noninteractive).await;
     }
     ("sync", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::login(false, noninteractive).await;
       let db = db::get_or_select_db(s_matches.value_of("db")).await;
-      db::sync(&db).await
+      db::sync(&db, noninteractive).await;
     }
-    ("dbs", _) => {
+    ("dbs", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::login(false, noninteractive).await;
       db::list().await;
     }
     ("mods", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::login(false, noninteractive).await;
       module::list(s_matches.value_of("db")).await;
     }
     ("install", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::login(false, noninteractive).await;
       let db = db::get_or_select_db(s_matches.value_of("db")).await;
       let modules = module::mods_to_install(&db, s_matches.values_of_lossy("modules")).await;
-      module::install(&db, modules).await;
+      module::install(&db, modules, noninteractive).await;
     }
     ("uninstall", Some(s_matches)) => {
+      let noninteractive = s_matches.is_present("noninteractive");
+      auth::login(false, noninteractive).await;
       let db = db::get_or_select_db(s_matches.value_of("db")).await;
       let modules = module::mods_to_remove(&db, s_matches.values_of_lossy("modules")).await;
-      module::uninstall(&db, modules).await;
+      module::uninstall(&db, modules, noninteractive).await;
     }
     // rely on AppSettings::SubcommandRequiredElseHelp
     _ => {}
