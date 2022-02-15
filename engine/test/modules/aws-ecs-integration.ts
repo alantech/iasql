@@ -211,7 +211,7 @@ describe('ECS Integration Testing', () => {
             FROM aws_vpc
             WHERE is_default = true
             LIMIT 1;
-            CALL create_aws_target_group('${serviceTargetGroupName}', 'ip', ${hostPort}, default_vpc, 'HTTP', '/health');
+            CALL create_or_update_aws_target_group('${serviceTargetGroupName}', 'ip', ${hostPort}, default_vpc, 'HTTP', '/health');
         END
         $$;
 
@@ -231,13 +231,13 @@ describe('ECS Integration Testing', () => {
               FROM aws_subnet
               WHERE vpc_id = default_vpc_id) INTO subnets;
 
-            CALL create_aws_load_balancer(
+            CALL create_or_update_aws_load_balancer(
               '${serviceLoadBalancerName}', 'internet-facing', default_vpc, 'application', subnets, 'ipv4', array['default']
             );
         END
         $$;
 
-        CALL create_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
+        CALL create_or_update_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
       COMMIT;
     `));
 
@@ -529,7 +529,7 @@ describe('ECS Integration Testing', () => {
             FROM aws_vpc
             WHERE is_default = true
             LIMIT 1;
-            CALL create_aws_target_group('${serviceTargetGroupName}', 'ip', ${hostPort}, default_vpc, 'HTTP', '/health');
+            CALL create_or_update_aws_target_group('${serviceTargetGroupName}', 'ip', ${hostPort}, default_vpc, 'HTTP', '/health');
         END
         $$;
 
@@ -549,13 +549,13 @@ describe('ECS Integration Testing', () => {
               FROM aws_subnet
               WHERE vpc_id = default_vpc_id) INTO subnets;
 
-            CALL create_aws_load_balancer(
+            CALL create_or_update_aws_load_balancer(
               '${serviceLoadBalancerName}', 'internet-facing', default_vpc, 'application', subnets, 'ipv4', array['default']
             );
         END
         $$;
 
-        CALL create_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
+        CALL create_or_update_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
       COMMIT;
     `));
 
@@ -853,7 +853,7 @@ describe('ECS Integration Testing', () => {
             FROM aws_vpc
             WHERE is_default = true
             LIMIT 1;
-            CALL create_aws_target_group('${serviceTargetGroupName}', 'ip', ${hostPort}, default_vpc, 'HTTP', '/health');
+            CALL create_or_update_aws_target_group('${serviceTargetGroupName}', 'ip', ${hostPort}, default_vpc, 'HTTP', '/health');
         END
         $$;
 
@@ -873,13 +873,13 @@ describe('ECS Integration Testing', () => {
               FROM aws_subnet
               WHERE vpc_id = default_vpc_id) INTO subnets;
 
-            CALL create_aws_load_balancer(
+            CALL create_or_update_aws_load_balancer(
               '${serviceLoadBalancerName}', 'internet-facing', default_vpc, 'application', subnets, 'ipv4', array['default']
             );
         END
         $$;
 
-        CALL create_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
+        CALL create_or_update_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
       COMMIT;
     `));
 
