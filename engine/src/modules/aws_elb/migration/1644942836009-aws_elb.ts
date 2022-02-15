@@ -1,14 +1,14 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsElb1644522334916 implements MigrationInterface {
-    name = 'awsElb1644522334916'
+export class awsElb1644942836009 implements MigrationInterface {
+    name = 'awsElb1644942836009'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."aws_load_balancer_scheme_enum" AS ENUM('internal', 'internet-facing')`);
         await queryRunner.query(`CREATE TYPE "public"."aws_load_balancer_state_enum" AS ENUM('active', 'active_impaired', 'failed', 'provisioning')`);
         await queryRunner.query(`CREATE TYPE "public"."aws_load_balancer_load_balancer_type_enum" AS ENUM('application', 'gateway', 'network')`);
         await queryRunner.query(`CREATE TYPE "public"."aws_load_balancer_ip_address_type_enum" AS ENUM('dualstack', 'ipv4')`);
-        await queryRunner.query(`CREATE TABLE "aws_load_balancer" ("id" SERIAL NOT NULL, "load_balancer_name" character varying NOT NULL, "load_balancer_arn" character varying, "dns_name" character varying, "canonical_hosted_zone_id" character varying, "created_time" TIMESTAMP WITH TIME ZONE, "scheme" "public"."aws_load_balancer_scheme_enum" NOT NULL, "state" "public"."aws_load_balancer_state_enum", "load_balancer_type" "public"."aws_load_balancer_load_balancer_type_enum" NOT NULL, "vpc" character varying NOT NULL, "subnets" text array NOT NULL, "availability_zones" text array NOT NULL, "ip_address_type" "public"."aws_load_balancer_ip_address_type_enum" NOT NULL, "customer_owned_ipv4_pool" character varying, CONSTRAINT "UQ_0da1f9c4e655b7b4b433e8e91d1" UNIQUE ("load_balancer_name"), CONSTRAINT "PK_8ae32084dac3c544fe7642f732e" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "aws_load_balancer" ("id" SERIAL NOT NULL, "load_balancer_name" character varying NOT NULL, "load_balancer_arn" character varying, "dns_name" character varying, "canonical_hosted_zone_id" character varying, "created_time" TIMESTAMP WITH TIME ZONE, "scheme" "public"."aws_load_balancer_scheme_enum" NOT NULL, "state" "public"."aws_load_balancer_state_enum", "load_balancer_type" "public"."aws_load_balancer_load_balancer_type_enum" NOT NULL, "vpc" character varying NOT NULL, "subnets" character varying array, "availability_zones" character varying array, "ip_address_type" "public"."aws_load_balancer_ip_address_type_enum" NOT NULL, "customer_owned_ipv4_pool" character varying, CONSTRAINT "UQ_0da1f9c4e655b7b4b433e8e91d1" UNIQUE ("load_balancer_name"), CONSTRAINT "PK_8ae32084dac3c544fe7642f732e" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."aws_target_group_target_type_enum" AS ENUM('alb', 'instance', 'ip', 'lambda')`);
         await queryRunner.query(`CREATE TYPE "public"."aws_target_group_ip_address_type_enum" AS ENUM('ipv4', 'ipv6')`);
         await queryRunner.query(`CREATE TYPE "public"."aws_target_group_protocol_enum" AS ENUM('GENEVE', 'HTTP', 'HTTPS', 'TCP', 'TCP_UDP', 'TLS', 'UDP')`);
@@ -46,26 +46,16 @@ export class awsElb1644522334916 implements MigrationInterface {
             language plpgsql
             as $$
             declare
-                elb_vpc_id integer;
-                aux_az_id integer;
                 az record;
-                az_id integer;
                 sn record;
-                sn_id integer;
                 sg record;
                 sg_id integer;
                 load_balancer_id integer;
             begin
-                select id into elb_vpc_id
-                from aws_vpc
-                where vpc_id = _vpc_id
-                order by id desc
-                limit 1;
-            
                 insert into aws_load_balancer
-                    (load_balancer_name, scheme, vpc_id, load_balancer_type, ip_address_type)
+                    (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
                 values
-                    (_name, _scheme, elb_vpc_id, _elb_type, _ip_address_type)
+                    (_name, _scheme, _vpc_id, _elb_type, _ip_address_type)
                 on conflict (load_balancer_name)
                 do nothing;
             
@@ -74,46 +64,6 @@ export class awsElb1644522334916 implements MigrationInterface {
                 where load_balancer_name = _name
                 order by id desc
                 limit 1;
-            
-                select aws_subnet_id into sn_id
-                from aws_load_balancer_subnets_aws_subnet
-                where aws_load_balancer_id = load_balancer_id
-                limit 1;
-            
-                if sn_id is null then
-                    for sn in
-                        select id
-                        from aws_subnet
-                        where subnet_id = any(_subnet_ids)
-                    loop
-                        insert into aws_load_balancer_subnets_aws_subnet
-                            (aws_load_balancer_id, aws_subnet_id)
-                        values
-                            (load_balancer_id, sn.id);
-                    end loop;
-                end if;
-            
-                select availability_zone_id into az_id
-                from aws_load_balancer_availability_zones_availability_zone
-                where aws_load_balancer_id = load_balancer_id
-                limit 1;
-            
-                if az_id is null then
-                    for az in
-                        select id
-                        from availability_zone
-                        where id in (
-                            select availability_zone_id
-                            from aws_subnet
-                            where subnet_id = any(_subnet_ids)
-                        )
-                    loop
-                        insert into aws_load_balancer_availability_zones_availability_zone
-                            (aws_load_balancer_id, availability_zone_id)
-                        values
-                            (load_balancer_id, az.id);
-                    end loop;
-                end if;
             
                 select aws_security_group_id into sg_id
                 from aws_load_balancer_security_groups_aws_security_group
@@ -150,19 +100,12 @@ export class awsElb1644522334916 implements MigrationInterface {
             language plpgsql
             as $$
             declare 
-                tg_vpc_id integer;
                 target_group_id integer;
             begin
-                select id into tg_vpc_id
-                from aws_vpc
-                where vpc_id = _vpc_id
-                order by id desc
-                limit 1;
-            
                 insert into aws_target_group
-                    (target_group_name, target_type, protocol, port, vpc_id, health_check_path)
+                    (target_group_name, target_type, protocol, port, vpc, health_check_path)
                 values
-                    (_name, _target_type, _protocol, _port, tg_vpc_id, _health_check_path)
+                    (_name, _target_type, _protocol, _port, _vpc_id, _health_check_path)
                 on conflict (target_group_name)
                 do nothing;
             

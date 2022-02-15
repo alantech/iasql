@@ -20,7 +20,7 @@ import {
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
-import { awsElb1644522334916, } from './migration/1644522334916-aws_elb'
+import { awsElb1644942836009, } from './migration/1644942836009-aws_elb'
 
 export const AwsElbModule: Module = new Module({
   name: 'aws_elb',
@@ -316,7 +316,7 @@ export const AwsElbModule: Module = new Module({
           await ctx.orm.save(AwsLoadBalancer, es);
         },
         read: async (ctx: Context, ids?: string[]) => {
-          const relations = ['securityGroups', 'availabilityZones', 'subnets', 'vpc'];
+          const relations = ['securityGroups'];
           const opts = ids ? {
             where: {
               loadBalancerArn: In(ids),
@@ -342,6 +342,7 @@ export const AwsElbModule: Module = new Module({
       cloud: new Crud({
         create: async (es: AwsLoadBalancer[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
+          const subnets = (await client.getSubnets()).Subnets.map(s => s.SubnetId ?? '');
           return await Promise.all(es.map(async (e) => {
             const securityGroups = e.securityGroups?.map(sg => {
               if (!sg.groupId) throw new Error('Security group need to be loaded first');
@@ -349,7 +350,7 @@ export const AwsElbModule: Module = new Module({
             });
             const input: CreateLoadBalancerCommandInput = {
               Name: e.loadBalancerName,
-              Subnets: e.subnets,
+              Subnets: e.subnets ?? subnets,
               Scheme: e.scheme,
               Type: e.loadBalancerType,
               IpAddressType: e.ipAddressType,
@@ -485,13 +486,11 @@ export const AwsElbModule: Module = new Module({
           await ctx.orm.save(AwsTargetGroup, es);
         },
         read: async (ctx: Context, ids?: string[]) => {
-          const relations = ['vpc'];
           const opts = ids ? {
             where: {
               targetGroupArn: In(ids),
             },
-            relations,
-          } : { relations, };
+          } : { };
           return await ctx.orm.find(AwsTargetGroup, opts);
         },
         update: async (es: AwsTargetGroup[], ctx: Context) => {
@@ -502,12 +501,14 @@ export const AwsElbModule: Module = new Module({
       cloud: new Crud({
         create: async (es: AwsTargetGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
+          const vpcs = (await client.getVpcs()).Vpcs;
+          const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
           return await Promise.all(es.map(async (e) => {
             const result = await client.createTargetGroup({
               Name: e.targetGroupName,
               TargetType: e.targetType,
               Port: e.port,
-              VpcId: e.vpc,
+              VpcId: e.vpc === 'default' ? defaultVpc.VpcId ?? '' : e.vpc,
               Protocol: e.protocol,
               ProtocolVersion: e.protocolVersion,
               IpAddressType: e.ipAddressType,
@@ -593,7 +594,7 @@ export const AwsElbModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsElb1644522334916.prototype.up,
-    preremove: awsElb1644522334916.prototype.down,
+    postinstall: awsElb1644942836009.prototype.up,
+    preremove: awsElb1644942836009.prototype.down,
   },
 });

@@ -87,10 +87,10 @@ export class AwsLoadBalancer {
 
   // Not in the mapper since is just needed as input for the creation and retrieve endpoints
   // do not return any information related to the subnets
-  @Column("text", { array: true, })
+  @Column("varchar", { array: true, nullable: true, })
   subnets?: string[];
 
-  @Column("text", { array: true, })
+  @Column("varchar", { array: true, nullable: true, })
   availabilityZones?: string[];
 
   @ManyToMany(() => AwsSecurityGroup)
