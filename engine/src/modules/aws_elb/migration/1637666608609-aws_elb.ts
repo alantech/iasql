@@ -227,7 +227,7 @@ export class awsElb1637666608609 implements MigrationInterface {
                 limit 1;
             
                 -- TODO: Handle better listener updates
-                delete aws_listener
+                delete from aws_listener
                 where aws_load_balancer_id = lb_id and port = _port and protocol = _protocol;
             
                 insert into aws_listener
