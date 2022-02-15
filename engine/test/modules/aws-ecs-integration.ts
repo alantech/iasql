@@ -402,7 +402,7 @@ describe('ECS Integration Testing', () => {
   describe('Private ECR', () => {
     // ECR
     it('adds a new ECR', query(`
-      CALL create_ecr_repository('${repositoryName}');
+      CALL create_or_update_ecr_repository('${repositoryName}');
     `));
 
     it('check aws_repository insertion', query(`
@@ -726,7 +726,7 @@ describe('ECS Integration Testing', () => {
   describe('Public ECR', () => {
     // ECR
     it('adds a new public ECR', query(`
-      CALL create_ecr_public_repository('${publicRepositoryName}');
+      CALL create_or_update_ecr_public_repository('${publicRepositoryName}');
     `));
 
     it('check aws_public_repository insertion', query(`
