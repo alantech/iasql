@@ -84,7 +84,7 @@ do $$
 
     call create_ecs_cluster(iasql_cluster);
 
-    call create_cloudwatch_log_group(iasql_engine_cloud_watch_log_group);
+    call create_or_update_cloudwatch_log_group(iasql_engine_cloud_watch_log_group);
 
     call create_task_definition(
       iasql_engine_task_definition, iasql_ecs_task_execution_role, iasql_ecs_task_execution_role,
