@@ -59,7 +59,7 @@ do $$
       default_subnets := array_append(default_subnets, sn.subnet_id::text);
     end loop;
 
-    call create_aws_security_group(
+    call create_or_update_aws_security_group(
       iasql_engine_security_group, iasql_engine_security_group,
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_engine_port || ', "toPort": ' || iasql_engine_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": false, "ipProtocol": "tcp", "fromPort": "443", "toPort": "443", "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
@@ -102,7 +102,7 @@ do $$
       'REPLICA', default_subnets, array[iasql_engine_security_group], 'ENABLED', iasql_engine_target_group
     );
 
-    call create_aws_security_group(
+    call create_or_update_aws_security_group(
       iasql_postgres_security_group, iasql_postgres_security_group,
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_postgres_port || ', "toPort": ' || iasql_postgres_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
