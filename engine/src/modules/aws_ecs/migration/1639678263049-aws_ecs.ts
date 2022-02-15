@@ -64,9 +64,9 @@ export class awsEcs1639678263049 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "task_definition_containers_container_definition" ADD CONSTRAINT "FK_9e80552f2df19a542a657b67595" FOREIGN KEY ("container_definition_id") REFERENCES "container_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" ADD CONSTRAINT "FK_0909ccc9eddf3c92a7772912562" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" ADD CONSTRAINT "FK_f19b7360a189526c59b4387a953" FOREIGN KEY ("compatibility_id") REFERENCES "compatibility"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        // Example of use: call create_ecs_cluster('test-sp');
+        // Example of use: call create_or_update_ecs_cluster('test-sp');
         await queryRunner.query(`
-            create or replace procedure create_ecs_cluster(_name text)
+            create or replace procedure create_or_update_ecs_cluster(_name text)
             language plpgsql
             as $$
             declare 
@@ -292,9 +292,9 @@ export class awsEcs1639678263049 implements MigrationInterface {
             end;
             $$;
         `);
-        // Example of use: call create_ecs_service('test-12345', 'iasql', 'postgres:3', 1, 'FARGATE', 'REPLICA', array['subnet-68312820'], array['default'], 'ENABLED', 'iasql-postgresql', 'iasql-postgresql');
+        // Example of use: call create_or_update_ecs_service('test-12345', 'iasql', 'postgres:3', 1, 'FARGATE', 'REPLICA', array['subnet-68312820'], array['default'], 'ENABLED', 'iasql-postgresql', 'iasql-postgresql');
         await queryRunner.query(`
-            create or replace procedure create_ecs_service(
+            create or replace procedure create_or_update_ecs_service(
                 _name text,
                 _cluster_name text,
                 _task_definition_family text,
@@ -383,7 +383,7 @@ export class awsEcs1639678263049 implements MigrationInterface {
                         assert cluster_id > 0, 'Cluster not found';
             
                         insert into service
-                            (name,cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
+                            (name, cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
                         values
                             (_name, cluster_id, task_def_id, _desired_count, _launch_type, _scheduling_strategy, aws_vpc_conf_id);
             
@@ -433,7 +433,11 @@ export class awsEcs1639678263049 implements MigrationInterface {
                         limit 1;
 
                         update service
-                        set task_definition_id = task_def_id
+                        set task_definition_id = task_def_id,
+                            cluster_id = (select id from cluster where cluster_name = _cluster_name),
+                            desired_count = _desired_count,
+                            launch_type = _launch_type,
+                            scheduling_strategy = _scheduling_strategy
                         where id = service_id;
                     end if;
                     raise info 'service_id = %', service_id;
@@ -443,10 +447,10 @@ export class awsEcs1639678263049 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP procedure create_ecs_service;`);
+        await queryRunner.query(`DROP procedure create_or_update_ecs_service;`);
         await queryRunner.query(`DROP procedure create_task_definition;`);
         await queryRunner.query(`DROP procedure create_container_definition;`);
-        await queryRunner.query(`DROP procedure create_ecs_cluster;`);
+        await queryRunner.query(`DROP procedure create_or_update_ecs_cluster;`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" DROP CONSTRAINT "FK_f19b7360a189526c59b4387a953"`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" DROP CONSTRAINT "FK_0909ccc9eddf3c92a7772912562"`);
         await queryRunner.query(`ALTER TABLE "task_definition_containers_container_definition" DROP CONSTRAINT "FK_9e80552f2df19a542a657b67595"`);
