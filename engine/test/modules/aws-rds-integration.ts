@@ -27,7 +27,7 @@ describe('RDS Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('creates an RDS instance', query(`
-    CALL create_rds('${prefix}test', 50, 'db.t3.medium', 'postgres', '13.4', 'test', 'testpass', 'us-west-2b', array['default']);
+    CALL create_or_update_rds('${prefix}test', 50, 'db.t3.medium', 'postgres', '13.4', 'test', 'testpass', 'us-west-2b', array['default']);
   `));
 
   it('applies the change', apply);

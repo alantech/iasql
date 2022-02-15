@@ -107,7 +107,7 @@ do $$
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_postgres_port || ', "toPort": ' || iasql_postgres_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
 
-    call create_rds(
+    call create_or_update_rds(
       iasql_postgres_rds, iasql_postgres_rds_allocated_storage, iasql_postgres_rds_db_instance_class,
       iasql_postgres_rds_db_engine, iasql_postgres_rds_db_engine_version, iasql_postgres_rds_db_username,
       iasql_postgres_rds_db_password, iasql_postgres_rds_db_az, array[iasql_postgres_security_group]
