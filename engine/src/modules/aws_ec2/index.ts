@@ -430,7 +430,7 @@ export const AwsEc2Module: Module = new Module({
     }),
     instance: new Mapper<Instance>({
       entity: Instance,
-      entityId: (i: Instance) => i.name,
+      entityId: (i: Instance) => i.instanceId ?? i.name,
       entityPrint: (e: Instance) => ({
         name: e.name,
         id: e.id?.toString() ?? '',
@@ -439,7 +439,12 @@ export const AwsEc2Module: Module = new Module({
         instanceType: e.instanceType?.name ?? '',
         securityGroups: e.securityGroups?.map(sg => sg.groupName ?? '').join(', '),
       }),
-      equals: (a: Instance, b: Instance) => Object.is(a.name, b.name),
+      equals: (a: Instance, b: Instance) => Object.is(a.name, b.name) &&
+        Object.is(a.instanceId, b.instanceId) &&
+        Object.is(a.ami, b.ami) &&
+        Object.is(a.instanceType.name, b.instanceType.name) &&
+        Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
+        a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
       source: 'db',
       db: new Crud({
         create: (e: Instance[], ctx: Context) => ctx.orm.save(Instance, e),
@@ -456,6 +461,10 @@ export const AwsEc2Module: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           for (const instance of es) {
             if (instance.ami) {
+              // update so delete old instance
+              if (instance.instanceId) {
+                await client.terminateInstance(instance.instanceId);
+              }
               const instanceId = await client.newInstance(
                 instance.name,
                 instance.instanceType.name,
