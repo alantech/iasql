@@ -57,7 +57,7 @@ export class awsEcr1637082183230 implements MigrationInterface {
                     values
                         (ecr_repository_id, _policy_text)
                     on conflict (repository_id)
-                    do update policy_text = _policy_text;
+                    do update set policy_text = _policy_text;
                 
                     select id into ecr_repository_policy_id
                     from aws_repository_policy
