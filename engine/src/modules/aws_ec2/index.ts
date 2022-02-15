@@ -461,10 +461,6 @@ export const AwsEc2Module: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           for (const instance of es) {
             if (instance.ami) {
-              // update so delete old instance
-              if (instance.instanceId) {
-                await client.terminateInstance(instance.instanceId);
-              }
               const instanceId = await client.newInstance(
                 instance.name,
                 instance.instanceType.name,
@@ -490,8 +486,14 @@ export const AwsEc2Module: Module = new Module({
             .map(i => AwsEc2Module.utils.instanceMapper(i, ctx))
           );
         },
-        // The second pass should remove the old instances
-        update: (e: Instance[], ctx: Context) => AwsEc2Module.mappers.instance.cloud.create(e, ctx),
+        update: async (es: Instance[], ctx: Context) => {
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? e.name];
+            const created = AwsEc2Module.mappers.instance.cloud.create([e], ctx);
+            await AwsEc2Module.mappers.instance.cloud.delete([cloudRecord], ctx);
+            return created;
+          }));
+        },
         delete: async (es: Instance[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const entity of es) {
