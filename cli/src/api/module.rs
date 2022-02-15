@@ -255,17 +255,19 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
   mods
 }
 
-pub async fn uninstall(db: &str, mods: Vec<String>) {
-  let removal = dlg::confirm_with_default("Confirm uninstall", true);
-  if !removal {
-    println!(
-      "{} {} {} {}",
-      dlg::warn_prefix(),
-      dlg::bold("No modules were uninstalled from db"),
-      dlg::divider(),
-      dlg::yellow(db),
-    );
-    exit(0);
+pub async fn uninstall(db: &str, mods: Vec<String>, noninteractive: bool) {
+  if !noninteractive {
+    let removal = dlg::confirm_with_default("Confirm uninstall", true);
+    if !removal {
+      println!(
+        "{} {} {} {}",
+        dlg::warn_prefix(),
+        dlg::bold("No modules were uninstalled from db"),
+        dlg::divider(),
+        dlg::yellow(db),
+      );
+      exit(0);
+    }
   }
   let body = json!({
     "list": mods,
@@ -289,17 +291,19 @@ pub async fn uninstall(db: &str, mods: Vec<String>) {
   };
 }
 
-pub async fn install(db: &str, mods: Vec<String>) {
-  let installation = dlg::confirm_with_default("Confirm installation", true);
-  if !installation {
-    println!(
-      "{} {} {} {}",
-      dlg::warn_prefix(),
-      dlg::bold("No modules were installed in db"),
-      dlg::divider(),
-      dlg::yellow(db),
-    );
-    exit(0);
+pub async fn install(db: &str, mods: Vec<String>, noninteractive: bool) {
+  if !noninteractive {
+    let installation = dlg::confirm_with_default("Confirm installation", true);
+    if !installation {
+      println!(
+        "{} {} {} {}",
+        dlg::warn_prefix(),
+        dlg::bold("No modules were installed in db"),
+        dlg::divider(),
+        dlg::yellow(db),
+      );
+      exit(0);
+    }
   }
   let body = json!({
     "list": mods,
