@@ -171,8 +171,7 @@ export const AwsEcsModule: Module = new Module({
           await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, networkConf.securityGroups) ??
             await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, networkConf.securityGroups)
           : []
-        awsVpcConf.subnets = await Promise.all(networkConf.subnets?.map(async (sn: string) =>
-          ctx.memo?.db?.AwsSubnets?.[sn] ?? await AwsAccount.mappers.subnet.db.read(ctx, sn)) ?? []);
+        awsVpcConf.subnets = networkConf.subnets ?? [];
         out.network = awsVpcConf;
       }
       out.schedulingStrategy = s.schedulingStrategy as SchedulingStrategy;
