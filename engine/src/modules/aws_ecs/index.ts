@@ -466,7 +466,6 @@ export const AwsEcsModule: Module = new Module({
               const memory = memoryStr.split('GB')[0];
               input.memory = `${+memory * 1024}`;
             }
-
             const result = await client.createTaskDefinition(input);
             // TODO: Handle if it fails (somehow)
             if (!result?.hasOwnProperty('taskDefinitionArn')) { // Failure
@@ -597,7 +596,6 @@ export const AwsEcsModule: Module = new Module({
             'cluster',
             'task',
             'network',
-            'network.subnets',
             'network.securityGroups',
             'loadBalancers',
             'loadBalancers.targetGroup',

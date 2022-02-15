@@ -39,7 +39,6 @@ export class awsElb1644942836009 implements MigrationInterface {
                 _scheme aws_load_balancer_scheme_enum,
                 _vpc_id text,
                 _elb_type aws_load_balancer_load_balancer_type_enum,
-                _subnet_ids text [],
                 _ip_address_type aws_load_balancer_ip_address_type_enum,
                 _security_group_names text [] default null
             )
