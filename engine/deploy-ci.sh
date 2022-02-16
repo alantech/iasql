@@ -12,7 +12,7 @@ set -e
 
 # IaSQL db new. Using local debug version
 echo "\Creating an iasql db..."
-export $(cat .deploy-env | xargs) && cargo run --manifest-path=../cli/Cargo.toml -- new iasql
+export $(cat .deploy-env | xargs) && cargo run --manifest-path=../cli/Cargo.toml -- new iasql --noninteractive
 
 echo "\Installing modules in iasql db..."
 cargo run --manifest-path=../cli/Cargo.toml -- install aws_security_group aws_elb aws_cloudwatch aws_ecr aws_ecs aws_rds --db=iasql --noninteractive
