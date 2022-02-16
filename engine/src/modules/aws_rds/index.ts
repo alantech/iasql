@@ -105,7 +105,7 @@ export const AwsRdsModule: Module = new Module({
         endpointHostedZoneId: e?.endpointHostedZoneId ?? '',
       }),
       equals: (a: RDS, b: RDS) => {
-        
+
         if (!Object.is(a.engine.engineVersionKey, b.engine.engineVersionKey)) console.log('1')
         if (!Object.is(a.dbInstanceClass, b.dbInstanceClass)) console.log('2')
         if (!Object.is(a.availabilityZone?.zoneId, b.availabilityZone?.zoneId)) console.log('3')
