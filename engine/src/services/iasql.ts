@@ -363,6 +363,9 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
             if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
             if (replaces.length > 0) updatePlan(toReplace, r.table, r.mapper, replaces);
           }
+          if (r.mapper.entity.name === 'RDS') {
+            console.dir({res: r.diff}, {depth:4})
+          }
         });
         if (dryRun) return {
           iasqlPlanVersion: 2,

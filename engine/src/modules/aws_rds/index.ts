@@ -104,7 +104,22 @@ export const AwsRdsModule: Module = new Module({
         endpointPort: e?.endpointPort?.toString() ?? '',
         endpointHostedZoneId: e?.endpointHostedZoneId ?? '',
       }),
-      equals: (a: RDS, b: RDS) => Object.is(a.engine.engineVersionKey, b.engine.engineVersionKey)
+      equals: (a: RDS, b: RDS) => {
+        
+        if (!Object.is(a.engine.engineVersionKey, b.engine.engineVersionKey)) console.log('1')
+        if (!Object.is(a.dbInstanceClass, b.dbInstanceClass)) console.log('2')
+        if (!Object.is(a.availabilityZone?.zoneId, b.availabilityZone?.zoneId)) console.log('3')
+        if (!Object.is(a.dbInstanceIdentifier, b.dbInstanceIdentifier)) console.log('4')
+        if (!Object.is(a.endpointAddr, b.endpointAddr)) console.log('5')
+        if (!Object.is(a.endpointHostedZoneId, b.endpointHostedZoneId)) console.log('6')
+        if (!Object.is(a.endpointPort, b.endpointPort)) console.log('7')
+        if (!!a.masterUserPassword  ) console.log('8')
+        if (!Object.is(a.masterUsername, b.masterUsername)) console.log('9')
+        if (!Object.is(a.vpcSecurityGroups.length, b.vpcSecurityGroups.length)) console.log('10')
+        if (!(a.vpcSecurityGroups?.every(asg => !!b.vpcSecurityGroups.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)) console.log('11')
+        if (!Object.is(a.allocatedStorage, b.allocatedStorage)) console.log('12')
+
+        const res = Object.is(a.engine.engineVersionKey, b.engine.engineVersionKey)
         && Object.is(a.dbInstanceClass, b.dbInstanceClass)
         && Object.is(a.availabilityZone?.zoneId, b.availabilityZone?.zoneId)
         && Object.is(a.dbInstanceIdentifier, b.dbInstanceIdentifier)
@@ -115,7 +130,25 @@ export const AwsRdsModule: Module = new Module({
         && Object.is(a.masterUsername, b.masterUsername)
         && Object.is(a.vpcSecurityGroups.length, b.vpcSecurityGroups.length)
         && (a.vpcSecurityGroups?.every(asg => !!b.vpcSecurityGroups.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
-        && Object.is(a.allocatedStorage, b.allocatedStorage),
+        && Object.is(a.allocatedStorage, b.allocatedStorage);
+
+        if (!res) {
+          console.dir({eqres: res}, {depth:4});
+        }
+        return res;
+      },
+      // equals: (a: RDS, b: RDS) => Object.is(a.engine.engineVersionKey, b.engine.engineVersionKey)
+      //   && Object.is(a.dbInstanceClass, b.dbInstanceClass)
+      //   && Object.is(a.availabilityZone?.zoneId, b.availabilityZone?.zoneId)
+      //   && Object.is(a.dbInstanceIdentifier, b.dbInstanceIdentifier)
+      //   && Object.is(a.endpointAddr, b.endpointAddr)
+      //   && Object.is(a.endpointHostedZoneId, b.endpointHostedZoneId)
+      //   && Object.is(a.endpointPort, b.endpointPort)
+      //   && !a.masterUserPassword  // Special case, if master password defined, will update the instance password
+      //   && Object.is(a.masterUsername, b.masterUsername)
+      //   && Object.is(a.vpcSecurityGroups.length, b.vpcSecurityGroups.length)
+      //   && (a.vpcSecurityGroups?.every(asg => !!b.vpcSecurityGroups.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
+      //   && Object.is(a.allocatedStorage, b.allocatedStorage),
       source: 'db',
       db: new Crud({
         create: (rds: RDS[], ctx: Context) => ctx.orm.save(RDS, rds),
