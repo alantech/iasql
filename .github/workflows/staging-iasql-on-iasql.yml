@@ -1,10 +1,14 @@
 # This is a basic workflow to help you get started with Actions
 
-name: IaSQL-ON-IaSQL
+name: STAGING IaSQL-ON-IaSQL
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -31,7 +35,7 @@ jobs:
           echo AO_ENABLED=true >> .env
           echo AO_DOMAIN=https://auth.iasql.com/ >> .env
           echo AO_AUDIENCE=https://api.iasql.com >> .env
-          echo IRONPLANS_TOKEN='${{ secrets. IRONPLANS_TOKEN_PROD }}' >> .env
+          echo IRONPLANS_TOKEN='${{ secrets. IRONPLANS_TOKEN }}' >> .env
 
       - name: Start iasql
         run: |
@@ -43,17 +47,17 @@ jobs:
           touch .deploy-env
           echo PGPASSWORD='${{ secrets.PGPASSWORD }}' >> .deploy-env
           echo DB_PASSWORD='${{ secrets.DB_PASSWORD }}' >> .deploy-env
-          echo IRONPLANS_TOKEN='${{ secrets.IRONPLANS_TOKEN_PROD }}' >> .deploy-env
-          echo AWS_ACCESS_KEY_ID='${{ secrets.AWS_ACCESS_KEY_ID_PROD }}' >> .deploy-env
-          echo AWS_SECRET_ACCESS_KEY='${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}' >> .deploy-env
+          echo IRONPLANS_TOKEN='${{ secrets.IRONPLANS_TOKEN }}' >> .deploy-env
+          echo AWS_ACCESS_KEY_ID='${{ secrets.AWS_ACCESS_KEY_ID_STAGING }}' >> .deploy-env
+          echo AWS_SECRET_ACCESS_KEY='${{ secrets.AWS_SECRET_ACCESS_KEY_STAGING }}' >> .deploy-env
           echo AWS_REGION=us-east-2 >> .deploy-env
           echo AUTH_TOKEN='${{ secrets.A0_IASQL_API_TOKEN }}' >> .deploy-env
 
       - name: Run deploy script
         run: ./deploy-ci.sh
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_STAGING }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_STAGING }}
           AWS_REGION: us-east-2
 
       - name: Logs engine
