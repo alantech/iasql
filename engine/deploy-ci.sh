@@ -5,7 +5,7 @@
 ## - DB_PASSWORD environment variable defined in .deploy-env
 ## - IRONPLANS_TOKEN environment variable defined in .deploy-env
 ## - AUTH_TOKEN environment variable defined in .deploy-env
-## - REGION environment variable defined in .deploy-env
+## - AWS_REGION environment variable defined in .deploy-env
 #!/bin/bash
 
 # Fail on error
@@ -13,7 +13,7 @@ set -e
 
 ## get aws account id and create private registry and image URIs with it
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity | jq -r .Account)
-export REGISTRY_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
+export REGISTRY_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
 export IMAGE_URI=${REGISTRY_URI}/iasql-engine-repository
 export LATEST_IMAGE_URI=${IMAGE_URI}:latest
 
