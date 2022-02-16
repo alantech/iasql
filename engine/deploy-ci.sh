@@ -42,7 +42,7 @@ docker push ${LATEST_IMAGE_URI}
 
 # Prepare iasql-on-iasql.sql script
 echo "\nPreparing iasql script..."
-export $(cat .deploy-env | xargs) && sed "s/<DB_PASSWORD>/${DB_PASSWORD}/g;s/<IRONPLANS_TOKEN>/${IRONPLANS_TOKEN}/g" ./src/script/iasql-on-iasql.sql > ./src/script/iasql-on-iasql.out.sql
+export $(cat .deploy-env | xargs) && sed "s/<DB_PASSWORD>/${DB_PASSWORD}/g;s/<AWS_ACCOUNT_ID>/${AWS_ACCOUNT_ID}/g;s/<IRONPLANS_TOKEN>/${IRONPLANS_TOKEN}/g" ./src/script/iasql-on-iasql.sql > ./src/script/iasql-on-iasql.out.sql
 
 # Update service. Set PGPASSWORD environment variable to avoid interaction
 echo "\nUpdating iasql db..."
