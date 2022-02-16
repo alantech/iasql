@@ -30,7 +30,7 @@ export class awsRds1644523981372 implements MigrationInterface {
                     sg record;
                 begin
                     insert into rds
-                        (db_instance_identifier, allocated_storage, db_instance_class, master_user_password, master_username, availability_zone, engine_version)
+                        (db_instance_identifier, allocated_storage, db_instance_class, master_user_password, master_username, availability_zone, engine)
                     values
                         (_name, _allocated_storage, _db_instance_class, _master_user_password, _master_username, _availability_zone_name, _engine || ':' || _engine_version)
                     on conflict (db_instance_identifier)

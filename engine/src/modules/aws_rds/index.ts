@@ -26,8 +26,6 @@ export const AwsRdsModule: Module = new Module({
       out.endpointAddr = rds?.Endpoint?.Address;
       out.endpointHostedZoneId = rds?.Endpoint?.HostedZoneId;
       out.endpointPort = rds?.Endpoint?.Port;
-      const engineVersions = ctx.memo?.db?.EngineVersion ? Object.values(ctx.memo?.db?.EngineVersion) : await AwsRdsModule.mappers.engineVersion.db.read(ctx);
-      if (!engineVersions?.length) throw new Error('Engine versions need to be loaded first')
       out.engine = `${rds?.Engine}:${rds?.EngineVersion}`;
       out.masterUsername = rds?.MasterUsername;
       const vpcSecurityGroupIds = rds?.VpcSecurityGroups?.filter((vpcsg: any) => !!vpcsg?.VpcSecurityGroupId).map((vpcsg: any) => vpcsg?.VpcSecurityGroupId);
@@ -71,7 +69,7 @@ export const AwsRdsModule: Module = new Module({
       db: new Crud({
         create: (rds: RDS[], ctx: Context) => ctx.orm.save(RDS, rds),
         read: async (ctx: Context, ids?: string[]) => {
-          const relations = ['engine', 'vpcSecurityGroups', 'availabilityZone'];
+          const relations = ['vpcSecurityGroups'];
           const opts = ids ? {
             where: {
               dbInstanceIdentifier: In(ids),
