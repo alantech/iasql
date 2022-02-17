@@ -75,6 +75,8 @@ export const AwsSecurityGroupModule: Module = new Module({
       cloud: new Crud({
         create: async (es: AwsSecurityGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
+          const vpcs = (await client.getVpcs()).Vpcs;
+          const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
           return await Promise.all(es.map(async (e) => {
             // Special behavior here. You can't delete the 'default' security group, so if you're
             // trying to create it, something is seriously wrong.
@@ -90,7 +92,9 @@ export const AwsSecurityGroupModule: Module = new Module({
               e.groupId = actualEntity.groupId;
               e.groupName = actualEntity.groupName;
               e.ownerId = actualEntity.ownerId;
-              e.vpcId = actualEntity.vpcId;
+              e.vpcId = actualEntity.vpcId === 'default' ?
+                defaultVpc.VpcId ?? '' :
+                actualEntity.vpcId;
               await ctx.orm.save(AwsSecurityGroup, e);
               if (e.groupId) {
                 ctx.memo.db.AwsSecurityGroup[e.groupId] = e;
