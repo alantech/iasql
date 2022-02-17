@@ -40,8 +40,8 @@ describe('EC2 Integration Testing', () => {
       // INSERT INTO instance (ami, instance_type_id)
       // VALUES ('${ubuntuAmiId}', ${recordId}), ('${amznAmiId}', ${recordId});
       query(`
-        CALL create_ec2_instance('${ubuntuAmiId}', 't2.micro', array['default']);
-        CALL create_ec2_instance('${amznAmiId}', 't2.micro', array['default']);
+        CALL create_or_update_ec2_instance('i-1', '${ubuntuAmiId}', 't2.micro', array['default']);
+        CALL create_or_update_ec2_instance('i-2', '${amznAmiId}', 't2.micro', array['default']);
       `)((e?: any) => {
         if (!!e) return done(e);
         done();
@@ -51,20 +51,53 @@ describe('EC2 Integration Testing', () => {
 
   it('applies the created instances', apply);
 
+  it('check number of instances', query(`
+    SELECT *
+    FROM instance;
+  `, (res: any[]) => expect(res.length).toBe(2)));
+
   it('set both ec2 instances to the same ami', query(`
-    UPDATE instance
-    SET ami = '${ubuntuAmiId}'
-    WHERE ami = '${amznAmiId}';
+    CALL create_or_update_ec2_instance('i-1', '${amznAmiId}', 't2.micro', array['default']);
   `));
 
-  // it('applies the instances change', apply);
+  it('applies the instances change', apply);
+
+  it('check number of instances', query(`
+    SELECT *
+    FROM instance;
+  `, (res: any[]) => expect(res.length).toBe(2)));
+
+  it('check instance ami update', query(`
+    SELECT *
+    FROM instance
+    WHERE ami = '${ubuntuAmiId}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('uninstalls the ec2 module', (done) => void iasql.uninstall(
+    ['aws_ec2', 'aws_security_group'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('installs the ec2 module', (done) => void iasql.install(
+    ['aws_ec2', 'aws_security_group'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('check number of instances', query(`
+    SELECT *
+    FROM instance;
+  `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('deletes both ec2 instances', query(`
-    DELETE FROM instance
-    WHERE ami = '${ubuntuAmiId}';
+    DELETE FROM instance;
   `));
 
   it('applies the instances deletion', apply);
+
+  it('check number of instances', query(`
+    SELECT *
+    FROM instance;
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
