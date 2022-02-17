@@ -166,10 +166,6 @@ iasql db apply
 ./deploy.sh
 ```
 
-#### Create a new repository
-
-Create a new private repository in ECR called `iasql-engine-repository`
-
 <!-- TODO: remove this section once https://github.com/iasql/iasql/issues/204 is closed -->
 #### Configure load balancer HTTPS listener
 
