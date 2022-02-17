@@ -1,9 +1,9 @@
 import {
+  Column,
   Entity,
-  PrimaryGeneratedColumn,
   JoinColumn,
   ManyToOne,
-  Column,
+  PrimaryGeneratedColumn,
 } from 'typeorm'
 
 import { AwsLoadBalancer, AwsTargetGroup, } from '../../aws_elb/entity'

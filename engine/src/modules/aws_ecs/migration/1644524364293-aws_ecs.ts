@@ -1,11 +1,11 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEcs1639678263049 implements MigrationInterface {
-    name = 'awsEcs1639678263049'
+export class awsEcs1644524364293 implements MigrationInterface {
+    name = 'awsEcs1644524364293'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."aws_vpc_conf_assign_public_ip_enum" AS ENUM('DISABLED', 'ENABLED')`);
-        await queryRunner.query(`CREATE TABLE "aws_vpc_conf" ("id" SERIAL NOT NULL, "assign_public_ip" "public"."aws_vpc_conf_assign_public_ip_enum", CONSTRAINT "PK_23873df17bd3e0744254b4ccd9d" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "aws_vpc_conf" ("id" SERIAL NOT NULL, "subnets" text array NOT NULL, "assign_public_ip" "public"."aws_vpc_conf_assign_public_ip_enum", CONSTRAINT "PK_23873df17bd3e0744254b4ccd9d" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "cluster" ("id" SERIAL NOT NULL, "cluster_name" character varying NOT NULL, "cluster_arn" character varying, "cluster_status" character varying, CONSTRAINT "UQ_45ffb6495d51fdc55df46102ce7" UNIQUE ("cluster_name"), CONSTRAINT "PK_b09d39b9491ce5cb1e8407761fd" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."compatibility_name_enum" AS ENUM('EC2', 'EXTERNAL', 'FARGATE')`);
         await queryRunner.query(`CREATE TABLE "compatibility" ("id" SERIAL NOT NULL, "name" "public"."compatibility_name_enum" NOT NULL, CONSTRAINT "UQ_794090c3afd5f43dba2c9fcd631" UNIQUE ("name"), CONSTRAINT "PK_254bde74086e8e3ef50174c3e60" PRIMARY KEY ("id"))`);
@@ -21,9 +21,6 @@ export class awsEcs1639678263049 implements MigrationInterface {
         await queryRunner.query(`CREATE TYPE "public"."task_definition_status_enum" AS ENUM('ACTIVE', 'INACTIVE')`);
         await queryRunner.query(`CREATE TYPE "public"."task_definition_cpu_memory_enum" AS ENUM('0.25vCPU-0.5GB', '0.25vCPU-1GB', '0.25vCPU-2GB', '0.5vCPU-1GB', '0.5vCPU-2GB', '0.5vCPU-3GB', '0.5vCPU-4GB', '1vCPU-2GB', '1vCPU-3GB', '1vCPU-4GB', '1vCPU-5GB', '1vCPU-6GB', '1vCPU-7GB', '1vCPU-8GB', '2vCPU-4GB', '2vCPU-5GB', '2vCPU-6GB', '2vCPU-7GB', '2vCPU-8GB', '2vCPU-9GB', '2vCPU-10GB', '2vCPU-11GB', '2vCPU-12GB', '2vCPU-13GB', '2vCPU-14GB', '2vCPU-15GB', '2vCPU-16GB', '4vCPU-8GB', '4vCPU-9GB', '4vCPU-10GB', '4vCPU-11GB', '4vCPU-12GB', '4vCPU-13GB', '4vCPU-14GB', '4vCPU-15GB', '4vCPU-16GB', '4vCPU-17GB', '4vCPU-18GB', '4vCPU-19GB', '4vCPU-20GB', '4vCPU-21GB', '4vCPU-22GB', '4vCPU-23GB', '4vCPU-24GB', '4vCPU-25GB', '4vCPU-26GB', '4vCPU-27GB', '4vCPU-28GB', '4vCPU-29GB', '4vCPU-30GB')`);
         await queryRunner.query(`CREATE TABLE "task_definition" ("id" SERIAL NOT NULL, "task_definition_arn" character varying, "family" character varying NOT NULL, "revision" integer, "task_role_arn" character varying, "execution_role_arn" character varying, "network_mode" "public"."task_definition_network_mode_enum", "status" "public"."task_definition_status_enum", "cpu_memory" "public"."task_definition_cpu_memory_enum", CONSTRAINT "PK_35a67b870f083fc37a99867de7a" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "aws_vpc_conf_subnets_aws_subnet" ("aws_vpc_conf_id" integer NOT NULL, "aws_subnet_id" integer NOT NULL, CONSTRAINT "PK_91eba2980d920a4ac609a4a466f" PRIMARY KEY ("aws_vpc_conf_id", "aws_subnet_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_818f539e84afc861632a15dfa3" ON "aws_vpc_conf_subnets_aws_subnet" ("aws_vpc_conf_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_57c773d400b4b807bb63e167c5" ON "aws_vpc_conf_subnets_aws_subnet" ("aws_subnet_id") `);
         await queryRunner.query(`CREATE TABLE "aws_vpc_conf_security_groups_aws_security_group" ("aws_vpc_conf_id" integer NOT NULL, "aws_security_group_id" integer NOT NULL, CONSTRAINT "PK_381c06538cc2ceecfc32c5d1d0d" PRIMARY KEY ("aws_vpc_conf_id", "aws_security_group_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_8116cb0c3612c3d1aaffbb8668" ON "aws_vpc_conf_security_groups_aws_security_group" ("aws_vpc_conf_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_aac9c17252dad57f56f18df04c" ON "aws_vpc_conf_security_groups_aws_security_group" ("aws_security_group_id") `);
@@ -50,8 +47,6 @@ export class awsEcs1639678263049 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "service" ADD CONSTRAINT "FK_aeef40fe1f9b32afe23174bb9af" FOREIGN KEY ("aws_vpc_conf_id") REFERENCES "aws_vpc_conf"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "service_load_balancer" ADD CONSTRAINT "FK_fed6565f2a94539d1d57d25f798" FOREIGN KEY ("target_group_id") REFERENCES "aws_target_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "service_load_balancer" ADD CONSTRAINT "FK_363118760aef03b1cfe65809a7c" FOREIGN KEY ("elb_id") REFERENCES "aws_load_balancer"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "aws_vpc_conf_subnets_aws_subnet" ADD CONSTRAINT "FK_818f539e84afc861632a15dfa3e" FOREIGN KEY ("aws_vpc_conf_id") REFERENCES "aws_vpc_conf"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "aws_vpc_conf_subnets_aws_subnet" ADD CONSTRAINT "FK_57c773d400b4b807bb63e167c57" FOREIGN KEY ("aws_subnet_id") REFERENCES "aws_subnet"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "aws_vpc_conf_security_groups_aws_security_group" ADD CONSTRAINT "FK_8116cb0c3612c3d1aaffbb86683" FOREIGN KEY ("aws_vpc_conf_id") REFERENCES "aws_vpc_conf"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "aws_vpc_conf_security_groups_aws_security_group" ADD CONSTRAINT "FK_aac9c17252dad57f56f18df04cb" FOREIGN KEY ("aws_security_group_id") REFERENCES "aws_security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "container_definition_port_mappings_port_mapping" ADD CONSTRAINT "FK_1c9e7dd2ccbf3da95dc83aade5d" FOREIGN KEY ("container_definition_id") REFERENCES "container_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
@@ -64,6 +59,7 @@ export class awsEcs1639678263049 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "task_definition_containers_container_definition" ADD CONSTRAINT "FK_9e80552f2df19a542a657b67595" FOREIGN KEY ("container_definition_id") REFERENCES "container_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" ADD CONSTRAINT "FK_0909ccc9eddf3c92a7772912562" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "task_definition_req_compatibilities_compatibility" ADD CONSTRAINT "FK_f19b7360a189526c59b4387a953" FOREIGN KEY ("compatibility_id") REFERENCES "compatibility"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        // TODO: Double check these
         // Example of use: call create_ecs_cluster('test-sp');
         await queryRunner.query(`
             create or replace procedure create_ecs_cluster(_name text)
@@ -459,8 +455,6 @@ export class awsEcs1639678263049 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "container_definition_port_mappings_port_mapping" DROP CONSTRAINT "FK_1c9e7dd2ccbf3da95dc83aade5d"`);
         await queryRunner.query(`ALTER TABLE "aws_vpc_conf_security_groups_aws_security_group" DROP CONSTRAINT "FK_aac9c17252dad57f56f18df04cb"`);
         await queryRunner.query(`ALTER TABLE "aws_vpc_conf_security_groups_aws_security_group" DROP CONSTRAINT "FK_8116cb0c3612c3d1aaffbb86683"`);
-        await queryRunner.query(`ALTER TABLE "aws_vpc_conf_subnets_aws_subnet" DROP CONSTRAINT "FK_57c773d400b4b807bb63e167c57"`);
-        await queryRunner.query(`ALTER TABLE "aws_vpc_conf_subnets_aws_subnet" DROP CONSTRAINT "FK_818f539e84afc861632a15dfa3e"`);
         await queryRunner.query(`ALTER TABLE "service_load_balancer" DROP CONSTRAINT "FK_363118760aef03b1cfe65809a7c"`);
         await queryRunner.query(`ALTER TABLE "service_load_balancer" DROP CONSTRAINT "FK_fed6565f2a94539d1d57d25f798"`);
         await queryRunner.query(`ALTER TABLE "service" DROP CONSTRAINT "FK_aeef40fe1f9b32afe23174bb9af"`);
@@ -487,9 +481,6 @@ export class awsEcs1639678263049 implements MigrationInterface {
         await queryRunner.query(`DROP INDEX "public"."IDX_aac9c17252dad57f56f18df04c"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_8116cb0c3612c3d1aaffbb8668"`);
         await queryRunner.query(`DROP TABLE "aws_vpc_conf_security_groups_aws_security_group"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_57c773d400b4b807bb63e167c5"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_818f539e84afc861632a15dfa3"`);
-        await queryRunner.query(`DROP TABLE "aws_vpc_conf_subnets_aws_subnet"`);
         await queryRunner.query(`DROP TABLE "task_definition"`);
         await queryRunner.query(`DROP TYPE "public"."task_definition_cpu_memory_enum"`);
         await queryRunner.query(`DROP TYPE "public"."task_definition_status_enum"`);

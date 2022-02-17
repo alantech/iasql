@@ -20,7 +20,7 @@ import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsAccount, AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
 import { AwsLoadBalancer } from '../aws_elb/entity'
-import { awsEcs1639678263049 } from './migration/1639678263049-aws_ecs'
+import { awsEcs1644524364293 } from './migration/1644524364293-aws_ecs'
 
 export const AwsEcsModule: Module = new Module({
   name: 'aws_ecs',
@@ -171,8 +171,7 @@ export const AwsEcsModule: Module = new Module({
           await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, networkConf.securityGroups) ??
             await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, networkConf.securityGroups)
           : []
-        awsVpcConf.subnets = await Promise.all(networkConf.subnets?.map(async (sn: string) =>
-          ctx.memo?.db?.AwsSubnets?.[sn] ?? await AwsAccount.mappers.subnet.db.read(ctx, sn)) ?? []);
+        awsVpcConf.subnets = networkConf.subnets ?? [];
         out.network = awsVpcConf;
       }
       out.schedulingStrategy = s.schedulingStrategy as SchedulingStrategy;
@@ -204,7 +203,7 @@ export const AwsEcsModule: Module = new Module({
       && Object.is(a?.securityGroups?.length, b?.securityGroups?.length)
       && (a?.securityGroups?.every(asg => !!b?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
       && Object.is(a?.subnets?.length, b?.subnets?.length)
-      && (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn.subnetId, bsn.subnetId))) ?? false),
+      && (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false),
   },
   mappers: {
     cluster: new Mapper<Cluster>({
@@ -466,7 +465,6 @@ export const AwsEcsModule: Module = new Module({
               const memory = memoryStr.split('GB')[0];
               input.memory = `${+memory * 1024}`;
             }
-
             const result = await client.createTaskDefinition(input);
             // TODO: Handle if it fails (somehow)
             if (!result?.hasOwnProperty('taskDefinitionArn')) { // Failure
@@ -597,7 +595,6 @@ export const AwsEcsModule: Module = new Module({
             'cluster',
             'task',
             'network',
-            'network.subnets',
             'network.securityGroups',
             'loadBalancers',
             'loadBalancers.targetGroup',
@@ -641,7 +638,7 @@ export const AwsEcsModule: Module = new Module({
             if (e.network) {
               input.networkConfiguration = {
                 awsvpcConfiguration: {
-                  subnets: e.network.subnets.map(sn => sn.subnetId!),
+                  subnets: e.network.subnets,
                   securityGroups: e.network.securityGroups.map(sg => sg.groupId!),
                   assignPublicIp: e.network.assignPublicIp,
                 }
@@ -747,7 +744,7 @@ export const AwsEcsModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEcs1639678263049.prototype.up,
-    preremove: awsEcs1639678263049.prototype.down,
+    postinstall: awsEcs1644524364293.prototype.up,
+    preremove: awsEcs1644524364293.prototype.down,
   },
 });

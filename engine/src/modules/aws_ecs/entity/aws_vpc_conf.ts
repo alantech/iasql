@@ -1,13 +1,12 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
-  ManyToMany,
+  Entity,
   JoinTable,
+  ManyToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 
 import { AwsSecurityGroup, } from '../../aws_security_group/entity';
-import { AwsSubnet, } from '../../aws_account/entity';
 
 export enum AssignPublicIp {
   DISABLED = "DISABLED",
@@ -19,9 +18,8 @@ export class AwsVpcConf {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @ManyToMany(() => AwsSubnet)
-  @JoinTable()
-  subnets: AwsSubnet[];
+  @Column("text", { array: true, })
+  subnets: string[];
 
   @ManyToMany(() => AwsSecurityGroup)
   @JoinTable()

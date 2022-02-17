@@ -217,22 +217,9 @@ describe('ECS Integration Testing', () => {
 
         DO
         $$
-        DECLARE default_vpc text;
-                default_vpc_id integer;
-                subnets text[];
         BEGIN
-            SELECT vpc_id, id INTO default_vpc, default_vpc_id
-            FROM aws_vpc
-            WHERE is_default = true
-            LIMIT 1;
-
-            SELECT ARRAY(
-              SELECT subnet_id
-              FROM aws_subnet
-              WHERE vpc_id = default_vpc_id) INTO subnets;
-
             CALL create_aws_load_balancer(
-              '${serviceLoadBalancerName}', 'internet-facing', default_vpc, 'application', subnets, 'ipv4', array['default']
+              '${serviceLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4', array['default']
             );
         END
         $$;
