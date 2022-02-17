@@ -21,7 +21,7 @@ do $$
     iasql_postgres_image_tag text := '13.4';
     iasql_engine_task_definition text := 'iasql-engine-task-definition';
     iasql_postgres_task_definition text := 'iasql-postgres-task-definition';
-    iasql_ecs_task_execution_role text := 'arn:aws:iam::547931376551:role/AWSECSTaskExecution';
+    iasql_ecs_task_execution_role text := 'arn:aws:iam::<AWS_ACCOUNT_ID>:role/AWSECSTaskExecution';
     iasql_engine_security_group text := 'iasql-engine-security-group';
     iasql_postgres_security_group text := 'iasql-postgres-security-group';
     iasql_engine_service text := 'iasql-engine-service';
@@ -79,7 +79,7 @@ do $$
 
     -- TODO: how to handle better this hard coded policy?
     call create_or_update_ecr_repository_policy(
-      iasql_engine_repository, '{ "Version" : "2012-10-17", "Statement" : [ { "Sid" : "new statement", "Effect" : "Allow", "Principal" : { "AWS" : [ "arn:aws:iam::547931376551:role/AWSECSTaskExecution", "arn:aws:iam::547931376551:user/dfellis", "arn:aws:iam::547931376551:user/aguillenv", "arn:aws:iam::547931376551:user/depombo" ] }, "Action" : [ "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CreateRepository", "ecr:DeleteRepositoryPolicy", "ecr:DescribeImageScanFindings", "ecr:DescribeImages", "ecr:DescribeRepositories", "ecr:GetAuthorizationToken", "ecr:GetDownloadUrlForLayer", "ecr:GetLifecyclePolicy", "ecr:GetLifecyclePolicyPreview", "ecr:GetRepositoryPolicy", "ecr:ListImages", "ecr:ListTagsForResource", "ecr:SetRepositoryPolicy" ] } ]}'
+      iasql_engine_repository, '{ "Version" : "2012-10-17", "Statement" : [ { "Sid" : "new statement", "Effect" : "Allow", "Principal" : { "AWS" : [ "arn:aws:iam::<AWS_ACCOUNT_ID>:role/AWSECSTaskExecution" ] }, "Action" : [ "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CreateRepository", "ecr:DeleteRepositoryPolicy", "ecr:DescribeImageScanFindings", "ecr:DescribeImages", "ecr:DescribeRepositories", "ecr:GetAuthorizationToken", "ecr:GetDownloadUrlForLayer", "ecr:GetLifecyclePolicy", "ecr:GetLifecyclePolicyPreview", "ecr:GetRepositoryPolicy", "ecr:ListImages", "ecr:ListTagsForResource", "ecr:SetRepositoryPolicy" ] } ]}'
     );
 
     call create_or_update_ecs_cluster(iasql_cluster);

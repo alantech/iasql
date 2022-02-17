@@ -82,6 +82,10 @@ pub async fn main() {
       auth::login(false, noninteractive).await;
       let db = db::get_or_input_db(s_matches.value_of("db")).await;
       db::new(&db, noninteractive).await;
+      if !noninteractive {
+        let modules = module::mods_to_install(&db, None).await;
+        module::install(&db, modules, noninteractive).await;
+      }
     }
     ("import", Some(s_matches)) => {
       let noninteractive = s_matches.is_present("noninteractive");

@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEc21643082760075 implements MigrationInterface {
-    name = 'awsEc21643082760075'
+export class awsEc21644618103194 implements MigrationInterface {
+    name = 'awsEc21644618103194'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "boot_mode" ("id" SERIAL NOT NULL, "mode" character varying NOT NULL, CONSTRAINT "UQ_88a9fac6831af2d520a0947c113" UNIQUE ("mode"), CONSTRAINT "PK_114728d4fa02f297923c52ae1e3" PRIMARY KEY ("id"))`);
@@ -41,7 +41,7 @@ export class awsEc21643082760075 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "virtualization_type" ("id" SERIAL NOT NULL, "virtualization_type" character varying NOT NULL, CONSTRAINT "UQ_0d05e6087e782c5a437b40d8d2b" UNIQUE ("virtualization_type"), CONSTRAINT "PK_d798c8354c1647240be159f6f56" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."instance_type_hypervisor_enum" AS ENUM('nitro', 'xen')`);
         await queryRunner.query(`CREATE TABLE "instance_type" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "current_generation" boolean NOT NULL, "free_tier_eligible" boolean NOT NULL, "bare_metal" boolean NOT NULL, "hypervisor" "public"."instance_type_hypervisor_enum", "memory_size_in_mi_b" numeric NOT NULL, "instance_storage_supported" boolean NOT NULL, "hibernation_supported" boolean NOT NULL, "burstable_performance_supported" boolean NOT NULL, "dedicated_hosts_supported" boolean NOT NULL, "auto_recovery_supported" boolean NOT NULL, "processor_info_id" integer, "v_cpu_info_id" integer, "instance_storage_info_id" integer, "ebs_info_id" integer, "network_info_id" integer, "gpu_info_id" integer, "fpga_info_id" integer, "placement_group_info_id" integer, "inference_accelerator_info_id" integer, CONSTRAINT "PK_2ff067127c52f0f23049642883a" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "instance" ("id" SERIAL NOT NULL, "instance_id" character varying, "ami" character varying NOT NULL, "instance_type_id" integer NOT NULL, CONSTRAINT "PK_eaf60e4a0c399c9935413e06474" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "instance" ("id" SERIAL NOT NULL, "instance_id" character varying, "ami" character varying NOT NULL, "name" character varying NOT NULL, "instance_type_id" integer NOT NULL, CONSTRAINT "UQ_7517ace937bf54b1902089eedf0" UNIQUE ("name"), CONSTRAINT "PK_eaf60e4a0c399c9935413e06474" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "product_code" ("id" SERIAL NOT NULL, "product_code_id" character varying, "product_code_type" character varying, CONSTRAINT "PK_6f2664014f87822b6a6b9ad1c95" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "state_reason" ("id" SERIAL NOT NULL, "code" character varying NOT NULL, "message" character varying NOT NULL, CONSTRAINT "PK_09ff61ed06d22468a89038dea9b" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "tag" ("id" SERIAL NOT NULL, "key" character varying NOT NULL, "value" character varying NOT NULL, CONSTRAINT "PK_8e4052373c579afc1471f526760" PRIMARY KEY ("id"))`);
@@ -140,24 +140,26 @@ export class awsEc21643082760075 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "instance_type_availability_zones_availability_zone" ADD CONSTRAINT "FK_412917c37df7b4fd87130c5b328" FOREIGN KEY ("availability_zone_id") REFERENCES "availability_zone"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups_aws_security_group" ADD CONSTRAINT "FK_ee3dfb3bef7cf8a5123b107167c" FOREIGN KEY ("instance_id") REFERENCES "instance"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups_aws_security_group" ADD CONSTRAINT "FK_0bc4c00d7c86a81c48482a2773d" FOREIGN KEY ("aws_security_group_id") REFERENCES "aws_security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        // Example of use: call create_ec2_instance('ami-0fdffa9be142bf7f4', 't2.micro', array['default'])
+        // Example of use: call create_or_update_ec2_instance('i-1', 'ami-0fdffa9be142bf7f4', 't2.micro', array['default'])
         await queryRunner.query(`
-            create or replace procedure create_ec2_instance(_ami_id text, _instance_type text, _security_group_names text[])
+            create or replace procedure create_or_update_ec2_instance(_instance_name text, _ami_id text, _instance_type text, _security_group_names text[])
             language plpgsql
             as $$
                 declare
-                    instance_type_id integer;
+                    instance_type_id_val integer;
                     instance_id integer;
                     sg record;
                 begin
-                    select id into instance_type_id
+                    select id into instance_type_id_val
                     from instance_type
                     where name = _instance_type;
 
                     insert into instance
-                        (ami, instance_type_id)
+                        (ami, instance_type_id, name)
                     values
-                        (_ami_id, instance_type_id);
+                        (_ami_id, instance_type_id_val, _instance_name)
+                    on conflict (name)
+                    do update set ami = _ami_id, instance_type_id = instance_type_id_val;
             
                     select id into instance_id
                     from instance
@@ -172,7 +174,8 @@ export class awsEc21643082760075 implements MigrationInterface {
                         insert into
                             instance_security_groups_aws_security_group (instance_id, aws_security_group_id)
                         values
-                            (instance_id, sg.id);
+                            (instance_id, sg.id)
+                        on conflict do nothing;
                     end loop;
 
                     raise info 'ec2_instance_id = %', instance_id;
@@ -182,7 +185,7 @@ export class awsEc21643082760075 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP procedure create_ec2_instance;`);
+        await queryRunner.query(`DROP PROCEDURE create_or_update_ec2_instance`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups_aws_security_group" DROP CONSTRAINT "FK_0bc4c00d7c86a81c48482a2773d"`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups_aws_security_group" DROP CONSTRAINT "FK_ee3dfb3bef7cf8a5123b107167c"`);
         await queryRunner.query(`ALTER TABLE "instance_type_availability_zones_availability_zone" DROP CONSTRAINT "FK_412917c37df7b4fd87130c5b328"`);

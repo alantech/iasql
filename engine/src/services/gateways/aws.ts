@@ -144,6 +144,8 @@ type AWSConfig = {
   region: string
 }
 
+export const IASQL_EC2_TAG_NAME = 'IaSQL_Name';
+
 export class AWS {
   private ec2client: EC2Client
   private ecrClient: ECRClient
@@ -168,7 +170,7 @@ export class AWS {
     this.ecrPubClient = new ECRPUBLICClient({credentials: config.credentials, region: 'us-east-1'});
   }
 
-  async newInstance(instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
+  async newInstance(name: string, instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
     const instanceParams = {
       ImageId: amiId,
       InstanceType: instanceType,
@@ -178,7 +180,10 @@ export class AWS {
       TagSpecifications: [
         {
           ResourceType: 'instance',
-          Tags: [{ Key: 'owner', Value: 'iasql-change-engine' }],
+          Tags: [
+            { Key: IASQL_EC2_TAG_NAME, Value: name },
+            { Key: 'owner', Value: 'iasql-change-engine' },
+          ],
         },
       ],
       UserData: undefined,

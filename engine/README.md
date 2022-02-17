@@ -251,7 +251,7 @@ Following this logic, the next time we execute again the `iasql-on-iasql.sql` sc
 - Login to ECR repository. Probably you will need to update this command if you have your `iasql` org credentials in an specific profile passing the `--profile` option.
 
   ```sh
-  aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 547931376551.dkr.ecr.us-east-2.amazonaws.com
+  aws ecr get-login-password --region ${AWS_REGION}| docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
   ```
 
 - Build image (Optional)
@@ -263,11 +263,11 @@ Following this logic, the next time we execute again the `iasql-on-iasql.sql` sc
 - Tag image. Replace the first argument if your local image has another name
 
   ```sh
-  docker tag iasql-engine-repository:latest 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository:latest
+  docker tag iasql-engine-repository:latest ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/iasql-engine-repository:latest
   ```
 
 - Push image
 
   ```sh
-  docker push 547931376551.dkr.ecr.us-east-2.amazonaws.com/iasql-engine-repository:latest
+  docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/iasql-engine-repository:latest
   ```
