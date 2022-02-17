@@ -37,6 +37,7 @@ fn get_url() -> &'static str {
   let env = std::env::var("IASQL_ENV").unwrap_or(default.to_string());
   match env.as_str() {
     "local" => "http://localhost:8088",
+    "staging" => "https://api-staging.iasql.com",
     _ => "https://api.iasql.com",
   }
 }
