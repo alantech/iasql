@@ -1,13 +1,10 @@
 import {
   Column,
   Entity,
-  JoinColumn,
   JoinTable,
   ManyToMany,
-  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { InstanceType, } from './instance_type'
 // TODO: Is there a better way to deal with cross-module entities?
 import { AwsSecurityGroup, } from '../../aws_security_group/entity';
 
@@ -30,11 +27,8 @@ export class Instance {
   })
   name: string;
 
-  @ManyToOne(() => InstanceType, { eager: true, nullable: false })
-  @JoinColumn({
-    name: 'instance_type_id',
-  })
-  instanceType: InstanceType;
+  @Column()
+  instanceType: string;
 
   @ManyToMany(() => AwsSecurityGroup, { eager: true, })
   @JoinTable()

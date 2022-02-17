@@ -33,16 +33,8 @@ describe('RDS Integration Testing', () => {
   it('applies the change', apply);
 
   it('changes the postgres version', query(`
-    WITH ver AS (
-      SELECT id
-      FROM engine_version
-      WHERE engine = 'postgres'
-      AND engine_version = '13.5'
-      LIMIT 1
-    )
     UPDATE rds
-    SET engine_version_id = ver.id
-    FROM ver
+    SET engine = '13.5'
     WHERE db_instance_identifier = '${prefix}test';
   `));
 

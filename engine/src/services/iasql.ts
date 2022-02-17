@@ -59,10 +59,7 @@ export async function add(
       INSERT INTO iasql_module VALUES ('aws_account')
     `);
     await conn2.query(`
-      INSERT INTO region (name, endpoint, opt_in_status) VALUES ('${awsRegion}', '', false)
-    `);
-    await conn2.query(`
-      INSERT INTO aws_account (access_key_id, secret_access_key, region_id) VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', 1)
+      INSERT INTO aws_account (access_key_id, secret_access_key, region) VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}')
     `);
     console.log('Loading aws_account data...');
     // Manually load the relevant data from the cloud side for the `aws_account` module.
@@ -203,12 +200,9 @@ export async function load(
     console.log('Restoring schema and data from dump...');
     await conn2.query(dumpStr);
     // Update aws_account schema
-    const regions = await conn2.query(`
-      SELECT id from public.region WHERE name = '${awsRegion}' LIMIT 1;
-    `);
     await conn2.query(`
       UPDATE public.aws_account
-      SET access_key_id = '${awsAccessKeyId}', secret_access_key = '${awsSecretAccessKey}', region_id = '${regions[0].id}'
+      SET access_key_id = '${awsAccessKeyId}', secret_access_key = '${awsSecretAccessKey}', region = '${awsRegion}'
       WHERE id = 1;
     `);
     // Grant permissions

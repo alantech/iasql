@@ -1,6 +1,8 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, } from 'typeorm'
-
-import { Region, } from './region'
+import {
+  Column,
+  Entity,
+  PrimaryGeneratedColumn,
+} from 'typeorm'
 
 @Entity({
   name: 'aws_account',
@@ -15,10 +17,7 @@ export class AwsAccountEntity {
   @Column()
   secretAccessKey: string;
 
-  @ManyToOne(() => Region, { eager: true, })
-  @JoinColumn({
-    name: 'region_id',
-  })
-  region: Region;
+  @Column()
+  region: string;
 }
 

@@ -30,22 +30,15 @@ describe('EC2 Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('adds two ec2 instance', (done) => {
-    let recordId = -1;
-    query(`SELECT id FROM instance_type WHERE name = 't2.micro';`, (res: any[]) => {
-      expect(res.length).toBe(1);
-      recordId = res[0].id;
-    })((e?: any) => {
+    // TODO get inserts without sp to work
+    // INSERT INTO instance (ami, instance_type_id)
+    // VALUES ('${ubuntuAmiId}', ${recordId}), ('${amznAmiId}', ${recordId});
+    query(`
+      CALL create_or_update_ec2_instance('i-1', '${ubuntuAmiId}', 't2.micro', array['default']);
+      CALL create_or_update_ec2_instance('i-2', '${amznAmiId}', 't2.micro', array['default']);
+    `)((e?: any) => {
       if (!!e) return done(e);
-      // TODO get inserts without sp to work
-      // INSERT INTO instance (ami, instance_type_id)
-      // VALUES ('${ubuntuAmiId}', ${recordId}), ('${amznAmiId}', ${recordId});
-      query(`
-        CALL create_or_update_ec2_instance('i-1', '${ubuntuAmiId}', 't2.micro', array['default']);
-        CALL create_or_update_ec2_instance('i-2', '${amznAmiId}', 't2.micro', array['default']);
-      `)((e?: any) => {
-        if (!!e) return done(e);
-        done();
-      });
+      done();
     });
   });
 

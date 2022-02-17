@@ -1,16 +1,12 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
-  JoinColumn,
-  ManyToOne,
-  ManyToMany,
+  Entity,
   JoinTable,
+  ManyToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm'
 
-import { AvailabilityZone, } from '../../aws_account/entity'
 import { AwsSecurityGroup, } from '../../aws_security_group/entity'
-import { EngineVersion, } from './engine_version'
 
 @Entity()
 export class RDS {
@@ -31,11 +27,8 @@ export class RDS {
   })
   allocatedStorage: number;
 
-  @ManyToOne(() => AvailabilityZone, { nullable: false, })
-  @JoinColumn({
-    name: 'availability_zone_id',
-  })
-  availabilityZone: AvailabilityZone;
+  @Column()
+  availabilityZone: string;
 
   // TODO: make this an entity eventually?
   // @ManyToOne(() => DBInstanceClass, { eager: true, })
@@ -45,11 +38,8 @@ export class RDS {
   @Column()
   dbInstanceClass: string;
 
-  @ManyToOne(() => EngineVersion)
-  @JoinColumn({
-    name: 'engine_version_id'
-  })
-  engine: EngineVersion;
+  @Column()
+  engine: string;
 
   // ? How to handle this? It is used just for creation and if an update is needed. After creation / update the value is removed from db
   // TODO: Apply constraints?
