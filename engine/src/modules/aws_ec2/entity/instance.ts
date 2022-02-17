@@ -22,6 +22,11 @@ export class Instance {
   @Column()
   ami: string;
 
+  @Column({
+    unique: true,
+  })
+  name: string;
+
   @Column()
   instanceType: string;
 

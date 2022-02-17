@@ -4,7 +4,7 @@ import { In, } from 'typeorm'
 import * as allEntities from './entity'
 import { Instance, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
-import { AWS, } from '../../services/gateways/aws'
+import { AWS, IASQL_EC2_TAG_NAME } from '../../services/gateways/aws'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsEc21644465928055 } from './migration/1644465928055-aws_ec2'
 
@@ -21,6 +21,8 @@ export const AwsEc2Module: Module = new Module({
     instanceMapper: async (instance: InstanceAWS, ctx: Context) => {
       const out = new Instance();
       out.instanceId = instance.InstanceId;
+      // for instances created outside IaSQL, set the name to the instance ID
+      out.name = instance.Tags?.filter(t => t.Key === IASQL_EC2_TAG_NAME && t.Value !== undefined).pop()?.Value ?? (instance.InstanceId ?? '');
       out.ami = instance.ImageId ?? '';
       out.instanceType = instance.InstanceType ?? '';
       if (!out.instanceType) throw new Error('Cannot create Instance object without a valid InstanceType in the Database');
@@ -34,16 +36,17 @@ export const AwsEc2Module: Module = new Module({
   mappers: {
     instance: new Mapper<Instance>({
       entity: Instance,
-      // fallback to our id when the instance hasn't been created
-      entityId: (i: Instance) => i.instanceId ?? (i.id?.toString() ?? ''),
+      entityId: (i: Instance) => i.instanceId ?? i.name,
       entityPrint: (e: Instance) => ({
+        name: e.name,
         id: e.id?.toString() ?? '',
         instanceId: e.instanceId ?? '',
         ami: e.ami ?? '',
         instanceType: e.instanceType ?? '',
         securityGroups: e.securityGroups?.map(sg => sg.groupName ?? '').join(', '),
       }),
-      equals: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
+      equals: (a: Instance, b: Instance) => Object.is(a.name, b.name) &&
+        Object.is(a.instanceId, b.instanceId) &&
         Object.is(a.ami, b.ami) &&
         Object.is(a.instanceType, b.instanceType) &&
         Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
@@ -65,6 +68,7 @@ export const AwsEc2Module: Module = new Module({
           for (const instance of es) {
             if (instance.ami) {
               const instanceId = await client.newInstance(
+                instance.name,
                 instance.instanceType,
                 instance.ami,
                 instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[],
@@ -88,8 +92,14 @@ export const AwsEc2Module: Module = new Module({
             .map(i => AwsEc2Module.utils.instanceMapper(i, ctx))
           );
         },
-        // The second pass should remove the old instances
-        update: (e: Instance[], ctx: Context) => AwsEc2Module.mappers.instance.cloud.create(e, ctx),
+        update: async (es: Instance[], ctx: Context) => {
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? e.name];
+            const created = AwsEc2Module.mappers.instance.cloud.create([e], ctx);
+            await AwsEc2Module.mappers.instance.cloud.delete([cloudRecord], ctx);
+            return created;
+          }));
+        },
         delete: async (es: Instance[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const entity of es) {
