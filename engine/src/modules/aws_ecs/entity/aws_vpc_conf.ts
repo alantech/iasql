@@ -18,7 +18,7 @@ export class AwsVpcConf {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @Column("text", { array: true, })
+  @Column("text", { array: true, nullable: true, })
   subnets: string[];
 
   @ManyToMany(() => AwsSecurityGroup)

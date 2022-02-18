@@ -18,7 +18,7 @@ import {
 } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { AwsAccount, AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
+import { AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule, } from '..'
 import { AwsLoadBalancer } from '../aws_elb/entity'
 import { awsEcs1644524364293 } from './migration/1644524364293-aws_ecs'
 

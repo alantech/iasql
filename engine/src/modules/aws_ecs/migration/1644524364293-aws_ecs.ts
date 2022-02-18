@@ -297,8 +297,8 @@ export class awsEcs1644524364293 implements MigrationInterface {
                 _desired_count integer,
                 _launch_type service_launch_type_enum,
                 _scheduling_strategy service_scheduling_strategy_enum,
-                _subnet_ids text[],
-                _secutiry_group_names text[],
+                _subnet_ids text[] default null,
+                _security_group_names text[],
                 _assign_public_ip aws_vpc_conf_assign_public_ip_enum,
                 _target_group_name text default null,
                 _load_balancer_name text default null
@@ -308,7 +308,6 @@ export class awsEcs1644524364293 implements MigrationInterface {
                 declare
                     service_id integer;
                     task_def_id integer;
-                    sn_id integer;
                     aws_vpc_conf_id integer;
                     cluster_id integer;
                     elb_id integer;
@@ -316,7 +315,6 @@ export class awsEcs1644524364293 implements MigrationInterface {
                     c_name text;
                     c_port integer;
                     service_load_balancer_id integer;
-                    sn record;
                     sg record;
                 begin
                     select id into service_id
@@ -326,36 +324,20 @@ export class awsEcs1644524364293 implements MigrationInterface {
                     limit 1;
             
                     if service_id is null then
-                        select id into sn_id
-                        from aws_subnet
-                        where subnet_id = any(_subnet_ids)
-                        limit 1;
-            
                         insert into aws_vpc_conf
-                            (assign_public_ip)
+                            (assign_public_ip, subnets)
                         values
-                            (_assign_public_ip);
+                            (_assign_public_ip, _subnet_ids);
             
                         select id into aws_vpc_conf_id
                         from aws_vpc_conf
                         order by id desc
                         limit 1;
             
-                        for sn in
-                            select id
-                            from aws_subnet
-                            where subnet_id = any(_subnet_ids)
-                        loop
-                            insert into aws_vpc_conf_subnets_aws_subnet
-                                (aws_vpc_conf_id, aws_subnet_id)
-                            values
-                                (aws_vpc_conf_id, sn.id);
-                        end loop;
-            
                         for sg in
                             select id
                             from aws_security_group
-                            where group_name = any(_secutiry_group_names)
+                            where group_name = any(_security_group_names)
                         loop
                             insert into aws_vpc_conf_security_groups_aws_security_group
                                 (aws_vpc_conf_id, aws_security_group_id)
