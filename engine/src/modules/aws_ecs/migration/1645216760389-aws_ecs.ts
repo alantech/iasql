@@ -288,7 +288,7 @@ export class awsEcs1645216760389 implements MigrationInterface {
             end;
             $$;
         `);
-        // Example of use: call create_ecs_service('test-12345', 'iasql', 'postgres:3', 1, 'FARGATE', 'REPLICA', array['subnet-68312820'], array['default'], 'ENABLED', 'iasql-postgresql', 'iasql-postgresql');
+        // Example of use: call create_ecs_service('test-12345', 'iasql', 'postgres:3', 1, 'FARGATE', 'REPLICA', array['default'], 'ENABLED', array['subnet-68312820'], 'iasql-postgresql', 'iasql-postgresql');
         await queryRunner.query(`
             create or replace procedure create_ecs_service(
                 _name text,
@@ -297,9 +297,9 @@ export class awsEcs1645216760389 implements MigrationInterface {
                 _desired_count integer,
                 _launch_type service_launch_type_enum,
                 _scheduling_strategy service_scheduling_strategy_enum,
-                _subnet_ids text[] default null,
                 _security_group_names text[],
                 _assign_public_ip aws_vpc_conf_assign_public_ip_enum,
+                _subnet_ids text[] default null,
                 _target_group_name text default null,
                 _load_balancer_name text default null
             )
