@@ -82,7 +82,7 @@ do $$
 
     call create_ecs_service(
       iasql_engine_service, iasql_cluster, iasql_engine_task_definition, iasql_engine_service_desired_count, 'FARGATE',
-      'REPLICA', array[], array[iasql_engine_security_group], 'ENABLED', iasql_engine_target_group
+      'REPLICA', array[iasql_engine_security_group], 'ENABLED', null, iasql_engine_target_group
     );
 
     call create_aws_security_group(
