@@ -269,8 +269,8 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
-    const mappers = Object.values(Modules)
-      .filter(mod => moduleNames.includes(mod.name))
+    const mappers = (Object.values(Modules) as Modules.ModuleInterface[])
+      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`))
       .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
       .flat()
       .filter(mapper => mapper.source === 'db');
@@ -838,7 +838,7 @@ ${Object.keys(tableCollisions)
         }
         if (!e || (Array.isArray(e) && !e.length)) {
           console.log('Completely unexpected outcome');
-          console.log({ mapper, e, });
+          console.log({ mapper, e, context, });
         } else {
           try {
             await mapper.db.create(e, context);
