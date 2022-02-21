@@ -879,7 +879,7 @@ export async function uninstall(moduleList: string[], dbAlias: string, user: any
   // See what modules are already uninstalled and prune them from the list
   const existingModules = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
   for (let i = 0; i < mods.length; i++) {
-    if (!existingModules.includes(mods[i].name)) {
+    if (!existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
       mods.splice(i, 1);
       i--;
     }
@@ -888,7 +888,7 @@ export async function uninstall(moduleList: string[], dbAlias: string, user: any
   if (mods.length === 0) {
     throw new Error("All modules already uninstalled.");
   }
-  const remainingModules = existingModules.filter((m: string) => !mods.some(m2 => m2.name === m));
+  const remainingModules = existingModules.filter((m: string) => !mods.some(m2 => `${m2.name}@${m2.version}` === m));
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(mods, remainingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
@@ -906,7 +906,7 @@ export async function uninstall(moduleList: string[], dbAlias: string, user: any
       if (md.migrations?.postremove) {
         await md.migrations.postremove(queryRunner);
       }
-      const e = await orm.findOne(IasqlModule, { name: md.name, });
+      const e = await orm.findOne(IasqlModule, { name: `${md.name}@${md.version}`, });
       await orm.remove(IasqlModule, e);
     }
     await queryRunner.commitTransaction();
