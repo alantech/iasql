@@ -18,9 +18,9 @@ import {
 } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { AwsAccount, AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
+import { AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule, } from '..'
 import { AwsLoadBalancer } from '../aws_elb/entity'
-import { awsEcs1644524364293 } from './migration/1644524364293-aws_ecs'
+import { awsEcs1645216760389, } from './migration/1645216760389-aws_ecs'
 
 export const AwsEcsModule: Module = new Module({
   name: 'aws_ecs',
@@ -744,7 +744,7 @@ export const AwsEcsModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEcs1644524364293.prototype.up,
-    preremove: awsEcs1644524364293.prototype.down,
+    postinstall: awsEcs1645216760389.prototype.up,
+    preremove: awsEcs1645216760389.prototype.down,
   },
 });

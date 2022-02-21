@@ -1,11 +1,11 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEcs1644524364293 implements MigrationInterface {
-    name = 'awsEcs1644524364293'
+export class awsEcs1645216760389 implements MigrationInterface {
+    name = 'awsEcs1645216760389'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."aws_vpc_conf_assign_public_ip_enum" AS ENUM('DISABLED', 'ENABLED')`);
-        await queryRunner.query(`CREATE TABLE "aws_vpc_conf" ("id" SERIAL NOT NULL, "subnets" text array NOT NULL, "assign_public_ip" "public"."aws_vpc_conf_assign_public_ip_enum", CONSTRAINT "PK_23873df17bd3e0744254b4ccd9d" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "aws_vpc_conf" ("id" SERIAL NOT NULL, "subnets" text array, "assign_public_ip" "public"."aws_vpc_conf_assign_public_ip_enum", CONSTRAINT "PK_23873df17bd3e0744254b4ccd9d" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "cluster" ("id" SERIAL NOT NULL, "cluster_name" character varying NOT NULL, "cluster_arn" character varying, "cluster_status" character varying, CONSTRAINT "UQ_45ffb6495d51fdc55df46102ce7" UNIQUE ("cluster_name"), CONSTRAINT "PK_b09d39b9491ce5cb1e8407761fd" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."compatibility_name_enum" AS ENUM('EC2', 'EXTERNAL', 'FARGATE')`);
         await queryRunner.query(`CREATE TABLE "compatibility" ("id" SERIAL NOT NULL, "name" "public"."compatibility_name_enum" NOT NULL, CONSTRAINT "UQ_794090c3afd5f43dba2c9fcd631" UNIQUE ("name"), CONSTRAINT "PK_254bde74086e8e3ef50174c3e60" PRIMARY KEY ("id"))`);
@@ -288,7 +288,7 @@ export class awsEcs1644524364293 implements MigrationInterface {
             end;
             $$;
         `);
-        // Example of use: call create_ecs_service('test-12345', 'iasql', 'postgres:3', 1, 'FARGATE', 'REPLICA', array['subnet-68312820'], array['default'], 'ENABLED', 'iasql-postgresql', 'iasql-postgresql');
+        // Example of use: call create_ecs_service('test-12345', 'iasql', 'postgres:3', 1, 'FARGATE', 'REPLICA', array['default'], 'ENABLED', array['subnet-68312820'], 'iasql-postgresql', 'iasql-postgresql');
         await queryRunner.query(`
             create or replace procedure create_ecs_service(
                 _name text,
@@ -297,9 +297,9 @@ export class awsEcs1644524364293 implements MigrationInterface {
                 _desired_count integer,
                 _launch_type service_launch_type_enum,
                 _scheduling_strategy service_scheduling_strategy_enum,
-                _subnet_ids text[],
-                _secutiry_group_names text[],
+                _security_group_names text[],
                 _assign_public_ip aws_vpc_conf_assign_public_ip_enum,
+                _subnet_ids text[] default null,
                 _target_group_name text default null,
                 _load_balancer_name text default null
             )
@@ -308,7 +308,6 @@ export class awsEcs1644524364293 implements MigrationInterface {
                 declare
                     service_id integer;
                     task_def_id integer;
-                    sn_id integer;
                     aws_vpc_conf_id integer;
                     cluster_id integer;
                     elb_id integer;
@@ -316,7 +315,6 @@ export class awsEcs1644524364293 implements MigrationInterface {
                     c_name text;
                     c_port integer;
                     service_load_balancer_id integer;
-                    sn record;
                     sg record;
                 begin
                     select id into service_id
@@ -326,36 +324,20 @@ export class awsEcs1644524364293 implements MigrationInterface {
                     limit 1;
             
                     if service_id is null then
-                        select id into sn_id
-                        from aws_subnet
-                        where subnet_id = any(_subnet_ids)
-                        limit 1;
-            
                         insert into aws_vpc_conf
-                            (assign_public_ip)
+                            (assign_public_ip, subnets)
                         values
-                            (_assign_public_ip);
+                            (_assign_public_ip, _subnet_ids);
             
                         select id into aws_vpc_conf_id
                         from aws_vpc_conf
                         order by id desc
                         limit 1;
             
-                        for sn in
-                            select id
-                            from aws_subnet
-                            where subnet_id = any(_subnet_ids)
-                        loop
-                            insert into aws_vpc_conf_subnets_aws_subnet
-                                (aws_vpc_conf_id, aws_subnet_id)
-                            values
-                                (aws_vpc_conf_id, sn.id);
-                        end loop;
-            
                         for sg in
                             select id
                             from aws_security_group
-                            where group_name = any(_secutiry_group_names)
+                            where group_name = any(_security_group_names)
                         loop
                             insert into aws_vpc_conf_security_groups_aws_security_group
                                 (aws_vpc_conf_id, aws_security_group_id)
