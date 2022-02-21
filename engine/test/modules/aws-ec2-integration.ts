@@ -25,7 +25,7 @@ describe('EC2 Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the ec2 module', (done) => void iasql.install(
-    ['aws_ec2', 'aws_security_group'],
+    ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -67,12 +67,12 @@ describe('EC2 Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('uninstalls the ec2 module', (done) => void iasql.uninstall(
-    ['aws_ec2', 'aws_security_group'],
+    ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('installs the ec2 module', (done) => void iasql.install(
-    ['aws_ec2', 'aws_security_group'],
+    ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 

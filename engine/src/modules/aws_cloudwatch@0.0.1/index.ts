@@ -8,7 +8,8 @@ import { awsCloudwatch1638980988627 } from './migration/1638980988627-aws_cloudw
 
 export const AwsCloudwatchModule: Module = new Module({
   name: 'aws_cloudwatch',
-  dependencies: ['aws_account'],
+  version: '0.0.1',
+  dependencies: ['aws_account@0.0.1'],
   provides: {
     entities: allEntities,
     tables: ['log_group',],

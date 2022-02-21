@@ -1,5 +1,5 @@
 import { LoadBalancerStateEnum } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { IpAddressType, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEnum, TargetTypeEnum } from '../../src/modules/aws_elb/entity';
+import { IpAddressType, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEnum, TargetTypeEnum } from '../../src/modules/aws_elb@0.0.1/entity';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
 
@@ -33,7 +33,7 @@ describe('ELB Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the elb module', (done) => void iasql.install(
-    ['aws_security_group', 'aws_elb'],
+    ['aws_security_group@0.0.1', 'aws_elb@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 

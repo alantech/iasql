@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 // TODO: Is there a better way to deal with cross-module entities?
-import { AwsSecurityGroup, } from '../../aws_security_group/entity';
+import { AwsSecurityGroup, } from '../../aws_security_group@0.0.1/entity';
 
 // TODO complete instance schema
 @Entity()

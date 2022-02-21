@@ -10,7 +10,8 @@ import { awsRds1644523981372, } from './migration/1644523981372-aws_rds'
 
 export const AwsRdsModule: Module = new Module({
   name: 'aws_rds',
-  dependencies: ['aws_account', 'aws_security_group',],
+  version: '0.0.1',
+  dependencies: ['aws_account@0.0.1', 'aws_security_group@0.0.1',],
   provides: {
     entities: allEntities,
     tables: ['engine_version', 'rds',],

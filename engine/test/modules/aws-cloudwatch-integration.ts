@@ -21,7 +21,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the cloudwatch module', (done) => void iasql.install(
-    ['aws_cloudwatch'],
+    ['aws_cloudwatch@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 

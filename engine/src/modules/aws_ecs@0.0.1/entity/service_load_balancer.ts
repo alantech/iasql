@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm'
 
-import { AwsLoadBalancer, AwsTargetGroup, } from '../../aws_elb/entity'
+import { AwsLoadBalancer, AwsTargetGroup, } from '../../aws_elb@0.0.1/entity'
 
 @Entity()
 export class ServiceLoadBalancer {

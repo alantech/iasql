@@ -6,7 +6,7 @@ import {
   JoinTable,
 } from 'typeorm'
 
-import { AwsSecurityGroup } from '../../aws_security_group/entity'
+import { AwsSecurityGroup } from '../../aws_security_group@0.0.1/entity'
 
 export enum LoadBalancerSchemeEnum {
   INTERNAL = "internal",
