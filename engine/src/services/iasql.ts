@@ -487,8 +487,8 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
     // Get the mappers, regardless of source-of-truth
-    const mappers = Object.values(Modules)
-      .filter(mod => moduleNames.includes(mod.name))
+    const mappers = (Object.values(Modules) as Modules.ModuleInterface[])
+      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`))
       .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
       .flat();
     const t2 = Date.now();
