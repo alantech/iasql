@@ -859,10 +859,10 @@ ${Object.keys(tableCollisions)
 export async function uninstall(moduleList: string[], dbAlias: string, user: any) {
   const { dbId } = await dbMan.getMetadata(dbAlias, user);
   // Check to make sure that all specified modules actually exist
-  const mods = moduleList.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
+  const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as Modules.ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {
     throw new Error(`The following modules do not exist: ${
-      moduleList.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
+      moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
     }`);
   }
   // Grab all of the entities from the module plus the IaSQL Module entity itself and create the
