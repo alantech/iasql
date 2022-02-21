@@ -11,7 +11,8 @@ import { awsEcr1644462123596, } from './migration/1644462123596-aws_ecr'
 
 export const AwsEcrModule: Module = new Module({
   name: 'aws_ecr',
-  dependencies: ['aws_account'],
+  version: '0.0.1',
+  dependencies: ['aws_account@0.0.1'],
   provides: {
     entities: allEntities,
     tables: ['aws_repository', 'aws_repository_policy', 'aws_public_repository',],

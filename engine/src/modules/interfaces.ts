@@ -233,7 +233,7 @@ export class Mapper<E> {
 
 export interface ModuleInterface {
   name: string;
-  // version: string; // TODO: Get versioning working
+  version: string;
   dependencies: string[];
   provides: {
     entities: { [key: string]: any, };
@@ -291,7 +291,7 @@ export interface ModuleInterface {
 // This is just a no-op class at the moment. Not strictly necessary but keeps things consistent
 export class Module {
   name: string;
-  // version: string; // TODO: Get versioning working
+  version: string;
   dependencies: string[];
   provides: {
     entities: { [key: string]: any, };
@@ -314,7 +314,7 @@ export class Module {
 
   constructor(def: ModuleInterface) {
     this.name = def.name;
-    // this.version = def.version;
+    this.version = def.version;
     this.dependencies = def.dependencies;
     this.provides = def.provides;
     this.utils = def?.utils ?? {};

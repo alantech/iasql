@@ -3,14 +3,15 @@ import { In, } from 'typeorm'
 
 import * as allEntities from './entity'
 import { Instance, } from './entity'
-import { AwsSecurityGroupModule, } from '../aws_security_group'
+import { AwsSecurityGroupModule, } from '../aws_security_group@0.0.1'
 import { AWS, IASQL_EC2_TAG_NAME } from '../../services/gateways/aws'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { awsEc21645131850358, } from './migration/1645131850358-aws_ec2'
 
 export const AwsEc2Module: Module = new Module({
   name: 'aws_ec2',
-  dependencies: ['aws_account', 'aws_security_group'],
+  version: '0.0.1',
+  dependencies: ['aws_account@0.0.1', 'aws_security_group@0.0.1'],
   provides: {
     entities: allEntities,
     tables: [

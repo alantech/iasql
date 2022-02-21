@@ -14,7 +14,7 @@ export const sortModules = (modules: ModuleInterface[], existingModules: string[
       (m.dependencies.length ?? 0) === 0 ||
       m.dependencies.every(dep => sortedModuleNames[dep])
     ) {
-      sortedModuleNames[m.name] = true;
+      sortedModuleNames[`${m.name}@${m.version}`] = true;
       sortedModules.push(m);
     } else {
       moduleList.push(m);
