@@ -22,10 +22,7 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
                     json_rule jsonb;
                 begin
                     if _vpc_id is null then
-                        select vpc_id into _vpc_id
-                        from aws_vpc
-                        where is_default = true
-                        limit 1;
+                        select 'default' into _vpc_id;
                     end if;
             
                     select id into security_group_id

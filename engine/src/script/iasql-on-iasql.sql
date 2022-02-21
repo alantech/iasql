@@ -1,10 +1,6 @@
 do $$
 <<iasql>>
   declare
-    default_vpc text;
-    default_vpc_id integer;
-    sn record;
-    default_subnets text[];
     iasql_engine_port integer := 8088;
     iasql_postgres_port integer := 5432;
     iasql_engine_target_group text := 'iasql-engine-target-group';
@@ -46,30 +42,17 @@ do $$
     iasql_sentry_enabled text := 'true';
     iasql_sentry_dsn text := 'https://e257e8d6646e4657b4f556efc1de31e8@o1090662.ingest.sentry.io/6106929';
   begin
-    select vpc_id, id into default_vpc, default_vpc_id
-    from aws_vpc
-    where is_default = true
-    limit 1;
-
-    for sn in
-      select *
-      from aws_subnet
-      where vpc_id = default_vpc_id
-    loop
-      default_subnets := array_append(default_subnets, sn.subnet_id::text);
-    end loop;
-
     call create_aws_security_group(
       iasql_engine_security_group, iasql_engine_security_group,
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_engine_port || ', "toPort": ' || iasql_engine_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": false, "ipProtocol": "tcp", "fromPort": "443", "toPort": "443", "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
 
     call create_aws_target_group(
-      iasql_engine_target_group, 'ip', iasql_engine_port, default_vpc, 'HTTP', '/health'
+      iasql_engine_target_group, 'ip', iasql_engine_port, 'default', 'HTTP', '/health'
     );
 
     call create_aws_load_balancer(
-      iasql_engine_load_balancer, 'internet-facing', default_vpc, 'application', default_subnets, 'ipv4', array[iasql_engine_security_group]
+      iasql_engine_load_balancer, 'internet-facing', 'default', 'application', 'ipv4', array[iasql_engine_security_group]
     );
 
     -- TODO: update this listener once HTTPS can be configure via IaSQL
@@ -99,7 +82,7 @@ do $$
 
     call create_ecs_service(
       iasql_engine_service, iasql_cluster, iasql_engine_task_definition, iasql_engine_service_desired_count, 'FARGATE',
-      'REPLICA', default_subnets, array[iasql_engine_security_group], 'ENABLED', iasql_engine_target_group
+      'REPLICA', array[iasql_engine_security_group], 'ENABLED', null, iasql_engine_target_group
     );
 
     call create_aws_security_group(

@@ -98,6 +98,15 @@ export const AwsSecurityGroupModule: Module = new Module({
 
               return e;
             }
+            if (e.vpcId === 'default') {
+              const vpcs = (await client.getVpcs()).Vpcs;
+              const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
+              e.vpcId = defaultVpc.VpcId;
+              await ctx.orm.save(AwsSecurityGroup, e);
+              if (e.groupId) {
+                ctx.memo.db.AwsSecurityGroup[e.groupId] = e;
+              }
+            }
             // First construct the security group
             const result = await client.createSecurityGroup({
               Description: e.description,
