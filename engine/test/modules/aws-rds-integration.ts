@@ -22,7 +22,7 @@ describe('RDS Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the rds module', (done) => void iasql.install(
-    ['aws_security_group', 'aws_rds'],
+    ['aws_security_group@0.0.1', 'aws_rds@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 

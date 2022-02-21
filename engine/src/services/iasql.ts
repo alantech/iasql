@@ -53,10 +53,10 @@ export async function add(
     await dbMan.migrate(conn2);
     const queryRunner = conn2.createQueryRunner();
     await Modules.AwsAccount.migrations.postinstall?.(queryRunner);
-    console.log('Adding aws_account schema...');
+    console.log('Adding aws_account@0.0.1 schema...');
     // TODO: Use the entity for this in the future?
     await conn2.query(`
-      INSERT INTO iasql_module VALUES ('aws_account')
+      INSERT INTO iasql_module VALUES ('aws_account@0.0.1')
     `);
     await conn2.query(`
       INSERT INTO aws_account (access_key_id, secret_access_key, region) VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}')
@@ -263,14 +263,14 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
     const memo: any = {}; // TODO: Stronger typing here
     const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
     for (const name of moduleNames) {
-      const mod = Object.values(Modules).find(m => m.name === name) as Modules.ModuleInterface;
+      const mod = (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as Modules.ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod.provides.context ?? {};
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
-    const mappers = Object.values(Modules)
-      .filter(mod => moduleNames.includes(mod.name))
+    const mappers = (Object.values(Modules) as Modules.ModuleInterface[])
+      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`))
       .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
       .flat()
       .filter(mapper => mapper.source === 'db');
@@ -481,14 +481,14 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
     const memo: any = {}; // TODO: Stronger typing here
     const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
     for (const name of moduleNames) {
-      const mod = Object.values(Modules).find(m => m.name === name) as Modules.ModuleInterface;
+      const mod = (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as Modules.ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod.provides.context ?? {};
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
     // Get the mappers, regardless of source-of-truth
-    const mappers = Object.values(Modules)
-      .filter(mod => moduleNames.includes(mod.name))
+    const mappers = (Object.values(Modules) as Modules.ModuleInterface[])
+      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`))
       .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
       .flat();
     const t2 = Date.now();
@@ -676,7 +676,10 @@ export async function modules(all: boolean, installed: boolean, dbAlias: string,
   // TODO rm special casing for aws_account
   const allModules = Object.values(Modules)
     .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && m.name !== 'aws_account')
-    .map((m: any) => ({'name': m.name, 'dependencies': m.dependencies.filter((d: any) => d !== 'aws_account')}));
+    .map((m: any) => ({
+      name: `${m.name}@${m.version}`,
+      dependencies: m.dependencies.filter((d: any) => d !== 'aws_account@0.0.1'),
+    }));
   if (all) {
     return allModules;
   } else if (installed && dbAlias) {
@@ -694,18 +697,18 @@ export async function modules(all: boolean, installed: boolean, dbAlias: string,
 export async function install(moduleList: string[], dbAlias: string, user: any) {
   const { dbId, dbUser } = await dbMan.getMetadata(dbAlias, user);
   // Check to make sure that all specified modules actually exist
-  const mods = moduleList.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
+  const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as Modules.ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {
     throw new Error(`The following modules do not exist: ${
-      moduleList.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
+      moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
     }`);
   }
   // Check to make sure that all dependent modules are in the list
   const missingDeps = mods.map((m: Modules.ModuleInterface) => m.dependencies.find(d => !moduleList.includes(d)));
   // TODO rm special casing for aws_account
-  if (missingDeps.some((m: any) => m !== undefined && m !== 'aws_account')) {
+  if (missingDeps.some((m: any) => m !== undefined && m !== 'aws_account@0.0.1')) {
     throw new Error(`The provided modules depend on the following modules: ${
-      missingDeps.filter(n => n !== undefined).join(' , ')
+      missingDeps.filter(n => n !== undefined).join(', ')
     }`);
   }
   // Grab all of the entities plus the IaSQL Module entity itself and create the TypeORM connection
@@ -788,7 +791,7 @@ ${Object.keys(tableCollisions)
         await md.migrations.postinstall(queryRunner);
       }
       const e = new IasqlModule();
-      e.name = md.name;
+      e.name = `${md.name}@${md.version}`;
       e.dependencies = await Promise.all(
         md.dependencies.map(async (dep) => await orm.findOne(IasqlModule, { name: dep, }))
       );
@@ -814,7 +817,7 @@ ${Object.keys(tableCollisions)
   const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
   const context: Modules.Context = { orm, memo: {}, }; // Every module gets access to the DB
   for (const name of moduleNames) {
-    const md = Object.values(Modules).find(m => m.name === name) as Modules.ModuleInterface;
+    const md = (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as Modules.ModuleInterface;
     if (!md) throw new Error(`This should be impossible. Cannot find module ${name}`);
     const moduleContext = md.provides.context ?? {};
     Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
@@ -835,7 +838,7 @@ ${Object.keys(tableCollisions)
         }
         if (!e || (Array.isArray(e) && !e.length)) {
           console.log('Completely unexpected outcome');
-          console.log({ mapper, e, });
+          console.log({ mapper, e, context, });
         } else {
           try {
             await mapper.db.create(e, context);
@@ -856,10 +859,10 @@ ${Object.keys(tableCollisions)
 export async function uninstall(moduleList: string[], dbAlias: string, user: any) {
   const { dbId } = await dbMan.getMetadata(dbAlias, user);
   // Check to make sure that all specified modules actually exist
-  const mods = moduleList.map((n: string) => Object.values(Modules).find(m => m.name === n)) as Modules.ModuleInterface[];
+  const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as Modules.ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {
     throw new Error(`The following modules do not exist: ${
-      moduleList.filter((n: string) => !Object.values(Modules).find(m => m.name === n)).join(' , ')
+      moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
     }`);
   }
   // Grab all of the entities from the module plus the IaSQL Module entity itself and create the
@@ -876,7 +879,7 @@ export async function uninstall(moduleList: string[], dbAlias: string, user: any
   // See what modules are already uninstalled and prune them from the list
   const existingModules = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
   for (let i = 0; i < mods.length; i++) {
-    if (!existingModules.includes(mods[i].name)) {
+    if (!existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
       mods.splice(i, 1);
       i--;
     }
@@ -885,7 +888,7 @@ export async function uninstall(moduleList: string[], dbAlias: string, user: any
   if (mods.length === 0) {
     throw new Error("All modules already uninstalled.");
   }
-  const remainingModules = existingModules.filter((m: string) => !mods.some(m2 => m2.name === m));
+  const remainingModules = existingModules.filter((m: string) => !mods.some(m2 => `${m2.name}@${m2.version}` === m));
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(mods, remainingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
@@ -903,7 +906,7 @@ export async function uninstall(moduleList: string[], dbAlias: string, user: any
       if (md.migrations?.postremove) {
         await md.migrations.postremove(queryRunner);
       }
-      const e = await orm.findOne(IasqlModule, { name: md.name, });
+      const e = await orm.findOne(IasqlModule, { name: `${md.name}@${md.version}`, });
       await orm.remove(IasqlModule, e);
     }
     await queryRunner.commitTransaction();

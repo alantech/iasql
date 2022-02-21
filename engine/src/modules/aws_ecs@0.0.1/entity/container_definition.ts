@@ -12,8 +12,8 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm'
 
-import { LogGroup } from '../../aws_cloudwatch/entity'
-import { AwsPublicRepository, AwsRepository } from '../../aws_ecr/entity'
+import { LogGroup } from '../../aws_cloudwatch@0.0.1/entity'
+import { AwsPublicRepository, AwsRepository } from '../../aws_ecr@0.0.1/entity'
 import { EnvVariable } from './env_variable'
 import { PortMapping } from './port_mapping'
 

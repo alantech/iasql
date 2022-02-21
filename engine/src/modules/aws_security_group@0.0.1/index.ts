@@ -8,7 +8,8 @@ import { awsSecurityGroup1636587967230, } from './migration/1636587967230-aws_se
 
 export const AwsSecurityGroupModule: Module = new Module({
   name: 'aws_security_group',
-  dependencies: ['aws_account'],
+  version: '0.0.1',
+  dependencies: ['aws_account@0.0.1'],
   provides: {
     entities: allEntities,
     tables: ['aws_security_group', 'aws_security_group_rule'],

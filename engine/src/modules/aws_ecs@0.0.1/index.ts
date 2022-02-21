@@ -19,12 +19,19 @@ import {
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule, } from '..'
-import { AwsLoadBalancer } from '../aws_elb/entity'
+import { AwsLoadBalancer } from '../aws_elb@0.0.1/entity'
 import { awsEcs1645216760389, } from './migration/1645216760389-aws_ecs'
 
 export const AwsEcsModule: Module = new Module({
   name: 'aws_ecs',
-  dependencies: ['aws_account', 'aws_ecr', 'aws_elb', 'aws_security_group', 'aws_cloudwatch',],
+  version: '0.0.1',
+  dependencies: [
+    'aws_account@0.0.1',
+    'aws_ecr@0.0.1',
+    'aws_elb@0.0.1',
+    'aws_security_group@0.0.1',
+    'aws_cloudwatch@0.0.1',
+  ],
   provides: {
     entities: allEntities,
     tables: ['cluster', 'container_definition', 'env_variable', 'port_mapping', 'compatibility', 'task_definition', 'aws_vpc_conf', 'service', 'service_load_balancer'],

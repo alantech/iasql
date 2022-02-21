@@ -8,6 +8,7 @@ import { awsAccount1644463885917, } from './migration/1644463885917-aws_account'
 
 export const AwsAccount: Module = new Module({
   name: 'aws_account',
+  version: '0.0.1',
   dependencies: [],
   provides: {
     entities: allEntities,
