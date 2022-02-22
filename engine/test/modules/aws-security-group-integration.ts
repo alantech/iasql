@@ -21,7 +21,7 @@ describe('Security Group Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the security group module', (done) => void iasql.install(
-    ['aws_security_group'],
+    ['aws_security_group@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 

@@ -1,5 +1,5 @@
 import { LoadBalancerStateEnum } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { IpAddressType, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEnum, TargetTypeEnum } from '../../src/modules/aws_elb/entity';
+import { IpAddressType, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEnum, TargetTypeEnum } from '../../src/modules/aws_elb@0.0.1/entity';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
 
@@ -33,19 +33,15 @@ describe('ELB Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the elb module', (done) => void iasql.install(
-    ['aws_security_group', 'aws_elb'],
+    ['aws_security_group@0.0.1', 'aws_elb@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 
   // TODO: add tests with stored procedures
   // Target group
   it('adds a new targetGroup', query(`
-    INSERT INTO aws_target_group (target_group_name, target_type, protocol, port, vpc_id, health_check_path)
-    SELECT '${tgName}', '${tgType}', '${protocol}', ${port}, id, '/health'
-    FROM aws_vpc
-    WHERE is_default = true
-    ORDER BY id DESC
-    LIMIT 1;
+    INSERT INTO aws_target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
+    VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, 'default', '/health');
   `));
 
   it('check aws_target_group insertion', query(`
@@ -74,30 +70,10 @@ describe('ELB Integration Testing', () => {
   // TODO: add security groups insert when testing application load balancer integration
   it('adds a new load balancer', query(`
     BEGIN;
-      INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc_id, load_balancer_type, ip_address_type)
-      SELECT '${lbName}', '${lbScheme}', id, '${lbType}', '${lbIPAddressType}'
-      FROM aws_vpc
-      WHERE is_default = true
-      ORDER BY id DESC
-      LIMIT 1;
-      INSERT INTO aws_load_balancer_subnets_aws_subnet (aws_load_balancer_id, aws_subnet_id)
-      SELECT aws_load_balancer.id, aws_subnet.id
-      FROM aws_load_balancer
-      INNER JOIN aws_vpc ON aws_vpc.id = aws_load_balancer.vpc_id
-      INNER JOIN aws_subnet ON aws_vpc.id = aws_subnet.vpc_id
-      WHERE aws_load_balancer.load_balancer_name = '${lbName}'
-      LIMIT 2;
-      INSERT INTO aws_load_balancer_availability_zones_availability_zone (aws_load_balancer_id, availability_zone_id)
-      SELECT aws_load_balancer.id, availability_zone.id
-      FROM aws_load_balancer
-      INNER JOIN aws_load_balancer_subnets_aws_subnet ON aws_load_balancer_subnets_aws_subnet.aws_load_balancer_id = aws_load_balancer.id
-      INNER JOIN aws_subnet ON aws_load_balancer_subnets_aws_subnet.aws_subnet_id = aws_subnet.id
-      INNER JOIN availability_zone ON availability_zone.id = aws_subnet.availability_zone_id
-      WHERE aws_load_balancer.load_balancer_name = '${lbName}'
-      LIMIT 2;
+      INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
+      VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
     COMMIT;
   `));
-
 
   it('check aws_load_balancer insertion', query(`
     SELECT *
@@ -106,22 +82,6 @@ describe('ELB Integration Testing', () => {
     ORDER BY id DESC
     LIMIT 1;
   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  it('check aws_load_balancer_subnets_aws_subnet insertion', query(`
-    SELECT *
-    FROM aws_load_balancer_subnets_aws_subnet
-    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_load_balancer_subnets_aws_subnet.aws_load_balancer_id
-    WHERE load_balancer_name = '${lbName}';
-  `, (res: any[]) => expect(res.length).toBe(2)));
-
-  it('check aws_load_balancer_availability_zones_availability_zone insertion', query(`
-    SELECT DISTINCT aws_load_balancer_availability_zones_availability_zone.availability_zone_id
-    FROM aws_load_balancer_availability_zones_availability_zone
-    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_load_balancer_availability_zones_availability_zone.aws_load_balancer_id
-    INNER JOIN aws_load_balancer_subnets_aws_subnet ON aws_load_balancer_subnets_aws_subnet.aws_load_balancer_id = aws_load_balancer.id
-    INNER JOIN aws_subnet ON aws_load_balancer_subnets_aws_subnet.aws_subnet_id = aws_subnet.id
-    WHERE load_balancer_name = '${lbName}';
-  `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('applies the change', apply);
 

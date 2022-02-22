@@ -25,7 +25,7 @@ describe('ECR Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the ecr module', (done) => void iasql.install(
-    ['aws_ecr'],
+    ['aws_ecr@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 

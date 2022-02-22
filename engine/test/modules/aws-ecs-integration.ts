@@ -1,4 +1,4 @@
-import { CompatibilityValues, CpuMemCombination, LaunchType, NetworkMode, SchedulingStrategy, TaskDefinitionStatus } from '../../src/modules/aws_ecs/entity';
+import { CompatibilityValues, CpuMemCombination, LaunchType, NetworkMode, SchedulingStrategy, TaskDefinitionStatus } from '../../src/modules/aws_ecs@0.0.1/entity';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
 
@@ -58,7 +58,7 @@ describe('ECS Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the ecs module and its dependencies', (done) => void iasql.install(
-    ['aws_ecr', 'aws_elb', 'aws_security_group', 'aws_cloudwatch', 'aws_ecs',],
+    ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs@0.0.1',],
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -217,22 +217,9 @@ describe('ECS Integration Testing', () => {
 
         DO
         $$
-        DECLARE default_vpc text;
-                default_vpc_id integer;
-                subnets text[];
         BEGIN
-            SELECT vpc_id, id INTO default_vpc, default_vpc_id
-            FROM aws_vpc
-            WHERE is_default = true
-            LIMIT 1;
-
-            SELECT ARRAY(
-              SELECT subnet_id
-              FROM aws_subnet
-              WHERE vpc_id = default_vpc_id) INTO subnets;
-
             CALL create_aws_load_balancer(
-              '${serviceLoadBalancerName}', 'internet-facing', default_vpc, 'application', subnets, 'ipv4', array['default']
+              '${serviceLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4', array['default']
             );
         END
         $$;
