@@ -418,9 +418,191 @@ export class awsEcs1645216760389 implements MigrationInterface {
                 end;
             $$;
         `);
+        // Example of use: call delete_ecs_cluster('test-sp');
+        await queryRunner.query(`
+            create or replace procedure delete_ecs_cluster(_name text)
+            language plpgsql
+            as $$
+            begin
+                delete
+                from cluster
+                where cluster_name = _name;
+            end;
+            $$;
+        `);
+        // Example of use:
+        // ecr repository: call delete_container_definition('test-sp2', 'task-test-sp', 3);
+        await queryRunner.query(`
+            create or replace procedure delete_container_definition(
+                _name text,
+                _task_definition_family text,
+                _task_definition_revision integer default null
+            )
+            language plpgsql
+            as $$
+                declare
+                    c_id integer;
+                    pm_id integer;
+                    key text;
+                    val text;
+                    ev_id integer;
+                    ecr_repository_id integer;
+                    ecr_public_repository_id integer;
+                    cw_log_group_id integer;
+                    td_id integer;
+                begin
+                    if _revision is null then
+                        select id into td_id
+                        from task_definition
+                        where family = _task_definition_family
+                        order by revision desc
+                        limit 1;
+                    else
+                        select id into td_id
+                        from task_definition
+                        where family = _task_definition_family and revision = _task_definition_revision
+                        order by revision desc
+                        limit 1;
+                    end if;
+                    
+                    select container_definition_id into c_id
+                    from task_definition_containers_container_definition
+                    where task_definition_id = td_id
+                    order by id desc
+                    limit 1;
+
+                    delete
+                    from task_definition_containers_container_definition
+                    where task_definition_id = td_id and container_definition_id = c_id;
+
+                    delete
+                    from container_definition
+                    where id = c_id;
+
+                    select port_mapping_id into pm_id
+                    from container_definition_port_mappings_port_mapping
+                    where container_definition_id = c_id
+                    order by id desc
+                    limit 1;
+
+                    delete
+                    from container_definition_port_mappings_port_mapping
+                    where container_definition_id = c_id and port_mapping_id = pm_id;
+
+                    delete
+                    from port_mapping
+                    where id = pm_id;
+
+                    delete
+                    from container_definition_environment_env_variable
+                    where container_definition_id = c_id;
+
+                    delete
+                    from env_variable
+                    where id not in (
+                        select env_variable_id
+                        from container_definition_environment_env_variable;
+                    );
+                end;
+            $$;
+        `);
+        // Example of use: call delete_task_definition('test-sp', 3);
+        await queryRunner.query(`
+            create or replace procedure delete_task_definition(_family text, _revision integer default null)
+            language plpgsql
+            as $$ 
+            declare 
+                task_definition_id integer;
+            begin
+                if _revision is null then
+                    select id into task_definition_id
+                    from task_definition
+                    where family = _family
+                    order by revision desc
+                    limit 1;
+                else
+                    select id into task_definition_id
+                    from task_definition
+                    where family = _family and revision = _revision
+                    order by id, revision desc
+                    limit 1;
+                end if;
+                
+                delete
+                from task_definition_req_compatibilities_compatibility
+                where task_definition_id = task_definition_id;
+
+                delete
+                from compatibility
+                where id not in (
+                    select compatibility_id
+                    from task_definition_req_compatibilities_compatibility;
+                );
+
+                delete
+                from task_definition
+                where id = task_definition_id;
+            end;
+            $$;
+        `);
+        // Example of use: call delete_ecs_service('test-12345');
+        await queryRunner.query(`
+            create or replace procedure delete_ecs_service(_name text)
+            language plpgsql
+            as $$ 
+                declare
+                    service_id integer;
+                    task_def_id integer;
+                    aws_vpc_conf_id integer;
+                    cluster_id integer;
+                    elb_id integer;
+                    target_group_id integer;
+                    c_name text;
+                    c_port integer;
+                    service_load_balancer_id integer;
+                    sg record;
+                begin
+                    select id, aws_vpc_conf_id into service_id, aws_vpc_conf_id
+                    from service
+                    where name = _name
+                    order by id desc
+                    limit 1;
+
+                    select service_load_balancer_id into service_load_balancer_id
+                    from service_load_balancers_service_load_balancer
+                    where service_id = service_id
+                    order by id desc
+                    limit 1;
+
+                    delete
+                    from service_load_balancers_service_load_balancer
+                    where service_load_balancer_id = service_load_balancer_id and service_id = service_id;
+
+                    delete
+                    from service_load_balancer
+                    where id = service_load_balancer_id;
+
+                    delete
+                    from aws_vpc_conf_security_groups_aws_security_group
+                    where aws_vpc_conf_id = aws_vpc_conf_id;
+
+                    delete
+                    from service
+                    where id = service_id;
+
+                    delete
+                    from aws_vpc_conf
+                    where id = aws_vpc_conf_id;
+                end;
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP procedure delete_ecs_service;`);
+        await queryRunner.query(`DROP procedure delete_task_definition;`);
+        await queryRunner.query(`DROP procedure delete_container_definition;`);
+        await queryRunner.query(`DROP procedure delete_ecs_cluster;`);
         await queryRunner.query(`DROP procedure create_ecs_service;`);
         await queryRunner.query(`DROP procedure create_task_definition;`);
         await queryRunner.query(`DROP procedure create_container_definition;`);
