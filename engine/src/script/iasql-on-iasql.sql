@@ -47,16 +47,16 @@ do $$
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_engine_port || ', "toPort": ' || iasql_engine_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": false, "ipProtocol": "tcp", "fromPort": "443", "toPort": "443", "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
 
-    call create_aws_target_group(
+    call create_or_update_aws_target_group(
       iasql_engine_target_group, 'ip', iasql_engine_port, 'default', 'HTTP', '/health'
     );
 
-    call create_aws_load_balancer(
+    call create_or_update_aws_load_balancer(
       iasql_engine_load_balancer, 'internet-facing', 'default', 'application', 'ipv4', array[iasql_engine_security_group]
     );
 
     -- TODO: update this listener once HTTPS can be configure via IaSQL
-    call create_aws_listener(iasql_engine_load_balancer, iasql_engine_port, 'HTTP', 'forward', iasql_engine_target_group);
+    call create_or_update_aws_listener(iasql_engine_load_balancer, iasql_engine_port, 'HTTP', 'forward', iasql_engine_target_group);
 
     call create_or_update_ecr_repository(iasql_engine_repository);
 
@@ -100,13 +100,13 @@ do $$
     -- TODO: Restore once we manage our own iasql instance
     
     
-    -- call create_aws_target_group(
+    -- call create_or_update_aws_target_group(
     --   iasql_postgres_target_group, 'ip', iasql_postgres_port, default_vpc, 'TCP'
     -- );
 
-    -- call create_aws_listener(iasql_postgres_load_balancer, iasql_postgres_port, 'TCP', 'forward', iasql_postgres_target_group);
+    -- call create_or_update_aws_listener(iasql_postgres_load_balancer, iasql_postgres_port, 'TCP', 'forward', iasql_postgres_target_group);
 
-    -- call create_aws_load_balancer(
+    -- call create_or_update_aws_load_balancer(
     --   iasql_postgres_load_balancer, 'internet-facing', default_vpc, 'network', default_subnets, 'ipv4'
     -- );
 
