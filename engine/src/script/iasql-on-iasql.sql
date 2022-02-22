@@ -42,7 +42,7 @@ do $$
     iasql_sentry_enabled text := 'true';
     iasql_sentry_dsn text := 'https://e257e8d6646e4657b4f556efc1de31e8@o1090662.ingest.sentry.io/6106929';
   begin
-    call create_aws_security_group(
+    call create_or_update_aws_security_group(
       iasql_engine_security_group, iasql_engine_security_group,
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_engine_port || ', "toPort": ' || iasql_engine_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": false, "ipProtocol": "tcp", "fromPort": "443", "toPort": "443", "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
@@ -85,7 +85,7 @@ do $$
       'REPLICA', array[iasql_engine_security_group], 'ENABLED', null, iasql_engine_target_group
     );
 
-    call create_aws_security_group(
+    call create_or_update_aws_security_group(
       iasql_postgres_security_group, iasql_postgres_security_group,
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_postgres_port || ', "toPort": ' || iasql_postgres_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
