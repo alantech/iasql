@@ -123,7 +123,13 @@ pub async fn mods_to_remove(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Stri
     // TODO: Remove this hack when the real module versioning design is complete
     let mods: Vec<String> = mods
       .into_iter()
-      .map(|m| if m.find('@').is_none() { format!("{}@0.0.1", m) } else { m })
+      .map(|m| {
+        if m.find('@').is_none() {
+          format!("{}@0.0.1", m)
+        } else {
+          m
+        }
+      })
       .collect();
     // check provided mods exist
     let inexistent = mods.iter().find(|e| !all.contains(e));
@@ -215,7 +221,13 @@ pub async fn mods_to_install(db: &str, mods_opt: Option<Vec<String>>) -> Vec<Str
     // TODO: Remove this hack when the real module versioning design is complete
     let mods: Vec<String> = mods
       .into_iter()
-      .map(|m| if m.find('@').is_none() { format!("{}@0.0.1", m) } else { m })
+      .map(|m| {
+        if m.find('@').is_none() {
+          format!("{}@0.0.1", m)
+        } else {
+          m
+        }
+      })
       .collect();
     let inexistent = mods.iter().find(|e| !all.contains(e));
     if inexistent.is_some() {
