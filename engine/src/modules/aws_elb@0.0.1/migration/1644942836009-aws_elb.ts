@@ -272,7 +272,7 @@ export class awsElb1644942836009 implements MigrationInterface {
 
                 delete
                 from aws_action
-                where id = a_id and a_id not in (
+                where id = a_id and id not in (
                     select aws_action_id
                     from aws_listener_default_actions_aws_action
                     where aws_action_id = a_id
