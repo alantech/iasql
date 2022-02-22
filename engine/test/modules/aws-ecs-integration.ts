@@ -93,7 +93,7 @@ describe('ECS Integration Testing', () => {
 
   // Dependency
   it('adds container dependencies', query(`
-    CALL create_cloudwatch_log_group('${logGroupName}');
+    CALL create_or_update_cloudwatch_log_group('${logGroupName}');
   `));
 
   it('applies adds container dependencies', apply);
