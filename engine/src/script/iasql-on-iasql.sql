@@ -58,10 +58,10 @@ do $$
     -- TODO: update this listener once HTTPS can be configure via IaSQL
     call create_aws_listener(iasql_engine_load_balancer, iasql_engine_port, 'HTTP', 'forward', iasql_engine_target_group);
 
-    call create_ecr_repository(iasql_engine_repository);
+    call create_or_update_ecr_repository(iasql_engine_repository);
 
     -- TODO: how to handle better this hard coded policy?
-    call create_ecr_repository_policy(
+    call create_or_update_ecr_repository_policy(
       iasql_engine_repository, '{ "Version" : "2012-10-17", "Statement" : [ { "Sid" : "new statement", "Effect" : "Allow", "Principal" : { "AWS" : [ "arn:aws:iam::<AWS_ACCOUNT_ID>:role/AWSECSTaskExecution" ] }, "Action" : [ "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CreateRepository", "ecr:DeleteRepositoryPolicy", "ecr:DescribeImageScanFindings", "ecr:DescribeImages", "ecr:DescribeRepositories", "ecr:GetAuthorizationToken", "ecr:GetDownloadUrlForLayer", "ecr:GetLifecyclePolicy", "ecr:GetLifecyclePolicyPreview", "ecr:GetRepositoryPolicy", "ecr:ListImages", "ecr:ListTagsForResource", "ecr:SetRepositoryPolicy" ] } ]}'
     );
 
