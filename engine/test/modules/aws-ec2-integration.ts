@@ -30,11 +30,11 @@ describe('EC2 Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('adds two ec2 instance', (done) => {
-    // TODO get inserts without sp to work
-    // INSERT INTO instance (ami, instance_type_id)
-    // VALUES ('${ubuntuAmiId}', ${recordId}), ('${amznAmiId}', ${recordId});
     query(`
-      CALL create_or_update_ec2_instance('i-1', '${ubuntuAmiId}', 't2.micro', array['default']);
+      INSERT INTO instance (name, ami, instance_type)
+        VALUES ('i-1','${ubuntuAmiId}', 't2.micro');
+      INSERT INTO instance_security_groups_aws_security_group (instance_id, aws_security_group_id)
+        VALUES (1, 1);
       CALL create_or_update_ec2_instance('i-2', '${amznAmiId}', 't2.micro', array['default']);
     `)((e?: any) => {
       if (!!e) return done(e);
