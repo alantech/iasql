@@ -63,3 +63,17 @@ jobs:
       - name: Logs psql
         if: always()
         run: docker logs engine_postgresql_1
+
+  notify:
+    name: Discord Notification
+    runs-on: ubuntu-latest
+    needs: # make sure the notification is sent AFTER the jobs you want included have completed
+      - deploy
+    if: ${{ failure() }} # Notify only on failure
+
+    steps:
+      - name: Notify
+        uses: nobrayner/discord-webhook@v1
+        with:
+          github-token: ${{ secrets.github_token }}
+          discord-webhook: ${{ secrets.DISCORD_WEBHOOK }}
