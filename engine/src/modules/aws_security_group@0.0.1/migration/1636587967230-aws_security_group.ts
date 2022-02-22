@@ -61,9 +61,34 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
                 end;
             $$;
         `);
+        // Example of use: call delete_aws_security_group('test');
+        await queryRunner.query(`
+            create or replace procedure delete_aws_security_group(_name text) 
+            language plpgsql
+            as $$ 
+                declare
+                    security_group_id integer;
+                begin
+                    select id into security_group_id
+                    from aws_security_group
+                    where group_name = _name
+                    order by id desc
+                    limit 1;
+            
+                    delete
+                    from aws_security_group_rule
+                    where security_group_id = security_group_id;
+
+                    delete
+                    from aws_security_group
+                    where group_name = _name;
+                end;
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP procedure "delete_aws_security_group";`);
         await queryRunner.query(`DROP procedure "create_aws_security_group";`);
         await queryRunner.query(`ALTER TABLE "aws_security_group_rule" DROP CONSTRAINT "FK_6d3482619216803d2f14ecf609d"`);
         await queryRunner.query(`DROP TABLE "aws_security_group_rule"`);

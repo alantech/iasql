@@ -61,9 +61,22 @@ export class awsRds1644523981372 implements MigrationInterface {
                 end;
             $$;
         `);
+        // Example of use: call delete_rds('test-sp-sg');
+        await queryRunner.query(`
+            create or replace procedure delete_rds(_name text)
+            language plpgsql
+            as $$
+                begin
+                    delete
+                    from rds
+                    where db_instance_identifier = _name;
+                end;
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP procedure delete_rds;`);
         await queryRunner.query(`DROP procedure create_rds;`);
         await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_aws_security_group" DROP CONSTRAINT "FK_7b0d4af7000a31b4657220db78e"`);
         await queryRunner.query(`ALTER TABLE "rds_vpc_security_groups_aws_security_group" DROP CONSTRAINT "FK_bf5fdc058ec5db521f32d4d6dd0"`);

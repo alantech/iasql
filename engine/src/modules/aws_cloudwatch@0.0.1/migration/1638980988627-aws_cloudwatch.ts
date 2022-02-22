@@ -30,9 +30,22 @@ export class awsCloudwatch1638980988627 implements MigrationInterface {
             end;
             $$;
         `);
+        // Example of use: call delete_cloudwatch_log_group('test-sp');
+        await queryRunner.query(`
+            create or replace procedure delete_cloudwatch_log_group(_group_name text)
+            language plpgsql
+            as $$
+            begin
+                delete
+                from log_group
+                where log_group_name = _group_name;
+            end;
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP PROCEDURE "delete_cloudwatch_log_group"`);
         await queryRunner.query(`DROP PROCEDURE "create_cloudwatch_log_group"`);
         await queryRunner.query(`DROP TABLE "log_group"`);
     }

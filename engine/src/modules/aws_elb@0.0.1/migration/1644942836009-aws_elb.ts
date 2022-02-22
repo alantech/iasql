@@ -186,9 +186,106 @@ export class awsElb1644942836009 implements MigrationInterface {
             end; 
             $$;
         `);
+        // Example of use: call delete_aws_load_balancer('test-sp2');
+        await queryRunner.query(`
+            create or replace procedure delete_aws_load_balancer(_name text)
+            language plpgsql
+            as $$
+            declare
+                load_balancer_id integer;
+            begin
+                select id into load_balancer_id
+                from aws_load_balancer
+                where load_balancer_name = _name
+                order by id desc
+                limit 1;
+            
+                delete
+                from aws_load_balancer_security_groups_aws_security_group
+                where aws_load_balancer_id = load_balancer_id;
+            
+                delete
+                from aws_load_balancer
+                where load_balancer_name = _name;
+            end;
+            $$;
+        `);
+        // Example of use: call delete_aws_target_group('test-sp2');
+        await queryRunner.query(`
+            create or replace procedure delete_aws_target_group(_name text)
+            language plpgsql
+            as $$
+            begin
+                delete
+                from aws_target_group
+                where target_group_name = _name;
+            end;
+            $$;
+        `);
+        // Example of use: call delete_aws_listener('test-sp2', 8888, 'TCP', 'forward', 'test-sp2');
+        await queryRunner.query(`
+            create or replace procedure delete_aws_listener(
+                _load_balancer_name text,
+                _port integer,
+                _protocol aws_listener_protocol_enum,
+                _action_type aws_action_action_type_enum,
+                _target_group_name text
+            )
+            language plpgsql
+            as $$
+            declare
+                a_id integer;
+                l_id integer;
+                lb_id integer;
+                tg_id integer;
+            begin
+                select id into lb_id
+                from aws_load_balancer
+                where load_balancer_name = _load_balancer_name
+                limit 1;
+            
+                select id into l_id
+                from aws_listener
+                where aws_load_balancer_id = lb_id and port = _port and protocol = _protocol
+                order by id desc
+                limit 1;
+
+                select id into tg_id
+                from aws_target_group
+                where target_group_name = _target_group_name
+                order by id desc
+                limit 1;
+
+                select id into a_id
+                from aws_action
+                where target_group_id = tg_id and action_type = _action_type
+                order by id desc
+                limit 1;
+
+                delete
+                from aws_listener_default_actions_aws_action
+                where aws_listener_id = l_id and aws_action_id = a_id;
+
+                delete
+                from aws_listener
+                where id = l_id;
+
+                delete
+                from aws_action
+                where id = a_id and a_id not in (
+                    select aws_action_id
+                    from aws_listener_default_actions_aws_action
+                    where aws_action_id = a_id
+                );
+            end; 
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP procedure delete_aws_listener;`);
+        await queryRunner.query(`DROP procedure delete_aws_target_group;`);
+        await queryRunner.query(`DROP procedure delete_aws_load_balancer;`);
         await queryRunner.query(`DROP procedure create_aws_listener;`);
         await queryRunner.query(`DROP procedure create_aws_target_group;`);
         await queryRunner.query(`DROP procedure create_aws_load_balancer;`);

@@ -95,9 +95,58 @@ export class awsEcr1644462123596 implements MigrationInterface {
                 end;
             $$;
         `);
+        // Example of use: call delete_ecr_repository('sp-test');
+        await queryRunner.query(`
+            create or replace procedure delete_ecr_repository(_name text)
+            language plpgsql
+            as $$
+                begin
+                    delete
+                    from aws_repository
+                    where repository_name = _name;
+                end;
+            $$;
+        `);
+        // Example of use: call delete_ecr_repository_policy('sp-test');
+        await queryRunner.query(`
+            create or replace procedure delete_ecr_repository_policy(_repository_name text)
+            language plpgsql
+            as $$ 
+                declare 
+                    ecr_repository_id integer;
+                begin
+                    select id into ecr_repository_id
+                    from aws_repository
+                    where repository_name = _repository_name
+                    order by id desc
+                    limit 1;
+                
+                    delete
+                    from aws_repository_policy
+                    where repository_id = ecr_repository_id;
+                end;
+            $$;
+        `);
+        // Example of use: call delete_ecr_public_repository('sp-test');
+        await queryRunner.query(`
+            create or replace procedure delete_ecr_public_repository(_name text)
+            language plpgsql
+            as $$
+                declare
+                    ecr_pub_repository_id integer;
+                begin
+                    delete
+                    from aws_public_repository
+                    where repository_name = _name;
+                end;
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP procedure delete_ecr_public_repository;`);
+        await queryRunner.query(`DROP procedure delete_ecr_repository_policy;`);
+        await queryRunner.query(`DROP procedure delete_ecr_repository;`);
         await queryRunner.query(`DROP procedure create_ecr_public_repository;`);
         await queryRunner.query(`DROP procedure create_ecr_repository_policy;`);
         await queryRunner.query(`DROP procedure create_ecr_repository;`);
