@@ -65,7 +65,7 @@ do $$
       iasql_engine_repository, '{ "Version" : "2012-10-17", "Statement" : [ { "Sid" : "new statement", "Effect" : "Allow", "Principal" : { "AWS" : [ "arn:aws:iam::<AWS_ACCOUNT_ID>:role/AWSECSTaskExecution" ] }, "Action" : [ "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CreateRepository", "ecr:DeleteRepositoryPolicy", "ecr:DescribeImageScanFindings", "ecr:DescribeImages", "ecr:DescribeRepositories", "ecr:GetAuthorizationToken", "ecr:GetDownloadUrlForLayer", "ecr:GetLifecyclePolicy", "ecr:GetLifecyclePolicyPreview", "ecr:GetRepositoryPolicy", "ecr:ListImages", "ecr:ListTagsForResource", "ecr:SetRepositoryPolicy" ] } ]}'
     );
 
-    call create_ecs_cluster(iasql_cluster);
+    call create_or_update_ecs_cluster(iasql_cluster);
 
     call create_or_update_cloudwatch_log_group(iasql_engine_cloud_watch_log_group);
 
@@ -80,7 +80,7 @@ do $$
       _ecr_repository_name := iasql_engine_repository, _cloud_watch_log_group := iasql_engine_cloud_watch_log_group
     );
 
-    call create_ecs_service(
+    call create_or_update_ecs_service(
       iasql_engine_service, iasql_cluster, iasql_engine_task_definition, iasql_engine_service_desired_count, 'FARGATE',
       'REPLICA', array[iasql_engine_security_group], 'ENABLED', null, iasql_engine_target_group
     );
@@ -121,7 +121,7 @@ do $$
     --   'awsvpc', array['FARGATE']::compatibility_name_enum[], '2vCPU-8GB', array[iasql_postgres_container]
     -- );
 
-    -- call create_ecs_service(
+    -- call create_or_update_ecs_service(
     --   iasql_postgres_service, iasql_cluster, iasql_postgres_task_definition, 1, 'FARGATE',
     --   'REPLICA', default_subnets, array[iasql_postgres_security_group], 'ENABLED', iasql_postgres_target_group
     -- );
