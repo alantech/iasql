@@ -25,33 +25,36 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
                         select 'default' into _vpc_id;
                     end if;
             
-                    insert into aws_security_group
-                         (group_name, vpc_id, description)
-                     values
-                         (_name, _vpc_id, _description)
-                     on conflict (group_name)
-                     do update set vpc_id = _vpc_id, description = _description;
-
                     select id into security_group_id
                     from aws_security_group
                     where group_name = _name
                     order by id desc
                     limit 1;
             
-                    -- TODO: Handle better rules update
-                    delete from aws_security_group_rule
-                    where security_group_id = security_group_id;
-                    if jsonb_array_length(_secutiry_group_rules) > 0 then
-                        for json_rule in
-                            select * from jsonb_array_elements(_secutiry_group_rules)
-                        loop
-                            assert json_rule ?& array['isEgress', 'ipProtocol', 'fromPort', 'toPort', 'cidrIpv4'], 'Not all security group rule required keys are defined ("isEgress", "ipProtocol", "fromPort", "toPort", "cidrIpv4")';
-        
-                            insert into aws_security_group_rule
-                                (security_group_id, is_egress, ip_protocol, from_port, to_port, cidr_ipv4)
-                            values
-                                (security_group_id, cast(json_rule ->> 'isEgress' as boolean), json_rule ->> 'ipProtocol', cast(json_rule ->> 'fromPort' as integer), cast(json_rule ->> 'toPort' as integer), cast(json_rule ->> 'cidrIpv4' as cidr));
-                        end loop;
+                    if security_group_id is null then
+                        insert into aws_security_group
+                            (group_name, vpc_id, description)
+                        values
+                            (_name, _vpc_id, _description);
+            
+                        select id into security_group_id
+                        from aws_security_group
+                        where group_name = _name
+                        order by id desc
+                        limit 1;
+            
+                        if jsonb_array_length(_secutiry_group_rules) > 0 then
+                            for json_rule in
+                                select * from jsonb_array_elements(_secutiry_group_rules)
+                            loop
+                                assert json_rule ?& array['isEgress', 'ipProtocol', 'fromPort', 'toPort', 'cidrIpv4'], 'Not all security group rule required keys are defined ("isEgress", "ipProtocol", "fromPort", "toPort", "cidrIpv4")';
+            
+                                insert into aws_security_group_rule
+                                    (security_group_id, is_egress, ip_protocol, from_port, to_port, cidr_ipv4)
+                                values
+                                    (security_group_id, cast(json_rule ->> 'isEgress' as boolean), json_rule ->> 'ipProtocol', cast(json_rule ->> 'fromPort' as integer), cast(json_rule ->> 'toPort' as integer), cast(json_rule ->> 'cidrIpv4' as cidr));
+                            end loop;
+                        end if;
                     end if;
             
                     raise info 'aws_security_group_id = %', security_group_id;

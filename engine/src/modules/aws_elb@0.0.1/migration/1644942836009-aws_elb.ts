@@ -159,21 +159,28 @@ export class awsElb1644942836009 implements MigrationInterface {
                 from aws_load_balancer
                 where load_balancer_name = _load_balancer_name
                 limit 1;
-            
-                -- TODO: Handle better listener updates
-                delete from aws_listener
-                where aws_load_balancer_id = lb_id and port = _port and protocol = _protocol;
-            
-                insert into aws_listener
-                    (aws_load_balancer_id, port, protocol)
-                values 
-                    (lb_id, _port, _protocol);
-        
+
                 select id into l_id
                 from aws_listener
+                where aws_load_balancer_id = lb_id and port = _port and protocol = _protocol
                 order by id desc
                 limit 1;
-        
+            
+                if l_id is null then
+                    insert into aws_listener
+                        (aws_load_balancer_id, port, protocol)
+                    values 
+                        (lb_id, _port, _protocol);
+            
+                    select id into l_id
+                    from aws_listener
+                    order by id desc
+                    limit 1;
+                end if;
+                
+                -- TODO: Handle better listener actions updates
+                delete from aws_listener_default_actions_aws_action
+                where aws_listener_id = l_id;
                 insert into aws_listener_default_actions_aws_action
                     (aws_listener_id, aws_action_id)
                 values 

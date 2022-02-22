@@ -39,7 +39,7 @@ export class awsRds1644523981372 implements MigrationInterface {
                         master_user_password = _master_user_password,
                         master_username = _master_username,
                         availability_zone = _availability_zone_name,
-                        engine_version_id = _engine || ':' || _engine_version;
+                        engine = _engine || ':' || _engine_version;
             
                     select id into rds_instance_id
                     from rds
