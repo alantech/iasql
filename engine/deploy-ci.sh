@@ -22,7 +22,7 @@ echo "\Creating an iasql db..."
 export $(cat .deploy-env | xargs) && cargo run --manifest-path=../cli/Cargo.toml -- new iasql --noninteractive
 
 echo "\Installing modules in iasql db..."
-cargo run --manifest-path=../cli/Cargo.toml -- install aws_security_group aws_elb aws_cloudwatch aws_ecr aws_ecs aws_rds --db=iasql --noninteractive
+cargo run --manifest-path=../cli/Cargo.toml -- install aws_security_group@0.0.1 aws_elb@0.0.1 aws_cloudwatch@0.0.1 aws_ecr@0.0.1 aws_ecs@0.0.1 aws_rds@0.0.1 --db=iasql --noninteractive
 
 # Login. Review your profile
 echo "\nDocker login..."
