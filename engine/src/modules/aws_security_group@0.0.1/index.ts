@@ -13,6 +13,7 @@ export const AwsSecurityGroupModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['aws_security_group', 'aws_security_group_rule'],
+    functions: ['create_or_update_aws_security_group', 'delete_aws_security_group',]
   },
   utils: {
     sgMapper: (sg: any) => {

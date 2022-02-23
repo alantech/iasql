@@ -35,7 +35,10 @@ export const AwsEcsModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['cluster', 'container_definition', 'env_variable', 'port_mapping', 'compatibility', 'task_definition', 'aws_vpc_conf', 'service', 'service_load_balancer'],
-    functions: ['create_or_update_ecs_cluster', 'create_container_definition', 'create_task_definition', 'create_or_update_ecs_service'],
+    functions: [
+      'create_or_update_ecs_cluster', 'create_container_definition', 'create_task_definition', 'create_or_update_ecs_service',
+      'delete_ecs_service', 'delete_task_definition', 'delete_container_definition', 'delete_ecs_cluster',
+    ],
   },
   utils: {
     clusterMapper: (c: any, _ctx: Context) => {

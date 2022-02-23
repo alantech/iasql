@@ -16,7 +16,10 @@ export const AwsEcrModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['aws_repository', 'aws_repository_policy', 'aws_public_repository',],
-    functions: ['create_or_update_ecr_repository', 'create_or_update_ecr_repository_policy', 'create_or_update_ecr_public_repository',],
+    functions: [
+      'create_or_update_ecr_repository', 'create_or_update_ecr_repository_policy', 'create_or_update_ecr_public_repository',
+      'delete_ecr_repository', 'delete_ecr_repository_policy', 'delete_ecr_public_repository',
+    ],
   },
   utils: {
     publicRepositoryMapper: (r: PublicRepository, _ctx: Context) => {
