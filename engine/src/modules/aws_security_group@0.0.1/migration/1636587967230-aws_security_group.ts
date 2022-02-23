@@ -67,9 +67,9 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
             language plpgsql
             as $$ 
                 declare
-                    security_group_id integer;
+                    sec_group_id integer;
                 begin
-                    select id into security_group_id
+                    select id into sec_group_id
                     from aws_security_group
                     where group_name = _name
                     order by id desc
@@ -77,7 +77,7 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
             
                     delete
                     from aws_security_group_rule
-                    where security_group_id = security_group_id;
+                    where security_group_id = sec_group_id;
 
                     delete
                     from aws_security_group

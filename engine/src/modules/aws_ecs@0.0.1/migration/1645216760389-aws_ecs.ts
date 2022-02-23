@@ -451,7 +451,7 @@ export class awsEcs1645216760389 implements MigrationInterface {
                     cw_log_group_id integer;
                     td_id integer;
                 begin
-                    if _revision is null then
+                    if _task_definition_revision is null then
                         select id into td_id
                         from task_definition
                         where family = _task_definition_family
@@ -468,7 +468,6 @@ export class awsEcs1645216760389 implements MigrationInterface {
                     select container_definition_id into c_id
                     from task_definition_containers_container_definition
                     where task_definition_id = td_id
-                    order by id desc
                     limit 1;
 
                     delete
@@ -482,7 +481,6 @@ export class awsEcs1645216760389 implements MigrationInterface {
                     select port_mapping_id into pm_id
                     from container_definition_port_mappings_port_mapping
                     where container_definition_id = c_id
-                    order by id desc
                     limit 1;
 
                     delete
@@ -512,16 +510,16 @@ export class awsEcs1645216760389 implements MigrationInterface {
             language plpgsql
             as $$ 
                 declare 
-                    task_definition_id integer;
+                    task_def_id integer;
                 begin
                     if _revision is null then
-                        select id into task_definition_id
+                        select id into task_def_id
                         from task_definition
                         where family = _family
                         order by revision desc
                         limit 1;
                     else
-                        select id into task_definition_id
+                        select id into task_def_id
                         from task_definition
                         where family = _family and revision = _revision
                         order by id, revision desc
@@ -530,7 +528,7 @@ export class awsEcs1645216760389 implements MigrationInterface {
                     
                     delete
                     from task_definition_req_compatibilities_compatibility
-                    where task_definition_id = task_definition_id;
+                    where task_definition_id = task_def_id;
 
                     delete
                     from compatibility
@@ -541,7 +539,7 @@ export class awsEcs1645216760389 implements MigrationInterface {
 
                     delete
                     from task_definition
-                    where id = task_definition_id;
+                    where id = task_def_id;
                 end;
             $$;
         `);
@@ -551,48 +549,48 @@ export class awsEcs1645216760389 implements MigrationInterface {
             language plpgsql
             as $$ 
                 declare
-                    service_id integer;
+                    serv_id integer;
                     task_def_id integer;
-                    aws_vpc_conf_id integer;
+                    aws_vpc_c_id integer;
                     cluster_id integer;
                     elb_id integer;
                     target_group_id integer;
                     c_name text;
                     c_port integer;
-                    service_load_balancer_id integer;
+                    serv_load_balancer_id integer;
                     sg record;
                 begin
-                    select id, aws_vpc_conf_id into service_id, aws_vpc_conf_id
+                    select id, aws_vpc_conf_id into serv_id, aws_vpc_c_id
                     from service
                     where name = _name
                     order by id desc
                     limit 1;
 
-                    select service_load_balancer_id into service_load_balancer_id
+                    select service_load_balancer_id into serv_load_balancer_id
                     from service_load_balancers_service_load_balancer
-                    where service_id = service_id
-                    order by id desc
+                    where service_id = serv_id
+                    order by service_id desc
                     limit 1;
 
                     delete
                     from service_load_balancers_service_load_balancer
-                    where service_load_balancer_id = service_load_balancer_id and service_id = service_id;
+                    where service_load_balancer_id = serv_load_balancer_id and service_id = serv_id;
 
                     delete
                     from service_load_balancer
-                    where id = service_load_balancer_id;
+                    where id = serv_load_balancer_id;
 
                     delete
                     from aws_vpc_conf_security_groups_aws_security_group
-                    where aws_vpc_conf_id = aws_vpc_conf_id;
+                    where aws_vpc_conf_id = aws_vpc_c_id;
 
                     delete
                     from service
-                    where id = service_id;
+                    where id = serv_id;
 
                     delete
                     from aws_vpc_conf
-                    where id = aws_vpc_conf_id;
+                    where id = aws_vpc_c_id;
                 end;
             $$;
         `);
