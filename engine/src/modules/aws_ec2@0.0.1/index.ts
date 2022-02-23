@@ -17,6 +17,7 @@ export const AwsEc2Module: Module = new Module({
     tables: [
       'instance',
     ],
+    functions: ['create_or_update_ec2_instance', 'delete_ec2_instance',],
   },
   utils: {
     instanceMapper: async (instance: InstanceAWS, ctx: Context) => {
