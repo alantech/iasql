@@ -501,7 +501,7 @@ export class awsEcs1645216760389 implements MigrationInterface {
                     from env_variable
                     where id not in (
                         select env_variable_id
-                        from container_definition_environment_env_variable;
+                        from container_definition_environment_env_variable
                     );
                 end;
             $$;
@@ -511,38 +511,38 @@ export class awsEcs1645216760389 implements MigrationInterface {
             create or replace procedure delete_task_definition(_family text, _revision integer default null)
             language plpgsql
             as $$ 
-            declare 
-                task_definition_id integer;
-            begin
-                if _revision is null then
-                    select id into task_definition_id
-                    from task_definition
-                    where family = _family
-                    order by revision desc
-                    limit 1;
-                else
-                    select id into task_definition_id
-                    from task_definition
-                    where family = _family and revision = _revision
-                    order by id, revision desc
-                    limit 1;
-                end if;
-                
-                delete
-                from task_definition_req_compatibilities_compatibility
-                where task_definition_id = task_definition_id;
+                declare 
+                    task_definition_id integer;
+                begin
+                    if _revision is null then
+                        select id into task_definition_id
+                        from task_definition
+                        where family = _family
+                        order by revision desc
+                        limit 1;
+                    else
+                        select id into task_definition_id
+                        from task_definition
+                        where family = _family and revision = _revision
+                        order by id, revision desc
+                        limit 1;
+                    end if;
+                    
+                    delete
+                    from task_definition_req_compatibilities_compatibility
+                    where task_definition_id = task_definition_id;
 
-                delete
-                from compatibility
-                where id not in (
-                    select compatibility_id
-                    from task_definition_req_compatibilities_compatibility;
-                );
+                    delete
+                    from compatibility
+                    where id not in (
+                        select compatibility_id
+                        from task_definition_req_compatibilities_compatibility
+                    );
 
-                delete
-                from task_definition
-                where id = task_definition_id;
-            end;
+                    delete
+                    from task_definition
+                    where id = task_definition_id;
+                end;
             $$;
         `);
         // Example of use: call delete_ecs_service('test-12345');
