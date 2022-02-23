@@ -445,59 +445,59 @@ export class awsEcs1645216760389 implements MigrationInterface {
             language plpgsql
             as $$
                 declare
-                    c_id integer;
-                    pm_id integer;
+                    c_id integer[];
+                    pm_id integer[];
                     key text;
                     val text;
                     ev_id integer;
                     ecr_repository_id integer;
                     ecr_public_repository_id integer;
                     cw_log_group_id integer;
-                    td_id integer;
+                    td_id integer[];
                 begin
                     if _task_definition_revision is null then
-                        select id into td_id
-                        from task_definition
-                        where family = _task_definition_family
-                        order by revision desc
-                        limit 1;
+                        select array(
+                            select id
+                            from task_definition
+                            where family = _task_definition_family
+                        ) into td_id;
                     else
-                        select id into td_id
-                        from task_definition
-                        where family = _task_definition_family and revision = _task_definition_revision
-                        order by revision desc
-                        limit 1;
+                        select array(
+                            select id
+                            from task_definition
+                            where family = _task_definition_family and revision = _task_definition_revision
+                            order by revision desc
+                            limit 1
+                        ) into td_id;
                     end if;
                     
-                    select container_definition_id into c_id
-                    from task_definition_containers_container_definition
-                    where task_definition_id = td_id
-                    limit 1;
+                    select array(
+                        select container_definition_id
+                        from task_definition_containers_container_definition
+                        where task_definition_id = any(td_id)
+                    ) into c_id;
 
                     delete
                     from task_definition_containers_container_definition
-                    where task_definition_id = td_id and container_definition_id = c_id;
+                    where task_definition_id = any(td_id) and container_definition_id = any(c_id);
 
-                    delete
-                    from container_definition
-                    where id = c_id;
-
-                    select port_mapping_id into pm_id
-                    from container_definition_port_mappings_port_mapping
-                    where container_definition_id = c_id
-                    limit 1;
+                    select array(
+                        select port_mapping_id
+                        from container_definition_port_mappings_port_mapping
+                        where container_definition_id = any(c_id)
+                    ) into pm_id;
 
                     delete
                     from container_definition_port_mappings_port_mapping
-                    where container_definition_id = c_id and port_mapping_id = pm_id;
+                    where container_definition_id = any(c_id) and port_mapping_id = any(pm_id);
 
                     delete
                     from port_mapping
-                    where id = pm_id;
+                    where id = any(pm_id);
 
                     delete
                     from container_definition_environment_env_variable
-                    where container_definition_id = c_id;
+                    where container_definition_id = any(c_id);
 
                     delete
                     from env_variable
@@ -505,6 +505,10 @@ export class awsEcs1645216760389 implements MigrationInterface {
                         select env_variable_id
                         from container_definition_environment_env_variable
                     );
+
+                    delete
+                    from container_definition
+                    where id = any(c_id);
                 end;
             $$;
         `);
@@ -514,25 +518,27 @@ export class awsEcs1645216760389 implements MigrationInterface {
             language plpgsql
             as $$ 
                 declare 
-                    task_def_id integer;
+                    task_def_id integer[];
                 begin
                     if _revision is null then
-                        select id into task_def_id
-                        from task_definition
-                        where family = _family
-                        order by revision desc
-                        limit 1;
+                        select array(
+                            select id
+                            from task_definition
+                            where family = _family
+                        ) into task_def_id;
                     else
-                        select id into task_def_id
-                        from task_definition
-                        where family = _family and revision = _revision
-                        order by id, revision desc
-                        limit 1;
+                        select array(
+                            select id
+                            from task_definition
+                            where family = _family and revision = _revision
+                            order by id, revision desc
+                            limit 1
+                        ) into task_def_id;
                     end if;
                     
                     delete
                     from task_definition_req_compatibilities_compatibility
-                    where task_definition_id = task_def_id;
+                    where task_definition_id = any(task_def_id);
 
                     delete
                     from compatibility
@@ -543,7 +549,7 @@ export class awsEcs1645216760389 implements MigrationInterface {
 
                     delete
                     from task_definition
-                    where id = task_def_id;
+                    where id = any(task_def_id);
                 end;
             $$;
         `);
