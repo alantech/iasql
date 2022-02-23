@@ -13,7 +13,7 @@ const apply = runApply.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 
 
-describe('RDS Integration Testing', () => {
+describe('RDS Integration Testing SP', () => {
   it('creates a new test db elb', (done) => void iasql.add(
     dbAlias,
     'us-west-2',
@@ -33,15 +33,13 @@ describe('RDS Integration Testing', () => {
   it('applies the change', apply);
 
   it('changes the postgres version', query(`
-    UPDATE rds
-    SET engine = '13.5'
-    WHERE db_instance_identifier = '${prefix}test';
+    CALL create_or_update_rds('${prefix}test', 20, 'db.t3.micro', 'postgres', '13.5', 'test', 'testpass', 'us-west-2b', array['default']);
   `));
 
   it('applies the change', apply);
 
   it('removes the RDS instance', query(`
-    DELETE FROM rds WHERE db_instance_identifier = '${prefix}test';
+    CALL delete_rds('${prefix}test');
   `));
 
   it('applies the change', apply);
