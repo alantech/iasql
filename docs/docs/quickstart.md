@@ -246,3 +246,19 @@ WHERE load_balancer_name = '<project-name>-load-balancer';"
 ```
 curl <DNS-NAME>:8088/health
 ```
+
+## Clean up your environment
+
+1. Run the script on your db by invoking `psql` with the connection string provided on db creation and set the `project-name` parameter provided on resource creation:
+
+```bash
+psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4 -v project_name="'quickstart'" -f clean-quickstart.sql
+```
+
+2. Apply the changes described in the db to your cloud account
+
+```bash
+$ iasql apply prod
+✔ Press enter to confirm apply · yes
+...
+```
