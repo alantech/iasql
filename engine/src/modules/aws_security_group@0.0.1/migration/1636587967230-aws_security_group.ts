@@ -7,9 +7,9 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "aws_security_group" ("id" SERIAL NOT NULL, "description" character varying, "group_name" character varying, "owner_id" character varying, "group_id" character varying, "vpc_id" character varying, CONSTRAINT "PK_c95f0d51761dbddd9c3950d75be" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "aws_security_group_rule" ("id" SERIAL NOT NULL, "security_group_rule_id" character varying, "is_egress" boolean NOT NULL, "ip_protocol" character varying NOT NULL, "from_port" integer, "to_port" integer, "cidr_ipv4" cidr, "cidr_ipv6" cidr, "prefix_list_id" character varying, "description" character varying, "security_group_id" integer, CONSTRAINT "PK_e9776ba4916babd78e029b421e4" PRIMARY KEY ("id"))`);
         await queryRunner.query(`ALTER TABLE "aws_security_group_rule" ADD CONSTRAINT "FK_6d3482619216803d2f14ecf609d" FOREIGN KEY ("security_group_id") REFERENCES "aws_security_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        // Example of use: call create_aws_security_group('test', 'test', '[{"isEgress": false, "ipProtocol": "tcp", "fromPort": "8088", "toPort": 8088, "cidrIpv4": "0.0.0.0/0"}]', 'vpc');
+        // Example of use: call create_or_update_aws_security_group('test', 'test', '[{"isEgress": false, "ipProtocol": "tcp", "fromPort": "8088", "toPort": 8088, "cidrIpv4": "0.0.0.0/0"}]', 'vpc');
         await queryRunner.query(`
-            create or replace procedure create_aws_security_group(
+            create or replace procedure create_or_update_aws_security_group(
                 _name text,
                 _description text,
                 _secutiry_group_rules jsonb default null,
@@ -64,7 +64,7 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP procedure "create_aws_security_group";`);
+        await queryRunner.query(`DROP procedure "create_or_update_aws_security_group";`);
         await queryRunner.query(`ALTER TABLE "aws_security_group_rule" DROP CONSTRAINT "FK_6d3482619216803d2f14ecf609d"`);
         await queryRunner.query(`DROP TABLE "aws_security_group_rule"`);
         await queryRunner.query(`DROP TABLE "aws_security_group"`);

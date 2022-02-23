@@ -35,7 +35,7 @@ export const AwsEcsModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['cluster', 'container_definition', 'env_variable', 'port_mapping', 'compatibility', 'task_definition', 'aws_vpc_conf', 'service', 'service_load_balancer'],
-    functions: ['create_ecs_cluster', 'create_container_definition', 'create_task_definition', 'create_ecs_service'],
+    functions: ['create_or_update_ecs_cluster', 'create_container_definition', 'create_task_definition', 'create_or_update_ecs_service'],
   },
   utils: {
     clusterMapper: (c: any, _ctx: Context) => {
@@ -577,7 +577,7 @@ export const AwsEcsModule: Module = new Module({
         && Object.is(a.arn, b.arn)
         && Object.is(a.launchType, b.launchType)
         && Object.is(a.loadBalancers?.length, b.loadBalancers?.length)
-        && (a.loadBalancers?.every(alb => !!b.loadBalancers?.find(blb => Object.is(alb.elb?.loadBalancerArn, blb.elb?.loadBalancerArn))) ?? false)
+        && (a.loadBalancers?.every(alb => !!b.loadBalancers?.find(blb => Object.is(alb.elb?.loadBalancerArn, blb.elb?.loadBalancerArn) && Object.is(alb.targetGroup?.targetGroupArn, blb.targetGroup?.targetGroupArn))) ?? false)
         && Object.is(a.name, b.name)
         && AwsEcsModule.utils.serviceNetworkEq(a.network, b.network)
         && Object.is(a.schedulingStrategy, b.schedulingStrategy)
@@ -633,6 +633,7 @@ export const AwsEcsModule: Module = new Module({
       cloud: new Crud({
         create: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
+          const subnets = (await client.getSubnets()).Subnets.map(s => s.SubnetId ?? '');
           return await Promise.all(es.map(async (e) => {
             const input: any = {
               serviceName: e.name,
@@ -645,7 +646,7 @@ export const AwsEcsModule: Module = new Module({
             if (e.network) {
               input.networkConfiguration = {
                 awsvpcConfiguration: {
-                  subnets: e.network.subnets,
+                  subnets: e.network.subnets?.length ? e.network.subnets : subnets,
                   securityGroups: e.network.securityGroups.map(sg => sg.groupId!),
                   assignPublicIp: e.network.assignPublicIp,
                 }
@@ -702,7 +703,9 @@ export const AwsEcsModule: Module = new Module({
         updateOrReplace: (prev: Service, next: Service) => {
           if (!(Object.is(prev.name, next.name) && Object.is(prev.launchType, next.launchType)
             && Object.is(prev.schedulingStrategy, next.schedulingStrategy) && Object.is(prev.cluster?.clusterArn, next.cluster?.clusterArn)
-            && AwsEcsModule.utils.serviceNetworkEq(prev.network, next.network))) {
+            && AwsEcsModule.utils.serviceNetworkEq(prev.network, next.network)
+            && Object.is(prev.loadBalancers?.length, next.loadBalancers?.length)
+            && (prev.loadBalancers?.every(alb => !!next.loadBalancers?.find(blb => Object.is(alb.elb?.loadBalancerArn, blb.elb?.loadBalancerArn) && Object.is(alb.targetGroup?.targetGroupArn, blb.targetGroup?.targetGroupArn))) ?? false))) {
             return 'replace';
           }
           return 'update';

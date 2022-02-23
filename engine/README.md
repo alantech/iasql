@@ -238,11 +238,11 @@ This script is used for follow up updates once iasql-on-iasql is already in plac
 
 The `/src/script/iasql-on-iasql.sql` script runs all the stored procedures calls necessary to create IaSQL. The first time all the resources will be inserted in database and created on AWS using `apply`. 
 
-The current stored procedures have being created to run one time and the following will do nothing if you try to create the same resource again in order to avoid resource duplication. The stored procuedures related to `aws_ecs` module are the exception to this rule, specifically, the `create_container_definition`, `create_task_definition` and `create_ecs_service` procedures. 
+The current stored procedures have being created to run one time and the following will do nothing if you try to create the same resource again in order to avoid resource duplication. The stored procuedures related to `aws_ecs` module are the exception to this rule, specifically, the `create_container_definition`, `create_task_definition` and `create_or_update_ecs_service` procedures. 
 
 - `create_container_definition`: It will update the container if values are differet and it will add new port mapping or environment variables if do not exists.
 - `create_task_definition`: It will create a new version for the task definiton to be attached to the ecs service
-- `create_ecs_service`: It will update the service using the latest task definition available.
+- `create_or_update_ecs_service`: It will update the service using the latest task definition available.
 
 Following this logic, the next time we execute again the `iasql-on-iasql.sql` script will create a new task and update the engine service.
 
