@@ -69,7 +69,7 @@ describe('AwsCloudwatch Integration Testing SP', () => {
     call create_or_update_cloudwatch_log_group('${logGroupName}');
   `));
 
-  it('check number of instances', query(`
+  it('check adds a new log group', query(`
     SELECT *
     FROM log_group
     WHERE log_group_name = '${logGroupName}';
@@ -81,7 +81,7 @@ describe('AwsCloudwatch Integration Testing SP', () => {
     call delete_cloudwatch_log_group('${logGroupName}');
   `));
 
-  it('check number of instances', query(`
+  it('check deletes the log group', query(`
     SELECT *
     FROM log_group
     WHERE log_group_name = '${logGroupName}';
