@@ -47,9 +47,32 @@ export class awsEc21645131850358 implements MigrationInterface {
                 end;
             $$;
         `);
+        // Example of use: call delete_ec2_instance('i-1')
+        await queryRunner.query(`
+            create or replace procedure delete_ec2_instance(_instance_name text)
+            language plpgsql
+            as $$
+                declare
+                    instance_id integer;
+                begin
+                    select id into instance_id
+                    from instance
+                    where name = _instance_name
+                    order by id desc
+                    limit 1;
+
+                    delete from instance_security_groups_aws_security_group
+                    where instance_id = instance_id;
+
+                    delete from instance
+                    where name = _instance_name;
+                end;
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP PROCEDURE delete_ec2_instance`);
         await queryRunner.query(`DROP PROCEDURE create_or_update_ec2_instance`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups_aws_security_group" DROP CONSTRAINT "FK_0bc4c00d7c86a81c48482a2773d"`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups_aws_security_group" DROP CONSTRAINT "FK_ee3dfb3bef7cf8a5123b107167c"`);

@@ -29,7 +29,10 @@ export const AwsElbModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['aws_target_group', 'aws_load_balancer', 'aws_listener', 'aws_action',],
-    functions: ['create_or_update_aws_listener', 'create_or_update_aws_target_group', 'create_or_update_aws_load_balancer',],
+    functions: [
+      'create_or_update_aws_listener', 'create_or_update_aws_target_group', 'create_or_update_aws_load_balancer',
+      'delete_aws_listener', 'delete_aws_target_group', 'delete_aws_load_balancer',
+    ],
   },
   utils: {
     actionMapper: async (a: Action, ctx: Context) => {
