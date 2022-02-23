@@ -29,7 +29,7 @@ export const AwsElbModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['aws_target_group', 'aws_load_balancer', 'aws_listener', 'aws_action',],
-    functions: ['create_aws_listener', 'create_aws_target_group', 'create_aws_load_balancer',],
+    functions: ['create_or_update_aws_listener', 'create_or_update_aws_target_group', 'create_or_update_aws_load_balancer',],
   },
   utils: {
     actionMapper: async (a: Action, ctx: Context) => {
@@ -84,12 +84,14 @@ export const AwsElbModule: Module = new Module({
         : [];
       out.ipAddressType = lb.IpAddressType as IpAddressType;
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
-      out.vpc = lb.VpcId;
+      const client = await ctx.getAwsClient() as AWS;
+      const vpc = await client.getVpc(lb.VpcId);
+      out.vpc = vpc?.IsDefault ? 'default' : lb.VpcId;
       out.availabilityZones = lb.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
       out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
       return out;
     },
-    targetGroupMapper: async (tg: any, _ctx: Context) => {
+    targetGroupMapper: async (tg: any, ctx: Context) => {
       const out = new AwsTargetGroup();
       if (!tg?.TargetGroupName) {
         throw new Error('Target group not defined properly');
@@ -109,7 +111,9 @@ export const AwsElbModule: Module = new Module({
       out.unhealthyThresholdCount = tg.UnhealthyThresholdCount ?? null;
       out.healthCheckPath = tg.HealthCheckPath ?? null;
       out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum ?? null;
-      out.vpc = tg.VpcId;
+      const client = await ctx.getAwsClient() as AWS;
+      const vpc = await client.getVpc(tg.VpcId);
+      out.vpc = vpc?.IsDefault ? 'default' : tg.VpcId;
       return out;
     },
   },

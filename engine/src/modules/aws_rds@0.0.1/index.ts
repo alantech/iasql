@@ -15,7 +15,7 @@ export const AwsRdsModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['engine_version', 'rds',],
-    functions: ['create_rds',],
+    functions: ['create_or_update_rds',],
   },
   utils: {
     rdsMapper: async (rds: any, ctx: Context) => {

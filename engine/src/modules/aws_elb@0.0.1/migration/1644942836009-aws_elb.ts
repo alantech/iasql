@@ -32,9 +32,9 @@ export class awsElb1644942836009 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "aws_listener_default_actions_aws_action" ADD CONSTRAINT "FK_d8aa3feff946c2b366fad035de1" FOREIGN KEY ("aws_listener_id") REFERENCES "aws_listener"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "aws_listener_default_actions_aws_action" ADD CONSTRAINT "FK_3a5ce81218da8536275396ca4d9" FOREIGN KEY ("aws_action_id") REFERENCES "aws_action"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         // TODO: Check these
-        // Example of use: call create_aws_load_balancer('test-sp2', 'internal', 'vpc-41895538', 'network', array['subnet-68312820', 'subnet-a58a84c3'], 'ipv4');
+        // Example of use: call create_or_update_aws_load_balancer('test-sp2', 'internal', 'vpc-41895538', 'network', array['subnet-68312820', 'subnet-a58a84c3'], 'ipv4');
         await queryRunner.query(`
-            create or replace procedure create_aws_load_balancer(
+            create or replace procedure create_or_update_aws_load_balancer(
                 _name text,
                 _scheme aws_load_balancer_scheme_enum,
                 _vpc_id text,
@@ -45,8 +45,6 @@ export class awsElb1644942836009 implements MigrationInterface {
             language plpgsql
             as $$
             declare
-                az record;
-                sn record;
                 sg record;
                 sg_id integer;
                 load_balancer_id integer;
@@ -56,7 +54,10 @@ export class awsElb1644942836009 implements MigrationInterface {
                 values
                     (_name, _scheme, _vpc_id, _elb_type, _ip_address_type)
                 on conflict (load_balancer_name)
-                do nothing;
+                do update set scheme = _scheme,
+                    load_balancer_type = _elb_type,
+                    ip_address_type = _ip_address_type,
+                    vpc = _vpc_id;
             
                 select id into load_balancer_id
                 from aws_load_balancer
@@ -64,31 +65,27 @@ export class awsElb1644942836009 implements MigrationInterface {
                 order by id desc
                 limit 1;
             
-                select aws_security_group_id into sg_id
-                from aws_load_balancer_security_groups_aws_security_group
-                where aws_load_balancer_id = load_balancer_id
-                limit 1;
-            
-                if sg_id is null then
-                    for sg in
-                        select id
-                        from aws_security_group
-                        where group_name = any(_security_group_names)
-                    loop
-                        insert into aws_load_balancer_security_groups_aws_security_group
-                            (aws_load_balancer_id, aws_security_group_id)
-                        values
-                            (load_balancer_id, sg.id);
-                    end loop;
-                end if;
+                -- TODO: HANDLE BETTER SECURITY GROUPS UPDATES
+                delete from aws_load_balancer_security_groups_aws_security_group
+                where aws_load_balancer_id = load_balancer_id;
+                for sg in
+                    select id
+                    from aws_security_group
+                    where group_name = any(_security_group_names)
+                loop
+                    insert into aws_load_balancer_security_groups_aws_security_group
+                        (aws_load_balancer_id, aws_security_group_id)
+                    values
+                        (load_balancer_id, sg.id);
+                end loop;
             
                 raise info 'aws_load_balancer_id = %', load_balancer_id;
             end;
             $$;
         `);
-        // Example of use: call create_aws_target_group('test-sp2', 'ip', 8888, 'vpc-41895538', 'TCP', '/health');
+        // Example of use: call create_or_update_aws_target_group('test-sp2', 'ip', 8888, 'vpc-41895538', 'TCP', '/health');
         await queryRunner.query(`
-            create or replace procedure create_aws_target_group(
+            create or replace procedure create_or_update_aws_target_group(
                 _name text,
                 _target_type aws_target_group_target_type_enum,
                 _port integer,
@@ -106,7 +103,11 @@ export class awsElb1644942836009 implements MigrationInterface {
                 values
                     (_name, _target_type, _protocol, _port, _vpc_id, _health_check_path)
                 on conflict (target_group_name)
-                do nothing;
+                do update set target_type = _target_type,
+                    protocol = _protocol,
+                    port = _port,
+                    vpc = _vpc_id,
+                    health_check_path = _health_check_path;
             
                 select id into target_group_id
                 from aws_target_group
@@ -118,9 +119,9 @@ export class awsElb1644942836009 implements MigrationInterface {
             end;
             $$;
         `);
-        // Example of use: call create_aws_listener('test-sp2', 8888, 'TCP', 'forward', 'test-sp2');
+        // Example of use: call create_or_update_aws_listener('test-sp2', 8888, 'TCP', 'forward', 'test-sp2');
         await queryRunner.query(`
-            create or replace procedure create_aws_listener(
+            create or replace procedure create_or_update_aws_listener(
                 _load_balancer_name text,
                 _port integer,
                 _protocol aws_listener_protocol_enum,
@@ -158,7 +159,7 @@ export class awsElb1644942836009 implements MigrationInterface {
                 from aws_load_balancer
                 where load_balancer_name = _load_balancer_name
                 limit 1;
-            
+
                 select id into l_id
                 from aws_listener
                 where aws_load_balancer_id = lb_id and port = _port and protocol = _protocol
@@ -175,12 +176,15 @@ export class awsElb1644942836009 implements MigrationInterface {
                     from aws_listener
                     order by id desc
                     limit 1;
-            
-                    insert into aws_listener_default_actions_aws_action
-                        (aws_listener_id, aws_action_id)
-                    values 
-                        (l_id, a_id);
                 end if;
+                
+                -- TODO: Handle better listener actions updates
+                delete from aws_listener_default_actions_aws_action
+                where aws_listener_id = l_id;
+                insert into aws_listener_default_actions_aws_action
+                    (aws_listener_id, aws_action_id)
+                values 
+                    (l_id, a_id);
             
                 raise info 'aws_listener_id = %', l_id;
             end; 
@@ -189,9 +193,9 @@ export class awsElb1644942836009 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP procedure create_aws_listener;`);
-        await queryRunner.query(`DROP procedure create_aws_target_group;`);
-        await queryRunner.query(`DROP procedure create_aws_load_balancer;`);
+        await queryRunner.query(`DROP procedure create_or_update_aws_listener;`);
+        await queryRunner.query(`DROP procedure create_or_update_aws_target_group;`);
+        await queryRunner.query(`DROP procedure create_or_update_aws_load_balancer;`);
         await queryRunner.query(`ALTER TABLE "aws_listener_default_actions_aws_action" DROP CONSTRAINT "FK_3a5ce81218da8536275396ca4d9"`);
         await queryRunner.query(`ALTER TABLE "aws_listener_default_actions_aws_action" DROP CONSTRAINT "FK_d8aa3feff946c2b366fad035de1"`);
         await queryRunner.query(`ALTER TABLE "aws_load_balancer_security_groups_aws_security_group" DROP CONSTRAINT "FK_db1c32e5ebacdf20b2ffad7a37a"`);

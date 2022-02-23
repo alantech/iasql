@@ -42,32 +42,32 @@ do $$
     iasql_sentry_enabled text := 'true';
     iasql_sentry_dsn text := 'https://e257e8d6646e4657b4f556efc1de31e8@o1090662.ingest.sentry.io/6106929';
   begin
-    call create_aws_security_group(
+    call create_or_update_aws_security_group(
       iasql_engine_security_group, iasql_engine_security_group,
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_engine_port || ', "toPort": ' || iasql_engine_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": false, "ipProtocol": "tcp", "fromPort": "443", "toPort": "443", "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
 
-    call create_aws_target_group(
+    call create_or_update_aws_target_group(
       iasql_engine_target_group, 'ip', iasql_engine_port, 'default', 'HTTP', '/health'
     );
 
-    call create_aws_load_balancer(
+    call create_or_update_aws_load_balancer(
       iasql_engine_load_balancer, 'internet-facing', 'default', 'application', 'ipv4', array[iasql_engine_security_group]
     );
 
     -- TODO: update this listener once HTTPS can be configure via IaSQL
-    call create_aws_listener(iasql_engine_load_balancer, iasql_engine_port, 'HTTP', 'forward', iasql_engine_target_group);
+    call create_or_update_aws_listener(iasql_engine_load_balancer, iasql_engine_port, 'HTTP', 'forward', iasql_engine_target_group);
 
-    call create_ecr_repository(iasql_engine_repository);
+    call create_or_update_ecr_repository(iasql_engine_repository);
 
     -- TODO: how to handle better this hard coded policy?
-    call create_ecr_repository_policy(
+    call create_or_update_ecr_repository_policy(
       iasql_engine_repository, '{ "Version" : "2012-10-17", "Statement" : [ { "Sid" : "new statement", "Effect" : "Allow", "Principal" : { "AWS" : [ "arn:aws:iam::<AWS_ACCOUNT_ID>:role/AWSECSTaskExecution" ] }, "Action" : [ "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:CreateRepository", "ecr:DeleteRepositoryPolicy", "ecr:DescribeImageScanFindings", "ecr:DescribeImages", "ecr:DescribeRepositories", "ecr:GetAuthorizationToken", "ecr:GetDownloadUrlForLayer", "ecr:GetLifecyclePolicy", "ecr:GetLifecyclePolicyPreview", "ecr:GetRepositoryPolicy", "ecr:ListImages", "ecr:ListTagsForResource", "ecr:SetRepositoryPolicy" ] } ]}'
     );
 
-    call create_ecs_cluster(iasql_cluster);
+    call create_or_update_ecs_cluster(iasql_cluster);
 
-    call create_cloudwatch_log_group(iasql_engine_cloud_watch_log_group);
+    call create_or_update_cloudwatch_log_group(iasql_engine_cloud_watch_log_group);
 
     call create_task_definition(
       iasql_engine_task_definition, iasql_ecs_task_execution_role, iasql_ecs_task_execution_role,
@@ -80,17 +80,17 @@ do $$
       _ecr_repository_name := iasql_engine_repository, _cloud_watch_log_group := iasql_engine_cloud_watch_log_group
     );
 
-    call create_ecs_service(
+    call create_or_update_ecs_service(
       iasql_engine_service, iasql_cluster, iasql_engine_task_definition, iasql_engine_service_desired_count, 'FARGATE',
       'REPLICA', array[iasql_engine_security_group], 'ENABLED', null, iasql_engine_target_group
     );
 
-    call create_aws_security_group(
+    call create_or_update_aws_security_group(
       iasql_postgres_security_group, iasql_postgres_security_group,
       ('[{"isEgress": false, "ipProtocol": "tcp", "fromPort": ' || iasql_postgres_port || ', "toPort": ' || iasql_postgres_port || ', "cidrIpv4": "0.0.0.0/0"}, {"isEgress": true, "ipProtocol": -1, "fromPort": -1, "toPort": -1, "cidrIpv4": "0.0.0.0/0"}]')::jsonb
     );
 
-    call create_rds(
+    call create_or_update_rds(
       iasql_postgres_rds, iasql_postgres_rds_allocated_storage, iasql_postgres_rds_db_instance_class,
       iasql_postgres_rds_db_engine, iasql_postgres_rds_db_engine_version, iasql_postgres_rds_db_username,
       iasql_postgres_rds_db_password, iasql_postgres_rds_db_az, array[iasql_postgres_security_group]
@@ -100,13 +100,13 @@ do $$
     -- TODO: Restore once we manage our own iasql instance
     
     
-    -- call create_aws_target_group(
+    -- call create_or_update_aws_target_group(
     --   iasql_postgres_target_group, 'ip', iasql_postgres_port, default_vpc, 'TCP'
     -- );
 
-    -- call create_aws_listener(iasql_postgres_load_balancer, iasql_postgres_port, 'TCP', 'forward', iasql_postgres_target_group);
+    -- call create_or_update_aws_listener(iasql_postgres_load_balancer, iasql_postgres_port, 'TCP', 'forward', iasql_postgres_target_group);
 
-    -- call create_aws_load_balancer(
+    -- call create_or_update_aws_load_balancer(
     --   iasql_postgres_load_balancer, 'internet-facing', default_vpc, 'network', default_subnets, 'ipv4'
     -- );
 
@@ -121,7 +121,7 @@ do $$
     --   'awsvpc', array['FARGATE']::compatibility_name_enum[], '2vCPU-8GB', array[iasql_postgres_container]
     -- );
 
-    -- call create_ecs_service(
+    -- call create_or_update_ecs_service(
     --   iasql_postgres_service, iasql_cluster, iasql_postgres_task_definition, 1, 'FARGATE',
     --   'REPLICA', default_subnets, array[iasql_postgres_security_group], 'ENABLED', iasql_postgres_target_group
     -- );
