@@ -12,7 +12,7 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
             create or replace procedure create_or_update_aws_security_group(
                 _name text,
                 _description text,
-                _secutiry_group_rules jsonb default null,
+                _security_group_rules jsonb default null,
                 _vpc_id text default null
             ) 
             language plpgsql
@@ -54,9 +54,9 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
                         where security_group_id = sec_group_id;
                     end if;
 
-                    if jsonb_array_length(_secutiry_group_rules) > 0 then
+                    if jsonb_array_length(_security_group_rules) > 0 then
                         for json_rule in
-                            select * from jsonb_array_elements(_secutiry_group_rules)
+                            select * from jsonb_array_elements(_security_group_rules)
                         loop
                             assert json_rule ?& array['isEgress', 'ipProtocol', 'fromPort', 'toPort', 'cidrIpv4'], 'Not all security group rule required keys are defined ("isEgress", "ipProtocol", "fromPort", "toPort", "cidrIpv4")';
         
