@@ -18,46 +18,56 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
             language plpgsql
             as $$ 
                 declare
-                    security_group_id integer;
+                    sec_group_id integer;
                     json_rule jsonb;
                 begin
                     if _vpc_id is null then
                         select 'default' into _vpc_id;
                     end if;
             
-                    select id into security_group_id
+                    select id into sec_group_id
                     from aws_security_group
                     where group_name = _name
                     order by id desc
                     limit 1;
             
-                    if security_group_id is null then
+                    if sec_group_id is null then
                         insert into aws_security_group
                             (group_name, vpc_id, description)
                         values
                             (_name, _vpc_id, _description);
             
-                        select id into security_group_id
+                        select id into sec_group_id
                         from aws_security_group
                         where group_name = _name
                         order by id desc
                         limit 1;
-            
-                        if jsonb_array_length(_secutiry_group_rules) > 0 then
-                            for json_rule in
-                                select * from jsonb_array_elements(_secutiry_group_rules)
-                            loop
-                                assert json_rule ?& array['isEgress', 'ipProtocol', 'fromPort', 'toPort', 'cidrIpv4'], 'Not all security group rule required keys are defined ("isEgress", "ipProtocol", "fromPort", "toPort", "cidrIpv4")';
-            
-                                insert into aws_security_group_rule
-                                    (security_group_id, is_egress, ip_protocol, from_port, to_port, cidr_ipv4)
-                                values
-                                    (security_group_id, cast(json_rule ->> 'isEgress' as boolean), json_rule ->> 'ipProtocol', cast(json_rule ->> 'fromPort' as integer), cast(json_rule ->> 'toPort' as integer), cast(json_rule ->> 'cidrIpv4' as cidr));
-                            end loop;
-                        end if;
+                    else
+                        update aws_security_group
+                        set group_name = _name,
+                            vpc_id = _vpc_id,
+                            description = _description
+                        where id = sec_group_id;
+
+                        -- TODO: Handle better rules update
+                        delete from aws_security_group_rule
+                        where security_group_id = sec_group_id;
+                    end if;
+
+                    if jsonb_array_length(_secutiry_group_rules) > 0 then
+                        for json_rule in
+                            select * from jsonb_array_elements(_secutiry_group_rules)
+                        loop
+                            assert json_rule ?& array['isEgress', 'ipProtocol', 'fromPort', 'toPort', 'cidrIpv4'], 'Not all security group rule required keys are defined ("isEgress", "ipProtocol", "fromPort", "toPort", "cidrIpv4")';
+        
+                            insert into aws_security_group_rule
+                                (security_group_id, is_egress, ip_protocol, from_port, to_port, cidr_ipv4)
+                            values
+                                (sec_group_id, cast(json_rule ->> 'isEgress' as boolean), json_rule ->> 'ipProtocol', cast(json_rule ->> 'fromPort' as integer), cast(json_rule ->> 'toPort' as integer), cast(json_rule ->> 'cidrIpv4' as cidr));
+                        end loop;
                     end if;
             
-                    raise info 'aws_security_group_id = %', security_group_id;
+                    raise info 'aws_security_group_id = %', sec_group_id;
                 end;
             $$;
         `);
