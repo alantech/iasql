@@ -118,3 +118,129 @@ describe('ECR Integration Testing', () => {
     .remove(dbAlias, 'not-needed')
     .then(...finish(done)));
 });
+
+describe('ECR Integration Testing SP', () => {
+  it('creates a new test db', (done) => void iasql.add(
+    dbAlias,
+    'us-west-2',
+    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
+    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
+    'not-needed').then(...finish(done)));
+
+  it('installs the ecr module', (done) => void iasql.install(
+    ['aws_ecr@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  describe('private repository', () => {
+    it('adds a new repository', query(`
+      call create_or_update_ecr_repository('${repositoryName}');
+    `));
+
+    it('check adds a new repository', query(`
+      SELECT *
+      FROM aws_repository
+      WHERE repository_name = '${repositoryName}';
+    `, (res: any[]) => {
+      expect(res.length).toBe(1);
+      expect(res[0]['scan_on_push']).toBe(false);
+      return expect(res[0]['image_tag_mutability']).toBe('MUTABLE');
+    }));
+  
+    it('applies the reporsitory change', apply);
+
+    it('tries to update a repository field', query(`
+      call create_or_update_ecr_repository('${repositoryName}', true, 'IMMUTABLE');
+    `));
+  
+    it('check adds a new repository', query(`
+      SELECT *
+      FROM aws_repository
+      WHERE repository_name = '${repositoryName}';
+    `, (res: any[]) => {
+      expect(res.length).toBe(1);
+      expect(res[0]['scan_on_push']).toBe(true);
+      return expect(res[0]['image_tag_mutability']).toBe('IMMUTABLE');
+    }));
+
+    it('applies tries to update a repository field', apply);
+  
+    it('adds a new repository policy', query(`
+      call create_or_update_ecr_repository_policy('${repositoryName}', '${policyMock}');
+    `));
+
+    it('check adds a new repository policy', query(`
+      SELECT *
+      FROM aws_repository_policy
+      INNER JOIN aws_repository ON aws_repository.id = aws_repository_policy.repository_id
+      WHERE repository_name = '${repositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+  
+    it('applies adds a new repository policy', apply);
+
+    it('deletes the repository policy', query(`
+      call delete_ecr_repository_policy('${repositoryName}');
+    `));
+
+    it('check deletes the repository policy', query(`
+      SELECT *
+      FROM aws_repository_policy
+      INNER JOIN aws_repository ON aws_repository.id = aws_repository_policy.repository_id
+      WHERE repository_name = '${repositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('applies deletes the repository policy', apply);
+
+    it('deletes the repository', query(`
+      call delete_ecr_repository('${repositoryName}');
+    `));
+  
+    it('check deletes the repository', query(`
+      SELECT scan_on_push, image_tag_mutability
+      FROM aws_repository
+      WHERE repository_name = '${repositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('applies deletes the repository', apply);
+  });
+
+  describe('public repository', () => {
+    it('adds a new public repository', query(`
+      call create_or_update_ecr_public_repository('${pubRepositoryName}');
+    `));
+  
+    it('check adds a new public repository', query(`
+      SELECT *
+      FROM aws_public_repository
+      WHERE repository_name = '${pubRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('applies adds a new public repository', apply);
+
+    it('adds a new public repository (idem)', query(`
+      call create_or_update_ecr_public_repository('${pubRepositoryName}');
+    `));
+
+    it('check adds a new public repository (idem)', query(`
+      SELECT *
+      FROM aws_public_repository
+      WHERE repository_name = '${pubRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+  
+    it('deletes the public repository', query(`
+      call delete_ecr_public_repository('${pubRepositoryName}');
+    `));
+
+    it('check deletes the public repository', query(`
+      SELECT *
+      FROM aws_public_repository
+      WHERE repository_name = '${pubRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+  
+    it('applies deletes the public repository', apply);
+  });
+
+  it('deletes the test db', (done) => void iasql
+    .remove(dbAlias, 'not-needed')
+    .then(...finish(done)));
+});
