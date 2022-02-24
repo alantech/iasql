@@ -198,3 +198,122 @@ describe('ELB Integration Testing', () => {
     .remove(dbAlias, 'not-needed')
     .then(...finish(done)));
 });
+
+describe('ELB Integration Testing SP', () => {
+  it('creates a new test db elb', (done) => void iasql.add(
+    dbAlias,
+    'us-west-2',
+    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
+    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
+    'not-needed').then(...finish(done)));
+
+  it('installs the elb module', (done) => void iasql.install(
+    ['aws_security_group@0.0.1', 'aws_elb@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  // TODO: add tests with stored procedures
+  // Target group
+  it('adds a new targetGroup', query(`
+    call create_or_update_aws_target_group('${tgName}', '${tgType}', ${port}, 'default', '${protocol}', '/health');
+  `));
+
+  it('check aws_target_group insertion', query(`
+    SELECT *
+    FROM aws_target_group
+    WHERE target_group_name = '${tgName}'
+    ORDER BY id DESC
+    LIMIT 1;
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('applies adds a new targetGroup', apply);
+
+  // Load balancer
+  it('adds a new load balancer', query(`
+    call create_or_update_aws_load_balancer('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
+  `));
+
+  it('check aws_load_balancer insertion', query(`
+    SELECT *
+    FROM aws_load_balancer
+    WHERE load_balancer_name = '${lbName}'
+    ORDER BY id DESC
+    LIMIT 1;
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('applies adds a new load balancer', apply);
+
+  it('adds a new listener', query(`
+    call create_or_update_aws_listener('${lbName}', ${port}, '${protocol}', 'forward', '${tgName}');
+  `));
+
+  it('check aws_listener insertion', query(`
+    SELECT *
+    FROM aws_listener
+    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check aws_listener_default_actions_aws_action insertion', query(`
+    SELECT *
+    FROM aws_listener_default_actions_aws_action
+    INNER JOIN aws_listener ON aws_listener.id = aws_listener_default_actions_aws_action.aws_listener_id
+    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('applies adds a new listener', apply);
+
+  it('deletes the listener', query(`
+    call delete_aws_listener('${lbName}', ${port}, '${protocol}', 'forward', '${tgName}');
+  `));
+
+  it('check aws_listener delete', query(`
+    SELECT *
+    FROM aws_listener
+    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check aws_listener_default_actions_aws_action delete', query(`
+    SELECT *
+    FROM aws_listener_default_actions_aws_action
+    INNER JOIN aws_listener ON aws_listener.id = aws_listener_default_actions_aws_action.aws_listener_id
+    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('applies deletes the listener', apply);
+
+  it('deletes the load balancer', query(`
+    call delete_aws_load_balancer('${lbName}');
+  `));
+
+  it('check aws_load_balancer delete', query(`
+    SELECT *
+    FROM aws_load_balancer
+    WHERE load_balancer_name = '${lbName}'
+    ORDER BY id DESC
+    LIMIT 1;
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('applies deletes the load balancer', apply);
+
+  it('deletes the target group', query(`
+    call delete_aws_target_group('${tgName}');
+  `));
+
+  it('check aws_target_group insertion', query(`
+    SELECT *
+    FROM aws_target_group
+    WHERE target_group_name = '${tgName}'
+    ORDER BY id DESC
+    LIMIT 1;
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('applies deletes the target group', apply);
+
+  it('deletes the test db', (done) => void iasql
+    .remove(dbAlias, 'not-needed')
+    .then(...finish(done)));
+});
