@@ -8,8 +8,16 @@ import {
   AvailabilityZone,
   CreateSecurityGroupCommand,
   CreateSecurityGroupRequest,
+  CreateSubnetCommand,
+  CreateSubnetCommandInput,
+  CreateVpcCommand,
+  CreateVpcCommandInput,
   DeleteSecurityGroupCommand,
   DeleteSecurityGroupRequest,
+  DeleteSubnetCommand,
+  DeleteSubnetCommandInput,
+  DeleteVpcCommand,
+  DeleteVpcCommandInput,
   DescribeAvailabilityZonesCommand,
   DescribeImagesCommand,
   DescribeInstanceTypesCommand,
@@ -111,9 +119,6 @@ import {
   paginateDescribeDBInstances,
   RDSClient,
   paginateDescribeDBEngineVersions,
-  paginateDescribeOrderableDBInstanceOptions,
-  paginateDescribeDBSecurityGroups,
-  DescribeDBSecurityGroupsCommand,
   DescribeDBEngineVersionsCommand,
   ModifyDBInstanceCommand,
   ModifyDBInstanceCommandInput,
@@ -122,7 +127,6 @@ import {
   CloudWatchLogsClient,
   CreateLogGroupCommand,
   DeleteLogGroupCommand,
-  DescribeLogGroupsCommand,
   paginateDescribeLogGroups,
 } from '@aws-sdk/client-cloudwatch-logs'
 import {
@@ -717,6 +721,18 @@ export class AWS {
     return vpcs?.Vpcs?.[0];
   }
 
+  async createVpc(input: CreateVpcCommandInput) {
+    return await this.ec2client.send(
+      new CreateVpcCommand(input)
+    );
+  }
+
+  async deleteVpc(input: DeleteVpcCommandInput) {
+    return await this.ec2client.send(
+      new DeleteVpcCommand(input)
+    );
+  }
+
   async getSubnets() {
     const subnets = [];
     const paginator = paginateDescribeSubnets({
@@ -736,6 +752,18 @@ export class AWS {
       new DescribeSubnetsCommand({ SubnetIds: [id], })
     );
     return subnets?.Subnets?.[0];
+  }
+
+  async createSubnet(input: CreateSubnetCommandInput) {
+    return await this.ec2client.send(
+      new CreateSubnetCommand(input)
+    );
+  }
+
+  async deleteSubnet(input: DeleteSubnetCommandInput) {
+    return await this.ec2client.send(
+      new DeleteSubnetCommand(input)
+    );
   }
 
   async createCluster(input: CreateClusterCommandInput) {
