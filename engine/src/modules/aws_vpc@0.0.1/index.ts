@@ -72,7 +72,7 @@ export const AwsVpcModule: Module = new Module({
       }),
       cloud: new Crud({
         create: async (es: AwsSubnet[], ctx: Context) => {
-          // TODO: Add support for creating default subnets (only one is allowed, also add 
+          // TODO: Add support for creating default subnets (only one is allowed, also add
           // constraint that a single subnet is set as default)
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
