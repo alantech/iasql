@@ -16,8 +16,10 @@ export class AwsVpc {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  vpcId: string;
+  @Column({
+    nullable: true,
+  })
+  vpcId?: string;
 
   @Column()
   cidrBlock: string;
@@ -160,7 +162,7 @@ export class AwsSubnet {
   })
   state?: SubnetState;
 
-  @ManyToOne(() => AwsVpc, { nullable: false, })
+  @ManyToOne(() => AwsVpc, { nullable: false, cascade: true,  eager: true, })
   @JoinColumn({
     name: 'vpc_id',
   })
@@ -177,8 +179,10 @@ export class AwsSubnet {
   })
   cidrBlock?: string;
 
-  @Column()
-  subnetId: string;
+  @Column({
+    nullable: true,
+  })
+  subnetId?: string;
 
   @Column({
     nullable: true,
