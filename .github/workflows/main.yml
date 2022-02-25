@@ -2,7 +2,7 @@ name: MAIN
 
 on:
   push:
-    branches: [main, dispatch]
+    branches: [main]
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -13,7 +13,6 @@ jobs:
       - name: Emit repository_dispatch
         uses: mvasigh/dispatch-action@main
         with:
-          # You should create a personal access token and store it in your repository
           token: ${{ secrets.GH_PAT }}
           repo: iasql-on-iasql
           owner: iasql
