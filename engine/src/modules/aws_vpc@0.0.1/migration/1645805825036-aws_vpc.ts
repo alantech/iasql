@@ -10,9 +10,47 @@ export class awsVpc1645805825036 implements MigrationInterface {
         await queryRunner.query(`CREATE TYPE "public"."aws_subnet_state_enum" AS ENUM('available', 'pending')`);
         await queryRunner.query(`CREATE TABLE "aws_subnet" ("id" SERIAL NOT NULL, "availability_zone" "public"."aws_subnet_availability_zone_enum" NOT NULL, "state" "public"."aws_subnet_state_enum", "available_ip_address_count" integer, "cidr_block" character varying, "subnet_id" character varying, "owner_id" character varying, "subnet_arn" character varying, "vpc_id" integer NOT NULL, CONSTRAINT "PK_5c7324c6b9049d07fd5799ec1fa" PRIMARY KEY ("id"))`);
         await queryRunner.query(`ALTER TABLE "aws_subnet" ADD CONSTRAINT "FK_0f8b7750905ef3209a892aec1e2" FOREIGN KEY ("vpc_id") REFERENCES "aws_vpc"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`
+          create or replace procedure create_or_update_vpc(_cidr text)
+          language plpgsql
+          as $$
+            declare
+              vpc_id integer;
+            begin
+              select id into vpc_id
+              from aws_vpc
+              where cidr_block = _cidr;
+
+              if vpc_id is null then
+                insert into aws_vpc (cidr_block) values (_cidr);
+              end if;
+            end;
+          $$;
+        `);
+        await queryRunner.query(`
+          create or replace procedure create_or_update_subnet(_cidr text, _vpc_id text)
+          language plpgsql
+          as $$
+            declare
+              subnet_id integer;
+            begin
+              select id into subnet_id
+              from aws_subnet
+              where vpc_id = _vpc_id;
+
+              if subnet_id is null then
+                insert into aws_subnet (vpc_id, cidr_block) values (_vpc_id, _cidr);
+              else
+                update aws_subnet set cidr_block = _cidr where id = subnet_id;
+              end if;
+            end;
+          $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`drop procedure create_or_update_subnet`);
+        await queryRunner.query(`drop procedure create_or_update_vpc`);
         await queryRunner.query(`ALTER TABLE "aws_subnet" DROP CONSTRAINT "FK_0f8b7750905ef3209a892aec1e2"`);
         await queryRunner.query(`DROP TABLE "aws_subnet"`);
         await queryRunner.query(`DROP TYPE "public"."aws_subnet_state_enum"`);
