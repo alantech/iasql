@@ -1,0 +1,19 @@
+name: MAIN
+
+on:
+  push:
+    branches: [main]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Emit repository_dispatch
+        uses: mvasigh/dispatch-action@main
+        with:
+          token: ${{ secrets.GH_PAT }}
+          repo: iasql-on-iasql
+          owner: iasql
+          event_type: deploy_staging
