@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Emit repository_dispatch
-        uses: mvasigh/dispatch-action
+        uses: mvasigh/dispatch-action@main
         with:
           # You should create a personal access token and store it in your repository
           token: ${{ secrets.GH_PAT }}
