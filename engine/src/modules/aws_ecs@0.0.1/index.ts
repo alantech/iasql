@@ -646,8 +646,6 @@ export const AwsEcsModule: Module = new Module({
           const res = [];
           for (const e of es) {
             if (!e.task?.taskDefinitionArn) {
-              console.log('Failing here')
-              console.dir({e}, {depth:7})
               throw new Error('task definition need to be created first')
             }
             const input: any = {
@@ -675,12 +673,7 @@ export const AwsEcsModule: Module = new Module({
                 containerPort: lb.containerPort
               }));
             }
-            let result;
-            try {
-              result = await client.createService(input);
-            } catch (_) {
-              console.dir({e}, {depth:7})
-            }
+            const result = await client.createService(input);
             // TODO: Handle if it fails (somehow)
             if (!result?.hasOwnProperty('serviceName') || !result?.hasOwnProperty('clusterArn')) { // Failure
               throw new Error('what should we do here?');

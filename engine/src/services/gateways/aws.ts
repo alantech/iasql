@@ -828,59 +828,28 @@ export class AWS {
   async getTaskDefinitions() {
     const taskDefinitions: any[] = [];
     const activeTaskDefinitionArns: string[] = [];
-    const inactiveTaskDefinitionArns: string[] = [];
     const activePaginator = paginateListTaskDefinitions({
       client: this.ecsClient,
-      // pageSize: 50,
     }, {
       status: 'ACTIVE',
       maxResults: 100,
     });
     for await (const page of activePaginator) {
-      console.log('page length taskDefinitionArns', page.taskDefinitionArns?.length)
       activeTaskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
     }
-    const t1 = Date.now();
+    // Look for INACTIVE task definitons being used
     const clusters = await this.getClusters() ?? [];
     const services = await this.getServices(clusters.map(c => c.clusterArn!)) ?? [];
     const servicesTasks = services.map(s => s.taskDefinition!) ?? [];
-    console.log('servicesTasks LEN', servicesTasks)
     for (const st of servicesTasks) {
       if (!activeTaskDefinitionArns.includes(st)) {
-        console.log('GETTING INACTIVE TASK')
         taskDefinitions.push(await this.getTaskDefinition(st));
       }
     }
-    console.log('inactive tasks LEN', taskDefinitions.length)
-
-    // const inactivePaginator = paginateListTaskDefinitions({
-    //   client: this.ecsClient,
-    //   // pageSize: 50,
-    // }, {
-    //   status: 'INACTIVE',
-    //   maxResults: 100,
-    // });
-    // for await (const page of inactivePaginator) {
-    //   console.log('page length taskDefinitionArns', page.taskDefinitionArns?.length)
-    //   inactiveTaskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
-    // }
-    const t2 = Date.now();
-    console.log(`services check IN ${t2-t1}ms`)
     // Do not run them in parallel to avoid AWS throttling error
-    console.log(`Active task arns ${activeTaskDefinitionArns.length}`)
     for (const arn of activeTaskDefinitionArns) {
       taskDefinitions.push(await this.getTaskDefinition(arn));
     }
-    const t21 = Date.now();
-    console.log(`active task def described in ${t21-t2}ms`)
-    // console.log(`Inactive task arns ${inactiveTaskDefinitionArns.length}`)
-    // for (const arn of inactiveTaskDefinitionArns) {
-    //   taskDefinitions.push(await this.getTaskDefinition(arn));
-    // }
-    // const t22 = Date.now();
-    // console.log(`inactive task def described in ${t22-t21}ms`)
-    const t3 = Date.now();
-    console.log(`task def described in ${t3-t2}ms`)
     return {
       taskDefinitions,
     };
@@ -924,13 +893,11 @@ export class AWS {
       const serviceArns: string[] = [];
       const paginator = paginateListServices({
         client: this.ecsClient,
-        // pageSize: 25,
       }, {
         cluster: id,
         maxResults: 100,
       });
       for await (const page of paginator) {
-        console.log('page length serviceArns', page.serviceArns?.length)
         serviceArns.push(...(page.serviceArns ?? []));
       }
       if (serviceArns.length) {
@@ -938,7 +905,6 @@ export class AWS {
         if (serviceArns.length > batchSize) {
           for (let i = 0; i < serviceArns.length; i += batchSize) {
             const batch = serviceArns.slice(i, i + batchSize);
-            console.log('batch length', batch.length);
             const result = await this.ecsClient.send(
               new DescribeServicesCommand({
                 cluster: id,

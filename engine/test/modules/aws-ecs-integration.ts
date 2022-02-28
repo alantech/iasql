@@ -2,14 +2,13 @@ import { CompatibilityValues, CpuMemCombination, LaunchType, NetworkMode, Schedu
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
 
-jest.setTimeout(3600000);
+jest.setTimeout(240000);
 
 beforeAll(execComposeUp);
 
 afterAll(execComposeDown);
 
 const prefix = getPrefix();
-console.log('PREFIX', prefix)
 const dbAlias = 'ecstest';
 const apply = runApply.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
