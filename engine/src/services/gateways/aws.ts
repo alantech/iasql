@@ -827,29 +827,56 @@ export class AWS {
 
   async getTaskDefinitions() {
     const taskDefinitions: any[] = [];
-    const taskDefinitionArns: string[] = [];
+    const activeTaskDefinitionArns: string[] = [];
+    const inactiveTaskDefinitionArns: string[] = [];
     const activePaginator = paginateListTaskDefinitions({
       client: this.ecsClient,
-      pageSize: 100,
+      // pageSize: 50,
     }, {
       status: 'ACTIVE',
+      maxResults: 100,
     });
     for await (const page of activePaginator) {
-      taskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
+      console.log('page length taskDefinitionArns', page.taskDefinitionArns?.length)
+      activeTaskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
     }
-    const inactivePaginator = paginateListTaskDefinitions({
-      client: this.ecsClient,
-      pageSize: 100,
-    }, {
-      status: 'INACTIVE',
-    });
-    for await (const page of inactivePaginator) {
-      taskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
+    const t1 = Date.now();
+    const clusters = await this.getClusters() ?? [];
+    const services = await this.getServices(clusters.map(c => c.clusterArn!)) ?? [];
+    const servicesTasks = services.map(s => s.taskDefinition!) ?? [];
+    for (const st of servicesTasks) {
+      if (!activeTaskDefinitionArns.includes(st)) {
+        taskDefinitions.push(await this.getTaskDefinition(st));
+      }
     }
+    // const inactivePaginator = paginateListTaskDefinitions({
+    //   client: this.ecsClient,
+    //   // pageSize: 50,
+    // }, {
+    //   status: 'INACTIVE',
+    //   maxResults: 100,
+    // });
+    // for await (const page of inactivePaginator) {
+    //   console.log('page length taskDefinitionArns', page.taskDefinitionArns?.length)
+    //   inactiveTaskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
+    // }
+    const t2 = Date.now();
+    console.log(`services check IN ${t2-t1}ms`)
     // Do not run them in parallel to avoid AWS throttling error
-    for (const arn of taskDefinitionArns) {
+    console.log(`Active task arns ${activeTaskDefinitionArns.length}`)
+    for (const arn of activeTaskDefinitionArns) {
       taskDefinitions.push(await this.getTaskDefinition(arn));
     }
+    const t21 = Date.now();
+    console.log(`active task def described in ${t21-t2}ms`)
+    // console.log(`Inactive task arns ${inactiveTaskDefinitionArns.length}`)
+    // for (const arn of inactiveTaskDefinitionArns) {
+    //   taskDefinitions.push(await this.getTaskDefinition(arn));
+    // }
+    // const t22 = Date.now();
+    // console.log(`inactive task def described in ${t22-t21}ms`)
+    const t3 = Date.now();
+    console.log(`task def described in ${t3-t2}ms`)
     return {
       taskDefinitions,
     };
