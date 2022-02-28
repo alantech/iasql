@@ -844,11 +844,15 @@ export class AWS {
     const clusters = await this.getClusters() ?? [];
     const services = await this.getServices(clusters.map(c => c.clusterArn!)) ?? [];
     const servicesTasks = services.map(s => s.taskDefinition!) ?? [];
+    console.log('servicesTasks LEN', servicesTasks)
     for (const st of servicesTasks) {
       if (!activeTaskDefinitionArns.includes(st)) {
+        console.log('GETTING INACTIVE TASK')
         taskDefinitions.push(await this.getTaskDefinition(st));
       }
     }
+    console.log('inactive tasks LEN', taskDefinitions.length)
+
     // const inactivePaginator = paginateListTaskDefinitions({
     //   client: this.ecsClient,
     //   // pageSize: 50,
