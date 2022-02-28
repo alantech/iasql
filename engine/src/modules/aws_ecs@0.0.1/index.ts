@@ -689,7 +689,6 @@ export const AwsEcsModule: Module = new Module({
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database.
             newEntity.id = e.id;
-            e.loadBalancers
             newEntity.loadBalancers.map((nlb: any) => {
               const lb = e.loadBalancers?.find(elb => Object.is(elb.elb?.loadBalancerArn, nlb.elb?.loadBalancerArn));
               if (!!lb) nlb.id = lb.id;
@@ -755,6 +754,10 @@ export const AwsEcsModule: Module = new Module({
               }
               // Restore values
               cloudRecord.id = e.id;
+              cloudRecord.loadBalancers.map((crlb: any) => {
+                const lb = e.loadBalancers?.find(elb => Object.is(elb.elb?.loadBalancerArn, crlb.elb?.loadBalancerArn));
+                if (!!lb) crlb.id = lb.id;
+              });
               await AwsEcsModule.mappers.service.db.update(cloudRecord, ctx);
               res.push(cloudRecord);
               continue;
