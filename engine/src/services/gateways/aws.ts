@@ -920,21 +920,38 @@ export class AWS {
       const serviceArns: string[] = [];
       const paginator = paginateListServices({
         client: this.ecsClient,
-        pageSize: 25,
+        // pageSize: 25,
       }, {
         cluster: id,
+        maxResults: 100,
       });
       for await (const page of paginator) {
+        console.log('page length serviceArns', page.serviceArns?.length)
         serviceArns.push(...(page.serviceArns ?? []));
       }
       if (serviceArns.length) {
-        const result = await this.ecsClient.send(
-          new DescribeServicesCommand({
-            cluster: id,
-            services: serviceArns
-          })
-        );
-        services.push(...(result.services ?? []));
+        const batchSize = 10; // Following AWS directions
+        if (serviceArns.length > batchSize) {
+          for (let i = 0; i < serviceArns.length; i += batchSize) {
+            const batch = serviceArns.slice(i, i + batchSize);
+            console.log('batch length', batch.length);
+            const result = await this.ecsClient.send(
+              new DescribeServicesCommand({
+                cluster: id,
+                services: batch
+              })
+            );
+            services.push(...(result.services ?? []));
+          }
+        } else {
+          const result = await this.ecsClient.send(
+            new DescribeServicesCommand({
+              cluster: id,
+              services: serviceArns
+            })
+          );
+          services.push(...(result.services ?? []));
+        }
       }
     }
     return services;
