@@ -521,6 +521,10 @@ export const AwsEcsModule: Module = new Module({
             // Any change in a task definition will imply the creation of a new revision and to restore the previous value.
             const newRecord = { ...e };
             cloudRecord.id = e.id;
+            cloudRecord.containers.map((crc: ContainerDefinition) => {
+              const c = e.containers.find(ec => AwsEcsModule.utils.containersEq(ec, crc));
+              if (!!c) crc.id = c.id;
+            });
             newRecord.id = undefined;
             newRecord.taskDefinitionArn = undefined;
             newRecord.containers = newRecord.containers.map(c => {
