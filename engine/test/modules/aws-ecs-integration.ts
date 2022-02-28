@@ -2,13 +2,14 @@ import { CompatibilityValues, CpuMemCombination, LaunchType, NetworkMode, Schedu
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
 
-jest.setTimeout(240000);
+jest.setTimeout(3600000);
 
 beforeAll(execComposeUp);
 
 afterAll(execComposeDown);
 
 const prefix = getPrefix();
+console.log('PREFIX', prefix)
 const dbAlias = 'ecstest';
 const apply = runApply.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -90,7 +91,7 @@ describe('ECS Integration Testing SP', () => {
   describe('Docker image', () => {
     // Task definition
     it('adds a new task definition', query(`
-      call create_task_definition('${tdFamily}', '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', '${tdCompatibility}', '${tdCpuMem}');
+      call create_task_definition('${tdFamily}', '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', array['${tdCompatibility}']::compatibility_name_enum[], '${tdCpuMem}');
     `));
 
     it('check task_definition insertion', query(`
@@ -149,21 +150,12 @@ describe('ECS Integration Testing SP', () => {
 
     // Service
     it('adds a new service', query(`
-      call create_or_update_ecs_service('${serviceName}', '${tdFamily}', ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', array['default'], 'ENABLED', _target_group_name := '${serviceTargetGroupName}');
+      call create_or_update_ecs_service('${serviceName}', '${clusterName}', '${tdFamily}', ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', array['default'], 'ENABLED', _target_group_name := '${serviceTargetGroupName}');
     `));
 
     it('check aws_vpc_conf insertion', query(`
       SELECT *
       FROM aws_vpc_conf;
-    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
-
-    it('check aws_vpc_conf_subnets_aws_subnet insertion', query(`
-      SELECT *
-      FROM aws_vpc_conf_subnets_aws_subnet
-      INNER JOIN aws_subnet ON aws_subnet.id = aws_vpc_conf_subnets_aws_subnet.aws_subnet_id
-      INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
-      WHERE aws_vpc.is_default = true
-      LIMIT 1;
     `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
 
     it('check aws_vpc_conf_security_groups_aws_security_group insertion', query(`
@@ -203,20 +195,14 @@ describe('ECS Integration Testing SP', () => {
     `));
 
     it('applies deletes service dependencies', apply);
-
-
-    it('deletes task definitions', query(`
-      call delete_task_definition('${tdFamily}');
-    `));
-
-    it('applies deletes task definitions', apply);
-
+    
     it('deletes container definitons', query(`
       call delete_container_definition('${containerName}', '${tdFamily}');
       call delete_cloudwatch_log_group('${logGroupName}');
+      call delete_task_definition('${tdFamily}');
     `));
 
-    it('applies deletes container definitions', apply);
+    it('applies deletes tasks and container definitions', apply);
   });
 
   // Service spinning up a task definition with container using a private ecr
@@ -234,7 +220,7 @@ describe('ECS Integration Testing SP', () => {
 
     // Task definition
     it('adds a new task definition', query(`
-      call create_task_definition('${tdRepositoryFamily}', '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', '${tdCompatibility}', '${tdCpuMem}');
+      call create_task_definition('${tdRepositoryFamily}', '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', array['${tdCompatibility}']::compatibility_name_enum[], '${tdCpuMem}');
     `));
 
     it('check task_definition insertion', query(`
@@ -296,21 +282,12 @@ describe('ECS Integration Testing SP', () => {
 
     // Service
     it('adds a new service', query(`
-      call create_or_update_ecs_service('${serviceRepositoryName}', '${tdRepositoryFamily}', ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', array['default'], 'ENABLED', _target_group_name := '${serviceRepoTargetGroupName}');
+      call create_or_update_ecs_service('${serviceRepositoryName}', '${clusterName}', '${tdRepositoryFamily}', ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', array['default'], 'ENABLED', _target_group_name := '${serviceRepoTargetGroupName}');
     `));
 
     it('check aws_vpc_conf insertion', query(`
       SELECT *
       FROM aws_vpc_conf;
-    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
-
-    it('check aws_vpc_conf_subnets_aws_subnet insertion', query(`
-      SELECT *
-      FROM aws_vpc_conf_subnets_aws_subnet
-      INNER JOIN aws_subnet ON aws_subnet.id = aws_vpc_conf_subnets_aws_subnet.aws_subnet_id
-      INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
-      WHERE aws_vpc.is_default = true
-      LIMIT 1;
     `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
 
     it('check aws_vpc_conf_security_groups_aws_security_group insertion', query(`
@@ -354,15 +331,10 @@ describe('ECS Integration Testing SP', () => {
     it('deletes container definitons', query(`
       call delete_container_definition('${containerNameRepository}', '${tdRepositoryFamily}');
       call delete_ecr_repository('${repositoryName}');
-    `));
-
-    it('applies deletes container definitions', apply);
-
-    it('deletes task definitions', query(`
       call delete_task_definition('${tdRepositoryFamily}');
     `));
 
-    it('applies deletes task definitions', apply);
+    it('applies deletes task  and container definitions', apply);
   });
 
   // Service spinning up a task definition with container using a public ecr
@@ -380,7 +352,7 @@ describe('ECS Integration Testing SP', () => {
 
     // Task definition
     it('adds a new task definition', query(`
-      call create_task_definition('${tdPublicRepositoryFamily}', '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', '${tdCompatibility}', '${tdCpuMem}');
+      call create_task_definition('${tdPublicRepositoryFamily}', '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', array['${tdCompatibility}']::compatibility_name_enum[], '${tdCpuMem}');
     `));
 
     it('check task_definition insertion', query(`
@@ -404,7 +376,7 @@ describe('ECS Integration Testing SP', () => {
     it('check container definition insertion', query(`
       SELECT *
       FROM container_definition
-      INNER JOIN aws_public_repository ON aws_public_repository.id = repository_id
+      INNER JOIN aws_public_repository ON aws_public_repository.id = public_repository_id
       WHERE name = '${containerNamePublicRepository}' AND repository_name = '${publicRepositoryName}' AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
@@ -414,7 +386,7 @@ describe('ECS Integration Testing SP', () => {
       FROM container_definition_port_mappings_port_mapping
       INNER JOIN container_definition ON container_definition.id = container_definition_port_mappings_port_mapping.container_definition_id
       INNER JOIN port_mapping ON port_mapping.id = container_definition_port_mappings_port_mapping.port_mapping_id
-      INNER JOIN aws_public_repository ON aws_public_repository.id = container_definition.repository_id
+      INNER JOIN aws_public_repository ON aws_public_repository.id = container_definition.public_repository_id
       WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
         AND container_definition.name = '${containerNamePublicRepository}' AND aws_public_repository.repository_name = '${publicRepositoryName}' AND container_definition.tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
@@ -424,7 +396,7 @@ describe('ECS Integration Testing SP', () => {
       FROM task_definition_containers_container_definition
       INNER JOIN container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
       INNER JOIN task_definition ON task_definition.id = task_definition_containers_container_definition.task_definition_id
-      INNER JOIN aws_public_repository ON aws_public_repository.id = container_definition.repository_id
+      INNER JOIN aws_public_repository ON aws_public_repository.id = container_definition.public_repository_id
       WHERE container_definition.name = '${containerNamePublicRepository}' AND aws_public_repository.repository_name = '${publicRepositoryName}' AND container_definition.tag = '${imageTag}'
         AND task_definition.family = '${tdPublicRepositoryFamily}' AND task_definition.status IS NULL;
     `, (res: any[]) => expect(res.length).toBe(1)));
@@ -442,21 +414,12 @@ describe('ECS Integration Testing SP', () => {
 
     // Service
     it('adds a new service', query(`
-      call create_or_update_ecs_service('${serviceRepositoryName}', '${tdPublicRepositoryFamily}', ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', array['default'], 'ENABLED', _target_group_name := '${servicePubRepoTargetGroupName}');
+      call create_or_update_ecs_service('${serviceRepositoryName}', '${clusterName}', '${tdPublicRepositoryFamily}', ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', array['default'], 'ENABLED', _target_group_name := '${servicePubRepoTargetGroupName}');
     `));
 
     it('check aws_vpc_conf insertion', query(`
       SELECT *
       FROM aws_vpc_conf;
-    `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
-
-    it('check aws_vpc_conf_subnets_aws_subnet insertion', query(`
-      SELECT *
-      FROM aws_vpc_conf_subnets_aws_subnet
-      INNER JOIN aws_subnet ON aws_subnet.id = aws_vpc_conf_subnets_aws_subnet.aws_subnet_id
-      INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
-      WHERE aws_vpc.is_default = true
-      LIMIT 1;
     `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
 
     it('check aws_vpc_conf_security_groups_aws_security_group insertion', query(`
@@ -500,15 +463,10 @@ describe('ECS Integration Testing SP', () => {
     it('deletes container definitons', query(`
       call delete_container_definition('${containerNamePublicRepository}', '${tdPublicRepositoryFamily}');
       call delete_ecr_public_repository('${publicRepositoryName}');
-    `));
-
-    it('applies deletes container definitions', apply);
-
-    it('deletes task definitions', query(`
       call delete_task_definition('${tdPublicRepositoryFamily}');
     `));
 
-    it('applies deletes task definitions', apply);
+    it('applies deletes tasks and container definitions', apply);
   });
 
   it('deletes the cluster', query(`
