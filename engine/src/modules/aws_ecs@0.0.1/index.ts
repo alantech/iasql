@@ -294,7 +294,7 @@ export const AwsEcsModule: Module = new Module({
                 await AwsEcsModule.mappers.cluster.db.create(e, ctx);
               }
             } else {
-              return await client.call(client.deleteCluster, e.clusterName)
+              return await client.deleteCluster(e.clusterName)
             }
           }));
         },
@@ -471,13 +471,13 @@ export const AwsEcsModule: Module = new Module({
               input.memory = `${+memory * 1024}`;
             }
 
-            const result = await client.call(client.createTaskDefinition, input);
+            const result = await client.createTaskDefinition(input);
             // TODO: Handle if it fails (somehow)
             if (!result?.hasOwnProperty('taskDefinitionArn')) { // Failure
               throw new Error('what should we do here?');
             }
             // Re-get the inserted record to get all of the relevant records we care about
-            const newObject = await client.call(client.getTaskDefinition, result.taskDefinitionArn ?? '');
+            const newObject = await client.getTaskDefinition(result.taskDefinitionArn ?? '');
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcsModule.utils.taskDefinitionMapper(newObject, ctx);
             // We attach the original object's ID to this new one, indicating the exact record it is
@@ -502,10 +502,10 @@ export const AwsEcsModule: Module = new Module({
           let taskDefs = [];
           if (Array.isArray(ids)) {
             for (const id of ids ?? []) {
-              taskDefs.push(await client.call(client.getTaskDefinition, id));
+              taskDefs.push(await client.getTaskDefinition(id));
             }
           } else {
-            taskDefs = (await client.call(client.getTaskDefinitions, )).taskDefinitions ?? [];
+            taskDefs = (await client.getTaskDefinitions()).taskDefinitions ?? [];
           }
           const tds = [];
           for (const td of taskDefs) {
@@ -556,7 +556,7 @@ export const AwsEcsModule: Module = new Module({
             }
           };
           for (const e of esToDelete) {
-            await client.call(client.deleteTaskDefinition, e.taskDefinitionArn!);
+            await client.deleteTaskDefinition(e.taskDefinitionArn!);
           }
           if (esWithServiceAttached.length) {
             throw new Error('Some tasks could not be deleted. They are attached to an existing service.')
@@ -677,7 +677,7 @@ export const AwsEcsModule: Module = new Module({
             }
             let result;
             try {
-              result = await client.call(client.createService, input);
+              result = await client.createService(input);
             } catch (_) {
               console.dir({e}, {depth:7})
             }
@@ -686,7 +686,7 @@ export const AwsEcsModule: Module = new Module({
               throw new Error('what should we do here?');
             }
             // Re-get the inserted record to get all of the relevant records we care about
-            const newObject = await client.call(client.getService, result.serviceName!, result.clusterArn!);
+            const newObject = await client.getService(result.serviceName!, result.clusterArn!);
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcsModule.utils.serviceMapper(newObject, ctx);
             // We attach the original object's ID to this new one, indicating the exact record it is
@@ -708,14 +708,14 @@ export const AwsEcsModule: Module = new Module({
               const service = services?.find((s: any) => s.arn === id);
               if (service) {
                 out.push(await AwsEcsModule.utils.serviceMapper(
-                  await client.call(client.getService, id, service.cluster.clusterArn), ctx
+                  await client.getService(id, service.cluster.clusterArn), ctx
                 ));
               }
             }
             return out;
           } else {
             const clusters = ctx.memo?.cloud?.Cluster ? Object.values(ctx.memo?.cloud?.Cluster) : await AwsEcsModule.mappers.cluster.cloud.read(ctx);
-            const result = await client.call(client.getServices, clusters?.map((c: any) => c.clusterArn) ?? []);
+            const result = await client.getServices(clusters?.map((c: any) => c.clusterArn) ?? []);
             const out = [];
             for (const s of result) {
               out.push(await AwsEcsModule.utils.serviceMapper(s, ctx));
@@ -742,7 +742,7 @@ export const AwsEcsModule: Module = new Module({
             if (isUpdate) {
               // Desired count or task definition
               if (!(Object.is(e.desiredCount, cloudRecord.desiredCount) && Object.is(e.task?.taskDefinitionArn, cloudRecord.task?.taskDefinitionArn))) {
-                const updatedService = await client.call(client.updateService, {
+                const updatedService = await client.updateService({
                   service: e.name,
                   cluster: e.cluster?.clusterName,
                   taskDefinition: e.task?.taskDefinitionArn,
@@ -770,12 +770,12 @@ export const AwsEcsModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
             e.desiredCount = 0;
-            await client.call(client.updateService, {
+            await client.updateService({
               service: e.name,
               cluster: e.cluster?.clusterName,
               desiredCount: e.desiredCount,
             });
-            await client.call(client.deleteService, e.name, e.cluster?.clusterArn!)
+            await client.deleteService(e.name, e.cluster?.clusterArn!)
           }
         },
       }),
