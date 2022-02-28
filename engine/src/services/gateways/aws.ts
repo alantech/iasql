@@ -200,7 +200,7 @@ export class AWS {
       {
         client: this.ec2client,
         // all in seconds
-        maxWaitTime: 180,
+        maxWaitTime: 300,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -639,7 +639,7 @@ export class AWS {
       {
         client: this.elbClient,
         // all in seconds
-        maxWaitTime: 30,
+        maxWaitTime: 300,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -983,7 +983,7 @@ export class AWS {
       {
         client: this.ecsClient,
         // all in seconds
-        maxWaitTime: 30,
+        maxWaitTime: 300,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -1124,7 +1124,7 @@ export class AWS {
       {
         client: this.rdsClient,
         // all in seconds
-        maxWaitTime: 120,
+        maxWaitTime: 300,
         minDelay: 1,
         maxDelay: 4,
       },
