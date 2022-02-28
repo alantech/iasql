@@ -19,7 +19,6 @@ import {
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule, } from '..'
-import { AwsLoadBalancer } from '../aws_elb@0.0.1/entity'
 import { awsEcs1645216760389, } from './migration/1645216760389-aws_ecs'
 
 export const AwsEcsModule: Module = new Module({
@@ -99,8 +98,7 @@ export const AwsEcsModule: Module = new Module({
       // TODO: eventually handle more log drivers
       if (c.logConfiguration?.logDriver === 'awslogs') {
         const groupName = c.logConfiguration.options['awslogs-group'];
-        const logGroups = ctx.memo?.db?.LogGroup ? Object.values(ctx.memo?.db?.LogGroup) : await AwsCloudwatchModule.mappers.logGroup.db.read(ctx);
-        const logGroup = logGroups.find((lg: any) => lg.logGroupName === groupName);
+        const logGroup = await AwsCloudwatchModule.mappers.logGroup.db.read(ctx, groupName) ?? await AwsCloudwatchModule.mappers.logGroup.cloud.read(ctx, groupName);
         out.logGroup = logGroup;
       }
       return out;
@@ -110,10 +108,6 @@ export const AwsEcsModule: Module = new Module({
       out.containers = [];
       for (const tdc of td.containerDefinitions) {
         const cd = await AwsEcsModule.utils.containerDefinitionMapper(tdc, ctx);
-        // For INACTIVE tasks it is not necessary to exists a cloud watch log group to link since it could have been deleted.
-        if (!!tdc?.logConfiguration?.options?.['awslogs-group'] && !cd?.logGroup && td.status === TaskDefinitionStatus.ACTIVE) {
-          throw new Error('Cloudwatch log groups need to be loaded first')
-        }
         out.containers.push(cd);
       }
       out.cpuMemory = `${+(td.cpu ?? '256') / 1024}vCPU-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
@@ -153,13 +147,13 @@ export const AwsEcsModule: Module = new Module({
       }
       out.desiredCount = s.desiredCount;
       out.launchType = s.launchType as LaunchType;
-      out.loadBalancers = await Promise.all(s.loadBalancers?.map(async (slb: any) => {
+      const loadBalancers = [];
+      for (const slb of s.loadBalancers) {
         const slb2 = new ServiceLoadBalancer();
         slb2.containerName = slb.containerName;
         slb2.containerPort = slb.containerPort;
         if (slb.loadBalancerName) {
-          const loadBalancers = ctx.memo?.db?.AwsLoadBalancer ? Object.values(ctx.memo?.db?.AwsLoadBalancer) : await AwsElbModule.mappers.loadBalancer.db.read(ctx);
-          slb2.elb = loadBalancers.find((lb: AwsLoadBalancer) => lb.loadBalancerName === slb.loadBalancerName);
+          slb2.elb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, slb.loadBalancerName) ?? await AwsElbModule.mappers.loadBalancer.cloud.read(ctx, slb.loadBalancerName);
         }
         if (slb.targetGroupArn) {
           const targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, slb.targetGroupArn) ??
@@ -170,8 +164,9 @@ export const AwsEcsModule: Module = new Module({
             throw new Error('Target groups need to be loaded first')
           }
         }
-        return slb2;
-      }) ?? []);
+        loadBalancers.push(slb2);
+      }
+      out.loadBalancers = loadBalancers;
       out.name = s.serviceName;
       if (s.networkConfiguration?.awsvpcConfiguration) {
         const networkConf = s.networkConfiguration.awsvpcConfiguration;
@@ -267,7 +262,7 @@ export const AwsEcsModule: Module = new Module({
           const clusters = Array.isArray(ids) ?
             await Promise.all(ids.map(id => client.getCluster(id))) :
             await client.getClusters() ?? [];
-          return await Promise.all(clusters.map(c => AwsEcsModule.utils.clusterMapper(c, ctx)));
+          return await Promise.all(clusters.map((c: any) => AwsEcsModule.utils.clusterMapper(c, ctx)));
         },
         updateOrReplace: (prev: Cluster, next: Cluster) => {
           if (!Object.is(prev.clusterName, next.clusterName)) return 'replace';
@@ -432,8 +427,8 @@ export const AwsEcsModule: Module = new Module({
       cloud: new Crud({
         create: async (es: TaskDefinition[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-
-          return await Promise.all(es.map(async (e) => {
+          const res = [];
+          for (const e of es) {
             const input: any = {
               family: e.family,
               containerDefinitions: e.containers.map(c => {
@@ -475,6 +470,7 @@ export const AwsEcsModule: Module = new Module({
               const memory = memoryStr.split('GB')[0];
               input.memory = `${+memory * 1024}`;
             }
+
             const result = await client.createTaskDefinition(input);
             // TODO: Handle if it fails (somehow)
             if (!result?.hasOwnProperty('taskDefinitionArn')) { // Failure
@@ -497,14 +493,20 @@ export const AwsEcsModule: Module = new Module({
             });
             // Save the record back into the database to get the new fields updated
             await AwsEcsModule.mappers.taskDefinition.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            res.push(newEntity);
+          }
+          return res;
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          const taskDefs = Array.isArray(ids) ?
-            await Promise.all(ids.map(id => client.getTaskDefinition(id))) :
-            (await client.getTaskDefinitions()).taskDefinitions ?? [];
+          let taskDefs = [];
+          if (Array.isArray(ids)) {
+            for (const id of ids ?? []) {
+              taskDefs.push(await client.getTaskDefinition(id));
+            }
+          } else {
+            taskDefs = (await client.getTaskDefinitions()).taskDefinitions ?? [];
+          }
           const tds = [];
           for (const td of taskDefs) {
             tds.push(await AwsEcsModule.utils.taskDefinitionMapper(td, ctx))
@@ -513,11 +515,16 @@ export const AwsEcsModule: Module = new Module({
         },
         updateOrReplace: () => 'update',
         update: async (es: TaskDefinition[], ctx: Context) => {
-          return await Promise.all(es.map(async (e) => {
+          const res = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.TaskDefinition?.[e.taskDefinitionArn ?? ''];
             // Any change in a task definition will imply the creation of a new revision and to restore the previous value.
             const newRecord = { ...e };
             cloudRecord.id = e.id;
+            cloudRecord.containers.map((crc: ContainerDefinition) => {
+              const c = e.containers.find(ec => AwsEcsModule.utils.containersEq(ec, crc));
+              if (!!c) crc.id = c.id;
+            });
             newRecord.id = undefined;
             newRecord.taskDefinitionArn = undefined;
             newRecord.containers = newRecord.containers.map(c => {
@@ -526,8 +533,9 @@ export const AwsEcsModule: Module = new Module({
             });
             await AwsEcsModule.mappers.taskDefinition.db.create(newRecord, ctx);
             await AwsEcsModule.mappers.taskDefinition.db.update(cloudRecord, ctx);
-            return cloudRecord;
-          }));
+            res.push(cloudRecord);
+          }
+          return res;
         },
         delete: async (es: TaskDefinition[], ctx: Context) => {
           // Do not delete task if it is being used by a service
@@ -551,7 +559,9 @@ export const AwsEcsModule: Module = new Module({
               }
             }
           };
-          await Promise.all(esToDelete.map(e => client.deleteTaskDefinition(e.taskDefinitionArn!)));
+          for (const e of esToDelete) {
+            await client.deleteTaskDefinition(e.taskDefinitionArn!);
+          }
           if (esWithServiceAttached.length) {
             throw new Error('Some tasks could not be deleted. They are attached to an existing service.')
           }
@@ -637,7 +647,11 @@ export const AwsEcsModule: Module = new Module({
         create: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const subnets = (await client.getSubnets()).Subnets.map(s => s.SubnetId ?? '');
-          return await Promise.all(es.map(async (e) => {
+          const res = [];
+          for (const e of es) {
+            if (!e.task?.taskDefinitionArn) {
+              throw new Error('task definition need to be created first')
+            }
             const input: any = {
               serviceName: e.name,
               taskDefinition: e.task?.taskDefinitionArn,
@@ -675,22 +689,29 @@ export const AwsEcsModule: Module = new Module({
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database.
             newEntity.id = e.id;
+            newEntity.loadBalancers.map((nlb: any) => {
+              const lb = e.loadBalancers?.find(elb => Object.is(elb.elb?.loadBalancerArn, nlb.elb?.loadBalancerArn));
+              if (!!lb) nlb.id = lb.id;
+            });
             // Save the record back into the database to get the new fields updated
             await AwsEcsModule.mappers.service.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            res.push(newEntity);
+          }
+          return res;
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           // TODO: Refactor this. I don't think the `ids` branch has been tested, either. So I don't want to touch it
           if (ids) {
-            const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsModule.mappers.service.cloud.read(ctx);
             const out = [];
             for (const id of ids) {
-              const service = services.find((s: any) => s.name === id);
-              out.push(await AwsEcsModule.utils.serviceMapper(
-                await client.getService(id, service.cluster.clusterArn), ctx
-              ));
+              const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsModule.mappers.service.cloud.read(ctx);
+              const service = services?.find((s: any) => s.arn === id);
+              if (service) {
+                out.push(await AwsEcsModule.utils.serviceMapper(
+                  await client.getService(id, service.cluster.clusterArn), ctx
+                ));
+              }
             }
             return out;
           } else {
@@ -715,7 +736,8 @@ export const AwsEcsModule: Module = new Module({
         },
         update: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(es.map(async (e) => {
+          const res = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Service?.[e.arn ?? ''];
             const isUpdate = AwsEcsModule.mappers.service.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
@@ -727,31 +749,39 @@ export const AwsEcsModule: Module = new Module({
                   taskDefinition: e.task?.taskDefinitionArn,
                   desiredCount: e.desiredCount,
                 });
-                return AwsEcsModule.utils.serviceMapper(updatedService, ctx);
+                res.push(await AwsEcsModule.utils.serviceMapper(updatedService, ctx));
+                continue;
               }
               // Restore values
               cloudRecord.id = e.id;
+              cloudRecord.loadBalancers.map((crlb: any) => {
+                const lb = e.loadBalancers?.find(elb => Object.is(elb.elb?.loadBalancerArn, crlb.elb?.loadBalancerArn));
+                if (!!lb) crlb.id = lb.id;
+              });
               await AwsEcsModule.mappers.service.db.update(cloudRecord, ctx);
-              return cloudRecord;
+              res.push(cloudRecord);
+              continue;
             } else {
               // We need to delete the current cloud record and create the new one.
               // The id in database will be the same `e` will keep it.
               await AwsEcsModule.mappers.service.cloud.delete(cloudRecord, ctx);
-              return await AwsEcsModule.mappers.service.cloud.create(e, ctx);
+              res.push(await AwsEcsModule.mappers.service.cloud.create(e, ctx));
+              continue;
             }
-          }));
+          }
+          return res;
         },
         delete: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          await Promise.all(es.map(async e => {
+          for (const e of es) {
             e.desiredCount = 0;
             await client.updateService({
               service: e.name,
               cluster: e.cluster?.clusterName,
               desiredCount: e.desiredCount,
             });
-            return client.deleteService(e.name, e.cluster?.clusterArn!)
-          }));
+            await client.deleteService(e.name, e.cluster?.clusterArn!)
+          }
         },
       }),
     }),

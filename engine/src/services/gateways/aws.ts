@@ -200,7 +200,7 @@ export class AWS {
       {
         client: this.ec2client,
         // all in seconds
-        maxWaitTime: 180,
+        maxWaitTime: 300,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -639,7 +639,7 @@ export class AWS {
       {
         client: this.elbClient,
         // all in seconds
-        maxWaitTime: 30,
+        maxWaitTime: 300,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -827,27 +827,27 @@ export class AWS {
 
   async getTaskDefinitions() {
     const taskDefinitions: any[] = [];
-    const taskDefinitionArns: string[] = [];
+    const activeTaskDefinitionArns: string[] = [];
     const activePaginator = paginateListTaskDefinitions({
       client: this.ecsClient,
-      pageSize: 100,
     }, {
       status: 'ACTIVE',
+      maxResults: 100,
     });
     for await (const page of activePaginator) {
-      taskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
+      activeTaskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
     }
-    const inactivePaginator = paginateListTaskDefinitions({
-      client: this.ecsClient,
-      pageSize: 100,
-    }, {
-      status: 'INACTIVE',
-    });
-    for await (const page of inactivePaginator) {
-      taskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
+    // Look for INACTIVE task definitons being used
+    const clusters = await this.getClusters() ?? [];
+    const services = await this.getServices(clusters.map(c => c.clusterArn!)) ?? [];
+    const servicesTasks = services.map(s => s.taskDefinition!) ?? [];
+    for (const st of servicesTasks) {
+      if (!activeTaskDefinitionArns.includes(st)) {
+        taskDefinitions.push(await this.getTaskDefinition(st));
+      }
     }
     // Do not run them in parallel to avoid AWS throttling error
-    for (const arn of taskDefinitionArns) {
+    for (const arn of activeTaskDefinitionArns) {
       taskDefinitions.push(await this.getTaskDefinition(arn));
     }
     return {
@@ -893,21 +893,35 @@ export class AWS {
       const serviceArns: string[] = [];
       const paginator = paginateListServices({
         client: this.ecsClient,
-        pageSize: 25,
       }, {
         cluster: id,
+        maxResults: 100,
       });
       for await (const page of paginator) {
         serviceArns.push(...(page.serviceArns ?? []));
       }
       if (serviceArns.length) {
-        const result = await this.ecsClient.send(
-          new DescribeServicesCommand({
-            cluster: id,
-            services: serviceArns
-          })
-        );
-        services.push(...(result.services ?? []));
+        const batchSize = 10; // Following AWS directions
+        if (serviceArns.length > batchSize) {
+          for (let i = 0; i < serviceArns.length; i += batchSize) {
+            const batch = serviceArns.slice(i, i + batchSize);
+            const result = await this.ecsClient.send(
+              new DescribeServicesCommand({
+                cluster: id,
+                services: batch
+              })
+            );
+            services.push(...(result.services ?? []));
+          }
+        } else {
+          const result = await this.ecsClient.send(
+            new DescribeServicesCommand({
+              cluster: id,
+              services: serviceArns
+            })
+          );
+          services.push(...(result.services ?? []));
+        }
       }
     }
     return services;
@@ -939,7 +953,7 @@ export class AWS {
       {
         client: this.ecsClient,
         // all in seconds
-        maxWaitTime: 30,
+        maxWaitTime: 300,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -1080,7 +1094,7 @@ export class AWS {
       {
         client: this.rdsClient,
         // all in seconds
-        maxWaitTime: 120,
+        maxWaitTime: 300,
         minDelay: 1,
         maxDelay: 4,
       },

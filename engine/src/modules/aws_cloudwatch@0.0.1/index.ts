@@ -69,12 +69,15 @@ export const AwsCloudwatchModule: Module = new Module({
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          const logGroups = Array.isArray(ids) ?
-            await Promise.all(ids.map(id => client.getLogGroups(id))) :
-            (await client.getLogGroups()) ?? [];
-          return await Promise.all(
-            logGroups.map((lg: any) => AwsCloudwatchModule.utils.logGroupMapper(lg, ctx))
-          );
+          let logGroups = [];
+          if (Array.isArray(ids)) {
+            for (const id of ids) {
+              logGroups.push(...(await client.getLogGroups(id)));
+            }
+          } else {
+            logGroups = (await client.getLogGroups()) ?? [];
+          }
+          return await Promise.all(logGroups.map((lg: any) => AwsCloudwatchModule.utils.logGroupMapper(lg, ctx)));
         },
         updateOrReplace: () => 'update',
         update: async (es: LogGroup[], ctx: Context) => {
