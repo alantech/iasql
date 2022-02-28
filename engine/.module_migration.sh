@@ -59,7 +59,7 @@ EOF
 ts-node ../node_modules/.bin/typeorm migration:run
 
 # Now run the migration generation for the module
-ts-node ../node_modules/.bin/typeorm migration:generate -n ${MODULE}
+ts-node ../node_modules/.bin/typeorm migration:generate -n $(echo ${MODULE} | sed 's/@.*$//g')
 
 # Clean up the temporary ormconfig.js file and docker containers
 rm ormconfig.js
