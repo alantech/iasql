@@ -31,6 +31,8 @@ export class Instance {
   instanceType: string;
 
   @ManyToMany(() => AwsSecurityGroup, { eager: true, })
-  @JoinTable()
+  @JoinTable({
+    name: 'instance_security_groups',
+  })
   securityGroups: AwsSecurityGroup[]
 }

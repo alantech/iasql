@@ -33,8 +33,9 @@ describe('EC2 Integration Testing', () => {
     query(`
       INSERT INTO instance (name, ami, instance_type)
         VALUES ('i-1','${ubuntuAmiId}', 't2.micro');
-      INSERT INTO instance_security_groups_aws_security_group (instance_id, aws_security_group_id)
-        VALUES (1, 1);
+      INSERT INTO instance_security_groups (instance_id, aws_security_group_id) SELECT
+        (SELECT id FROM instance WHERE name='i-1'),
+        (SELECT id FROM aws_security_group WHERE group_name='default');
       CALL create_or_update_ec2_instance('i-2', '${amznAmiId}', 't2.micro', array['default']);
     `)((e?: any) => {
       if (!!e) return done(e);
