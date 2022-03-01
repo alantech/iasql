@@ -16,13 +16,15 @@ export const AwsSecurityGroupModule: Module = new Module({
     functions: ['create_or_update_aws_security_group', 'delete_aws_security_group',]
   },
   utils: {
-    sgMapper: (sg: any) => {
+    sgMapper: async (sg: any, ctx: Context) => {
       const out = new AwsSecurityGroup();
       out.description = sg.Description;
       out.groupName = sg.GroupName;
       out.ownerId = sg.OwnerId;
       out.groupId = sg.GroupId;
-      out.vpcId = sg.VpcId;
+      const client = await ctx.getAwsClient() as AWS;
+      const vpc = await client.getVpc(sg.VpcId);
+      out.vpcId = vpc?.IsDefault ? 'default' : sg.VpcId;
       return out;
     },
     sgrMapper: async (sgr: any, ctx: Context) => {
