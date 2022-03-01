@@ -308,7 +308,7 @@ export class awsEcs1645216760389 implements MigrationInterface {
                 declare
                     service_id integer;
                     task_def_id integer;
-                    aws_vpc_conf_id integer;
+                    avc_id integer;
                     cluster_id integer;
                     elb_id integer;
                     target_group_id integer;
@@ -329,7 +329,7 @@ export class awsEcs1645216760389 implements MigrationInterface {
                         values
                             (_assign_public_ip, _subnet_ids);
             
-                        select id into aws_vpc_conf_id
+                        select id into avc_id
                         from aws_vpc_conf
                         order by id desc
                         limit 1;
@@ -342,7 +342,7 @@ export class awsEcs1645216760389 implements MigrationInterface {
                             insert into aws_vpc_conf_security_groups_aws_security_group
                                 (aws_vpc_conf_id, aws_security_group_id)
                             values
-                                (aws_vpc_conf_id, sg.id);
+                                (avc_id, sg.id);
                         end loop;
             
                         select id into task_def_id
@@ -363,7 +363,7 @@ export class awsEcs1645216760389 implements MigrationInterface {
                         insert into service
                             (name, cluster_id, task_definition_id, desired_count, launch_type, scheduling_strategy, aws_vpc_conf_id)
                         values
-                            (_name, cluster_id, task_def_id, _desired_count, _launch_type, _scheduling_strategy, aws_vpc_conf_id);
+                            (_name, cluster_id, task_def_id, _desired_count, _launch_type, _scheduling_strategy, avc_id);
             
                         select id into service_id
                         from service
@@ -417,6 +417,28 @@ export class awsEcs1645216760389 implements MigrationInterface {
                             launch_type = _launch_type,
                             scheduling_strategy = _scheduling_strategy
                         where id = service_id;
+
+                        select aws_vpc_conf.id into avc_id
+                        from aws_vpc_conf
+                        inner join service on service.aws_vpc_conf_id = aws_vpc_conf.id
+                        order by aws_vpc_conf.id desc
+                        limit 1;
+
+                        for sg in
+                            select id
+                            from aws_security_group
+                            where group_name = any(_security_group_names)
+                        loop
+                            insert into aws_vpc_conf_security_groups_aws_security_group
+                                (aws_vpc_conf_id, aws_security_group_id)
+                            values
+                                (avc_id, sg.id)
+                            on conflict do nothing;
+                        end loop;
+
+                        delete from aws_vpc_conf_security_groups_aws_security_group
+                        using aws_security_group
+                        where aws_security_group.id = aws_vpc_conf_security_groups_aws_security_group.aws_security_group_id and not (group_name = any(_security_group_names));
                     end if;
                     raise info 'service_id = %', service_id;
                 end;
