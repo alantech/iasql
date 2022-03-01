@@ -20,9 +20,9 @@ beforeAll(() => {
 afterAll(() => {
   // Dump the logs for potential debugging
   console.log('Engine logs');
-  console.log(execSync('docker logs engine_change_engine_1', { encoding: 'utf8', }));
+  console.log(execSync('docker logs iasql_change_engine_1', { encoding: 'utf8', }));
   console.log('Postgres logs');
-  console.log(execSync('docker logs engine_postgresql_1', { encoding: 'utf8', }));
+  console.log(execSync('docker logs iasql_postgresql_1', { encoding: 'utf8', }));
   // Terminate the docker container
   execSync('docker stop $(docker ps -q)');
 });

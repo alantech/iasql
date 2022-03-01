@@ -4,10 +4,14 @@
 Infrastructure as SQL
 </h2>
 
-### Engine
+This is where the main IaSQL engine is located
 
-This is where the main IaSQL change engine is located
+### Local Development
 
-### Web
+Set your .env file based on the values from `src/config.ts`, make sure docker is installed locally and then run
 
-This is where the IaSQL frontend is located
+```
+docker-compose up --build
+```
+
+which will bring up the postgres engine and node.js server.

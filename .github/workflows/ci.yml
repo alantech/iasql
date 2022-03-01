@@ -10,10 +10,6 @@ on:
   pull_request:
     branches: [main]
 
-defaults:
-  run:
-    working-directory: ./engine
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   lint:
@@ -36,17 +32,6 @@ jobs:
 
       - name: Run linter check
         run: yarn lint
-
-  cli-style:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-
-      # Rust is automatically set up and included by default according to: https://github.com/actions/starter-workflows/blob/master/ci/rust.yml
-      # Run cargo fmt linting on the source code
-      - name: Run style linter
-        run: cd ../cli && cargo fmt -- --check
 
   common-test:
     runs-on: ubuntu-latest
@@ -121,21 +106,3 @@ jobs:
           IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
           AWS_REGION: us-east-1
           DB_HOST: localhost
-
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Check out repo
-        uses: actions/checkout@v2
-      # Node is required for npm
-      - name: Set up Node
-        uses: actions/setup-node@v2
-        with:
-          node-version: '16'
-      # Install and build Docusaurus website
-      - name: Build Docusaurus website
-        run: |
-          cd ../docs
-          yarn
-          yarn build
