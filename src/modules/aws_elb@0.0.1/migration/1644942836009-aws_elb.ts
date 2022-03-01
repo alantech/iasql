@@ -65,9 +65,6 @@ export class awsElb1644942836009 implements MigrationInterface {
                 order by id desc
                 limit 1;
             
-                -- TODO: HANDLE BETTER SECURITY GROUPS UPDATES
-                delete from aws_load_balancer_security_groups_aws_security_group
-                where aws_load_balancer_id = load_balancer_id;
                 for sg in
                     select id
                     from aws_security_group
@@ -76,9 +73,14 @@ export class awsElb1644942836009 implements MigrationInterface {
                     insert into aws_load_balancer_security_groups_aws_security_group
                         (aws_load_balancer_id, aws_security_group_id)
                     values
-                        (load_balancer_id, sg.id);
+                        (load_balancer_id, sg.id)
+                    on conflict do nothing;
                 end loop;
-            
+                
+                delete from aws_load_balancer_security_groups_aws_security_group
+                using aws_security_group
+                where aws_load_balancer_id = load_balancer_id and aws_security_group.id = aws_load_balancer_security_groups_aws_security_group.aws_security_group_id and not (group_name = any(_security_group_names));
+
                 raise info 'aws_load_balancer_id = %', load_balancer_id;
             end;
             $$;
@@ -177,15 +179,16 @@ export class awsElb1644942836009 implements MigrationInterface {
                     order by id desc
                     limit 1;
                 end if;
-                
-                -- TODO: Handle better listener actions updates
-                delete from aws_listener_default_actions_aws_action
-                where aws_listener_id = l_id;
+
                 insert into aws_listener_default_actions_aws_action
                     (aws_listener_id, aws_action_id)
                 values 
-                    (l_id, a_id);
-            
+                    (l_id, a_id)
+                on conflict do nothing;
+
+                delete from aws_listener_default_actions_aws_action
+                where aws_listener_id = l_id and not(aws_action_id = a_id);
+        
                 raise info 'aws_listener_id = %', l_id;
             end; 
             $$;

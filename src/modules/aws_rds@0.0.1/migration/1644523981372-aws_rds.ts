@@ -47,9 +47,6 @@ export class awsRds1644523981372 implements MigrationInterface {
                     order by id desc
                     limit 1;
 
-                    -- TODO: HANDLE BETTER SECURITY GROUPS UPDATES
-                    delete from rds_vpc_security_groups_aws_security_group
-                    where rds_id = rds_instance_id;
                     for sg in
                         select id
                         from aws_security_group
@@ -58,8 +55,13 @@ export class awsRds1644523981372 implements MigrationInterface {
                         insert into rds_vpc_security_groups_aws_security_group
                             (rds_id, aws_security_group_id)
                         values
-                            (rds_instance_id, sg.id);
+                            (rds_instance_id, sg.id)
+                        on conflict do nothing;
                     end loop;
+
+                    delete from rds_vpc_security_groups_aws_security_group
+                    using aws_security_group
+                    where rds_id = rds_instance_id and aws_security_group.id = rds_vpc_security_groups_aws_security_group.aws_security_group_id and not (group_name = any(_security_group_names));
             
                     raise info 'rds_instance_id = %', rds_instance_id;
                 end;

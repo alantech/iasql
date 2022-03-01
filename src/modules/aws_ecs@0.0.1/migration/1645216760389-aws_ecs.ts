@@ -438,7 +438,7 @@ export class awsEcs1645216760389 implements MigrationInterface {
 
                         delete from aws_vpc_conf_security_groups_aws_security_group
                         using aws_security_group
-                        where aws_security_group.id = aws_vpc_conf_security_groups_aws_security_group.aws_security_group_id and not (group_name = any(_security_group_names));
+                        where aws_vpc_conf_id = avc_id and aws_security_group.id = aws_vpc_conf_security_groups_aws_security_group.aws_security_group_id and not (group_name = any(_security_group_names));
                     end if;
                     raise info 'service_id = %', service_id;
                 end;
