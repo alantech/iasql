@@ -16,4 +16,4 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           repo: iasql-on-iasql
           owner: iasql
-          event_type: deploy_staging
+          event_type: code_change
