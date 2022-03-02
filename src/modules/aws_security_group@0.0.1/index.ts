@@ -22,9 +22,7 @@ export const AwsSecurityGroupModule: Module = new Module({
       out.groupName = sg.GroupName;
       out.ownerId = sg.OwnerId;
       out.groupId = sg.GroupId;
-      const client = await ctx.getAwsClient() as AWS;
-      const vpc = await client.getVpc(sg.VpcId);
-      out.vpcId = vpc?.IsDefault ? 'default' : sg.VpcId;
+      out.vpcId = sg.VpcId;
       return out;
     },
     sgrMapper: async (sgr: any, ctx: Context) => {
@@ -71,7 +69,21 @@ export const AwsSecurityGroupModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          return await ctx.orm.find(AwsSecurityGroup, opts);
+          const securityGroups = await ctx.orm.find(AwsSecurityGroup, opts);
+          const client = await ctx.getAwsClient() as AWS;
+          securityGroups.map(async (sg: AwsSecurityGroup) => {
+            if (sg.vpcId === 'default') {
+              const vpcs = (await client.getVpcs()).Vpcs;
+              const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
+              sg.vpcId = defaultVpc.VpcId;
+              await ctx.orm.save(AwsSecurityGroup, sg);
+              if (sg.groupId) {
+                ctx.memo.db.AwsSecurityGroup[sg.groupId] = sg;
+              }
+            }
+            return sg;
+          });
+          return securityGroups;
         },
         update: (e: AwsSecurityGroup[], ctx: Context) => ctx.orm.save(AwsSecurityGroup, e),
         delete: (e: AwsSecurityGroup[], ctx: Context) => ctx.orm.remove(AwsSecurityGroup, e),
