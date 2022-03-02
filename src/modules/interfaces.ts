@@ -114,6 +114,7 @@ export class Crud<E> {
           return vals;
         }
         console.log(`Partial cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
+        // TODO: is it possible that `missingVals` it is unaligned with `missing`??
         const missingVals = (this.memo(await this.readFn(ctx, missing), ctx, missing) as E[]).sort(
           (a: E, b: E) => missing.indexOf(entityId(a)) - missing.indexOf(entityId(b))
         );
