@@ -6,7 +6,7 @@
 [![Docs](https://img.shields.io/badge/docs-docusaurus-blue)](https://docs.iasql.com)
 [![Discord](https://img.shields.io/badge/discord-iasql-purple)](https://discord.com/invite/machGGczea)
 [![Reddit](https://img.shields.io/badge/reddit-iasql-red)](https://www.reddit.com/r/iasql)
-[![Twitter](https://img.shields.io/badge/twitter-iasql-red)](https://www.twitter.com/iasql)
+[![Twitter](https://img.shields.io/badge/twitter-iasql-9cf)](https://www.twitter.com/iasql)
 
 ---
 
