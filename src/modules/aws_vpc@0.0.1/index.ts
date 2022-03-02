@@ -134,7 +134,7 @@ export const AwsVpcModule: Module = new Module({
         read: async (ctx: Context, ids?: string[]) => {
           const opts = ids ? {
             where: {
-              subnetId: In(ids),
+              vpcId: In(ids),
             },
           } : {};
           return await ctx.orm.find(AwsVpc, opts);
