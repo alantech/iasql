@@ -21,7 +21,8 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
                 declare
                     sec_group_id integer;
                     json_rule jsonb;
-                    rule_ids integer[];
+                    rule_ids integer[] := array[]::integer[];
+                    rule_id integer;
                 begin
                     if _vpc_id is null then
                         select 'default' into _vpc_id;
@@ -57,7 +58,7 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
                             loop
                                 assert json_rule ?& array['isEgress', 'ipProtocol', 'fromPort', 'toPort', 'cidrIpv4'], 'Not all security group rule required keys are defined ("isEgress", "ipProtocol", "fromPort", "toPort", "cidrIpv4")';
 
-                                perform array_append(rule_ids, id)
+                                select id into rule_id
                                 from aws_security_group_rule
                                 where security_group_id = sec_group_id and
                                     is_egress = cast(json_rule ->> 'isEgress' as boolean) and 
@@ -65,6 +66,10 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
                                     from_port = cast(json_rule ->> 'fromPort' as integer) and
                                     to_port = cast(json_rule ->> 'toPort' as integer) and
                                     cidr_ipv4 = cast(json_rule ->> 'cidrIpv4' as cidr);
+
+                                if rule_id is not null then
+                                    select array_append(rule_ids, rule_id) into rule_ids;
+                                end if;
                             end loop;
 
                             delete from aws_security_group_rule
