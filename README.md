@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://iasql.com/lib_TQbMwqDvYvWhOqVJ/jlr8dcwmlqczjmnm.png" alt="drawing" width="180"/>
+  <img src="https://iasql.com/lib_TQbMwqDvYvWhOqVJ/qp6b8vokhnkse82a.png" alt="drawing" width="180"/>
 </div>
 
 [![CI](https://github.com/alantech/alan/workflows/CI/badge.svg)](https://github.com/iasql/iasql-engine/actions?query=workflow%3ACI)
