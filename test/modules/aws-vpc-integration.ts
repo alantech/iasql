@@ -44,6 +44,16 @@ describe('VPC Integration Testing', () => {
 
   it('applies the subnet change', apply);
 
+  it('uninstalls the vpc module', (done) => void iasql.uninstall(
+    ['aws_vpc@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('installs the vpc module again (to make sure it reloads stuff)', (done) => void iasql.install(
+    ['aws_vpc@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
   it('deletes the subnet', query(`
     WITH vpc as (
       SELECT id
