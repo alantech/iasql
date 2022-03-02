@@ -32,7 +32,7 @@ export const AwsRdsModule: Module = new Module({
       const vpcSecurityGroupIds = rds?.VpcSecurityGroups?.filter((vpcsg: any) => !!vpcsg?.VpcSecurityGroupId).map((vpcsg: any) => vpcsg?.VpcSecurityGroupId);
       out.vpcSecurityGroups = vpcSecurityGroupIds ?
         await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, vpcSecurityGroupIds) ??
-          await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, vpcSecurityGroupIds)
+          await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, vpcSecurityGroupIds)
         : [];
       return out;
     },
@@ -141,6 +141,9 @@ export const AwsRdsModule: Module = new Module({
               && !e.masterUserPassword
               && Object.is(e.vpcSecurityGroups.length, cloudRecord.vpcSecurityGroups.length)
               && (e.vpcSecurityGroups?.every(esg => !!cloudRecord.vpcSecurityGroups.find((csg: any) => Object.is(esg.groupId, csg.groupId))) ?? false))) {
+                if (!e.vpcSecurityGroups?.filter(sg => !!sg.groupId).length) {
+                  throw new Error('Waiting for security groups');
+                }
               const instanceParams: ModifyDBInstanceCommandInput = {
                 DBInstanceClass: e.dbInstanceClass,
                 EngineVersion: e.engine.split(':')[1],

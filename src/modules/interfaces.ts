@@ -97,7 +97,7 @@ export class Crud<E> {
         const missing: string[] = [];
         const vals = id.map(i => {
           const val = ctx.memo[dest]?.[entityName]?.[i];
-          if (!val) {
+          if (!val || (val && Object.keys(val).length === 0)) {
             // We create a placeholder value to put here so recursive calls will resolve an object
             // and we will rely on later code to stitch things back together to make sure circular
             // references are fine
@@ -111,10 +111,10 @@ export class Crud<E> {
           }
         });
         if (missing.length === 0) {
-          console.log(`Full cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
           return vals;
         }
         console.log(`Partial cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
+        // TODO: is it possible that `missingVals` it is unaligned with `missing`??
         const missingVals = (this.memo(await this.readFn(ctx, missing), ctx, missing) as E[]).sort(
           (a: E, b: E) => missing.indexOf(entityId(a)) - missing.indexOf(entityId(b))
         );
@@ -122,8 +122,13 @@ export class Crud<E> {
         for (let i = 0, j = 0; i < vals.length; i++) {
           if (vals[i] === missing[j]) {
             const realE = ctx.memo[dest][entityName][vals[i]];
-            Object.keys(missingVals[j]).forEach(k => realE[k] = (missingVals[j] as any)[k]);
-            vals[i] = realE;
+            if (missingVals && missingVals.length) Object.keys(missingVals[j]).forEach(k => realE[k] = (missingVals[j] as any)[k]);
+            if (realE && !!Object.keys(realE).length) {
+              vals[i] = realE;
+            } else {
+              delete ctx.memo[dest][entityName][vals[i]];
+              vals.splice(i, 1);
+            }
             j++;
           }
         }
