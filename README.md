@@ -16,7 +16,7 @@
 ## Community and Support
 
 - [Community Forum](https://github.com/iasql/iasql-engine/discussions): Best for help with building, discussion about database and infrastructure best practices.
-- [GitHub Issues](https://github.com/iasql/iasql-engine/issues): Best for bugs and errors you encounter using IaSQL.
+- [GitHub Issues](https://github.com/iasql/iasql-engine/issues/new): Best for bugs and errors you encounter using IaSQL.
 - [Discord](https://discord.com/invite/machGGczea): Best for sharing what you built and asking about problems with your database or infrastructure.
 
 ## Documentation
@@ -34,11 +34,3 @@ EC2, VPC, ECS, ECR, ELB, RDS
 ### AWS Services coming soon
 
 S3, Lambda, Route53, ACM, Secrets Manager, Dynamo DB
-
-## Local Development
-
-This repo houses IaSQL engine which is called by the [cli](https://github.com/iasql/cli). Set your `.env` file based on the values from `src/config.ts`, make sure docker is installed locally and bring up the postgres engine and node.js server by running
-
-```
-docker-compose up --build
-```
