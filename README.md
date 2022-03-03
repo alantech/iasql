@@ -13,26 +13,47 @@
 
 [IaSQL](https://iasql.com) lets you model your infrastructure as data by maintaining a 2-way connection between your AWS account and a Postgres SQL database.
 
-## Community and Support
+## ⚡️ Install
 
-- [Community Forum](https://github.com/iasql/iasql-engine/discussions): Best for help with building, discussion about database and infrastructure best practices.
-- [GitHub Issues](https://github.com/iasql/iasql-engine/issues/new): Best for bugs and errors you encounter using IaSQL.
-- [Discord](https://discord.com/invite/machGGczea): Best for sharing what you built and asking about problems with your database or infrastructure.
+To install, visit [Contributing.md](https://github.com/iasql/iasql-engine/blob/main/CONTRIBUTING.md)
 
-## Documentation
+## 💬 Community, Support and Questions
+
+Reach out on Discord to:
+- Get help with errors you encounter using IaSQL
+- Ask about general problems with databases or infrastructure
+- Discuss database and infrastructure best practices
+- Share what you built
+
+<p align="center">
+  <a href="https://discord.com/invite/machGGczea">
+    <img src="https://global-uploads.webflow.com/5e157548d6f7910beea4e2d6/60415153fea4767867265233_Microinfluencers%201140%20wide-64.png" width="80px" height="80px" />
+  </a>
+</p>
+
+## 📄 Documentation
 
 For full documentation, visit [docs.iasql.com](https://docs.iasql.com)
 
-To Contribute, visit [Contributing.md](https://github.com/iasql/iasql-engine/blob/main/CONTRIBUTING.md)
+## 🚀 Contribute
 
-## Cloud Providers
+To contribute, visit [Contributing.md](https://github.com/iasql/iasql-engine/blob/main/CONTRIBUTING.md)
+
+## ☁️ Cloud Providers
 
 AWS is our main focus at the moment, but we plan to support GCP, Azure and other cloud providers soon. Let us know if you need a specific AWS service and we might be able to prioritize it!
 
 ###  Supported AWS services
 
-EC2, VPC, ECS, ECR, ELB, RDS
-
-### AWS Services coming soon
-
-S3, Lambda, Route53, ACM, Secrets Manager, Dynamo DB
+- [x] EC2
+- [x] VPC
+- [x] ECS
+- [x] ECR
+- [x] ELB
+- [x] RDS
+- [ ] S3
+- [ ] Lambda
+- [ ] Route53
+- [ ] ACM
+- [ ] Secrets Manager
+- [ ] Dynamo DB
