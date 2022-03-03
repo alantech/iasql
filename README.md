@@ -46,14 +46,14 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 ###  Supported AWS services
 
 - [x] EC2
-- [x] VPC
-- [x] ECS
 - [x] ECR
+- [x] ECS
 - [x] ELB
 - [x] RDS
-- [ ] S3
+- [x] VPC
+- [ ] ACM
+- [ ] Dynamo DB
 - [ ] Lambda
 - [ ] Route53
-- [ ] ACM
+- [ ] S3
 - [ ] Secrets Manager
-- [ ] Dynamo DB
