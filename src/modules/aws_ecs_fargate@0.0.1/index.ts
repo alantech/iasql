@@ -262,8 +262,8 @@ export const AwsEcsFargateModule: Module = new Module({
         revision: e?.revision?.toString() ?? '',
         taskRoleArn: e?.taskRoleArn ?? '',
         executionRoleArn: e?.executionRoleArn ?? '',
-        status: e?.status ?? TaskDefinitionStatus.ACTIVE, // TODO: Which?
-        cpuMemory: e?.cpuMemory ?? CpuMemCombination['1vCPU-2GB'], // TODO: Which?
+        status: e?.status ?? 'UNKNOWN',
+        cpuMemory: e?.cpuMemory ?? 'UNKNOWN',
       }),
       equals: (a: AwsTaskDefinition, b: AwsTaskDefinition) => Object.is(a.cpuMemory, b.cpuMemory)
         && Object.is(a.executionRoleArn, b.executionRoleArn)
@@ -285,15 +285,20 @@ export const AwsEcsFargateModule: Module = new Module({
               } else if (!cd?.repository && !cd?.publicRepository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.INACTIVE) {
                 return null;
               } else {
-                // TODO: keep id of port mappings and environment variables
+                // TODO: keep id of port mappings and environment variables?
                 return cd;
               }
             });
             entity.containerDefinitions = containerDefinitions?.filter((c: any) => c !== null);
           });
           await Promise.all(es.map(async (entity: AwsTaskDefinition) => {
-            if (entity.containerDefinitions) {
-              await ctx.orm.save(AwsContainerDefinition, entity.containerDefinitions);
+            const containerDefinitions = entity.containerDefinitions;
+            if (containerDefinitions) {
+              await Promise.all(containerDefinitions.map(async (cd: AwsContainerDefinition) => {
+                await ctx.orm.save(EnvVariable, cd.envVariables);
+                await ctx.orm.save(PortMapping, cd.portMappings);
+              }));
+              await ctx.orm.save(AwsContainerDefinition, containerDefinitions);
             }
           }));
           await ctx.orm.save(AwsTaskDefinition, es);
@@ -331,8 +336,13 @@ export const AwsEcsFargateModule: Module = new Module({
             entity.containerDefinitions = containerDefinitions?.filter((c: any) => c !== null);
           });
           await Promise.all(es.map(async (entity: AwsTaskDefinition) => {
-            if (entity.containerDefinitions) {
-              await ctx.orm.save(AwsContainerDefinition, entity.containerDefinitions);
+            const containerDefinitions = entity.containerDefinitions;
+            if (containerDefinitions) {
+              await Promise.all(containerDefinitions.map(async (cd: AwsContainerDefinition) => {
+                await ctx.orm.save(EnvVariable, cd.envVariables);
+                await ctx.orm.save(PortMapping, cd.portMappings);
+              }));
+              await ctx.orm.save(AwsContainerDefinition, containerDefinitions);
             }
           }));
           await ctx.orm.save(AwsTaskDefinition, es);
