@@ -5,7 +5,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm'
-import { ContainerDefinition } from '../../aws_ecs@0.0.1/entity';
+import { AwsContainerDefinition } from '.'
 
 @Entity()
 export class EnvVariable {
@@ -18,9 +18,9 @@ export class EnvVariable {
   @Column()
   value: string;
 
-  @ManyToOne(() => ContainerDefinition)
+  @ManyToOne(() => AwsContainerDefinition)
   @JoinColumn({
     name: 'container_definition_id',
   })
-  containerDefinition: ContainerDefinition;
+  containerDefinition: AwsContainerDefinition;
 }

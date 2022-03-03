@@ -5,7 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm'
-import { ContainerDefinition } from '../../aws_ecs@0.0.1/entity';
+import { AwsContainerDefinition } from '.';
 
 export enum TransportProtocol {
   TCP = "tcp",
@@ -35,9 +35,9 @@ export class PortMapping {
   })
   protocol: TransportProtocol;
 
-  @ManyToOne(() => ContainerDefinition)
+  @ManyToOne(() => AwsContainerDefinition)
   @JoinColumn({
     name: 'container_definition_id',
   })
-  containerDefinition: ContainerDefinition;
+  containerDefinition: AwsContainerDefinition;
 }
