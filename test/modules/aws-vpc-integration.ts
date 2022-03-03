@@ -11,6 +11,8 @@ const dbAlias = 'vpctest';
 const apply = runApply.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 
+const randIPBlock = Math.floor(Math.random() * 255);
+
 describe('VPC Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
     dbAlias,
@@ -26,21 +28,17 @@ describe('VPC Integration Testing', () => {
 
   it('adds a new vpc', query(`  
     INSERT INTO aws_vpc (cidr_block)
-    VALUES ('192.168.2.0/24');
+    VALUES ('192.168.${randIPBlock}.0/24');
   `));
 
   it('applies the vpc change', apply);
 
   it('adds a subnet', query(`
     INSERT INTO aws_subnet (availability_zone, vpc_id, cidr_block)
-    SELECT 'us-west-2a', id, '192.168.2.0/24'
+    SELECT 'us-west-2a', id, '192.168.${randIPBlock}.0/24'
     FROM aws_vpc
     WHERE is_default = false;
   `));
-
-  it('queries the subnets for debugging', query(`
-    SELECT * FROM aws_subnet
-  `, (res: any) => console.log({ res, })));
 
   it('applies the subnet change', apply);
 
@@ -54,11 +52,20 @@ describe('VPC Integration Testing', () => {
     dbAlias,
     'not-needed').then(...finish(done)));
 
+  it('queries the subnets to confirm the record is present', query(`
+    SELECT * FROM aws_subnet WHERE cidr_block = '192.168.${randIPBlock}.0/24'
+  `, (res: any) => expect(res.length).toBe(1)));
+
+  it('queries the vpcs to confirm the record is present', query(`
+    SELECT * FROM aws_vpc WHERE cidr_block = '192.168.${randIPBlock}.0/24'
+  `, (res: any) => expect(res.length).toBe(1)));
+
   it('deletes the subnet', query(`
     WITH vpc as (
       SELECT id
       FROM aws_vpc
       WHERE is_default = false
+      AND cidr_block = '192.168.${randIPBlock}.0/24'
     )
     DELETE FROM aws_subnet
     USING vpc
@@ -69,7 +76,7 @@ describe('VPC Integration Testing', () => {
 
   it('deletes the vpc', query(`
     DELETE FROM aws_vpc
-    WHERE cidr_block = '192.168.2.0/24';
+    WHERE cidr_block = '192.168.${randIPBlock}.0/24';
   `));
 
   it('applies the vpc removal', apply);
