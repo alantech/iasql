@@ -27,7 +27,7 @@ Reach out on Discord to:
 
 <p align="center">
   <a href="https://discord.com/invite/machGGczea">
-    <img src="https://global-uploads.webflow.com/5e157548d6f7910beea4e2d6/60415153fea4767867265233_Microinfluencers%201140%20wide-64.png" />
+    <img src="https://discord.com/assets/ff41b628a47ef3141164bfedb04fb220.png" height="80px" />
   </a>
 </p>
 
