@@ -4,6 +4,8 @@
   </a>
 </p>
 
+&nbsp;
+
 [![CI](https://github.com/alantech/alan/workflows/CI/badge.svg)](https://github.com/iasql/iasql-engine/actions?query=workflow%3ACI)
 [![Docs](https://img.shields.io/badge/docs-docusaurus-blue)](https://docs.iasql.com)
 [![Discord](https://img.shields.io/badge/discord-iasql-purple)](https://discord.com/invite/machGGczea)
