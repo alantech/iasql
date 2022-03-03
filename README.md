@@ -1,6 +1,8 @@
-<div align="center">
-  <img src="https://iasql.com/lib_TQbMwqDvYvWhOqVJ/6px14ozk177bpjqk.png" alt="drawing" width="180"/>
-</div>
+<p align="center">
+  <a href="https://iasql.com">
+    <img src="https://iasql.com/lib_TQbMwqDvYvWhOqVJ/6px14ozk177bpjqk.png" alt="drawing" width="180"/>
+  </a>
+</p>
 
 [![CI](https://github.com/alantech/alan/workflows/CI/badge.svg)](https://github.com/iasql/iasql-engine/actions?query=workflow%3ACI)
 [![Docs](https://img.shields.io/badge/docs-docusaurus-blue)](https://docs.iasql.com)
@@ -27,7 +29,7 @@ Reach out on Discord to:
 
 <p align="center">
   <a href="https://discord.com/invite/machGGczea">
-    <img src="https://discord.com/assets/ff41b628a47ef3141164bfedb04fb220.png" height="80px" />
+    <img src="https://discord.com/assets/ff41b628a47ef3141164bfedb04fb220.png" height="60px" />
   </a>
 </p>
 
