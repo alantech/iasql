@@ -23,7 +23,7 @@
 
 For full documentation, visit [docs.iasql.com](https://docs.iasql.com)
 
-To Contribute, visit [Contributing.md](https://github.com/iasql/iasql-engine/blob/master/CONTRIBUTING.md)
+To Contribute, visit [Contributing.md](https://github.com/iasql/iasql-engine/blob/main/CONTRIBUTING.md)
 
 ## Cloud Providers
 
