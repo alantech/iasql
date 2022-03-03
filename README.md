@@ -23,6 +23,8 @@
 
 For full documentation, visit [docs.iasql.com](https://docs.iasql.com)
 
+To Contribute, visit [Contributing.md](https://github.com/supabase/supabase/blob/master/CONTRIBUTING.md)
+
 ## Cloud Providers
 
 AWS is our main focus at the moment, but we plan to support GCP, Azure and other cloud providers soon. Let us know if you need a specific AWS service and we might be able to prioritize it!
