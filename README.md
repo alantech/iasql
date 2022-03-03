@@ -15,7 +15,7 @@
 
 ## ⚡️ Install
 
-To install, visit [Contributing.md](https://github.com/iasql/iasql-engine/blob/main/CONTRIBUTING.md)
+To install the SaaS CLI, visit [docs.iasql.com/install](https://docs.iasql.com/install)
 
 ## 💬 Community, Support and Questions
 
