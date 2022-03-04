@@ -31,7 +31,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
             declare 
                 cluster_id integer;
             begin
-                insert into cluster
+                insert into aws_cluster
                     (cluster_name)
                 values
                     (_name)
@@ -39,7 +39,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                 do nothing;
             
                 select id into cluster_id
-                from cluster
+                from aws_cluster
                 where cluster_name = _name
                 order by id desc
                 limit 1;
@@ -62,7 +62,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                 rev integer;
             begin
                 select revision into rev
-                from task_definition
+                from aws_task_definition
                 where family = _family
                 order by revision desc
                 limit 1;
@@ -73,13 +73,13 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                     rev := rev + 1;
                 end if;
             
-                insert into task_definition
+                insert into aws_task_definition
                     (family, revision, task_role_arn, execution_role_arn, cpu_memory)
                 values
                     (_family, rev, _task_role_arn, _execution_role_arn, _cpu_memory);
             
                 select id into task_definition_id
-                from task_definition
+                from aws_task_definition
                 order by id desc
                 limit 1;
             
@@ -125,7 +125,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                     limit 1;
 
                     select id into td_id
-                    from task_definition
+                    from aws_task_definition
                     where family = _task_definition_family
                     order by revision desc
                     limit 1;
@@ -136,7 +136,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                         where repository_name = _ecr_repository_name
                         limit 1;
             
-                        insert into container_definition
+                        insert into aws_container_definition
                             (name, task_definition_id, repository_id, tag, essential, memory_reservation, log_group_id, host_port, container_port, protocol, env_variables)
                         values
                             (_name, td_id, ecr_repository_id, _image_tag, _essential, _memory_reservation, cw_log_group_id, _host_port, _container_port, _protocol, _environment_variables);
@@ -146,19 +146,19 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                         where repository_name = _ecr_public_repository_name
                         limit 1;
             
-                        insert into container_definition
+                        insert into aws_container_definition
                             (name, task_definition_id, public_repository_id, tag, essential, memory_reservation, log_group_id, host_port, container_port, protocol, env_variables)
                         values
                             (_name, td_id, ecr_public_repository_id, _image_tag, _essential, _memory_reservation, cw_log_group_id, _host_port, _container_port, _protocol, _environment_variables);
                     else
-                        insert into container_definition
+                        insert into aws_container_definition
                             (name, task_definition_id, docker_image, tag, essential, memory_reservation, log_group_id, host_port, container_port, protocol, env_variables)
                         values
                             (_name, td_id, _docker_image, _image_tag, _essential, _memory_reservation, cw_log_group_id, _host_port, _container_port, _protocol, _environment_variables);
                     end if;
 
                     select id into c_id
-                    from container_definition
+                    from aws_container_definition
                     where name = _name
                     order by id desc
                     limit 1;
@@ -205,7 +205,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                         target_group_id = (select id from aws_target_group where target_group_name = _target_group_name limit 1);
 
                     select id into service_id
-                    from service
+                    from aws_service
                     where name = _name
                     order by id desc
                     limit 1;
@@ -238,7 +238,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
             language plpgsql
             as $$
             begin
-                delete from cluster
+                delete from aws_cluster
                 where cluster_name = _name;
             end;
             $$;
@@ -267,13 +267,13 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                     if _task_definition_revision is null then
                         select array(
                             select id
-                            from task_definition
+                            from aws_task_definition
                             where family = _task_definition_family
                         ) into td_id;
                     else
                         select array(
                             select id
-                            from task_definition
+                            from aws_task_definition
                             where family = _task_definition_family and revision = _task_definition_revision
                             order by revision desc
                             limit 1
@@ -287,7 +287,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                         where aws_container_definition.task_definition_id = any(td_id)
                     ) into c_id;
                     
-                    delete from container_definition
+                    delete from aws_container_definition
                     where id = any(c_id);
                 end;
             $$;
@@ -303,13 +303,13 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                     if _revision is null then
                         select array(
                             select id
-                            from task_definition
+                            from aws_task_definition
                             where family = _family
                         ) into task_def_id;
                     else
                         select array(
                             select id
-                            from task_definition
+                            from aws_task_definition
                             where family = _family and revision = _revision
                             order by id, revision desc
                             limit 1
@@ -317,7 +317,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                     end if;
                     
                     delete
-                    from task_definition
+                    from aws_task_definition
                     where id = any(task_def_id);
                 end;
             $$;
@@ -340,7 +340,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                     sg record;
                 begin
                     select id into serv_id
-                    from service
+                    from aws_service
                     where name = _name
                     order by id desc
                     limit 1;
@@ -348,7 +348,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                     delete from aws_service_security_groups
                     where aws_service_id = serv_id;
                     
-                    delete from service
+                    delete from aws_service
                     where id = serv_id;
                 end;
             $$;
