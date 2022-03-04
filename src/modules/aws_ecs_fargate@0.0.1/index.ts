@@ -12,7 +12,7 @@ import {
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule, } from '..'
-import { awsEcsFargate1646390160682, } from './migration/1646390160682-aws_ecs_fargate'
+import { awsEcsFargate1646405131296, } from './migration/1646405131296-aws_ecs_fargate'
 
 export const AwsEcsFargateModule: Module = new Module({
   name: 'aws_ecs_fargate',
@@ -117,7 +117,6 @@ export const AwsEcsFargateModule: Module = new Module({
       if (serviceLoadBalancer) {
         out.targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, serviceLoadBalancer.targetGroupArn) ??
           await AwsElbModule.mappers.targetGroup.cloud.read(ctx, serviceLoadBalancer.targetGroupArn);
-        out.containerDefinition = out.task?.containerDefinitions.find(c => c.name === serviceLoadBalancer.containerName);
       }
       out.name = s.serviceName;
       if (s.networkConfiguration?.awsvpcConfiguration) {
@@ -272,7 +271,6 @@ export const AwsEcsFargateModule: Module = new Module({
               } else if (!cd?.repository && !cd?.publicRepository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.INACTIVE) {
                 return null;
               } else {
-                // TODO: keep id of port mappings and environment variables?
                 return cd;
               }
             });
@@ -310,7 +308,6 @@ export const AwsEcsFargateModule: Module = new Module({
               } else if (!cd?.repository && !cd?.publicRepository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.INACTIVE) {
                 return null;
               } else {
-                // TODO: handle container port mapping and env variables ids
                 return cd;
               }
             });
@@ -358,6 +355,7 @@ export const AwsEcsFargateModule: Module = new Module({
                     }
                   };
                 }
+                container.environment = c.envVariables;
                 container.portMappings = [{ 
                   containerPort: container.containerPort,
                   hostPort: container.hostPort,
@@ -491,7 +489,6 @@ export const AwsEcsFargateModule: Module = new Module({
         launchType: 'FARGATE',
         schedulingStrategy: 'REPLICA',
         network: e?.assignPublicIp ?? '',
-        container: e?.containerDefinition?.name ?? '',
         targetGroup: e?.targetGroup?.targetGroupName ?? ''
       }),
       equals: (a: AwsService, b: AwsService) => Object.is(a.desiredCount, b.desiredCount)
@@ -499,7 +496,6 @@ export const AwsEcsFargateModule: Module = new Module({
         && Object.is(a.cluster?.clusterName, b.cluster?.clusterName)
         && Object.is(a.arn, b.arn)
         && Object.is(a.targetGroup?.targetGroupArn, b.targetGroup?.targetGroupArn)
-        && Object.is(a.containerDefinition?.name, b.containerDefinition?.name)
         && Object.is(a.name, b.name)
         && Object.is(a.status, b.status)
         && Object.is(a?.assignPublicIp, b?.assignPublicIp)
@@ -579,10 +575,12 @@ export const AwsEcsFargateModule: Module = new Module({
               },
             };
             if (e.targetGroup) {
+              // Add load balancer to the first essential container. Theres always one essential container definition. 
+              const essentialContainer = e.task.containerDefinitions.find(cd => cd.essential);
               input.loadBalancers = [{
                 targetGroupArn: e.targetGroup?.targetGroupArn,
-                containerName: e.containerDefinition?.name,
-                containerPort: e.containerDefinition?.containerPort
+                containerName: essentialContainer?.name,
+                containerPort: essentialContainer?.containerPort,
               }];
             }
             const result = await client.createService(input);
@@ -638,8 +636,7 @@ export const AwsEcsFargateModule: Module = new Module({
             && (prev?.securityGroups?.every(asg => !!next?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
             && Object.is(prev?.subnets?.length, next?.subnets?.length)
             && (prev?.subnets?.every(asn => !!next?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
-            && Object.is(prev.targetGroup?.targetGroupArn, next.targetGroup?.targetGroupArn)
-            && Object.is(prev.containerDefinition?.name, next.containerDefinition?.name))) {
+            && Object.is(prev.targetGroup?.targetGroupArn, next.targetGroup?.targetGroupArn))) {
             return 'replace';
           }
           return 'update';
@@ -693,7 +690,7 @@ export const AwsEcsFargateModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEcsFargate1646390160682.prototype.up,
-    preremove: awsEcsFargate1646390160682.prototype.down,
+    postinstall: awsEcsFargate1646405131296.prototype.up,
+    preremove: awsEcsFargate1646405131296.prototype.down,
   },
 });

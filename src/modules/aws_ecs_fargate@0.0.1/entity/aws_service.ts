@@ -76,12 +76,6 @@ export class AwsService {
   })
   targetGroup?: AwsTargetGroup;
 
-  @ManyToOne(() => AwsContainerDefinition)
-  @JoinColumn({
-    name: 'container_definition_id',
-  })
-  containerDefinition?: AwsContainerDefinition;
-
   @AfterLoad()
   @AfterInsert()
   @AfterUpdate()
