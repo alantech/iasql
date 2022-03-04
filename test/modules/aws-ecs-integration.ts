@@ -14,9 +14,9 @@ const apply = runApply.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 
 // Test constants
-const serviceName = `${prefix}${dbAlias}aws_service`;
+const serviceName = `${prefix}${dbAlias}service`;
 const serviceRepositoryName = `${prefix}${dbAlias}servicerepository`;
-const clusterName = `${prefix}${dbAlias}aws_cluster`;
+const clusterName = `${prefix}${dbAlias}cluster`;
 const newClusterName = `${prefix}${dbAlias}clusternew`;
 const logGroupName = `${prefix}${dbAlias}loggroup`;
 const containerName = `${prefix}${dbAlias}container`;
@@ -55,7 +55,7 @@ describe('ECS Integration Testing SP', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the ecs module and its dependencies', (done) => void iasql.install(
-    ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1',],
+    ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_vpc@0.0.1',],
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -134,10 +134,10 @@ describe('ECS Integration Testing SP', () => {
       WHERE name = '${serviceName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
-    it('check service_load_balancer insertion', query(`
+    it('check aws_service_security_groups insertion', query(`
       SELECT *
       FROM aws_service_security_groups
-      INNER JOIN aws_service ON aws_service.id = aws_service_security_groups.service_id
+      INNER JOIN aws_service ON aws_service.id = aws_service_security_groups.aws_service_id
       WHERE aws_service.name = '${serviceName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
@@ -186,7 +186,7 @@ describe('ECS Integration Testing SP', () => {
         where name = '${newServiceName}';
 
         delete from aws_service
-        where name = ${newServiceName};
+        where name = '${newServiceName}';
       COMMIT;
     `));
 
@@ -205,12 +205,12 @@ describe('ECS Integration Testing SP', () => {
       begin;
         delete from aws_container_definition
         using aws_task_definition
-        where family = '${tdFamily}';
+        where aws_container_definition.task_definition_id = aws_task_definition.id and aws_task_definition.family = '${tdFamily}';
 
         delete from aws_task_definition
         where family = '${tdFamily}';
 
-        call delete_container_definition('${containerName}', '${tdFamily}');
+        call delete_cloudwatch_log_group('${logGroupName}');
       commit;
     `));
 
