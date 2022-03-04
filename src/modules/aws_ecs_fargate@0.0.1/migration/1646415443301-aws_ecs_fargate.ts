@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEcsFargate1646405131296 implements MigrationInterface {
-    name = 'awsEcsFargate1646405131296'
+export class awsEcsFargate1646415443301 implements MigrationInterface {
+    name = 'awsEcsFargate1646415443301'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "aws_cluster" ("id" SERIAL NOT NULL, "cluster_name" character varying NOT NULL, "cluster_arn" character varying, "cluster_status" character varying, CONSTRAINT "UQ_ae49990501587fb65eb6c329980" UNIQUE ("cluster_name"), CONSTRAINT "PK_9e69a6eb4ebabef29beca79943c" PRIMARY KEY ("id"))`);
@@ -12,9 +12,9 @@ export class awsEcsFargate1646405131296 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "aws_task_definition" ("id" SERIAL NOT NULL, "task_definition_arn" character varying, "family" character varying NOT NULL, "revision" integer, "task_role_arn" character varying, "execution_role_arn" character varying, "status" "public"."aws_task_definition_status_enum", "cpu_memory" "public"."aws_task_definition_cpu_memory_enum", CONSTRAINT "PK_54b9474072b93b053b27ae18af5" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."aws_container_definition_protocol_enum" AS ENUM('tcp', 'udp')`);
         await queryRunner.query(`CREATE TABLE "aws_container_definition" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "docker_image" character varying, "tag" character varying NOT NULL, "essential" boolean NOT NULL DEFAULT false, "cpu" integer, "memory" integer, "memory_reservation" integer, "host_port" integer NOT NULL, "container_port" integer NOT NULL, "protocol" "public"."aws_container_definition_protocol_enum" NOT NULL, "env_variables" text, "task_definition_id" integer, "repository_id" integer, "public_repository_id" integer, "log_group_id" integer, CONSTRAINT "CHK_0425e56c67a784b286bd55038e" CHECK ("docker_image" is not null or "repository_id" is not null  or "public_repository_id" is not null), CONSTRAINT "PK_82905170a50ef6bbf6931d799a0" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "aws_service_security_groups_aws_security_group" ("aws_service_id" integer NOT NULL, "aws_security_group_id" integer NOT NULL, CONSTRAINT "PK_bf9993dc90d80ef29ebbe014fd6" PRIMARY KEY ("aws_service_id", "aws_security_group_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_1a23ea9db1c8414857b1955d6e" ON "aws_service_security_groups_aws_security_group" ("aws_service_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_da22d8740bd7f4f25b9e4f7cf4" ON "aws_service_security_groups_aws_security_group" ("aws_security_group_id") `);
+        await queryRunner.query(`CREATE TABLE "aws_service_security_groups" ("aws_service_id" integer NOT NULL, "aws_security_group_id" integer NOT NULL, CONSTRAINT "PK_4bfcdbfe1939bc8289af2a4e476" PRIMARY KEY ("aws_service_id", "aws_security_group_id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_f67477ae38456964fdd0084f73" ON "aws_service_security_groups" ("aws_service_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_c011c527aec5c6020fc1484bb1" ON "aws_service_security_groups" ("aws_security_group_id") `);
         await queryRunner.query(`ALTER TABLE "aws_service" ADD CONSTRAINT "FK_a91ca2a69364714dbf08c5f25ab" FOREIGN KEY ("cluster_id") REFERENCES "aws_cluster"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "aws_service" ADD CONSTRAINT "FK_c2eb40c50f359cad97ee103d2b1" FOREIGN KEY ("task_definition_id") REFERENCES "aws_task_definition"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "aws_service" ADD CONSTRAINT "FK_9f6e9a39f872c7186038fb5dc5a" FOREIGN KEY ("target_group_id") REFERENCES "aws_target_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
@@ -22,13 +22,13 @@ export class awsEcsFargate1646405131296 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "aws_container_definition" ADD CONSTRAINT "FK_22ad0cd60293360bdc81fe67426" FOREIGN KEY ("repository_id") REFERENCES "aws_repository"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "aws_container_definition" ADD CONSTRAINT "FK_753af3f8c3a57a0b09788a3abf5" FOREIGN KEY ("public_repository_id") REFERENCES "aws_public_repository"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "aws_container_definition" ADD CONSTRAINT "FK_535959b3981bc7f5351dd539c7a" FOREIGN KEY ("log_group_id") REFERENCES "log_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "aws_service_security_groups_aws_security_group" ADD CONSTRAINT "FK_1a23ea9db1c8414857b1955d6ea" FOREIGN KEY ("aws_service_id") REFERENCES "aws_service"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "aws_service_security_groups_aws_security_group" ADD CONSTRAINT "FK_da22d8740bd7f4f25b9e4f7cf46" FOREIGN KEY ("aws_security_group_id") REFERENCES "aws_security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "aws_service_security_groups" ADD CONSTRAINT "FK_f67477ae38456964fdd0084f735" FOREIGN KEY ("aws_service_id") REFERENCES "aws_service"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "aws_service_security_groups" ADD CONSTRAINT "FK_c011c527aec5c6020fc1484bb10" FOREIGN KEY ("aws_security_group_id") REFERENCES "aws_security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "aws_service_security_groups_aws_security_group" DROP CONSTRAINT "FK_da22d8740bd7f4f25b9e4f7cf46"`);
-        await queryRunner.query(`ALTER TABLE "aws_service_security_groups_aws_security_group" DROP CONSTRAINT "FK_1a23ea9db1c8414857b1955d6ea"`);
+        await queryRunner.query(`ALTER TABLE "aws_service_security_groups" DROP CONSTRAINT "FK_c011c527aec5c6020fc1484bb10"`);
+        await queryRunner.query(`ALTER TABLE "aws_service_security_groups" DROP CONSTRAINT "FK_f67477ae38456964fdd0084f735"`);
         await queryRunner.query(`ALTER TABLE "aws_container_definition" DROP CONSTRAINT "FK_535959b3981bc7f5351dd539c7a"`);
         await queryRunner.query(`ALTER TABLE "aws_container_definition" DROP CONSTRAINT "FK_753af3f8c3a57a0b09788a3abf5"`);
         await queryRunner.query(`ALTER TABLE "aws_container_definition" DROP CONSTRAINT "FK_22ad0cd60293360bdc81fe67426"`);
@@ -36,9 +36,9 @@ export class awsEcsFargate1646405131296 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "aws_service" DROP CONSTRAINT "FK_9f6e9a39f872c7186038fb5dc5a"`);
         await queryRunner.query(`ALTER TABLE "aws_service" DROP CONSTRAINT "FK_c2eb40c50f359cad97ee103d2b1"`);
         await queryRunner.query(`ALTER TABLE "aws_service" DROP CONSTRAINT "FK_a91ca2a69364714dbf08c5f25ab"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_da22d8740bd7f4f25b9e4f7cf4"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_1a23ea9db1c8414857b1955d6e"`);
-        await queryRunner.query(`DROP TABLE "aws_service_security_groups_aws_security_group"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_c011c527aec5c6020fc1484bb1"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_f67477ae38456964fdd0084f73"`);
+        await queryRunner.query(`DROP TABLE "aws_service_security_groups"`);
         await queryRunner.query(`DROP TABLE "aws_container_definition"`);
         await queryRunner.query(`DROP TYPE "public"."aws_container_definition_protocol_enum"`);
         await queryRunner.query(`DROP TABLE "aws_task_definition"`);

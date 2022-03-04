@@ -60,7 +60,9 @@ export class AwsService {
   subnets: string[];
 
   @ManyToMany(() => AwsSecurityGroup)
-  @JoinTable()
+  @JoinTable({
+    name: 'aws_service_security_groups'
+  })
   securityGroups: AwsSecurityGroup[];
 
   @Column({
