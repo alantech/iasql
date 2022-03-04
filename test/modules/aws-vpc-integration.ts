@@ -37,7 +37,8 @@ describe('VPC Integration Testing', () => {
     INSERT INTO aws_subnet (availability_zone, vpc_id, cidr_block)
     SELECT 'us-west-2a', id, '192.${randIPBlock}.0.0/16'
     FROM aws_vpc
-    WHERE is_default = false;
+    WHERE is_default = false
+    AND cidr_block = '192.${randIPBlock}.0.0/16';
   `));
 
   it('applies the subnet change', apply);
