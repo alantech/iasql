@@ -48,10 +48,10 @@ export const AwsEcsFargateModule: Module = new Module({
       out.memory = c.memory;
       out.memoryReservation = c.memoryReservation;
       out.name = c.name;
-      const portMapping = c.portMappings?.[0];
-      out.containerPort = portMapping.containerPort;
-      out.hostPort = portMapping.hostPort;
-      out.protocol = portMapping.protocol;
+      const portMapping = c.portMappings?.pop();
+      out.containerPort = portMapping?.containerPort;
+      out.hostPort = portMapping?.hostPort;
+      out.protocol = portMapping?.protocol;
       const imageTag = c.image?.split(':');
       if (imageTag[0]?.includes('amazonaws.com')) {
         const repositoryName = imageTag[0].split('/')[1] ?? null;
@@ -359,11 +359,13 @@ export const AwsEcsFargateModule: Module = new Module({
                   ev.value = `${ev.value}`
                   return ev;
                 });
-                container.portMappings = [{ 
-                  containerPort: container.containerPort,
-                  hostPort: container.hostPort,
-                  protocol: container.protocol, 
-                }];
+                if (container.containerPort && container.hostPort && container.protocol) {
+                  container.portMappings = [{
+                    containerPort: container.containerPort,
+                    hostPort: container.hostPort,
+                    protocol: container.protocol,
+                  }];
+                }
                 return container;
               }),
               requiresCompatibilities: ['FARGATE',],
@@ -577,9 +579,9 @@ export const AwsEcsFargateModule: Module = new Module({
                 }
               },
             };
-            if (e.targetGroup) {
-              // Add load balancer to the first essential container. Theres always one essential container definition. 
-              const essentialContainer = e.task.containerDefinitions.find(cd => cd.essential);
+            // Add load balancer to the first essential container. Theres always one essential container definition. 
+            const essentialContainer = e.task.containerDefinitions.find(cd => cd.essential);
+            if (e.targetGroup && essentialContainer?.containerPort) {
               input.loadBalancers = [{
                 targetGroupArn: e.targetGroup?.targetGroupArn,
                 containerName: essentialContainer?.name,
