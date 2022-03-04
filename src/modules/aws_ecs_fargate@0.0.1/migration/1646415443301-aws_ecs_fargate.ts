@@ -53,7 +53,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                 _family text,
                 _task_role_arn text,
                 _execution_role_arn text,
-                _cpu_memory task_definition_cpu_memory_enum
+                _cpu_memory aws_task_definition_cpu_memory_enum
             )
             language plpgsql
             as $$ 
@@ -95,7 +95,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                 _memory_reservation integer,
                 _container_port integer,
                 _host_port integer,
-                _protocol port_mapping_protocol_enum,
+                _protocol aws_container_definition_protocol_enum,
                 _environment_variables json,
                 _image_tag text,
                 _docker_image text default null,
@@ -174,7 +174,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                 _task_definition_family text,
                 _desired_count integer,
                 _security_group_names text[],
-                _assign_public_ip aws_vpc_conf_assign_public_ip_enum,
+                _assign_public_ip aws_service_assign_public_ip_enum,
                 _subnet_ids text[] default null,
                 _target_group_name text default null
             )
@@ -195,7 +195,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                     INSERT INTO aws_service
                         ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
                     VALUES
-                        (_name, _desired_count, _subnet_ids, _assign_public_ip, (select id from aws_cluster where cluster_name = _cluster_name), (select id from aws_task_definition where family = _task_definition_family order by revision desc limit 1), (select id from aws_target_group where target_group_name = _target_group_name limit 1));
+                        (_name, _desired_count, _subnet_ids, _assign_public_ip, (select id from aws_cluster where cluster_name = _cluster_name), (select id from aws_task_definition where family = _task_definition_family order by revision desc limit 1), (select id from aws_target_group where target_group_name = _target_group_name limit 1))
                     ON CONFLICT (name)
                     DO UPDATE SET desired_count = _desired_count,
                         subnets = _subnet_ids,
