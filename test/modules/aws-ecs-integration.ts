@@ -245,13 +245,13 @@ describe('ECS Integration Testing SP', () => {
 
     it('adds a new container definition', query(`
       INSERT INTO aws_container_definition ("name", repository_id, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-	    VALUES('${containerNameRepository}', (select id from aws_repository where repository_name = '${repositoryName}' limit 1), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '[{ "name": "test", "value": 2}]', (select id from aws_task_definition where family = '${tdFamily}' and status is null limit 1));
+	    VALUES('${containerNameRepository}', (select id from aws_repository where repository_name = '${repositoryName}' limit 1), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '[{ "name": "test", "value": 2}]', (select id from aws_task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
     `));
 
     it('check container definition insertion', query(`
       SELECT *
       FROM aws_container_definition
-      WHERE name = '${containerNameRepository}' AND reporitoy_id = (select id from aws_repository where repository_name = '${repositoryName}' limit 1) AND tag = '${imageTag}';
+      WHERE name = '${containerNameRepository}' AND repository_id = (select id from aws_repository where repository_name = '${repositoryName}' limit 1) AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('applies adds a new task definition with container definition', apply);
@@ -360,7 +360,7 @@ describe('ECS Integration Testing SP', () => {
     it('check container definition insertion', query(`
       SELECT *
       FROM aws_container_definition
-      WHERE name = '${containerNamePublicRepository}' AND public_reporitoy_id = (select id from aws_public_repository where repository_name = '${publicRepositoryName}' limit 1) AND tag = '${imageTag}';
+      WHERE name = '${containerNamePublicRepository}' AND public_repository_id = (select id from aws_public_repository where repository_name = '${publicRepositoryName}' limit 1) AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('applies adds a new task definition with container definition', apply);
@@ -429,7 +429,7 @@ describe('ECS Integration Testing SP', () => {
         delete from aws_task_definition
         where family = '${tdPublicRepositoryFamily}';
 
-        call delete_ecr_repository('${publicRepositoryName}');
+        call delete_ecr_public_repository('${publicRepositoryName}');
       commit;
     `));
 
