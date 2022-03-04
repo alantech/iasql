@@ -579,7 +579,7 @@ export const AwsEcsFargateModule: Module = new Module({
                 }
               },
             };
-            // Add load balancer to the first essential container. Theres always one essential container definition. 
+            // Add load balancer to the first essential container. Theres always one essential container definition.
             const essentialContainer = e.task.containerDefinitions.find(cd => cd.essential);
             if (e.targetGroup && essentialContainer?.containerPort) {
               input.loadBalancers = [{
@@ -667,7 +667,7 @@ export const AwsEcsFargateModule: Module = new Module({
               // Restore values
               cloudRecord.id = e.id;
               await AwsEcsFargateModule.mappers.service.db.update(cloudRecord, ctx);
-              res.push(cloudRecord); 
+              res.push(cloudRecord);
               continue;
             } else {
               // We need to delete the current cloud record and create the new one.
