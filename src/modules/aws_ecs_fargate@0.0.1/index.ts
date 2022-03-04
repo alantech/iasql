@@ -355,7 +355,10 @@ export const AwsEcsFargateModule: Module = new Module({
                     }
                   };
                 }
-                container.environment = c.envVariables;
+                container.environment = c.envVariables?.map(ev => {
+                  ev.value = `${ev.value}`
+                  return ev;
+                });
                 container.portMappings = [{ 
                   containerPort: container.containerPort,
                   hostPort: container.hostPort,
@@ -523,9 +526,9 @@ export const AwsEcsFargateModule: Module = new Module({
           const relations = [
             'cluster',
             'task',
+            'task.containerDefinitions',
             'securityGroups',
             'targetGroup',
-            'containerDefinition',
           ];
           const opts = ids ? {
             where: {
