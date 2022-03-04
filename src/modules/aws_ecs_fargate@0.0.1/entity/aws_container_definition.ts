@@ -8,14 +8,16 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
-  OneToMany,
 } from 'typeorm'
 import { AwsTaskDefinition } from '.'
 
 import { LogGroup } from '../../aws_cloudwatch@0.0.1/entity'
 import { AwsPublicRepository, AwsRepository } from '../../aws_ecr@0.0.1/entity'
-import { EnvVariable } from './env_variable'
-import { PortMapping } from './port_mapping'
+
+export enum TransportProtocol {
+  TCP = "tcp",
+  UDP = "udp"
+}
 
 @Check(`"docker_image" is not null or "repository_id" is not null  or "public_repository_id" is not null`)
 @Entity()
@@ -74,11 +76,27 @@ export class AwsContainerDefinition {
   })
   memoryReservation?: number;
 
-  @OneToMany(() => PortMapping, pm => pm.containerDefinition)
-  portMappings?: PortMapping[];
+  @Column({
+    type: 'int',
+  })
+  hostPort: number;
 
-  @OneToMany(() => EnvVariable, ev => ev.containerDefinition)
-  envVariables?: EnvVariable[];
+  @Column({
+    type: 'int',
+  })
+  containerPort: number;
+
+  @Column({
+    type: 'enum',
+    enum: TransportProtocol,
+  })
+  protocol: TransportProtocol;
+
+  @Column({
+    type: 'simple-json',
+    nullable: true,
+  })
+  envVariables: { name: string, value: string }[];
 
   @ManyToOne(() => LogGroup, { nullable: true, })
   @JoinColumn({

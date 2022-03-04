@@ -1,6 +1,4 @@
 export * from './aws_container_definition'
 export * from './aws_cluster'
-export * from './env_variable'
-export * from './port_mapping'
 export * from './aws_service'
 export * from './aws_task_definition'

@@ -5,8 +5,6 @@ import {
   AwsCluster,
   AwsContainerDefinition,
   CpuMemCombination,
-  EnvVariable,
-  PortMapping,
   AwsService,
   AwsTaskDefinition,
   TaskDefinitionStatus,
@@ -14,7 +12,7 @@ import {
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule, } from '..'
-import { awsEcsFargate1646326687034, } from './migration/1646326687034-aws_ecs_fargate'
+import { awsEcsFargate1646390160682, } from './migration/1646390160682-aws_ecs_fargate'
 
 export const AwsEcsFargateModule: Module = new Module({
   name: 'aws_ecs_fargate',
@@ -45,25 +43,15 @@ export const AwsEcsFargateModule: Module = new Module({
     containerDefinitionMapper: async (c: any, ctx: Context) => {
       const out = new AwsContainerDefinition();
       out.cpu = c?.cpu;
-      // TODO: remove env var duplications
-      out.envVariables = c.environment?.map((e: any) => {
-        const e2 = new EnvVariable();
-        e2.name = e.name;
-        e2.value = e.value;
-        return e2;
-      }) ?? [];
+      out.envVariables = c.environment ?? [];
       out.essential = c.essential;
       out.memory = c.memory;
       out.memoryReservation = c.memoryReservation;
       out.name = c.name;
-      // TODO: remove port mapping duplications
-      out.portMappings = c.portMappings?.map((pm: any) => {
-        const pm2 = new PortMapping();
-        pm2.containerPort = pm.containerPort;
-        pm2.hostPort = pm.hostPort;
-        pm2.protocol = pm.protocol;
-        return pm2;
-      }) ?? [];
+      const portMapping = c.portMappings?.[0];
+      out.containerPort = portMapping.containerPort;
+      out.hostPort = portMapping.hostPort;
+      out.protocol = portMapping.protocol;
       const imageTag = c.image?.split(':');
       if (imageTag[0]?.includes('amazonaws.com')) {
         const repositoryName = imageTag[0].split('/')[1] ?? null;
@@ -147,16 +135,16 @@ export const AwsEcsFargateModule: Module = new Module({
     },
     containersEq: (a: AwsContainerDefinition, b: AwsContainerDefinition) => Object.is(a.cpu, b.cpu)
       && Object.is(a.dockerImage, b.dockerImage)
-      && Object.is(a.envVariables?.length, b.envVariables?.length)
-      && a.envVariables?.every(ae => !!b.envVariables?.find(be => Object.is(ae.name, be.name) && Object.is(ae.value, be.value)))
+      && Object.is(a.envVariables.length, b.envVariables.length)
+      && a.envVariables.every(aev => !!b.envVariables.find(bev => Object.is(aev.name, bev.name) && Object.is(aev.value, bev.value)))
       && Object.is(a.essential, b.essential)
       && Object.is(a.logGroup?.logGroupArn, b.logGroup?.logGroupArn)
       && Object.is(a.memory, b.memory)
       && Object.is(a.memoryReservation, b.memoryReservation)
       && Object.is(a.name, b.name)
-      && Object.is(a.portMappings?.length, b.portMappings?.length)
-      && a.portMappings?.every(apm => !!b.portMappings?.find(
-        bpm => Object.is(apm.hostPort, bpm.hostPort) && Object.is(apm.containerPort, bpm.containerPort) && Object.is(apm.protocol, bpm.protocol)))
+      && Object.is(a.containerPort, b.containerPort)
+      && Object.is(a.hostPort, b.hostPort)
+      && Object.is(a.protocol, b.protocol)
       && Object.is(a.publicRepository?.repositoryName, b.publicRepository?.repositoryName)
       && Object.is(a.repository?.repositoryName, b.repository?.repositoryName)
       && Object.is(a.tag, b.tag),
@@ -294,10 +282,6 @@ export const AwsEcsFargateModule: Module = new Module({
           await Promise.all(es.map(async (entity: AwsTaskDefinition) => {
             const containerDefinitions = entity.containerDefinitions;
             if (containerDefinitions) {
-              await Promise.all(containerDefinitions.map(async (cd: AwsContainerDefinition) => {
-                await ctx.orm.save(EnvVariable, cd.envVariables);
-                await ctx.orm.save(PortMapping, cd.portMappings);
-              }));
               await ctx.orm.save(AwsContainerDefinition, containerDefinitions);
             }
           }));
@@ -338,10 +322,6 @@ export const AwsEcsFargateModule: Module = new Module({
           await Promise.all(es.map(async (entity: AwsTaskDefinition) => {
             const containerDefinitions = entity.containerDefinitions;
             if (containerDefinitions) {
-              await Promise.all(containerDefinitions.map(async (cd: AwsContainerDefinition) => {
-                await ctx.orm.save(EnvVariable, cd.envVariables);
-                await ctx.orm.save(PortMapping, cd.portMappings);
-              }));
               await ctx.orm.save(AwsContainerDefinition, containerDefinitions);
             }
           }));
@@ -598,7 +578,7 @@ export const AwsEcsFargateModule: Module = new Module({
               input.loadBalancers = [{
                 targetGroupArn: e.targetGroup?.targetGroupArn,
                 containerName: e.containerDefinition?.name,
-                containerPort: e.containerDefinition?.portMappings?.[0]
+                containerPort: e.containerDefinition?.containerPort
               }];
             }
             const result = await client.createService(input);
@@ -709,7 +689,7 @@ export const AwsEcsFargateModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEcsFargate1646326687034.prototype.up,
-    preremove: awsEcsFargate1646326687034.prototype.down,
+    postinstall: awsEcsFargate1646390160682.prototype.up,
+    preremove: awsEcsFargate1646390160682.prototype.down,
   },
 });
