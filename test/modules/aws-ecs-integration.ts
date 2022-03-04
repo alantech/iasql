@@ -96,8 +96,8 @@ describe('ECS Integration Testing SP', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('adds a new container definition', query(`
-      INSERT INTO aws_container_definition ("name", docker_image, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-	    VALUES('${containerName}', '${image}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '[{ "name": "test", "value": 2}]', (select id from aws_task_definition where family = '${tdFamily}' and status is null limit 1));
+      INSERT INTO aws_container_definition ("name", docker_image, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
+	    VALUES('${containerName}', '${image}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '[{ "name": "test", "value": 2}]', (select id from aws_task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName} limit 1'));
     `));
 
     it('check container definition insertion', query(`
@@ -217,137 +217,114 @@ describe('ECS Integration Testing SP', () => {
     it('applies deletes tasks and container definitions', apply);
   });
 
-  // // Service spinning up a task definition with container using a private ecr
-  // describe('Private ECR', () => {
-  //   // ECR
-  //   it('adds a new ECR', query(`
-  //     CALL create_or_update_ecr_repository('${repositoryName}');
-  //   `));
+  // Service spinning up a task definition with container using a private ecr
+  describe('Private ECR', () => {
+    // ECR
+    it('adds a new ECR', query(`
+      CALL create_or_update_ecr_repository('${repositoryName}');
+    `));
 
-  //   it('check aws_repository insertion', query(`
-  //     SELECT *
-  //     FROM aws_repository
-  //     WHERE repository_name = '${repositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
+    it('check aws_repository insertion', query(`
+      SELECT *
+      FROM aws_repository
+      WHERE repository_name = '${repositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
-  //   // Task definition
-  //   it('adds a new task definition', query(`
-  //     call create_task_definition('${tdRepositoryFamily}', '${taskExecRole}', '${taskExecRole}', '${tdNetworkMode}', array['${tdCompatibility}']::compatibility_name_enum[], '${tdCpuMem}');
-  //   `));
+    // Task definition
+    it('adds a new task definition', query(`
+      INSERT INTO aws_task_definition ("family", task_role_arn, execution_role_arn, cpu_memory)
+      VALUES ('${tdRepositoryFamily}', '${taskExecRole}', '${taskExecRole}', '${tdCpuMem}');
+    `));
 
-  //   it('check aws_task_definition insertion', query(`
-  //     SELECT *
-  //     FROM aws_task_definition
-  //     WHERE family = '${tdRepositoryFamily}' AND status IS NULL;
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
+    it('check aws_task_definition insertion', query(`
+      SELECT *
+      FROM aws_task_definition
+      WHERE family = '${tdRepositoryFamily}' AND status IS NULL;
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
-  //   it('check task_definition_req_compatibilities_compatibility insertion', query(`
-  //     SELECT *
-  //     FROM task_definition_req_compatibilities_compatibility
-  //     INNER JOIN aws_task_definition ON aws_task_definition.id = task_definition_req_compatibilities_compatibility.task_definition_id
-  //     WHERE aws_task_definition.family = '${tdRepositoryFamily}' AND status IS NULL;
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
+    it('adds a new container definition', query(`
+      INSERT INTO aws_container_definition ("name", repository_id, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
+	    VALUES('${containerName}', (select id from aws_repository where repository_name = '${repositoryName}' limit 1), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '[{ "name": "test", "value": 2}]', (select id from aws_task_definition where family = '${tdFamily}' and status is null limit 1));
+    `));
 
-  //   // Container definition
-  //   it('adds a new container definition', query(`
-  //     call create_container_definition('${tdRepositoryFamily}', '${containerNameRepository}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', null, '${imageTag}', _ecr_repository_name := '${repositoryName}');
-  //   `));
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM aws_container_definition
+      WHERE name = '${containerName}' AND reporitoy_id = (select id from aws_repository where repository_name = '${repositoryName}' limit 1) AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
-  //   it('check container definition insertion', query(`
-  //     SELECT *
-  //     FROM container_definition
-  //     INNER JOIN aws_repository ON aws_repository.id = repository_id
-  //     WHERE name = '${containerNameRepository}' AND repository_name = '${repositoryName}' AND tag = '${imageTag}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
+    it('applies adds a new task definition with container definition', apply);
 
+    // Service dependency
+    it('adds aws_service dependencies', query(`
+      call create_or_update_aws_target_group('${serviceRepoTargetGroupName}', 'ip', ${hostPort}, 'default', 'HTTP', '/health');
+      call create_or_update_aws_load_balancer('${serviceRepoLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
+      call create_or_update_aws_listener('${serviceRepoLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceRepoTargetGroupName}');
+    `));
 
-  //   it('check container_definition_port_mappings_port_mapping insertion', query(`
-  //     SELECT *
-  //     FROM container_definition_port_mappings_port_mapping
-  //     INNER JOIN container_definition ON container_definition.id = container_definition_port_mappings_port_mapping.container_definition_id
-  //     INNER JOIN port_mapping ON port_mapping.id = container_definition_port_mappings_port_mapping.port_mapping_id
-  //     INNER JOIN aws_repository ON aws_repository.id = container_definition.repository_id
-  //     WHERE port_mapping.container_port = '${containerPort}' AND port_mapping.host_port = '${hostPort}' AND port_mapping.protocol = '${protocol}'
-  //       AND container_definition.name = '${containerNameRepository}' AND aws_repository.repository_name = '${repositoryName}' AND container_definition.tag = '${imageTag}';
-  //   `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+    it('applies aws_service dependencies', apply);
 
-  //   it('check task_definition_containers_container_definition insertion', query(`
-  //     SELECT *
-  //     FROM task_definition_containers_container_definition
-  //     INNER JOIN container_definition ON container_definition.id = task_definition_containers_container_definition.container_definition_id
-  //     INNER JOIN aws_task_definition ON aws_task_definition.id = task_definition_containers_container_definition.task_definition_id
-  //     INNER JOIN aws_repository ON aws_repository.id = container_definition.repository_id
-  //     WHERE container_definition.name = '${containerNameRepository}' AND aws_repository.repository_name = '${repositoryName}' AND container_definition.tag = '${imageTag}'
-  //       AND aws_task_definition.family = '${tdRepositoryFamily}' AND aws_task_definition.status IS NULL;
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
+    // Service
+    it('adds a new aws_service', query(`
+      BEGIN;
+        INSERT INTO aws_service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
+        VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from aws_subnet inner join aws_vpc on aws_vpc.id = aws_subnet.vpc_id where is_default = true limit 3)), 'ENABLED', (select id from aws_cluster where cluster_name = '${clusterName}'), (select id from aws_task_definition where family = '${tdRepositoryFamily}' order by revision desc limit 1), (select id from aws_target_group where target_group_name = '${serviceRepoTargetGroupName}' limit 1));
 
-  //   it('applies adds a new task definition with container definition', apply);
+        INSERT INTO aws_service_security_groups (aws_service_id, aws_security_group_id)
+        VALUES ((select id from aws_service where name = '${serviceRepositoryName}' limit 1), (select id from aws_security_group where group_name = 'default' limit 1));
+      COMMIT;
+    `));
 
-  //   // Service dependency
-  //   it('adds aws_service dependencies', query(`
-  //     call create_or_update_aws_target_group('${serviceRepoTargetGroupName}', 'ip', ${hostPort}, 'default', 'HTTP', '/health');
-  //     call create_or_update_aws_load_balancer('${serviceRepoLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
-  //     call create_or_update_aws_listener('${serviceRepoLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceRepoTargetGroupName}');
-  //   `));
+    it('check aws_service insertion', query(`
+      SELECT *
+      FROM aws_service
+      WHERE name = '${serviceRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
-  //   it('applies aws_service dependencies', apply);
+    it('check aws_service_security_groups insertion', query(`
+      SELECT *
+      FROM aws_service_security_groups
+      INNER JOIN aws_service ON aws_service.id = aws_service_security_groups.aws_service_id
+      WHERE aws_service.name = '${serviceRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
-  //   // Service
-  //   it('adds a new aws_service', query(`
-  //     call create_or_update_ecs_service('${serviceRepositoryName}', '${clusterName}', '${tdRepositoryFamily}', ${serviceDesiredCount}, '${serviceLaunchType}', '${serviceSchedulingStrategy}', array['default'], 'ENABLED', _target_group_name := '${serviceRepoTargetGroupName}');
-  //   `));
+    it('deletes aws_service', query(`
+      BEGIN;
+        delete from aws_service_security_groups
+        using aws_service
+        where name = '${serviceRepositoryName}';
 
-  //   it('check aws_vpc_conf insertion', query(`
-  //     SELECT *
-  //     FROM aws_vpc_conf;
-  //   `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+        delete from aws_service
+        where name = '${serviceRepositoryName}';
+      COMMIT;
+    `));
 
-  //   it('check aws_vpc_conf_security_groups_aws_security_group insertion', query(`
-  //     SELECT *
-  //     FROM aws_vpc_conf_security_groups_aws_security_group
-  //     INNER JOIN aws_security_group ON aws_security_group.id = aws_vpc_conf_security_groups_aws_security_group.aws_security_group_id
-  //     WHERE aws_security_group.group_name = 'default'
-  //     LIMIT 1;
-  //   `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+    it('applies deletes aws_service', apply);
 
-  //   it('check aws_service insertion', query(`
-  //     SELECT *
-  //     FROM aws_service
-  //     WHERE name = '${serviceRepositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
+    // deletes aws_service dependencies
+    it('deletes aws_service dependencies', query(`
+      call delete_aws_listener('${serviceRepoLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceRepoTargetGroupName}');
+      call delete_aws_load_balancer('${serviceRepoLoadBalancerName}');
+      call delete_aws_target_group('${serviceRepoTargetGroupName}');
+    `));
 
-  //   it('check service_load_balancer insertion', query(`
-  //     SELECT *
-  //     FROM service_load_balancers_service_load_balancer
-  //     INNER JOIN service_load_balancer ON service_load_balancer.id = service_load_balancers_service_load_balancer.service_load_balancer_id
-  //     INNER JOIN aws_service ON aws_service.id = service_load_balancers_service_load_balancer.service_id
-  //     INNER JOIN aws_target_group ON aws_target_group.id = service_load_balancer.target_group_id
-  //     WHERE aws_service.name = '${serviceRepositoryName}' AND aws_target_group.target_group_name = '${serviceRepoTargetGroupName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('deletes aws_service', query(`
-  //     call delete_ecs_service('${serviceRepositoryName}');
-  //   `));
-
-  //   it('applies deletes aws_service', apply);
-
-  //   // deletes aws_service dependencies
-  //   it('deletes aws_service dependencies', query(`
-  //     call delete_aws_listener('${serviceRepoLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceRepoTargetGroupName}');
-  //     call delete_aws_load_balancer('${serviceRepoLoadBalancerName}');
-  //     call delete_aws_target_group('${serviceRepoTargetGroupName}');
-  //   `));
-
-  //   it('applies deletes aws_service dependencies', apply);
+    it('applies deletes aws_service dependencies', apply);
     
-  //   it('deletes container definitons', query(`
-  //     call delete_container_definition('${containerNameRepository}', '${tdRepositoryFamily}');
-  //     call delete_ecr_repository('${repositoryName}');
-  //     call delete_task_definition('${tdRepositoryFamily}');
-  //   `));
+    it('deletes container definitons', query(`
+      begin;
+        delete from aws_container_definition
+        using aws_task_definition
+        where aws_container_definition.task_definition_id = aws_task_definition.id and aws_task_definition.family = '${tdRepositoryFamily}';
 
-  //   it('applies deletes task  and container definitions', apply);
-  // });
+        delete from aws_task_definition
+        where family = '${tdRepositoryFamily}';
+
+        call delete_ecr_repository('${repositoryName}');
+      commit;
+    `));
+
+    it('applies deletes tasks and container definitions', apply);
+  });
 
   // // Service spinning up a task definition with container using a public ecr
   // describe('Public ECR', () => {
