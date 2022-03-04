@@ -51,9 +51,9 @@ export class awsElb1644942836009 implements MigrationInterface {
             begin
                 -- TODO: fix subnets based on vpc
                 insert into aws_load_balancer
-                    (load_balancer_name, scheme, vpc, subnets, load_balancer_type, ip_address_type)
+                    (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
                 values
-                    (_name, _scheme, _vpc_id, (select array(select subnet_id from aws_subnet inner join aws_vpc on aws_subnet.vpc_id = aws_vpc.id where aws_vpc.is_default = true)),_elb_type, _ip_address_type)
+                    (_name, _scheme, _vpc_id, _elb_type, _ip_address_type)
                 on conflict (load_balancer_name)
                 do update set scheme = _scheme,
                     load_balancer_type = _elb_type,
