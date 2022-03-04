@@ -356,6 +356,14 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP procedure delete_ecs_service;`);
+        await queryRunner.query(`DROP procedure delete_task_definition;`);
+        await queryRunner.query(`DROP procedure delete_container_definition;`);
+        await queryRunner.query(`DROP procedure delete_ecs_cluster;`);
+        await queryRunner.query(`DROP procedure create_or_update_ecs_service;`);
+        await queryRunner.query(`DROP procedure create_task_definition;`);
+        await queryRunner.query(`DROP procedure create_container_definition;`);
+        await queryRunner.query(`DROP procedure create_or_update_ecs_cluster;`);
         await queryRunner.query(`ALTER TABLE "aws_service_security_groups" DROP CONSTRAINT "FK_c011c527aec5c6020fc1484bb10"`);
         await queryRunner.query(`ALTER TABLE "aws_service_security_groups" DROP CONSTRAINT "FK_f67477ae38456964fdd0084f735"`);
         await queryRunner.query(`ALTER TABLE "aws_container_definition" DROP CONSTRAINT "FK_535959b3981bc7f5351dd539c7a"`);
