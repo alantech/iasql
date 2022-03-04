@@ -361,6 +361,11 @@ export const AwsEcsFargateModule: Module = new Module({
                     }
                   };
                 }
+                container.portMappings = [{ 
+                  containerPort: container.containerPort,
+                  hostPort: container.hostPort,
+                  protocol: container.protocol, 
+                }];
                 return container;
               }),
               requiresCompatibilities: ['FARGATE',],
