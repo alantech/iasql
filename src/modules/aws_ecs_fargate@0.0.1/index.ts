@@ -115,7 +115,6 @@ export const AwsEcsFargateModule: Module = new Module({
       out.task = taskDefinition;
       const serviceLoadBalancer = s.loadBalancers.pop();
       if (serviceLoadBalancer) {
-        console.dir({serviceLoadBalancer}, {depth:4})
         out.targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, serviceLoadBalancer.targetGroupArn) ??
           await AwsElbModule.mappers.targetGroup.cloud.read(ctx, serviceLoadBalancer.targetGroupArn);
         out.containerDefinition = out.task?.containerDefinitions.find(c => c.name === serviceLoadBalancer.containerName);
@@ -290,8 +289,6 @@ export const AwsEcsFargateModule: Module = new Module({
         read: async (ctx: Context, ids?: string[]) => {
           const relations = [
             'containerDefinitions',
-            'containerDefinitions.portMappings',
-            'containerDefinitions.envVariables',
             'containerDefinitions.repository',
             'containerDefinitions.publicRepository',
             'containerDefinitions.logGroup'
@@ -573,11 +570,13 @@ export const AwsEcsFargateModule: Module = new Module({
               cluster: e.cluster?.clusterName,
               schedulingStrategy: 'REPLICA',
               desiredCount: e.desiredCount,
-              awsvpcConfiguration: {
-                subnets: e.subnets?.length ? e.subnets : subnets,
-                securityGroups: e.securityGroups.map(sg => sg.groupId!),
-                assignPublicIp: e.assignPublicIp,
-              }
+              networkConfiguration: {
+                awsvpcConfiguration: {
+                  subnets: e.subnets?.length ? e.subnets : subnets,
+                  securityGroups: e.securityGroups.map(sg => sg.groupId!),
+                  assignPublicIp: e.assignPublicIp,
+                }
+              },
             };
             if (e.targetGroup) {
               input.loadBalancers = [{
