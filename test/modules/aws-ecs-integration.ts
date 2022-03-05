@@ -442,15 +442,15 @@ describe('ECS Integration Testing', () => {
 
   it('applies tries to update a aws_cluster field (restore)', apply);
 
-  it('tries to update a target group field (replace)', query(`
+  it('tries to update cluster (replace)', query(`
     UPDATE aws_cluster SET cluster_name = '${newClusterName}' WHERE cluster_name = '${clusterName}';
   `));
 
-  it('applies tries to update a target group field (replace)', apply);
+  it('applies tries to update cluster (replace)', apply);
 
   it('deletes the aws_cluster', query(`
     delete from aws_cluster
-    where cluster_name = '${clusterName}';
+    where cluster_name = '${newClusterName}';
   `));
 
   it('applies deletes the aws_cluster', apply);
@@ -753,18 +753,6 @@ describe('ECS Integration Testing SP', () => {
 
     it('applies deletes tasks and container definitions', apply);
   });
-
-  it('tries to update a aws_cluster field (restore)', query(`
-    UPDATE aws_cluster SET cluster_status = 'fake' WHERE cluster_name = '${clusterName}';
-  `));
-
-  it('applies tries to update a aws_cluster field (restore)', apply);
-
-  it('tries to update a target group field (replace)', query(`
-    UPDATE aws_cluster SET cluster_name = '${newClusterName}' WHERE cluster_name = '${clusterName}';
-  `));
-
-  it('applies tries to update a target group field (replace)', apply);
 
   it('deletes the aws_cluster', query(`
     delete from aws_cluster
