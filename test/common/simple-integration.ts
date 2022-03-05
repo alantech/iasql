@@ -1,4 +1,5 @@
 import { execSync, } from 'child_process'
+import { MIN_CLI_VERSION, } from '../../src/router/index'
 
 jest.setTimeout(30000);
 
@@ -37,6 +38,7 @@ describe('Basic integration testing', () => {
       --show-error --silent --fail \
       --header 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
       --header 'content-type: application/json' \
+      --header 'cli-version: ${MIN_CLI_VERSION}' \
       --data '{
         "dbAlias": "__${sha}__",
         "awsRegion": "us-east-1",
@@ -51,7 +53,8 @@ describe('Basic integration testing', () => {
       curl \
         -X POST \
         -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
-        -H "Content-Type: application/json" \
+        -H 'Content-Type: application/json' \
+        -H 'cli-version: ${MIN_CLI_VERSION}' \
         -f \
         -s \
         -S http://localhost:8088/v1/db/apply \
@@ -59,10 +62,36 @@ describe('Basic integration testing', () => {
     `);
   });
 
+  it('should run error without a cli version', () => {
+    expect(() => {
+      execSync(`
+        curl \
+          -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+          -f \
+          -s \
+          -S http://localhost:8088/v1/db/list
+      `);
+    }).toThrow();
+  });
+
+  it('should run error with an old cli version', () => {
+    expect(() => {
+      execSync(`
+        curl \
+          -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+          -H 'cli-version: 0.1' \
+          -f \
+          -s \
+          -S http://localhost:8088/v1/db/list
+      `);
+    }).toThrow();
+  });
+
   it('should run list correctly', () => {
     execSync(`
       curl \
         -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+        -H 'cli-version: ${MIN_CLI_VERSION}' \
         -f \
         -s \
         -S http://localhost:8088/v1/db/list
@@ -73,6 +102,7 @@ describe('Basic integration testing', () => {
     execSync(`
       curl \
         -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+        -H 'cli-version: ${MIN_CLI_VERSION}' \
         -f \
         -s \
         -S http://localhost:8088/v1/db/remove/__${sha}__

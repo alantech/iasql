@@ -19,7 +19,7 @@ export function handleErrorMessage(e: any): string {
   return err;
 }
 
-const MIN_CLI_VERSION = '0.2.3';
+export const MIN_CLI_VERSION = '0.2.3';
 
 const v1 = express.Router();
 // 10 GB post payload limit for import dumps
