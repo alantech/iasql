@@ -1,6 +1,7 @@
 import * as express from 'express'
 import jwt from 'express-jwt'
 import jwksRsa from 'jwks-rsa'
+import * as semver from 'semver';
 import * as sentry from '@sentry/node'
 
 import { db, } from './db'
@@ -14,14 +15,29 @@ export function handleErrorMessage(e: any): string {
     err = e.metadata.failures.map((f: Error) => f?.message).join('\n');
     errStack = e.metadata.failures.map((f: Error) => f?.stack ?? f?.message).join('\n');
   }
-  if (config.sentryEnabled) err += `\nPlease provide the following error ID when reporting this bug: ${sentry.captureException(errStack)}`;
+  if (config.sentryEnabled) err += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureException(errStack)}`;
   return err;
 }
+
+const MIN_CLI_VERSION = '0.2.3';
 
 const v1 = express.Router();
 // 10 GB post payload limit for import dumps
 v1.use(express.json({ limit: '10000MB' }));
-
+// check the user is on a minimum CLI version
+v1.use((req, res, next) => {
+  const headers = req.headers;
+  const cliVersion = headers["cli-version"] as string;
+  if (semver.compare(MIN_CLI_VERSION, cliVersion) > 0) {
+    const error = {
+      message: `Outdated CLI version ${cliVersion}. Must use version ${MIN_CLI_VERSION} at least. Please refer to https://docs.iasql.com/install to upgrade.`
+    };
+    return res.status(500).end(
+      `${handleErrorMessage(error)}`
+    );
+  }
+  next();
+});
 if (config.a0Enabled) {
   const checkJwt = jwt({
     secret: jwksRsa.expressJwtSecret({
