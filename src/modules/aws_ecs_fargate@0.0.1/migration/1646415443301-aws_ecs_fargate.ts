@@ -281,7 +281,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                     end if;
                     
                     select array(
-                        select id
+                        select aws_container_definition.id
                         from aws_container_definition
                         inner join aws_task_definition on aws_task_definition.id = aws_container_definition.task_definition_id
                         where aws_container_definition.task_definition_id = any(td_id)
