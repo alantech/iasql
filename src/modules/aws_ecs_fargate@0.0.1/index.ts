@@ -359,7 +359,7 @@ export const AwsEcsFargateModule: Module = new Module({
                   };
                 }
                 if (c.envVariables && Array.isArray(c.envVariables)) throw new Error('Invalid environment variables format');
-                container.environment = Object.keys(c.envVariables ?? {}).map((evk: string) => ({ name: evk, value: c.envVariables[evk]}));
+                container.environment = Object.keys(c.envVariables ?? {}).map((evk: string) => ({ name: evk, value: `${c.envVariables[evk]}`}));
                 if (container.containerPort && container.hostPort && container.protocol) {
                   container.portMappings = [{
                     containerPort: container.containerPort,
