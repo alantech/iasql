@@ -2,7 +2,7 @@
   <img src="https://iasql.com/lib_TQbMwqDvYvWhOqVJ/6px14ozk177bpjqk.png" alt="drawing" width="180"/>
 </div>
 
-[![CI](https://github.com/alantech/alan/workflows/CI/badge.svg)](https://github.com/iasql/iasql-engine/actions?query=workflow%3ACI)
+[![CI](https://github.com/iasql/iasql-engine/workflows/CI/badge.svg)](https://github.com/iasql/iasql-engine/actions?query=workflow%3ACI)
 [![Docs](https://img.shields.io/badge/docs-docusaurus-blue)](https://docs.iasql.com)
 [![Discord](https://img.shields.io/badge/discord-iasql-purple)](https://discord.com/invite/machGGczea)
 [![Twitter](https://img.shields.io/badge/twitter-iasql-9cf)](https://www.twitter.com/iasql)
