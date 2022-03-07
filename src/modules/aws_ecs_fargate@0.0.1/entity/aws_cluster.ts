@@ -5,7 +5,7 @@ import {
 } from 'typeorm'
 
 @Entity()
-export class Cluster {
+export class AwsCluster {
   @PrimaryGeneratedColumn()
   id?: number;
 

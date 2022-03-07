@@ -124,6 +124,7 @@ export class awsSecurityGroup1636587967230 implements MigrationInterface {
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`DROP procedure "delete_aws_security_group";`);
         await queryRunner.query(`DROP procedure "create_or_update_aws_security_group";`);
+        await queryRunner.query(`ALTER TABLE "aws_security_group_rule" DROP CONSTRAINT "UQ_rule"`);
         await queryRunner.query(`ALTER TABLE "aws_security_group_rule" DROP CONSTRAINT "FK_6d3482619216803d2f14ecf609d"`);
         await queryRunner.query(`DROP TABLE "aws_security_group_rule"`);
         await queryRunner.query(`DROP TABLE "aws_security_group"`);

@@ -4,18 +4,10 @@ import {
   AfterUpdate,
   Column,
   Entity,
-  JoinTable,
-  ManyToMany,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { ContainerDefinition, Compatibility } from '.';
-
-export enum NetworkMode {
-  AWSVPC = "awsvpc",
-  BRIDGE = "bridge",
-  HOST = "host",
-  NONE = "none"
-}
+import { AwsContainerDefinition } from '.';
 
 export enum TaskDefinitionStatus {
   ACTIVE = "ACTIVE",
@@ -76,7 +68,7 @@ export enum CpuMemCombination {
 }
 
 @Entity()
-export class TaskDefinition {
+export class AwsTaskDefinition {
   @PrimaryGeneratedColumn()
   id?: number;
 
@@ -84,10 +76,6 @@ export class TaskDefinition {
     nullable: true,
   })
   taskDefinitionArn?: string;
-
-  @ManyToMany(() => ContainerDefinition)
-  @JoinTable()
-  containers: ContainerDefinition[];
 
   @Column()
   family: string;
@@ -111,20 +99,9 @@ export class TaskDefinition {
   @Column({
     nullable: true,
     type: 'enum',
-    enum: NetworkMode,
-  })
-  networkMode?: NetworkMode;
-
-  @Column({
-    nullable: true,
-    type: 'enum',
     enum: TaskDefinitionStatus,
   })
   status?: TaskDefinitionStatus;
-
-  @ManyToMany(() => Compatibility)
-  @JoinTable()
-  reqCompatibilities?: Compatibility[];
 
   @Column({
     nullable: true,
@@ -132,6 +109,9 @@ export class TaskDefinition {
     enum: CpuMemCombination,
   })
   cpuMemory: CpuMemCombination;
+
+  @OneToMany(() => AwsContainerDefinition, c => c.taskDefinition)
+  containerDefinitions: AwsContainerDefinition[];
 
   @AfterLoad()
   @AfterInsert()

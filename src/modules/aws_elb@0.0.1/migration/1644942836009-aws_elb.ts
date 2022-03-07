@@ -49,6 +49,7 @@ export class awsElb1644942836009 implements MigrationInterface {
                 sg_id integer;
                 load_balancer_id integer;
             begin
+                -- TODO: fix subnets based on vpc
                 insert into aws_load_balancer
                     (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
                 values

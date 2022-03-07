@@ -6,25 +6,33 @@ import {
   Column,
   Entity,
   JoinColumn,
-  JoinTable,
-  ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm'
+import { AwsTaskDefinition } from '.'
 
 import { LogGroup } from '../../aws_cloudwatch@0.0.1/entity'
 import { AwsPublicRepository, AwsRepository } from '../../aws_ecr@0.0.1/entity'
-import { EnvVariable } from './env_variable'
-import { PortMapping } from './port_mapping'
+
+export enum TransportProtocol {
+  TCP = "tcp",
+  UDP = "udp"
+}
 
 @Check(`"docker_image" is not null or "repository_id" is not null  or "public_repository_id" is not null`)
 @Entity()
-export class ContainerDefinition {
+export class AwsContainerDefinition {
   @PrimaryGeneratedColumn()
   id?: number;
 
   @Column()
   name: string;
+
+  @ManyToOne(() => AwsTaskDefinition)
+  @JoinColumn({
+    name: 'task_definition_id',
+  })
+  taskDefinition: AwsTaskDefinition;
 
   // TODO: add constraint  Up to 255 letters (uppercase and lowercase), numbers, hyphens, underscores, colons, periods, forward slashes, and number signs are allowed.
   @Column({ nullable: true, })
@@ -68,13 +76,30 @@ export class ContainerDefinition {
   })
   memoryReservation?: number;
 
-  @ManyToMany(() => PortMapping, { cascade: true, })
-  @JoinTable()
-  portMappings?: PortMapping[];
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  hostPort?: number;
 
-  @ManyToMany(() => EnvVariable, { cascade: true, })
-  @JoinTable()
-  environment?: EnvVariable[];
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  containerPort?: number;
+
+  @Column({
+    type: 'enum',
+    enum: TransportProtocol,
+    nullable: true,
+  })
+  protocol?: TransportProtocol;
+
+  @Column({
+    type: 'simple-json',
+    nullable: true,
+  })
+  envVariables: { [key: string]: string };
 
   @ManyToOne(() => LogGroup, { nullable: true, })
   @JoinColumn({
