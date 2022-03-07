@@ -43,7 +43,10 @@ export const AwsEcsFargateModule: Module = new Module({
     containerDefinitionMapper: async (c: any, ctx: Context) => {
       const out = new AwsContainerDefinition();
       out.cpu = c?.cpu;
-      out.envVariables = c.environment ?? [];
+      out.envVariables = {};
+      c.environment.map((ev: { name: string, value: string }) => {
+        out.envVariables[ev.name] = ev.value;
+      });
       out.essential = c.essential;
       out.memory = c.memory;
       out.memoryReservation = c.memoryReservation;
@@ -133,8 +136,8 @@ export const AwsEcsFargateModule: Module = new Module({
     },
     containersEq: (a: AwsContainerDefinition, b: AwsContainerDefinition) => Object.is(a.cpu, b.cpu)
       && Object.is(a.dockerImage, b.dockerImage)
-      && Object.is(a.envVariables.length, b.envVariables.length)
-      && a.envVariables.every(aev => !!b.envVariables.find(bev => Object.is(aev.name, bev.name) && Object.is(aev.value, bev.value)))
+      && Object.is(Object.keys(a.envVariables ?? {}).length, Object.keys(b.envVariables ?? {}).length)
+      && Object.keys(a.envVariables ?? {}).every((aevk: string) => !!Object.keys(b.envVariables ?? {}).find((bevk: string) => Object.is(aevk, bevk) && Object.is(a.envVariables[aevk], b.envVariables[bevk])))
       && Object.is(a.essential, b.essential)
       && Object.is(a.logGroup?.logGroupArn, b.logGroup?.logGroupArn)
       && Object.is(a.memory, b.memory)
@@ -355,10 +358,8 @@ export const AwsEcsFargateModule: Module = new Module({
                     }
                   };
                 }
-                container.environment = c.envVariables?.map(ev => {
-                  ev.value = `${ev.value}`
-                  return ev;
-                });
+                if (c.envVariables && Array.isArray(c.envVariables)) throw new Error('Invalid environment variables format');
+                container.environment = Object.keys(c.envVariables ?? {}).map((evk: string) => ({ name: evk, value: c.envVariables[evk]}));
                 if (container.containerPort && container.hostPort && container.protocol) {
                   container.portMappings = [{
                     containerPort: container.containerPort,

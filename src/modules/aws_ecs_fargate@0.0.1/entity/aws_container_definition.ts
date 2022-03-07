@@ -96,7 +96,7 @@ export class AwsContainerDefinition {
     type: 'simple-json',
     nullable: true,
   })
-  envVariables: { name: string, value: string }[];
+  envVariables: { [key: string]: string };
 
   @ManyToOne(() => LogGroup, { nullable: true, })
   @JoinColumn({
