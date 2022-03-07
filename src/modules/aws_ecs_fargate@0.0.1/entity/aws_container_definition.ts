@@ -78,19 +78,22 @@ export class AwsContainerDefinition {
 
   @Column({
     type: 'int',
+    nullable: true,
   })
-  hostPort: number;
+  hostPort?: number;
 
   @Column({
     type: 'int',
+    nullable: true,
   })
-  containerPort: number;
+  containerPort?: number;
 
   @Column({
     type: 'enum',
     enum: TransportProtocol,
+    nullable: true,
   })
-  protocol: TransportProtocol;
+  protocol?: TransportProtocol;
 
   @Column({
     type: 'simple-json',

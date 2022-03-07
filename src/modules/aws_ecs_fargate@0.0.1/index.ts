@@ -12,7 +12,7 @@ import {
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule, } from '..'
-import { awsEcsFargate1646415443301 } from './migration/1646415443301-aws_ecs_fargate'
+import { awsEcsFargate1646681056355 } from './migration/1646681056355-aws_ecs_fargate'
 
 export const AwsEcsFargateModule: Module = new Module({
   name: 'aws_ecs_fargate',
@@ -696,7 +696,7 @@ export const AwsEcsFargateModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsEcsFargate1646415443301.prototype.up,
-    preremove: awsEcsFargate1646415443301.prototype.down,
+    postinstall: awsEcsFargate1646681056355.prototype.up,
+    preremove: awsEcsFargate1646681056355.prototype.down,
   },
 });
