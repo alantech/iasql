@@ -118,7 +118,7 @@ export class awsEcsFargate1646415443301 implements MigrationInterface {
                 begin
             
                     assert (_docker_image is null and _ecr_public_repository_name is null and _ecr_repository_name is not null) or (_docker_image is not null and _ecr_public_repository_name is null and _ecr_repository_name is null) or (_docker_image is null and _ecr_public_repository_name is not null and _ecr_repository_name is null), '_docker_image, _ecr_repository_name or _ecr_public_repository_name need to be defined';
-                    assert (_environment_variables is null) || (_environment_variables is not null and json_typeof(_environment_variables) = 'object'), 'Invalid environment variable format. Should be an object with format { [key: string]: string } ';
+                    assert (_environment_variables is null) or (_environment_variables is not null and json_typeof(_environment_variables) = 'object'), 'Invalid environment variable format. Should be an object with format { [key: string]: string } ';
 
                     select id into cw_log_group_id
                     from log_group
