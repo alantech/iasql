@@ -28,16 +28,17 @@ describe('VPC Integration Testing', () => {
 
   it('adds a new vpc', query(`  
     INSERT INTO aws_vpc (cidr_block)
-    VALUES ('192.168.${randIPBlock}.0/24');
+    VALUES ('192.${randIPBlock}.0.0/16');
   `));
 
   it('applies the vpc change', apply);
 
   it('adds a subnet', query(`
     INSERT INTO aws_subnet (availability_zone, vpc_id, cidr_block)
-    SELECT 'us-west-2a', id, '192.168.${randIPBlock}.0/24'
+    SELECT 'us-west-2a', id, '192.${randIPBlock}.0.0/16'
     FROM aws_vpc
-    WHERE is_default = false;
+    WHERE is_default = false
+    AND cidr_block = '192.${randIPBlock}.0.0/16';
   `));
 
   it('applies the subnet change', apply);
@@ -53,11 +54,11 @@ describe('VPC Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('queries the subnets to confirm the record is present', query(`
-    SELECT * FROM aws_subnet WHERE cidr_block = '192.168.${randIPBlock}.0/24'
+    SELECT * FROM aws_subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16'
   `, (res: any) => expect(res.length).toBe(1)));
 
   it('queries the vpcs to confirm the record is present', query(`
-    SELECT * FROM aws_vpc WHERE cidr_block = '192.168.${randIPBlock}.0/24'
+    SELECT * FROM aws_vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
   `, (res: any) => expect(res.length).toBe(1)));
 
   it('deletes the subnet', query(`
@@ -65,7 +66,7 @@ describe('VPC Integration Testing', () => {
       SELECT id
       FROM aws_vpc
       WHERE is_default = false
-      AND cidr_block = '192.168.${randIPBlock}.0/24'
+      AND cidr_block = '192.${randIPBlock}.0.0/16'
     )
     DELETE FROM aws_subnet
     USING vpc
@@ -76,7 +77,7 @@ describe('VPC Integration Testing', () => {
 
   it('deletes the vpc', query(`
     DELETE FROM aws_vpc
-    WHERE cidr_block = '192.168.${randIPBlock}.0/24';
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
   `));
 
   it('applies the vpc removal', apply);
