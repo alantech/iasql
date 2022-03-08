@@ -37,6 +37,7 @@
   "devDependencies": {
     "@types/jest": "^27.0.2",
     "@types/node": "^16.9.1",
+    "@types/semver": "^7.3.9",
     "jest": "^27.2.5",
     "nodemon": "^2.0.13",
     "ts-jest": "^27.0.5",
@@ -62,6 +63,7 @@
     "jwks-rsa": "^2.0.4",
     "pg": "^8.7.1",
     "reflect-metadata": "^0.1.13",
+    "semver": "^7.3.5",
     "typeorm": "^0.2.37",
     "typeorm-naming-strategies": "^2.0.0"
   }
