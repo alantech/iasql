@@ -18,7 +18,7 @@ export enum ActionTypeEnum {
   // REDIRECT = "redirect"
 }
 
-@Unique(['loadBalancer', 'port'])
+@Unique('UQ_load_balancer__port', ['loadBalancer', 'port'])
 @Entity()
 export class AwsListener {
   @PrimaryGeneratedColumn()
