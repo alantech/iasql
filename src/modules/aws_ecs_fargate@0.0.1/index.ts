@@ -559,7 +559,6 @@ export const AwsEcsFargateModule: Module = new Module({
       cloud: new Crud({
         create: async (es: AwsService[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          const subnets = (await client.getSubnets()).Subnets.map(s => s.SubnetId ?? '');
           const res = [];
           for (const e of es) {
             if (!e.task?.taskDefinitionArn) {
@@ -574,7 +573,7 @@ export const AwsEcsFargateModule: Module = new Module({
               desiredCount: e.desiredCount,
               networkConfiguration: {
                 awsvpcConfiguration: {
-                  subnets: e.subnets?.length ? e.subnets : subnets,
+                  subnets: e.subnets?.length ? e.subnets : [],
                   securityGroups: e.securityGroups.map(sg => sg.groupId!),
                   assignPublicIp: e.assignPublicIp,
                 }

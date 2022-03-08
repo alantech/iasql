@@ -56,7 +56,7 @@ export class AwsService {
   })
   desiredCount?: number;
 
-  @Column("text", { array: true, nullable: true, })
+  @Column("text", { array: true, })
   subnets: string[];
 
   @ManyToMany(() => AwsSecurityGroup)
