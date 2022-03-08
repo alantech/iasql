@@ -122,7 +122,7 @@ export class awsElb1646754117933 implements MigrationInterface {
                 _load_balancer_name text,
                 _port integer,
                 _protocol aws_listener_protocol_enum,
-                _action_type aws_action_action_type_enum,
+                _action_type aws_listener_action_type_enum,
                 _target_group_name text
             )
             language plpgsql
@@ -201,7 +201,7 @@ export class awsElb1646754117933 implements MigrationInterface {
                 _load_balancer_name text,
                 _port integer,
                 _protocol aws_listener_protocol_enum,
-                _action_type aws_action_action_type_enum,
+                _action_type aws_listener_action_type_enum,
                 _target_group_name text
             )
             language plpgsql
@@ -224,9 +224,7 @@ export class awsElb1646754117933 implements MigrationInterface {
                 limit 1;
             
                 delete from aws_listener
-                where aws_load_balancer_id = lb_id and port = _port and protocol = _protocol and action_type = _action_type and target_group_id = tg_id
-                order by id desc
-                limit 1;
+                where aws_load_balancer_id = lb_id and port = _port and protocol = _protocol and action_type = _action_type and target_group_id = tg_id;
                 
             end; 
             $$;
