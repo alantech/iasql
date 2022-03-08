@@ -43,14 +43,14 @@ export const AwsElbModule: Module = new Module({
       out.loadBalancer = ctx.memo?.db?.AwsListener?.[l.LoadBalancerArn] ?? await AwsElbModule.mappers.loadBalancer.db.read(ctx, l?.LoadBalancerArn);
       out.port = l?.Port;
       out.protocol = l?.Protocol as ProtocolEnum;
-      await Promise.all(l.DefaultActions?.map(async a => {
+      for (const a of l?.DefaultActions ?? []) {
         if (a.Type === ActionTypeEnum.FORWARD) {
           out.actionType = (a.Type as ActionTypeEnum);
           out.targetGroup =  await AwsElbModule.mappers.targetGroup.db.read(ctx, a?.TargetGroupArn) ??
             await AwsElbModule.mappers.targetGroup.cloud.read(ctx, a?.TargetGroupArn);
           if (!out.targetGroup) throw new Error('Target groups need to be loaded first');
         }
-      }) ?? []);
+      }
       return out;
     },
     loadBalancerMapper: async (lb: LoadBalancer, ctx: Context) => {
