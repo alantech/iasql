@@ -2,16 +2,23 @@ import {
   Column,
   Entity,
   JoinColumn,
-  JoinTable,
-  ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm'
 
-import { AwsAction, } from './aws_action'
 import { AwsLoadBalancer, } from './aws_load_balancer'
-import { ProtocolEnum, } from './aws_target_group'
+import { AwsTargetGroup, ProtocolEnum, } from './aws_target_group'
 
+export enum ActionTypeEnum {
+  // AUTHENTICATE_COGNITO = "authenticate-cognito",
+  // AUTHENTICATE_OIDC = "authenticate-oidc",
+  // FIXED_RESPONSE = "fixed-response",
+  FORWARD = "forward",
+  // REDIRECT = "redirect"
+}
+
+@Unique('UQ_load_balancer__port', ['loadBalancer', 'port'])
 @Entity()
 export class AwsListener {
   @PrimaryGeneratedColumn()
@@ -35,9 +42,18 @@ export class AwsListener {
   })
   protocol: ProtocolEnum;
 
-  @ManyToMany(() => AwsAction, { cascade: true, })
-  @JoinTable()
-  defaultActions?: AwsAction[];
+  @Column({
+    type: 'enum',
+    enum: ActionTypeEnum,
+    default: ActionTypeEnum.FORWARD,
+  })
+  actionType: ActionTypeEnum;
+
+  @ManyToOne(() => AwsTargetGroup)
+  @JoinColumn({
+    name: 'target_group_id',
+  })
+  targetGroup: AwsTargetGroup;
 
   // TODO: tbd
   // Certificates?: Certificate[];

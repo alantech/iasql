@@ -1,10 +1,9 @@
 import { In, } from 'typeorm'
-import { Action, CreateLoadBalancerCommandInput, Listener, LoadBalancer, } from '@aws-sdk/client-elastic-load-balancing-v2'
+import { CreateLoadBalancerCommandInput, Listener, LoadBalancer, } from '@aws-sdk/client-elastic-load-balancing-v2'
 
 import { AWS, } from '../../services/gateways/aws'
 import {
   ActionTypeEnum,
-  AwsAction,
   AwsListener,
   AwsLoadBalancer,
   AwsTargetGroup,
@@ -20,7 +19,7 @@ import {
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
-import { awsElb1644942836009, } from './migration/1644942836009-aws_elb'
+import { awsElb1646754117933 } from './migration/1646754117933-aws_elb'
 
 export const AwsElbModule: Module = new Module({
   name: 'aws_elb',
@@ -35,18 +34,6 @@ export const AwsElbModule: Module = new Module({
     ],
   },
   utils: {
-    actionMapper: async (a: Action, ctx: Context) => {
-      const out = new AwsAction();
-      if (!a?.Type || !a?.TargetGroupArn) {
-        throw new Error('Listener\'s default action not defined properly');
-      }
-      out.actionType = (a.Type as ActionTypeEnum);
-      const targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, a?.TargetGroupArn) ??
-        await AwsElbModule.mappers.targetGroup.cloud.read(ctx, a?.TargetGroupArn);
-      if (!targetGroup) throw new Error('Target groups need to be loaded first');
-      out.targetGroup = targetGroup;
-      return out;
-    },
     listenerMapper: async (l: Listener, ctx: Context) => {
       const out = new AwsListener();
       if (!l?.LoadBalancerArn || !l?.Port) {
@@ -56,16 +43,14 @@ export const AwsElbModule: Module = new Module({
       out.loadBalancer = ctx.memo?.db?.AwsListener?.[l.LoadBalancerArn] ?? await AwsElbModule.mappers.loadBalancer.db.read(ctx, l?.LoadBalancerArn);
       out.port = l?.Port;
       out.protocol = l?.Protocol as ProtocolEnum;
-      out.defaultActions = await Promise.all(l.DefaultActions?.map(async a => {
-        const dbAct = await ctx.orm.findOne(AwsAction, {
-          where: {
-            targetGroup: { targetGroupArn: a.TargetGroupArn },
-          },
-          relations: ['targetGroup'],
-        });
-        if (!dbAct) return AwsElbModule.utils.actionMapper(a, ctx);
-        return dbAct;
-      }) ?? []);
+      for (const a of l?.DefaultActions ?? []) {
+        if (a.Type === ActionTypeEnum.FORWARD) {
+          out.actionType = (a.Type as ActionTypeEnum);
+          out.targetGroup =  await AwsElbModule.mappers.targetGroup.db.read(ctx, a?.TargetGroupArn) ??
+            await AwsElbModule.mappers.targetGroup.cloud.read(ctx, a?.TargetGroupArn);
+          if (!out.targetGroup) throw new Error('Target groups need to be loaded first');
+        }
+      }
       return out;
     },
     loadBalancerMapper: async (lb: LoadBalancer, ctx: Context) => {
@@ -130,15 +115,14 @@ export const AwsElbModule: Module = new Module({
         loadBalancer: e?.loadBalancer?.loadBalancerName ?? '',
         port: e?.port?.toString() ?? '',
         protocol: e?.protocol ?? ProtocolEnum.HTTPS, // TODO: Which?
-        defaultActions: e?.defaultActions?.map(da => `${da.actionType}: ${da.targetGroup.targetGroupName}`).join(', ') ?? '',
+        action: e ? `${e.actionType}: ${e.targetGroup?.targetGroupName}` : '',
       }),
       equals: (a: AwsListener, b: AwsListener) => Object.is(a.listenerArn, b.listenerArn)
         && Object.is(a.loadBalancer.loadBalancerArn, b.loadBalancer.loadBalancerArn)
         && Object.is(a.port, b.port)
         && Object.is(a.protocol, b.protocol)
-        && Object.is(a.defaultActions?.length, b.defaultActions?.length)
-        && (a?.defaultActions?.every(ada => !!(b?.defaultActions?.find(bda => Object.is(ada.actionType, bda.actionType)
-          && Object.is(ada.targetGroup.targetGroupArn, bda.targetGroup.targetGroupArn)))) ?? false),
+        && Object.is(a.actionType, b.actionType)
+        && Object.is(a.targetGroup.targetGroupArn, b.targetGroup.targetGroupArn),
       source: 'db',
       db: new Crud({
         create: async (es: AwsListener[], ctx: Context) => {
@@ -148,24 +132,11 @@ export const AwsElbModule: Module = new Module({
               if (!lb.id) throw new Error('Error retrieving generated column');
               e.loadBalancer.id = lb.id;
             }
-            for (const da of e.defaultActions ?? []) {
-              if (!da.id) {
-                const a = await ctx.orm.findOne(AwsAction, {
-                  where: {
-                    targetGroup: { targetGroupArn: da.targetGroup.targetGroupArn },
-                  },
-                  relations: ['targetGroup'],
-                });
-                if (a?.id) {
-                  da.id = a.id;
-                }
-              }
-            }
           }
           await ctx.orm.save(AwsListener, es);
         },
         read: async (ctx: Context, ids?: string[]) => {
-          const relations = ['loadBalancer', 'defaultActions', 'defaultActions.targetGroup'];
+          const relations = ['loadBalancer', 'targetGroup'];
           const opts = ids ? {
             where: {
               listenerArn: In(ids),
@@ -181,18 +152,6 @@ export const AwsElbModule: Module = new Module({
               if (!lb.id) throw new Error('Error retrieving generated column');
               e.loadBalancer.id = lb.id;
             }
-            for (const da of e.defaultActions ?? []) {
-              if (!da.id) {
-                const a = await ctx.orm.findOne(AwsAction, {
-                  where: {
-                    targetGroup: { targetGroupArn: da.targetGroup.targetGroupArn },
-                  },
-                  relations: ['targetGroup'],
-                });
-                if (!a.id) throw new Error('Error retrieving generated column');
-                da.id = a.id;
-              }
-            }
           }
           await ctx.orm.save(AwsListener, es);
         },
@@ -206,7 +165,7 @@ export const AwsElbModule: Module = new Module({
               Port: e.port,
               Protocol: e.protocol,
               LoadBalancerArn: e.loadBalancer?.loadBalancerArn,
-              DefaultActions: e.defaultActions?.map(a => ({ Type: a.actionType, TargetGroupArn: a.targetGroup.targetGroupArn })),
+              DefaultActions: [{ Type: e.actionType, TargetGroupArn: e.targetGroup.targetGroupArn }],
             });
             // TODO: Handle if it fails (somehow)
             if (!result?.hasOwnProperty('ListenerArn')) { // Failure
@@ -254,7 +213,7 @@ export const AwsElbModule: Module = new Module({
                 ListenerArn: e.listenerArn,
                 Port: e.port,
                 Protocol: e.protocol,
-                DefaultActions: e.defaultActions?.map(a => ({ Type: a.actionType, TargetGroupArn: a.targetGroup.targetGroupArn })),
+                DefaultActions: [{ Type: e.actionType, TargetGroupArn: e.targetGroup.targetGroupArn }],
               });
               return AwsElbModule.utils.listenerMapper(updatedListener, ctx);
             } else {
@@ -602,7 +561,7 @@ export const AwsElbModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsElb1644942836009.prototype.up,
-    preremove: awsElb1644942836009.prototype.down,
+    postinstall: awsElb1646754117933.prototype.up,
+    preremove: awsElb1646754117933.prototype.down,
   },
 });

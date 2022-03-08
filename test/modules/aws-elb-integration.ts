@@ -47,9 +47,7 @@ describe('ELB Integration Testing', () => {
   it('check aws_target_group insertion', query(`
     SELECT *
     FROM aws_target_group
-    WHERE target_group_name = '${tgName}'
-    ORDER BY id DESC
-    LIMIT 1;
+    WHERE target_group_name = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies the change', apply);
@@ -69,18 +67,14 @@ describe('ELB Integration Testing', () => {
   // Load balancer
   // TODO: add security groups insert when testing application load balancer integration
   it('adds a new load balancer', query(`
-    BEGIN;
-      INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
-      VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
-    COMMIT;
+    INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
+    VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
   `));
 
   it('check aws_load_balancer insertion', query(`
     SELECT *
     FROM aws_load_balancer
-    WHERE load_balancer_name = '${lbName}'
-    ORDER BY id DESC
-    LIMIT 1;
+    WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies the change', apply);
@@ -100,38 +94,26 @@ describe('ELB Integration Testing', () => {
   it('applies the change', apply);
 
   it('adds a new listener', query(`
-    BEGIN;
-      INSERT INTO aws_action (action_type, target_group_id)
-      SELECT  'forward', id
+    WITH target_group AS (
+      SELECT id
       FROM aws_target_group
       WHERE target_group_name = '${tgName}'
       ORDER BY id DESC
-      LIMIT 1;
-      INSERT INTO aws_listener (aws_load_balancer_id, port, protocol)
-      SELECT id, ${port}, '${protocol}'
+      LIMIT 1
+    ), load_balancer AS (
+      SELECT id
       FROM aws_load_balancer
       WHERE load_balancer_name = '${lbName}'
       ORDER BY id DESC
-      LIMIT 1;
-      INSERT INTO aws_listener_default_actions_aws_action (aws_listener_id, aws_action_id)
-      SELECT aws_listener.id, aws_action.id
-      FROM aws_listener, aws_action
-      ORDER BY aws_listener.id DESC
-      LIMIT 1;
-    COMMIT;
+      LIMIT 1
+    )
+    INSERT INTO aws_listener (aws_load_balancer_id, port, protocol, target_group_id)
+    VALUES ((SELECT id FROM load_balancer), ${port}, '${protocol}', (SELECT id FROM target_group));
   `));
 
   it('check aws_listener insertion', query(`
     SELECT *
     FROM aws_listener
-    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
-    WHERE load_balancer_name = '${lbName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
-
-  it('check aws_listener_default_actions_aws_action insertion', query(`
-    SELECT *
-    FROM aws_listener_default_actions_aws_action
-    INNER JOIN aws_listener ON aws_listener.id = aws_listener_default_actions_aws_action.aws_listener_id
     INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
@@ -154,19 +136,6 @@ describe('ELB Integration Testing', () => {
   it('applies the change', apply);
 
   it('deletes the listener', query(`
-    DELETE FROM aws_action
-    WHERE id IN (
-      SELECT aws_action_id
-      FROM aws_listener_default_actions_aws_action
-      WHERE aws_listener_id IN (
-        SELECT aws_listener.id
-        FROM aws_listener
-        INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
-        WHERE load_balancer_name = '${lbName}'
-        ORDER BY aws_listener.id DESC
-        LIMIT 1
-      )
-    );
     DELETE FROM aws_listener
     WHERE id IN (
       SELECT aws_listener.id
@@ -178,12 +147,25 @@ describe('ELB Integration Testing', () => {
     );
   `));
 
+  it('check aws_listener delete', query(`
+    SELECT *
+    FROM aws_listener
+    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
   it('applies the change', apply);
 
   it('deletes the load balancer', query(`
     DELETE FROM aws_load_balancer
     WHERE load_balancer_name = '${lbName}';
   `));
+
+  it('check aws_load_balancer delete', query(`
+    SELECT *
+    FROM aws_load_balancer
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('applies the change', apply);
 
@@ -192,126 +174,13 @@ describe('ELB Integration Testing', () => {
     WHERE target_group_name = '${tgName}';
   `));
 
+  it('check aws_target_group insertion', query(`
+    SELECT *
+    FROM aws_target_group
+    WHERE target_group_name = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
   it('applies the change (last time)', apply);
-
-  it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
-    .then(...finish(done)));
-});
-
-describe('ELB Integration Testing SP', () => {
-  it('creates a new test db elb', (done) => void iasql.add(
-    dbAlias,
-    'us-west-2',
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
-
-  it('installs the elb module', (done) => void iasql.install(
-    ['aws_security_group@0.0.1', 'aws_elb@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
-
-  // TODO: add tests with stored procedures
-  // Target group
-  it('adds a new targetGroup', query(`
-    call create_or_update_aws_target_group('${tgName}', '${tgType}', ${port}, 'default', '${protocol}', '/health');
-  `));
-
-  it('check aws_target_group insertion', query(`
-    SELECT *
-    FROM aws_target_group
-    WHERE target_group_name = '${tgName}'
-    ORDER BY id DESC
-    LIMIT 1;
-  `, (res: any[]) => expect(res.length).toBe(1)));
-
-  it('applies adds a new targetGroup', apply);
-
-  // Load balancer
-  it('adds a new load balancer', query(`
-    call create_or_update_aws_load_balancer('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
-  `));
-
-  it('check aws_load_balancer insertion', query(`
-    SELECT *
-    FROM aws_load_balancer
-    WHERE load_balancer_name = '${lbName}'
-    ORDER BY id DESC
-    LIMIT 1;
-  `, (res: any[]) => expect(res.length).toBe(1)));
-
-  it('applies adds a new load balancer', apply);
-
-  it('adds a new listener', query(`
-    call create_or_update_aws_listener('${lbName}', ${port}, '${protocol}', 'forward', '${tgName}');
-  `));
-
-  it('check aws_listener insertion', query(`
-    SELECT *
-    FROM aws_listener
-    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
-    WHERE load_balancer_name = '${lbName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
-
-  it('check aws_listener_default_actions_aws_action insertion', query(`
-    SELECT *
-    FROM aws_listener_default_actions_aws_action
-    INNER JOIN aws_listener ON aws_listener.id = aws_listener_default_actions_aws_action.aws_listener_id
-    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
-    WHERE load_balancer_name = '${lbName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
-
-  it('applies adds a new listener', apply);
-
-  it('deletes the listener', query(`
-    call delete_aws_listener('${lbName}', ${port}, '${protocol}', 'forward', '${tgName}');
-  `));
-
-  it('check aws_listener delete', query(`
-    SELECT *
-    FROM aws_listener
-    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
-    WHERE load_balancer_name = '${lbName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
-
-  it('check aws_listener_default_actions_aws_action delete', query(`
-    SELECT *
-    FROM aws_listener_default_actions_aws_action
-    INNER JOIN aws_listener ON aws_listener.id = aws_listener_default_actions_aws_action.aws_listener_id
-    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
-    WHERE load_balancer_name = '${lbName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
-
-  it('applies deletes the listener', apply);
-
-  it('deletes the load balancer', query(`
-    call delete_aws_load_balancer('${lbName}');
-  `));
-
-  it('check aws_load_balancer delete', query(`
-    SELECT *
-    FROM aws_load_balancer
-    WHERE load_balancer_name = '${lbName}'
-    ORDER BY id DESC
-    LIMIT 1;
-  `, (res: any[]) => expect(res.length).toBe(0)));
-
-  it('applies deletes the load balancer', apply);
-
-  it('deletes the target group', query(`
-    call delete_aws_target_group('${tgName}');
-  `));
-
-  it('check aws_target_group insertion', query(`
-    SELECT *
-    FROM aws_target_group
-    WHERE target_group_name = '${tgName}'
-    ORDER BY id DESC
-    LIMIT 1;
-  `, (res: any[]) => expect(res.length).toBe(0)));
-
-  it('applies deletes the target group', apply);
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')

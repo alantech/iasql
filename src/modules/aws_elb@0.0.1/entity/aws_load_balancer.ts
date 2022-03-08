@@ -94,7 +94,9 @@ export class AwsLoadBalancer {
   availabilityZones?: string[];
 
   @ManyToMany(() => AwsSecurityGroup)
-  @JoinTable()
+  @JoinTable({
+    name: 'aws_load_balancer_security_groups',
+  })
   securityGroups?: AwsSecurityGroup[];
 
   @Column({
