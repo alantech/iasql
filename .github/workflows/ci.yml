@@ -6,7 +6,7 @@ name: CI
 # events but only for the main branch
 on:
   push:
-    branches: [main, simplify-elb]
+    branches: [main]
   pull_request:
     branches: [main]
 
