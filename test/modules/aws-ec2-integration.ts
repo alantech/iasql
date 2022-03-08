@@ -31,12 +31,21 @@ describe('EC2 Integration Testing', () => {
 
   it('adds two ec2 instance', (done) => {
     query(`
-      INSERT INTO instance (name, ami, instance_type)
-        VALUES ('i-1','${ubuntuAmiId}', 't2.micro');
-      INSERT INTO instance_security_groups (instance_id, aws_security_group_id) SELECT
-        (SELECT id FROM instance WHERE name='i-1'),
-        (SELECT id FROM aws_security_group WHERE group_name='default');
-      CALL create_or_update_ec2_instance('i-2', '${amznAmiId}', 't2.micro', array['default']);
+      BEGIN;
+        INSERT INTO instance (name, ami, instance_type)
+          VALUES ('i-1','${ubuntuAmiId}', 't2.micro');
+        INSERT INTO instance_security_groups (instance_id, aws_security_group_id) SELECT
+          (SELECT id FROM instance WHERE name='i-1'),
+          (SELECT id FROM aws_security_group WHERE group_name='default');
+      COMMIT;
+
+      BEGIN;
+        INSERT INTO instance (name, ami, instance_type)
+          VALUES ('i-2','${amznAmiId}', 't2.micro');
+        INSERT INTO instance_security_groups (instance_id, aws_security_group_id) SELECT
+          (SELECT id FROM instance WHERE name='i-2'),
+          (SELECT id FROM aws_security_group WHERE group_name='default');
+      COMMIT;
     `)((e?: any) => {
       if (!!e) return done(e);
       done();
@@ -51,7 +60,7 @@ describe('EC2 Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('set both ec2 instances to the same ami', query(`
-    CALL create_or_update_ec2_instance('i-1', '${amznAmiId}', 't2.micro', array['default']);
+    UPDATE instance SET ami = '${amznAmiId}' WHERE name = 'i-1';
   `));
 
   it('applies the instances change', apply);

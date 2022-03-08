@@ -51,7 +51,7 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 
 - [x] EC2
 - [x] ECR
-- [x] ECS
+- [x] ECS + Fargate
 - [x] ELB
 - [x] RDS
 - [x] VPC

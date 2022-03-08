@@ -33,6 +33,12 @@ describe('Security Group Integration Testing', () => {
 
   it('applies the security group change', apply);
 
+  it('check create_or_update_aws_security_group insertion', query(`
+    SELECT *
+    FROM aws_security_group
+    WHERE group_name = '${sgName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
   it('adds security group rules', query(`
     INSERT INTO aws_security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT true, 'tcp', 443, 443, '0.0.0.0/8', '${prefix}testrule', id
@@ -51,6 +57,17 @@ describe('Security Group Integration Testing', () => {
     UPDATE aws_security_group_rule SET to_port = 8022 WHERE description = '${prefix}testrule2';
   `));
 
+  it('check create_or_update_aws_security_group update', query(`
+    SELECT *
+    FROM aws_security_group_rule
+    INNER JOIN aws_security_group ON aws_security_group.id = aws_security_group_rule.security_group_id
+    WHERE group_name = '${sgName}';
+  `, (res: any[]) => {
+    expect(res.length).toBe(2);
+    expect([8443, 8022].includes(res[0]['to_port'])).toBe(true);
+    return expect([8443, 8022].includes(res[1]['to_port'])).toBe(true);
+  }));
+
   it('applies the security group rule change (again)', apply);
 
   it('updates the security group', query(`
@@ -58,6 +75,18 @@ describe('Security Group Integration Testing', () => {
   `));
 
   it('applies the security group change (again)', apply);
+
+  it('check create_or_update_aws_security_group insertion', query(`
+    SELECT *
+    FROM aws_security_group
+    WHERE group_name = '${sgName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check create_or_update_aws_security_group insertion', query(`
+    SELECT *
+    FROM aws_security_group
+    WHERE group_name = '${prefix}sgtest2';
+  `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('deletes the security group rule', query(`
     DELETE FROM aws_security_group_rule WHERE description = '${prefix}testrule';
@@ -72,6 +101,19 @@ describe('Security Group Integration Testing', () => {
   `));
 
   it('applies the security group change (last time)', apply);
+
+  it('check create_or_update_aws_security_group insertion', query(`
+    SELECT *
+    FROM aws_security_group
+    WHERE group_name = '${prefix}sgtest2';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check create_or_update_aws_security_group update', query(`
+    SELECT *
+    FROM aws_security_group_rule
+    INNER JOIN aws_security_group ON aws_security_group.id = aws_security_group_rule.security_group_id
+    WHERE group_name = '${prefix}sgtest2';
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
   // Special testing involving the default security group you can't edit or delete
   
@@ -101,78 +143,6 @@ describe('Security Group Integration Testing', () => {
   `));
 
   it('applies the security group change which will recreate the record', apply);
-
-  it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
-    .then(...finish(done)));
-});
-
-describe('Security Group Integration Testing SP', () => {
-  it('creates a new test db', (done) => void iasql.add(
-    dbAlias,
-    'us-west-2',
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
-
-  it('installs the security group module', (done) => void iasql.install(
-    ['aws_security_group@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
-
-  it('adds a new security group', query(`  
-    call create_or_update_aws_security_group('${sgName}', '${sgName}',
-      '[{"isEgress": true, "ipProtocol": "tcp", "fromPort": "443", "toPort": 443, "cidrIpv4": "0.0.0.0/8"}, 
-      {"isEgress": false, "ipProtocol": "tcp", "fromPort": "22", "toPort": 22, "cidrIpv4": "0.0.0.0/8"}]'
-    );
-  `));
-
-  it('check create_or_update_aws_security_group insertion', query(`
-    SELECT *
-    FROM aws_security_group
-    WHERE group_name = '${sgName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
-
-  it('applies adds a new security group', apply);
-
-  it('updates the security group rule', query(`
-    call create_or_update_aws_security_group('${sgName}', '${sgName}',
-      '[{"isEgress": true, "ipProtocol": "tcp", "fromPort": "443", "toPort": 8443, "cidrIpv4": "0.0.0.0/8"}, 
-      {"isEgress": false, "ipProtocol": "tcp", "fromPort": "22", "toPort": 8022, "cidrIpv4": "0.0.0.0/8"}]'
-    );
-  `));
-
-  it('check create_or_update_aws_security_group update', query(`
-    SELECT *
-    FROM aws_security_group_rule
-    INNER JOIN aws_security_group ON aws_security_group.id = aws_security_group_rule.security_group_id
-    WHERE group_name = '${sgName}';
-  `, (res: any[]) => {
-    expect(res.length).toBe(2);
-    expect([8443, 8022].includes(res[0]['to_port'])).toBe(true);
-    return expect([8443, 8022].includes(res[1]['to_port'])).toBe(true);
-  }));
-
-  it('applies updates the security group rule', apply);
-
-  it('deletes the security group', query(`
-    call delete_aws_security_group('${sgName}');
-  `));
-
-  it('check create_or_update_aws_security_group insertion', query(`
-    SELECT *
-    FROM aws_security_group
-    WHERE group_name = '${sgName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
-
-  it('check create_or_update_aws_security_group update', query(`
-    SELECT *
-    FROM aws_security_group_rule
-    INNER JOIN aws_security_group ON aws_security_group.id = aws_security_group_rule.security_group_id
-    WHERE group_name = '${sgName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
-
-  it('applies deletes the security group', apply);
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
