@@ -981,7 +981,7 @@ export class AWS {
       {
         client: this.ecsClient,
         // all in seconds
-        maxWaitTime: 300,
+        maxWaitTime: 600,
         minDelay: 1,
         maxDelay: 4,
       },

@@ -23,6 +23,7 @@ export const AwsEcsFargateModule: Module = new Module({
     'aws_elb@0.0.1',
     'aws_security_group@0.0.1',
     'aws_cloudwatch@0.0.1',
+    'aws_vpc@0.0.1',
   ],
   provides: {
     entities: allEntities,
@@ -558,7 +559,6 @@ export const AwsEcsFargateModule: Module = new Module({
       cloud: new Crud({
         create: async (es: AwsService[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          const subnets = (await client.getSubnets()).Subnets.map(s => s.SubnetId ?? '');
           const res = [];
           for (const e of es) {
             if (!e.task?.taskDefinitionArn) {
@@ -573,7 +573,7 @@ export const AwsEcsFargateModule: Module = new Module({
               desiredCount: e.desiredCount,
               networkConfiguration: {
                 awsvpcConfiguration: {
-                  subnets: e.subnets?.length ? e.subnets : subnets,
+                  subnets: e.subnets?.length ? e.subnets : [],
                   securityGroups: e.securityGroups.map(sg => sg.groupId!),
                   assignPublicIp: e.assignPublicIp,
                 }
