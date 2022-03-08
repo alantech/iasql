@@ -19,13 +19,13 @@ export class awsElb1646754117933 implements MigrationInterface {
         await queryRunner.query(`CREATE TYPE "public"."aws_listener_protocol_enum" AS ENUM('GENEVE', 'HTTP', 'HTTPS', 'TCP', 'TCP_UDP', 'TLS', 'UDP')`);
         await queryRunner.query(`CREATE TYPE "public"."aws_listener_action_type_enum" AS ENUM('forward')`);
         await queryRunner.query(`CREATE TABLE "aws_listener" ("id" SERIAL NOT NULL, "listener_arn" character varying, "port" integer NOT NULL, "protocol" "public"."aws_listener_protocol_enum" NOT NULL, "action_type" "public"."aws_listener_action_type_enum" NOT NULL DEFAULT 'forward', "aws_load_balancer_id" integer NOT NULL, "target_group_id" integer, CONSTRAINT "UQ_load_balancer__port" UNIQUE ("aws_load_balancer_id", "port"), CONSTRAINT "PK_0a7c3e7b90e9d66f7b4415a0e0b" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "aws_load_balancer_security_groups_aws_security_group" ("aws_load_balancer_id" integer NOT NULL, "aws_security_group_id" integer NOT NULL, CONSTRAINT "PK_c2465e5cc8f23e767297c8cdd24" PRIMARY KEY ("aws_load_balancer_id", "aws_security_group_id"))`);
-        await queryRunner.query(`CREATE INDEX "IDX_fea480224323d1070588595411" ON "aws_load_balancer_security_groups_aws_security_group" ("aws_load_balancer_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_db1c32e5ebacdf20b2ffad7a37" ON "aws_load_balancer_security_groups_aws_security_group" ("aws_security_group_id") `);
+        await queryRunner.query(`CREATE TABLE "aws_load_balancer_security_groups" ("aws_load_balancer_id" integer NOT NULL, "aws_security_group_id" integer NOT NULL, CONSTRAINT "PK_c2465e5cc8f23e767297c8cdd24" PRIMARY KEY ("aws_load_balancer_id", "aws_security_group_id"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_fea480224323d1070588595411" ON "aws_load_balancer_security_groups" ("aws_load_balancer_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_db1c32e5ebacdf20b2ffad7a37" ON "aws_load_balancer_security_groups" ("aws_security_group_id") `);
         await queryRunner.query(`ALTER TABLE "aws_listener" ADD CONSTRAINT "FK_91d0165bf0d56cc965ff5b90a43" FOREIGN KEY ("aws_load_balancer_id") REFERENCES "aws_load_balancer"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "aws_listener" ADD CONSTRAINT "FK_28e43e309f56d5b37040af2b180" FOREIGN KEY ("target_group_id") REFERENCES "aws_target_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "aws_load_balancer_security_groups_aws_security_group" ADD CONSTRAINT "FK_fea480224323d10705885954110" FOREIGN KEY ("aws_load_balancer_id") REFERENCES "aws_load_balancer"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "aws_load_balancer_security_groups_aws_security_group" ADD CONSTRAINT "FK_db1c32e5ebacdf20b2ffad7a37a" FOREIGN KEY ("aws_security_group_id") REFERENCES "aws_security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "aws_load_balancer_security_groups" ADD CONSTRAINT "FK_fea480224323d10705885954110" FOREIGN KEY ("aws_load_balancer_id") REFERENCES "aws_load_balancer"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "aws_load_balancer_security_groups" ADD CONSTRAINT "FK_db1c32e5ebacdf20b2ffad7a37a" FOREIGN KEY ("aws_security_group_id") REFERENCES "aws_security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         // TODO: Check these
         // Example of use: call create_or_update_aws_load_balancer('test-sp2', 'internal', 'vpc-41895538', 'network', array['subnet-68312820', 'subnet-a58a84c3'], 'ipv4');
         await queryRunner.query(`
@@ -66,16 +66,16 @@ export class awsElb1646754117933 implements MigrationInterface {
                     from aws_security_group
                     where group_name = any(_security_group_names)
                 loop
-                    insert into aws_load_balancer_security_groups_aws_security_group
+                    insert into aws_load_balancer_security_groups
                         (aws_load_balancer_id, aws_security_group_id)
                     values
                         (load_balancer_id, sg.id)
                     on conflict do nothing;
                 end loop;
                 
-                delete from aws_load_balancer_security_groups_aws_security_group
+                delete from aws_load_balancer_security_groups
                 using aws_security_group
-                where aws_load_balancer_id = load_balancer_id and aws_security_group.id = aws_load_balancer_security_groups_aws_security_group.aws_security_group_id and not (group_name = any(_security_group_names));
+                where aws_load_balancer_id = load_balancer_id and aws_security_group.id = aws_load_balancer_security_groups.aws_security_group_id and not (group_name = any(_security_group_names));
                 raise info 'aws_load_balancer_id = %', load_balancer_id;
             end;
             $$;
@@ -174,7 +174,7 @@ export class awsElb1646754117933 implements MigrationInterface {
                 limit 1;
             
                 delete
-                from aws_load_balancer_security_groups_aws_security_group
+                from aws_load_balancer_security_groups
                 where aws_load_balancer_id = load_balancer_id;
             
                 delete
@@ -238,13 +238,13 @@ export class awsElb1646754117933 implements MigrationInterface {
         await queryRunner.query(`DROP procedure create_or_update_aws_listener;`);
         await queryRunner.query(`DROP procedure create_or_update_aws_target_group;`);
         await queryRunner.query(`DROP procedure create_or_update_aws_load_balancer;`);
-        await queryRunner.query(`ALTER TABLE "aws_load_balancer_security_groups_aws_security_group" DROP CONSTRAINT "FK_db1c32e5ebacdf20b2ffad7a37a"`);
-        await queryRunner.query(`ALTER TABLE "aws_load_balancer_security_groups_aws_security_group" DROP CONSTRAINT "FK_fea480224323d10705885954110"`);
+        await queryRunner.query(`ALTER TABLE "aws_load_balancer_security_groups" DROP CONSTRAINT "FK_db1c32e5ebacdf20b2ffad7a37a"`);
+        await queryRunner.query(`ALTER TABLE "aws_load_balancer_security_groups" DROP CONSTRAINT "FK_fea480224323d10705885954110"`);
         await queryRunner.query(`ALTER TABLE "aws_listener" DROP CONSTRAINT "FK_28e43e309f56d5b37040af2b180"`);
         await queryRunner.query(`ALTER TABLE "aws_listener" DROP CONSTRAINT "FK_91d0165bf0d56cc965ff5b90a43"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_db1c32e5ebacdf20b2ffad7a37"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_fea480224323d1070588595411"`);
-        await queryRunner.query(`DROP TABLE "aws_load_balancer_security_groups_aws_security_group"`);
+        await queryRunner.query(`DROP TABLE "aws_load_balancer_security_groups"`);
         await queryRunner.query(`DROP TABLE "aws_listener"`);
         await queryRunner.query(`DROP TYPE "public"."aws_listener_action_type_enum"`);
         await queryRunner.query(`DROP TYPE "public"."aws_listener_protocol_enum"`);
