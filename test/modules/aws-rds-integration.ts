@@ -13,7 +13,7 @@ const apply = runApply.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 
 
-describe('RDS Integration Testing SP', () => {
+describe('RDS Integration Testing', () => {
   it('creates a new test db elb', (done) => void iasql.add(
     dbAlias,
     'us-west-2',
