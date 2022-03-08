@@ -4,7 +4,6 @@ export class awsElb1646754117933 implements MigrationInterface {
     name = 'awsElb1646754117933'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "aws_security_group_rule" DROP CONSTRAINT "UQ_rule"`);
         await queryRunner.query(`CREATE TYPE "public"."aws_load_balancer_scheme_enum" AS ENUM('internal', 'internet-facing')`);
         await queryRunner.query(`CREATE TYPE "public"."aws_load_balancer_state_enum" AS ENUM('active', 'active_impaired', 'failed', 'provisioning')`);
         await queryRunner.query(`CREATE TYPE "public"."aws_load_balancer_load_balancer_type_enum" AS ENUM('application', 'gateway', 'network')`);
@@ -259,7 +258,6 @@ export class awsElb1646754117933 implements MigrationInterface {
         await queryRunner.query(`DROP TYPE "public"."aws_load_balancer_load_balancer_type_enum"`);
         await queryRunner.query(`DROP TYPE "public"."aws_load_balancer_state_enum"`);
         await queryRunner.query(`DROP TYPE "public"."aws_load_balancer_scheme_enum"`);
-        await queryRunner.query(`ALTER TABLE "aws_security_group_rule" ADD CONSTRAINT "UQ_rule" UNIQUE ("is_egress", "ip_protocol", "from_port", "to_port", "cidr_ipv4", "security_group_id")`);
     }
 
 }
