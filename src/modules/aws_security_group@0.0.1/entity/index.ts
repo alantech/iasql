@@ -5,6 +5,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm'
 
 @Entity()
@@ -41,7 +42,7 @@ export class AwsSecurityGroup {
   securityGroupRules: AwsSecurityGroupRule[];
 }
 
-
+@Unique('UQ_rule', ['isEgress', 'ipProtocol', 'fromPort', 'toPort', 'cidrIpv4', 'securityGroup'])
 @Entity()
 export class AwsSecurityGroupRule {
   @PrimaryGeneratedColumn()
