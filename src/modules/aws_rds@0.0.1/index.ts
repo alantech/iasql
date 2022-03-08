@@ -6,7 +6,7 @@ import { RDS, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
-import { awsRds1644523981372, } from './migration/1644523981372-aws_rds'
+import { awsRds1646760541170 } from './migration/1646760541170-aws_rds'
 
 export const AwsRdsModule: Module = new Module({
   name: 'aws_rds',
@@ -34,6 +34,7 @@ export const AwsRdsModule: Module = new Module({
         await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, vpcSecurityGroupIds) ??
           await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, vpcSecurityGroupIds)
         : [];
+      out.backupRetentionPeriod = rds?.BackupRetentionPeriod ?? 1;
       return out;
     },
   },
@@ -53,6 +54,7 @@ export const AwsRdsModule: Module = new Module({
         endpointAddr: e?.endpointAddr ?? '',
         endpointPort: e?.endpointPort?.toString() ?? '',
         endpointHostedZoneId: e?.endpointHostedZoneId ?? '',
+        backupRetentionPeriod: e?.backupRetentionPeriod?.toString() ?? '1',
       }),
       equals: (a: RDS, b: RDS) => Object.is(a.engine, b.engine)
         && Object.is(a.dbInstanceClass, b.dbInstanceClass)
@@ -65,7 +67,8 @@ export const AwsRdsModule: Module = new Module({
         && Object.is(a.masterUsername, b.masterUsername)
         && Object.is(a.vpcSecurityGroups.length, b.vpcSecurityGroups.length)
         && (a.vpcSecurityGroups?.every(asg => !!b.vpcSecurityGroups.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
-        && Object.is(a.allocatedStorage, b.allocatedStorage),
+        && Object.is(a.allocatedStorage, b.allocatedStorage)
+        && Object.is(a.backupRetentionPeriod, b.backupRetentionPeriod),
       source: 'db',
       db: new Crud({
         create: (rds: RDS[], ctx: Context) => ctx.orm.save(RDS, rds),
@@ -101,6 +104,7 @@ export const AwsRdsModule: Module = new Module({
               AllocatedStorage: e.allocatedStorage,
               VpcSecurityGroupIds: securityGroupIds,
               AvailabilityZone: e.availabilityZone,
+              BackupRetentionPeriod: e.backupRetentionPeriod,
             }
             const result = await client.createDBInstance(instanceParams);
             // TODO: Handle if it fails (somehow)
@@ -150,6 +154,7 @@ export const AwsRdsModule: Module = new Module({
                 DBInstanceIdentifier: e.dbInstanceIdentifier,
                 AllocatedStorage: e.allocatedStorage,
                 VpcSecurityGroupIds: e.vpcSecurityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!) ?? [],
+                BackupRetentionPeriod: e.backupRetentionPeriod,
                 ApplyImmediately: true,
               };
               // If a password value has been inserted, we update it.
@@ -188,7 +193,7 @@ export const AwsRdsModule: Module = new Module({
     }),
   },
   migrations: {
-    postinstall: awsRds1644523981372.prototype.up,
-    preremove: awsRds1644523981372.prototype.down,
+    postinstall: awsRds1646760541170.prototype.up,
+    preremove: awsRds1646760541170.prototype.down,
   },
 });
