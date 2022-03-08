@@ -289,7 +289,7 @@ export class Module {
     if (!def.migrations) {
       if (!dirname) throw new Error('Cannot determine module migration');
       const migrationDir = `${dirname}/migration`;
-      const files = readdirSync(migrationDir);
+      const files = readdirSync(migrationDir).filter(f => !/.map$/.test(f));
       if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
       const migration = require(`${migrationDir}/${files[0]}`);
       // Assuming TypeORM migration files
