@@ -6,11 +6,10 @@ import { RDS, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
+import * as metadata from './module.json'
 
 export const AwsRdsModule: Module = new Module({
-  name: 'aws_rds',
-  version: '0.0.1',
-  dependencies: ['aws_account@0.0.1', 'aws_security_group@0.0.1',],
+  ...metadata,
   provides: {
     entities: allEntities,
     tables: ['engine_version', 'rds',],

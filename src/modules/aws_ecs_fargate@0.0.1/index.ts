@@ -12,18 +12,10 @@ import {
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule, } from '..'
+import * as metadata from './module.json'
 
 export const AwsEcsFargateModule: Module = new Module({
-  name: 'aws_ecs_fargate',
-  version: '0.0.1',
-  dependencies: [
-    'aws_account@0.0.1',
-    'aws_ecr@0.0.1',
-    'aws_elb@0.0.1',
-    'aws_security_group@0.0.1',
-    'aws_cloudwatch@0.0.1',
-    'aws_vpc@0.0.1',
-  ],
+  ...metadata,
   provides: {
     entities: allEntities,
     tables: ['aws_cluster', 'aws_container_definition', 'env_variable', 'port_mapping', 'aws_task_definition', 'aws_service',],

@@ -22,6 +22,24 @@ psql postgresql://postgres:test@localhost:5432/postgres -c "CREATE DATABASE __ex
 # Now, we need to move out of the root directory to pull our trickery below
 cd src
 
+# Blow away the existing migration for the specified module, if one exists
+rm -rf src/${MODULE}/migration
+
+# Get the list of modules this module depends upon and include itself for use in the temporary
+# TypeORM configuration
+MODULES=`cat module.json | jq -r ".dependencies[.dependencies | length] |= \"${MODULE}\" | .dependencies | join(\":\")"`
+readarray -d ":" -t MODARR <<< "${MODULES}"
+
+# Convert the array of modules into configuration paths for TypeORM
+ENTITIES=""
+MIGRATIONS=""
+for (( n=0; n < ${#MODARR[*]}; n++))
+do
+  ENTITIES="${ENTITIES}\"modules/${MODARR[n]}/entity/*.ts\",\n"
+  MIGRATIONS="${MIGRATIONS}\"modules/${MODARR[n]}/migration/*.ts\",\n"
+done
+
+# Generate the TypeORM config
 cat <<EOF > ormconfig.js
 const { SnakeNamingStrategy } = require('typeorm-naming-strategies');
 
@@ -35,19 +53,15 @@ module.exports = {
  "synchronize": true,
  "logging": false,
  "entities": [
-  "modules/**/entity/*.ts"
+  ${ENTITIES}
  ],
  "migrationsTableName": "__migrations__",
  "migrations": [
-  "modules/**/migration/*.ts"
- ],
- "subscribers": [
-  "modules/**/subscriber/*.ts"
+  ${MIGRATIONS}
  ],
  "cli": {
   "entitiesDir": "modules/${MODULE}/entity",
   "migrationsDir": "modules/${MODULE}/migration",
-  "subscribersDir": "modules/${MODULE}/subscriber"
  },
  namingStrategy: new SnakeNamingStrategy(),
 };

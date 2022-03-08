@@ -4,11 +4,10 @@ import { AWS, } from '../../services/gateways/aws'
 import { AwsAccountEntity, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
+import * as metadata from './module.json'
 
 export const AwsAccount: Module = new Module({
-  name: 'aws_account',
-  version: '0.0.1',
-  dependencies: [],
+  ...metadata,
   provides: {
     entities: allEntities,
     tables: [

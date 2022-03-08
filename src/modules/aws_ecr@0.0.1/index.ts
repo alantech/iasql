@@ -7,11 +7,10 @@ import { AWS, } from '../../services/gateways/aws'
 import { AwsPublicRepository, AwsRepository, AwsRepositoryPolicy, ImageTagMutability, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
+import * as metadata from './module.json'
 
 export const AwsEcrModule: Module = new Module({
-  name: 'aws_ecr',
-  version: '0.0.1',
-  dependencies: ['aws_account@0.0.1'],
+  ...metadata,
   provides: {
     entities: allEntities,
     tables: ['aws_repository', 'aws_repository_policy', 'aws_public_repository',],
