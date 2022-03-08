@@ -51,6 +51,7 @@ export const AwsElbModule: Module = new Module({
           if (!out.targetGroup) throw new Error('Target groups need to be loaded first');
         }
       }) ?? []);
+      return out;
     },
     loadBalancerMapper: async (lb: LoadBalancer, ctx: Context) => {
       const out = new AwsLoadBalancer();
@@ -114,7 +115,7 @@ export const AwsElbModule: Module = new Module({
         loadBalancer: e?.loadBalancer?.loadBalancerName ?? '',
         port: e?.port?.toString() ?? '',
         protocol: e?.protocol ?? ProtocolEnum.HTTPS, // TODO: Which?
-        action: `${e.actionType}: ${e.targetGroup.targetGroupName}`,
+        action: e ? `${e.actionType}: ${e.targetGroup?.targetGroupName}` : '',
       }),
       equals: (a: AwsListener, b: AwsListener) => Object.is(a.listenerArn, b.listenerArn)
         && Object.is(a.loadBalancer.loadBalancerArn, b.loadBalancer.loadBalancerArn)
@@ -135,7 +136,7 @@ export const AwsElbModule: Module = new Module({
           await ctx.orm.save(AwsListener, es);
         },
         read: async (ctx: Context, ids?: string[]) => {
-          const relations = ['loadBalancer', 'defaultActions', 'defaultActions.targetGroup'];
+          const relations = ['loadBalancer', 'targetGroup'];
           const opts = ids ? {
             where: {
               listenerArn: In(ids),
