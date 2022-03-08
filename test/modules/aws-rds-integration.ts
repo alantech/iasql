@@ -27,19 +27,25 @@ describe('RDS Integration Testing SP', () => {
     'not-needed').then(...finish(done)));
 
   it('creates an RDS instance', query(`
-    CALL create_or_update_rds('${prefix}test', 20, 'db.t3.micro', 'postgres', '13.4', 'test', 'testpass', 'us-west-2b', array['default']);
+    BEGIN;
+      INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, master_username, master_user_password, availability_zone, engine)
+        VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', 'us-west-2b','default', 'postgres:13.4');
+      INSERT INTO rds_vpc_security_groups_aws_security_group (rds_id, aws_security_group_id) SELECT
+        (SELECT id FROM rds_id WHERE name='${prefix}test'),
+        (SELECT id FROM aws_security_group WHERE group_name='default');
+    COMMIT;
   `));
 
   it('applies the change', apply);
 
   it('changes the postgres version', query(`
-    CALL create_or_update_rds('${prefix}test', 20, 'db.t3.micro', 'postgres', '13.5', 'test', 'testpass', 'us-west-2b', array['default']);
+    UPDATE rds SET engine = 'postgres:13.5' WHERE db_instance_identifier = '${prefix}test';
   `));
 
   it('applies the change', apply);
 
   it('removes the RDS instance', query(`
-    CALL delete_rds('${prefix}test');
+    DELETE FROM rds;
   `));
 
   it('applies the change', apply);
