@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsElb1646735872829 implements MigrationInterface {
-    name = 'awsElb1646735872829'
+export class awsElb1646754117933 implements MigrationInterface {
+    name = 'awsElb1646754117933'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "aws_security_group_rule" DROP CONSTRAINT "UQ_rule"`);
