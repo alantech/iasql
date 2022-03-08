@@ -144,7 +144,7 @@ export class awsElb1646754117933 implements MigrationInterface {
                     (aws_load_balancer_id, port, protocol, action_type, target_group_id)
                 values 
                     (lb_id, _port, _protocol, _action_type, tg_id)
-                ON CONFLICT ON CONSTRAINT UQ_load_balancer__port
+                ON CONFLICT ON CONSTRAINT "UQ_load_balancer__port"
                 DO UPDATE SET protocol = _protocol,
                     action_type = _action_type,
                     target_group_id = tg_id;
