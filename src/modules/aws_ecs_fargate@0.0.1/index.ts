@@ -23,6 +23,7 @@ export const AwsEcsFargateModule: Module = new Module({
     'aws_elb@0.0.1',
     'aws_security_group@0.0.1',
     'aws_cloudwatch@0.0.1',
+    'aws_vpc@0.0.1',
   ],
   provides: {
     entities: allEntities,

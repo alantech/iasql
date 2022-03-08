@@ -193,6 +193,15 @@ export class awsEcsFargate1646681056355 implements MigrationInterface {
                     service_load_balancer_id integer;
                     sg record;
                 begin
+                    if _subnet_ids is null then
+                        SELECT ARRAY(
+                            SELECT subnet_id
+                            FROM aws_subnet
+                            INNER JOIN aws_vpc ON aws_vpc.id = aws_subnet.vpc_id
+                            WHERE aws_vpc.is_default = true
+                        ) INTO _subnet_ids;
+                    end if;
+
                     INSERT INTO aws_service
                         ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
                     VALUES
