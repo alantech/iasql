@@ -52,7 +52,7 @@ export async function add(
     });
     await dbMan.migrate(conn2);
     const queryRunner = conn2.createQueryRunner();
-    await Modules.AwsAccount.migrations.postinstall?.(queryRunner);
+    await Modules.AwsAccount.migrations.install?.(queryRunner);
     console.log('Adding aws_account@0.0.1 schema...');
     // TODO: Use the entity for this in the future?
     await conn2.query(`
@@ -775,20 +775,13 @@ ${Object.keys(tableCollisions)
   }
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(mods, existingModules);
-  const leafToRootOrder = [...rootToLeafOrder].reverse();
-  // Actually run the installation. First running all of the preinstall scripts from leaf-to-root,
-  // then all of the postinstall scripts from root-to-leaf. Wrapped in a transaction so any failure
-  // at this point when we're actually mutating the database doesn't leave things in a busted state.
+  // Actually run the installation. The install scripts are run from root-to-leaf. Wrapped in a
+  // transaction so any failure at this point when we're actually mutating the database doesn't leave things in a busted state.
   await queryRunner.startTransaction();
   try {
-    for (const md of leafToRootOrder) {
-      if (md.migrations?.preinstall) {
-        await md.migrations.preinstall(queryRunner);
-      }
-    }
     for (const md of rootToLeafOrder) {
-      if (md.migrations?.postinstall) {
-        await md.migrations.postinstall(queryRunner);
+      if (md.migrations?.install) {
+        await md.migrations.install(queryRunner);
       }
       const e = new IasqlModule();
       e.name = `${md.name}@${md.version}`;
@@ -892,20 +885,17 @@ export async function uninstall(moduleList: string[], dbAlias: string, user: any
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(mods, remainingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
-  // Actually run the removal. First running all of the preremove scripts from leaf-to-root, then
-  // all of the postremove scripts from root-to-leaf. Wrapped in a transaction so any failure at
-  // this point when we're actually mutating the database doesn't leave things in a busted state.
+  // Actually run the removal. Running all of the remove scripts from leaf-to-root. Wrapped in a
+  // transaction so any failure at this point when we're actually mutating the database doesn't
+  // leave things in a busted state.
   await queryRunner.startTransaction();
   try {
     for (const md of leafToRootOrder) {
-      if (md.migrations?.preremove) {
-        await md.migrations.preremove(queryRunner);
+      if (md.migrations?.remove) {
+        await md.migrations.remove(queryRunner);
       }
     }
     for (const md of rootToLeafOrder) {
-      if (md.migrations?.postremove) {
-        await md.migrations.postremove(queryRunner);
-      }
       const e = await orm.findOne(IasqlModule, { name: `${md.name}@${md.version}`, });
       await orm.remove(IasqlModule, e);
     }
