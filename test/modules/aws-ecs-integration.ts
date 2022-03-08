@@ -60,7 +60,6 @@ describe('ECS Integration Testing', () => {
     dbAlias,
     'not-needed').then(...finish(done)));
 
-  // TODO: add tests with stored procedures
   // Cluster
   it('adds a new aws_cluster', query(`
     INSERT INTO aws_cluster (cluster_name)
@@ -79,7 +78,8 @@ describe('ECS Integration Testing', () => {
   describe('Docker image', () => {
     // Container definition
     it('adds container dependencies', query(`
-      CALL create_or_update_cloudwatch_log_group('${logGroupName}');
+      INSERT INTO log_group (log_group_name)
+      VALUES ('${logGroupName}');
     `));
 
     it('applies adds container dependencies', apply);
@@ -211,7 +211,8 @@ describe('ECS Integration Testing', () => {
         delete from aws_task_definition
         where family = '${tdFamily}';
 
-        call delete_cloudwatch_log_group('${logGroupName}');
+        delete from log_group
+        where log_group_name = '${logGroupName}';
       commit;
     `));
 
@@ -320,7 +321,8 @@ describe('ECS Integration Testing', () => {
         delete from aws_task_definition
         where family = '${tdRepositoryFamily}';
 
-        call delete_ecr_repository('${repositoryName}');
+        delete from aws_repository
+        where repository_name = '${repositoryName}';
       commit;
     `));
 
@@ -429,7 +431,8 @@ describe('ECS Integration Testing', () => {
         delete from aws_task_definition
         where family = '${tdPublicRepositoryFamily}';
 
-        call delete_ecr_public_repository('${publicRepositoryName}');
+        delete from aws_public_repository
+        where repository_name = '${publicRepositoryName}';
       commit;
     `));
 
@@ -459,310 +462,3 @@ describe('ECS Integration Testing', () => {
     .remove(dbAlias, 'not-needed')
     .then(...finish(done)));
 });
-
-describe('ECS Integration Testing SP', () => {
-  it('creates a new test db ECS', (done) => void iasql.add(
-    dbAlias,
-    'us-west-2',
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
-
-  it('installs the ecs module and its dependencies', (done) => void iasql.install(
-    ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_vpc@0.0.1',],
-    dbAlias,
-    'not-needed').then(...finish(done)));
-
-  // TODO: add tests with stored procedures
-  // Cluster
-  it('adds a new aws_cluster', query(`
-    call create_or_update_ecs_cluster('${clusterName}');
-  `));
-
-  it('check aws_cluster insertion', query(`
-    SELECT *
-    FROM aws_cluster
-    WHERE cluster_name = '${clusterName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
-
-  it('applies adds a new aws_cluster', apply);
-
-  // Service spinning up a task definition with container using a docker image
-  describe('Docker image', () => {
-    // Container definition
-    it('adds container dependencies', query(`
-      CALL create_or_update_cloudwatch_log_group('${logGroupName}');
-    `));
-
-    it('applies adds container dependencies', apply);
-
-    // Task definition
-    it('adds a new task definition', query(`
-      call create_task_definition('${tdFamily}', '${taskExecRole}', '${taskExecRole}', '${tdCpuMem}');
-    `));
-
-    it('check aws_task_definition insertion', query(`
-      SELECT *
-      FROM aws_task_definition
-      WHERE family = '${tdFamily}' AND status IS NULL;
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    it('adds a new container definition', query(`
-      call create_container_definition('${containerName}', '${tdFamily}', ${containerEssential}, ${containerMemoryReservation}, ${containerPort}, ${hostPort}, '${protocol}', null, '${imageTag}', _docker_image := '${image}', _cloud_watch_log_group := '${logGroupName}');
-    `));
-
-    it('check container definition insertion', query(`
-      SELECT *
-      FROM aws_container_definition
-      WHERE name = '${containerName}' AND docker_image = '${image}' AND tag = '${imageTag}';
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    it('applies adds a new task definition with container definition', apply);
-
-    // Service dependencies
-    it('adds aws_service dependencies', query(`
-      call create_or_update_aws_target_group('${serviceTargetGroupName}', 'ip', ${hostPort}, 'default', 'HTTP', '/health');
-      call create_or_update_aws_load_balancer('${serviceLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
-      call create_or_update_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
-    `));
-
-    it('applies aws_service dependencies', apply);
-
-    // Service
-    it('adds a new aws_service', query(`
-      call create_or_update_ecs_service('${serviceName}', '${clusterName}', '${tdFamily}', ${serviceDesiredCount}, array['default'], 'ENABLED', _target_group_name := '${serviceTargetGroupName}');
-    `));
-
-    it('check aws_service insertion', query(`
-      SELECT *
-      FROM aws_service
-      WHERE name = '${serviceName}';
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    it('check aws_service_security_groups insertion', query(`
-      SELECT *
-      FROM aws_service_security_groups
-      INNER JOIN aws_service ON aws_service.id = aws_service_security_groups.aws_service_id
-      WHERE aws_service.name = '${serviceName}';
-    `, (res: any[]) => expect(res.length).toBe(1)));
-    
-    it('tries to update a aws_service (update)', query(`
-      call create_or_update_ecs_service('${serviceName}', '${clusterName}', '${tdFamily}', ${serviceDesiredCount + 1}, array['default'], 'ENABLED', _target_group_name := '${serviceTargetGroupName}');
-    `));
-
-    it('applies tries to update a aws_service (update)', apply);
-
-    it('deletes aws_service', query(`
-      call delete_ecs_service('${serviceName}');
-    `));
-
-    it('applies deletes aws_service', apply);
-
-    // deletes aws_service dependencies
-    it('deletes aws_service dependencies', query(`
-      call delete_aws_listener('${serviceLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
-      call delete_aws_load_balancer('${serviceLoadBalancerName}');
-      call delete_aws_target_group('${serviceTargetGroupName}');
-    `));
-
-    it('applies deletes aws_service dependencies', apply);
-    
-    it('deletes container definitons', query(`
-      begin;
-        call delete_container_definition('${containerName}', '${tdFamily}');
-        call delete_cloudwatch_log_group('${logGroupName}');
-        call delete_task_definition('${tdFamily}');
-      commit;
-    `));
-
-    it('applies deletes tasks and container definitions', apply);
-  });
-
-  // Service spinning up a task definition with container using a private ecr
-  describe('Private ECR', () => {
-    // ECR
-    it('adds a new ECR', query(`
-      CALL create_or_update_ecr_repository('${repositoryName}');
-    `));
-
-    it('check aws_repository insertion', query(`
-      SELECT *
-      FROM aws_repository
-      WHERE repository_name = '${repositoryName}';
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    // Task definition
-    it('adds a new task definition', query(`
-      call create_task_definition('${tdRepositoryFamily}', '${taskExecRole}', '${taskExecRole}', '${tdCpuMem}');
-    `));
-
-    it('check aws_task_definition insertion', query(`
-      SELECT *
-      FROM aws_task_definition
-      WHERE family = '${tdRepositoryFamily}' AND status IS NULL;
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    it('adds a new container definition', query(`
-      call create_container_definition('${containerNameRepository}', '${tdRepositoryFamily}', ${containerEssential}, ${containerMemoryReservation}, ${containerPort}, ${hostPort}, '${protocol}', null, '${imageTag}', _ecr_repository_name := '${repositoryName}');
-    `));
-
-    it('check container definition insertion', query(`
-      SELECT *
-      FROM aws_container_definition
-      WHERE name = '${containerNameRepository}' AND repository_id = (select id from aws_repository where repository_name = '${repositoryName}' limit 1) AND tag = '${imageTag}';
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    it('applies adds a new task definition with container definition', apply);
-
-    // Service dependency
-    it('adds aws_service dependencies', query(`
-      call create_or_update_aws_target_group('${serviceRepoTargetGroupName}', 'ip', ${hostPort}, 'default', 'HTTP', '/health');
-      call create_or_update_aws_load_balancer('${serviceRepoLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
-      call create_or_update_aws_listener('${serviceRepoLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceRepoTargetGroupName}');
-    `));
-
-    it('applies aws_service dependencies', apply);
-
-    // Service
-    it('adds a new aws_service', query(`
-      call create_or_update_ecs_service('${serviceRepositoryName}', '${clusterName}', '${tdRepositoryFamily}', ${serviceDesiredCount}, array['default'], 'ENABLED', _target_group_name := '${serviceRepoTargetGroupName}');
-    `));
-
-    it('check aws_service insertion', query(`
-      SELECT *
-      FROM aws_service
-      WHERE name = '${serviceRepositoryName}';
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    it('check aws_service_security_groups insertion', query(`
-      SELECT *
-      FROM aws_service_security_groups
-      INNER JOIN aws_service ON aws_service.id = aws_service_security_groups.aws_service_id
-      WHERE aws_service.name = '${serviceRepositoryName}';
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    it('deletes aws_service', query(`
-      call delete_ecs_service('${serviceRepositoryName}');
-    `));
-
-    it('applies deletes aws_service', apply);
-
-    // deletes aws_service dependencies
-    it('deletes aws_service dependencies', query(`
-      call delete_aws_listener('${serviceRepoLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${serviceRepoTargetGroupName}');
-      call delete_aws_load_balancer('${serviceRepoLoadBalancerName}');
-      call delete_aws_target_group('${serviceRepoTargetGroupName}');
-    `));
-
-    it('applies deletes aws_service dependencies', apply);
-    
-    it('deletes container definitons', query(`
-      begin;
-        call delete_container_definition('${containerNameRepository}', '${tdRepositoryFamily}');
-        call delete_task_definition('${tdRepositoryFamily}');
-        call delete_ecr_repository('${repositoryName}');
-      commit;
-    `));
-
-    it('applies deletes tasks and container definitions', apply);
-  });
-
-  // Service spinning up a task definition with container using a public ecr
-  describe('Public ECR', () => {
-    // ECR
-    it('adds a new public ECR', query(`
-      CALL create_or_update_ecr_public_repository('${publicRepositoryName}');
-    `));
-
-    it('check aws_public_repository insertion', query(`
-      SELECT *
-      FROM aws_public_repository
-      WHERE repository_name = '${publicRepositoryName}';
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    // Task definition
-    it('adds a new task definition', query(`
-      call create_task_definition('${tdPublicRepositoryFamily}', '${taskExecRole}', '${taskExecRole}', '${tdCpuMem}');
-    `));
-
-    it('check aws_task_definition insertion', query(`
-      SELECT *
-      FROM aws_task_definition
-      WHERE family = '${tdPublicRepositoryFamily}' AND status IS NULL;
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    it('adds a new container definition', query(`
-      call create_container_definition('${containerNamePublicRepository}', '${tdPublicRepositoryFamily}', ${containerEssential}, ${containerMemoryReservation}, ${containerPort}, ${hostPort}, '${protocol}', null, '${imageTag}', _ecr_public_repository_name := '${publicRepositoryName}');
-    `));
-
-    it('check container definition insertion', query(`
-      SELECT *
-      FROM aws_container_definition
-      WHERE name = '${containerNamePublicRepository}' AND public_repository_id = (select id from aws_public_repository where repository_name = '${publicRepositoryName}' limit 1) AND tag = '${imageTag}';
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    it('applies adds a new task definition with container definition', apply);
-
-    // Service dependency
-    it('adds aws_service dependencies', query(`
-      call create_or_update_aws_target_group('${servicePubRepoTargetGroupName}', 'ip', ${hostPort}, 'default', 'HTTP', '/health');
-      call create_or_update_aws_load_balancer('${servicePubRepoLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
-      call create_or_update_aws_listener('${servicePubRepoLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${servicePubRepoTargetGroupName}');
-    `));
-
-    it('applies aws_service dependencies', apply);
-
-    // Service
-    it('adds a new aws_service', query(`
-      call create_or_update_ecs_service('${servicePublicRepositoryName}', '${clusterName}', '${tdPublicRepositoryFamily}', ${serviceDesiredCount}, array['default'], 'ENABLED', _target_group_name := '${servicePubRepoTargetGroupName}');
-    `));
-
-    it('check aws_service insertion', query(`
-      SELECT *
-      FROM aws_service
-      WHERE name = '${servicePublicRepositoryName}';
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    it('check aws_service_security_groups insertion', query(`
-      SELECT *
-      FROM aws_service_security_groups
-      INNER JOIN aws_service ON aws_service.id = aws_service_security_groups.aws_service_id
-      WHERE aws_service.name = '${servicePublicRepositoryName}';
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
-    it('deletes aws_service', query(`
-      call delete_ecs_service('${servicePublicRepositoryName}');
-    `));
-
-    it('applies deletes aws_service', apply);
-
-    // deletes aws_service dependencies
-    it('deletes aws_service dependencies', query(`
-      call delete_aws_listener('${servicePubRepoLoadBalancerName}', ${hostPort}, 'HTTP', 'forward', '${servicePubRepoTargetGroupName}');
-      call delete_aws_load_balancer('${servicePubRepoLoadBalancerName}');
-      call delete_aws_target_group('${servicePubRepoTargetGroupName}');
-    `));
-
-    it('applies deletes aws_service dependencies', apply);
-    
-    it('deletes container definitons', query(`
-      call delete_container_definition('${containerNamePublicRepository}', '${tdPublicRepositoryFamily}');
-      call delete_task_definition('${tdPublicRepositoryFamily}');
-      call delete_ecr_repository('${publicRepositoryName}');begin;
-    `));
-
-    it('applies deletes tasks and container definitions', apply);
-  });
-
-  it('deletes the aws_cluster', query(`
-    delete from aws_cluster
-    where cluster_name = '${clusterName}';
-  `));
-
-  it('applies deletes the aws_cluster', apply);
-
-  it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
-    .then(...finish(done)));
-});
-

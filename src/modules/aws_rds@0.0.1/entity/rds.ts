@@ -56,6 +56,7 @@ export class RDS {
   })
   masterUsername?: string;
 
+  // TODO rename table
   @ManyToMany(() => AwsSecurityGroup)
   @JoinTable()
   vpcSecurityGroups: AwsSecurityGroup[];
