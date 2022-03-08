@@ -147,6 +147,13 @@ describe('ELB Integration Testing', () => {
     );
   `));
 
+  it('check aws_listener delete', query(`
+    SELECT *
+    FROM aws_listener
+    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
   it('applies the change', apply);
 
   it('deletes the load balancer', query(`
@@ -154,12 +161,24 @@ describe('ELB Integration Testing', () => {
     WHERE load_balancer_name = '${lbName}';
   `));
 
+  it('check aws_load_balancer delete', query(`
+    SELECT *
+    FROM aws_load_balancer
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
   it('applies the change', apply);
 
   it('deletes the target group', query(`
     DELETE FROM aws_target_group
     WHERE target_group_name = '${tgName}';
   `));
+
+  it('check aws_target_group insertion', query(`
+    SELECT *
+    FROM aws_target_group
+    WHERE target_group_name = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('applies the change (last time)', apply);
 
