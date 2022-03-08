@@ -47,9 +47,7 @@ describe('ELB Integration Testing', () => {
   it('check aws_target_group insertion', query(`
     SELECT *
     FROM aws_target_group
-    WHERE target_group_name = '${tgName}'
-    ORDER BY id DESC
-    LIMIT 1;
+    WHERE target_group_name = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies the change', apply);
@@ -69,18 +67,14 @@ describe('ELB Integration Testing', () => {
   // Load balancer
   // TODO: add security groups insert when testing application load balancer integration
   it('adds a new load balancer', query(`
-    BEGIN;
-      INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
-      VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
-    COMMIT;
+    INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
+    VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
   `));
 
   it('check aws_load_balancer insertion', query(`
     SELECT *
     FROM aws_load_balancer
-    WHERE load_balancer_name = '${lbName}'
-    ORDER BY id DESC
-    LIMIT 1;
+    WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies the change', apply);
