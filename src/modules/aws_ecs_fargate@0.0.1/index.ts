@@ -522,7 +522,6 @@ export const AwsEcsFargateModule: Module = new Module({
               entity.task.id = td.id;
             }
           }));
-          console.dir({es},{depth:7})
           await ctx.orm.save(AwsService, es);
         },
         read: async (ctx: Context, ids?: string[]) => {
