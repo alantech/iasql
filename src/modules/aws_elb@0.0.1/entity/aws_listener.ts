@@ -4,6 +4,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm'
 
 import { AwsLoadBalancer, } from './aws_load_balancer'
@@ -17,6 +18,7 @@ export enum ActionTypeEnum {
   // REDIRECT = "redirect"
 }
 
+@Unique(['loadBalancer', 'port'])
 @Entity()
 export class AwsListener {
   @PrimaryGeneratedColumn()
@@ -43,6 +45,7 @@ export class AwsListener {
   @Column({
     type: 'enum',
     enum: ActionTypeEnum,
+    default: ActionTypeEnum.FORWARD,
   })
   actionType: ActionTypeEnum;
 
