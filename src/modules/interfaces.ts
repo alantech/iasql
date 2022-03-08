@@ -291,19 +291,16 @@ export class Module {
       const migrationDir = `${dirname}/migration`;
       const files = readdirSync(migrationDir);
       if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
-      // This is gonna happen on a follow-up tick of the event loop, but should never be a problem.
-      // Famous last words, amirite?
-      import(`${migrationDir}/${files[0]}`).then((migration) => {
-        // Assuming TypeORM migration files
-        const migrationClass = migration[Object.keys(migration)[0]];
-        if (!migrationClass || !migrationClass.prototype.up || !migrationClass.prototype.down) {
-          throw new Error('Presumed migration file is not a TypeORM migration');
-        }
-        this.migrations = {
-          install: migrationClass.prototype.up,
-          remove: migrationClass.prototype.down,
-        };
-      });
+      const migration = require(`${migrationDir}/${files[0]}`);
+      // Assuming TypeORM migration files
+      const migrationClass = migration[Object.keys(migration)[0]];
+      if (!migrationClass || !migrationClass.prototype.up || !migrationClass.prototype.down) {
+        throw new Error('Presumed migration file is not a TypeORM migration');
+      }
+      this.migrations = {
+        install: migrationClass.prototype.up,
+        remove: migrationClass.prototype.down,
+      };
     } else {
       this.migrations = def.migrations;
     }
