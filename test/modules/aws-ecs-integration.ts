@@ -115,11 +115,11 @@ describe('ECS Integration Testing', () => {
         INSERT INTO aws_target_group
             (target_group_name, target_type, protocol, port, vpc, health_check_path)
         VALUES
-            ('${serviceTargetGroupName}', 'ip', 'HTTP', ${hostPort}, (SELECT id FROM aws_vpc WHERE is_default = true LIMIT 1), '/health');
+            ('${serviceTargetGroupName}', 'ip', 'HTTP', ${hostPort}, 'default', '/health');
         INSERT INTO aws_load_balancer
             (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
         VALUES
-            ('${serviceLoadBalancerName}', 'internet-facing', (SELECT id FROM aws_vpc WHERE is_default = true LIMIT 1), 'application', 'ipv4');
+            ('${serviceLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
         INSERT INTO aws_load_balancer_security_groups
             (aws_load_balancer_id, aws_security_group_id)
         VALUES
@@ -295,11 +295,11 @@ describe('ECS Integration Testing', () => {
         INSERT INTO aws_target_group
             (target_group_name, target_type, protocol, port, vpc, health_check_path)
         VALUES
-            ('${serviceRepoTargetGroupName}', 'ip', 'HTTP', ${hostPort}, (SELECT id FROM aws_vpc WHERE is_default = true LIMIT 1), '/health');
+            ('${serviceRepoTargetGroupName}', 'ip', 'HTTP', ${hostPort}, 'default', '/health');
         INSERT INTO aws_load_balancer
             (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
         VALUES
-            ('${serviceRepoLoadBalancerName}', 'internet-facing', (SELECT id FROM aws_vpc WHERE is_default = true LIMIT 1), 'application', 'ipv4');
+            ('${serviceRepoLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
         INSERT INTO aws_load_balancer_security_groups
             (aws_load_balancer_id, aws_security_group_id)
         VALUES
@@ -437,11 +437,11 @@ describe('ECS Integration Testing', () => {
         INSERT INTO aws_target_group
             (target_group_name, target_type, protocol, port, vpc, health_check_path)
         VALUES
-            ('${servicePubRepoTargetGroupName}', 'ip', 'HTTP', ${hostPort}, (SELECT id FROM aws_vpc WHERE is_default = true LIMIT 1), '/health');
+            ('${servicePubRepoTargetGroupName}', 'ip', 'HTTP', ${hostPort}, 'default', '/health');
         INSERT INTO aws_load_balancer
             (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
         VALUES
-            ('${servicePubRepoLoadBalancerName}', 'internet-facing', (SELECT id FROM aws_vpc WHERE is_default = true LIMIT 1), 'application', 'ipv4');
+            ('${servicePubRepoLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
         INSERT INTO aws_load_balancer_security_groups
             (aws_load_balancer_id, aws_security_group_id)
         VALUES
