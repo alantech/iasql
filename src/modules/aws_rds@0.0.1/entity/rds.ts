@@ -77,4 +77,10 @@ export class RDS {
     nullable: true,
   })
   endpointHostedZoneId?: string;
+
+  @Column({
+    type: 'int',
+    default: 1,
+  })
+  backupRetentionPeriod: number;
 }
