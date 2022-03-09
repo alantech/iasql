@@ -97,7 +97,6 @@ jobs:
     env:
       MATRIX_AWS_ACCESS_KEY_ID: AWS_ACCESS_KEY_ID_${{matrix.module}}
       MATRIX_AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY_${{matrix.module}}
-      # AWS_REGION: ${{ needs.setup-module-test.outputs['region'] }}
 
     steps:
       - uses: actions/checkout@v2
@@ -117,5 +116,5 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
           IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_REGION: ${{ needs.setup-module-test.outputs['region'] }}
           DB_HOST: localhost
