@@ -23,20 +23,22 @@ psql postgresql://postgres:test@localhost:5432/postgres -c "CREATE DATABASE __ex
 cd src
 
 # Blow away the existing migration for the specified module, if one exists
-rm -rf src/${MODULE}/migration
+rm -rf modules/${MODULE}/migration
 
 # Get the list of modules this module depends upon and include itself for use in the temporary
 # TypeORM configuration
-MODULES=`cat module.json | jq -r ".dependencies[.dependencies | length] |= \"${MODULE}\" | .dependencies | join(\":\")"`
+MODULES=`cat modules/${MODULE}/module.json | jq -r ".dependencies[.dependencies | length] |= \"${MODULE}\" | .dependencies | join(\":\")"`
 readarray -d ":" -t MODARR <<< "${MODULES}"
 
 # Convert the array of modules into configuration paths for TypeORM
 ENTITIES=""
 MIGRATIONS=""
+NL=$'\n'
 for (( n=0; n < ${#MODARR[*]}; n++))
 do
-  ENTITIES="${ENTITIES}\"modules/${MODARR[n]}/entity/*.ts\",\n"
-  MIGRATIONS="${MIGRATIONS}\"modules/${MODARR[n]}/migration/*.ts\",\n"
+  MOD=`echo ${MODARR[n]} | xargs`
+  ENTITIES="${ENTITIES}\"modules/${MOD}/entity/*.ts\",${NL}"
+  MIGRATIONS="${MIGRATIONS}\"modules/${MOD}/migration/*.ts\",${NL}"
 done
 
 # Generate the TypeORM config
