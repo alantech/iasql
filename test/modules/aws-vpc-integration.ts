@@ -10,13 +10,11 @@ afterAll(execComposeDown);
 const dbAlias = 'vpctest';
 const apply = runApply.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 
 const randIPBlock = Math.floor(Math.random() * 255);
 
 describe('VPC Integration Testing', () => {
-  // TODO: REMOVE!!
-  console.log('region', process.env.AWS_REGION);
-
   it('creates a new test db', (done) => void iasql.add(
     dbAlias,
     process.env.AWS_REGION ?? 'barf',
@@ -38,7 +36,7 @@ describe('VPC Integration Testing', () => {
 
   it('adds a subnet', query(`
     INSERT INTO aws_subnet (availability_zone, vpc_id, cidr_block)
-    SELECT 'us-west-2a', id, '192.${randIPBlock}.0.0/16'
+    SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16'
     FROM aws_vpc
     WHERE is_default = false
     AND cidr_block = '192.${randIPBlock}.0.0/16';
@@ -58,11 +56,11 @@ describe('VPC Integration Testing', () => {
 
   it('queries the subnets to confirm the record is present', query(`
     SELECT * FROM aws_subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16'
-  `, (res: any) => expect(res.length).toBe(1)));
+  `, (res: any) => expect(res.length).toBeGreaterThan(0)));
 
   it('queries the vpcs to confirm the record is present', query(`
     SELECT * FROM aws_vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
-  `, (res: any) => expect(res.length).toBe(1)));
+  `, (res: any) => expect(res.length).toBeGreaterThan(0)));
 
   it('deletes the subnet', query(`
     WITH vpc as (
