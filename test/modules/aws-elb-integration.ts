@@ -27,7 +27,7 @@ const lbIPAddressType = IpAddressType.IPV4;
 describe('ELB Integration Testing', () => {
   it('creates a new test db elb', (done) => void iasql.add(
     dbAlias,
-    process.env.AWS_REGION,
+    process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));

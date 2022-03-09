@@ -16,10 +16,10 @@ const randIPBlock = Math.floor(Math.random() * 255);
 describe('VPC Integration Testing', () => {
   // TODO: REMOVE!!
   console.log('region', process.env.AWS_REGION);
-  
+
   it('creates a new test db', (done) => void iasql.add(
     dbAlias,
-    process.env.AWS_REGION,
+    process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
