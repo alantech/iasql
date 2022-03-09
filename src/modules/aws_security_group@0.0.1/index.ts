@@ -4,18 +4,17 @@ import { AWS, } from '../../services/gateways/aws'
 import { AwsSecurityGroup, AwsSecurityGroupRule, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
+import * as metadata from './module.json'
 
 export const AwsSecurityGroupModule: Module = new Module({
-  name: 'aws_security_group',
-  version: '0.0.1',
-  dependencies: ['aws_account@0.0.1'],
+  ...metadata,
   provides: {
     entities: allEntities,
     tables: ['aws_security_group', 'aws_security_group_rule'],
     functions: ['create_or_update_aws_security_group', 'delete_aws_security_group',]
   },
   utils: {
-    sgMapper: async (sg: any, ctx: Context) => {
+    sgMapper: async (sg: any, _ctx: Context) => {
       const out = new AwsSecurityGroup();
       out.description = sg.Description;
       out.groupName = sg.GroupName;

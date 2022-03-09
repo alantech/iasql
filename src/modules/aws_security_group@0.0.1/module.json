@@ -1,0 +1,5 @@
+{
+  "name": "aws_security_group",
+  "version": "0.0.1",
+  "dependencies": ["aws_account@0.0.1"]
+}

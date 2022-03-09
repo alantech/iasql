@@ -1,0 +1,12 @@
+{
+  "name": "aws_ecs_fargate",
+  "version": "0.0.1",
+  "dependencies": [
+    "aws_account@0.0.1",
+    "aws_ecr@0.0.1",
+    "aws_elb@0.0.1",
+    "aws_security_group@0.0.1",
+    "aws_cloudwatch@0.0.1",
+    "aws_vpc@0.0.1"
+  ]
+}

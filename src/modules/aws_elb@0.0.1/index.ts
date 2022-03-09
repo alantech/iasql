@@ -19,11 +19,10 @@ import {
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
+import * as metadata from './module.json'
 
 export const AwsElbModule: Module = new Module({
-  name: 'aws_elb',
-  version: '0.0.1',
-  dependencies: ['aws_account@0.0.1', 'aws_security_group@0.0.1',],
+  ...metadata,
   provides: {
     entities: allEntities,
     tables: ['aws_target_group', 'aws_load_balancer', 'aws_listener', 'aws_action',],
