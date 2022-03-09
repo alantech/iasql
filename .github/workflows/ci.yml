@@ -80,7 +80,9 @@ jobs:
           regions=("ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "sa-east-1" "us-east-2" "us-west-1" "us-west-2")
           regionslen=${#regions[@]}
           index=$(($RANDOM % $regionslen))
-          echo "::set-output name=region::$(echo ${regions[$index]})"
+          region=regions[$index]
+          echo $region
+          echo "::set-output name=region::$(echo $region)"
 
   module-test:
     runs-on: ubuntu-latest
@@ -95,6 +97,7 @@ jobs:
     env:
       MATRIX_AWS_ACCESS_KEY_ID: AWS_ACCESS_KEY_ID_${{matrix.module}}
       MATRIX_AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY_${{matrix.module}}
+      AWS_REGION: ${{ needs.setup-module-test.outputs['region'] }}
 
     steps:
       - uses: actions/checkout@v2
@@ -114,5 +117,5 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
           IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
-          AWS_REGION: ${{ needs.setup-module-test.outputs['region'] }}
+          AWS_REGION: ${{ env.AWS_REGION }}
           DB_HOST: localhost
