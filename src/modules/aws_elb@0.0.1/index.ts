@@ -106,7 +106,7 @@ export const AwsElbModule: Module = new Module({
   mappers: {
     listener: new Mapper<AwsListener>({
       entity: AwsListener,
-      entityId: (e: AwsListener) => e?.listenerArn ?? '',
+      entityId: (e: AwsListener) => e.listenerArn ?? e.id.toString(),
       entityPrint: (e: AwsListener) => ({
         id: e?.id?.toString() ?? '',
         listenerArn: e?.listenerArn ?? '',
@@ -230,7 +230,7 @@ export const AwsElbModule: Module = new Module({
     }),
     loadBalancer: new Mapper<AwsLoadBalancer>({
       entity: AwsLoadBalancer,
-      entityId: (e: AwsLoadBalancer) => e?.loadBalancerArn ?? '',
+      entityId: (e: AwsLoadBalancer) => e.loadBalancerArn ?? e.id.toString(),
       entityPrint: (e: AwsLoadBalancer) => ({
         id: e?.id?.toString() ?? '',
         loadBalancerName: e?.loadBalancerName ?? '',
@@ -411,7 +411,7 @@ export const AwsElbModule: Module = new Module({
     }),
     targetGroup: new Mapper<AwsTargetGroup>({
       entity: AwsTargetGroup,
-      entityId: (e: AwsTargetGroup) => e?.targetGroupArn ?? '',
+      entityId: (e: AwsTargetGroup) => e.targetGroupArn ?? e.id.toString(),
       entityPrint: (e: AwsTargetGroup) => ({
         id: e?.id?.toString() ?? '',
         targetGroupName: e?.targetGroupName ?? '',

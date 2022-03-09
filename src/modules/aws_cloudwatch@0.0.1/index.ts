@@ -26,7 +26,7 @@ export const AwsCloudwatchModule: Module = new Module({
   mappers: {
     logGroup: new Mapper<LogGroup>({
       entity: LogGroup,
-      entityId: (e: LogGroup) => e?.logGroupName,
+      entityId: (e: LogGroup) => e.logGroupName ?? e.id,
       entityPrint: (e: LogGroup) => ({
         id: e?.id?.toString() ?? '',
         logGroupName: e?.logGroupName ?? '',

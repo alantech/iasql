@@ -41,7 +41,7 @@ export const AwsSecurityGroupModule: Module = new Module({
   mappers: {
     securityGroup: new Mapper<AwsSecurityGroup>({
       entity: AwsSecurityGroup,
-      entityId: (e: AwsSecurityGroup) => e.groupId ?? '',
+      entityId: (e: AwsSecurityGroup) => e.groupId ?? e.id?.toString() ?? '',
       entityPrint: (e: AwsSecurityGroup) => ({
         id: e?.id?.toString() ?? '',
         description: e?.description ?? '',
@@ -234,7 +234,7 @@ export const AwsSecurityGroupModule: Module = new Module({
     }),
     securityGroupRule: new Mapper<AwsSecurityGroupRule>({
       entity: AwsSecurityGroupRule,
-      entityId: (e: AwsSecurityGroupRule) => e?.securityGroupRuleId ?? e?.id?.toString() ?? '',
+      entityId: (e: AwsSecurityGroupRule) => e.securityGroupRuleId ?? e.id?.toString() ?? '',
       entityPrint: (e: AwsSecurityGroupRule) => ({
         id: e?.id?.toString() ?? '',
         securityGroupRuleId: e?.securityGroupRuleId ?? '',

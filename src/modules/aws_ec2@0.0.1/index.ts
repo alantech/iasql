@@ -36,7 +36,7 @@ export const AwsEc2Module: Module = new Module({
   mappers: {
     instance: new Mapper<Instance>({
       entity: Instance,
-      entityId: (i: Instance) => i.instanceId ?? i.name,
+      entityId: (i: Instance) => i.instanceId ?? i.id?.toString() ?? '',
       entityPrint: (e: Instance) => ({
         name: e.name,
         id: e.id?.toString() ?? '',
