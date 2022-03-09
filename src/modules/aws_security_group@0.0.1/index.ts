@@ -41,7 +41,7 @@ export const AwsSecurityGroupModule: Module = new Module({
   mappers: {
     securityGroup: new Mapper<AwsSecurityGroup>({
       entity: AwsSecurityGroup,
-      entityId: (e: AwsSecurityGroup) => e.groupId ?? '',
+      entityId: (e: AwsSecurityGroup) => e.groupId ?? e.id?.toString() ?? '',
       entityPrint: (e: AwsSecurityGroup) => ({
         id: e?.id?.toString() ?? '',
         description: e?.description ?? '',
@@ -234,7 +234,7 @@ export const AwsSecurityGroupModule: Module = new Module({
     }),
     securityGroupRule: new Mapper<AwsSecurityGroupRule>({
       entity: AwsSecurityGroupRule,
-      entityId: (e: AwsSecurityGroupRule) => e?.securityGroupRuleId ?? e?.id?.toString() ?? '',
+      entityId: (e: AwsSecurityGroupRule) => e.securityGroupRuleId ?? e.id?.toString() ?? '',
       entityPrint: (e: AwsSecurityGroupRule) => ({
         id: e?.id?.toString() ?? '',
         securityGroupRuleId: e?.securityGroupRuleId ?? '',
@@ -369,13 +369,9 @@ export const AwsSecurityGroupModule: Module = new Module({
               throw new Error(`Failed to remove the security group rules ${res}`);
             }
           }
-          // Once the old version is deleted, remove it from the DB memo cache, too
-          // TODO: Figure out how to automate the memoization issue here and the general TypeORM
-          // wonkiness with circularly-dependent entities.
-          es.forEach(e => {
-            const oldId = AwsSecurityGroupModule.mappers.securityGroupRule.entityId(e);
-            delete ctx.memo.db.AwsSecurityGroupRule[oldId];
-          });
+          // Let's just flush both caches on a delete and force it to rebuild them?
+          ctx.memo.cloud.AwsSecurityGroupRule = {};
+          ctx.memo.db.AwsSecurityGroupRule = {};
         },
       }),
     }),
