@@ -374,6 +374,7 @@ export const AwsSecurityGroupModule: Module = new Module({
           // wonkiness with circularly-dependent entities.
           es.forEach(e => {
             const oldId = AwsSecurityGroupModule.mappers.securityGroupRule.entityId(e);
+            delete ctx.memo.cloud.AwsSecurityGroupRule[oldId];
             delete ctx.memo.db.AwsSecurityGroupRule[oldId];
           });
         },
