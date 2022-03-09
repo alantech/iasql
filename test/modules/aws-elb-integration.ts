@@ -1,7 +1,7 @@
 import { LoadBalancerStateEnum } from '@aws-sdk/client-elastic-load-balancing-v2';
 import { IpAddressType, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEnum, TargetTypeEnum } from '../../src/modules/aws_elb@0.0.1/entity';
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, getRandomRegion, } from '../helpers'
+import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
 
 jest.setTimeout(360000);
 
@@ -27,7 +27,7 @@ const lbIPAddressType = IpAddressType.IPV4;
 describe('ELB Integration Testing', () => {
   it('creates a new test db elb', (done) => void iasql.add(
     dbAlias,
-    getRandomRegion(),
+    process.env.AWS_REGION,
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));

@@ -5,7 +5,6 @@ import {
   finish,
   runApply,
   runQuery,
-  getRandomRegion,
 } from '../helpers'
 
 jest.setTimeout(360000);
@@ -22,7 +21,7 @@ describe('AwsAccount Integration Testing', () => {
   // TODO: Restore some mechanism to verify credentials
   /*it('does not create a test DB with fake credentials', (done) => void iasql.add(
     dbAlias,
-    getRandomRegion(),
+    process.env.AWS_REGION,
     'fake',
     'credentials',
     'not-needed').then(
@@ -32,7 +31,7 @@ describe('AwsAccount Integration Testing', () => {
 
   it('creates a new test db with the same name', (done) => void iasql.add(
     dbAlias,
-    getRandomRegion(),
+    process.env.AWS_REGION,
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
