@@ -1,5 +1,5 @@
 import * as iasql from '../../src/services/iasql'
-import { runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
+import { runQuery, runApply, finish, execComposeUp, execComposeDown, getRandomRegion, } from '../helpers'
 
 jest.setTimeout(240000);
 
@@ -16,7 +16,7 @@ const randIPBlock = Math.floor(Math.random() * 255);
 describe('VPC Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
     dbAlias,
-    'us-west-2',
+    getRandomRegion(),
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));

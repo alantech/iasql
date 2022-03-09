@@ -1,6 +1,6 @@
 import { CpuMemCombination, TaskDefinitionStatus } from '../../src/modules/aws_ecs_fargate@0.0.1/entity';
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
+import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, getRandomRegion, } from '../helpers'
 
 jest.setTimeout(240000);
 
@@ -50,7 +50,7 @@ const containerNamePublicRepository = `${prefix}${dbAlias}containerpublicreposit
 describe('ECS Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.add(
     dbAlias,
-    'us-west-2',
+    getRandomRegion(),
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
