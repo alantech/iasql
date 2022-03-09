@@ -581,7 +581,7 @@ export class AWS {
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
-          throw e;
+          return { state: WaiterState.RETRY };
         }
       },
     );
