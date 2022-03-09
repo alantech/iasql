@@ -4,7 +4,6 @@ import { AWS, } from '../../services/gateways/aws'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { LogGroup } from './entity'
-import { awsCloudwatch1638980988627 } from './migration/1638980988627-aws_cloudwatch'
 
 export const AwsCloudwatchModule: Module = new Module({
   name: 'aws_cloudwatch',
@@ -97,8 +96,4 @@ export const AwsCloudwatchModule: Module = new Module({
       }),
     }),
   },
-  migrations: {
-    postinstall: awsCloudwatch1638980988627.prototype.up,
-    preremove: awsCloudwatch1638980988627.prototype.down,
-  },
-});
+}, __dirname);

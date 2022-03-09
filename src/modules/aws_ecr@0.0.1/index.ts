@@ -7,7 +7,6 @@ import { AWS, } from '../../services/gateways/aws'
 import { AwsPublicRepository, AwsRepository, AwsRepositoryPolicy, ImageTagMutability, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsEcr1644462123596, } from './migration/1644462123596-aws_ecr'
 
 export const AwsEcrModule: Module = new Module({
   name: 'aws_ecr',
@@ -365,8 +364,4 @@ export const AwsEcrModule: Module = new Module({
       }),
     }),
   },
-  migrations: {
-    postinstall: awsEcr1644462123596.prototype.up,
-    preremove: awsEcr1644462123596.prototype.down,
-  },
-});
+}, __dirname);

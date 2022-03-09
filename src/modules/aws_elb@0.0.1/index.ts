@@ -19,7 +19,6 @@ import {
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
-import { awsElb1646754117933 } from './migration/1646754117933-aws_elb'
 
 export const AwsElbModule: Module = new Module({
   name: 'aws_elb',
@@ -560,8 +559,4 @@ export const AwsElbModule: Module = new Module({
       }),
     }),
   },
-  migrations: {
-    postinstall: awsElb1646754117933.prototype.up,
-    preremove: awsElb1646754117933.prototype.down,
-  },
-});
+}, __dirname);
