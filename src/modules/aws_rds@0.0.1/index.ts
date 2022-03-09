@@ -6,7 +6,6 @@ import { RDS, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
-import { awsRds1646760541170 } from './migration/1646760541170-aws_rds'
 
 export const AwsRdsModule: Module = new Module({
   name: 'aws_rds',
@@ -192,8 +191,4 @@ export const AwsRdsModule: Module = new Module({
       }),
     }),
   },
-  migrations: {
-    postinstall: awsRds1646760541170.prototype.up,
-    preremove: awsRds1646760541170.prototype.down,
-  },
-});
+}, __dirname);

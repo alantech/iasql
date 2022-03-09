@@ -11,7 +11,6 @@ import {
 } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsVpc1645805825036, } from './migration/1645805825036-aws_vpc'
 
 export const AwsVpcModule: Module = new Module({
   name: 'aws_vpc',
@@ -192,8 +191,4 @@ export const AwsVpcModule: Module = new Module({
       }),
     }),
   },
-  migrations: {
-    postinstall: awsVpc1645805825036.prototype.up,
-    preremove: awsVpc1645805825036.prototype.down,
-  },
-})
+}, __dirname)

@@ -4,7 +4,6 @@ import { AWS, } from '../../services/gateways/aws'
 import { AwsSecurityGroup, AwsSecurityGroupRule, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { awsSecurityGroup1636587967230, } from './migration/1636587967230-aws_security_group'
 
 export const AwsSecurityGroupModule: Module = new Module({
   name: 'aws_security_group',
@@ -382,8 +381,4 @@ export const AwsSecurityGroupModule: Module = new Module({
       }),
     }),
   },
-  migrations: {
-    postinstall: awsSecurityGroup1636587967230.prototype.up,
-    preremove: awsSecurityGroup1636587967230.prototype.down,
-  },
-});
+}, __dirname);
