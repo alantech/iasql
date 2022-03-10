@@ -65,6 +65,7 @@
     "reflect-metadata": "^0.1.13",
     "semver": "^7.3.5",
     "typeorm": "^0.2.37",
-    "typeorm-naming-strategies": "^2.0.0"
+    "typeorm-naming-strategies": "^2.0.0",
+    "unique-names-generator": "^4.7.1"
   }
 }
