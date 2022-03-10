@@ -581,7 +581,7 @@ export class AWS {
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
-          throw e;
+          return { state: WaiterState.RETRY };
         }
       },
     );
@@ -1130,8 +1130,9 @@ export class AWS {
       async (client, cmd) => {
         try {
           const data = await client.send(cmd);
+          if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
           for (const dbInstance of data?.DBInstances ?? []) {
-            if (dbInstance.DBInstanceStatus !== 'modifying')
+            if (dbInstance.DBInstanceStatus === 'available')
               return { state: WaiterState.RETRY };
           }
           return { state: WaiterState.SUCCESS };
@@ -1154,6 +1155,7 @@ export class AWS {
       async (client, cmd) => {
         try {
           const data = await client.send(cmd);
+          if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
           for (const dbInstance of data?.DBInstances ?? []) {
             if (dbInstance.DBInstanceStatus !== 'available')
               return { state: WaiterState.RETRY };

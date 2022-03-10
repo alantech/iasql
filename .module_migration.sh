@@ -28,7 +28,8 @@ rm -rf modules/${MODULE}/migration
 # Get the list of modules this module depends upon and include itself for use in the temporary
 # TypeORM configuration
 MODULES=`cat modules/${MODULE}/module.json | jq -r ".dependencies[.dependencies | length] |= \"${MODULE}\" | .dependencies | join(\":\")"`
-readarray -d ":" -t MODARR <<< "${MODULES}"
+MODARR=($(echo ${MODULES} | sed 's/:/\n/g'))
+#readarray -d ":" -t MODARR <<< "${MODULES}"
 
 # Convert the array of modules into configuration paths for TypeORM
 ENTITIES=""

@@ -19,7 +19,7 @@ const query = runQuery.bind(null, dbAlias);
 describe('ECR Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
     dbAlias,
-    'us-west-2',
+    process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
