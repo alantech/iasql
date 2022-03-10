@@ -97,14 +97,14 @@ describe('ECS Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('adds a new container definition', query(`
-      INSERT INTO aws_container_definition ("name", docker_image, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
+      INSERT INTO aws_container_definition ("name", image, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
 	    VALUES('${containerName}', '${image}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from aws_task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName} limit 1'));
     `));
 
     it('check container definition insertion', query(`
       SELECT *
       FROM aws_container_definition
-      WHERE name = '${containerName}' AND docker_image = '${image}' AND tag = '${imageTag}';
+      WHERE name = '${containerName}' AND image = '${image}' AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('applies adds a new task definition with container definition', apply);
