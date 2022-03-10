@@ -162,7 +162,7 @@ export async function list(user: any) {
   }
 }
 
-export async function dump(dbAlias: string, user: any) {
+export async function dump(dbAlias: string, user: any, dataOnly: boolean) {
   let dbId;
   try {
     const meta = await dbMan.getMetadata(dbAlias, user);
@@ -174,7 +174,10 @@ export async function dump(dbAlias: string, user: any) {
   const pgUrl = `postgres://${encodeURIComponent(config.dbUser)}:${encodeURIComponent(
     config.dbPassword
   )}@${config.dbHost}/${dbId}`;
-  const { stdout, } = await exec(`pg_dump --inserts -x ${pgUrl}`, { shell: '/bin/bash', });
+  const { stdout, } = await exec(
+    `pg_dump ${dataOnly ? '--data-only --column-inserts, --rows-per-insert=50 --exclude-table-data=aws_account --on-conflict-do-nothing' : ''} --inserts -x ${pgUrl}`,
+    { shell: '/bin/bash', }
+  );
   return stdout;
 }
 

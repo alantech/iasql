@@ -39,14 +39,14 @@ db.post('/import', async (req, res) => {
 
 db.post('/export', async (req, res) => {
   console.log('Calling /export');
-  const { dbAlias, } = req.body;
+  const { dbAlias, dataOnly } = req.body;
   if (!dbAlias) return res.status(400).json(
     `Required key(s) not provided: ${[
       'dbAlias',
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
   try {
-    res.json(await iasql.dump(dbAlias, req.user));
+    res.json(await iasql.dump(dbAlias, req.user, !!dataOnly));
   } catch (e) {
     res.status(500).end(`${handleErrorMessage(e)}`);
   }
