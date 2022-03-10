@@ -1132,32 +1132,6 @@ export class AWS {
           const data = await client.send(cmd);
           if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
           for (const dbInstance of data?.DBInstances ?? []) {
-            console.log('db instance status!', dbInstance.DBInstanceStatus)
-            if (dbInstance.DBInstanceStatus !== 'modifying')
-              return { state: WaiterState.RETRY };
-          }
-          return { state: WaiterState.SUCCESS };
-        } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.RETRY };
-          throw e;
-        }
-      },
-    );
-    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
-      {
-        client: this.rdsClient,
-        // all in seconds
-        maxWaitTime: 1200,
-        minDelay: 1,
-        maxDelay: 4,
-      },
-      inputCommand,
-      async (client, cmd) => {
-        try {
-          const data = await client.send(cmd);
-          if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
-          for (const dbInstance of data?.DBInstances ?? []) {
             if (dbInstance.DBInstanceStatus !== 'available')
               return { state: WaiterState.RETRY };
             updatedDBInstance = dbInstance;
