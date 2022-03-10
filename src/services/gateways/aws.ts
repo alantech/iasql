@@ -1115,6 +1115,7 @@ export class AWS {
     let updatedDBInstance = (await this.rdsClient.send(
       new ModifyDBInstanceCommand(input)
     ))?.DBInstance;
+    console.log('status', updatedDBInstance?.DBInstanceStatus)
     const inputCommand = new DescribeDBInstancesCommand({
       DBInstanceIdentifier: input.DBInstanceIdentifier,
     });
@@ -1132,6 +1133,7 @@ export class AWS {
           const data = await client.send(cmd);
           if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
           for (const dbInstance of data?.DBInstances ?? []) {
+            console.log('status', dbInstance.DBInstanceStatus)
             if (dbInstance.DBInstanceStatus !== 'available')
               return { state: WaiterState.RETRY };
             updatedDBInstance = dbInstance;
