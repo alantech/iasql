@@ -244,11 +244,11 @@ export class Mapper<E> {
     this.source = def.source;
     this.db = def.db;
     this.db.entity = def.entity;
-    this.db.entityId = def.entityId;
+    this.db.entityId = this.entityId;
     this.db.dest = 'db';
     this.cloud = def.cloud;
     this.cloud.entity = def.entity;
-    this.cloud.entityId = def.entityId;
+    this.cloud.entityId = this.entityId;
     this.cloud.dest = 'cloud';
   }
 }
