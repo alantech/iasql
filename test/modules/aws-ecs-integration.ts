@@ -21,8 +21,11 @@ const clusterName = `${prefix}${dbAlias}cluster`;
 const newClusterName = `${prefix}${dbAlias}clusternew`;
 const logGroupName = `${prefix}${dbAlias}loggroup`;
 const containerName = `${prefix}${dbAlias}container`;
+const containerNameTag = `${prefix}${dbAlias}containertg`;
+const containerNameDigest = `${prefix}${dbAlias}containerdgst`;
 const image = 'redis';
 const imageTag = 'latest';
+const imageDigest = '0079affeb8a75e09d6d7f0ac30c31e5d35ca93ad86faa682cdb7c2228c8439db';
 const containerMemoryReservation = 8192;  // MiB
 const containerEssential = true;
 const containerPort = 6379;
@@ -119,14 +122,32 @@ describe('ECS Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('adds a new container definition', query(`
-      INSERT INTO aws_container_definition ("name", image, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
-	    VALUES('${containerName}', '${image}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from aws_task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName} limit 1'));
+      BEGIN;
+        INSERT INTO aws_container_definition ("name", image, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
+        VALUES('${containerName}', '${image}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from aws_task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName} limit 1'));
+        INSERT INTO aws_container_definition ("name", image, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
+        VALUES('${containerNameTag}', '${image}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from aws_task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName} limit 1'));
+        INSERT INTO aws_container_definition ("name", image, digest, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
+        VALUES('${containerNameDigest}', '${image}', '${imageDigest}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from aws_task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName} limit 1'));
+      COMMIT;
     `));
 
     it('check container definition insertion', query(`
       SELECT *
       FROM aws_container_definition
-      WHERE name = '${containerName}' AND image = '${image}' AND tag = '${imageTag}';
+      WHERE name = '${containerName}' AND image = '${image}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM aws_container_definition
+      WHERE name = '${containerNameTag}' AND image = '${image}' AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM aws_container_definition
+      WHERE name = '${containerNameDigest}' AND image = '${image}' AND digest = '${imageDigest}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('applies adds a new task definition with container definition', apply);
