@@ -28,9 +28,9 @@ v1.use(express.json({ limit: '10000MB' }));
 v1.use((req, res, next) => {
   const headers = req.headers;
   const cliVersion = headers["cli-version"] as string;
-  if (semver.compare(MIN_CLI_VERSION, cliVersion) > 0) {
+  if (cliVersion === undefined && semver.compare(MIN_CLI_VERSION, cliVersion) > 0) {
     const error = {
-      message: `Outdated CLI version ${cliVersion}. Must use version ${MIN_CLI_VERSION} at least. Please refer to https://docs.iasql.com/install to upgrade.`
+      message: `Outdated CLI version. Must use version ${MIN_CLI_VERSION} at least. Please refer to https://docs.iasql.com/install to upgrade.`
     };
     return res.status(500).end(
       `${handleErrorMessage(error)}`
