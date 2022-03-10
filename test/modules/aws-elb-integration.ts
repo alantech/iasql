@@ -27,7 +27,7 @@ const lbIPAddressType = IpAddressType.IPV4;
 describe('ELB Integration Testing', () => {
   it('creates a new test db elb', (done) => void iasql.add(
     dbAlias,
-    'us-west-2',
+    process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
@@ -137,14 +137,8 @@ describe('ELB Integration Testing', () => {
 
   it('deletes the listener', query(`
     DELETE FROM aws_listener
-    WHERE id IN (
-      SELECT aws_listener.id
-      FROM aws_listener
-      INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
-      WHERE load_balancer_name = '${lbName}'
-      ORDER BY aws_listener.id DESC
-      LIMIT 1
-    );
+    USING aws_load_balancer
+    WHERE load_balancer_name = '${lbName}' and aws_load_balancer.id = aws_listener.aws_load_balancer_id;
   `));
 
   it('check aws_listener delete', query(`

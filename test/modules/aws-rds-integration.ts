@@ -11,12 +11,12 @@ const prefix = getPrefix();
 const dbAlias = 'rdstest';
 const apply = runApply.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-
+const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 
 describe('RDS Integration Testing', () => {
   it('creates a new test db elb', (done) => void iasql.add(
     dbAlias,
-    'us-west-2',
+    process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
@@ -29,7 +29,7 @@ describe('RDS Integration Testing', () => {
   it('creates an RDS instance', query(`
     BEGIN;
       INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, master_username, master_user_password, availability_zone, engine, backup_retention_period)
-        VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', 'us-west-2b', 'postgres:13.4', 0);
+        VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', '${availabilityZone}', 'postgres:13.4', 0);
       INSERT INTO rds_vpc_security_groups_aws_security_group (rds_id, aws_security_group_id) SELECT
         (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test'),
         (SELECT id FROM aws_security_group WHERE group_name='default');
