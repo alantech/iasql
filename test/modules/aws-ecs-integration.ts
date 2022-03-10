@@ -36,11 +36,7 @@ const tdCpuMem = CpuMemCombination['2vCPU-8GB'];
 const tdActive = TaskDefinitionStatus.ACTIVE;
 const serviceDesiredCount = 1;
 const serviceTargetGroupName = `${serviceName}tg`;
-const serviceRepoTargetGroupName = `${serviceName}tgr`;
-const servicePubRepoTargetGroupName = `${serviceName}tgpr`;
 const serviceLoadBalancerName = `${serviceName}lb`;
-const serviceRepoLoadBalancerName = `${serviceName}lbr`;
-const servicePubRepoLoadBalancerName = `${serviceName}lbpr`;
 const newServiceName = `${serviceName}replace`;
 const repositoryName = `${prefix}${dbAlias}repository`;
 const containerNameRepository = `${prefix}${dbAlias}containerrepository`;
@@ -73,6 +69,32 @@ describe('ECS Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies adds a new aws_cluster', apply);
+
+  // Service dependencies
+  it('adds aws_service dependencies', query(`
+    BEGIN;
+      INSERT INTO aws_target_group
+          (target_group_name, target_type, protocol, port, vpc, health_check_path)
+      VALUES
+          ('${serviceTargetGroupName}', 'ip', 'HTTP', ${hostPort}, 'default', '/health');
+      INSERT INTO aws_load_balancer
+          (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
+      VALUES
+          ('${serviceLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
+      INSERT INTO aws_load_balancer_security_groups
+          (aws_load_balancer_id, aws_security_group_id)
+      VALUES
+          ((SELECT id FROM aws_load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}' LIMIT 1),
+            (SELECT id FROM aws_security_group WHERE group_name = 'default' LIMIT 1));
+      INSERT INTO aws_listener
+          (aws_load_balancer_id, port, protocol, action_type, target_group_id)
+      VALUES 
+          ((SELECT id FROM aws_load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}' LIMIT 1), 
+            ${hostPort}, 'HTTP', 'forward', (SELECT id FROM aws_target_group WHERE target_group_name = '${serviceTargetGroupName}' LIMIT 1));
+    COMMIT;
+  `));
+
+  it('applies aws_service dependencies', apply);
 
   // Service spinning up a task definition with container using a docker image
   describe('Docker image', () => {
@@ -108,32 +130,6 @@ describe('ECS Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('applies adds a new task definition with container definition', apply);
-
-    // Service dependencies
-    it('adds aws_service dependencies', query(`
-      BEGIN;
-        INSERT INTO aws_target_group
-            (target_group_name, target_type, protocol, port, vpc, health_check_path)
-        VALUES
-            ('${serviceTargetGroupName}', 'ip', 'HTTP', ${hostPort}, 'default', '/health');
-        INSERT INTO aws_load_balancer
-            (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
-        VALUES
-            ('${serviceLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
-        INSERT INTO aws_load_balancer_security_groups
-            (aws_load_balancer_id, aws_security_group_id)
-        VALUES
-            ((SELECT id FROM aws_load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}' LIMIT 1),
-              (SELECT id FROM aws_security_group WHERE group_name = 'default' LIMIT 1));
-        INSERT INTO aws_listener
-            (aws_load_balancer_id, port, protocol, action_type, target_group_id)
-        VALUES 
-            ((SELECT id FROM aws_load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}' LIMIT 1), 
-              ${hostPort}, 'HTTP', 'forward', (SELECT id FROM aws_target_group WHERE target_group_name = '${serviceTargetGroupName}' LIMIT 1));
-      COMMIT;
-    `));
-
-    it('applies aws_service dependencies', apply);
 
     // Service
     it('adds a new aws_service', query(`
@@ -268,32 +264,6 @@ describe('ECS Integration Testing', () => {
 
     it('applies adds a new task definition with container definition', apply);
 
-    // // Service dependency
-    // it('adds aws_service dependencies', query(`
-    //   BEGIN;
-    //     INSERT INTO aws_target_group
-    //         (target_group_name, target_type, protocol, port, vpc, health_check_path)
-    //     VALUES
-    //         ('${serviceRepoTargetGroupName}', 'ip', 'HTTP', ${hostPort}, 'default', '/health');
-    //     INSERT INTO aws_load_balancer
-    //         (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
-    //     VALUES
-    //         ('${serviceRepoLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
-    //     INSERT INTO aws_load_balancer_security_groups
-    //         (aws_load_balancer_id, aws_security_group_id)
-    //     VALUES
-    //         ((SELECT id FROM aws_load_balancer WHERE load_balancer_name = '${serviceRepoLoadBalancerName}' LIMIT 1),
-    //           (SELECT id FROM aws_security_group WHERE group_name = 'default' LIMIT 1));
-    //     INSERT INTO aws_listener
-    //         (aws_load_balancer_id, port, protocol, action_type, target_group_id)
-    //     VALUES 
-    //         ((SELECT id FROM aws_load_balancer WHERE load_balancer_name = '${serviceRepoLoadBalancerName}' LIMIT 1), 
-    //           ${hostPort}, 'HTTP', 'forward', (SELECT id FROM aws_target_group WHERE target_group_name = '${serviceRepoTargetGroupName}' LIMIT 1));
-    //   COMMIT;
-    // `));
-
-    // it('applies aws_service dependencies', apply);
-
     // Service
     it('adds a new aws_service', query(`
       BEGIN;
@@ -331,27 +301,6 @@ describe('ECS Integration Testing', () => {
 
     it('applies deletes aws_service', apply);
 
-    // // deletes aws_service dependencies
-    // it('deletes aws_service dependencies', query(`
-    //   BEGIN;
-    //     DELETE FROM aws_listener
-    //     WHERE aws_load_balancer_id = (SELECT id FROM aws_load_balancer WHERE load_balancer_name = '${serviceRepoLoadBalancerName}' LIMIT 1)
-    //       and port = ${hostPort} and protocol = 'HTTP' and action_type = 'forward' 
-    //       and target_group_id = (SELECT id FROM aws_target_group WHERE target_group_name = '${serviceRepoTargetGroupName}' LIMIT 1);
-
-    //     DELETE FROM aws_load_balancer_security_groups
-    //     WHERE aws_load_balancer_id = (SELECT id FROM aws_load_balancer WHERE load_balancer_name = '${serviceRepoLoadBalancerName}' LIMIT 1);
-      
-    //     DELETE FROM aws_load_balancer
-    //     WHERE load_balancer_name = '${serviceRepoLoadBalancerName}';
-
-    //     DELETE FROM aws_target_group
-    //     WHERE target_group_name = '${serviceRepoTargetGroupName}'; 
-    //   COMMIT;
-    // `));
-
-    // it('applies deletes aws_service dependencies', apply);
-    
     it('deletes container definitons', query(`
       begin;
         delete from aws_container_definition
@@ -410,32 +359,6 @@ describe('ECS Integration Testing', () => {
 
     it('applies adds a new task definition with container definition', apply);
 
-    // // Service dependency
-    // it('adds aws_service dependencies', query(`
-    //   BEGIN;
-    //     INSERT INTO aws_target_group
-    //         (target_group_name, target_type, protocol, port, vpc, health_check_path)
-    //     VALUES
-    //         ('${servicePubRepoTargetGroupName}', 'ip', 'HTTP', ${hostPort}, 'default', '/health');
-    //     INSERT INTO aws_load_balancer
-    //         (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
-    //     VALUES
-    //         ('${servicePubRepoLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
-    //     INSERT INTO aws_load_balancer_security_groups
-    //         (aws_load_balancer_id, aws_security_group_id)
-    //     VALUES
-    //         ((SELECT id FROM aws_load_balancer WHERE load_balancer_name = '${servicePubRepoLoadBalancerName}' LIMIT 1),
-    //           (SELECT id FROM aws_security_group WHERE group_name = 'default' LIMIT 1));
-    //     INSERT INTO aws_listener
-    //         (aws_load_balancer_id, port, protocol, action_type, target_group_id)
-    //     VALUES 
-    //         ((SELECT id FROM aws_load_balancer WHERE load_balancer_name = '${servicePubRepoLoadBalancerName}' LIMIT 1), 
-    //           ${hostPort}, 'HTTP', 'forward', (SELECT id FROM aws_target_group WHERE target_group_name = '${servicePubRepoTargetGroupName}' LIMIT 1));
-    //   COMMIT;
-    // `));
-
-    // it('applies aws_service dependencies', apply);
-
     // Service
     it('adds a new aws_service', query(`
       BEGIN;
@@ -473,27 +396,6 @@ describe('ECS Integration Testing', () => {
 
     it('applies deletes aws_service', apply);
 
-    // // deletes aws_service dependencies
-    // it('deletes aws_service dependencies', query(`
-    //   BEGIN;
-    //     DELETE FROM aws_listener
-    //     WHERE aws_load_balancer_id = (SELECT id FROM aws_load_balancer WHERE load_balancer_name = '${servicePubRepoLoadBalancerName}' LIMIT 1)
-    //       and port = ${hostPort} and protocol = 'HTTP' and action_type = 'forward' 
-    //       and target_group_id = (SELECT id FROM aws_target_group WHERE target_group_name = '${servicePubRepoTargetGroupName}' LIMIT 1);
-
-    //     DELETE FROM aws_load_balancer_security_groups
-    //     WHERE aws_load_balancer_id = (SELECT id FROM aws_load_balancer WHERE load_balancer_name = '${servicePubRepoLoadBalancerName}' LIMIT 1);
-      
-    //     DELETE FROM aws_load_balancer
-    //     WHERE load_balancer_name = '${servicePubRepoLoadBalancerName}';
-
-    //     DELETE FROM aws_target_group
-    //     WHERE target_group_name = '${servicePubRepoTargetGroupName}'; 
-    //   COMMIT;
-    // `));
-
-    // it('applies deletes aws_service dependencies', apply);
-    
     it('deletes container definitons', query(`
       begin;
         delete from aws_container_definition
