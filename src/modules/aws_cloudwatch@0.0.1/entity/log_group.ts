@@ -4,6 +4,8 @@ import {
   Column,
 } from 'typeorm'
 
+import { cloudId, } from '../../../services/cloud-id'
+
 @Entity()
 export class LogGroup {
   @PrimaryGeneratedColumn()
@@ -12,6 +14,7 @@ export class LogGroup {
   @Column({
     unique: true,
   })
+  @cloudId
   logGroupName: string;
 
   @Column({

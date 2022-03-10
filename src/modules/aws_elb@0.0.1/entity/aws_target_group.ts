@@ -4,6 +4,8 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm'
 
+import { cloudId, } from '../../../services/cloud-id'
+
 export enum TargetTypeEnum {
   ALB = "alb",
   INSTANCE = "instance",
@@ -51,6 +53,7 @@ export class AwsTargetGroup {
   @Column({
     nullable: true,
   })
+  @cloudId
   targetGroupArn?: string;
 
   @Column({

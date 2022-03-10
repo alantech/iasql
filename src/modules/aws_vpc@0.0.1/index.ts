@@ -51,7 +51,6 @@ export const AwsVpcModule: Module = new Module({
   mappers: {
     subnet: new Mapper<AwsSubnet>({
       entity: AwsSubnet,
-      entityId: (e: AwsSubnet) => e.subnetId ?? e.id.toString(),
       entityPrint: (e: AwsSubnet) => JSON.parse(JSON.stringify(e)),
       equals: (a: AwsSubnet, b: AwsSubnet) => Object.is(a.subnetId, b.subnetId), // TODO: Do better
       source: 'db',
@@ -123,7 +122,6 @@ export const AwsVpcModule: Module = new Module({
     }),
     vpc: new Mapper<AwsVpc>({
       entity: AwsVpc,
-      entityId: (e: AwsVpc) => e.vpcId ?? e.id.toString(),
       entityPrint: (e: AwsVpc) => JSON.parse(JSON.stringify(e)),
       equals: (a: AwsVpc, b: AwsVpc) => Object.is(a.vpcId, b.vpcId), // TODO: Do better
       source: 'db',

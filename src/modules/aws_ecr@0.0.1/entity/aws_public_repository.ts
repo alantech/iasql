@@ -1,5 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, } from 'typeorm'
 
+import { cloudId, } from '../../../services/cloud-id'
+
 @Entity()
 export class AwsPublicRepository {
   @PrimaryGeneratedColumn()
@@ -10,6 +12,7 @@ export class AwsPublicRepository {
     unique: true,
     nullable: false,
   })
+  @cloudId
   repositoryName: string;
 
   @Column({

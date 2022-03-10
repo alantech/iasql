@@ -4,11 +4,14 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm'
 
+import { cloudId, } from '../../../services/cloud-id'
+
 @Entity({
   name: 'aws_account',
 })
 export class AwsAccountEntity {
   @PrimaryGeneratedColumn()
+  @cloudId
   id: number;
 
   @Column()

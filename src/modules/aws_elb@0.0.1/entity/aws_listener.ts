@@ -9,6 +9,7 @@ import {
 
 import { AwsLoadBalancer, } from './aws_load_balancer'
 import { AwsTargetGroup, ProtocolEnum, } from './aws_target_group'
+import { cloudId, } from '../../../services/cloud-id'
 
 export enum ActionTypeEnum {
   // AUTHENTICATE_COGNITO = "authenticate-cognito",
@@ -25,6 +26,7 @@ export class AwsListener {
   id: number;
 
   @Column({ nullable: true, })
+  @cloudId
   listenerArn?: string;
 
   @ManyToOne(() => AwsLoadBalancer, { nullable: false, })

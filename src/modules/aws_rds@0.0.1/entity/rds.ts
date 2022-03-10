@@ -7,6 +7,7 @@ import {
 } from 'typeorm'
 
 import { AwsSecurityGroup, } from '../../aws_security_group@0.0.1/entity'
+import { cloudId, } from '../../../services/cloud-id'
 
 @Entity()
 export class RDS {
@@ -18,6 +19,7 @@ export class RDS {
   @Column({
     unique: true,
   })
+  @cloudId
   dbInstanceIdentifier: string;
 
   // TODO: Add constraints? range vary based on storage type and engine
