@@ -19,7 +19,10 @@ export enum TransportProtocol {
   UDP = "udp"
 }
 
-@Check(`"docker_image" is not null or "repository_id" is not null  or "public_repository_id" is not null`)
+// `image` > `repository` > `publicRepository`
+// `tag` > `digest` > null
+@Check(`image is null and (repository is not null or publicRepository is not null)`)
+@Check(`image is null and (tag is not null or digest is not null)`)
 @Entity()
 export class AwsContainerDefinition {
   @PrimaryGeneratedColumn()
@@ -36,7 +39,13 @@ export class AwsContainerDefinition {
 
   // TODO: add constraint  Up to 255 letters (uppercase and lowercase), numbers, hyphens, underscores, colons, periods, forward slashes, and number signs are allowed.
   @Column({ nullable: true, })
-  dockerImage?: string;
+  image?: string;
+
+  @Column({ nullable: true, })
+  tag?: string;
+
+  @Column({ nullable: true, })
+  digest?: string;
 
   @ManyToOne(() => AwsRepository, { nullable: true, })
   @JoinColumn({
@@ -49,9 +58,6 @@ export class AwsContainerDefinition {
     name: "public_repository_id"
   })
   publicRepository?: AwsPublicRepository;
-
-  @Column()
-  tag: string;
 
   @Column({
     default: false,

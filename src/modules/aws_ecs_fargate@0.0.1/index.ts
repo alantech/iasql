@@ -47,19 +47,33 @@ export const AwsEcsFargateModule: Module = new Module({
       out.containerPort = portMapping?.containerPort;
       out.hostPort = portMapping?.hostPort;
       out.protocol = portMapping?.protocol;
-      const imageTag = c.image?.split(':');
-      if (imageTag[0]?.includes('amazonaws.com')) {
-        const repositoryName = imageTag[0].split('/')[1] ?? null;
+      let containerImage;
+      if (c?.image?.includes(':')) {  // Image with tag
+        const split = c.image.split(':');
+        containerImage = split[0];
+        out.tag = split[1];
+      } else if (c?.image?.includes('@')) {  // Image with digest
+        const split = c.image.split('@');
+        containerImage = split[0];
+        out.digest = split[1];
+      } else {  // Just image name
+        containerImage = c?.image;
+      }
+      if (containerImage?.includes('amazonaws.com')) {  // Private ECR
+        const parts = containerImage.split('/');
+        const repositoryName = parts[parts.length - 1] ?? null;
         try {
-          const repository = await AwsEcrModule.mappers.repository.db.read(ctx, repositoryName) ?? await AwsEcrModule.mappers.repository.cloud.read(ctx, repositoryName);
+          const repository = await AwsEcrModule.mappers.repository.db.read(ctx, repositoryName) ?? 
+            await AwsEcrModule.mappers.repository.cloud.read(ctx, repositoryName);
           out.repository = repository;
         } catch (e) {
           // Repository could have been deleted
           console.error(e);
           out.repository = undefined;
         }
-      } else if (imageTag[0]?.includes('public.ecr.aws')) {
-        const publicRepositoryName = imageTag[0].split('/')[2] ?? null;
+      } else if (containerImage?.includes('public.ecr.aws')) {  // Public ECR
+        const parts = containerImage.split('/');
+        const publicRepositoryName = parts[parts.length - 1] ?? null;
         try {
           const publicRepository = await AwsEcrModule.mappers.publicRepository.db.read(ctx, publicRepositoryName) ??
             await AwsEcrModule.mappers.publicRepository.cloud.read(ctx, publicRepositoryName);
@@ -69,10 +83,10 @@ export const AwsEcsFargateModule: Module = new Module({
           console.error(e);
           out.publicRepository = undefined;
         }
-      } else {
-        out.dockerImage = imageTag[0];
       }
-      out.tag = imageTag[1];
+      if (!out.repository && !out.publicRepository) {
+        out.image = containerImage;
+      }
       // TODO: eventually handle more log drivers
       if (c.logConfiguration?.logDriver === 'awslogs') {
         const groupName = c.logConfiguration.options['awslogs-group'];
@@ -127,7 +141,6 @@ export const AwsEcsFargateModule: Module = new Module({
       return out;
     },
     containersEq: (a: AwsContainerDefinition, b: AwsContainerDefinition) => Object.is(a.cpu, b.cpu)
-      && Object.is(a.dockerImage, b.dockerImage)
       && Object.is(Object.keys(a.envVariables ?? {}).length, Object.keys(b.envVariables ?? {}).length)
       && Object.keys(a.envVariables ?? {}).every((aevk: string) => !!Object.keys(b.envVariables ?? {}).find((bevk: string) => Object.is(aevk, bevk) && Object.is(a.envVariables[aevk], b.envVariables[bevk])))
       && Object.is(a.essential, b.essential)
@@ -140,6 +153,8 @@ export const AwsEcsFargateModule: Module = new Module({
       && Object.is(a.protocol, b.protocol)
       && Object.is(a.publicRepository?.repositoryName, b.publicRepository?.repositoryName)
       && Object.is(a.repository?.repositoryName, b.repository?.repositoryName)
+      && Object.is(a.image, b.image)
+      && Object.is(a.digest, b.digest)
       && Object.is(a.tag, b.tag),
   },
   mappers: {
@@ -258,19 +273,6 @@ export const AwsEcsFargateModule: Module = new Module({
       source: 'db',
       db: new Crud({
         create: async (es: AwsTaskDefinition[], ctx: Context) => {
-          es.forEach((entity: AwsTaskDefinition) => {
-            const containerDefinitions: any = entity?.containerDefinitions?.map(cd => {
-              // For INACTIVE tasks it is not necessary to exists a ecr repository to link since it could have been deleted.
-              if (!cd?.repository && !cd?.publicRepository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.ACTIVE) {
-                throw new Error('Invalid container image')
-              } else if (!cd?.repository && !cd?.publicRepository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.INACTIVE) {
-                return null;
-              } else {
-                return cd;
-              }
-            });
-            entity.containerDefinitions = containerDefinitions?.filter((c: any) => c !== null);
-          });
           await Promise.all(es.map(async (entity: AwsTaskDefinition) => {
             const containerDefinitions = entity.containerDefinitions;
             if (containerDefinitions) {
@@ -295,19 +297,6 @@ export const AwsEcsFargateModule: Module = new Module({
           return await ctx.orm.find(AwsTaskDefinition, opts);
         },
         update: async (es: AwsTaskDefinition[], ctx: Context) => {
-          es.forEach((entity: AwsTaskDefinition) => {
-            const containerDefinitions: any = entity?.containerDefinitions?.map(cd => {
-              // For INACTIVE tasks it is not necessary to exists a ecr repository to link since it could have been deleted.
-              if (!cd?.repository && !cd?.publicRepository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.ACTIVE) {
-                throw new Error('Invalid container image')
-              } else if (!cd?.repository && !cd?.publicRepository && !cd?.dockerImage && entity.status === TaskDefinitionStatus.INACTIVE) {
-                return null;
-              } else {
-                return cd;
-              }
-            });
-            entity.containerDefinitions = containerDefinitions?.filter((c: any) => c !== null);
-          });
           await Promise.all(es.map(async (entity: AwsTaskDefinition) => {
             const containerDefinitions = entity.containerDefinitions;
             if (containerDefinitions) {
@@ -327,18 +316,29 @@ export const AwsEcsFargateModule: Module = new Module({
               family: e.family,
               containerDefinitions: e.containerDefinitions.map(c => {
                 const container: any = { ...c };
-                if (c.repository && !c.repository?.repositoryUri) {
-                  throw new Error('Repository need to be created first');
+                let image;
+                if (c.image) {
+                  image = c.image;
+                } else if (c.repository) {
+                  if (!c.repository?.repositoryUri) {
+                    throw new Error('Repository need to be created first');
+                  }
+                  image = c.repository.repositoryUri;
+                } else if (c.publicRepository) {
+                  if (!c.publicRepository?.repositoryUri) {
+                    throw new Error('Public repository need to be created first');
+                  }
+                  image = c.publicRepository.repositoryUri;
+                } else {
+                  console.error('How the DB constraint have been ignored?');
                 }
-                if (c.publicRepository && !c.publicRepository?.repositoryUri) {
-                  throw new Error('Public repository need to be created first');
+                if (c.tag) {
+                  container.image = `${image}:${c.tag}`;
+                } else if (c.digest) {
+                  container.image = `${image}@${c.digest}`;
+                } else {
+                  container.image = image;
                 }
-                container.image = `${c.repository ?
-                  c.repository.repositoryUri :
-                  c.publicRepository ?
-                    c.publicRepository.repositoryUri :
-                    c.dockerImage
-                  }:${c.tag}`;
                 if (container.logGroup) {
                   // TODO: improve log configuration
                   container.logConfiguration = {
