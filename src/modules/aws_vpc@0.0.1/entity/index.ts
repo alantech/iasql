@@ -6,6 +6,8 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm'
 
+import { cloudId, } from '../../../services/cloud-id'
+
 export enum VpcState {
   AVAILABLE = 'available',
   PENDING = 'pending',
@@ -19,6 +21,7 @@ export class AwsVpc {
   @Column({
     nullable: true,
   })
+  @cloudId
   vpcId?: string;
 
   @Column()
@@ -182,6 +185,7 @@ export class AwsSubnet {
   @Column({
     nullable: true,
   })
+  @cloudId
   subnetId?: string;
 
   @Column({

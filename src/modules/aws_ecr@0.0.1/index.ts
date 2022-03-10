@@ -69,7 +69,6 @@ export const AwsEcrModule: Module = new Module({
   mappers: {
     publicRepository: new Mapper<AwsPublicRepository>({
       entity: AwsPublicRepository,
-      entityId: (e: AwsPublicRepository) => e?.repositoryName ?? e.id.toString(),
       entityPrint: (e: AwsPublicRepository) => ({
         id: e?.id?.toString() ?? '',
         repositoryName: e?.repositoryName ?? '',
@@ -147,7 +146,6 @@ export const AwsEcrModule: Module = new Module({
     }),
     repository: new Mapper<AwsRepository>({
       entity: AwsRepository,
-      entityId: (e: AwsRepository) => e.repositoryName ?? e.id.toString(),
       entityPrint: (e: AwsRepository) => ({
         id: e?.id?.toString() ?? '',
         repositoryName: e?.repositoryName ?? '',

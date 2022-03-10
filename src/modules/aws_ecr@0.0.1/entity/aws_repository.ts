@@ -1,5 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, } from 'typeorm'
 
+import { cloudId, } from '../../../services/cloud-id'
+
 export enum ImageTagMutability {
   IMMUTABLE = "IMMUTABLE",
   MUTABLE = "MUTABLE",
@@ -15,6 +17,7 @@ export class AwsRepository {
     unique: true,
     nullable: false,
   })
+  @cloudId
   repositoryName: string;
 
   @Column({

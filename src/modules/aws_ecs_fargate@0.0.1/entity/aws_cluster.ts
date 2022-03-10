@@ -4,6 +4,8 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm'
 
+import { cloudId, } from '../../../services/cloud-id'
+
 @Entity()
 export class AwsCluster {
   @PrimaryGeneratedColumn()
@@ -17,6 +19,7 @@ export class AwsCluster {
   @Column({
     nullable: true,
   })
+  @cloudId
   clusterArn?: string;
 
   @Column({

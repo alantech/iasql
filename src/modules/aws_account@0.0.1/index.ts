@@ -39,7 +39,6 @@ export const AwsAccount: Module = new Module({
   mappers: {
     awsAccount: new Mapper<AwsAccountEntity>({
       entity: AwsAccountEntity,
-      entityId: (e: AwsAccountEntity) => e.id + '',
       entityPrint: (e: AwsAccountEntity) => ({
         id: e.id?.toString() ?? '',
         accessKeyId: e.accessKeyId ?? '',

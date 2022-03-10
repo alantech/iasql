@@ -10,9 +10,11 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm'
+
 import { AwsCluster, AwsTaskDefinition, AwsContainerDefinition } from '.';
 import { AwsTargetGroup } from '../../aws_elb@0.0.1/entity';
 import { AwsSecurityGroup } from '../../aws_security_group@0.0.1/entity';
+import { cloudId, } from '../../../services/cloud-id'
 
 export enum AssignPublicIp {
   DISABLED = "DISABLED",
@@ -32,6 +34,7 @@ export class AwsService {
   @Column({
     nullable: true,
   })
+  @cloudId
   arn?: string;
 
   @Column({
