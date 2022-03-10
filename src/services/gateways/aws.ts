@@ -1132,6 +1132,7 @@ export class AWS {
           const data = await client.send(cmd);
           if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
           for (const dbInstance of data?.DBInstances ?? []) {
+            console.log('db instance status!', dbInstance.DBInstanceStatus)
             if (dbInstance.DBInstanceStatus !== 'modifying')
               return { state: WaiterState.RETRY };
           }
