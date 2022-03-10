@@ -63,7 +63,7 @@ export const AwsEcsFargateModule: Module = new Module({
         const parts = containerImage.split('/');
         const repositoryName = parts[parts.length - 1] ?? null;
         try {
-          const repository = await AwsEcrModule.mappers.repository.db.read(ctx, repositoryName) ?? 
+          const repository = await AwsEcrModule.mappers.repository.db.read(ctx, repositoryName) ??
             await AwsEcrModule.mappers.repository.cloud.read(ctx, repositoryName);
           out.repository = repository;
         } catch (e) {
