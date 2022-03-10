@@ -6,11 +6,10 @@ import { Instance, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group@0.0.1'
 import { AWS, IASQL_EC2_TAG_NAME } from '../../services/gateways/aws'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
+import * as metadata from './module.json'
 
 export const AwsEc2Module: Module = new Module({
-  name: 'aws_ec2',
-  version: '0.0.1',
-  dependencies: ['aws_account@0.0.1', 'aws_security_group@0.0.1'],
+  ...metadata,
   provides: {
     entities: allEntities,
     tables: [
@@ -37,7 +36,7 @@ export const AwsEc2Module: Module = new Module({
   mappers: {
     instance: new Mapper<Instance>({
       entity: Instance,
-      entityId: (i: Instance) => i.instanceId ?? i.name,
+      entityId: (i: Instance) => i.instanceId ?? i.id?.toString() ?? '',
       entityPrint: (e: Instance) => ({
         name: e.name,
         id: e.id?.toString() ?? '',

@@ -12,18 +12,10 @@ import {
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule, } from '..'
+import * as metadata from './module.json'
 
 export const AwsEcsFargateModule: Module = new Module({
-  name: 'aws_ecs_fargate',
-  version: '0.0.1',
-  dependencies: [
-    'aws_account@0.0.1',
-    'aws_ecr@0.0.1',
-    'aws_elb@0.0.1',
-    'aws_security_group@0.0.1',
-    'aws_cloudwatch@0.0.1',
-    'aws_vpc@0.0.1',
-  ],
+  ...metadata,
   provides: {
     entities: allEntities,
     tables: ['aws_cluster', 'aws_container_definition', 'env_variable', 'port_mapping', 'aws_task_definition', 'aws_service',],
@@ -153,7 +145,7 @@ export const AwsEcsFargateModule: Module = new Module({
   mappers: {
     cluster: new Mapper<AwsCluster>({
       entity: AwsCluster,
-      entityId: (e: AwsCluster) => e?.clusterArn ?? 'default',
+      entityId: (e: AwsCluster) => e.clusterArn ?? e.id?.toString() ?? '',
       entityPrint: (e: AwsCluster) => ({
         id: e?.id?.toString() ?? '',
         clusterName: e?.clusterName ?? '',
@@ -242,7 +234,7 @@ export const AwsEcsFargateModule: Module = new Module({
     }),
     taskDefinition: new Mapper<AwsTaskDefinition>({
       entity: AwsTaskDefinition,
-      entityId: (e: AwsTaskDefinition) => e?.taskDefinitionArn ?? '',
+      entityId: (e: AwsTaskDefinition) => e.taskDefinitionArn ?? e.id?.toString() ?? '',
       entityPrint: (e: AwsTaskDefinition) => ({
         id: e?.id?.toString() ?? '',
         taskDefinitionArn: e?.taskDefinitionArn ?? '',
@@ -483,7 +475,7 @@ export const AwsEcsFargateModule: Module = new Module({
     }),
     service: new Mapper<AwsService>({
       entity: AwsService,
-      entityId: (e: AwsService) => e?.arn ?? '',
+      entityId: (e: AwsService) => e.arn ?? e.id?.toString() ?? '',
       entityPrint: (e: AwsService) => ({
         id: e?.id?.toString() ?? '',
         name: e?.name ?? '',

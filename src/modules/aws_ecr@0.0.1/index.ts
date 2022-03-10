@@ -7,11 +7,10 @@ import { AWS, } from '../../services/gateways/aws'
 import { AwsPublicRepository, AwsRepository, AwsRepositoryPolicy, ImageTagMutability, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
+import * as metadata from './module.json'
 
 export const AwsEcrModule: Module = new Module({
-  name: 'aws_ecr',
-  version: '0.0.1',
-  dependencies: ['aws_account@0.0.1'],
+  ...metadata,
   provides: {
     entities: allEntities,
     tables: ['aws_repository', 'aws_repository_policy', 'aws_public_repository',],
@@ -70,7 +69,7 @@ export const AwsEcrModule: Module = new Module({
   mappers: {
     publicRepository: new Mapper<AwsPublicRepository>({
       entity: AwsPublicRepository,
-      entityId: (e: AwsPublicRepository) => e?.repositoryName ?? '',
+      entityId: (e: AwsPublicRepository) => e?.repositoryName ?? e.id.toString(),
       entityPrint: (e: AwsPublicRepository) => ({
         id: e?.id?.toString() ?? '',
         repositoryName: e?.repositoryName ?? '',
@@ -148,7 +147,7 @@ export const AwsEcrModule: Module = new Module({
     }),
     repository: new Mapper<AwsRepository>({
       entity: AwsRepository,
-      entityId: (e: AwsRepository) => e?.repositoryName ?? '',
+      entityId: (e: AwsRepository) => e.repositoryName ?? e.id.toString(),
       entityPrint: (e: AwsRepository) => ({
         id: e?.id?.toString() ?? '',
         repositoryName: e?.repositoryName ?? '',
@@ -246,7 +245,7 @@ export const AwsEcrModule: Module = new Module({
     }),
     repositoryPolicy: new Mapper<AwsRepositoryPolicy>({
       entity: AwsRepositoryPolicy,
-      entityId: (e: AwsRepositoryPolicy) => e.repository?.repositoryName + '',
+      entityId: (e: AwsRepositoryPolicy) => e.repository?.repositoryName + '' ?? e.id.toString(),
       entityPrint: (e: AwsRepositoryPolicy) => ({
         id: e?.id?.toString() ?? '',
         registryId: e?.registryId ?? '',

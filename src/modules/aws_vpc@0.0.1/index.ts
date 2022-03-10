@@ -11,11 +11,10 @@ import {
 } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
+import * as metadata from './module.json'
 
 export const AwsVpcModule: Module = new Module({
-  name: 'aws_vpc',
-  version: '0.0.1',
-  dependencies: ['aws_account@0.0.1'],
+  ...metadata,
   provides: {
     entities: allEntities,
     tables: ['aws_subnet', 'aws_vpc'],

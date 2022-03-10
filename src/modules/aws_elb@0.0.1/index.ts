@@ -19,11 +19,10 @@ import {
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
+import * as metadata from './module.json'
 
 export const AwsElbModule: Module = new Module({
-  name: 'aws_elb',
-  version: '0.0.1',
-  dependencies: ['aws_account@0.0.1', 'aws_security_group@0.0.1',],
+  ...metadata,
   provides: {
     entities: allEntities,
     tables: ['aws_target_group', 'aws_load_balancer', 'aws_listener', 'aws_action',],
@@ -107,7 +106,7 @@ export const AwsElbModule: Module = new Module({
   mappers: {
     listener: new Mapper<AwsListener>({
       entity: AwsListener,
-      entityId: (e: AwsListener) => e?.listenerArn ?? '',
+      entityId: (e: AwsListener) => e.listenerArn ?? e.id.toString(),
       entityPrint: (e: AwsListener) => ({
         id: e?.id?.toString() ?? '',
         listenerArn: e?.listenerArn ?? '',
@@ -231,7 +230,7 @@ export const AwsElbModule: Module = new Module({
     }),
     loadBalancer: new Mapper<AwsLoadBalancer>({
       entity: AwsLoadBalancer,
-      entityId: (e: AwsLoadBalancer) => e?.loadBalancerArn ?? '',
+      entityId: (e: AwsLoadBalancer) => e.loadBalancerArn ?? e.id.toString(),
       entityPrint: (e: AwsLoadBalancer) => ({
         id: e?.id?.toString() ?? '',
         loadBalancerName: e?.loadBalancerName ?? '',
@@ -412,7 +411,7 @@ export const AwsElbModule: Module = new Module({
     }),
     targetGroup: new Mapper<AwsTargetGroup>({
       entity: AwsTargetGroup,
-      entityId: (e: AwsTargetGroup) => e?.targetGroupArn ?? '',
+      entityId: (e: AwsTargetGroup) => e.targetGroupArn ?? e.id.toString(),
       entityPrint: (e: AwsTargetGroup) => ({
         id: e?.id?.toString() ?? '',
         targetGroupName: e?.targetGroupName ?? '',
