@@ -1115,16 +1115,14 @@ export class AWS {
     let updatedDBInstance = (await this.rdsClient.send(
       new ModifyDBInstanceCommand(input)
     ))?.DBInstance;
-    console.log('status', updatedDBInstance?.DBInstanceStatus)
     const inputCommand = new DescribeDBInstancesCommand({
       DBInstanceIdentifier: input.DBInstanceIdentifier,
     });
-    const t1 = Date.now();
     await createWaiter<RDSClient, DescribeDBInstancesCommand>(
       {
         client: this.rdsClient,
         // all in seconds
-        maxWaitTime: 600,
+        maxWaitTime: 300,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -1134,7 +1132,6 @@ export class AWS {
           const data = await client.send(cmd);
           if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
           for (const dbInstance of data?.DBInstances ?? []) {
-            console.log('status', dbInstance.DBInstanceStatus)
             if (dbInstance.DBInstanceStatus === 'available')
               return { state: WaiterState.RETRY };
           }
@@ -1146,8 +1143,6 @@ export class AWS {
         }
       },
     );
-    const t2 = Date.now();
-    console.log(`from available to start modifying in ${t2-t1}ms`)
     await createWaiter<RDSClient, DescribeDBInstancesCommand>(
       {
         client: this.rdsClient,
@@ -1162,7 +1157,6 @@ export class AWS {
           const data = await client.send(cmd);
           if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
           for (const dbInstance of data?.DBInstances ?? []) {
-            console.log('status', dbInstance.DBInstanceStatus)
             if (dbInstance.DBInstanceStatus !== 'available')
               return { state: WaiterState.RETRY };
             updatedDBInstance = dbInstance;
