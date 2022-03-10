@@ -21,8 +21,8 @@ export enum TransportProtocol {
 
 // `image` > `repository` > `publicRepository`
 // `tag` > `digest` > null
-@Check(`image is null and (repository is not null or publicRepository is not null)`)
-@Check(`image is null and (tag is not null or digest is not null)`)
+@Check(`"image" is null and ("repository_id" is not null or "public_repository_id" is not null)`)
+@Check(`"image" is null and ("tag" is not null or "digest" is not null)`)
 @Entity()
 export class AwsContainerDefinition {
   @PrimaryGeneratedColumn()
