@@ -1119,6 +1119,35 @@ export class AWS {
     const inputCommand = new DescribeDBInstancesCommand({
       DBInstanceIdentifier: input.DBInstanceIdentifier,
     });
+    const t1 = Date.now();
+    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
+      {
+        client: this.rdsClient,
+        // all in seconds
+        maxWaitTime: 600,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      inputCommand,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
+          for (const dbInstance of data?.DBInstances ?? []) {
+            console.log('status', dbInstance.DBInstanceStatus)
+            if (dbInstance.DBInstanceStatus === 'available')
+              return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
+    );
+    const t2 = Date.now();
+    console.log(`from available to start modifying in ${t2-t1}ms`)
     await createWaiter<RDSClient, DescribeDBInstancesCommand>(
       {
         client: this.rdsClient,
