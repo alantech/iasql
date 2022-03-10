@@ -227,6 +227,9 @@ export const AwsSecurityGroupModule: Module = new Module({
                 (r: AwsSecurityGroupRule) => r.securityGroup.groupId === e.groupId
               );
               await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(relevantRules, ctx);
+              // Let's flush the caches here, too?
+              ctx.memo.cloud.AwsSecurityGroup = {};
+              ctx.memo.db.AwsSecurityGroup = {};
             }
           }));
         },
