@@ -201,12 +201,12 @@ describe('ECR install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the ECR module', (done) => void iasql.uninstall(
-    ['aws_ecr@0.0.1'],
+    ['aws_ecr@0.0.1', 'aws_ecs_fargate@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('installs the ECR module', (done) => void iasql.install(
-    ['aws_ecr@0.0.1'],
+    ['aws_ecr@0.0.1', 'aws_ecs_fargate@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 
