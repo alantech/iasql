@@ -83,16 +83,6 @@ export const AwsEcrModule: Module = new Module({
         && Object.is(a.repositoryUri, b.repositoryUri)
         && Object.is(a.createdAt?.getTime(), b.createdAt?.getTime()),
       source: 'db',
-      db: new Crud({
-        create: (e: AwsPublicRepository[], ctx: Context) => ctx.orm.save(AwsPublicRepository, e),
-        read: async (ctx: Context, ids?: string[]) => ctx.orm.find(AwsPublicRepository, ids ? {
-          where: {
-            repositoryName: In(ids),
-          },
-        } : undefined),
-        update: (e: AwsPublicRepository[], ctx: Context) => ctx.orm.save(AwsPublicRepository, e),
-        delete: (e: AwsPublicRepository[], ctx: Context) => ctx.orm.remove(AwsPublicRepository, e),
-      }),
       cloud: new Crud({
         create: async (sg: AwsPublicRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -164,16 +154,6 @@ export const AwsEcrModule: Module = new Module({
         && Object.is(a.imageTagMutability, b.imageTagMutability)
         && Object.is(a.scanOnPush, b.scanOnPush),
       source: 'db',
-      db: new Crud({
-        create: (e: AwsRepository[], ctx: Context) => ctx.orm.save(AwsRepository, e),
-        read: async (ctx: Context, ids?: string[]) => ctx.orm.find(AwsRepository, ids ? {
-          where: {
-            repositoryName: In(ids),
-          },
-        } : undefined),
-        update: (e: AwsRepository[], ctx: Context) => ctx.orm.save(AwsRepository, e),
-        delete: (e: AwsRepository[], ctx: Context) => ctx.orm.remove(AwsRepository, e),
-      }),
       cloud: new Crud({
         create: async (sg: AwsRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;

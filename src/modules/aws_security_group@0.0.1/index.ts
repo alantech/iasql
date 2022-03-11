@@ -59,6 +59,7 @@ export const AwsSecurityGroupModule: Module = new Module({
       db: new Crud({
         create: (e: AwsSecurityGroup[], ctx: Context) => ctx.orm.save(AwsSecurityGroup, e),
         read: async (ctx: Context, ids?: string[]) => {
+          // TODO: Possible to automate this?
           const relations = ['securityGroupRules', 'securityGroupRules.securityGroup'];
           const opts = ids ? {
             where: {
@@ -261,6 +262,7 @@ export const AwsSecurityGroupModule: Module = new Module({
       db: new Crud({
         create: (e: AwsSecurityGroupRule[], ctx: Context) => ctx.orm.save(AwsSecurityGroupRule, e),
         read: async (ctx: Context, ids?: string[]) => {
+          // TODO: Possible to automate this?
           const relations = ['securityGroup', 'securityGroup.securityGroupRules',];
           const opts = ids ? {
             where: {

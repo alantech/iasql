@@ -47,16 +47,6 @@ export const AwsAccount: Module = new Module({
       }),
       equals: (_a: AwsAccountEntity, _b: AwsAccountEntity) => true,
       source: 'db',
-      db: new Crud({
-        create: (e: AwsAccountEntity[], ctx: Context) => ctx.orm.save(AwsAccountEntity, e),
-        read: (ctx: Context, ids?: string[]) => ctx.orm.find(AwsAccountEntity, ids ? {
-          where: {
-            id: In(ids),
-          },
-        } : undefined),
-        update: (e: AwsAccountEntity[], ctx: Context) => ctx.orm.save(AwsAccountEntity, e),
-        delete: (e: AwsAccountEntity[], ctx: Context) => ctx.orm.remove(AwsAccountEntity, e),
-      }),
       cloud: new Crud({
         // We don't actually connect to AWS for this module, because it's meta
         // TODO: Perhaps we should to validate the credentials as being valid?
