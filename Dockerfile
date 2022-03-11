@@ -1,4 +1,4 @@
-FROM node:16-bullseye
+FROM node:17-bullseye
 WORKDIR /engine/
 COPY . /engine/
 RUN apt update
