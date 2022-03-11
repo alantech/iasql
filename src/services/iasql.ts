@@ -175,7 +175,9 @@ export async function dump(dbAlias: string, user: any, dataOnly: boolean) {
     config.dbPassword
   )}@${config.dbHost}/${dbId}`;
   const { stdout, } = await exec(
-    `pg_dump ${dataOnly ? '--data-only --column-inserts, --rows-per-insert=50 --exclude-table-data=aws_account --on-conflict-do-nothing' : ''} --inserts -x ${pgUrl}`,
+    `pg_dump ${
+      dataOnly ? '--data-only --column-inserts --rows-per-insert=50 --exclude-table-data=aws_account --on-conflict-do-nothing' : ''
+    } --inserts -x ${pgUrl}`,
     { shell: '/bin/bash', }
   );
   return stdout;
