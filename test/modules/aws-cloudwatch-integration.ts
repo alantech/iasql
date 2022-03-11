@@ -88,12 +88,12 @@ describe('AwsCloudwatch install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the cloudwatch module', (done) => void iasql.uninstall(
-    ['aws_cloudwatch@0.0.1'],
+    ['aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('installs the cloudwatch module', (done) => void iasql.install(
-    ['aws_cloudwatch@0.0.1'],
+    ['aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 
