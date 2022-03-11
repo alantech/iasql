@@ -61,7 +61,7 @@
     "express": "^4.17.1",
     "express-jwt": "^6.1.0",
     "jwks-rsa": "^2.0.4",
-    "pg": "^8.7.1",
+    "pg": "^8.7.3",
     "reflect-metadata": "^0.1.13",
     "semver": "^7.3.5",
     "typeorm": "^0.2.37",
