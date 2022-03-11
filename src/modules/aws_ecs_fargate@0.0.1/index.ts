@@ -48,14 +48,14 @@ export const AwsEcsFargateModule: Module = new Module({
       out.hostPort = portMapping?.hostPort;
       out.protocol = portMapping?.protocol;
       let containerImage;
-      if (c?.image?.includes(':')) {  // Image with tag
-        const split = c.image.split(':');
-        containerImage = split[0];
-        out.tag = split[1];
-      } else if (c?.image?.includes('@')) {  // Image with digest
+      if (c?.image?.includes('@')) {  // Image with digest
         const split = c.image.split('@');
         containerImage = split[0];
         out.digest = split[1];
+      } else if (c?.image?.includes(':')) {  // Image with tag
+        const split = c.image.split(':');
+        containerImage = split[0];
+        out.tag = split[1];
       } else {  // Just image name
         containerImage = c?.image;
       }
@@ -268,8 +268,8 @@ export const AwsEcsFargateModule: Module = new Module({
         && Object.is(a.status, b.status)
         && Object.is(a.taskDefinitionArn, b.taskDefinitionArn)
         && Object.is(a.taskRoleArn, b.taskRoleArn)
-        && (a.status === TaskDefinitionStatus.ACTIVE && b.status === TaskDefinitionStatus.ACTIVE ? Object.is(a.containerDefinitions.length, b.containerDefinitions.length)
-          && a.containerDefinitions.every(ac => !!b.containerDefinitions.find(bc => AwsEcsFargateModule.utils.containersEq(ac, bc))) : true),
+        && Object.is(a.containerDefinitions.length, b.containerDefinitions.length)
+        && a.containerDefinitions.every(ac => !!b.containerDefinitions.find(bc => AwsEcsFargateModule.utils.containersEq(ac, bc))),
       source: 'db',
       db: new Crud({
         create: async (es: AwsTaskDefinition[], ctx: Context) => {
@@ -332,10 +332,10 @@ export const AwsEcsFargateModule: Module = new Module({
                 } else {
                   console.error('How the DB constraint have been ignored?');
                 }
-                if (c.tag) {
-                  container.image = `${image}:${c.tag}`;
-                } else if (c.digest) {
+                if (c.digest) {
                   container.image = `${image}@${c.digest}`;
+                } else if (c.tag) {
+                  container.image = `${image}:${c.tag}`;
                 } else {
                   container.image = image;
                 }
