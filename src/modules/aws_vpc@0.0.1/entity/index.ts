@@ -126,6 +126,7 @@ export enum AvailabilityZone {
   us_east_2b = 'us-east-2b',
   us_east_2c = 'us-east-2c',
   us_west_1a = 'us-west-1a',
+  us_west_1b = 'us-west-1b',
   us_west_1c = 'us-west-1c',
   us_west_2_den_1a = 'us-west-2-den-1a',
   us_west_2_las_1a = 'us-west-2-las-1a',
