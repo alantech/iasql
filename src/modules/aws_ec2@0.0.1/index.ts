@@ -1,5 +1,4 @@
 import { Instance as InstanceAWS, } from '@aws-sdk/client-ec2'
-import { In, } from 'typeorm'
 
 import * as allEntities from './entity'
 import { Instance, } from './entity'
@@ -51,16 +50,6 @@ export const AwsEc2Module: Module = new Module({
         Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
         a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
       source: 'db',
-      db: new Crud({
-        create: (e: Instance[], ctx: Context) => ctx.orm.save(Instance, e),
-        read: (ctx: Context, ids?: string[]) => ctx.orm.find(Instance, ids ? {
-          where: {
-            instanceId: In(ids),
-          },
-        } : undefined),
-        update: (e: Instance[], ctx: Context) => ctx.orm.save(Instance, e),
-        delete: (e: Instance[], ctx: Context) => ctx.orm.remove(Instance, e),
-      }),
       cloud: new Crud({
         create: async (es: Instance[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
