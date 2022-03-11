@@ -174,12 +174,12 @@ describe('Security Group install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the Security Group module', (done) => void iasql.uninstall(
-    ['aws_rds@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1',],
+    ['aws_rds@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_ec2@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('installs the Security Group module', (done) => void iasql.install(
-    ['aws_security_group@0.0.1', 'aws_rds@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_elb@0.0.1'],
+    ['aws_security_group@0.0.1', 'aws_rds@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_elb@0.0.1', 'aws_ec2@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
 
