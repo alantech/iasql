@@ -7,7 +7,9 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+
 import { AwsContainerDefinition } from '.';
+import { cloudId, } from '../../../services/cloud-id'
 
 export enum TaskDefinitionStatus {
   ACTIVE = "ACTIVE",
@@ -75,6 +77,7 @@ export class AwsTaskDefinition {
   @Column({
     nullable: true,
   })
+  @cloudId
   taskDefinitionArn?: string;
 
   @Column()

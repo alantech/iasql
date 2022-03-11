@@ -7,6 +7,7 @@ import {
 } from 'typeorm'
 
 import { AwsSecurityGroup } from '../../aws_security_group@0.0.1/entity'
+import { cloudId, } from '../../../services/cloud-id'
 
 export enum LoadBalancerSchemeEnum {
   INTERNAL = "internal",
@@ -45,6 +46,7 @@ export class AwsLoadBalancer {
   @Column({
     nullable: true,
   })
+  @cloudId
   loadBalancerArn?: string;
 
   @Column({

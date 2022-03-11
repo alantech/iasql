@@ -160,7 +160,6 @@ export const AwsEcsFargateModule: Module = new Module({
   mappers: {
     cluster: new Mapper<AwsCluster>({
       entity: AwsCluster,
-      entityId: (e: AwsCluster) => e.clusterArn ?? e.id?.toString() ?? '',
       entityPrint: (e: AwsCluster) => ({
         id: e?.id?.toString() ?? '',
         clusterName: e?.clusterName ?? '',
@@ -249,7 +248,6 @@ export const AwsEcsFargateModule: Module = new Module({
     }),
     taskDefinition: new Mapper<AwsTaskDefinition>({
       entity: AwsTaskDefinition,
-      entityId: (e: AwsTaskDefinition) => e.taskDefinitionArn ?? e.id?.toString() ?? '',
       entityPrint: (e: AwsTaskDefinition) => ({
         id: e?.id?.toString() ?? '',
         taskDefinitionArn: e?.taskDefinitionArn ?? '',
@@ -475,7 +473,6 @@ export const AwsEcsFargateModule: Module = new Module({
     }),
     service: new Mapper<AwsService>({
       entity: AwsService,
-      entityId: (e: AwsService) => e.arn ?? e.id?.toString() ?? '',
       entityPrint: (e: AwsService) => ({
         id: e?.id?.toString() ?? '',
         name: e?.name ?? '',

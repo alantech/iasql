@@ -8,6 +8,8 @@ import {
   Unique,
 } from 'typeorm'
 
+import { cloudId, } from '../../../services/cloud-id'
+
 @Entity()
 export class AwsSecurityGroup {
   @PrimaryGeneratedColumn()
@@ -31,6 +33,7 @@ export class AwsSecurityGroup {
   @Column({
     nullable: true,
   })
+  @cloudId
   groupId?: string;
 
   @Column({
@@ -51,6 +54,7 @@ export class AwsSecurityGroupRule {
   @Column({
     nullable: true,
   })
+  @cloudId
   securityGroupRuleId?: string;
 
   @ManyToOne(() => AwsSecurityGroup)

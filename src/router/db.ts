@@ -8,9 +8,9 @@ export const db = express.Router();
 db.post('/new', async (req, res) => {
   console.log('Calling /new');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
-  if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
+  if (!awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
     `Required key(s) not provided: ${[
-      'dbAlias', 'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
+      'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
   try {
@@ -39,14 +39,14 @@ db.post('/import', async (req, res) => {
 
 db.post('/export', async (req, res) => {
   console.log('Calling /export');
-  const { dbAlias, } = req.body;
+  const { dbAlias, dataOnly } = req.body;
   if (!dbAlias) return res.status(400).json(
     `Required key(s) not provided: ${[
       'dbAlias',
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
   try {
-    res.json(await iasql.dump(dbAlias, req.user));
+    res.json(await iasql.dump(dbAlias, req.user, !!dataOnly));
   } catch (e) {
     res.status(500).end(`${handleErrorMessage(e)}`);
   }

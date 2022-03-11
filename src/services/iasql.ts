@@ -2,9 +2,9 @@ import { promisify, } from 'util'
 import { exec as execNode, } from 'child_process'
 const exec = promisify(execNode);
 
-
 import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
+import { uniqueNamesGenerator, Config, adjectives, colors, animals } from 'unique-names-generator';
 
 import config from '../config'
 import { DepError, lazyLoader, } from '../services/lazy-dep'
@@ -24,13 +24,20 @@ export function recordCount(records: { [key: string]: any, }[]): [number, number
   return [ dbCount, cloudCount, bothCount, ];
 }
 
+// config for unique name generator
+// e.g. big_red_donkey
+const nameGenConfig: Config = {
+  dictionaries: [adjectives, colors, animals],
+};
+
 export async function add(
-  dbAlias: string,
+  dbAlias: string | undefined,
   awsRegion: string,
   awsAccessKeyId: string,
   awsSecretAccessKey: string,
   user: any, // TODO: Better type here
 ) {
+  dbAlias = !dbAlias ? uniqueNamesGenerator(nameGenConfig) : dbAlias;
   let conn1: any, conn2: any, dbId: any, dbUser: any;
   let orm: TypeormWrapper | undefined;
   try {
@@ -155,7 +162,7 @@ export async function list(user: any) {
   }
 }
 
-export async function dump(dbAlias: string, user: any) {
+export async function dump(dbAlias: string, user: any, dataOnly: boolean) {
   let dbId;
   try {
     const meta = await dbMan.getMetadata(dbAlias, user);
@@ -167,7 +174,12 @@ export async function dump(dbAlias: string, user: any) {
   const pgUrl = `postgres://${encodeURIComponent(config.dbUser)}:${encodeURIComponent(
     config.dbPassword
   )}@${config.dbHost}/${dbId}`;
-  const { stdout, } = await exec(`pg_dump --inserts -x ${pgUrl}`, { shell: '/bin/bash', });
+  const { stdout, } = await exec(
+    `pg_dump ${
+      dataOnly ? '--data-only --column-inserts --rows-per-insert=50 --exclude-table-data=aws_account --on-conflict-do-nothing' : ''
+    } --inserts -x ${pgUrl}`,
+    { shell: '/bin/bash', }
+  );
   return stdout;
 }
 

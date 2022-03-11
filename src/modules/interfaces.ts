@@ -1,6 +1,8 @@
 import { readdirSync, } from 'fs'
 
-import { QueryRunner, } from 'typeorm'
+import { QueryRunner, getMetadataArgsStorage, } from 'typeorm'
+
+import { getCloudId, } from '../services/cloud-id'
 
 // The exported interfaces are meant to provide better type checking both at compile time and in the
 // editor. They *shouldn't* have to be ever imported directly, only the classes ought to be, but as
@@ -204,7 +206,7 @@ export class Crud<E> {
 
 export interface MapperInterface<E> {
   entity:  new () =>  E;
-  entityId: (e: E) => string;
+  entityId?: (e: E) => string;
   entityPrint: (e: E) => { [key: string]: string, };
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
@@ -223,17 +225,30 @@ export class Mapper<E> {
 
   constructor(def: MapperInterface<E>) {
     this.entity = def.entity;
-    this.entityId = def.entityId;
+    if (def.entityId) {
+      this.entityId = def.entityId;
+    } else {
+      const ormMetadata = getMetadataArgsStorage();
+      const primaryColumn = ormMetadata
+        .columns
+        .filter(c => c.target === def.entity)
+        .filter(c => c.options.primary)
+        .map(c => c.propertyName)
+        .shift() ?? '';
+      const cloudColumn = getCloudId(def.entity);
+      // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
+      this.entityId = (e: E) => ((e as any)[cloudColumn] ?? (e as any)[primaryColumn]) + '';
+    }
     this.entityPrint = def.entityPrint;
     this.equals = def.equals;
     this.source = def.source;
     this.db = def.db;
     this.db.entity = def.entity;
-    this.db.entityId = def.entityId;
+    this.db.entityId = this.entityId;
     this.db.dest = 'db';
     this.cloud = def.cloud;
     this.cloud.entity = def.entity;
-    this.cloud.entityId = def.entityId;
+    this.cloud.entityId = this.entityId;
     this.cloud.dest = 'cloud';
   }
 }

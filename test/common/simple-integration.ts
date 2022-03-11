@@ -48,6 +48,23 @@ describe('Basic integration testing', () => {
     `);
   });
 
+  it('should run new correctly without a dbAlias', () => {
+    execSync(`
+      curl \
+      --request POST \
+      --url 'http://localhost:8088/v1/db/new/' \
+      --show-error --silent --fail \
+      --header 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+      --header 'content-type: application/json' \
+      --header 'cli-version: ${MIN_CLI_VERSION}' \
+      --data '{
+        "awsRegion": "us-east-1",
+        "awsAccessKeyId": "${process.env.AWS_ACCESS_KEY_ID}",
+        "awsSecretAccessKey": "${process.env.AWS_SECRET_ACCESS_KEY}"
+      }'
+    `);
+  });
+
   it('should run apply correctly', () => {
     execSync(`
       curl \

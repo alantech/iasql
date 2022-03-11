@@ -39,7 +39,6 @@ export const AwsRdsModule: Module = new Module({
   mappers: {
     rds: new Mapper<RDS>({
       entity: RDS,
-      entityId: (e: RDS) => e.dbInstanceIdentifier ?? e.id?.toString() ?? '',
       entityPrint: (e: RDS) => ({
         id: e?.id?.toString() ?? '',
         dbInstanceIdentifier: e?.dbInstanceIdentifier ?? '',
