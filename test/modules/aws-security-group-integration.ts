@@ -148,3 +148,42 @@ describe('Security Group Integration Testing', () => {
     .remove(dbAlias, 'not-needed')
     .then(...finish(done)));
 });
+
+describe('Security Group install/uninstall', () => {
+  it('creates a new test db', (done) => void iasql.add(
+    dbAlias,
+    'us-east-1', // Share region with common tests
+    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
+    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
+    'not-needed').then(...finish(done)));
+
+  it('installs the Security Group module', (done) => void iasql.install(
+    ['aws_security_group@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('uninstalls the Security Group module', (done) => void iasql.uninstall(
+    ['aws_security_group@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('installs all modules', (done) => void iasql.install(
+    [],
+    dbAlias,
+    'not-needed',
+    true).then(...finish(done)));
+
+  it('uninstalls the Security Group module', (done) => void iasql.uninstall(
+    ['aws_security_group@0.0.1', 'aws_rds@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_elb@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('installs the Security Group module', (done) => void iasql.install(
+    ['aws_security_group@0.0.1', 'aws_rds@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_elb@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('deletes the test db', (done) => void iasql
+    .remove(dbAlias, 'not-needed')
+    .then(...finish(done)));
+});

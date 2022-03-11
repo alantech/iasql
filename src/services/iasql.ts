@@ -706,14 +706,19 @@ export async function modules(all: boolean, installed: boolean, dbAlias: string,
   }
 }
 
-export async function install(moduleList: string[], dbAlias: string, user: any) {
+export async function install(moduleList: string[], dbAlias: string, user: any, all?: boolean) {
   const { dbId, dbUser } = await dbMan.getMetadata(dbAlias, user);
   // Check to make sure that all specified modules actually exist
-  const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as Modules.ModuleInterface[];
-  if (mods.some((m: any) => m === undefined)) {
-    throw new Error(`The following modules do not exist: ${
-      moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
-    }`);
+  let mods;
+  if (all) {
+    mods = (Object.values(Modules) as Modules.ModuleInterface[]);
+  } else {
+    mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as Modules.ModuleInterface[];
+    if (mods.some((m: any) => m === undefined)) {
+      throw new Error(`The following modules do not exist: ${
+        moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
+      }`);
+    }
   }
   // Check to make sure that all dependent modules are in the list
   const missingDeps = mods.map((m: Modules.ModuleInterface) => m.dependencies.find(d => !moduleList.includes(d)));
