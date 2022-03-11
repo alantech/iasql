@@ -118,7 +118,7 @@ describe('VPC install/uninstall', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the VPC module', (done) => void iasql.install(
-    ['aws_vpc@0.0.1', 'aws_ecs_fargate@0.0.1',],
+    ['aws_vpc@0.0.1',],
     dbAlias,
     'not-needed').then(...finish(done)));
 
