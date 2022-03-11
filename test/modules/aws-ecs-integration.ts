@@ -273,8 +273,12 @@ describe('ECS Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('adds a new container definition', query(`
-      INSERT INTO aws_container_definition ("name", repository_id, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-	    VALUES('${containerNameRepository}', (select id from aws_repository where repository_name = '${repositoryName}' limit 1), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from aws_task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
+      BEGIN;
+        INSERT INTO aws_container_definition ("name", repository_id, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
+        VALUES('${containerNameRepository}', (select id from aws_repository where repository_name = '${repositoryName}' limit 1), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from aws_task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
+        INSERT INTO aws_container_definition ("name", repository_id, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
+        VALUES('${containerNameRepository}dgst', (select id from aws_repository where repository_name = '${repositoryName}' limit 1), false, ${containerMemoryReservation}, ${hostPort + 2}, ${containerPort + 2}, '${protocol}', '{ "test": 2}', (select id from aws_task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));  
+      COMMIT;  
     `));
 
     it('check container definition insertion', query(`
