@@ -7,7 +7,7 @@ name: CI
 # TODO delete comment
 on:
   push:
-    branches: [main, install-test]
+    branches: [main]
   pull_request:
     branches: [main]
 
