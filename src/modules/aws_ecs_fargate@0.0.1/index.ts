@@ -170,16 +170,6 @@ export const AwsEcsFargateModule: Module = new Module({
         && Object.is(a.clusterName, b.clusterName)
         && Object.is(a.clusterStatus, b.clusterStatus),
       source: 'db',
-      db: new Crud({
-        create: (c: AwsCluster[], ctx: Context) => ctx.orm.save(AwsCluster, c),
-        read: async (ctx: Context, ids?: string[]) => ctx.orm.find(AwsCluster, ids ? {
-          where: {
-            clusterArn: In(ids),
-          },
-        } : undefined),
-        update: (c: AwsCluster[], ctx: Context) => ctx.orm.save(AwsCluster, c),
-        delete: (c: AwsCluster[], ctx: Context) => ctx.orm.remove(AwsCluster, c),
-      }),
       cloud: new Crud({
         create: async (es: AwsCluster[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -280,6 +270,7 @@ export const AwsEcsFargateModule: Module = new Module({
           await ctx.orm.save(AwsTaskDefinition, es);
         },
         read: async (ctx: Context, ids?: string[]) => {
+          // TODO: Possible to automate this, too?
           const relations = [
             'containerDefinitions',
             'containerDefinitions.repository',

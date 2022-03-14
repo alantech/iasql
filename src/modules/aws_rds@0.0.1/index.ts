@@ -70,6 +70,7 @@ export const AwsRdsModule: Module = new Module({
       db: new Crud({
         create: (rds: RDS[], ctx: Context) => ctx.orm.save(RDS, rds),
         read: async (ctx: Context, ids?: string[]) => {
+          // TODO: Possible to automate this?
           const relations = ['vpcSecurityGroups'];
           const opts = ids ? {
             where: {

@@ -1,5 +1,3 @@
-import { In, } from 'typeorm'
-
 import { AWS, } from '../../services/gateways/aws'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
@@ -36,16 +34,6 @@ export const AwsCloudwatchModule: Module = new Module({
         && Object.is(a.logGroupArn, b.logGroupArn)
         && Object.is(a.creationTime?.getTime(), b.creationTime?.getTime()),
       source: 'db',
-      db: new Crud({
-        create: (e: LogGroup[], ctx: Context) => ctx.orm.save(LogGroup, e),
-        read: (ctx: Context, ids?: string[]) => ctx.orm.find(LogGroup, ids ? {
-          where: {
-            logGroupName: In(ids),
-          },
-        } : undefined),
-        update: (e: LogGroup[], ctx: Context) => ctx.orm.save(LogGroup, e),
-        delete: (e: LogGroup[], ctx: Context) => ctx.orm.remove(LogGroup, e),
-      }),
       cloud: new Crud({
         create: async (lg: LogGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
