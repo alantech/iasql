@@ -1,4 +1,3 @@
-import { In, } from 'typeorm'
 import { Subnet, Vpc, } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../../services/gateways/aws'
@@ -54,19 +53,6 @@ export const AwsVpcModule: Module = new Module({
       entityPrint: (e: AwsSubnet) => JSON.parse(JSON.stringify(e)),
       equals: (a: AwsSubnet, b: AwsSubnet) => Object.is(a.subnetId, b.subnetId), // TODO: Do better
       source: 'db',
-      db: new Crud({
-        create: (es: AwsSubnet[], ctx: Context) => ctx.orm.save(AwsSubnet, es),
-        read: async (ctx: Context, ids?: string[]) => {
-          const opts = ids ? {
-            where: {
-              subnetId: In(ids),
-            },
-          } : {};
-          return await ctx.orm.find(AwsSubnet, opts);
-        },
-        update: (es: AwsSubnet[], ctx: Context) => ctx.orm.save(AwsSubnet, es),
-        delete: (es: AwsSubnet[], ctx: Context) => ctx.orm.remove(AwsSubnet, es),
-      }),
       cloud: new Crud({
         create: async (es: AwsSubnet[], ctx: Context) => {
           // TODO: Add support for creating default subnets (only one is allowed, also add
@@ -125,19 +111,6 @@ export const AwsVpcModule: Module = new Module({
       entityPrint: (e: AwsVpc) => JSON.parse(JSON.stringify(e)),
       equals: (a: AwsVpc, b: AwsVpc) => Object.is(a.vpcId, b.vpcId), // TODO: Do better
       source: 'db',
-      db: new Crud({
-        create: (es: AwsVpc[], ctx: Context) => ctx.orm.save(AwsVpc, es),
-        read: async (ctx: Context, ids?: string[]) => {
-          const opts = ids ? {
-            where: {
-              vpcId: In(ids),
-            },
-          } : {};
-          return await ctx.orm.find(AwsVpc, opts);
-        },
-        update: (es: AwsVpc[], ctx: Context) => ctx.orm.save(AwsVpc, es),
-        delete: (es: AwsVpc[], ctx: Context) => ctx.orm.remove(AwsVpc, es),
-      }),
       cloud: new Crud({
         create: async (es: AwsVpc[], ctx: Context) => {
           // TODO: Add support for creating default VPCs (only one is allowed, also add constraint

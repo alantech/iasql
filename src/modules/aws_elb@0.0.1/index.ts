@@ -136,6 +136,7 @@ export const AwsElbModule: Module = new Module({
           await ctx.orm.save(AwsListener, es);
         },
         read: async (ctx: Context, ids?: string[]) => {
+          // TODO: Possible to automate this?
           const relations = ['loadBalancer', 'targetGroup'];
           const opts = ids ? {
             where: {
@@ -446,23 +447,6 @@ export const AwsElbModule: Module = new Module({
         && Object.is(a.healthyThresholdCount, b.healthyThresholdCount)
         && Object.is(a.unhealthyThresholdCount, b.unhealthyThresholdCount),
       source: 'db',
-      db: new Crud({
-        create: async (es: AwsTargetGroup[], ctx: Context) => {
-          await ctx.orm.save(AwsTargetGroup, es);
-        },
-        read: async (ctx: Context, ids?: string[]) => {
-          const opts = ids ? {
-            where: {
-              targetGroupArn: In(ids),
-            },
-          } : { };
-          return await ctx.orm.find(AwsTargetGroup, opts);
-        },
-        update: async (es: AwsTargetGroup[], ctx: Context) => {
-          await ctx.orm.save(AwsTargetGroup, es);
-        },
-        delete: (e: AwsTargetGroup[], ctx: Context) => ctx.orm.remove(AwsTargetGroup, e),
-      }),
       cloud: new Crud({
         create: async (es: AwsTargetGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
