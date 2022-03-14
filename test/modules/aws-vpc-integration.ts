@@ -1,5 +1,5 @@
 import * as iasql from '../../src/services/iasql'
-import { runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
+import { runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 jest.setTimeout(240000);
 
@@ -9,6 +9,7 @@ afterAll(execComposeDown);
 
 const dbAlias = 'vpctest';
 const apply = runApply.bind(null, dbAlias);
+const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 
@@ -26,6 +27,13 @@ describe('VPC Integration Testing', () => {
     ['aws_vpc@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
+
+  it('adds a new vpc', query(`  
+    INSERT INTO aws_vpc (cidr_block)
+    VALUES ('192.${randIPBlock}.0.0/16');
+  `));
+
+  it('undo changes', sync);
 
   it('adds a new vpc', query(`  
     INSERT INTO aws_vpc (cidr_block)
@@ -82,6 +90,45 @@ describe('VPC Integration Testing', () => {
   `));
 
   it('applies the vpc removal', apply);
+
+  it('deletes the test db', (done) => void iasql
+    .remove(dbAlias, 'not-needed')
+    .then(...finish(done)));
+});
+
+describe('VPC install/uninstall', () => {
+  it('creates a new test db', (done) => void iasql.add(
+    dbAlias,
+    'us-east-1', // Share region with common tests
+    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
+    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
+    'not-needed').then(...finish(done)));
+
+  it('installs the VPC module', (done) => void iasql.install(
+    ['aws_vpc@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('uninstalls the VPC module', (done) => void iasql.uninstall(
+    ['aws_vpc@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('installs all modules', (done) => void iasql.install(
+    [],
+    dbAlias,
+    'not-needed',
+    true).then(...finish(done)));
+
+  it('uninstalls the VPC module', (done) => void iasql.uninstall(
+    ['aws_vpc@0.0.1', 'aws_ecs_fargate@0.0.1',],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('installs the VPC module', (done) => void iasql.install(
+    ['aws_vpc@0.0.1',],
+    dbAlias,
+    'not-needed').then(...finish(done)));
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')

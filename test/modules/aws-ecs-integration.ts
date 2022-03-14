@@ -1,6 +1,6 @@
 import { CpuMemCombination, TaskDefinitionStatus } from '../../src/modules/aws_ecs_fargate@0.0.1/entity';
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
+import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 jest.setTimeout(240000);
 
@@ -11,6 +11,7 @@ afterAll(execComposeDown);
 const prefix = getPrefix();
 const dbAlias = 'ecstest';
 const apply = runApply.bind(null, dbAlias);
+const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 
 // Test constants
@@ -65,13 +66,27 @@ describe('ECS Integration Testing', () => {
     VALUES('${clusterName}');
   `));
 
+  it('undo changes', sync);
+
+  it('check aws_cluster insertion', query(`
+    SELECT *
+    FROM aws_cluster
+    WHERE cluster_name = '${clusterName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+
+  it('adds a new aws_cluster', query(`
+    INSERT INTO aws_cluster (cluster_name)
+    VALUES('${clusterName}');
+  `));
+
+  it('applies adds a new aws_cluster', apply);
+
   it('check aws_cluster insertion', query(`
     SELECT *
     FROM aws_cluster
     WHERE cluster_name = '${clusterName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  it('applies adds a new aws_cluster', apply);
 
   // Service dependencies
   it('adds aws_service dependencies', query(`
@@ -214,6 +229,16 @@ describe('ECS Integration Testing', () => {
 
     it('applies tries to update a aws_service (replace)', apply);
 
+    it('uninstalls the ecs module', (done) => void iasql.uninstall(
+      ['aws_ecs_fargate@0.0.1'],
+      dbAlias,
+      'not-needed').then(...finish(done)));
+
+    it('installs the ecs module', (done) => void iasql.install(
+      ['aws_ecs_fargate@0.0.1'],
+      dbAlias,
+      'not-needed').then(...finish(done)));
+
     it('deletes aws_service', query(`
       BEGIN;
         delete from aws_service_security_groups
@@ -313,6 +338,16 @@ describe('ECS Integration Testing', () => {
       WHERE aws_service.name = '${serviceRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
+    it('uninstalls the ecs module', (done) => void iasql.uninstall(
+      ['aws_ecs_fargate@0.0.1'],
+      dbAlias,
+      'not-needed').then(...finish(done)));
+
+    it('installs the ecs module', (done) => void iasql.install(
+      ['aws_ecs_fargate@0.0.1'],
+      dbAlias,
+      'not-needed').then(...finish(done)));
+
     it('deletes aws_service', query(`
       BEGIN;
         delete from aws_service_security_groups
@@ -408,6 +443,16 @@ describe('ECS Integration Testing', () => {
       WHERE aws_service.name = '${servicePublicRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
+    it('uninstalls the ecs module', (done) => void iasql.uninstall(
+      ['aws_ecs_fargate@0.0.1'],
+      dbAlias,
+      'not-needed').then(...finish(done)));
+
+    it('installs the ecs module', (done) => void iasql.install(
+      ['aws_ecs_fargate@0.0.1'],
+      dbAlias,
+      'not-needed').then(...finish(done)));
+
     it('deletes aws_service', query(`
       BEGIN;
         delete from aws_service_security_groups
@@ -437,6 +482,16 @@ describe('ECS Integration Testing', () => {
 
     it('applies deletes tasks and container definitions', apply);
   });
+
+  it('uninstalls the ecs module', (done) => void iasql.uninstall(
+    ['aws_ecs_fargate@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('installs the ecs module', (done) => void iasql.install(
+    ['aws_ecs_fargate@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
 
   // deletes aws_service dependencies
   it('deletes aws_service dependencies', query(`
@@ -477,6 +532,45 @@ describe('ECS Integration Testing', () => {
   `));
 
   it('applies deletes the aws_cluster', apply);
+
+  it('deletes the test db', (done) => void iasql
+    .remove(dbAlias, 'not-needed')
+    .then(...finish(done)));
+});
+
+describe('ECS install/uninstall', () => {
+  it('creates a new test db', (done) => void iasql.add(
+    dbAlias,
+    'us-east-1', // Share region with common tests
+    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
+    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
+    'not-needed').then(...finish(done)));
+
+  it('installs the ECS module', (done) => void iasql.install(
+    ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_vpc@0.0.1',],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('uninstalls the ECS module', (done) => void iasql.uninstall(
+    ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_vpc@0.0.1',],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('installs all modules', (done) => void iasql.install(
+    [],
+    dbAlias,
+    'not-needed',
+    true).then(...finish(done)));
+
+  it('uninstalls the ECS module', (done) => void iasql.uninstall(
+    ['aws_ecs_fargate@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('installs the ECS module', (done) => void iasql.install(
+    ['aws_ecs_fargate@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
