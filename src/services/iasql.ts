@@ -6,7 +6,6 @@ import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 import { uniqueNamesGenerator, Config, adjectives, colors, animals } from 'unique-names-generator';
 
-import config from '../config'
 import { DepError, lazyLoader, } from '../services/lazy-dep'
 import { findDiff, } from '../services/diff'
 import { TypeormWrapper, } from './typeorm'
@@ -14,6 +13,7 @@ import { IasqlModule, } from '../entity'
 import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
 import * as Modules from '../modules'
+import * as scheduler from './scheduler'
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
@@ -52,6 +52,9 @@ export async function add(
     await conn1.query(`
       CREATE DATABASE ${dbId};
     `);
+    // let the scheduler run its migrations before ours so that the stored procedures
+    // that use the scheduler's schema succeed 
+    await scheduler.start(dbAlias, user);
     conn2 = await createConnection({
       ...dbMan.baseConnConfig,
       name: dbId,
@@ -170,10 +173,7 @@ export async function dump(dbAlias: string, user: any, dataOnly: boolean) {
   } catch (e: any) {
     throw e;
   }
-  // Using the main user and password, not the users' own account here
-  const pgUrl = `postgres://${encodeURIComponent(config.dbUser)}:${encodeURIComponent(
-    config.dbPassword
-  )}@${config.dbHost}/${dbId}`;
+  const pgUrl = dbMan.ourPgUrl(dbId);
   const { stdout, } = await exec(
     `pg_dump ${
       dataOnly ? '--data-only --column-inserts --rows-per-insert=50 --exclude-table-data=aws_account --on-conflict-do-nothing' : ''

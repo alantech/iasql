@@ -43,7 +43,16 @@ describe('AwsAccount Integration Testing', () => {
 
   it('does absolutely nothing when you apply this', apply);
 
+  // it('does absolutely nothing when you apply this', query(`
+  //   CALL iasql_schedule_apply();
+  //   SELECT pg_sleep(5);
+  // `));
+
   it('removes the useless row', query(`
     DELETE FROM aws_account WHERE access_key_id = 'fake'
   `));
+
+  it('deletes the test db', (done) => void iasql
+    .remove(dbAlias, 'not-needed')
+    .then(...finish(done)));
 });
