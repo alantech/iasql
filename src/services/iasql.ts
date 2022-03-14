@@ -133,7 +133,7 @@ export async function remove(dbAlias: string, user: any) {
     scheduler.stop(dbId);
     conn = await createConnection(dbMan.baseConnConfig);
     await conn.query(`
-      DROP DATABASE ${dbId} WITH (FORCE);
+      DROP DATABASE ${dbId};
     `);
     await conn.query(dbMan.dropPostgresRoleQuery(dbUser));
     await dbMan.delMetadata(dbAlias, user);

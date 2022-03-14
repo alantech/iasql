@@ -41,9 +41,17 @@ describe('AwsAccount Integration Testing', () => {
     VALUES ('fake', 'creds', 'us-west-2')
   `));
 
-  it('does absolutely nothing when you apply this', apply);
+  // it('does absolutely nothing when you apply this', apply);
+
+  it('does absolutely nothing when you apply this', query(`
+    CALL iasql_schedule_apply();
+  `));
 
   it('removes the useless row', query(`
     DELETE FROM aws_account WHERE access_key_id = 'fake'
   `));
+
+  it('deletes the test db', (done) => void iasql
+    .remove(dbAlias, 'not-needed')
+    .then(...finish(done)));
 });
