@@ -52,9 +52,9 @@ export async function add(
     await conn1.query(`
       CREATE DATABASE ${dbId};
     `);
-    // let the scheduler run its migrations before ours so that the stored procedures
-    // that use the scheduler's schema succeed 
-    await scheduler.start(dbAlias, user);
+    // wait for the scheduler to start and register its migrations before ours so that the stored procedures
+    // that use the scheduler's schema succeed
+    await scheduler.start(dbAlias, dbId, user);
     conn2 = await createConnection({
       ...dbMan.baseConnConfig,
       name: dbId,
@@ -130,6 +130,7 @@ export async function remove(dbAlias: string, user: any) {
   let conn;
   try {
     const { dbId, dbUser } = await dbMan.getMetadata(dbAlias, user);
+    scheduler.stop(dbId);
     conn = await createConnection(dbMan.baseConnConfig);
     await conn.query(`
       DROP DATABASE ${dbId} WITH (FORCE);

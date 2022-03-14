@@ -1,19 +1,16 @@
+import EventEmitter from 'events';
 import { run } from 'graphile-worker';
 
 import * as dbMan from './db-manager'
 import * as iasql from '../services/iasql'
 import * as logger from '../services/logger'
 
-// graphile-worker runs a worker by managing its own database schema 
+const workerShutdownEmitter = new EventEmitter();
+
+// graphile-worker here functions as a library, not a child process.
+// It manages its own database schema
 // (graphile_worker) and migrations in each user db using our credentials
-export async function start(dbAlias: string, user: any) {
-  let dbId;
-  try {
-    const meta = await dbMan.getMetadata(dbAlias, user);
-    dbId = meta.dbId;
-  } catch (e: any) {
-    throw e;
-  }
+export async function start(dbAlias: string, dbId: string, user: any) {
   // Run a worker to execute jobs:
   const runner = await run({
     connectionString: dbMan.ourPgUrl(dbId),
@@ -38,4 +35,12 @@ export async function start(dbAlias: string, user: any) {
       },
     },
   });
+  // register the shutdown listener
+  workerShutdownEmitter.on(dbId, async () => {
+    await runner.stop()
+  });
+}
+
+export function stop(dbId: string) {
+  workerShutdownEmitter.emit(dbId);
 }
