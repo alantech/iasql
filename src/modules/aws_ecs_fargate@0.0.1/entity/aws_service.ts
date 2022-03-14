@@ -81,6 +81,11 @@ export class AwsService {
   })
   targetGroup?: AwsTargetGroup;
 
+  @Column({
+    default: false,
+  })
+  forceNewDeployment: boolean;
+
   @AfterLoad()
   @AfterInsert()
   @AfterUpdate()

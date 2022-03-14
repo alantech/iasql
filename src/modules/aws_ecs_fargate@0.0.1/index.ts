@@ -7,7 +7,6 @@ import {
   CpuMemCombination,
   AwsService,
   AwsTaskDefinition,
-  TaskDefinitionStatus,
 } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
@@ -141,6 +140,7 @@ export const AwsEcsFargateModule: Module = new Module({
         out.subnets = networkConf.subnets ?? [];
       }
       out.status = s.status;
+      out.forceNewDeployment = false;
       return out;
     },
     containersEq: (a: AwsContainerDefinition, b: AwsContainerDefinition) => Object.is(a.cpu, b.cpu)
@@ -491,7 +491,8 @@ export const AwsEcsFargateModule: Module = new Module({
         && Object.is(a?.securityGroups?.length, b?.securityGroups?.length)
         && (a?.securityGroups?.every(asg => !!b?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
         && Object.is(a?.subnets?.length, b?.subnets?.length)
-        && (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false),
+        && (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
+        && Object.is(a.forceNewDeployment, b.forceNewDeployment),
       source: 'db',
       db: new Crud({
         create: async (es: AwsService[], ctx: Context) => {
@@ -650,14 +651,19 @@ export const AwsEcsFargateModule: Module = new Module({
             const isUpdate = AwsEcsFargateModule.mappers.service.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               // Desired count or task definition
-              if (!(Object.is(e.desiredCount, cloudRecord.desiredCount) && Object.is(e.task?.taskDefinitionArn, cloudRecord.task?.taskDefinitionArn))) {
+              if (!(Object.is(e.desiredCount, cloudRecord.desiredCount) && Object.is(e.task?.taskDefinitionArn, cloudRecord.task?.taskDefinitionArn)
+                    && Object.is(e.forceNewDeployment, cloudRecord.forceNewDeployment))) {
                 const updatedService = await client.updateService({
                   service: e.name,
                   cluster: e.cluster?.clusterName,
                   taskDefinition: e.task?.taskDefinitionArn,
                   desiredCount: e.desiredCount,
+                  forceNewDeployment: e.forceNewDeployment,
                 });
-                res.push(await AwsEcsFargateModule.utils.serviceMapper(updatedService, ctx));
+                const s = await AwsEcsFargateModule.utils.serviceMapper(updatedService, ctx);
+                s.id = e.id;
+                await AwsEcsFargateModule.mappers.service.db.update(s, ctx);
+                res.push(s);
                 continue;
               }
               // Restore values

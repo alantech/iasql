@@ -229,6 +229,18 @@ describe('ECS Integration Testing', () => {
 
     it('applies tries to update a aws_service (replace)', apply);
 
+    it('tries to force update a aws_service', query(`
+      UPDATE aws_service SET force_new_deployment = true WHERE name = '${newServiceName}';
+    `));
+
+    it('tries to force update a aws_service', apply);
+
+    it('check aws_service new deployment', query(`
+      SELECT *
+      FROM aws_service
+      WHERE name = '${newServiceName}';
+    `, (res: any[]) => expect(res[0]['force_new_deployment']).toBe(false)));
+
     it('uninstalls the ecs module', (done) => void iasql.uninstall(
       ['aws_ecs_fargate@0.0.1'],
       dbAlias,
