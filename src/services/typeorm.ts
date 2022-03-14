@@ -27,7 +27,7 @@ export class TypeormWrapper {
     username: config.dbUser,
     password: config.dbPassword,
     host: config.dbHost,
-    entities: entities,
+    entities,
     namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
     extra: { ssl: ['postgresql', 'localhost'].includes(config.dbHost) ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
   }
