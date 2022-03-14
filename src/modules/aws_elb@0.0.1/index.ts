@@ -38,7 +38,7 @@ export const AwsElbModule: Module = new Module({
         throw new Error('Listerner not defined properly');
       }
       out.listenerArn = l?.ListenerArn;
-      out.loadBalancer = ctx.memo?.db?.AwsListener?.[l.LoadBalancerArn] ?? await AwsElbModule.mappers.loadBalancer.db.read(ctx, l?.LoadBalancerArn);
+      out.loadBalancer = ctx.memo?.db?.AwsLoadBalancer?.[l.LoadBalancerArn] ?? await AwsElbModule.mappers.loadBalancer.db.read(ctx, l?.LoadBalancerArn);
       out.port = l?.Port;
       out.protocol = l?.Protocol as ProtocolEnum;
       for (const a of l?.DefaultActions ?? []) {
@@ -64,10 +64,13 @@ export const AwsElbModule: Module = new Module({
       out.scheme = lb.Scheme as LoadBalancerSchemeEnum;
       out.state = lb.State?.Code as LoadBalancerStateEnum;
       out.loadBalancerType = lb.Type as LoadBalancerTypeEnum;
-      out.securityGroups = lb.SecurityGroups?.length ?
-        await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, lb.SecurityGroups) ??
-          await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, lb.SecurityGroups)
-        : [];
+      const securityGroups = [];
+      for (const sg of lb.SecurityGroups ?? []) {
+        securityGroups.push(await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg) ??
+          await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg));
+      }
+      if (securityGroups.filter(sg => !!sg).length !== lb.SecurityGroups?.length) throw new Error('Security groups need to be loaded first')
+      out.securityGroups = securityGroups;
       out.ipAddressType = lb.IpAddressType as IpAddressType;
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
       const client = await ctx.getAwsClient() as AWS;

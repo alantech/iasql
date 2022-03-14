@@ -632,7 +632,8 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
             if (r.diff.entitiesChanged.length > 0) {
               console.log(`${name} has records to update`);
               outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
-                const out = await r.mapper.db.update(ec.db, context); // Assuming SoT is the DB
+                ec.cloud.id = ec.db.id;
+                const out = await r.mapper.db.update(ec.cloud, context); // When `sync`ing we assume SoT is the Cloud
                 if (out) {
                   const es = Array.isArray(out) ? out : [out];
                   es.forEach(e2 => {
