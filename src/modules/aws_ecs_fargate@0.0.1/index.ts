@@ -634,7 +634,7 @@ export const AwsEcsFargateModule: Module = new Module({
             const isUpdate = AwsEcsFargateModule.mappers.service.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               // Desired count or task definition
-              if (!(Object.is(e.desiredCount, cloudRecord.desiredCount) && Object.is(e.task?.taskDefinitionArn, cloudRecord.task?.taskDefinitionArn) 
+              if (!(Object.is(e.desiredCount, cloudRecord.desiredCount) && Object.is(e.task?.taskDefinitionArn, cloudRecord.task?.taskDefinitionArn)
                     && Object.is(e.forceNewDeployment, cloudRecord.forceNewDeployment))) {
                 const updatedService = await client.updateService({
                   service: e.name,
