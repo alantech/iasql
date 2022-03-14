@@ -20,7 +20,7 @@ export async function start(dbAlias: string, dbId: string, user: any) {
     noHandleSignals: false,
     pollInterval: 1000, // ms
     taskList: {
-      // TODO use the connection pool from the schedule instead of creating yet another new one
+      // TODO use the connection pool from the schedule instead of creating yet another new one?
       scheduleApply: async () => {
         try {
           await iasql.apply(dbAlias, false, user);
