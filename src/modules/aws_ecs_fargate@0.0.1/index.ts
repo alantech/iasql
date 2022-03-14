@@ -131,10 +131,13 @@ export const AwsEcsFargateModule: Module = new Module({
       if (s.networkConfiguration?.awsvpcConfiguration) {
         const networkConf = s.networkConfiguration.awsvpcConfiguration;
         out.assignPublicIp = networkConf.assignPublicIp;
-        out.securityGroups = networkConf.securityGroups?.length ?
-          await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, networkConf.securityGroups) ??
-            await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, networkConf.securityGroups)
-          : []
+        const securityGroups = [];
+        for (const sg of networkConf.securityGroups ?? []) {
+          securityGroups.push(await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg) ??
+            await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg));
+        }
+        if (securityGroups.filter(sg => !!sg).length !== networkConf.securityGroups.length) throw new Error('Security groups need to be loaded first')
+        out.securityGroups = securityGroups;
         out.subnets = networkConf.subnets ?? [];
       }
       out.status = s.status;
@@ -510,6 +513,13 @@ export const AwsEcsFargateModule: Module = new Module({
               if (!td?.id) throw new Error('Task definitions need to be loaded first');
               entity.task.id = td.id;
             }
+            for (const sg of entity.securityGroups ?? []) {
+              if (!sg.id) {
+                const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
+                if (!g?.id) throw new Error('Security groups need to be loaded first');
+                sg.id = g.id;
+              }
+            }
           }));
           await ctx.orm.save(AwsService, es);
         },
@@ -538,6 +548,13 @@ export const AwsEcsFargateModule: Module = new Module({
               const td = await AwsEcsFargateModule.mappers.taskDefinition.db.read(ctx, entity.task?.taskDefinitionArn);
               if (!td?.id) throw new Error('Task definitions need to be loaded first');
               entity.task.id = td.id;
+            }
+            for (const sg of entity.securityGroups ?? []) {
+              if (!sg.id) {
+                const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
+                if (!g?.id) throw new Error('Security groups need to be loaded first');
+                sg.id = g.id;
+              }
             }
           }));
           await ctx.orm.save(AwsService, es);
