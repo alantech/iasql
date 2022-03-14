@@ -58,7 +58,7 @@ describe('EC2 Integration Testing', () => {
   it('check number of instances', query(`
     SELECT *
     FROM instance
-    WHERE name = ANY('i-1', 'i-2');
+    WHERE name = ANY(array['i-1', 'i-2']);
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('adds two ec2 instance', (done) => {
@@ -87,7 +87,7 @@ describe('EC2 Integration Testing', () => {
   it('check number of instances', query(`
     SELECT *
     FROM instance
-    WHERE name = ANY('i-1', 'i-2');
+    WHERE name = ANY(array['i-1', 'i-2']);
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('applies the created instances', apply);
