@@ -1,5 +1,5 @@
 import * as iasql from '../../src/services/iasql'
-import { runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
+import { runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 jest.setTimeout(240000);
 
@@ -9,6 +9,7 @@ afterAll(execComposeDown);
 
 const dbAlias = 'vpctest';
 const apply = runApply.bind(null, dbAlias);
+const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 
@@ -26,6 +27,13 @@ describe('VPC Integration Testing', () => {
     ['aws_vpc@0.0.1'],
     dbAlias,
     'not-needed').then(...finish(done)));
+
+  it('adds a new vpc', query(`  
+    INSERT INTO aws_vpc (cidr_block)
+    VALUES ('192.${randIPBlock}.0.0/16');
+  `));
+
+  it('undo changes', sync);
 
   it('adds a new vpc', query(`  
     INSERT INTO aws_vpc (cidr_block)
