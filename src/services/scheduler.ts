@@ -13,12 +13,14 @@ const workerShutdownEmitter = new EventEmitter();
 export async function start(dbAlias: string, dbId: string, user: any) {
   // Run a worker to execute jobs:
   const runner = await run({
+    // TODO pass a connection pool here instead of telling it to create a new one
     connectionString: dbMan.ourPgUrl(dbId),
     concurrency: 5,
     // Install signal handlers for graceful shutdown on SIGINT, SIGTERM, etc
     noHandleSignals: false,
     pollInterval: 1000, // ms
     taskList: {
+      // TODO use the connection pool from the schedule instead of creating yet another new one
       scheduleApply: async () => {
         try {
           await iasql.apply(dbAlias, false, user);
