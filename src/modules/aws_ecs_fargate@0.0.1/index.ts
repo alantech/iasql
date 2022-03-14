@@ -643,7 +643,10 @@ export const AwsEcsFargateModule: Module = new Module({
                   desiredCount: e.desiredCount,
                   forceNewDeployment: e.forceNewDeployment,
                 });
-                res.push(await AwsEcsFargateModule.utils.serviceMapper(updatedService, ctx));
+                const s = await AwsEcsFargateModule.utils.serviceMapper(updatedService, ctx);
+                s.id = e.id;
+                await AwsEcsFargateModule.mappers.service.db.update(s, ctx);
+                res.push(s);
                 continue;
               }
               // Restore values
