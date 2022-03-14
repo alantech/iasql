@@ -47,6 +47,10 @@ describe('AwsAccount Integration Testing', () => {
     CALL iasql_schedule_apply();
   `));
 
+  it('does absolutely nothing when you sync this', query(`
+    CALL iasql_schedule_sync();
+  `));
+
   it('removes the useless row', query(`
     DELETE FROM aws_account WHERE access_key_id = 'fake'
   `));
