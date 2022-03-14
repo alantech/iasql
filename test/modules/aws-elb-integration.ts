@@ -1,7 +1,7 @@
 import { LoadBalancerStateEnum } from '@aws-sdk/client-elastic-load-balancing-v2';
 import { IpAddressType, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEnum, TargetTypeEnum } from '../../src/modules/aws_elb@0.0.1/entity';
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, } from '../helpers'
+import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 jest.setTimeout(360000);
 
@@ -12,6 +12,7 @@ afterAll(execComposeDown);
 const prefix = getPrefix();
 const dbAlias = 'elbtest';
 const apply = runApply.bind(null, dbAlias);
+const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 
 // Test constants
@@ -44,6 +45,19 @@ describe('ELB Integration Testing', () => {
     VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, 'default', '/health');
   `));
 
+  it('undo changes', sync);
+
+  it('check aws_target_group insertion', query(`
+    SELECT *
+    FROM aws_target_group
+    WHERE target_group_name = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('adds a new targetGroup', query(`
+    INSERT INTO aws_target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
+    VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, 'default', '/health');
+  `));
+
   it('check aws_target_group insertion', query(`
     SELECT *
     FROM aws_target_group
@@ -66,6 +80,19 @@ describe('ELB Integration Testing', () => {
 
   // Load balancer
   // TODO: add security groups insert when testing application load balancer integration
+  it('adds a new load balancer', query(`
+    INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
+    VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
+  `));
+
+  it('undo changes', sync);
+
+  it('check aws_load_balancer insertion', query(`
+    SELECT *
+    FROM aws_load_balancer
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+  
   it('adds a new load balancer', query(`
     INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
     VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
@@ -134,6 +161,16 @@ describe('ELB Integration Testing', () => {
   `));
 
   it('applies the change', apply);
+
+  it('uninstalls the elb module', (done) => void iasql.uninstall(
+    ['aws_elb@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
+
+  it('installs the elb module', (done) => void iasql.install(
+    ['aws_elb@0.0.1'],
+    dbAlias,
+    'not-needed').then(...finish(done)));
 
   it('deletes the listener', query(`
     DELETE FROM aws_listener
