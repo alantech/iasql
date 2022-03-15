@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm'
 
-import { AwsSecurityGroup, } from '../../aws_security_group@0.0.1/entity'
+import { SecurityGroup, } from '../../aws_security_group@0.0.1/entity'
 import { cloudId, } from '../../../services/cloud-id'
 
 @Entity()
@@ -59,11 +59,11 @@ export class RDS {
   masterUsername?: string;
 
   // TODO rename table
-  @ManyToMany(() => AwsSecurityGroup)
+  @ManyToMany(() => SecurityGroup)
   @JoinTable({
     name: 'rds_security_groups',
   })
-  vpcSecurityGroups: AwsSecurityGroup[];
+  vpcSecurityGroups: SecurityGroup[];
 
   // TODO: make this an entity eventually?
   @Column({
