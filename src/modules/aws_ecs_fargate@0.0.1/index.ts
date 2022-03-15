@@ -297,7 +297,15 @@ export const AwsEcsFargateModule: Module = new Module({
           }));
           await ctx.orm.save(AwsTaskDefinition, es);
         },
-        delete: (c: AwsTaskDefinition[], ctx: Context) => ctx.orm.remove(AwsTaskDefinition, c),
+        delete: async (es: AwsTaskDefinition[], ctx: Context) => {
+          await Promise.all(es.map(async (e: AwsTaskDefinition) => {
+            const containerDefinitions = e.containerDefinitions;
+            if (containerDefinitions?.length) {
+              await ctx.orm.remove(AwsContainerDefinition, containerDefinitions);
+            }
+          }));
+          ctx.orm.remove(AwsTaskDefinition, es)
+        },
       }),
       cloud: new Crud({
         create: async (es: AwsTaskDefinition[], ctx: Context) => {
