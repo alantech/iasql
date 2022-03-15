@@ -1,6 +1,7 @@
 import * as express from 'express'
 
 import * as iasql from '../services/iasql';
+import * as logger from '../services/logger';
 
 export const mod = express.Router();
 
@@ -50,7 +51,7 @@ mod.post('/install', async (req, res) => {
   try {
     res.json(await iasql.install(list, dbAlias, req.user));
   } catch (e: any) {
-    res.status(400).json(e.message);
+    res.status(400).json(logger.error(e));
   }
 });
 
@@ -64,7 +65,7 @@ mod.post('/uninstall', async (req, res) => {
   try {
     res.json(await iasql.uninstall(list, dbAlias, req.user));
   } catch (e: any) {
-    res.status(400).json(e.message);
+    res.status(400).json(logger.error(e));
   }
 });
 

@@ -6,7 +6,6 @@ import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 import { uniqueNamesGenerator, Config, adjectives, colors, animals } from 'unique-names-generator';
 
-import config from '../config'
 import { DepError, lazyLoader, } from '../services/lazy-dep'
 import { findDiff, } from '../services/diff'
 import { TypeormWrapper, } from './typeorm'
@@ -14,6 +13,7 @@ import { IasqlModule, IasqlTables, } from '../entity'
 import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
 import * as Modules from '../modules'
+import * as scheduler from './scheduler'
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
@@ -52,6 +52,9 @@ export async function add(
     await conn1.query(`
       CREATE DATABASE ${dbId};
     `);
+    // wait for the scheduler to start and register its migrations before ours so that the stored procedures
+    // that use the scheduler's schema succeed
+    await scheduler.start(dbAlias, dbId, user);
     conn2 = await createConnection({
       ...dbMan.baseConnConfig,
       name: dbId,
@@ -128,6 +131,7 @@ export async function remove(dbAlias: string, user: any) {
   let conn;
   try {
     const { dbId, dbUser } = await dbMan.getMetadata(dbAlias, user);
+    scheduler.stop(dbId);
     conn = await createConnection(dbMan.baseConnConfig);
     await conn.query(`
       DROP DATABASE ${dbId} WITH (FORCE);
@@ -171,10 +175,7 @@ export async function dump(dbAlias: string, user: any, dataOnly: boolean) {
   } catch (e: any) {
     throw e;
   }
-  // Using the main user and password, not the users' own account here
-  const pgUrl = `postgres://${encodeURIComponent(config.dbUser)}:${encodeURIComponent(
-    config.dbPassword
-  )}@${config.dbHost}/${dbId}`;
+  const pgUrl = dbMan.ourPgUrl(dbId);
   const { stdout, } = await exec(
     `pg_dump ${
       dataOnly ? '--data-only --column-inserts --rows-per-insert=50 --exclude-table-data=aws_account --on-conflict-do-nothing' : ''
@@ -257,20 +258,13 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
   return out;
 }
 
-export async function apply(dbAlias: string, dryRun: boolean, user: any) {
+export async function apply(dbAlias: string, dryRun: boolean, user: any, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   console.log(`Applying ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
   try {
     const { dbId } = await dbMan.getMetadata(dbAlias, user);
-    // Construct the ORM client with all of the entities we may wish to query
-    const entities = Object.values(Modules)
-      .filter(m => m.hasOwnProperty('provides'))
-      .map((m: any) => Object.values(m.provides.entities))
-      .flat()
-      .filter(e => typeof e === 'function') as Function[];
-    entities.push(IasqlModule);
-    orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
+    orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
@@ -471,24 +465,18 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any) {
     console.dir(e, { depth: 6, });
     throw e;
   } finally {
-    orm?.dropConn();
+    // do not drop the conn if it was provided
+    if (orm !== ormOpt) orm?.dropConn();
   }
 }
 
-export async function sync(dbAlias: string, dryRun: boolean, user: any) {
+export async function sync(dbAlias: string, dryRun: boolean, user: any, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   console.log(`Syncing ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
   try {
     const { dbId } = await dbMan.getMetadata(dbAlias, user);
-    // Construct the ORM client with all of the entities we may wish to query
-    const entities = Object.values(Modules)
-      .filter(m => m.hasOwnProperty('provides'))
-      .map((m: any) => Object.values(m.provides.entities))
-      .flat()
-      .filter(e => typeof e === 'function') as Function[];
-    entities.push(IasqlModule);
-    orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
+    orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
@@ -682,7 +670,8 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any) {
     console.dir(e, { depth: 6, });
     throw e;
   } finally {
-    orm?.dropConn();
+    // do not drop the conn if it was provided
+    if (orm !== ormOpt) orm?.dropConn();
   }
 }
 
@@ -708,7 +697,7 @@ export async function modules(all: boolean, installed: boolean, dbAlias: string,
   }
 }
 
-export async function install(moduleList: string[], dbAlias: string, user: any, allModules = false) {
+export async function install(moduleList: string[], dbAlias: string, user: any, allModules = false, ormOpt?: TypeormWrapper) {
   const { dbId, dbUser } = await dbMan.getMetadata(dbAlias, user);
   // Check to make sure that all specified modules actually exist
   if (allModules) {
@@ -728,17 +717,7 @@ export async function install(moduleList: string[], dbAlias: string, user: any, 
       missingDeps.filter(n => n !== undefined).join(', ')
     }`);
   }
-  // Grab all of the entities plus the IaSQL Module entity itself and create the TypeORM connection
-  // with it. Theoretically only need the module in question at first, but when we try to use the
-  // module to acquire the cloud records, it may use one or more other modules it depends on, so
-  // we just load them all into the TypeORM client.
-  const entities = Object.values(Modules)
-    .filter(m => m.hasOwnProperty('provides'))
-    .map((m: any) => Object.values(m.provides.entities))
-    .flat()
-    .filter(e => typeof e === 'function') as Function[];
-  entities.push(IasqlModule);
-  const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
+  const orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already installed and prune them from the list
@@ -784,7 +763,7 @@ ${Object.keys(tableCollisions)
   // we first need to sync the existing modules to make sure there are no records the newly-added
   // modules have a dependency on.
   try {
-    await sync(dbAlias, false, user);
+    await sync(dbAlias, false, user, orm);
   } catch (e) {
     console.log('Sync during module install failed');
     console.log(e);
@@ -874,7 +853,7 @@ ${Object.keys(tableCollisions)
   }
 }
 
-export async function uninstall(moduleList: string[], dbAlias: string, user: any) {
+export async function uninstall(moduleList: string[], dbAlias: string, user: any, orm?: TypeormWrapper) {
   const { dbId } = await dbMan.getMetadata(dbAlias, user);
   // Check to make sure that all specified modules actually exist
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as Modules.ModuleInterface[];
@@ -883,15 +862,7 @@ export async function uninstall(moduleList: string[], dbAlias: string, user: any
       moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
     }`);
   }
-  // Grab all of the entities from the module plus the IaSQL Module entity itself and create the
-  // TypeORM connection with it.
-  const entities = Object.values(Modules)
-    .filter(m => m.hasOwnProperty('provides'))
-    .map((m: any) => Object.values(m.provides.entities))
-    .flat()
-    .filter(e => typeof e === 'function') as Function[];
-  entities.push(IasqlModule);
-  const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
+  orm = !orm ? await TypeormWrapper.createConn(dbId) : orm;
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already uninstalled and prune them from the list
