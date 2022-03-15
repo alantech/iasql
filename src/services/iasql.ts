@@ -10,7 +10,7 @@ import config from '../config'
 import { DepError, lazyLoader, } from '../services/lazy-dep'
 import { findDiff, } from '../services/diff'
 import { TypeormWrapper, } from './typeorm'
-import { IasqlModule, } from '../entity'
+import { IasqlModule, IasqlTables, } from '../entity'
 import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
 import * as Modules from '../modules'
@@ -73,6 +73,7 @@ export async function add(
     // TODO: Figure out how to eliminate *most* of this special-casing for this module in the future
     const entities: Function[] = Object.values(Modules.AwsAccount.mappers).map(m => m.entity);
     entities.push(IasqlModule);
+    entities.push(IasqlTables);
     orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const mappers = Object.values(Modules.AwsAccount.mappers);
     const context: Modules.Context = { orm, memo: {}, ...Modules.AwsAccount.provides.context, };
@@ -805,6 +806,14 @@ ${Object.keys(tableCollisions)
         md.dependencies.map(async (dep) => await orm.findOne(IasqlModule, { name: dep, }))
       );
       await orm.save(IasqlModule, e);
+
+      const tables = md.provides.tables?.map((t) => {
+        const mt = new IasqlTables();
+        mt.table = t;
+        mt.module = e;
+        return mt;
+      }) ?? [];
+      await orm.save(IasqlTables, tables);
     }
     await queryRunner.commitTransaction();
     await orm.query(dbMan.grantPostgresRoleQuery(dbUser));
@@ -913,6 +922,8 @@ export async function uninstall(moduleList: string[], dbAlias: string, user: any
     }
     for (const md of rootToLeafOrder) {
       const e = await orm.findOne(IasqlModule, { name: `${md.name}@${md.version}`, });
+      const tables = await orm.find(IasqlTables, { module: e, }) ?? [];
+      await orm.remove(IasqlTables, tables);
       await orm.remove(IasqlModule, e);
     }
     await queryRunner.commitTransaction();
