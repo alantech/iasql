@@ -1,9 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToOne, } from 'typeorm'
 
-import { AwsRepository, } from '.'
+import { Repository, } from '.'
 
 @Entity()
-export class AwsRepositoryPolicy {
+export class RepositoryPolicy {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -12,11 +12,11 @@ export class AwsRepositoryPolicy {
   })
   registryId?: string;
 
-  @OneToOne(() => AwsRepository, { nullable: false, })
+  @OneToOne(() => Repository, { nullable: false, })
   @JoinColumn({
     name: 'repository_id',
   })
-  repository: AwsRepository;
+  repository: Repository;
 
   @Column({
     nullable: true,

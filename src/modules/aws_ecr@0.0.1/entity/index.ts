@@ -1,3 +1,3 @@
-export * from './aws_public_repository'
-export * from './aws_repository'
-export * from './aws_repository_policy'
+export * from './public_repository'
+export * from './repository'
+export * from './repository_policy'

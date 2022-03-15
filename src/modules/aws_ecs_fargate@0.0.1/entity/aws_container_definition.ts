@@ -12,7 +12,7 @@ import {
 import { AwsTaskDefinition } from '.'
 
 import { LogGroup } from '../../aws_cloudwatch@0.0.1/entity'
-import { AwsPublicRepository, AwsRepository } from '../../aws_ecr@0.0.1/entity'
+import { PublicRepository, Repository } from '../../aws_ecr@0.0.1/entity'
 
 export enum TransportProtocol {
   TCP = "tcp",
@@ -47,17 +47,17 @@ export class AwsContainerDefinition {
   @Column({ nullable: true, })
   digest?: string;
 
-  @ManyToOne(() => AwsRepository, { nullable: true, })
+  @ManyToOne(() => Repository, { nullable: true, })
   @JoinColumn({
     name: "repository_id"
   })
-  repository?: AwsRepository;
+  repository?: Repository;
 
-  @ManyToOne(() => AwsPublicRepository, { nullable: true, })
+  @ManyToOne(() => PublicRepository, { nullable: true, })
   @JoinColumn({
     name: "public_repository_id"
   })
-  publicRepository?: AwsPublicRepository;
+  publicRepository?: PublicRepository;
 
   @Column({
     default: false,
