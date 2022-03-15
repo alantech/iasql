@@ -13,7 +13,6 @@ export const AwsRdsModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['rds', 'rds_security_groups',],
-    functions: ['create_or_update_rds', 'delete_rds',],
   },
   utils: {
     rdsMapper: async (rds: any, ctx: Context) => {
