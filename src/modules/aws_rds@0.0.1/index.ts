@@ -12,7 +12,7 @@ export const AwsRdsModule: Module = new Module({
   ...metadata,
   provides: {
     entities: allEntities,
-    tables: ['engine_version', 'rds',],
+    tables: ['rds', 'rds_security_groups',],
     functions: ['create_or_update_rds', 'delete_rds',],
   },
   utils: {

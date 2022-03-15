@@ -60,7 +60,9 @@ export class RDS {
 
   // TODO rename table
   @ManyToMany(() => AwsSecurityGroup)
-  @JoinTable()
+  @JoinTable({
+    name: 'rds_security_groups',
+  })
   vpcSecurityGroups: AwsSecurityGroup[];
 
   // TODO: make this an entity eventually?
