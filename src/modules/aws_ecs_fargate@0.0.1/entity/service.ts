@@ -13,7 +13,7 @@ import {
 
 import { Cluster, TaskDefinition, ContainerDefinition } from '.';
 import { TargetGroup } from '../../aws_elb@0.0.1/entity';
-import { AwsSecurityGroup } from '../../aws_security_group@0.0.1/entity';
+import { SecurityGroup } from '../../aws_security_group@0.0.1/entity';
 import { cloudId, } from '../../../services/cloud-id'
 
 export enum AssignPublicIp {
@@ -62,11 +62,11 @@ export class Service {
   @Column("text", { array: true, })
   subnets: string[];
 
-  @ManyToMany(() => AwsSecurityGroup)
+  @ManyToMany(() => SecurityGroup)
   @JoinTable({
     name: 'aws_service_security_groups'
   })
-  securityGroups: AwsSecurityGroup[];
+  securityGroups: SecurityGroup[];
 
   @Column({
     type: 'enum',
