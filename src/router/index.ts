@@ -2,22 +2,13 @@ import * as express from 'express'
 import jwt from 'express-jwt'
 import jwksRsa from 'jwks-rsa'
 import * as semver from 'semver';
-import * as sentry from '@sentry/node'
 
-import { db, } from './db'
 import config from '../config'
-import { mod, } from './module'
+import * as logger from '../services/logger'
 
-export function handleErrorMessage(e: any): string {
-  let err = e?.message ?? '';
-  let errStack = err;
-  if (e.metadata?.failures) {
-    err = e.metadata.failures.map((f: Error) => f?.message).join('\n');
-    errStack = e.metadata.failures.map((f: Error) => f?.stack ?? f?.message).join('\n');
-  }
-  if (config.sentryEnabled) err += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureException(errStack)}`;
-  return err;
-}
+// routes
+import { db, } from './db'
+import { mod, } from './module'
 
 export const MIN_CLI_VERSION = '0.2.5';
 
@@ -32,9 +23,7 @@ v1.use((req, res, next) => {
     const error = {
       message: `Outdated CLI version. Must use version ${MIN_CLI_VERSION} at least. Please refer to https://docs.iasql.com/install to upgrade.`
     };
-    return res.status(500).end(
-      `${handleErrorMessage(error)}`
-    );
+    return res.status(500).end(logger.error(error));
   }
   next();
 });

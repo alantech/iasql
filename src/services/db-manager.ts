@@ -130,6 +130,13 @@ export function genUserAndPass(): [string, string] {
     return [user, pass];
 }
 
+export function ourPgUrl(dbId: string): string {
+  // Using the main user and password, not the users' own account here
+  return `postgres://${encodeURIComponent(config.dbUser)}:${encodeURIComponent(
+    config.dbPassword
+  )}@${config.dbHost}/${dbId}`;
+}
+
 // returns aliases or an empty array if no auth
 export async function getAliases(user: any) {
   if (!config.a0Enabled) return undefined;

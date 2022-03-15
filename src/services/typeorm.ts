@@ -1,9 +1,24 @@
 import { randomInt, } from 'crypto';
+import { Pool } from 'pg';
 import { Connection, createConnection, EntityTarget, getConnectionManager, } from 'typeorm';
 import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { PostgresDriver, } from 'typeorm/driver/postgres/PostgresDriver';
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
+import { IasqlModule, } from '../entity'
+import * as Modules from '../modules'
 import config from '../config';
+
+// Grab all of the entities plus the IaSQL Module entity itself and create the TypeORM connection
+// with it. Theoretically only need the module in question at first, but when we try to use the
+// module to acquire the cloud records, it may use one or more other modules it depends on, so
+// we just load them all into the TypeORM client.
+const entities = Object.values(Modules)
+  .filter(m => m.hasOwnProperty('provides'))
+  .map((m: any) => Object.values(m.provides.entities))
+  .flat()
+  .filter(e => typeof e === 'function') as Function[];
+entities.push(IasqlModule);
 
 export class TypeormWrapper {
   private connection: Connection
@@ -12,12 +27,12 @@ export class TypeormWrapper {
     username: config.dbUser,
     password: config.dbPassword,
     host: config.dbHost,
-    entities: [`${__dirname}/../entity/**/*.js`],
+    entities,
     namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
     extra: { ssl: ['postgresql', 'localhost'].includes(config.dbHost) ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
   }
 
-  static async createConn(database: string, connectionConfig: PostgresConnectionOptions): Promise<TypeormWrapper> {
+  static async createConn(database: string, connectionConfig = {}): Promise<TypeormWrapper> {
     const typeorm = new TypeormWrapper();
     const connMan = getConnectionManager();
     const dbname = `database-${randomInt(200000)}`;
@@ -26,12 +41,18 @@ export class TypeormWrapper {
     }
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
-      ...connectionConfig,
+      ...connectionConfig as PostgresConnectionOptions,
       name: dbname, // TODO improve connection name handling
       database,
     }
     typeorm.connection = await createConnection(connOpts);
     return typeorm;
+  }
+
+  getMasterConnection(): Pool | undefined {
+    if (this.connection.driver instanceof PostgresDriver) {
+      return this.connection.driver.master as Pool;
+    }
   }
 
   async dropConn() {
