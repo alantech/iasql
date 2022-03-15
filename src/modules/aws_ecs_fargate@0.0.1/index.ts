@@ -17,7 +17,7 @@ export const AwsEcsFargateModule: Module = new Module({
   ...metadata,
   provides: {
     entities: allEntities,
-    tables: ['cluster', 'container_definition', 'task_definition', 'service', 'aws_service_security_groups'],
+    tables: ['cluster', 'container_definition', 'task_definition', 'service', 'service_security_groups'],
   },
   utils: {
     clusterMapper: (c: any, _ctx: Context) => {

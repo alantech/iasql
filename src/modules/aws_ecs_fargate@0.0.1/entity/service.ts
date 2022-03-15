@@ -64,7 +64,7 @@ export class Service {
 
   @ManyToMany(() => SecurityGroup)
   @JoinTable({
-    name: 'aws_service_security_groups'
+    name: 'service_security_groups'
   })
   securityGroups: SecurityGroup[];
 
