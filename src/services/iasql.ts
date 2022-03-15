@@ -786,13 +786,13 @@ ${Object.keys(tableCollisions)
       );
       await orm.save(IasqlModule, e);
 
-      const tables = md.provides.tables?.map((t) => {
+      const modTables = md.provides.tables?.map((t) => {
         const mt = new IasqlTables();
         mt.table = t;
         mt.module = e;
         return mt;
       }) ?? [];
-      await orm.save(IasqlTables, tables);
+      await orm.save(IasqlTables, modTables);
     }
     await queryRunner.commitTransaction();
     await orm.query(dbMan.grantPostgresRoleQuery(dbUser));
@@ -893,13 +893,13 @@ export async function uninstall(moduleList: string[], dbAlias: string, user: any
     }
     for (const md of rootToLeafOrder) {
       const e = await orm.findOne(IasqlModule, { name: `${md.name}@${md.version}`, });
-      const tables = await orm.find(IasqlTables, {
+      const mt = await orm.find(IasqlTables, {
         where: {
           module: e,
         },
-        relations: [ 'module', ] 
+        relations: [ 'module', ]
       }) ?? [];
-      await orm.remove(IasqlTables, tables);
+      await orm.remove(IasqlTables, mt);
       await orm.remove(IasqlModule, e);
     }
     await queryRunner.commitTransaction();
