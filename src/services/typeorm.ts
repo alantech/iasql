@@ -5,7 +5,7 @@ import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConn
 import { PostgresDriver, } from 'typeorm/driver/postgres/PostgresDriver';
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import { IasqlModule, } from '../entity'
+import { IasqlModule, IasqlTables, } from '../entity'
 import * as Modules from '../modules'
 import config from '../config';
 
@@ -19,6 +19,7 @@ const entities = Object.values(Modules)
   .flat()
   .filter(e => typeof e === 'function') as Function[];
 entities.push(IasqlModule);
+entities.push(IasqlTables);
 
 export class TypeormWrapper {
   private connection: Connection

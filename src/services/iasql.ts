@@ -687,7 +687,7 @@ export async function modules(all: boolean, installed: boolean, dbAlias: string,
     return allModules;
   } else if (installed && dbAlias) {
     const { dbId } = await dbMan.getMetadata(dbAlias, user);
-    const entities: Function[] = [IasqlModule];
+    const entities: Function[] = [IasqlModule, IasqlTables];
     const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const mods = await orm.find(IasqlModule);
     const modsInstalled = mods.map((m: IasqlModule) => (m.name));
@@ -893,7 +893,12 @@ export async function uninstall(moduleList: string[], dbAlias: string, user: any
     }
     for (const md of rootToLeafOrder) {
       const e = await orm.findOne(IasqlModule, { name: `${md.name}@${md.version}`, });
-      const tables = await orm.find(IasqlTables, { module: e, }) ?? [];
+      const tables = await orm.find(IasqlTables, {
+        where: {
+          module: e,
+        },
+        relations: [ 'module', ] 
+      }) ?? [];
       await orm.remove(IasqlTables, tables);
       await orm.remove(IasqlModule, e);
     }
