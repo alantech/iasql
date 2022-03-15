@@ -8,8 +8,6 @@ export class awsCloudwatch1638980988627 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP PROCEDURE "delete_cloudwatch_log_group"`);
-        await queryRunner.query(`DROP PROCEDURE "create_or_update_cloudwatch_log_group"`);
         await queryRunner.query(`DROP TABLE "log_group"`);
     }
 
