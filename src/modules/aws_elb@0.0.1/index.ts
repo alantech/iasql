@@ -65,11 +65,12 @@ export const AwsElbModule: Module = new Module({
       out.state = lb.State?.Code as LoadBalancerStateEnum;
       out.loadBalancerType = lb.Type as LoadBalancerTypeEnum;
       const securityGroups = [];
-      for (const sg of lb.SecurityGroups ?? []) {
+      const cloudSecurityGroups = lb.SecurityGroups ?? [];
+      for (const sg of cloudSecurityGroups) {
         securityGroups.push(await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg) ??
           await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg));
       }
-      if (securityGroups.filter(sg => !!sg).length !== lb.SecurityGroups?.length) throw new Error('Security groups need to be loaded first')
+      if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length) throw new Error('Security groups need to be loaded first')
       out.securityGroups = securityGroups;
       out.ipAddressType = lb.IpAddressType as IpAddressType;
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;

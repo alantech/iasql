@@ -131,11 +131,12 @@ export const AwsEcsFargateModule: Module = new Module({
         const networkConf = s.networkConfiguration.awsvpcConfiguration;
         out.assignPublicIp = networkConf.assignPublicIp;
         const securityGroups = [];
-        for (const sg of networkConf.securityGroups ?? []) {
+        const cloudSecurityGroups = networkConf.securityGroups ?? [];
+        for (const sg of cloudSecurityGroups) {
           securityGroups.push(await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg) ??
             await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg));
         }
-        if (securityGroups.filter(sg => !!sg).length !== networkConf.securityGroups.length) throw new Error('Security groups need to be loaded first')
+        if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length) throw new Error('Security groups need to be loaded first')
         out.securityGroups = securityGroups;
         out.subnets = networkConf.subnets ?? [];
       }
