@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-import { AwsContainerDefinition } from '.';
+import { ContainerDefinition } from '.';
 import { cloudId, } from '../../../services/cloud-id'
 
 export enum TaskDefinitionStatus {
@@ -70,7 +70,7 @@ export enum CpuMemCombination {
 }
 
 @Entity()
-export class AwsTaskDefinition {
+export class TaskDefinition {
   @PrimaryGeneratedColumn()
   id?: number;
 
@@ -113,8 +113,8 @@ export class AwsTaskDefinition {
   })
   cpuMemory: CpuMemCombination;
 
-  @OneToMany(() => AwsContainerDefinition, c => c.taskDefinition)
-  containerDefinitions: AwsContainerDefinition[];
+  @OneToMany(() => ContainerDefinition, c => c.taskDefinition)
+  containerDefinitions: ContainerDefinition[];
 
   @AfterLoad()
   @AfterInsert()

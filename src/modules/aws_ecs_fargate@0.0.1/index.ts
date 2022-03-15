@@ -2,11 +2,11 @@ import { In, } from 'typeorm'
 
 import { AWS, } from '../../services/gateways/aws'
 import {
-  AwsCluster,
-  AwsContainerDefinition,
+  Cluster,
+  ContainerDefinition,
   CpuMemCombination,
-  AwsService,
-  AwsTaskDefinition,
+  Service,
+  TaskDefinition,
 } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
@@ -17,22 +17,18 @@ export const AwsEcsFargateModule: Module = new Module({
   ...metadata,
   provides: {
     entities: allEntities,
-    tables: ['aws_cluster', 'aws_container_definition', 'env_variable', 'port_mapping', 'aws_task_definition', 'aws_service',],
-    functions: [
-      'create_or_update_ecs_cluster', 'create_container_definition', 'create_task_definition', 'create_or_update_ecs_service',
-      'delete_ecs_service', 'delete_task_definition', 'delete_container_definition', 'delete_ecs_cluster',
-    ],
+    tables: ['cluster', 'container_definition', 'task_definition', 'service', 'aws_service_security_groups'],
   },
   utils: {
     clusterMapper: (c: any, _ctx: Context) => {
-      const out = new AwsCluster();
+      const out = new Cluster();
       out.clusterName = c.clusterName ?? 'default';
       out.clusterArn = c.clusterArn ?? null;
       out.clusterStatus = c.status ?? null;
       return out;
     },
     containerDefinitionMapper: async (c: any, ctx: Context) => {
-      const out = new AwsContainerDefinition();
+      const out = new ContainerDefinition();
       out.cpu = c?.cpu;
       out.envVariables = {};
       c.environment.map((ev: { name: string, value: string }) => {
@@ -95,7 +91,7 @@ export const AwsEcsFargateModule: Module = new Module({
       return out;
     },
     taskDefinitionMapper: async (td: any, ctx: Context) => {
-      const out = new AwsTaskDefinition();
+      const out = new TaskDefinition();
       out.containerDefinitions = [];
       for (const tdc of td.containerDefinitions) {
         const cd = await AwsEcsFargateModule.utils.containerDefinitionMapper(tdc, ctx);
@@ -111,7 +107,7 @@ export const AwsEcsFargateModule: Module = new Module({
       return out;
     },
     serviceMapper: async (s: any, ctx: Context) => {
-      const out = new AwsService();
+      const out = new Service();
       out.arn = s.serviceArn;
       if (s.clusterArn) {
         out.cluster = await AwsEcsFargateModule.mappers.cluster.db.read(ctx, s.clusterArn) ?? await AwsEcsFargateModule.mappers.cluster.cloud.read(ctx, s.clusterArn);
@@ -144,7 +140,7 @@ export const AwsEcsFargateModule: Module = new Module({
       out.forceNewDeployment = false;
       return out;
     },
-    containersEq: (a: AwsContainerDefinition, b: AwsContainerDefinition) => Object.is(a.cpu, b.cpu)
+    containersEq: (a: ContainerDefinition, b: ContainerDefinition) => Object.is(a.cpu, b.cpu)
       && Object.is(Object.keys(a.envVariables ?? {}).length, Object.keys(b.envVariables ?? {}).length)
       && Object.keys(a.envVariables ?? {}).every((aevk: string) => !!Object.keys(b.envVariables ?? {}).find((bevk: string) => Object.is(aevk, bevk) && Object.is(a.envVariables[aevk], b.envVariables[bevk])))
       && Object.is(a.essential, b.essential)
@@ -162,20 +158,20 @@ export const AwsEcsFargateModule: Module = new Module({
       && Object.is(a.tag, b.tag),
   },
   mappers: {
-    cluster: new Mapper<AwsCluster>({
-      entity: AwsCluster,
-      entityPrint: (e: AwsCluster) => ({
+    cluster: new Mapper<Cluster>({
+      entity: Cluster,
+      entityPrint: (e: Cluster) => ({
         id: e?.id?.toString() ?? '',
         clusterName: e?.clusterName ?? '',
         clusterArn: e?.clusterArn ?? '',
         clusterStatus: e?.clusterStatus ?? '',
       }),
-      equals: (a: AwsCluster, b: AwsCluster) => Object.is(a.clusterArn, b.clusterArn)
+      equals: (a: Cluster, b: Cluster) => Object.is(a.clusterArn, b.clusterArn)
         && Object.is(a.clusterName, b.clusterName)
         && Object.is(a.clusterStatus, b.clusterStatus),
       source: 'db',
       cloud: new Crud({
-        create: async (es: AwsCluster[], ctx: Context) => {
+        create: async (es: Cluster[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
             const result = await client.createCluster({
@@ -204,11 +200,11 @@ export const AwsEcsFargateModule: Module = new Module({
             await client.getClusters() ?? [];
           return await Promise.all(clusters.map((c: any) => AwsEcsFargateModule.utils.clusterMapper(c, ctx)));
         },
-        updateOrReplace: (prev: AwsCluster, next: AwsCluster) => {
+        updateOrReplace: (prev: Cluster, next: Cluster) => {
           if (!Object.is(prev.clusterName, next.clusterName)) return 'replace';
           return 'update';
         },
-        update: async (es: AwsCluster[], ctx: Context) => {
+        update: async (es: Cluster[], ctx: Context) => {
           return await Promise.all(es.map(async (e) => {
             const cloudRecord = ctx?.memo?.cloud?.AwsCluster?.[e.clusterArn ?? ''];
             const isUpdate = AwsEcsFargateModule.mappers.cluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
@@ -224,7 +220,7 @@ export const AwsEcsFargateModule: Module = new Module({
             }
           }));
         },
-        delete: async (es: AwsCluster[], ctx: Context) => {
+        delete: async (es: Cluster[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(async e => {
             if (e.clusterStatus === 'INACTIVE' && e.clusterName === 'default') {
@@ -240,9 +236,9 @@ export const AwsEcsFargateModule: Module = new Module({
         },
       }),
     }),
-    taskDefinition: new Mapper<AwsTaskDefinition>({
-      entity: AwsTaskDefinition,
-      entityPrint: (e: AwsTaskDefinition) => ({
+    taskDefinition: new Mapper<TaskDefinition>({
+      entity: TaskDefinition,
+      entityPrint: (e: TaskDefinition) => ({
         id: e?.id?.toString() ?? '',
         taskDefinitionArn: e?.taskDefinitionArn ?? '',
         containerDefinitions: e?.containerDefinitions?.map(c => c?.name ?? '').join(', ') ?? '',
@@ -253,7 +249,7 @@ export const AwsEcsFargateModule: Module = new Module({
         status: e?.status ?? 'UNKNOWN',
         cpuMemory: e?.cpuMemory ?? 'UNKNOWN',
       }),
-      equals: (a: AwsTaskDefinition, b: AwsTaskDefinition) => Object.is(a.cpuMemory, b.cpuMemory)
+      equals: (a: TaskDefinition, b: TaskDefinition) => Object.is(a.cpuMemory, b.cpuMemory)
         && Object.is(a.executionRoleArn, b.executionRoleArn)
         && Object.is(a.family, b.family)
         && Object.is(a.revision, b.revision)
@@ -264,14 +260,14 @@ export const AwsEcsFargateModule: Module = new Module({
         && a.containerDefinitions.every(ac => !!b.containerDefinitions.find(bc => AwsEcsFargateModule.utils.containersEq(ac, bc))),
       source: 'db',
       db: new Crud({
-        create: async (es: AwsTaskDefinition[], ctx: Context) => {
-          await Promise.all(es.map(async (entity: AwsTaskDefinition) => {
+        create: async (es: TaskDefinition[], ctx: Context) => {
+          await Promise.all(es.map(async (entity: TaskDefinition) => {
             const containerDefinitions = entity.containerDefinitions;
             if (containerDefinitions) {
-              await ctx.orm.save(AwsContainerDefinition, containerDefinitions);
+              await ctx.orm.save(ContainerDefinition, containerDefinitions);
             }
           }));
-          await ctx.orm.save(AwsTaskDefinition, es);
+          await ctx.orm.save(TaskDefinition, es);
         },
         read: async (ctx: Context, ids?: string[]) => {
           // TODO: Possible to automate this, too?
@@ -287,29 +283,29 @@ export const AwsEcsFargateModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          return await ctx.orm.find(AwsTaskDefinition, opts);
+          return await ctx.orm.find(TaskDefinition, opts);
         },
-        update: async (es: AwsTaskDefinition[], ctx: Context) => {
-          await Promise.all(es.map(async (entity: AwsTaskDefinition) => {
+        update: async (es: TaskDefinition[], ctx: Context) => {
+          await Promise.all(es.map(async (entity: TaskDefinition) => {
             const containerDefinitions = entity.containerDefinitions;
             if (containerDefinitions) {
-              await ctx.orm.save(AwsContainerDefinition, containerDefinitions);
+              await ctx.orm.save(ContainerDefinition, containerDefinitions);
             }
           }));
-          await ctx.orm.save(AwsTaskDefinition, es);
+          await ctx.orm.save(TaskDefinition, es);
         },
-        delete: async (es: AwsTaskDefinition[], ctx: Context) => {
-          await Promise.all(es.map(async (e: AwsTaskDefinition) => {
+        delete: async (es: TaskDefinition[], ctx: Context) => {
+          await Promise.all(es.map(async (e: TaskDefinition) => {
             const containerDefinitions = e.containerDefinitions;
             if (containerDefinitions?.length) {
-              await ctx.orm.remove(AwsContainerDefinition, containerDefinitions);
+              await ctx.orm.remove(ContainerDefinition, containerDefinitions);
             }
           }));
-          ctx.orm.remove(AwsTaskDefinition, es)
+          ctx.orm.remove(TaskDefinition, es)
         },
       }),
       cloud: new Crud({
-        create: async (es: AwsTaskDefinition[], ctx: Context) => {
+        create: async (es: TaskDefinition[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const res = [];
           for (const e of es) {
@@ -420,14 +416,14 @@ export const AwsEcsFargateModule: Module = new Module({
           return tds;
         },
         updateOrReplace: () => 'update',
-        update: async (es: AwsTaskDefinition[], ctx: Context) => {
+        update: async (es: TaskDefinition[], ctx: Context) => {
           const res = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.AwsTaskDefinition?.[e.taskDefinitionArn ?? ''];
             // Any change in a task definition will imply the creation of a new revision and to restore the previous value.
             const newRecord = { ...e };
             cloudRecord.id = e.id;
-            cloudRecord.containerDefinitions.map((crc: AwsContainerDefinition) => {
+            cloudRecord.containerDefinitions.map((crc: ContainerDefinition) => {
               const c = e.containerDefinitions.find(ec => AwsEcsFargateModule.utils.containersEq(ec, crc));
               if (!!c) crc.id = c.id;
             });
@@ -443,7 +439,7 @@ export const AwsEcsFargateModule: Module = new Module({
           }
           return res;
         },
-        delete: async (es: AwsTaskDefinition[], ctx: Context) => {
+        delete: async (es: TaskDefinition[], ctx: Context) => {
           // Do not delete task if it is being used by a service
           const services = ctx.memo?.cloud?.AwsService ? Object.values(ctx.memo?.cloud?.AwsService) : await AwsEcsFargateModule.mappers.service.cloud.read(ctx);
           const client = await ctx.getAwsClient() as AWS;
@@ -474,9 +470,9 @@ export const AwsEcsFargateModule: Module = new Module({
         },
       }),
     }),
-    service: new Mapper<AwsService>({
-      entity: AwsService,
-      entityPrint: (e: AwsService) => ({
+    service: new Mapper<Service>({
+      entity: Service,
+      entityPrint: (e: Service) => ({
         id: e?.id?.toString() ?? '',
         name: e?.name ?? '',
         arn: e?.arn ?? '',
@@ -489,7 +485,7 @@ export const AwsEcsFargateModule: Module = new Module({
         network: e?.assignPublicIp ?? '',
         targetGroup: e?.targetGroup?.targetGroupName ?? ''
       }),
-      equals: (a: AwsService, b: AwsService) => Object.is(a.desiredCount, b.desiredCount)
+      equals: (a: Service, b: Service) => Object.is(a.desiredCount, b.desiredCount)
         && Object.is(a.task?.taskDefinitionArn, b.task?.taskDefinitionArn)
         && Object.is(a.cluster?.clusterName, b.cluster?.clusterName)
         && Object.is(a.arn, b.arn)
@@ -504,7 +500,7 @@ export const AwsEcsFargateModule: Module = new Module({
         && Object.is(a.forceNewDeployment, b.forceNewDeployment),
       source: 'db',
       db: new Crud({
-        create: async (es: AwsService[], ctx: Context) => {
+        create: async (es: Service[], ctx: Context) => {
           await Promise.all(es.map(async (entity: any) => {
             if (!entity.cluster?.id) {
               throw new Error('Clusters need to be loaded first');
@@ -522,7 +518,7 @@ export const AwsEcsFargateModule: Module = new Module({
               }
             }
           }));
-          await ctx.orm.save(AwsService, es);
+          await ctx.orm.save(Service, es);
         },
         read: async (ctx: Context, ids?: string[]) => {
           const relations = [
@@ -538,9 +534,9 @@ export const AwsEcsFargateModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          return await ctx.orm.find(AwsService, opts);
+          return await ctx.orm.find(Service, opts);
         },
-        update: async (es: AwsService[], ctx: Context) => {
+        update: async (es: Service[], ctx: Context) => {
           await Promise.all(es.map(async (entity: any) => {
             if (!entity.cluster?.id) {
               throw new Error('Clusters need to be loaded first');
@@ -558,12 +554,12 @@ export const AwsEcsFargateModule: Module = new Module({
               }
             }
           }));
-          await ctx.orm.save(AwsService, es);
+          await ctx.orm.save(Service, es);
         },
-        delete: (e: AwsService[], ctx: Context) => ctx.orm.remove(AwsService, e),
+        delete: (e: Service[], ctx: Context) => ctx.orm.remove(Service, e),
       }),
       cloud: new Crud({
-        create: async (es: AwsService[], ctx: Context) => {
+        create: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const res = [];
           for (const e of es) {
@@ -639,7 +635,7 @@ export const AwsEcsFargateModule: Module = new Module({
             return out;
           }
         },
-        updateOrReplace: (prev: AwsService, next: AwsService) => {
+        updateOrReplace: (prev: Service, next: Service) => {
           if (!(Object.is(prev.name, next.name)
             && Object.is(prev.cluster?.clusterArn, next.cluster?.clusterArn)
             && Object.is(prev?.assignPublicIp, next?.assignPublicIp)
@@ -652,7 +648,7 @@ export const AwsEcsFargateModule: Module = new Module({
           }
           return 'update';
         },
-        update: async (es: AwsService[], ctx: Context) => {
+        update: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const res = [];
           for (const e of es) {
@@ -690,7 +686,7 @@ export const AwsEcsFargateModule: Module = new Module({
           }
           return res;
         },
-        delete: async (es: AwsService[], ctx: Context) => {
+        delete: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
             e.desiredCount = 0;

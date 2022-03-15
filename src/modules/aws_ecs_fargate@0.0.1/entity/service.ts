@@ -11,7 +11,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm'
 
-import { AwsCluster, AwsTaskDefinition, AwsContainerDefinition } from '.';
+import { Cluster, TaskDefinition, ContainerDefinition } from '.';
 import { AwsTargetGroup } from '../../aws_elb@0.0.1/entity';
 import { AwsSecurityGroup } from '../../aws_security_group@0.0.1/entity';
 import { cloudId, } from '../../../services/cloud-id'
@@ -22,7 +22,7 @@ export enum AssignPublicIp {
 }
 
 @Entity()
-export class AwsService {
+export class Service {
   @PrimaryGeneratedColumn()
   id?: number;
 
@@ -42,17 +42,17 @@ export class AwsService {
   })
   status?: string;
 
-  @ManyToOne(() => AwsCluster)
+  @ManyToOne(() => Cluster)
   @JoinColumn({
     name: 'cluster_id',
   })
-  cluster?: AwsCluster;
+  cluster?: Cluster;
 
-  @ManyToOne(() => AwsTaskDefinition)
+  @ManyToOne(() => TaskDefinition)
   @JoinColumn({
     name: 'task_definition_id',
   })
-  task?: AwsTaskDefinition;
+  task?: TaskDefinition;
 
   @Column({
     type: 'int',
