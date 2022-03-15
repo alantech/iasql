@@ -51,7 +51,7 @@ mod.post('/install', async (req, res) => {
   try {
     res.json(await iasql.install(list, dbAlias, req.user));
   } catch (e: any) {
-    res.status(500).json(logger.error(e));
+    res.status(400).json(logger.error(e));
   }
 });
 
@@ -65,7 +65,7 @@ mod.post('/uninstall', async (req, res) => {
   try {
     res.json(await iasql.uninstall(list, dbAlias, req.user));
   } catch (e: any) {
-    res.status(500).json(logger.error(e));
+    res.status(400).json(logger.error(e));
   }
 });
 
