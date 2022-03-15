@@ -11,7 +11,7 @@ import {
 import { cloudId, } from '../../../services/cloud-id'
 
 @Entity()
-export class AwsSecurityGroup {
+export class SecurityGroup {
   @PrimaryGeneratedColumn()
   id?: number;
 
@@ -41,13 +41,13 @@ export class AwsSecurityGroup {
   })
   vpcId?: string;
 
-  @OneToMany(() => AwsSecurityGroupRule, sgr => sgr.securityGroup)
-  securityGroupRules: AwsSecurityGroupRule[];
+  @OneToMany(() => SecurityGroupRule, sgr => sgr.securityGroup)
+  securityGroupRules: SecurityGroupRule[];
 }
 
 @Unique('UQ_rule', ['isEgress', 'ipProtocol', 'fromPort', 'toPort', 'cidrIpv4', 'securityGroup'])
 @Entity()
-export class AwsSecurityGroupRule {
+export class SecurityGroupRule {
   @PrimaryGeneratedColumn()
   id?: number;
 
@@ -57,11 +57,11 @@ export class AwsSecurityGroupRule {
   @cloudId
   securityGroupRuleId?: string;
 
-  @ManyToOne(() => AwsSecurityGroup)
+  @ManyToOne(() => SecurityGroup)
   @JoinColumn({
     name: 'security_group_id',
   })
-  securityGroup: AwsSecurityGroup;
+  securityGroup: SecurityGroup;
 
   @Column({
     nullable: false,
