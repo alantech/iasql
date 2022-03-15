@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsElb1647370579233 implements MigrationInterface {
-    name = 'awsElb1647370579233'
+export class awsElb1647371526598 implements MigrationInterface {
+    name = 'awsElb1647371526598'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."load_balancer_scheme_enum" AS ENUM('internal', 'internet-facing')`);
@@ -18,21 +18,21 @@ export class awsElb1647370579233 implements MigrationInterface {
         await queryRunner.query(`CREATE TYPE "public"."listener_protocol_enum" AS ENUM('GENEVE', 'HTTP', 'HTTPS', 'TCP', 'TCP_UDP', 'TLS', 'UDP')`);
         await queryRunner.query(`CREATE TYPE "public"."listener_action_type_enum" AS ENUM('forward')`);
         await queryRunner.query(`CREATE TABLE "listener" ("id" SERIAL NOT NULL, "listener_arn" character varying, "port" integer NOT NULL, "protocol" "public"."listener_protocol_enum" NOT NULL, "action_type" "public"."listener_action_type_enum" NOT NULL DEFAULT 'forward', "aws_load_balancer_id" integer NOT NULL, "target_group_id" integer, CONSTRAINT "UQ_load_balancer__port" UNIQUE ("aws_load_balancer_id", "port"), CONSTRAINT "PK_422c9d250eb7b0c0b6c96cdce94" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "load_balancer_security_groups" ("load_balancer_id" integer NOT NULL, "aws_security_group_id" integer NOT NULL, CONSTRAINT "PK_cfa1c68546cedc4a4a9e34d5ae6" PRIMARY KEY ("load_balancer_id", "aws_security_group_id"))`);
+        await queryRunner.query(`CREATE TABLE "load_balancer_security_groups" ("load_balancer_id" integer NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_b6a290e33680aa3053e8992e2c3" PRIMARY KEY ("load_balancer_id", "security_group_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_b04ed8dca40b77dfa54096a4b6" ON "load_balancer_security_groups" ("load_balancer_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_a0df0165d29e0d371b1d2d071d" ON "load_balancer_security_groups" ("aws_security_group_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_4da7e08287b5693e5b22959ced" ON "load_balancer_security_groups" ("security_group_id") `);
         await queryRunner.query(`ALTER TABLE "listener" ADD CONSTRAINT "FK_cb38d127f961af568dea2059618" FOREIGN KEY ("aws_load_balancer_id") REFERENCES "load_balancer"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "listener" ADD CONSTRAINT "FK_5c1fa345667a762a249d9398688" FOREIGN KEY ("target_group_id") REFERENCES "target_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" ADD CONSTRAINT "FK_b04ed8dca40b77dfa54096a4b6a" FOREIGN KEY ("load_balancer_id") REFERENCES "load_balancer"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" ADD CONSTRAINT "FK_a0df0165d29e0d371b1d2d071d3" FOREIGN KEY ("aws_security_group_id") REFERENCES "aws_security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" ADD CONSTRAINT "FK_4da7e08287b5693e5b22959ced4" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" DROP CONSTRAINT "FK_a0df0165d29e0d371b1d2d071d3"`);
+        await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" DROP CONSTRAINT "FK_4da7e08287b5693e5b22959ced4"`);
         await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" DROP CONSTRAINT "FK_b04ed8dca40b77dfa54096a4b6a"`);
         await queryRunner.query(`ALTER TABLE "listener" DROP CONSTRAINT "FK_5c1fa345667a762a249d9398688"`);
         await queryRunner.query(`ALTER TABLE "listener" DROP CONSTRAINT "FK_cb38d127f961af568dea2059618"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_a0df0165d29e0d371b1d2d071d"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_4da7e08287b5693e5b22959ced"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_b04ed8dca40b77dfa54096a4b6"`);
         await queryRunner.query(`DROP TABLE "load_balancer_security_groups"`);
         await queryRunner.query(`DROP TABLE "listener"`);
