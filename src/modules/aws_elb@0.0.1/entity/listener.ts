@@ -7,8 +7,8 @@ import {
   Unique,
 } from 'typeorm'
 
-import { AwsLoadBalancer, } from './aws_load_balancer'
-import { AwsTargetGroup, ProtocolEnum, } from './aws_target_group'
+import { LoadBalancer, } from './load_balancer'
+import { TargetGroup, ProtocolEnum, } from './target_group'
 import { cloudId, } from '../../../services/cloud-id'
 
 export enum ActionTypeEnum {
@@ -21,7 +21,7 @@ export enum ActionTypeEnum {
 
 @Unique('UQ_load_balancer__port', ['loadBalancer', 'port'])
 @Entity()
-export class AwsListener {
+export class Listener {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -29,11 +29,11 @@ export class AwsListener {
   @cloudId
   listenerArn?: string;
 
-  @ManyToOne(() => AwsLoadBalancer, { nullable: false, })
+  @ManyToOne(() => LoadBalancer, { nullable: false, })
   @JoinColumn({
     name: 'aws_load_balancer_id',
   })
-  loadBalancer: AwsLoadBalancer;
+  loadBalancer: LoadBalancer;
 
   @Column({ type: 'integer', })
   port: number;
@@ -51,11 +51,11 @@ export class AwsListener {
   })
   actionType: ActionTypeEnum;
 
-  @ManyToOne(() => AwsTargetGroup)
+  @ManyToOne(() => TargetGroup)
   @JoinColumn({
     name: 'target_group_id',
   })
-  targetGroup: AwsTargetGroup;
+  targetGroup: TargetGroup;
 
   // TODO: tbd
   // Certificates?: Certificate[];

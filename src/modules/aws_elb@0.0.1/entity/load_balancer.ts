@@ -33,7 +33,7 @@ export enum IpAddressType {
 }
 
 @Entity()
-export class AwsLoadBalancer {
+export class LoadBalancer {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -97,7 +97,7 @@ export class AwsLoadBalancer {
 
   @ManyToMany(() => AwsSecurityGroup)
   @JoinTable({
-    name: 'aws_load_balancer_security_groups',
+    name: 'load_balancer_security_groups',
   })
   securityGroups?: AwsSecurityGroup[];
 

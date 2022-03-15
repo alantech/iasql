@@ -12,7 +12,7 @@ import {
 } from 'typeorm'
 
 import { Cluster, TaskDefinition, ContainerDefinition } from '.';
-import { AwsTargetGroup } from '../../aws_elb@0.0.1/entity';
+import { TargetGroup } from '../../aws_elb@0.0.1/entity';
 import { AwsSecurityGroup } from '../../aws_security_group@0.0.1/entity';
 import { cloudId, } from '../../../services/cloud-id'
 
@@ -75,11 +75,11 @@ export class Service {
   })
   assignPublicIp: AssignPublicIp;
 
-  @ManyToOne(() => AwsTargetGroup)
+  @ManyToOne(() => TargetGroup)
   @JoinColumn({
     name: 'target_group_id',
   })
-  targetGroup?: AwsTargetGroup;
+  targetGroup?: TargetGroup;
 
   @Column({
     default: false,
