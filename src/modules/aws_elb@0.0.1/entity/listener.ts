@@ -31,7 +31,7 @@ export class Listener {
 
   @ManyToOne(() => LoadBalancer, { nullable: false, })
   @JoinColumn({
-    name: 'aws_load_balancer_id',
+    name: 'load_balancer_id',
   })
   loadBalancer: LoadBalancer;
 
