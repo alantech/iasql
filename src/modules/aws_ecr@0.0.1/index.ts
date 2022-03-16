@@ -1,7 +1,7 @@
 import { In, } from 'typeorm'
 
-import { Repository as AwsRepository, } from '@aws-sdk/client-ecr'
-import { Repository as AwsPublicRepository, } from '@aws-sdk/client-ecr-public'
+import { Repository as RepositoryAws, } from '@aws-sdk/client-ecr'
+import { Repository as PublicRepositoryAws, } from '@aws-sdk/client-ecr-public'
 
 import { AWS, } from '../../services/gateways/aws'
 import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability, } from './entity'
@@ -16,7 +16,7 @@ export const AwsEcrModule: Module = new Module({
     tables: ['repository', 'repository_policy', 'public_repository',],
   },
   utils: {
-    publicRepositoryMapper: (r: AwsPublicRepository, _ctx: Context) => {
+    publicRepositoryMapper: (r: PublicRepositoryAws, _ctx: Context) => {
       const out = new Repository();
       if (!r?.repositoryName) throw new Error('No repository name defined.');
       out.repositoryName = r.repositoryName;
@@ -26,7 +26,7 @@ export const AwsEcrModule: Module = new Module({
       out.createdAt = r.createdAt ? new Date(r.createdAt) : r.createdAt;
       return out;
     },
-    repositoryMapper: (r: AwsRepository, _ctx: Context) => {
+    repositoryMapper: (r: RepositoryAws, _ctx: Context) => {
       const out = new Repository();
       if (!r?.repositoryName) throw new Error('No repository name defined.');
       out.repositoryName = r.repositoryName;
@@ -309,7 +309,7 @@ export const AwsEcrModule: Module = new Module({
         updateOrReplace: () => 'update',
         update: async (es: RepositoryPolicy[], ctx: Context) => {
           return await Promise.all(es.map(async (e) => {
-            const cloudRecord = ctx?.memo?.cloud?.AwsRepositoryPolicy?.[e.repository.repositoryName ?? ''];
+            const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[e.repository.repositoryName ?? ''];
             try {
               if (!AwsEcrModule.utils.policyComparisonEq(JSON.parse(cloudRecord.policyText!), JSON.parse(e.policyText!))) {
                 return AwsEcrModule.mappers.repositoryPolicy.cloud.create(e, ctx);

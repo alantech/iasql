@@ -75,7 +75,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               sg.vpcId = defaultVpc.VpcId;
               await ctx.orm.save(SecurityGroup, sg);
               if (sg.groupId) {
-                ctx.memo.db.AwsSecurityGroup[sg.groupId] = sg;
+                ctx.memo.db.SecurityGroup[sg.groupId] = sg;
               }
             }
             return sg;
@@ -96,7 +96,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               // shove its properties into the "fake" default security group and re-save it
               // The security group rules associated with the user's created "default" group are
               // still fine to actually set in AWS, so we leave that alone.
-              const actualEntity = Object.values(ctx?.memo?.cloud?.AwsSecurityGroup ?? {}).find(
+              const actualEntity = Object.values(ctx?.memo?.cloud?.SecurityGroup ?? {}).find(
                 (a: any) => a.groupName === 'default' && a.groupId !== e.groupId // TODO: Fix typing here
               ) as SecurityGroup;
               e.description = actualEntity.description;
@@ -106,7 +106,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               e.vpcId = actualEntity.vpcId;
               await ctx.orm.save(SecurityGroup, e);
               if (e.groupId) {
-                ctx.memo.db.AwsSecurityGroup[e.groupId] = e;
+                ctx.memo.db.SecurityGroup[e.groupId] = e;
               }
 
               return e;
@@ -117,7 +117,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               e.vpcId = defaultVpc.VpcId;
               await ctx.orm.save(SecurityGroup, e);
               if (e.groupId) {
-                ctx.memo.db.AwsSecurityGroup[e.groupId] = e;
+                ctx.memo.db.SecurityGroup[e.groupId] = e;
               }
             }
             // First construct the security group
@@ -160,7 +160,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             // we can be sure that the security group rules for the default security group are
             // properly associated so we don't need to do anything about them here, just restore
             // the other properties
-            const cloudRecord = ctx?.memo?.cloud?.AwsSecurityGroup?.[e.groupId ?? ''];
+            const cloudRecord = ctx?.memo?.cloud?.SecurityGroup?.[e.groupId ?? ''];
             cloudRecord.id = e.id;
             await AwsSecurityGroupModule.mappers.securityGroup.db.update(cloudRecord, ctx);
           } else {
@@ -199,7 +199,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               // If there is a security group in the database with the 'default' groupName but we
               // are still hitting the 'delete' path, that's a race condition and we should just do
               // nothing here.
-              const dbRecord = Object.values(ctx?.memo?.db?.AwsSecurityGroup ?? {}).find(
+              const dbRecord = Object.values(ctx?.memo?.db?.SecurityGroup ?? {}).find(
                 (a: any) => a.groupName === 'default'
               );
               if (!!dbRecord) return;
@@ -207,8 +207,8 @@ export const AwsSecurityGroupModule: Module = new Module({
               // we're interested in, which makes it a bit simpler here
               await AwsSecurityGroupModule.mappers.securityGroup.db.update(e, ctx);
               // Make absolutely sure it shows up in the memo
-              ctx.memo.db.AwsSecurityGroup[e.groupId ?? ''] = e;
-              const rules = ctx?.memo?.cloud?.AwsSecurityGroupRule ?? [];
+              ctx.memo.db.SecurityGroup[e.groupId ?? ''] = e;
+              const rules = ctx?.memo?.cloud?.SecurityGroupRule ?? [];
               const relevantRules = rules.filter(
                 (r: SecurityGroupRule) => r.securityGroup.groupId === e.groupId
               );
@@ -227,8 +227,8 @@ export const AwsSecurityGroupModule: Module = new Module({
               );
               await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(relevantRules, ctx);
               // Let's flush the caches here, too?
-              ctx.memo.cloud.AwsSecurityGroup = {};
-              ctx.memo.db.AwsSecurityGroup = {};
+              ctx.memo.cloud.SecurityGroup = {};
+              ctx.memo.db.SecurityGroup = {};
             }
           }));
         },
@@ -372,8 +372,8 @@ export const AwsSecurityGroupModule: Module = new Module({
             }
           }
           // Let's just flush both caches on a delete and force it to rebuild them?
-          ctx.memo.cloud.AwsSecurityGroupRule = {};
-          ctx.memo.db.AwsSecurityGroupRule = {};
+          ctx.memo.cloud.SecurityGroupRule = {};
+          ctx.memo.db.SecurityGroupRule = {};
         },
       }),
     }),

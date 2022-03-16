@@ -206,7 +206,7 @@ export const AwsEcsFargateModule: Module = new Module({
         },
         update: async (es: Cluster[], ctx: Context) => {
           return await Promise.all(es.map(async (e) => {
-            const cloudRecord = ctx?.memo?.cloud?.AwsCluster?.[e.clusterArn ?? ''];
+            const cloudRecord = ctx?.memo?.cloud?.Cluster?.[e.clusterArn ?? ''];
             const isUpdate = AwsEcsFargateModule.mappers.cluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               cloudRecord.id = e.id;
@@ -419,7 +419,7 @@ export const AwsEcsFargateModule: Module = new Module({
         update: async (es: TaskDefinition[], ctx: Context) => {
           const res = [];
           for (const e of es) {
-            const cloudRecord = ctx?.memo?.cloud?.AwsTaskDefinition?.[e.taskDefinitionArn ?? ''];
+            const cloudRecord = ctx?.memo?.cloud?.TaskDefinition?.[e.taskDefinitionArn ?? ''];
             // Any change in a task definition will imply the creation of a new revision and to restore the previous value.
             const newRecord = { ...e };
             cloudRecord.id = e.id;
@@ -441,7 +441,7 @@ export const AwsEcsFargateModule: Module = new Module({
         },
         delete: async (es: TaskDefinition[], ctx: Context) => {
           // Do not delete task if it is being used by a service
-          const services = ctx.memo?.cloud?.AwsService ? Object.values(ctx.memo?.cloud?.AwsService) : await AwsEcsFargateModule.mappers.service.cloud.read(ctx);
+          const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsFargateModule.mappers.service.cloud.read(ctx);
           const client = await ctx.getAwsClient() as AWS;
           const esWithServiceAttached = [];
           const esToDelete = [];
@@ -614,7 +614,7 @@ export const AwsEcsFargateModule: Module = new Module({
           if (ids) {
             const out = [];
             for (const id of ids) {
-              const services = ctx.memo?.cloud?.AwsService ? Object.values(ctx.memo?.cloud?.AwsService) : await AwsEcsFargateModule.mappers.service.cloud.read(ctx);
+              const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsFargateModule.mappers.service.cloud.read(ctx);
               const service = services?.find((s: any) => s.arn === id);
               if (service) {
                 out.push(await AwsEcsFargateModule.utils.serviceMapper(
@@ -624,7 +624,7 @@ export const AwsEcsFargateModule: Module = new Module({
             }
             return out;
           } else {
-            const clusters = ctx.memo?.cloud?.AwsCluster ? Object.values(ctx.memo?.cloud?.AwsCluster) : await AwsEcsFargateModule.mappers.cluster.cloud.read(ctx);
+            const clusters = ctx.memo?.cloud?.Cluster ? Object.values(ctx.memo?.cloud?.Cluster) : await AwsEcsFargateModule.mappers.cluster.cloud.read(ctx);
             const result = await client.getServices(clusters?.map((c: any) => c.clusterArn) ?? []);
             // Make sure we just handle FARGATE services
             const fargateResult = result.filter(s => s.launchType === 'FARGATE');
@@ -652,7 +652,7 @@ export const AwsEcsFargateModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const res = [];
           for (const e of es) {
-            const cloudRecord = ctx?.memo?.cloud?.AwsService?.[e.arn ?? ''];
+            const cloudRecord = ctx?.memo?.cloud?.Service?.[e.arn ?? ''];
             const isUpdate = AwsEcsFargateModule.mappers.service.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               // Desired count or task definition

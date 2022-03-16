@@ -1,8 +1,8 @@
 import { In, } from 'typeorm'
 import {
   CreateLoadBalancerCommandInput,
-  Listener as AwsListener,
-  LoadBalancer as AwsLoadBalancer,
+  Listener as ListenerAws,
+  LoadBalancer as LoadBalancerAws,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 
 import { AWS, } from '../../services/gateways/aws'
@@ -32,13 +32,13 @@ export const AwsElbModule: Module = new Module({
     tables: ['target_group', 'load_balancer', 'listener', 'load_balancer_security_groups',],
   },
   utils: {
-    listenerMapper: async (l: AwsListener, ctx: Context) => {
+    listenerMapper: async (l: ListenerAws, ctx: Context) => {
       const out = new Listener();
       if (!l?.LoadBalancerArn || !l?.Port) {
         throw new Error('Listerner not defined properly');
       }
       out.listenerArn = l?.ListenerArn;
-      out.loadBalancer = ctx.memo?.db?.AwsLoadBalancer?.[l.LoadBalancerArn] ?? await AwsElbModule.mappers.loadBalancer.db.read(ctx, l?.LoadBalancerArn);
+      out.loadBalancer = ctx.memo?.db?.LoadBalancer?.[l.LoadBalancerArn] ?? await AwsElbModule.mappers.loadBalancer.db.read(ctx, l?.LoadBalancerArn);
       out.port = l?.Port;
       out.protocol = l?.Protocol as ProtocolEnum;
       for (const a of l?.DefaultActions ?? []) {
@@ -51,7 +51,7 @@ export const AwsElbModule: Module = new Module({
       }
       return out;
     },
-    loadBalancerMapper: async (lb: AwsLoadBalancer, ctx: Context) => {
+    loadBalancerMapper: async (lb: LoadBalancerAws, ctx: Context) => {
       const out = new LoadBalancer();
       if (!lb?.LoadBalancerName || !lb?.Scheme || !lb?.Type || !lb?.IpAddressType || !lb.VpcId) {
         throw new Error('Load balancer not defined properly');
@@ -191,8 +191,8 @@ export const AwsElbModule: Module = new Module({
             await Promise.all(ids.map(id => client.getListener(id))) :
             await (async () => {
               // TODO: Should this behavior be standard?
-              const loadBalancers = ctx.memo?.cloud?.AwsLoadBalancer ?
-                Object.values(ctx.memo?.cloud?.AwsLoadBalancer) :
+              const loadBalancers = ctx.memo?.cloud?.LoadBalancer ?
+                Object.values(ctx.memo?.cloud?.LoadBalancer) :
                 await AwsElbModule.mappers.loadBalancer.cloud.read(ctx);
               const loadBalancerArns = loadBalancers.map((lb: any) => lb.loadBalancerArn);
               return (await client.getListeners(loadBalancerArns)).Listeners;
@@ -208,7 +208,7 @@ export const AwsElbModule: Module = new Module({
         update: async (es: Listener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
-            const cloudRecord = ctx?.memo?.cloud?.AwsListener?.[e.listenerArn ?? ''];
+            const cloudRecord = ctx?.memo?.cloud?.Listener?.[e.listenerArn ?? ''];
             const isUpdate = AwsElbModule.mappers.listener.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               const updatedListener = await client.updateListener({
@@ -365,7 +365,7 @@ export const AwsElbModule: Module = new Module({
         update: async (es: LoadBalancer[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
-            const cloudRecord = ctx?.memo?.cloud?.AwsLoadBalancer?.[e.loadBalancerArn ?? ''];
+            const cloudRecord = ctx?.memo?.cloud?.LoadBalancer?.[e.loadBalancerArn ?? ''];
             let updatedRecord = { ...cloudRecord };
             const isUpdate = AwsElbModule.mappers.loadBalancer.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
@@ -511,7 +511,7 @@ export const AwsElbModule: Module = new Module({
         update: async (es: TargetGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
-            const cloudRecord = ctx?.memo?.cloud?.AwsTargetGroup?.[e.targetGroupArn ?? ''];
+            const cloudRecord = ctx?.memo?.cloud?.TargetGroup?.[e.targetGroupArn ?? ''];
             const isUpdate = AwsElbModule.mappers.targetGroup.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               const updatedTargetGroup = await client.updateTargetGroup({
