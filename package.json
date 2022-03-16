@@ -46,7 +46,7 @@
     "typescript": "^4.6.2"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.54.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.54.1",
     "@aws-sdk/client-ec2": "^3.54.0",
     "@aws-sdk/client-ecr": "^3.41.0",
     "@aws-sdk/client-ecr-public": "^3.43.0",
