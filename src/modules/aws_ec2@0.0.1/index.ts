@@ -40,7 +40,7 @@ export const AwsEc2Module: Module = new Module({
         instanceId: e.instanceId ?? '',
         ami: e.ami ?? '',
         instanceType: e.instanceType ?? '',
-        securityGroups: e.securityGroups?.map(sg => sg.groupName ?? '').join(', '),
+        securityGroups: e.securityGroups?.map(sg => sg.groupName ?? '').join(', ') ?? '',
       }),
       equals: (a: Instance, b: Instance) => Object.is(a.name, b.name) &&
         Object.is(a.instanceId, b.instanceId) &&

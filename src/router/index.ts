@@ -38,8 +38,7 @@ if (config.a0Enabled) {
   });
   v1.use(checkJwt);
 }
-
-// TODO secure with cors and scope
+// TODO secure with scope
 v1.use('/db', db)
 v1.use('/module', mod)
 
