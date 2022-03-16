@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import cors from 'cors';
 import express from 'express';
 import { inspect } from 'util';
 import * as sentry from '@sentry/node';
@@ -9,6 +10,9 @@ import { v1 } from './router';
 const port = config.port;
 const app = express();
 
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://app.iasql.com'],
+}));
 if (config.sentryEnabled) {
   sentry.init({
     dsn: config.sentryDsn,

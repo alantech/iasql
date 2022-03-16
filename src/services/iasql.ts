@@ -146,7 +146,7 @@ export async function remove(dbAlias: string, user: any) {
   }
 }
 
-export async function list(user: any) {
+export async function list(user: any, verbose = false) {
   let conn;
   try {
     conn = await createConnection(dbMan.baseConnConfig);
@@ -158,6 +158,9 @@ export async function list(user: any) {
       datname <> 'template0' and
       datname <> 'template1'
     `)).map((r: any) => r.datname);
+    if (verbose) {
+      return Promise.all(aliases.map(async (a: string) => dbMan.getMetadata(a, user)));
+    }
     return aliases;
   } catch (e: any) {
     throw e;

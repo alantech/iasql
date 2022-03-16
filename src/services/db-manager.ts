@@ -7,7 +7,7 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 import config from '../config';
 import { IronPlans, } from './gateways/ironplans'
 
-type IPMetadata = { dbId: string, dbUser: string };
+type IPMetadata = { dbId: string, dbUser: string, dbAlias: string };
 
 // We only want to do this setup once, then we re-use it. First we get the list of files
 const migrationFiles = fs
@@ -148,7 +148,7 @@ export async function getAliases(user: any) {
 
 // returns db user and generates unique db id or returns default if no auth
 export async function setMetadata(dbAlias: string, dbUser: string, user: any): Promise<IPMetadata> {
-  if (!config.a0Enabled) return { dbId: dbAlias, dbUser: config.dbUser };
+  if (!config.a0Enabled) return { dbId: dbAlias, dbUser: config.dbUser, dbAlias };
   const email = user[`${config.a0Domain}email`];
   const ipUser = await IronPlans.getNewOrExistingUser(email, user.sub);
   const dbId = `_${randomHexValue()}`;
@@ -164,12 +164,12 @@ export async function setMetadata(dbAlias: string, dbUser: string, user: any): P
   }
   metadata[dbUserKey] = dbUser;
   await IronPlans.setTeamMetadata(ipUser.teamId, metadata);
-  return { dbId, dbUser };
+  return { dbId, dbUser, dbAlias };
 }
 
 // returns db metadata or defaults if no auth
 export async function getMetadata(dbAlias: string, user: any): Promise<IPMetadata> {
-  if (!config.a0Enabled) return { dbId: dbAlias, dbUser: config.dbUser };
+  if (!config.a0Enabled) return { dbId: dbAlias, dbUser: config.dbUser, dbAlias };
   // following the format for this auth0 rule
   // https://manage.auth0.com/dashboard/us/iasql/rules/rul_D2HobGBMtSmwUNQm
   // more context here https://community.auth0.com/t/include-email-in-jwt/39778/4
@@ -177,12 +177,12 @@ export async function getMetadata(dbAlias: string, user: any): Promise<IPMetadat
   const ipUser = await IronPlans.getNewOrExistingUser(email, user.sub);
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
   console.dir(metadata, {depth:2});
-  return { dbId: metadata[toDbKey(dbAlias)], dbUser: metadata[toUserKey(dbAlias)] };
+  return { dbId: metadata[toDbKey(dbAlias)], dbUser: metadata[toUserKey(dbAlias)], dbAlias };
 }
 
 // returns deleted db id or db alias if no auth
 export async function delMetadata(dbAlias: string, user: any): Promise<IPMetadata> {
-  if (!config.a0Enabled) return { dbId: dbAlias, dbUser: config.dbUser };
+  if (!config.a0Enabled) return { dbId: dbAlias, dbUser: config.dbUser, dbAlias };
   const email = user[`${config.a0Domain}email`];
   const ipUser = await IronPlans.getNewOrExistingUser(email, user.sub);
   const metadata: any = await IronPlans.getTeamMetadata(ipUser.teamId);
@@ -191,5 +191,5 @@ export async function delMetadata(dbAlias: string, user: any): Promise<IPMetadat
   delete metadata[toDbKey(dbAlias)];
   delete metadata[toUserKey(dbAlias)];
   await IronPlans.setTeamMetadata(ipUser.teamId, metadata);
-  return { dbId, dbUser };
+  return { dbId, dbUser, dbAlias };
 }
