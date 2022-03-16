@@ -146,7 +146,7 @@ export async function remove(dbAlias: string, user: any) {
   }
 }
 
-export async function list(user: any, verbose: boolean) {
+export async function list(user: any, verbose = false) {
   let conn;
   try {
     conn = await createConnection(dbMan.baseConnConfig);
