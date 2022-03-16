@@ -54,7 +54,7 @@ db.post('/export', async (req, res) => {
 
 db.get('/list', async (req, res) => {
   try {
-    res.json(await iasql.list(req.user));
+    res.json(await iasql.list(req.user, req.query.verbose === 'true'));
   } catch (e) {
     res.status(500).end(logger.error(e));
   }

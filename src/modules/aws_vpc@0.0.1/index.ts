@@ -124,7 +124,6 @@ export const AwsVpcModule: Module = new Module({
                 SubnetId: e.subnetId,
               });
             }
-            
           }
         },
       }),
@@ -181,8 +180,8 @@ export const AwsVpcModule: Module = new Module({
         delete: async (es: Vpc[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            // Special behavior here. You're not allowed to mess with the "default" VPC .
-            // Any attempt to update it is instead turned into *restoring* the value in 
+            // Special behavior here. You're not allowed to mess with the "default" VPC.
+            // Any attempt to update it is instead turned into *restoring* the value in
             // the database to match the cloud value
             if (e.isDefault) {
               // For delete, we have un-memoed the record, but the record passed in *is* the one
