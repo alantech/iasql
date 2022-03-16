@@ -50,7 +50,16 @@ export const AwsVpcModule: Module = new Module({
   mappers: {
     subnet: new Mapper<Subnet>({
       entity: Subnet,
-      entityPrint: (e: Subnet) => JSON.parse(JSON.stringify(e)),
+      entityPrint: (e: Subnet) => ({
+        subnetId: e.subnetId ?? '',
+        subnetArn: e.subnetArn ?? '',
+        availabilityZone: e.availabilityZone ?? '',
+        cidrBlock: e.cidrBlock ?? '',
+        availableIpAddressCount: e?.availableIpAddressCount?.toString() ?? '',
+        vpc: e.vpc?.vpcId ?? '',
+        state: e.state ?? '',
+        ownerId: e.ownerId ?? '',
+      }),
       equals: (a: Subnet, b: Subnet) => Object.is(a.subnetId, b.subnetId), // TODO: Do better
       source: 'db',
       cloud: new Crud({
@@ -99,16 +108,35 @@ export const AwsVpcModule: Module = new Module({
         delete: async (es: Subnet[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            await client.deleteSubnet({
-              SubnetId: e.subnetId,
-            });
+            // Special behavior here. You're not allowed to mess with the "default" VPC or its subnets.
+            // Any attempt to update it is instead turned into *restoring* the value in
+            // the database to match the cloud value
+            if (e.vpc?.isDefault) {
+              // For delete, we have un-memoed the record, but the record passed in *is* the one
+              // we're interested in, which makes it a bit simpler here
+              const vpc = ctx?.memo?.db?.Vpc[e.vpc.vpcId ?? ''] ?? null;
+              e.vpc.id = vpc.id;
+              await AwsVpcModule.mappers.subnet.db.update(e, ctx);
+              // Make absolutely sure it shows up in the memo
+              ctx.memo.db.Subnet[e.subnetId ?? ''] = e;
+            } else {
+              await client.deleteSubnet({
+                SubnetId: e.subnetId,
+              });
+            }
+            
           }
         },
       }),
     }),
     vpc: new Mapper<Vpc>({
       entity: Vpc,
-      entityPrint: (e: Vpc) => JSON.parse(JSON.stringify(e)),
+      entityPrint: (e: Vpc) => ({
+        vpcId: e.vpcId ?? '',
+        cidrBlock: e.cidrBlock ?? '',
+        state: e.state ?? '',
+        isDefault: e.isDefault?.toString() ?? '',
+      }),
       equals: (a: Vpc, b: Vpc) => Object.is(a.vpcId, b.vpcId), // TODO: Do better
       source: 'db',
       cloud: new Crud({
@@ -153,9 +181,27 @@ export const AwsVpcModule: Module = new Module({
         delete: async (es: Vpc[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            await client.deleteVpc({
-              VpcId: e.vpcId,
-            });
+            // Special behavior here. You're not allowed to mess with the "default" VPC .
+            // Any attempt to update it is instead turned into *restoring* the value in 
+            // the database to match the cloud value
+            if (e.isDefault) {
+              // For delete, we have un-memoed the record, but the record passed in *is* the one
+              // we're interested in, which makes it a bit simpler here
+              await AwsVpcModule.mappers.vpc.db.update(e, ctx);
+              // Make absolutely sure it shows up in the memo
+              ctx.memo.db.Vpc[e.vpcId ?? ''] = e;
+              const subnets = ctx?.memo?.cloud?.Subnet ?? [];
+              const relevantSubnets = subnets.filter(
+                (s: Subnet) => s.vpc.vpcId === e.vpcId
+              );
+              if (relevantSubnets.length > 0) {
+                await AwsVpcModule.mappers.subnet.db.update(relevantSubnets, ctx);
+              }
+            } else {
+              await client.deleteVpc({
+                VpcId: e.vpcId,
+              });
+            }
           }
         },
       }),
