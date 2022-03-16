@@ -11,9 +11,9 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm'
 
-import { AwsCluster, AwsTaskDefinition, AwsContainerDefinition } from '.';
-import { AwsTargetGroup } from '../../aws_elb@0.0.1/entity';
-import { AwsSecurityGroup } from '../../aws_security_group@0.0.1/entity';
+import { Cluster, TaskDefinition, ContainerDefinition } from '.';
+import { TargetGroup } from '../../aws_elb@0.0.1/entity';
+import { SecurityGroup } from '../../aws_security_group@0.0.1/entity';
 import { cloudId, } from '../../../services/cloud-id'
 
 export enum AssignPublicIp {
@@ -22,7 +22,7 @@ export enum AssignPublicIp {
 }
 
 @Entity()
-export class AwsService {
+export class Service {
   @PrimaryGeneratedColumn()
   id?: number;
 
@@ -42,17 +42,17 @@ export class AwsService {
   })
   status?: string;
 
-  @ManyToOne(() => AwsCluster)
+  @ManyToOne(() => Cluster)
   @JoinColumn({
     name: 'cluster_id',
   })
-  cluster?: AwsCluster;
+  cluster?: Cluster;
 
-  @ManyToOne(() => AwsTaskDefinition)
+  @ManyToOne(() => TaskDefinition)
   @JoinColumn({
     name: 'task_definition_id',
   })
-  task?: AwsTaskDefinition;
+  task?: TaskDefinition;
 
   @Column({
     type: 'int',
@@ -62,11 +62,11 @@ export class AwsService {
   @Column("text", { array: true, })
   subnets: string[];
 
-  @ManyToMany(() => AwsSecurityGroup)
+  @ManyToMany(() => SecurityGroup)
   @JoinTable({
-    name: 'aws_service_security_groups'
+    name: 'service_security_groups'
   })
-  securityGroups: AwsSecurityGroup[];
+  securityGroups: SecurityGroup[];
 
   @Column({
     type: 'enum',
@@ -75,11 +75,11 @@ export class AwsService {
   })
   assignPublicIp: AssignPublicIp;
 
-  @ManyToOne(() => AwsTargetGroup)
+  @ManyToOne(() => TargetGroup)
   @JoinColumn({
     name: 'target_group_id',
   })
-  targetGroup?: AwsTargetGroup;
+  targetGroup?: TargetGroup;
 
   @Column({
     default: false,

@@ -14,7 +14,7 @@ export enum VpcState {
 }
 
 @Entity()
-export class AwsVpc {
+export class Vpc {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -148,7 +148,7 @@ export enum AvailabilityZone {
 }
 
 @Entity()
-export class AwsSubnet {
+export class Subnet {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -166,11 +166,11 @@ export class AwsSubnet {
   })
   state?: SubnetState;
 
-  @ManyToOne(() => AwsVpc, { nullable: false, cascade: true,  eager: true, })
+  @ManyToOne(() => Vpc, { nullable: false, cascade: true,  eager: true, })
   @JoinColumn({
     name: 'vpc_id',
   })
-  vpc: AwsVpc;
+  vpc: Vpc;
 
   @Column({
     nullable: true,

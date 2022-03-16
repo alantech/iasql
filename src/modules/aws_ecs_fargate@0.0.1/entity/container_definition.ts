@@ -9,10 +9,10 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm'
-import { AwsTaskDefinition } from '.'
+import { TaskDefinition } from '.'
 
 import { LogGroup } from '../../aws_cloudwatch@0.0.1/entity'
-import { AwsPublicRepository, AwsRepository } from '../../aws_ecr@0.0.1/entity'
+import { PublicRepository, Repository } from '../../aws_ecr@0.0.1/entity'
 
 export enum TransportProtocol {
   TCP = "tcp",
@@ -24,18 +24,18 @@ export enum TransportProtocol {
 @Check(`("image" is null and ("repository_id" is not null or "public_repository_id" is not null)) or "image" is not null`)
 @Check(`("tag" is null and "digest" is null) or ("tag" is not null and "digest" is null) or ("tag" is null and "digest" is not null)`)
 @Entity()
-export class AwsContainerDefinition {
+export class ContainerDefinition {
   @PrimaryGeneratedColumn()
   id?: number;
 
   @Column()
   name: string;
 
-  @ManyToOne(() => AwsTaskDefinition)
+  @ManyToOne(() => TaskDefinition)
   @JoinColumn({
     name: 'task_definition_id',
   })
-  taskDefinition: AwsTaskDefinition;
+  taskDefinition: TaskDefinition;
 
   // TODO: add constraint  Up to 255 letters (uppercase and lowercase), numbers, hyphens, underscores, colons, periods, forward slashes, and number signs are allowed.
   @Column({ nullable: true, })
@@ -47,17 +47,17 @@ export class AwsContainerDefinition {
   @Column({ nullable: true, })
   digest?: string;
 
-  @ManyToOne(() => AwsRepository, { nullable: true, })
+  @ManyToOne(() => Repository, { nullable: true, })
   @JoinColumn({
     name: "repository_id"
   })
-  repository?: AwsRepository;
+  repository?: Repository;
 
-  @ManyToOne(() => AwsPublicRepository, { nullable: true, })
+  @ManyToOne(() => PublicRepository, { nullable: true, })
   @JoinColumn({
     name: "public_repository_id"
   })
-  publicRepository?: AwsPublicRepository;
+  publicRepository?: PublicRepository;
 
   @Column({
     default: false,

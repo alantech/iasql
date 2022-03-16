@@ -6,7 +6,7 @@ import {
   JoinTable,
 } from 'typeorm'
 
-import { AwsSecurityGroup } from '../../aws_security_group@0.0.1/entity'
+import { SecurityGroup } from '../../aws_security_group@0.0.1/entity'
 import { cloudId, } from '../../../services/cloud-id'
 
 export enum LoadBalancerSchemeEnum {
@@ -33,7 +33,7 @@ export enum IpAddressType {
 }
 
 @Entity()
-export class AwsLoadBalancer {
+export class LoadBalancer {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -95,11 +95,11 @@ export class AwsLoadBalancer {
   @Column("varchar", { array: true, nullable: true, })
   availabilityZones?: string[];
 
-  @ManyToMany(() => AwsSecurityGroup)
+  @ManyToMany(() => SecurityGroup)
   @JoinTable({
-    name: 'aws_load_balancer_security_groups',
+    name: 'load_balancer_security_groups',
   })
-  securityGroups?: AwsSecurityGroup[];
+  securityGroups?: SecurityGroup[];
 
   @Column({
     type: 'enum',

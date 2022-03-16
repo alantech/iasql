@@ -35,7 +35,7 @@ export enum ProtocolVersionEnum {
 }
 
 @Entity()
-export class AwsTargetGroup {
+export class TargetGroup {
   @PrimaryGeneratedColumn()
   id: number;
 

@@ -1,7 +1,7 @@
 import { In, } from 'typeorm'
 
 import { AWS, } from '../../services/gateways/aws'
-import { AwsSecurityGroup, AwsSecurityGroupRule, } from './entity'
+import { SecurityGroup, SecurityGroupRule, } from './entity'
 import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import * as metadata from './module.json'
@@ -10,12 +10,11 @@ export const AwsSecurityGroupModule: Module = new Module({
   ...metadata,
   provides: {
     entities: allEntities,
-    tables: ['aws_security_group', 'aws_security_group_rule'],
-    functions: ['create_or_update_aws_security_group', 'delete_aws_security_group',]
+    tables: ['security_group', 'security_group_rule'],
   },
   utils: {
     sgMapper: async (sg: any, _ctx: Context) => {
-      const out = new AwsSecurityGroup();
+      const out = new SecurityGroup();
       out.description = sg.Description;
       out.groupName = sg.GroupName;
       out.ownerId = sg.OwnerId;
@@ -24,7 +23,7 @@ export const AwsSecurityGroupModule: Module = new Module({
       return out;
     },
     sgrMapper: async (sgr: any, ctx: Context) => {
-      const out = new AwsSecurityGroupRule();
+      const out = new SecurityGroupRule();
       out.securityGroupRuleId = sgr?.SecurityGroupRuleId;
       out.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sgr?.GroupId);
       out.isEgress = sgr?.IsEgress ?? false;
@@ -39,9 +38,9 @@ export const AwsSecurityGroupModule: Module = new Module({
     },
   },
   mappers: {
-    securityGroup: new Mapper<AwsSecurityGroup>({
-      entity: AwsSecurityGroup,
-      entityPrint: (e: AwsSecurityGroup) => ({
+    securityGroup: new Mapper<SecurityGroup>({
+      entity: SecurityGroup,
+      entityPrint: (e: SecurityGroup) => ({
         id: e?.id?.toString() ?? '',
         description: e?.description ?? '',
         groupName: e?.groupName ?? '',
@@ -50,14 +49,14 @@ export const AwsSecurityGroupModule: Module = new Module({
         vpcId: e?.vpcId ?? '',
         securityGroupRules: e?.securityGroupRules?.map(sgr => sgr.securityGroupRuleId ?? '').join(', ') ?? '',
       }),
-      equals: (a: AwsSecurityGroup, b: AwsSecurityGroup) => Object.is(a.description, b.description) &&
+      equals: (a: SecurityGroup, b: SecurityGroup) => Object.is(a.description, b.description) &&
         Object.is(a.groupName, b.groupName) &&
         Object.is(a.ownerId, b.ownerId) &&
         Object.is(a.groupId, b.groupId) &&
         Object.is(a.vpcId, b.vpcId),
       source: 'db',
       db: new Crud({
-        create: (e: AwsSecurityGroup[], ctx: Context) => ctx.orm.save(AwsSecurityGroup, e),
+        create: (e: SecurityGroup[], ctx: Context) => ctx.orm.save(SecurityGroup, e),
         read: async (ctx: Context, ids?: string[]) => {
           // TODO: Possible to automate this?
           const relations = ['securityGroupRules', 'securityGroupRules.securityGroup'];
@@ -67,27 +66,27 @@ export const AwsSecurityGroupModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          const securityGroups = await ctx.orm.find(AwsSecurityGroup, opts);
+          const securityGroups = await ctx.orm.find(SecurityGroup, opts);
           const client = await ctx.getAwsClient() as AWS;
-          securityGroups.map(async (sg: AwsSecurityGroup) => {
+          securityGroups.map(async (sg: SecurityGroup) => {
             if (sg.vpcId === 'default') {
               const vpcs = (await client.getVpcs()).Vpcs;
               const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
               sg.vpcId = defaultVpc.VpcId;
-              await ctx.orm.save(AwsSecurityGroup, sg);
+              await ctx.orm.save(SecurityGroup, sg);
               if (sg.groupId) {
-                ctx.memo.db.AwsSecurityGroup[sg.groupId] = sg;
+                ctx.memo.db.SecurityGroup[sg.groupId] = sg;
               }
             }
             return sg;
           });
           return securityGroups;
         },
-        update: (e: AwsSecurityGroup[], ctx: Context) => ctx.orm.save(AwsSecurityGroup, e),
-        delete: (e: AwsSecurityGroup[], ctx: Context) => ctx.orm.remove(AwsSecurityGroup, e),
+        update: (e: SecurityGroup[], ctx: Context) => ctx.orm.save(SecurityGroup, e),
+        delete: (e: SecurityGroup[], ctx: Context) => ctx.orm.remove(SecurityGroup, e),
       }),
       cloud: new Crud({
-        create: async (es: AwsSecurityGroup[], ctx: Context) => {
+        create: async (es: SecurityGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
             // Special behavior here. You can't delete the 'default' security group, so if you're
@@ -97,17 +96,17 @@ export const AwsSecurityGroupModule: Module = new Module({
               // shove its properties into the "fake" default security group and re-save it
               // The security group rules associated with the user's created "default" group are
               // still fine to actually set in AWS, so we leave that alone.
-              const actualEntity = Object.values(ctx?.memo?.cloud?.AwsSecurityGroup ?? {}).find(
+              const actualEntity = Object.values(ctx?.memo?.cloud?.SecurityGroup ?? {}).find(
                 (a: any) => a.groupName === 'default' && a.groupId !== e.groupId // TODO: Fix typing here
-              ) as AwsSecurityGroup;
+              ) as SecurityGroup;
               e.description = actualEntity.description;
               e.groupId = actualEntity.groupId;
               e.groupName = actualEntity.groupName;
               e.ownerId = actualEntity.ownerId;
               e.vpcId = actualEntity.vpcId;
-              await ctx.orm.save(AwsSecurityGroup, e);
+              await ctx.orm.save(SecurityGroup, e);
               if (e.groupId) {
-                ctx.memo.db.AwsSecurityGroup[e.groupId] = e;
+                ctx.memo.db.SecurityGroup[e.groupId] = e;
               }
 
               return e;
@@ -116,9 +115,9 @@ export const AwsSecurityGroupModule: Module = new Module({
               const vpcs = (await client.getVpcs()).Vpcs;
               const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
               e.vpcId = defaultVpc.VpcId;
-              await ctx.orm.save(AwsSecurityGroup, e);
+              await ctx.orm.save(SecurityGroup, e);
               if (e.groupId) {
-                ctx.memo.db.AwsSecurityGroup[e.groupId] = e;
+                ctx.memo.db.SecurityGroup[e.groupId] = e;
               }
             }
             // First construct the security group
@@ -152,7 +151,7 @@ export const AwsSecurityGroupModule: Module = new Module({
           return await Promise.all(sgs.map(sg => AwsSecurityGroupModule.utils.sgMapper(sg, ctx)));
         },
         updateOrReplace: () => 'replace',
-        update: (es: AwsSecurityGroup[], ctx: Context) => Promise.all(es.map(async (e) => {
+        update: (es: SecurityGroup[], ctx: Context) => Promise.all(es.map(async (e) => {
           // Special behavior here. You're not allowed to mess with the "default" SecurityGroup.
           // You can mess with its rules, but not this record itself, so any attempt to update it
           // is instead turned into *restoring* the value in the database to match the cloud value
@@ -161,7 +160,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             // we can be sure that the security group rules for the default security group are
             // properly associated so we don't need to do anything about them here, just restore
             // the other properties
-            const cloudRecord = ctx?.memo?.cloud?.AwsSecurityGroup?.[e.groupId ?? ''];
+            const cloudRecord = ctx?.memo?.cloud?.SecurityGroup?.[e.groupId ?? ''];
             cloudRecord.id = e.id;
             await AwsSecurityGroupModule.mappers.securityGroup.db.update(cloudRecord, ctx);
           } else {
@@ -190,7 +189,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             }
           }
         })),
-        delete: async (es: AwsSecurityGroup[], ctx: Context) => {
+        delete: async (es: SecurityGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(async (e) => {
             // Special behavior here. You're not allowed to mess with the "default" SecurityGroup.
@@ -200,7 +199,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               // If there is a security group in the database with the 'default' groupName but we
               // are still hitting the 'delete' path, that's a race condition and we should just do
               // nothing here.
-              const dbRecord = Object.values(ctx?.memo?.db?.AwsSecurityGroup ?? {}).find(
+              const dbRecord = Object.values(ctx?.memo?.db?.SecurityGroup ?? {}).find(
                 (a: any) => a.groupName === 'default'
               );
               if (!!dbRecord) return;
@@ -208,10 +207,10 @@ export const AwsSecurityGroupModule: Module = new Module({
               // we're interested in, which makes it a bit simpler here
               await AwsSecurityGroupModule.mappers.securityGroup.db.update(e, ctx);
               // Make absolutely sure it shows up in the memo
-              ctx.memo.db.AwsSecurityGroup[e.groupId ?? ''] = e;
-              const rules = ctx?.memo?.cloud?.AwsSecurityGroupRule ?? [];
+              ctx.memo.db.SecurityGroup[e.groupId ?? ''] = e;
+              const rules = ctx?.memo?.cloud?.SecurityGroupRule ?? [];
               const relevantRules = rules.filter(
-                (r: AwsSecurityGroupRule) => r.securityGroup.groupId === e.groupId
+                (r: SecurityGroupRule) => r.securityGroup.groupId === e.groupId
               );
               if (relevantRules.length > 0) {
                 await AwsSecurityGroupModule.mappers.securityGroupRule.db.update(relevantRules, ctx);
@@ -224,20 +223,20 @@ export const AwsSecurityGroupModule: Module = new Module({
               // if any
               const rules = await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx);
               const relevantRules = rules.filter(
-                (r: AwsSecurityGroupRule) => r.securityGroup.groupId === e.groupId
+                (r: SecurityGroupRule) => r.securityGroup.groupId === e.groupId
               );
               await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(relevantRules, ctx);
               // Let's flush the caches here, too?
-              ctx.memo.cloud.AwsSecurityGroup = {};
-              ctx.memo.db.AwsSecurityGroup = {};
+              ctx.memo.cloud.SecurityGroup = {};
+              ctx.memo.db.SecurityGroup = {};
             }
           }));
         },
       }),
     }),
-    securityGroupRule: new Mapper<AwsSecurityGroupRule>({
-      entity: AwsSecurityGroupRule,
-      entityPrint: (e: AwsSecurityGroupRule) => ({
+    securityGroupRule: new Mapper<SecurityGroupRule>({
+      entity: SecurityGroupRule,
+      entityPrint: (e: SecurityGroupRule) => ({
         id: e?.id?.toString() ?? '',
         securityGroupRuleId: e?.securityGroupRuleId ?? '',
         securityGroup: e?.securityGroup?.groupName ?? '',
@@ -250,7 +249,7 @@ export const AwsSecurityGroupModule: Module = new Module({
         prefixListId: e?.prefixListId ?? '',
         description: e?.description ?? '',
       }),
-      equals: (a: AwsSecurityGroupRule, b: AwsSecurityGroupRule) => Object.is(a.isEgress, b.isEgress) &&
+      equals: (a: SecurityGroupRule, b: SecurityGroupRule) => Object.is(a.isEgress, b.isEgress) &&
         Object.is(a.ipProtocol, b.ipProtocol) &&
         Object.is(a.fromPort, b.fromPort) &&
         Object.is(a.toPort, b.toPort) &&
@@ -260,7 +259,7 @@ export const AwsSecurityGroupModule: Module = new Module({
         Object.is(a.description, b.description),
       source: 'db',
       db: new Crud({
-        create: (e: AwsSecurityGroupRule[], ctx: Context) => ctx.orm.save(AwsSecurityGroupRule, e),
+        create: (e: SecurityGroupRule[], ctx: Context) => ctx.orm.save(SecurityGroupRule, e),
         read: async (ctx: Context, ids?: string[]) => {
           // TODO: Possible to automate this?
           const relations = ['securityGroup', 'securityGroup.securityGroupRules',];
@@ -270,13 +269,13 @@ export const AwsSecurityGroupModule: Module = new Module({
             },
             relations,
           } : { relations, };
-          return await ctx.orm.find(AwsSecurityGroupRule, opts);
+          return await ctx.orm.find(SecurityGroupRule, opts);
         },
-        update: (e: AwsSecurityGroupRule[], ctx: Context) => ctx.orm.save(AwsSecurityGroupRule, e),
-        delete: (e: AwsSecurityGroupRule[], ctx: Context) => ctx.orm.remove(AwsSecurityGroupRule, e),
+        update: (e: SecurityGroupRule[], ctx: Context) => ctx.orm.save(SecurityGroupRule, e),
+        delete: (e: SecurityGroupRule[], ctx: Context) => ctx.orm.remove(SecurityGroupRule, e),
       }),
       cloud: new Crud({
-        create: async (es: AwsSecurityGroupRule[], ctx: Context) => {
+        create: async (es: SecurityGroupRule[], ctx: Context) => {
           // TODO: While the API supports creating multiple security group rules simultaneously,
           // I can't figure out a 100% correct way to identify which created rules are associated
           // with which returned ID to store in the database, so we're doing these sequentially at
@@ -330,14 +329,14 @@ export const AwsSecurityGroupModule: Module = new Module({
         },
         // TODO: Edit rules when possible in the future
         updateOrReplace: () => 'replace',
-        update: async (es: AwsSecurityGroupRule[], ctx: Context) => {
+        update: async (es: SecurityGroupRule[], ctx: Context) => {
           // First we create new instances of these records, then we delete the old instances
           // To make sure we don't accidentally delete the wrong things, we clone these entities
           const deleteEs = es.map(e => ({ ...e, }));
           await AwsSecurityGroupModule.mappers.securityGroupRule.cloud.create(es, ctx);
           await AwsSecurityGroupModule.mappers.securityGroupRule.cloud.delete(deleteEs, ctx);
         },
-        delete: async (es: AwsSecurityGroupRule[], ctx: Context) => {
+        delete: async (es: SecurityGroupRule[], ctx: Context) => {
           const egressDeletesToRun: any = {};
           const ingressDeletesToRun: any = {};
           for (const en of es) {
@@ -373,8 +372,8 @@ export const AwsSecurityGroupModule: Module = new Module({
             }
           }
           // Let's just flush both caches on a delete and force it to rebuild them?
-          ctx.memo.cloud.AwsSecurityGroupRule = {};
-          ctx.memo.db.AwsSecurityGroupRule = {};
+          ctx.memo.cloud.SecurityGroupRule = {};
+          ctx.memo.db.SecurityGroupRule = {};
         },
       }),
     }),

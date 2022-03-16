@@ -9,7 +9,7 @@ import { uniqueNamesGenerator, Config, adjectives, colors, animals } from 'uniqu
 import { DepError, lazyLoader, } from '../services/lazy-dep'
 import { findDiff, } from '../services/diff'
 import { TypeormWrapper, } from './typeorm'
-import { IasqlModule, } from '../entity'
+import { IasqlModule, IasqlTables, } from '../entity'
 import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
 import * as Modules from '../modules'
@@ -76,6 +76,7 @@ export async function add(
     // TODO: Figure out how to eliminate *most* of this special-casing for this module in the future
     const entities: Function[] = Object.values(Modules.AwsAccount.mappers).map(m => m.entity);
     entities.push(IasqlModule);
+    entities.push(IasqlTables);
     orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const mappers = Object.values(Modules.AwsAccount.mappers);
     const context: Modules.Context = { orm, memo: {}, ...Modules.AwsAccount.provides.context, };
@@ -689,7 +690,7 @@ export async function modules(all: boolean, installed: boolean, dbAlias: string,
     return allModules;
   } else if (installed && dbAlias) {
     const { dbId } = await dbMan.getMetadata(dbAlias, user);
-    const entities: Function[] = [IasqlModule];
+    const entities: Function[] = [IasqlModule, IasqlTables];
     const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const mods = await orm.find(IasqlModule);
     const modsInstalled = mods.map((m: IasqlModule) => (m.name));
@@ -787,6 +788,14 @@ ${Object.keys(tableCollisions)
         md.dependencies.map(async (dep) => await orm.findOne(IasqlModule, { name: dep, }))
       );
       await orm.save(IasqlModule, e);
+
+      const modTables = md.provides.tables?.map((t) => {
+        const mt = new IasqlTables();
+        mt.table = t;
+        mt.module = e;
+        return mt;
+      }) ?? [];
+      await orm.save(IasqlTables, modTables);
     }
     await queryRunner.commitTransaction();
     await orm.query(dbMan.grantPostgresRoleQuery(dbUser));
@@ -887,6 +896,13 @@ export async function uninstall(moduleList: string[], dbAlias: string, user: any
     }
     for (const md of rootToLeafOrder) {
       const e = await orm.findOne(IasqlModule, { name: `${md.name}@${md.version}`, });
+      const mt = await orm.find(IasqlTables, {
+        where: {
+          module: e,
+        },
+        relations: [ 'module', ]
+      }) ?? [];
+      await orm.remove(IasqlTables, mt);
       await orm.remove(IasqlModule, e);
     }
     await queryRunner.commitTransaction();

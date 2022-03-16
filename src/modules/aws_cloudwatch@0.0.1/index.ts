@@ -9,7 +9,6 @@ export const AwsCloudwatchModule: Module = new Module({
   provides: {
     entities: allEntities,
     tables: ['log_group',],
-    functions: ['create_or_update_cloudwatch_log_group', 'delete_cloudwatch_log_group',],
   },
   utils: {
     logGroupMapper: (lg: any, _ctx: Context) => {

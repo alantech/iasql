@@ -2,13 +2,8 @@ import { Entity, PrimaryGeneratedColumn, Column, } from 'typeorm'
 
 import { cloudId, } from '../../../services/cloud-id'
 
-export enum ImageTagMutability {
-  IMMUTABLE = "IMMUTABLE",
-  MUTABLE = "MUTABLE",
-}
-
 @Entity()
-export class AwsRepository {
+export class PublicRepository {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -40,22 +35,4 @@ export class AwsRepository {
     type: 'timestamp with time zone',
   })
   createdAt?: Date;
-
-  @Column({
-    default: ImageTagMutability.MUTABLE,
-    type: 'enum',
-    enum: ImageTagMutability,
-  })
-  imageTagMutability: ImageTagMutability;
-
-  @Column({
-    default: false,
-  })
-  scanOnPush: boolean;
-
-  // TODO: add encriptation configuration entity.
-  // @Column({
-  //   nullable: true,
-  // })
-  // encryptionConfiguration?: EncryptionConfiguration;
 }

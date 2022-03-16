@@ -29,23 +29,23 @@ describe('VPC Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('adds a new vpc', query(`  
-    INSERT INTO aws_vpc (cidr_block)
+    INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
   `));
 
   it('undo changes', sync);
 
   it('adds a new vpc', query(`  
-    INSERT INTO aws_vpc (cidr_block)
+    INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
   `));
 
   it('applies the vpc change', apply);
 
   it('adds a subnet', query(`
-    INSERT INTO aws_subnet (availability_zone, vpc_id, cidr_block)
+    INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
     SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16'
-    FROM aws_vpc
+    FROM vpc
     WHERE is_default = false
     AND cidr_block = '192.${randIPBlock}.0.0/16';
   `));
@@ -63,21 +63,21 @@ describe('VPC Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('queries the subnets to confirm the record is present', query(`
-    SELECT * FROM aws_subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16'
+    SELECT * FROM subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16'
   `, (res: any) => expect(res.length).toBeGreaterThan(0)));
 
   it('queries the vpcs to confirm the record is present', query(`
-    SELECT * FROM aws_vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
+    SELECT * FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
   `, (res: any) => expect(res.length).toBeGreaterThan(0)));
 
   it('deletes the subnet', query(`
     WITH vpc as (
       SELECT id
-      FROM aws_vpc
+      FROM vpc
       WHERE is_default = false
       AND cidr_block = '192.${randIPBlock}.0.0/16'
     )
-    DELETE FROM aws_subnet
+    DELETE FROM subnet
     USING vpc
     WHERE vpc_id = vpc.id;
   `));
@@ -85,7 +85,7 @@ describe('VPC Integration Testing', () => {
   it('applies the subnet removal', apply);
 
   it('deletes the vpc', query(`
-    DELETE FROM aws_vpc
+    DELETE FROM vpc
     WHERE cidr_block = '192.${randIPBlock}.0.0/16';
   `));
 

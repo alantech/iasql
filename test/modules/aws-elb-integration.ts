@@ -41,39 +41,39 @@ describe('ELB Integration Testing', () => {
   // TODO: add tests with stored procedures
   // Target group
   it('adds a new targetGroup', query(`
-    INSERT INTO aws_target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
+    INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
     VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, 'default', '/health');
   `));
 
   it('undo changes', sync);
 
-  it('check aws_target_group insertion', query(`
+  it('check target_group insertion', query(`
     SELECT *
-    FROM aws_target_group
+    FROM target_group
     WHERE target_group_name = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('adds a new targetGroup', query(`
-    INSERT INTO aws_target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
+    INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
     VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, 'default', '/health');
   `));
 
-  it('check aws_target_group insertion', query(`
+  it('check target_group insertion', query(`
     SELECT *
-    FROM aws_target_group
+    FROM target_group
     WHERE target_group_name = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies the change', apply);
 
   it('tries to update a target group field', query(`
-    UPDATE aws_target_group SET health_check_path = '/fake-health' WHERE target_group_name = '${tgName}';
+    UPDATE target_group SET health_check_path = '/fake-health' WHERE target_group_name = '${tgName}';
   `));
 
   it('applies the change', apply);
 
   it('tries to update a target group field (replace)', query(`
-    UPDATE aws_target_group SET port = 5677 WHERE target_group_name = '${tgName}';
+    UPDATE target_group SET port = 5677 WHERE target_group_name = '${tgName}';
   `));
 
   it('applies the change', apply);
@@ -81,33 +81,33 @@ describe('ELB Integration Testing', () => {
   // Load balancer
   // TODO: add security groups insert when testing application load balancer integration
   it('adds a new load balancer', query(`
-    INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
+    INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
     VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
   `));
 
   it('undo changes', sync);
 
-  it('check aws_load_balancer insertion', query(`
+  it('check load_balancer insertion', query(`
     SELECT *
-    FROM aws_load_balancer
+    FROM load_balancer
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
   
   it('adds a new load balancer', query(`
-    INSERT INTO aws_load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
+    INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
     VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
   `));
 
-  it('check aws_load_balancer insertion', query(`
+  it('check load_balancer insertion', query(`
     SELECT *
-    FROM aws_load_balancer
+    FROM load_balancer
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies the change', apply);
 
   it('tries to update a load balancer field', query(`
-    UPDATE aws_load_balancer SET state = '${LoadBalancerStateEnum.FAILED}' WHERE load_balancer_name = '${lbName}';
+    UPDATE load_balancer SET state = '${LoadBalancerStateEnum.FAILED}' WHERE load_balancer_name = '${lbName}';
   `));
 
   it('applies the change and restore it', apply);
@@ -115,7 +115,7 @@ describe('ELB Integration Testing', () => {
   // TODO: add load balancer update of subnets or security group
 
   it('tries to update a target group field (replace)', query(`
-    UPDATE aws_load_balancer SET scheme = '${LoadBalancerSchemeEnum.INTERNAL}' WHERE load_balancer_name = '${lbName}';
+    UPDATE load_balancer SET scheme = '${LoadBalancerSchemeEnum.INTERNAL}' WHERE load_balancer_name = '${lbName}';
   `));
 
   it('applies the change', apply);
@@ -123,39 +123,39 @@ describe('ELB Integration Testing', () => {
   it('adds a new listener', query(`
     WITH target_group AS (
       SELECT id
-      FROM aws_target_group
+      FROM target_group
       WHERE target_group_name = '${tgName}'
       ORDER BY id DESC
       LIMIT 1
     ), load_balancer AS (
       SELECT id
-      FROM aws_load_balancer
+      FROM load_balancer
       WHERE load_balancer_name = '${lbName}'
       ORDER BY id DESC
       LIMIT 1
     )
-    INSERT INTO aws_listener (aws_load_balancer_id, port, protocol, target_group_id)
+    INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
     VALUES ((SELECT id FROM load_balancer), ${port}, '${protocol}', (SELECT id FROM target_group));
   `));
 
-  it('check aws_listener insertion', query(`
+  it('check listener insertion', query(`
     SELECT *
-    FROM aws_listener
-    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+    FROM listener
+    INNER JOIN load_balancer ON load_balancer.id = listener.load_balancer_id
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies the change', apply);
 
   it('tries to update a listener field', query(`
-    UPDATE aws_listener
+    UPDATE listener
     SET port = ${port + 1}
     WHERE id IN (
-      SELECT aws_listener.id
-      FROM aws_listener
-      INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+      SELECT listener.id
+      FROM listener
+      INNER JOIN load_balancer ON load_balancer.id = listener.load_balancer_id
       WHERE load_balancer_name = '${lbName}'
-      ORDER BY aws_listener.id DESC
+      ORDER BY listener.id DESC
       LIMIT 1
     );
   `));
@@ -173,41 +173,41 @@ describe('ELB Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('deletes the listener', query(`
-    DELETE FROM aws_listener
-    USING aws_load_balancer
-    WHERE load_balancer_name = '${lbName}' and aws_load_balancer.id = aws_listener.aws_load_balancer_id;
+    DELETE FROM listener
+    USING load_balancer
+    WHERE load_balancer_name = '${lbName}' and load_balancer.id = listener.load_balancer_id;
   `));
 
-  it('check aws_listener delete', query(`
+  it('check listener delete', query(`
     SELECT *
-    FROM aws_listener
-    INNER JOIN aws_load_balancer ON aws_load_balancer.id = aws_listener.aws_load_balancer_id
+    FROM listener
+    INNER JOIN load_balancer ON load_balancer.id = listener.load_balancer_id
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('applies the change', apply);
 
   it('deletes the load balancer', query(`
-    DELETE FROM aws_load_balancer
+    DELETE FROM load_balancer
     WHERE load_balancer_name = '${lbName}';
   `));
 
-  it('check aws_load_balancer delete', query(`
+  it('check load_balancer delete', query(`
     SELECT *
-    FROM aws_load_balancer
+    FROM load_balancer
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('applies the change', apply);
 
   it('deletes the target group', query(`
-    DELETE FROM aws_target_group
+    DELETE FROM target_group
     WHERE target_group_name = '${tgName}';
   `));
 
-  it('check aws_target_group insertion', query(`
+  it('check target_group insertion', query(`
     SELECT *
-    FROM aws_target_group
+    FROM target_group
     WHERE target_group_name = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 

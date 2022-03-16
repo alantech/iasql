@@ -1,10 +1,10 @@
-import { Subnet, Vpc, } from '@aws-sdk/client-ec2'
+import { Subnet as AwsSubnet, Vpc as AwsVpc, } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../../services/gateways/aws'
 import {
   AvailabilityZone,
-  AwsSubnet,
-  AwsVpc,
+  Subnet,
+  Vpc,
   SubnetState,
   VpcState,
 } from './entity'
@@ -16,11 +16,11 @@ export const AwsVpcModule: Module = new Module({
   ...metadata,
   provides: {
     entities: allEntities,
-    tables: ['aws_subnet', 'aws_vpc'],
+    tables: ['subnet', 'vpc'],
   },
   utils: {
-    subnetMapper: async (sn: Subnet, ctx: Context) => {
-      const out = new AwsSubnet();
+    subnetMapper: async (sn: AwsSubnet, ctx: Context) => {
+      const out = new Subnet();
       if (!sn?.SubnetId || !sn?.VpcId) {
         throw new Error('Subnet not defined properly');
       }
@@ -35,8 +35,8 @@ export const AwsVpcModule: Module = new Module({
       out.subnetArn = sn.SubnetArn;
       return out;
     },
-    vpcMapper: (vpc: Vpc) => {
-      const out = new AwsVpc();
+    vpcMapper: (vpc: AwsVpc) => {
+      const out = new Vpc();
       if (!vpc?.VpcId || !vpc?.CidrBlock) {
         throw new Error('VPC not defined properly');
       }
@@ -48,9 +48,9 @@ export const AwsVpcModule: Module = new Module({
     },
   },
   mappers: {
-    subnet: new Mapper<AwsSubnet>({
-      entity: AwsSubnet,
-      entityPrint: (e: AwsSubnet) => ({
+    subnet: new Mapper<Subnet>({
+      entity: Subnet,
+      entityPrint: (e: Subnet) => ({
         subnetId: e.subnetId ?? '',
         subnetArn: e.subnetArn ?? '',
         availabilityZone: e.availabilityZone ?? '',
@@ -60,10 +60,10 @@ export const AwsVpcModule: Module = new Module({
         state: e.state ?? '',
         ownerId: e.ownerId ?? '',
       }),
-      equals: (a: AwsSubnet, b: AwsSubnet) => Object.is(a.subnetId, b.subnetId), // TODO: Do better
+      equals: (a: Subnet, b: Subnet) => Object.is(a.subnetId, b.subnetId), // TODO: Do better
       source: 'db',
       cloud: new Crud({
-        create: async (es: AwsSubnet[], ctx: Context) => {
+        create: async (es: Subnet[], ctx: Context) => {
           // TODO: Add support for creating default subnets (only one is allowed, also add
           // constraint that a single subnet is set as default)
           const client = await ctx.getAwsClient() as AWS;
@@ -100,12 +100,12 @@ export const AwsVpcModule: Module = new Module({
             return out;
           }
         },
-        update: async (es: AwsSubnet[], ctx: Context) => {
+        update: async (es: Subnet[], ctx: Context) => {
           // There is no update mechanism for a subnet so instead we will create a new one and the
           // next loop through should delete the old one
           return await AwsVpcModule.mappers.subnet.cloud.create(es, ctx);
         },
-        delete: async (es: AwsSubnet[], ctx: Context) => {
+        delete: async (es: Subnet[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
             // Special behavior here. You're not allowed to mess with the "default" VPC or its subnets.
@@ -128,18 +128,18 @@ export const AwsVpcModule: Module = new Module({
         },
       }),
     }),
-    vpc: new Mapper<AwsVpc>({
-      entity: AwsVpc,
-      entityPrint: (e: AwsVpc) => ({
+    vpc: new Mapper<Vpc>({
+      entity: Vpc,
+      entityPrint: (e: Vpc) => ({
         vpcId: e.vpcId ?? '',
         cidrBlock: e.cidrBlock ?? '',
         state: e.state ?? '',
         isDefault: e.isDefault?.toString() ?? '',
       }),
-      equals: (a: AwsVpc, b: AwsVpc) => Object.is(a.vpcId, b.vpcId), // TODO: Do better
+      equals: (a: Vpc, b: Vpc) => Object.is(a.vpcId, b.vpcId), // TODO: Do better
       source: 'db',
       cloud: new Crud({
-        create: async (es: AwsVpc[], ctx: Context) => {
+        create: async (es: Vpc[], ctx: Context) => {
           // TODO: Add support for creating default VPCs (only one is allowed, also add constraint
           // that a single VPC is set as default)
           const client = await ctx.getAwsClient() as AWS;
@@ -171,13 +171,13 @@ export const AwsVpcModule: Module = new Module({
               .map(vpc => AwsVpcModule.utils.vpcMapper(vpc));
           }
         },
-        update: async (es: AwsVpc[], ctx: Context) => {
+        update: async (es: Vpc[], ctx: Context) => {
           // There is no update mechanism for a VPC's CIDR block (the only thing we can really
           // change) so instead we will create a new one and the next loop through should delete
           // the old one
           return await AwsVpcModule.mappers.vpc.cloud.create(es, ctx);
         },
-        delete: async (es: AwsVpc[], ctx: Context) => {
+        delete: async (es: Vpc[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
             // Special behavior here. You're not allowed to mess with the "default" VPC.
@@ -191,7 +191,7 @@ export const AwsVpcModule: Module = new Module({
               ctx.memo.db.Vpc[e.vpcId ?? ''] = e;
               const subnets = ctx?.memo?.cloud?.Subnet ?? [];
               const relevantSubnets = subnets.filter(
-                (s: AwsSubnet) => s.vpc.vpcId === e.vpcId
+                (s: Subnet) => s.vpc.vpcId === e.vpcId
               );
               if (relevantSubnets.length > 0) {
                 await AwsVpcModule.mappers.subnet.db.update(relevantSubnets, ctx);

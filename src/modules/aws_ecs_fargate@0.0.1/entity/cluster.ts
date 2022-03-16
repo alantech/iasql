@@ -7,7 +7,7 @@ import {
 import { cloudId, } from '../../../services/cloud-id'
 
 @Entity()
-export class AwsCluster {
+export class Cluster {
   @PrimaryGeneratedColumn()
   id?: number;
 
