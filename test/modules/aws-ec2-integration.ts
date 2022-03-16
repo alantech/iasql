@@ -35,17 +35,17 @@ describe('EC2 Integration Testing', () => {
       BEGIN;
         INSERT INTO instance (name, ami, instance_type)
           VALUES ('i-1','${ubuntuAmiId}', 't2.micro');
-        INSERT INTO instance_security_groups (instance_id, aws_security_group_id) SELECT
+        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE name='i-1'),
-          (SELECT id FROM aws_security_group WHERE group_name='default');
+          (SELECT id FROM security_group WHERE group_name='default');
       COMMIT;
 
       BEGIN;
         INSERT INTO instance (name, ami, instance_type)
           VALUES ('i-2','${amznAmiId}', 't2.micro');
-        INSERT INTO instance_security_groups (instance_id, aws_security_group_id) SELECT
+        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE name='i-2'),
-          (SELECT id FROM aws_security_group WHERE group_name='default');
+          (SELECT id FROM security_group WHERE group_name='default');
       COMMIT;
     `)((e?: any) => {
       if (!!e) return done(e);
@@ -66,17 +66,17 @@ describe('EC2 Integration Testing', () => {
       BEGIN;
         INSERT INTO instance (name, ami, instance_type)
           VALUES ('i-1','${ubuntuAmiId}', 't2.micro');
-        INSERT INTO instance_security_groups (instance_id, aws_security_group_id) SELECT
+        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE name='i-1'),
-          (SELECT id FROM aws_security_group WHERE group_name='default');
+          (SELECT id FROM security_group WHERE group_name='default');
       COMMIT;
 
       BEGIN;
         INSERT INTO instance (name, ami, instance_type)
           VALUES ('i-2','${amznAmiId}', 't2.micro');
-        INSERT INTO instance_security_groups (instance_id, aws_security_group_id) SELECT
+        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE name='i-2'),
-          (SELECT id FROM aws_security_group WHERE group_name='default');
+          (SELECT id FROM security_group WHERE group_name='default');
       COMMIT;
     `)((e?: any) => {
       if (!!e) return done(e);

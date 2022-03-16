@@ -31,9 +31,9 @@ describe('RDS Integration Testing', () => {
     BEGIN;
       INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, master_username, master_user_password, availability_zone, engine, backup_retention_period)
         VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', '${availabilityZone}', 'postgres:13.4', 0);
-      INSERT INTO rds_vpc_security_groups_aws_security_group (rds_id, aws_security_group_id) SELECT
+      INSERT INTO rds_security_groups (rds_id, security_group_id) SELECT
         (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test'),
-        (SELECT id FROM aws_security_group WHERE group_name='default');
+        (SELECT id FROM security_group WHERE group_name='default');
     COMMIT;
   `));
 
@@ -47,8 +47,8 @@ describe('RDS Integration Testing', () => {
 
   it('check adds a new repository', query(`
     SELECT *
-    FROM rds_vpc_security_groups_aws_security_group
-    INNER JOIN rds ON rds.id = rds_vpc_security_groups_aws_security_group.rds_id
+    FROM rds_security_groups
+    INNER JOIN rds ON rds.id = rds_security_groups.rds_id
     WHERE db_instance_identifier = '${prefix}test';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
@@ -56,9 +56,9 @@ describe('RDS Integration Testing', () => {
     BEGIN;
       INSERT INTO rds (db_instance_identifier, allocated_storage, db_instance_class, master_username, master_user_password, availability_zone, engine, backup_retention_period)
         VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', '${availabilityZone}', 'postgres:13.4', 0);
-      INSERT INTO rds_vpc_security_groups_aws_security_group (rds_id, aws_security_group_id) SELECT
+      INSERT INTO rds_security_groups (rds_id, security_group_id) SELECT
         (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test'),
-        (SELECT id FROM aws_security_group WHERE group_name='default');
+        (SELECT id FROM security_group WHERE group_name='default');
     COMMIT;
   `));
 
@@ -72,8 +72,8 @@ describe('RDS Integration Testing', () => {
 
   it('check adds a new repository', query(`
     SELECT *
-    FROM rds_vpc_security_groups_aws_security_group
-    INNER JOIN rds ON rds.id = rds_vpc_security_groups_aws_security_group.rds_id
+    FROM rds_security_groups
+    INNER JOIN rds ON rds.id = rds_security_groups.rds_id
     WHERE db_instance_identifier = '${prefix}test';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
