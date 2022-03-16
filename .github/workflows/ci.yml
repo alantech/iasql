@@ -112,7 +112,7 @@ jobs:
         run: yarn
 
       - name: fail
-        run: exit 0
+        run: exit 1
 
       - name: Run modules tests
         run: yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
