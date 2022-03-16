@@ -1,21 +1,21 @@
 import * as iasql from '../../src/services/iasql'
 import { runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
-jest.setTimeout(240000);
-
-beforeAll(execComposeUp);
-
-afterAll(execComposeDown);
-
 const dbAlias = 'ec2test';
 // specific to us-west-2, varies per region
 const region = 'us-west-2'
 const amznAmiId = 'ami-06cffe063efe892ad';
 const ubuntuAmiId = 'ami-0892d3c7ee96c0bf7';
+const modules = ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'];
 
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const composeDown = execComposeDown.bind(null, modules);
+
+jest.setTimeout(240000);
+beforeAll(execComposeUp);
+afterAll(composeDown);
 
 describe('EC2 Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
@@ -26,7 +26,7 @@ describe('EC2 Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the ec2 module', (done) => void iasql.install(
-    ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -110,12 +110,12 @@ describe('EC2 Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('uninstalls the ec2 module', (done) => void iasql.uninstall(
-    ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('installs the ec2 module', (done) => void iasql.install(
-    ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -149,12 +149,12 @@ describe('EC2 install/uninstall', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the EC2 module', (done) => void iasql.install(
-    ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('uninstalls the EC2 module', (done) => void iasql.uninstall(
-    ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
