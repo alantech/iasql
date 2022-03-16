@@ -108,9 +108,23 @@ export const AwsVpcModule: Module = new Module({
         delete: async (es: AwsSubnet[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            await client.deleteSubnet({
-              SubnetId: e.subnetId,
-            });
+            // Special behavior here. You're not allowed to mess with the "default" VPC or its subnets.
+            // Any attempt to update it is instead turned into *restoring* the value in
+            // the database to match the cloud value
+            if (e.vpc?.isDefault) {
+              // For delete, we have un-memoed the record, but the record passed in *is* the one
+              // we're interested in, which makes it a bit simpler here
+              const vpc = ctx?.memo?.db?.Vpc[e.vpc.vpcId ?? ''] ?? null;
+              e.vpc.id = vpc.id;
+              await AwsVpcModule.mappers.subnet.db.update(e, ctx);
+              // Make absolutely sure it shows up in the memo
+              ctx.memo.db.Subnet[e.subnetId ?? ''] = e;
+            } else {
+              await client.deleteSubnet({
+                SubnetId: e.subnetId,
+              });
+            }
+            
           }
         },
       }),
@@ -167,9 +181,27 @@ export const AwsVpcModule: Module = new Module({
         delete: async (es: AwsVpc[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            await client.deleteVpc({
-              VpcId: e.vpcId,
-            });
+            // Special behavior here. You're not allowed to mess with the "default" VPC .
+            // Any attempt to update it is instead turned into *restoring* the value in 
+            // the database to match the cloud value
+            if (e.isDefault) {
+              // For delete, we have un-memoed the record, but the record passed in *is* the one
+              // we're interested in, which makes it a bit simpler here
+              await AwsVpcModule.mappers.vpc.db.update(e, ctx);
+              // Make absolutely sure it shows up in the memo
+              ctx.memo.db.Vpc[e.vpcId ?? ''] = e;
+              const subnets = ctx?.memo?.cloud?.Subnet ?? [];
+              const relevantSubnets = subnets.filter(
+                (s: AwsSubnet) => s.vpc.vpcId === e.vpcId
+              );
+              if (relevantSubnets.length > 0) {
+                await AwsVpcModule.mappers.subnet.db.update(relevantSubnets, ctx);
+              }
+            } else {
+              await client.deleteVpc({
+                VpcId: e.vpcId,
+              });
+            }
           }
         },
       }),
