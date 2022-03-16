@@ -68,13 +68,13 @@ jobs:
       - id: set-test-modules
         name: Set modules tests
         run: >
-          echo "::set-output name=test-modules::$(npx jest **/modules/*ec* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
+          echo "::set-output name=test-modules::$(npx jest **/modules/*ec2* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
         # run: >
         #   echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
       - id: set-test-module-names
         name: Set modules tests names
         # run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
-        run: echo "::set-output name=test-module-names::$(npx jest **/modules/*ec* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+        run: echo "::set-output name=test-module-names::$(npx jest **/modules/*ec2* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
       - id: set-region
         name: Set region
         # All regions except us-east-1 to not collide with common tests
@@ -95,7 +95,6 @@ jobs:
       fail-fast: false
       matrix:
         module: ${{ fromJson(needs.setup-module-test.outputs['set-test-module-names']) }}
-
     env:
       MATRIX_AWS_ACCESS_KEY_ID: AWS_ACCESS_KEY_ID_${{matrix.module}}
       MATRIX_AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY_${{matrix.module}}
@@ -123,50 +122,3 @@ jobs:
           IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
           AWS_REGION: ${{ needs.setup-module-test.outputs['region'] }}
           DB_HOST: localhost
-
-  clean:
-    runs-on: ubuntu-latest
-    needs:
-      - module-test
-    if: failure()
-    steps:
-      # Checkout repos side by side
-      - uses: actions/checkout@v2
-      
-      - uses: actions/checkout@v2
-        with:
-          repository: iasql/cli
-          path: cli
-          ref: ${{ github.event.inputs.cli-branch }}
-
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
-        with:
-          node-version: 16.x
-
-      - name: Create .env file
-        run: |
-          touch .env
-          echo AO_ENABLED=true >> .env
-          echo AO_DOMAIN=https://auth.iasql.com/ >> .env
-          echo AO_AUDIENCE=https://api.iasql.com >> .env
-          echo IRONPLANS_TOKEN='${{ secrets.IRONPLANS_TOKEN }}' >> .env
-
-      - name: Start iasql
-        run: |
-          docker-compose --env-file .env up --build --detach
-          while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
-
-      - name: Run clean script
-        run: |
-          echo "$NEEDS_CONTEXT"
-        env:
-          NEEDS_CONTEXT: ${{ toJSON(needs) }}
-
-      - name: Logs engine
-        if: always()
-        run: docker logs iasql-engine_change_engine_1
-
-      - name: Logs psql
-        if: always()
-        run: docker logs iasql-engine_postgresql_1

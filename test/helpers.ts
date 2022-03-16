@@ -8,7 +8,40 @@ export function execComposeUp() {
   execSync('cd test && docker-compose up -d && sleep 5');
 }
 
-export function execComposeDown() {
+export async function execComposeDown() {
+  const dbAlias = 'cleandb';
+  await iasql.add(dbAlias, process.env.AWS_REGION ?? 'barf', process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed');
+  await iasql.install(['aws_ec2@0.0.1', 'aws_security_group@0.0.1'], dbAlias, 'not-needed');
+  runQuery(dbAlias, `
+    DO $$
+    DECLARE 
+      loop_count integer := 0;
+      tables_array_lenght integer;
+        tables_array text[];
+        aux_tables_array text[];
+        aws_region text;
+    BEGIN
+      select region into aws_region from aws_account;
+      SELECT ARRAY(SELECT "table" FROM iasql_tables) INTO tables_array;
+      SELECT array_length(tables_array, 1) INTO tables_array_lenght;
+        WHILE tables_array_lenght > 0 AND loop_count < 20 LOOP 
+        SELECT tables_array INTO aux_tables_array;
+        FOR table_elem IN array_lower(aux_tables_array, 1)..array_upper(aux_tables_array, 1) LOOP
+            begin
+              EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
+              SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
+            EXCEPTION
+              WHEN others THEN 
+                  -- we ignore the error
+                END;
+          END LOOP;
+        SELECT array_length(tables_array, 1) INTO tables_array_lenght; 
+        loop_count := loop_count + 1;
+      END LOOP;
+    END$$;
+  `, (res) => { console.dir(res, {depth:6})});
+  const applyRes = await iasql.apply(dbAlias, false, 'not-needed');
+  console.dir(applyRes, {depth:5})
   execSync('cd test && docker-compose down');
 }
 
