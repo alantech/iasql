@@ -204,11 +204,10 @@ describe('ECR Integration Testing', () => {
       dbAlias,
       'not-needed').then(...finish(done)));
   
-    // TODO: force error. To be estored.
-    // it('deletes the public repository', query(`
-    //   DELETE FROM public_repository
-    //   WHERE repository_name = '${pubRepositoryName}';
-    // `));
+    it('deletes the public repository', query(`
+      DELETE FROM public_repository
+      WHERE repository_name = '${pubRepositoryName}';
+    `));
 
     it('applies the log group change (last time)', apply);
 
