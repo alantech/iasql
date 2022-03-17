@@ -10,10 +10,11 @@ import {
 const dbAlias = 'accounttest';
 const apply = runApply.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const runComposeDown = execComposeDown.bind(null);
 
 jest.setTimeout(360000);
 beforeAll(execComposeUp);
-afterAll(execComposeDown);
+afterAll(runComposeDown);
 
 describe('AwsAccount Integration Testing', () => {
   // TODO: Restore some mechanism to verify credentials
