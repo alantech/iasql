@@ -4,7 +4,7 @@ import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, 
 const prefix = getPrefix();
 const dbAlias = 'ecrtest';
 const repositoryName = prefix + dbAlias;
-const pubRepositoryName = 'public' + prefix + dbAlias;
+const pubRepositoryName = `pub${prefix}${dbAlias}-${process.env.AWS_REGION ?? 'barf'}`;
 const policyMock = '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
 const updatePolicyMock = '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage" ] } ]}';
 const apply = runApply.bind(null, dbAlias);
@@ -78,8 +78,7 @@ describe('ECR Integration Testing', () => {
       FROM repository
       WHERE repository_name = '${repositoryName}';
     `, (res: any[]) => {
-      // TODO: forcing error. Restore to 1
-      expect(res.length).toBe(100);
+      expect(res.length).toBe(1);
       return expect(res[0]['scan_on_push']).toBe(true);
     }));
   
@@ -205,10 +204,11 @@ describe('ECR Integration Testing', () => {
       dbAlias,
       'not-needed').then(...finish(done)));
   
-    it('deletes the public repository', query(`
-      DELETE FROM public_repository
-      WHERE repository_name = '${pubRepositoryName}';
-    `));
+    // TODO: force error. To be estored.
+    // it('deletes the public repository', query(`
+    //   DELETE FROM public_repository
+    //   WHERE repository_name = '${pubRepositoryName}';
+    // `));
 
     it('applies the log group change (last time)', apply);
 
