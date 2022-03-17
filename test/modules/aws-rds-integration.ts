@@ -8,11 +8,10 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 const modules = ['aws_security_group@0.0.1', 'aws_rds@0.0.1'];
-const runComposeDown = execComposeDown.bind(null, modules);
 
 jest.setTimeout(960000);
 beforeAll(execComposeUp);
-afterAll(runComposeDown);
+afterAll(() => execComposeDown(modules));
 
 describe('RDS Integration Testing', () => {
   it('creates a new test db elb', (done) => void iasql.add(
