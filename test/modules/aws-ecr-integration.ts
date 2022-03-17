@@ -78,7 +78,8 @@ describe('ECR Integration Testing', () => {
       FROM repository
       WHERE repository_name = '${repositoryName}';
     `, (res: any[]) => {
-      expect(res.length).toBe(1);
+      // TODO: forcing error. Restore to 1
+      expect(res.length).toBe(100);
       return expect(res[0]['scan_on_push']).toBe(true);
     }));
   
