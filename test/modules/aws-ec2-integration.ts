@@ -52,7 +52,7 @@ describe('EC2 Integration Testing', () => {
     });
   });
 
-  it('Undo changes', sync);
+  it('Undo changes', sync());
 
   it('check number of instances', query(`
     SELECT *
@@ -89,13 +89,13 @@ describe('EC2 Integration Testing', () => {
     WHERE name = ANY(array['i-1', 'i-2']);
   `, (res: any[]) => expect(res.length).toBe(2)));
 
-  it('applies the created instances', apply);
+  it('applies the created instances', apply());
 
   it('set both ec2 instances to the same ami', query(`
     UPDATE instance SET ami = '${amznAmiId}' WHERE name = 'i-1';
   `));
 
-  it('applies the instances change', apply);
+  it('applies the instances change', apply());
 
   it('check number of instances', query(`
     SELECT *
@@ -127,7 +127,7 @@ describe('EC2 Integration Testing', () => {
     DELETE FROM instance;
   `));
 
-  it('applies the instances deletion', apply);
+  it('applies the instances deletion', apply());
 
   it('check number of instances', query(`
     SELECT *

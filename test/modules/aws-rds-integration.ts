@@ -36,7 +36,7 @@ describe('RDS Integration Testing', () => {
     COMMIT;
   `));
 
-  it('undo changes', sync);
+  it('undo changes', sync());
 
   it('check adds a new repository', query(`
     SELECT *
@@ -61,7 +61,7 @@ describe('RDS Integration Testing', () => {
     COMMIT;
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('check adds a new repository', query(`
     SELECT *
@@ -80,7 +80,7 @@ describe('RDS Integration Testing', () => {
     UPDATE rds SET engine = 'postgres:13.5' WHERE db_instance_identifier = '${prefix}test';
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('uninstalls the rds module', (done) => void iasql.uninstall(
     ['aws_rds@0.0.1'],
@@ -96,7 +96,7 @@ describe('RDS Integration Testing', () => {
     DELETE FROM rds;
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')

@@ -44,7 +44,7 @@ describe('ELB Integration Testing', () => {
     VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, 'default', '/health');
   `));
 
-  it('undo changes', sync);
+  it('undo changes', sync());
 
   it('check target_group insertion', query(`
     SELECT *
@@ -63,19 +63,19 @@ describe('ELB Integration Testing', () => {
     WHERE target_group_name = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('tries to update a target group field', query(`
     UPDATE target_group SET health_check_path = '/fake-health' WHERE target_group_name = '${tgName}';
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('tries to update a target group field (replace)', query(`
     UPDATE target_group SET port = 5677 WHERE target_group_name = '${tgName}';
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   // Load balancer
   // TODO: add security groups insert when testing application load balancer integration
@@ -84,7 +84,7 @@ describe('ELB Integration Testing', () => {
     VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
   `));
 
-  it('undo changes', sync);
+  it('undo changes', sync());
 
   it('check load_balancer insertion', query(`
     SELECT *
@@ -103,13 +103,13 @@ describe('ELB Integration Testing', () => {
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('tries to update a load balancer field', query(`
     UPDATE load_balancer SET state = '${LoadBalancerStateEnum.FAILED}' WHERE load_balancer_name = '${lbName}';
   `));
 
-  it('applies the change and restore it', apply);
+  it('applies the change and restore it', apply());
 
   // TODO: add load balancer update of subnets or security group
 
@@ -117,7 +117,7 @@ describe('ELB Integration Testing', () => {
     UPDATE load_balancer SET scheme = '${LoadBalancerSchemeEnum.INTERNAL}' WHERE load_balancer_name = '${lbName}';
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('adds a new listener', query(`
     WITH target_group AS (
@@ -144,7 +144,7 @@ describe('ELB Integration Testing', () => {
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('tries to update a listener field', query(`
     UPDATE listener
@@ -159,7 +159,7 @@ describe('ELB Integration Testing', () => {
     );
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('uninstalls the elb module', (done) => void iasql.uninstall(
     ['aws_elb@0.0.1'],
@@ -184,7 +184,7 @@ describe('ELB Integration Testing', () => {
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('deletes the load balancer', query(`
     DELETE FROM load_balancer
@@ -197,7 +197,7 @@ describe('ELB Integration Testing', () => {
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('deletes the target group', query(`
     DELETE FROM target_group
@@ -210,7 +210,7 @@ describe('ELB Integration Testing', () => {
     WHERE target_group_name = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies the change (last time)', apply);
+  it('applies the change (last time)', apply());
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')

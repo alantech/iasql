@@ -32,14 +32,14 @@ describe('VPC Integration Testing', () => {
     VALUES ('192.${randIPBlock}.0.0/16');
   `));
 
-  it('undo changes', sync);
+  it('undo changes', sync());
 
   it('adds a new vpc', query(`  
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
   `));
 
-  it('applies the vpc change', apply);
+  it('applies the vpc change', apply());
 
   it('adds a subnet', query(`
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
@@ -49,7 +49,7 @@ describe('VPC Integration Testing', () => {
     AND cidr_block = '192.${randIPBlock}.0.0/16';
   `));
 
-  it('applies the subnet change', apply);
+  it('applies the subnet change', apply());
 
   it('uninstalls the vpc module', (done) => void iasql.uninstall(
     modules,
@@ -81,14 +81,14 @@ describe('VPC Integration Testing', () => {
     WHERE vpc_id = vpc.id;
   `));
 
-  it('applies the subnet removal', apply);
+  it('applies the subnet removal', apply());
 
   it('deletes the vpc', query(`
     DELETE FROM vpc
     WHERE cidr_block = '192.${randIPBlock}.0.0/16';
   `));
 
-  it('applies the vpc removal', apply);
+  it('applies the vpc removal', apply());
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')

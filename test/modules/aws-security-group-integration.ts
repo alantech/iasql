@@ -31,7 +31,7 @@ describe('Security Group Integration Testing', () => {
     VALUES ('Security Group Test', '${prefix}sgtest');
   `));
   
-  it('undo changes', sync);
+  it('undo changes', sync());
 
   it('check security_group insertion', query(`
     SELECT *
@@ -44,7 +44,7 @@ describe('Security Group Integration Testing', () => {
     VALUES ('Security Group Test', '${prefix}sgtest');
   `));
 
-  it('applies the security group change', apply);
+  it('applies the security group change', apply());
 
   it('check security_group insertion', query(`
     SELECT *
@@ -63,7 +63,7 @@ describe('Security Group Integration Testing', () => {
     WHERE group_name = '${prefix}sgtest';
   `));
 
-  it('applies the security group rule change', apply);
+  it('applies the security group rule change', apply());
 
   it('updates the security group rule', query(`
     UPDATE security_group_rule SET to_port = 8443 WHERE description = '${prefix}testrule';
@@ -81,13 +81,13 @@ describe('Security Group Integration Testing', () => {
     return expect([8443, 8022].includes(res[1]['to_port'])).toBe(true);
   }));
 
-  it('applies the security group rule change (again)', apply);
+  it('applies the security group rule change (again)', apply());
 
   it('updates the security group', query(`
     UPDATE security_group SET group_name = '${prefix}sgtest2' WHERE group_name = '${prefix}sgtest';
   `));
 
-  it('applies the security group change (again)', apply);
+  it('applies the security group change (again)', apply());
 
   it('check security_group insertion', query(`
     SELECT *
@@ -116,14 +116,14 @@ describe('Security Group Integration Testing', () => {
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule2';
   `));
 
-  it('applies the security group rule change (last time)', apply);
+  it('applies the security group rule change (last time)', apply());
 
   it('deletes the security group', query(`
     DELETE FROM security_group
     WHERE group_name = '${prefix}sgtest2';
   `));
 
-  it('applies the security group change (last time)', apply);
+  it('applies the security group change (last time)', apply());
 
   it('check security_group insertion', query(`
     SELECT *
@@ -147,25 +147,25 @@ describe('Security Group Integration Testing', () => {
     AND security_group.group_name = 'default';
   `));
 
-  it('applies this change', apply);
+  it('applies this change', apply());
   
   it('tries to delete the default security group', query(`
     DELETE FROM security_group WHERE group_name = 'default';
   `));
 
-  it('applies the security group change which will restore the record', apply);
+  it('applies the security group change which will restore the record', apply());
 
   it('tries to change the default security group description', query(`
     UPDATE security_group SET description = 'Not the default' where group_name = 'default';
   `));
 
-  it('applies the security group change which will undo this change', apply);
+  it('applies the security group change which will undo this change', apply());
 
   it('tries to change the default security group id which triggers simultaneous create/delete', query(`
     UPDATE security_group SET group_id = 'remakethis' where group_name = 'default';
   `));
 
-  it('applies the security group change which will recreate the record', apply);
+  it('applies the security group change which will recreate the record', apply());
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
