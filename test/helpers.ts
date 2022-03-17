@@ -86,9 +86,6 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
     extra: { ssl: false, },
   });
   console.log(`Connection created...`);
-  console.log(`Cleaning ${dbAlias} in ${awsRegion}...`);
-  console.dir(await conn.query(`SELECT * FROM public_repository;`));
-  console.dir(await conn.query(`SELECT * FROM aws_account;`));
   await conn.query(`
     DO $$
     DECLARE 
