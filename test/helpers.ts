@@ -68,11 +68,13 @@ export function runQuery(dbAlias: string, queryString: string, assertFn?: (res: 
 }
 
 async function cleanDB(modules: string[], region?: string): Promise<void> {
-  const dbAlias = 'cleandb';
+  const dbAlias = `cleandb${Date.now()}`;
   const awsRegion = region ?? process.env.AWS_REGION ?? 'barf';
-  await iasql.add(dbAlias, awsRegion,
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed');
+  console.log(`Cleaning ${dbAlias} in ${region}...`);
+  await iasql.add(dbAlias, awsRegion, process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed');
+  console.log('DB created...');
   await iasql.install(modules, dbAlias, 'not-needed');
+  console.log(`Modules ${modules} installed...`);
   const conn = await createConnection({
     name: dbAlias,
     type: 'postgres',
@@ -83,29 +85,30 @@ async function cleanDB(modules: string[], region?: string): Promise<void> {
     database: dbAlias,
     extra: { ssl: false, },
   });
+  console.log(`Connection created...`);
   await conn.query(`
     DO $$
     DECLARE 
       loop_count integer := 0;
       tables_array_lenght integer;
-        tables_array text[];
-        aux_tables_array text[];
-        aws_region text;
+      tables_array text[];
+      aux_tables_array text[];
+      aws_region text;
     BEGIN
       SELECT region INTO aws_region FROM aws_account;
       SELECT ARRAY(SELECT "table" FROM iasql_tables) INTO tables_array;
       SELECT array_length(tables_array, 1) INTO tables_array_lenght;
-        WHILE tables_array_lenght > 0 AND loop_count < 20 LOOP 
+      WHILE tables_array_lenght > 0 AND loop_count < 20 LOOP 
         SELECT tables_array INTO aux_tables_array;
         FOR table_elem IN array_lower(aux_tables_array, 1)..array_upper(aux_tables_array, 1) LOOP
-            BEGIN
-              EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
-              SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
-            EXCEPTION
-              WHEN others THEN 
-                  -- we ignore the error
-                END;
-          END LOOP;
+          BEGIN
+            EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
+            SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
+          EXCEPTION
+            WHEN others THEN 
+              -- we ignore the error
+            END;
+        END LOOP;
         SELECT array_length(tables_array, 1) INTO tables_array_lenght; 
         loop_count := loop_count + 1;
       END LOOP;
@@ -113,6 +116,8 @@ async function cleanDB(modules: string[], region?: string): Promise<void> {
   `);
   await conn.close();
   const res = await iasql.apply(dbAlias, false, 'not-needed');
+  console.log('Deletes applied...');
   console.dir(res, {depth: 6});
   await iasql.remove(dbAlias, 'not-needed');
+  console.log('DB removed...');
 }
