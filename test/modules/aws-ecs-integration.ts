@@ -8,7 +8,7 @@ const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_vpc@0.0.1',];
-const runComposeDown = execComposeDown.bind(null, { modules });
+const runComposeDown = execComposeDown.bind(null, modules);
 
 // Test constants
 const serviceName = `${prefix}${dbAlias}service`;
