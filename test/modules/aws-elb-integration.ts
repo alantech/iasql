@@ -1,13 +1,15 @@
 import { LoadBalancerStateEnum } from '@aws-sdk/client-elastic-load-balancing-v2';
 import { IpAddressType, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEnum, TargetTypeEnum } from '../../src/modules/aws_elb@0.0.1/entity';
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const prefix = getPrefix();
 const dbAlias = 'elbtest';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const install = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_security_group@0.0.1', 'aws_elb@0.0.1'];
 
 // Test constants
@@ -32,10 +34,7 @@ describe('ELB Integration Testing', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the elb module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the elb module', install(modules));
 
   // TODO: add tests with stored procedures
   // Target group
@@ -161,15 +160,11 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', apply());
 
-  it('uninstalls the elb module', (done) => void iasql.uninstall(
-    ['aws_elb@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the elb module', uninstall(
+    ['aws_elb@0.0.1']));
 
-  it('installs the elb module', (done) => void iasql.install(
-    ['aws_elb@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the elb module', install(
+    ['aws_elb@0.0.1']));
 
   it('deletes the listener', query(`
     DELETE FROM listener
@@ -225,15 +220,11 @@ describe('ELB install/uninstall', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the ELB module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ELB module', install(
+    modules));
 
-  it('uninstalls the ELB module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the ELB module', uninstall(
+    modules));
 
   it('installs all modules', (done) => void iasql.install(
     [],
@@ -241,15 +232,11 @@ describe('ELB install/uninstall', () => {
     'not-needed',
     true).then(...finish(done)));
 
-  it('uninstalls the ELB module', (done) => void iasql.uninstall(
-    ['aws_elb@0.0.1', 'aws_ecs_fargate@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the ELB module', uninstall(
+    ['aws_elb@0.0.1', 'aws_ecs_fargate@0.0.1']));
 
-  it('installs the ELB module', (done) => void iasql.install(
-    ['aws_elb@0.0.1',],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ELB module', install(
+    ['aws_elb@0.0.1',]));
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')

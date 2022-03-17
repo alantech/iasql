@@ -43,7 +43,7 @@ export class init1647526647810 implements MigrationInterface {
                             using detail = _output;
                         end if;
                         if _err is not null then
-                            raise notice '% error', _optype
+                            raise exception '% error', _optype
                             using detail = _err;
                         end if;
                         -- exit sp

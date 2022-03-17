@@ -8,7 +8,7 @@ const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
-const uninstall = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 
 const modules = ['aws_cloudwatch@0.0.1'];
 jest.setTimeout(240000);

@@ -1,5 +1,5 @@
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const prefix = getPrefix();
 const dbAlias = 'ecrtest';
@@ -9,6 +9,8 @@ const policyMock = '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull
 const updatePolicyMock = '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage" ] } ]}';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
+const install = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_ecr@0.0.1'];
 
@@ -24,10 +26,7 @@ describe('ECR Integration Testing', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the ecr module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ecr module', install(modules));
 
   describe('private repository', () => {
     it('adds a new repository', query(`
@@ -130,15 +129,9 @@ describe('ECR Integration Testing', () => {
       WHERE repository_name = '${repositoryName}';
     `, (res: any[]) => expect(res.length).toBe(0)));
 
-    it('uninstalls the ecr module', (done) => void iasql.uninstall(
-      modules,
-      dbAlias,
-      'not-needed').then(...finish(done)));
+    it('uninstalls the ecr module', uninstall(modules));
   
-    it('installs the ecr module', (done) => void iasql.install(
-      modules,
-      dbAlias,
-      'not-needed').then(...finish(done)));
+    it('installs the ecr module', install(modules));
 
     it('deletes the repository', query(`
       DELETE FROM repository
@@ -193,15 +186,9 @@ describe('ECR Integration Testing', () => {
       WHERE repository_name = '${pubRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
   
-    it('uninstalls the ecr module', (done) => void iasql.uninstall(
-      modules,
-      dbAlias,
-      'not-needed').then(...finish(done)));
+    it('uninstalls the ecr module', uninstall(modules));
   
-    it('installs the ecr module', (done) => void iasql.install(
-      modules,
-      dbAlias,
-      'not-needed').then(...finish(done)));
+    it('installs the ecr module', install(modules));
   
     it('deletes the public repository', query(`
       DELETE FROM public_repository
@@ -230,15 +217,9 @@ describe('ECR install/uninstall', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the ECR module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ECR module', install(modules));
 
-  it('uninstalls the ECR module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the ECR module', uninstall(modules));
 
   it('installs all modules', (done) => void iasql.install(
     [],
@@ -246,17 +227,11 @@ describe('ECR install/uninstall', () => {
     'not-needed',
     true).then(...finish(done)));
 
-  it('uninstalls the ECR module', (done) => void iasql.uninstall(
-    ['aws_ecr@0.0.1', 'aws_ecs_fargate@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the ECR module', uninstall(['aws_ecr@0.0.1', 'aws_ecs_fargate@0.0.1']));
 
-  it('installs the ECR module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ECR module', install(modules));
 
-  it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
-    .then(...finish(done)));
+  // it('deletes the test db', (done) => void iasql
+  //   .remove(dbAlias, 'not-needed')
+  //   .then(...finish(done)));
 });

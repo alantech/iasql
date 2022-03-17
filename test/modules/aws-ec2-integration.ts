@@ -1,5 +1,5 @@
 import * as iasql from '../../src/services/iasql'
-import { runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import { runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const dbAlias = 'ec2test';
 // specific to us-west-2, varies per region
@@ -10,6 +10,8 @@ const ubuntuAmiId = 'ami-0892d3c7ee96c0bf7';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const install = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'];
 
 jest.setTimeout(240000);
@@ -24,10 +26,7 @@ describe('EC2 Integration Testing', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the ec2 module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ec2 module', install(modules));
 
   it('adds two ec2 instance', (done) => {
     query(`
@@ -108,15 +107,9 @@ describe('EC2 Integration Testing', () => {
     WHERE ami = '${ubuntuAmiId}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('uninstalls the ec2 module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the ec2 module', uninstall(modules));
 
-  it('installs the ec2 module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ec2 module', install(modules));
 
   it('check number of instances', query(`
     SELECT *
@@ -147,15 +140,9 @@ describe('EC2 install/uninstall', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the EC2 module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ec2 module', install(modules));
 
-  it('uninstalls the EC2 module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the ec2 module', uninstall(modules));
 
   it('installs all modules', (done) => void iasql.install(
     [],
@@ -163,15 +150,9 @@ describe('EC2 install/uninstall', () => {
     'not-needed',
     true).then(...finish(done)));
 
-  it('uninstalls the EC2 module', (done) => void iasql.uninstall(
-    ['aws_ec2@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the ec2 module', uninstall(['aws_ec2@0.0.1']));
 
-  it('installs the EC2 module', (done) => void iasql.install(
-    ['aws_ec2@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ec2 module', install(['aws_ec2@0.0.1']));
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')

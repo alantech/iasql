@@ -1,5 +1,5 @@
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const prefix = getPrefix();
 const dbAlias = 'sgtest';
@@ -7,6 +7,8 @@ const sgName = `${prefix}${dbAlias}`;
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const install = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_security_group@0.0.1'];
 
 jest.setTimeout(240000);
@@ -21,10 +23,8 @@ describe('Security Group Integration Testing', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the security group module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the security group module', install(
+    modules));
 
   it('adds a new security group', query(`  
     INSERT INTO security_group (description, group_name)
@@ -101,15 +101,11 @@ describe('Security Group Integration Testing', () => {
     WHERE group_name = '${prefix}sgtest2';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('uninstalls the security group module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the security group module', uninstall(
+    modules));
 
-  it('installs the security group module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the security group module', install(
+    modules));
 
   it('deletes the security group rule', query(`
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule';
@@ -180,15 +176,11 @@ describe('Security Group install/uninstall', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the Security Group module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the Security Group module', install(
+    modules));
 
-  it('uninstalls the Security Group module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the Security Group module', uninstall(
+    modules));
 
   it('installs all modules', (done) => void iasql.install(
     [],
@@ -196,15 +188,12 @@ describe('Security Group install/uninstall', () => {
     'not-needed',
     true).then(...finish(done)));
 
-  it('uninstalls the Security Group module', (done) => void iasql.uninstall(
+  it('uninstalls the Security Group module', uninstall(
     ['aws_rds@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_ec2@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  ));
 
-  it('installs the Security Group module', (done) => void iasql.install(
-    ['aws_security_group@0.0.1',],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the Security Group module', install(
+    ['aws_security_group@0.0.1',]));
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
