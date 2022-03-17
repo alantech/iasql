@@ -8,7 +8,7 @@ const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_cloudwatch@0.0.1'];
-const runComposeDown = execComposeDown.bind(null, modules);
+const runComposeDown = execComposeDown.bind(null, { modules });
 
 jest.setTimeout(240000);
 beforeAll(execComposeUp);

@@ -8,8 +8,8 @@ export function execComposeUp() {
   execSync('cd test && docker-compose up -d && sleep 5');
 }
 
-export async function execComposeDown(modules?: string[]) {
-  await cleanDB(modules);
+export async function execComposeDown(input?: { modules: string[], region?: string }) {
+  await cleanDB(input?.modules ?? [], input?.region);
   execSync('cd test && docker-compose down');
 }
 
@@ -67,9 +67,9 @@ export function runQuery(dbAlias: string, queryString: string, assertFn?: (res: 
   }
 }
 
-async function cleanDB(modules: string[] = []): Promise<void> {
+async function cleanDB(modules: string[], region: string | undefined): Promise<void> {
   const dbAlias = `cleandb${Date.now()}`;
-  const awsRegion = /**region ?? */ process.env.AWS_REGION ?? 'barf';
+  const awsRegion = region ?? process.env.AWS_REGION ?? 'barf';
   console.log(`Cleaning ${dbAlias} in ${awsRegion}...`);
   await iasql.add(dbAlias, awsRegion, process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed');
   console.log('DB created...');

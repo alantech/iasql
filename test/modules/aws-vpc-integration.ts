@@ -6,7 +6,7 @@ const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_vpc@0.0.1'];
-const runComposeDown = execComposeDown.bind(null, modules);
+const runComposeDown = execComposeDown.bind(null, { modules });
 
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 const randIPBlock = Math.floor(Math.random() * 255);
