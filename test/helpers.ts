@@ -107,8 +107,8 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
           BEGIN
             raise notice 'logging table %', aux_tables_array[table_elem];
             IF aux_tables_array[table_elem] = 'public_repository' THEN
-              raise notice '%', format('DELETE FROM %I WHERE repository_name LIKE ''%s''', aux_tables_array[table_elem], '%' || aws_account);
-              EXECUTE format('DELETE FROM %I WHERE repository_name LIKE ''%s''', aux_tables_array[table_elem], '%' || aws_account);
+              raise notice '%', format('DELETE FROM %I WHERE repository_name LIKE ''%s''', aux_tables_array[table_elem], '%' || aws_region);
+              EXECUTE format('DELETE FROM %I WHERE repository_name LIKE ''%s''', aux_tables_array[table_elem], '%' || aws_region);
               SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
             ELSE
               EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
@@ -126,9 +126,6 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
       END LOOP;
     END$$;
   `);
-  console.log('Postgres logs');
-  console.log(execSync('docker ps -a', { encoding: 'utf8', }));
-  console.log(execSync('docker logs test_postgresql_1', { encoding: 'utf8', }));
   await conn.close();
   const res = await iasql.apply(dbAlias, false, 'not-needed');
   console.log('Deletes applied...');
