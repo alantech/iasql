@@ -231,7 +231,7 @@ describe('ECR install/uninstall', () => {
 
   it('installs the ECR module', install(modules));
 
-  // it('deletes the test db', (done) => void iasql
-  //   .remove(dbAlias, 'not-needed')
-  //   .then(...finish(done)));
+  it('deletes the test db', (done) => void iasql
+    .remove(dbAlias, 'not-needed')
+    .then(...finish(done)));
 });

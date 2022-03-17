@@ -56,11 +56,10 @@ export async function start(dbAlias: string, dbId:string, user: any) {
             where opid = '${opid}';`
           );
         } catch (e) {
-          const err = logger.error(e);
-          console.log(err);
+          const error = JSON.stringify(e, Object.getOwnPropertyNames(e));
           await conn.query(`
             update iasql_operation
-            set end_date = now(), err = '${err}'
+            set end_date = now(), err = '${error}'
             where opid = '${opid}';`
           );
         }
