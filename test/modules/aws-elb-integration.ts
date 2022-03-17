@@ -3,17 +3,13 @@ import { IpAddressType, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEn
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
-jest.setTimeout(360000);
-
-beforeAll(execComposeUp);
-
-afterAll(execComposeDown);
-
 const prefix = getPrefix();
 const dbAlias = 'elbtest';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const modules = ['aws_security_group@0.0.1', 'aws_elb@0.0.1'];
+const runComposeDown = execComposeDown.bind(null, modules);
 
 // Test constants
 const tgName = `${prefix}${dbAlias}tg`;
@@ -25,6 +21,10 @@ const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
 const lbType = LoadBalancerTypeEnum.APPLICATION;
 const lbIPAddressType = IpAddressType.IPV4;
 
+jest.setTimeout(360000);
+beforeAll(execComposeUp);
+afterAll(runComposeDown);
+
 describe('ELB Integration Testing', () => {
   it('creates a new test db elb', (done) => void iasql.add(
     dbAlias,
@@ -34,7 +34,7 @@ describe('ELB Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the elb module', (done) => void iasql.install(
-    ['aws_security_group@0.0.1', 'aws_elb@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -227,12 +227,12 @@ describe('ELB install/uninstall', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the ELB module', (done) => void iasql.install(
-    ['aws_security_group@0.0.1', 'aws_elb@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('uninstalls the ELB module', (done) => void iasql.uninstall(
-    ['aws_security_group@0.0.1', 'aws_elb@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 

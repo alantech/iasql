@@ -6,16 +6,16 @@ const dbAlias = 'ec2test';
 const region = 'us-west-2'
 const amznAmiId = 'ami-06cffe063efe892ad';
 const ubuntuAmiId = 'ami-0892d3c7ee96c0bf7';
-const modules = ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'];
 
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const composeDown = execComposeDown.bind(null, modules);
+const modules = ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'];
+const runComposeDown = execComposeDown.bind(null, modules, region);
 
 jest.setTimeout(240000);
 beforeAll(execComposeUp);
-afterAll(composeDown);
+afterAll(runComposeDown);
 
 describe('EC2 Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(

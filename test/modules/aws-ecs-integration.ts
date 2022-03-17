@@ -2,17 +2,13 @@ import { CpuMemCombination, TaskDefinitionStatus } from '../../src/modules/aws_e
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
-jest.setTimeout(240000);
-
-beforeAll(execComposeUp);
-
-afterAll(execComposeDown);
-
 const prefix = getPrefix();
 const dbAlias = 'ecstest';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const modules = ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_vpc@0.0.1',];
+const runComposeDown = execComposeDown.bind(null, modules);
 
 // Test constants
 const serviceName = `${prefix}${dbAlias}service`;
@@ -47,6 +43,10 @@ const containerNameRepository = `${prefix}${dbAlias}containerrepository`;
 const publicRepositoryName = `${prefix}${dbAlias}publicrepository`;
 const containerNamePublicRepository = `${prefix}${dbAlias}containerpublicrepository`;
 
+jest.setTimeout(240000);
+beforeAll(execComposeUp);
+afterAll(runComposeDown);
+
 describe('ECS Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.add(
     dbAlias,
@@ -56,7 +56,7 @@ describe('ECS Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the ecs module and its dependencies', (done) => void iasql.install(
-    ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_vpc@0.0.1',],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -559,12 +559,12 @@ describe('ECS install/uninstall', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the ECS module', (done) => void iasql.install(
-    ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_vpc@0.0.1',],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('uninstalls the ECS module', (done) => void iasql.uninstall(
-    ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_vpc@0.0.1',],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
