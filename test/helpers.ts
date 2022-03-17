@@ -127,7 +127,8 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
     END$$;
   `);
   console.log('Postgres logs');
-  console.log(execSync('docker logs iasql-engine_postgresql_1', { encoding: 'utf8', }));
+  console.log(execSync('docker ps -a', { encoding: 'utf8', }));
+  console.log(execSync('docker logs test_postgresql_1', { encoding: 'utf8', }));
   await conn.close();
   const res = await iasql.apply(dbAlias, false, 'not-needed');
   console.log('Deletes applied...');
