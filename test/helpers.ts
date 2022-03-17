@@ -9,7 +9,7 @@ export function execComposeUp() {
 }
 
 export async function execComposeDown(input?: { modules: string[], region?: string }) {
-  await cleanDB(input?.modules ?? [], input?.region);
+  if (input?.modules?.length) await cleanDB(input.modules, input.region);
   execSync('cd test && docker-compose down');
 }
 
@@ -86,6 +86,9 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
     extra: { ssl: false, },
   });
   console.log(`Connection created...`);
+  console.log(`Cleaning ${dbAlias} in ${awsRegion}...`);
+  console.dir(await conn.query(`SELECT * FROM public_repository;`));
+  console.dir(await conn.query(`SELECT * FROM aws_account;`));
   await conn.query(`
     DO $$
     DECLARE 
@@ -102,13 +105,15 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
         SELECT tables_array INTO aux_tables_array;
         FOR table_elem IN array_lower(aux_tables_array, 1)..array_upper(aux_tables_array, 1) LOOP
           BEGIN
+            raise notice 'logging table %', aux_tables_array[table_elem];
             IF aux_tables_array[table_elem] = 'public_repository' THEN
-              EXECUTE format('DELETE FROM %I WHERE repository_name LIKE ''%s''', aux_tables_array[table_elem], '%' || ${awsRegion});
+              raise notice '%', format('DELETE FROM %I WHERE repository_name LIKE ''%s''', aux_tables_array[table_elem], '%' || aws_account);
+              EXECUTE format('DELETE FROM %I WHERE repository_name LIKE ''%s''', aux_tables_array[table_elem], '%' || aws_account);
               SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
-            else
+            ELSE
               EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
               SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
-            end if;
+            END IF;
             EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
             SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
           EXCEPTION
@@ -121,6 +126,8 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
       END LOOP;
     END$$;
   `);
+  console.log('Postgres logs');
+  console.log(execSync('docker logs iasql-engine_postgresql_1', { encoding: 'utf8', }));
   await conn.close();
   const res = await iasql.apply(dbAlias, false, 'not-needed');
   console.log('Deletes applied...');
