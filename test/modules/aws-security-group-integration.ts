@@ -1,5 +1,5 @@
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const prefix = getPrefix();
 const dbAlias = 'sgtest';
@@ -7,6 +7,8 @@ const sgName = `${prefix}${dbAlias}`;
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const install = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_security_group@0.0.1'];
 
 jest.setTimeout(240000);
@@ -21,17 +23,15 @@ describe('Security Group Integration Testing', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the security group module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the security group module', install(
+    modules));
 
   it('adds a new security group', query(`  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test', '${prefix}sgtest');
   `));
   
-  it('undo changes', sync);
+  it('undo changes', sync());
 
   it('check security_group insertion', query(`
     SELECT *
@@ -44,7 +44,7 @@ describe('Security Group Integration Testing', () => {
     VALUES ('Security Group Test', '${prefix}sgtest');
   `));
 
-  it('applies the security group change', apply);
+  it('applies the security group change', apply());
 
   it('check security_group insertion', query(`
     SELECT *
@@ -63,7 +63,7 @@ describe('Security Group Integration Testing', () => {
     WHERE group_name = '${prefix}sgtest';
   `));
 
-  it('applies the security group rule change', apply);
+  it('applies the security group rule change', apply());
 
   it('updates the security group rule', query(`
     UPDATE security_group_rule SET to_port = 8443 WHERE description = '${prefix}testrule';
@@ -81,13 +81,13 @@ describe('Security Group Integration Testing', () => {
     return expect([8443, 8022].includes(res[1]['to_port'])).toBe(true);
   }));
 
-  it('applies the security group rule change (again)', apply);
+  it('applies the security group rule change (again)', apply());
 
   it('updates the security group', query(`
     UPDATE security_group SET group_name = '${prefix}sgtest2' WHERE group_name = '${prefix}sgtest';
   `));
 
-  it('applies the security group change (again)', apply);
+  it('applies the security group change (again)', apply());
 
   it('check security_group insertion', query(`
     SELECT *
@@ -101,29 +101,25 @@ describe('Security Group Integration Testing', () => {
     WHERE group_name = '${prefix}sgtest2';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('uninstalls the security group module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the security group module', uninstall(
+    modules));
 
-  it('installs the security group module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the security group module', install(
+    modules));
 
   it('deletes the security group rule', query(`
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule';
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule2';
   `));
 
-  it('applies the security group rule change (last time)', apply);
+  it('applies the security group rule change (last time)', apply());
 
   it('deletes the security group', query(`
     DELETE FROM security_group
     WHERE group_name = '${prefix}sgtest2';
   `));
 
-  it('applies the security group change (last time)', apply);
+  it('applies the security group change (last time)', apply());
 
   it('check security_group insertion', query(`
     SELECT *
@@ -147,25 +143,25 @@ describe('Security Group Integration Testing', () => {
     AND security_group.group_name = 'default';
   `));
 
-  it('applies this change', apply);
+  it('applies this change', apply());
   
   it('tries to delete the default security group', query(`
     DELETE FROM security_group WHERE group_name = 'default';
   `));
 
-  it('applies the security group change which will restore the record', apply);
+  it('applies the security group change which will restore the record', apply());
 
   it('tries to change the default security group description', query(`
     UPDATE security_group SET description = 'Not the default' where group_name = 'default';
   `));
 
-  it('applies the security group change which will undo this change', apply);
+  it('applies the security group change which will undo this change', apply());
 
   it('tries to change the default security group id which triggers simultaneous create/delete', query(`
     UPDATE security_group SET group_id = 'remakethis' where group_name = 'default';
   `));
 
-  it('applies the security group change which will recreate the record', apply);
+  it('applies the security group change which will recreate the record', apply());
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
@@ -180,15 +176,11 @@ describe('Security Group install/uninstall', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the Security Group module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the Security Group module', install(
+    modules));
 
-  it('uninstalls the Security Group module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the Security Group module', uninstall(
+    modules));
 
   it('installs all modules', (done) => void iasql.install(
     [],
@@ -196,15 +188,12 @@ describe('Security Group install/uninstall', () => {
     'not-needed',
     true).then(...finish(done)));
 
-  it('uninstalls the Security Group module', (done) => void iasql.uninstall(
+  it('uninstalls the Security Group module', uninstall(
     ['aws_rds@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_ec2@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  ));
 
-  it('installs the Security Group module', (done) => void iasql.install(
-    ['aws_security_group@0.0.1',],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the Security Group module', install(
+    ['aws_security_group@0.0.1',]));
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')

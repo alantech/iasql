@@ -1,10 +1,12 @@
 import * as iasql from '../../src/services/iasql'
-import { runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import { runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const dbAlias = 'vpctest';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const install = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_vpc@0.0.1'];
 
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
@@ -22,24 +24,21 @@ describe('VPC Integration Testing', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the vpc module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the vpc module', install(modules));
 
   it('adds a new vpc', query(`  
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
   `));
 
-  it('undo changes', sync);
+  it('undo changes', sync());
 
   it('adds a new vpc', query(`  
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
   `));
 
-  it('applies the vpc change', apply);
+  it('applies the vpc change', apply());
 
   it('adds a subnet', query(`
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
@@ -49,17 +48,13 @@ describe('VPC Integration Testing', () => {
     AND cidr_block = '192.${randIPBlock}.0.0/16';
   `));
 
-  it('applies the subnet change', apply);
+  it('applies the subnet change', apply());
 
-  it('uninstalls the vpc module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the vpc module', uninstall(
+    modules));
 
-  it('installs the vpc module again (to make sure it reloads stuff)', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the vpc module again (to make sure it reloads stuff)', install(
+    modules));
 
   it('queries the subnets to confirm the record is present', query(`
     SELECT * FROM subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16'
@@ -81,14 +76,14 @@ describe('VPC Integration Testing', () => {
     WHERE vpc_id = vpc.id;
   `));
 
-  it('applies the subnet removal', apply);
+  it('applies the subnet removal', apply());
 
   it('deletes the vpc', query(`
     DELETE FROM vpc
     WHERE cidr_block = '192.${randIPBlock}.0.0/16';
   `));
 
-  it('applies the vpc removal', apply);
+  it('applies the vpc removal', apply());
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
@@ -103,15 +98,11 @@ describe('VPC install/uninstall', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the VPC module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the VPC module', install(
+    modules));
 
-  it('uninstalls the VPC module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the VPC module', uninstall(
+    modules));
 
   it('installs all modules', (done) => void iasql.install(
     [],
@@ -119,15 +110,11 @@ describe('VPC install/uninstall', () => {
     'not-needed',
     true).then(...finish(done)));
 
-  it('uninstalls the VPC module', (done) => void iasql.uninstall(
-    ['aws_vpc@0.0.1', 'aws_ecs_fargate@0.0.1',],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the VPC module', uninstall(
+    ['aws_vpc@0.0.1', 'aws_ecs_fargate@0.0.1',]));
 
-  it('installs the VPC module', (done) => void iasql.install(
-    ['aws_vpc@0.0.1',],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the VPC module', install(
+    ['aws_vpc@0.0.1',]));
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')

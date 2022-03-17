@@ -5,11 +5,13 @@ import {
   finish,
   runApply,
   runQuery,
+  runSync,
 } from '../helpers'
 
 const dbAlias = 'accounttest';
 const apply = runApply.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const sync = runSync.bind(null, dbAlias);
 
 jest.setTimeout(360000);
 beforeAll(execComposeUp);
@@ -39,15 +41,9 @@ describe('AwsAccount Integration Testing', () => {
     VALUES ('fake', 'creds', 'us-west-2')
   `));
 
-  // it('does absolutely nothing when you apply this', apply);
+  it('does absolutely nothing when you apply this', apply());
 
-  it('does absolutely nothing when you apply this', query(`
-    CALL iasql_schedule_apply();
-  `));
-
-  it('does absolutely nothing when you sync this', query(`
-    CALL iasql_schedule_sync();
-  `));
+  it('does absolutely nothing when you sync this', sync());
 
   it('removes the useless row', query(`
     DELETE FROM aws_account WHERE access_key_id = 'fake'

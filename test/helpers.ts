@@ -26,12 +26,20 @@ export function finish(done: (e?: any) => {}) {
   return [() => done(), (e: any) => { done(e); }];
 }
 
-export function runApply(dbAlias: string, done: (e?: any) => {}) {
-  iasql.apply(dbAlias, false, 'not-needed').then(...finish(done));
+export function runApply(dbAlias: string) {
+  return runQuery(dbAlias, 'call iasql_apply();');
 }
 
-export function runSync(dbAlias: string, done: (e?: any) => {}) {
-  iasql.sync(dbAlias, false, 'not-needed').then(...finish(done));
+export function runSync(dbAlias: string) {
+  return runQuery(dbAlias, 'call iasql_sync();');
+}
+
+export function runInstall(dbAlias: string, mods: string[]) {
+  return runQuery(dbAlias, `call iasql_install(array[${mods.map(m => `'${m}'`)}]);`);
+}
+
+export function runUninstall(dbAlias: string, mods: string[]) {
+  return runQuery(dbAlias, `call iasql_uninstall(array[${mods.map(m => `'${m}'`)}]);`);
 }
 
 export function runQuery(dbAlias: string, queryString: string, assertFn?: (res: any[]) => void) {

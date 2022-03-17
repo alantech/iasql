@@ -1,13 +1,15 @@
 import { LoadBalancerStateEnum } from '@aws-sdk/client-elastic-load-balancing-v2';
 import { IpAddressType, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEnum, TargetTypeEnum } from '../../src/modules/aws_elb@0.0.1/entity';
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const prefix = getPrefix();
 const dbAlias = 'elbtest';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const install = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_security_group@0.0.1', 'aws_elb@0.0.1'];
 
 // Test constants
@@ -32,10 +34,7 @@ describe('ELB Integration Testing', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the elb module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the elb module', install(modules));
 
   // TODO: add tests with stored procedures
   // Target group
@@ -44,7 +43,7 @@ describe('ELB Integration Testing', () => {
     VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, 'default', '/health');
   `));
 
-  it('undo changes', sync);
+  it('undo changes', sync());
 
   it('check target_group insertion', query(`
     SELECT *
@@ -63,19 +62,19 @@ describe('ELB Integration Testing', () => {
     WHERE target_group_name = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('tries to update a target group field', query(`
     UPDATE target_group SET health_check_path = '/fake-health' WHERE target_group_name = '${tgName}';
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('tries to update a target group field (replace)', query(`
     UPDATE target_group SET port = 5677 WHERE target_group_name = '${tgName}';
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   // Load balancer
   // TODO: add security groups insert when testing application load balancer integration
@@ -84,7 +83,7 @@ describe('ELB Integration Testing', () => {
     VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
   `));
 
-  it('undo changes', sync);
+  it('undo changes', sync());
 
   it('check load_balancer insertion', query(`
     SELECT *
@@ -103,13 +102,13 @@ describe('ELB Integration Testing', () => {
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('tries to update a load balancer field', query(`
     UPDATE load_balancer SET state = '${LoadBalancerStateEnum.FAILED}' WHERE load_balancer_name = '${lbName}';
   `));
 
-  it('applies the change and restore it', apply);
+  it('applies the change and restore it', apply());
 
   // TODO: add load balancer update of subnets or security group
 
@@ -117,7 +116,7 @@ describe('ELB Integration Testing', () => {
     UPDATE load_balancer SET scheme = '${LoadBalancerSchemeEnum.INTERNAL}' WHERE load_balancer_name = '${lbName}';
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('adds a new listener', query(`
     WITH target_group AS (
@@ -144,7 +143,7 @@ describe('ELB Integration Testing', () => {
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('tries to update a listener field', query(`
     UPDATE listener
@@ -159,17 +158,13 @@ describe('ELB Integration Testing', () => {
     );
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
-  it('uninstalls the elb module', (done) => void iasql.uninstall(
-    ['aws_elb@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the elb module', uninstall(
+    ['aws_elb@0.0.1']));
 
-  it('installs the elb module', (done) => void iasql.install(
-    ['aws_elb@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the elb module', install(
+    ['aws_elb@0.0.1']));
 
   it('deletes the listener', query(`
     DELETE FROM listener
@@ -184,7 +179,7 @@ describe('ELB Integration Testing', () => {
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('deletes the load balancer', query(`
     DELETE FROM load_balancer
@@ -197,7 +192,7 @@ describe('ELB Integration Testing', () => {
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('deletes the target group', query(`
     DELETE FROM target_group
@@ -210,7 +205,7 @@ describe('ELB Integration Testing', () => {
     WHERE target_group_name = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('applies the change (last time)', apply);
+  it('applies the change (last time)', apply());
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
@@ -225,15 +220,11 @@ describe('ELB install/uninstall', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the ELB module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ELB module', install(
+    modules));
 
-  it('uninstalls the ELB module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the ELB module', uninstall(
+    modules));
 
   it('installs all modules', (done) => void iasql.install(
     [],
@@ -241,15 +232,11 @@ describe('ELB install/uninstall', () => {
     'not-needed',
     true).then(...finish(done)));
 
-  it('uninstalls the ELB module', (done) => void iasql.uninstall(
-    ['aws_elb@0.0.1', 'aws_ecs_fargate@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the ELB module', uninstall(
+    ['aws_elb@0.0.1', 'aws_ecs_fargate@0.0.1']));
 
-  it('installs the ELB module', (done) => void iasql.install(
-    ['aws_elb@0.0.1',],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ELB module', install(
+    ['aws_elb@0.0.1',]));
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')

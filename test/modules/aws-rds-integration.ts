@@ -1,11 +1,13 @@
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import { getPrefix, runQuery, runApply, runInstall, runUninstall, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const prefix = getPrefix();
 const dbAlias = 'rdstest';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const install = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 const modules = ['aws_security_group@0.0.1', 'aws_rds@0.0.1'];
 
@@ -21,10 +23,7 @@ describe('RDS Integration Testing', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the rds module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the rds module', install(modules));
 
   it('creates an RDS instance', query(`
     BEGIN;
@@ -36,7 +35,7 @@ describe('RDS Integration Testing', () => {
     COMMIT;
   `));
 
-  it('undo changes', sync);
+  it('undo changes', sync());
 
   it('check adds a new repository', query(`
     SELECT *
@@ -61,7 +60,7 @@ describe('RDS Integration Testing', () => {
     COMMIT;
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('check adds a new repository', query(`
     SELECT *
@@ -80,23 +79,19 @@ describe('RDS Integration Testing', () => {
     UPDATE rds SET engine = 'postgres:13.5' WHERE db_instance_identifier = '${prefix}test';
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
-  it('uninstalls the rds module', (done) => void iasql.uninstall(
-    ['aws_rds@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the rds module', uninstall(
+    ['aws_rds@0.0.1']));
 
-  it('installs the rds module', (done) => void iasql.install(
-    ['aws_rds@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the rds module', install(
+    ['aws_rds@0.0.1']));
 
   it('removes the RDS instance', query(`
     DELETE FROM rds;
   `));
 
-  it('applies the change', apply);
+  it('applies the change', apply());
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
@@ -111,15 +106,11 @@ describe('RDS install/uninstall', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the RDS module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the RDS module', install(
+    modules));
 
-  it('uninstalls the RDS module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the RDS module', uninstall(
+    modules));
 
   it('installs all modules', (done) => void iasql.install(
     [],
@@ -127,15 +118,11 @@ describe('RDS install/uninstall', () => {
     'not-needed',
     true).then(...finish(done)));
 
-  it('uninstalls the RDS module', (done) => void iasql.uninstall(
-    ['aws_rds@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the RDS module', uninstall(
+    ['aws_rds@0.0.1']));
 
-  it('installs the RDS module', (done) => void iasql.install(
-    ['aws_rds@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the RDS module', install(
+    ['aws_rds@0.0.1']));
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')

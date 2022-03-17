@@ -1,6 +1,7 @@
 import EventEmitter from 'events';
 import { run } from 'graphile-worker';
 
+import { IasqlOperationType } from '../entity/operation';
 import * as iasql from '../services/iasql'
 import * as logger from '../services/logger'
 import { TypeormWrapper } from './typeorm';
@@ -20,18 +21,47 @@ export async function start(dbAlias: string, dbId:string, user: any) {
     noHandleSignals: false,
     pollInterval: 1000, // ms
     taskList: {
-      scheduleApply: async () => {
-        try {
-          await iasql.apply(dbAlias, false, user, conn);
-        } catch (e) {
-          logger.error(e);
+      operation: async (payload: any) => {
+        const { params, opid, optype } = payload;
+        let promise;
+        switch(optype) {
+          case IasqlOperationType.APPLY: {
+            promise = iasql.apply(dbAlias, false, user, conn);
+            break;
+          }
+          case IasqlOperationType.SYNC: {
+            promise = iasql.sync(dbAlias, false, user, conn);
+            break;
+          }
+          case IasqlOperationType.INSTALL: {
+            promise = iasql.install(params, dbAlias, user, false, conn);
+            break;
+          }
+          case IasqlOperationType.UNINSTALL: {
+            promise = iasql.uninstall(params, dbAlias, user, conn);
+            break;
+          }
+          default: {
+            break;
+          }
         }
-      },
-      scheduleSync: async () => {
+        // once the operation completes updating the `end_date`
+        // will complete the polling
         try {
-          await iasql.sync(dbAlias, false, user, conn);
+          let output = await promise;
+          output = typeof output === 'string' ? output : JSON.stringify(output);
+          await conn.query(`
+            update iasql_operation
+            set end_date = now(), output = '${output}'
+            where opid = '${opid}';`
+          );
         } catch (e) {
-          logger.error(e);
+          const error = JSON.stringify(e, Object.getOwnPropertyNames(e));
+          await conn.query(`
+            update iasql_operation
+            set end_date = now(), err = '${error}'
+            where opid = '${opid}';`
+          );
         }
       },
     },

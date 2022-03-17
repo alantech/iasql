@@ -1,12 +1,14 @@
 import { CpuMemCombination, TaskDefinitionStatus } from '../../src/modules/aws_ecs_fargate@0.0.1/entity';
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import { getPrefix, runInstall, runUninstall, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const prefix = getPrefix();
 const dbAlias = 'ecstest';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const install = runInstall.bind(null, dbAlias);
+const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_vpc@0.0.1',];
 
 // Test constants
@@ -54,10 +56,7 @@ describe('ECS Integration Testing', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the ecs module and its dependencies', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ecs module and its dependencies', install(modules));
 
   // Cluster
   it('adds a new cluster', query(`
@@ -65,7 +64,7 @@ describe('ECS Integration Testing', () => {
     VALUES('${clusterName}');
   `));
 
-  it('undo changes', sync);
+  it('undo changes', sync());
 
   it('check cluster insertion', query(`
     SELECT *
@@ -79,7 +78,7 @@ describe('ECS Integration Testing', () => {
     VALUES('${clusterName}');
   `));
 
-  it('applies adds a new cluster', apply);
+  it('applies adds a new cluster', apply());
 
   it('check cluster insertion', query(`
     SELECT *
@@ -111,7 +110,7 @@ describe('ECS Integration Testing', () => {
     COMMIT;
   `));
 
-  it('applies service dependencies', apply);
+  it('applies service dependencies', apply());
 
   // Service spinning up a task definition with container using a docker image
   describe('Docker image', () => {
@@ -121,7 +120,7 @@ describe('ECS Integration Testing', () => {
       VALUES ('${logGroupName}');
     `));
 
-    it('applies adds container dependencies', apply);
+    it('applies adds container dependencies', apply());
 
     // Task definition
     it('adds a new task definition', query(`
@@ -164,7 +163,7 @@ describe('ECS Integration Testing', () => {
       WHERE name = '${containerNameDigest}' AND image = '${image}' AND digest = '${imageDigest}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
-    it('applies adds a new task definition with container definition', apply);
+    it('applies adds a new task definition with container definition', apply());
 
     // Service
     it('adds a new service', query(`
@@ -201,7 +200,7 @@ describe('ECS Integration Testing', () => {
       UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td);
     `));
     
-    it('applies tries to update a task definition field', apply);
+    it('applies tries to update a task definition field', apply());
     
     it('check task_definition update', query(`
       SELECT *
@@ -214,25 +213,25 @@ describe('ECS Integration Testing', () => {
       UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
     `));
 
-    it('applies tries to update a service (update)', apply);
+    it('applies tries to update a service (update)', apply());
 
     it('tries to update a service (restore)', query(`
       UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
     `));
 
-    it('applies tries to update a service (restore)', apply);
+    it('applies tries to update a service (restore)', apply());
 
     it('tries to update a service (replace)', query(`
       UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
     `));
 
-    it('applies tries to update a service (replace)', apply);
+    it('applies tries to update a service (replace)', apply());
 
     it('tries to force update a service', query(`
       UPDATE service SET force_new_deployment = true WHERE name = '${newServiceName}';
     `));
 
-    it('tries to force update a service', apply);
+    it('tries to force update a service', apply());
 
     it('check service new deployment', query(`
       SELECT *
@@ -240,15 +239,10 @@ describe('ECS Integration Testing', () => {
       WHERE name = '${newServiceName}';
     `, (res: any[]) => expect(res[0]['force_new_deployment']).toBe(false)));
 
-    it('uninstalls the ecs module', (done) => void iasql.uninstall(
-      ['aws_ecs_fargate@0.0.1'],
-      dbAlias,
-      'not-needed').then(...finish(done)));
+    it('uninstalls the ecs module', uninstall(['aws_ecs_fargate@0.0.1']));
 
-    it('installs the ecs module', (done) => void iasql.install(
-      ['aws_ecs_fargate@0.0.1'],
-      dbAlias,
-      'not-needed').then(...finish(done)));
+    it('installs the ecs module', install(
+      ['aws_ecs_fargate@0.0.1']));
 
     it('deletes service', query(`
       BEGIN;
@@ -261,7 +255,7 @@ describe('ECS Integration Testing', () => {
       COMMIT;
     `));
 
-    it('applies deletes service', apply);
+    it('applies deletes service', apply());
 
     it('deletes container definitons', query(`
       begin;
@@ -277,7 +271,7 @@ describe('ECS Integration Testing', () => {
       commit;
     `));
 
-    it('applies deletes tasks and container definitions', apply);
+    it('applies deletes tasks and container definitions', apply());
   });
 
   // Service spinning up a task definition with container using a private ecr
@@ -323,7 +317,7 @@ describe('ECS Integration Testing', () => {
       WHERE name = '${containerNameRepository}' AND repository_id = (select id from repository where repository_name = '${repositoryName}' limit 1) AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
-    it('applies adds a new task definition with container definition', apply);
+    it('applies adds a new task definition with container definition', apply());
 
     // Service
     it('adds a new service', query(`
@@ -349,15 +343,11 @@ describe('ECS Integration Testing', () => {
       WHERE service.name = '${serviceRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
-    it('uninstalls the ecs module', (done) => void iasql.uninstall(
-      ['aws_ecs_fargate@0.0.1'],
-      dbAlias,
-      'not-needed').then(...finish(done)));
+    it('uninstalls the ecs module', uninstall(
+      ['aws_ecs_fargate@0.0.1']));
 
-    it('installs the ecs module', (done) => void iasql.install(
-      ['aws_ecs_fargate@0.0.1'],
-      dbAlias,
-      'not-needed').then(...finish(done)));
+    it('installs the ecs module', install(
+      ['aws_ecs_fargate@0.0.1']));
 
     it('deletes service', query(`
       BEGIN;
@@ -370,7 +360,7 @@ describe('ECS Integration Testing', () => {
       COMMIT;
     `));
 
-    it('applies deletes service', apply);
+    it('applies deletes service', apply());
 
     it('deletes container definitons', query(`
       begin;
@@ -386,7 +376,7 @@ describe('ECS Integration Testing', () => {
       commit;
     `));
 
-    it('applies deletes tasks and container definitions', apply);
+    it('applies deletes tasks and container definitions', apply());
   });
 
   // Service spinning up a task definition with container using a public ecr
@@ -428,7 +418,7 @@ describe('ECS Integration Testing', () => {
       WHERE name = '${containerNamePublicRepository}' AND public_repository_id = (select id from public_repository where repository_name = '${publicRepositoryName}' limit 1) AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
-    it('applies adds a new task definition with container definition', apply);
+    it('applies adds a new task definition with container definition', apply());
 
     // Service
     it('adds a new service', query(`
@@ -454,15 +444,11 @@ describe('ECS Integration Testing', () => {
       WHERE service.name = '${servicePublicRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
-    it('uninstalls the ecs module', (done) => void iasql.uninstall(
-      ['aws_ecs_fargate@0.0.1'],
-      dbAlias,
-      'not-needed').then(...finish(done)));
+    it('uninstalls the ecs module', uninstall(
+      ['aws_ecs_fargate@0.0.1']));
 
-    it('installs the ecs module', (done) => void iasql.install(
-      ['aws_ecs_fargate@0.0.1'],
-      dbAlias,
-      'not-needed').then(...finish(done)));
+    it('installs the ecs module', install(
+      ['aws_ecs_fargate@0.0.1']));
 
     it('deletes service', query(`
       BEGIN;
@@ -475,7 +461,7 @@ describe('ECS Integration Testing', () => {
       COMMIT;
     `));
 
-    it('applies deletes service', apply);
+    it('applies deletes service', apply());
 
     it('deletes container definitons', query(`
       begin;
@@ -491,18 +477,14 @@ describe('ECS Integration Testing', () => {
       commit;
     `));
 
-    it('applies deletes tasks and container definitions', apply);
+    it('applies deletes tasks and container definitions', apply());
   });
 
-  it('uninstalls the ecs module', (done) => void iasql.uninstall(
-    ['aws_ecs_fargate@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the ecs module', uninstall(
+    ['aws_ecs_fargate@0.0.1']));
 
-  it('installs the ecs module', (done) => void iasql.install(
-    ['aws_ecs_fargate@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ecs module', install(
+    ['aws_ecs_fargate@0.0.1']));
 
   // deletes service dependencies
   it('deletes service dependencies', query(`
@@ -523,26 +505,26 @@ describe('ECS Integration Testing', () => {
     COMMIT;
   `));
 
-  it('applies deletes service dependencies', apply);
+  it('applies deletes service dependencies', apply());
 
   it('tries to update a cluster field (restore)', query(`
     UPDATE cluster SET cluster_status = 'fake' WHERE cluster_name = '${clusterName}';
   `));
 
-  it('applies tries to update a cluster field (restore)', apply);
+  it('applies tries to update a cluster field (restore)', apply());
 
   it('tries to update cluster (replace)', query(`
     UPDATE cluster SET cluster_name = '${newClusterName}' WHERE cluster_name = '${clusterName}';
   `));
 
-  it('applies tries to update cluster (replace)', apply);
+  it('applies tries to update cluster (replace)', apply());
 
   it('deletes the cluster', query(`
     delete from cluster
     where cluster_name = '${newClusterName}';
   `));
 
-  it('applies deletes the cluster', apply);
+  it('applies deletes the cluster', apply());
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
@@ -557,15 +539,11 @@ describe('ECS install/uninstall', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed').then(...finish(done)));
 
-  it('installs the ECS module', (done) => void iasql.install(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ECS module', install(
+    modules));
 
-  it('uninstalls the ECS module', (done) => void iasql.uninstall(
-    modules,
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the ECS module', uninstall(
+    modules));
 
   it('installs all modules', (done) => void iasql.install(
     [],
@@ -573,15 +551,11 @@ describe('ECS install/uninstall', () => {
     'not-needed',
     true).then(...finish(done)));
 
-  it('uninstalls the ECS module', (done) => void iasql.uninstall(
-    ['aws_ecs_fargate@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('uninstalls the ECS module', uninstall(
+    ['aws_ecs_fargate@0.0.1']));
 
-  it('installs the ECS module', (done) => void iasql.install(
-    ['aws_ecs_fargate@0.0.1'],
-    dbAlias,
-    'not-needed').then(...finish(done)));
+  it('installs the ECS module', install(
+    ['aws_ecs_fargate@0.0.1']));
 
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
