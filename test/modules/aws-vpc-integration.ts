@@ -1,19 +1,18 @@
 import * as iasql from '../../src/services/iasql'
 import { runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
-jest.setTimeout(240000);
-
-beforeAll(execComposeUp);
-
-afterAll(execComposeDown);
-
 const dbAlias = 'vpctest';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
+const modules = ['aws_vpc@0.0.1'];
 
+const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 const randIPBlock = Math.floor(Math.random() * 255);
+
+jest.setTimeout(240000);
+beforeAll(execComposeUp);
+afterAll(() => execComposeDown(modules));
 
 describe('VPC Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
@@ -24,7 +23,7 @@ describe('VPC Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the vpc module', (done) => void iasql.install(
-    ['aws_vpc@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -53,12 +52,12 @@ describe('VPC Integration Testing', () => {
   it('applies the subnet change', apply);
 
   it('uninstalls the vpc module', (done) => void iasql.uninstall(
-    ['aws_vpc@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('installs the vpc module again (to make sure it reloads stuff)', (done) => void iasql.install(
-    ['aws_vpc@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -105,12 +104,12 @@ describe('VPC install/uninstall', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the VPC module', (done) => void iasql.install(
-    ['aws_vpc@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('uninstalls the VPC module', (done) => void iasql.uninstall(
-    ['aws_vpc@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 

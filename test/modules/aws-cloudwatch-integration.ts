@@ -1,18 +1,17 @@
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
-jest.setTimeout(240000);
-
-beforeAll(execComposeUp);
-
-afterAll(execComposeDown);
-
 const prefix = getPrefix();
 const dbAlias = 'cwtest';
 const logGroupName = `${prefix}lgtest`
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const modules = ['aws_cloudwatch@0.0.1'];
+
+jest.setTimeout(240000);
+beforeAll(execComposeUp);
+afterAll(() => execComposeDown(modules));
 
 describe('AwsCloudwatch Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
@@ -23,7 +22,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the cloudwatch module', (done) => void iasql.install(
-    ['aws_cloudwatch@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -54,12 +53,12 @@ describe('AwsCloudwatch Integration Testing', () => {
   it('applies the log group change', apply);
 
   it('uninstalls the cloudwatch module', (done) => void iasql.uninstall(
-    ['aws_cloudwatch@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('installs the cloudwatch module', (done) => void iasql.install(
-    ['aws_cloudwatch@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -96,12 +95,12 @@ describe('AwsCloudwatch install/uninstall', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the cloudwatch module', (done) => void iasql.install(
-    ['aws_cloudwatch@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('uninstalls the cloudwatch module', (done) => void iasql.uninstall(
-    ['aws_cloudwatch@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 

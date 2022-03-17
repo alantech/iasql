@@ -1,18 +1,17 @@
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
-jest.setTimeout(960000);
-
-beforeAll(execComposeUp);
-
-afterAll(execComposeDown);
-
 const prefix = getPrefix();
 const dbAlias = 'rdstest';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
+const modules = ['aws_security_group@0.0.1', 'aws_rds@0.0.1'];
+
+jest.setTimeout(960000);
+beforeAll(execComposeUp);
+afterAll(() => execComposeDown(modules));
 
 describe('RDS Integration Testing', () => {
   it('creates a new test db elb', (done) => void iasql.add(
@@ -23,7 +22,7 @@ describe('RDS Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the rds module', (done) => void iasql.install(
-    ['aws_security_group@0.0.1', 'aws_rds@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -113,12 +112,12 @@ describe('RDS install/uninstall', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the RDS module', (done) => void iasql.install(
-    ['aws_security_group@0.0.1', 'aws_rds@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('uninstalls the RDS module', (done) => void iasql.uninstall(
-    ['aws_security_group@0.0.1', 'aws_rds@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 

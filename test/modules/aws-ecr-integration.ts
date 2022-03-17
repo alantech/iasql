@@ -1,21 +1,20 @@
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
-jest.setTimeout(240000);
-
-beforeAll(execComposeUp);
-
-afterAll(execComposeDown);
-
 const prefix = getPrefix();
 const dbAlias = 'ecrtest';
 const repositoryName = prefix + dbAlias;
-const pubRepositoryName = 'public' + prefix + dbAlias;
+const pubRepositoryName = `pub${prefix}${dbAlias}-${process.env.AWS_REGION ?? 'barf'}`;
 const policyMock = '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
 const updatePolicyMock = '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage" ] } ]}';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const modules = ['aws_ecr@0.0.1'];
+
+jest.setTimeout(240000);
+beforeAll(execComposeUp);
+afterAll(() => execComposeDown(modules));
 
 describe('ECR Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
@@ -26,7 +25,7 @@ describe('ECR Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the ecr module', (done) => void iasql.install(
-    ['aws_ecr@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -132,12 +131,12 @@ describe('ECR Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(0)));
 
     it('uninstalls the ecr module', (done) => void iasql.uninstall(
-      ['aws_ecr@0.0.1'],
+      modules,
       dbAlias,
       'not-needed').then(...finish(done)));
   
     it('installs the ecr module', (done) => void iasql.install(
-      ['aws_ecr@0.0.1'],
+      modules,
       dbAlias,
       'not-needed').then(...finish(done)));
 
@@ -195,12 +194,12 @@ describe('ECR Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
   
     it('uninstalls the ecr module', (done) => void iasql.uninstall(
-      ['aws_ecr@0.0.1'],
+      modules,
       dbAlias,
       'not-needed').then(...finish(done)));
   
     it('installs the ecr module', (done) => void iasql.install(
-      ['aws_ecr@0.0.1'],
+      modules,
       dbAlias,
       'not-needed').then(...finish(done)));
   
@@ -232,12 +231,12 @@ describe('ECR install/uninstall', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the ECR module', (done) => void iasql.install(
-    ['aws_ecr@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('uninstalls the ECR module', (done) => void iasql.uninstall(
-    ['aws_ecr@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -253,7 +252,7 @@ describe('ECR install/uninstall', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the ECR module', (done) => void iasql.install(
-    ['aws_ecr@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 

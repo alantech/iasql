@@ -7,15 +7,13 @@ import {
   runQuery,
 } from '../helpers'
 
-jest.setTimeout(360000);
-
-beforeAll(execComposeUp);
-
-afterAll(execComposeDown);
-
 const dbAlias = 'accounttest';
 const apply = runApply.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+
+jest.setTimeout(360000);
+beforeAll(execComposeUp);
+afterAll(() => execComposeDown());
 
 describe('AwsAccount Integration Testing', () => {
   // TODO: Restore some mechanism to verify credentials

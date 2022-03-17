@@ -1,18 +1,17 @@
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
-jest.setTimeout(240000);
-
-beforeAll(execComposeUp);
-
-afterAll(execComposeDown);
-
 const prefix = getPrefix();
 const dbAlias = 'sgtest';
 const sgName = `${prefix}${dbAlias}`;
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const modules = ['aws_security_group@0.0.1'];
+
+jest.setTimeout(240000);
+beforeAll(execComposeUp);
+afterAll(() => execComposeDown(modules));
 
 describe('Security Group Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
@@ -23,7 +22,7 @@ describe('Security Group Integration Testing', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the security group module', (done) => void iasql.install(
-    ['aws_security_group@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -103,12 +102,12 @@ describe('Security Group Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('uninstalls the security group module', (done) => void iasql.uninstall(
-    ['aws_security_group@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('installs the security group module', (done) => void iasql.install(
-    ['aws_security_group@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
@@ -182,12 +181,12 @@ describe('Security Group install/uninstall', () => {
     'not-needed').then(...finish(done)));
 
   it('installs the Security Group module', (done) => void iasql.install(
-    ['aws_security_group@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
   it('uninstalls the Security Group module', (done) => void iasql.uninstall(
-    ['aws_security_group@0.0.1'],
+    modules,
     dbAlias,
     'not-needed').then(...finish(done)));
 
