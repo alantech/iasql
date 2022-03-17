@@ -102,6 +102,13 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
         SELECT tables_array INTO aux_tables_array;
         FOR table_elem IN array_lower(aux_tables_array, 1)..array_upper(aux_tables_array, 1) LOOP
           BEGIN
+            IF aux_tables_array[table_elem] = 'public_repository' THEN
+              EXECUTE format('DELETE FROM %I WHERE repository_name LIKE ''%s''', aux_tables_array[table_elem], '%' || ${awsRegion});
+              SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
+            else
+              EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
+              SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
+            end if;
             EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
             SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
           EXCEPTION
