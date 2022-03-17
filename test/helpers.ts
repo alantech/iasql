@@ -8,7 +8,7 @@ export function execComposeUp() {
   execSync('cd test && docker-compose up -d && sleep 5');
 }
 
-export async function execComposeDown(input?: { modules: string[], region?: string }) {
+export async function execComposeDown(input: { modules?: string[], region?: string }) {
   if (input?.modules?.length) await cleanDB(input.modules, input.region);
   execSync('cd test && docker-compose down');
 }

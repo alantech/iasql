@@ -10,7 +10,7 @@ import {
 const dbAlias = 'accounttest';
 const apply = runApply.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const runComposeDown = execComposeDown.bind(null);
+const runComposeDown = execComposeDown.bind(null, {});
 
 jest.setTimeout(360000);
 beforeAll(execComposeUp);
