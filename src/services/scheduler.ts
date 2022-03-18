@@ -29,6 +29,10 @@ export async function start(dbAlias: string, dbId:string, uid: string) {
             promise = iasql.apply(dbAlias, false, uid, conn);
             break;
           }
+          case IasqlOperationType.PLAN: {
+            promise = iasql.apply(dbAlias, true, user, conn);
+            break;
+          }
           case IasqlOperationType.SYNC: {
             promise = iasql.sync(dbAlias, false, uid, conn);
             break;
