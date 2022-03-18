@@ -79,7 +79,20 @@ describe('Basic integration testing', () => {
     `);
   });
 
-  it('should run error without a cli version', () => {
+  it('should error when installing module without deps', () => {
+    expect(() => {
+      execSync(`
+        curl \
+          -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+          -f \
+          -s \
+          -S http://localhost:8088/v1/module/install
+          -d '{"dbAlias": "__${sha}__", "list": ["aws_ec2@0.0.1"]}'
+      `);
+    }).toThrow();
+  });
+
+  it('should error without a cli version', () => {
     expect(() => {
       execSync(`
         curl \
@@ -91,7 +104,7 @@ describe('Basic integration testing', () => {
     }).toThrow();
   });
 
-  it('should run error with an old cli version', () => {
+  it('should error with an old cli version', () => {
     expect(() => {
       execSync(`
         curl \
