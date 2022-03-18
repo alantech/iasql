@@ -712,14 +712,6 @@ export async function install(moduleList: string[], dbAlias: string, user: any, 
       moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
     }`);
   }
-  // Check to make sure that all dependent modules are in the list
-  const missingDeps = mods.map((m: Modules.ModuleInterface) => m.dependencies.find(d => !moduleList.includes(d)));
-  // TODO rm special casing for aws_account
-  if (missingDeps.some((m: any) => m !== undefined && m !== 'aws_account@0.0.1')) {
-    throw new Error(`The provided modules depend on the following modules: ${
-      missingDeps.filter(n => n !== undefined).join(', ')
-    }`);
-  }
   const orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
@@ -730,6 +722,16 @@ export async function install(moduleList: string[], dbAlias: string, user: any, 
       mods.splice(i, 1);
       i--;
     }
+  }
+  // TODO rm special casing for aws_account
+  // Check to make sure that all dependent modules are in the list
+  const missingDeps = mods
+    .flatMap((m: Modules.ModuleInterface) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
+    .filter((m: any) => m !== 'aws_account@0.0.1' && m !== undefined);
+  if (missingDeps.length > 0) {
+    throw new Error(`The provided modules depend on the following modules that are not provided or installed: ${
+      missingDeps.join(', ')
+    }`);
   }
   // See if we need to abort because now there's nothing to do
   if (mods.length === 0) {
