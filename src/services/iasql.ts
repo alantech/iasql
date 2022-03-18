@@ -713,11 +713,12 @@ export async function install(moduleList: string[], dbAlias: string, user: any, 
     }`);
   }
   // Check to make sure that all dependent modules are in the list
-  const missingDeps = mods.map((m: Modules.ModuleInterface) => m.dependencies.find(d => !moduleList.includes(d)));
+  const missingDeps = mods.flatMap((m: Modules.ModuleInterface) => m.dependencies.filter(d => !moduleList.includes(d)));
   // TODO rm special casing for aws_account
-  if (missingDeps.some((m: any) => m !== undefined && m !== 'aws_account@0.0.1')) {
+  const notAccnt = (m: any) => m !== 'aws_account@0.0.1';
+  if (missingDeps.some(notAccnt)) {
     throw new Error(`The provided modules depend on the following modules: ${
-      missingDeps.filter(n => n !== undefined).join(', ')
+      missingDeps.filter(notAccnt).join(', ')
     }`);
   }
   const orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
