@@ -150,8 +150,6 @@ describe('EC2 install/uninstall', () => {
     'not-needed',
     true).then(...finish(done)));
 
-  it('uninstalls the ec2 module', uninstall(['aws_ec2@0.0.1']));
-
   it('uninstall ec2 using overloaded sp', query(`
     call iasql_uninstall('aws_ec2@0.0.1');
   `));
