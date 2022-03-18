@@ -112,11 +112,21 @@ export class init1647526647810 implements MigrationInterface {
             end;
             $$;
         `);
+        await queryRunner.query(`
+            create or replace procedure iasql_uninstall(_mod text)
+            language plpgsql
+            as $$
+            begin
+                call until_iasql_operation('UNINSTALL', array[_mod]);
+            end;
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`DROP PROCEDURE "until_iasql_operation"`);
         await queryRunner.query(`DROP PROCEDURE "iasql_apply"`);
+        await queryRunner.query(`DROP PROCEDURE "iasql_plan"`);
         await queryRunner.query(`DROP PROCEDURE "iasql_sync"`);
         await queryRunner.query(`DROP PROCEDURE "iasql_install"`);
         await queryRunner.query(`DROP PROCEDURE "iasql_uninstall"`);
