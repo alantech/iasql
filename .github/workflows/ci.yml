@@ -52,7 +52,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
-          IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
+          A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
           AWS_REGION: us-east-1
           DB_HOST: localhost
 
@@ -114,6 +114,5 @@ jobs:
           MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
           AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
-          IRONPLANS_TOKEN: ${{ secrets.IRONPLANS_TOKEN }}
           AWS_REGION: ${{ needs.setup-module-test.outputs['region'] }}
           DB_HOST: localhost

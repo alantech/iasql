@@ -3,9 +3,11 @@ import { execSync, } from 'child_process'
 import { createConnection, } from 'typeorm'
 
 import * as iasql from '../src/services/iasql'
+import MetadataRepo from '../src/services/repositories/metadata'
 
-export function execComposeUp() {
+export async function execComposeUp() {
   execSync('cd test && docker-compose up -d && sleep 5');
+  await MetadataRepo.init();
 }
 
 export async function execComposeDown(modules?: string[], region?: string) {
@@ -79,7 +81,7 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
   const dbAlias = `cleandb${Date.now()}`;
   const awsRegion = region ?? process.env.AWS_REGION ?? 'barf';
   console.log(`Cleaning ${dbAlias} in ${awsRegion}...`);
-  await iasql.add(dbAlias, awsRegion, process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed');
+  await iasql.add(dbAlias, awsRegion, process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed', 'not-needed');
   console.log('DB created...');
   await iasql.install(modules, dbAlias, 'not-needed');
   console.log(`Modules ${modules} installed...`);

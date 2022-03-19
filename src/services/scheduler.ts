@@ -10,8 +10,8 @@ const workerShutdownEmitter = new EventEmitter();
 
 // graphile-worker here functions as a library, not a child process.
 // It manages its own database schema
-// (graphile_worker) and migrations in each user db using our credentials
-export async function start(dbAlias: string, dbId:string, user: any) {
+// (graphile_worker) and migrations in each uid db using our credentials
+export async function start(dbAlias: string, dbId:string, uid: string) {
   // use the same connection for the scheduler and its operations
   const conn = await TypeormWrapper.createConn(dbId);
   const runner = await run({
@@ -26,19 +26,19 @@ export async function start(dbAlias: string, dbId:string, user: any) {
         let promise;
         switch(optype) {
           case IasqlOperationType.APPLY: {
-            promise = iasql.apply(dbAlias, false, user, conn);
+            promise = iasql.apply(dbAlias, false, uid, conn);
             break;
           }
           case IasqlOperationType.SYNC: {
-            promise = iasql.sync(dbAlias, false, user, conn);
+            promise = iasql.sync(dbAlias, false, uid, conn);
             break;
           }
           case IasqlOperationType.INSTALL: {
-            promise = iasql.install(params, dbAlias, user, false, conn);
+            promise = iasql.install(params, dbAlias, uid, false, conn);
             break;
           }
           case IasqlOperationType.UNINSTALL: {
-            promise = iasql.uninstall(params, dbAlias, user, conn);
+            promise = iasql.uninstall(params, dbAlias, uid, conn);
             break;
           }
           default: {

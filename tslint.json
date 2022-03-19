@@ -14,7 +14,8 @@
   "linterOptions": {
     "exclude": [
       "src/migration/*.ts",
-      "src/modules/**/migration/*.ts"
+      "src/modules/**/migration/*.ts",
+      "src/metadata/**/migration/*.ts"
     ]
   }
 }

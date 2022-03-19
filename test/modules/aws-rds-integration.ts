@@ -12,8 +12,8 @@ const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 const modules = ['aws_security_group@0.0.1', 'aws_rds@0.0.1'];
 
 jest.setTimeout(960000);
-beforeAll(execComposeUp);
-afterAll(() => execComposeDown(modules));
+beforeAll(async () => await execComposeUp());
+afterAll(async () => await execComposeDown(modules));
 
 describe('RDS Integration Testing', () => {
   it('creates a new test db elb', (done) => void iasql.add(
@@ -21,7 +21,7 @@ describe('RDS Integration Testing', () => {
     process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the rds module', install(modules));
 
@@ -104,7 +104,7 @@ describe('RDS install/uninstall', () => {
     'us-east-1', // Share region with common tests
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the RDS module', install(
     modules));

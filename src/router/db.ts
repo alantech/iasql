@@ -1,5 +1,6 @@
 import * as express from 'express'
 
+import * as dbMan from '../services/db-manager';
 import * as iasql from '../services/iasql'
 import * as logger from '../services/logger'
 
@@ -14,13 +15,18 @@ db.post('/new', async (req, res) => {
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
   try {
-    res.json(await iasql.add(dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, req.user));
+    res.json(
+      await iasql.add(
+        dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, dbMan.getUid(req.user), dbMan.getEmail(req.user)
+      )
+    );
   } catch (e) {
     res.status(500).end(logger.error(e));
   }
 });
 
-db.post('/import', async (req, res) => {
+// TODO revive and test
+/*db.post('/import', async (req, res) => {
   console.log('Calling /import');
   const {dump, dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   if (!dump || !dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
@@ -35,7 +41,7 @@ db.post('/import', async (req, res) => {
   } catch (e) {
     res.status(500).end(logger.error(e));
   }
-});
+});*/
 
 db.post('/export', async (req, res) => {
   console.log('Calling /export');
@@ -54,7 +60,7 @@ db.post('/export', async (req, res) => {
 
 db.get('/list', async (req, res) => {
   try {
-    res.json(await iasql.list(req.user, req.query.verbose === 'true'));
+    res.json(await iasql.list(dbMan.getUid(req.user), req.query.verbose === 'true'));
   } catch (e) {
     res.status(500).end(logger.error(e));
   }
@@ -62,7 +68,7 @@ db.get('/list', async (req, res) => {
 
 db.get('/remove/:dbAlias', async (req, res) => {
   try {
-    res.json(await iasql.remove(req.params.dbAlias, req.user));
+    res.json(await iasql.remove(req.params.dbAlias, dbMan.getUid(req.user)));
   } catch (e) {
     res.status(500).end(logger.error(e));
   }
@@ -71,7 +77,7 @@ db.get('/remove/:dbAlias', async (req, res) => {
 db.post('/apply', async (req, res) => {
   const { dbAlias, dryRun } = req.body;
   try {
-    res.json(await iasql.apply(dbAlias, dryRun, req.user));
+    res.json(await iasql.apply(dbAlias, dryRun, dbMan.getUid(req.user)));
   } catch (e) {
     res.status(500).end(logger.error(e));
   }
@@ -80,7 +86,7 @@ db.post('/apply', async (req, res) => {
 db.post('/sync', async (req, res) => {
   const { dbAlias, dryRun } = req.body;
   try {
-    res.json(await iasql.sync(dbAlias, dryRun, req.user));
+    res.json(await iasql.sync(dbAlias, dryRun, dbMan.getUid(req.user)));
   } catch (e) {
     res.status(500).end(logger.error(e));
   }

@@ -8,12 +8,14 @@ import { uniqueNamesGenerator, Config, adjectives, colors, animals } from 'uniqu
 
 import { DepError, lazyLoader, } from '../services/lazy-dep'
 import { findDiff, } from '../services/diff'
+import MetadataRepo from './repositories/metadata'
 import { TypeormWrapper, } from './typeorm'
 import { IasqlModule, IasqlTables, } from '../entity'
 import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
 import * as Modules from '../modules'
 import * as scheduler from './scheduler'
+import { IasqlDatabase } from '../metadata/entity';
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
@@ -35,7 +37,8 @@ export async function add(
   awsRegion: string,
   awsAccessKeyId: string,
   awsSecretAccessKey: string,
-  user: any, // TODO: Better type here
+  uid: string,
+  email: string,
 ) {
   dbAlias = !dbAlias ? uniqueNamesGenerator(nameGenConfig) : dbAlias;
   let conn1: any, conn2: any, dbId: any, dbUser: any;
@@ -45,8 +48,8 @@ export async function add(
     const dbGen = dbMan.genUserAndPass();
     dbUser = dbGen[0];
     const dbPass = dbGen[1];
-    const meta = await dbMan.setMetadata(dbAlias, dbUser, user);
-    dbId = meta.dbId;
+    dbId = dbMan.genDbId(dbAlias);
+    await MetadataRepo.saveDb(uid, email, dbAlias, dbId, dbUser, awsRegion);
     console.log('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
     await conn1.query(`
@@ -54,7 +57,7 @@ export async function add(
     `);
     // wait for the scheduler to start and register its migrations before ours so that the stored procedures
     // that use the scheduler's schema succeed
-    await scheduler.start(dbAlias, dbId, user);
+    await scheduler.start(dbAlias, dbId, uid);
     conn2 = await createConnection({
       ...dbMan.baseConnConfig,
       name: dbId,
@@ -117,7 +120,7 @@ export async function add(
     // delete db in psql and metadata in IP
     await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
     if (dbUser) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser));
-    await dbMan.delMetadata(dbAlias, user);
+    await MetadataRepo.delDb(uid, dbAlias);
     // rethrow the error
     throw e;
   } finally {
@@ -127,17 +130,17 @@ export async function add(
   }
 }
 
-export async function remove(dbAlias: string, user: any) {
+export async function remove(dbAlias: string, uid: string) {
   let conn;
   try {
-    const { dbId, dbUser } = await dbMan.getMetadata(dbAlias, user);
-    scheduler.stop(dbId);
+    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+    scheduler.stop(db.pgName);
     conn = await createConnection(dbMan.baseConnConfig);
     await conn.query(`
-      DROP DATABASE ${dbId} WITH (FORCE);
+      DROP DATABASE ${db.pgName} WITH (FORCE);
     `);
-    await conn.query(dbMan.dropPostgresRoleQuery(dbUser));
-    await dbMan.delMetadata(dbAlias, user);
+    await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser));
+    await MetadataRepo.delDb(uid, dbAlias);
     return `removed ${dbAlias}`;
   } catch (e: any) {
     // re-throw
@@ -147,34 +150,21 @@ export async function remove(dbAlias: string, user: any) {
   }
 }
 
-export async function list(user: any, verbose = false) {
-  let conn;
+export async function list(uid: string, verbose = false) {
   try {
-    conn = await createConnection(dbMan.baseConnConfig);
-    // aliases is undefined when there is no auth so get aliases from DB
-    const aliases = (await dbMan.getAliases(user)) ?? (await conn.query(`
-      select datname
-      from pg_database
-      where datname <> 'postgres' and
-      datname <> 'template0' and
-      datname <> 'template1'
-    `)).map((r: any) => r.datname);
-    if (verbose) {
-      return Promise.all(aliases.map(async (a: string) => dbMan.getMetadata(a, user)));
-    }
-    return aliases;
+    const dbs = await MetadataRepo.getDbs(uid);
+    if (verbose) return dbs;
+    return dbs.map(db => db.alias);
   } catch (e: any) {
     throw e;
-  } finally {
-    conn?.close();
   }
 }
 
-export async function dump(dbAlias: string, user: any, dataOnly: boolean) {
+export async function dump(dbAlias: string, uid: any, dataOnly: boolean) {
   let dbId;
   try {
-    const meta = await dbMan.getMetadata(dbAlias, user);
-    dbId = meta.dbId;
+    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+    dbId = db.pgName;
   } catch (e: any) {
     throw e;
   }
@@ -188,7 +178,8 @@ export async function dump(dbAlias: string, user: any, dataOnly: boolean) {
   return stdout;
 }
 
-export async function load(
+// TODO revive and test
+/*export async function load(
   dumpStr: string,
   dbAlias: string,
   awsRegion: string,
@@ -245,7 +236,7 @@ export async function load(
     await conn1?.close();
     await conn2?.close();
   }
-}
+}*/
 
 function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
   // Assumes equal length for all arrays
@@ -261,12 +252,13 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
   return out;
 }
 
-export async function apply(dbAlias: string, dryRun: boolean, user: any, ormOpt?: TypeormWrapper) {
+export async function apply(dbAlias: string, dryRun: boolean, uid: string, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   console.log(`Applying ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
   try {
-    const { dbId } = await dbMan.getMetadata(dbAlias, user);
+    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+    const dbId = db.pgName;
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
@@ -473,12 +465,13 @@ export async function apply(dbAlias: string, dryRun: boolean, user: any, ormOpt?
   }
 }
 
-export async function sync(dbAlias: string, dryRun: boolean, user: any, ormOpt?: TypeormWrapper) {
+export async function sync(dbAlias: string, dryRun: boolean, uid: string, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   console.log(`Syncing ${dbAlias}`);
   let orm: TypeormWrapper | null = null;
   try {
-    const { dbId } = await dbMan.getMetadata(dbAlias, user);
+    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+    const dbId = db.pgName;
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
@@ -678,7 +671,7 @@ export async function sync(dbAlias: string, dryRun: boolean, user: any, ormOpt?:
   }
 }
 
-export async function modules(all: boolean, installed: boolean, dbAlias: string, user: any) {
+export async function modules(all: boolean, installed: boolean, dbAlias: string, uid: string) {
   // TODO rm special casing for aws_account
   const allModules = Object.values(Modules)
     .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && m.name !== 'aws_account')
@@ -689,7 +682,8 @@ export async function modules(all: boolean, installed: boolean, dbAlias: string,
   if (all) {
     return allModules;
   } else if (installed && dbAlias) {
-    const { dbId } = await dbMan.getMetadata(dbAlias, user);
+    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+    const dbId = db.pgName;
     const entities: Function[] = [IasqlModule, IasqlTables];
     const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const mods = await orm.find(IasqlModule);
@@ -700,8 +694,10 @@ export async function modules(all: boolean, installed: boolean, dbAlias: string,
   }
 }
 
-export async function install(moduleList: string[], dbAlias: string, user: any, allModules = false, ormOpt?: TypeormWrapper) {
-  const { dbId, dbUser } = await dbMan.getMetadata(dbAlias, user);
+export async function install(moduleList: string[], dbAlias: string, uid: string, allModules = false, ormOpt?: TypeormWrapper) {
+  const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+  const dbId = db.pgName;
+  const dbUser = db.pgUser;
   // Check to make sure that all specified modules actually exist
   if (allModules) {
     moduleList = (Object.values(Modules) as Modules.ModuleInterface[]).filter((m: Modules.ModuleInterface) => m.name && m.version && m.name !== 'aws_account' ).map((m: Modules.ModuleInterface) => `${m.name}@${m.version}`);
@@ -768,7 +764,7 @@ ${Object.keys(tableCollisions)
   // we first need to sync the existing modules to make sure there are no records the newly-added
   // modules have a dependency on.
   try {
-    await sync(dbAlias, false, user, orm);
+    await sync(dbAlias, false, uid, orm);
   } catch (e) {
     console.log('Sync during module install failed');
     console.log(e);
@@ -858,8 +854,9 @@ ${Object.keys(tableCollisions)
   }
 }
 
-export async function uninstall(moduleList: string[], dbAlias: string, user: any, orm?: TypeormWrapper) {
-  const { dbId } = await dbMan.getMetadata(dbAlias, user);
+export async function uninstall(moduleList: string[], dbAlias: string, uid: string, orm?: TypeormWrapper) {
+  const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+  const dbId = db.pgName;
   // Check to make sure that all specified modules actually exist
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as Modules.ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {

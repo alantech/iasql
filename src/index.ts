@@ -6,6 +6,7 @@ import * as sentry from '@sentry/node';
 
 import config from './config';
 import { v1 } from './router';
+import MetadataRepo from './services/repositories/metadata';
 
 const port = config.port;
 const app = express();
@@ -47,6 +48,10 @@ app.use((error: any, _req: any, res: any, _next: any) => {
     .status(error.statusCode || error.status || 500)
     .end(msg);
 });
-app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+
+// init metadata repo
+MetadataRepo.init().then(() => {
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
 });
