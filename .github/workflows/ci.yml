@@ -52,6 +52,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
+          A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
           AWS_REGION: us-east-1
           DB_HOST: localhost
 
