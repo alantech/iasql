@@ -45,8 +45,8 @@ const publicRepositoryName = `${prefix}${dbAlias}publicrepository`;
 const containerNamePublicRepository = `${prefix}${dbAlias}containerpublicrepository`;
 
 jest.setTimeout(240000);
-beforeAll(execComposeUp);
-afterAll(() => execComposeDown(modules));
+beforeAll(async () => await execComposeUp());
+afterAll(async () => await execComposeDown(modules));
 
 describe('ECS Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.add(
@@ -54,7 +54,7 @@ describe('ECS Integration Testing', () => {
     process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the ecs module and its dependencies', install(modules));
 
@@ -537,7 +537,7 @@ describe('ECS install/uninstall', () => {
     'us-east-1', // Share region with common tests
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the ECS module', install(
     modules));

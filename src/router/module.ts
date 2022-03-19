@@ -1,5 +1,6 @@
 import * as express from 'express'
 
+import * as dbMan from '../services/db-manager';
 import * as iasql from '../services/iasql';
 import * as logger from '../services/logger';
 
@@ -29,7 +30,7 @@ export const mod = express.Router();
 mod.post('/list', async (req, res) => {
   const { all, installed, dbAlias } = req.body;
   try {
-    res.json(await iasql.modules(all, installed, dbAlias, req.user));
+    res.json(await iasql.modules(all, installed, dbAlias, dbMan.getUid(req.user)));
   } catch (e) {
     res.status(400).end('Invalid request parameters');
   }
@@ -49,7 +50,7 @@ mod.post('/install', async (req, res) => {
   // Also don't do anything if we don't have any list of modules to install
   if (!Array.isArray(list)) return res.status(400).json("No packages provided in 'list' property");
   try {
-    res.json(await iasql.install(list, dbAlias, req.user));
+    res.json(await iasql.install(list, dbAlias, dbMan.getUid(req.user)));
   } catch (e: any) {
     res.status(400).json(logger.error(e));
   }
@@ -63,7 +64,7 @@ mod.post('/uninstall', async (req, res) => {
   // Also don't do anything if we don't have any list of modules to install
   if (!Array.isArray(list)) return res.status(400).json("No modules provided in 'list' property");
   try {
-    res.json(await iasql.uninstall(list, dbAlias, req.user));
+    res.json(await iasql.uninstall(list, dbAlias, dbMan.getUid(req.user)));
   } catch (e: any) {
     res.status(400).json(logger.error(e));
   }
