@@ -84,8 +84,8 @@ db.post('/apply', async (req, res) => {
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
   try {
-    const db: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
-    res.json(await iasql.apply(db.pgName, dryRun));
+    const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
+    res.json(await iasql.apply(database.pgName, dryRun));
   } catch (e) {
     res.status(500).end(logger.error(e));
   }
@@ -99,8 +99,8 @@ db.post('/sync', async (req, res) => {
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
   try {
-    const db: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
-    res.json(await iasql.sync(db.pgName, dryRun));
+    const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
+    res.json(await iasql.sync(database.pgName, dryRun));
   } catch (e) {
     res.status(500).end(logger.error(e));
   }

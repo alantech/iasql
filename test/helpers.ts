@@ -133,10 +133,9 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
       END LOOP;
     END$$;
   `);
-  await conn.close();
-  const res = await iasql.apply(dbAlias, false, 'not-needed');
+  await conn.query('call iasql_apply();');
   console.log('Deletes applied...');
-  console.dir(res, {depth: 6});
+  await conn.close();
   await iasql.remove(dbAlias, 'not-needed');
   console.log('DB removed...');
 }
