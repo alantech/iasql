@@ -169,10 +169,14 @@ export async function dump(dbAlias: string, uid: any, dataOnly: boolean) {
     throw e;
   }
   const pgUrl = dbMan.ourPgUrl(dbId);
+  const excludedDataTables = '--exclude-table-data \'aws_account\' --exclude-table-data \'iasql_*\''
   const { stdout, } = await exec(
     `pg_dump ${
-      dataOnly ? '--data-only --column-inserts --rows-per-insert=50 --exclude-table-data=aws_account --on-conflict-do-nothing' : ''
-    } --inserts -x ${pgUrl}`,
+      dataOnly ?
+        `--data-only --no-privileges --column-inserts --rows-per-insert=50 --on-conflict-do-nothing ${excludedDataTables}`
+        :
+        ''
+    } --inserts --exclude-schema=graphile_worker -x ${pgUrl}`,
     { shell: '/bin/bash', }
   );
   return stdout;

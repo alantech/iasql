@@ -48,13 +48,9 @@ db.post('/new', async (req, res) => {
 db.post('/export', async (req, res) => {
   console.log('Calling /export');
   const { dbAlias, dataOnly } = req.body;
-  if (!dbAlias) return res.status(400).json(
-    `Required key(s) not provided: ${[
-      'dbAlias',
-    ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
-  );
+  if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   try {
-    res.json(await iasql.dump(dbAlias, req.user, !!dataOnly));
+    res.send(await iasql.dump(dbAlias, dbMan.getUid(req.user), !!dataOnly));
   } catch (e) {
     res.status(500).end(logger.error(e));
   }
@@ -69,8 +65,10 @@ db.get('/list', async (req, res) => {
 });
 
 db.get('/remove/:dbAlias', async (req, res) => {
+  const { dbAlias } = req.params;
+  if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   try {
-    res.json(await iasql.remove(req.params.dbAlias, dbMan.getUid(req.user)));
+    res.json(await iasql.remove(dbAlias, dbMan.getUid(req.user)));
   } catch (e) {
     res.status(500).end(logger.error(e));
   }
@@ -78,11 +76,7 @@ db.get('/remove/:dbAlias', async (req, res) => {
 
 db.post('/apply', async (req, res) => {
   const { dbAlias, dryRun } = req.body;
-  if (!dbAlias) return res.status(400).json(
-    `Required key(s) not provided: ${[
-      'dbAlias',
-    ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
-  );
+  if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
     res.json(await iasql.apply(database.pgName, dryRun));
@@ -93,11 +87,7 @@ db.post('/apply', async (req, res) => {
 
 db.post('/sync', async (req, res) => {
   const { dbAlias, dryRun } = req.body;
-  if (!dbAlias) return res.status(400).json(
-    `Required key(s) not provided: ${[
-      'dbAlias',
-    ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
-  );
+  if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
     res.json(await iasql.sync(database.pgName, dryRun));
