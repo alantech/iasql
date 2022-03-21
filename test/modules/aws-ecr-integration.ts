@@ -15,8 +15,8 @@ const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_ecr@0.0.1'];
 
 jest.setTimeout(240000);
-beforeAll(execComposeUp);
-afterAll(() => execComposeDown(modules));
+beforeAll(async () => await execComposeUp());
+afterAll(async () => await execComposeDown(modules));
 
 describe('ECR Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
@@ -24,7 +24,7 @@ describe('ECR Integration Testing', () => {
     process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the ecr module', install(modules));
 
@@ -215,7 +215,7 @@ describe('ECR install/uninstall', () => {
     'us-east-1', // Share region with common tests
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the ECR module', install(modules));
 

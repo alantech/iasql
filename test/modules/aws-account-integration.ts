@@ -14,8 +14,8 @@ const query = runQuery.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 
 jest.setTimeout(360000);
-beforeAll(execComposeUp);
-afterAll(() => execComposeDown());
+beforeAll(async () => await execComposeUp());
+afterAll(async () => await execComposeDown());
 
 describe('AwsAccount Integration Testing', () => {
   // TODO: Restore some mechanism to verify credentials
@@ -34,7 +34,7 @@ describe('AwsAccount Integration Testing', () => {
     process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('inserts a second, useless row into the aws_account table', query(`
     INSERT INTO aws_account (access_key_id, secret_access_key, region)

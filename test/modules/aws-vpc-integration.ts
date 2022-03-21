@@ -13,8 +13,8 @@ const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 const randIPBlock = Math.floor(Math.random() * 255);
 
 jest.setTimeout(240000);
-beforeAll(execComposeUp);
-afterAll(() => execComposeDown(modules));
+beforeAll(async () => await execComposeUp());
+afterAll(async () => await execComposeDown(modules));
 
 describe('VPC Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
@@ -22,7 +22,7 @@ describe('VPC Integration Testing', () => {
     process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the vpc module', install(modules));
 
@@ -96,7 +96,7 @@ describe('VPC install/uninstall', () => {
     'us-east-1', // Share region with common tests
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the VPC module', install(
     modules));

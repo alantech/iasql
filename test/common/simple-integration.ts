@@ -8,10 +8,9 @@ const sha = execSync('git rev-parse HEAD', { encoding: 'utf8', }).trim();
 
 beforeAll(() => {
   // Set up the env file
-  execSync('echo AO_ENABLED=true >> .env');
-  execSync('echo AO_DOMAIN=https://auth.iasql.com/ >> .env');
-  execSync('echo AO_AUDIENCE=https://api.iasql.com >> .env');
-  execSync('echo IRONPLANS_TOKEN=${IRONPLANS_TOKEN} >> .env');
+  execSync('echo A0_ENABLED=true >> .env');
+  execSync('echo A0_DOMAIN=https://auth.iasql.com/ >> .env');
+  execSync('echo A0_AUDIENCE=https://api.iasql.com >> .env');
   // Build the docker containers
   execSync('docker-compose --env-file .env up --build --detach');
   // Wait for them to be usable
@@ -36,7 +35,7 @@ describe('Basic integration testing', () => {
       --request POST \
       --url 'http://localhost:8088/v1/db/new/' \
       --show-error --silent --fail \
-      --header 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+      --header 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
       --header 'content-type: application/json' \
       --header 'cli-version: ${MIN_CLI_VERSION}' \
       --data '{
@@ -54,7 +53,7 @@ describe('Basic integration testing', () => {
       --request POST \
       --url 'http://localhost:8088/v1/db/new/' \
       --show-error --silent --fail \
-      --header 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+      --header 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
       --header 'content-type: application/json' \
       --header 'cli-version: ${MIN_CLI_VERSION}' \
       --data '{
@@ -69,7 +68,7 @@ describe('Basic integration testing', () => {
     execSync(`
       curl \
         -X POST \
-        -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+        -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
         -H 'Content-Type: application/json' \
         -H 'cli-version: ${MIN_CLI_VERSION}' \
         -f \
@@ -83,7 +82,7 @@ describe('Basic integration testing', () => {
     expect(() => {
       execSync(`
         curl \
-          -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+          -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
           -f \
           -s \
           -S http://localhost:8088/v1/module/install
@@ -96,7 +95,7 @@ describe('Basic integration testing', () => {
     expect(() => {
       execSync(`
         curl \
-          -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+          -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
           -f \
           -s \
           -S http://localhost:8088/v1/db/list
@@ -108,7 +107,7 @@ describe('Basic integration testing', () => {
     expect(() => {
       execSync(`
         curl \
-          -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+          -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
           -H 'cli-version: 0.1' \
           -f \
           -s \
@@ -120,7 +119,7 @@ describe('Basic integration testing', () => {
   it('should run list correctly', () => {
     execSync(`
       curl \
-        -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+        -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
         -H 'cli-version: ${MIN_CLI_VERSION}' \
         -f \
         -s \
@@ -131,7 +130,7 @@ describe('Basic integration testing', () => {
   it('should run remove correctly', () => {
     execSync(`
       curl \
-        -H 'authorization: Bearer ${process.env.IRONPLANS_TOKEN}' \
+        -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
         -H 'cli-version: ${MIN_CLI_VERSION}' \
         -f \
         -s \

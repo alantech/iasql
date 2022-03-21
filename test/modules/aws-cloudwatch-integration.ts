@@ -12,8 +12,8 @@ const uninstall = runUninstall.bind(null, dbAlias);
 
 const modules = ['aws_cloudwatch@0.0.1'];
 jest.setTimeout(240000);
-beforeAll(execComposeUp);
-afterAll(() => execComposeDown(modules));
+beforeAll(async () => await execComposeUp());
+afterAll(async () => await execComposeDown(modules));
 
 describe('AwsCloudwatch Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
@@ -21,7 +21,7 @@ describe('AwsCloudwatch Integration Testing', () => {
     process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the cloudwatch module', install(modules));
 
@@ -85,7 +85,7 @@ describe('AwsCloudwatch install/uninstall', () => {
     'us-east-1', // Share region with common tests
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the cloudwatch module', install(modules));
 

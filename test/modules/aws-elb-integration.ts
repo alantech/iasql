@@ -23,8 +23,8 @@ const lbType = LoadBalancerTypeEnum.APPLICATION;
 const lbIPAddressType = IpAddressType.IPV4;
 
 jest.setTimeout(360000);
-beforeAll(execComposeUp);
-afterAll(() => execComposeDown(modules));
+beforeAll(async () => await execComposeUp());
+afterAll(async () => await execComposeDown(modules));
 
 describe('ELB Integration Testing', () => {
   it('creates a new test db elb', (done) => void iasql.add(
@@ -32,7 +32,7 @@ describe('ELB Integration Testing', () => {
     process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the elb module', install(modules));
 
@@ -218,7 +218,7 @@ describe('ELB install/uninstall', () => {
     'us-east-1', // Share region with common tests
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the ELB module', install(
     modules));

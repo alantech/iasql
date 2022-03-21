@@ -15,8 +15,8 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'];
 
 jest.setTimeout(240000);
-beforeAll(execComposeUp);
-afterAll(() => execComposeDown(modules, region));
+beforeAll(async () => await execComposeUp());
+afterAll(async () => await execComposeDown(modules));
 
 describe('EC2 Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.add(
@@ -24,7 +24,7 @@ describe('EC2 Integration Testing', () => {
     region,
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the ec2 module', install(modules));
 
@@ -138,7 +138,7 @@ describe('EC2 install/uninstall', () => {
     'us-east-1', // Share region with common tests
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed').then(...finish(done)));
+    'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the ec2 module', install(modules));
 
