@@ -57,7 +57,7 @@ export async function add(
     `);
     // wait for the scheduler to start and register its migrations before ours so that the stored procedures
     // that use the scheduler's schema succeed
-    await scheduler.start(dbAlias, dbId, uid);
+    await scheduler.start(dbId, dbUser);
     conn2 = await createConnection({
       ...dbMan.baseConnConfig,
       name: dbId,
@@ -252,13 +252,11 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
   return out;
 }
 
-export async function apply(dbAlias: string, dryRun: boolean, uid: string, ormOpt?: TypeormWrapper) {
+export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
-  console.log(`Applying ${dbAlias}`);
+  console.log(`Applying ${dbId}`);
   let orm: TypeormWrapper | null = null;
   try {
-    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    const dbId = db.pgName;
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
@@ -448,7 +446,7 @@ export async function apply(dbAlias: string, dryRun: boolean, uid: string, ormOp
       } while(ranUpdate);
     } while (ranFullUpdate);
     const t7 = Date.now();
-    console.log(`${dbAlias} applied and synced, total time: ${t7 - t1}ms`);
+    console.log(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
     return {
       iasqlPlanVersion: 2,
       toCreate,
@@ -465,13 +463,11 @@ export async function apply(dbAlias: string, dryRun: boolean, uid: string, ormOp
   }
 }
 
-export async function sync(dbAlias: string, dryRun: boolean, uid: string, ormOpt?: TypeormWrapper) {
+export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
-  console.log(`Syncing ${dbAlias}`);
+  console.log(`Syncing ${dbId}`);
   let orm: TypeormWrapper | null = null;
   try {
-    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    const dbId = db.pgName;
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
@@ -654,7 +650,7 @@ export async function sync(dbAlias: string, dryRun: boolean, uid: string, ormOpt
       } while(ranUpdate);
     } while (ranFullUpdate);
     const t7 = Date.now();
-    console.log(`${dbAlias} synced, total time: ${t7 - t1}ms`);
+    console.log(`${dbId} synced, total time: ${t7 - t1}ms`);
     return {
       iasqlPlanVersion: 2,
       toCreate,
@@ -694,10 +690,7 @@ export async function modules(all: boolean, installed: boolean, dbAlias: string,
   }
 }
 
-export async function install(moduleList: string[], dbAlias: string, uid: string, allModules = false, ormOpt?: TypeormWrapper) {
-  const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-  const dbId = db.pgName;
-  const dbUser = db.pgUser;
+export async function install(moduleList: string[], dbId: string, dbUser: string, allModules = false, ormOpt?: TypeormWrapper) {
   // Check to make sure that all specified modules actually exist
   if (allModules) {
     moduleList = (Object.values(Modules) as Modules.ModuleInterface[]).filter((m: Modules.ModuleInterface) => m.name && m.version && m.name !== 'aws_account' ).map((m: Modules.ModuleInterface) => `${m.name}@${m.version}`);
@@ -764,7 +757,7 @@ ${Object.keys(tableCollisions)
   // we first need to sync the existing modules to make sure there are no records the newly-added
   // modules have a dependency on.
   try {
-    await sync(dbAlias, false, uid, orm);
+    await sync(dbId, false, orm);
   } catch (e) {
     console.log('Sync during module install failed');
     console.log(e);
@@ -854,9 +847,7 @@ ${Object.keys(tableCollisions)
   }
 }
 
-export async function uninstall(moduleList: string[], dbAlias: string, uid: string, orm?: TypeormWrapper) {
-  const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-  const dbId = db.pgName;
+export async function uninstall(moduleList: string[], dbId: string, orm?: TypeormWrapper) {
   // Check to make sure that all specified modules actually exist
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as Modules.ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {

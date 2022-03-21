@@ -1,3 +1,4 @@
+import * as scheduler from '../../src/services/scheduler'
 import * as iasql from '../../src/services/iasql'
 import {
   execComposeDown,
@@ -42,6 +43,14 @@ describe('AwsAccount Integration Testing', () => {
   `));
 
   it('does absolutely nothing when you apply this', apply());
+
+  // tests that on startup subsequent iasql ops for existing dbs succeed
+  it('stops the worker for all dbs', (done) => void scheduler
+    .stopAll()
+    .then(...finish(done)));
+  it('starts a worker for each db', (done) => void scheduler
+    .init()
+    .then(...finish(done)));
 
   it('does absolutely nothing when you sync this', sync());
 

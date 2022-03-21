@@ -1,8 +1,10 @@
 import * as express from 'express'
 
 import * as dbMan from '../services/db-manager';
+import MetadataRepo from '../services/repositories/metadata'
 import * as iasql from '../services/iasql';
 import * as logger from '../services/logger';
+import { IasqlDatabase } from '../metadata/entity';
 
 export const mod = express.Router();
 
@@ -50,7 +52,8 @@ mod.post('/install', async (req, res) => {
   // Also don't do anything if we don't have any list of modules to install
   if (!Array.isArray(list)) return res.status(400).json("No packages provided in 'list' property");
   try {
-    res.json(await iasql.install(list, dbAlias, dbMan.getUid(req.user)));
+    const db: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
+    res.json(await iasql.install(list, db.pgName, db.pgUser));
   } catch (e: any) {
     res.status(400).json(logger.error(e));
   }
@@ -64,7 +67,8 @@ mod.post('/uninstall', async (req, res) => {
   // Also don't do anything if we don't have any list of modules to install
   if (!Array.isArray(list)) return res.status(400).json("No modules provided in 'list' property");
   try {
-    res.json(await iasql.uninstall(list, dbAlias, dbMan.getUid(req.user)));
+    const db: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
+    res.json(await iasql.uninstall(list, db.pgName));
   } catch (e: any) {
     res.status(400).json(logger.error(e));
   }

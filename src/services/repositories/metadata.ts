@@ -72,6 +72,10 @@ class MetadataRepo {
     return user.iasqlDatabases;
   }
 
+  async getAllDbs(): Promise<IasqlDatabase[]> {
+    return this.dbRepo.find();
+  }
+
   async delDb(a0Id: string, dbAlias: string) {
     const user = await this.userRepo.findOneOrFail(a0Id);
     const dbToDel = user.iasqlDatabases.find(db => db.alias === dbAlias);
