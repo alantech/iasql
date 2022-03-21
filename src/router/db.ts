@@ -54,7 +54,7 @@ db.post('/export', async (req, res) => {
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
   try {
-    res.json(await iasql.dump(dbAlias, req.user, !!dataOnly));
+    res.json(await iasql.dump(dbAlias, dbMan.getUid(req.user), !!dataOnly));
   } catch (e) {
     res.status(500).end(logger.error(e));
   }
