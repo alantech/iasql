@@ -8,7 +8,6 @@ export const AwsCloudwatchModule: Module = new Module({
   ...metadata,
   provides: {
     entities: allEntities,
-    tables: ['log_group',],
   },
   utils: {
     logGroupMapper: (lg: any, _ctx: Context) => {

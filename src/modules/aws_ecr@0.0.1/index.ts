@@ -13,7 +13,6 @@ export const AwsEcrModule: Module = new Module({
   ...metadata,
   provides: {
     entities: allEntities,
-    tables: ['repository', 'repository_policy', 'public_repository',],
   },
   utils: {
     publicRepositoryMapper: (r: PublicRepositoryAws, _ctx: Context) => {

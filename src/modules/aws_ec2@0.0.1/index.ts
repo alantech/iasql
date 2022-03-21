@@ -11,9 +11,6 @@ export const AwsEc2Module: Module = new Module({
   ...metadata,
   provides: {
     entities: allEntities,
-    tables: [
-      'instance', 'instance_security_groups',
-    ],
   },
   utils: {
     instanceMapper: async (instance: InstanceAWS, ctx: Context) => {

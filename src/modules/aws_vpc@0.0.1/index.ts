@@ -16,7 +16,6 @@ export const AwsVpcModule: Module = new Module({
   ...metadata,
   provides: {
     entities: allEntities,
-    tables: ['subnet', 'vpc'],
   },
   utils: {
     subnetMapper: async (sn: AwsSubnet, ctx: Context) => {
