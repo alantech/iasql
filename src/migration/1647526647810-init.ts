@@ -6,7 +6,7 @@ export class init1647526647810 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "iasql_module" ("name" character varying NOT NULL, CONSTRAINT "UQ_e91a0b0e9a029428405fdd17ee4" UNIQUE ("name"), CONSTRAINT "PK_e91a0b0e9a029428405fdd17ee4" PRIMARY KEY ("name"))`);
         await queryRunner.query(`CREATE TABLE "iasql_tables" ("table" character varying NOT NULL, "module" character varying NOT NULL, CONSTRAINT "PK_2e2832f9cf90115571eb803a943" PRIMARY KEY ("table", "module"))`);
-        await queryRunner.query(`CREATE TYPE "public"."iasql_operation_optype_enum" AS ENUM('APPLY', 'SYNC', 'INSTALL', 'UNINSTALL')`);
+        await queryRunner.query(`CREATE TYPE "public"."iasql_operation_optype_enum" AS ENUM('APPLY', 'SYNC', 'INSTALL', 'UNINSTALL', 'PLAN')`);
         await queryRunner.query(`CREATE TABLE "iasql_operation" ("opid" uuid NOT NULL, "start_date" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "end_date" TIMESTAMP WITH TIME ZONE, "optype" "public"."iasql_operation_optype_enum" NOT NULL, "params" text array NOT NULL, "output" text, "err" text, CONSTRAINT "PK_edf11c327fef1bf78dd04cdf3ce" PRIMARY KEY ("opid"))`);
         await queryRunner.query(`CREATE TABLE "iasql_dependencies" ("module" character varying NOT NULL, "dependency" character varying NOT NULL, CONSTRAINT "PK_b07797cfc364fa84b6da165f89d" PRIMARY KEY ("module", "dependency"))`);
         await queryRunner.query(`CREATE INDEX "IDX_9732df6d7dff34b6f6a1732033" ON "iasql_dependencies" ("module") `);
@@ -68,6 +68,15 @@ export class init1647526647810 implements MigrationInterface {
             $$;
         `);
         await queryRunner.query(`
+            create or replace procedure iasql_plan()
+            language plpgsql
+            as $$
+            begin
+                call until_iasql_operation('PLAN', array[]::text[]);
+            end;
+            $$;
+        `);
+        await queryRunner.query(`
             create or replace procedure iasql_sync()
             language plpgsql
             as $$
@@ -86,6 +95,15 @@ export class init1647526647810 implements MigrationInterface {
             $$;
         `);
         await queryRunner.query(`
+            create or replace procedure iasql_install(_mod text)
+            language plpgsql
+            as $$
+            begin
+                call until_iasql_operation('INSTALL', array[_mod]);
+            end;
+            $$;
+        `);
+        await queryRunner.query(`
             create or replace procedure iasql_uninstall(_mods text[])
             language plpgsql
             as $$
@@ -94,14 +112,26 @@ export class init1647526647810 implements MigrationInterface {
             end;
             $$;
         `);
+        await queryRunner.query(`
+            create or replace procedure iasql_uninstall(_mod text)
+            language plpgsql
+            as $$
+            begin
+                call until_iasql_operation('UNINSTALL', array[_mod]);
+            end;
+            $$;
+        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`DROP PROCEDURE "until_iasql_operation"`);
         await queryRunner.query(`DROP PROCEDURE "iasql_apply"`);
+        await queryRunner.query(`DROP PROCEDURE "iasql_plan"`);
         await queryRunner.query(`DROP PROCEDURE "iasql_sync"`);
-        await queryRunner.query(`DROP PROCEDURE "iasql_install"`);
-        await queryRunner.query(`DROP PROCEDURE "iasql_uninstall"`);
+        await queryRunner.query(`DROP PROCEDURE "iasql_install(text)"`);
+        await queryRunner.query(`DROP PROCEDURE "iasql_install(text[])"`);
+        await queryRunner.query(`DROP PROCEDURE "iasql_uninstall(text)"`);
+        await queryRunner.query(`DROP PROCEDURE "iasql_uninstall(text[])"`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" DROP CONSTRAINT "FK_7dbdaef2c45fdd0d1d82cc9568c"`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" DROP CONSTRAINT "FK_9732df6d7dff34b6f6a1732033b"`);
         await queryRunner.query(`ALTER TABLE "iasql_tables" DROP CONSTRAINT "FK_0e0f2a4ef99e93cfcb935c060cb"`);
