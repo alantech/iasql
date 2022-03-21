@@ -15,6 +15,7 @@ class MetadataRepo {
     try {
       await conn.query(`CREATE DATABASE ${this.database};`);
     } catch(e) {
+      // CREATE DATABASE cannot be executed from a function and
       // postgres doesn't support IF NOT EXISTS for db creation so just ignore the error
     } finally {
       await conn.close();

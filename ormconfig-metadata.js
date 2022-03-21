@@ -6,7 +6,7 @@ module.exports = {
  "port": 5432,
  "username": "postgres",
  "password": "test",
- "database": "__example__",
+ "database": "iasql_metadata",
  "synchronize": true,
  "logging": false,
  "entities": [
