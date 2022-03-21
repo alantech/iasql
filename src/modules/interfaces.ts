@@ -349,6 +349,9 @@ export class Module {
           .replace(/\basync\b/g, '')
           .replace(/\bawait\b/g, '')
           .replace(/^/, 'function')
+          // The following are only for the test suite, but need to be included at all times
+          .replace(/\/* istanbul ignore next *\//g, '')
+          .replace(/cov_.*/g, '')
       )();
       const tables: string[] = [];
       const functions: string[] = [];
