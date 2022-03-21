@@ -128,8 +128,10 @@ export class init1647526647810 implements MigrationInterface {
         await queryRunner.query(`DROP PROCEDURE "iasql_apply"`);
         await queryRunner.query(`DROP PROCEDURE "iasql_plan"`);
         await queryRunner.query(`DROP PROCEDURE "iasql_sync"`);
-        await queryRunner.query(`DROP PROCEDURE "iasql_install"`);
-        await queryRunner.query(`DROP PROCEDURE "iasql_uninstall"`);
+        await queryRunner.query(`DROP PROCEDURE "iasql_install(_mod text)"`);
+        await queryRunner.query(`DROP PROCEDURE "iasql_install(_mods text[])"`);
+        await queryRunner.query(`DROP PROCEDURE "iasql_uninstall(_mod text)"`);
+        await queryRunner.query(`DROP PROCEDURE "iasql_uninstall(_mods text[])"`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" DROP CONSTRAINT "FK_7dbdaef2c45fdd0d1d82cc9568c"`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" DROP CONSTRAINT "FK_9732df6d7dff34b6f6a1732033b"`);
         await queryRunner.query(`ALTER TABLE "iasql_tables" DROP CONSTRAINT "FK_0e0f2a4ef99e93cfcb935c060cb"`);

@@ -30,7 +30,7 @@ export async function start(dbAlias: string, dbId:string, uid: string) {
             break;
           }
           case IasqlOperationType.PLAN: {
-            promise = iasql.apply(dbAlias, true, user, conn);
+            promise = iasql.apply(dbAlias, true, uid, conn);
             break;
           }
           case IasqlOperationType.SYNC: {
