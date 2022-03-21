@@ -278,8 +278,7 @@ export interface ModuleInterface {
   name: string;
   version: string;
   dependencies: string[];
-  provides: {
-    entities: { [key: string]: any, };
+  provides?: {
     tables?: string[];
     functions?: string[];
     // TODO: What other PSQL things should be tracked?
@@ -291,10 +290,6 @@ export interface ModuleInterface {
   };
   utils?: { [key: string]: any, };
   mappers: { [key: string]: Mapper<any>, };
-  migrations?: {
-    install: (q: QueryRunner) => Promise<void>;
-    remove: (q: QueryRunner) => Promise<void>;
-  };
 }
 
 // This is just a no-op class at the moment. Not strictly necessary but keeps things consistent
@@ -315,61 +310,59 @@ export class Module {
     remove: (q: QueryRunner) => Promise<void>;
   };
 
-  constructor(def: ModuleInterface, dirname?: string) {
+  constructor(def: ModuleInterface, dirname: string) {
+    def.provides = def.provides ?? {};
     this.name = def.name;
     this.version = def.version;
     this.dependencies = def.dependencies;
+    const entityDir = `${dirname}/entity`;
+    const entities = require(`${entityDir}/index`);
     this.provides = {
-      entities: def.provides.entities,
+      entities,
       tables: def.provides.tables ?? [], // These will be populated automatically below
       functions: def.provides.functions ?? [],
     }
     if (def.provides.context) this.provides.context = def.provides.context;
     this.utils = def?.utils ?? {};
     this.mappers = def.mappers;
-    if (!def.migrations) {
-      if (!dirname) throw new Error('Cannot determine module migration');
-      const migrationDir = `${dirname}/migration`;
-      const files = readdirSync(migrationDir).filter(f => !/.map$/.test(f));
-      if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
-      const migration = require(`${migrationDir}/${files[0]}`);
-      // Assuming TypeORM migration files
-      const migrationClass = migration[Object.keys(migration)[0]];
-      if (!migrationClass || !migrationClass.prototype.up || !migrationClass.prototype.down) {
-        throw new Error('Presumed migration file is not a TypeORM migration');
-      }
-      this.migrations = {
-        install: migrationClass.prototype.up,
-        remove: migrationClass.prototype.down,
-      };
-      const syncified = new Function(
-        'return ' +
-        migrationClass.prototype.up
-          .toString()
-          .replace(/\basync\b/g, '')
-          .replace(/\bawait\b/g, '')
-          .replace(/^/, 'function')
-          // The following are only for the test suite, but need to be included at all times
-          .replace(/\/* istanbul ignore next *\//g, '')
-          .replace(/cov_.*/g, '')
-      )();
-      const tables: string[] = [];
-      const functions: string[] = [];
-      syncified({ query: (text: string) => {
-        // TODO: Proper parsing (maybe LP?)
-        if (/^create table/i.test(text)) {
-          tables.push((text.match(/^[^"]*"([^"]*)"/) ?? [])[1]);
-        } else if (/^create or replace procedure/i.test(text)) {
-          functions.push((text.match(/^create or replace procedure ([^(]*)/i) ?? [])[0]);
-        } else if (/^create or replace function/i.test(text)) {
-          functions.push((text.match(/^create or replace function ([^(]*)/i) ?? [])[0]);
-        }
-        // Don't do anything for queries that don't match
-      }, });
-      if (!def.provides.tables) this.provides.tables = tables;
-      if (!def.provides.functions) this.provides.functions = functions;
-    } else {
-      this.migrations = def.migrations;
+    const migrationDir = `${dirname}/migration`;
+    const files = readdirSync(migrationDir).filter(f => !/.map$/.test(f));
+    if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
+    const migration = require(`${migrationDir}/${files[0]}`);
+    // Assuming TypeORM migration files
+    const migrationClass = migration[Object.keys(migration)[0]];
+    if (!migrationClass || !migrationClass.prototype.up || !migrationClass.prototype.down) {
+      throw new Error('Presumed migration file is not a TypeORM migration');
     }
+    this.migrations = {
+      install: migrationClass.prototype.up,
+      remove: migrationClass.prototype.down,
+    };
+    const syncified = new Function(
+      'return ' +
+      migrationClass.prototype.up
+        .toString()
+        .replace(/\basync\b/g, '')
+        .replace(/\bawait\b/g, '')
+        .replace(/^/, 'function')
+        // The following are only for the test suite, but need to be included at all times
+        .replace(/\/* istanbul ignore next *\//g, '')
+        .replace(/cov_.*/g, '')
+    )();
+    const tables: string[] = [];
+    const functions: string[] = [];
+    syncified({ query: (text: string) => {
+      // TODO: Proper parsing (maybe LP?)
+      if (/^create table/i.test(text)) {
+        tables.push((text.match(/^[^"]*"([^"]*)"/) ?? [])[1]);
+      } else if (/^create or replace procedure/i.test(text)) {
+        functions.push((text.match(/^create or replace procedure ([^(]*)/i) ?? [])[0]);
+      } else if (/^create or replace function/i.test(text)) {
+        functions.push((text.match(/^create or replace function ([^(]*)/i) ?? [])[0]);
+      }
+      // Don't do anything for queries that don't match
+    }, });
+    if (!def.provides.tables) this.provides.tables = tables;
+    if (!def.provides.functions) this.provides.functions = functions;
   }
 }

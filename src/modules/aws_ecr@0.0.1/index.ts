@@ -5,15 +5,11 @@ import { Repository as PublicRepositoryAws, } from '@aws-sdk/client-ecr-public'
 
 import { AWS, } from '../../services/gateways/aws'
 import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability, } from './entity'
-import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import * as metadata from './module.json'
 
 export const AwsEcrModule: Module = new Module({
   ...metadata,
-  provides: {
-    entities: allEntities,
-  },
   utils: {
     publicRepositoryMapper: (r: PublicRepositoryAws, _ctx: Context) => {
       const out = new Repository();

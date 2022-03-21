@@ -8,15 +8,11 @@ import {
   SubnetState,
   VpcState,
 } from './entity'
-import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import * as metadata from './module.json'
 
 export const AwsVpcModule: Module = new Module({
   ...metadata,
-  provides: {
-    entities: allEntities,
-  },
   utils: {
     subnetMapper: async (sn: AwsSubnet, ctx: Context) => {
       const out = new Subnet();

@@ -2,15 +2,11 @@ import { In, } from 'typeorm'
 
 import { AWS, } from '../../services/gateways/aws'
 import { SecurityGroup, SecurityGroupRule, } from './entity'
-import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import * as metadata from './module.json'
 
 export const AwsSecurityGroupModule: Module = new Module({
   ...metadata,
-  provides: {
-    entities: allEntities,
-  },
   utils: {
     sgMapper: async (sg: any, _ctx: Context) => {
       const out = new SecurityGroup();

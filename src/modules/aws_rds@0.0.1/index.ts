@@ -3,16 +3,12 @@ import { ModifyDBInstanceCommandInput } from '@aws-sdk/client-rds'
 
 import { AWS, } from '../../services/gateways/aws'
 import { RDS, } from './entity'
-import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
 
 export const AwsRdsModule: Module = new Module({
   ...metadata,
-  provides: {
-    entities: allEntities,
-  },
   utils: {
     rdsMapper: async (rds: any, ctx: Context) => {
       const out = new RDS();

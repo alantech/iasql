@@ -8,16 +8,12 @@ import {
   Service,
   TaskDefinition,
 } from './entity'
-import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule, } from '..'
 import * as metadata from './module.json'
 
 export const AwsEcsFargateModule: Module = new Module({
   ...metadata,
-  provides: {
-    entities: allEntities,
-  },
   utils: {
     clusterMapper: (c: any, _ctx: Context) => {
       const out = new Cluster();

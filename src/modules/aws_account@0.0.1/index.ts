@@ -2,14 +2,12 @@ import { In, } from 'typeorm'
 
 import { AWS, } from '../../services/gateways/aws'
 import { AwsAccountEntity, } from './entity'
-import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import * as metadata from './module.json'
 
 export const AwsAccount: Module = new Module({
   ...metadata,
   provides: {
-    entities: allEntities,
     context: {
       // This function is `async function () {` instead of `async () => {` because that enables the
       // `this` keyword within the function based on the objec it is being called from, so the

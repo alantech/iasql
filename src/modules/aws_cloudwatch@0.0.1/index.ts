@@ -1,14 +1,10 @@
 import { AWS, } from '../../services/gateways/aws'
-import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { LogGroup } from './entity'
 import * as metadata from './module.json'
 
 export const AwsCloudwatchModule: Module = new Module({
   ...metadata,
-  provides: {
-    entities: allEntities,
-  },
   utils: {
     logGroupMapper: (lg: any, _ctx: Context) => {
       const out = new LogGroup();
