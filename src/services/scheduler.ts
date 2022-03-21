@@ -15,7 +15,7 @@ const workerShutdownEmitter = new EventEmitter();
 // (graphile_worker) and migrations in each uid db using our credentials
 export async function start(dbId: string, dbUser:string) {
   // use the same connection for the scheduler and its operations
-  const conn = await TypeormWrapper.createConn(`${dbId}-scheduler`);
+  const conn = await TypeormWrapper.createConn(dbId, { name: `${dbId}-${Math.floor(Math.random()*10000)}-scheduler`, });
   const runner = await run({
     pgPool: conn.getMasterConnection(),
     concurrency: 5,
