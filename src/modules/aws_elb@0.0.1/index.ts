@@ -29,7 +29,6 @@ export const AwsElbModule: Module = new Module({
   ...metadata,
   provides: {
     entities: allEntities,
-    tables: ['target_group', 'load_balancer', 'listener', 'load_balancer_security_groups',],
   },
   utils: {
     listenerMapper: async (l: ListenerAws, ctx: Context) => {

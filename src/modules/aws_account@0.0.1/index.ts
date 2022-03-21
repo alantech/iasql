@@ -10,9 +10,6 @@ export const AwsAccount: Module = new Module({
   ...metadata,
   provides: {
     entities: allEntities,
-    tables: [
-      'aws_account',
-    ],
     context: {
       // This function is `async function () {` instead of `async () => {` because that enables the
       // `this` keyword within the function based on the objec it is being called from, so the

@@ -10,7 +10,6 @@ export const AwsSecurityGroupModule: Module = new Module({
   ...metadata,
   provides: {
     entities: allEntities,
-    tables: ['security_group', 'security_group_rule'],
   },
   utils: {
     sgMapper: async (sg: any, _ctx: Context) => {

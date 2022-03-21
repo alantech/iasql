@@ -304,8 +304,8 @@ export class Module {
   dependencies: string[];
   provides: {
     entities: { [key: string]: any, };
-    tables?: string[];
-    functions?: string[];
+    tables: string[];
+    functions: string[];
     context?: Context;
   };
   utils: { [key: string]: any, };
@@ -319,7 +319,12 @@ export class Module {
     this.name = def.name;
     this.version = def.version;
     this.dependencies = def.dependencies;
-    this.provides = def.provides;
+    this.provides = {
+      entities: def.provides.entities,
+      tables: def.provides.tables ?? [], // These will be populated automatically below
+      functions: def.provides.functions ?? [],
+    }
+    if (def.provides.context) this.provides.context = def.provides.context;
     this.utils = def?.utils ?? {};
     this.mappers = def.mappers;
     if (!def.migrations) {
@@ -337,6 +342,32 @@ export class Module {
         install: migrationClass.prototype.up,
         remove: migrationClass.prototype.down,
       };
+      const syncified = new Function(
+        'return ' +
+        migrationClass.prototype.up
+          .toString()
+          .replace(/\basync\b/g, '')
+          .replace(/\bawait\b/g, '')
+          .replace(/^/, 'function')
+          // The following are only for the test suite, but need to be included at all times
+          .replace(/\/* istanbul ignore next *\//g, '')
+          .replace(/cov_.*/g, '')
+      )();
+      const tables: string[] = [];
+      const functions: string[] = [];
+      syncified({ query: (text: string) => {
+        // TODO: Proper parsing (maybe LP?)
+        if (/^create table/i.test(text)) {
+          tables.push((text.match(/^[^"]*"([^"]*)"/) ?? [])[1]);
+        } else if (/^create or replace procedure/i.test(text)) {
+          functions.push((text.match(/^create or replace procedure ([^(]*)/i) ?? [])[0]);
+        } else if (/^create or replace function/i.test(text)) {
+          functions.push((text.match(/^create or replace function ([^(]*)/i) ?? [])[0]);
+        }
+        // Don't do anything for queries that don't match
+      }, });
+      if (!def.provides.tables) this.provides.tables = tables;
+      if (!def.provides.functions) this.provides.functions = functions;
     } else {
       this.migrations = def.migrations;
     }
