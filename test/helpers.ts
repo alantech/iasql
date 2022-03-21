@@ -1,6 +1,7 @@
 import { execSync, } from 'child_process'
 
 import { createConnection, } from 'typeorm'
+import config from '../src/config';
 
 import * as iasql from '../src/services/iasql'
 import MetadataRepo from '../src/services/repositories/metadata'
@@ -83,7 +84,7 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
   console.log(`Cleaning ${dbAlias} in ${awsRegion}...`);
   await iasql.add(dbAlias, awsRegion, process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed', 'not-needed');
   console.log('DB created...');
-  await iasql.install(modules, dbAlias, 'not-needed');
+  await iasql.install(modules, dbAlias, config.dbUser);
   console.log(`Modules ${modules} installed...`);
   const conn = await createConnection({
     name: dbAlias,
@@ -134,7 +135,7 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
     END$$;
   `);
   await conn.close();
-  const res = await iasql.apply(dbAlias, false, 'not-needed');
+  const res = await iasql.apply(dbAlias, false);
   console.log('Deletes applied...');
   console.dir(res, {depth: 6});
   await iasql.remove(dbAlias, 'not-needed');

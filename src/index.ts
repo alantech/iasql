@@ -7,6 +7,7 @@ import * as sentry from '@sentry/node';
 import config from './config';
 import { v1 } from './router';
 import MetadataRepo from './services/repositories/metadata';
+import * as scheduler from './services/scheduler'
 
 const port = config.port;
 const app = express();
@@ -51,7 +52,9 @@ app.use((error: any, _req: any, res: any, _next: any) => {
 
 // init metadata repo
 MetadataRepo.init().then(() => {
-  app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-  });
+  scheduler.init().then(() => {
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+    });
+  })
 });

@@ -1,3 +1,4 @@
+import config from '../../src/config';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
@@ -185,7 +186,7 @@ describe('Security Group install/uninstall', () => {
   it('installs all modules', (done) => void iasql.install(
     [],
     dbAlias,
-    'not-needed',
+    config.dbUser,
     true).then(...finish(done)));
 
   it('uninstalls the Security Group module', uninstall(

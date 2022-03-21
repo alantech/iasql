@@ -1,7 +1,9 @@
 import * as express from 'express'
+import { IasqlDatabase } from '../metadata/entity';
 
 import * as dbMan from '../services/db-manager';
 import * as iasql from '../services/iasql'
+import MetadataRepo from '../services/repositories/metadata'
 import * as logger from '../services/logger'
 
 export const db = express.Router();
@@ -76,8 +78,14 @@ db.get('/remove/:dbAlias', async (req, res) => {
 
 db.post('/apply', async (req, res) => {
   const { dbAlias, dryRun } = req.body;
+  if (!dbAlias) return res.status(400).json(
+    `Required key(s) not provided: ${[
+      'dbAlias',
+    ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
+  );
   try {
-    res.json(await iasql.apply(dbAlias, dryRun, dbMan.getUid(req.user)));
+    const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
+    res.json(await iasql.apply(database.pgName, dryRun));
   } catch (e) {
     res.status(500).end(logger.error(e));
   }
@@ -85,8 +93,14 @@ db.post('/apply', async (req, res) => {
 
 db.post('/sync', async (req, res) => {
   const { dbAlias, dryRun } = req.body;
+  if (!dbAlias) return res.status(400).json(
+    `Required key(s) not provided: ${[
+      'dbAlias',
+    ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
+  );
   try {
-    res.json(await iasql.sync(dbAlias, dryRun, dbMan.getUid(req.user)));
+    const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
+    res.json(await iasql.sync(database.pgName, dryRun));
   } catch (e) {
     res.status(500).end(logger.error(e));
   }
