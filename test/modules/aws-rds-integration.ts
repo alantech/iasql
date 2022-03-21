@@ -1,3 +1,4 @@
+import config from '../../src/config';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runApply, runInstall, runUninstall, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
@@ -115,7 +116,7 @@ describe('RDS install/uninstall', () => {
   it('installs all modules', (done) => void iasql.install(
     [],
     dbAlias,
-    'not-needed',
+    config.dbUser,
     true).then(...finish(done)));
 
   it('uninstalls the RDS module', uninstall(

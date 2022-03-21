@@ -83,8 +83,6 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
   console.log(`Cleaning ${dbAlias} in ${awsRegion}...`);
   await iasql.add(dbAlias, awsRegion, process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed', 'not-needed');
   console.log('DB created...');
-  await iasql.install(modules, dbAlias, 'not-needed');
-  console.log(`Modules ${modules} installed...`);
   const conn = await createConnection({
     name: dbAlias,
     type: 'postgres',
@@ -96,6 +94,8 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
     extra: { ssl: false, },
   });
   console.log(`Connection created...`);
+  await conn.query(`call iasql_install(array[${modules.map(m => `'${m}'`)}]);`);
+  console.log(`Modules ${modules} installed...`);
   await conn.query(`
     DO $$
     DECLARE 

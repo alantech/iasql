@@ -1,3 +1,4 @@
+import config from '../../src/config';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
@@ -224,7 +225,7 @@ describe('ECR install/uninstall', () => {
   it('installs all modules', (done) => void iasql.install(
     [],
     dbAlias,
-    'not-needed',
+    config.dbUser,
     true).then(...finish(done)));
 
   it('uninstalls the ECR module', uninstall(['aws_ecr@0.0.1', 'aws_ecs_fargate@0.0.1']));

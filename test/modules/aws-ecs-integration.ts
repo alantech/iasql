@@ -1,3 +1,4 @@
+import config from '../../src/config';
 import { CpuMemCombination, TaskDefinitionStatus } from '../../src/modules/aws_ecs_fargate@0.0.1/entity';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runInstall, runUninstall, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
@@ -548,7 +549,7 @@ describe('ECS install/uninstall', () => {
   it('installs all modules', (done) => void iasql.install(
     [],
     dbAlias,
-    'not-needed',
+    config.dbUser,
     true).then(...finish(done)));
 
   it('uninstalls the ECS module', uninstall(
