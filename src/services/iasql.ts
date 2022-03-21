@@ -263,7 +263,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
     const memo: any = {}; // TODO: Stronger typing here
     const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
     for (const name of moduleNames) {
-      const mod = (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as Modules.ModuleInterface;
+      const mod = (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === name) as Modules.Module;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod.provides.context ?? {};
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
@@ -474,7 +474,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
     const memo: any = {}; // TODO: Stronger typing here
     const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
     for (const name of moduleNames) {
-      const mod = (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as Modules.ModuleInterface;
+      const mod = (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === name) as Modules.Module;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod.provides.context ?? {};
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
@@ -695,7 +695,7 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   if (allModules) {
     moduleList = (Object.values(Modules) as Modules.ModuleInterface[]).filter((m: Modules.ModuleInterface) => m.name && m.version && m.name !== 'aws_account' ).map((m: Modules.ModuleInterface) => `${m.name}@${m.version}`);
   }
-  const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as Modules.ModuleInterface[];
+  const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === n)) as Modules.Module[];
   if (mods.some((m: any) => m === undefined)) {
     throw new Error(`The following modules do not exist: ${
       moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
@@ -715,7 +715,7 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   // TODO rm special casing for aws_account
   // Check to make sure that all dependent modules are in the list
   const missingDeps = mods
-    .flatMap((m: Modules.ModuleInterface) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
+    .flatMap((m: Modules.Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
     .filter((m: any) => m !== 'aws_account@0.0.1' && m !== undefined);
   if (missingDeps.length > 0) {
     throw new Error(`The provided modules depend on the following modules that are not provided or installed: ${
@@ -808,7 +808,7 @@ ${Object.keys(tableCollisions)
   const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
   const context: Modules.Context = { orm, memo: {}, }; // Every module gets access to the DB
   for (const name of moduleNames) {
-    const md = (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as Modules.ModuleInterface;
+    const md = (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === name) as Modules.Module;
     if (!md) throw new Error(`This should be impossible. Cannot find module ${name}`);
     const moduleContext = md.provides.context ?? {};
     Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
@@ -849,7 +849,7 @@ ${Object.keys(tableCollisions)
 
 export async function uninstall(moduleList: string[], dbId: string, orm?: TypeormWrapper) {
   // Check to make sure that all specified modules actually exist
-  const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as Modules.ModuleInterface[];
+  const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === n)) as Modules.Module[];
   if (mods.some((m: any) => m === undefined)) {
     throw new Error(`The following modules do not exist: ${
       moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
