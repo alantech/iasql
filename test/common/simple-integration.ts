@@ -1,5 +1,4 @@
 import { execSync, } from 'child_process'
-import { MIN_CLI_VERSION, } from '../../src/router/index'
 
 jest.setTimeout(30000);
 
@@ -37,7 +36,6 @@ describe('Basic integration testing', () => {
       --show-error --silent --fail \
       --header 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
       --header 'content-type: application/json' \
-      --header 'cli-version: ${MIN_CLI_VERSION}' \
       --data '{
         "dbAlias": "__${sha}__",
         "awsRegion": "us-east-1",
@@ -55,7 +53,6 @@ describe('Basic integration testing', () => {
       --show-error --silent --fail \
       --header 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
       --header 'content-type: application/json' \
-      --header 'cli-version: ${MIN_CLI_VERSION}' \
       --data '{
         "awsRegion": "us-east-1",
         "awsAccessKeyId": "${process.env.AWS_ACCESS_KEY_ID}",
@@ -70,7 +67,6 @@ describe('Basic integration testing', () => {
         -X POST \
         -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
         -H 'Content-Type: application/json' \
-        -H 'cli-version: ${MIN_CLI_VERSION}' \
         -f \
         -s \
         -S http://localhost:8088/v1/db/apply \
@@ -91,36 +87,10 @@ describe('Basic integration testing', () => {
     }).toThrow();
   });
 
-  it('should error without a cli version', () => {
-    expect(() => {
-      execSync(`
-        curl \
-          -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
-          -f \
-          -s \
-          -S http://localhost:8088/v1/db/list
-      `);
-    }).toThrow();
-  });
-
-  it('should error with an old cli version', () => {
-    expect(() => {
-      execSync(`
-        curl \
-          -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
-          -H 'cli-version: 0.1' \
-          -f \
-          -s \
-          -S http://localhost:8088/v1/db/list
-      `);
-    }).toThrow();
-  });
-
   it('should run list correctly', () => {
     execSync(`
       curl \
         -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
-        -H 'cli-version: ${MIN_CLI_VERSION}' \
         -f \
         -s \
         -S http://localhost:8088/v1/db/list
@@ -131,7 +101,6 @@ describe('Basic integration testing', () => {
     execSync(`
       curl \
         -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
-        -H 'cli-version: ${MIN_CLI_VERSION}' \
         -f \
         -s \
         -S http://localhost:8088/v1/db/remove/__${sha}__
