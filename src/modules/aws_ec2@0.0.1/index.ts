@@ -1,6 +1,5 @@
 import { Instance as InstanceAWS, } from '@aws-sdk/client-ec2'
 
-import * as allEntities from './entity'
 import { Instance, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group@0.0.1'
 import { AWS, IASQL_EC2_TAG_NAME } from '../../services/gateways/aws'
@@ -9,9 +8,6 @@ import * as metadata from './module.json'
 
 export const AwsEc2Module: Module = new Module({
   ...metadata,
-  provides: {
-    entities: allEntities,
-  },
   utils: {
     instanceMapper: async (instance: InstanceAWS, ctx: Context) => {
       const out = new Instance();

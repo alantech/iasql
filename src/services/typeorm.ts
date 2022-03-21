@@ -42,8 +42,8 @@ export class TypeormWrapper {
     }
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
+      name: dbname,
       ...connectionConfig as PostgresConnectionOptions,
-      name: dbname, // TODO improve connection name handling
       database,
     }
     typeorm.connection = await createConnection(connOpts);

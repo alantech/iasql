@@ -20,16 +20,12 @@ import {
   TargetGroupIpAddressTypeEnum,
   TargetTypeEnum,
 } from './entity'
-import * as allEntities from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
 
 export const AwsElbModule: Module = new Module({
   ...metadata,
-  provides: {
-    entities: allEntities,
-  },
   utils: {
     listenerMapper: async (l: ListenerAws, ctx: Context) => {
       const out = new Listener();
