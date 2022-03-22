@@ -5,6 +5,7 @@ import { ConfigInterface, throwError, } from './config';
 if (!['production', 'staging', 'local', 'test'].includes(process.env.IASQL_ENV ?? '')) throwError(
   `Invalid environment ${process.env.IASQL_ENV}`
 );
+// tslint:disable-next-line:no-var-requires
 const config: ConfigInterface = require(`./${process.env.IASQL_ENV}`).default;
 
 export default config;
