@@ -50,11 +50,11 @@ jobs:
       - name: Run common tests
         run: yarn coverage **/common/*
         env:
+          IASQL_ENV: test
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
           A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
           AWS_REGION: us-east-1
-          DB_HOST: localhost
 
   setup-module-test:
     runs-on: ubuntu-latest
@@ -111,8 +111,8 @@ jobs:
       - name: Run modules tests
         run: yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
         env:
+          IASQL_ENV: test
           MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
           AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
           AWS_REGION: ${{ needs.setup-module-test.outputs['region'] }}
-          DB_HOST: localhost
