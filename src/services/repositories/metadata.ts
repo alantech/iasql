@@ -66,9 +66,17 @@ class MetadataRepo {
     return db;
   }
 
-  async getDbs(a0Id: string): Promise<IasqlDatabase[]> {
+  async getDbs(a0Id: string, email: string): Promise<IasqlDatabase[]> {
     const user = await this.userRepo.findOne(a0Id);
-    if (!user) return [];
+    if (!user) {
+      // create the new user
+      const user = new IasqlUser();
+      user.id = a0Id;
+      user.email = email;
+      user.iasqlDatabases = [];
+      await this.userRepo.save(user);
+      return [];
+    };
     return user.iasqlDatabases;
   }
 
