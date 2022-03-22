@@ -54,20 +54,20 @@ export async function start(dbId: string, dbUser:string) {
         // once the operation completes updating the `end_date`
         // will complete the polling
         try {
+          console.log('start job')
           let output = await promise;
+          console.log('job done, start query')
           output = typeof output === 'string' ? output : JSON.stringify(output);
           await conn.query(`
-            update iasql_operation
-            set end_date = now(), output = '${output}'
-            where opid = '${opid}';`
-          );
+            insert into iasql_operation (opid, optype, params, start_date, end_date, output)
+            values ('${opid}', ${optype}, array[${params.join(', ')}], ${start}, now(), '${output}');
+          `);
         } catch (e) {
           const error = JSON.stringify(e, Object.getOwnPropertyNames(e));
           await conn.query(`
-            update iasql_operation
-            set end_date = now(), err = '${error}'
-            where opid = '${opid}';`
-          );
+            insert into iasql_operation (opid, optype, params, start_date, end_date, error)
+            values ('${opid}', '${optype}', array[${params.join(', ')}], ${start}, now(), '${error}');
+          `);
         }
       },
     },

@@ -30,19 +30,19 @@ export function finish(done: (e?: any) => {}) {
 }
 
 export function runApply(dbAlias: string) {
-  return runQuery(dbAlias, 'call iasql_apply();');
+  return runQuery(dbAlias, 'select iasql_apply();');
 }
 
 export function runSync(dbAlias: string) {
-  return runQuery(dbAlias, 'call iasql_sync();');
+  return runQuery(dbAlias, 'select iasql_sync();');
 }
 
 export function runInstall(dbAlias: string, mods: string[]) {
-  return runQuery(dbAlias, `call iasql_install(array[${mods.map(m => `'${m}'`)}]);`);
+  return runQuery(dbAlias, `select iasql_install(array[${mods.map(m => `'${m}'`)}]);`);
 }
 
 export function runUninstall(dbAlias: string, mods: string[]) {
-  return runQuery(dbAlias, `call iasql_uninstall(array[${mods.map(m => `'${m}'`)}]);`);
+  return runQuery(dbAlias, `select iasql_uninstall(array[${mods.map(m => `'${m}'`)}]);`);
 }
 
 export function runQuery(dbAlias: string, queryString: string, assertFn?: (res: any[]) => void) {
