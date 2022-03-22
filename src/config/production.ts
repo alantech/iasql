@@ -2,9 +2,9 @@ import { ConfigInterface, throwError, } from './config';
 
 const config: ConfigInterface = {
   port: 8088,
-  dbHost: process.env.DB_HOST ?? 'postgresql', // TODO: Move away from env var
-  dbUser: process.env.DB_USER ?? 'postgres',
-  dbPassword: process.env.DB_PASSWORD || 'test',
+  dbHost: process.env.DB_HOST ?? throwError('No DB Host defined'), // TODO: Move away from env var
+  dbUser: process.env.DB_USER ?? throwError('No DB User defined'),
+  dbPassword: process.env.DB_PASSWORD ?? throwError('No DB Password defined'),
   dbPort: 5432,
   dbForceSSL: true,
   a0Enabled: true,
