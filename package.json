@@ -10,7 +10,7 @@
     "test": "IASQL_ENV=test jest -i",
     "coverage": "IASQL_ENV=test jest -i --coverage",
     "coverage:local": "IASQL_ENV=test export $(cat .env | xargs) && yarn coverage",
-    "start": "if [ \"$IASQL_ENV\" = \"local\" ]; then yarn start:dev; else yarn serve; fi",
+    "start": "if [ \"$IASQL_ENV\" = \"\" ]; then IASQL_ENV=production yarn serve; elif [ \"$IASQL_ENV\" = \"local\" ]; then yarn start:dev; else yarn serve; fi",
     "serve": "node --max_old_space_size=8192 dist/index.js",
     "start:dev": "nodemon -e ts -w ./src -x yarn start:dev:watch",
     "start:dev:watch": "yarn build && yarn serve",
