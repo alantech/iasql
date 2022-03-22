@@ -150,9 +150,9 @@ export async function remove(dbAlias: string, uid: string) {
   }
 }
 
-export async function list(uid: string, verbose = false) {
+export async function list(uid: string, email: string, verbose = false) {
   try {
-    const dbs = await MetadataRepo.getDbs(uid);
+    const dbs = await MetadataRepo.getDbs(uid, email);
     if (verbose) return dbs;
     return dbs.map(db => db.alias);
   } catch (e: any) {
