@@ -70,11 +70,11 @@ class MetadataRepo {
     const user = await this.userRepo.findOne(a0Id);
     if (!user) {
       // create the new user
-      const user = new IasqlUser();
-      user.id = a0Id;
-      user.email = email;
-      user.iasqlDatabases = [];
-      await this.userRepo.save(user);
+      const newUser = new IasqlUser();
+      newUser.id = a0Id;
+      newUser.email = email;
+      newUser.iasqlDatabases = [];
+      await this.userRepo.save(newUser);
       return [];
     };
     return user.iasqlDatabases;
