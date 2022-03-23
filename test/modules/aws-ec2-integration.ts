@@ -140,6 +140,10 @@ describe('EC2 Integration Testing', () => {
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
     .then(...finish(done)));
+
+  it('deletes the test sync db', (done) => void iasql
+    .remove(`${dbAlias}_sync`, 'not-needed')
+    .then(...finish(done)));
 });
 
 describe('EC2 install/uninstall', () => {
