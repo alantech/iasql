@@ -63,17 +63,22 @@ export const baseConnConfig: PostgresConnectionOptions = {
 // But we'll want to decide (before public launch?) one of them and replace this
 // TODO: #2, also try to roll back the `GRANT CREATE` to something a bit narrower in the future
 export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
-  // Only do this if a0 is enabled. Otherwise, you cannot grant these privileges to the default postgres user, the query gets stuck
-  return config.a0Enabled ? `
+  return `
     CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
     GRANT CONNECT ON DATABASE ${dbId} TO ${user};
     GRANT CREATE ON SCHEMA public TO ${user};
-  ` : '';
+    GRANT USAGE ON SCHEMA graphile_worker TO ${user};
+    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA graphile_worker TO ${user};
+    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA graphile_worker TO ${user};
+    GRANT INSERT, SELECT ON ALL TABLES IN SCHEMA graphile_worker TO ${user};
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA graphile_worker TO ${user};
+    CREATE POLICY ${user}_sel_job ON graphile_worker.jobs FOR SELECT TO ${user} USING (true);
+    CREATE POLICY ${user}_ins_job ON graphile_worker.jobs FOR INSERT TO ${user} WITH CHECK (true);
+  `;
 }
 
 export function grantPostgresRoleQuery(user: string) {
-  // Only do this if a0 is enabled. Otherwise, you cannot grant these privileges to the default postgres user, the query gets stuck
-  return config.a0Enabled ? `
+  return `
     GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user};
     GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${user};
     GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${user};
@@ -81,20 +86,18 @@ export function grantPostgresRoleQuery(user: string) {
     GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${user};
     GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${user};
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${user};
-  ` : '';
+  `;
 }
 
 export function dropPostgresRoleQuery(user: string) {
-  // Only do this if a0 is enabled. Otherwise, you cannot grant these privileges to the default postgres user, the query gets stuck
-  return config.a0Enabled ? `
+  return `
     DROP ROLE IF EXISTS ${user};
-  ` : '';
+  `;
 }
 
 // Create a randomly generated username and password, an 8 char username [a-z][a-z0-9]{7} and a
 // 16 char password [a-zA-Z0-9!@#$%^*]{16}
 export function genUserAndPass(): [string, string] {
-    if (!config.a0Enabled) return [config.dbUser, config.dbPassword];
     const userFirstCharCharset = [
       Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
     ].flat();
