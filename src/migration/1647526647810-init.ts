@@ -23,14 +23,17 @@ export class init1647526647810 implements MigrationInterface {
                 _counter integer := 0;
                 _output text;
                 _err text;
+                _dblink_sql text;
             begin
                 select md5(random()::text || clock_timestamp()::text)::uuid into _opid;
                 -- schedule job
                 raise notice '% started', _opid;
-                perform graphile_worker.add_job(
-                    'operation',
-                    json_build_object('opid', _opid, 'optype', _optype, 'params', _params, 'start', NOW())
-                );
+                PERFORM dblink_connect('iasqlopconn', 'loopback_dblink');
+                -- _dblink_sql := format('perform graphile_worker.add_job(%L);', 'operation');
+                _dblink_sql := format('perform graphile_worker.add_job(%L, json_build_object(%L, %L, %L, %L));', 'operation', 'opid', _opid, 'optype', _optype);
+                -- raise exception '%', _dblink_sql;
+                PERFORM dblink_exec('iasqlopconn', _dblink_sql);
+                PERFORM dblink_disconnect('iasqlopconn');
                 raise notice '% scheduled', _opid;
                 -- times out after 45 minutes = 60 * 45 = 2700 seconds
                 -- currently the longest is RDS where the unit test has a timeout of 16m
