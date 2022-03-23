@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto'
 import * as fs from 'fs'
 
-import { Connection, } from 'typeorm'
+import { createConnection, Connection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
 import config from '../config';
@@ -56,6 +56,21 @@ export const baseConnConfig: PostgresConnectionOptions = {
   database: 'postgres',
   extra: { ssl: ['postgresql', 'localhost'].includes(config.dbHost) ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
 };
+
+export async function startDbLink(dbId: string, dbUser:string, dbPassword: string) {
+  const conn = await createConnection({
+    ...baseConnConfig,
+    name: `${dbId}-${Math.floor(Math.random()*10000)}-dblink`,
+    database: dbId,
+  });
+  console.log(dbUser, config.dbUser);
+  // create a dblink server to reuse the connections
+  // https://aws.amazon.com/blogs/database/migrating-oracle-autonomous-transactions-to-postgresql/
+  await conn.query(`CREATE EXTENSION IF NOT EXISTS dblink;`);
+  await conn.query(`CREATE SERVER IF NOT EXISTS loopback_dblink FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.dbHost}', dbname '${dbId}', port '${config.dbPort}');`);
+  await conn.query(`CREATE USER MAPPING IF NOT EXISTS FOR ${dbUser} SERVER loopback_dblink OPTIONS (user '${dbUser}', password '${dbPassword}')`);
+  await conn.close();
+}
 
 // TODO: The permissions below work just fine, but prevent the users from creating their own
 // tables. We want to allow that in the future, but not sure the precise details of how, as

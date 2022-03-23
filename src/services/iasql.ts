@@ -109,6 +109,7 @@ export async function add(
     }
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
+    await dbMan.startDbLink(dbId, dbUser, dbPass);
     console.log('Done!');
     return {
       alias: dbAlias,
