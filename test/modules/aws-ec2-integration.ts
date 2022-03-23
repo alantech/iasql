@@ -152,11 +152,11 @@ describe('EC2 install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstall ec2 using overloaded sp', query(`
-    call iasql_uninstall('aws_ec2@0.0.1');
+    select iasql_uninstall('aws_ec2@0.0.1');
   `));
 
   it('install ec2 using overloaded sp', query(`
-    call iasql_install('aws_ec2@0.0.1');
+    select iasql_install('aws_ec2@0.0.1');
   `));
 
   it('deletes the test db', (done) => void iasql

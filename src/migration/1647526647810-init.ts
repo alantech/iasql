@@ -27,17 +27,18 @@ export class init1647526647810 implements MigrationInterface {
             begin
                 select md5(random()::text || clock_timestamp()::text)::uuid into _opid;
                 -- schedule job
-                raise notice '% started', _opid;
                 PERFORM dblink_connect('iasqlopconn', 'loopback_dblink');
-                -- _dblink_sql := format('perform graphile_worker.add_job(%L);', 'operation');
-                _dblink_sql := format('perform graphile_worker.add_job(%L, json_build_object(%L, %L, %L, %L));', 'operation', 'opid', _opid, 'optype', _optype);
+                _dblink_sql := format('insert into iasql_operation (opid, optype, params) values (%L, %L, array[''%s'']::text[]);', _opid, _optype, array_to_string(_params, ''','''));
                 -- raise exception '%', _dblink_sql;
                 PERFORM dblink_exec('iasqlopconn', _dblink_sql);
+                _dblink_sql := format('select graphile_worker.add_job(%L, json_build_object(%L, %L, %L, %L, %L, array[''%s'']::text[]));', 'operation', 'opid', _opid, 'optype', _optype, 'params', array_to_string(_params, ''','''));
+                -- raise exception '%', _dblink_sql;
+                -- allow statement that returns results in dblink https://stackoverflow.com/a/28299993
+                PERFORM * FROM dblink('iasqlopconn', _dblink_sql) alias(col text);
                 PERFORM dblink_disconnect('iasqlopconn');
-                raise notice '% scheduled', _opid;
                 -- times out after 45 minutes = 60 * 45 = 2700 seconds
                 -- currently the longest is RDS where the unit test has a timeout of 16m
-                while _counter < 25 loop
+                while _counter < 2700 loop
                     if (select end_date from iasql_operation where opid = _opid) is not null then
                         select output into _output from iasql_operation where opid = _opid;
                         select err into _err from iasql_operation where opid = _opid;

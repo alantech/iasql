@@ -30,7 +30,7 @@ export async function start(dbId: string, dbUser:string) {
     pollInterval: 1000, // ms
     taskList: {
       operation: async (payload: any) => {
-        const { params, opid, optype, start } = payload;
+        const { params, opid, optype } = payload;
         let promise;
         switch(optype) {
           case IasqlOperationType.APPLY: {
@@ -57,23 +57,27 @@ export async function start(dbId: string, dbUser:string) {
             break;
           }
         }
-        // once the operation completes updating the `end_date`
-        // will complete the polling
         try {
-          console.log('start job')
           let output = await promise;
-          console.log('job done, start query')
+          // once the operation completes updating the `end_date`
+          // will complete the polling
+          const query = `
+            update iasql_operation
+            set end_date = now(), output = '${output}'
+            where opid = uuid('${opid}');
+          `;
+          console.log(query);
           output = typeof output === 'string' ? output : JSON.stringify(output);
-          await conn.query(`
-            insert into iasql_operation (opid, optype, params, start_date, end_date, output)
-            values ('${opid}', '${optype}', array[${params.join(', ')}]${params.length ? '' : '::text[]'}, '${start}', now(), '${output}');
-          `);
+          await conn.query(query);
         } catch (e) {
+          console.error(e);
           const error = JSON.stringify(e, Object.getOwnPropertyNames(e));
-          await conn.query(`
-            insert into iasql_operation (opid, optype, params, start_date, end_date, error)
-            values ('${opid}', '${optype}', array[${params.join(', ')}]${params.length ? '' : '::text[]'}, '${start}', now(), '${error}');
-          `);
+          const query = `
+            update iasql_operation
+            set end_date = now(), err = '${error}'
+            where opid = uuid('${opid}');
+          `
+          await conn.query(query);
         }
       },
     },
