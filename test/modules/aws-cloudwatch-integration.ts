@@ -94,7 +94,7 @@ describe('AwsCloudwatch install/uninstall', () => {
   it('installs all modules', (done) => void iasql.install(
     [],
     dbAlias,
-    'not-needed',
+    'postgres',
     true).then(...finish(done)));
 
   it('uninstalls the cloudwatch + ecs module', uninstall(['aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1']));
