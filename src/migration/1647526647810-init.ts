@@ -38,7 +38,7 @@ export class init1647526647810 implements MigrationInterface {
                 -- times out after 45 minutes = 60 * 45 = 2700 seconds
                 -- currently the longest is RDS where the unit test has a timeout of 16m
                 while _counter < 25 loop
-                    if (select end_date from iasql_operation where opid = _opid for update) is not null then
+                    if (select end_date from iasql_operation where opid = _opid) is not null then
                         select output into _output from iasql_operation where opid = _opid;
                         select err into _err from iasql_operation where opid = _opid;
                         -- done!
