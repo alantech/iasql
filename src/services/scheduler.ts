@@ -24,7 +24,7 @@ export async function start(dbId: string, dbUser:string) {
     pollInterval: 1000, // ms
     taskList: {
       operation: async (payload: any) => {
-        const { params, opid, optype } = payload;
+        const { params, opid, optype, start } = payload;
         let promise;
         switch(optype) {
           case IasqlOperationType.APPLY: {
@@ -60,13 +60,13 @@ export async function start(dbId: string, dbUser:string) {
           output = typeof output === 'string' ? output : JSON.stringify(output);
           await conn.query(`
             insert into iasql_operation (opid, optype, params, start_date, end_date, output)
-            values ('${opid}', ${optype}, array[${params.join(', ')}], ${start}, now(), '${output}');
+            values ('${opid}', '${optype}', array[${params.join(', ')}]${params.length ? '' : '::text[]'}, '${start}', now(), '${output}');
           `);
         } catch (e) {
           const error = JSON.stringify(e, Object.getOwnPropertyNames(e));
           await conn.query(`
             insert into iasql_operation (opid, optype, params, start_date, end_date, error)
-            values ('${opid}', '${optype}', array[${params.join(', ')}], ${start}, now(), '${error}');
+            values ('${opid}', '${optype}', array[${params.join(', ')}]${params.length ? '' : '::text[]'}, '${start}', now(), '${error}');
           `);
         }
       },
