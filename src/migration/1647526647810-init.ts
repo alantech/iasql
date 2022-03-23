@@ -24,10 +24,12 @@ export class init1647526647810 implements MigrationInterface {
                 _output text;
                 _err text;
                 _dblink_sql text;
+                _db_id text;
             begin
                 select md5(random()::text || clock_timestamp()::text)::uuid into _opid;
+                select current_database() into _db_id;
                 -- schedule job
-                PERFORM dblink_connect('iasqlopconn', 'loopback_dblink');
+                PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
                 _dblink_sql := format('insert into iasql_operation (opid, optype, params) values (%L, %L, array[''%s'']::text[]);', _opid, _optype, array_to_string(_params, ''','''));
                 -- raise exception '%', _dblink_sql;
                 PERFORM dblink_exec('iasqlopconn', _dblink_sql);

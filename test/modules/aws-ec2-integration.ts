@@ -27,6 +27,13 @@ describe('EC2 Integration Testing', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
 
+  it('creates a new test db to test sync', (done) => void iasql.add(
+    `${dbAlias}_sync`,
+    'us-east-1', // Share region with common tests
+    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
+    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
+    'not-needed', 'not-needed').then(...finish(done)));
+
   it('installs the ec2 module', install(modules));
 
   it('adds two ec2 instance', (done) => {
@@ -90,6 +97,8 @@ describe('EC2 Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('applies the created instances', apply());
+
+  it('syncs the changes from the first database to the second', runSync(`${dbAlias}_sync`));
 
   it('set both ec2 instances to the same ami', query(`
     UPDATE instance SET ami = '${amznAmiId}' WHERE name = 'i-1';
