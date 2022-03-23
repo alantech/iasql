@@ -27,6 +27,13 @@ describe('EC2 Integration Testing', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
 
+  it('creates a new test db to test sync', (done) => void iasql.add(
+    `${dbAlias}_sync`,
+    'us-east-1', // Share region with common tests
+    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
+    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
+    'not-needed', 'not-needed').then(...finish(done)));
+
   it('installs the ec2 module', install(modules));
 
   it('adds two ec2 instance', (done) => {
@@ -91,6 +98,8 @@ describe('EC2 Integration Testing', () => {
 
   it('applies the created instances', apply());
 
+  it('syncs the changes from the first database to the second', runSync(`${dbAlias}_sync`));
+
   it('set both ec2 instances to the same ami', query(`
     UPDATE instance SET ami = '${amznAmiId}' WHERE name = 'i-1';
   `));
@@ -131,6 +140,10 @@ describe('EC2 Integration Testing', () => {
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
     .then(...finish(done)));
+
+  it('deletes the test sync db', (done) => void iasql
+    .remove(`${dbAlias}_sync`, 'not-needed')
+    .then(...finish(done)));
 });
 
 describe('EC2 install/uninstall', () => {
@@ -152,11 +165,11 @@ describe('EC2 install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstall ec2 using overloaded sp', query(`
-    call iasql_uninstall('aws_ec2@0.0.1');
+    select iasql_uninstall('aws_ec2@0.0.1');
   `));
 
   it('install ec2 using overloaded sp', query(`
-    call iasql_install('aws_ec2@0.0.1');
+    select iasql_install('aws_ec2@0.0.1');
   `));
 
   it('deletes the test db', (done) => void iasql

@@ -7,6 +7,7 @@ import * as iasql from '../services/iasql'
 import * as logger from '../services/logger'
 import { TypeormWrapper } from './typeorm';
 import { IasqlDatabase } from '../metadata/entity';
+import config from '../config';
 
 const workerShutdownEmitter = new EventEmitter();
 
@@ -16,6 +17,11 @@ const workerShutdownEmitter = new EventEmitter();
 export async function start(dbId: string, dbUser:string) {
   // use the same connection for the scheduler and its operations
   const conn = await TypeormWrapper.createConn(dbId, { name: `${dbId}-${Math.floor(Math.random()*10000)}-scheduler`, });
+  // create a dblink server per db to reduce connections when calling dblink in iasql op SP
+  // https://aws.amazon.com/blogs/database/migrating-oracle-autonomous-transactions-to-postgresql/
+  await conn.query(`CREATE EXTENSION IF NOT EXISTS dblink;`);
+  await conn.query(`CREATE SERVER IF NOT EXISTS loopback_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.dbHost}', dbname '${dbId}', port '${config.dbPort}');`);
+  await conn.query(`CREATE USER MAPPING IF NOT EXISTS FOR ${config.dbUser} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.dbUser}', password '${config.dbPassword}')`);
   const runner = await run({
     pgPool: conn.getMasterConnection(),
     concurrency: 5,
@@ -51,23 +57,27 @@ export async function start(dbId: string, dbUser:string) {
             break;
           }
         }
-        // once the operation completes updating the `end_date`
-        // will complete the polling
         try {
           let output = await promise;
-          output = typeof output === 'string' ? output : JSON.stringify(output);
-          await conn.query(`
+          // once the operation completes updating the `end_date`
+          // will complete the polling
+          const query = `
             update iasql_operation
             set end_date = now(), output = '${output}'
-            where opid = '${opid}';`
-          );
+            where opid = uuid('${opid}');
+          `;
+          console.log(query);
+          output = typeof output === 'string' ? output : JSON.stringify(output);
+          await conn.query(query);
         } catch (e) {
+          console.error(e);
           const error = JSON.stringify(e, Object.getOwnPropertyNames(e));
-          await conn.query(`
+          const query = `
             update iasql_operation
             set end_date = now(), err = '${error}'
-            where opid = '${opid}';`
-          );
+            where opid = uuid('${opid}');
+          `
+          await conn.query(query);
         }
       },
     },
@@ -78,9 +88,13 @@ export async function start(dbId: string, dbUser:string) {
   // register the shutdown listener
   workerShutdownEmitter.on(dbId, async () => {
     await runner.stop()
+    await conn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
   });
   // deregister it when already stopped
-  runner.events.on('stop', () => workerShutdownEmitter.removeAllListeners(dbId))
+  runner.events.on('stop', () => {
+    workerShutdownEmitter.removeAllListeners(dbId);
+    conn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
+  })
 }
 
 export function stop(dbId: string) {

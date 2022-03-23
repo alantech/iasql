@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto'
 import * as fs from 'fs'
 
-import { Connection, } from 'typeorm'
+import { createConnection, Connection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
 import config from '../config';

@@ -15,7 +15,7 @@ export class init1647526647810 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" ADD CONSTRAINT "FK_9732df6d7dff34b6f6a1732033b" FOREIGN KEY ("module") REFERENCES "iasql_module"("name") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" ADD CONSTRAINT "FK_7dbdaef2c45fdd0d1d82cc9568c" FOREIGN KEY ("dependency") REFERENCES "iasql_module"("name") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`
-            create or replace procedure until_iasql_operation(_optype iasql_operation_optype_enum, _params text[])
+            create or replace function until_iasql_operation(_optype iasql_operation_optype_enum, _params text[]) returns void
             language plpgsql
             as $$
             declare
@@ -23,14 +23,21 @@ export class init1647526647810 implements MigrationInterface {
                 _counter integer := 0;
                 _output text;
                 _err text;
+                _dblink_sql text;
+                _db_id text;
             begin
                 select md5(random()::text || clock_timestamp()::text)::uuid into _opid;
-                insert into iasql_operation (opid, optype, params)
-                values (_opid, _optype, _params);
+                select current_database() into _db_id;
                 -- schedule job
-                perform graphile_worker.add_job('operation', json_build_object('opid', _opid, 'optype', _optype, 'params', _params));
-                -- commit transaction so the worker can see the row
-                commit;
+                PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
+                _dblink_sql := format('insert into iasql_operation (opid, optype, params) values (%L, %L, array[''%s'']::text[]);', _opid, _optype, array_to_string(_params, ''','''));
+                -- raise exception '%', _dblink_sql;
+                PERFORM dblink_exec('iasqlopconn', _dblink_sql);
+                _dblink_sql := format('select graphile_worker.add_job(%L, json_build_object(%L, %L, %L, %L, %L, array[''%s'']::text[]));', 'operation', 'opid', _opid, 'optype', _optype, 'params', array_to_string(_params, ''','''));
+                -- raise exception '%', _dblink_sql;
+                -- allow statement that returns results in dblink https://stackoverflow.com/a/28299993
+                PERFORM * FROM dblink('iasqlopconn', _dblink_sql) alias(col text);
+                PERFORM dblink_disconnect('iasqlopconn');
                 -- times out after 45 minutes = 60 * 45 = 2700 seconds
                 -- currently the longest is RDS where the unit test has a timeout of 16m
                 while _counter < 2700 loop
@@ -59,79 +66,79 @@ export class init1647526647810 implements MigrationInterface {
             $$;
         `);
         await queryRunner.query(`
-            create or replace procedure iasql_apply()
+            create or replace function iasql_apply() returns void
             language plpgsql
             as $$
             begin
-                call until_iasql_operation('APPLY', array[]::text[]);
+                perform until_iasql_operation('APPLY', array[]::text[]);
             end;
             $$;
         `);
         await queryRunner.query(`
-            create or replace procedure iasql_plan()
+            create or replace function iasql_plan() returns void
             language plpgsql
             as $$
             begin
-                call until_iasql_operation('PLAN', array[]::text[]);
+                perform until_iasql_operation('PLAN', array[]::text[]);
             end;
             $$;
         `);
         await queryRunner.query(`
-            create or replace procedure iasql_sync()
+            create or replace function iasql_sync() returns void
             language plpgsql
             as $$
             begin
-                call until_iasql_operation('SYNC', array[]::text[]);
+                perform until_iasql_operation('SYNC', array[]::text[]);
             end;
             $$;
         `);
         await queryRunner.query(`
-            create or replace procedure iasql_install(_mods text[])
+            create or replace function iasql_install(_mods text[]) returns void
             language plpgsql
             as $$
             begin
-                call until_iasql_operation('INSTALL', _mods);
+                perform until_iasql_operation('INSTALL', _mods);
             end;
             $$;
         `);
         await queryRunner.query(`
-            create or replace procedure iasql_install(_mod text)
+            create or replace function iasql_install(_mod text) returns void
             language plpgsql
             as $$
             begin
-                call until_iasql_operation('INSTALL', array[_mod]);
+                perform until_iasql_operation('INSTALL', array[_mod]);
             end;
             $$;
         `);
         await queryRunner.query(`
-            create or replace procedure iasql_uninstall(_mods text[])
+            create or replace function iasql_uninstall(_mods text[]) returns void
             language plpgsql
             as $$
             begin
-                call until_iasql_operation('UNINSTALL', _mods);
+                perform until_iasql_operation('UNINSTALL', _mods);
             end;
             $$;
         `);
         await queryRunner.query(`
-            create or replace procedure iasql_uninstall(_mod text)
+            create or replace function iasql_uninstall(_mod text) returns void
             language plpgsql
             as $$
             begin
-                call until_iasql_operation('UNINSTALL', array[_mod]);
+                perform until_iasql_operation('UNINSTALL', array[_mod]);
             end;
             $$;
         `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP PROCEDURE "until_iasql_operation"`);
-        await queryRunner.query(`DROP PROCEDURE "iasql_apply"`);
-        await queryRunner.query(`DROP PROCEDURE "iasql_plan"`);
-        await queryRunner.query(`DROP PROCEDURE "iasql_sync"`);
-        await queryRunner.query(`DROP PROCEDURE "iasql_install(text)"`);
-        await queryRunner.query(`DROP PROCEDURE "iasql_install(text[])"`);
-        await queryRunner.query(`DROP PROCEDURE "iasql_uninstall(text)"`);
-        await queryRunner.query(`DROP PROCEDURE "iasql_uninstall(text[])"`);
+        await queryRunner.query(`DROP FUNCTION "until_iasql_operation"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_apply"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_plan"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_sync"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_install(text)"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_install(text[])"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_uninstall(text)"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_uninstall(text[])"`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" DROP CONSTRAINT "FK_7dbdaef2c45fdd0d1d82cc9568c"`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" DROP CONSTRAINT "FK_9732df6d7dff34b6f6a1732033b"`);
         await queryRunner.query(`ALTER TABLE "iasql_tables" DROP CONSTRAINT "FK_0e0f2a4ef99e93cfcb935c060cb"`);
