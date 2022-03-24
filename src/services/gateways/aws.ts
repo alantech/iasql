@@ -172,7 +172,8 @@ export class AWS {
     this.ecsClient = new ECSClient(config);
     this.rdsClient = new RDSClient(config);
     this.cwClient = new CloudWatchLogsClient(config);
-    this.cfnClient = new CloudFormationClient(config);
+    // Service endpoint need to be in the same region where we have the s3 bucket with the lambda function and where the user runs the cloudformation template
+    this.cfnClient = new CloudFormationClient({credentials: config.credentials, region: 'us-east-2'});
     // Service endpoint only available in 'us-esat-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
     this.ecrPubClient = new ECRPUBLICClient({credentials: config.credentials, region: 'us-east-1'});
   }
