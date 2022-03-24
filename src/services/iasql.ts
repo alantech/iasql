@@ -923,8 +923,9 @@ export async function getStackInfo(dbId: string, stackName: string, ormOpt?: Typ
       const moduleContext = mod.provides.context ?? {};
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
-    const accountModule = (await orm.find(IasqlModule)).find((m: IasqlModule) => m.name === 'aws_account@0.0.1');
-    return await accountModule.utils.getCloudformationStack(stackName);
+    const accountModule = (Object.values(Modules) as Modules.ModuleInterface[])
+      .find(mod => ['aws_account@0.0.1'].includes(`${mod.name}@${mod.version}`));
+    return await accountModule?.utils?.getCloudformationStack(stackName, context);
   } catch (e) {
     throw e;
   }
