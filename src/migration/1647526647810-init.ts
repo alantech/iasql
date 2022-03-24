@@ -147,9 +147,19 @@ export class init1647526647810 implements MigrationInterface {
             language plpgsql security definer
             as $$
             declare
+              _db_id text;
+              _dblink_conn_count int;
               _dblink_sql text;
               _out json;
             begin
+                select current_database() into _db_id;
+                -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
+                -- dblink connection closes automatically at the end of a session
+                SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
+                    WHERE dblink_get_connections@>'{iasqlopconn}';
+                IF _dblink_conn_count = 0 THEN
+                    PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
+                END IF;
               _dblink_sql := format($dblink$
                 select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) as js from (
                   select 
@@ -176,9 +186,19 @@ export class init1647526647810 implements MigrationInterface {
             language plpgsql security definer
             as $$
             declare
+              _db_id text;
+              _dblink_conn_count int;
               _dblink_sql text;
               _out json;
             begin
+                select current_database() into _db_id;
+                -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
+                -- dblink connection closes automatically at the end of a session
+                SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
+                    WHERE dblink_get_connections@>'{iasqlopconn}';
+                IF _dblink_conn_count = 0 THEN
+                    PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
+                END IF;
               _dblink_sql := format($dblink$
                 select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) from (
                   select 
