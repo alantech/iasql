@@ -147,18 +147,19 @@ export class init1647526647810 implements MigrationInterface {
             language plpgsql
             as $$
             declare
-              _out record;
+              _out json;
             begin
-                select
-                  m.name as module_name,
-                  t.table as table_name,
-                  (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
-                into _out
-                from iasql_module as m
-                inner join iasql_tables as t on m.name = t.module
-                where m.name = any (_mods);
+                select json_agg(row_to_json(row(module_name, table_name, record_count))) into _out from (
+                  select 
+                    m.name as module_name,
+                    t.table as table_name,
+                    (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
+                  from iasql_module as m
+                  inner join iasql_tables as t on m.name = t.module
+                  where m.name = any (_mods)
+                ) as j;
                 perform until_iasql_operation('UNINSTALL', _mods);
-                return query select * from _out;
+                return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
             end;
             $$;
         `);
@@ -171,21 +172,40 @@ export class init1647526647810 implements MigrationInterface {
             language plpgsql
             as $$
             declare
-              _out record;
+              _out json;
             begin
-                select
-                  m.name as module_name,
-                  t.table as table_name,
-                  (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
-                into _out
-                from iasql_module as m
-                inner join iasql_tables as t on m.name = t.module
-                where m.name = _mod;
+                select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) into _out from (
+                  select 
+                    m.name as module_name,
+                    t.table as table_name,
+                    (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
+                  from iasql_module as m
+                  inner join iasql_tables as t on m.name = t.module
+                  where m.name = _mod
+                ) as j;
                 perform until_iasql_operation('UNINSTALL', array[_mod]);
-                return query select * from _out;
+                return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
             end;
             $$;
         `);
+        /*await queryRunner.query(`
+            create or replace function iasql_uninstall(_mods text[]) returns void
+            language plpgsql
+            as $$
+            begin
+                perform until_iasql_operation('UNINSTALL', _mods);
+            end;
+            $$;
+        `);
+        await queryRunner.query(`
+            create or replace function iasql_uninstall(_mod text) returns void
+            language plpgsql
+            as $$
+            begin
+                perform until_iasql_operation('UNINSTALL', array[_mod]);
+            end;
+            $$;
+        `);*/
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
