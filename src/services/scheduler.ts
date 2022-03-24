@@ -89,11 +89,11 @@ export async function start(dbId: string, dbUser:string) {
   workerShutdownEmitter.on(dbId, async () => {
     await runner.stop()
     await conn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
+    await conn.dropConn();
   });
   // deregister it when already stopped
   runner.events.on('stop', () => {
     workerShutdownEmitter.removeAllListeners(dbId);
-    conn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
   })
 }
 
