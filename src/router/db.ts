@@ -101,8 +101,7 @@ db.get('/get/:dbAlias', async (req, res) => {
   console.log('dbalias', dbAlias)
   if (!dbAlias) return res.status(400).json("Required param 'dbAlias' not provided");
   try {
-    const dbs = await iasql.list(dbMan.getUid(req.user), dbMan.getEmail(req.user), true);
-    console.log(dbs)
+    const dbs = await iasql.list(dbMan.getUid(req.user), dbMan.getEmail(req.user), false);
     res.json((dbs as string[]).find((alias: string) => alias === dbAlias));
   } catch (e) {
     res.status(500).end(logger.error(e));
