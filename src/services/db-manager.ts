@@ -74,6 +74,8 @@ export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA graphile_worker TO ${user};
     CREATE POLICY ${user}_sel_job ON graphile_worker.jobs FOR SELECT TO ${user} USING (true);
     CREATE POLICY ${user}_ins_job ON graphile_worker.jobs FOR INSERT TO ${user} WITH CHECK (true);
+    CREATE USER MAPPING IF NOT EXISTS FOR ${user} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.dbUser}', password '${config.dbPassword}');
+    GRANT USAGE ON FOREIGN SERVER loopback_dblink_${dbId} TO ${user};
   `;
 }
 
