@@ -137,6 +137,7 @@ import {
   ECRPUBLICClient,
   paginateDescribeRepositories as paginateDescribePubRepositories,
 } from '@aws-sdk/client-ecr-public'
+import { CloudFormationClient, DescribeStacksCommand } from '@aws-sdk/client-cloudformation'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -158,6 +159,7 @@ export class AWS {
   private rdsClient: RDSClient
   private cwClient: CloudWatchLogsClient
   private ecrPubClient: ECRPUBLICClient
+  private cfnClient: CloudFormationClient
   private credentials: AWSCreds
   public region: string
 
@@ -170,6 +172,7 @@ export class AWS {
     this.ecsClient = new ECSClient(config);
     this.rdsClient = new RDSClient(config);
     this.cwClient = new CloudWatchLogsClient(config);
+    this.cfnClient = new CloudFormationClient(config);
     // Service endpoint only available in 'us-esat-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
     this.ecrPubClient = new ECRPUBLICClient({credentials: config.credentials, region: 'us-east-1'});
   }
@@ -1238,5 +1241,12 @@ export class AWS {
         repositoryName: name,
       }),
     );
+  }
+
+  async getCloudFormationStack(name: string) {
+    const stacks = await this.cfnClient.send(new DescribeStacksCommand({
+      StackName: name,
+    }));
+    return stacks.Stacks?.[0];
   }
 }
