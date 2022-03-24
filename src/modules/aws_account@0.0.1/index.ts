@@ -31,6 +31,12 @@ export const AwsAccount: Module = new Module({
       awsClient: null, // Just reserving this name to guard against collisions between modules.
     },
   },
+  utils: {
+    getCloudformationStack: async (stackName: string, ctx: Context) => {
+      const client = await ctx.getAwsClient() as AWS;
+      return await client.getCloudFormationStack(stackName);
+    }
+  },
   mappers: {
     awsAccount: new Mapper<AwsAccountEntity>({
       entity: AwsAccountEntity,

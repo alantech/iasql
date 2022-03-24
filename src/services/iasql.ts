@@ -908,3 +908,24 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   }
   return "Done!";
 }
+
+export async function getStackInfo(dbId: string, stackName: string, ormOpt?: TypeormWrapper) {
+  let orm: TypeormWrapper | null = null;
+  try {
+    orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
+    // Find all of the installed modules, and create the context object only for these
+    const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
+    const memo: any = {}; // TODO: Stronger typing here
+    const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
+    for (const name of moduleNames) {
+      const mod = (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === name) as Modules.Module;
+      if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
+      const moduleContext = mod.provides.context ?? {};
+      Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
+    }
+    const accountModule = (await orm.find(IasqlModule)).find((m: IasqlModule) => m.name === 'aws_account@0.0.1');
+    return await accountModule.utils.getCloudformationStack(stackName);
+  } catch (e) {
+    throw e;
+  }
+}
