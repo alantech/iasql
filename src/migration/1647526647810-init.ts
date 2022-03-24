@@ -152,17 +152,20 @@ export class init1647526647810 implements MigrationInterface {
               _dblink_sql text;
               _out json;
             begin
-                select current_database() into _db_id;
-                -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
-                -- dblink connection closes automatically at the end of a session
-                SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
-                    WHERE dblink_get_connections@>'{iasqlopconn}';
-                IF _dblink_conn_count = 0 THEN
-                    PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
-                END IF;
+              select current_database() into _db_id;
+              -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
+              -- dblink connection closes automatically at the end of a session
+              SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
+                  WHERE dblink_get_connections@>'{iasqlopconn}';
+              IF _dblink_conn_count = 0 THEN
+                  PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
+              END IF;
+              -- define the query to get the current tables and record counts for the modules to be removed
+              -- TODO: Are these hoops to encode into JSON and then decode back out necessary now that
+              -- dblink is being used here, too?
               _dblink_sql := format($dblink$
                 select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) as js from (
-                  select 
+                  select
                     m.name as module_name,
                     t.table as table_name,
                     (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
@@ -171,8 +174,12 @@ export class init1647526647810 implements MigrationInterface {
                   where m.name in ('%s')
                 ) as j;
               $dblink$, array_to_string(_mods, ''','''));
+              -- Execute the query on another connection so the table access doesn't count on this
+              -- transaction and cause Postgres to softlock itself
               select js into _out from dblink('iasqlopconn', _dblink_sql) as x(js json);
+              -- Now actually remove the modules and tables in question
               perform until_iasql_operation('UNINSTALL', _mods);
+              -- And extract the metadata from the JSON blob and return it to the user
               return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
             end;
             $$;
@@ -191,17 +198,20 @@ export class init1647526647810 implements MigrationInterface {
               _dblink_sql text;
               _out json;
             begin
-                select current_database() into _db_id;
-                -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
-                -- dblink connection closes automatically at the end of a session
-                SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
-                    WHERE dblink_get_connections@>'{iasqlopconn}';
-                IF _dblink_conn_count = 0 THEN
-                    PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
-                END IF;
+              select current_database() into _db_id;
+              -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
+              -- dblink connection closes automatically at the end of a session
+              SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
+                  WHERE dblink_get_connections@>'{iasqlopconn}';
+              IF _dblink_conn_count = 0 THEN
+                  PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
+              END IF;
+              -- define the query to get the current tables and record counts for the modules to be removed
+              -- TODO: Are these hoops to encode into JSON and then decode back out necessary now that
+              -- dblink is being used here, too?
               _dblink_sql := format($dblink$
                 select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) from (
-                  select 
+                  select
                     m.name as module_name,
                     t.table as table_name,
                     (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
@@ -210,30 +220,16 @@ export class init1647526647810 implements MigrationInterface {
                   where m.name = '%s'
                 ) as j;
               $dblink$, _mod);
+              -- Execute the query on another connection so the table access doesn't count on this
+              -- transaction and cause Postgres to softlock itself
               select js into _out from dblink('iasqlopconn', _dblink_sql) as x(js json);
+              -- Now actually remove the modules and tables in question
               perform until_iasql_operation('UNINSTALL', array[_mod]);
+              -- And extract the metadata from the JSON blob and return it to the user
               return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
             end;
             $$;
         `);
-        /*await queryRunner.query(`
-            create or replace function iasql_uninstall(_mods text[]) returns void
-            language plpgsql
-            as $$
-            begin
-                perform until_iasql_operation('UNINSTALL', _mods);
-            end;
-            $$;
-        `);
-        await queryRunner.query(`
-            create or replace function iasql_uninstall(_mod text) returns void
-            language plpgsql
-            as $$
-            begin
-                perform until_iasql_operation('UNINSTALL', array[_mod]);
-            end;
-            $$;
-        `);*/
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
