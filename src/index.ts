@@ -13,7 +13,7 @@ const port = config.port;
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://app.iasql.com'],
+  origin: ['http://localhost:3000', 'https://app.iasql.com', 'https://app-staging.iasql.com'],
 }));
 if (config.sentryEnabled) {
   sentry.init({
