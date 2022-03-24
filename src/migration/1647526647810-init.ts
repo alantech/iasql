@@ -56,7 +56,7 @@ export class init1647526647810 implements MigrationInterface {
                             using detail = _output;
                         end if;
                         if _err is not null then
-                            raise exception '% error', _optype
+                            raise exception '% error: %', _optype, _err::json->'message'
                             using detail = _err;
                         end if;
                         -- exit sp
@@ -99,11 +99,22 @@ export class init1647526647810 implements MigrationInterface {
             $$;
         `);
         await queryRunner.query(`
-            create or replace function iasql_install(_mods text[]) returns void
+            create or replace function iasql_install(_mods text[]) returns table (
+              module_name character varying,
+              table_name character varying,
+              record_count int
+            )
             language plpgsql
             as $$
             begin
                 perform until_iasql_operation('INSTALL', _mods);
+                return query select
+                  m.name as module_name,
+                  t.table as table_name,
+                  (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
+                from iasql_module as m
+                inner join iasql_tables as t on m.name = t.module
+                where m.name = any (_mods);
             end;
             $$;
         `);
