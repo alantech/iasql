@@ -15,7 +15,7 @@ export class init1647526647810 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" ADD CONSTRAINT "FK_9732df6d7dff34b6f6a1732033b" FOREIGN KEY ("module") REFERENCES "iasql_module"("name") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" ADD CONSTRAINT "FK_7dbdaef2c45fdd0d1d82cc9568c" FOREIGN KEY ("dependency") REFERENCES "iasql_module"("name") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`
-            create or replace function until_iasql_operation(_optype iasql_operation_optype_enum, _params text[]) returns void
+            create or replace function until_iasql_operation(_optype iasql_operation_optype_enum, _params text[]) returns uuid
             language plpgsql
             as $$
             declare
@@ -60,7 +60,7 @@ export class init1647526647810 implements MigrationInterface {
                             using detail = _err;
                         end if;
                         -- exit sp
-                        return;
+                        return _opid;
                     end if;
                     perform pg_sleep(1);
                     _counter := _counter + 1;
@@ -119,43 +119,84 @@ export class init1647526647810 implements MigrationInterface {
             $$;
         `);
         await queryRunner.query(`
-            create or replace function iasql_install(_mod text) returns void
+            create or replace function iasql_install(_mod text) returns table (
+              module_name character varying,
+              table_name character varying,
+              record_count int
+            )
             language plpgsql
             as $$
             begin
                 perform until_iasql_operation('INSTALL', array[_mod]);
+                return query select
+                  m.name as module_name,
+                  t.table as table_name,
+                  (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
+                from iasql_module as m
+                inner join iasql_tables as t on m.name = t.module
+                where m.name = _mod;
             end;
             $$;
         `);
         await queryRunner.query(`
-            create or replace function iasql_uninstall(_mods text[]) returns void
+            create or replace function iasql_uninstall(_mods text[]) returns table (
+              module_name character varying,
+              table_name character varying,
+              record_count int
+            )
             language plpgsql
             as $$
+            declare
+              _out record;
             begin
+                select
+                  m.name as module_name,
+                  t.table as table_name,
+                  (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
+                into _out
+                from iasql_module as m
+                inner join iasql_tables as t on m.name = t.module
+                where m.name = any (_mods);
                 perform until_iasql_operation('UNINSTALL', _mods);
+                return query select * from _out;
             end;
             $$;
         `);
         await queryRunner.query(`
-            create or replace function iasql_uninstall(_mod text) returns void
+            create or replace function iasql_uninstall(_mod text) returns table (
+              module_name character varying,
+              table_name character varying,
+              record_count int
+            )
             language plpgsql
             as $$
+            declare
+              _out record;
             begin
+                select
+                  m.name as module_name,
+                  t.table as table_name,
+                  (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
+                into _out
+                from iasql_module as m
+                inner join iasql_tables as t on m.name = t.module
+                where m.name = _mod;
                 perform until_iasql_operation('UNINSTALL', array[_mod]);
+                return query select * from _out;
             end;
             $$;
         `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP FUNCTION "until_iasql_operation"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_apply"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_plan"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_sync"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_install(text)"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_install(text[])"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_uninstall(text)"`);
         await queryRunner.query(`DROP FUNCTION "iasql_uninstall(text[])"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_uninstall(text)"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_install(text[])"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_install(text)"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_sync"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_plan"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_apply"`);
+        await queryRunner.query(`DROP FUNCTION "until_iasql_operation"`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" DROP CONSTRAINT "FK_7dbdaef2c45fdd0d1d82cc9568c"`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" DROP CONSTRAINT "FK_9732df6d7dff34b6f6a1732033b"`);
         await queryRunner.query(`ALTER TABLE "iasql_tables" DROP CONSTRAINT "FK_0e0f2a4ef99e93cfcb935c060cb"`);
