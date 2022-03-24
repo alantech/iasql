@@ -7,9 +7,7 @@ const sha = execSync('git rev-parse HEAD', { encoding: 'utf8', }).trim();
 
 beforeAll(() => {
   // Set up the env file
-  execSync('echo A0_ENABLED=true >> .env');
-  execSync('echo A0_DOMAIN=https://auth.iasql.com/ >> .env');
-  execSync('echo A0_AUDIENCE=https://api.iasql.com >> .env');
+  execSync('echo IASQL_ENV=test-auth >> .env');
   // Build the docker containers
   execSync('docker-compose --env-file .env up --build --detach');
   // Wait for them to be usable

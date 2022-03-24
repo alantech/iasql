@@ -7,9 +7,9 @@ const config: ConfigInterface = {
   dbPassword: 'test',
   dbPort: 5432,
   dbForceSSL: false,
-  a0Enabled: false,
-  a0Domain: undefined,
-  a0Audience:  undefined,
+  a0Enabled: true,
+  a0Domain: 'https://auth.iasql.com/',
+  a0Audience: 'https://api.iasql.com', // id of this api in auth0
   sentryEnabled: false,
   sentryDsn: undefined,
   sentryEnvironment: undefined,
