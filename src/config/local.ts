@@ -12,6 +12,7 @@ const config: ConfigInterface = {
   a0Audience:  undefined,
   sentryEnabled: false,
   sentryDsn: undefined,
+  sentryEnvironment: undefined,
 };
 
 export default config;

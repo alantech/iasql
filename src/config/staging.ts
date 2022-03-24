@@ -2,16 +2,18 @@ import { ConfigInterface, throwError, } from './config';
 
 const config: ConfigInterface = {
   port: 8088,
-  dbHost: process.env.DB_HOST ?? throwError('No DB Host defined'), // TODO: Move away from env var
+  dbHost: 'https://db-staging.iasql.com',
+  // TODO: Move away from env var to secret
   dbUser: process.env.DB_USER ?? throwError('No DB User defined'),
   dbPassword: process.env.DB_PASSWORD ?? throwError('No DB Password defined'),
   dbPort: 5432,
   dbForceSSL: true,
   a0Enabled: true,
-  a0Domain: process.env.A0_DOMAIN ?? throwError('Auth0 Domain not defined'), // TODO: Put in here
-  a0Audience:  process.env.A0_AUDIENCE, // id of this api in auth0
+  a0Domain: 'https://auth.iasql.com/',
+  a0Audience: 'https://api.iasql.com', // id of this api in auth0
   sentryEnabled: true,
-  sentryDsn: process.env.SENTRY_DSN,
+  sentryEnvironment: 'staging',
+  sentryDsn: 'https://e257e8d6646e4657b4f556efc1de31e8@o1090662.ingest.sentry.io/6106929',
 };
 
 export default config;
