@@ -149,7 +149,7 @@ export class init1647526647810 implements MigrationInterface {
             declare
               _out json;
             begin
-                select json_agg(row_to_json(row(module_name, table_name, record_count))) into _out from (
+                select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) into _out from (
                   select 
                     m.name as module_name,
                     t.table as table_name,
