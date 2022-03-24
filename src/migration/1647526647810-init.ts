@@ -16,7 +16,7 @@ export class init1647526647810 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" ADD CONSTRAINT "FK_7dbdaef2c45fdd0d1d82cc9568c" FOREIGN KEY ("dependency") REFERENCES "iasql_module"("name") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`
             create or replace function until_iasql_operation(_optype iasql_operation_optype_enum, _params text[]) returns uuid
-            language plpgsql
+            language plpgsql security definer
             as $$
             declare
                 _opid uuid;
@@ -73,7 +73,7 @@ export class init1647526647810 implements MigrationInterface {
         `);
         await queryRunner.query(`
             create or replace function iasql_apply() returns void
-            language plpgsql
+            language plpgsql security definer
             as $$
             begin
                 perform until_iasql_operation('APPLY', array[]::text[]);
@@ -82,7 +82,7 @@ export class init1647526647810 implements MigrationInterface {
         `);
         await queryRunner.query(`
             create or replace function iasql_plan() returns void
-            language plpgsql
+            language plpgsql security definer
             as $$
             begin
                 perform until_iasql_operation('PLAN', array[]::text[]);
@@ -91,7 +91,7 @@ export class init1647526647810 implements MigrationInterface {
         `);
         await queryRunner.query(`
             create or replace function iasql_sync() returns void
-            language plpgsql
+            language plpgsql security definer
             as $$
             begin
                 perform until_iasql_operation('SYNC', array[]::text[]);
@@ -104,7 +104,7 @@ export class init1647526647810 implements MigrationInterface {
               table_name character varying,
               record_count int
             )
-            language plpgsql
+            language plpgsql security definer
             as $$
             begin
                 perform until_iasql_operation('INSTALL', _mods);
@@ -124,7 +124,7 @@ export class init1647526647810 implements MigrationInterface {
               table_name character varying,
               record_count int
             )
-            language plpgsql
+            language plpgsql security definer
             as $$
             begin
                 perform until_iasql_operation('INSTALL', array[_mod]);
@@ -144,22 +144,26 @@ export class init1647526647810 implements MigrationInterface {
               table_name character varying,
               record_count int
             )
-            language plpgsql
+            language plpgsql security definer
             as $$
             declare
+              _dblink_sql text;
               _out json;
             begin
-                select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) into _out from (
+              _dblink_sql := format($dblink$
+                select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) as js from (
                   select 
                     m.name as module_name,
                     t.table as table_name,
-                    (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
+                    (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
                   from iasql_module as m
                   inner join iasql_tables as t on m.name = t.module
-                  where m.name = any (_mods)
+                  where m.name in ('%s')
                 ) as j;
-                perform until_iasql_operation('UNINSTALL', _mods);
-                return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
+              $dblink$, array_to_string(_mods, ''','''));
+              select js into _out from dblink('iasqlopconn', _dblink_sql) as x(js json);
+              perform until_iasql_operation('UNINSTALL', _mods);
+              return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
             end;
             $$;
         `);
@@ -169,22 +173,26 @@ export class init1647526647810 implements MigrationInterface {
               table_name character varying,
               record_count int
             )
-            language plpgsql
+            language plpgsql security definer
             as $$
             declare
+              _dblink_sql text;
               _out json;
             begin
-                select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) into _out from (
+              _dblink_sql := format($dblink$
+                select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) from (
                   select 
                     m.name as module_name,
                     t.table as table_name,
-                    (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
+                    (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
                   from iasql_module as m
                   inner join iasql_tables as t on m.name = t.module
-                  where m.name = _mod
+                  where m.name = '%s'
                 ) as j;
-                perform until_iasql_operation('UNINSTALL', array[_mod]);
-                return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
+              $dblink$, _mod);
+              select js into _out from dblink('iasqlopconn', _dblink_sql) as x(js json);
+              perform until_iasql_operation('UNINSTALL', array[_mod]);
+              return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
             end;
             $$;
         `);
