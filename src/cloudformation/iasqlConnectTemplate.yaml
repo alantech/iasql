@@ -36,11 +36,10 @@ Parameters:
   pIasqlDbName:
     Type: String
     Description: Do not update
-    AllowedPattern: ^[a-zA-Z0-9-\-]{0,63}
+    AllowedPattern: ^[a-zA-Z0-9_]{0,63}
   pAwsRegion:
     Type: String
     Description: Do not update
-    AllowedPattern: ^[a-zA-Z0-9-\-]{3,63}
   pIasqlUrl:
     Type: String
     Description: Do not update
