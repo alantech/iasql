@@ -67,7 +67,6 @@
     "pg": "^8.7.3",
     "reflect-metadata": "^0.1.13",
     "typeorm": "^0.2.37",
-    "typeorm-naming-strategies": "^4.0.0",
-    "unique-names-generator": "^4.7.1"
+    "typeorm-naming-strategies": "^4.0.0"
   }
 }
