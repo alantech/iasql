@@ -15,6 +15,7 @@ Metadata:
       - pAwsRegion
       - pA0Token
       - pIasqlUrl
+      - pIasqlBucket
     ParameterLabels:
       pIasqlDbName:
         default: IaSQL Database Name
@@ -24,6 +25,8 @@ Metadata:
         default: IaSQL API URL
       pA0Token:
         default: IaSQL Bearer Token
+      pIasqlBucket:
+        default: IaSQL S3 Bucket
 
 ###
 #### Template input parameters
@@ -42,6 +45,9 @@ Parameters:
     Type: String
     Description: Do not update
   pA0Token:
+    Type: String
+    Description: Do not update
+  pIasqlBucket:
     Type: String
     Description: Do not update
 
@@ -139,7 +145,7 @@ Resources:
       Timeout: 60
       Runtime: nodejs14.x
       Code:
-        S3Bucket: "iasql-connect"
+        S3Bucket: !Ref 'pIasqlBucket'
         S3Key: "iasqlConnectLambda.zip"
       Tags:
         -
