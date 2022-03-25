@@ -9,7 +9,7 @@ const API_URL = process.env.api_url
 
 function postNewDb(body) {
   const options = {
-    hostname: API_URL, //'api-staging.iasql.com',
+    hostname: API_URL,
     path: '/v1/db/new/',
     method: 'POST',
     port: 443,
