@@ -4,4 +4,5 @@ dist/
 .vscode
 coverage/
 .deploy-env
-newUserandDb.zip
+*.zip
+.DS_Store
