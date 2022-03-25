@@ -9,8 +9,6 @@ services:
     environment:
       - IASQL_ENV=local
       - PORT=8088
-    env_file:
-      - .env
   postgresql:
     image: postgres:13.4
     ports:
