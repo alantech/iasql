@@ -6,10 +6,8 @@ jest.setTimeout(30000);
 const sha = execSync('git rev-parse HEAD', { encoding: 'utf8', }).trim();
 
 beforeAll(() => {
-  // Set up the env file
-  execSync('echo IASQL_ENV=test-auth >> .env');
   // Build the docker containers
-  execSync('docker-compose --env-file .env up --build --detach');
+  execSync('IASQL_ENV=test-auth docker-compose up --build --detach');
   // Wait for them to be usable
   execSync('while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;');
 });
