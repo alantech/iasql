@@ -159,7 +159,7 @@ export class AWS {
   private rdsClient: RDSClient
   private cwClient: CloudWatchLogsClient
   private ecrPubClient: ECRPUBLICClient
-  private cfnClient: CloudFormationClient
+  private internalCfnClient: CloudFormationClient
   private credentials: AWSCreds
   public region: string
 
@@ -172,10 +172,12 @@ export class AWS {
     this.ecsClient = new ECSClient(config);
     this.rdsClient = new RDSClient(config);
     this.cwClient = new CloudWatchLogsClient(config);
-    // Service endpoint need to be in the same region where we have the s3 bucket with the lambda function and where the user runs the cloudformation template
-    this.cfnClient = new CloudFormationClient({credentials: config.credentials, region: 'us-east-2'});
     // Service endpoint only available in 'us-esat-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
     this.ecrPubClient = new ECRPUBLICClient({credentials: config.credentials, region: 'us-east-1'});
+    // Special casing here. This client is not related to any module. It is for internal use to get the cloud formation stack 
+    // information when users connect via the direct connect UI option.
+    // The client **MUST** be in the same region where **OUR** S3 bucket with the lambda function and the template live
+    this.internalCfnClient = new CloudFormationClient({credentials: config.credentials, region: 'us-east-2'});
   }
 
   async newInstance(name: string, instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
@@ -1245,7 +1247,7 @@ export class AWS {
   }
 
   async getCloudFormationStack(name: string) {
-    const stacks = await this.cfnClient.send(new DescribeStacksCommand({
+    const stacks = await this.internalCfnClient.send(new DescribeStacksCommand({
       StackName: name,
     }));
     return stacks.Stacks?.[0];
