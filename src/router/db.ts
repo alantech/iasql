@@ -107,7 +107,7 @@ db.get('/get/:dbAlias', async (req, res) => {
   }
 });
 
-db.get(':dbAlias/awsCfnStack/:stackName', async (req, res) => {
+db.get('/:dbAlias/awsCfnStack/:stackName', async (req, res) => {
   const { dbAlias, stackName, } = req.params;
   if (!stackName || !dbAlias) return res.status(400).json("Required param 'stackName' not provided");
   const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
