@@ -67,15 +67,6 @@ export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
     CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
     GRANT CONNECT ON DATABASE ${dbId} TO ${user};
     GRANT CREATE ON SCHEMA public TO ${user};
-    GRANT USAGE ON SCHEMA graphile_worker TO ${user};
-    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA graphile_worker TO ${user};
-    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA graphile_worker TO ${user};
-    GRANT INSERT, SELECT ON ALL TABLES IN SCHEMA graphile_worker TO ${user};
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA graphile_worker TO ${user};
-    CREATE POLICY ${user}_sel_job ON graphile_worker.jobs FOR SELECT TO ${user} USING (true);
-    CREATE POLICY ${user}_ins_job ON graphile_worker.jobs FOR INSERT TO ${user} WITH CHECK (true);
-    CREATE USER MAPPING IF NOT EXISTS FOR ${user} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.dbUser}', password '${config.dbPassword}');
-    GRANT USAGE ON FOREIGN SERVER loopback_dblink_${dbId} TO ${user};
   `;
 }
 

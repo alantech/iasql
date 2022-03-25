@@ -16,5 +16,6 @@ export function error(e: any): string {
     errStack = e.metadata.failures.map((f: Error) => f?.stack ?? f?.message).join('\n');
   }
   if (config.sentryEnabled) err += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureException(errStack)}`;
+  console.error(err);
   return err;
 }

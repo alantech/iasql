@@ -15,8 +15,8 @@ export class init1647526647810 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" ADD CONSTRAINT "FK_9732df6d7dff34b6f6a1732033b" FOREIGN KEY ("module") REFERENCES "iasql_module"("name") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" ADD CONSTRAINT "FK_7dbdaef2c45fdd0d1d82cc9568c" FOREIGN KEY ("dependency") REFERENCES "iasql_module"("name") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`
-            create or replace function until_iasql_operation(_optype iasql_operation_optype_enum, _params text[]) returns void
-            language plpgsql
+            create or replace function until_iasql_operation(_optype iasql_operation_optype_enum, _params text[]) returns uuid
+            language plpgsql security definer
             as $$
             declare
                 _opid uuid;
@@ -60,7 +60,7 @@ export class init1647526647810 implements MigrationInterface {
                             using detail = _err;
                         end if;
                         -- exit sp
-                        return;
+                        return _opid;
                     end if;
                     perform pg_sleep(1);
                     _counter := _counter + 1;
@@ -73,7 +73,7 @@ export class init1647526647810 implements MigrationInterface {
         `);
         await queryRunner.query(`
             create or replace function iasql_apply() returns void
-            language plpgsql
+            language plpgsql security definer
             as $$
             begin
                 perform until_iasql_operation('APPLY', array[]::text[]);
@@ -82,7 +82,7 @@ export class init1647526647810 implements MigrationInterface {
         `);
         await queryRunner.query(`
             create or replace function iasql_plan() returns void
-            language plpgsql
+            language plpgsql security definer
             as $$
             begin
                 perform until_iasql_operation('PLAN', array[]::text[]);
@@ -91,7 +91,7 @@ export class init1647526647810 implements MigrationInterface {
         `);
         await queryRunner.query(`
             create or replace function iasql_sync() returns void
-            language plpgsql
+            language plpgsql security definer
             as $$
             begin
                 perform until_iasql_operation('SYNC', array[]::text[]);
@@ -104,7 +104,7 @@ export class init1647526647810 implements MigrationInterface {
               table_name character varying,
               record_count int
             )
-            language plpgsql
+            language plpgsql security definer
             as $$
             begin
                 perform until_iasql_operation('INSTALL', _mods);
@@ -119,43 +119,128 @@ export class init1647526647810 implements MigrationInterface {
             $$;
         `);
         await queryRunner.query(`
-            create or replace function iasql_install(_mod text) returns void
-            language plpgsql
+            create or replace function iasql_install(_mod text) returns table (
+              module_name character varying,
+              table_name character varying,
+              record_count int
+            )
+            language plpgsql security definer
             as $$
             begin
                 perform until_iasql_operation('INSTALL', array[_mod]);
+                return query select
+                  m.name as module_name,
+                  t.table as table_name,
+                  (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
+                from iasql_module as m
+                inner join iasql_tables as t on m.name = t.module
+                where m.name = _mod;
             end;
             $$;
         `);
         await queryRunner.query(`
-            create or replace function iasql_uninstall(_mods text[]) returns void
-            language plpgsql
+            create or replace function iasql_uninstall(_mods text[]) returns table (
+              module_name character varying,
+              table_name character varying,
+              record_count int
+            )
+            language plpgsql security definer
             as $$
+            declare
+              _db_id text;
+              _dblink_conn_count int;
+              _dblink_sql text;
+              _out json;
             begin
-                perform until_iasql_operation('UNINSTALL', _mods);
+              select current_database() into _db_id;
+              -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
+              -- dblink connection closes automatically at the end of a session
+              SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
+                  WHERE dblink_get_connections@>'{iasqlopconn}';
+              IF _dblink_conn_count = 0 THEN
+                  PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
+              END IF;
+              -- define the query to get the current tables and record counts for the modules to be removed
+              -- TODO: Are these hoops to encode into JSON and then decode back out necessary now that
+              -- dblink is being used here, too?
+              _dblink_sql := format($dblink$
+                select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) as js from (
+                  select
+                    m.name as module_name,
+                    t.table as table_name,
+                    (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
+                  from iasql_module as m
+                  inner join iasql_tables as t on m.name = t.module
+                  where m.name in ('%s')
+                ) as j;
+              $dblink$, array_to_string(_mods, ''','''));
+              -- Execute the query on another connection so the table access doesn't count on this
+              -- transaction and cause Postgres to softlock itself
+              select js into _out from dblink('iasqlopconn', _dblink_sql) as x(js json);
+              -- Now actually remove the modules and tables in question
+              perform until_iasql_operation('UNINSTALL', _mods);
+              -- And extract the metadata from the JSON blob and return it to the user
+              return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
             end;
             $$;
         `);
         await queryRunner.query(`
-            create or replace function iasql_uninstall(_mod text) returns void
-            language plpgsql
+            create or replace function iasql_uninstall(_mod text) returns table (
+              module_name character varying,
+              table_name character varying,
+              record_count int
+            )
+            language plpgsql security definer
             as $$
+            declare
+              _db_id text;
+              _dblink_conn_count int;
+              _dblink_sql text;
+              _out json;
             begin
-                perform until_iasql_operation('UNINSTALL', array[_mod]);
+              select current_database() into _db_id;
+              -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
+              -- dblink connection closes automatically at the end of a session
+              SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
+                  WHERE dblink_get_connections@>'{iasqlopconn}';
+              IF _dblink_conn_count = 0 THEN
+                  PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
+              END IF;
+              -- define the query to get the current tables and record counts for the modules to be removed
+              -- TODO: Are these hoops to encode into JSON and then decode back out necessary now that
+              -- dblink is being used here, too?
+              _dblink_sql := format($dblink$
+                select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) from (
+                  select
+                    m.name as module_name,
+                    t.table as table_name,
+                    (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
+                  from iasql_module as m
+                  inner join iasql_tables as t on m.name = t.module
+                  where m.name = '%s'
+                ) as j;
+              $dblink$, _mod);
+              -- Execute the query on another connection so the table access doesn't count on this
+              -- transaction and cause Postgres to softlock itself
+              select js into _out from dblink('iasqlopconn', _dblink_sql) as x(js json);
+              -- Now actually remove the modules and tables in question
+              perform until_iasql_operation('UNINSTALL', array[_mod]);
+              -- And extract the metadata from the JSON blob and return it to the user
+              return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
             end;
             $$;
         `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP FUNCTION "until_iasql_operation"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_apply"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_plan"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_sync"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_install(text)"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_install(text[])"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_uninstall(text)"`);
         await queryRunner.query(`DROP FUNCTION "iasql_uninstall(text[])"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_uninstall(text)"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_install(text[])"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_install(text)"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_sync"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_plan"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_apply"`);
+        await queryRunner.query(`DROP FUNCTION "until_iasql_operation"`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" DROP CONSTRAINT "FK_7dbdaef2c45fdd0d1d82cc9568c"`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" DROP CONSTRAINT "FK_9732df6d7dff34b6f6a1732033b"`);
         await queryRunner.query(`ALTER TABLE "iasql_tables" DROP CONSTRAINT "FK_0e0f2a4ef99e93cfcb935c060cb"`);
