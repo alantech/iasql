@@ -2,7 +2,7 @@ import { ConfigInterface, throwError, } from './config';
 
 const config: ConfigInterface = {
   port: 8088,
-  dbHost: 'https://db.iasql.com',
+  dbHost: 'db.iasql.com',
   // TODO: Move away from env var to secrets
   dbUser: process.env.DB_USER ?? throwError('No DB User defined'),
   dbPassword: process.env.DB_PASSWORD ?? throwError('No DB Password defined'),
