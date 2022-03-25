@@ -38,11 +38,11 @@ export function runSync(dbAlias: string) {
 }
 
 export function runInstall(dbAlias: string, mods: string[]) {
-  return runQuery(dbAlias, `select iasql_install(array[${mods.map(m => `'${m}'`)}]);`);
+  return runQuery(dbAlias, `select iasql_install(${mods.map(m => `'${m}'`)});`);
 }
 
 export function runUninstall(dbAlias: string, mods: string[]) {
-  return runQuery(dbAlias, `select iasql_uninstall(array[${mods.map(m => `'${m}'`)}]);`);
+  return runQuery(dbAlias, `select iasql_uninstall(${mods.map(m => `'${m}'`)});`);
 }
 
 export function runQuery(dbAlias: string, queryString: string, assertFn?: (res: any[]) => void) {
