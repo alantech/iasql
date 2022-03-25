@@ -52,6 +52,7 @@ Resources:
   ###
   rIamUser:
     Type: AWS::IAM::User
+    DeletionPolicy: Retain
     Properties:
       ManagedPolicyArns: 
         - arn:aws:iam::aws:policy/AdministratorAccess
@@ -65,6 +66,7 @@ Resources:
   ###
   rIamUserAccessKey:
     Type: AWS::IAM::AccessKey
+    DeletionPolicy: Retain
     Properties:
       UserName: !Ref 'rIamUser'
 
