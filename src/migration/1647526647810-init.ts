@@ -167,10 +167,8 @@ export class init1647526647810 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP FUNCTION "iasql_uninstall(text[])"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_uninstall(text)"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_install(text[])"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_install(text)"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_uninstall"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_install"`);
         await queryRunner.query(`DROP FUNCTION "iasql_sync"`);
         await queryRunner.query(`DROP FUNCTION "iasql_plan"`);
         await queryRunner.query(`DROP FUNCTION "iasql_apply"`);
