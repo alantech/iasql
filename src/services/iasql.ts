@@ -16,6 +16,7 @@ import * as dbMan from './db-manager'
 import * as Modules from '../modules'
 import * as scheduler from './scheduler'
 import { IasqlDatabase } from '../metadata/entity';
+import { AWS } from './gateways/aws';
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
@@ -909,23 +910,16 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   return "Done!";
 }
 
-export async function getStackInfo(dbId: string, stackName: string, ormOpt?: TypeormWrapper) {
+export async function getStackInfo(dbId: string, stackName: string) {
   let orm: TypeormWrapper | null = null;
   try {
-    orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
-    // Find all of the installed modules, and create the context object only for these
-    const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
-    const memo: any = {}; // TODO: Stronger typing here
-    const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
-    for (const name of moduleNames) {
-      const mod = (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === name) as Modules.Module;
-      if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
-      const moduleContext = mod.provides.context ?? {};
-      Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
-    }
+    orm = await TypeormWrapper.createConn(dbId);
     const accountModule = (Object.values(Modules) as Modules.ModuleInterface[])
-      .find(mod => ['aws_account@0.0.1'].includes(`${mod.name}@${mod.version}`));
-    return await accountModule?.utils?.getCloudformationStack(stackName, context);
+      .find(mod => ['aws_account@0.0.1'].includes(`${mod.name}@${mod.version}`)) as Modules.Module;
+    if (!accountModule) throw new Error(`This should be impossible. Cannot find module aws_account`);
+    const moduleContext = accountModule.provides.context;
+    const awsClient = await moduleContext?.getAwsClient(orm) as AWS;
+    return await awsClient.getCloudFormationStack(stackName);
   } catch (e) {
     throw e;
   }

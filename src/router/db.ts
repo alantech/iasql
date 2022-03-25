@@ -98,7 +98,6 @@ db.post('/sync', async (req, res) => {
 
 db.get('/get/:dbAlias', async (req, res) => {
   const { dbAlias, } = req.params;
-  console.log('dbalias', dbAlias)
   if (!dbAlias) return res.status(400).json("Required param 'dbAlias' not provided");
   try {
     const dbs = await iasql.list(dbMan.getUid(req.user), dbMan.getEmail(req.user), false);
@@ -108,11 +107,11 @@ db.get('/get/:dbAlias', async (req, res) => {
   }
 });
 
-db.get('/:dbAlias/awsCfnStack/:stackName', async (req, res) => {
-  const { stackName, dbAlias } = req.params;
-  if (!dbAlias || !stackName) return res.status(400).json("Required param 'dbAlias' or 'stackName' not provided");
+db.get(':dbAlias/awsCfnStack/:stackName', async (req, res) => {
+  const { dbAlias, stackName, } = req.params;
+  if (!stackName || !dbAlias) return res.status(400).json("Required param 'stackName' not provided");
+  const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
   try {
-    const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
     res.json(await iasql.getStackInfo(database.pgName, stackName));
   } catch (e: any) {
     res.status(500).json(logger.error(e));
