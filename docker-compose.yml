@@ -12,8 +12,6 @@ services:
       - "8088:8088"
     links:
       - postgresql
-    environment:
-      - PORT=8088
   postgresql:
     image: postgres:13.4
     ports:
