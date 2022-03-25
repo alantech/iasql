@@ -139,8 +139,8 @@ Resources:
       Timeout: 60
       Runtime: nodejs14.x
       Code:
-        S3Bucket: "slurp-cred" # TODO: make it an input?
-        S3Key: "newUserAndDb.zip" # TODO: to be updated
+        S3Bucket: "iasql-connect"
+        S3Key: "iasqlConnectLambda.zip"
       Tags:
         -
           Key: "Lambda Function Name"
