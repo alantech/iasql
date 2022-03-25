@@ -99,7 +99,7 @@ export class init1647526647810 implements MigrationInterface {
             $$;
         `);
         await queryRunner.query(`
-            create or replace function iasql_install(_mods text[]) returns table (
+            create or replace function iasql_install(variadic _mods text[]) returns table (
               module_name character varying,
               table_name character varying,
               record_count int
@@ -119,27 +119,7 @@ export class init1647526647810 implements MigrationInterface {
             $$;
         `);
         await queryRunner.query(`
-            create or replace function iasql_install(_mod text) returns table (
-              module_name character varying,
-              table_name character varying,
-              record_count int
-            )
-            language plpgsql security definer
-            as $$
-            begin
-                perform until_iasql_operation('INSTALL', array[_mod]);
-                return query select
-                  m.name as module_name,
-                  t.table as table_name,
-                  (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
-                from iasql_module as m
-                inner join iasql_tables as t on m.name = t.module
-                where m.name = _mod;
-            end;
-            $$;
-        `);
-        await queryRunner.query(`
-            create or replace function iasql_uninstall(_mods text[]) returns table (
+            create or replace function iasql_uninstall(variadic _mods text[]) returns table (
               module_name character varying,
               table_name character varying,
               record_count int
@@ -184,59 +164,11 @@ export class init1647526647810 implements MigrationInterface {
             end;
             $$;
         `);
-        await queryRunner.query(`
-            create or replace function iasql_uninstall(_mod text) returns table (
-              module_name character varying,
-              table_name character varying,
-              record_count int
-            )
-            language plpgsql security definer
-            as $$
-            declare
-              _db_id text;
-              _dblink_conn_count int;
-              _dblink_sql text;
-              _out json;
-            begin
-              select current_database() into _db_id;
-              -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
-              -- dblink connection closes automatically at the end of a session
-              SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
-                  WHERE dblink_get_connections@>'{iasqlopconn}';
-              IF _dblink_conn_count = 0 THEN
-                  PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
-              END IF;
-              -- define the query to get the current tables and record counts for the modules to be removed
-              -- TODO: Are these hoops to encode into JSON and then decode back out necessary now that
-              -- dblink is being used here, too?
-              _dblink_sql := format($dblink$
-                select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) from (
-                  select
-                    m.name as module_name,
-                    t.table as table_name,
-                    (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
-                  from iasql_module as m
-                  inner join iasql_tables as t on m.name = t.module
-                  where m.name = '%s'
-                ) as j;
-              $dblink$, _mod);
-              -- Execute the query on another connection so the table access doesn't count on this
-              -- transaction and cause Postgres to softlock itself
-              select js into _out from dblink('iasqlopconn', _dblink_sql) as x(js json);
-              -- Now actually remove the modules and tables in question
-              perform until_iasql_operation('UNINSTALL', array[_mod]);
-              -- And extract the metadata from the JSON blob and return it to the user
-              return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
-            end;
-            $$;
-        `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP FUNCTION "iasql_uninstall(text[])"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_uninstall(text)"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_install(text[])"`);
-        await queryRunner.query(`DROP FUNCTION "iasql_install(text)"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_uninstall"`);
+        await queryRunner.query(`DROP FUNCTION "iasql_install"`);
         await queryRunner.query(`DROP FUNCTION "iasql_sync"`);
         await queryRunner.query(`DROP FUNCTION "iasql_plan"`);
         await queryRunner.query(`DROP FUNCTION "iasql_apply"`);
