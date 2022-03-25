@@ -4,7 +4,6 @@ const exec = promisify(execNode);
 
 import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
-import { uniqueNamesGenerator, Config, adjectives, colors, animals } from 'unique-names-generator';
 
 import { DepError, lazyLoader, } from '../services/lazy-dep'
 import { findDiff, } from '../services/diff'
@@ -27,21 +26,14 @@ export function recordCount(records: { [key: string]: any, }[]): [number, number
   return [ dbCount, cloudCount, bothCount, ];
 }
 
-// config for unique name generator
-// e.g. big_red_donkey
-const nameGenConfig: Config = {
-  dictionaries: [adjectives, colors, animals],
-};
-
 export async function add(
-  dbAlias: string | undefined,
+  dbAlias: string,
   awsRegion: string,
   awsAccessKeyId: string,
   awsSecretAccessKey: string,
   uid: string,
   email: string,
 ) {
-  dbAlias = !dbAlias ? uniqueNamesGenerator(nameGenConfig) : dbAlias;
   let conn1: any, conn2: any, dbId: any, dbUser: any;
   let orm: TypeormWrapper | undefined;
   try {

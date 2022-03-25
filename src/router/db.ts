@@ -11,7 +11,7 @@ export const db = express.Router();
 db.post('/new', async (req, res) => {
   console.log('Calling /new');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
-  if (!awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
+  if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
     `Required key(s) not provided: ${[
       'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
