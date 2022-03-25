@@ -4,3 +4,4 @@ dist/
 .vscode
 coverage/
 .deploy-env
+newUserandDb.zip
