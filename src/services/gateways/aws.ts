@@ -174,7 +174,7 @@ export class AWS {
     this.cwClient = new CloudWatchLogsClient(config);
     // Service endpoint only available in 'us-esat-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
     this.ecrPubClient = new ECRPUBLICClient({credentials: config.credentials, region: 'us-east-1'});
-    // Special casing here. This client is not related to any module. It is for internal use to get the cloud formation stack 
+    // Special casing here. This client is not related to any module. It is for internal use to get the cloud formation stack
     // information when users connect via the direct connect UI option.
     // The client **MUST** be in the same region where **OUR** S3 bucket with the lambda function and the template live
     this.internalCfnClient = new CloudFormationClient({credentials: config.credentials, region: 'us-east-2'});
