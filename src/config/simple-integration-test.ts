@@ -2,7 +2,7 @@ import { ConfigInterface, } from './config';
 
 const config: ConfigInterface = {
   port: 8088,
-  dbHost: 'localhost',
+  dbHost: 'postgresql',
   dbUser: 'postgres',
   dbPassword: 'test',
   dbPort: 5432,
