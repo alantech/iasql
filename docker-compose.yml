@@ -7,8 +7,9 @@ services:
     links:
       - postgresql
     environment:
-      - IASQL_ENV=local
       - PORT=8088
+    args:
+      - IASQL_ENV=local
   postgresql:
     image: postgres:13.4
     ports:
