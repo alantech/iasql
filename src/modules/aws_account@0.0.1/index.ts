@@ -36,12 +36,6 @@ export const AwsAccount: Module = new Module({
   mappers: {
     awsAccount: new Mapper<AwsAccountEntity>({
       entity: AwsAccountEntity,
-      entityPrint: (e: AwsAccountEntity) => ({
-        id: e.id?.toString() ?? '',
-        accessKeyId: e.accessKeyId ?? '',
-        secretAccessKey: e.secretAccessKey ?? '',
-        region: e.region,
-      }),
       equals: (_a: AwsAccountEntity, _b: AwsAccountEntity) => true,
       source: 'db',
       cloud: new Crud({

@@ -18,13 +18,41 @@ import { IasqlDatabase } from '../metadata/entity';
 import { AWS } from './gateways/aws';
 
 // Crupde = CR-UP-DE, Create/Update/Delete
-type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
+type Crupde = { [key: string]: { id: string, description: string, }[], };
 export function recordCount(records: { [key: string]: any, }[]): [number, number, number] {
   const dbCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInDbOnly.length, 0);
   const cloudCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInAwsOnly.length, 0);
   const bothCount = records.reduce((cumu, r) => cumu + r.diff.entitiesChanged.length, 0);
   return [ dbCount, cloudCount, bothCount, ];
 }
+const iasqlPlanV3 = (
+  toCreate: Crupde,
+  toUpdate: Crupde,
+  toReplace: Crupde,
+  toDelete: Crupde,
+) => JSON.stringify({
+  iasqlPlanVersion: 3,
+  rows: (() => {
+    const out: any[] = [];
+    Object.keys(toCreate).forEach(tbl => {
+      const recs = toCreate[tbl];
+      recs.forEach(rec => out.push({ action: 'create', tableName: tbl, ...rec, }));
+    });
+    Object.keys(toUpdate).forEach(tbl => {
+      const recs = toUpdate[tbl];
+      recs.forEach(rec => out.push({ action: 'update', tableName: tbl, ...rec, }));
+    });
+    Object.keys(toReplace).forEach(tbl => {
+      const recs = toReplace[tbl];
+      recs.forEach(rec => out.push({ action: 'replace', tableName: tbl, ...rec, }));
+    });
+    Object.keys(toDelete).forEach(tbl => {
+      const recs = toDelete[tbl];
+      recs.forEach(rec => out.push({ action: 'delete', tableName: tbl, ...rec, }));
+    });
+    return out;
+  })(),
+});
 
 export async function add(
   dbAlias: string,
@@ -312,13 +340,10 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
         const t4 = Date.now();
         console.log(`AWS Mapping time: ${t4 - t3}ms`);
         if (!records.length) { // Only possible on just-created databases
-          return {
-            iasqlPlanVersion: 2,
-            toCreate: {},
-            toUpdate: {},
-            toReplace: {},
-            toDelete: {},
-          };
+          return JSON.stringify({
+            iasqlPlanVersion: 3,
+            rows: [],
+          });
         }
         const updatePlan = (
           crupde: Crupde,
@@ -326,11 +351,16 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
           mapper: Modules.MapperInterface<any>,
           es: any[]
         ) => {
-          const rs = es.map((e: any) => mapper.entityPrint(e));
-          crupde[entityName] = crupde[entityName] ?? {
-            columns: Object.keys(rs[0]),
-            records: rs.map((r2: any) => Object.values(r2)),
-          };
+          crupde[entityName] = crupde[entityName] ?? [];
+          const rs = es.map((e: any) => ({
+            id: e?.id?.toString() ?? '',
+            description: mapper.entityId?.(e) ?? '',
+          }));
+          rs.forEach(r => {
+            if (!crupde[entityName]
+              .some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description))
+            ) crupde[entityName].push(r);
+          });
         }
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
@@ -355,13 +385,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
             if (replaces.length > 0) updatePlan(toReplace, r.table, r.mapper, replaces);
           }
         });
-        if (dryRun) return {
-          iasqlPlanVersion: 2,
-          toCreate,
-          toUpdate,
-          toReplace,
-          toDelete,
-        };
+        if (dryRun) return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
         const [ nextDbCount, nextCloudCount, nextBothCount, ] = recordCount(records);
         if (
           dbCount === nextDbCount &&
@@ -444,13 +468,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
     } while (ranFullUpdate);
     const t7 = Date.now();
     console.log(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
-    return {
-      iasqlPlanVersion: 2,
-      toCreate,
-      toUpdate,
-      toReplace,
-      toDelete,
-    };
+    return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
   } catch (e: any) {
     console.dir(e, { depth: 6, });
     throw e;
@@ -522,13 +540,10 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
         const t4 = Date.now();
         console.log(`AWS Mapping time: ${t4 - t3}ms`);
         if (!records.length) { // Only possible on just-created databases
-          return {
-            iasqlPlanVersion: 2,
-            toCreate: {},
-            toUpdate: {},
-            toReplace: {},
-            toDelete: {},
-          };
+          return JSON.stringify({
+            iasqlPlanVersion: 3,
+            rows: [],
+          });
         }
         const updatePlan = (
           crupde: Crupde,
@@ -536,11 +551,16 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
           mapper: Modules.MapperInterface<any>,
           es: any[]
         ) => {
-          const rs = es.map((e: any) => mapper.entityPrint(e));
-          crupde[entityName] = crupde[entityName] ?? {
-            columns: Object.keys(rs[0]),
-            records: rs.map((r2: any) => Object.values(r2)),
-          };
+          crupde[entityName] = crupde[entityName] ?? [];
+          const rs = es.map((e: any) => ({
+            id: e?.id?.toString() ?? '',
+            description: mapper.entityId?.(e) ?? '',
+          }));
+          rs.forEach(r => {
+            if (!crupde[entityName]
+              .some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description))
+            ) crupde[entityName].push(r);
+          });
         }
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
@@ -558,13 +578,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
             if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
           }
         });
-        if (dryRun) return {
-          iasqlPlanVersion: 2,
-          toCreate,
-          toUpdate,
-          toReplace,
-          toDelete,
-        };
+        if (dryRun) return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
         const [ nextDbCount, nextCloudCount, nextBothCount, ] = recordCount(records);
         if (
           dbCount === nextDbCount &&
@@ -648,13 +662,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
     } while (ranFullUpdate);
     const t7 = Date.now();
     console.log(`${dbId} synced, total time: ${t7 - t1}ms`);
-    return {
-      iasqlPlanVersion: 2,
-      toCreate,
-      toUpdate,
-      toReplace,
-      toDelete,
-    };
+    return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
   } catch (e: any) {
     console.dir(e, { depth: 6, });
     throw e;

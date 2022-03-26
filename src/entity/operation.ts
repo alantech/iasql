@@ -10,7 +10,8 @@ export enum IasqlOperationType {
   SYNC = "SYNC",
   INSTALL = "INSTALL",
   UNINSTALL = "UNINSTALL",
-  PLAN = "PLAN",
+  PLAN_APPLY = "PLAN_APPLY",
+  PLAN_SYNC = "PLAN_SYNC",
 }
 
 @Entity()

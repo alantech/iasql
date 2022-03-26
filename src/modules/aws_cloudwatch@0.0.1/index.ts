@@ -18,12 +18,6 @@ export const AwsCloudwatchModule: Module = new Module({
   mappers: {
     logGroup: new Mapper<LogGroup>({
       entity: LogGroup,
-      entityPrint: (e: LogGroup) => ({
-        id: e?.id?.toString() ?? '',
-        logGroupName: e?.logGroupName ?? '',
-        logGroupArn: e?.logGroupArn ?? '',
-        creationTime: e?.creationTime?.toISOString() ?? '',
-      }),
       equals: (a: LogGroup, b: LogGroup) => Object.is(a.logGroupName, b.logGroupName)
         && Object.is(a.logGroupArn, b.logGroupArn)
         && Object.is(a.creationTime?.getTime(), b.creationTime?.getTime()),

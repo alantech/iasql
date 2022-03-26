@@ -27,14 +27,6 @@ export const AwsEc2Module: Module = new Module({
   mappers: {
     instance: new Mapper<Instance>({
       entity: Instance,
-      entityPrint: (e: Instance) => ({
-        name: e.name,
-        id: e.id?.toString() ?? '',
-        instanceId: e.instanceId ?? '',
-        ami: e.ami ?? '',
-        instanceType: e.instanceType ?? '',
-        securityGroups: e.securityGroups?.map(sg => sg.groupName ?? '').join(', ') ?? '',
-      }),
       equals: (a: Instance, b: Instance) => Object.is(a.name, b.name) &&
         Object.is(a.instanceId, b.instanceId) &&
         Object.is(a.ami, b.ami) &&

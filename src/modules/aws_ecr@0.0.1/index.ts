@@ -60,14 +60,6 @@ export const AwsEcrModule: Module = new Module({
   mappers: {
     publicRepository: new Mapper<PublicRepository>({
       entity: PublicRepository,
-      entityPrint: (e: PublicRepository) => ({
-        id: e?.id?.toString() ?? '',
-        repositoryName: e?.repositoryName ?? '',
-        repositoryArn: e?.repositoryArn ?? '',
-        registryId: e?.registryId ?? '',
-        repositoryUri: e?.repositoryUri ?? '',
-        createdAt: e?.createdAt?.toISOString() ?? '',
-      }),
       equals: (a: PublicRepository, b: PublicRepository) => Object.is(a.repositoryName, b.repositoryName)
         && Object.is(a.repositoryArn, b.repositoryArn)
         && Object.is(a.registryId, b.registryId)
@@ -127,16 +119,6 @@ export const AwsEcrModule: Module = new Module({
     }),
     repository: new Mapper<Repository>({
       entity: Repository,
-      entityPrint: (e: Repository) => ({
-        id: e?.id?.toString() ?? '',
-        repositoryName: e?.repositoryName ?? '',
-        repositoryArn: e?.repositoryArn ?? '',
-        registryId: e?.registryId ?? '',
-        repositoryUri: e?.repositoryUri ?? '',
-        createdAt: e?.createdAt?.toISOString() ?? '',
-        imageTagMutability: e?.imageTagMutability ?? ImageTagMutability.MUTABLE,
-        scanOnPush: e?.scanOnPush?.toString() ?? 'false',
-      }),
       equals: (a: Repository, b: Repository) => Object.is(a.repositoryName, b.repositoryName)
         && Object.is(a.repositoryArn, b.repositoryArn)
         && Object.is(a.registryId, b.registryId)
@@ -215,12 +197,6 @@ export const AwsEcrModule: Module = new Module({
     repositoryPolicy: new Mapper<RepositoryPolicy>({
       entity: RepositoryPolicy,
       entityId: (e: RepositoryPolicy) => e.repository?.repositoryName + '' ?? e.id.toString(),
-      entityPrint: (e: RepositoryPolicy) => ({
-        id: e?.id?.toString() ?? '',
-        registryId: e?.registryId ?? '',
-        repository: e?.repository?.repositoryName ?? '',
-        policyText: e?.policyText ?? '',
-      }),
       equals: (a: RepositoryPolicy, b: RepositoryPolicy) => {
         try {
           return Object.is(a.registryId, b.registryId)

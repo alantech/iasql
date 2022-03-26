@@ -37,12 +37,16 @@ export async function start(dbId: string, dbUser:string) {
             promise = iasql.apply(dbId, false, conn);
             break;
           }
-          case IasqlOperationType.PLAN: {
+          case IasqlOperationType.PLAN_APPLY: {
             promise = iasql.apply(dbId, true, conn);
             break;
           }
           case IasqlOperationType.SYNC: {
             promise = iasql.sync(dbId, false, conn);
+            break;
+          }
+          case IasqlOperationType.PLAN_SYNC: {
+            promise = iasql.sync(dbId, true, conn);
             break;
           }
           case IasqlOperationType.INSTALL: {
