@@ -1,0 +1,224 @@
+
+Description: 'IaSQL: user and databse creation'
+
+###
+### CloudFormation Interface Metadata
+###
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: IaSQL Connection Setup
+      Parameters:
+      - pIasqlDbName
+      - pAwsRegion
+      - pA0Token
+      - pIasqlUrl
+      - pIasqlBucket
+    ParameterLabels:
+      pIasqlDbName:
+        default: IaSQL Database Name
+      pAwsRegion:
+        default: AWS Region
+      pIasqlUrl:
+        default: IaSQL API URL
+      pA0Token:
+        default: IaSQL Bearer Token
+      pIasqlBucket:
+        default: IaSQL S3 Bucket
+
+###
+#### Template input parameters
+####
+
+Parameters:
+  pIasqlDbName:
+    Type: String
+    Description: Do not modify
+    AllowedPattern: ^[a-zA-Z0-9_]{0,63}
+  pAwsRegion:
+    Type: String
+    Description: Do not modify
+  pIasqlUrl:
+    Type: String
+    Description: Do not modify
+  pA0Token:
+    Type: String
+    Description: Do not modify
+  pIasqlBucket:
+    Type: String
+    Description: Do not modify
+
+Resources:
+
+  ###
+  ### IAM User
+  ###
+  rIamUser:
+    Type: AWS::IAM::User
+    DeletionPolicy: Retain
+    Properties:
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AdministratorAccess
+      Tags: 
+        - Key: "iasql"
+          Value: "true"
+      UserName: !Sub ${AWS::StackName}-iasql-user-${pAwsRegion}
+
+  ###
+  ### IAM User Access Key
+  ###
+  rIamUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    DeletionPolicy: Retain
+    Properties:
+      UserName: !Ref 'rIamUser'
+
+  ####
+  #### Lambda Role
+  ####
+
+  rLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-LambdaRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+      - PolicyName: !Sub ${AWS::StackName}-LambdaPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Sid: CloudWatchLogsPermissions
+              Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: !Sub 'arn:${AWS::Partition}:logs:*:*:*'
+            - Sid: LambdaFunctionPermissionsforInvoke
+              Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+                - lambda:InvokeAsync
+              Resource: "arn:aws:lambda:*:*:function:*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+  ####
+  #### Lambda Functions
+  ####
+
+  rLambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: rLambdaRole
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-LambdaFunction
+      Role: !GetAtt rLambdaRole.Arn
+      Environment:
+        Variables:
+          access_key_id: !Ref 'rIamUserAccessKey'
+          secret_access_key: !GetAtt 'rIamUserAccessKey.SecretAccessKey'
+          aws_region: !Ref 'pAwsRegion'
+          db_alias: !Ref 'pIasqlDbName'
+          a0_token: !Ref 'pA0Token'
+          api_url: !Ref 'pIasqlUrl'
+      Handler: index.handler
+      Timeout: 60
+      Runtime: nodejs14.x
+      Code:
+        S3Bucket: !Ref 'pIasqlBucket'
+        S3Key: "iasqlConnectLambda.zip"
+      Tags:
+        -
+          Key: "Lambda Function Name"
+          Value: !Sub '${AWS::StackName}-LambdaFunction'
+
+  rLambdaFunctionCaller:
+    Type: AWS::Lambda::Function
+    DependsOn: 
+      - rLambdaRole
+      - rLambdaFunction
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-LambdaFunction-Caller
+      Handler: index.handler
+      Role: !GetAtt rLambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 60
+      Code:
+        ZipFile: !Sub |
+          import boto3, json
+          import cfnresponse
+
+          def handler(event, context):
+              print('EVENT:')
+              print(event)
+
+              responseValue = ''
+
+              if event['RequestType'] == "Create":
+                lambda_client = boto3.client('lambda')
+
+                cfn_event = {
+                  "caller": "true"
+                }
+
+                response = lambda_client.invoke(
+                  FunctionName='${AWS::StackName}-LambdaFunction',
+                  InvocationType='RequestResponse',
+                  Payload=json.dumps(cfn_event)
+                )
+
+                print('response')
+                print(response)
+                
+                if 'FunctionError' in response:
+                  responseValue = str(response["Payload"].read())
+                else:
+                  try:
+                    responseValue = json.loads(response["Payload"].read())
+                  except:
+                    try:
+                      responseValue = str(response["Payload"].read())
+                    except:
+                      responseValue = 'An error executing the function ocurred.'
+
+              print('responseValue')
+              print(responseValue)
+              responseData = {}
+              responseData['Data'] = responseValue
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, 
+                responseData, 'rFunctionCaller')
+    
+  ####
+  #### Lambda Function caller
+  ####
+
+  rFunctionCaller:
+    Type: AWS::CloudFormation::CustomResource
+    DependsOn: rLambdaFunctionCaller
+    Version: "1.0"
+    Properties:
+      ServiceToken: !GetAtt rLambdaFunctionCaller.Arn
+
+Outputs:
+  newDbResult:
+    Description: New IaSql database result
+    Value: !GetAtt rFunctionCaller.Data

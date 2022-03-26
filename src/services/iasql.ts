@@ -4,7 +4,6 @@ const exec = promisify(execNode);
 
 import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
-import { uniqueNamesGenerator, Config, adjectives, colors, animals } from 'unique-names-generator';
 
 import { DepError, lazyLoader, } from '../services/lazy-dep'
 import { findDiff, } from '../services/diff'
@@ -16,6 +15,7 @@ import * as dbMan from './db-manager'
 import * as Modules from '../modules'
 import * as scheduler from './scheduler'
 import { IasqlDatabase } from '../metadata/entity';
+import { AWS } from './gateways/aws';
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { columns: string[], records: string[][], }, };
@@ -26,21 +26,14 @@ export function recordCount(records: { [key: string]: any, }[]): [number, number
   return [ dbCount, cloudCount, bothCount, ];
 }
 
-// config for unique name generator
-// e.g. big_red_donkey
-const nameGenConfig: Config = {
-  dictionaries: [adjectives, colors, animals],
-};
-
 export async function add(
-  dbAlias: string | undefined,
+  dbAlias: string,
   awsRegion: string,
   awsAccessKeyId: string,
   awsSecretAccessKey: string,
   uid: string,
   email: string,
 ) {
-  dbAlias = !dbAlias ? uniqueNamesGenerator(nameGenConfig) : dbAlias;
   let conn1: any, conn2: any, dbId: any, dbUser: any;
   let orm: TypeormWrapper | undefined;
   try {
@@ -907,4 +900,19 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
     await queryRunner.release();
   }
   return "Done!";
+}
+
+export async function getStackInfo(dbId: string, stackName: string) {
+  let orm: TypeormWrapper | null = null;
+  try {
+    orm = await TypeormWrapper.createConn(dbId);
+    const accountModule = (Object.values(Modules) as Modules.ModuleInterface[])
+      .find(mod => ['aws_account@0.0.1'].includes(`${mod.name}@${mod.version}`)) as Modules.Module;
+    if (!accountModule) throw new Error(`This should be impossible. Cannot find module aws_account`);
+    const moduleContext = accountModule.provides.context;
+    const awsClient = await moduleContext?.getAwsClient(orm) as AWS;
+    return await awsClient.getCloudFormationStack(stackName);
+  } catch (e) {
+    throw e;
+  }
 }

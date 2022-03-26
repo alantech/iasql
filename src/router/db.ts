@@ -11,7 +11,7 @@ export const db = express.Router();
 db.post('/new', async (req, res) => {
   console.log('Calling /new');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
-  if (!awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
+  if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
     `Required key(s) not provided: ${[
       'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
@@ -93,5 +93,27 @@ db.post('/sync', async (req, res) => {
     res.json(await iasql.sync(database.pgName, dryRun));
   } catch (e) {
     res.status(500).end(logger.error(e));
+  }
+});
+
+db.get('/get/:dbAlias', async (req, res) => {
+  const { dbAlias, } = req.params;
+  if (!dbAlias) return res.status(400).json("Required param 'dbAlias' not provided");
+  try {
+    const dbs = await iasql.list(dbMan.getUid(req.user), dbMan.getEmail(req.user), false);
+    res.json((dbs as string[]).find((alias: string) => alias === dbAlias));
+  } catch (e) {
+    res.status(500).end(logger.error(e));
+  }
+});
+
+db.get('/:dbAlias/awsCfnStack/:stackName', async (req, res) => {
+  const { dbAlias, stackName, } = req.params;
+  if (!stackName || !dbAlias) return res.status(400).json("Required param 'stackName' not provided");
+  const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
+  try {
+    res.json(await iasql.getStackInfo(database.pgName, stackName));
+  } catch (e: any) {
+    res.status(500).json(logger.error(e));
   }
 });

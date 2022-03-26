@@ -4,3 +4,5 @@ dist/
 .vscode
 coverage/
 .deploy-env
+*.zip
+.DS_Store

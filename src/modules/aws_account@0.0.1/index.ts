@@ -4,6 +4,7 @@ import { AWS, } from '../../services/gateways/aws'
 import { AwsAccountEntity, } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import * as metadata from './module.json'
+import { TypeormWrapper } from '../../services/typeorm'
 
 export const AwsAccount: Module = new Module({
   ...metadata,
@@ -16,9 +17,10 @@ export const AwsAccount: Module = new Module({
       // which will be different for different users. WARNING: Explicitly trying to access via
       // `AwsAccount.provides.context.getAwsClient` would instead use the context *template* that is
       // global to the codebase.
-      async getAwsClient() {
+      async getAwsClient(ormOpt?: TypeormWrapper) {
+        const orm = ormOpt ? ormOpt : this.orm;
         if (this.awsClient) return this.awsClient;
-        const awsCreds = await this.orm.findOne(AwsAccount.mappers.awsAccount.entity);
+        const awsCreds = await orm.findOne(AwsAccount.mappers.awsAccount.entity);
         this.awsClient = new AWS({
           region: awsCreds.region,
           credentials: {

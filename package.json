@@ -17,7 +17,7 @@
     "gen-sql": "IASQL_ENV=local ts-node ./node_modules/.bin/typeorm migration:generate -n",
     "migrate": "IASQL_ENV=local ts-node ./node_modules/.bin/typeorm migration:run",
     "gen-module": "IASQL_ENV=local ./.module_migration.sh",
-    "docker-compose:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "docker-compose:dev": "IASQL_ENV=local docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
     "docker-compose": "docker-compose -f docker-compose.yml up --build"
   },
   "repository": {
@@ -46,6 +46,7 @@
     "typescript": "^4.6.2"
   },
   "dependencies": {
+    "@aws-sdk/client-cloudformation": "^3.55.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.54.0",
     "@aws-sdk/client-ec2": "^3.54.0",
     "@aws-sdk/client-ecr": "^3.41.0",
@@ -66,7 +67,6 @@
     "pg": "^8.7.3",
     "reflect-metadata": "^0.1.13",
     "typeorm": "^0.2.37",
-    "typeorm-naming-strategies": "^4.0.0",
-    "unique-names-generator": "^4.7.1"
+    "typeorm-naming-strategies": "^4.0.0"
   }
 }
