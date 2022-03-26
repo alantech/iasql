@@ -53,7 +53,7 @@ begin
 end;
 $$;
 
-create or replace function iasql_apply() returns table (
+create or replace function iasql_cloud_manipulation(_mode iasql_operation_optype_enum) returns table (
   action text,
   table_name text,
   id integer,
@@ -64,15 +64,28 @@ as $$
 declare
   _opid uuid;
 begin
-    _opid := until_iasql_operation('APPLY', array[]::text[]);
-    return query select
-      j.s->>'action' as action,
-      j.s->>'tableName' as table_name,
-      case when j.s->>'id' = '' then null else (j.s->>'id')::integer end as id,
-      j.s->>'description' as description
-    from (
-      select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid
-    ) as j;
+  _opid := until_iasql_operation(_mode, array[]::text[]);
+  return query select
+    j.s->>'action' as action,
+    j.s->>'tableName' as table_name,
+    case when j.s->>'id' = '' then null else (j.s->>'id')::integer end as id,
+    j.s->>'description' as description
+  from (
+    select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid
+  ) as j;
+end;
+$$;
+
+create or replace function iasql_apply() returns table (
+  action text,
+  table_name text,
+  id integer,
+  description text
+)
+language plpgsql security definer
+as $$
+begin
+  return query select * from iasql_cloud_manipulation('APPLY');
 end;
 $$;
 
@@ -84,18 +97,8 @@ create or replace function iasql_plan_apply() returns table (
 )
 language plpgsql security definer
 as $$
-declare
-  _opid uuid;
 begin
-    _opid := until_iasql_operation('PLAN_APPLY', array[]::text[]);
-    return query select
-      j.s->>'action' as action,
-      j.s->>'tableName' as table_name,
-      case when j.s->>'id' = '' then null else (j.s->>'id')::integer end as id,
-      j.s->>'description' as description
-    from (
-      select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid
-    ) as j;
+  return query select * from iasql_cloud_manipulation('PLAN_APPLY');
 end;
 $$;
 
@@ -107,18 +110,8 @@ create or replace function iasql_sync() returns table (
 )
 language plpgsql security definer
 as $$
-declare
-  _opid uuid;
 begin
-    _opid := until_iasql_operation('SYNC', array[]::text[]);
-    return query select
-      j.s->>'action' as action,
-      j.s->>'tableName' as table_name,
-      case when j.s->>'id' = '' then null else (j.s->>'id')::integer end as id,
-      j.s->>'description' as description
-    from (
-      select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid
-    ) as j;
+  return query select * from iasql_cloud_manipulation('SYNC');
 end;
 $$;
 
@@ -130,18 +123,8 @@ create or replace function iasql_plan_sync() returns table (
 )
 language plpgsql security definer
 as $$
-declare
-  _opid uuid;
 begin
-    _opid := until_iasql_operation('PLAN_SYNC', array[]::text[]);
-    return query select
-      j.s->>'action' as action,
-      j.s->>'tableName' as table_name,
-      case when j.s->>'id' = '' then null else (j.s->>'id')::integer end as id,
-      j.s->>'description' as description
-    from (
-      select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid
-    ) as j;
+  return query select * from iasql_cloud_manipulation('PLAN_SYNC');
 end;
 $$;
 

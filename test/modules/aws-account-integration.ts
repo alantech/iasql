@@ -56,7 +56,7 @@ describe('AwsAccount Integration Testing', () => {
 
   it('does absolutely nothing when you plan this', query(`
     select iasql_plan_apply();
-  `));
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('removes the useless row', query(`
     DELETE FROM aws_account WHERE access_key_id = 'fake'
