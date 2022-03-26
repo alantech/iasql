@@ -35,20 +35,20 @@ Metadata:
 Parameters:
   pIasqlDbName:
     Type: String
-    Description: Do not update
+    Description: Do not modify
     AllowedPattern: ^[a-zA-Z0-9_]{0,63}
   pAwsRegion:
     Type: String
-    Description: Do not update
+    Description: Do not modify
   pIasqlUrl:
     Type: String
-    Description: Do not update
+    Description: Do not modify
   pA0Token:
     Type: String
-    Description: Do not update
+    Description: Do not modify
   pIasqlBucket:
     Type: String
-    Description: Do not update
+    Description: Do not modify
 
 Resources:
 
