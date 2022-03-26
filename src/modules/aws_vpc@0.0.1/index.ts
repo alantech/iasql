@@ -45,16 +45,6 @@ export const AwsVpcModule: Module = new Module({
   mappers: {
     subnet: new Mapper<Subnet>({
       entity: Subnet,
-      entityPrint: (e: Subnet) => ({
-        subnetId: e.subnetId ?? '',
-        subnetArn: e.subnetArn ?? '',
-        availabilityZone: e.availabilityZone ?? '',
-        cidrBlock: e.cidrBlock ?? '',
-        availableIpAddressCount: e?.availableIpAddressCount?.toString() ?? '',
-        vpc: e.vpc?.vpcId ?? '',
-        state: e.state ?? '',
-        ownerId: e.ownerId ?? '',
-      }),
       equals: (a: Subnet, b: Subnet) => Object.is(a.subnetId, b.subnetId), // TODO: Do better
       source: 'db',
       cloud: new Crud({
@@ -125,12 +115,6 @@ export const AwsVpcModule: Module = new Module({
     }),
     vpc: new Mapper<Vpc>({
       entity: Vpc,
-      entityPrint: (e: Vpc) => ({
-        vpcId: e.vpcId ?? '',
-        cidrBlock: e.cidrBlock ?? '',
-        state: e.state ?? '',
-        isDefault: e.isDefault?.toString() ?? '',
-      }),
       equals: (a: Vpc, b: Vpc) => Object.is(a.vpcId, b.vpcId), // TODO: Do better
       source: 'db',
       cloud: new Crud({

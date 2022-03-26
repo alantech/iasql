@@ -155,12 +155,6 @@ export const AwsEcsFargateModule: Module = new Module({
   mappers: {
     cluster: new Mapper<Cluster>({
       entity: Cluster,
-      entityPrint: (e: Cluster) => ({
-        id: e?.id?.toString() ?? '',
-        clusterName: e?.clusterName ?? '',
-        clusterArn: e?.clusterArn ?? '',
-        clusterStatus: e?.clusterStatus ?? '',
-      }),
       equals: (a: Cluster, b: Cluster) => Object.is(a.clusterArn, b.clusterArn)
         && Object.is(a.clusterName, b.clusterName)
         && Object.is(a.clusterStatus, b.clusterStatus),
@@ -233,17 +227,6 @@ export const AwsEcsFargateModule: Module = new Module({
     }),
     taskDefinition: new Mapper<TaskDefinition>({
       entity: TaskDefinition,
-      entityPrint: (e: TaskDefinition) => ({
-        id: e?.id?.toString() ?? '',
-        taskDefinitionArn: e?.taskDefinitionArn ?? '',
-        containerDefinitions: e?.containerDefinitions?.map(c => c?.name ?? '').join(', ') ?? '',
-        family: e?.family ?? '',
-        revision: e?.revision?.toString() ?? '',
-        taskRoleArn: e?.taskRoleArn ?? '',
-        executionRoleArn: e?.executionRoleArn ?? '',
-        status: e?.status ?? 'UNKNOWN',
-        cpuMemory: e?.cpuMemory ?? 'UNKNOWN',
-      }),
       equals: (a: TaskDefinition, b: TaskDefinition) => Object.is(a.cpuMemory, b.cpuMemory)
         && Object.is(a.executionRoleArn, b.executionRoleArn)
         && Object.is(a.family, b.family)
@@ -467,19 +450,6 @@ export const AwsEcsFargateModule: Module = new Module({
     }),
     service: new Mapper<Service>({
       entity: Service,
-      entityPrint: (e: Service) => ({
-        id: e?.id?.toString() ?? '',
-        name: e?.name ?? '',
-        arn: e?.arn ?? '',
-        status: e?.status ?? '',
-        cluster: e?.cluster?.clusterName ?? '',
-        task: e?.task?.taskDefinitionArn ?? '',
-        desiredCount: e?.desiredCount?.toString() ?? '',
-        launchType: 'FARGATE',
-        schedulingStrategy: 'REPLICA',
-        network: e?.assignPublicIp ?? '',
-        targetGroup: e?.targetGroup?.targetGroupName ?? ''
-      }),
       equals: (a: Service, b: Service) => Object.is(a.desiredCount, b.desiredCount)
         && Object.is(a.task?.taskDefinitionArn, b.task?.taskDefinitionArn)
         && Object.is(a.cluster?.clusterName, b.cluster?.clusterName)

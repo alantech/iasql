@@ -68,7 +68,7 @@ begin
     return query select
       j.s->>'action' as action,
       j.s->>'tableName' as table_name,
-      (j.s->>'id')::integer as id,
+      case when j.s->>'id' = '' then null else (j.s->>'id')::integer end as id,
       j.s->>'description' as description
     from (
       select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid
@@ -76,7 +76,7 @@ begin
 end;
 $$;
 
-create or replace function iasql_plan() returns table (
+create or replace function iasql_plan_apply() returns table (
   action text,
   table_name text,
   id integer,
@@ -87,11 +87,11 @@ as $$
 declare
   _opid uuid;
 begin
-    _opid := until_iasql_operation('PLAN', array[]::text[]);
+    _opid := until_iasql_operation('PLAN_APPLY', array[]::text[]);
     return query select
       j.s->>'action' as action,
       j.s->>'tableName' as table_name,
-      (j.s->>'id')::integer as id,
+      case when j.s->>'id' = '' then null else (j.s->>'id')::integer end as id,
       j.s->>'description' as description
     from (
       select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid
@@ -114,7 +114,30 @@ begin
     return query select
       j.s->>'action' as action,
       j.s->>'tableName' as table_name,
-      (j.s->>'id')::integer as id,
+      case when j.s->>'id' = '' then null else (j.s->>'id')::integer end as id,
+      j.s->>'description' as description
+    from (
+      select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid
+    ) as j;
+end;
+$$;
+
+create or replace function iasql_plan_sync() returns table (
+  action text,
+  table_name text,
+  id integer,
+  description text
+)
+language plpgsql security definer
+as $$
+declare
+  _opid uuid;
+begin
+    _opid := until_iasql_operation('PLAN_SYNC', array[]::text[]);
+    return query select
+      j.s->>'action' as action,
+      j.s->>'tableName' as table_name,
+      case when j.s->>'id' = '' then null else (j.s->>'id')::integer end as id,
       j.s->>'description' as description
     from (
       select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid

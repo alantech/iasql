@@ -105,14 +105,6 @@ export const AwsElbModule: Module = new Module({
   mappers: {
     listener: new Mapper<Listener>({
       entity: Listener,
-      entityPrint: (e: Listener) => ({
-        id: e?.id?.toString() ?? '',
-        listenerArn: e?.listenerArn ?? '',
-        loadBalancer: e?.loadBalancer?.loadBalancerName ?? '',
-        port: e?.port?.toString() ?? '',
-        protocol: e?.protocol ?? ProtocolEnum.HTTPS, // TODO: Which?
-        action: e ? `${e.actionType}: ${e.targetGroup?.targetGroupName}` : '',
-      }),
       equals: (a: Listener, b: Listener) => Object.is(a.listenerArn, b.listenerArn)
         && Object.is(a.loadBalancer.loadBalancerArn, b.loadBalancer.loadBalancerArn)
         && Object.is(a.port, b.port)
@@ -229,23 +221,6 @@ export const AwsElbModule: Module = new Module({
     }),
     loadBalancer: new Mapper<LoadBalancer>({
       entity: LoadBalancer,
-      entityPrint: (e: LoadBalancer) => ({
-        id: e?.id?.toString() ?? '',
-        loadBalancerName: e?.loadBalancerName ?? '',
-        loadBalancerArn: e?.loadBalancerArn ?? '',
-        dnsName: e?.dnsName ?? '',
-        canonicalHostedZoneId: e?.canonicalHostedZoneId ?? '',
-        createdTime: e?.createdTime?.toISOString() ?? '',
-        scheme: e?.scheme ?? LoadBalancerSchemeEnum.INTERNET_FACING, // TODO: Which?
-        state: e?.state ?? LoadBalancerStateEnum.ACTIVE, // TODO: Which?
-        loadBalancerType: e?.loadBalancerType ?? LoadBalancerTypeEnum.APPLICATION, // TODO: Which?
-        vpc: e?.vpc ?? '',
-        subnets: e?.subnets?.join(', ') ?? '',
-        availabilityZones: e?.availabilityZones?.join(', ') ?? '',
-        securityGroups: e?.securityGroups?.map(sg => sg.groupName ?? '').join(', ') ?? '',
-        ipAddressType: e?.ipAddressType ?? IpAddressType.DUALSTACK, // TODO: Which?
-        customerOwnedIpv4Pool: e?.customerOwnedIpv4Pool ?? '',
-      }),
       equals: (a: LoadBalancer, b: LoadBalancer) => Object.is(a.availabilityZones?.length, b.availabilityZones?.length)
         && (a.availabilityZones?.filter(aaz => !!aaz).every(aaz => !!b.availabilityZones?.filter(baz => !!baz).find(baz => Object.is(aaz, baz))) ?? false)
         && Object.is(a.canonicalHostedZoneId, b.canonicalHostedZoneId)
@@ -409,23 +384,6 @@ export const AwsElbModule: Module = new Module({
     }),
     targetGroup: new Mapper<TargetGroup>({
       entity: TargetGroup,
-      entityPrint: (e: TargetGroup) => ({
-        id: e?.id?.toString() ?? '',
-        targetGroupName: e?.targetGroupName ?? '',
-        targetGroupArn: e?.targetGroupArn ?? '',
-        ipAddressType: e?.ipAddressType ?? TargetGroupIpAddressTypeEnum.IPV4, // TODO: Which?
-        protocol: e?.protocol ?? ProtocolEnum.HTTPS, // TODO: Which?
-        port: e?.port?.toString() ?? '',
-        vpc: e?.vpc ?? '',
-        healthCheckProtocol: e?.healthCheckProtocol ?? ProtocolEnum.HTTP, // TODO: Which?
-        healthCheckPort: e?.healthCheckPort?.toString() ?? '',
-        healthCheckEnabled: e?.healthCheckEnabled?.toString() ?? '',
-        healthCheckIntervalSeconds: e?.healthCheckIntervalSeconds?.toString() ?? '',
-        healthCheckTimeoutSeconds: e?.healthCheckTimeoutSeconds?.toString() ?? '',
-        unhealthyThresholdCount: e?.unhealthyThresholdCount?.toString() ?? '',
-        healthCheckPath: e?.healthCheckPath ?? '',
-        protocolVersion: e?.protocolVersion ?? ProtocolVersionEnum.HTTP1, // TODO: Which?
-      }),
       equals: (a: TargetGroup, b: TargetGroup) => Object.is(a.targetGroupArn, b.targetGroupArn)
         && Object.is(a.targetGroupName, b.targetGroupName)
         && Object.is(a.targetType, b.targetType)

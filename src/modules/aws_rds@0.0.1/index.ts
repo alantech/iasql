@@ -33,20 +33,6 @@ export const AwsRdsModule: Module = new Module({
   mappers: {
     rds: new Mapper<RDS>({
       entity: RDS,
-      entityPrint: (e: RDS) => ({
-        id: e?.id?.toString() ?? '',
-        dbInstanceIdentifier: e?.dbInstanceIdentifier ?? '',
-        allocatedStorage: e?.allocatedStorage?.toString() ?? '',
-        dbInstanceClass: e?.dbInstanceClass ?? '',
-        engine: e?.engine ?? '',
-        masterUserPassword: e?.masterUserPassword ?? '',
-        masterUsername: e?.masterUsername ?? '',
-        vpcSecurityGroups: e?.vpcSecurityGroups?.map(sg => sg.groupName ?? '').join(', ') ?? '',
-        endpointAddr: e?.endpointAddr ?? '',
-        endpointPort: e?.endpointPort?.toString() ?? '',
-        endpointHostedZoneId: e?.endpointHostedZoneId ?? '',
-        backupRetentionPeriod: e?.backupRetentionPeriod?.toString() ?? '1',
-      }),
       equals: (a: RDS, b: RDS) => Object.is(a.engine, b.engine)
         && Object.is(a.dbInstanceClass, b.dbInstanceClass)
         && Object.is(a.availabilityZone, b.availabilityZone)
