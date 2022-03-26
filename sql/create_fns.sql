@@ -35,8 +35,7 @@ begin
             select err into _err from iasql_operation where opid = _opid;
             -- done!
             if _output is not null and _err is null then
-                raise notice '% succeeded', _optype
-                using detail = _output;
+                return _opid;
             end if;
             if _err is not null then
                 raise exception '% error: %', _optype, _err::json->'message'
@@ -54,27 +53,72 @@ begin
 end;
 $$;
 
-create or replace function iasql_apply() returns void
+create or replace function iasql_apply() returns table (
+  action text,
+  table_name text,
+  id integer,
+  description text
+)
 language plpgsql security definer
 as $$
+declare
+  _opid uuid;
 begin
-    perform until_iasql_operation('APPLY', array[]::text[]);
+    _opid := until_iasql_operation('APPLY', array[]::text[]);
+    return query select
+      j.s->>'action' as action,
+      j.s->>'tableName' as table_name,
+      (j.s->>'id')::integer as id,
+      j.s->>'description' as description
+    from (
+      select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid
+    ) as j;
 end;
 $$;
 
-create or replace function iasql_plan() returns void
+create or replace function iasql_plan() returns table (
+  action text,
+  table_name text,
+  id integer,
+  description text
+)
 language plpgsql security definer
 as $$
+declare
+  _opid uuid;
 begin
-    perform until_iasql_operation('PLAN', array[]::text[]);
+    _opid := until_iasql_operation('PLAN', array[]::text[]);
+    return query select
+      j.s->>'action' as action,
+      j.s->>'tableName' as table_name,
+      (j.s->>'id')::integer as id,
+      j.s->>'description' as description
+    from (
+      select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid
+    ) as j;
 end;
 $$;
 
-create or replace function iasql_sync() returns void
+create or replace function iasql_sync() returns table (
+  action text,
+  table_name text,
+  id integer,
+  description text
+)
 language plpgsql security definer
 as $$
+declare
+  _opid uuid;
 begin
-    perform until_iasql_operation('SYNC', array[]::text[]);
+    _opid := until_iasql_operation('SYNC', array[]::text[]);
+    return query select
+      j.s->>'action' as action,
+      j.s->>'tableName' as table_name,
+      (j.s->>'id')::integer as id,
+      j.s->>'description' as description
+    from (
+      select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid
+    ) as j;
 end;
 $$;
 
