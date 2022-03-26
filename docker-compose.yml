@@ -1,16 +1,17 @@
 version: "3.8"
 services:
   change_engine:
-    build: .
+    build:
+      context: .
+      args:
+        # get from shell command
+        # https://stackoverflow.com/a/48998148
+        IASQL_ENV: |-
+          ${IASQL_ENV}
     ports:
       - "8088:8088"
     links:
       - postgresql
-    environment:
-      - IASQL_ENV=local
-      - PORT=8088
-    env_file:
-      - .env
   postgresql:
     image: postgres:13.4
     ports:

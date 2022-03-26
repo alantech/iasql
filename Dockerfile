@@ -1,6 +1,8 @@
 FROM node:16-bullseye
 WORKDIR /engine/
 COPY . /engine/
+ARG IASQL_ENV
+ENV IASQL_ENV=$IASQL_ENV
 RUN apt update
 RUN apt upgrade -y
 RUN apt install postgresql-client-13 -y
