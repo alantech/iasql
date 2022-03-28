@@ -26,7 +26,6 @@ IASQL_ENV=local docker-compose up --build
 curl \
   --request POST \
   --url 'http://localhost:8088/v1/db/connect/' \
-  --show-error --silent --fail \
   --header 'content-type: application/json' \
   --data '{
     "dbAlias": "<db_name>",
