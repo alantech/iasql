@@ -37,7 +37,7 @@ curl \
   }'
 ```
 
-Now connect to the database is a simple as:
+Now connecting to the database is a simple as:
 
 ```bash
 psql postgres://postgres:test@127.0.0.1:5432/<db_name>
