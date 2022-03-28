@@ -5427,10 +5427,10 @@ typedarray-to-buffer@^3.1.5:
   dependencies:
     is-typedarray "^1.0.0"
 
-typeorm-naming-strategies@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/typeorm-naming-strategies/-/typeorm-naming-strategies-4.0.0.tgz#95f2e33475f814f19fe4d1c72ce0502301bac30a"
-  integrity sha512-0wW2V7n7pEnY405Dlv0A1k1RZq45hambznGioC7JJzN/1bH1ipZXhQJHUAiywOTlaGyWoVxyiWa82awS9Dvj2A==
+typeorm-naming-strategies@^4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/typeorm-naming-strategies/-/typeorm-naming-strategies-4.1.0.tgz#1ec6eb296c8d7b69bb06764d5b9083ff80e814a9"
+  integrity sha512-vPekJXzZOTZrdDvTl1YoM+w+sUIfQHG4kZTpbFYoTsufyv9NIBRe4Q+PdzhEAFA2std3D9LZHEb1EjE9zhRpiQ==
 
 typeorm@^0.2.37:
   version "0.2.45"
