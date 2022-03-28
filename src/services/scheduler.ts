@@ -10,6 +10,8 @@ import { IasqlDatabase } from '../metadata/entity';
 import config from '../config';
 
 const workerShutdownEmitter = new EventEmitter();
+// no max number of listeners warning
+workerShutdownEmitter.setMaxListeners(0);
 
 // graphile-worker here functions as a library, not a child process.
 // It manages its own database schema
@@ -75,7 +77,9 @@ export async function start(dbId: string, dbUser:string) {
           output = typeof output === 'string' ? output : JSON.stringify(output);
           await conn.query(query);
         } catch (e) {
-          const error = logUserErr(e);
+          logUserErr(e);
+          // error must be valid JSON as a string
+          const error = JSON.stringify(e, Object.getOwnPropertyNames(e));
           const query = `
             update iasql_operation
             set end_date = now(), err = '${error}'
