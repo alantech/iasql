@@ -16,7 +16,7 @@ beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown(modules));
 
 describe('AwsCloudwatch Integration Testing', () => {
-  it('creates a new test db', (done) => void iasql.add(
+  it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
     process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
@@ -75,12 +75,12 @@ describe('AwsCloudwatch Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
+    .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
 });
 
 describe('AwsCloudwatch install/uninstall', () => {
-  it('creates a new test db', (done) => void iasql.add(
+  it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
     'us-east-1', // Share region with common tests
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
@@ -102,6 +102,6 @@ describe('AwsCloudwatch install/uninstall', () => {
   it('installs the cloudwatch module', install(modules));
 
   it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
+    .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
 });

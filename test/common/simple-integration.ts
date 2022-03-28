@@ -28,7 +28,7 @@ describe('Basic integration testing', () => {
     execSync(`
       curl \
       --request POST \
-      --url 'http://localhost:8088/v1/db/new/' \
+      --url 'http://localhost:8088/v1/db/connect/' \
       --show-error --silent --fail \
       --header 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
       --header 'content-type: application/json' \
@@ -83,7 +83,7 @@ describe('Basic integration testing', () => {
         -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
         -f \
         -s \
-        -S http://localhost:8088/v1/db/remove/__${sha}__
+        -S http://localhost:8088/v1/db/disconnect/__${sha}__
     `);
   });
 });

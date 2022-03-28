@@ -56,7 +56,7 @@ const iasqlPlanV3 = (
   })(),
 });
 
-export async function add(
+export async function connect(
   dbAlias: string,
   awsRegion: string,
   awsAccessKeyId: string,
@@ -153,7 +153,7 @@ export async function add(
   }
 }
 
-export async function remove(dbAlias: string, uid: string) {
+export async function disconnect(dbAlias: string, uid: string) {
   let conn;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
@@ -164,7 +164,7 @@ export async function remove(dbAlias: string, uid: string) {
     `);
     await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser));
     await MetadataRepo.delDb(uid, dbAlias);
-    return `removed ${dbAlias}`;
+    return `disconnected ${dbAlias}`;
   } catch (e: any) {
     // re-throw
     throw e;
