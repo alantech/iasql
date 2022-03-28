@@ -54,6 +54,7 @@ exports.handler = async function (event) {
       awsRegion: AWS_REGION,
       awsAccessKeyId: ACCESS_KEY_ID,
       awsSecretAccessKey: SECRET_ACCESS_KEY,
+      isReady: false,
     })
     return JSON.stringify(result)
   } catch (error) {
