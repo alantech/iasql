@@ -11,6 +11,7 @@ export interface ConfigInterface {
   sentryEnabled: boolean;
   sentryEnvironment?: string;
   sentryDsn?: string;
+  debugLogger?: boolean;
 };
 
 export const throwError = (message: string): never => { throw new Error(message); };

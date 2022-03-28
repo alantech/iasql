@@ -3,7 +3,7 @@ import * as express from 'express'
 import * as dbMan from '../services/db-manager';
 import MetadataRepo from '../services/repositories/metadata'
 import * as iasql from '../services/iasql';
-import * as logger from '../services/logger';
+import { logUserErr } from '../services/logger';
 import { IasqlDatabase } from '../metadata/entity';
 
 export const mod = express.Router();
@@ -55,7 +55,7 @@ mod.post('/install', async (req, res) => {
     const db: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
     res.json(await iasql.install(list, db.pgName, db.pgUser));
   } catch (e: any) {
-    res.status(400).json(logger.error(e));
+    res.status(400).json(logUserErr(e));
   }
 });
 
@@ -70,7 +70,7 @@ mod.post('/uninstall', async (req, res) => {
     const db: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
     res.json(await iasql.uninstall(list, db.pgName));
   } catch (e: any) {
-    res.status(400).json(logger.error(e));
+    res.status(400).json(logUserErr(e));
   }
 });
 

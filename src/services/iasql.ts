@@ -17,6 +17,7 @@ import * as Modules from '../modules'
 import * as scheduler from './scheduler'
 import { IasqlDatabase } from '../metadata/entity';
 import { AWS } from './gateways/aws';
+import logger, { debugObj } from './logger';
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string, description: string, }[], };
@@ -66,13 +67,13 @@ export async function add(
   let conn1: any, conn2: any, dbId: any, dbUser: any;
   let orm: TypeormWrapper | undefined;
   try {
-    console.log('Creating account for user...');
+    logger.info('Creating account for user...');
     const dbGen = dbMan.genUserAndPass();
     dbUser = dbGen[0];
     const dbPass = dbGen[1];
     dbId = dbMan.genDbId(dbAlias);
     await MetadataRepo.saveDb(uid, email, dbAlias, dbId, dbUser, awsRegion);
-    console.log('Establishing DB connections...');
+    logger.info('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
     await conn1.query(`
       CREATE DATABASE ${dbId};
@@ -88,7 +89,7 @@ export async function add(
     await dbMan.migrate(conn2);
     const queryRunner = conn2.createQueryRunner();
     await Modules.AwsAccount.migrations.install?.(queryRunner);
-    console.log('Adding aws_account@0.0.1 schema...');
+    logger.info('Adding aws_account@0.0.1 schema...');
     // TODO: Use the entity for this in the future?
     await conn2.query(`
       INSERT INTO iasql_module VALUES ('aws_account@0.0.1')
@@ -96,7 +97,7 @@ export async function add(
     await conn2.query(`
       INSERT INTO aws_account (access_key_id, secret_access_key, region) VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}')
     `);
-    console.log('Loading aws_account data...');
+    logger.info('Loading aws_account data...');
     // Manually load the relevant data from the cloud side for the `aws_account` module.
     // TODO: Figure out how to eliminate *most* of this special-casing for this module in the future
     const entities: Function[] = Object.values(Modules.AwsAccount.mappers).map(m => m.entity);
@@ -106,10 +107,10 @@ export async function add(
     const mappers = Object.values(Modules.AwsAccount.mappers);
     const context: Modules.Context = { orm, memo: {}, ...Modules.AwsAccount.provides.context, };
     for (const mapper of mappers) {
-      console.log(`Loading aws_account table ${mapper.entity.name}...`);
+      logger.info(`Loading aws_account table ${mapper.entity.name}...`);
       const e = await mapper.cloud.read(context);
       if (!e || (Array.isArray(e) && !e.length)) {
-        console.log(`${mapper.entity.name} has no records in the cloud to store`);
+        logger.info(`${mapper.entity.name} has no records in the cloud to store`);
       } else {
         // Since we manually inserted a half-broken record into `region` above, we need extra logic
         // here to make sure the newly-acquired records are properly inserted/updated in the DB. The
@@ -131,7 +132,7 @@ export async function add(
     }
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
-    console.log('Done!');
+    logger.info('Done!');
     return {
       alias: dbAlias,
       id: dbId,
@@ -280,7 +281,7 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
 
 export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
-  console.log(`Applying ${dbId}`);
+  logger.info(`Applying ${dbId}`);
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
@@ -301,7 +302,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
       .flat()
       .filter(mapper => mapper.source === 'db');
     const t2 = Date.now();
-    console.log(`Setup took ${t2 - t1}ms`);
+    logger.info(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
     let failureCount = -1;
     const toCreate: Crupde = {};
@@ -329,7 +330,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
           await mapper.cloud.read(context);
         }));
         const t3 = Date.now();
-        console.log(`Record acquisition time: ${t3 - t2}ms`);
+        logger.info(`Record acquisition time: ${t3 - t2}ms`);
         const records = colToRow({
           table: tables,
           mapper: mappers,
@@ -339,7 +340,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
           idGen: idGens,
         });
         const t4 = Date.now();
-        console.log(`AWS Mapping time: ${t4 - t3}ms`);
+        logger.info(`AWS Mapping time: ${t4 - t3}ms`);
         if (!records.length) { // Only possible on just-created databases
           return JSON.stringify({
             iasqlPlanVersion: 3,
@@ -409,14 +410,14 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
           });
         }
         const t5 = Date.now();
-        console.log(`Diff time: ${t5 - t4}ms`);
+        logger.info(`Diff time: ${t5 - t4}ms`);
         const promiseGenerators = records
           .map(r => {
             const name = r.table;
-            console.log(`Checking ${name}`);
+            logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInDbOnly.length > 0) {
-              console.log(`${name} has records to create`);
+              logger.info(`${name} has records to create`);
               outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 const out = await r.mapper.cloud.create(e, context);
                 if (out) {
@@ -430,7 +431,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
               }));
             }
             if (r.diff.entitiesChanged.length > 0) {
-              console.log(`${name} has records to update`);
+              logger.info(`${name} has records to update`);
               outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
                 const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
                 if (out) {
@@ -444,7 +445,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
               }));
             }
             if (r.diff.entitiesInAwsOnly.length > 0) {
-              console.log(`${name} has records to delete`);
+              logger.info(`${name} has records to delete`);
               outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 await r.mapper.cloud.delete(e, context);
               }));
@@ -463,15 +464,15 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
             ranUpdate = false;
           }
           const t6 = Date.now();
-          console.log(`AWS update time: ${t6 - t5}ms`);
+          logger.info(`AWS update time: ${t6 - t5}ms`);
         }
       } while(ranUpdate);
     } while (ranFullUpdate);
     const t7 = Date.now();
-    console.log(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
+    logger.info(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
     return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
   } catch (e: any) {
-    console.dir(e, { depth: 6, });
+    debugObj(e);
     throw e;
   } finally {
     // do not drop the conn if it was provided
@@ -481,7 +482,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
 
 export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
-  console.log(`Syncing ${dbId}`);
+  logger.info(`Syncing ${dbId}`);
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
@@ -501,7 +502,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
       .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
       .flat();
     const t2 = Date.now();
-    console.log(`Setup took ${t2 - t1}ms`);
+    logger.info(`Setup took ${t2 - t1}ms`);
     let ranFullUpdate = false;
     let failureCount = -1;
     const toCreate: Crupde = {};
@@ -529,7 +530,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
           await mapper.db.read(context);
         }));
         const t3 = Date.now();
-        console.log(`Record acquisition time: ${t3 - t2}ms`);
+        logger.info(`Record acquisition time: ${t3 - t2}ms`);
         const records = colToRow({
           table: tables,
           mapper: mappers,
@@ -539,7 +540,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
           idGen: idGens,
         });
         const t4 = Date.now();
-        console.log(`AWS Mapping time: ${t4 - t3}ms`);
+        logger.info(`AWS Mapping time: ${t4 - t3}ms`);
         if (!records.length) { // Only possible on just-created databases
           return JSON.stringify({
             iasqlPlanVersion: 3,
@@ -602,14 +603,14 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
           });
         }
         const t5 = Date.now();
-        console.log(`Diff time: ${t5 - t4}ms`);
+        logger.info(`Diff time: ${t5 - t4}ms`);
         const promiseGenerators = records
           .map(r => {
             const name = r.table;
-            console.log(`Checking ${name}`);
+            logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInAwsOnly.length > 0) {
-              console.log(`${name} has records to create`);
+              logger.info(`${name} has records to create`);
               outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 const out = await r.mapper.db.create(e, context);
                 if (out) {
@@ -623,7 +624,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
               }));
             }
             if (r.diff.entitiesChanged.length > 0) {
-              console.log(`${name} has records to update`);
+              logger.info(`${name} has records to update`);
               outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
                 ec.cloud.id = ec.db.id;
                 const out = await r.mapper.db.update(ec.cloud, context); // When `sync`ing we assume SoT is the Cloud
@@ -638,7 +639,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
               }));
             }
             if (r.diff.entitiesInDbOnly.length > 0) {
-              console.log(`${name} has records to delete`);
+              logger.info(`${name} has records to delete`);
               outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 await r.mapper.db.delete(e, context);
               }));
@@ -657,15 +658,15 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
             ranUpdate = false;
           }
           const t6 = Date.now();
-          console.log(`AWS update time: ${t6 - t5}ms`);
+          logger.info(`AWS update time: ${t6 - t5}ms`);
         }
       } while(ranUpdate);
     } while (ranFullUpdate);
     const t7 = Date.now();
-    console.log(`${dbId} synced, total time: ${t7 - t1}ms`);
+    logger.info(`${dbId} synced, total time: ${t7 - t1}ms`);
     return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
   } catch (e: any) {
-    console.dir(e, { depth: 6, });
+    debugObj(e);
     throw e;
   } finally {
     // do not drop the conn if it was provided
@@ -764,9 +765,8 @@ ${Object.keys(tableCollisions)
   // modules have a dependency on.
   try {
     await sync(dbId, false, orm);
-  } catch (e) {
-    console.log('Sync during module install failed');
-    console.log(e);
+  } catch (e: any) {
+    logger.error('Sync during module install failed', e);
     throw e;
   }
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
@@ -828,20 +828,17 @@ ${Object.keys(tableCollisions)
         let e;
         try {
           e = await mapper.cloud.read(context);
-        } catch (err) {
-          console.log(`Error reading from cloud entitiy ${mapper.entity.name}`);
-          console.error(err);
+        } catch (err: any) {
+          logger.error(`Error reading from cloud entitiy ${mapper.entity.name}`, err);
           throw err;
         }
         if (!e || (Array.isArray(e) && !e.length)) {
-          console.log('Completely unexpected outcome');
-          console.log({ mapper, e, context, });
+          logger.error('Completely unexpected outcome', { mapper, e, context, });
         } else {
           try {
             await mapper.db.create(e, context);
-          } catch (err) {
-            console.log(`Error importing from cloud entitiy ${mapper.entity.name}`);
-            console.error(err);
+          } catch (err: any) {
+            logger.error(`Error reading from cloud entitiy ${mapper.entity.name}`, err);
             throw err;
           }
         }
