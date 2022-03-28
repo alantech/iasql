@@ -20,7 +20,12 @@ export class IasqlDatabase {
   region: string;
 
   @Column()
-  pgUser: string
+  pgUser: string;
+
+  @Column({
+    default: true,
+  })
+  isReady: boolean;
 }
 
 @Entity()
@@ -38,5 +43,5 @@ export class IasqlUser {
   @JoinTable({
     name: 'iasql_user_databases',
   })
-  iasqlDatabases: IasqlDatabase[]
+  iasqlDatabases: IasqlDatabase[];
 }

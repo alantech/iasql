@@ -34,12 +34,13 @@ class MetadataRepo {
     this.dbRepo = this.conn.getRepository(IasqlDatabase);
   }
 
-  async saveDb(a0Id: string, email: string, dbAlias: string, dbId: string, dbUser: string, region: string): Promise<IasqlDatabase> {
+  async saveDb(a0Id: string, email: string, dbAlias: string, dbId: string, dbUser: string, region: string, isReady: boolean): Promise<IasqlDatabase> {
     const db = new IasqlDatabase();
     db.alias = dbAlias;
     db.pgName = dbId;
     db.pgUser = dbUser;
     db.region = region;
+    db.isReady = isReady;
     let user = await this.userRepo.findOne(a0Id);
     if (!user) {
       user = new IasqlUser();

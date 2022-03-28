@@ -61,6 +61,7 @@ export async function add(
   awsSecretAccessKey: string,
   uid: string,
   email: string,
+  isReady = true,
 ) {
   let conn1: any, conn2: any, dbId: any, dbUser: any;
   let orm: TypeormWrapper | undefined;
@@ -70,7 +71,7 @@ export async function add(
     dbUser = dbGen[0];
     const dbPass = dbGen[1];
     dbId = dbMan.genDbId(dbAlias);
-    await MetadataRepo.saveDb(uid, email, dbAlias, dbId, dbUser, awsRegion);
+    await MetadataRepo.saveDb(uid, email, dbAlias, dbId, dbUser, awsRegion, isReady);
     console.log('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
     await conn1.query(`
