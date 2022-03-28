@@ -4,7 +4,7 @@ import { IasqlDatabase } from '../metadata/entity';
 import * as dbMan from '../services/db-manager';
 import * as iasql from '../services/iasql'
 import MetadataRepo from '../services/repositories/metadata'
-import * as logger from '../services/logger'
+import { logUserErr } from '../services/logger'
 
 export const db = express.Router();
 
@@ -23,7 +23,7 @@ db.post('/new', async (req, res) => {
       )
     );
   } catch (e) {
-    res.status(500).end(logger.error(e));
+    res.status(500).end(logUserErr(e));
   }
 });
 
@@ -52,7 +52,7 @@ db.post('/export', async (req, res) => {
   try {
     res.send(await iasql.dump(dbAlias, dbMan.getUid(req.user), !!dataOnly));
   } catch (e) {
-    res.status(500).end(logger.error(e));
+    res.status(500).end(logUserErr(e));
   }
 });
 
@@ -60,7 +60,7 @@ db.get('/list', async (req, res) => {
   try {
     res.json(await iasql.list(dbMan.getUid(req.user), dbMan.getEmail(req.user), req.query.verbose === 'true'));
   } catch (e) {
-    res.status(500).end(logger.error(e));
+    res.status(500).end(logUserErr(e));
   }
 });
 
@@ -70,7 +70,7 @@ db.get('/remove/:dbAlias', async (req, res) => {
   try {
     res.json(await iasql.remove(dbAlias, dbMan.getUid(req.user)));
   } catch (e) {
-    res.status(500).end(logger.error(e));
+    res.status(500).end(logUserErr(e));
   }
 });
 
@@ -81,7 +81,7 @@ db.post('/apply', async (req, res) => {
     const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
     res.json(await iasql.apply(database.pgName, dryRun));
   } catch (e) {
-    res.status(500).end(logger.error(e));
+    res.status(500).end(logUserErr(e));
   }
 });
 
@@ -92,7 +92,7 @@ db.post('/sync', async (req, res) => {
     const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
     res.json(await iasql.sync(database.pgName, dryRun));
   } catch (e) {
-    res.status(500).end(logger.error(e));
+    res.status(500).end(logUserErr(e));
   }
 });
 
@@ -103,7 +103,7 @@ db.get('/get/:dbAlias', async (req, res) => {
     const dbs = await iasql.list(dbMan.getUid(req.user), dbMan.getEmail(req.user), false);
     res.json((dbs as string[]).find((alias: string) => alias === dbAlias));
   } catch (e) {
-    res.status(500).end(logger.error(e));
+    res.status(500).end(logUserErr(e));
   }
 });
 
@@ -114,6 +114,6 @@ db.get('/:dbAlias/awsCfnStack/:stackName', async (req, res) => {
   try {
     res.json(await iasql.getStackInfo(database.pgName, stackName));
   } catch (e: any) {
-    res.status(500).json(logger.error(e));
+    res.status(500).json(logUserErr(e));
   }
 });

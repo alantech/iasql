@@ -13,6 +13,7 @@ const config: ConfigInterface = {
   sentryEnabled: false,
   sentryDsn: undefined,
   sentryEnvironment: undefined,
+  debugLogger: false,
 };
 
 export default config;

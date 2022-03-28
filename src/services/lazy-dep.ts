@@ -1,3 +1,5 @@
+import logger from './logger';
+
 export class DepError {
   message: string
   metadata?: any
@@ -9,7 +11,7 @@ export class DepError {
 }
 
 export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
-  console.log('Running lazyLoader...');
+  logger.info('Running lazyLoader...');
   // Set up the tracking variables for the promise execution
   let generatorsToRun = [...promiseGenerators]; // Shallow clone to not mutate the input
   // Running at least one time, run every promise in parallel, and mark the failures to attempt
@@ -18,7 +20,7 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
   // was an unrecoverable failure, which causes this function to also fail.
   const failures = [];
   do {
-    console.log('Starting a loop...');
+    logger.info('Starting a loop...');
     const results = await Promise.allSettled(generatorsToRun.map(g => g()));
     const generatorsToRerun = [];
     for (let i = 0; i < results.length; i++) {
@@ -34,7 +36,7 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
     if (generatorsToRun.length === generatorsToRerun.length) break;
     generatorsToRun = generatorsToRerun;
   } while (generatorsToRun.length > 0);
-  console.log('lazyLoader done!');
+  logger.info('lazyLoader done!');
   // Handle the success and error paths
   if (generatorsToRun.length === 0) {
     return true;
