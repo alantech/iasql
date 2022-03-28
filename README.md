@@ -13,7 +13,7 @@
 
 ---
 
-# CLoud Infrastructure as data in PostgreSQL
+# Cloud infrastructure as data in PostgreSQL
 
 [IaSQL](https://iasql.com) is an open-source SaaS that lets you model your infrastructure as data by maintaining a 2-way connection between your AWS account and a PostgreSQL database.
 
