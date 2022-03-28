@@ -4,6 +4,7 @@ const exec = promisify(execNode);
 
 import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
+import { snakeCase, } from 'typeorm/util/StringUtils'
 
 import { DepError, lazyLoader, } from '../services/lazy-dep'
 import { findDiff, } from '../services/diff'
@@ -36,19 +37,19 @@ const iasqlPlanV3 = (
     const out: any[] = [];
     Object.keys(toCreate).forEach(tbl => {
       const recs = toCreate[tbl];
-      recs.forEach(rec => out.push({ action: 'create', tableName: tbl, ...rec, }));
+      recs.forEach(rec => out.push({ action: 'create', tableName: snakeCase(tbl), ...rec, }));
     });
     Object.keys(toUpdate).forEach(tbl => {
       const recs = toUpdate[tbl];
-      recs.forEach(rec => out.push({ action: 'update', tableName: tbl, ...rec, }));
+      recs.forEach(rec => out.push({ action: 'update', tableName: snakeCase(tbl), ...rec, }));
     });
     Object.keys(toReplace).forEach(tbl => {
       const recs = toReplace[tbl];
-      recs.forEach(rec => out.push({ action: 'replace', tableName: tbl, ...rec, }));
+      recs.forEach(rec => out.push({ action: 'replace', tableName: snakeCase(tbl), ...rec, }));
     });
     Object.keys(toDelete).forEach(tbl => {
       const recs = toDelete[tbl];
-      recs.forEach(rec => out.push({ action: 'delete', tableName: tbl, ...rec, }));
+      recs.forEach(rec => out.push({ action: 'delete', tableName: snakeCase(tbl), ...rec, }));
     });
     return out;
   })(),
