@@ -13,18 +13,18 @@ Metadata:
       Parameters:
       - pIasqlDbName
       - pAwsRegion
-      - pA0Token
+      - pAuthToken
       - pIasqlUrl
       - pIasqlBucket
     ParameterLabels:
       pIasqlDbName:
         default: IaSQL Database Name
       pAwsRegion:
-        default: AWS Region
+        default: IaSQL AWS Region
       pIasqlUrl:
         default: IaSQL API URL
-      pA0Token:
-        default: IaSQL Bearer Token
+      pAuthToken:
+        default: IaSQL Auth Bearer Token
       pIasqlBucket:
         default: IaSQL S3 Bucket
 
@@ -43,7 +43,7 @@ Parameters:
   pIasqlUrl:
     Type: String
     Description: Do not modify
-  pA0Token:
+  pAuthToken:
     Type: String
     Description: Do not modify
   pIasqlBucket:
@@ -138,7 +138,7 @@ Resources:
           secret_access_key: !GetAtt 'rIamUserAccessKey.SecretAccessKey'
           aws_region: !Ref 'pAwsRegion'
           db_alias: !Ref 'pIasqlDbName'
-          a0_token: !Ref 'pA0Token'
+          auth_token: !Ref 'pAuthToken'
           api_url: !Ref 'pIasqlUrl'
       Handler: index.handler
       Timeout: 60

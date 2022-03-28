@@ -4,7 +4,7 @@ const ACCESS_KEY_ID = process.env.access_key_id
 const SECRET_ACCESS_KEY = process.env.secret_access_key
 const AWS_REGION = process.env.aws_region
 const DB_ALIAS = process.env.db_alias
-const A0_TOKEN = process.env.a0_token
+const AUTH_TOKEN = process.env.auth_token
 const API_URL = process.env.api_url
 
 function postNewDb(body) {
@@ -13,7 +13,7 @@ function postNewDb(body) {
     path: '/v1/db/new/',
     method: 'POST',
     port: 443,
-    headers: {'Content-Type': 'application/json', Authorization: `Bearer ${A0_TOKEN}`},
+    headers: {'Content-Type': 'application/json', Authorization: `Bearer ${AUTH_TOKEN}`},
   }
 
   return new Promise((resolve, reject) => {
