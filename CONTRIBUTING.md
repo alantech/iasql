@@ -22,7 +22,6 @@ IASQL_ENV=local docker-compose up --build
 
 `IASQL_ENV=local` configures the engine to use the values from `src/config/local.ts`. The Postgres superadmin user will be `postgres` and its password `test`. The Node.js server will start on port 8088. To create a new database in your local Postgres engine and connect it to an AWS account (and whatever region you prefer) send the following HTTP request to the local engine:
 
-
 ```bash
 curl \
   --request POST \

@@ -13,13 +13,13 @@
 
 ---
 
-# Infrastructure as a SQL DB
+# CLoud Infrastructure as data in PostgreSQL
 
-[IaSQL](https://iasql.com) lets you model your infrastructure as data by maintaining a 2-way connection between your AWS account and a Postgres SQL database.
+[IaSQL](https://iasql.com) is an open-source SaaS that lets you model your infrastructure as data by maintaining a 2-way connection between your AWS account and a PostgreSQL database.
 
-## ⚡️ Install
+## ⚡️ Try out IaSQL
 
-To install the SaaS CLI, visit [docs.iasql.com/install](https://docs.iasql.com/install)
+Use the dashboard to connect a hosted PostgreSQL database to an AWS account. Visit [app.iasql.com](https://app.iasql.com)
 
 ## 💬 Community, Support and Questions
 
