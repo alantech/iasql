@@ -68,7 +68,7 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
   const { dbAlias } = req.params;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   try {
-    res.json(await iasql.remove(dbAlias, dbMan.getUid(req.user)));
+    res.json(await iasql.disconnect(dbAlias, dbMan.getUid(req.user)));
   } catch (e) {
     res.status(500).end(logUserErr(e));
   }
