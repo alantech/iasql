@@ -82,7 +82,7 @@ export const AwsSecurityGroupModule: Module = new Module({
         const newGroup = await client.getSecurityGroup(result.GroupId ?? '');
         // We map this into the same kind of entity as `obj`
         const newEntity = await AwsSecurityGroupModule.utils.sgMapper(newGroup, ctx);
-        if (doNotSave) return newEntity; // Hackery of the worst kind
+        if (doNotSave) return newEntity;
         // We attach the original object's ID to this new one, indicating the exact record it is
         // replacing in the database.
         newEntity.id = e.id;
