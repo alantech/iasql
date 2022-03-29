@@ -95,6 +95,14 @@ class MetadataRepo {
     // remove entry
     await this.dbRepo.delete(dbToDel);
   }
+
+  async updateDbStatus(a0Id: string, dbAlias: string, status: boolean) {
+    const user = await this.userRepo.findOneOrFail(a0Id);
+    const dbToUpdate = user.iasqlDatabases.find(db => db.alias === dbAlias);
+    if (!dbToUpdate) throw new Error(`User with ID ${a0Id} has no IaSQL database with alias ${dbAlias}`);
+    dbToUpdate.isReady = status;
+    await this.dbRepo.save(dbToUpdate);
+  }
 }
 const singleton = new MetadataRepo();
 export default singleton;
