@@ -28,23 +28,23 @@ curl \
   --url 'http://localhost:8088/v1/db/connect/' \
   --header 'content-type: application/json' \
   --data '{
-    "dbAlias": "<db_name>",
-    "awsRegion": "${process.env.AWS_REGION}",
-    "awsAccessKeyId": "${process.env.AWS_ACCESS_KEY_ID}",
-    "awsSecretAccessKey": "${process.env.AWS_SECRET_ACCESS_KEY}"
+    "dbAlias": "DB_NAME",
+    "awsRegion": "$AWS_REGION",
+    "awsAccessKeyId": "$AWS_ACCESS_KEY_ID",
+    "awsSecretAccessKey": "$AWS_SECRET_ACCESS_KEY"
   }'
 ```
 
 Now connecting to the database is a simple as:
 
 ```bash
-psql postgres://postgres:test@127.0.0.1:5432/<db_name>
+psql postgres://postgres:test@127.0.0.1:5432/DB_NAME
 ```
 
 You are off to the races! If you wish to disconnect the local database from the AWS account and remove it from the engine simply run:
 
 ```bash
-curl -f -s -S http://localhost:8088/v1/db/disconnect/<db_name>
+curl -f -s -S http://localhost:8088/v1/db/disconnect/DB_NAME
 ```
 
 ## How to develop IaSQL
