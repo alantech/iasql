@@ -4,12 +4,14 @@ import { run } from 'graphile-worker';
 import { IasqlOperationType } from '../entity/operation';
 import MetadataRepo from './repositories/metadata'
 import * as iasql from '../services/iasql'
-import * as logger from '../services/logger'
+import logger, { logUserErr } from '../services/logger'
 import { TypeormWrapper } from './typeorm';
 import { IasqlDatabase } from '../metadata/entity';
 import config from '../config';
 
 const workerShutdownEmitter = new EventEmitter();
+// no max number of listeners warning
+workerShutdownEmitter.setMaxListeners(0);
 
 // graphile-worker here functions as a library, not a child process.
 // It manages its own database schema
@@ -25,6 +27,7 @@ export async function start(dbId: string, dbUser:string) {
   const runner = await run({
     pgPool: conn.getMasterConnection(),
     concurrency: 5,
+    logger,
     // Install signal handlers for graceful shutdown on SIGINT, SIGTERM, etc
     noHandleSignals: false,
     pollInterval: 1000, // ms
@@ -70,11 +73,12 @@ export async function start(dbId: string, dbUser:string) {
             set end_date = now(), output = '${output}'
             where opid = uuid('${opid}');
           `;
-          console.log(query);
+          logger.debug(query);
           output = typeof output === 'string' ? output : JSON.stringify(output);
           await conn.query(query);
         } catch (e) {
-          console.error(e);
+          logUserErr(e);
+          // error must be valid JSON as a string
           const error = JSON.stringify(e, Object.getOwnPropertyNames(e));
           const query = `
             update iasql_operation
@@ -85,9 +89,6 @@ export async function start(dbId: string, dbUser:string) {
         }
       },
     },
-  });
-  runner.promise.catch((e) => {
-    logger.error(e);
   });
   // register the shutdown listener
   workerShutdownEmitter.on(dbId, async () => {

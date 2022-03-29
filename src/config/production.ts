@@ -14,6 +14,7 @@ const config: ConfigInterface = {
   sentryEnabled: true,
   sentryEnvironment: 'production',
   sentryDsn: 'https://e257e8d6646e4657b4f556efc1de31e8@o1090662.ingest.sentry.io/6106929',
+  debugLogger: true,
 };
 
 export default config;

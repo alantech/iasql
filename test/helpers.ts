@@ -82,7 +82,7 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
   const dbAlias = `cleandb${Date.now()}`;
   const awsRegion = region ?? process.env.AWS_REGION ?? 'barf';
   console.log(`Cleaning ${dbAlias} in ${awsRegion}...`);
-  await iasql.add(dbAlias, awsRegion, process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed', 'not-needed');
+  await iasql.connect(dbAlias, awsRegion, process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.  AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed', 'not-needed');
   console.log('DB created...');
   await iasql.install(modules, dbAlias, config.dbUser);
   console.log(`Modules ${modules} installed...`);
@@ -138,6 +138,6 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
   const res = await iasql.apply(dbAlias, false);
   console.log('Deletes applied...');
   console.dir(res, {depth: 6});
-  await iasql.remove(dbAlias, 'not-needed');
+  await iasql.disconnect(dbAlias, 'not-needed');
   console.log('DB removed...');
 }

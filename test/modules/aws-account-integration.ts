@@ -20,7 +20,7 @@ afterAll(async () => await execComposeDown());
 
 describe('AwsAccount Integration Testing', () => {
   // TODO: Restore some mechanism to verify credentials
-  /*it('does not create a test DB with fake credentials', (done) => void iasql.add(
+  /*it('does not create a test DB with fake credentials', (done) => void iasql.connect(
     dbAlias,
     process.env.AWS_REGION ?? 'barf',
     'fake',
@@ -30,7 +30,7 @@ describe('AwsAccount Integration Testing', () => {
       () => done(),
     ));*/
 
-  it('creates a new test db with the same name', (done) => void iasql.add(
+  it('creates a new test db with the same name', (done) => void iasql.connect(
     dbAlias,
     process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
@@ -63,6 +63,6 @@ describe('AwsAccount Integration Testing', () => {
   `));
 
   it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
+    .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
 });

@@ -20,14 +20,14 @@ beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown(modules));
 
 describe('EC2 Integration Testing', () => {
-  it('creates a new test db', (done) => void iasql.add(
+  it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
     region,
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
 
-  it('creates a new test db to test sync', (done) => void iasql.add(
+  it('creates a new test db to test sync', (done) => void iasql.connect(
     `${dbAlias}_sync`,
     'us-east-1', // Share region with common tests
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
@@ -138,16 +138,16 @@ describe('EC2 Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
+    .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
 
   it('deletes the test sync db', (done) => void iasql
-    .remove(`${dbAlias}_sync`, 'not-needed')
+    .disconnect(`${dbAlias}_sync`, 'not-needed')
     .then(...finish(done)));
 });
 
 describe('EC2 install/uninstall', () => {
-  it('creates a new test db', (done) => void iasql.add(
+  it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
     'us-east-1', // Share region with common tests
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
@@ -173,6 +173,6 @@ describe('EC2 install/uninstall', () => {
   `));
 
   it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
+    .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
 });

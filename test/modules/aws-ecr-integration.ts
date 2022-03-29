@@ -20,7 +20,7 @@ beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown(modules));
 
 describe('ECR Integration Testing', () => {
-  it('creates a new test db', (done) => void iasql.add(
+  it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
     process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
@@ -206,12 +206,12 @@ describe('ECR Integration Testing', () => {
   });
 
   it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
+    .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
 });
 
 describe('ECR install/uninstall', () => {
-  it('creates a new test db', (done) => void iasql.add(
+  it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
     'us-east-1', // Share region with common tests
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
@@ -233,6 +233,6 @@ describe('ECR install/uninstall', () => {
   it('installs the ECR module', install(modules));
 
   it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
+    .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
 });
