@@ -90,7 +90,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               e.groupName = actualEntity.groupName;
               e.ownerId = actualEntity.ownerId;
               e.vpcId = actualEntity.vpcId;
-              await ctx.orm.save(SecurityGroup, e);
+              if (e.id) await ctx.orm.save(SecurityGroup, e);
               if (e.groupId) {
                 ctx.memo.db.SecurityGroup[e.groupId] = e;
               }
@@ -101,7 +101,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               const vpcs = (await client.getVpcs()).Vpcs;
               const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
               e.vpcId = defaultVpc.VpcId;
-              await ctx.orm.save(SecurityGroup, e);
+              if (e.id) await ctx.orm.save(SecurityGroup, e);
               if (e.groupId) {
                 ctx.memo.db.SecurityGroup[e.groupId] = e;
               }
@@ -121,6 +121,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             const newGroup = await client.getSecurityGroup(result.GroupId ?? '');
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsSecurityGroupModule.utils.sgMapper(newGroup, ctx);
+            if ((e as any).donotsave) return newEntity; // Hackery of the worst kind
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database.
             newEntity.id = e.id;
@@ -148,7 +149,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             // the other properties
             const cloudRecord = ctx?.memo?.cloud?.SecurityGroup?.[e.groupId ?? ''];
             cloudRecord.id = e.id;
-            await AwsSecurityGroupModule.mappers.securityGroup.db.update(cloudRecord, ctx);
+            if (e.id) await AwsSecurityGroupModule.mappers.securityGroup.db.update(cloudRecord, ctx);
           } else {
             // AWS does not have a way to update the top-level SecurityGroup entity. You can
             // update the various rules associated with it, but not the name or description of the
@@ -171,6 +172,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               // to the DB like create does (at least right now, if that changes, we need to
               // rethink this logic here)
               e.groupName = Date.now().toString();
+              (e as any).donotsave = true; // Hackery of the worst kind
               return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
             }
           }
@@ -212,9 +214,17 @@ export const AwsSecurityGroupModule: Module = new Module({
                 (r: SecurityGroupRule) => r.securityGroup.groupId === e.groupId
               );
               await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(relevantRules, ctx);
-              // Let's flush the caches here, too?
-              ctx.memo.cloud.SecurityGroup = {};
-              ctx.memo.db.SecurityGroup = {};
+              // Let's clear the record from the caches here, too?
+              ctx.memo.cloud.SecurityGroup = Object.fromEntries(
+                Object
+                  .entries(ctx.memo.cloud.SecurityGroup)
+                  .filter(([_, v]) => e.groupId !== (v as SecurityGroup).groupId)
+              );
+              ctx.memo.db.SecurityGroup = Object.fromEntries(
+                Object
+                  .entries(ctx.memo.db.SecurityGroup)
+                  .filter(([_, v]) => e.groupId !== (v as SecurityGroup).groupId)
+              );
             }
           }));
         },
@@ -344,9 +354,23 @@ export const AwsSecurityGroupModule: Module = new Module({
               throw new Error(`Failed to remove the security group rules ${res}`);
             }
           }
-          // Let's just flush both caches on a delete and force it to rebuild them?
-          ctx.memo.cloud.SecurityGroupRule = {};
-          ctx.memo.db.SecurityGroupRule = {};
+          // Let's just clear the record from both caches on a delete
+          ctx.memo.cloud.SecurityGroupRule = Object.fromEntries(
+            Object
+              .entries(ctx.memo.cloud.SecurityGroupRule)
+              .filter(([_, v]) => !es
+                .map(e => e.securityGroupRuleId)
+                .includes((v as SecurityGroupRule).securityGroupRuleId)
+              )
+          );
+          ctx.memo.db.SecurityGroupRule = Object.fromEntries(
+            Object
+              .entries(ctx.memo.db.SecurityGroupRule)
+              .filter(([_, v]) => !es
+                .map(e => e.securityGroupRuleId)
+                .includes((v as SecurityGroupRule).securityGroupRuleId)
+              )
+          );
         },
       }),
     }),
