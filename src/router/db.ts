@@ -4,12 +4,12 @@ import { IasqlDatabase } from '../metadata/entity';
 import * as dbMan from '../services/db-manager';
 import * as iasql from '../services/iasql'
 import MetadataRepo from '../services/repositories/metadata'
-import { logUserErr } from '../services/logger'
+import logger, { logUserErr } from '../services/logger'
 
 export const db = express.Router();
 
 db.get('/connect/:dbAlias/:awsRegion/:awsAccessKeyId/:awsSecretAccessKey', async (req, res) => {
-  console.log('Calling /connect');
+  logger.info('Calling /connect');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.params;
   if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
     `Required key(s) not provided: ${[
@@ -28,7 +28,7 @@ db.get('/connect/:dbAlias/:awsRegion/:awsAccessKeyId/:awsSecretAccessKey', async
 });
 
 db.post('/connect', async (req, res) => {
-  console.log('Calling /connect');
+  logger.info('Calling /connect');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
     `Required key(s) not provided: ${[
@@ -65,7 +65,7 @@ db.post('/connect', async (req, res) => {
 });*/
 
 db.post('/export', async (req, res) => {
-  console.log('Calling /export');
+  logger.info('Calling /export');
   const { dbAlias, dataOnly } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   try {
