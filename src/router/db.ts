@@ -46,6 +46,27 @@ db.post('/connect', async (req, res) => {
   }
 });
 
+db.post('/attach', async (req, res) => {
+  console.log('Calling /attach');
+  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
+  if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
+    `Required key(s) not provided: ${[
+      'awsRegion', 'dbAlias', 'awsAccessKeyId', 'awsSecretAccessKey'
+    ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
+  );
+  try {
+    const uid = dbMan.getUid(req.user);
+    const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+    res.json(
+      await iasql.attach(
+        uid, dbAlias, database.pgName, awsRegion, awsAccessKeyId, awsSecretAccessKey
+      )
+    );
+  } catch (e) {
+    res.status(500).end(logUserErr(e));
+  }
+});
+
 // TODO revive and test
 /*db.post('/import', async (req, res) => {
   console.log('Calling /import');
