@@ -178,6 +178,9 @@ export async function attach(
         }
       }
     }
+    return {
+      alias: dbAlias,
+    };
   } catch (e) {
     throw e;
   } finally {
