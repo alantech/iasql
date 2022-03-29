@@ -8,6 +8,25 @@ import { logUserErr } from '../services/logger'
 
 export const db = express.Router();
 
+db.get('/connect/:dbAlias/:awsRegion/:awsAccessKeyId/:awsSecretAccessKey', async (req, res) => {
+  console.log('Calling /connect');
+  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.params;
+  if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
+    `Required key(s) not provided: ${[
+      'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
+    ].filter(k => !req.params.hasOwnProperty(k)).join(', ')}`
+  );
+  try {
+    res.json(
+      await iasql.connect(
+        dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, dbMan.getUid(req.user), dbMan.getEmail(req.user)
+      )
+    );
+  } catch (e) {
+    res.status(500).end(logUserErr(e));
+  }
+});
+
 db.post('/connect', async (req, res) => {
   console.log('Calling /connect');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;

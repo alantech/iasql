@@ -23,28 +23,19 @@ IASQL_ENV=local docker-compose up --build
 `IASQL_ENV=local` configures the engine to use the values from `src/config/local.ts`. The Postgres superadmin user will be `postgres` and its password `test`. The Node.js server will start on port 8088. To create a new database in your local Postgres engine and connect it to an AWS account (and whatever region you prefer) send the following HTTP request to the local engine:
 
 ```bash
-curl \
-  --request POST \
-  --url 'http://localhost:8088/v1/db/connect/' \
-  --header 'content-type: application/json' \
-  --data '{
-    "dbAlias": "DB_NAME",
-    "awsRegion": "$AWS_REGION",
-    "awsAccessKeyId": "$AWS_ACCESS_KEY_ID",
-    "awsSecretAccessKey": "$AWS_SECRET_ACCESS_KEY"
-  }'
+curl http://localhost:8088/v1/db/connect/db_name/$AWS_REGION/$AWS_ACCESS_KEY_ID/$AWS_SECRET_ACCESS_KEY
 ```
 
 Now connecting to the database is a simple as:
 
 ```bash
-psql postgres://postgres:test@127.0.0.1:5432/DB_NAME
+psql postgres://postgres:test@127.0.0.1:5432/db_name
 ```
 
 You are off to the races! If you wish to disconnect the local database from the AWS account and remove it from the engine simply run:
 
 ```bash
-curl -f -s -S http://localhost:8088/v1/db/disconnect/DB_NAME
+curl http://localhost:8088/v1/db/disconnect/db_name
 ```
 
 ## How to develop IaSQL
