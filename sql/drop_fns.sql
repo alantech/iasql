@@ -1,3 +1,4 @@
+DROP FUNCTION "delete_all_records";
 DROP FUNCTION "iasql_uninstall";
 DROP FUNCTION "iasql_install";
 DROP FUNCTION "iasql_sync";

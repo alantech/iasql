@@ -92,7 +92,7 @@ export const AwsEcsFargateModule: Module = new Module({
         const cd = await AwsEcsFargateModule.utils.containerDefinitionMapper(tdc, ctx);
         out.containerDefinitions.push(cd);
       }
-      out.cpuMemory = `${+(td.cpu ?? '256') / 1024}vCPU-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
+      out.cpuMemory = `vCPU${+(td.cpu ?? '256') / 1024}-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
       out.executionRoleArn = td.executionRoleArn;
       out.family = td.family;
       out.revision = td.revision;
@@ -343,7 +343,7 @@ export const AwsEcsFargateModule: Module = new Module({
             };
             if (e.cpuMemory) {
               const [cpuStr, memoryStr] = e.cpuMemory.split('-');
-              const cpu = cpuStr.split('vCPU')[0];
+              const cpu = cpuStr.split('vCPU')[1];
               input.cpu = `${+cpu * 1024}`;
               const memory = memoryStr.split('GB')[0];
               input.memory = `${+memory * 1024}`;
