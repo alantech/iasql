@@ -23,6 +23,7 @@ export class IasqlDatabase {
   pgUser: string;
 
   @Column({
+    // default to true for databases that already exists
     default: true,
   })
   isReady: boolean;
