@@ -59,11 +59,10 @@ const iasqlPlanV3 = (
 export async function connect(
   dbAlias: string,
   awsRegion: string,
-  awsAccessKeyId: string,
-  awsSecretAccessKey: string,
+  awsAccessKeyId: string | undefined,
+  awsSecretAccessKey: string | undefined,
   uid: string,
   email: string,
-  isReady = true,
 ) {
   let conn1: any, conn2: any, dbId: any, dbUser: any;
   let orm: TypeormWrapper | undefined;
@@ -73,6 +72,7 @@ export async function connect(
     dbUser = dbGen[0];
     const dbPass = dbGen[1];
     dbId = dbMan.genDbId(dbAlias);
+    const isReady = !!awsAccessKeyId && !!awsSecretAccessKey;
     await MetadataRepo.saveDb(uid, email, dbAlias, dbId, dbUser, awsRegion, isReady);
     console.log('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
@@ -95,16 +95,63 @@ export async function connect(
     await conn2.query(`
       INSERT INTO iasql_module VALUES ('aws_account@0.0.1')
     `);
-    await conn2.query(`
+    if (!!awsAccessKeyId && !!awsSecretAccessKey) {
+      // Attach credentials
+      await attach(uid, dbAlias, dbId, awsRegion, awsAccessKeyId, awsSecretAccessKey, conn2, orm);
+    }
+    await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
+    await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
+    logger.info('Done!');
+    return {
+      alias: dbAlias,
+      id: dbId,
+      user: dbUser,
+      password: dbPass,
+    };
+  } catch (e: any) {
+    // delete db in psql and metadata in IP
+    await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
+    if (dbUser) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser));
+    await MetadataRepo.delDb(uid, dbAlias);
+    // rethrow the error
+    throw e;
+  } finally {
+    await conn1?.close();
+    await conn2?.close();
+    await orm?.dropConn();
+  }
+}
+
+export async function attach(
+  uid: string,
+  dbAlias: string,
+  dbId: string,
+  awsRegion:string,
+  awsAccessKeyId: string,
+  awsSecretAccessKey: string,
+  connOpt?: any,
+  ormOpt?: TypeormWrapper
+) {
+  let conn: any;
+  let orm: TypeormWrapper | undefined;
+  try {
+    conn = !connOpt ? await createConnection({
+      ...dbMan.baseConnConfig,
+      name: dbId,
+      database: dbId,
+    }) : connOpt;
+    await conn.query(`
       INSERT INTO aws_account (access_key_id, secret_access_key, region) VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}')
     `);
+    // Set database to ready
+    await MetadataRepo.updateDbStatus(uid, dbAlias, true);
     logger.info('Loading aws_account data...');
     // Manually load the relevant data from the cloud side for the `aws_account` module.
     // TODO: Figure out how to eliminate *most* of this special-casing for this module in the future
     const entities: Function[] = Object.values(Modules.AwsAccount.mappers).map(m => m.entity);
     entities.push(IasqlModule);
     entities.push(IasqlTables);
-    orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
+    orm = !ormOpt ? await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions) : ormOpt;
     const mappers = Object.values(Modules.AwsAccount.mappers);
     const context: Modules.Context = { orm, memo: {}, ...Modules.AwsAccount.provides.context, };
     for (const mapper of mappers) {
@@ -131,26 +178,11 @@ export async function connect(
         }
       }
     }
-    await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
-    await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
-    logger.info('Done!');
-    return {
-      alias: dbAlias,
-      id: dbId,
-      user: dbUser,
-      password: dbPass,
-    };
-  } catch (e: any) {
-    // delete db in psql and metadata in IP
-    await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
-    if (dbUser) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser));
-    await MetadataRepo.delDb(uid, dbAlias);
-    // rethrow the error
+  } catch (e) {
     throw e;
   } finally {
-    await conn1?.close();
-    await conn2?.close();
-    await orm?.dropConn();
+    if (!connOpt) await conn?.close();
+    if (!ormOpt) await orm?.dropConn();
   }
 }
 
