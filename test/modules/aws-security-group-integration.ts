@@ -164,8 +164,7 @@ describe('Security Group Integration Testing', () => {
 
   it('applies the security group change which will recreate the record', apply());
 
-  
-  it('adds another two security groups for a more complex test', query(`  
+  it('adds another two security groups for a more complex test', query(`
     INSERT INTO security_group (description, group_name)
     VALUES
       ('Security Group Test 3', '${prefix}sgtest3'),
