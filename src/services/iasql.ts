@@ -944,17 +944,3 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   return "Done!";
 }
 
-export async function getStackInfo(dbId: string, stackName: string) {
-  let orm: TypeormWrapper | null = null;
-  try {
-    orm = await TypeormWrapper.createConn(dbId);
-    const accountModule = (Object.values(Modules) as Modules.ModuleInterface[])
-      .find(mod => ['aws_account@0.0.1'].includes(`${mod.name}@${mod.version}`)) as Modules.Module;
-    if (!accountModule) throw new Error(`This should be impossible. Cannot find module aws_account`);
-    const moduleContext = accountModule.provides.context;
-    const awsClient = await moduleContext?.getAwsClient(orm) as AWS;
-    return await awsClient.getCloudFormationStack(stackName);
-  } catch (e) {
-    throw e;
-  }
-}
