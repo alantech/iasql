@@ -192,7 +192,7 @@ begin
 end;
 $$;
 
-create or replace function delete_all_records()
+create or replace function delete_all_records() returns void
 language plpgsql
 as $$
 DECLARE
