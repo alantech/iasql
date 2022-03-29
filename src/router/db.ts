@@ -9,11 +9,11 @@ import { logUserErr } from '../services/logger'
 export const db = express.Router();
 
 db.get('/connect/:dbAlias/:awsRegion/:awsAccessKeyId/:awsSecretAccessKey', async (req, res) => {
-  console.log('Calling /connect');
+  console.log('Calling GET /connect');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.params;
-  if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
+  if (!dbAlias || !awsRegion) return res.status(400).json(
     `Required key(s) not provided: ${[
-      'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
+      'awsRegion', 'dbAlias'
     ].filter(k => !req.params.hasOwnProperty(k)).join(', ')}`
   );
   try {
@@ -28,11 +28,11 @@ db.get('/connect/:dbAlias/:awsRegion/:awsAccessKeyId/:awsSecretAccessKey', async
 });
 
 db.post('/connect', async (req, res) => {
-  console.log('Calling /connect');
+  console.log('Calling POST /connect');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
-  if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
+  if (!dbAlias || !awsRegion) return res.status(400).json(
     `Required key(s) not provided: ${[
-      'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
+      'awsRegion', 'dbAlias'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
   try {
