@@ -8,8 +8,27 @@ import { logUserErr } from '../services/logger'
 
 export const db = express.Router();
 
-db.post('/new', async (req, res) => {
-  console.log('Calling /new');
+db.get('/connect/:dbAlias/:awsRegion/:awsAccessKeyId/:awsSecretAccessKey', async (req, res) => {
+  console.log('Calling /connect');
+  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.params;
+  if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
+    `Required key(s) not provided: ${[
+      'awsRegion', 'awsAccessKeyId', 'awsSecretAccessKey'
+    ].filter(k => !req.params.hasOwnProperty(k)).join(', ')}`
+  );
+  try {
+    res.json(
+      await iasql.connect(
+        dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, dbMan.getUid(req.user), dbMan.getEmail(req.user)
+      )
+    );
+  } catch (e) {
+    res.status(500).end(logUserErr(e));
+  }
+});
+
+db.post('/connect', async (req, res) => {
+  console.log('Calling /connect');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
     `Required key(s) not provided: ${[
@@ -18,7 +37,7 @@ db.post('/new', async (req, res) => {
   );
   try {
     res.json(
-      await iasql.add(
+      await iasql.connect(
         dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, dbMan.getUid(req.user), dbMan.getEmail(req.user)
       )
     );
@@ -64,11 +83,11 @@ db.get('/list', async (req, res) => {
   }
 });
 
-db.get('/remove/:dbAlias', async (req, res) => {
+db.get('/disconnect/:dbAlias', async (req, res) => {
   const { dbAlias } = req.params;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   try {
-    res.json(await iasql.remove(dbAlias, dbMan.getUid(req.user)));
+    res.json(await iasql.disconnect(dbAlias, dbMan.getUid(req.user)));
   } catch (e) {
     res.status(500).end(logUserErr(e));
   }

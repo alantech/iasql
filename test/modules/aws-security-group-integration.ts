@@ -17,7 +17,7 @@ beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown(modules));
 
 describe('Security Group Integration Testing', () => {
-  it('creates a new test db', (done) => void iasql.add(
+  it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
     process.env.AWS_REGION ?? 'barf',
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
@@ -165,12 +165,12 @@ describe('Security Group Integration Testing', () => {
   it('applies the security group change which will recreate the record', apply());
 
   it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
+    .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
 });
 
 describe('Security Group install/uninstall', () => {
-  it('creates a new test db', (done) => void iasql.add(
+  it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
     'us-east-1', // Share region with common tests
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
@@ -197,6 +197,6 @@ describe('Security Group install/uninstall', () => {
     ['aws_security_group@0.0.1',]));
 
   it('deletes the test db', (done) => void iasql
-    .remove(dbAlias, 'not-needed')
+    .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
 });
