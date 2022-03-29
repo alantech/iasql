@@ -193,8 +193,8 @@ describe('Security Group Integration Testing', () => {
     WHERE group_name in ('${prefix}sgtest3', '${prefix}sgtest4', '${prefix}sgtest5');
   `, (res: any[]) => {
     expect(res.length).toBe(2);
-    expect(res.map(r => r.description).includes('Security Group Test Four'));
-    expect(res.map(r => r.description).includes('Security Group Test 5'));
+    expect(res.map(r => r.description).includes('Security Group Test Four')).toBe(true);
+    expect(res.map(r => r.description).includes('Security Group Test 5')).toBe(true);
   }));
 
   it('deletes the test db', (done) => void iasql
