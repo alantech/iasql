@@ -196,6 +196,12 @@ describe('Security Group Integration Testing', () => {
     expect(res.map(r => r.description).includes('Security Group Test 5')).toBe(true);
   }));
 
+  it('deletes these test records', query(`
+    DELETE FROM security_group WHERE group_name in ('${prefix}sgtest4', '${prefix}sgtest5');
+  `));
+
+  it('deletes the final test records', apply());
+
   it('deletes the test db', (done) => void iasql
     .remove(dbAlias, 'not-needed')
     .then(...finish(done)));
