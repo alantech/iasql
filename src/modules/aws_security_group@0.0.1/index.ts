@@ -90,7 +90,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               e.groupName = actualEntity.groupName;
               e.ownerId = actualEntity.ownerId;
               e.vpcId = actualEntity.vpcId;
-              if (e.id) await ctx.orm.save(SecurityGroup, e);
+              await ctx.orm.save(SecurityGroup, e);
               if (e.groupId) {
                 ctx.memo.db.SecurityGroup[e.groupId] = e;
               }
@@ -101,7 +101,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               const vpcs = (await client.getVpcs()).Vpcs;
               const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
               e.vpcId = defaultVpc.VpcId;
-              if (e.id) await ctx.orm.save(SecurityGroup, e);
+              await ctx.orm.save(SecurityGroup, e);
               if (e.groupId) {
                 ctx.memo.db.SecurityGroup[e.groupId] = e;
               }
@@ -149,7 +149,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             // the other properties
             const cloudRecord = ctx?.memo?.cloud?.SecurityGroup?.[e.groupId ?? ''];
             cloudRecord.id = e.id;
-            if (e.id) await AwsSecurityGroupModule.mappers.securityGroup.db.update(cloudRecord, ctx);
+            await AwsSecurityGroupModule.mappers.securityGroup.db.update(cloudRecord, ctx);
           } else {
             // AWS does not have a way to update the top-level SecurityGroup entity. You can
             // update the various rules associated with it, but not the name or description of the
