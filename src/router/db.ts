@@ -47,7 +47,7 @@ db.post('/connect', async (req, res) => {
 });
 
 db.post('/attach', async (req, res) => {
-  console.log('Calling /attach');
+  logger.info('Calling /attach');
   const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   if (!dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
     `Required key(s) not provided: ${[
