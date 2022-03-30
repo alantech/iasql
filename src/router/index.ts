@@ -6,7 +6,6 @@ import config from '../config'
 
 // routes
 import { db, } from './db'
-import { mod, } from './module'
 
 const v1 = express.Router();
 // 10 GB post payload limit for import dumps
@@ -24,6 +23,5 @@ if (config.a0Enabled) {
 }
 // TODO secure with scope
 v1.use('/db', db)
-v1.use('/module', mod)
 
 export { v1 };
