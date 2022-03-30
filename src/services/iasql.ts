@@ -674,24 +674,23 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
   }
 }
 
-export async function modules(all: boolean, installed: boolean, dbAlias: string, uid: string) {
+export async function modules(all: boolean, installed: boolean, dbId: string) {
   // TODO rm special casing for aws_account
   const allModules = Object.values(Modules)
     .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && m.name !== 'aws_account')
     .map((m: any) => ({
-      name: `${m.name}@${m.version}`,
+      moduleName: m.name,
+      moduleVersion: m.version,
       dependencies: m.dependencies.filter((d: any) => d !== 'aws_account@0.0.1'),
     }));
   if (all) {
-    return allModules;
-  } else if (installed && dbAlias) {
-    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    const dbId = db.pgName;
+    return JSON.stringify(allModules);
+  } else if (installed && dbId) {
     const entities: Function[] = [IasqlModule, IasqlTables];
     const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const mods = await orm.find(IasqlModule);
     const modsInstalled = mods.map((m: IasqlModule) => (m.name));
-    return allModules.filter(m => modsInstalled.includes(m.name));
+    return JSON.stringify(allModules.filter(m => modsInstalled.includes(m.moduleName)));
   } else {
     throw new Error('Invalid request parameters');
   }
