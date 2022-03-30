@@ -65,7 +65,6 @@ export async function connect(
   email: string,
 ) {
   let conn1: any, conn2: any, dbId: any, dbUser: any;
-  let orm: TypeormWrapper | undefined;
   try {
     logger.info('Creating account for user...');
     const dbGen = dbMan.genUserAndPass();
@@ -97,7 +96,7 @@ export async function connect(
     `);
     if (!!awsAccessKeyId && !!awsSecretAccessKey) {
       // Attach credentials
-      await attach(uid, dbAlias, dbId, awsRegion, awsAccessKeyId, awsSecretAccessKey, conn2, orm);
+      await attach(uid, dbAlias, dbId, awsRegion, awsAccessKeyId, awsSecretAccessKey, conn2);
     }
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
@@ -118,7 +117,6 @@ export async function connect(
   } finally {
     await conn1?.close();
     await conn2?.close();
-    await orm?.dropConn();
   }
 }
 
@@ -129,8 +127,7 @@ export async function attach(
   awsRegion:string,
   awsAccessKeyId: string,
   awsSecretAccessKey: string,
-  connOpt?: any,
-  ormOpt?: TypeormWrapper
+  connOpt?: any
 ) {
   let conn: any;
   let orm: TypeormWrapper | undefined;
@@ -151,7 +148,7 @@ export async function attach(
     const entities: Function[] = Object.values(Modules.AwsAccount.mappers).map(m => m.entity);
     entities.push(IasqlModule);
     entities.push(IasqlTables);
-    orm = !ormOpt ? await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions) : ormOpt;
+    orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
     const mappers = Object.values(Modules.AwsAccount.mappers);
     const context: Modules.Context = { orm, memo: {}, ...Modules.AwsAccount.provides.context, };
     for (const mapper of mappers) {
@@ -185,7 +182,7 @@ export async function attach(
     throw e;
   } finally {
     if (!connOpt) await conn?.close();
-    if (!ormOpt) await orm?.dropConn();
+    await orm?.dropConn();
   }
 }
 
