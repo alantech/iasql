@@ -130,7 +130,7 @@ $$;
 
 create or replace function iasql_install(variadic _mods text[]) returns table (
     module_name character varying,
-    table_name character varying,
+    created_table_name character varying,
     record_count int
 )
 language plpgsql security definer
@@ -139,7 +139,7 @@ begin
     perform until_iasql_operation('INSTALL', _mods);
     return query select
         m.name as module_name,
-        t.table as table_name,
+        t.table as created_table_name,
         (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
     from iasql_module as m
     inner join iasql_tables as t on m.name = t.module
@@ -149,7 +149,7 @@ $$;
 
 create or replace function iasql_uninstall(variadic _mods text[]) returns table (
     module_name character varying,
-    table_name character varying,
+    dropped_table_name character varying,
     record_count int
 )
 language plpgsql security definer
@@ -172,10 +172,10 @@ begin
     -- TODO: Are these hoops to encode into JSON and then decode back out necessary now that
     -- dblink is being used here, too?
     _dblink_sql := format($dblink$
-    select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) as js from (
+    select json_agg(row_to_json(row(j.module_name, j.dropped_table_name, j.record_count))) as js from (
         select
         m.name as module_name,
-        t.table as table_name,
+        t.table as dropped_table_name,
         (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
         from iasql_module as m
         inner join iasql_tables as t on m.name = t.module
@@ -188,7 +188,7 @@ begin
     -- Now actually remove the modules and tables in question
     perform until_iasql_operation('UNINSTALL', _mods);
     -- And extract the metadata from the JSON blob and return it to the user
-    return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
+    return query select f1 as module_name, f2 as dropped_table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
 end;
 $$;
 
