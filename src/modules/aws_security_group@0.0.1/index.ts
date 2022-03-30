@@ -31,6 +31,66 @@ export const AwsSecurityGroupModule: Module = new Module({
       out.description = sgr?.Description ?? null;
       return out;
     },
+    sgCloudCreate: async (es: SecurityGroup[], ctx: Context, doNotSave: boolean) => {
+      // This is popped out into a util so we can change its behavior when used as part of a
+      // cloud `replace` involving a collision of a unique-constrained identifier (the `groupName`)
+      const client = await ctx.getAwsClient() as AWS;
+      return await Promise.all(es.map(async (e) => {
+        // Special behavior here. You can't delete the 'default' security group, so if you're
+        // trying to create it, something is seriously wrong.
+        if (e.groupName === 'default') {
+          // We're just gonna get the actual AWS entry for the default security group and
+          // shove its properties into the "fake" default security group and re-save it
+          // The security group rules associated with the user's created "default" group are
+          // still fine to actually set in AWS, so we leave that alone.
+          const actualEntity = Object.values(ctx?.memo?.cloud?.SecurityGroup ?? {}).find(
+            (a: any) => a.groupName === 'default' && a.groupId !== e.groupId // TODO: Fix typing here
+          ) as SecurityGroup;
+          e.description = actualEntity.description;
+          e.groupId = actualEntity.groupId;
+          e.groupName = actualEntity.groupName;
+          e.ownerId = actualEntity.ownerId;
+          e.vpcId = actualEntity.vpcId;
+          await ctx.orm.save(SecurityGroup, e);
+          if (e.groupId) {
+            ctx.memo.db.SecurityGroup[e.groupId] = e;
+          }
+
+          return e;
+        }
+        if (e.vpcId === 'default') {
+          const vpcs = (await client.getVpcs()).Vpcs;
+          const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
+          e.vpcId = defaultVpc.VpcId;
+          await ctx.orm.save(SecurityGroup, e);
+          if (e.groupId) {
+            ctx.memo.db.SecurityGroup[e.groupId] = e;
+          }
+        }
+        // First construct the security group
+        const result = await client.createSecurityGroup({
+          Description: e.description,
+          GroupName: e.groupName,
+          VpcId: e.vpcId,
+          // TODO: Tags
+        });
+        // TODO: Handle if it fails (somehow)
+        if (!result.hasOwnProperty('GroupId')) { // Failure
+          throw new Error('what should we do here?');
+        }
+        // Re-get the inserted security group to get all of the relevant records we care about
+        const newGroup = await client.getSecurityGroup(result.GroupId ?? '');
+        // We map this into the same kind of entity as `obj`
+        const newEntity = await AwsSecurityGroupModule.utils.sgMapper(newGroup, ctx);
+        if (doNotSave) return newEntity;
+        // We attach the original object's ID to this new one, indicating the exact record it is
+        // replacing in the database.
+        newEntity.id = e.id;
+        // Save the security group record back into the database to get the new fields updated
+        await AwsSecurityGroupModule.mappers.securityGroup.db.update(newEntity, ctx);
+        return newEntity;
+      }));
+    },
   },
   mappers: {
     securityGroup: new Mapper<SecurityGroup>({
@@ -72,63 +132,8 @@ export const AwsSecurityGroupModule: Module = new Module({
         delete: (e: SecurityGroup[], ctx: Context) => ctx.orm.remove(SecurityGroup, e),
       }),
       cloud: new Crud({
-        create: async (es: SecurityGroup[], ctx: Context) => {
-          const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(es.map(async (e) => {
-            // Special behavior here. You can't delete the 'default' security group, so if you're
-            // trying to create it, something is seriously wrong.
-            if (e.groupName === 'default') {
-              // We're just gonna get the actual AWS entry for the default security group and
-              // shove its properties into the "fake" default security group and re-save it
-              // The security group rules associated with the user's created "default" group are
-              // still fine to actually set in AWS, so we leave that alone.
-              const actualEntity = Object.values(ctx?.memo?.cloud?.SecurityGroup ?? {}).find(
-                (a: any) => a.groupName === 'default' && a.groupId !== e.groupId // TODO: Fix typing here
-              ) as SecurityGroup;
-              e.description = actualEntity.description;
-              e.groupId = actualEntity.groupId;
-              e.groupName = actualEntity.groupName;
-              e.ownerId = actualEntity.ownerId;
-              e.vpcId = actualEntity.vpcId;
-              await ctx.orm.save(SecurityGroup, e);
-              if (e.groupId) {
-                ctx.memo.db.SecurityGroup[e.groupId] = e;
-              }
-
-              return e;
-            }
-            if (e.vpcId === 'default') {
-              const vpcs = (await client.getVpcs()).Vpcs;
-              const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
-              e.vpcId = defaultVpc.VpcId;
-              await ctx.orm.save(SecurityGroup, e);
-              if (e.groupId) {
-                ctx.memo.db.SecurityGroup[e.groupId] = e;
-              }
-            }
-            // First construct the security group
-            const result = await client.createSecurityGroup({
-              Description: e.description,
-              GroupName: e.groupName,
-              VpcId: e.vpcId,
-              // TODO: Tags
-            });
-            // TODO: Handle if it fails (somehow)
-            if (!result.hasOwnProperty('GroupId')) { // Failure
-              throw new Error('what should we do here?');
-            }
-            // Re-get the inserted security group to get all of the relevant records we care about
-            const newGroup = await client.getSecurityGroup(result.GroupId ?? '');
-            // We map this into the same kind of entity as `obj`
-            const newEntity = await AwsSecurityGroupModule.utils.sgMapper(newGroup, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
-            // Save the security group record back into the database to get the new fields updated
-            await AwsSecurityGroupModule.mappers.securityGroup.db.update(newEntity, ctx);
-            return newEntity;
-          }));
-        },
+        create: (es: SecurityGroup[], ctx: Context) => AwsSecurityGroupModule
+          .utils.sgCloudCreate(es, ctx, false),
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const sgs = Array.isArray(ids) ?
@@ -171,7 +176,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               // to the DB like create does (at least right now, if that changes, we need to
               // rethink this logic here)
               e.groupName = Date.now().toString();
-              return await AwsSecurityGroupModule.mappers.securityGroup.cloud.create(e, ctx);
+              return await AwsSecurityGroupModule.utils.sgCloudCreate([e], ctx, true);
             }
           }
         })),
@@ -212,9 +217,17 @@ export const AwsSecurityGroupModule: Module = new Module({
                 (r: SecurityGroupRule) => r.securityGroup.groupId === e.groupId
               );
               await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(relevantRules, ctx);
-              // Let's flush the caches here, too?
-              ctx.memo.cloud.SecurityGroup = {};
-              ctx.memo.db.SecurityGroup = {};
+              // Let's clear the record from the caches here, too?
+              ctx.memo.cloud.SecurityGroup = Object.fromEntries(
+                Object
+                  .entries(ctx.memo.cloud.SecurityGroup)
+                  .filter(([_, v]) => e.groupId !== (v as SecurityGroup).groupId)
+              );
+              ctx.memo.db.SecurityGroup = Object.fromEntries(
+                Object
+                  .entries(ctx.memo.db.SecurityGroup)
+                  .filter(([_, v]) => e.groupId !== (v as SecurityGroup).groupId)
+              );
             }
           }));
         },
@@ -344,9 +357,23 @@ export const AwsSecurityGroupModule: Module = new Module({
               throw new Error(`Failed to remove the security group rules ${res}`);
             }
           }
-          // Let's just flush both caches on a delete and force it to rebuild them?
-          ctx.memo.cloud.SecurityGroupRule = {};
-          ctx.memo.db.SecurityGroupRule = {};
+          // Let's just clear the record from both caches on a delete
+          ctx.memo.cloud.SecurityGroupRule = Object.fromEntries(
+            Object
+              .entries(ctx.memo.cloud.SecurityGroupRule)
+              .filter(([_, v]) => !es
+                .map(e => e.securityGroupRuleId)
+                .includes((v as SecurityGroupRule).securityGroupRuleId)
+              )
+          );
+          ctx.memo.db.SecurityGroupRule = Object.fromEntries(
+            Object
+              .entries(ctx.memo.db.SecurityGroupRule)
+              .filter(([_, v]) => !es
+                .map(e => e.securityGroupRuleId)
+                .includes((v as SecurityGroupRule).securityGroupRuleId)
+              )
+          );
         },
       }),
     }),

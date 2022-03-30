@@ -164,6 +164,44 @@ describe('Security Group Integration Testing', () => {
 
   it('applies the security group change which will recreate the record', apply());
 
+  it('adds another two security groups for a more complex test', query(`
+    INSERT INTO security_group (description, group_name)
+    VALUES
+      ('Security Group Test 3', '${prefix}sgtest3'),
+      ('Security Group Test 4', '${prefix}sgtest4');
+  `));
+
+  it('creates these security groups', apply());
+
+  it('creates a new security group, deletes another security group, and modifies a third', query(`
+    INSERT INTO security_group (description, group_name)
+    VALUES ('Security Group Test 5', '${prefix}sgtest5');
+
+    DELETE FROM security_group WHERE group_name = '${prefix}sgtest3';
+
+    UPDATE security_group
+    SET description = 'Security Group Test Four'
+    WHERE group_name = '${prefix}sgtest4';
+  `));
+
+  it('performs all of these operations', apply());
+
+  it('checks all of these security_group changes', query(`
+    SELECT *
+    FROM security_group
+    WHERE group_name in ('${prefix}sgtest3', '${prefix}sgtest4', '${prefix}sgtest5');
+  `, (res: any[]) => {
+    expect(res.length).toBe(2);
+    expect(res.map(r => r.description).includes('Security Group Test Four')).toBe(true);
+    expect(res.map(r => r.description).includes('Security Group Test 5')).toBe(true);
+  }));
+
+  it('deletes these test records', query(`
+    DELETE FROM security_group WHERE group_name in ('${prefix}sgtest4', '${prefix}sgtest5');
+  `));
+
+  it('deletes the final test records', apply());
+
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
