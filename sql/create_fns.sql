@@ -219,8 +219,6 @@ BEGIN
           EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
           SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
         END IF;
-        EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
-        SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
       EXCEPTION
         WHEN others THEN
           -- we ignore the error
