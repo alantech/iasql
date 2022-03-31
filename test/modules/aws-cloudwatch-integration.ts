@@ -10,7 +10,7 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 
-const modules = ['aws_cloudwatch@0.0.1'];
+const modules = ['aws_cloudwatch'];
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown(modules));
@@ -97,7 +97,7 @@ describe('AwsCloudwatch install/uninstall', () => {
     'postgres',
     true).then(...finish(done)));
 
-  it('uninstalls the cloudwatch + ecs module', uninstall(['aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1']));
+  it('uninstalls the cloudwatch + ecs module', uninstall(['aws_cloudwatch', 'aws_ecs_fargate']));
 
   it('installs the cloudwatch module', install(modules));
 

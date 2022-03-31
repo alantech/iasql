@@ -10,7 +10,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_ecr@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_cloudwatch@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_vpc@0.0.1',];
+const modules = ['aws_ecr', 'aws_elb', 'aws_security_group', 'aws_cloudwatch', 'aws_ecs_fargate', 'aws_vpc',];
 
 // Test constants
 const serviceName = `${prefix}${dbAlias}service`;
@@ -240,10 +240,10 @@ describe('ECS Integration Testing', () => {
       WHERE name = '${newServiceName}';
     `, (res: any[]) => expect(res[0]['force_new_deployment']).toBe(false)));
 
-    it('uninstalls the ecs module', uninstall(['aws_ecs_fargate@0.0.1']));
+    it('uninstalls the ecs module', uninstall(['aws_ecs_fargate']));
 
     it('installs the ecs module', install(
-      ['aws_ecs_fargate@0.0.1']));
+      ['aws_ecs_fargate']));
 
     it('deletes service', query(`
       BEGIN;
@@ -345,10 +345,10 @@ describe('ECS Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('uninstalls the ecs module', uninstall(
-      ['aws_ecs_fargate@0.0.1']));
+      ['aws_ecs_fargate']));
 
     it('installs the ecs module', install(
-      ['aws_ecs_fargate@0.0.1']));
+      ['aws_ecs_fargate']));
 
     it('deletes service', query(`
       BEGIN;
@@ -446,10 +446,10 @@ describe('ECS Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('uninstalls the ecs module', uninstall(
-      ['aws_ecs_fargate@0.0.1']));
+      ['aws_ecs_fargate']));
 
     it('installs the ecs module', install(
-      ['aws_ecs_fargate@0.0.1']));
+      ['aws_ecs_fargate']));
 
     it('deletes service', query(`
       BEGIN;
@@ -482,10 +482,10 @@ describe('ECS Integration Testing', () => {
   });
 
   it('uninstalls the ecs module', uninstall(
-    ['aws_ecs_fargate@0.0.1']));
+    ['aws_ecs_fargate']));
 
   it('installs the ecs module', install(
-    ['aws_ecs_fargate@0.0.1']));
+    ['aws_ecs_fargate']));
 
   // deletes service dependencies
   it('deletes service dependencies', query(`
@@ -553,10 +553,10 @@ describe('ECS install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the ECS module', uninstall(
-    ['aws_ecs_fargate@0.0.1']));
+    ['aws_ecs_fargate']));
 
   it('installs the ECS module', install(
-    ['aws_ecs_fargate@0.0.1']));
+    ['aws_ecs_fargate']));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
