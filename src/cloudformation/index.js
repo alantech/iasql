@@ -7,10 +7,10 @@ const DB_ALIAS = process.env.db_alias
 const AUTH_TOKEN = process.env.auth_token
 const API_URL = process.env.api_url
 
-function postNewDb(body) {
+function postAttachCreds(body) {
   const options = {
     hostname: API_URL,
-    path: '/v1/db/new/',
+    path: '/v1/db/attach/',
     method: 'POST',
     port: 443,
     headers: {'Content-Type': 'application/json', Authorization: `Bearer ${AUTH_TOKEN}`},
@@ -49,7 +49,7 @@ exports.handler = async function (event) {
   console.log('Lambda received event:')
   console.log(event)
   try {
-    const result = await postNewDb({
+    const result = await postAttachCreds({
       dbAlias: DB_ALIAS,
       awsRegion: AWS_REGION,
       awsAccessKeyId: ACCESS_KEY_ID,

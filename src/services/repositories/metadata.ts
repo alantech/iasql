@@ -34,12 +34,14 @@ class MetadataRepo {
     this.dbRepo = this.conn.getRepository(IasqlDatabase);
   }
 
-  async saveDb(a0Id: string, email: string, dbAlias: string, dbId: string, dbUser: string, region: string): Promise<IasqlDatabase> {
+  async saveDb(a0Id: string, email: string, dbAlias: string, dbId: string, dbUser: string, region: string, isReady: boolean, directConnect: boolean): Promise<IasqlDatabase> {
     const db = new IasqlDatabase();
     db.alias = dbAlias;
     db.pgName = dbId;
     db.pgUser = dbUser;
     db.region = region;
+    db.isReady = isReady;
+    db.directConnect = directConnect;
     let user = await this.userRepo.findOne(a0Id);
     if (!user) {
       user = new IasqlUser();
@@ -93,6 +95,14 @@ class MetadataRepo {
     await this.userRepo.save(user);
     // remove entry
     await this.dbRepo.delete(dbToDel);
+  }
+
+  async updateDbStatus(a0Id: string, dbAlias: string, status: boolean) {
+    const user = await this.userRepo.findOneOrFail(a0Id);
+    const dbToUpdate = user.iasqlDatabases.find(db => db.alias === dbAlias);
+    if (!dbToUpdate) throw new Error(`User with ID ${a0Id} has no IaSQL database with alias ${dbAlias}`);
+    dbToUpdate.isReady = status;
+    await this.dbRepo.save(dbToUpdate);
   }
 }
 const singleton = new MetadataRepo();
