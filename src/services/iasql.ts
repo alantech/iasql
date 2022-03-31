@@ -950,17 +950,16 @@ export async function maybeUpdateStatus(uid: string, dbAlias: string, dbId: stri
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
+    const memo: any = {}; // TODO: Stronger typing here
+    const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
     const accountModule = (Object.values(Modules) as Modules.ModuleInterface[])
       .find(mod => ['aws_account@0.0.1'].includes(`${mod.name}@${mod.version}`)) as Modules.Module;
     if (!accountModule) throw new Error(`This should be impossible. Cannot find module aws_account`);
-    const moduleContext = accountModule.provides.context;
-    if (moduleContext) {
-      const awsAccounts = await accountModule.mappers.awsAccount.db.read(moduleContext);
-      if (awsAccounts.length) {
-        await MetadataRepo.updateDbStatus(uid, dbAlias, true);
-        logger.info(`Updated ${dbId} status`);
-        return true;
-      }
+    const awsAccounts = await accountModule.mappers.awsAccount.db.read(context);
+    if (awsAccounts.length) {
+      await MetadataRepo.updateDbStatus(uid, dbAlias, true);
+      logger.info(`Updated ${dbId} status`);
+      return true;
     }
     logger.info(`${dbId} status not updated`);
     return false;
