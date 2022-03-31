@@ -266,3 +266,27 @@ BEGIN
   END LOOP;
 END;
 $$;
+
+create or replace function iasql_help() returns table (
+  name text,
+  signature text,
+  description text,
+  sample_usage text 
+)
+language plpgsql security definer
+as $$
+begin
+  return query select
+    x.name, x.signature, x.description, x.sample_usage
+  from json_to_recordset('[
+    {"name": "apply", "signature": "iasql_apply()", "description": "Create, delete, or update the cloud resources in a hosted db", "sample_usage": "SELECT * FROM iasql_apply()"},
+    {"name": "plan_apply", "signature": "iasql_plan_apply()", "description": "Preview of the resources in the db to be modified on the next `apply`", "sample_usage": "SELECT * FROM iasql_plan_apply()"},
+    {"name": "sync", "signature": "iasql_sync()", "description": "Synchronize the hosted db with the current state of the cloud account", "sample_usage": "SELECT * FROM iasql_sync()"},
+    {"name": "plan_sync", "signature": "iasql_plan_sync()", "description": "Preview of the resources in the db to be modified on the next `sync`", "sample_usage": "SELECT * FROM iasql_plan_sync()"},
+    {"name": "install", "signature": "iasql_install(variadic text[])", "description": "Install modules in the hosted db", "sample_usage": "SELECT * FROM iasql_install(''aws_vpc@0.0.1'', ''aws_ec2@0.0.1'')"},
+    {"name": "uninstall", "signature": "iasql_uninstall(variadic text[])", "description": "Uninstall modules in the hosted db", "sample_usage": "SELECT * FROM iasql_uninstall(''aws_vpc@0.0.1'', ''aws_ec2@0.0.1'')"},
+    {"name": "modules_list", "signature": "iasql_modules_list()", "description": "Lists all modules available to be installed", "sample_usage": "SELECT * FROM iasql_modules_list()"},
+    {"name": "modules_installed", "signature": "iasql_modules_installed()", "description": "Lists all modules currently installed in the hosted db", "sample_usage": "SELECT * FROM iasql_modules_installed()"}
+  ]') as x(name text, signature text, description text, sample_usage text);
+end;
+$$;
