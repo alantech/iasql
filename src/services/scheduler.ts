@@ -60,6 +60,10 @@ export async function start(dbId: string, dbUser:string) {
             promise = iasql.uninstall(params, dbId, conn);
             break;
           }
+          case IasqlOperationType.LIST: {
+            promise = iasql.modules(true, false, dbId);
+            break;
+          }
           default: {
             break;
           }

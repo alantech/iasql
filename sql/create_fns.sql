@@ -130,7 +130,7 @@ $$;
 
 create or replace function iasql_install(variadic _mods text[]) returns table (
     module_name character varying,
-    table_name character varying,
+    created_table_name character varying,
     record_count int
 )
 language plpgsql security definer
@@ -139,7 +139,7 @@ begin
     perform until_iasql_operation('INSTALL', _mods);
     return query select
         m.name as module_name,
-        t.table as table_name,
+        t.table as created_table_name,
         (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
     from iasql_module as m
     inner join iasql_tables as t on m.name = t.module
@@ -149,7 +149,7 @@ $$;
 
 create or replace function iasql_uninstall(variadic _mods text[]) returns table (
     module_name character varying,
-    table_name character varying,
+    dropped_table_name character varying,
     record_count int
 )
 language plpgsql security definer
@@ -172,10 +172,10 @@ begin
     -- TODO: Are these hoops to encode into JSON and then decode back out necessary now that
     -- dblink is being used here, too?
     _dblink_sql := format($dblink$
-    select json_agg(row_to_json(row(j.module_name, j.table_name, j.record_count))) as js from (
+    select json_agg(row_to_json(row(j.module_name, j.dropped_table_name, j.record_count))) as js from (
         select
         m.name as module_name,
-        t.table as table_name,
+        t.table as dropped_table_name,
         (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
         from iasql_module as m
         inner join iasql_tables as t on m.name = t.module
@@ -188,7 +188,44 @@ begin
     -- Now actually remove the modules and tables in question
     perform until_iasql_operation('UNINSTALL', _mods);
     -- And extract the metadata from the JSON blob and return it to the user
-    return query select f1 as module_name, f2 as table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
+    return query select f1 as module_name, f2 as dropped_table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
+end;
+$$;
+
+create or replace function iasql_modules_list() returns table (
+  module_name text,
+  module_version text,
+  dependencies text[]
+)
+language plpgsql security definer
+as $$
+declare
+  _opid uuid;
+begin
+  _opid := until_iasql_operation('LIST', array[]::text[]);
+  return query select
+    j.s->>'moduleName' as module_name,
+    j.s->>'moduleVersion' as module_version,
+    array(select * from json_array_elements_text(j.s->'dependencies')) as dependencies
+  from (
+    select json_array_elements(output::json) as s from iasql_operation where opid = _opid
+  ) as j;
+end;
+$$;
+
+create or replace function iasql_modules_installed() returns table (
+  module_name text,
+  module_version text,
+  dependencies varchar[]
+)
+language plpgsql security definer
+as $$
+begin
+  return query select
+    split_part(name, '@', 1) as module_name,
+    split_part(name, '@', 2) as module_version,
+    array(select dependency from iasql_dependencies where module = name) as dependencies
+  from iasql_module;
 end;
 $$;
 
@@ -219,8 +256,6 @@ BEGIN
           EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
           SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
         END IF;
-        EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
-        SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
       EXCEPTION
         WHEN others THEN
           -- we ignore the error
@@ -230,4 +265,28 @@ BEGIN
     loop_count := loop_count + 1;
   END LOOP;
 END;
+$$;
+
+create or replace function iasql_help() returns table (
+  name text,
+  signature text,
+  description text,
+  sample_usage text 
+)
+language plpgsql security definer
+as $$
+begin
+  return query select
+    x.name, x.signature, x.description, x.sample_usage
+  from json_to_recordset('[
+    {"name": "apply", "signature": "iasql_apply()", "description": "Create, delete, or update the cloud resources in a hosted db", "sample_usage": "SELECT * FROM iasql_apply()"},
+    {"name": "plan_apply", "signature": "iasql_plan_apply()", "description": "Preview of the resources in the db to be modified on the next `apply`", "sample_usage": "SELECT * FROM iasql_plan_apply()"},
+    {"name": "sync", "signature": "iasql_sync()", "description": "Synchronize the hosted db with the current state of the cloud account", "sample_usage": "SELECT * FROM iasql_sync()"},
+    {"name": "plan_sync", "signature": "iasql_plan_sync()", "description": "Preview of the resources in the db to be modified on the next `sync`", "sample_usage": "SELECT * FROM iasql_plan_sync()"},
+    {"name": "install", "signature": "iasql_install(variadic text[])", "description": "Install modules in the hosted db", "sample_usage": "SELECT * FROM iasql_install(''aws_vpc@0.0.1'', ''aws_ec2@0.0.1'')"},
+    {"name": "uninstall", "signature": "iasql_uninstall(variadic text[])", "description": "Uninstall modules in the hosted db", "sample_usage": "SELECT * FROM iasql_uninstall(''aws_vpc@0.0.1'', ''aws_ec2@0.0.1'')"},
+    {"name": "modules_list", "signature": "iasql_modules_list()", "description": "Lists all modules available to be installed", "sample_usage": "SELECT * FROM iasql_modules_list()"},
+    {"name": "modules_installed", "signature": "iasql_modules_installed()", "description": "Lists all modules currently installed in the hosted db", "sample_usage": "SELECT * FROM iasql_modules_installed()"}
+  ]') as x(name text, signature text, description text, sample_usage text);
+end;
 $$;
