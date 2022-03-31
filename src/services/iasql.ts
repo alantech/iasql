@@ -25,7 +25,7 @@ export function recordCount(records: { [key: string]: any, }[]): [number, number
   const dbCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInDbOnly.length, 0);
   const cloudCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInAwsOnly.length, 0);
   const bothCount = records.reduce((cumu, r) => cumu + r.diff.entitiesChanged.length, 0);
-  return [ dbCount, cloudCount, bothCount, ];
+  return [dbCount, cloudCount, bothCount,];
 }
 const iasqlPlanV3 = (
   toCreate: Crupde,
@@ -98,6 +98,14 @@ export async function connect(
     if (hasCredentials) {
       // Attach credentials
       await attach(uid, dbAlias, dbId, awsRegion, awsAccessKeyId, awsSecretAccessKey, conn2);
+    } else {
+      let counter = 0;
+      const checkCredInterval = setInterval(async () => {
+        const updated = await maybeUpdateStatus(uid, dbAlias, dbId);
+        if (updated) clearInterval(checkCredInterval);
+        counter++;
+        if (counter === 60) clearInterval(checkCredInterval); // try for 30 min
+      }, 30000);
     }
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
@@ -125,7 +133,7 @@ export async function attach(
   uid: string,
   dbAlias: string,
   dbId: string,
-  awsRegion:string,
+  awsRegion: string,
   awsAccessKeyId: string,
   awsSecretAccessKey: string,
   connOpt?: any
@@ -149,7 +157,7 @@ export async function attach(
     const entities: Function[] = Object.values(Modules.AwsAccount.mappers).map(m => m.entity);
     entities.push(IasqlModule);
     entities.push(IasqlTables);
-    orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
+    orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
     const mappers = Object.values(Modules.AwsAccount.mappers);
     const context: Modules.Context = { orm, memo: {}, ...Modules.AwsAccount.provides.context, };
     for (const mapper of mappers) {
@@ -228,11 +236,10 @@ export async function dump(dbAlias: string, uid: any, dataOnly: boolean) {
   const pgUrl = dbMan.ourPgUrl(dbId);
   const excludedDataTables = '--exclude-table-data \'aws_account\' --exclude-table-data \'iasql_*\''
   const { stdout, } = await exec(
-    `pg_dump ${
-      dataOnly ?
-        `--data-only --no-privileges --column-inserts --rows-per-insert=50 --on-conflict-do-nothing ${excludedDataTables}`
-        :
-        ''
+    `pg_dump ${dataOnly ?
+      `--data-only --no-privileges --column-inserts --rows-per-insert=50 --on-conflict-do-nothing ${excludedDataTables}`
+      :
+      ''
     } --inserts --exclude-schema=graphile_worker -x ${pgUrl}`,
     { shell: '/bin/bash', }
   );
@@ -422,7 +429,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
           }
         });
         if (dryRun) return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
-        const [ nextDbCount, nextCloudCount, nextBothCount, ] = recordCount(records);
+        const [nextDbCount, nextCloudCount, nextBothCount,] = recordCount(records);
         if (
           dbCount === nextDbCount &&
           cloudCount === nextCloudCount &&
@@ -500,7 +507,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
           const t6 = Date.now();
           logger.info(`AWS update time: ${t6 - t5}ms`);
         }
-      } while(ranUpdate);
+      } while (ranUpdate);
     } while (ranFullUpdate);
     const t7 = Date.now();
     logger.info(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
@@ -615,7 +622,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
           }
         });
         if (dryRun) return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
-        const [ nextDbCount, nextCloudCount, nextBothCount, ] = recordCount(records);
+        const [nextDbCount, nextCloudCount, nextBothCount,] = recordCount(records);
         if (
           dbCount === nextDbCount &&
           cloudCount === nextCloudCount &&
@@ -694,7 +701,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
           const t6 = Date.now();
           logger.info(`AWS update time: ${t6 - t5}ms`);
         }
-      } while(ranUpdate);
+      } while (ranUpdate);
     } while (ranFullUpdate);
     const t7 = Date.now();
     logger.info(`${dbId} synced, total time: ${t7 - t1}ms`);
@@ -721,7 +728,7 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
     return JSON.stringify(allModules);
   } else if (installed && dbId) {
     const entities: Function[] = [IasqlModule, IasqlTables];
-    const orm = await TypeormWrapper.createConn(dbId, {entities} as PostgresConnectionOptions);
+    const orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
     const mods = await orm.find(IasqlModule);
     const modsInstalled = mods.map((m: IasqlModule) => (m.name));
     return JSON.stringify(allModules.filter(m => modsInstalled.includes(m.moduleName)));
@@ -733,13 +740,12 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
 export async function install(moduleList: string[], dbId: string, dbUser: string, allModules = false, ormOpt?: TypeormWrapper) {
   // Check to make sure that all specified modules actually exist
   if (allModules) {
-    moduleList = (Object.values(Modules) as Modules.ModuleInterface[]).filter((m: Modules.ModuleInterface) => m.name && m.version && m.name !== 'aws_account' ).map((m: Modules.ModuleInterface) => `${m.name}@${m.version}`);
+    moduleList = (Object.values(Modules) as Modules.ModuleInterface[]).filter((m: Modules.ModuleInterface) => m.name && m.version && m.name !== 'aws_account').map((m: Modules.ModuleInterface) => `${m.name}@${m.version}`);
   }
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === n)) as Modules.Module[];
   if (mods.some((m: any) => m === undefined)) {
-    throw new Error(`The following modules do not exist: ${
-      moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
-    }`);
+    throw new Error(`The following modules do not exist: ${moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
+      }`);
   }
   const orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
   const queryRunner = orm.createQueryRunner();
@@ -758,9 +764,8 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
     .flatMap((m: Modules.Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
     .filter((m: any) => m !== 'aws_account@0.0.1' && m !== undefined);
   if (missingDeps.length > 0) {
-    throw new Error(`The provided modules depend on the following modules that are not provided or installed: ${
-      missingDeps.join(', ')
-    }`);
+    throw new Error(`The provided modules depend on the following modules that are not provided or installed: ${missingDeps.join(', ')
+      }`);
   }
   // See if we need to abort because now there's nothing to do
   if (mods.length === 0) {
@@ -788,10 +793,10 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   if (hasCollision) {
     throw new Error(`Collision with existing tables detected.
 ${Object.keys(tableCollisions)
-.filter(m => tableCollisions[m].length > 0)
-.map(m => `Module ${m} collides with tables: ${tableCollisions[m].join(', ')}`)
-.join('\n')
-}`);
+        .filter(m => tableCollisions[m].length > 0)
+        .map(m => `Module ${m} collides with tables: ${tableCollisions[m].join(', ')}`)
+        .join('\n')
+      }`);
   }
   // We're now good to go with installing the requested modules. To make sure they install correctly
   // we first need to sync the existing modules to make sure there are no records the newly-added
@@ -887,9 +892,8 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   // Check to make sure that all specified modules actually exist
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === n)) as Modules.Module[];
   if (mods.some((m: any) => m === undefined)) {
-    throw new Error(`The following modules do not exist: ${
-      moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
-    }`);
+    throw new Error(`The following modules do not exist: ${moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
+      }`);
   }
   orm = !orm ? await TypeormWrapper.createConn(dbId) : orm;
   const queryRunner = orm.createQueryRunner();
@@ -926,7 +930,7 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
         where: {
           module: e,
         },
-        relations: [ 'module', ]
+        relations: ['module',]
       }) ?? [];
       await orm.remove(IasqlTables, mt);
       await orm.remove(IasqlModule, e);
@@ -939,5 +943,33 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
     await queryRunner.release();
   }
   return "Done!";
+}
+
+export async function maybeUpdateStatus(uid: string, dbAlias: string, dbId: string, ormOpt?: TypeormWrapper) {
+  logger.info(`Maybe update ${dbId} status`);
+  let orm: TypeormWrapper | null = null;
+  try {
+    orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
+    const accountModule = (Object.values(Modules) as Modules.ModuleInterface[])
+      .find(mod => ['aws_account@0.0.1'].includes(`${mod.name}@${mod.version}`)) as Modules.Module;
+    if (!accountModule) throw new Error(`This should be impossible. Cannot find module aws_account`);
+    const moduleContext = accountModule.provides.context;
+    if (moduleContext) {
+      const awsAccounts = await accountModule.mappers.awsAccount.db.read(moduleContext);
+      if (awsAccounts.length) {
+        await MetadataRepo.updateDbStatus(uid, dbAlias, true);
+        logger.info(`Updated ${dbId} status`);
+        return true;
+      }
+    }
+    logger.info(`${dbId} status not updated`);
+    return false;
+  } catch (e: any) {
+    debugObj(e);
+    throw e;
+  } finally {
+    // do not drop the conn if it was provided
+    if (orm !== ormOpt) orm?.dropConn();
+  }
 }
 
