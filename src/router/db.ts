@@ -29,7 +29,7 @@ db.get('/connect/:dbAlias/:awsRegion/:awsAccessKeyId/:awsSecretAccessKey', async
 
 db.post('/connect', async (req, res) => {
   logger.info('Calling /connect');
-  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
+  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, directConnect} = req.body;
   if (!dbAlias || !awsRegion) return res.status(400).json(
     `Required key(s) not provided: ${[
       'awsRegion', 'dbAlias'
@@ -38,7 +38,7 @@ db.post('/connect', async (req, res) => {
   try {
     res.json(
       await iasql.connect(
-        dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, dbMan.getUid(req.user), dbMan.getEmail(req.user)
+        dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, dbMan.getUid(req.user), dbMan.getEmail(req.user), !!directConnect
       )
     );
   } catch (e) {

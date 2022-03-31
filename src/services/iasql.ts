@@ -63,6 +63,7 @@ export async function connect(
   awsSecretAccessKey: string | undefined,
   uid: string,
   email: string,
+  directConnect: boolean = false,
 ) {
   let conn1: any, conn2: any, dbId: any, dbUser: any;
   try {
@@ -71,8 +72,8 @@ export async function connect(
     dbUser = dbGen[0];
     const dbPass = dbGen[1];
     dbId = dbMan.genDbId(dbAlias);
-    const isReady = !!awsAccessKeyId && !!awsSecretAccessKey;
-    await MetadataRepo.saveDb(uid, email, dbAlias, dbId, dbUser, awsRegion, isReady);
+    const hasCredentials = !!awsAccessKeyId && !!awsSecretAccessKey;
+    await MetadataRepo.saveDb(uid, email, dbAlias, dbId, dbUser, awsRegion, hasCredentials, directConnect);
     console.log('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
     await conn1.query(`
@@ -94,7 +95,7 @@ export async function connect(
     await conn2.query(`
       INSERT INTO iasql_module VALUES ('aws_account@0.0.1')
     `);
-    if (!!awsAccessKeyId && !!awsSecretAccessKey) {
+    if (hasCredentials) {
       // Attach credentials
       await attach(uid, dbAlias, dbId, awsRegion, awsAccessKeyId, awsSecretAccessKey, conn2);
     }
