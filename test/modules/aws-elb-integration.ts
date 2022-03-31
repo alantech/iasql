@@ -11,7 +11,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_security_group@0.0.1', 'aws_elb@0.0.1'];
+const modules = ['aws_security_group', 'aws_elb'];
 
 // Test constants
 const tgName = `${prefix}${dbAlias}tg`;
@@ -162,10 +162,10 @@ describe('ELB Integration Testing', () => {
   it('applies the change', apply());
 
   it('uninstalls the elb module', uninstall(
-    ['aws_elb@0.0.1']));
+    ['aws_elb']));
 
   it('installs the elb module', install(
-    ['aws_elb@0.0.1']));
+    ['aws_elb']));
 
   it('deletes the listener', query(`
     DELETE FROM listener
@@ -234,10 +234,10 @@ describe('ELB install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the ELB module', uninstall(
-    ['aws_elb@0.0.1', 'aws_ecs_fargate@0.0.1']));
+    ['aws_elb', 'aws_ecs_fargate']));
 
   it('installs the ELB module', install(
-    ['aws_elb@0.0.1',]));
+    ['aws_elb',]));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

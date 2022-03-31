@@ -13,7 +13,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_ec2@0.0.1', 'aws_security_group@0.0.1'];
+const modules = ['aws_ec2', 'aws_security_group'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -165,11 +165,11 @@ describe('EC2 install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstall ec2 using overloaded sp', query(`
-    select iasql_uninstall('aws_ec2@0.0.1');
+    select iasql_uninstall('aws_ec2');
   `));
 
   it('install ec2 using overloaded sp', query(`
-    select iasql_install('aws_ec2@0.0.1');
+    select iasql_install('aws_ec2');
   `));
 
   it('deletes the test db', (done) => void iasql

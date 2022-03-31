@@ -10,7 +10,7 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
-const modules = ['aws_security_group@0.0.1', 'aws_rds@0.0.1'];
+const modules = ['aws_security_group', 'aws_rds'];
 
 jest.setTimeout(960000);
 beforeAll(async () => await execComposeUp());
@@ -83,10 +83,10 @@ describe('RDS Integration Testing', () => {
   it('applies the change', apply());
 
   it('uninstalls the rds module', uninstall(
-    ['aws_rds@0.0.1']));
+    ['aws_rds']));
 
   it('installs the rds module', install(
-    ['aws_rds@0.0.1']));
+    ['aws_rds']));
 
   it('removes the RDS instance', query(`
     DELETE FROM rds;
@@ -120,10 +120,10 @@ describe('RDS install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the RDS module', uninstall(
-    ['aws_rds@0.0.1']));
+    ['aws_rds']));
 
   it('installs the RDS module', install(
-    ['aws_rds@0.0.1']));
+    ['aws_rds']));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

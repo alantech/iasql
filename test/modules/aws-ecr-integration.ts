@@ -13,7 +13,7 @@ const sync = runSync.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const modules = ['aws_ecr@0.0.1'];
+const modules = ['aws_ecr'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -228,7 +228,7 @@ describe('ECR install/uninstall', () => {
     config.dbUser,
     true).then(...finish(done)));
 
-  it('uninstalls the ECR module', uninstall(['aws_ecr@0.0.1', 'aws_ecs_fargate@0.0.1']));
+  it('uninstalls the ECR module', uninstall(['aws_ecr', 'aws_ecs_fargate']));
 
   it('installs the ECR module', install(modules));
 

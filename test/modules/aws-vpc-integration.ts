@@ -8,7 +8,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_vpc@0.0.1'];
+const modules = ['aws_vpc'];
 
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 const randIPBlock = Math.floor(Math.random() * 255);
@@ -112,10 +112,10 @@ describe('VPC install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the VPC module', uninstall(
-    ['aws_vpc@0.0.1', 'aws_ecs_fargate@0.0.1',]));
+    ['aws_vpc', 'aws_ecs_fargate',]));
 
   it('installs the VPC module', install(
-    ['aws_vpc@0.0.1',]));
+    ['aws_vpc',]));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

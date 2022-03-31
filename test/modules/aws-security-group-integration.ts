@@ -10,7 +10,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_security_group@0.0.1'];
+const modules = ['aws_security_group'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -228,11 +228,11 @@ describe('Security Group install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the Security Group module', uninstall(
-    ['aws_rds@0.0.1', 'aws_ecs_fargate@0.0.1', 'aws_elb@0.0.1', 'aws_security_group@0.0.1', 'aws_ec2@0.0.1'],
+    ['aws_rds', 'aws_ecs_fargate', 'aws_elb', 'aws_security_group', 'aws_ec2'],
   ));
 
   it('installs the Security Group module', install(
-    ['aws_security_group@0.0.1',]));
+    ['aws_security_group',]));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

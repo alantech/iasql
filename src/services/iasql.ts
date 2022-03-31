@@ -742,6 +742,7 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   if (allModules) {
     moduleList = (Object.values(Modules) as Modules.ModuleInterface[]).filter((m: Modules.ModuleInterface) => m.name && m.version && m.name !== 'aws_account').map((m: Modules.ModuleInterface) => `${m.name}@${m.version}`);
   }
+  moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@0.0.1`);
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === n)) as Modules.Module[];
   if (mods.some((m: any) => m === undefined)) {
     throw new Error(`The following modules do not exist: ${moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
@@ -890,6 +891,7 @@ ${Object.keys(tableCollisions)
 
 export async function uninstall(moduleList: string[], dbId: string, orm?: TypeormWrapper) {
   // Check to make sure that all specified modules actually exist
+  moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@0.0.1`);
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === n)) as Modules.Module[];
   if (mods.some((m: any) => m === undefined)) {
     throw new Error(`The following modules do not exist: ${moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
