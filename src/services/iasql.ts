@@ -74,7 +74,7 @@ export async function connect(
     dbId = dbMan.genDbId(dbAlias);
     const hasCredentials = !!awsAccessKeyId && !!awsSecretAccessKey;
     await MetadataRepo.saveDb(uid, email, dbAlias, dbId, dbUser, awsRegion, hasCredentials, directConnect);
-    console.log('Establishing DB connections...');
+    logger.info('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
     await conn1.query(`
       CREATE DATABASE ${dbId};
