@@ -31,7 +31,7 @@ export class IasqlDatabase {
   @Column({
     default: false,
   })
-  fromCloudformation: boolean;
+  directConnect: boolean;
 }
 
 @Entity()
