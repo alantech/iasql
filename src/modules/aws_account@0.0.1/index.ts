@@ -17,8 +17,8 @@ export const AwsAccount: Module = new Module({
       // which will be different for different users. WARNING: Explicitly trying to access via
       // `AwsAccount.provides.context.getAwsClient` would instead use the context *template* that is
       // global to the codebase.
-      async getAwsClient(ormOpt?: TypeormWrapper) {
-        const orm = ormOpt ? ormOpt : this.orm;
+      async getAwsClient() {
+        const orm = this.orm;
         if (this.awsClient) return this.awsClient;
         const awsCreds = await orm.findOne(AwsAccount.mappers.awsAccount.entity);
         this.awsClient = new AWS({
