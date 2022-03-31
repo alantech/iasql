@@ -27,6 +27,11 @@ export class IasqlDatabase {
     default: true,
   })
   isReady: boolean;
+
+  @Column({
+    default: false,
+  })
+  fromCloudformation: boolean;
 }
 
 @Entity()
