@@ -221,8 +221,11 @@ describe('Security Group install/uninstall', () => {
       expect(res.length).toBe(2);
   }));
 
-  it('uninstalls the Security Group module', uninstall(
-    modules));
+  it('uninstalls the Security Group module and confirms two tables are removed', query(`
+    select * from iasql_uninstall('aws_security_group');
+  `, (res: any[]) => {
+    expect(res.length).toBe(2);
+  }));
 
   it('installs all modules', (done) => void iasql.install(
     [],
