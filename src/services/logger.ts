@@ -38,4 +38,22 @@ export function logUserErr(e: any): string {
   return err;
 }
 
+function exposeErrorProperties(error: Error) {
+  const copy = Object.assign({}, error);
+  if (error.name) copy.name = error.name;
+  if (error.message) copy.message = error.message;
+  if (error.stack) copy.stack = error.stack;
+  return copy;
+}
+
+export function errorReplacer(_key: string, value: any) {
+	if (value instanceof Error) {
+		return exposeErrorProperties(value);
+	} else if (Array.isArray(value)) {
+    return value.map(val => JSON.stringify(val, errorReplacer))
+	} else {
+		return value;
+	}
+}
+
 export default singleton;
