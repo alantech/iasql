@@ -4,7 +4,7 @@ import { run } from 'graphile-worker';
 import { IasqlOperationType } from '../entity/operation';
 import MetadataRepo from './repositories/metadata'
 import * as iasql from '../services/iasql'
-import logger, { logUserErr } from '../services/logger'
+import logger, { logUserErr, errorReplacer } from '../services/logger'
 import { TypeormWrapper } from './typeorm';
 import { IasqlDatabase } from '../metadata/entity';
 import config from '../config';
@@ -83,7 +83,7 @@ export async function start(dbId: string, dbUser:string) {
         } catch (e) {
           logUserErr(e);
           // error must be valid JSON as a string
-          const error = JSON.stringify(e, Object.getOwnPropertyNames(e));
+          const error = JSON.stringify(e, errorReplacer);
           const query = `
             update iasql_operation
             set end_date = now(), err = '${error}'
