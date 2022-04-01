@@ -47,13 +47,13 @@ function exposeErrorProperties(error: Error) {
 }
 
 export function errorReplacer(_key: string, value: any) {
-	if (value instanceof Error) {
-		return exposeErrorProperties(value);
-	} else if (Array.isArray(value)) {
+  if (value instanceof Error) {
+    return exposeErrorProperties(value);
+  } else if (Array.isArray(value)) {
     return value.map(val => JSON.stringify(val, errorReplacer))
-	} else {
-		return value;
-	}
+  } else {
+    return value;
+  }
 }
 
 export default singleton;
