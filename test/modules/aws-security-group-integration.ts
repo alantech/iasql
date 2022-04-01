@@ -215,11 +215,17 @@ describe('Security Group install/uninstall', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
 
-  it('installs the Security Group module', install(
-    modules));
+  it('installs the Security Group module and confirms two tables are created', query(`
+    select * from iasql_install('aws_security_group');
+  `, (res: any[]) => {
+      expect(res.length).toBe(2);
+  }));
 
-  it('uninstalls the Security Group module', uninstall(
-    modules));
+  it('uninstalls the Security Group module and confirms two tables are removed', query(`
+    select * from iasql_uninstall('aws_security_group');
+  `, (res: any[]) => {
+    expect(res.length).toBe(2);
+  }));
 
   it('installs all modules', (done) => void iasql.install(
     [],

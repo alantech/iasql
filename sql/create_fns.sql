@@ -143,7 +143,8 @@ begin
         (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
     from iasql_module as m
     inner join iasql_tables as t on m.name = t.module
-    where m.name = any (_mods);
+    inner join (select unnest(_mods) as module) as mo on true
+    where left(m.name, length(mo.module)) = mo.module;
 end;
 $$;
 
@@ -179,7 +180,8 @@ begin
         (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
         from iasql_module as m
         inner join iasql_tables as t on m.name = t.module
-        where m.name in ('%s')
+        inner join (select unnest(array['%s']) as module) as mo on true
+        where left(m.name, length(mo.module)) = mo.module
     ) as j;
     $dblink$, array_to_string(_mods, ''','''));
     -- Execute the query on another connection so the table access doesn't count on this
