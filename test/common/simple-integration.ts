@@ -7,7 +7,7 @@ const sha = execSync('git rev-parse HEAD', { encoding: 'utf8', }).trim();
 
 beforeAll(() => {
   // Build the docker containers
-  execSync('IASQL_ENV=test docker-compose up --build --detach');
+  execSync('IASQL_ENV=local docker-compose up --build --detach');
   // Wait for them to be usable
   execSync('while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;');
 });
