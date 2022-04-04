@@ -5,21 +5,17 @@ import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConn
 import { PostgresDriver, } from 'typeorm/driver/postgres/PostgresDriver';
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import { IasqlModule, IasqlTables, } from '../entity'
 import * as Modules from '../modules'
 import config from '../config';
 
-// Grab all of the entities plus the IaSQL Module entity itself and create the TypeORM connection
-// with it. Theoretically only need the module in question at first, but when we try to use the
-// module to acquire the cloud records, it may use one or more other modules it depends on, so
-// we just load them all into the TypeORM client.
+// Grab all of the entities and create the TypeORM connection with it. Theoretically only need the
+// module in question at first, but when we try to use the module to acquire the cloud records, it
+// may use one or more other modules it depends on, so we just load them all into the TypeORM client
 const entities = Object.values(Modules)
   .filter(m => m.hasOwnProperty('provides'))
   .map((m: any) => Object.values(m.provides.entities))
   .flat()
   .filter(e => typeof e === 'function') as Function[];
-entities.push(IasqlModule);
-entities.push(IasqlTables);
 
 export class TypeormWrapper {
   private connection: Connection
@@ -30,7 +26,11 @@ export class TypeormWrapper {
     host: config.dbHost,
     entities,
     namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
-    extra: { ssl: ['postgresql', 'localhost'].includes(config.dbHost) ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
+    extra: {
+      ssl: ['postgresql', 'localhost'].includes(config.dbHost) ? false : {
+        rejectUnauthorized: false,
+      }
+    },  // TODO: remove once DB instance with custom ssl cert is in place
   }
 
   static async createConn(database: string, connectionConfig = {}): Promise<TypeormWrapper> {

@@ -15,11 +15,11 @@ export class init1648611800868 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "iasql_tables" ADD CONSTRAINT "FK_0e0f2a4ef99e93cfcb935c060cb" FOREIGN KEY ("module") REFERENCES "iasql_module"("name") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" ADD CONSTRAINT "FK_9732df6d7dff34b6f6a1732033b" FOREIGN KEY ("module") REFERENCES "iasql_module"("name") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" ADD CONSTRAINT "FK_7dbdaef2c45fdd0d1d82cc9568c" FOREIGN KEY ("dependency") REFERENCES "iasql_module"("name") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(fs.readFileSync(`${__dirname}/../../sql/create_fns.sql`, 'utf8'));
+        await queryRunner.query(fs.readFileSync(`${__dirname}/../../../../sql/create_fns.sql`, 'utf8'));
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(fs.readFileSync(`${__dirname}../../sql/drop_fns.sql`, 'utf8'));
+        await queryRunner.query(fs.readFileSync(`${__dirname}../../../../sql/drop_fns.sql`, 'utf8'));
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" DROP CONSTRAINT "FK_7dbdaef2c45fdd0d1d82cc9568c"`);
         await queryRunner.query(`ALTER TABLE "iasql_dependencies" DROP CONSTRAINT "FK_9732df6d7dff34b6f6a1732033b"`);
         await queryRunner.query(`ALTER TABLE "iasql_tables" DROP CONSTRAINT "FK_0e0f2a4ef99e93cfcb935c060cb"`);

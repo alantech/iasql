@@ -8,7 +8,7 @@ import config from '../config';
 
 // We only want to do this setup once, then we re-use it. First we get the list of files
 const migrationFiles = fs
-  .readdirSync(`${__dirname}/../migration`)
+  .readdirSync(`${__dirname}/../modules/iasql_platform@0.0.1/migration`)
   .filter(f => !/\.map$/.test(f));
 // Then we construct the class names stored within those files (assuming *all* were generated with
 // `yarn gen-sql some-name`
@@ -22,7 +22,7 @@ const migrationNames = migrationFiles.map(f => {
 });
 // Then we dynamically `require` the migration files and construct the inner classes
 const migrationObjs = migrationFiles
-  .map(f => require(`${__dirname}/../migration/${f}`))
+  .map(f => require(`${__dirname}/../modules/iasql_platform@0.0.1/migration/${f}`))
   .map((c, i) => c[migrationNames[i]])
   .map(M => new M());
 // Finally we use this in this function to execute all of the migrations in order for a provided

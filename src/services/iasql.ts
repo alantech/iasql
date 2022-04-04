@@ -1,3 +1,6 @@
+// TODO: It seems like a lot of this logic could be migrated into the iasql_platform module and make
+// sense there. Need to think a bit more on that, but module manipulation that way could allow for
+// meta operations within the module code itself, if desirable.
 import { promisify, } from 'util'
 import { exec as execNode, } from 'child_process'
 const exec = promisify(execNode);
@@ -10,13 +13,12 @@ import { DepError, lazyLoader, } from '../services/lazy-dep'
 import { findDiff, } from '../services/diff'
 import MetadataRepo from './repositories/metadata'
 import { TypeormWrapper, } from './typeorm'
-import { IasqlModule, IasqlTables, } from '../entity'
+import { IasqlModule, IasqlTables, } from '../modules/iasql_platform@0.0.1/entity'
 import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
 import * as Modules from '../modules'
 import * as scheduler from './scheduler'
 import { IasqlDatabase } from '../metadata/entity';
-import { AWS } from './gateways/aws';
 import logger, { debugObj } from './logger';
 
 // Crupde = CR-UP-DE, Create/Update/Delete
