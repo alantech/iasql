@@ -7,7 +7,7 @@ const sha = execSync('git rev-parse HEAD', { encoding: 'utf8', }).trim();
 
 beforeAll(() => {
   // Build the docker containers
-  execSync('IASQL_ENV=simple-integration-test docker-compose up --build --detach');
+  execSync('IASQL_ENV=local docker-compose up --build --detach');
   // Wait for them to be usable
   execSync('while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;');
 });
@@ -30,7 +30,6 @@ describe('Basic integration testing', () => {
       --request POST \
       --url 'http://localhost:8088/v1/db/connect/' \
       --show-error --silent --fail \
-      --header 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
       --header 'content-type: application/json' \
       --data '{
         "dbAlias": "__${sha}__",
@@ -45,7 +44,6 @@ describe('Basic integration testing', () => {
     execSync(`
       curl \
         -X POST \
-        -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
         -H 'Content-Type: application/json' \
         -f \
         -s \
@@ -58,7 +56,6 @@ describe('Basic integration testing', () => {
     expect(() => {
       execSync(`
         curl \
-          -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
           -f \
           -s \
           -S http://localhost:8088/v1/module/install
@@ -70,7 +67,6 @@ describe('Basic integration testing', () => {
   it('should run list correctly', () => {
     execSync(`
       curl \
-        -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
         -f \
         -s \
         -S http://localhost:8088/v1/db/list
@@ -80,7 +76,6 @@ describe('Basic integration testing', () => {
   it('should run remove correctly', () => {
     execSync(`
       curl \
-        -H 'authorization: Bearer ${process.env.A0_IASQL_API_TOKEN}' \
         -f \
         -s \
         -S http://localhost:8088/v1/db/disconnect/__${sha}__
