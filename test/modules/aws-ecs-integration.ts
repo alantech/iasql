@@ -5,12 +5,13 @@ import { getPrefix, runInstall, runUninstall, runQuery, runApply, finish, execCo
 
 const prefix = getPrefix();
 const dbAlias = 'ecstest';
+const region = process.env.AWS_REGION || 'barf';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_ecr', 'aws_elb', 'aws_security_group', 'aws_cloudwatch', 'aws_ecs_fargate', 'aws_vpc',];
+const modules = ['aws_ecr', 'aws_elb', 'aws_security_group', 'aws_cloudwatch', 'aws_ecs_fargate', 'aws_vpc', 'aws_iam'];
 
 // Test constants
 const serviceName = `${prefix}${dbAlias}service`;
@@ -33,7 +34,21 @@ const protocol = 'tcp';
 const tdFamily = `${prefix}${dbAlias}td`;
 const tdRepositoryFamily = `${prefix}${dbAlias}tdrepository`;
 const tdPublicRepositoryFamily = `${prefix}${dbAlias}tdpublicrepository`;
-const taskExecRole = 'arn:aws:iam::852372565011:role/ecsTaskExecutionRole';
+const taskExecRoleName = `${prefix}${dbAlias}ecsTaskExecRole-${region}`;
+const taskRolePolicyDoc = JSON.stringify({
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "",
+          "Effect": "Allow",
+          "Principal": {
+              "Service": "ecs-tasks.amazonaws.com"
+          },
+          "Action": "sts:AssumeRole"
+      }
+  ]
+});
+const taskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy';
 const tdCpuMem = CpuMemCombination['vCPU2-8GB'];
 const tdActive = TaskDefinitionStatus.ACTIVE;
 const serviceDesiredCount = 1;
@@ -42,7 +57,7 @@ const serviceLoadBalancerName = `${serviceName}lb`;
 const newServiceName = `${serviceName}replace`;
 const repositoryName = `${prefix}${dbAlias}repository`;
 const containerNameRepository = `${prefix}${dbAlias}containerrepository`;
-const publicRepositoryName = `${prefix}${dbAlias}publicrepository`;
+const publicRepositoryName = `${prefix}${dbAlias}publicrepository-${region}`;
 const containerNamePublicRepository = `${prefix}${dbAlias}containerpublicrepository`;
 
 jest.setTimeout(240000);
@@ -124,9 +139,13 @@ describe('ECS Integration Testing', () => {
     it('applies adds container dependencies', apply());
 
     // Task definition
-    it('adds a new task definition', query(`
-      INSERT INTO task_definition ("family", task_role_arn, execution_role_arn, cpu_memory)
-      VALUES ('${tdFamily}', '${taskExecRole}', '${taskExecRole}', '${tdCpuMem}');
+    it('adds a new task definition and role', query(`
+      BEGIN;
+        INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+        VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
+        INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
+        VALUES ('${tdFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
+      COMMIT;
     `));
 
     it('check task_definition insertion', query(`
@@ -267,6 +286,9 @@ describe('ECS Integration Testing', () => {
         delete from task_definition
         where family = '${tdFamily}';
 
+        delete from role
+        where role_name = '${taskExecRoleName}';
+
         delete from log_group
         where log_group_name = '${logGroupName}';
       commit;
@@ -292,9 +314,13 @@ describe('ECS Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     // Task definition
-    it('adds a new task definition', query(`
-      INSERT INTO task_definition ("family", task_role_arn, execution_role_arn, cpu_memory)
-      VALUES ('${tdRepositoryFamily}', '${taskExecRole}', '${taskExecRole}', '${tdCpuMem}');
+    it('adds a new task definition and role', query(`
+      BEGIN;
+        INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+        VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
+        INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
+        VALUES ('${tdFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
+      COMMIT;
     `));
 
     it('check task_definition insertion', query(`
@@ -372,6 +398,9 @@ describe('ECS Integration Testing', () => {
         delete from task_definition
         where family = '${tdRepositoryFamily}';
 
+        delete from role
+        where role_name = '${taskExecRoleName}';
+
         delete from repository
         where repository_name = '${repositoryName}';
       commit;
@@ -398,8 +427,12 @@ describe('ECS Integration Testing', () => {
 
     // Task definition
     it('adds a new task definition', query(`
-      INSERT INTO task_definition ("family", task_role_arn, execution_role_arn, cpu_memory)
-      VALUES ('${tdPublicRepositoryFamily}', '${taskExecRole}', '${taskExecRole}', '${tdCpuMem}');
+      BEGIN;
+        INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+        VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
+        INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
+        VALUES ('${tdFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
+      COMMIT;
     `));
 
     it('check task_definition insertion', query(`
@@ -472,6 +505,9 @@ describe('ECS Integration Testing', () => {
 
         delete from task_definition
         where family = '${tdPublicRepositoryFamily}';
+
+        delete from role
+        where role_name = '${taskExecRoleName}';
 
         delete from public_repository
         where repository_name = '${publicRepositoryName}';

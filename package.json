@@ -18,7 +18,7 @@
     "migrate": "IASQL_ENV=local ts-node ./node_modules/.bin/typeorm migration:run",
     "gen-module": "IASQL_ENV=local ./.module_migration.sh",
     "docker-compose:dev": "IASQL_ENV=local docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
-    "docker-compose": "docker-compose -f docker-compose.yml up --build"
+    "docker-compose": "IASQL_ENV=local docker-compose up --build"
   },
   "repository": {
     "type": "git",
@@ -54,6 +54,7 @@
     "@aws-sdk/client-ecs": "^3.54.0",
     "@aws-sdk/client-elastic-load-balancing-v2": "^3.58.0",
     "@aws-sdk/client-rds": "^3.58.0",
+    "@aws-sdk/client-iam": "^3.58.0",
     "@aws-sdk/util-waiter": "^3.32.0",
     "@sentry/node": "^6.19.3",
     "@types/express": "^4.17.13",

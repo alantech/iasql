@@ -9,7 +9,7 @@ import {
   TaskDefinition,
 } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
-import { AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule, } from '..'
+import { AwsEcrModule, AwsElbModule, AwsIamModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
 import * as metadata from './module.json'
 import logger from '../../services/logger'
 
@@ -94,12 +94,16 @@ export const AwsEcsFargateModule: Module = new Module({
         out.containerDefinitions.push(cd);
       }
       out.cpuMemory = `vCPU${+(td.cpu ?? '256') / 1024}-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
-      out.executionRoleArn = td.executionRoleArn;
+      const executionRoleName = td.executionRoleArn.split(':role/')[1];
+      out.executionRole = await AwsIamModule.mappers.role.db.read(ctx, executionRoleName) ??
+        await AwsIamModule.mappers.role.cloud.read(ctx, executionRoleName);
       out.family = td.family;
       out.revision = td.revision;
       out.status = td.status;
       out.taskDefinitionArn = td.taskDefinitionArn;
-      out.taskRoleArn = td.taskRoleArn;
+      const taskRoleName = td.taskRoleArn.split(':role/')[1];
+      out.taskRole = await AwsIamModule.mappers.role.db.read(ctx, taskRoleName) ??
+        await AwsIamModule.mappers.role.cloud.read(ctx, taskRoleName);
       return out;
     },
     serviceMapper: async (s: any, ctx: Context) => {
@@ -229,12 +233,12 @@ export const AwsEcsFargateModule: Module = new Module({
     taskDefinition: new Mapper<TaskDefinition>({
       entity: TaskDefinition,
       equals: (a: TaskDefinition, b: TaskDefinition) => Object.is(a.cpuMemory, b.cpuMemory)
-        && Object.is(a.executionRoleArn, b.executionRoleArn)
+        && Object.is(a.executionRole?.arn, b.executionRole?.arn)
         && Object.is(a.family, b.family)
         && Object.is(a.revision, b.revision)
         && Object.is(a.status, b.status)
         && Object.is(a.taskDefinitionArn, b.taskDefinitionArn)
-        && Object.is(a.taskRoleArn, b.taskRoleArn)
+        && Object.is(a.taskRole?.arn, b.taskRole?.arn)
         && Object.is(a.containerDefinitions.length, b.containerDefinitions.length)
         && a.containerDefinitions.every(ac => !!b.containerDefinitions.find(bc => AwsEcsFargateModule.utils.containersEq(ac, bc))),
       source: 'db',
@@ -339,8 +343,8 @@ export const AwsEcsFargateModule: Module = new Module({
               }),
               requiresCompatibilities: ['FARGATE',],
               networkMode: 'awsvpc',
-              taskRoleArn: e.taskRoleArn,
-              executionRoleArn: e.executionRoleArn,
+              taskRoleArn: e.taskRole?.arn,
+              executionRoleArn: e.executionRole?.arn,
             };
             if (e.cpuMemory) {
               const [cpuStr, memoryStr] = e.cpuMemory.split('-');

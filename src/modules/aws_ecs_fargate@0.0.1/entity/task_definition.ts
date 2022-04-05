@@ -5,11 +5,14 @@ import {
   Column,
   Entity,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
 import { ContainerDefinition } from '.';
 import { cloudId, } from '../../../services/cloud-id'
+import { Role, } from '../../aws_iam@0.0.1/entity';
 
 export enum TaskDefinitionStatus {
   ACTIVE = "ACTIVE",
@@ -89,15 +92,17 @@ export class TaskDefinition {
   })
   revision?: number;
 
-  @Column({
-    nullable: true,
+  @ManyToOne(() => Role, { nullable: true, eager: true })
+  @JoinColumn({
+    name: 'task_role_name',
   })
-  taskRoleArn?: string;
+  taskRole?: Role;
 
-  @Column({
-    nullable: true,
+  @ManyToOne(() => Role, { nullable: true, eager: true })
+  @JoinColumn({
+    name: 'execution_role_name',
   })
-  executionRoleArn?: string;
+  executionRole?: Role;
 
   @Column({
     nullable: true,

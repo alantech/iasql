@@ -248,16 +248,8 @@ BEGIN
     SELECT tables_array INTO aux_tables_array;
     FOR table_elem IN array_lower(aux_tables_array, 1)..array_upper(aux_tables_array, 1) LOOP
       BEGIN
-        raise notice 'logging table %', aux_tables_array[table_elem];
-        -- public repository is special because it always routes to us-east-1
-        IF aux_tables_array[table_elem] = 'public_repository' THEN
-          raise notice '%', format('DELETE FROM %I WHERE repository_name LIKE ''%s''', aux_tables_array[table_elem], '%' || aws_region);
-          EXECUTE format('DELETE FROM %I WHERE repository_name LIKE ''%s''', aux_tables_array[table_elem], '%' || aws_region);
-          SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
-        ELSE
-          EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
-          SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
-        END IF;
+        EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
+        SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
       EXCEPTION
         WHEN others THEN
           -- we ignore the error
