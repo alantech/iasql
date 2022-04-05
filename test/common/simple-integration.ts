@@ -1,5 +1,7 @@
 import { execSync, } from 'child_process'
 
+import logger from '../../src/services/logger'
+
 jest.setTimeout(30000);
 
 // Could use $() but requires nasty escaping
@@ -14,10 +16,10 @@ beforeAll(() => {
 
 afterAll(() => {
   // Dump the logs for potential debugging
-  console.log('Engine logs');
-  console.log(execSync('docker logs iasql-engine_change_engine_1', { encoding: 'utf8', }));
-  console.log('Postgres logs');
-  console.log(execSync('docker logs iasql-engine_postgresql_1', { encoding: 'utf8', }));
+  logger.info('Engine logs');
+  logger.info(execSync('docker logs iasql-engine_change_engine_1', { encoding: 'utf8', }));
+  logger.info('Postgres logs');
+  logger.info(execSync('docker logs iasql-engine_postgresql_1', { encoding: 'utf8', }));
   // Terminate the docker container
   execSync('docker stop $(docker ps -q)');
 });

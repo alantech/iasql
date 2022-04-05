@@ -69,7 +69,7 @@ db.post('/attach', async (req, res) => {
 
 // TODO revive and test
 /*db.post('/import', async (req, res) => {
-  console.log('Calling /import');
+  logger.info('Calling /import');
   const {dump, dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.body;
   if (!dump || !dbAlias || !awsRegion || !awsAccessKeyId || !awsSecretAccessKey) return res.status(400).json(
     `Required key(s) not provided: ${[

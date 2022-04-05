@@ -8,6 +8,7 @@ import config from './config';
 import { v1 } from './router';
 import MetadataRepo from './services/repositories/metadata';
 import * as scheduler from './services/scheduler'
+import logger from './services/logger'
 
 const port = config.port;
 const app = express();
@@ -43,7 +44,7 @@ if (config.sentryEnabled) {
 app.use((error: any, _req: any, res: any, _next: any) => {
   // The error id is attached to `res.sentry` to be returned
   // and optionally displayed to the user for support.
-  console.error(inspect(error));
+  logger.error(inspect(error));
   let msg = error.message || inspect(error);
   if (config.sentryEnabled) msg += `\nPlease provide this error ID when reporting this bug: ${res.sentry}`;
   return res
@@ -55,7 +56,7 @@ app.use((error: any, _req: any, res: any, _next: any) => {
 MetadataRepo.init().then(() => {
   scheduler.init().then(() => {
     app.listen(port, () => {
-      console.log(`Server is running on port ${port}`);
+      logger.info(`Server is running on port ${port}`);
     });
   })
 });
