@@ -10,6 +10,7 @@ export async function migrate(conn: Connection) {
   const qr = conn.createQueryRunner();
   await qr.connect();
   await IasqlPlatform.migrations.install(qr);
+  await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@0.0.1')`);
   await qr.release();
 }
 
