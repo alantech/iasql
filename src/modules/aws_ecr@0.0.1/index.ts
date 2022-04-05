@@ -4,6 +4,7 @@ import { Repository as RepositoryAws, } from '@aws-sdk/client-ecr'
 import { Repository as PublicRepositoryAws, } from '@aws-sdk/client-ecr-public'
 
 import { AWS, } from '../../services/gateways/aws'
+import logger from '../../services/logger'
 import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability, } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import * as metadata from './module.json'
@@ -286,7 +287,7 @@ export const AwsEcrModule: Module = new Module({
                 return AwsEcrModule.mappers.repositoryPolicy.cloud.create(e, ctx);
               }
             } catch (e) {
-              console.log('Error comparing policy records');
+              logger.error('Error comparing policy records');
             }
             cloudRecord.id = e.id;
             await AwsEcrModule.mappers.repositoryPolicy.db.update(cloudRecord, ctx);

@@ -11,6 +11,7 @@ import {
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsEcrModule, AwsElbModule, AwsSecurityGroupModule, AwsCloudwatchModule, } from '..'
 import * as metadata from './module.json'
+import logger from '../../services/logger'
 
 export const AwsEcsFargateModule: Module = new Module({
   ...metadata,
@@ -58,7 +59,7 @@ export const AwsEcsFargateModule: Module = new Module({
           out.repository = repository;
         } catch (e) {
           // Repository could have been deleted
-          console.error(e);
+          logger.error('Repository not found', e as any);
           out.repository = undefined;
         }
       } else if (containerImage?.includes('public.ecr.aws')) {  // Public ECR
@@ -70,7 +71,7 @@ export const AwsEcsFargateModule: Module = new Module({
           out.publicRepository = publicRepository;
         } catch (e) {
           // Repository could have been deleted
-          console.error(e);
+          logger.error('Repository not found', e as any);
           out.publicRepository = undefined;
         }
       }
@@ -305,7 +306,7 @@ export const AwsEcsFargateModule: Module = new Module({
                   }
                   image = c.publicRepository.repositoryUri;
                 } else {
-                  console.error('How the DB constraint have been ignored?');
+                  logger.error('How the DB constraint have been ignored?');
                 }
                 if (c.digest) {
                   container.image = `${image}@${c.digest}`;

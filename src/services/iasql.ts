@@ -259,13 +259,13 @@ export async function dump(dbAlias: string, uid: any, dataOnly: boolean) {
 ) {
   let conn1, conn2, dbId, dbUser;
   try {
-    console.log('Creating account for user...');
+    logger.info('Creating account for user...');
     const dbGen = dbMan.genUserAndPass();
     dbUser = dbGen[0];
     const dbPass = dbGen[1];
     const meta = await dbMan.setMetadata(dbAlias, dbUser, user);
     dbId = meta.dbId;
-    console.log('Establishing DB connections...');
+    logger.info('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
     await conn1.query(`CREATE DATABASE ${dbId};`);
     conn2 = await createConnection({
@@ -275,7 +275,7 @@ export async function dump(dbAlias: string, uid: any, dataOnly: boolean) {
     });
     // Restore dump and wrap it in a try catch
     // that drops the database on error
-    console.log('Restoring schema and data from dump...');
+    logger.info('Restoring schema and data from dump...');
     await conn2.query(dumpStr);
     // Update aws_account schema
     await conn2.query(`
@@ -286,7 +286,7 @@ export async function dump(dbAlias: string, uid: any, dataOnly: boolean) {
     // Grant permissions
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
-    console.log('Done!');
+    logger.info('Done!');
     return {
       alias: dbAlias,
       id: dbId,
