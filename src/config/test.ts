@@ -14,6 +14,7 @@ const config: ConfigInterface = {
   sentryDsn: undefined,
   sentryEnvironment: undefined,
   debugLogger: false,
+  testLogger: true,
 };
 
 export default config;

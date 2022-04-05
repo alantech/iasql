@@ -1,20 +1,62 @@
-import * as sentry from '@sentry/node'
-import { Logger, LogFunctionFactory } from 'graphile-worker';
+import * as util from 'util'
 
-import config from '../config';
+import * as sentry from '@sentry/node'
+import { Logger, LogFunctionFactory } from 'graphile-worker'
+
+import config from '../config'
 
 const logFactory: LogFunctionFactory = (scope) => {
-  return (level, message, meta) => {
-    switch (level) {
-      case 'debug':
-        if (!config.debugLogger) return;
-        return console.log(level, message, scope, meta);
-      case 'error':
-        return console.error(level, message, scope, meta);
-      default:
-        return console.log(level, message, scope, meta);
-    }
-  };
+  // Better to check the config once in the factory and return fixed functions instead of checking
+  // on each log output
+  if (config.debugLogger && config.testLogger) {
+    return (level, message, meta) => {
+      const str = `${level}: ${message} ${util.inspect(scope)}${meta ? ` ${util.inspect(meta, { depth: 6, })}` : ''}\n`;
+      switch (level) {
+        case 'error':
+          process.stderr.write(str);
+          break;
+        case 'debug':
+        default:
+          process.stdout.write(str);
+          break;
+      }
+    };
+  } else if (config.debugLogger) {
+    return (level, message, meta) => {
+      switch (level) {
+        case 'error':
+          console.error(level, message, scope, meta);
+          break;
+        case 'debug':
+        default:
+          console.log(level, message, scope, meta);
+          break;
+      }
+    };
+  } else if (config.testLogger) {
+    return (level, message, meta) => {
+      const str = `${level}: ${message} ${util.inspect(scope)}${meta ? ` ${util.inspect(meta, { depth: 6, })}` : ''}\n`;
+      switch (level) {
+        case 'error':
+          process.stderr.write(str);
+          break;
+        default:
+          process.stdout.write(str);
+          break;
+      }
+    };
+  } else {
+    return (level, message, meta) => {
+      switch (level) {
+        case 'error':
+          console.error(level, message, scope, meta);
+          break;
+        default:
+          console.log(level, message, scope, meta);
+          break;
+      }
+    };
+  }
 }
 const singleton = new Logger(logFactory);
 
