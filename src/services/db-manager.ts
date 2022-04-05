@@ -5,12 +5,16 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 
 import config from '../config'
 import { IasqlPlatform, } from '../modules/iasql_platform@0.0.1'
+import { IasqlFunctions, } from '../modules/iasql_functions@0.0.1'
 
 export async function migrate(conn: Connection) {
   const qr = conn.createQueryRunner();
   await qr.connect();
   await IasqlPlatform.migrations.install(qr);
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@0.0.1')`);
+  await IasqlFunctions.migrations.install(qr);
+  await qr.query(`INSERT INTO iasql_module VALUES ('iasql_functions@0.0.1')`);
+  await qr.query(`INSERT INTO iasql_dependencies VALUES ('iasql_functions@0.0.1', 'iasql_platform@0.0.1')`);
   await qr.release();
 }
 

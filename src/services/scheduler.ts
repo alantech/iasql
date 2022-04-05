@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 import { run } from 'graphile-worker';
 
-import { IasqlOperationType } from '../modules/iasql_platform@0.0.1/entity/operation';
+import { IasqlOperationType } from '../modules/iasql_functions@0.0.1/entity';
 import MetadataRepo from './repositories/metadata'
 import * as iasql from '../services/iasql'
 import logger, { logUserErr, errorReplacer } from '../services/logger'

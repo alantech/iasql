@@ -718,13 +718,17 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
 }
 
 export async function modules(all: boolean, installed: boolean, dbId: string) {
-  // TODO rm special casing for aws_account, but keep iasql_platform
+  // TODO rm special casing for aws_account, but keep iasql_platform and iasql_functions
   const allModules = Object.values(Modules)
     .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && m.name !== 'aws_account')
     .map((m: any) => ({
       moduleName: m.name,
       moduleVersion: m.version,
-      dependencies: m.dependencies.filter((d: any) => !['aws_account@0.0.1', 'iasql_platform@0.0.1'].includes(d)),
+      dependencies: m.dependencies.filter((d: any) => ![
+        'aws_account@0.0.1',
+        'iasql_platform@0.0.1',
+        'iasql_functions@0.0.1',
+      ].includes(d)),
     }));
   if (all) {
     return JSON.stringify(allModules);
@@ -742,7 +746,12 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
 export async function install(moduleList: string[], dbId: string, dbUser: string, allModules = false, ormOpt?: TypeormWrapper) {
   // Check to make sure that all specified modules actually exist
   if (allModules) {
-    moduleList = (Object.values(Modules) as Modules.ModuleInterface[]).filter((m: Modules.ModuleInterface) => m.name && m.version && !['aws_account', 'iasql_platform'].includes(m.name)).map((m: Modules.ModuleInterface) => `${m.name}@${m.version}`);
+    moduleList = (Object.values(Modules) as Modules.ModuleInterface[])
+      .filter((m: Modules.ModuleInterface) => m.name && m.version && ![
+        'aws_account',
+        'iasql_platform',
+        'iasql_functions',
+      ].includes(m.name)).map((m: Modules.ModuleInterface) => `${m.name}@${m.version}`);
   }
   moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@0.0.1`);
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === n)) as Modules.Module[];
@@ -761,11 +770,15 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
       i--;
     }
   }
-  // TODO rm special casing for aws_account, but keep for iasql_platform
+  // TODO rm special casing for aws_account, but keep for iasql_platform and iasql_functions
   // Check to make sure that all dependent modules are in the list
   const missingDeps = mods
     .flatMap((m: Modules.Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
-    .filter((m: any) => !['aws_account@0.0.1', 'iasql_platform@0.0.1'].includes(m) && m !== undefined);
+    .filter((m: any) => ![
+      'aws_account@0.0.1',
+      'iasql_platform@0.0.1',
+      'iasql_functions@0.0.1',
+    ].includes(m) && m !== undefined);
   if (missingDeps.length > 0) {
     throw new Error(`The provided modules depend on the following modules that are not provided or installed: ${missingDeps.join(', ')
       }`);
