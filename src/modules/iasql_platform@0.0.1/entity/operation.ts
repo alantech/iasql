@@ -13,6 +13,7 @@ export enum IasqlOperationType {
   PLAN_APPLY = "PLAN_APPLY",
   PLAN_SYNC = "PLAN_SYNC",
   LIST = "LIST",
+  UPGRADE = "UPGRADE",
 }
 
 @Entity()
@@ -56,5 +57,4 @@ export class IasqlOperation {
     nullable: true,
   })
   err: string;
-
 }
