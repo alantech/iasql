@@ -59,7 +59,7 @@ export const AwsEcsFargateModule: Module = new Module({
           out.repository = repository;
         } catch (e) {
           // Repository could have been deleted
-          logger.error(e);
+          logger.error('Repository not found', e as any);
           out.repository = undefined;
         }
       } else if (containerImage?.includes('public.ecr.aws')) {  // Public ECR
@@ -71,7 +71,7 @@ export const AwsEcsFargateModule: Module = new Module({
           out.publicRepository = publicRepository;
         } catch (e) {
           // Repository could have been deleted
-          logger.error(e);
+          logger.error('Repository not found', e as any);
           out.publicRepository = undefined;
         }
       }
