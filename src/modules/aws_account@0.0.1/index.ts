@@ -4,7 +4,6 @@ import { AWS, } from '../../services/gateways/aws'
 import { AwsAccountEntity, } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import * as metadata from './module.json'
-import { TypeormWrapper } from '../../services/typeorm'
 
 export const AwsAccount: Module = new Module({
   ...metadata,

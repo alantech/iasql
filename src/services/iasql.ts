@@ -1,3 +1,6 @@
+// TODO: It seems like a lot of this logic could be migrated into the iasql_platform module and make
+// sense there. Need to think a bit more on that, but module manipulation that way could allow for
+// meta operations within the module code itself, if desirable.
 import { promisify, } from 'util'
 import { exec as execNode, } from 'child_process'
 const exec = promisify(execNode);
@@ -10,13 +13,12 @@ import { DepError, lazyLoader, } from '../services/lazy-dep'
 import { findDiff, } from '../services/diff'
 import MetadataRepo from './repositories/metadata'
 import { TypeormWrapper, } from './typeorm'
-import { IasqlModule, IasqlTables, } from '../entity'
+import { IasqlModule, IasqlTables, } from '../modules/iasql_platform@0.0.1/entity'
 import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
 import * as Modules from '../modules'
 import * as scheduler from './scheduler'
-import { IasqlDatabase } from '../metadata/entity';
-import { AWS } from './gateways/aws';
+import { IasqlDatabase } from '../entity';
 import logger, { debugObj } from './logger';
 
 // Crupde = CR-UP-DE, Create/Update/Delete
@@ -716,13 +718,17 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
 }
 
 export async function modules(all: boolean, installed: boolean, dbId: string) {
-  // TODO rm special casing for aws_account
+  // TODO rm special casing for aws_account, but keep iasql_platform and iasql_functions
   const allModules = Object.values(Modules)
     .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && m.name !== 'aws_account')
     .map((m: any) => ({
       moduleName: m.name,
       moduleVersion: m.version,
-      dependencies: m.dependencies.filter((d: any) => d !== 'aws_account@0.0.1'),
+      dependencies: m.dependencies.filter((d: any) => ![
+        'aws_account@0.0.1',
+        'iasql_platform@0.0.1',
+        'iasql_functions@0.0.1',
+      ].includes(d)),
     }));
   if (all) {
     return JSON.stringify(allModules);
@@ -740,7 +746,12 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
 export async function install(moduleList: string[], dbId: string, dbUser: string, allModules = false, ormOpt?: TypeormWrapper) {
   // Check to make sure that all specified modules actually exist
   if (allModules) {
-    moduleList = (Object.values(Modules) as Modules.ModuleInterface[]).filter((m: Modules.ModuleInterface) => m.name && m.version && m.name !== 'aws_account').map((m: Modules.ModuleInterface) => `${m.name}@${m.version}`);
+    moduleList = (Object.values(Modules) as Modules.ModuleInterface[])
+      .filter((m: Modules.ModuleInterface) => m.name && m.version && ![
+        'aws_account',
+        'iasql_platform',
+        'iasql_functions',
+      ].includes(m.name)).map((m: Modules.ModuleInterface) => `${m.name}@${m.version}`);
   }
   moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@0.0.1`);
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === n)) as Modules.Module[];
@@ -759,11 +770,15 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
       i--;
     }
   }
-  // TODO rm special casing for aws_account
+  // TODO rm special casing for aws_account, but keep for iasql_platform and iasql_functions
   // Check to make sure that all dependent modules are in the list
   const missingDeps = mods
     .flatMap((m: Modules.Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
-    .filter((m: any) => m !== 'aws_account@0.0.1' && m !== undefined);
+    .filter((m: any) => ![
+      'aws_account@0.0.1',
+      'iasql_platform@0.0.1',
+      'iasql_functions@0.0.1',
+    ].includes(m) && m !== undefined);
   if (missingDeps.length > 0) {
     throw new Error(`The provided modules depend on the following modules that are not provided or installed: ${missingDeps.join(', ')
       }`);

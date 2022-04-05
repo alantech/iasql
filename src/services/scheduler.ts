@@ -1,12 +1,12 @@
 import EventEmitter from 'events';
 import { run } from 'graphile-worker';
 
-import { IasqlOperationType } from '../entity/operation';
+import { IasqlOperationType } from '../modules/iasql_functions@0.0.1/entity';
 import MetadataRepo from './repositories/metadata'
 import * as iasql from '../services/iasql'
 import logger, { logUserErr } from '../services/logger'
 import { TypeormWrapper } from './typeorm';
-import { IasqlDatabase } from '../metadata/entity';
+import { IasqlDatabase } from '../entity';
 import config from '../config';
 
 const workerShutdownEmitter = new EventEmitter();
@@ -62,6 +62,10 @@ export async function start(dbId: string, dbUser:string) {
           }
           case IasqlOperationType.LIST: {
             promise = iasql.modules(true, false, dbId);
+            break;
+          }
+          case IasqlOperationType.UPGRADE: {
+            promise = (async () => {throw new Error('Upgrade not yet implemented'); })();
             break;
           }
           default: {

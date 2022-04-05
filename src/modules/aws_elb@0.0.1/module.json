@@ -1,5 +1,5 @@
 {
   "name": "aws_elb",
   "version": "0.0.1",
-  "dependencies": ["aws_account@0.0.1", "aws_security_group@0.0.1"]
+  "dependencies": ["iasql_platform@0.0.1", "aws_account@0.0.1", "aws_security_group@0.0.1"]
 }

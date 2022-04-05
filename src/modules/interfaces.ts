@@ -1,4 +1,4 @@
-import { readdirSync, } from 'fs'
+import fs from 'fs'
 
 import { In, QueryRunner, getMetadataArgsStorage, } from 'typeorm'
 
@@ -312,6 +312,10 @@ export class Module {
     this.name = def.name;
     this.version = def.version;
     this.dependencies = def.dependencies;
+    if (
+      this.name !== 'iasql_platform' &&
+      !def.dependencies.includes('iasql_platform@0.0.1')
+    ) throw new Error(`${def.name} did not declare an iasql_platform dependency and cannot be loaded.`);
     const entityDir = `${dirname}/entity`;
     const entities = require(`${entityDir}/index`);
     this.provides = {
@@ -323,7 +327,7 @@ export class Module {
     this.utils = def?.utils ?? {};
     this.mappers = def.mappers;
     const migrationDir = `${dirname}/migration`;
-    const files = readdirSync(migrationDir).filter(f => !/.map$/.test(f));
+    const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
     if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
     const migration = require(`${migrationDir}/${files[0]}`);
     // Assuming TypeORM migration files
@@ -345,6 +349,11 @@ export class Module {
         // The following are only for the test suite, but need to be included at all times
         .replace(/\/* istanbul ignore next *\//g, '')
         .replace(/cov_.*/g, '')
+        // Drop any lines that don't have backticks because they must be handwritten add-ons
+        // to the migration file (TODO: Avoid this hackery somehow)
+        .split('\n')
+        .filter((l: string) => !/query\(/.test(l) || /`/.test(l))
+        .join('\n')
     )();
     const tables: string[] = [];
     const functions: string[] = [];
