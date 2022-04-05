@@ -1,5 +1,5 @@
 {
   "name": "aws_account",
   "version": "0.0.1",
-  "dependencies": []
+  "dependencies": ["iasql_platform@0.0.1"]
 }
