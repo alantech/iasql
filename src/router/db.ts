@@ -1,5 +1,5 @@
 import * as express from 'express'
-import { IasqlDatabase } from '../metadata/entity';
+import { IasqlDatabase } from '../entity';
 
 import * as dbMan from '../services/db-manager';
 import * as iasql from '../services/iasql'

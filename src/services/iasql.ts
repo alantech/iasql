@@ -18,7 +18,7 @@ import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
 import * as Modules from '../modules'
 import * as scheduler from './scheduler'
-import { IasqlDatabase } from '../metadata/entity';
+import { IasqlDatabase } from '../entity';
 import logger, { debugObj } from './logger';
 
 // Crupde = CR-UP-DE, Create/Update/Delete

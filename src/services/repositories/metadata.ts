@@ -1,7 +1,7 @@
 import { createConnection, Connection, Repository } from 'typeorm'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import { IasqlDatabase, IasqlUser } from '../../metadata/entity/index';
+import { IasqlDatabase, IasqlUser } from '../../entity/index';
 import * as dbMan from '../db-manager'
 
 class MetadataRepo {
@@ -26,7 +26,7 @@ class MetadataRepo {
       namingStrategy: new SnakeNamingStrategy(),
       database: this.database,
       entities: [IasqlDatabase, IasqlUser],
-      migrations: [`${__dirname}/../../metadata/migration/*.js`, `${__dirname}/../../metadata/migration/*.ts`],
+      migrations: [`${__dirname}/../../migration/*.js`, `${__dirname}/../../migration/*.ts`],
       migrationsTableName: '__migrations__',
     });
     await this.conn.runMigrations();

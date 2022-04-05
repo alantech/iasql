@@ -6,7 +6,7 @@ import MetadataRepo from './repositories/metadata'
 import * as iasql from '../services/iasql'
 import logger, { logUserErr, errorReplacer } from '../services/logger'
 import { TypeormWrapper } from './typeorm';
-import { IasqlDatabase } from '../metadata/entity';
+import { IasqlDatabase } from '../entity';
 import config from '../config';
 
 const workerShutdownEmitter = new EventEmitter();
