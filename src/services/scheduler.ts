@@ -81,9 +81,9 @@ export async function start(dbId: string, dbUser:string) {
           output = typeof output === 'string' ? output : JSON.stringify(output);
           await conn.query(query);
         } catch (e) {
-          logUserErr(e);
+          const errorMessage = logUserErr(e);
           // error must be valid JSON as a string
-          const error = JSON.stringify(e, Object.getOwnPropertyNames(e));
+          const error = JSON.stringify({ message: errorMessage });
           const query = `
             update iasql_operation
             set end_date = now(), err = '${error}'
