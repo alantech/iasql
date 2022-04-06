@@ -269,6 +269,14 @@ BEGIN
 END;
 $$;
 
+create or replace function iasql_upgrade() returns void
+language plpgsql security definer
+as $$
+begin
+  select until_iasql_operation('UPGRADE', array[]::text[]);
+end;
+$$;
+
 create or replace function iasql_help() returns table (
   name text,
   signature text,
@@ -289,6 +297,7 @@ begin
     {"name": "uninstall", "signature": "iasql_uninstall(variadic text[])", "description": "Uninstall modules in the hosted db", "sample_usage": "SELECT * FROM iasql_uninstall(''aws_vpc@0.0.1'', ''aws_ec2'')"},
     {"name": "modules_list", "signature": "iasql_modules_list()", "description": "Lists all modules available to be installed", "sample_usage": "SELECT * FROM iasql_modules_list()"},
     {"name": "modules_installed", "signature": "iasql_modules_installed()", "description": "Lists all modules currently installed in the hosted db", "sample_usage": "SELECT * FROM iasql_modules_installed()"}
+    {"name": "upgrade", "signature": "iasql_upgrade()", "description": "Upgrades the db to the latest IaSQL Platform", "sample_usage": "SELECT iasql_upgrade()"}
   ]') as x(name text, signature text, description text, sample_usage text);
 end;
 $$;

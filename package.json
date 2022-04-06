@@ -4,7 +4,7 @@
   "description": "Infrastructure as SQL",
   "main": "dist/index.js",
   "scripts": {
-    "build": "yarn clean && tsc",
+    "build": "yarn clean && tsc && copyfiles -u 1 src/**/*.sql dist/",
     "clean": "rm -rf dist",
     "lint": "tslint --project .",
     "test": "IASQL_ENV=test jest -i",
@@ -38,6 +38,7 @@
     "@types/cors": "^2.8.12",
     "@types/jest": "^27.0.2",
     "@types/node": "^16.9.1",
+    "copyfiles": "^2.4.1",
     "jest": "^27.5.1",
     "nodemon": "^2.0.13",
     "ts-jest": "^27.1.3",

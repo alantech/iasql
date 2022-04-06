@@ -1,8 +1,9 @@
-import { readdirSync, } from 'fs'
+import fs from 'fs'
 
 import { In, QueryRunner, getMetadataArgsStorage, } from 'typeorm'
 
 import { getCloudId, } from '../services/cloud-id'
+import logger from '../services/logger'
 
 // The exported interfaces are meant to provide better type checking both at compile time and in the
 // editor. They *shouldn't* have to be ever imported directly, only the classes ought to be, but as
@@ -78,7 +79,7 @@ export class Crud<E> {
   }
 
   async create(e: E | E[], ctx: Context) {
-    console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} create`);
+    logger.info(`Calling ${this.entity?.name ?? ''} ${this.dest} create`);
     const es = Array.isArray(e) ? e : [e];
     // Memoize before and after the actual logic to make sure the unique ID is reserved
     this.memo(e, ctx);
@@ -92,7 +93,7 @@ export class Crud<E> {
   }
 
   async read(ctx: Context, id?: string | string[]) {
-    console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} read`);
+    logger.info(`Calling ${this.entity?.name ?? ''} ${this.dest} read`);
     const entityId = this.entityId ?? ((_e: E) => { return 'What?'; });
     if (id) {
       const dest = this.dest ?? 'What?';
@@ -117,7 +118,7 @@ export class Crud<E> {
         if (missing.length === 0) {
           return vals;
         }
-        console.log(`Partial cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
+        logger.info(`Partial cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
         // TODO: is it possible that `missingVals` it is unaligned with `missing`??
         const missingVals = (this.memo(await this.readFn(ctx, missing), ctx, missing) as E[]).sort(
           (a: E, b: E) => missing.indexOf(entityId(a)) - missing.indexOf(entityId(b))
@@ -143,10 +144,10 @@ export class Crud<E> {
         ctx.memo[dest] = ctx.memo[dest] ?? {};
         ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
         if (!ctx.memo[dest][entityName][id]) {
-          console.log(`Cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
+          logger.info(`Cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
           ctx.memo[dest][entityName][id] = new (this.entity as new () => E)();
         } else {
-          console.log(`Cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
+          logger.info(`Cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
           return ctx.memo[dest][entityName][id];
         }
         // Linter thinks this is shadowing the other one on line 152 because JS hoisting nonsense
@@ -171,7 +172,7 @@ export class Crud<E> {
         }
       }
     }
-    console.log(`Full cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
+    logger.info(`Full cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
     const out = await this.readFn(ctx);
     if (!out || out.length === 0) {
       // Don't memo in this case, just pass it through
@@ -182,13 +183,13 @@ export class Crud<E> {
   }
 
   async update(e: E | E[], ctx: Context) {
-    console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} update`);
+    logger.info(`Calling ${this.entity?.name ?? ''} ${this.dest} update`);
     const es = Array.isArray(e) ? e : [e];
     return this.memo(await this.updateFn(es, ctx), ctx, e);
   }
 
   async delete(e: E | E[], ctx: Context) {
-    console.log(`Calling ${this.entity?.name ?? ''} ${this.dest} delete`);
+    logger.info(`Calling ${this.entity?.name ?? ''} ${this.dest} delete`);
     const es = Array.isArray(e) ? e : [e];
     const out = await this.deleteFn(es, ctx);
     this.unmemo(es, ctx); // Remove deleted record(s) from the memo
@@ -312,6 +313,10 @@ export class Module {
     this.name = def.name;
     this.version = def.version;
     this.dependencies = def.dependencies;
+    if (
+      this.name !== 'iasql_platform' &&
+      !def.dependencies.includes('iasql_platform@0.0.1')
+    ) throw new Error(`${def.name} did not declare an iasql_platform dependency and cannot be loaded.`);
     const entityDir = `${dirname}/entity`;
     const entities = require(`${entityDir}/index`);
     this.provides = {
@@ -323,7 +328,7 @@ export class Module {
     this.utils = def?.utils ?? {};
     this.mappers = def.mappers;
     const migrationDir = `${dirname}/migration`;
-    const files = readdirSync(migrationDir).filter(f => !/.map$/.test(f));
+    const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
     if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
     const migration = require(`${migrationDir}/${files[0]}`);
     // Assuming TypeORM migration files
@@ -345,6 +350,11 @@ export class Module {
         // The following are only for the test suite, but need to be included at all times
         .replace(/\/* istanbul ignore next *\//g, '')
         .replace(/cov_.*/g, '')
+        // Drop any lines that don't have backticks because they must be handwritten add-ons
+        // to the migration file (TODO: Avoid this hackery somehow)
+        .split('\n')
+        .filter((l: string) => !/query\(/.test(l) || /`/.test(l))
+        .join('\n')
     )();
     const tables: string[] = [];
     const functions: string[] = [];

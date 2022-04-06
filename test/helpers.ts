@@ -5,6 +5,7 @@ import config from '../src/config';
 
 import * as iasql from '../src/services/iasql'
 import MetadataRepo from '../src/services/repositories/metadata'
+import logger from '../src/services/logger'
 
 export async function execComposeUp() {
   execSync('cd test && docker-compose up -d && sleep 5');
@@ -47,7 +48,7 @@ export function runUninstall(dbAlias: string, mods: string[]) {
 
 export function runQuery(dbAlias: string, queryString: string, assertFn?: (res: any[]) => void) {
   return function (done: (e?: any) => {}) {
-    console.log(queryString);
+    logger.info(queryString);
     createConnection({
       name: dbAlias,
       type: 'postgres',
@@ -81,11 +82,11 @@ export function runQuery(dbAlias: string, queryString: string, assertFn?: (res: 
 async function cleanDB(modules: string[], region: string | undefined): Promise<void> {
   const dbAlias = `cleandb${Date.now()}`;
   const awsRegion = region ?? process.env.AWS_REGION ?? 'barf';
-  console.log(`Cleaning ${dbAlias} in ${awsRegion}...`);
+  logger.info(`Cleaning ${dbAlias} in ${awsRegion}...`);
   await iasql.connect(dbAlias, awsRegion, process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.  AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed', 'not-needed');
-  console.log('DB created...');
+  logger.info('DB created...');
   await iasql.install(modules, dbAlias, config.dbUser);
-  console.log(`Modules ${modules} installed...`);
+  logger.info(`Modules ${modules} installed...`);
   const conn = await createConnection({
     name: dbAlias,
     type: 'postgres',
@@ -96,12 +97,12 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
     database: dbAlias,
     extra: { ssl: false, },
   });
-  console.log(`Connection created...`);
+  logger.info(`Connection created...`);
   await conn.query('select delete_all_records();');
   await conn.close();
   const res = await iasql.apply(dbAlias, false);
-  console.log('Deletes applied...');
-  console.dir(res, {depth: 6});
+  logger.info('Deletes applied...');
+  logger.info('', res as any);
   await iasql.disconnect(dbAlias, 'not-needed');
-  console.log('DB removed...');
+  logger.info('DB removed...');
 }

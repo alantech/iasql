@@ -3,7 +3,7 @@ import { execSync, } from 'child_process'
 import { createConnection, EntityTarget, } from 'typeorm'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import * as Entities from '../../src/entity'
+import * as Entities from '../../src/modules/iasql_platform@0.0.1/entity'
 import { TypeormWrapper, } from '../../src/services/typeorm'
 import { migrate, } from '../../src/services/db-manager'
 
@@ -78,7 +78,7 @@ describe('Basic DB testing', () => {
         host: 'localhost',
         port: 5432,
         database: 'postgres',
-        entities: [`${__dirname}/../../src/entity/**/*.ts`],
+        entities: Object.values(Entities),
         namingStrategy: new SnakeNamingStrategy(),
       });
       const finds = [];
