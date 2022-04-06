@@ -143,7 +143,7 @@ describe('ECS Integration Testing', () => {
     it('applies adds container dependencies', apply());
 
     // Task definition
-    it('adds a new task definition and role', query(`
+    it('adds a new task definition', query(`
       INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
       VALUES ('${tdFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
     `));
@@ -313,14 +313,22 @@ describe('ECS Integration Testing', () => {
       WHERE repository_name = '${repositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
+    // IAM
+    it('adds a new role', query(`
+      INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+      VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
+  `));
+
+    it('check role insertion', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${taskExecRoleName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     // Task definition
     it('adds a new task definition and role', query(`
-      BEGIN;
-        INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
-        VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
-        INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
-        VALUES ('${tdFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
-      COMMIT;
+      INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
+      VALUES ('${tdRepositoryFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
     `));
 
     it('check task_definition insertion', query(`
@@ -425,20 +433,28 @@ describe('ECS Integration Testing', () => {
       WHERE repository_name = '${publicRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
+    // IAM
+    it('adds a new role', query(`
+      INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+      VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
+    `));
+
+    it('check role insertion', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${taskExecRoleName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     // Task definition
-    it('adds a new task definition', query(`
-      BEGIN;
-        INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
-        VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
-        INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
-        VALUES ('${tdFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
-      COMMIT;
+    it('adds a new task definition and role', query(`
+      INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
+      VALUES ('${tdPublicRepositoryFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
     `));
 
     it('check task_definition insertion', query(`
       SELECT *
       FROM task_definition
-      WHERE family = '${tdPublicRepositoryFamily}' AND status IS NULL;
+      WHERE family = '${tdRepositoryFamily}' AND status IS NULL;
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('adds a new container definition', query(`
