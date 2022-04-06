@@ -262,7 +262,8 @@ export const AwsEcsFargateModule: Module = new Module({
             'containerDefinitions',
             'containerDefinitions.repository',
             'containerDefinitions.publicRepository',
-            'containerDefinitions.logGroup'
+            'containerDefinitions.logGroup',
+            'role'
           ];
           const opts = ids ? {
             where: {
