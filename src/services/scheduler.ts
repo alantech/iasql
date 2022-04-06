@@ -87,7 +87,7 @@ export async function start(dbId: string, dbUser:string) {
         } catch (e) {
           const errorMessage = logUserErr(e);
           // error must be valid JSON as a string
-          const error = JSON.stringify({ message: errorMessage });
+          const error = JSON.stringify({ message: errorMessage }).replace(/[\']/g, "\\\"");
           const query = `
             update iasql_operation
             set end_date = now(), err = '${error}'
