@@ -94,16 +94,20 @@ export const AwsEcsFargateModule: Module = new Module({
         out.containerDefinitions.push(cd);
       }
       out.cpuMemory = `vCPU${+(td.cpu ?? '256') / 1024}-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
-      const executionRoleName = td.executionRoleArn.split(':role/')[1];
-      out.executionRole = await AwsIamModule.mappers.role.db.read(ctx, executionRoleName) ??
-        await AwsIamModule.mappers.role.cloud.read(ctx, executionRoleName);
+      if (td.executionRoleArn) {
+        const executionRoleName = td.executionRoleArn.split(':role/')[1];
+        out.executionRole = await AwsIamModule.mappers.role.db.read(ctx, executionRoleName) ??
+          await AwsIamModule.mappers.role.cloud.read(ctx, executionRoleName);
+      }
       out.family = td.family;
       out.revision = td.revision;
       out.status = td.status;
       out.taskDefinitionArn = td.taskDefinitionArn;
-      const taskRoleName = td.taskRoleArn.split(':role/')[1];
-      out.taskRole = await AwsIamModule.mappers.role.db.read(ctx, taskRoleName) ??
-        await AwsIamModule.mappers.role.cloud.read(ctx, taskRoleName);
+      if (td.taskRoleArn) {
+        const taskRoleName = td.taskRoleArn.split(':role/')[1];
+        out.taskRole = await AwsIamModule.mappers.role.db.read(ctx, taskRoleName) ??
+          await AwsIamModule.mappers.role.cloud.read(ctx, taskRoleName);
+      }
       return out;
     },
     serviceMapper: async (s: any, ctx: Context) => {

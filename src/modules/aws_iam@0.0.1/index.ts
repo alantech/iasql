@@ -32,19 +32,20 @@ export const AwsIamModule: Module = new Module({
       cloud: new Crud({
         create: async (es: Role[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          for (const role of es) {
-              const roleArn = await client.newRole(
-                role.roleName,
-                role.assumeRolePolicyDocument,
-                role.attachedPoliciesArns,
-                role.description ?? ''
-              );
-              if (!roleArn) { // then who?
-                throw new Error('should not be possible');
-              }
-              role.arn = roleArn;
-              await AwsIamModule.mappers.role.db.update(role, ctx);
-          }
+          return await Promise.all(es.map(async (role) => {
+            const roleArn = await client.newRole(
+              role.roleName,
+              role.assumeRolePolicyDocument,
+              role.attachedPoliciesArns,
+              role.description ?? ''
+            );
+            if (!roleArn) { // then who?
+              throw new Error('should not be possible');
+            }
+            role.arn = roleArn;
+            await AwsIamModule.mappers.role.db.update(role, ctx);
+            return role;
+          }));
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
