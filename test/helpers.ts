@@ -99,7 +99,9 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
     extra: { ssl: false, },
   });
   logger.info(`Connection created...`);
-  await conn.query(fs.readFileSync(`${__dirname}/sql/delete_records.sql`, 'utf8'));
+  const delQuery = fs.readFileSync(`${__dirname}/sql/delete_records.sql`, 'utf8');
+  logger.info(delQuery);
+  await conn.query(delQuery);
   await conn.close();
   const res = await iasql.apply(dbAlias, false);
   logger.info('Deletes applied...');

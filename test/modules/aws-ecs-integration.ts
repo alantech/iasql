@@ -132,20 +132,20 @@ describe('ECS Integration Testing', () => {
   describe('Docker image', () => {
     // Container definition
     it('adds container dependencies', query(`
-      INSERT INTO log_group (log_group_name)
-      VALUES ('${logGroupName}');
+      BEGIN;
+        INSERT INTO log_group (log_group_name)
+        VALUES ('${logGroupName}');
+        INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+        VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
+      COMMIT;
     `));
 
     it('applies adds container dependencies', apply());
 
     // Task definition
     it('adds a new task definition and role', query(`
-      BEGIN;
-        INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
-        VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
-        INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
-        VALUES ('${tdFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
-      COMMIT;
+      INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
+      VALUES ('${tdFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
     `));
 
     it('check task_definition insertion', query(`
