@@ -46,7 +46,7 @@ export function runUninstall(dbAlias: string, mods: string[]) {
   return runQuery(dbAlias, `select iasql_uninstall(${mods.map(m => `'${m}'`)});`);
 }
 
-export function runQuery(dbAlias: string, queryString: string, assertFn?: (res: any[]) => void) {
+export function runQuery(dbAlias: string, queryString: string, assertFn?: (res: any[]) => void, errAssertFn?: (res: any[]) => void) {
   return function (done: (e?: any) => {}) {
     logger.info(queryString);
     createConnection({
@@ -73,7 +73,18 @@ export function runQuery(dbAlias: string, queryString: string, assertFn?: (res: 
           return {};
         }));
       }, (e) => {
-        conn.close().then(() => done(e), (e2) => done(e2));
+        conn.close().then(...finish((_e?: any) => {
+          if (errAssertFn) {
+            try {
+              errAssertFn(e);
+            } catch (e2: any) {
+              done(e2);
+              return {};
+            }
+          }
+          done();
+          return {};
+        }), (e2) => done(e2));
       });
     }, done);
   }
