@@ -19,9 +19,11 @@ describe('Testing failure path', () => {
     'not-needed', 'not-needed').then(...finish(done)));
 
   // Fail on install
-  it('fails to install fake module', query(`
-    select * from iasql_install('aws_fake');
-  `));
+  it('fails to install fake module', (done) => {
+    query(`
+      select * from iasql_install('aws_fake');
+    `)((_e?: any) => done());  // Ignore failure
+  });
 
   it('check install error', query(`
     SELECT *
@@ -35,9 +37,11 @@ describe('Testing failure path', () => {
   }));
 
   // Fail on uninstall
-  it('fails to uninstall fake module', query(`
-    select * from iasql_uninstall('aws_fake');
-  `));
+  it('fails to uninstall fake module', (done) => {
+    query(`
+      select * from iasql_uninstall('aws_fake');
+    `)((_e?: any) => done());  // Ignore failure
+  });
 
   it('check uninstall error', query(`
     SELECT *
@@ -67,9 +71,11 @@ describe('Testing failure path', () => {
     WHERE name = ANY(array['i-1']);
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('fails to apply', query(`
-    select * from iasql_apply();
-  `));
+  it('fails to apply', (done) => {
+    query(`
+      select * from iasql_apply();
+    `)((_e?: any) => done());  // Ignore failure
+  });
 
   it('check apply error', query(`
     SELECT *
@@ -83,9 +89,11 @@ describe('Testing failure path', () => {
   }));
 
   // Fail on upgrade
-  it('fails to upgrade module', query(`
-    select * from iasql_upgrade();
-  `));
+  it('fails to upgrade module',  (done) => {
+    query(`
+      select * from iasql_upgrade();
+    `)((_e?: any) => done());  // Ignore failure
+  });
 
   it('check upgrade error', query(`
     SELECT *
