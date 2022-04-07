@@ -454,7 +454,7 @@ describe('ECS Integration Testing', () => {
     it('check task_definition insertion', query(`
       SELECT *
       FROM task_definition
-      WHERE family = '${tdRepositoryFamily}' AND status IS NULL;
+      WHERE family = '${tdPublicRepositoryFamily}' AND status IS NULL;
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('adds a new container definition', query(`
