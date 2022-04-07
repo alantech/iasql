@@ -137,6 +137,7 @@ import {
   ECRPUBLICClient,
   paginateDescribeRepositories as paginateDescribePubRepositories,
 } from '@aws-sdk/client-ecr-public'
+import { IAM } from '@aws-sdk/client-iam'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -158,6 +159,7 @@ export class AWS {
   private rdsClient: RDSClient
   private cwClient: CloudWatchLogsClient
   private ecrPubClient: ECRPUBLICClient
+  private iamClient: IAM;
   private credentials: AWSCreds
   public region: string
 
@@ -170,8 +172,62 @@ export class AWS {
     this.ecsClient = new ECSClient(config);
     this.rdsClient = new RDSClient(config);
     this.cwClient = new CloudWatchLogsClient(config);
+    this.iamClient = new IAM(config);
     // Service endpoint only available in 'us-esat-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
     this.ecrPubClient = new ECRPUBLICClient({credentials: config.credentials, region: 'us-east-1'});
+  }
+
+  async newRole(name: string, assumeRolePolicyDocument: string, attachedPolicyArns: string[], description: string): Promise<string> {
+    const role = await this.iamClient.createRole({
+      RoleName: name,
+      AssumeRolePolicyDocument: assumeRolePolicyDocument,
+      Description: description,
+    });
+    await Promise.all(
+      attachedPolicyArns
+        .map(arn => this.iamClient.attachRolePolicy({PolicyArn: arn, RoleName: name}))
+    );
+    return role.Role?.Arn ?? '';
+  }
+
+  async updateRoleDescription(name: string, description: string) {
+    await this.iamClient.updateRole({
+      RoleName: name,
+      Description: description
+    });
+  }
+
+  async updateAttachedPoliciesArns(name: string, attachedPolicyArns: string[]) {
+    const existingArns = await this.getRoleAttachedPoliciesArns(name);
+    const addedArns = attachedPolicyArns.filter(p => !existingArns.includes(p));
+    const removedArns = existingArns.filter(p => !attachedPolicyArns.includes(p));
+    await Promise.all(addedArns.map(p => this.iamClient.attachRolePolicy({ RoleName: name, PolicyArn: p})));
+    await Promise.all(removedArns.map(p => this.iamClient.detachRolePolicy({ RoleName: name, PolicyArn: p})));
+  }
+
+  async updateRoleAssumePolicy(name: string, assumeRolePolicyDocument: string) {
+    await this.iamClient.updateAssumeRolePolicy({
+      RoleName: name,
+      PolicyDocument: assumeRolePolicyDocument,
+    });
+  }
+
+  async getRole(name: string) {
+    return (await this.iamClient.getRole({RoleName: name})).Role;
+  }
+
+  async getRoles() {
+    return (await this.iamClient.listRoles({})).Roles ?? [];
+  }
+
+  async getRoleAttachedPoliciesArns(name: string) {
+    const rolePolicies = (await this.iamClient.listAttachedRolePolicies({RoleName: name})).AttachedPolicies ?? [];
+    return rolePolicies.map(p => p.PolicyArn ?? '');
+  }
+
+  async deleteRole(name: string, policyArns: string[]) {
+    await Promise.all(policyArns.map(arn => this.iamClient.detachRolePolicy({RoleName: name, PolicyArn: arn})));
+    await this.iamClient.deleteRole({RoleName: name});
   }
 
   async newInstance(name: string, instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
