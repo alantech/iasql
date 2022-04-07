@@ -100,7 +100,7 @@ export const AwsEcsFargateModule: Module = new Module({
         if (!Object.values(ctx.memo?.cloud?.Role ?? {}).length) {
           try {
             out.executionRole = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
-              AwsIamModule.mappers.role.cloud.read(ctx, roleName);
+              await AwsIamModule.mappers.role.cloud.read(ctx, roleName);
           } catch (e) {
             // Role could have been deleted
             logger.error('Role not found', e as any);
@@ -121,7 +121,7 @@ export const AwsEcsFargateModule: Module = new Module({
         if (!Object.values(ctx.memo?.cloud?.Role ?? {}).length) {
           try {
             out.taskRole = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
-              AwsIamModule.mappers.role.cloud.read(ctx, roleName);
+              await AwsIamModule.mappers.role.cloud.read(ctx, roleName);
           } catch (e) {
             // Role could have been deleted
             logger.error('Role not found', e as any);
