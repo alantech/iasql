@@ -104,8 +104,8 @@ export const AwsEcsFargateModule: Module = new Module({
       out.status = td.status;
       out.taskDefinitionArn = td.taskDefinitionArn;
       if (td.taskRoleArn) {
-        const roleName = AwsIamModule.utils.roleNameFromArn(td.executionRoleArn);
-        out.executionRole = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
+        const roleName = AwsIamModule.utils.roleNameFromArn(td.taskRoleArn);
+        out.taskRole = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
           await AwsIamModule.mappers.role.cloud.read(ctx, roleName);
       }
       return out;
