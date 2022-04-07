@@ -381,7 +381,14 @@ describe('ECS Integration Testing', () => {
     it('uninstalls the ecs module', uninstall(
       ['aws_ecs_fargate']));
 
-    it('installs the ecs module', install(
+    it('delete role while ecs is uninstalled', query(`
+      delete from role
+      where role_name = '${taskExecRoleName}';
+    `));
+
+    it('applies role deletion', apply());
+
+    it('installs the ecs module with missing role', install(
       ['aws_ecs_fargate']));
 
     it('deletes service', query(`
@@ -433,22 +440,10 @@ describe('ECS Integration Testing', () => {
       WHERE repository_name = '${publicRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
-    // IAM
-    it('adds a new role', query(`
-      INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
-      VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
-    `));
-
-    it('check role insertion', query(`
-      SELECT *
-      FROM role
-      WHERE role_name = '${taskExecRoleName}';
-    `, (res: any[]) => expect(res.length).toBe(1)));
-
     // Task definition
     it('adds a new task definition', query(`
-      INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
-      VALUES ('${tdPublicRepositoryFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
+      INSERT INTO task_definition ("family", cpu_memory)
+      VALUES ('${tdPublicRepositoryFamily}', '${tdCpuMem}');
     `));
 
     it('check task_definition insertion', query(`
@@ -521,9 +516,6 @@ describe('ECS Integration Testing', () => {
 
         delete from task_definition
         where family = '${tdPublicRepositoryFamily}';
-
-        delete from role
-        where role_name = '${taskExecRoleName}';
 
         delete from public_repository
         where repository_name = '${publicRepositoryName}';
