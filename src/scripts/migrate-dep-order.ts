@@ -13,7 +13,7 @@ const getModule = (name: string) => (Object.values(Modules) as Module[])
 const rootModule = getModule(moduleName);
 
 if (!rootModule) {
-  throw new Error(`Could not find module ${moduleName}`); 
+  throw new Error(`Could not find module ${moduleName}`);
 }
 
 const processDep = (dep: string) => {
