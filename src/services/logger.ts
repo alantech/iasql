@@ -40,6 +40,8 @@ const logFactory: LogFunctionFactory = (scope) => {
         case 'error':
           process.stderr.write(str);
           break;
+        case 'debug':
+          break
         default:
           process.stdout.write(str);
           break;
@@ -51,6 +53,8 @@ const logFactory: LogFunctionFactory = (scope) => {
         case 'error':
           console.error(level, message, scope, meta);
           break;
+        case 'debug':
+          break
         default:
           console.log(level, message, scope, meta);
           break;

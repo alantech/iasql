@@ -887,7 +887,7 @@ ${Object.keys(tableCollisions)
           throw err;
         }
         if (!e || (Array.isArray(e) && !e.length)) {
-          logger.error('Completely unexpected outcome', { mapper, e, context, });
+          logger.warn('No cloud entity records');
         } else {
           try {
             await mapper.db.create(e, context);
