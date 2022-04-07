@@ -33,6 +33,11 @@ export class Instance {
   @Column()
   instanceType: string;
 
+  @Column({
+    nullable: true,
+  })
+  keyPairName: string;
+
   @ManyToMany(() => SecurityGroup, { eager: true, })
   @JoinTable({
     name: 'instance_security_groups',

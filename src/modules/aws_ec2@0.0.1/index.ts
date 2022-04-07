@@ -15,6 +15,7 @@ export const AwsEc2Module: Module = new Module({
       // for instances created outside IaSQL, set the name to the instance ID
       out.name = instance.Tags?.filter(t => t.Key === IASQL_EC2_TAG_NAME && t.Value !== undefined).pop()?.Value ?? (instance.InstanceId ?? '');
       out.ami = instance.ImageId ?? '';
+      if (instance.KeyName) out.keyPairName = instance.KeyName;
       out.instanceType = instance.InstanceType ?? '';
       if (!out.instanceType) throw new Error('Cannot create Instance object without a valid InstanceType in the Database');
       out.securityGroups = await AwsSecurityGroupModule.mappers.securityGroup.db.read(
@@ -31,6 +32,7 @@ export const AwsEc2Module: Module = new Module({
         Object.is(a.instanceId, b.instanceId) &&
         Object.is(a.ami, b.ami) &&
         Object.is(a.instanceType, b.instanceType) &&
+        Object.is(a.keyPairName, b.keyPairName) &&
         Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
         a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
       source: 'db',

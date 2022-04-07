@@ -36,6 +36,7 @@ import {
   RevokeSecurityGroupIngressCommand,
   RevokeSecurityGroupIngressCommandInput,
   RunInstancesCommand,
+  RunInstancesCommandInput,
   TerminateInstancesCommand,
   paginateDescribeInstanceTypes,
   paginateDescribeInstances,
@@ -230,8 +231,8 @@ export class AWS {
     await this.iamClient.deleteRole({RoleName: name});
   }
 
-  async newInstance(name: string, instanceType: string, amiId: string, securityGroupIds: string[]): Promise<string> {
-    const instanceParams = {
+  async newInstance(name: string, instanceType: string, amiId: string, securityGroupIds: string[], keyPairName?: string): Promise<string> {
+    const instanceParams: RunInstancesCommandInput = {
       ImageId: amiId,
       InstanceType: instanceType,
       MinCount: 1,
@@ -248,6 +249,7 @@ export class AWS {
       ],
       UserData: undefined,
     };
+    if (keyPairName) instanceParams.KeyName = keyPairName;
     const create = await this.ec2client.send(
       new RunInstancesCommand(instanceParams),
     );
