@@ -16,6 +16,12 @@ export const AwsIamModule: Module = new Module({
       out.assumeRolePolicyDocument = decodeURIComponent(role.AssumeRolePolicyDocument ?? '');
       return out
     },
+    roleNameFromArn: (arn: string, _ctx: Context) => {
+      const roleName = arn.split(':role/')[1];
+      // Regular role example - arn:aws:iam::547931376551:role/AWSECSTaskExecution
+      // AWS service role example - arn:aws:iam::547931376551:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS
+      return roleName.split('/').length === 3 ? roleName.split('/')[2] : roleName;
+    }
   },
   mappers: {
     role: new Mapper<Role>({
@@ -52,11 +58,7 @@ export const AwsIamModule: Module = new Module({
           const roles = Array.isArray(ids) ?
             await Promise.all(ids.map(id => client.getRole(id))) :
             (await client.getRoles()) ?? [];
-          // TODO Ignore AWS service-linked roles for now
-          // but add them back as special-cased roles or as a separate module
-          // if there is a use case
           return await Promise.all(roles
-            .filter(r => !r?.Path?.startsWith('/aws-service-role/'))
             .map(async (r) => {
               const role = AwsIamModule.utils.roleMapper(r, ctx);
               role.attachedPoliciesArns = await client.getRoleAttachedPoliciesArns(role.roleName);
@@ -69,6 +71,11 @@ export const AwsIamModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
             const cloudRecord = ctx?.memo?.cloud?.Role?.[e.roleName ?? ''];
+            // aws-service-roles are immutable so undo change and return
+            if (cloudRecord.arn.includes(':role/aws-service-role/')) {
+              await AwsIamModule.mappers.role.db.update(cloudRecord, ctx);
+              return cloudRecord
+            }
             const b = cloudRecord;
             let update = false;
             let updatedRecord = { ...cloudRecord };
@@ -93,7 +100,12 @@ export const AwsIamModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           for (const entity of es) {
             if (entity.arn) {
-              await client.deleteRole(entity.roleName, entity.attachedPoliciesArns);
+              // aws-service-roles cannot be deleted so restore it in the db
+              if (entity.arn.includes(':role/aws-service-role/')) {
+                await AwsIamModule.mappers.role.db.create(entity, ctx);
+              } else {
+                await client.deleteRole(entity.roleName, entity.attachedPoliciesArns);
+              }
             }
           }
         },
