@@ -103,10 +103,15 @@ export async function connect(
     } else {
       let counter = 0;
       const checkCredInterval = setInterval(async () => {
-        const updated = await maybeUpdateStatus(uid, dbAlias, dbId);
-        if (updated) clearInterval(checkCredInterval);
-        counter++;
-        if (counter === 60) clearInterval(checkCredInterval); // try for 30 min
+        try {
+          const updated = await maybeUpdateStatus(uid, dbAlias, dbId);
+          if (updated) clearInterval(checkCredInterval);
+          counter++;
+          if (counter === 60) clearInterval(checkCredInterval); // try for 30 min
+        } catch (e: any) {
+          clearInterval(checkCredInterval);
+          logger.error('maybeUpdateStatus failed. clear Interval', e)
+        }
       }, 30000);
     }
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
