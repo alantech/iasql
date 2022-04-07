@@ -42,13 +42,17 @@ export class Service {
   })
   status?: string;
 
-  @ManyToOne(() => Cluster)
+  @ManyToOne(() => Cluster, {
+    eager: true,
+  })
   @JoinColumn({
     name: 'cluster_id',
   })
   cluster?: Cluster;
 
-  @ManyToOne(() => TaskDefinition)
+  @ManyToOne(() => TaskDefinition, {
+    eager: true,
+  })
   @JoinColumn({
     name: 'task_definition_id',
   })
@@ -62,7 +66,9 @@ export class Service {
   @Column("text", { array: true, })
   subnets: string[];
 
-  @ManyToMany(() => SecurityGroup)
+  @ManyToMany(() => SecurityGroup, {
+    eager: true,
+  })
   @JoinTable({
     name: 'service_security_groups'
   })
@@ -75,7 +81,9 @@ export class Service {
   })
   assignPublicIp: AssignPublicIp;
 
-  @ManyToOne(() => TargetGroup)
+  @ManyToOne(() => TargetGroup, {
+    eager: true
+  })
   @JoinColumn({
     name: 'target_group_id',
   })
