@@ -31,7 +31,7 @@ export class Role {
   @Column({
     type: 'text',
     array: true,
-    default: [],
+    nullable: true,
   })
   attachedPoliciesArns: string[];
 }
