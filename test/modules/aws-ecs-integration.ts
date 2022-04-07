@@ -326,7 +326,7 @@ describe('ECS Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     // Task definition
-    it('adds a new task definition and role', query(`
+    it('adds a new task definition', query(`
       INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
       VALUES ('${tdRepositoryFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
     `));
@@ -446,7 +446,7 @@ describe('ECS Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     // Task definition
-    it('adds a new task definition and role', query(`
+    it('adds a new task definition', query(`
       INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
       VALUES ('${tdPublicRepositoryFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
     `));
