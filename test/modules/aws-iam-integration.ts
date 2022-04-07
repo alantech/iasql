@@ -145,6 +145,44 @@ describe('IAM Integration Testing', () => {
     WHERE role_name = '${lambdaRoleName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
+  describe('AWS service roles', () => {
+    it('check service role', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = 'AWSServiceRoleForECS';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('tries to update aws service role field', query(`
+      UPDATE role SET arn = 'dummy' WHERE role_name = 'AWSServiceRoleForECS';
+    `));
+
+    it('applies change which will undo it', apply());
+
+    it('check update aws service role (noop)', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = 'AWSServiceRoleForECS' AND arn = 'dummy';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('tries to delete an aws service role', query(`
+      DELETE FROM role WHERE role_name = 'AWSServiceRoleForECS';
+    `));
+
+    it('check delete aws service role before apply', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = 'AWSServiceRoleForECS';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('applies change which will undo it', apply());
+
+    it('check delete aws service role (noop)', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = 'AWSServiceRoleForECS';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+  })
+
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
