@@ -95,18 +95,30 @@ export const AwsEcsFargateModule: Module = new Module({
       }
       out.cpuMemory = `vCPU${+(td.cpu ?? '256') / 1024}-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
       if (td.executionRoleArn) {
-        const roleName = AwsIamModule.utils.roleNameFromArn(td.executionRoleArn);
-        out.executionRole = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
-          await AwsIamModule.mappers.role.cloud.read(ctx, roleName);
+        try {
+          const roleName = AwsIamModule.utils.roleNameFromArn(td.executionRoleArn);
+          out.executionRole = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
+            await AwsIamModule.mappers.role.cloud.read(ctx, roleName);
+        } catch (e) {
+          // Role could have been deleted
+          logger.error('Role not found', e as any);
+          out.executionRole = undefined;
+        }
       }
       out.family = td.family;
       out.revision = td.revision;
       out.status = td.status;
       out.taskDefinitionArn = td.taskDefinitionArn;
       if (td.taskRoleArn) {
-        const roleName = AwsIamModule.utils.roleNameFromArn(td.taskRoleArn);
-        out.taskRole = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
-          await AwsIamModule.mappers.role.cloud.read(ctx, roleName);
+        try {
+          const roleName = AwsIamModule.utils.roleNameFromArn(td.taskRoleArn);
+          out.taskRole = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
+            await AwsIamModule.mappers.role.cloud.read(ctx, roleName);
+        } catch (e) {
+          // Role could have been deleted
+          logger.error('Role not found', e as any);
+          out.taskRole = undefined;
+        }
       }
       return out;
     },
