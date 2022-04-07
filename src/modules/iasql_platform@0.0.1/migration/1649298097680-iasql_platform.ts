@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class iasqlPlatform1649177125087 implements MigrationInterface {
-    name = 'iasqlPlatform1649177125087'
+export class iasqlPlatform1649298097680 implements MigrationInterface {
+    name = 'iasqlPlatform1649298097680'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "iasql_module" ("name" character varying NOT NULL, CONSTRAINT "UQ_e91a0b0e9a029428405fdd17ee4" UNIQUE ("name"), CONSTRAINT "PK_e91a0b0e9a029428405fdd17ee4" PRIMARY KEY ("name"))`);
