@@ -5,6 +5,7 @@ import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execCo
 const prefix = getPrefix();
 const dbAlias = 'iamtest';
 const region = process.env.AWS_REGION ?? 'barf';
+const awsServiceRoleName = 'AWSServiceRoleForSupport';
 const taskRoleName = `${prefix}${dbAlias}task-${region}`;
 const taskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy';
 const lambdaRoleName = `${prefix}${dbAlias}lambda-${region}`;
@@ -149,11 +150,11 @@ describe('IAM Integration Testing', () => {
     it('check service role', query(`
       SELECT *
       FROM role
-      WHERE role_name = 'AWSServiceRoleForECS';
+      WHERE role_name = '${awsServiceRoleName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('tries to update aws service role field', query(`
-      UPDATE role SET arn = 'dummy' WHERE role_name = 'AWSServiceRoleForECS';
+      UPDATE role SET arn = 'dummy' WHERE role_name = '${awsServiceRoleName}';
     `));
 
     it('applies change which will undo it', apply());
@@ -161,17 +162,17 @@ describe('IAM Integration Testing', () => {
     it('check update aws service role (noop)', query(`
       SELECT *
       FROM role
-      WHERE role_name = 'AWSServiceRoleForECS' AND arn = 'dummy';
+      WHERE role_name = '${awsServiceRoleName}' AND arn = 'dummy';
     `, (res: any[]) => expect(res.length).toBe(0)));
 
     it('tries to delete an aws service role', query(`
-      DELETE FROM role WHERE role_name = 'AWSServiceRoleForECS';
+      DELETE FROM role WHERE role_name = '${awsServiceRoleName}';
     `));
 
     it('check delete aws service role before apply', query(`
       SELECT *
       FROM role
-      WHERE role_name = 'AWSServiceRoleForECS';
+      WHERE role_name = '${awsServiceRoleName}';
     `, (res: any[]) => expect(res.length).toBe(0)));
 
     it('applies change which will undo it', apply());
@@ -179,7 +180,7 @@ describe('IAM Integration Testing', () => {
     it('check delete aws service role (noop)', query(`
       SELECT *
       FROM role
-      WHERE role_name = 'AWSServiceRoleForECS';
+      WHERE role_name = '${awsServiceRoleName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
   })
 
