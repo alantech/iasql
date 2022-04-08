@@ -1,40 +1,16 @@
-import * as Modules from '../modules'
-import { Module, } from '../modules/interfaces'
-import { sortModules, } from '../services/mod-sort'
+import { sortMods, getModMigration, } from './module-json-utils'
 import { TypeormWrapper, } from '../services/typeorm'
 
 const moduleName = process.argv[process.argv.length - 1];
 
-const depModules: { [key: string]: Module, } = {};
-
-const getModule = (name: string) => (Object.values(Modules) as Module[])
-  .find((m: Module) => name === `${m.name}@${m.version}`);
-
-const rootModule = getModule(moduleName);
-
-if (!rootModule) {
-  throw new Error(`Could not find module ${moduleName}`);
-}
-
-const processDep = (dep: string) => {
-  const depMod = getModule(dep);
-  if (!depMod) {
-    throw new Error(`Could not find dependency ${dep}`);
-  }
-  depModules[dep] = depMod;
-  depMod.dependencies.forEach(processDep);
-};
-
-rootModule.dependencies.forEach(processDep);
-
-let sortedDeps = sortModules(Object.values(depModules), []);
+let sortedDeps = sortMods(moduleName, false);
 
 // TODO: Remove this hackery once typeorm migration doesn't do weird alter table crap
 if (moduleName !== 'iasql_platform@0.0.1') {
   sortedDeps = sortedDeps.filter(d => d.name !== 'iasql_platform');
 }
 
-const entities = sortedDeps.map(d => d.provides.entities).flat();
+const entities = sortedDeps.map(d => `${__dirname}/../modules/${d.name}@${d.version}/entity/*.ts`) as any[]
 
 (async () => {
   const conn = await TypeormWrapper.createConn('__example__', {
@@ -48,7 +24,8 @@ const entities = sortedDeps.map(d => d.provides.entities).flat();
 
   for (const dep of sortedDeps) {
     console.log(`Adding ${dep.name}...`);
-    await dep.migrations.install(qr);
+    const migrationClass = getModMigration(`${dep.name}@${dep.version}`);
+    await migrationClass.prototype.up(qr);
   }
   console.log('Done!');
   process.exit(0);

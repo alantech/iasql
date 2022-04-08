@@ -1,12 +1,13 @@
-import * as Modules from '../modules'
-import { Module, } from '../modules/interfaces'
+import { getModJsons, ModJson, } from './module-json-utils'
 
 const moduleName = process.argv[process.argv.length - 1];
 
-const depModules: { [key: string]: Module, } = {};
+const modJsons = getModJsons();
 
-const getModule = (name: string) => (Object.values(Modules) as Module[])
-  .find((m: Module) => name === `${m.name}@${m.version}`);
+const depModules: { [key: string]: ModJson, } = {};
+
+const getModule = (name: string) => (Object.values(modJsons) as ModJson[])
+  .find(m => name === `${m.name}@${m.version}`);
 
 const processDep = (dep: string) => {
   const depMod = getModule(dep);
