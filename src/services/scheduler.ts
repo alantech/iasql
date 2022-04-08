@@ -85,9 +85,13 @@ export async function start(dbId: string, dbUser:string) {
           output = typeof output === 'string' ? output : JSON.stringify(output);
           await conn.query(query);
         } catch (e) {
-          const errorMessage = logUserErr(e);
+          let errorMessage: string | string[] = logUserErr(e);
+          // split message if multiple lines in it
+          if (errorMessage.includes('\n')) errorMessage = errorMessage.split('\n');
           // error must be valid JSON as a string
-          const error = JSON.stringify({ message: errorMessage }).replace(/[\']/g, "\\\"");
+          const errorStringify = JSON.stringify({ message: errorMessage });
+          // replace single quotes to make it valid
+          const error = errorStringify.replace(/[\']/g, "\\\"");
           const query = `
             update iasql_operation
             set end_date = now(), err = '${error}'
