@@ -64,6 +64,7 @@ export const AwsEc2Module: Module = new Module({
             .map(i => AwsEc2Module.utils.instanceMapper(i, ctx))
           );
         },
+        updateOrReplace: (_a: Instance, _b: Instance) => 'replace',
         update: async (es: Instance[], ctx: Context) => {
           return await Promise.all(es.map(async (e) => {
             const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? e.name];

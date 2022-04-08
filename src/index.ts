@@ -60,3 +60,5 @@ MetadataRepo.init().then(() => {
     });
   })
 });
+
+logger.info(`Using IASQL_ENV: ${process.env.IASQL_ENV}`);

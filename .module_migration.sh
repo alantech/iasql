@@ -22,12 +22,9 @@ psql postgresql://postgres:test@localhost:5432/postgres -c "CREATE DATABASE __ex
 # Now, we need to move out of the root directory to pull our trickery below
 cd src
 
-# Blow away the existing migration for the specified module, if one exists
-rm -rf modules/${MODULE}/migration
-
 # Get the list of modules this module depends upon and include itself for use in the temporary
 # TypeORM configuration
-MODULES=`cat modules/${MODULE}/module.json | jq -r ".dependencies[.dependencies | length] |= \"${MODULE}\" | .dependencies | join(\":\")"`
+MODULES=`ts-node scripts/list-deps ${MODULE}`
 MODARR=($(echo ${MODULES} | sed 's/:/\n/g'))
 #readarray -d ":" -t MODARR <<< "${MODULES}"
 
@@ -73,7 +70,10 @@ EOF
 # First, run all migrations that already exist (required because we blew it all away before, but
 # also keeps things clean because we don't accidentally break the migration generation with bad
 # cruft in the database)
-ts-node ../node_modules/.bin/typeorm migration:run
+ts-node scripts/migrate-dep-order ${MODULE}
+
+# Blow away the existing migration for the specified module, if one exists
+rm -rf modules/${MODULE}/migration
 
 # Now run the migration generation for the module
 ts-node ../node_modules/.bin/typeorm migration:generate -n $(echo ${MODULE} | sed 's/@.*$//g')
