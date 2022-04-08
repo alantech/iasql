@@ -9,13 +9,14 @@ MODULE=$1
 
 set -vex
 
-# First, blow away all existing docker stuff so we're working with a clean slate
+# Make sure there's no cruft left over, we need a blank postgres
 docker container prune -f
 docker volume prune -f
 docker image prune -f
 
-# Next, spin them back up so we have a database
-docker-compose up --build --detach
+# Start a postgres container
+docker container run -p 5432:5432 -e POSTGRES_PASSWORD=test --name migrate-postgres -d postgres:13.4
+
 sleep 5 # Just in case
 psql postgresql://postgres:test@localhost:5432/postgres -c "CREATE DATABASE __example__"
 
@@ -80,7 +81,7 @@ ts-node ../node_modules/.bin/typeorm migration:generate -n $(echo ${MODULE} | se
 
 # Clean up the temporary ormconfig.js file and docker containers
 rm ormconfig.js
-docker-compose down
+docker container stop migrate-postgres
 
 # And we're done!
 echo Done!
