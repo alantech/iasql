@@ -1,4 +1,7 @@
 import {
+  AfterLoad,
+  AfterInsert,
+  AfterUpdate,
   Column,
   Entity,
   JoinTable,
@@ -33,9 +36,24 @@ export class Instance {
   @Column()
   instanceType: string;
 
+  @Column({
+    nullable: true,
+  })
+  keyPairName: string;
+
   @ManyToMany(() => SecurityGroup, { eager: true, })
   @JoinTable({
     name: 'instance_security_groups',
   })
   securityGroups: SecurityGroup[]
+
+  @AfterLoad()
+  @AfterInsert()
+  @AfterUpdate()
+  updateNulls() {
+    const that: any = this;
+    Object.keys(this).forEach(k => {
+      if (that[k] === null) that[k] = undefined;
+    });
+  }
 }
