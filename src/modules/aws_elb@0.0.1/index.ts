@@ -234,9 +234,6 @@ export const AwsElbModule: Module = new Module({
             const newObject = await client.getLoadBalancer(result.LoadBalancerArn ?? '');
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsElbModule.utils.loadBalancerMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsElbModule.mappers.loadBalancer.db.update(newEntity, ctx);
             return newEntity;
@@ -292,8 +289,6 @@ export const AwsElbModule: Module = new Module({
                 });
                 updatedRecord = AwsElbModule.utils.loadBalancerMapper(updatedLoadBalancer, ctx);
               }
-              // Restore auto generated values
-              updatedRecord.id = e.id;
               await AwsElbModule.mappers.loadBalancer.db.update(updatedRecord, ctx);
               return updatedRecord;
             } else {
@@ -360,9 +355,6 @@ export const AwsElbModule: Module = new Module({
             const newObject = await client.getTargetGroup(result.TargetGroupArn ?? '');
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsElbModule.utils.targetGroupMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsElbModule.mappers.targetGroup.db.update(newEntity, ctx);
             return newEntity;

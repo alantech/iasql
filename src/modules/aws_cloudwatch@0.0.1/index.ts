@@ -32,9 +32,6 @@ export const AwsCloudwatchModule: Module = new Module({
             const newObject = logGroups.find(l => l.logGroupName === e.logGroupName);
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsCloudwatchModule.utils.logGroupMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsCloudwatchModule.mappers.logGroup.db.update(newEntity, ctx);
             return newEntity;
@@ -58,7 +55,6 @@ export const AwsCloudwatchModule: Module = new Module({
           // This implies that on `update`s we only have to restore the values for those records.
           return await Promise.all(es.map(async (e) => {
             const cloudRecord = ctx?.memo?.cloud?.LogGroup?.[e.logGroupName ?? ''];
-            cloudRecord.id = e.id;
             await AwsCloudwatchModule.mappers.logGroup.db.update(cloudRecord, ctx);
             return cloudRecord;
           }));

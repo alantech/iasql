@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, } from 'typeorm'
+import { Entity, PrimaryColumn, Column, } from 'typeorm'
 
 import { cloudId, } from '../../../services/cloud-id'
 
@@ -9,14 +9,8 @@ export enum ImageTagMutability {
 
 @Entity()
 export class Repository {
-  @PrimaryGeneratedColumn()
-  id: number;
-
   // TODO: add constraint "must satisfy regular expression '(?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*'"
-  @Column({
-    unique: true,
-    nullable: false,
-  })
+  @PrimaryColumn()
   @cloudId
   repositoryName: string;
 

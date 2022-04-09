@@ -82,10 +82,8 @@ describe('ECR Integration Testing', () => {
     }));
   
     it('adds a new repository policy', query(`
-      INSERT INTO repository_policy (repository_id, policy_text)
-      SELECT id, '${policyMock}'
-      FROM repository
-      WHERE repository_name = '${repositoryName}';
+      INSERT INTO repository_policy (repository_name, policy_text)
+      VALUES ('${repositoryName}', '${policyMock}');
     `));
   
     it('applies the change', apply());
@@ -93,7 +91,6 @@ describe('ECR Integration Testing', () => {
     it('check adds a new repository policy', query(`
       SELECT *
       FROM repository_policy
-      INNER JOIN repository ON repository.id = repository_policy.repository_id
       WHERE repository_name = '${repositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
@@ -126,7 +123,6 @@ describe('ECR Integration Testing', () => {
     it('check deletes the repository policy', query(`
       SELECT *
       FROM repository_policy
-      INNER JOIN repository ON repository.id = repository_policy.repository_id
       WHERE repository_name = '${repositoryName}';
     `, (res: any[]) => expect(res.length).toBe(0)));
 
