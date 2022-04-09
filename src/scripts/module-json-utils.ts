@@ -12,7 +12,7 @@ export const getModJsons = () => {
     .map(r => fs.readFileSync(`${__dirname}/../modules/${r}/module.json`, 'utf8'))
     .map(r => JSON.parse(r) as ModJson);
   const mods: { [key: string]: ModJson, } = {};
-  modJsons.forEach(m => mods[m.name] = m);
+  modJsons.forEach(m => mods[`${m.name}@${m.version}`] = m);
   return mods;
 }
 
@@ -43,6 +43,7 @@ export const sortMods = (name: string, includeRoot: boolean) => {
       processMod(depMod);
     });
   };
+  processMod(rootMod);
   const moduleList = Object.values(modSubset);
   const sortedModuleNames: { [key: string]: boolean } = {};
   const sortedModules = [];
