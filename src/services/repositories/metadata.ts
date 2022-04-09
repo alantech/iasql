@@ -68,7 +68,7 @@ class MetadataRepo {
     return db;
   }
 
-  async getDbs(a0Id: string, email: string): Promise<IasqlDatabase[]> {
+  async getDbs(a0Id: string, email: string): Promise<any[]> {
     const user = await this.userRepo.findOne(a0Id);
     if (!user) {
       // create the new user
@@ -79,7 +79,16 @@ class MetadataRepo {
       await this.userRepo.save(newUser);
       return [];
     };
-    return user.iasqlDatabases;
+    const res = [];
+    for (const db of user.iasqlDatabases) {
+      const bytes = await this.conn.query(`SELECT pg_database_size('${db.pgName}');`);
+      const mb = parseInt(bytes[0]['pg_database_size']) / 1024 / 1024;
+      res.push({
+        ...db,
+        size: `${Math.round(mb)} MB`,
+      });
+    }
+    return res;
   }
 
   async getAllDbs(): Promise<IasqlDatabase[]> {
