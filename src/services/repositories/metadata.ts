@@ -82,10 +82,10 @@ class MetadataRepo {
     const res = [];
     for (const db of user.iasqlDatabases) {
       const bytes = await this.conn.query(`SELECT pg_database_size('${db.pgName}');`);
-      const mb = parseInt(bytes[0]['pg_database_size']) / 1024 / 1024;
+      const mb = parseInt(bytes[0].pg_database_size, 10) / 1024 / 1024;
       res.push({
         ...db,
-        size: `${Math.round(mb)} MB`,
+        megabytes: Math.round(mb),
       });
     }
     return res;
