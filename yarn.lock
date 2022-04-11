@@ -274,16 +274,16 @@
     "@aws-sdk/util-waiter" "3.55.0"
     tslib "^2.3.1"
 
-"@aws-sdk/client-elastic-load-balancing-v2@^3.58.0":
-  version "3.58.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-elastic-load-balancing-v2/-/client-elastic-load-balancing-v2-3.58.0.tgz#253268eb2b676f376c98d8450de95facaa1b1bb5"
-  integrity sha512-Pq5aQumFhFO9b5MWoPqdaYpk9ZK1TW7jDvsTEjbaEJneXfoxfR/qVtcHa589tGoSdQmICffp3mPmQhmHVfUuIw==
+"@aws-sdk/client-elastic-load-balancing-v2@^3.67.0":
+  version "3.67.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-elastic-load-balancing-v2/-/client-elastic-load-balancing-v2-3.67.0.tgz#c504c06eaceff63db2412cbc59325ff11b49a755"
+  integrity sha512-OrmDyAOfpmkkw6EMJVCWtyS5i8PLeFyNesxvCRcN9N2NAUAPJ6UBipU11e99GUawq50XbzVniboqg/j/Fxk9eQ==
   dependencies:
     "@aws-crypto/sha256-browser" "2.0.0"
     "@aws-crypto/sha256-js" "2.0.0"
-    "@aws-sdk/client-sts" "3.58.0"
+    "@aws-sdk/client-sts" "3.67.0"
     "@aws-sdk/config-resolver" "3.58.0"
-    "@aws-sdk/credential-provider-node" "3.58.0"
+    "@aws-sdk/credential-provider-node" "3.67.0"
     "@aws-sdk/fetch-http-handler" "3.58.0"
     "@aws-sdk/hash-node" "3.55.0"
     "@aws-sdk/invalid-dependency" "3.55.0"
