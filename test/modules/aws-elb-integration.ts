@@ -229,7 +229,7 @@ describe('ELB Integration Testing', () => {
   it('check load_balancer delete', query(`
     SELECT *
     FROM security_group
-    WHERE group_name = ANY(array['${sg1}', '${sg2}']);
+    WHERE group_name IN ('${sg1}', '${sg2}');
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('applies the change', apply());
