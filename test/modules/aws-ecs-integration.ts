@@ -480,7 +480,7 @@ describe('ECS Integration Testing', () => {
     it('check container definition insertion', query(`
       SELECT *
       FROM container_definition
-      WHERE name = '${containerNameRepository}' AND repository_id = (select id from repository where repository_name = '${repositoryName}' limit 1) AND tag = '${imageTag}';
+      WHERE name = '${containerNameRepository}' AND repository_name = '${repositoryName}' AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     // Service
@@ -634,7 +634,7 @@ describe('ECS Integration Testing', () => {
     it('check container definition insertion', query(`
       SELECT *
       FROM container_definition
-      WHERE name = '${containerNamePublicRepository}' AND public_repository_id = (select id from public_repository where repository_name = '${publicRepositoryName}' limit 1) AND tag = '${imageTag}';
+      WHERE name = '${containerNamePublicRepository}' AND public_repository_name = '${publicRepositoryName}' AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('check task_definition insertion', query(`
@@ -728,7 +728,7 @@ describe('ECS Integration Testing', () => {
     it('check container definition insertion', query(`
       SELECT *
       FROM container_definition
-      WHERE name = '${containerNamePublicRepository}' AND public_repository_id = (select id from public_repository where repository_name = '${publicRepositoryName}' limit 1) AND tag = '${imageTag}';
+      WHERE name = '${containerNamePublicRepository}' AND public_repository = '${publicRepositoryName}' AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(0)));
 
     it('check task_definition insertion', query(`
