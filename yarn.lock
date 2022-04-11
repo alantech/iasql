@@ -358,16 +358,16 @@
     fast-xml-parser "3.19.0"
     tslib "^2.3.1"
 
-"@aws-sdk/client-rds@^3.58.0":
-  version "3.58.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-rds/-/client-rds-3.58.0.tgz#d3a846d72588a9f749f490d5d4326661e82dd589"
-  integrity sha512-cEKvNnZuVIEl4Hs7kI5ibc8AVgF7kkN4ofvYjYlA4TCLwtN0td61hKMjvhQdhO3yccvhG/Lggq4h0E821QK9qw==
+"@aws-sdk/client-rds@^3.67.0":
+  version "3.67.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-rds/-/client-rds-3.67.0.tgz#8cf8ca83f0a36b4c13accc116d24fbc832eb1fd9"
+  integrity sha512-gCf5TQhiPCgaW7CCJbWCgbJxwzf/1kdPj1FF1bEkgQXHrWKCr5b9piDtvYCCzO6zgqgIs1lnShDEQz065CLRYg==
   dependencies:
     "@aws-crypto/sha256-browser" "2.0.0"
     "@aws-crypto/sha256-js" "2.0.0"
-    "@aws-sdk/client-sts" "3.58.0"
+    "@aws-sdk/client-sts" "3.67.0"
     "@aws-sdk/config-resolver" "3.58.0"
-    "@aws-sdk/credential-provider-node" "3.58.0"
+    "@aws-sdk/credential-provider-node" "3.67.0"
     "@aws-sdk/fetch-http-handler" "3.58.0"
     "@aws-sdk/hash-node" "3.55.0"
     "@aws-sdk/invalid-dependency" "3.55.0"
