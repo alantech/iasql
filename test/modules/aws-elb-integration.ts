@@ -221,15 +221,16 @@ describe('ELB Integration Testing', () => {
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('deletes the security group 1', query(`
+  it('deletes the security groups', query(`
     DELETE FROM security_group
-    WHERE group_name = '${sg1}';
+    WHERE group_name = ANY(array['${sg1}', '${sg2}']);
   `));
 
-  it('deletes the security group 2', query(`
-    DELETE FROM security_group
-    WHERE group_name = '${sg2}';
-  `));
+  it('check load_balancer delete', query(`
+    SELECT *
+    FROM security_group
+    WHERE group_name = ANY(array['${sg1}', '${sg2}']);
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('applies the change', apply());
 
