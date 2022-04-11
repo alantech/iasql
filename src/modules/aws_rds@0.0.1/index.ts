@@ -1,3 +1,4 @@
+import { In, } from 'typeorm'
 import { ModifyDBInstanceCommandInput } from '@aws-sdk/client-rds'
 
 import { AWS, } from '../../services/gateways/aws'
@@ -46,6 +47,22 @@ export const AwsRdsModule: Module = new Module({
         && Object.is(a.allocatedStorage, b.allocatedStorage)
         && Object.is(a.backupRetentionPeriod, b.backupRetentionPeriod),
       source: 'db',
+      db: new Crud({
+        create: (rds: RDS[], ctx: Context) => ctx.orm.save(RDS, rds),
+        read: async (ctx: Context, ids?: string[]) => {
+          // TODO: Possible to automate this?
+          const relations = ['vpcSecurityGroups'];
+          const opts = ids ? {
+            where: {
+              dbInstanceIdentifier: In(ids),
+            },
+            relations,
+          } : { relations, };
+          return await ctx.orm.find(RDS, opts);
+        },
+        update: async (rds: RDS[], ctx: Context) => { await ctx.orm.save(RDS, rds); },
+        delete: async (rds: RDS[], ctx: Context) => { await ctx.orm.remove(RDS, rds); },
+      }),
       cloud: new Crud({
         create: async (es: RDS[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;

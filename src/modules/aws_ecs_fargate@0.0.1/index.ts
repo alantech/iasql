@@ -1,3 +1,5 @@
+import { In, } from 'typeorm'
+
 import { AWS, } from '../../services/gateways/aws'
 import {
   Cluster,
@@ -268,6 +270,51 @@ export const AwsEcsFargateModule: Module = new Module({
         && Object.is(a.containerDefinitions.length, b.containerDefinitions.length)
         && a.containerDefinitions.every(ac => !!b.containerDefinitions.find(bc => AwsEcsFargateModule.utils.containersEq(ac, bc))),
       source: 'db',
+      db: new Crud({
+        create: async (es: TaskDefinition[], ctx: Context) => {
+          await Promise.all(es.map(async (entity: TaskDefinition) => {
+            const containerDefinitions = entity.containerDefinitions;
+            if (containerDefinitions) {
+              await ctx.orm.save(ContainerDefinition, containerDefinitions);
+            }
+          }));
+          await ctx.orm.save(TaskDefinition, es);
+        },
+        read: async (ctx: Context, ids?: string[]) => {
+          // TODO: Possible to automate this, too?
+          const relations = [
+            'containerDefinitions',
+            'containerDefinitions.repository',
+            'containerDefinitions.publicRepository',
+            'containerDefinitions.logGroup',
+          ];
+          const opts = ids ? {
+            where: {
+              taskDefinitionArn: In(ids),
+            },
+            relations,
+          } : { relations, };
+          return await ctx.orm.find(TaskDefinition, opts);
+        },
+        update: async (es: TaskDefinition[], ctx: Context) => {
+          await Promise.all(es.map(async (entity: TaskDefinition) => {
+            const containerDefinitions = entity.containerDefinitions;
+            if (containerDefinitions) {
+              await ctx.orm.save(ContainerDefinition, containerDefinitions);
+            }
+          }));
+          await ctx.orm.save(TaskDefinition, es);
+        },
+        delete: async (es: TaskDefinition[], ctx: Context) => {
+          await Promise.all(es.map(async (e: TaskDefinition) => {
+            const containerDefinitions = e.containerDefinitions;
+            if (containerDefinitions?.length) {
+              await ctx.orm.remove(ContainerDefinition, containerDefinitions);
+            }
+          }));
+          ctx.orm.remove(TaskDefinition, es)
+        },
+      }),
       cloud: new Crud({
         create: async (es: TaskDefinition[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -452,6 +499,65 @@ export const AwsEcsFargateModule: Module = new Module({
         && (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
         && Object.is(a.forceNewDeployment, b.forceNewDeployment),
       source: 'db',
+      db: new Crud({
+        create: async (es: Service[], ctx: Context) => {
+          await Promise.all(es.map(async (entity: any) => {
+            if (!entity.cluster?.id) {
+              throw new Error('Clusters need to be loaded first');
+            }
+            if (!entity.task?.id) {
+              const td = await AwsEcsFargateModule.mappers.taskDefinition.db.read(ctx, entity.task?.taskDefinitionArn);
+              if (!td?.id) throw new Error('Task definitions need to be loaded first');
+              entity.task.id = td.id;
+            }
+            for (const sg of entity.securityGroups ?? []) {
+              if (!sg.id) {
+                const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
+                if (!g?.id) throw new Error('Security groups need to be loaded first');
+                sg.id = g.id;
+              }
+            }
+          }));
+          await ctx.orm.save(Service, es);
+        },
+        read: async (ctx: Context, ids?: string[]) => {
+          const relations = [
+            'cluster',
+            'task',
+            'task.containerDefinitions',
+            'securityGroups',
+            'targetGroup',
+          ];
+          const opts = ids ? {
+            where: {
+              arn: In(ids),
+            },
+            relations,
+          } : { relations, };
+          return await ctx.orm.find(Service, opts);
+        },
+        update: async (es: Service[], ctx: Context) => {
+          await Promise.all(es.map(async (entity: any) => {
+            if (!entity.cluster?.id) {
+              throw new Error('Clusters need to be loaded first');
+            }
+            if (!entity.task?.id) {
+              const td = await AwsEcsFargateModule.mappers.taskDefinition.db.read(ctx, entity.task?.taskDefinitionArn);
+              if (!td?.id) throw new Error('Task definitions need to be loaded first');
+              entity.task.id = td.id;
+            }
+            for (const sg of entity.securityGroups ?? []) {
+              if (!sg.id) {
+                const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
+                if (!g?.id) throw new Error('Security groups need to be loaded first');
+                sg.id = g.id;
+              }
+            }
+          }));
+          await ctx.orm.save(Service, es);
+        },
+        delete: (e: Service[], ctx: Context) => ctx.orm.remove(Service, e),
+      }),
       cloud: new Crud({
         create: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;

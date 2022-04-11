@@ -1,3 +1,4 @@
+import { In, } from 'typeorm'
 import {
   CreateLoadBalancerCommandInput,
   Listener as ListenerAws,
@@ -111,6 +112,40 @@ export const AwsElbModule: Module = new Module({
         && Object.is(a.actionType, b.actionType)
         && Object.is(a.targetGroup.targetGroupArn, b.targetGroup.targetGroupArn),
       source: 'db',
+      db: new Crud({
+        create: async (es: Listener[], ctx: Context) => {
+          for (const e of es) {
+            if (!e.loadBalancer.id) {
+              const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
+              if (!lb.id) throw new Error('Error retrieving generated column');
+              e.loadBalancer.id = lb.id;
+            }
+          }
+          await ctx.orm.save(Listener, es);
+        },
+        read: async (ctx: Context, ids?: string[]) => {
+          // TODO: Possible to automate this?
+          const relations = ['loadBalancer', 'targetGroup'];
+          const opts = ids ? {
+            where: {
+              listenerArn: In(ids),
+            },
+            relations,
+          } : { relations };
+          return await ctx.orm.find(Listener, opts);
+        },
+        update: async (es: Listener[], ctx: Context) => {
+          for (const e of es) {
+            if (!e.loadBalancer.id) {
+              const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
+              if (!lb.id) throw new Error('Error retrieving generated column');
+              e.loadBalancer.id = lb.id;
+            }
+          }
+          await ctx.orm.save(Listener, es);
+        },
+        delete: (e: Listener[], ctx: Context) => ctx.orm.remove(Listener, e),
+      }),
       cloud: new Crud({
         create: async (es: Listener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -205,6 +240,43 @@ export const AwsElbModule: Module = new Module({
         && (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
         && Object.is(a.vpc, b.vpc),
       source: 'db',
+      db: new Crud({
+        create: async (es: LoadBalancer[], ctx: Context) => {
+          for (const e of es) {
+            for (const sg of e.securityGroups ?? []) {
+              if (!sg.id) {
+                const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
+                if (!g?.id) throw new Error('Security groups need to be loaded first');
+                sg.id = g.id;
+              }
+            }
+          }
+          await ctx.orm.save(LoadBalancer, es);
+        },
+        read: async (ctx: Context, ids?: string[]) => {
+          const relations = ['securityGroups'];
+          const opts = ids ? {
+            where: {
+              loadBalancerArn: In(ids),
+            },
+            relations
+          } : { relations };
+          return await ctx.orm.find(LoadBalancer, opts);
+        },
+        update: async (es: LoadBalancer[], ctx: Context) => {
+          for (const e of es) {
+            for (const sg of e.securityGroups ?? []) {
+              if (!sg.id) {
+                const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
+                if (!g?.id) throw new Error('Security Groups need to be loaded first');
+                sg.id = g.id;
+              }
+            }
+          }
+          await ctx.orm.save(LoadBalancer, es);
+        },
+        delete: (e: LoadBalancer[], ctx: Context) => ctx.orm.remove(LoadBalancer, e),
+      }),
       cloud: new Crud({
         create: async (es: LoadBalancer[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;

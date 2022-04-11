@@ -118,10 +118,7 @@ export class TaskDefinition {
   })
   cpuMemory: CpuMemCombination;
 
-  @OneToMany(() => ContainerDefinition, c => c.taskDefinition, {
-    eager: true,
-    cascade: true
-  })
+  @OneToMany(() => ContainerDefinition, c => c.taskDefinition)
   containerDefinitions: ContainerDefinition[];
 
   @AfterLoad()

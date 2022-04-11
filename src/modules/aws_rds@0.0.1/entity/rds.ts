@@ -59,7 +59,7 @@ export class RDS {
   masterUsername?: string;
 
   // TODO rename table
-  @ManyToMany(() => SecurityGroup, { eager: true })
+  @ManyToMany(() => SecurityGroup)
   @JoinTable({
     name: 'rds_security_groups',
   })

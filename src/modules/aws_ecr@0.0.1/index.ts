@@ -1,3 +1,5 @@
+import { In, } from 'typeorm'
+
 import { Repository as RepositoryAws, } from '@aws-sdk/client-ecr'
 import { Repository as PublicRepositoryAws, } from '@aws-sdk/client-ecr-public'
 
@@ -206,6 +208,26 @@ export const AwsEcrModule: Module = new Module({
         }
       },
       source: 'db',
+      db: new Crud({
+        create: (e: RepositoryPolicy[], ctx: Context) => ctx.orm.save(RepositoryPolicy, e),
+        read: async (ctx: Context, ids?: string[]) => ctx.orm.find(RepositoryPolicy, ids ? {
+          where: {
+            repository: { repositoryName: In(ids), }
+          },
+          relations: [ 'repository', ],
+        } : { relations: [ 'repository', ], }),
+        update: async (es: RepositoryPolicy[], ctx: Context) => {
+          for (const e of es) {
+            if (!e.repository.id) {
+              const r = await AwsEcrModule.mappers.repository.db.read(ctx, e.repository.repositoryName);
+              if (!r?.id) throw new Error('Error retrieving generated column');
+              e.repository.id = r.id;
+            }
+          }
+          await ctx.orm.save(RepositoryPolicy, es);
+        },
+        delete: (e: RepositoryPolicy[], ctx: Context) => ctx.orm.remove(RepositoryPolicy, e),
+      }),
       cloud: new Crud({
         create: async (es: RepositoryPolicy[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;

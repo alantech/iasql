@@ -95,7 +95,7 @@ export class LoadBalancer {
   @Column("varchar", { array: true, nullable: true, })
   availabilityZones?: string[];
 
-  @ManyToMany(() => SecurityGroup, { eager: true })
+  @ManyToMany(() => SecurityGroup)
   @JoinTable({
     name: 'load_balancer_security_groups',
   })

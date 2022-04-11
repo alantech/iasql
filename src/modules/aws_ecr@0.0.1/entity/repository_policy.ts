@@ -12,7 +12,7 @@ export class RepositoryPolicy {
   })
   registryId?: string;
 
-  @OneToOne(() => Repository, { nullable: false, eager: true })
+  @OneToOne(() => Repository, { nullable: false, })
   @JoinColumn({
     name: 'repository_id',
   })

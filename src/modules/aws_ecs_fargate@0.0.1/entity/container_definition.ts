@@ -47,21 +47,13 @@ export class ContainerDefinition {
   @Column({ nullable: true, })
   digest?: string;
 
-  @ManyToOne(() => Repository, {
-    nullable: true,
-    eager: true,
-    cascade: true,
-  })
+  @ManyToOne(() => Repository, { nullable: true, })
   @JoinColumn({
     name: "repository_id"
   })
   repository?: Repository;
 
-  @ManyToOne(() => PublicRepository, {
-    nullable: true,
-    eager: true,
-    cascade: true,
-  })
+  @ManyToOne(() => PublicRepository, { nullable: true, })
   @JoinColumn({
     name: "public_repository_id"
   })
@@ -115,11 +107,7 @@ export class ContainerDefinition {
   })
   envVariables: { [key: string]: string };
 
-  @ManyToOne(() => LogGroup, {
-    nullable: true,
-    eager: true,
-    cascade: true,
-  })
+  @ManyToOne(() => LogGroup, { nullable: true, })
   @JoinColumn({
     name: 'log_group_id',
   })
