@@ -37,7 +37,7 @@ export class ContainerDefinition {
     onUpdate: 'CASCADE',
   })
   @JoinColumn({
-    name: 'task_definition_name',
+    name: 'task_definition_id',
   })
   taskDefinition: TaskDefinition;
 
