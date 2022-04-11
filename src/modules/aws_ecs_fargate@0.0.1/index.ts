@@ -320,55 +320,57 @@ export const AwsEcsFargateModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const res = [];
           for (const e of es) {
+            const containerDefinitions = e.containerDefinitions?.map(c => {
+              const container: any = { ...c };
+              let image;
+              if (c.image) {
+                image = c.image;
+              } else if (c.repository) {
+                if (!c.repository?.repositoryUri) {
+                  throw new Error('Repository need to be created first');
+                }
+                image = c.repository.repositoryUri;
+              } else if (c.publicRepository) {
+                if (!c.publicRepository?.repositoryUri) {
+                  throw new Error('Public repository need to be created first');
+                }
+                image = c.publicRepository.repositoryUri;
+              } else {
+                logger.error('How the DB constraint have been ignored?');
+              }
+              if (c.digest) {
+                container.image = `${image}@${c.digest}`;
+              } else if (c.tag) {
+                container.image = `${image}:${c.tag}`;
+              } else {
+                container.image = image;
+              }
+              if (container.logGroup) {
+                // TODO: improve log configuration
+                container.logConfiguration = {
+                  logDriver: 'awslogs',
+                  options: {
+                    "awslogs-group": container.logGroup.logGroupName,
+                    "awslogs-region": client.region,
+                    "awslogs-stream-prefix": `awslogs-${c.name}`
+                  }
+                };
+              }
+              if (c.envVariables && Array.isArray(c.envVariables)) throw new Error('Invalid environment variables format');
+              container.environment = Object.keys(c.envVariables ?? {}).map((evk: string) => ({ name: evk, value: `${c.envVariables[evk]}`}));
+              if (container.containerPort && container.hostPort && container.protocol) {
+                container.portMappings = [{
+                  containerPort: container.containerPort,
+                  hostPort: container.hostPort,
+                  protocol: container.protocol,
+                }];
+              }
+              return container;
+            }) ?? [];
+            if (!containerDefinitions.length) throw new Error(`Task definition ${e.family}${e.revision ? `:${e.revision}` : ''} does not have any container associated.`);
             const input: any = {
               family: e.family,
-              containerDefinitions: e.containerDefinitions.map(c => {
-                const container: any = { ...c };
-                let image;
-                if (c.image) {
-                  image = c.image;
-                } else if (c.repository) {
-                  if (!c.repository?.repositoryUri) {
-                    throw new Error('Repository need to be created first');
-                  }
-                  image = c.repository.repositoryUri;
-                } else if (c.publicRepository) {
-                  if (!c.publicRepository?.repositoryUri) {
-                    throw new Error('Public repository need to be created first');
-                  }
-                  image = c.publicRepository.repositoryUri;
-                } else {
-                  logger.error('How the DB constraint have been ignored?');
-                }
-                if (c.digest) {
-                  container.image = `${image}@${c.digest}`;
-                } else if (c.tag) {
-                  container.image = `${image}:${c.tag}`;
-                } else {
-                  container.image = image;
-                }
-                if (container.logGroup) {
-                  // TODO: improve log configuration
-                  container.logConfiguration = {
-                    logDriver: 'awslogs',
-                    options: {
-                      "awslogs-group": container.logGroup.logGroupName,
-                      "awslogs-region": client.region,
-                      "awslogs-stream-prefix": `awslogs-${c.name}`
-                    }
-                  };
-                }
-                if (c.envVariables && Array.isArray(c.envVariables)) throw new Error('Invalid environment variables format');
-                container.environment = Object.keys(c.envVariables ?? {}).map((evk: string) => ({ name: evk, value: `${c.envVariables[evk]}`}));
-                if (container.containerPort && container.hostPort && container.protocol) {
-                  container.portMappings = [{
-                    containerPort: container.containerPort,
-                    hostPort: container.hostPort,
-                    protocol: container.protocol,
-                  }];
-                }
-                return container;
-              }),
+              containerDefinitions,
               requiresCompatibilities: ['FARGATE',],
               networkMode: 'awsvpc',
               taskRoleArn: e.taskRole?.arn,
