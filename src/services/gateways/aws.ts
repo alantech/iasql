@@ -44,6 +44,7 @@ import {
   paginateDescribeSecurityGroups,
   paginateDescribeSubnets,
   paginateDescribeVpcs,
+  DescribeNetworkInterfacesCommand,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -701,7 +702,7 @@ export class AWS {
       {
         client: this.elbClient,
         // all in seconds
-        maxWaitTime: 300,
+        maxWaitTime: 400,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -712,6 +713,37 @@ export class AWS {
           return { state: WaiterState.RETRY };
         } catch (_) {
           return { state: WaiterState.SUCCESS };
+        }
+      },
+    );
+    // Now we need wait the load balancer to be fully deattached from any network interface
+    const loadBalancerName = arn.split(':loadbalancer/')?.[1] ?? '';
+    const describeEniCommand = new DescribeNetworkInterfacesCommand({
+      Filters: [
+        {
+          Name: 'description',
+          Values: [`*${loadBalancerName}`]
+        }
+      ]
+    });
+    await createWaiter<EC2Client, DescribeNetworkInterfacesCommand>(
+      {
+        client: this.ec2client,
+        // all in seconds
+        maxWaitTime: 500,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      describeEniCommand,
+      async (client, cmd) => {
+        try {
+          const eni = await client.send(cmd);
+          if (loadBalancerName && eni.NetworkInterfaces?.length) {
+            return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e) {
+          return { state: WaiterState.RETRY };
         }
       },
     );

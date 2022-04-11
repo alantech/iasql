@@ -22,6 +22,8 @@ const protocol = ProtocolEnum.HTTP;
 const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
 const lbType = LoadBalancerTypeEnum.APPLICATION;
 const lbIPAddressType = IpAddressType.IPV4;
+const sg1 = `${prefix}${dbAlias}lbsg1`;
+const sg2 = `${prefix}${dbAlias}lbsg2`;
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -37,7 +39,6 @@ describe('ELB Integration Testing', () => {
 
   it('installs the elb module', install(modules));
 
-  // TODO: add tests with stored procedures
   // Target group
   it('adds a new targetGroup', query(`
     INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
@@ -78,7 +79,6 @@ describe('ELB Integration Testing', () => {
   it('applies the change', apply());
 
   // Load balancer
-  // TODO: add security groups insert when testing application load balancer integration
   it('adds a new load balancer', query(`
     INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
     VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
@@ -92,14 +92,35 @@ describe('ELB Integration Testing', () => {
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
   
+  it('adds new security groups', query(`
+    INSERT INTO security_group (description, group_name)
+    VALUES ('Security Group Test 1', '${sg1}');
+    INSERT INTO security_group (description, group_name)
+    VALUES ('Security Group Test 2', '${sg2}');
+  `));
+
+  it('applies the change', apply());
+
   it('adds a new load balancer', query(`
-    INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
-    VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
+    BEGIN;
+      INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
+      VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
+
+      INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
+      SELECT (SELECT id FROM load_balancer ORDER BY id DESC LIMIT 1), (SELECT id FROM security_group WHERE group_name = '${sg1}');
+    COMMIT;
   `));
 
   it('check load_balancer insertion', query(`
     SELECT *
     FROM load_balancer
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check load_balancer_security_groups insertion', query(`
+    SELECT *
+    FROM load_balancer_security_groups
+    INNER JOIN load_balancer ON load_balancer.id = load_balancer_security_groups.load_balancer_id
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
@@ -111,7 +132,14 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change and restore it', apply());
 
-  // TODO: add load balancer update of subnets or security group
+  it('tries to update a load balancer security group (replace)', query(`
+    UPDATE load_balancer_security_groups
+    SET security_group_id = (SELECT id FROM security_group WHERE group_name = '${sg2}')
+    FROM load_balancer
+    WHERE load_balancer.id = load_balancer_security_groups.load_balancer_id AND load_balancer_name = '${lbName}';
+  `));
+
+  it('applies the change', apply());
 
   it('tries to update a target group field (replace)', query(`
     UPDATE load_balancer SET scheme = '${LoadBalancerSchemeEnum.INTERNAL}' WHERE load_balancer_name = '${lbName}';
@@ -192,6 +220,16 @@ describe('ELB Integration Testing', () => {
     FROM load_balancer
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('deletes the security group 1', query(`
+    DELETE FROM security_group
+    WHERE group_name = '${sg1}';
+  `));
+
+  it('deletes the security group 2', query(`
+    DELETE FROM security_group
+    WHERE group_name = '${sg2}';
+  `));
 
   it('applies the change', apply());
 
