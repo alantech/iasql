@@ -106,8 +106,8 @@ describe('ELB Integration Testing', () => {
       INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
       VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
 
-      INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
-      SELECT (SELECT id FROM load_balancer ORDER BY id DESC LIMIT 1), (SELECT id FROM security_group WHERE group_name = '${sg1}');
+      INSERT INTO load_balancer_security_groups(load_balancer_name, security_group_id)
+      SELECT '${lbName}', (SELECT id FROM security_group WHERE group_name = '${sg1}');
     COMMIT;
   `));
 
@@ -120,7 +120,6 @@ describe('ELB Integration Testing', () => {
   it('check load_balancer_security_groups insertion', query(`
     SELECT *
     FROM load_balancer_security_groups
-    INNER JOIN load_balancer ON load_balancer.id = load_balancer_security_groups.load_balancer_id
     WHERE load_balancer_name = '${lbName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
@@ -135,8 +134,7 @@ describe('ELB Integration Testing', () => {
   it('tries to update a load balancer security group (replace)', query(`
     UPDATE load_balancer_security_groups
     SET security_group_id = (SELECT id FROM security_group WHERE group_name = '${sg2}')
-    FROM load_balancer
-    WHERE load_balancer.id = load_balancer_security_groups.load_balancer_id AND load_balancer_name = '${lbName}';
+    WHERE load_balancer_name = '${lbName}';
   `));
 
   it('applies the change', apply());
