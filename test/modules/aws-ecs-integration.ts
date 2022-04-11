@@ -728,7 +728,7 @@ describe('ECS Integration Testing', () => {
     it('check container definition insertion', query(`
       SELECT *
       FROM container_definition
-      WHERE name = '${containerNamePublicRepository}' AND public_repository = '${publicRepositoryName}' AND tag = '${imageTag}';
+      WHERE name = '${containerNamePublicRepository}' AND public_repository_name = '${publicRepositoryName}' AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(0)));
 
     it('check task_definition insertion', query(`
