@@ -1,7 +1,7 @@
 import {
   Column,
   Entity,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
 } from 'typeorm'
 
 import { cloudId, } from '../../../services/cloud-id'
@@ -36,12 +36,7 @@ export enum ProtocolVersionEnum {
 
 @Entity()
 export class TargetGroup {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @Column({
-    unique: true,
-  })
+  @PrimaryColumn()
   targetGroupName: string;
 
   @Column({

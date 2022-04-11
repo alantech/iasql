@@ -1,6 +1,6 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   Column,
   ManyToMany,
   JoinTable,
@@ -34,13 +34,7 @@ export enum IpAddressType {
 
 @Entity()
 export class LoadBalancer {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @Column({
-    unique: true,
-    nullable: false,
-  })
+  @PrimaryColumn()
   loadBalancerName: string;
 
   @Column({
@@ -98,6 +92,10 @@ export class LoadBalancer {
   @ManyToMany(() => SecurityGroup, { eager: true })
   @JoinTable({
     name: 'load_balancer_security_groups',
+    joinColumn: {
+      name: 'load_balancer_name',
+      referencedColumnName: 'loadBalancerName',
+    },
   })
   securityGroups?: SecurityGroup[];
 

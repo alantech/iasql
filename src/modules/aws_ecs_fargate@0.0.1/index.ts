@@ -205,9 +205,6 @@ export const AwsEcsFargateModule: Module = new Module({
             const newObject = await client.getCluster(result.clusterArn!);
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcsFargateModule.utils.clusterMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsEcsFargateModule.mappers.cluster.db.update(newEntity, ctx);
             return newEntity;
@@ -229,7 +226,6 @@ export const AwsEcsFargateModule: Module = new Module({
             const cloudRecord = ctx?.memo?.cloud?.Cluster?.[e.clusterArn ?? ''];
             const isUpdate = AwsEcsFargateModule.mappers.cluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
-              cloudRecord.id = e.id;
               await AwsEcsFargateModule.mappers.cluster.db.update(cloudRecord, ctx);
               return cloudRecord;
             } else {
@@ -493,9 +489,6 @@ export const AwsEcsFargateModule: Module = new Module({
             const newObject = await client.getService(result.serviceName!, result.clusterArn!);
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcsFargateModule.utils.serviceMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsEcsFargateModule.mappers.service.db.update(newEntity, ctx);
             res.push(newEntity);
@@ -560,13 +553,11 @@ export const AwsEcsFargateModule: Module = new Module({
                   forceNewDeployment: e.forceNewDeployment,
                 });
                 const s = await AwsEcsFargateModule.utils.serviceMapper(updatedService, ctx);
-                s.id = e.id;
                 await AwsEcsFargateModule.mappers.service.db.update(s, ctx);
                 res.push(s);
                 continue;
               }
               // Restore values
-              cloudRecord.id = e.id;
               await AwsEcsFargateModule.mappers.service.db.update(cloudRecord, ctx);
               res.push(cloudRecord);
               continue;

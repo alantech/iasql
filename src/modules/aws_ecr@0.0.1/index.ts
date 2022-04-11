@@ -80,9 +80,6 @@ export const AwsEcrModule: Module = new Module({
             const newObject = await client.getECRPubRepository(result.repositoryName ?? '');
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcrModule.utils.publicRepositoryMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsEcrModule.mappers.publicRepository.db.update(newEntity, ctx);
             return newEntity;
@@ -103,7 +100,6 @@ export const AwsEcrModule: Module = new Module({
           // This implies that on `update`s we only have to restore the db values with the cloud records.
           return await Promise.all(es.map(async (e) => {
             const cloudRecord = ctx?.memo?.cloud?.PublicRepository?.[e.repositoryName ?? ''];
-            cloudRecord.id = e.id;
             await AwsEcrModule.mappers.publicRepository.db.update(cloudRecord, ctx);
             return cloudRecord;
           }));
@@ -145,9 +141,6 @@ export const AwsEcrModule: Module = new Module({
             const newObject = await client.getECRRepository(result.repositoryName ?? '');
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcrModule.utils.repositoryMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsEcrModule.mappers.repository.db.update(newEntity, ctx);
             return newEntity;
@@ -176,7 +169,6 @@ export const AwsEcrModule: Module = new Module({
               const updatedRepository = await client.updateECRRepositoryImageScanningConfiguration(e.repositoryName, e.scanOnPush);
               updatedRecord = AwsEcrModule.utils.repositoryMapper(updatedRepository, ctx);
             }
-            updatedRecord.id = e.id;
             await AwsEcrModule.mappers.repository.db.update(updatedRecord, ctx);
             return updatedRecord;
           }));

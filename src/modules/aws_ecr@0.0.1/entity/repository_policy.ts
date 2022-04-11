@@ -14,7 +14,7 @@ export class RepositoryPolicy {
 
   @OneToOne(() => Repository, { nullable: false, eager: true })
   @JoinColumn({
-    name: 'repository_id',
+    name: 'repository_name',
   })
   repository: Repository;
 

@@ -34,7 +34,7 @@ export class Listener {
     eager: true,
   })
   @JoinColumn({
-    name: 'load_balancer_id',
+    name: 'load_balancer_name',
   })
   loadBalancer: LoadBalancer;
 
@@ -56,7 +56,7 @@ export class Listener {
 
   @ManyToOne(() => TargetGroup, { eager: true })
   @JoinColumn({
-    name: 'target_group_id',
+    name: 'target_group_name',
   })
   targetGroup: TargetGroup;
 
