@@ -128,6 +128,18 @@ describe('ECS Integration Testing', () => {
 
   it('applies service dependencies', apply());
 
+  it('check target group insertion', query(`
+    SELECT *
+    FROM target_group
+    WHERE target_group_name = '${serviceTargetGroupName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check target group insertion', query(`
+    SELECT *
+    FROM load_balancer
+    WHERE load_balancer_name = '${serviceLoadBalancerName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
   // Service spinning up a task definition with container using a docker image
   describe('Docker image', () => {
     // Container definition
@@ -141,6 +153,18 @@ describe('ECS Integration Testing', () => {
     `));
 
     it('applies adds container dependencies', apply());
+
+    it('check target group insertion', query(`
+      SELECT *
+      FROM log_group
+      WHERE log_group_name = '${logGroupName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check target group insertion', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${taskExecRoleName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
     // Task definition
     it('adds a new task definition', query(`
@@ -185,6 +209,30 @@ describe('ECS Integration Testing', () => {
 
     it('applies adds a new task definition with container definition', apply());
 
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdFamily}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerName}' AND image = '${image}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNameTag}' AND image = '${image}' AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNameDigest}' AND image = '${image}' AND digest = '${imageDigest}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     // Service
     it('adds a new service', query(`
       BEGIN;
@@ -221,7 +269,13 @@ describe('ECS Integration Testing', () => {
     `));
     
     it('applies tries to update a task definition field', apply());
-    
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     it('check task_definition update', query(`
       SELECT *
       FROM task_definition
@@ -235,11 +289,23 @@ describe('ECS Integration Testing', () => {
 
     it('applies tries to update a service (update)', apply());
 
+    it('check service update', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     it('tries to update a service (restore)', query(`
       UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
     `));
 
     it('applies tries to update a service (restore)', apply());
+
+    it('check service update', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('tries to update a service (replace)', query(`
       UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
@@ -247,11 +313,23 @@ describe('ECS Integration Testing', () => {
 
     it('applies tries to update a service (replace)', apply());
 
+    it('check service update', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${newServiceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     it('tries to force update a service', query(`
       UPDATE service SET force_new_deployment = true WHERE name = '${newServiceName}';
     `));
 
     it('tries to force update a service', apply());
+
+    it('check service update', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${newServiceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('check service new deployment', query(`
       SELECT *
@@ -277,6 +355,12 @@ describe('ECS Integration Testing', () => {
 
     it('applies deletes service', apply());
 
+    it('check service deletion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
     it('deletes container definitons', query(`
       begin;
         delete from container_definition
@@ -295,6 +379,24 @@ describe('ECS Integration Testing', () => {
     `));
 
     it('applies deletes tasks and container definitions', apply());
+
+    it('check role deletion', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${taskExecRoleName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check log group deletion', query(`
+      SELECT *
+      FROM log_group
+      WHERE log_group_name = '${logGroupName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check task def deletion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdFamily}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
   });
 
   // Service spinning up a task definition with container using a private ecr
@@ -354,6 +456,18 @@ describe('ECS Integration Testing', () => {
 
     it('applies adds a new task definition with container definition', apply());
 
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdRepositoryFamily}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNameRepository}' AND repository_id = (select id from repository where repository_name = '${repositoryName}' limit 1) AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     // Service
     it('adds a new service', query(`
       BEGIN;
@@ -376,6 +490,14 @@ describe('ECS Integration Testing', () => {
       FROM service_security_groups
       INNER JOIN service ON service.id = service_security_groups.service_id
       WHERE service.name = '${serviceRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('applies service insertion', apply());
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('uninstalls the ecs module', uninstall(
@@ -404,6 +526,12 @@ describe('ECS Integration Testing', () => {
 
     it('applies deletes service', apply());
 
+    it('check service deletion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
     it('deletes container definitons', query(`
       begin;
         delete from container_definition
@@ -422,6 +550,24 @@ describe('ECS Integration Testing', () => {
     `));
 
     it('applies deletes tasks and container definitions', apply());
+
+    it('check role deletion', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${taskExecRoleName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check log group deletion', query(`
+      SELECT *
+      FROM log_group
+      WHERE log_group_name = '${logGroupName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check task def deletion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdFamily}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
   });
 
   // Service spinning up a task definition with container using a public ecr
@@ -465,6 +611,24 @@ describe('ECS Integration Testing', () => {
 
     it('applies adds a new task definition with container definition', apply());
 
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNamePublicRepository}' AND public_repository_id = (select id from public_repository where repository_name = '${publicRepositoryName}' limit 1) AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdPublicRepositoryFamily}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check public_repository insertion', query(`
+      SELECT *
+      FROM public_repository
+      WHERE repository_name = '${publicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     // Service
     it('adds a new service', query(`
       BEGIN;
@@ -489,6 +653,14 @@ describe('ECS Integration Testing', () => {
       WHERE service.name = '${servicePublicRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
+    it('applies service insertion', apply());
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${servicePublicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     it('uninstalls the ecs module', uninstall(
       ['aws_ecs_fargate']));
 
@@ -508,6 +680,12 @@ describe('ECS Integration Testing', () => {
 
     it('applies deletes service', apply());
 
+    it('check service deletion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${servicePublicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
     it('deletes container definitons', query(`
       begin;
         delete from container_definition
@@ -523,6 +701,24 @@ describe('ECS Integration Testing', () => {
     `));
 
     it('applies deletes tasks and container definitions', apply());
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNamePublicRepository}' AND public_repository_id = (select id from public_repository where repository_name = '${publicRepositoryName}' limit 1) AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdPublicRepositoryFamily}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check public_repository insertion', query(`
+      SELECT *
+      FROM public_repository
+      WHERE repository_name = '${publicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
   });
 
   it('uninstalls the ecs module', uninstall(
