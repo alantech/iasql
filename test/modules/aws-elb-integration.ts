@@ -223,7 +223,7 @@ describe('ELB Integration Testing', () => {
 
   it('deletes the security groups', query(`
     DELETE FROM security_group
-    WHERE group_name = ANY(array['${sg1}', '${sg2}']);
+    WHERE group_name IN ('${sg1}', '${sg2}');
   `));
 
   it('check load_balancer delete', query(`
