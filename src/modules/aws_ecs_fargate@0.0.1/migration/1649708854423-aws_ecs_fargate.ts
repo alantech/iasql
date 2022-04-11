@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEcsFargate1649012956164 implements MigrationInterface {
-    name = 'awsEcsFargate1649012956164'
+export class awsEcsFargate1649708854423 implements MigrationInterface {
+    name = 'awsEcsFargate1649708854423'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "cluster" ("id" SERIAL NOT NULL, "cluster_name" character varying NOT NULL, "cluster_arn" character varying, "cluster_status" character varying, CONSTRAINT "UQ_45ffb6495d51fdc55df46102ce7" UNIQUE ("cluster_name"), CONSTRAINT "PK_b09d39b9491ce5cb1e8407761fd" PRIMARY KEY ("id"))`);
@@ -20,7 +20,7 @@ export class awsEcsFargate1649012956164 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "service" ADD CONSTRAINT "FK_c8f480e0b98911299c6920e7184" FOREIGN KEY ("target_group_id") REFERENCES "target_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "task_definition" ADD CONSTRAINT "FK_7ea89f0f48f85fb6182e98603a6" FOREIGN KEY ("task_role_name") REFERENCES "role"("role_name") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "task_definition" ADD CONSTRAINT "FK_dcf86a08d8805551fe92f7cd8f1" FOREIGN KEY ("execution_role_name") REFERENCES "role"("role_name") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "container_definition" ADD CONSTRAINT "FK_95900c2acc0286c7976d9b729b2" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "container_definition" ADD CONSTRAINT "FK_95900c2acc0286c7976d9b729b2" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "container_definition" ADD CONSTRAINT "FK_c0c1887e471b1f7c33007a2f420" FOREIGN KEY ("repository_id") REFERENCES "repository"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "container_definition" ADD CONSTRAINT "FK_de350ceda5a3f4f5f8786518e6f" FOREIGN KEY ("public_repository_id") REFERENCES "public_repository"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "container_definition" ADD CONSTRAINT "FK_88e7fb5cc14188b19b08d7e305d" FOREIGN KEY ("log_group_id") REFERENCES "log_group"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
