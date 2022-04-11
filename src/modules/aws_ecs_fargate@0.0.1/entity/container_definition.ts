@@ -31,7 +31,11 @@ export class ContainerDefinition {
   @Column()
   name: string;
 
-  @ManyToOne(() => TaskDefinition)
+  @ManyToOne(() => TaskDefinition, {
+    // if the parent task def is deleted, also delete this container def
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   @JoinColumn({
     name: 'task_definition_id',
   })
@@ -50,7 +54,6 @@ export class ContainerDefinition {
   @ManyToOne(() => Repository, {
     nullable: true,
     eager: true,
-    cascade: true,
   })
   @JoinColumn({
     name: "repository_id"
@@ -60,7 +63,6 @@ export class ContainerDefinition {
   @ManyToOne(() => PublicRepository, {
     nullable: true,
     eager: true,
-    cascade: true,
   })
   @JoinColumn({
     name: "public_repository_id"
@@ -118,7 +120,6 @@ export class ContainerDefinition {
   @ManyToOne(() => LogGroup, {
     nullable: true,
     eager: true,
-    cascade: true,
   })
   @JoinColumn({
     name: 'log_group_id',

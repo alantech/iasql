@@ -5,6 +5,9 @@ import { getPrefix, runInstall, runUninstall, runQuery, runApply, finish, execCo
 
 const prefix = getPrefix();
 const dbAlias = 'ecstest';
+const dbAliasSidecar = `${dbAlias}sync`;
+const sidecarSync = runSync.bind(null, dbAliasSidecar);
+const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
 const region = process.env.AWS_REGION || 'barf';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
@@ -67,10 +70,19 @@ afterAll(async () => await execComposeDown(modules));
 describe('ECS Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.connect(
     dbAlias,
-    process.env.AWS_REGION ?? 'barf',
+    region,
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
+
+  it('creates a new sidecar test db ECS', (done) => void iasql.connect(
+    dbAliasSidecar,
+    region,
+    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
+    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
+    'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 
   it('installs the ecs module and its dependencies', install(modules));
 
@@ -337,6 +349,8 @@ describe('ECS Integration Testing', () => {
       WHERE name = '${newServiceName}';
     `, (res: any[]) => expect(res[0]['force_new_deployment']).toBe(false)));
 
+    it('sync sidecar database', sidecarSync());
+
     it('uninstalls the ecs module', uninstall(['aws_ecs_fargate']));
 
     it('installs the ecs module', install(
@@ -379,6 +393,8 @@ describe('ECS Integration Testing', () => {
     `));
 
     it('applies deletes tasks and container definitions', apply());
+
+    it('sync sidecar database', sidecarSync());
 
     it('check role deletion', query(`
       SELECT *
@@ -494,6 +510,8 @@ describe('ECS Integration Testing', () => {
 
     it('applies service insertion', apply());
 
+    it('sync sidecar database', sidecarSync());
+
     it('check service insertion', query(`
       SELECT *
       FROM service
@@ -550,6 +568,8 @@ describe('ECS Integration Testing', () => {
     `));
 
     it('applies deletes tasks and container definitions', apply());
+
+    it('sync sidecar database', sidecarSync());
 
     it('check role deletion', query(`
       SELECT *
@@ -611,6 +631,8 @@ describe('ECS Integration Testing', () => {
 
     it('applies adds a new task definition with container definition', apply());
 
+    it('sync sidecar database', sidecarSync());
+
     it('check container definition insertion', query(`
       SELECT *
       FROM container_definition
@@ -654,6 +676,8 @@ describe('ECS Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('applies service insertion', apply());
+
+    it('sync sidecar database', sidecarSync());
 
     it('check service insertion', query(`
       SELECT *
@@ -701,6 +725,8 @@ describe('ECS Integration Testing', () => {
     `));
 
     it('applies deletes tasks and container definitions', apply());
+
+    it('sync sidecar database', sidecarSync());
 
     it('check container definition insertion', query(`
       SELECT *
@@ -766,6 +792,10 @@ describe('ECS Integration Testing', () => {
   `));
 
   it('applies deletes the cluster', apply());
+
+  it('deletes the sidecar test db', (done) => void iasql
+    .disconnect(dbAliasSidecar, 'not-needed')
+    .then(...finish(done)));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
