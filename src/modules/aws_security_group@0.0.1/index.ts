@@ -191,7 +191,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               // are still hitting the 'delete' path, that's a race condition and we should just do
               // nothing here.
               const dbRecord = Object.values(ctx?.memo?.db?.SecurityGroup ?? {}).find(
-                (a: any) => a.groupName === 'default' && a.vpcId !== e.vpcId
+                (a: any) => a.groupName === 'default' && a.vpcId === e.vpcId
               );
               if (!!dbRecord) return;
               // For delete, we have un-memoed the record, but the record passed in *is* the one
