@@ -44,7 +44,7 @@ export const AwsSecurityGroupModule: Module = new Module({
           // The security group rules associated with the user's created "default" group are
           // still fine to actually set in AWS, so we leave that alone.
           const actualEntity = Object.values(ctx?.memo?.cloud?.SecurityGroup ?? {}).find(
-            (a: any) => a.groupName === 'default' && a.vpcId === e.vpcId && a.groupId !== e.groupId // TODO: Fix typing here
+            (a: any) => a.groupName === 'default' && a.vpcId === e.vpcId // TODO: Fix typing here
           ) as SecurityGroup;
           e.description = actualEntity.description;
           e.groupId = actualEntity.groupId;
@@ -183,10 +183,14 @@ export const AwsSecurityGroupModule: Module = new Module({
         delete: async (es: SecurityGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(async (e) => {
-            // Special behavior here. You're not allowed to mess with the "default" SecurityGroup.
+            // Special behavior here. You're not allowed to mess with the "default" SecurityGroup while the VPC is active.
             // You can mess with its rules, but not this record itself, so any attempt to update it
             // is instead turned into *restoring* the value in the database to match the cloud value
-            if (e.groupName === 'default') {
+            // Check if there is a VPC for this security group in the database
+            const vpcDbRecord = Object.values(ctx?.memo?.db?.Vpc ?? {}).find(
+              (a: any) => a.vpcId === e.vpcId
+            );
+            if (e.groupName === 'default' && !!vpcDbRecord) {
               // If there is a security group in the database with the 'default' groupName but we
               // are still hitting the 'delete' path, that's a race condition and we should just do
               // nothing here.
