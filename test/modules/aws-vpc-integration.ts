@@ -89,6 +89,7 @@ describe('VPC Integration Testing', () => {
       AND cidr_block = '192.${randIPBlock}.0.0/16'
     )
     DELETE FROM security_group
+    USING vpc
     WHERE vpc_id = vpc.id;
 
     DELETE FROM vpc
