@@ -11,7 +11,7 @@ import {
   PrimaryColumn,
 } from 'typeorm'
 
-import { Cluster, TaskDefinition, ContainerDefinition } from '.';
+import { Cluster, TaskDefinition, } from '.';
 import { TargetGroup } from '../../aws_elb@0.0.1/entity';
 import { SecurityGroup } from '../../aws_security_group@0.0.1/entity';
 import { cloudId, } from '../../../services/cloud-id'

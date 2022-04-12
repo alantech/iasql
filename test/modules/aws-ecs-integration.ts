@@ -126,10 +126,9 @@ describe('ECS Integration Testing', () => {
       VALUES
           ('${serviceLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
       INSERT INTO load_balancer_security_groups
-          (load_balancer_name, security_group_id)
+          (load_balancer_name, security_group_group_name)
       VALUES
-          ('${serviceLoadBalancerName}',
-            (SELECT id FROM security_group WHERE group_name = 'default' LIMIT 1));
+          ('${serviceLoadBalancerName}', 'default');
       INSERT INTO listener
           (load_balancer_name, port, protocol, action_type, target_group_name)
       VALUES 
@@ -251,8 +250,8 @@ describe('ECS Integration Testing', () => {
         INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
         VALUES ('${serviceName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
 
-        INSERT INTO service_security_groups (service_name, security_group_id)
-        VALUES ('${serviceName}', (select id from security_group where group_name = 'default' limit 1));
+        INSERT INTO service_security_groups (service_name, security_group_group_name)
+        VALUES ('${serviceName}', 'default');
       COMMIT;
     `));
 
@@ -489,8 +488,8 @@ describe('ECS Integration Testing', () => {
         INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
         VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
 
-        INSERT INTO service_security_groups (service_name, security_group_id)
-        VALUES ('${serviceRepositoryName}', (select id from security_group where group_name = 'default' limit 1));
+        INSERT INTO service_security_groups (service_name, security_group_group_name)
+        VALUES ('${serviceRepositoryName}', 'default');
       COMMIT;
     `));
 
@@ -655,8 +654,8 @@ describe('ECS Integration Testing', () => {
         INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
         VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
 
-        INSERT INTO service_security_groups (service_name, security_group_id)
-        VALUES ('${servicePublicRepositoryName}', (select id from security_group where group_name = 'default' limit 1));
+        INSERT INTO service_security_groups (service_name, security_group_group_name)
+        VALUES ('${servicePublicRepositoryName}', 'default');
       COMMIT;
     `));
 
