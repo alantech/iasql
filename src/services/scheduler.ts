@@ -130,8 +130,7 @@ export async function stopAll() {
 export async function init() {
   const dbs: IasqlDatabase[] = await MetadataRepo.getAllDbs();
   const inits = await Promise.allSettled(dbs.map(db => start(db.pgName, db.pgUser)));
-  for (let i = 0; i < inits.length; i++) {
-    const bootstrap = inits[i];
+  for (const bootstrap of inits) {
     if (bootstrap.status === 'rejected') {
       logger.error(bootstrap.reason);
     }
