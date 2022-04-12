@@ -38,7 +38,7 @@ export class IasqlDatabase {
   @Column({
     type: 'int',
   })
-  megabytes: number;
+  recordCount: number;
 
   @CreateDateColumn()
   createdAt: Date;

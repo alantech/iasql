@@ -58,15 +58,16 @@ const iasqlPlanV3 = (
   })(),
 });
 
-export async function getDbMegabytes(conn: TypeormWrapper): Promise<number> {
+export async function getDbRecCount(conn: TypeormWrapper): Promise<number> {
   // only looks at the public schema
-  const bytes = await conn.query(`
+  const res = await conn.query(`
     SELECT SUM(
-      pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(tablename))
-    ) FROM pg_tables
-    WHERE schemaname = 'public';
+      (xpath('/row/count/text()', query_to_xml('SELECT COUNT(*) FROM ' || format('%I.%I', table_schema, table_name), true, true, '')))[1]::text::int
+    )
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
   `);
-  return Math.round(parseInt(bytes[0].sum, 10) / 1024 / 1024);
+  return parseInt(res[0].sum, 10);
 }
 
 export async function connect(
@@ -93,7 +94,7 @@ export async function connect(
     metaDb.pgName = dbId;
     metaDb.directConnect = directConnect
     metaDb.isReady = hasCredentials;
-    metaDb.megabytes = 0; // updated after migrations are done
+    metaDb.recordCount = 0; // updated after migrations are done
     await MetadataRepo.saveDb(uid, email, metaDb);
     logger.info('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
@@ -135,7 +136,7 @@ export async function connect(
     }
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
-    await MetadataRepo.updateDbMegabytes(dbId, await getDbMegabytes(conn2));
+    await MetadataRepo.updateDbRecCount(dbId, await getDbRecCount(conn2));
     logger.info('Done!');
     return {
       alias: dbAlias,
@@ -230,7 +231,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     scheduler.stop(db.pgName);
     conn = await createConnection(dbMan.baseConnConfig);
     await conn.query(`
-      DROP DATABASE ${db.pgName} WITH (FORCE);
+      DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);
     await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser));
     await MetadataRepo.delDb(uid, dbAlias);

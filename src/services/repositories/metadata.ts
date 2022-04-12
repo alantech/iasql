@@ -61,9 +61,9 @@ class MetadataRepo {
     return db;
   }
 
-  async updateDbMegabytes(dbId: string, mbs: number) {
+  async updateDbRecCount(dbId: string, recCount: number) {
     const db = await this.dbRepo.findOneOrFail(dbId);
-    db.megabytes = mbs;
+    db.recordCount = recCount;
     await this.dbRepo.save(db);
   }
 
