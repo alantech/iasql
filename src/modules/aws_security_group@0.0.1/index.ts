@@ -16,7 +16,7 @@ export const AwsSecurityGroupModule: Module = new Module({
       out.groupName = sg.GroupName;
       out.ownerId = sg.OwnerId;
       out.groupId = sg.GroupId;
-      out.vpc = await AwsVpcModule.mappers.vpc.cloud.read(ctx, sg?.VpcId);
+      out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sg?.VpcId) ?? await AwsVpcModule.mappers.vpc.cloud.read(ctx, sg?.VpcId);
       return out;
     },
     sgrMapper: async (sgr: any, ctx: Context) => {
