@@ -88,7 +88,7 @@ describe('VPC Integration Testing', () => {
       WHERE is_default = false
       AND cidr_block = '192.${randIPBlock}.0.0/16'
     )
-    DELETE FROM aws_security_group
+    DELETE FROM security_group
     WHERE vpc_id = vpc.id;
 
     DELETE FROM vpc
