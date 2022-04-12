@@ -83,9 +83,6 @@ export const AwsSecurityGroupModule: Module = new Module({
         // We map this into the same kind of entity as `obj`
         const newEntity = await AwsSecurityGroupModule.utils.sgMapper(newGroup, ctx);
         if (doNotSave) return newEntity;
-        // We attach the original object's ID to this new one, indicating the exact record it is
-        // replacing in the database.
-        newEntity.id = e.id;
         // Save the security group record back into the database to get the new fields updated
         await AwsSecurityGroupModule.mappers.securityGroup.db.update(newEntity, ctx);
         return newEntity;
@@ -152,7 +149,6 @@ export const AwsSecurityGroupModule: Module = new Module({
             // properly associated so we don't need to do anything about them here, just restore
             // the other properties
             const cloudRecord = ctx?.memo?.cloud?.SecurityGroup?.[e.groupId ?? ''];
-            cloudRecord.id = e.id;
             await AwsSecurityGroupModule.mappers.securityGroup.db.update(cloudRecord, ctx);
           } else {
             // AWS does not have a way to update the top-level SecurityGroup entity. You can

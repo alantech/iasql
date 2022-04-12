@@ -29,7 +29,7 @@ describe('Security Group Integration Testing', () => {
 
   it('adds a new security group', query(`  
     INSERT INTO security_group (description, group_name)
-    VALUES ('Security Group Test', '${prefix}sgtest');
+    VALUES ('${prefix}Security Group Test', '${prefix}sgtest');
   `));
   
   it('undo changes', sync());
@@ -54,14 +54,10 @@ describe('Security Group Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('adds security group rules', query(`
-    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-    SELECT true, 'tcp', 443, 443, '0.0.0.0/8', '${prefix}testrule', id
-    FROM security_group
-    WHERE group_name = '${prefix}sgtest';
-    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv6, description, security_group_id)
-    SELECT false, 'tcp', 22, 22, '::/8', '${prefix}testrule2', id
-    FROM security_group
-    WHERE group_name = '${prefix}sgtest';
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_name)
+    VALUES (true, 'tcp', 443, 443, '0.0.0.0/8', '${prefix}testrule', '${prefix}sgtest');
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv6, description, security_group_name)
+    VALUES (false, 'tcp', 22, 22, '::/8', '${prefix}testrule2', '${prefix}sgtest');
   `));
 
   it('applies the security group rule change', apply());
@@ -74,7 +70,7 @@ describe('Security Group Integration Testing', () => {
   it('check security_group update', query(`
     SELECT *
     FROM security_group_rule
-    INNER JOIN security_group ON security_group.id = security_group_rule.security_group_id
+    INNER JOIN security_group ON security_group.group_name = security_group_rule.security_group_name
     WHERE group_name = '${sgName}';
   `, (res: any[]) => {
     expect(res.length).toBe(2);
@@ -85,7 +81,7 @@ describe('Security Group Integration Testing', () => {
   it('applies the security group rule change (again)', apply());
 
   it('updates the security group', query(`
-    UPDATE security_group SET group_name = '${prefix}sgtest2' WHERE group_name = '${prefix}sgtest';
+    UPDATE security_group SET description = '${prefix}New Description' WHERE group_name = '${prefix}sgtest';
   `));
 
   it('applies the security group change (again)', apply());
@@ -93,13 +89,13 @@ describe('Security Group Integration Testing', () => {
   it('check security_group insertion', query(`
     SELECT *
     FROM security_group
-    WHERE group_name = '${sgName}';
+    WHERE description = '${prefix}Security Group Test';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('check security_group insertion', query(`
     SELECT *
     FROM security_group
-    WHERE group_name = '${prefix}sgtest2';
+    WHERE description = '${prefix}New Description';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('uninstalls the security group module', uninstall(
@@ -117,7 +113,7 @@ describe('Security Group Integration Testing', () => {
 
   it('deletes the security group', query(`
     DELETE FROM security_group
-    WHERE group_name = '${prefix}sgtest2';
+    WHERE group_name = '${prefix}sgtest';
   `));
 
   it('applies the security group change (last time)', apply());
@@ -125,14 +121,14 @@ describe('Security Group Integration Testing', () => {
   it('check security_group insertion', query(`
     SELECT *
     FROM security_group
-    WHERE group_name = '${prefix}sgtest2';
+    WHERE group_name = '${prefix}sgtest';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('check security_group update', query(`
     SELECT *
     FROM security_group_rule
-    INNER JOIN security_group ON security_group.id = security_group_rule.security_group_id
-    WHERE group_name = '${prefix}sgtest2';
+    INNER JOIN security_group ON security_group.group_name = security_group_rule.security_group_name
+    WHERE group_name = '${prefix}sgtest';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   // Special testing involving the default security group you can't edit or delete
@@ -140,7 +136,7 @@ describe('Security Group Integration Testing', () => {
   it('clears out any default security group rules if they exist', query(`
     DELETE FROM security_group_rule
     USING security_group
-    WHERE security_group_rule.security_group_id = security_group.id
+    WHERE security_group_rule.security_group_name = security_group.group_name
     AND security_group.group_name = 'default';
   `));
 

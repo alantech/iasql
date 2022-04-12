@@ -4,6 +4,7 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
+  PrimaryColumn,
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm'
@@ -12,18 +13,13 @@ import { cloudId, } from '../../../services/cloud-id'
 
 @Entity()
 export class SecurityGroup {
-  @PrimaryGeneratedColumn()
-  id?: number;
+  @PrimaryColumn()
+  groupName?: string;
 
   @Column({
     nullable: true,
   })
   description?: string;
-
-  @Column({
-    nullable: true,
-  })
-  groupName?: string;
 
   @Column({
     nullable: true,
@@ -59,7 +55,7 @@ export class SecurityGroupRule {
 
   @ManyToOne(() => SecurityGroup)
   @JoinColumn({
-    name: 'security_group_id',
+    name: 'security_group_name',
   })
   securityGroup: SecurityGroup;
 
