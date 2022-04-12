@@ -10,7 +10,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_security_group'];
+const modules = ['aws_security_group', 'aws_vpc'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -216,15 +216,15 @@ describe('Security Group install/uninstall', () => {
     'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the Security Group module and confirms two tables are created', query(`
-    select * from iasql_install('aws_security_group');
+    select * from iasql_install('aws_security_group', 'aws_vpc');
   `, (res: any[]) => {
-      expect(res.length).toBe(2);
+      expect(res.length).toBe(4);
   }));
 
   it('uninstalls the Security Group module and confirms two tables are removed', query(`
-    select * from iasql_uninstall('aws_security_group');
+    select * from iasql_uninstall('aws_security_group', 'aws_vpc');
   `, (res: any[]) => {
-    expect(res.length).toBe(2);
+    expect(res.length).toBe(4);
   }));
 
   it('installs all modules', (done) => void iasql.install(
@@ -234,11 +234,11 @@ describe('Security Group install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the Security Group module', uninstall(
-    ['aws_rds', 'aws_ecs_fargate', 'aws_elb', 'aws_security_group', 'aws_ec2'],
+    ['aws_rds', 'aws_ecs_fargate', 'aws_elb', 'aws_security_group', 'aws_ec2', 'aws_vpc'],
   ));
 
   it('installs the Security Group module', install(
-    ['aws_security_group',]));
+    ['aws_security_group', 'aws_vpc']));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

@@ -8,7 +8,9 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_vpc'];
+// We have to install the `aws_security_group` to test fully the integration even though is not being used,
+// since the `aws_vpc` module creates a `default` security group automatically.
+const modules = ['aws_vpc', 'aws_security_group'];
 
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 const randIPBlock = Math.floor(Math.random() * 255);
@@ -80,6 +82,15 @@ describe('VPC Integration Testing', () => {
   it('applies the subnet removal', apply());
 
   it('deletes the vpc', query(`
+    WITH vpc as (
+      SELECT id
+      FROM vpc
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16'
+    )
+    DELETE FROM security_group
+    USING vpc
+    WHERE vpc_id = vpc.id;
+
     DELETE FROM vpc
     WHERE cidr_block = '192.${randIPBlock}.0.0/16';
   `));
@@ -112,7 +123,7 @@ describe('VPC install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the VPC module', uninstall(
-    ['aws_vpc', 'aws_ecs_fargate',]));
+    ['aws_vpc', 'aws_ecs_fargate', 'aws_security_group', 'aws_rds', 'aws_elb', 'aws_ec2']));
 
   it('installs the VPC module', install(
     ['aws_vpc',]));
