@@ -8,6 +8,8 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
+// We have to install the `aws_security_group` to test fully the integration even though is not being used,
+// since the `aws_vpc` module creates a `default` security group automatically.
 const modules = ['aws_vpc', 'aws_security_group'];
 
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
