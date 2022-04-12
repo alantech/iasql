@@ -44,7 +44,7 @@ export const AwsSecurityGroupModule: Module = new Module({
           // The security group rules associated with the user's created "default" group are
           // still fine to actually set in AWS, so we leave that alone.
           const actualEntity = Object.values(ctx?.memo?.cloud?.SecurityGroup ?? {}).find(
-            (a: any) => a.groupName === 'default' && a.groupId !== e.groupId // TODO: Fix typing here
+            (a: any) => a.groupName === 'default' && a.vpcId === e.vpcId && a.groupId !== e.groupId // TODO: Fix typing here
           ) as SecurityGroup;
           e.description = actualEntity.description;
           e.groupId = actualEntity.groupId;
@@ -191,7 +191,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               // are still hitting the 'delete' path, that's a race condition and we should just do
               // nothing here.
               const dbRecord = Object.values(ctx?.memo?.db?.SecurityGroup ?? {}).find(
-                (a: any) => a.groupName === 'default'
+                (a: any) => a.groupName === 'default' && a.vpcId !== e.vpcId
               );
               if (!!dbRecord) return;
               // For delete, we have un-memoed the record, but the record passed in *is* the one
