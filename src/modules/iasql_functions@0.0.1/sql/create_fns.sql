@@ -10,6 +10,9 @@ declare
     _db_id text;
     _dblink_conn_count int;
 begin
+    if (select region from aws_account limit 1) is null then
+      raise exception 'Database is not connected to an AWS account';
+    end if;
     select md5(random()::text || clock_timestamp()::text)::uuid into _opid;
     select current_database() into _db_id;
     -- reuse the 'iasqlopconn' db dblink connection if one exists for the session

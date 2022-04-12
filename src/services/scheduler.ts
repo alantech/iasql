@@ -98,6 +98,9 @@ export async function start(dbId: string, dbUser:string) {
             where opid = uuid('${opid}');
           `
           await conn.query(query);
+        } finally {
+          const recCount = await iasql.getDbRecCount(conn);
+          await MetadataRepo.updateDbRecCount(dbId, recCount);
         }
       },
     },
@@ -120,11 +123,16 @@ export function stop(dbId: string) {
 
 export async function stopAll() {
   const dbs: IasqlDatabase[] = await MetadataRepo.getAllDbs();
-  await Promise.all(dbs.map(db => stop(db.pgName)));
+  dbs.forEach(db => stop(db.pgName));
 }
 
 // spin up a worker for every db that this server is already managing
 export async function init() {
   const dbs: IasqlDatabase[] = await MetadataRepo.getAllDbs();
-  await Promise.all(dbs.map(db => start(db.pgName, db.pgUser)));
+  const inits = await Promise.allSettled(dbs.map(db => start(db.pgName, db.pgUser)));
+  for (const bootstrap of inits) {
+    if (bootstrap.status === 'rejected') {
+      logger.error(bootstrap.reason);
+    }
+  }
 }

@@ -55,6 +55,7 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 - [x] ELB
 - [x] RDS
 - [x] VPC
+- [x] IAM
 - [ ] ACM
 - [ ] Dynamo DB
 - [ ] Lambda
