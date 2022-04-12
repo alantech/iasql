@@ -37,7 +37,7 @@ export class SecurityGroup {
   @cloudId
   groupId?: string;
 
-  @ManyToOne(() => Vpc, { nullable: true, eager: true, cascade: true })
+  @ManyToOne(() => Vpc, { nullable: true, eager: true })
   @JoinColumn({
     name: 'vpc_id'
   })
