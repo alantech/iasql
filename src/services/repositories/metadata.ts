@@ -34,14 +34,7 @@ class MetadataRepo {
     this.dbRepo = this.conn.getRepository(IasqlDatabase);
   }
 
-  async saveDb(a0Id: string, email: string, dbAlias: string, dbId: string, dbUser: string, region: string, isReady: boolean, directConnect: boolean): Promise<IasqlDatabase> {
-    const db = new IasqlDatabase();
-    db.alias = dbAlias;
-    db.pgName = dbId;
-    db.pgUser = dbUser;
-    db.region = region;
-    db.isReady = isReady;
-    db.directConnect = directConnect;
+  async saveDb(a0Id: string, email: string, db: IasqlDatabase): Promise<IasqlDatabase> {
     let user = await this.userRepo.findOne(a0Id);
     if (!user) {
       user = new IasqlUser();
@@ -50,8 +43,8 @@ class MetadataRepo {
       user.iasqlDatabases = [db];
     } else {
       // check alias is unique for existing user
-      if (user.iasqlDatabases.some(d => d.alias === dbAlias)) {
-        throw new Error(`User with ID ${a0Id} already has an IaSQL database with alias ${dbAlias}`)
+      if (user.iasqlDatabases.some(d => d.alias === db.alias)) {
+        throw new Error(`User with ID ${a0Id} already has an IaSQL database with alias ${db.alias}`)
       }
       user.iasqlDatabases.push(db);
     }
@@ -68,7 +61,13 @@ class MetadataRepo {
     return db;
   }
 
-  async getDbs(a0Id: string, email: string): Promise<any[]> {
+  async updateDbMegabytes(dbId: string, mbs: number) {
+    const db = await this.dbRepo.findOneOrFail(dbId);
+    db.megabytes = mbs;
+    await this.dbRepo.save(db);
+  }
+
+  async getDbs(a0Id: string, email: string): Promise<IasqlDatabase[]> {
     const user = await this.userRepo.findOne(a0Id);
     if (!user) {
       // create the new user
@@ -79,16 +78,7 @@ class MetadataRepo {
       await this.userRepo.save(newUser);
       return [];
     };
-    const res = [];
-    for (const db of user.iasqlDatabases) {
-      const bytes = await this.conn.query(`SELECT pg_database_size('${db.pgName}');`);
-      const mb = parseInt(bytes[0].pg_database_size, 10) / 1024 / 1024;
-      res.push({
-        ...db,
-        megabytes: Math.round(mb),
-      });
-    }
-    return res;
+    return user.iasqlDatabases;
   }
 
   async getAllDbs(): Promise<IasqlDatabase[]> {

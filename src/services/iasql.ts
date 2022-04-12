@@ -58,6 +58,17 @@ const iasqlPlanV3 = (
   })(),
 });
 
+export async function getDbMegabytes(conn: TypeormWrapper): Promise<number> {
+  // only looks at the public schema
+  const bytes = await conn.query(`
+    SELECT SUM(
+      pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(tablename))
+    ) FROM pg_tables
+    WHERE schemaname = 'public';
+  `);
+  return Math.round(parseInt(bytes[0].sum, 10) / 1024 / 1024);
+}
+
 export async function connect(
   dbAlias: string,
   awsRegion: string,
@@ -75,7 +86,15 @@ export async function connect(
     const dbPass = dbGen[1];
     dbId = dbMan.genDbId(dbAlias);
     const hasCredentials = !!awsAccessKeyId && !!awsSecretAccessKey;
-    await MetadataRepo.saveDb(uid, email, dbAlias, dbId, dbUser, awsRegion, hasCredentials, directConnect);
+    const metaDb = new IasqlDatabase();
+    metaDb.alias = dbAlias;
+    metaDb.pgUser = dbUser;
+    metaDb.region = awsRegion;
+    metaDb.pgName = dbId;
+    metaDb.directConnect = directConnect
+    metaDb.isReady = hasCredentials;
+    metaDb.megabytes = 0; // updated after migrations are done
+    await MetadataRepo.saveDb(uid, email, metaDb);
     logger.info('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
     await conn1.query(`
@@ -116,6 +135,7 @@ export async function connect(
     }
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
+    await MetadataRepo.updateDbMegabytes(dbId, await getDbMegabytes(conn2));
     logger.info('Done!');
     return {
       alias: dbAlias,
@@ -124,7 +144,8 @@ export async function connect(
       password: dbPass,
     };
   } catch (e: any) {
-    // delete db in psql and metadata in IP
+    scheduler.stop(dbId);
+    // delete db in psql and metadata
     await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
     if (dbUser) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser));
     await MetadataRepo.delDb(uid, dbAlias);

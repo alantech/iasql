@@ -4,6 +4,8 @@ import {
   JoinTable,
   ManyToMany,
   PrimaryColumn,
+  CreateDateColumn,
+  UpdateDateColumn
 } from 'typeorm'
 
 @Entity()
@@ -32,6 +34,17 @@ export class IasqlDatabase {
     default: false,
   })
   directConnect: boolean;
+
+  @Column({
+    type: 'int',
+  })
+  megabytes: number;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
 
 @Entity()
@@ -50,4 +63,10 @@ export class IasqlUser {
     name: 'iasql_user_databases',
   })
   iasqlDatabases: IasqlDatabase[];
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

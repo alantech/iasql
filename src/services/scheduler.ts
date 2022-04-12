@@ -98,6 +98,9 @@ export async function start(dbId: string, dbUser:string) {
             where opid = uuid('${opid}');
           `
           await conn.query(query);
+        } finally {
+          const mbs = await iasql.getDbMegabytes(conn);
+          await MetadataRepo.updateDbMegabytes(dbId, mbs);
         }
       },
     },

@@ -113,25 +113,3 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
     res.status(500).end(logUserErr(e));
   }
 });
-
-db.post('/apply', async (req, res) => {
-  const { dbAlias, dryRun } = req.body;
-  if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  try {
-    const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
-    res.json(await iasql.apply(database.pgName, dryRun));
-  } catch (e) {
-    res.status(500).end(logUserErr(e));
-  }
-});
-
-db.post('/sync', async (req, res) => {
-  const { dbAlias, dryRun } = req.body;
-  if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  try {
-    const database: IasqlDatabase = await MetadataRepo.getDb(dbMan.getUid(req.user), dbAlias);
-    res.json(await iasql.sync(database.pgName, dryRun));
-  } catch (e) {
-    res.status(500).end(logUserErr(e));
-  }
-});
