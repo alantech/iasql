@@ -85,8 +85,7 @@ describe('VPC Integration Testing', () => {
     WITH vpc as (
       SELECT id
       FROM vpc
-      WHERE is_default = false
-      AND cidr_block = '192.${randIPBlock}.0.0/16'
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16'
     )
     DELETE FROM security_group
     USING vpc
@@ -124,7 +123,7 @@ describe('VPC install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the VPC module', uninstall(
-    ['aws_vpc', 'aws_ecs_fargate',]));
+    ['aws_vpc', 'aws_ecs_fargate', 'aws_security_group', 'aws_rds', 'aws_elb', 'aws_ec2']));
 
   it('installs the VPC module', install(
     ['aws_vpc',]));
