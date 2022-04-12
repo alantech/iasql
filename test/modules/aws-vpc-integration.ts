@@ -82,6 +82,15 @@ describe('VPC Integration Testing', () => {
   it('applies the subnet removal', apply());
 
   it('deletes the vpc', query(`
+    WITH vpc as (
+      SELECT id
+      FROM vpc
+      WHERE is_default = false
+      AND cidr_block = '192.${randIPBlock}.0.0/16'
+    )
+    DELETE FROM aws_security_group
+    WHERE vpc_id = vpc.id;
+
     DELETE FROM vpc
     WHERE cidr_block = '192.${randIPBlock}.0.0/16';
   `));
