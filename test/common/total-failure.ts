@@ -61,15 +61,13 @@ describe('Testing failure path', () => {
     BEGIN;
       INSERT INTO instance (name, ami, instance_type)
       VALUES ('i-1','fake', 't2.micro');
-      INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-        (SELECT id FROM instance WHERE name='i-1'),
-        (SELECT id FROM security_group WHERE group_name='default');
+      INSERT INTO instance_security_groups (instance_id, security_group_group_name) SELECT
+        (SELECT id FROM instance WHERE name='i-1'), 'default';
 
       INSERT INTO instance (name, ami, instance_type)
       VALUES ('i-2','ami-0892d3c7ee96c0bf7', 't2.micr');
-      INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-        (SELECT id FROM instance WHERE name='i-2'),
-        (SELECT id FROM security_group WHERE group_name='default');
+      INSERT INTO instance_security_groups (instance_id, security_group_group_name) SELECT
+        (SELECT id FROM instance WHERE name='i-2'), 'default';
     COMMIT;
   `));
 
