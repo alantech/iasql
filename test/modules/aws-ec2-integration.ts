@@ -13,7 +13,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_ec2', 'aws_security_group'];
+const modules = ['aws_ec2', 'aws_security_group', 'aws_vpc'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());

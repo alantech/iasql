@@ -4,7 +4,7 @@ import { runQuery, finish, execComposeUp, execComposeDown, runInstall } from '..
 const dbAlias = 'totalfailure';
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
-const applyModules = ['aws_ec2', 'aws_security_group']
+const applyModules = ['aws_ec2', 'aws_security_group', 'aws_vpc']
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
