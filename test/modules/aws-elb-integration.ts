@@ -106,8 +106,8 @@ describe('ELB Integration Testing', () => {
       INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
       VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
 
-      INSERT INTO load_balancer_security_groups(load_balancer_name, security_group_id)
-      SELECT '${lbName}', (SELECT id FROM security_group WHERE group_name = '${sg1}');
+      INSERT INTO load_balancer_security_groups(load_balancer_name, security_group_group_name)
+      VALUES ('${lbName}', '${sg1}');
     COMMIT;
   `));
 
@@ -133,7 +133,7 @@ describe('ELB Integration Testing', () => {
 
   it('tries to update a load balancer security group (replace)', query(`
     UPDATE load_balancer_security_groups
-    SET security_group_id = (SELECT id FROM security_group WHERE group_name = '${sg2}')
+    SET security_group_group_name = '${sg2}'
     WHERE load_balancer_name = '${lbName}';
   `));
 
