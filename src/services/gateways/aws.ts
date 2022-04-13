@@ -1095,13 +1095,15 @@ export class AWS {
         maxDelay: 4,
       },
       input,
-      async (client, cmd) => {
-        const data = await client.send(cmd);
-        if (data.services?.length && data.services[0].status === 'DRAINING') {
-          return { state: WaiterState.RETRY };
-        } else {
-          return { state: WaiterState.SUCCESS };
-        }
+      async (_client, _cmd) => {
+        // FORCE RETRY FOR 10 MIN TO UNLOCK SG
+        return { state: WaiterState.RETRY };
+        // const data = await client.send(cmd);
+        // if (data.services?.length && data.services[0].status === 'DRAINING') {
+        //   return { state: WaiterState.RETRY };
+        // } else {
+        //   return { state: WaiterState.SUCCESS };
+        // }
       },
     );
   }
