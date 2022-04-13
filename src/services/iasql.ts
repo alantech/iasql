@@ -910,7 +910,7 @@ ${Object.keys(tableCollisions)
         try {
           e = await mapper.cloud.read(context);
         } catch (err: any) {
-          logger.error(`Error reading from cloud entitiy ${mapper.entity.name}`, err);
+          logger.error(`Error reading from cloud entity ${mapper.entity.name}`, err);
           throw err;
         }
         if (!e || (Array.isArray(e) && !e.length)) {
@@ -919,7 +919,7 @@ ${Object.keys(tableCollisions)
           try {
             await mapper.db.create(e, context);
           } catch (err: any) {
-            logger.error(`Error reading from cloud entitiy ${mapper.entity.name}`, err);
+            logger.error(`Error reading from cloud entity ${mapper.entity.name}`, { e, err, });
             throw err;
           }
         }

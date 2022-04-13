@@ -168,7 +168,7 @@ export class Subnet {
   })
   state?: SubnetState;
 
-  @ManyToOne(() => Vpc, { nullable: false, cascade: true,  eager: true, })
+  @ManyToOne(() => Vpc, { nullable: false, eager: true, })
   @JoinColumn({
     name: 'vpc_id',
   })
