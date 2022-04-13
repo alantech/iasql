@@ -16,7 +16,8 @@ export const AwsSecurityGroupModule: Module = new Module({
       out.groupName = sg.GroupName;
       out.ownerId = sg.OwnerId;
       out.groupId = sg.GroupId;
-      out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sg?.VpcId) ?? await AwsVpcModule.mappers.vpc.cloud.read(ctx, sg?.VpcId);
+      if (sg.VpcId) out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sg.VpcId) ??
+        await AwsVpcModule.mappers.vpc.cloud.read(ctx, sg.VpcId);
       return out;
     },
     sgrMapper: async (sgr: any, ctx: Context) => {
@@ -108,8 +109,19 @@ export const AwsSecurityGroupModule: Module = new Module({
       source: 'db',
       db: new Crud({
         create: async (e: SecurityGroup[], ctx: Context) => {
+          // If a VPC record is associated with this security group that doesn't exist in the DB, we
+          // need to create it first or TypeORM will fail
           for (const out of e) {
-            if (out.vpc && !out.vpc.id) await AwsVpcModule.mappers.vpc.db.create(ctx, out.vpc);
+            if (out.vpc && !out.vpc.id) {
+              // There may be a race condition/double write happening here, so check if this thing
+              // has been created in the meantime
+              const dbVpc = await AwsVpcModule.mappers.vpc.db.read(ctx, out.vpc.vpcId);
+              if (!!dbVpc) {
+                out.vpc = dbVpc;
+              } else {
+                await AwsVpcModule.mappers.vpc.db.create(out.vpc, ctx);
+              }
+            }
           }
           await ctx.orm.save(SecurityGroup, e)
         },
@@ -141,8 +153,19 @@ export const AwsSecurityGroupModule: Module = new Module({
           return securityGroups;
         },
         update: async (e: SecurityGroup[], ctx: Context) => {
+          // If a VPC record is associated with this security group that doesn't exist in the DB, we
+          // need to create it first or TypeORM will fail
           for (const out of e) {
-            if (out.vpc && !out.vpc.id) await AwsVpcModule.mappers.vpc.db.create(ctx, out.vpc);
+            if (out.vpc && !out.vpc.id) {
+              // There may be a race condition/double write happening here, so check if this thing
+              // has been created in the meantime
+              const dbVpc = await AwsVpcModule.mappers.vpc.db.read(ctx, out.vpc.vpcId);
+              if (!!dbVpc) {
+                out.vpc = dbVpc;
+              } else {
+                await AwsVpcModule.mappers.vpc.db.create(out.vpc, ctx);
+              }
+            }
           }
           await ctx.orm.save(SecurityGroup, e)
         },
