@@ -405,9 +405,28 @@ export class AWS {
   }
 
   async deleteSecurityGroup(instanceParams: DeleteSecurityGroupRequest) {
-    return await this.ec2client.send(
-      new DeleteSecurityGroupCommand(instanceParams),
-    );
+    try {
+      return await this.ec2client.send(
+        new DeleteSecurityGroupCommand(instanceParams),
+      );
+    } catch(e: any) {
+      // If it is a dependency violation we add the dependency to the error message in order to debug what is happening
+      if (e.Code === 'DependencyViolation') {
+        const sgEniInfo = await this.ec2client.send(
+          new DescribeNetworkInterfacesCommand({
+            Filters: [
+              {
+                Name: 'group-id',
+                Values: [`${instanceParams.GroupId}`]
+              }
+            ]
+          })
+        );
+        const eniMessage = `Network interfaces associated with security group ${instanceParams.GroupId}: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
+        e.message = `${e.message} | ${eniMessage}`;
+      } 
+      throw e;
+    }
   }
 
   async getSecurityGroupRules() {
@@ -730,7 +749,7 @@ export class AWS {
       {
         client: this.ec2client,
         // all in seconds
-        maxWaitTime: 500,
+        maxWaitTime: 1200,
         minDelay: 1,
         maxDelay: 4,
       },
