@@ -19,6 +19,7 @@ import {
   TargetGroupIpAddressTypeEnum,
   TargetTypeEnum,
 } from './entity'
+import { AwsVpcModule, } from '../aws_vpc@0.0.1'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
@@ -68,9 +69,9 @@ export const AwsElbModule: Module = new Module({
       out.securityGroups = securityGroups;
       out.ipAddressType = lb.IpAddressType as IpAddressType;
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
-      const client = await ctx.getAwsClient() as AWS;
-      const vpc = await client.getVpc(lb.VpcId);
-      out.vpc = vpc?.IsDefault ? 'default' : lb.VpcId;
+      const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, lb.VpcId) ??
+        await AwsVpcModule.mappers.vpc.cloud.read(ctx, lb.VpcId);
+      out.vpc = vpc;
       out.availabilityZones = lb.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
       out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
       return out;
@@ -95,9 +96,9 @@ export const AwsElbModule: Module = new Module({
       out.unhealthyThresholdCount = tg.UnhealthyThresholdCount ?? null;
       out.healthCheckPath = tg.HealthCheckPath ?? null;
       out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum ?? null;
-      const client = await ctx.getAwsClient() as AWS;
-      const vpc = await client.getVpc(tg.VpcId);
-      out.vpc = vpc?.IsDefault ? 'default' : tg.VpcId;
+      const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, tg.VpcId) ??
+        await AwsVpcModule.mappers.vpc.cloud.read(ctx, tg.VpcId);
+      out.vpc = vpc;
       return out;
     },
   },
@@ -203,7 +204,7 @@ export const AwsElbModule: Module = new Module({
         && Object.is(a.state, b.state)
         && Object.is(a.subnets?.length, b.subnets?.length)
         && (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
-        && Object.is(a.vpc, b.vpc),
+        && Object.is(a.vpc?.vpcId, b.vpc?.vpcId),
       source: 'db',
       cloud: new Crud({
         create: async (es: LoadBalancer[], ctx: Context) => {
@@ -251,7 +252,7 @@ export const AwsElbModule: Module = new Module({
             !(Object.is(prev.loadBalancerName, next.loadBalancerName)
               && Object.is(prev.loadBalancerType, next.loadBalancerType)
               && Object.is(prev.scheme, next.scheme)
-              && Object.is(prev.vpc, next.vpc))
+              && Object.is(prev.vpc?.vpcId, next.vpc?.vpcId))
           ) {
             return 'replace';
           }
@@ -313,7 +314,7 @@ export const AwsElbModule: Module = new Module({
         && Object.is(a.ipAddressType, b.ipAddressType)
         && Object.is(a.protocol, b.protocol)
         && Object.is(a.port, b.port)
-        && Object.is(a.vpc, b.vpc)
+        && Object.is(a.vpc?.vpcId, b.vpc?.vpcId)
         && Object.is(a.protocolVersion, b.protocolVersion)
         && Object.is(a.healthCheckProtocol, b.healthCheckProtocol)
         && Object.is(a.healthCheckPort, b.healthCheckPort)
@@ -334,7 +335,7 @@ export const AwsElbModule: Module = new Module({
               Name: e.targetGroupName,
               TargetType: e.targetType,
               Port: e.port,
-              VpcId: e.vpc === 'default' ? defaultVpc.VpcId ?? '' : e.vpc,
+              VpcId: !e.vpc ? defaultVpc.VpcId ?? '' : e.vpc.vpcId ?? '',
               Protocol: e.protocol,
               ProtocolVersion: e.protocolVersion,
               IpAddressType: e.ipAddressType,
@@ -371,7 +372,7 @@ export const AwsElbModule: Module = new Module({
           if (
             !(Object.is(prev.targetGroupName, next.targetGroupName)
               && Object.is(prev.targetType, next.targetType)
-              && Object.is(prev.vpc, next.vpc)
+              && Object.is(prev.vpc?.vpcId, next.vpc?.vpcId)
               && Object.is(prev.port, next.port)
               && Object.is(prev.protocol, next.protocol)
               && Object.is(prev.ipAddressType, next.ipAddressType)
@@ -384,7 +385,11 @@ export const AwsElbModule: Module = new Module({
         update: async (es: TargetGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
-            const cloudRecord = ctx?.memo?.cloud?.TargetGroup?.[e.targetGroupArn ?? ''];
+            const cloudRecord = ctx?.memo?.cloud?.TargetGroup?.[e.targetGroupArn ?? ''] as TargetGroup;
+            // Short-circuit if it's just a default VPC vs no-VPC difference
+            if (cloudRecord.vpc?.isDefault && !e.vpc) {
+              return await AwsElbModule.mappers.targetGroup.db.update(cloudRecord, ctx);
+            }
             const isUpdate = AwsElbModule.mappers.targetGroup.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               const updatedTargetGroup = await client.updateTargetGroup({
