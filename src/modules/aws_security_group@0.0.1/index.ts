@@ -112,7 +112,7 @@ export const AwsSecurityGroupModule: Module = new Module({
           // If a VPC record is associated with this security group that doesn't exist in the DB, we
           // need to create it first or TypeORM will fail
           for (const out of e) {
-            if (out.vpc && !out.vpc.id) {
+            if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
               // There may be a race condition/double write happening here, so check if this thing
               // has been created in the meantime
               const dbVpc = await AwsVpcModule.mappers.vpc.db.read(ctx, out.vpc.vpcId);
@@ -156,7 +156,7 @@ export const AwsSecurityGroupModule: Module = new Module({
           // If a VPC record is associated with this security group that doesn't exist in the DB, we
           // need to create it first or TypeORM will fail
           for (const out of e) {
-            if (out.vpc && !out.vpc.id) {
+            if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
               // There may be a race condition/double write happening here, so check if this thing
               // has been created in the meantime
               const dbVpc = await AwsVpcModule.mappers.vpc.db.read(ctx, out.vpc.vpcId);
