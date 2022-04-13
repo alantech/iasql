@@ -9,7 +9,6 @@ export interface ConfigInterface {
   a0Domain?: string;
   a0Audience?: string;
   sentryEnabled: boolean;
-  sentryEnvironment?: string;
   sentryDsn?: string;
   debugLogger?: boolean;
   testLogger?: boolean;

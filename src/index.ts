@@ -19,7 +19,6 @@ app.use(cors({
 if (config.sentryEnabled) {
   sentry.init({
     dsn: config.sentryDsn,
-    environment: config.sentryEnvironment,
   });
   // RequestHandler creates a separate execution context using domains, so that every
   // transaction/span/breadcrumb is attached to its own Hub instance
