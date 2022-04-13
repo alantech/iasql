@@ -62,6 +62,7 @@ const repositoryName = `${prefix}${dbAlias}repository`;
 const containerNameRepository = `${prefix}${dbAlias}containerrepository`;
 const publicRepositoryName = `${prefix}${dbAlias}publicrepository-${region}`;
 const containerNamePublicRepository = `${prefix}${dbAlias}containerpublicrepository`;
+const securityGroup = `${prefix}${dbAlias}sg`;
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -117,6 +118,8 @@ describe('ECS Integration Testing', () => {
   // Service dependencies
   it('adds service dependencies', query(`
     BEGIN;
+      INSERT INTO security_group (description, group_name)
+      VALUES ('${securityGroup}', '${securityGroup}');
       INSERT INTO target_group
           (target_group_name, target_type, protocol, port, vpc, health_check_path)
       VALUES
@@ -129,7 +132,7 @@ describe('ECS Integration Testing', () => {
           (load_balancer_name, security_group_id)
       VALUES
           ('${serviceLoadBalancerName}',
-            (SELECT id FROM security_group WHERE group_name = 'default' LIMIT 1));
+            (SELECT id FROM security_group WHERE group_name = '${securityGroup}' LIMIT 1));
       INSERT INTO listener
           (load_balancer_name, port, protocol, action_type, target_group_name)
       VALUES 
@@ -252,7 +255,7 @@ describe('ECS Integration Testing', () => {
         VALUES ('${serviceName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
 
         INSERT INTO service_security_groups (service_name, security_group_id)
-        VALUES ('${serviceName}', (select id from security_group where group_name = 'default' limit 1));
+        VALUES ('${serviceName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
       COMMIT;
     `));
 
@@ -363,6 +366,8 @@ describe('ECS Integration Testing', () => {
 
         delete from service
         where name = '${newServiceName}';
+
+
       COMMIT;
     `));
 
@@ -490,7 +495,7 @@ describe('ECS Integration Testing', () => {
         VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
 
         INSERT INTO service_security_groups (service_name, security_group_id)
-        VALUES ('${serviceRepositoryName}', (select id from security_group where group_name = 'default' limit 1));
+        VALUES ('${serviceRepositoryName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
       COMMIT;
     `));
 
@@ -656,7 +661,7 @@ describe('ECS Integration Testing', () => {
         VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
 
         INSERT INTO service_security_groups (service_name, security_group_id)
-        VALUES ('${servicePublicRepositoryName}', (select id from security_group where group_name = 'default' limit 1));
+        VALUES ('${servicePublicRepositoryName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
       COMMIT;
     `));
 
@@ -765,7 +770,10 @@ describe('ECS Integration Testing', () => {
       WHERE load_balancer_name = '${serviceLoadBalancerName}';
 
       DELETE FROM target_group
-      WHERE target_group_name = '${serviceTargetGroupName}'; 
+      WHERE target_group_name = '${serviceTargetGroupName}';
+
+      DELETE FROM security_group
+      WHERE group_name = '${securityGroup}';
     COMMIT;
   `));
 
