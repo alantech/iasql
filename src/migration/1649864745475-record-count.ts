@@ -1,10 +1,10 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class recordCount1649719173364 implements MigrationInterface {
-    name = 'recordCount1649719173364'
+export class recordCount1649864745475 implements MigrationInterface {
+    name = 'recordCount1649864745475'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "iasql_database" ADD "record_count" integer NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "iasql_database" ADD "record_count" integer NOT NULL DEFAULT '0'`);
         await queryRunner.query(`ALTER TABLE "iasql_database" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`);
         await queryRunner.query(`ALTER TABLE "iasql_database" ADD "updated_at" TIMESTAMP NOT NULL DEFAULT now()`);
         await queryRunner.query(`ALTER TABLE "iasql_user" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`);
