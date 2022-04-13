@@ -107,7 +107,12 @@ export const AwsSecurityGroupModule: Module = new Module({
         Object.is(a.vpc?.vpcId, b.vpc?.vpcId),
       source: 'db',
       db: new Crud({
-        create: (e: SecurityGroup[], ctx: Context) => ctx.orm.save(SecurityGroup, e),
+        create: async (e: SecurityGroup[], ctx: Context) => {
+          for (const out of e) {
+            if (out.vpc && !out.vpc.id) await AwsVpcModule.mappers.vpc.db.create(ctx, out.vpc);
+          }
+          await ctx.orm.save(SecurityGroup, e)
+        },
         read: async (ctx: Context, ids?: string[]) => {
           // TODO: Possible to automate this?
           const relations = ['securityGroupRules', 'securityGroupRules.securityGroup'];
@@ -135,7 +140,12 @@ export const AwsSecurityGroupModule: Module = new Module({
           });
           return securityGroups;
         },
-        update: (e: SecurityGroup[], ctx: Context) => ctx.orm.save(SecurityGroup, e),
+        update: async (e: SecurityGroup[], ctx: Context) => {
+          for (const out of e) {
+            if (out.vpc && !out.vpc.id) await AwsVpcModule.mappers.vpc.db.create(ctx, out.vpc);
+          }
+          await ctx.orm.save(SecurityGroup, e)
+        },
         delete: (e: SecurityGroup[], ctx: Context) => ctx.orm.remove(SecurityGroup, e),
       }),
       cloud: new Crud({
