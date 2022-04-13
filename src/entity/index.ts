@@ -37,6 +37,7 @@ export class IasqlDatabase {
 
   @Column({
     type: 'int',
+    nullable: true,
   })
   recordCount: number;
 
