@@ -424,7 +424,7 @@ export class AWS {
         );
         const eniMessage = `Network interfaces associated with security group ${instanceParams.GroupId}: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
         e.message = `${e.message} | ${eniMessage}`;
-      } 
+      }
       throw e;
     }
   }
