@@ -248,6 +248,14 @@ describe('Security Group install/uninstall', () => {
   it('installs the Security Group module', install(
     ['aws_security_group']));
 
+  it('confirms that the auto-generated security group is there', query(`
+    SELECT sg.* FROM security_group as sg
+    INNER JOIN vpc on vpc.id = sg.vpc_id
+    WHERE vpc.cidr_block = '192.${randIPBlock}.0.0/16';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+  }));
+
   it('uninstalls the Security Group module again (to be easier)', uninstall(
     ['aws_security_group']));
 
