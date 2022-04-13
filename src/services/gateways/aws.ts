@@ -1104,17 +1104,17 @@ export class AWS {
         }
       },
     );
+    // Force retry for ~4 min to unlock security group
     await createWaiter<ECSClient, DescribeServicesCommand>(
       {
         client: this.ecsClient,
         // all in seconds
-        maxWaitTime: 300,
+        maxWaitTime: 250,
         minDelay: 1,
         maxDelay: 4,
       },
       input,
       async (_client, _cmd) => {
-        // Force retry for 5 min to unlock security group
         return { state: WaiterState.RETRY };
       },
     );
