@@ -216,7 +216,7 @@ export const AwsElbModule: Module = new Module({
             });
             const input: CreateLoadBalancerCommandInput = {
               Name: e.loadBalancerName,
-              Subnets: e.subnets ?? subnets,
+              Subnets: e.subnets && e.subnets.length && e.subnets.every(s => !!s) ? e.subnets : subnets,
               Scheme: e.scheme,
               Type: e.loadBalancerType,
               IpAddressType: e.ipAddressType,
