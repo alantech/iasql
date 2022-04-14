@@ -779,6 +779,10 @@ describe('ECS Integration Testing', () => {
       DELETE FROM target_group
       WHERE target_group_name = '${serviceTargetGroupName}';
 
+      DELETE FROM security_group_rule
+      USING security_group
+      WHERE group_name = '${securityGroup}';
+
       DELETE FROM security_group
       WHERE group_name = '${securityGroup}';
     COMMIT;
