@@ -100,6 +100,7 @@ import {
   DescribeClustersCommand,
   DescribeServicesCommand,
   DescribeTaskDefinitionCommand,
+  DescribeTasksCommand,
   ECSClient,
   paginateListClusters,
   paginateListServices,
@@ -140,6 +141,8 @@ import {
   paginateDescribeRepositories as paginateDescribePubRepositories,
 } from '@aws-sdk/client-ecr-public'
 import { IAM } from '@aws-sdk/client-iam'
+
+import logger from '../logger'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -908,14 +911,18 @@ export class AWS {
     return cluster.clusters?.[0];
   }
 
-  async getTasksArns(cluster: string) {
+  async getTasksArns(cluster: string, serviceName?: string) {
     const tasksArns: string[] = [];
+    let input: any = {
+      cluster
+    };
+    if (serviceName) {
+      input = { ...input, serviceName }
+    }
     const paginator = paginateListTasks({
       client: this.ecsClient,
       pageSize: 25,
-    }, {
-      cluster,
-    });
+    }, input);
     for await (const page of paginator) {
       tasksArns.push(...(page.taskArns ?? []));
     }
@@ -926,13 +933,14 @@ export class AWS {
     const clusterServices = await this.getServices([id]);
     if (clusterServices.length) {
       await Promise.all(clusterServices.filter(s => !!s.serviceName).map(async s => {
+        const serviceTasksArns = await this.getTasksArns(id, s.serviceName);
         s.desiredCount = 0;
         await this.updateService({
           service: s.serviceName,
           cluster: id,
           desiredCount: s.desiredCount,
         });
-        return this.deleteService(s.serviceName!, id);
+        return this.deleteService(s.serviceName!, id, serviceTasksArns);
       }));
     }
     const tasks = await this.getTasksArns(id);
@@ -1074,7 +1082,7 @@ export class AWS {
     return result.services?.[0];
   }
 
-  async deleteService(name: string, cluster: string) {
+  async deleteService(name: string, cluster: string, tasksArns: string[]) {
     await this.ecsClient.send(
       new DeleteServiceCommand({
         service: name,
@@ -1104,6 +1112,45 @@ export class AWS {
         }
       },
     );
+    try {
+      const tasks = await this.ecsClient.send(new DescribeTasksCommand({tasks: tasksArns, cluster}));
+      const taskAttachmentIds = tasks.tasks?.map(t => t.attachments?.map(a => a.id)).flat()
+      if (taskAttachmentIds?.length) {
+        const describeEniCommand = new DescribeNetworkInterfacesCommand({
+          Filters: [
+            {
+              Name: 'description',
+              Values: taskAttachmentIds?.map(id => `*${id}`)
+            }
+          ]
+        });
+        await createWaiter<EC2Client, DescribeNetworkInterfacesCommand>(
+          {
+            client: this.ec2client,
+            // all in seconds
+            maxWaitTime: 1200,
+            minDelay: 1,
+            maxDelay: 4,
+          },
+          describeEniCommand,
+          async (client, cmd) => {
+            try {
+              const eni = await client.send(cmd);
+              if (eni.NetworkInterfaces?.length) {
+                return { state: WaiterState.RETRY };
+              }
+              return { state: WaiterState.SUCCESS };
+            } catch (e) {
+              return { state: WaiterState.RETRY };
+            }
+          },
+        );
+      }
+    } catch (_) {
+      // We should not throw here.
+      // This is an extra validation to ensure that the service is fully deleted
+      logger.info('Error getting network interfaces for tasks')
+    }
   }
 
   async getEngineVersions() {
