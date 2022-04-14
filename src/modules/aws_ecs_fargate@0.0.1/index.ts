@@ -238,7 +238,6 @@ export const AwsEcsFargateModule: Module = new Module({
         },
         delete: async (es: Cluster[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          const t0 = Date.now()
           await Promise.all(es.map(async e => {
             if (e.clusterStatus === 'INACTIVE' && e.clusterName === 'default') {
               const dbCluster = await AwsEcsFargateModule.mappers.cluster.db.read(ctx, e.clusterArn);
@@ -250,8 +249,6 @@ export const AwsEcsFargateModule: Module = new Module({
               return await client.deleteCluster(e.clusterName)
             }
           }));
-          const tn = Date.now()
-          logger.info(`DELETE CLUSTERS TOOK ${tn - t0}ms`)
         },
       }),
     }),
@@ -581,7 +578,7 @@ export const AwsEcsFargateModule: Module = new Module({
             const t1 = Date.now()
             const tasksArns = await client.getTasksArns(e.cluster?.clusterName!, e.name);
             const t2 = Date.now()
-            logger.info(`SERVICE GET TASKS ARNS TOOK ${t2 - t1}ms`)
+            logger.info(`Getting service ${e.name} tasks in ${t2 - t1}ms`)
             e.desiredCount = 0;
             await client.updateService({
               service: e.name,
@@ -589,13 +586,13 @@ export const AwsEcsFargateModule: Module = new Module({
               desiredCount: e.desiredCount,
             });
             const t3 = Date.now()
-            logger.info(`SERVICE UPDATE SERVICE TOOK ${t3 - t2}ms`)
+            logger.info(`Setting service ${e.name} desired count to 0 in ${t3 - t2}ms`)
             await client.deleteService(e.name, e.cluster?.clusterArn!, tasksArns)
             const t4 = Date.now()
-            logger.info(`SERVICE DELETE SERVICE TOOK ${t4 - t3}ms`)
+            logger.info(`Deleting service ${e.name} in ${t4 - t3}ms`)
           }
           const tn = Date.now()
-          logger.info(`SERVICE DELETE TIME TOOK ${tn - t0}ms`)
+          logger.info(`Service cloud mapper delete completed in ${tn - t0}ms`)
         },
       }),
     }),
