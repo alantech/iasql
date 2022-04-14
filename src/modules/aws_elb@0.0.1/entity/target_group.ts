@@ -1,10 +1,13 @@
 import {
   Column,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryColumn,
 } from 'typeorm'
 
 import { cloudId, } from '../../../services/cloud-id'
+import { Vpc, } from '../../aws_vpc@0.0.1/entity'
 
 export enum TargetTypeEnum {
   ALB = "alb",
@@ -71,8 +74,14 @@ export class TargetGroup {
   })
   port?: number;
 
-  @Column()
-  vpc: string;
+  @ManyToOne(() => Vpc, {
+    nullable: true,
+    eager: true,
+  })
+  @JoinColumn({
+    name: 'vpc',
+  })
+  vpc?: Vpc;
 
   @Column({
     nullable: true,

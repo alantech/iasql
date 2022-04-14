@@ -42,7 +42,7 @@ describe('ELB Integration Testing', () => {
   // Target group
   it('adds a new targetGroup', query(`
     INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
-    VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, 'default', '/health');
+    VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
   `));
 
   it('undo changes', sync());
@@ -55,7 +55,7 @@ describe('ELB Integration Testing', () => {
 
   it('adds a new targetGroup', query(`
     INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
-    VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, 'default', '/health');
+    VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
   `));
 
   it('check target_group insertion', query(`
@@ -81,7 +81,7 @@ describe('ELB Integration Testing', () => {
   // Load balancer
   it('adds a new load balancer', query(`
     INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
-    VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
+    VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
   `));
 
   it('undo changes', sync());
@@ -104,7 +104,7 @@ describe('ELB Integration Testing', () => {
   it('adds a new load balancer', query(`
     BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
-      VALUES ('${lbName}', '${lbScheme}', 'default', '${lbType}', '${lbIPAddressType}');
+      VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
 
       INSERT INTO load_balancer_security_groups(load_balancer_name, security_group_id)
       SELECT '${lbName}', (SELECT id FROM security_group WHERE group_name = '${sg1}');

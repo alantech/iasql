@@ -1,12 +1,15 @@
 import {
-  Entity,
-  PrimaryColumn,
   Column,
-  ManyToMany,
+  Entity,
+  JoinColumn,
   JoinTable,
+  ManyToMany,
+  ManyToOne,
+  PrimaryColumn,
 } from 'typeorm'
 
-import { SecurityGroup } from '../../aws_security_group@0.0.1/entity'
+import { SecurityGroup, } from '../../aws_security_group@0.0.1/entity'
+import { Vpc, } from '../../aws_vpc@0.0.1/entity'
 import { cloudId, } from '../../../services/cloud-id'
 
 export enum LoadBalancerSchemeEnum {
@@ -78,8 +81,14 @@ export class LoadBalancer {
   })
   loadBalancerType: LoadBalancerTypeEnum;
 
-  @Column()
-  vpc: string;
+  @ManyToOne(() => Vpc, {
+    nullable: true,
+    eager: true,
+  })
+  @JoinColumn({
+    name: 'vpc',
+  })
+  vpc?: Vpc;
 
   // Not in the mapper since is just needed as input for the creation and retrieve endpoints
   // do not return any information related to the subnets

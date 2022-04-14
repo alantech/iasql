@@ -123,11 +123,11 @@ describe('ECS Integration Testing', () => {
       INSERT INTO target_group
           (target_group_name, target_type, protocol, port, vpc, health_check_path)
       VALUES
-          ('${serviceTargetGroupName}', 'ip', 'HTTP', ${hostPort}, 'default', '/health');
+          ('${serviceTargetGroupName}', 'ip', 'HTTP', ${hostPort}, null, '/health');
       INSERT INTO load_balancer
           (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
       VALUES
-          ('${serviceLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
+          ('${serviceLoadBalancerName}', 'internet-facing', null, 'application', 'ipv4');
       INSERT INTO load_balancer_security_groups
           (load_balancer_name, security_group_id)
       VALUES

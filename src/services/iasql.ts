@@ -94,7 +94,6 @@ export async function connect(
     metaDb.pgName = dbId;
     metaDb.directConnect = directConnect
     metaDb.isReady = hasCredentials;
-    metaDb.recordCount = 0; // updated after migrations are done
     await MetadataRepo.saveDb(uid, email, metaDb);
     logger.info('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
