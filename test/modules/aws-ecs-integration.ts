@@ -419,335 +419,335 @@ describe('ECS Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(0)));
   });
 
-  // // Service spinning up a task definition with container using a private ecr
-  // describe('Private ECR', () => {
-  //   // ECR
-  //   it('adds a new ECR', query(`
-  //     INSERT INTO repository
-  //         (repository_name)
-  //     VALUES
-  //         ('${repositoryName}');
-  //   `));
-
-  //   it('check repository insertion', query(`
-  //     SELECT *
-  //     FROM repository
-  //     WHERE repository_name = '${repositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   // IAM
-  //   it('adds a new role', query(`
-  //     INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
-  //     VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
-  // `));
-
-  //   it('check role insertion', query(`
-  //     SELECT *
-  //     FROM role
-  //     WHERE role_name = '${taskExecRoleName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   // Task definition
-  //   it('adds a new task definition', query(`
-  //     INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
-  //     VALUES ('${tdRepositoryFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
-  //   `));
-
-  //   it('check task_definition insertion', query(`
-  //     SELECT *
-  //     FROM task_definition
-  //     WHERE family = '${tdRepositoryFamily}' AND status IS NULL;
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('adds a new container definition', query(`
-  //     BEGIN;
-  //       INSERT INTO container_definition ("name", repository_name, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-  //       VALUES('${containerNameRepository}', '${repositoryName}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
-  //       INSERT INTO container_definition ("name", repository_name, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-  //       VALUES('${containerNameRepository}dgst', '${repositoryName}', false, ${containerMemoryReservation}, ${hostPort + 2}, ${containerPort + 2}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
-  //     COMMIT;  
-  //   `));
-
-  //   it('check container definition insertion', query(`
-  //     SELECT *
-  //     FROM container_definition
-  //     WHERE name = '${containerNameRepository}' AND repository_name = '${repositoryName}' AND tag = '${imageTag}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('applies adds a new task definition with container definition', apply());
-
-  //   it('check task_definition insertion', query(`
-  //     SELECT *
-  //     FROM task_definition
-  //     WHERE family = '${tdRepositoryFamily}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('check container definition insertion', query(`
-  //     SELECT *
-  //     FROM container_definition
-  //     WHERE name = '${containerNameRepository}' AND repository_name = '${repositoryName}' AND tag = '${imageTag}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   // Service
-  //   it('adds a new service', query(`
-  //     BEGIN;
-  //       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
-  //       VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
-
-  //       INSERT INTO service_security_groups (service_name, security_group_id)
-  //       VALUES ('${serviceRepositoryName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
-  //     COMMIT;
-  //   `));
-
-  //   it('check service insertion', query(`
-  //     SELECT *
-  //     FROM service
-  //     WHERE name = '${serviceRepositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('check service_security_groups insertion', query(`
-  //     SELECT *
-  //     FROM service_security_groups
-  //     WHERE service_name = '${serviceRepositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('applies service insertion', apply());
-
-  //   it('sync sidecar database', sidecarSync());
-
-  //   it('check service insertion', query(`
-  //     SELECT *
-  //     FROM service
-  //     WHERE name = '${serviceRepositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('uninstalls the ecs module', uninstall(
-  //     ['aws_ecs_fargate']));
-
-  //   it('delete role while ecs is uninstalled', query(`
-  //     delete from role
-  //     where role_name = '${taskExecRoleName}';
-  //   `));
-
-  //   it('applies role deletion', apply());
-
-  //   it('installs the ecs module with missing role', install(
-  //     ['aws_ecs_fargate']));
-
-  //   it('deletes service', query(`
-  //     BEGIN;
-  //       delete from service_security_groups
-  //       using service
-  //       where name = '${serviceRepositoryName}';
-
-  //       delete from service
-  //       where name = '${serviceRepositoryName}';
-  //     COMMIT;
-  //   `));
-
-  //   it('applies deletes service', apply());
-
-  //   it('check service deletion', query(`
-  //     SELECT *
-  //     FROM service
-  //     WHERE name = '${serviceRepositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(0)));
-
-  //   it('deletes container definitons', query(`
-  //     begin;
-  //       delete from container_definition
-  //       using task_definition
-  //       where container_definition.task_definition_id = task_definition.id and task_definition.family = '${tdRepositoryFamily}';
-
-  //       delete from task_definition
-  //       where family = '${tdRepositoryFamily}';
-
-  //       delete from role
-  //       where role_name = '${taskExecRoleName}';
-
-  //       delete from repository
-  //       where repository_name = '${repositoryName}';
-  //     commit;
-  //   `));
-
-  //   it('applies deletes tasks and container definitions', apply());
-
-  //   it('sync sidecar database', sidecarSync());
-
-  //   it('check role deletion', query(`
-  //     SELECT *
-  //     FROM role
-  //     WHERE role_name = '${taskExecRoleName}';
-  //   `, (res: any[]) => expect(res.length).toBe(0)));
-
-  //   it('check log group deletion', query(`
-  //     SELECT *
-  //     FROM log_group
-  //     WHERE log_group_name = '${logGroupName}';
-  //   `, (res: any[]) => expect(res.length).toBe(0)));
-
-  //   it('check task def deletion', query(`
-  //     SELECT *
-  //     FROM task_definition
-  //     WHERE family = '${tdFamily}';
-  //   `, (res: any[]) => expect(res.length).toBe(0)));
-  // });
-
-  // // Service spinning up a task definition with container using a public ecr
-  // describe('Public ECR', () => {
-  //   // ECR
-  //   it('adds a new public ECR', query(`
-  //     INSERT INTO public_repository
-  //         (repository_name)
-  //     VALUES
-  //         ('${publicRepositoryName}');
-  //   `));
-
-  //   it('check public_repository insertion', query(`
-  //     SELECT *
-  //     FROM public_repository
-  //     WHERE repository_name = '${publicRepositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   // Task definition
-  //   it('adds a new task definition', query(`
-  //     INSERT INTO task_definition ("family", cpu_memory)
-  //     VALUES ('${tdPublicRepositoryFamily}', '${tdCpuMem}');
-  //   `));
-
-  //   it('check task_definition insertion', query(`
-  //     SELECT *
-  //     FROM task_definition
-  //     WHERE family = '${tdPublicRepositoryFamily}' AND status IS NULL;
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('adds a new container definition', query(`
-  //     INSERT INTO container_definition ("name", public_repository_name, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-	//     VALUES('${containerNamePublicRepository}', '${publicRepositoryName}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' and status is null limit 1));
-  //   `));
-
-  //   it('check container definition insertion', query(`
-  //     SELECT *
-  //     FROM container_definition
-  //     WHERE name = '${containerNamePublicRepository}' AND public_repository_name = '${publicRepositoryName}' AND tag = '${imageTag}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('applies adds a new task definition with container definition', apply());
-
-  //   it('sync sidecar database', sidecarSync());
-
-  //   it('check container definition insertion', query(`
-  //     SELECT *
-  //     FROM container_definition
-  //     WHERE name = '${containerNamePublicRepository}' AND public_repository_name = '${publicRepositoryName}' AND tag = '${imageTag}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('check task_definition insertion', query(`
-  //     SELECT *
-  //     FROM task_definition
-  //     WHERE family = '${tdPublicRepositoryFamily}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('check public_repository insertion', query(`
-  //     SELECT *
-  //     FROM public_repository
-  //     WHERE repository_name = '${publicRepositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   // Service
-  //   it('adds a new service', query(`
-  //     BEGIN;
-  //       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
-  //       VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
-
-  //       INSERT INTO service_security_groups (service_name, security_group_id)
-  //       VALUES ('${servicePublicRepositoryName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
-  //     COMMIT;
-  //   `));
-
-  //   it('check service insertion', query(`
-  //     SELECT *
-  //     FROM service
-  //     WHERE name = '${servicePublicRepositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('check service_security_groups insertion', query(`
-  //     SELECT *
-  //     FROM service_security_groups
-  //     WHERE service_name = '${servicePublicRepositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('applies service insertion', apply());
-
-  //   it('sync sidecar database', sidecarSync());
-
-  //   it('check service insertion', query(`
-  //     SELECT *
-  //     FROM service
-  //     WHERE name = '${servicePublicRepositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(1)));
-
-  //   it('uninstalls the ecs module', uninstall(
-  //     ['aws_ecs_fargate']));
-
-  //   it('installs the ecs module', install(
-  //     ['aws_ecs_fargate']));
-
-  //   it('deletes service', query(`
-  //     BEGIN;
-  //       delete from service_security_groups
-  //       using service
-  //       where name = '${servicePublicRepositoryName}';
-
-  //       delete from service
-  //       where name = '${servicePublicRepositoryName}';
-  //     COMMIT;
-  //   `));
-
-  //   it('applies deletes service', apply());
-
-  //   it('check service deletion', query(`
-  //     SELECT *
-  //     FROM service
-  //     WHERE name = '${servicePublicRepositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(0)));
-
-  //   it('deletes container definitons', query(`
-  //     begin;
-  //       delete from container_definition
-  //       using task_definition
-  //       where container_definition.task_definition_id = task_definition.id and task_definition.family = '${tdPublicRepositoryFamily}';
-
-  //       delete from task_definition
-  //       where family = '${tdPublicRepositoryFamily}';
-
-  //       delete from public_repository
-  //       where repository_name = '${publicRepositoryName}';
-  //     commit;
-  //   `));
-
-  //   it('applies deletes tasks and container definitions', apply());
-
-  //   it('sync sidecar database', sidecarSync());
-
-  //   it('check container definition insertion', query(`
-  //     SELECT *
-  //     FROM container_definition
-  //     WHERE name = '${containerNamePublicRepository}' AND public_repository_name = '${publicRepositoryName}' AND tag = '${imageTag}';
-  //   `, (res: any[]) => expect(res.length).toBe(0)));
-
-  //   it('check task_definition insertion', query(`
-  //     SELECT *
-  //     FROM task_definition
-  //     WHERE family = '${tdPublicRepositoryFamily}';
-  //   `, (res: any[]) => expect(res.length).toBe(0)));
-
-  //   it('check public_repository insertion', query(`
-  //     SELECT *
-  //     FROM public_repository
-  //     WHERE repository_name = '${publicRepositoryName}';
-  //   `, (res: any[]) => expect(res.length).toBe(0)));
-  // });
+  // Service spinning up a task definition with container using a private ecr
+  describe('Private ECR', () => {
+    // ECR
+    it('adds a new ECR', query(`
+      INSERT INTO repository
+          (repository_name)
+      VALUES
+          ('${repositoryName}');
+    `));
+
+    it('check repository insertion', query(`
+      SELECT *
+      FROM repository
+      WHERE repository_name = '${repositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    // IAM
+    it('adds a new role', query(`
+      INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+      VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
+  `));
+
+    it('check role insertion', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${taskExecRoleName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    // Task definition
+    it('adds a new task definition', query(`
+      INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
+      VALUES ('${tdRepositoryFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
+    `));
+
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdRepositoryFamily}' AND status IS NULL;
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('adds a new container definition', query(`
+      BEGIN;
+        INSERT INTO container_definition ("name", repository_name, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
+        VALUES('${containerNameRepository}', '${repositoryName}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
+        INSERT INTO container_definition ("name", repository_name, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
+        VALUES('${containerNameRepository}dgst', '${repositoryName}', false, ${containerMemoryReservation}, ${hostPort + 2}, ${containerPort + 2}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
+      COMMIT;  
+    `));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNameRepository}' AND repository_name = '${repositoryName}' AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('applies adds a new task definition with container definition', apply());
+
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdRepositoryFamily}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNameRepository}' AND repository_name = '${repositoryName}' AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    // Service
+    it('adds a new service', query(`
+      BEGIN;
+        INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
+        VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
+
+        INSERT INTO service_security_groups (service_name, security_group_id)
+        VALUES ('${serviceRepositoryName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
+      COMMIT;
+    `));
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check service_security_groups insertion', query(`
+      SELECT *
+      FROM service_security_groups
+      WHERE service_name = '${serviceRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('applies service insertion', apply());
+
+    it('sync sidecar database', sidecarSync());
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('uninstalls the ecs module', uninstall(
+      ['aws_ecs_fargate']));
+
+    it('delete role while ecs is uninstalled', query(`
+      delete from role
+      where role_name = '${taskExecRoleName}';
+    `));
+
+    it('applies role deletion', apply());
+
+    it('installs the ecs module with missing role', install(
+      ['aws_ecs_fargate']));
+
+    it('deletes service', query(`
+      BEGIN;
+        delete from service_security_groups
+        using service
+        where name = '${serviceRepositoryName}';
+
+        delete from service
+        where name = '${serviceRepositoryName}';
+      COMMIT;
+    `));
+
+    it('applies deletes service', apply());
+
+    it('check service deletion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('deletes container definitons', query(`
+      begin;
+        delete from container_definition
+        using task_definition
+        where container_definition.task_definition_id = task_definition.id and task_definition.family = '${tdRepositoryFamily}';
+
+        delete from task_definition
+        where family = '${tdRepositoryFamily}';
+
+        delete from role
+        where role_name = '${taskExecRoleName}';
+
+        delete from repository
+        where repository_name = '${repositoryName}';
+      commit;
+    `));
+
+    it('applies deletes tasks and container definitions', apply());
+
+    it('sync sidecar database', sidecarSync());
+
+    it('check role deletion', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${taskExecRoleName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check log group deletion', query(`
+      SELECT *
+      FROM log_group
+      WHERE log_group_name = '${logGroupName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check task def deletion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdFamily}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+  });
+
+  // Service spinning up a task definition with container using a public ecr
+  describe('Public ECR', () => {
+    // ECR
+    it('adds a new public ECR', query(`
+      INSERT INTO public_repository
+          (repository_name)
+      VALUES
+          ('${publicRepositoryName}');
+    `));
+
+    it('check public_repository insertion', query(`
+      SELECT *
+      FROM public_repository
+      WHERE repository_name = '${publicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    // Task definition
+    it('adds a new task definition', query(`
+      INSERT INTO task_definition ("family", cpu_memory)
+      VALUES ('${tdPublicRepositoryFamily}', '${tdCpuMem}');
+    `));
+
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdPublicRepositoryFamily}' AND status IS NULL;
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('adds a new container definition', query(`
+      INSERT INTO container_definition ("name", public_repository_name, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
+	    VALUES('${containerNamePublicRepository}', '${publicRepositoryName}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' and status is null limit 1));
+    `));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNamePublicRepository}' AND public_repository_name = '${publicRepositoryName}' AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('applies adds a new task definition with container definition', apply());
+
+    it('sync sidecar database', sidecarSync());
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNamePublicRepository}' AND public_repository_name = '${publicRepositoryName}' AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdPublicRepositoryFamily}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check public_repository insertion', query(`
+      SELECT *
+      FROM public_repository
+      WHERE repository_name = '${publicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    // Service
+    it('adds a new service', query(`
+      BEGIN;
+        INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
+        VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
+
+        INSERT INTO service_security_groups (service_name, security_group_id)
+        VALUES ('${servicePublicRepositoryName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
+      COMMIT;
+    `));
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${servicePublicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check service_security_groups insertion', query(`
+      SELECT *
+      FROM service_security_groups
+      WHERE service_name = '${servicePublicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('applies service insertion', apply());
+
+    it('sync sidecar database', sidecarSync());
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${servicePublicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('uninstalls the ecs module', uninstall(
+      ['aws_ecs_fargate']));
+
+    it('installs the ecs module', install(
+      ['aws_ecs_fargate']));
+
+    it('deletes service', query(`
+      BEGIN;
+        delete from service_security_groups
+        using service
+        where name = '${servicePublicRepositoryName}';
+
+        delete from service
+        where name = '${servicePublicRepositoryName}';
+      COMMIT;
+    `));
+
+    it('applies deletes service', apply());
+
+    it('check service deletion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${servicePublicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('deletes container definitons', query(`
+      begin;
+        delete from container_definition
+        using task_definition
+        where container_definition.task_definition_id = task_definition.id and task_definition.family = '${tdPublicRepositoryFamily}';
+
+        delete from task_definition
+        where family = '${tdPublicRepositoryFamily}';
+
+        delete from public_repository
+        where repository_name = '${publicRepositoryName}';
+      commit;
+    `));
+
+    it('applies deletes tasks and container definitions', apply());
+
+    it('sync sidecar database', sidecarSync());
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNamePublicRepository}' AND public_repository_name = '${publicRepositoryName}' AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdPublicRepositoryFamily}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check public_repository insertion', query(`
+      SELECT *
+      FROM public_repository
+      WHERE repository_name = '${publicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+  });
 
   it('uninstalls the ecs module', uninstall(
     ['aws_ecs_fargate']));
