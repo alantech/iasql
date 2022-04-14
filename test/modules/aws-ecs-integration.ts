@@ -118,8 +118,15 @@ describe('ECS Integration Testing', () => {
   // Service dependencies
   it('adds service dependencies', query(`
     BEGIN;
-      INSERT INTO security_group (description, group_name)
-      VALUES ('${securityGroup}', '${securityGroup}');
+      INSERT INTO security_group
+        (description, group_name)
+      VALUES
+        ('${securityGroup}', '${securityGroup}');
+      INSERT INTO security_group_rule
+        (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+      SELECT true, '-1', -1, -1, '0.0.0.0/0', '${securityGroup}', id
+      FROM security_group
+      WHERE group_name = '${securityGroup}';
       INSERT INTO target_group
           (target_group_name, target_type, protocol, port, vpc, health_check_path)
       VALUES
