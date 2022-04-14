@@ -1147,7 +1147,7 @@ export class AWS {
         );
       }
     } catch (_) {
-      // We should not fail here.
+      // We should not throw here.
       // This is an extra validation to ensure that the service is fully deleted
       logger.info('Error getting network interfaces for tasks')
     }
