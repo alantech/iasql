@@ -574,13 +574,14 @@ export const AwsEcsFargateModule: Module = new Module({
         delete: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
+            const tasksArns = await client.getTasksArns(e.cluster?.clusterName!, e.name);
             e.desiredCount = 0;
             await client.updateService({
               service: e.name,
               cluster: e.cluster?.clusterName,
               desiredCount: e.desiredCount,
             });
-            await client.deleteService(e.name, e.cluster?.clusterArn!)
+            await client.deleteService(e.name, e.cluster?.clusterArn!, tasksArns)
           }
         },
       }),
