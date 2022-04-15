@@ -193,7 +193,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             // the other properties
             const cloudRecord = ctx?.memo?.cloud?.SecurityGroup?.[e.groupId ?? ''];
             cloudRecord.id = e.id;
-            await AwsSecurityGroupModule.mappers.securityGroup.db.update(cloudRecord, ctx);
+            return await AwsSecurityGroupModule.mappers.securityGroup.db.update(cloudRecord, ctx);
           } else {
             // AWS does not have a way to update the top-level SecurityGroup entity. You can
             // update the various rules associated with it, but not the name or description of the
