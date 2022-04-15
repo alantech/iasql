@@ -8,7 +8,7 @@ jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
-describe('Testing failure path', () => {
+describe('Testing metadata repo', () => {
   it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
     process.env.AWS_REGION ?? 'barf',
@@ -16,7 +16,7 @@ describe('Testing failure path', () => {
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
 
-  it('check row iasql database exists', query(`
+  it('check row in iasql database table exists', query(`
     SELECT *
     FROM iasql_database
     WHERE pg_name = '${dbAlias}';
