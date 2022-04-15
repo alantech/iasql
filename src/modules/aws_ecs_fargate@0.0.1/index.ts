@@ -1,5 +1,3 @@
-import { In, } from 'typeorm'
-
 import { AWS, } from '../../services/gateways/aws'
 import {
   Cluster,
@@ -207,9 +205,6 @@ export const AwsEcsFargateModule: Module = new Module({
             const newObject = await client.getCluster(result.clusterArn!);
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcsFargateModule.utils.clusterMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsEcsFargateModule.mappers.cluster.db.update(newEntity, ctx);
             return newEntity;
@@ -231,7 +226,6 @@ export const AwsEcsFargateModule: Module = new Module({
             const cloudRecord = ctx?.memo?.cloud?.Cluster?.[e.clusterArn ?? ''];
             const isUpdate = AwsEcsFargateModule.mappers.cluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
-              cloudRecord.id = e.id;
               await AwsEcsFargateModule.mappers.cluster.db.update(cloudRecord, ctx);
               return cloudRecord;
             } else {
@@ -270,105 +264,62 @@ export const AwsEcsFargateModule: Module = new Module({
         && Object.is(a.containerDefinitions.length, b.containerDefinitions.length)
         && a.containerDefinitions.every(ac => !!b.containerDefinitions.find(bc => AwsEcsFargateModule.utils.containersEq(ac, bc))),
       source: 'db',
-      db: new Crud({
-        create: async (es: TaskDefinition[], ctx: Context) => {
-          await Promise.all(es.map(async (entity: TaskDefinition) => {
-            const containerDefinitions = entity.containerDefinitions;
-            if (containerDefinitions) {
-              await ctx.orm.save(ContainerDefinition, containerDefinitions);
-            }
-          }));
-          await ctx.orm.save(TaskDefinition, es);
-        },
-        read: async (ctx: Context, ids?: string[]) => {
-          // TODO: Possible to automate this, too?
-          const relations = [
-            'containerDefinitions',
-            'containerDefinitions.repository',
-            'containerDefinitions.publicRepository',
-            'containerDefinitions.logGroup',
-          ];
-          const opts = ids ? {
-            where: {
-              taskDefinitionArn: In(ids),
-            },
-            relations,
-          } : { relations, };
-          return await ctx.orm.find(TaskDefinition, opts);
-        },
-        update: async (es: TaskDefinition[], ctx: Context) => {
-          await Promise.all(es.map(async (entity: TaskDefinition) => {
-            const containerDefinitions = entity.containerDefinitions;
-            if (containerDefinitions) {
-              await ctx.orm.save(ContainerDefinition, containerDefinitions);
-            }
-          }));
-          await ctx.orm.save(TaskDefinition, es);
-        },
-        delete: async (es: TaskDefinition[], ctx: Context) => {
-          await Promise.all(es.map(async (e: TaskDefinition) => {
-            const containerDefinitions = e.containerDefinitions;
-            if (containerDefinitions?.length) {
-              await ctx.orm.remove(ContainerDefinition, containerDefinitions);
-            }
-          }));
-          ctx.orm.remove(TaskDefinition, es)
-        },
-      }),
       cloud: new Crud({
         create: async (es: TaskDefinition[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const res = [];
           for (const e of es) {
+            const containerDefinitions = e.containerDefinitions?.map(c => {
+              const container: any = { ...c };
+              let image;
+              if (c.image) {
+                image = c.image;
+              } else if (c.repository) {
+                if (!c.repository?.repositoryUri) {
+                  throw new Error('Repository need to be created first');
+                }
+                image = c.repository.repositoryUri;
+              } else if (c.publicRepository) {
+                if (!c.publicRepository?.repositoryUri) {
+                  throw new Error('Public repository need to be created first');
+                }
+                image = c.publicRepository.repositoryUri;
+              } else {
+                logger.error('How the DB constraint have been ignored?');
+              }
+              if (c.digest) {
+                container.image = `${image}@${c.digest}`;
+              } else if (c.tag) {
+                container.image = `${image}:${c.tag}`;
+              } else {
+                container.image = image;
+              }
+              if (container.logGroup) {
+                // TODO: improve log configuration
+                container.logConfiguration = {
+                  logDriver: 'awslogs',
+                  options: {
+                    "awslogs-group": container.logGroup.logGroupName,
+                    "awslogs-region": client.region,
+                    "awslogs-stream-prefix": `awslogs-${c.name}`
+                  }
+                };
+              }
+              if (c.envVariables && Array.isArray(c.envVariables)) throw new Error('Invalid environment variables format');
+              container.environment = Object.keys(c.envVariables ?? {}).map((evk: string) => ({ name: evk, value: `${c.envVariables[evk]}`}));
+              if (container.containerPort && container.hostPort && container.protocol) {
+                container.portMappings = [{
+                  containerPort: container.containerPort,
+                  hostPort: container.hostPort,
+                  protocol: container.protocol,
+                }];
+              }
+              return container;
+            }) ?? [];
+            if (!containerDefinitions.length) throw new Error(`Task definition ${e.family}${e.revision ? `:${e.revision}` : ''} does not have any container associated.`);
             const input: any = {
               family: e.family,
-              containerDefinitions: e.containerDefinitions.map(c => {
-                const container: any = { ...c };
-                let image;
-                if (c.image) {
-                  image = c.image;
-                } else if (c.repository) {
-                  if (!c.repository?.repositoryUri) {
-                    throw new Error('Repository need to be created first');
-                  }
-                  image = c.repository.repositoryUri;
-                } else if (c.publicRepository) {
-                  if (!c.publicRepository?.repositoryUri) {
-                    throw new Error('Public repository need to be created first');
-                  }
-                  image = c.publicRepository.repositoryUri;
-                } else {
-                  logger.error('How the DB constraint have been ignored?');
-                }
-                if (c.digest) {
-                  container.image = `${image}@${c.digest}`;
-                } else if (c.tag) {
-                  container.image = `${image}:${c.tag}`;
-                } else {
-                  container.image = image;
-                }
-                if (container.logGroup) {
-                  // TODO: improve log configuration
-                  container.logConfiguration = {
-                    logDriver: 'awslogs',
-                    options: {
-                      "awslogs-group": container.logGroup.logGroupName,
-                      "awslogs-region": client.region,
-                      "awslogs-stream-prefix": `awslogs-${c.name}`
-                    }
-                  };
-                }
-                if (c.envVariables && Array.isArray(c.envVariables)) throw new Error('Invalid environment variables format');
-                container.environment = Object.keys(c.envVariables ?? {}).map((evk: string) => ({ name: evk, value: `${c.envVariables[evk]}`}));
-                if (container.containerPort && container.hostPort && container.protocol) {
-                  container.portMappings = [{
-                    containerPort: container.containerPort,
-                    hostPort: container.hostPort,
-                    protocol: container.protocol,
-                  }];
-                }
-                return container;
-              }),
+              containerDefinitions,
               requiresCompatibilities: ['FARGATE',],
               networkMode: 'awsvpc',
               taskRoleArn: e.taskRole?.arn,
@@ -497,65 +448,6 @@ export const AwsEcsFargateModule: Module = new Module({
         && (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
         && Object.is(a.forceNewDeployment, b.forceNewDeployment),
       source: 'db',
-      db: new Crud({
-        create: async (es: Service[], ctx: Context) => {
-          await Promise.all(es.map(async (entity: any) => {
-            if (!entity.cluster?.id) {
-              throw new Error('Clusters need to be loaded first');
-            }
-            if (!entity.task?.id) {
-              const td = await AwsEcsFargateModule.mappers.taskDefinition.db.read(ctx, entity.task?.taskDefinitionArn);
-              if (!td?.id) throw new Error('Task definitions need to be loaded first');
-              entity.task.id = td.id;
-            }
-            for (const sg of entity.securityGroups ?? []) {
-              if (!sg.id) {
-                const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
-                if (!g?.id) throw new Error('Security groups need to be loaded first');
-                sg.id = g.id;
-              }
-            }
-          }));
-          await ctx.orm.save(Service, es);
-        },
-        read: async (ctx: Context, ids?: string[]) => {
-          const relations = [
-            'cluster',
-            'task',
-            'task.containerDefinitions',
-            'securityGroups',
-            'targetGroup',
-          ];
-          const opts = ids ? {
-            where: {
-              arn: In(ids),
-            },
-            relations,
-          } : { relations, };
-          return await ctx.orm.find(Service, opts);
-        },
-        update: async (es: Service[], ctx: Context) => {
-          await Promise.all(es.map(async (entity: any) => {
-            if (!entity.cluster?.id) {
-              throw new Error('Clusters need to be loaded first');
-            }
-            if (!entity.task?.id) {
-              const td = await AwsEcsFargateModule.mappers.taskDefinition.db.read(ctx, entity.task?.taskDefinitionArn);
-              if (!td?.id) throw new Error('Task definitions need to be loaded first');
-              entity.task.id = td.id;
-            }
-            for (const sg of entity.securityGroups ?? []) {
-              if (!sg.id) {
-                const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
-                if (!g?.id) throw new Error('Security groups need to be loaded first');
-                sg.id = g.id;
-              }
-            }
-          }));
-          await ctx.orm.save(Service, es);
-        },
-        delete: (e: Service[], ctx: Context) => ctx.orm.remove(Service, e),
-      }),
       cloud: new Crud({
         create: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -597,9 +489,6 @@ export const AwsEcsFargateModule: Module = new Module({
             const newObject = await client.getService(result.serviceName!, result.clusterArn!);
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcsFargateModule.utils.serviceMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsEcsFargateModule.mappers.service.db.update(newEntity, ctx);
             res.push(newEntity);
@@ -664,13 +553,11 @@ export const AwsEcsFargateModule: Module = new Module({
                   forceNewDeployment: e.forceNewDeployment,
                 });
                 const s = await AwsEcsFargateModule.utils.serviceMapper(updatedService, ctx);
-                s.id = e.id;
                 await AwsEcsFargateModule.mappers.service.db.update(s, ctx);
                 res.push(s);
                 continue;
               }
               // Restore values
-              cloudRecord.id = e.id;
               await AwsEcsFargateModule.mappers.service.db.update(cloudRecord, ctx);
               res.push(cloudRecord);
               continue;
@@ -686,15 +573,26 @@ export const AwsEcsFargateModule: Module = new Module({
         },
         delete: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
+          const t0 = Date.now()
           for (const e of es) {
+            const t1 = Date.now()
+            const tasksArns = await client.getTasksArns(e.cluster?.clusterName!, e.name);
+            const t2 = Date.now()
+            logger.info(`Getting service ${e.name} tasks in ${t2 - t1}ms`)
             e.desiredCount = 0;
             await client.updateService({
               service: e.name,
               cluster: e.cluster?.clusterName,
               desiredCount: e.desiredCount,
             });
-            await client.deleteService(e.name, e.cluster?.clusterArn!)
+            const t3 = Date.now()
+            logger.info(`Setting service ${e.name} desired count to 0 in ${t3 - t2}ms`)
+            await client.deleteService(e.name, e.cluster?.clusterArn!, tasksArns)
+            const t4 = Date.now()
+            logger.info(`Deleting service ${e.name} in ${t4 - t3}ms`)
           }
+          const tn = Date.now()
+          logger.info(`Service cloud mapper delete completed in ${tn - t0}ms`)
         },
       }),
     }),

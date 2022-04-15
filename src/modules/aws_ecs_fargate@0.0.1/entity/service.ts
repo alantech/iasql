@@ -8,7 +8,7 @@ import {
   JoinTable,
   ManyToMany,
   ManyToOne,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
 } from 'typeorm'
 
 import { Cluster, TaskDefinition, ContainerDefinition } from '.';
@@ -23,12 +23,7 @@ export enum AssignPublicIp {
 
 @Entity()
 export class Service {
-  @PrimaryGeneratedColumn()
-  id?: number;
-
-  @Column({
-    unique: true,
-  })
+  @PrimaryColumn()
   name: string;
 
   @Column({
@@ -42,13 +37,17 @@ export class Service {
   })
   status?: string;
 
-  @ManyToOne(() => Cluster)
+  @ManyToOne(() => Cluster, {
+    eager: true,
+  })
   @JoinColumn({
-    name: 'cluster_id',
+    name: 'cluster_name',
   })
   cluster?: Cluster;
 
-  @ManyToOne(() => TaskDefinition)
+  @ManyToOne(() => TaskDefinition, {
+    eager: true,
+  })
   @JoinColumn({
     name: 'task_definition_id',
   })
@@ -62,7 +61,9 @@ export class Service {
   @Column("text", { array: true, })
   subnets: string[];
 
-  @ManyToMany(() => SecurityGroup)
+  @ManyToMany(() => SecurityGroup, {
+    eager: true,
+  })
   @JoinTable({
     name: 'service_security_groups'
   })
@@ -75,9 +76,11 @@ export class Service {
   })
   assignPublicIp: AssignPublicIp;
 
-  @ManyToOne(() => TargetGroup)
+  @ManyToOne(() => TargetGroup, {
+    eager: true
+  })
   @JoinColumn({
-    name: 'target_group_id',
+    name: 'target_group_name',
   })
   targetGroup?: TargetGroup;
 

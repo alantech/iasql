@@ -23,6 +23,9 @@ export const AwsVpcModule: Module = new Module({
       out.availabilityZone = (sn.AvailabilityZone ?? '') as AvailabilityZone;
       out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sn.VpcId) ??
         await AwsVpcModule.mappers.vpc.cloud.read(ctx, sn.VpcId);
+      if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
+        await AwsVpcModule.mappers.vpc.db.create(out.vpc, ctx);
+      }
       out.availableIpAddressCount = sn.AvailableIpAddressCount;
       out.cidrBlock = sn.CidrBlock;
       out.subnetId = sn.SubnetId;

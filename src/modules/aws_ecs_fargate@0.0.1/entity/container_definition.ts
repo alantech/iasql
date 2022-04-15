@@ -21,7 +21,7 @@ export enum TransportProtocol {
 
 // `image` > `repository` > `publicRepository`
 // `digest` > `tag` > null
-@Check(`("image" is null and ("repository_id" is not null or "public_repository_id" is not null)) or "image" is not null`)
+@Check(`("image" is null and ("repository_name" is not null or "public_repository_name" is not null)) or "image" is not null`)
 @Check(`("tag" is null and "digest" is null) or ("tag" is not null and "digest" is null) or ("tag" is null and "digest" is not null)`)
 @Entity()
 export class ContainerDefinition {
@@ -31,7 +31,11 @@ export class ContainerDefinition {
   @Column()
   name: string;
 
-  @ManyToOne(() => TaskDefinition)
+  @ManyToOne(() => TaskDefinition, {
+    // if the parent task def is deleted, also delete this container def
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   @JoinColumn({
     name: 'task_definition_id',
   })
@@ -47,15 +51,21 @@ export class ContainerDefinition {
   @Column({ nullable: true, })
   digest?: string;
 
-  @ManyToOne(() => Repository, { nullable: true, })
+  @ManyToOne(() => Repository, {
+    nullable: true,
+    eager: true,
+  })
   @JoinColumn({
-    name: "repository_id"
+    name: 'repository_name'
   })
   repository?: Repository;
 
-  @ManyToOne(() => PublicRepository, { nullable: true, })
+  @ManyToOne(() => PublicRepository, {
+    nullable: true,
+    eager: true,
+  })
   @JoinColumn({
-    name: "public_repository_id"
+    name: 'public_repository_name'
   })
   publicRepository?: PublicRepository;
 
@@ -107,9 +117,12 @@ export class ContainerDefinition {
   })
   envVariables: { [key: string]: string };
 
-  @ManyToOne(() => LogGroup, { nullable: true, })
+  @ManyToOne(() => LogGroup, {
+    nullable: true,
+    eager: true,
+  })
   @JoinColumn({
-    name: 'log_group_id',
+    name: 'log_group_name',
   })
   logGroup?: LogGroup;
 

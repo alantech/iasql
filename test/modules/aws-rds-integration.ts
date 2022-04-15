@@ -10,7 +10,7 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
-const modules = ['aws_security_group', 'aws_rds'];
+const modules = ['aws_security_group', 'aws_rds', 'aws_vpc'];
 
 jest.setTimeout(960000);
 beforeAll(async () => await execComposeUp());

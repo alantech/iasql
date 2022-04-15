@@ -10,7 +10,8 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_security_group'];
+const modules = ['aws_security_group', 'aws_vpc'];
+const randIPBlock = Math.floor(Math.random() * 255);
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -216,15 +217,15 @@ describe('Security Group install/uninstall', () => {
     'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the Security Group module and confirms two tables are created', query(`
-    select * from iasql_install('aws_security_group');
+    select * from iasql_install('aws_security_group', 'aws_vpc');
   `, (res: any[]) => {
-      expect(res.length).toBe(2);
+      expect(res.length).toBe(4);
   }));
 
   it('uninstalls the Security Group module and confirms two tables are removed', query(`
-    select * from iasql_uninstall('aws_security_group');
+    select * from iasql_uninstall('aws_security_group', 'aws_vpc');
   `, (res: any[]) => {
-    expect(res.length).toBe(2);
+    expect(res.length).toBe(4);
   }));
 
   it('installs all modules', (done) => void iasql.install(
@@ -237,8 +238,33 @@ describe('Security Group install/uninstall', () => {
     ['aws_rds', 'aws_ecs_fargate', 'aws_elb', 'aws_security_group', 'aws_ec2'],
   ));
 
+  it('inserts a new VPC (that creates a new default SG automatically)', query(`
+    INSERT INTO vpc (cidr_block)
+    VALUES ('192.${randIPBlock}.0.0/16');
+  `));
+
+  it('creates the VPC', apply());
+
   it('installs the Security Group module', install(
-    ['aws_security_group',]));
+    ['aws_security_group']));
+
+  it('confirms that the auto-generated security group is there', query(`
+    SELECT sg.* FROM security_group as sg
+    INNER JOIN vpc on vpc.id = sg.vpc_id
+    WHERE vpc.cidr_block = '192.${randIPBlock}.0.0/16';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+  }));
+
+  it('uninstalls the Security Group module again (to be easier)', uninstall(
+    ['aws_security_group']));
+
+  it('deletes the vpc', query(`
+    DELETE FROM vpc
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+  `));
+
+  it('applies the vpc removal', apply());
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

@@ -5,6 +5,9 @@ import { getPrefix, runInstall, runUninstall, runQuery, runApply, finish, execCo
 
 const prefix = getPrefix();
 const dbAlias = 'ecstest';
+const dbAliasSidecar = `${dbAlias}sync`;
+const sidecarSync = runSync.bind(null, dbAliasSidecar);
+const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
 const region = process.env.AWS_REGION || 'barf';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
@@ -59,18 +62,28 @@ const repositoryName = `${prefix}${dbAlias}repository`;
 const containerNameRepository = `${prefix}${dbAlias}containerrepository`;
 const publicRepositoryName = `${prefix}${dbAlias}publicrepository-${region}`;
 const containerNamePublicRepository = `${prefix}${dbAlias}containerpublicrepository`;
+const securityGroup = `${prefix}${dbAlias}sg`;
 
-jest.setTimeout(240000);
+jest.setTimeout(960000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown(modules));
 
 describe('ECS Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.connect(
     dbAlias,
-    process.env.AWS_REGION ?? 'barf',
+    region,
     process.env.AWS_ACCESS_KEY_ID ?? 'barf',
     process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
+
+  it('creates a new sidecar test db ECS', (done) => void iasql.connect(
+    dbAliasSidecar,
+    region,
+    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
+    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
+    'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 
   it('installs the ecs module and its dependencies', install(modules));
 
@@ -105,28 +118,49 @@ describe('ECS Integration Testing', () => {
   // Service dependencies
   it('adds service dependencies', query(`
     BEGIN;
+      INSERT INTO security_group
+        (description, group_name)
+      VALUES
+        ('${securityGroup}', '${securityGroup}');
+      INSERT INTO security_group_rule
+        (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+      SELECT true, '-1', -1, -1, '0.0.0.0/0', '${securityGroup}', id
+      FROM security_group
+      WHERE group_name = '${securityGroup}';
       INSERT INTO target_group
           (target_group_name, target_type, protocol, port, vpc, health_check_path)
       VALUES
-          ('${serviceTargetGroupName}', 'ip', 'HTTP', ${hostPort}, 'default', '/health');
+          ('${serviceTargetGroupName}', 'ip', 'HTTP', ${hostPort}, null, '/health');
       INSERT INTO load_balancer
           (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
       VALUES
-          ('${serviceLoadBalancerName}', 'internet-facing', 'default', 'application', 'ipv4');
+          ('${serviceLoadBalancerName}', 'internet-facing', null, 'application', 'ipv4');
       INSERT INTO load_balancer_security_groups
-          (load_balancer_id, security_group_id)
+          (load_balancer_name, security_group_id)
       VALUES
-          ((SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}' LIMIT 1),
-            (SELECT id FROM security_group WHERE group_name = 'default' LIMIT 1));
+          ('${serviceLoadBalancerName}',
+            (SELECT id FROM security_group WHERE group_name = '${securityGroup}' LIMIT 1));
       INSERT INTO listener
-          (load_balancer_id, port, protocol, action_type, target_group_id)
+          (load_balancer_name, port, protocol, action_type, target_group_name)
       VALUES 
-          ((SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}' LIMIT 1), 
-            ${hostPort}, 'HTTP', 'forward', (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' LIMIT 1));
+          ('${serviceLoadBalancerName}',
+            ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
     COMMIT;
   `));
 
   it('applies service dependencies', apply());
+
+  it('check target group insertion', query(`
+    SELECT *
+    FROM target_group
+    WHERE target_group_name = '${serviceTargetGroupName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check target group insertion', query(`
+    SELECT *
+    FROM load_balancer
+    WHERE load_balancer_name = '${serviceLoadBalancerName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
 
   // Service spinning up a task definition with container using a docker image
   describe('Docker image', () => {
@@ -142,6 +176,18 @@ describe('ECS Integration Testing', () => {
 
     it('applies adds container dependencies', apply());
 
+    it('check target group insertion', query(`
+      SELECT *
+      FROM log_group
+      WHERE log_group_name = '${logGroupName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check target group insertion', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${taskExecRoleName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     // Task definition
     it('adds a new task definition', query(`
       INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
@@ -156,12 +202,12 @@ describe('ECS Integration Testing', () => {
 
     it('adds a new container definition', query(`
       BEGIN;
-        INSERT INTO container_definition ("name", image, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
-        VALUES('${containerName}', '${image}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName} limit 1'));
-        INSERT INTO container_definition ("name", image, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
-        VALUES('${containerNameTag}', '${image}', '${imageTag}', false, ${containerMemoryReservation}, ${hostPort + 1}, ${containerPort + 1}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName} limit 1'));
-        INSERT INTO container_definition ("name", image, digest, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
-        VALUES('${containerNameDigest}', '${image}', '${imageDigest}', false, ${containerMemoryReservation}, ${hostPort + 2}, ${containerPort + 2}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName} limit 1'));
+        INSERT INTO container_definition ("name", image, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_name)
+        VALUES('${containerName}', '${image}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), '${logGroupName}');
+        INSERT INTO container_definition ("name", image, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_name)
+        VALUES('${containerNameTag}', '${image}', '${imageTag}', false, ${containerMemoryReservation}, ${hostPort + 1}, ${containerPort + 1}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), '${logGroupName}');
+        INSERT INTO container_definition ("name", image, digest, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_name)
+        VALUES('${containerNameDigest}', '${image}', '${imageDigest}', false, ${containerMemoryReservation}, ${hostPort + 2}, ${containerPort + 2}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), '${logGroupName}');
       COMMIT;
     `));
 
@@ -185,14 +231,38 @@ describe('ECS Integration Testing', () => {
 
     it('applies adds a new task definition with container definition', apply());
 
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdFamily}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerName}' AND image = '${image}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNameTag}' AND image = '${image}' AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNameDigest}' AND image = '${image}' AND digest = '${imageDigest}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     // Service
     it('adds a new service', query(`
       BEGIN;
-        INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
-        VALUES ('${serviceName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', (select id from cluster where cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdFamily}' order by revision desc limit 1), (select id from target_group where target_group_name = '${serviceTargetGroupName}' limit 1));
+        INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
+        VALUES ('${serviceName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
 
-        INSERT INTO service_security_groups (service_id, security_group_id)
-        VALUES ((select id from service where name = '${serviceName}' limit 1), (select id from security_group where group_name = 'default' limit 1));
+        INSERT INTO service_security_groups (service_name, security_group_id)
+        VALUES ('${serviceName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
       COMMIT;
     `));
 
@@ -205,8 +275,7 @@ describe('ECS Integration Testing', () => {
     it('check service_security_groups insertion', query(`
       SELECT *
       FROM service_security_groups
-      INNER JOIN service ON service.id = service_security_groups.service_id
-      WHERE service.name = '${serviceName}';
+      WHERE service_name = '${serviceName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('tries to update a task definition', query(`
@@ -221,7 +290,13 @@ describe('ECS Integration Testing', () => {
     `));
     
     it('applies tries to update a task definition field', apply());
-    
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     it('check task_definition update', query(`
       SELECT *
       FROM task_definition
@@ -235,11 +310,23 @@ describe('ECS Integration Testing', () => {
 
     it('applies tries to update a service (update)', apply());
 
+    it('check service update', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     it('tries to update a service (restore)', query(`
       UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
     `));
 
     it('applies tries to update a service (restore)', apply());
+
+    it('check service update', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('tries to update a service (replace)', query(`
       UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
@@ -247,17 +334,31 @@ describe('ECS Integration Testing', () => {
 
     it('applies tries to update a service (replace)', apply());
 
+    it('check service update', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${newServiceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     it('tries to force update a service', query(`
       UPDATE service SET force_new_deployment = true WHERE name = '${newServiceName}';
     `));
 
     it('tries to force update a service', apply());
 
+    it('check service update', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${newServiceName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     it('check service new deployment', query(`
       SELECT *
       FROM service
       WHERE name = '${newServiceName}';
     `, (res: any[]) => expect(res[0]['force_new_deployment']).toBe(false)));
+
+    it('sync sidecar database', sidecarSync());
 
     it('uninstalls the ecs module', uninstall(['aws_ecs_fargate']));
 
@@ -272,10 +373,18 @@ describe('ECS Integration Testing', () => {
 
         delete from service
         where name = '${newServiceName}';
+
+
       COMMIT;
     `));
 
     it('applies deletes service', apply());
+
+    it('check service deletion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
 
     it('deletes container definitons', query(`
       begin;
@@ -295,6 +404,26 @@ describe('ECS Integration Testing', () => {
     `));
 
     it('applies deletes tasks and container definitions', apply());
+
+    it('sync sidecar database', sidecarSync());
+
+    it('check role deletion', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${taskExecRoleName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check log group deletion', query(`
+      SELECT *
+      FROM log_group
+      WHERE log_group_name = '${logGroupName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check task def deletion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdFamily}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
   });
 
   // Service spinning up a task definition with container using a private ecr
@@ -339,29 +468,41 @@ describe('ECS Integration Testing', () => {
 
     it('adds a new container definition', query(`
       BEGIN;
-        INSERT INTO container_definition ("name", repository_id, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-        VALUES('${containerNameRepository}', (select id from repository where repository_name = '${repositoryName}' limit 1), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
-        INSERT INTO container_definition ("name", repository_id, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-        VALUES('${containerNameRepository}dgst', (select id from repository where repository_name = '${repositoryName}' limit 1), false, ${containerMemoryReservation}, ${hostPort + 2}, ${containerPort + 2}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));  
+        INSERT INTO container_definition ("name", repository_name, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
+        VALUES('${containerNameRepository}', '${repositoryName}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
+        INSERT INTO container_definition ("name", repository_name, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
+        VALUES('${containerNameRepository}dgst', '${repositoryName}', false, ${containerMemoryReservation}, ${hostPort + 2}, ${containerPort + 2}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
       COMMIT;  
     `));
 
     it('check container definition insertion', query(`
       SELECT *
       FROM container_definition
-      WHERE name = '${containerNameRepository}' AND repository_id = (select id from repository where repository_name = '${repositoryName}' limit 1) AND tag = '${imageTag}';
+      WHERE name = '${containerNameRepository}' AND repository_name = '${repositoryName}' AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('applies adds a new task definition with container definition', apply());
 
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdRepositoryFamily}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNameRepository}' AND repository_name = '${repositoryName}' AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     // Service
     it('adds a new service', query(`
       BEGIN;
-        INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
-        VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', (select id from cluster where cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdRepositoryFamily}' order by revision desc limit 1), (select id from target_group where target_group_name = '${serviceTargetGroupName}' limit 1));
+        INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
+        VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
 
-        INSERT INTO service_security_groups (service_id, security_group_id)
-        VALUES ((select id from service where name = '${serviceRepositoryName}' limit 1), (select id from security_group where group_name = 'default' limit 1));
+        INSERT INTO service_security_groups (service_name, security_group_id)
+        VALUES ('${serviceRepositoryName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
       COMMIT;
     `));
 
@@ -374,8 +515,17 @@ describe('ECS Integration Testing', () => {
     it('check service_security_groups insertion', query(`
       SELECT *
       FROM service_security_groups
-      INNER JOIN service ON service.id = service_security_groups.service_id
-      WHERE service.name = '${serviceRepositoryName}';
+      WHERE service_name = '${serviceRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('applies service insertion', apply());
+
+    it('sync sidecar database', sidecarSync());
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('uninstalls the ecs module', uninstall(
@@ -404,6 +554,12 @@ describe('ECS Integration Testing', () => {
 
     it('applies deletes service', apply());
 
+    it('check service deletion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${serviceRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
     it('deletes container definitons', query(`
       begin;
         delete from container_definition
@@ -422,6 +578,26 @@ describe('ECS Integration Testing', () => {
     `));
 
     it('applies deletes tasks and container definitions', apply());
+
+    it('sync sidecar database', sidecarSync());
+
+    it('check role deletion', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${taskExecRoleName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check log group deletion', query(`
+      SELECT *
+      FROM log_group
+      WHERE log_group_name = '${logGroupName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check task def deletion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdFamily}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
   });
 
   // Service spinning up a task definition with container using a public ecr
@@ -453,26 +629,46 @@ describe('ECS Integration Testing', () => {
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('adds a new container definition', query(`
-      INSERT INTO container_definition ("name", public_repository_id, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-	    VALUES('${containerNamePublicRepository}', (select id from public_repository where repository_name = '${publicRepositoryName}' limit 1), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' and status is null limit 1));
+      INSERT INTO container_definition ("name", public_repository_name, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
+	    VALUES('${containerNamePublicRepository}', '${publicRepositoryName}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' and status is null limit 1));
     `));
 
     it('check container definition insertion', query(`
       SELECT *
       FROM container_definition
-      WHERE name = '${containerNamePublicRepository}' AND public_repository_id = (select id from public_repository where repository_name = '${publicRepositoryName}' limit 1) AND tag = '${imageTag}';
+      WHERE name = '${containerNamePublicRepository}' AND public_repository_name = '${publicRepositoryName}' AND tag = '${imageTag}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('applies adds a new task definition with container definition', apply());
 
+    it('sync sidecar database', sidecarSync());
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNamePublicRepository}' AND public_repository_name = '${publicRepositoryName}' AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdPublicRepositoryFamily}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('check public_repository insertion', query(`
+      SELECT *
+      FROM public_repository
+      WHERE repository_name = '${publicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
     // Service
     it('adds a new service', query(`
       BEGIN;
-        INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
-        VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', (select id from cluster where cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), (select id from target_group where target_group_name = '${serviceTargetGroupName}' limit 1));
+        INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
+        VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
 
-        INSERT INTO service_security_groups (service_id, security_group_id)
-        VALUES ((select id from service where name = '${servicePublicRepositoryName}' limit 1), (select id from security_group where group_name = 'default' limit 1));
+        INSERT INTO service_security_groups (service_name, security_group_id)
+        VALUES ('${servicePublicRepositoryName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
       COMMIT;
     `));
 
@@ -485,8 +681,17 @@ describe('ECS Integration Testing', () => {
     it('check service_security_groups insertion', query(`
       SELECT *
       FROM service_security_groups
-      INNER JOIN service ON service.id = service_security_groups.service_id
-      WHERE service.name = '${servicePublicRepositoryName}';
+      WHERE service_name = '${servicePublicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('applies service insertion', apply());
+
+    it('sync sidecar database', sidecarSync());
+
+    it('check service insertion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${servicePublicRepositoryName}';
     `, (res: any[]) => expect(res.length).toBe(1)));
 
     it('uninstalls the ecs module', uninstall(
@@ -508,6 +713,12 @@ describe('ECS Integration Testing', () => {
 
     it('applies deletes service', apply());
 
+    it('check service deletion', query(`
+      SELECT *
+      FROM service
+      WHERE name = '${servicePublicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
     it('deletes container definitons', query(`
       begin;
         delete from container_definition
@@ -523,6 +734,26 @@ describe('ECS Integration Testing', () => {
     `));
 
     it('applies deletes tasks and container definitions', apply());
+
+    it('sync sidecar database', sidecarSync());
+
+    it('check container definition insertion', query(`
+      SELECT *
+      FROM container_definition
+      WHERE name = '${containerNamePublicRepository}' AND public_repository_name = '${publicRepositoryName}' AND tag = '${imageTag}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check task_definition insertion', query(`
+      SELECT *
+      FROM task_definition
+      WHERE family = '${tdPublicRepositoryFamily}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('check public_repository insertion', query(`
+      SELECT *
+      FROM public_repository
+      WHERE repository_name = '${publicRepositoryName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
   });
 
   it('uninstalls the ecs module', uninstall(
@@ -535,18 +766,25 @@ describe('ECS Integration Testing', () => {
   it('deletes service dependencies', query(`
     BEGIN;
       DELETE FROM listener
-      WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}' LIMIT 1)
+      WHERE load_balancer_name = '${serviceLoadBalancerName}'
         and port = ${hostPort} and protocol = 'HTTP' and action_type = 'forward' 
-        and target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' LIMIT 1);
+        and target_group_name = '${serviceTargetGroupName}';
 
       DELETE FROM load_balancer_security_groups
-      WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}' LIMIT 1);
+      WHERE load_balancer_name = '${serviceLoadBalancerName}';
     
       DELETE FROM load_balancer
       WHERE load_balancer_name = '${serviceLoadBalancerName}';
 
       DELETE FROM target_group
-      WHERE target_group_name = '${serviceTargetGroupName}'; 
+      WHERE target_group_name = '${serviceTargetGroupName}';
+
+      DELETE FROM security_group_rule
+      USING security_group
+      WHERE group_name = '${securityGroup}';
+
+      DELETE FROM security_group
+      WHERE group_name = '${securityGroup}';
     COMMIT;
   `));
 
@@ -570,6 +808,10 @@ describe('ECS Integration Testing', () => {
   `));
 
   it('applies deletes the cluster', apply());
+
+  it('deletes the sidecar test db', (done) => void iasql
+    .disconnect(dbAliasSidecar, 'not-needed')
+    .then(...finish(done)));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

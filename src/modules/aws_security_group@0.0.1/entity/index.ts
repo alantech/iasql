@@ -9,6 +9,7 @@ import {
 } from 'typeorm'
 
 import { cloudId, } from '../../../services/cloud-id'
+import { Vpc } from '../../aws_vpc@0.0.1/entity';
 
 @Entity()
 export class SecurityGroup {
@@ -36,10 +37,11 @@ export class SecurityGroup {
   @cloudId
   groupId?: string;
 
-  @Column({
-    nullable: true,
+  @ManyToOne(() => Vpc, { nullable: true, eager: true })
+  @JoinColumn({
+    name: 'vpc_id'
   })
-  vpcId?: string;
+  vpc?: Vpc;
 
   @OneToMany(() => SecurityGroupRule, sgr => sgr.securityGroup)
   securityGroupRules: SecurityGroupRule[];

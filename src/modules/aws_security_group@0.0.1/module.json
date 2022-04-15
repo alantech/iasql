@@ -1,5 +1,5 @@
 {
   "name": "aws_security_group",
   "version": "0.0.1",
-  "dependencies": ["iasql_platform@0.0.1", "aws_account@0.0.1"]
+  "dependencies": ["iasql_platform@0.0.1", "aws_account@0.0.1", "aws_vpc@0.0.1"]
 }

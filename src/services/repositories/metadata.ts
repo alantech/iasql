@@ -34,14 +34,7 @@ class MetadataRepo {
     this.dbRepo = this.conn.getRepository(IasqlDatabase);
   }
 
-  async saveDb(a0Id: string, email: string, dbAlias: string, dbId: string, dbUser: string, region: string, isReady: boolean, directConnect: boolean): Promise<IasqlDatabase> {
-    const db = new IasqlDatabase();
-    db.alias = dbAlias;
-    db.pgName = dbId;
-    db.pgUser = dbUser;
-    db.region = region;
-    db.isReady = isReady;
-    db.directConnect = directConnect;
+  async saveDb(a0Id: string, email: string, db: IasqlDatabase): Promise<IasqlDatabase> {
     let user = await this.userRepo.findOne(a0Id);
     if (!user) {
       user = new IasqlUser();
@@ -50,8 +43,8 @@ class MetadataRepo {
       user.iasqlDatabases = [db];
     } else {
       // check alias is unique for existing user
-      if (user.iasqlDatabases.some(d => d.alias === dbAlias)) {
-        throw new Error(`User with ID ${a0Id} already has an IaSQL database with alias ${dbAlias}`)
+      if (user.iasqlDatabases.some(d => d.alias === db.alias)) {
+        throw new Error(`User with ID ${a0Id} already has an IaSQL database with alias ${db.alias}`)
       }
       user.iasqlDatabases.push(db);
     }
@@ -66,6 +59,12 @@ class MetadataRepo {
     const db = user.iasqlDatabases.find(d => d.alias === dbAlias);
     if (!db) throw new Error(`User with ID ${a0Id} has no IaSQL database with alias ${dbAlias}`);
     return db;
+  }
+
+  async updateDbRecCount(dbId: string, recCount: number) {
+    const db = await this.dbRepo.findOneOrFail(dbId);
+    db.recordCount = recCount;
+    await this.dbRepo.save(db);
   }
 
   async getDbs(a0Id: string, email: string): Promise<IasqlDatabase[]> {

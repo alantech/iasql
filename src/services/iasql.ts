@@ -58,6 +58,18 @@ const iasqlPlanV3 = (
   })(),
 });
 
+export async function getDbRecCount(conn: TypeormWrapper): Promise<number> {
+  // only looks at the public schema
+  const res = await conn.query(`
+    SELECT SUM(
+      (xpath('/row/count/text()', query_to_xml('SELECT COUNT(*) FROM ' || format('%I.%I', table_schema, table_name), true, true, '')))[1]::text::int
+    )
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+  `);
+  return parseInt(res[0].sum, 10);
+}
+
 export async function connect(
   dbAlias: string,
   awsRegion: string,
@@ -75,7 +87,14 @@ export async function connect(
     const dbPass = dbGen[1];
     dbId = dbMan.genDbId(dbAlias);
     const hasCredentials = !!awsAccessKeyId && !!awsSecretAccessKey;
-    await MetadataRepo.saveDb(uid, email, dbAlias, dbId, dbUser, awsRegion, hasCredentials, directConnect);
+    const metaDb = new IasqlDatabase();
+    metaDb.alias = dbAlias;
+    metaDb.pgUser = dbUser;
+    metaDb.region = awsRegion;
+    metaDb.pgName = dbId;
+    metaDb.directConnect = directConnect
+    metaDb.isReady = hasCredentials;
+    await MetadataRepo.saveDb(uid, email, metaDb);
     logger.info('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
     await conn1.query(`
@@ -116,6 +135,7 @@ export async function connect(
     }
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
+    await MetadataRepo.updateDbRecCount(dbId, await getDbRecCount(conn2));
     logger.info('Done!');
     return {
       alias: dbAlias,
@@ -124,7 +144,8 @@ export async function connect(
       password: dbPass,
     };
   } catch (e: any) {
-    // delete db in psql and metadata in IP
+    scheduler.stop(dbId);
+    // delete db in psql and metadata
     await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
     if (dbUser) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser));
     await MetadataRepo.delDb(uid, dbAlias);
@@ -209,7 +230,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     scheduler.stop(db.pgName);
     conn = await createConnection(dbMan.baseConnConfig);
     await conn.query(`
-      DROP DATABASE ${db.pgName} WITH (FORCE);
+      DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);
     await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser));
     await MetadataRepo.delDb(uid, dbAlias);
@@ -888,7 +909,7 @@ ${Object.keys(tableCollisions)
         try {
           e = await mapper.cloud.read(context);
         } catch (err: any) {
-          logger.error(`Error reading from cloud entitiy ${mapper.entity.name}`, err);
+          logger.error(`Error reading from cloud entity ${mapper.entity.name}`, err);
           throw err;
         }
         if (!e || (Array.isArray(e) && !e.length)) {
@@ -897,7 +918,7 @@ ${Object.keys(tableCollisions)
           try {
             await mapper.db.create(e, context);
           } catch (err: any) {
-            logger.error(`Error reading from cloud entitiy ${mapper.entity.name}`, err);
+            logger.error(`Error reading from cloud entity ${mapper.entity.name}`, { e, err, });
             throw err;
           }
         }

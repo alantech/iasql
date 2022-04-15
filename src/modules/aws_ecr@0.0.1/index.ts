@@ -1,5 +1,3 @@
-import { In, } from 'typeorm'
-
 import { Repository as RepositoryAws, } from '@aws-sdk/client-ecr'
 import { Repository as PublicRepositoryAws, } from '@aws-sdk/client-ecr-public'
 
@@ -82,9 +80,6 @@ export const AwsEcrModule: Module = new Module({
             const newObject = await client.getECRPubRepository(result.repositoryName ?? '');
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcrModule.utils.publicRepositoryMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsEcrModule.mappers.publicRepository.db.update(newEntity, ctx);
             return newEntity;
@@ -105,7 +100,6 @@ export const AwsEcrModule: Module = new Module({
           // This implies that on `update`s we only have to restore the db values with the cloud records.
           return await Promise.all(es.map(async (e) => {
             const cloudRecord = ctx?.memo?.cloud?.PublicRepository?.[e.repositoryName ?? ''];
-            cloudRecord.id = e.id;
             await AwsEcrModule.mappers.publicRepository.db.update(cloudRecord, ctx);
             return cloudRecord;
           }));
@@ -147,9 +141,6 @@ export const AwsEcrModule: Module = new Module({
             const newObject = await client.getECRRepository(result.repositoryName ?? '');
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcrModule.utils.repositoryMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsEcrModule.mappers.repository.db.update(newEntity, ctx);
             return newEntity;
@@ -178,7 +169,6 @@ export const AwsEcrModule: Module = new Module({
               const updatedRepository = await client.updateECRRepositoryImageScanningConfiguration(e.repositoryName, e.scanOnPush);
               updatedRecord = AwsEcrModule.utils.repositoryMapper(updatedRepository, ctx);
             }
-            updatedRecord.id = e.id;
             await AwsEcrModule.mappers.repository.db.update(updatedRecord, ctx);
             return updatedRecord;
           }));
@@ -208,26 +198,6 @@ export const AwsEcrModule: Module = new Module({
         }
       },
       source: 'db',
-      db: new Crud({
-        create: (e: RepositoryPolicy[], ctx: Context) => ctx.orm.save(RepositoryPolicy, e),
-        read: async (ctx: Context, ids?: string[]) => ctx.orm.find(RepositoryPolicy, ids ? {
-          where: {
-            repository: { repositoryName: In(ids), }
-          },
-          relations: [ 'repository', ],
-        } : { relations: [ 'repository', ], }),
-        update: async (es: RepositoryPolicy[], ctx: Context) => {
-          for (const e of es) {
-            if (!e.repository.id) {
-              const r = await AwsEcrModule.mappers.repository.db.read(ctx, e.repository.repositoryName);
-              if (!r?.id) throw new Error('Error retrieving generated column');
-              e.repository.id = r.id;
-            }
-          }
-          await ctx.orm.save(RepositoryPolicy, es);
-        },
-        delete: (e: RepositoryPolicy[], ctx: Context) => ctx.orm.remove(RepositoryPolicy, e),
-      }),
       cloud: new Crud({
         create: async (es: RepositoryPolicy[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;

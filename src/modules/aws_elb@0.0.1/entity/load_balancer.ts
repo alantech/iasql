@@ -1,12 +1,15 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
-  ManyToMany,
+  Entity,
+  JoinColumn,
   JoinTable,
+  ManyToMany,
+  ManyToOne,
+  PrimaryColumn,
 } from 'typeorm'
 
-import { SecurityGroup } from '../../aws_security_group@0.0.1/entity'
+import { SecurityGroup, } from '../../aws_security_group@0.0.1/entity'
+import { Vpc, } from '../../aws_vpc@0.0.1/entity'
 import { cloudId, } from '../../../services/cloud-id'
 
 export enum LoadBalancerSchemeEnum {
@@ -34,13 +37,7 @@ export enum IpAddressType {
 
 @Entity()
 export class LoadBalancer {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @Column({
-    unique: true,
-    nullable: false,
-  })
+  @PrimaryColumn()
   loadBalancerName: string;
 
   @Column({
@@ -84,8 +81,14 @@ export class LoadBalancer {
   })
   loadBalancerType: LoadBalancerTypeEnum;
 
-  @Column()
-  vpc: string;
+  @ManyToOne(() => Vpc, {
+    nullable: true,
+    eager: true,
+  })
+  @JoinColumn({
+    name: 'vpc',
+  })
+  vpc?: Vpc;
 
   // Not in the mapper since is just needed as input for the creation and retrieve endpoints
   // do not return any information related to the subnets
@@ -95,9 +98,13 @@ export class LoadBalancer {
   @Column("varchar", { array: true, nullable: true, })
   availabilityZones?: string[];
 
-  @ManyToMany(() => SecurityGroup)
+  @ManyToMany(() => SecurityGroup, { eager: true })
   @JoinTable({
     name: 'load_balancer_security_groups',
+    joinColumn: {
+      name: 'load_balancer_name',
+      referencedColumnName: 'loadBalancerName',
+    },
   })
   securityGroups?: SecurityGroup[];
 

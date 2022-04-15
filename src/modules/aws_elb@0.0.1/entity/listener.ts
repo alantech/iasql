@@ -29,9 +29,12 @@ export class Listener {
   @cloudId
   listenerArn?: string;
 
-  @ManyToOne(() => LoadBalancer, { nullable: false, })
+  @ManyToOne(() => LoadBalancer, {
+    nullable: false,
+    eager: true,
+  })
   @JoinColumn({
-    name: 'load_balancer_id',
+    name: 'load_balancer_name',
   })
   loadBalancer: LoadBalancer;
 
@@ -51,9 +54,9 @@ export class Listener {
   })
   actionType: ActionTypeEnum;
 
-  @ManyToOne(() => TargetGroup)
+  @ManyToOne(() => TargetGroup, { eager: true })
   @JoinColumn({
-    name: 'target_group_id',
+    name: 'target_group_name',
   })
   targetGroup: TargetGroup;
 

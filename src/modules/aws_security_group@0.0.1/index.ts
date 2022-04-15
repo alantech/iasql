@@ -4,17 +4,20 @@ import { AWS, } from '../../services/gateways/aws'
 import { SecurityGroup, SecurityGroupRule, } from './entity'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import * as metadata from './module.json'
+import { AwsVpcModule } from '../aws_vpc@0.0.1'
+import { Vpc } from '../aws_vpc@0.0.1/entity'
 
 export const AwsSecurityGroupModule: Module = new Module({
   ...metadata,
   utils: {
-    sgMapper: async (sg: any, _ctx: Context) => {
+    sgMapper: async (sg: any, ctx: Context) => {
       const out = new SecurityGroup();
       out.description = sg.Description;
       out.groupName = sg.GroupName;
       out.ownerId = sg.OwnerId;
       out.groupId = sg.GroupId;
-      out.vpcId = sg.VpcId;
+      if (sg.VpcId) out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sg.VpcId) ??
+        await AwsVpcModule.mappers.vpc.cloud.read(ctx, sg.VpcId);
       return out;
     },
     sgrMapper: async (sgr: any, ctx: Context) => {
@@ -44,13 +47,13 @@ export const AwsSecurityGroupModule: Module = new Module({
           // The security group rules associated with the user's created "default" group are
           // still fine to actually set in AWS, so we leave that alone.
           const actualEntity = Object.values(ctx?.memo?.cloud?.SecurityGroup ?? {}).find(
-            (a: any) => a.groupName === 'default' && a.groupId !== e.groupId // TODO: Fix typing here
+            (a: any) => a.groupName === 'default' && a.vpc?.vpcId === e.vpc?.vpcId // TODO: Fix typing here
           ) as SecurityGroup;
           e.description = actualEntity.description;
           e.groupId = actualEntity.groupId;
           e.groupName = actualEntity.groupName;
           e.ownerId = actualEntity.ownerId;
-          e.vpcId = actualEntity.vpcId;
+          e.vpc = actualEntity.vpc;
           await ctx.orm.save(SecurityGroup, e);
           if (e.groupId) {
             ctx.memo.db.SecurityGroup[e.groupId] = e;
@@ -58,10 +61,13 @@ export const AwsSecurityGroupModule: Module = new Module({
 
           return e;
         }
-        if (e.vpcId === 'default') {
-          const vpcs = (await client.getVpcs()).Vpcs;
-          const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
-          e.vpcId = defaultVpc.VpcId;
+        if (!e.vpc) {
+          const vpcs: Vpc[] = await AwsVpcModule.mappers.vpc.cloud.read(ctx);
+          if (!vpcs.length) {
+            throw new Error('Vpcs need to be loaded first');
+          }
+          const defaultVpc = vpcs.find((vpc: Vpc) => vpc.isDefault === true);
+          e.vpc = defaultVpc;
           await ctx.orm.save(SecurityGroup, e);
           if (e.groupId) {
             ctx.memo.db.SecurityGroup[e.groupId] = e;
@@ -71,7 +77,7 @@ export const AwsSecurityGroupModule: Module = new Module({
         const result = await client.createSecurityGroup({
           Description: e.description,
           GroupName: e.groupName,
-          VpcId: e.vpcId,
+          VpcId: e.vpc?.vpcId,
           // TODO: Tags
         });
         // TODO: Handle if it fails (somehow)
@@ -99,10 +105,26 @@ export const AwsSecurityGroupModule: Module = new Module({
         Object.is(a.groupName, b.groupName) &&
         Object.is(a.ownerId, b.ownerId) &&
         Object.is(a.groupId, b.groupId) &&
-        Object.is(a.vpcId, b.vpcId),
+        Object.is(a.vpc?.vpcId, b.vpc?.vpcId),
       source: 'db',
       db: new Crud({
-        create: (e: SecurityGroup[], ctx: Context) => ctx.orm.save(SecurityGroup, e),
+        create: async (e: SecurityGroup[], ctx: Context) => {
+          // If a VPC record is associated with this security group that doesn't exist in the DB, we
+          // need to create it first or TypeORM will fail
+          for (const out of e) {
+            if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
+              // There may be a race condition/double write happening here, so check if this thing
+              // has been created in the meantime
+              const dbVpc = await AwsVpcModule.mappers.vpc.db.read(ctx, out.vpc.vpcId);
+              if (!!dbVpc) {
+                out.vpc = dbVpc;
+              } else {
+                await AwsVpcModule.mappers.vpc.db.create(out.vpc, ctx);
+              }
+            }
+          }
+          await ctx.orm.save(SecurityGroup, e)
+        },
         read: async (ctx: Context, ids?: string[]) => {
           // TODO: Possible to automate this?
           const relations = ['securityGroupRules', 'securityGroupRules.securityGroup'];
@@ -113,12 +135,14 @@ export const AwsSecurityGroupModule: Module = new Module({
             relations,
           } : { relations, };
           const securityGroups = await ctx.orm.find(SecurityGroup, opts);
-          const client = await ctx.getAwsClient() as AWS;
           securityGroups.map(async (sg: SecurityGroup) => {
-            if (sg.vpcId === 'default') {
-              const vpcs = (await client.getVpcs()).Vpcs;
-              const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
-              sg.vpcId = defaultVpc.VpcId;
+            if (!sg.vpc) {
+              const vpcs: Vpc[] = await AwsVpcModule.mappers.vpc.db.read(ctx);
+              if (!vpcs.length) {
+                throw new Error('Vpcs need to be loaded first');
+              }
+              const defaultVpc = vpcs.find((vpc: Vpc) => vpc.isDefault === true);
+              sg.vpc = defaultVpc;
               await ctx.orm.save(SecurityGroup, sg);
               if (sg.groupId) {
                 ctx.memo.db.SecurityGroup[sg.groupId] = sg;
@@ -128,7 +152,23 @@ export const AwsSecurityGroupModule: Module = new Module({
           });
           return securityGroups;
         },
-        update: (e: SecurityGroup[], ctx: Context) => ctx.orm.save(SecurityGroup, e),
+        update: async (e: SecurityGroup[], ctx: Context) => {
+          // If a VPC record is associated with this security group that doesn't exist in the DB, we
+          // need to create it first or TypeORM will fail
+          for (const out of e) {
+            if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
+              // There may be a race condition/double write happening here, so check if this thing
+              // has been created in the meantime
+              const dbVpc = await AwsVpcModule.mappers.vpc.db.read(ctx, out.vpc.vpcId);
+              if (!!dbVpc) {
+                out.vpc = dbVpc;
+              } else {
+                await AwsVpcModule.mappers.vpc.db.create(out.vpc, ctx);
+              }
+            }
+          }
+          await ctx.orm.save(SecurityGroup, e)
+        },
         delete: (e: SecurityGroup[], ctx: Context) => ctx.orm.remove(SecurityGroup, e),
       }),
       cloud: new Crud({
@@ -183,15 +223,19 @@ export const AwsSecurityGroupModule: Module = new Module({
         delete: async (es: SecurityGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           await Promise.all(es.map(async (e) => {
-            // Special behavior here. You're not allowed to mess with the "default" SecurityGroup.
+            // Special behavior here. You're not allowed to mess with the "default" SecurityGroup while the VPC is active.
             // You can mess with its rules, but not this record itself, so any attempt to update it
             // is instead turned into *restoring* the value in the database to match the cloud value
-            if (e.groupName === 'default') {
+            // Check if there is a VPC for this security group in the database
+            const vpcDbRecord = Object.values(ctx?.memo?.db?.Vpc ?? {}).find(
+              (a: any) => a.vpcId === e.vpc?.vpcId
+            );
+            if (e.groupName === 'default' && !!vpcDbRecord) {
               // If there is a security group in the database with the 'default' groupName but we
               // are still hitting the 'delete' path, that's a race condition and we should just do
               // nothing here.
               const dbRecord = Object.values(ctx?.memo?.db?.SecurityGroup ?? {}).find(
-                (a: any) => a.groupName === 'default'
+                (a: any) => a.groupName === 'default' && a.vpc?.vpcId === e.vpc?.vpcId
               );
               if (!!dbRecord) return;
               // For delete, we have un-memoed the record, but the record passed in *is* the one

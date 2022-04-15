@@ -44,6 +44,7 @@ import {
   paginateDescribeSecurityGroups,
   paginateDescribeSubnets,
   paginateDescribeVpcs,
+  DescribeNetworkInterfacesCommand,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -99,6 +100,7 @@ import {
   DescribeClustersCommand,
   DescribeServicesCommand,
   DescribeTaskDefinitionCommand,
+  DescribeTasksCommand,
   ECSClient,
   paginateListClusters,
   paginateListServices,
@@ -152,6 +154,8 @@ import {
 } from '@aws-sdk/client-route-53'
 import { IAM } from '@aws-sdk/client-iam'
 import { RecordType } from '../../modules/aws_route53_hosted_zones@0.0.1/entity/resource_records_set'
+
+import logger from '../logger'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -419,9 +423,28 @@ export class AWS {
   }
 
   async deleteSecurityGroup(instanceParams: DeleteSecurityGroupRequest) {
-    return await this.ec2client.send(
-      new DeleteSecurityGroupCommand(instanceParams),
-    );
+    try {
+      return await this.ec2client.send(
+        new DeleteSecurityGroupCommand(instanceParams),
+      );
+    } catch(e: any) {
+      // If it is a dependency violation we add the dependency to the error message in order to debug what is happening
+      if (e.Code === 'DependencyViolation') {
+        const sgEniInfo = await this.ec2client.send(
+          new DescribeNetworkInterfacesCommand({
+            Filters: [
+              {
+                Name: 'group-id',
+                Values: [`${instanceParams.GroupId}`]
+              }
+            ]
+          })
+        );
+        const eniMessage = `Network interfaces associated with security group ${instanceParams.GroupId}: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
+        e.message = `${e.message} | ${eniMessage}`;
+      }
+      throw e;
+    }
   }
 
   async getSecurityGroupRules() {
@@ -716,7 +739,7 @@ export class AWS {
       {
         client: this.elbClient,
         // all in seconds
-        maxWaitTime: 300,
+        maxWaitTime: 400,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -727,6 +750,37 @@ export class AWS {
           return { state: WaiterState.RETRY };
         } catch (_) {
           return { state: WaiterState.SUCCESS };
+        }
+      },
+    );
+    // Now we need wait the load balancer to be fully deattached from any network interface
+    const loadBalancerName = arn.split(':loadbalancer/')?.[1] ?? '';
+    const describeEniCommand = new DescribeNetworkInterfacesCommand({
+      Filters: [
+        {
+          Name: 'description',
+          Values: [`*${loadBalancerName}`]
+        }
+      ]
+    });
+    await createWaiter<EC2Client, DescribeNetworkInterfacesCommand>(
+      {
+        client: this.ec2client,
+        // all in seconds
+        maxWaitTime: 1200,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      describeEniCommand,
+      async (client, cmd) => {
+        try {
+          const eni = await client.send(cmd);
+          if (loadBalancerName && eni.NetworkInterfaces?.length) {
+            return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e) {
+          return { state: WaiterState.RETRY };
         }
       },
     );
@@ -872,14 +926,18 @@ export class AWS {
     return cluster.clusters?.[0];
   }
 
-  async getTasksArns(cluster: string) {
+  async getTasksArns(cluster: string, serviceName?: string) {
     const tasksArns: string[] = [];
+    let input: any = {
+      cluster
+    };
+    if (serviceName) {
+      input = { ...input, serviceName }
+    }
     const paginator = paginateListTasks({
       client: this.ecsClient,
       pageSize: 25,
-    }, {
-      cluster,
-    });
+    }, input);
     for await (const page of paginator) {
       tasksArns.push(...(page.taskArns ?? []));
     }
@@ -890,13 +948,14 @@ export class AWS {
     const clusterServices = await this.getServices([id]);
     if (clusterServices.length) {
       await Promise.all(clusterServices.filter(s => !!s.serviceName).map(async s => {
+        const serviceTasksArns = await this.getTasksArns(id, s.serviceName);
         s.desiredCount = 0;
         await this.updateService({
           service: s.serviceName,
           cluster: id,
           desiredCount: s.desiredCount,
         });
-        return this.deleteService(s.serviceName!, id);
+        return this.deleteService(s.serviceName!, id, serviceTasksArns);
       }));
     }
     const tasks = await this.getTasksArns(id);
@@ -1038,7 +1097,7 @@ export class AWS {
     return result.services?.[0];
   }
 
-  async deleteService(name: string, cluster: string) {
+  async deleteService(name: string, cluster: string, tasksArns: string[]) {
     await this.ecsClient.send(
       new DeleteServiceCommand({
         service: name,
@@ -1068,6 +1127,45 @@ export class AWS {
         }
       },
     );
+    try {
+      const tasks = await this.ecsClient.send(new DescribeTasksCommand({tasks: tasksArns, cluster}));
+      const taskAttachmentIds = tasks.tasks?.map(t => t.attachments?.map(a => a.id)).flat()
+      if (taskAttachmentIds?.length) {
+        const describeEniCommand = new DescribeNetworkInterfacesCommand({
+          Filters: [
+            {
+              Name: 'description',
+              Values: taskAttachmentIds?.map(id => `*${id}`)
+            }
+          ]
+        });
+        await createWaiter<EC2Client, DescribeNetworkInterfacesCommand>(
+          {
+            client: this.ec2client,
+            // all in seconds
+            maxWaitTime: 1200,
+            minDelay: 1,
+            maxDelay: 4,
+          },
+          describeEniCommand,
+          async (client, cmd) => {
+            try {
+              const eni = await client.send(cmd);
+              if (eni.NetworkInterfaces?.length) {
+                return { state: WaiterState.RETRY };
+              }
+              return { state: WaiterState.SUCCESS };
+            } catch (e) {
+              return { state: WaiterState.RETRY };
+            }
+          },
+        );
+      }
+    } catch (_) {
+      // We should not throw here.
+      // This is an extra validation to ensure that the service is fully deleted
+      logger.info('Error getting network interfaces for tasks')
+    }
   }
 
   async getEngineVersions() {

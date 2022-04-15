@@ -42,28 +42,16 @@ describe('Basic integration testing', () => {
     `);
   });
 
-  it('should run apply correctly', () => {
+  it('should run export correctly', () => {
     execSync(`
       curl \
         -X POST \
         -H 'Content-Type: application/json' \
         -f \
         -s \
-        -S http://localhost:8088/v1/db/apply \
+        -S http://localhost:8088/v1/db/export \
         -d '{"dbAlias": "__${sha}__"}'
     `);
-  });
-
-  it('should error when installing module without deps', () => {
-    expect(() => {
-      execSync(`
-        curl \
-          -f \
-          -s \
-          -S http://localhost:8088/v1/module/install
-          -d '{"dbAlias": "__${sha}__", "list": ["aws_ec2@0.0.1"]}'
-      `);
-    }).toThrow();
   });
 
   it('should run list correctly', () => {

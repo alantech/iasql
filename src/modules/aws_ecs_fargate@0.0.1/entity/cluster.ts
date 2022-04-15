@@ -1,19 +1,14 @@
 import {
   Column,
   Entity,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
 } from 'typeorm'
 
 import { cloudId, } from '../../../services/cloud-id'
 
 @Entity()
 export class Cluster {
-  @PrimaryGeneratedColumn()
-  id?: number;
-
-  @Column({
-    unique: true,
-  })
+  @PrimaryColumn()
   clusterName: string;
 
   @Column({

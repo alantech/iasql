@@ -1,4 +1,3 @@
-import { In, } from 'typeorm'
 import {
   CreateLoadBalancerCommandInput,
   Listener as ListenerAws,
@@ -20,6 +19,7 @@ import {
   TargetGroupIpAddressTypeEnum,
   TargetTypeEnum,
 } from './entity'
+import { AwsVpcModule, } from '../aws_vpc@0.0.1'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
@@ -69,9 +69,9 @@ export const AwsElbModule: Module = new Module({
       out.securityGroups = securityGroups;
       out.ipAddressType = lb.IpAddressType as IpAddressType;
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
-      const client = await ctx.getAwsClient() as AWS;
-      const vpc = await client.getVpc(lb.VpcId);
-      out.vpc = vpc?.IsDefault ? 'default' : lb.VpcId;
+      const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, lb.VpcId) ??
+        await AwsVpcModule.mappers.vpc.cloud.read(ctx, lb.VpcId);
+      out.vpc = vpc;
       out.availabilityZones = lb.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
       out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
       return out;
@@ -96,9 +96,9 @@ export const AwsElbModule: Module = new Module({
       out.unhealthyThresholdCount = tg.UnhealthyThresholdCount ?? null;
       out.healthCheckPath = tg.HealthCheckPath ?? null;
       out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum ?? null;
-      const client = await ctx.getAwsClient() as AWS;
-      const vpc = await client.getVpc(tg.VpcId);
-      out.vpc = vpc?.IsDefault ? 'default' : tg.VpcId;
+      const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, tg.VpcId) ??
+        await AwsVpcModule.mappers.vpc.cloud.read(ctx, tg.VpcId);
+      out.vpc = vpc;
       return out;
     },
   },
@@ -112,40 +112,6 @@ export const AwsElbModule: Module = new Module({
         && Object.is(a.actionType, b.actionType)
         && Object.is(a.targetGroup.targetGroupArn, b.targetGroup.targetGroupArn),
       source: 'db',
-      db: new Crud({
-        create: async (es: Listener[], ctx: Context) => {
-          for (const e of es) {
-            if (!e.loadBalancer.id) {
-              const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
-              if (!lb.id) throw new Error('Error retrieving generated column');
-              e.loadBalancer.id = lb.id;
-            }
-          }
-          await ctx.orm.save(Listener, es);
-        },
-        read: async (ctx: Context, ids?: string[]) => {
-          // TODO: Possible to automate this?
-          const relations = ['loadBalancer', 'targetGroup'];
-          const opts = ids ? {
-            where: {
-              listenerArn: In(ids),
-            },
-            relations,
-          } : { relations };
-          return await ctx.orm.find(Listener, opts);
-        },
-        update: async (es: Listener[], ctx: Context) => {
-          for (const e of es) {
-            if (!e.loadBalancer.id) {
-              const lb = await AwsElbModule.mappers.loadBalancer.db.read(ctx, e.loadBalancer.loadBalancerArn);
-              if (!lb.id) throw new Error('Error retrieving generated column');
-              e.loadBalancer.id = lb.id;
-            }
-          }
-          await ctx.orm.save(Listener, es);
-        },
-        delete: (e: Listener[], ctx: Context) => ctx.orm.remove(Listener, e),
-      }),
       cloud: new Crud({
         create: async (es: Listener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -238,45 +204,8 @@ export const AwsElbModule: Module = new Module({
         && Object.is(a.state, b.state)
         && Object.is(a.subnets?.length, b.subnets?.length)
         && (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
-        && Object.is(a.vpc, b.vpc),
+        && Object.is(a.vpc?.vpcId, b.vpc?.vpcId),
       source: 'db',
-      db: new Crud({
-        create: async (es: LoadBalancer[], ctx: Context) => {
-          for (const e of es) {
-            for (const sg of e.securityGroups ?? []) {
-              if (!sg.id) {
-                const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
-                if (!g?.id) throw new Error('Security groups need to be loaded first');
-                sg.id = g.id;
-              }
-            }
-          }
-          await ctx.orm.save(LoadBalancer, es);
-        },
-        read: async (ctx: Context, ids?: string[]) => {
-          const relations = ['securityGroups'];
-          const opts = ids ? {
-            where: {
-              loadBalancerArn: In(ids),
-            },
-            relations
-          } : { relations };
-          return await ctx.orm.find(LoadBalancer, opts);
-        },
-        update: async (es: LoadBalancer[], ctx: Context) => {
-          for (const e of es) {
-            for (const sg of e.securityGroups ?? []) {
-              if (!sg.id) {
-                const g = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg.groupId);
-                if (!g?.id) throw new Error('Security Groups need to be loaded first');
-                sg.id = g.id;
-              }
-            }
-          }
-          await ctx.orm.save(LoadBalancer, es);
-        },
-        delete: (e: LoadBalancer[], ctx: Context) => ctx.orm.remove(LoadBalancer, e),
-      }),
       cloud: new Crud({
         create: async (es: LoadBalancer[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -288,7 +217,7 @@ export const AwsElbModule: Module = new Module({
             });
             const input: CreateLoadBalancerCommandInput = {
               Name: e.loadBalancerName,
-              Subnets: e.subnets ?? subnets,
+              Subnets: e.subnets && e.subnets.length && e.subnets.every(s => !!s) ? e.subnets : subnets,
               Scheme: e.scheme,
               Type: e.loadBalancerType,
               IpAddressType: e.ipAddressType,
@@ -306,9 +235,6 @@ export const AwsElbModule: Module = new Module({
             const newObject = await client.getLoadBalancer(result.LoadBalancerArn ?? '');
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsElbModule.utils.loadBalancerMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsElbModule.mappers.loadBalancer.db.update(newEntity, ctx);
             return newEntity;
@@ -326,7 +252,7 @@ export const AwsElbModule: Module = new Module({
             !(Object.is(prev.loadBalancerName, next.loadBalancerName)
               && Object.is(prev.loadBalancerType, next.loadBalancerType)
               && Object.is(prev.scheme, next.scheme)
-              && Object.is(prev.vpc, next.vpc))
+              && Object.is(prev.vpc?.vpcId, next.vpc?.vpcId))
           ) {
             return 'replace';
           }
@@ -364,8 +290,6 @@ export const AwsElbModule: Module = new Module({
                 });
                 updatedRecord = AwsElbModule.utils.loadBalancerMapper(updatedLoadBalancer, ctx);
               }
-              // Restore auto generated values
-              updatedRecord.id = e.id;
               await AwsElbModule.mappers.loadBalancer.db.update(updatedRecord, ctx);
               return updatedRecord;
             } else {
@@ -390,7 +314,7 @@ export const AwsElbModule: Module = new Module({
         && Object.is(a.ipAddressType, b.ipAddressType)
         && Object.is(a.protocol, b.protocol)
         && Object.is(a.port, b.port)
-        && Object.is(a.vpc, b.vpc)
+        && Object.is(a.vpc?.vpcId, b.vpc?.vpcId)
         && Object.is(a.protocolVersion, b.protocolVersion)
         && Object.is(a.healthCheckProtocol, b.healthCheckProtocol)
         && Object.is(a.healthCheckPort, b.healthCheckPort)
@@ -411,7 +335,7 @@ export const AwsElbModule: Module = new Module({
               Name: e.targetGroupName,
               TargetType: e.targetType,
               Port: e.port,
-              VpcId: e.vpc === 'default' ? defaultVpc.VpcId ?? '' : e.vpc,
+              VpcId: !e.vpc ? defaultVpc.VpcId ?? '' : e.vpc.vpcId ?? '',
               Protocol: e.protocol,
               ProtocolVersion: e.protocolVersion,
               IpAddressType: e.ipAddressType,
@@ -432,9 +356,6 @@ export const AwsElbModule: Module = new Module({
             const newObject = await client.getTargetGroup(result.TargetGroupArn ?? '');
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsElbModule.utils.targetGroupMapper(newObject, ctx);
-            // We attach the original object's ID to this new one, indicating the exact record it is
-            // replacing in the database.
-            newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsElbModule.mappers.targetGroup.db.update(newEntity, ctx);
             return newEntity;
@@ -451,7 +372,7 @@ export const AwsElbModule: Module = new Module({
           if (
             !(Object.is(prev.targetGroupName, next.targetGroupName)
               && Object.is(prev.targetType, next.targetType)
-              && Object.is(prev.vpc, next.vpc)
+              && Object.is(prev.vpc?.vpcId, next.vpc?.vpcId)
               && Object.is(prev.port, next.port)
               && Object.is(prev.protocol, next.protocol)
               && Object.is(prev.ipAddressType, next.ipAddressType)
@@ -464,7 +385,11 @@ export const AwsElbModule: Module = new Module({
         update: async (es: TargetGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(es.map(async (e) => {
-            const cloudRecord = ctx?.memo?.cloud?.TargetGroup?.[e.targetGroupArn ?? ''];
+            const cloudRecord = ctx?.memo?.cloud?.TargetGroup?.[e.targetGroupArn ?? ''] as TargetGroup;
+            // Short-circuit if it's just a default VPC vs no-VPC difference
+            if (cloudRecord.vpc?.isDefault && !e.vpc) {
+              return await AwsElbModule.mappers.targetGroup.db.update(cloudRecord, ctx);
+            }
             const isUpdate = AwsElbModule.mappers.targetGroup.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               const updatedTargetGroup = await client.updateTargetGroup({
