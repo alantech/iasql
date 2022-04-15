@@ -1,7 +1,9 @@
 import * as express from 'express'
 import { postgraphile, } from 'postgraphile'
 
+import * as dbMan from '../services/db-manager';
 import config from '../config'
+import metadata from '../services/repositories/metadata'
 
 export const graphql = express.Router();
 
@@ -21,5 +23,11 @@ if (config.graphql) {
     return postgraphiles[db];
   };
 
-  graphql.use('/:db', (req, res, next) => getPostgraphile(req.params.db)(req, res, next));
+  graphql.use('/:db', async (req, res, next) => {
+    const db = config.auth0 ?
+      // This will throw an error if the user is not allowed to access the specified DB
+      (await metadata.getDb(dbMan.getUid(req.user), req.params.db)).pgName :
+      req.params.db;
+    getPostgraphile(db)(req, res, next);
+  });
 }
