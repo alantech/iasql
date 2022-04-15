@@ -11,13 +11,13 @@ import { graphql, } from './graphql'
 const v1 = express.Router();
 // 10 GB post payload limit for import dumps
 v1.use(express.json({ limit: '10000MB' }));
-if (config.auth0) {
+if (config.auth) {
   const checkJwt = jwt({
     secret: jwksRsa.expressJwtSecret({
-      jwksUri: `${config.auth0.domain}.well-known/jwks.json`,
+      jwksUri: `${config.auth.domain}.well-known/jwks.json`,
     }),
-    audience: config.auth0.audience,
-    issuer: config.auth0.domain,
+    audience: config.auth.audience,
+    issuer: config.auth.domain,
     algorithms: ['RS256'],
   });
   v1.use(checkJwt);

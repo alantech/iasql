@@ -24,7 +24,7 @@ if (config.graphql) {
   };
 
   graphql.use('/:db', async (req, res, next) => {
-    const db = config.auth0 ?
+    const db = config.auth ?
       // This will throw an error if the user is not allowed to access the specified DB
       (await metadata.getDb(dbMan.getUid(req.user), req.params.db)).pgName :
       req.params.db;

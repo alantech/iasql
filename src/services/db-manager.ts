@@ -25,7 +25,7 @@ function randomHexValue() {
 }
 
 export function genDbId(dbAlias: string) {
-  return config.auth0 ? `_${randomHexValue()}` : dbAlias;
+  return config.auth ? `_${randomHexValue()}` : dbAlias;
 }
 
 export const baseConnConfig: PostgresConnectionOptions = {
@@ -104,10 +104,10 @@ export function getEmail(user: any): string {
   // following the format for this auth0 rule
   // https://manage.auth0.com/dashboard/us/iasql/rules/rul_D2HobGBMtSmwUNQm
   // more context here https://community.auth0.com/t/include-email-in-jwt/39778/4
-  return config.auth0 ? user[`${config.auth0.domain}email`] : 'hello@iasql.com';
+  return config.auth ? user[`${config.auth.domain}email`] : 'hello@iasql.com';
 }
 
 // TODO type user
 export function getUid(user: any): string {
-  return config.auth0 ? user.sub : 'iasql';
+  return config.auth ? user.sub : 'iasql';
 }

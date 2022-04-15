@@ -16,7 +16,7 @@ const config: ConfigInterface = {
     debug: true,
     test: false,
   },
-  auth0: {
+  auth: {
     domain: 'https://auth.iasql.com/',
     audience: 'https://api.iasql.com', // id of this api in auth0
   },

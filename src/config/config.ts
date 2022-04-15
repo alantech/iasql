@@ -17,7 +17,7 @@ export interface ConfigInterface {
     test: boolean; // Whether or not a special test logger is enabled (bypass weirdness with Jest)
   }
   // Configuration for auth0 access control
-  auth0?: { // Not including this sub-object implies it is not enabled
+  auth?: { // Not including this sub-object implies it is not enabled
     domain: string;
     audience: string;
   };
