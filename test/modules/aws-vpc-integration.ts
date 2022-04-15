@@ -14,6 +14,7 @@ const modules = ['aws_vpc', 'aws_security_group'];
 
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 const randIPBlock = Math.floor(Math.random() * 255);
+const replaceRandIPBlock = randIPBlock === 255 ? randIPBlock - 1 : randIPBlock + 1;
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -53,11 +54,9 @@ describe('VPC Integration Testing', () => {
 
   it('applies the subnet change', apply());
 
-  it('uninstalls the vpc module', uninstall(
-    modules));
+  it('uninstalls the vpc module', uninstall(modules));
 
-  it('installs the vpc module again (to make sure it reloads stuff)', install(
-    modules));
+  it('installs the vpc module again (to make sure it reloads stuff)', install(modules));
 
   it('queries the subnets to confirm the record is present', query(`
     SELECT * FROM subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16'
@@ -67,12 +66,53 @@ describe('VPC Integration Testing', () => {
     SELECT * FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
   `, (res: any) => expect(res.length).toBeGreaterThan(0)));
 
+  it('queries the vpc to confirm the record restore', query(`
+    SELECT * FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
+  `, (res: any) => {  
+    expect(res.length).toBeGreaterThan(0);
+    expect(res[0].state).toBe('available');
+  }));
+
+  it('updates a vpc (update)', query(`  
+    UPDATE vpc
+    SET state = 'pending'
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+  `));
+
+  it('queries the vpc to confirm the record restore', query(`
+    SELECT * FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
+  `, (res: any) => {  
+    expect(res.length).toBeGreaterThan(0);
+    expect(res[0].state).toBe('pending');
+  }));
+
+  it('applies the vpc change', apply());
+
+  it('queries the vpc to confirm the record restore', query(`
+    SELECT * FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
+  `, (res: any) => {  
+    expect(res.length).toBeGreaterThan(0);
+    expect(res[0].state).toBe('available');
+  }));
+
+  it('updates a vpc (replace)', query(`  
+    UPDATE vpc
+    SET cidr_block = '192.${replaceRandIPBlock}.0.0/16'
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+  `));
+
+  it('applies the vpc change', apply());
+
+  it('queries the vpc to confirm the record replacement', query(`
+    SELECT * FROM vpc WHERE cidr_block = '192.${replaceRandIPBlock}.0.0/16'
+  `, (res: any) => expect(res.length).toBeGreaterThan(0)));
+
   it('deletes the subnet', query(`
     WITH vpc as (
       SELECT id
       FROM vpc
       WHERE is_default = false
-      AND cidr_block = '192.${randIPBlock}.0.0/16'
+      AND cidr_block = '192.${replaceRandIPBlock}.0.0/16'
     )
     DELETE FROM subnet
     USING vpc
@@ -85,14 +125,14 @@ describe('VPC Integration Testing', () => {
     WITH vpc as (
       SELECT id
       FROM vpc
-      WHERE cidr_block = '192.${randIPBlock}.0.0/16'
+      WHERE cidr_block = '192.${replaceRandIPBlock}.0.0/16'
     )
     DELETE FROM security_group
     USING vpc
     WHERE vpc_id = vpc.id;
 
     DELETE FROM vpc
-    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+    WHERE cidr_block = '192.${replaceRandIPBlock}.0.0/16';
   `));
 
   it('applies the vpc removal', apply());

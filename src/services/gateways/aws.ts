@@ -143,6 +143,7 @@ import {
 import { IAM } from '@aws-sdk/client-iam'
 
 import logger from '../logger'
+import { VpcState } from '../../modules/aws_vpc@0.0.1/entity'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -834,9 +835,35 @@ export class AWS {
   }
 
   async createVpc(input: CreateVpcCommandInput) {
-    return await this.ec2client.send(
+    const created = await this.ec2client.send(
       new CreateVpcCommand(input)
     );
+    let vpc = created.Vpc;
+    const describeVpcCommand = new DescribeVpcsCommand({ VpcIds: [created.Vpc?.VpcId!], });
+    await createWaiter<EC2Client, DescribeVpcsCommand>(
+      {
+        client: this.ec2client,
+        // all in seconds
+        maxWaitTime: 600,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      describeVpcCommand,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          vpc = data.Vpcs?.pop();
+          if (vpc?.State === VpcState.PENDING) {
+            return { state: WaiterState.RETRY };
+          } else {
+            return { state: WaiterState.SUCCESS };
+          }
+        } catch(_) {
+          return { state: WaiterState.RETRY };
+        }
+      },
+    );
+    return vpc;
   }
 
   async deleteVpc(input: DeleteVpcCommandInput) {

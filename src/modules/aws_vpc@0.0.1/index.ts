@@ -118,26 +118,31 @@ export const AwsVpcModule: Module = new Module({
     }),
     vpc: new Mapper<Vpc>({
       entity: Vpc,
-      equals: (a: Vpc, b: Vpc) => Object.is(a.vpcId, b.vpcId), // TODO: Do better
+      equals: (a: Vpc, b: Vpc) => Object.is(a.cidrBlock, b.cidrBlock) &&
+        Object.is(a.state, b.state) &&
+        Object.is(a.isDefault, b.isDefault),
       source: 'db',
       cloud: new Crud({
         create: async (es: Vpc[], ctx: Context) => {
           // TODO: Add support for creating default VPCs (only one is allowed, also add constraint
           // that a single VPC is set as default)
           const client = await ctx.getAwsClient() as AWS;
+          const newEntities = [];
           for (const e of es) {
             const res = await client.createVpc({
               CidrBlock: e.cidrBlock,
               // TODO: Lots of other VPC specifications to write, but we don't support yet
             });
-            if (res.Vpc) {
-              const newVpc = AwsVpcModule.utils.vpcMapper(res.Vpc);
+            if (res) {
+              const newVpc = AwsVpcModule.utils.vpcMapper(res);
               newVpc.id = e.id;
               Object.keys(newVpc).forEach(k => (e as any)[k] = newVpc[k]);
               await AwsVpcModule.mappers.vpc.db.update(e, ctx);
+              newEntities.push(e);
               // TODO: What to do if no VPC returned?
             }
           }
+          return newEntities;
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -153,11 +158,26 @@ export const AwsVpcModule: Module = new Module({
               .map(vpc => AwsVpcModule.utils.vpcMapper(vpc));
           }
         },
+        updateOrReplace: (prev: Vpc, next: Vpc) => {
+          if (!Object.is(prev.cidrBlock, next.cidrBlock)) return 'replace';
+          return 'update';
+        },
         update: async (es: Vpc[], ctx: Context) => {
-          // There is no update mechanism for a VPC's CIDR block (the only thing we can really
-          // change) so instead we will create a new one and the next loop through should delete
-          // the old one
-          return await AwsVpcModule.mappers.vpc.cloud.create(es, ctx);
+          return await Promise.all(es.map(async (e) => {
+            const cloudRecord = ctx?.memo?.cloud?.Vpc?.[e.vpcId ?? ''];
+            const isUpdate = AwsVpcModule.mappers.vpc.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            if (isUpdate) {
+              cloudRecord.id = e.id;
+              await AwsVpcModule.mappers.vpc.db.update(cloudRecord, ctx);
+              return cloudRecord;
+            } else {
+              // There is no update mechanism for a VPC's CIDR block (the only thing we can really
+              // change) so instead we will create a new one and the next loop through should delete
+              // the old one
+              const cloudcreate = await AwsVpcModule.mappers.vpc.cloud.create(e, ctx);
+              return cloudcreate;
+            }
+          }));
         },
         delete: async (es: Vpc[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
