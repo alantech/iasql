@@ -116,7 +116,7 @@ describe('RDS install/uninstall', () => {
   it('installs all modules', (done) => void iasql.install(
     [],
     dbAlias,
-    config.dbUser,
+    config.db.user,
     true).then(...finish(done)));
 
   it('uninstalls the RDS module', uninstall(

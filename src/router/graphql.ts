@@ -21,8 +21,5 @@ if (config.graphql) {
     return postgraphiles[db];
   };
 
-  graphql.use('/:db', (req, res, next) => {
-    const postgraphile = getPostgraphile(req.params.db);
-    postgraphile(req, res, next);
-  });
+  graphql.use('/:db', (req, res, next) => getPostgraphile(req.params.db)(req, res, next));
 }
