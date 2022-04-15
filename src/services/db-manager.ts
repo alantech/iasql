@@ -25,17 +25,17 @@ function randomHexValue() {
 }
 
 export function genDbId(dbAlias: string) {
-  return config.a0Enabled ? `_${randomHexValue()}` : dbAlias;
+  return config.auth0 ? `_${randomHexValue()}` : dbAlias;
 }
 
 export const baseConnConfig: PostgresConnectionOptions = {
   name: 'base', // If you use multiple connections they must have unique names or typeorm bails
   type: 'postgres',
-  username: config.dbUser,
-  password: config.dbPassword,
-  host: config.dbHost,
+  username: config.db.user,
+  password: config.db.password,
+  host: config.db.host,
   database: 'postgres',
-  extra: { ssl: ['postgresql', 'localhost'].includes(config.dbHost) ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
+  extra: { ssl: ['postgresql', 'localhost'].includes(config.db.host) ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
 };
 
 // TODO: The permissions below work just fine, but prevent the users from creating their own
@@ -95,19 +95,19 @@ export function genUserAndPass(): [string, string] {
 
 export function ourPgUrl(dbId: string): string {
   // Using the main user and password, not the users' own account here
-  return `postgres://${encodeURIComponent(config.dbUser)}:${encodeURIComponent(
-    config.dbPassword
-  )}@${config.dbHost}/${dbId}`;
+  return `postgres://${encodeURIComponent(config.db.user)}:${encodeURIComponent(
+    config.db.password
+  )}@${config.db.host}/${dbId}`;
 }
 
 export function getEmail(user: any): string {
   // following the format for this auth0 rule
   // https://manage.auth0.com/dashboard/us/iasql/rules/rul_D2HobGBMtSmwUNQm
   // more context here https://community.auth0.com/t/include-email-in-jwt/39778/4
-  return config.a0Enabled ? user[`${config.a0Domain}email`] : 'hello@iasql.com';
+  return config.auth0 ? user[`${config.auth0.domain}email`] : 'hello@iasql.com';
 }
 
 // TODO type user
 export function getUid(user: any): string {
-  return config.a0Enabled ? user.sub : 'iasql';
+  return config.auth0 ? user.sub : 'iasql';
 }
