@@ -47,17 +47,17 @@ export function runUninstall(dbAlias: string, mods: string[]) {
   return runQuery(dbAlias, `select iasql_uninstall(${mods.map(m => `'${m}'`)});`);
 }
 
-export function runQuery(dbAlias: string, queryString: string, assertFn?: (res: any[]) => void) {
+export function runQuery(databaseName: string, queryString: string, assertFn?: (res: any[]) => void) {
   return function (done: (e?: any) => {}) {
     logger.info(queryString);
     createConnection({
-      name: dbAlias,
+      name: `${databaseName}-conn`,
       type: 'postgres',
       username: 'postgres',
       password: 'test',
       host: 'localhost',
       port: 5432,
-      database: dbAlias,
+      database: databaseName,
       extra: { ssl: false, },
     }).then((conn) => {
       conn.query(queryString).then((res: any[]) => {
