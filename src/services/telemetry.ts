@@ -38,7 +38,7 @@ function logDbEvent(dbId: string, eventType: string, eventProps?: any) {
     });
   } catch(e: any) {
     logger.error('failed to log db event', e);
-  } 
+  }
 }
 
 function identifyDb(dbId: string, uid: string, email: string) {
@@ -47,12 +47,12 @@ function identifyDb(dbId: string, uid: string, email: string) {
     // https://developers.amplitude.com/docs/identify-api
     const ident = new Identify();
     ident.set('user_properties', {
-      email: email,
+      email,
     });
     singleton.identify(uid, dbId, ident);
   } catch(e: any) {
     logger.error('failed to identify user', e);
-  } 
+  }
 }
 
 export default singleton;

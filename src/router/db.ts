@@ -20,11 +20,11 @@ db.get('/connect/:dbAlias/:awsRegion/:awsAccessKeyId/:awsSecretAccessKey', async
   try {
     const uid = dbMan.getUid(req.user);
     const email = dbMan.getEmail(req.user);
-    const db = await iasql.connect(
+    const database = await iasql.connect(
       dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, uid, email
     );
-    res.json(db);
-    telemetry.logDbConnect(db.id, uid, email, false);
+    res.json(database);
+    telemetry.logDbConnect(database.id, uid, email, false);
   } catch (e) {
     res.status(500).end(logUserErr(e));
   }
@@ -41,11 +41,11 @@ db.post('/connect', async (req, res) => {
   try {
     const uid = dbMan.getUid(req.user);
     const email = dbMan.getEmail(req.user);
-    const db = await iasql.connect(
+    const database = await iasql.connect(
       dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, uid, email, !!directConnect
     );
-    res.json(db);
-    telemetry.logDbConnect(db.id, uid, email, !!directConnect);
+    res.json(database);
+    telemetry.logDbConnect(database.id, uid, email, !!directConnect);
   } catch (e) {
     res.status(500).end(logUserErr(e));
   }
@@ -96,9 +96,9 @@ db.post('/export', async (req, res) => {
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   try {
     const uid = dbMan.getUid(req.user);
-    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    res.send(await iasql.dump(db.pgName, !!dataOnly));
-    telemetry.logDbExport(db.pgName, !!dataOnly);
+    const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+    res.send(await iasql.dump(database.pgName, !!dataOnly));
+    telemetry.logDbExport(database.pgName, !!dataOnly);
   } catch (e) {
     res.status(500).end(logUserErr(e));
   }
