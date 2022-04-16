@@ -73,8 +73,10 @@ export async function start(dbId: string, dbUser:string) {
             break;
           }
         }
+        let output;
+        let error;
         try {
-          let output = await promise;
+          output = await promise;
           // once the operation completes updating the `end_date`
           // will complete the polling
           const query = `
@@ -85,10 +87,6 @@ export async function start(dbId: string, dbUser:string) {
           logger.debug(query);
           output = typeof output === 'string' ? output : JSON.stringify(output);
           await conn.query(query);
-          telemetry.logDbOp(dbId, optype, {
-            params,
-            output,
-          });
         } catch (e) {
           let errorMessage: string | string[] = logUserErr(e);
           // split message if multiple lines in it
@@ -96,23 +94,25 @@ export async function start(dbId: string, dbUser:string) {
           // error must be valid JSON as a string
           const errorStringify = JSON.stringify({ message: errorMessage });
           // replace single quotes to make it valid
-          const error = errorStringify.replace(/[\']/g, "\\\"");
+          error = errorStringify.replace(/[\']/g, "\\\"");
           const query = `
             update iasql_operation
             set end_date = now(), err = '${error}'
             where opid = uuid('${opid}');
           `
           await conn.query(query);
-          telemetry.logDbOp(dbId, optype, {
-            params,
-            error,
-          });
         } finally {
           try {
-            const recCount = await iasql.getDbRecCount(conn);
-            await MetadataRepo.updateDbRecCount(dbId, recCount);
+            const recordCount = await iasql.getDbRecCount(conn);
+            await MetadataRepo.updateDbRecCount(dbId, recordCount);
+            telemetry.logDbOp(dbId, optype, {
+              params,
+              output,
+              error,
+              recordCount,
+            });
           } catch(e: any) {
-            logger.error('failed to record db count', e);
+            logger.error('could not log op event', e);
           }
         }
       },
