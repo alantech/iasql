@@ -1,19 +1,20 @@
 import { ConfigInterface, } from './config';
 
 const config: ConfigInterface = {
-  port: 8088,
-  dbHost: 'localhost',
-  dbUser: 'postgres',
-  dbPassword: 'test',
-  dbPort: 5432,
-  dbForceSSL: false,
-  a0Enabled: false,
-  a0Domain: undefined,
-  a0Audience:  undefined,
-  sentryEnabled: false,
-  sentryDsn: undefined,
-  debugLogger: false,
-  testLogger: true,
+  http: {
+    port: 8088,
+  },
+  db: {
+    host: 'localhost',
+    user: 'postgres',
+    password: 'test',
+    port: 5432,
+    forceSSL: false,
+  },
+  logger: {
+    debug: false,
+    test: true,
+  },
 };
 
 export default config;

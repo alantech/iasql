@@ -161,7 +161,7 @@ describe('EC2 install/uninstall', () => {
   it('installs all modules', (done) => void iasql.install(
     [],
     dbAlias,
-    config.dbUser,
+    config.db.user,
     true).then(...finish(done)));
 
   it('uninstall ec2 using overloaded sp', query(`

@@ -204,7 +204,7 @@ describe('IAM install/uninstall', () => {
   it('installs all modules', (done) => void iasql.install(
     [],
     dbAlias,
-    config.dbUser,
+    config.db.user,
     true).then(...finish(done)));
 
   it('uninstalls the IAM module', uninstall(['aws_ecs_fargate', 'aws_iam']));

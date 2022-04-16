@@ -86,7 +86,7 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
   logger.info(`Cleaning ${dbAlias} in ${awsRegion}...`);
   await iasql.connect(dbAlias, awsRegion, process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.  AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed', 'not-needed');
   logger.info('DB created...');
-  await iasql.install(modules, dbAlias, config.dbUser);
+  await iasql.install(modules, dbAlias, config.db.user);
   logger.info(`Modules ${modules} installed...`);
   const conn = await createConnection({
     name: dbAlias,
