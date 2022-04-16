@@ -9,8 +9,8 @@ import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 import { snakeCase, } from 'typeorm/util/StringUtils'
 
-import { DepError, lazyLoader, } from '../services/lazy-dep'
-import { findDiff, } from '../services/diff'
+import { DepError, lazyLoader, } from './lazy-dep'
+import { findDiff, } from './diff'
 import MetadataRepo from './repositories/metadata'
 import { TypeormWrapper, } from './typeorm'
 import { IasqlModule, IasqlTables, } from '../modules/iasql_platform@0.0.1/entity'
@@ -234,7 +234,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     `);
     await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser));
     await MetadataRepo.delDb(uid, dbAlias);
-    return `disconnected ${dbAlias}`;
+    return db.pgName;
   } catch (e: any) {
     // re-throw
     throw e;
@@ -253,14 +253,7 @@ export async function list(uid: string, email: string, verbose = false) {
   }
 }
 
-export async function dump(dbAlias: string, uid: any, dataOnly: boolean) {
-  let dbId;
-  try {
-    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    dbId = db.pgName;
-  } catch (e: any) {
-    throw e;
-  }
+export async function dump(dbId: string, dataOnly: boolean) {
   const pgUrl = dbMan.ourPgUrl(dbId);
   const excludedDataTables = '--exclude-table-data \'aws_account\' --exclude-table-data \'iasql_*\''
   const { stdout, } = await exec(

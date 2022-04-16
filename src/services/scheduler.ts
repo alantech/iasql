@@ -3,8 +3,9 @@ import { run } from 'graphile-worker';
 
 import { IasqlOperationType } from '../modules/iasql_functions@0.0.1/entity';
 import MetadataRepo from './repositories/metadata'
-import * as iasql from '../services/iasql'
-import logger, { logUserErr } from '../services/logger'
+import * as iasql from './iasql'
+import * as telemetry from './telemetry'
+import logger, { logUserErr } from './logger'
 import { TypeormWrapper } from './typeorm';
 import { IasqlDatabase } from '../entity';
 import config from '../config';
@@ -84,6 +85,10 @@ export async function start(dbId: string, dbUser:string) {
           logger.debug(query);
           output = typeof output === 'string' ? output : JSON.stringify(output);
           await conn.query(query);
+          telemetry.logDbOp(dbId, optype, {
+            params,
+            output,
+          });
         } catch (e) {
           let errorMessage: string | string[] = logUserErr(e);
           // split message if multiple lines in it
@@ -98,9 +103,17 @@ export async function start(dbId: string, dbUser:string) {
             where opid = uuid('${opid}');
           `
           await conn.query(query);
+          telemetry.logDbOp(dbId, optype, {
+            params,
+            error,
+          });
         } finally {
-          const recCount = await iasql.getDbRecCount(conn);
-          await MetadataRepo.updateDbRecCount(dbId, recCount);
+          try {
+            const recCount = await iasql.getDbRecCount(conn);
+            await MetadataRepo.updateDbRecCount(dbId, recCount);
+          } catch(e: any) {
+            logger.error('failed to record db count', e);
+          }
         }
       },
     },

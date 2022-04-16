@@ -2,6 +2,38 @@
 # yarn lockfile v1
 
 
+"@amplitude/identify@^1.10.0":
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/@amplitude/identify/-/identify-1.10.0.tgz#d62b8b6785c29350c368810475a6fc7b04985210"
+  integrity sha512-BshMDcZX9qO4mgGBR45HmiHxfcPCDY/eBOE/MTUZBW+y9+N61aKmNY3YJsAUfRPzieDiyfqs8rNm7quVkaNzJQ==
+  dependencies:
+    "@amplitude/types" "^1.10.0"
+    "@amplitude/utils" "^1.10.0"
+    tslib "^1.9.3"
+
+"@amplitude/node@^1.10.0":
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/@amplitude/node/-/node-1.10.0.tgz#33f84ddf82b31471fce53e6fa60b688d4bc62ee4"
+  integrity sha512-Jh8w1UpxhonWe0kCALVvqiBE3vo5NYmbNZbZrrI9Lfa/1HbGboZlGdg0I7/WtihbZvEjpfcfTOf8OkmtZh6vsQ==
+  dependencies:
+    "@amplitude/identify" "^1.10.0"
+    "@amplitude/types" "^1.10.0"
+    "@amplitude/utils" "^1.10.0"
+    tslib "^1.9.3"
+
+"@amplitude/types@^1.10.0":
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/@amplitude/types/-/types-1.10.0.tgz#dfaf7cc25f533a1e2b0ef0ad675371b396733c0f"
+  integrity sha512-xN0gnhutztv6kqHaZ2bre18anQV5GDmMXOeipTvI670g2VjNbPfOzMwu1LN4p1NadYq+GqYI223UcZrXR+R4Pw==
+
+"@amplitude/utils@^1.10.0":
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/@amplitude/utils/-/utils-1.10.0.tgz#138b0ba4e5755540a9e4abf426b7a25d045418a9"
+  integrity sha512-/R8j8IzFH0GYfA6ehQDm5IEzt71gIeMdiYYFIzZp6grERQlgJcwNJMAiza0o2JwwTDIruzqdB3c/vLVjuakp+w==
+  dependencies:
+    "@amplitude/types" "^1.10.0"
+    tslib "^1.9.3"
+
 "@ampproject/remapping@^2.1.0":
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/@ampproject/remapping/-/remapping-2.1.2.tgz#4edca94973ded9630d20101cd8559cedb8d8bd34"
