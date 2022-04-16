@@ -24,7 +24,7 @@ db.get('/connect/:dbAlias/:awsRegion/:awsAccessKeyId/:awsSecretAccessKey', async
       dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, uid, email
     );
     res.json(database);
-    telemetry.logDbConnect(database.id, dbAlias, uid, email, false);
+    telemetry.logDbConnect(database.id, dbAlias, uid, false);
   } catch (e) {
     res.status(500).end(logUserErr(e));
   }
@@ -45,7 +45,7 @@ db.post('/connect', async (req, res) => {
       dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, uid, email, !!directConnect
     );
     res.json(database);
-    telemetry.logDbConnect(database.id, dbAlias, uid, email, !!directConnect);
+    telemetry.logDbConnect(database.id, dbAlias, uid, !!directConnect);
   } catch (e) {
     res.status(500).end(logUserErr(e));
   }
@@ -106,7 +106,12 @@ db.post('/export', async (req, res) => {
 
 db.get('/list', async (req, res) => {
   try {
-    res.json(await iasql.list(dbMan.getUid(req.user), dbMan.getEmail(req.user), req.query.verbose === 'true'));
+    const uid = dbMan.getUid(req.user);
+    const email = dbMan.getEmail(req.user);
+    const dbs = await MetadataRepo.getDbs(uid, email);
+    res.json(dbs);
+    const recCount = dbs.map(d => d.recordCount).reduce((a, b) => a + b, 0);
+    telemetry.logDbList(uid, email, dbs.length, recCount);
   } catch (e) {
     res.status(500).end(logUserErr(e));
   }
