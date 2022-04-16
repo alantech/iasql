@@ -24,7 +24,7 @@ db.get('/connect/:dbAlias/:awsRegion/:awsAccessKeyId/:awsSecretAccessKey', async
       dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, uid, email
     );
     res.json(database);
-    telemetry.logDbConnect(database.id, dbAlias, email, uid, false);
+    telemetry.logDbConnect(database.id, dbAlias, uid, email, false);
   } catch (e) {
     res.status(500).end(logUserErr(e));
   }
@@ -45,7 +45,7 @@ db.post('/connect', async (req, res) => {
       dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, uid, email, !!directConnect
     );
     res.json(database);
-    telemetry.logDbConnect(database.id, dbAlias, email, uid, !!directConnect);
+    telemetry.logDbConnect(database.id, dbAlias, uid, email, !!directConnect);
   } catch (e) {
     res.status(500).end(logUserErr(e));
   }
