@@ -1,21 +1,21 @@
 import * as Amplitude from '@amplitude/node';
-// https://developers.amplitude.com/docs/identify-api
-import { Identify } from '@amplitude/identify';
 
 import config from '../config';
 import { IasqlOperationType } from '../modules/iasql_functions@0.0.1/entity';
 
 const singleton = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
 
-export function logDbConnect(dbId: string, dbAlias: string, uid: string, directConnect: boolean) {
+export function logDbConnect(dbId: string, dbAlias: string, uid: string, email: string, directConnect: boolean) {
   if (!singleton) return;
-  // identify device id with user id before logging event
-  singleton.identify(uid, dbId, new Identify());
   singleton.logEvent({
     event_type: 'CONNECT',
     // a user can have multiple devices in amplitude
     // so we map a database to a device
     device_id: dbId,
+    user_id: uid,
+    user_properties: {
+      email,
+    },
     device_model: dbAlias,
     event_properties: {
       directConnect
@@ -23,19 +23,14 @@ export function logDbConnect(dbId: string, dbAlias: string, uid: string, directC
   });
 }
 
-export function logDbList(uid: string, email: string, dbCount: number, totalRecordCount: number) {
+export function logDbList(uid: string, dbCount: number, totalRecordCount: number) {
   if (!singleton) return;
-  const ident = new Identify();
-  ident.set('user_properties', {
-    email,
-    totalRecordCount,
-  });
-  // identify user
-  singleton.identify(uid, null, ident);
   singleton.logEvent({
+    user_id: uid,
     event_type: 'LIST',
     event_properties: {
       dbCount,
+      totalRecordCount,
     }
   });
 }
