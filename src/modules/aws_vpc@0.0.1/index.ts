@@ -24,6 +24,7 @@ export const AwsVpcModule: Module = new Module({
       out.availabilityZone = (sn.AvailabilityZone ?? '') as AvailabilityZone;
       out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sn.VpcId) ??
         await AwsVpcModule.mappers.vpc.cloud.read(ctx, sn.VpcId);
+      if (sn.VpcId && !out.vpc) throw new Error(`Waiting for VPC ${sn.VpcId}`);
       logger.info(`SUBNET VPC = ${JSON.stringify(out.vpc)}`);
       if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
         await AwsVpcModule.mappers.vpc.db.create(out.vpc, ctx);

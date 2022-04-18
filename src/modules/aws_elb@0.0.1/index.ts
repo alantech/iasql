@@ -103,6 +103,7 @@ export const AwsElbModule: Module = new Module({
       const cloudVpc = await AwsVpcModule.mappers.vpc.cloud.read(ctx, tg.VpcId);
       logger.info(`cloudVpc = ${JSON.stringify(cloudVpc)}`)
       const vpc = dbVpc ?? cloudVpc;
+      if (tg.VpcId && !vpc) throw new Error(`Waiting for VPC ${tg.VpcId}`);
       out.vpc = vpc;
       return out;
     },
