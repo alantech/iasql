@@ -21,13 +21,13 @@ export class TypeormWrapper {
   private connection: Connection
   private connectionConfig: PostgresConnectionOptions = {
     type: 'postgres',
-    username: config.dbUser,
-    password: config.dbPassword,
-    host: config.dbHost,
+    username: config.db.user,
+    password: config.db.password,
+    host: config.db.host,
     entities,
     namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
     extra: {
-      ssl: ['postgresql', 'localhost'].includes(config.dbHost) ? false : {
+      ssl: ['postgresql', 'localhost'].includes(config.db.host) ? false : {
         rejectUnauthorized: false,
       }
     },  // TODO: remove once DB instance with custom ssl cert is in place

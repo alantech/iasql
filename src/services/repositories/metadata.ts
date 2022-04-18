@@ -93,7 +93,7 @@ class MetadataRepo {
     // remove entry from the join table
     await this.userRepo.save(user);
     // remove entry
-    await this.dbRepo.delete(dbToDel);
+    await this.dbRepo.remove(dbToDel);
   }
 
   async updateDbStatus(a0Id: string, dbAlias: string, status: boolean) {

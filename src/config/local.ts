@@ -1,18 +1,23 @@
 import { ConfigInterface, } from './config';
 
 const config: ConfigInterface = {
-  port: 8088,
-  dbHost: 'postgresql',
-  dbUser: 'postgres',
-  dbPassword: 'test',
-  dbPort: 5432,
-  dbForceSSL: false,
-  a0Enabled: false,
-  a0Domain: undefined,
-  a0Audience:  undefined,
-  sentryEnabled: false,
-  sentryDsn: undefined,
-  debugLogger: true,
+  http: {
+    port: 8088,
+  },
+  db: {
+    host: 'postgresql',
+    user: 'postgres',
+    password: 'test',
+    port: 5432,
+    forceSSL: false,
+  },
+  logger: {
+    debug: true,
+    test: false,
+  },
+  graphql: {
+    withGraphiql: true,
+  },
 };
 
 export default config;
