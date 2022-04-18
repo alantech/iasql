@@ -106,7 +106,10 @@ db.post('/export', async (req, res) => {
 
 db.get('/list', async (req, res) => {
   try {
-    res.json(await iasql.list(dbMan.getUid(req.user), dbMan.getEmail(req.user), req.query.verbose === 'true'));
+    const uid = dbMan.getUid(req.user);
+    const email = dbMan.getEmail(req.user);
+    const dbs = await MetadataRepo.getDbs(uid, email);
+    res.json(dbs);
   } catch (e) {
     res.status(500).end(logUserErr(e));
   }

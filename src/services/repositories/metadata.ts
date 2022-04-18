@@ -1,8 +1,9 @@
 import { createConnection, Connection, Repository } from 'typeorm'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import { IasqlDatabase, IasqlUser } from '../../entity/index';
+import { IasqlDatabase, IasqlUser } from '../../entity/index'
 import * as dbMan from '../db-manager'
+import * as telemetry from '../telemetry'
 
 class MetadataRepo {
   private database = 'iasql_metadata';
@@ -71,6 +72,7 @@ class MetadataRepo {
     const user = await this.userRepo.findOne(a0Id);
     if (!user) {
       // create the new user
+      telemetry.logUserRegister(a0Id, email);
       const newUser = new IasqlUser();
       newUser.id = a0Id;
       newUser.email = email;
