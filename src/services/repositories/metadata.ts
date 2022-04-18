@@ -72,7 +72,7 @@ class MetadataRepo {
     const user = await this.userRepo.findOne(a0Id);
     if (!user) {
       // create the new user
-      telemetry.logUserRegister(a0Id);
+      telemetry.logUserRegister(a0Id, email);
       const newUser = new IasqlUser();
       newUser.id = a0Id;
       newUser.email = email;
