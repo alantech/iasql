@@ -635,8 +635,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
             updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInAwsOnly);
           }
           if (r.diff.entitiesChanged.length > 0) {
-            logger.info(`Object difference`)
-            debugObj(r.diff)
+            logger.info(`Object difference ${JSON.stringify(r.diff)}`)
             const updates: any[] = [];
             r.diff.entitiesChanged.forEach((e: any) => {
               updates.push(e.cloud);
