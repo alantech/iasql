@@ -1,7 +1,7 @@
 import { createConnection, Connection, Repository } from 'typeorm'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import { IasqlDatabase, IasqlUser } from '../../entity/index';
+import { IasqlDatabase, IasqlUser } from '../../entity/index'
 import * as dbMan from '../db-manager'
 import * as telemetry from '../telemetry'
 
