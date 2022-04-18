@@ -23,7 +23,7 @@ export const AwsVpcModule: Module = new Module({
       }
       out.state = sn.State as SubnetState;
       out.availabilityZone = (sn.AvailabilityZone ?? '') as AvailabilityZone;
-      logger.info(`subnet id ${JSON.stringify(sn.VpcId)}`)
+      logger.info(`subnet id ${JSON.stringify(sn.VpcId)}`);
       const vpcDB = await AwsVpcModule.mappers.vpc.db.read(ctx, sn.VpcId);
       logger.info(`vpc db object ${JSON.stringify(vpcDB)}`)
       const vpcCloud = await AwsVpcModule.mappers.vpc.cloud.read(ctx, sn.VpcId);
