@@ -11,8 +11,6 @@ import {
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import * as metadata from './module.json'
 
-import logger from '../../services/logger'
-
 export const AwsVpcModule: Module = new Module({
   ...metadata,
   utils: {
@@ -23,12 +21,8 @@ export const AwsVpcModule: Module = new Module({
       }
       out.state = sn.State as SubnetState;
       out.availabilityZone = (sn.AvailabilityZone ?? '') as AvailabilityZone;
-      logger.info(`subnet id ${JSON.stringify(sn.VpcId)}`);
-      const vpcDB = await AwsVpcModule.mappers.vpc.db.read(ctx, sn.VpcId);
-      logger.info(`vpc db object ${JSON.stringify(vpcDB)}`)
-      const vpcCloud = await AwsVpcModule.mappers.vpc.cloud.read(ctx, sn.VpcId);
-      logger.info(`vpc cloud object ${JSON.stringify(vpcCloud)}`)
-      out.vpc = vpcDB ?? vpcCloud;
+      out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sn.VpcId) ??
+        await AwsVpcModule.mappers.vpc.cloud.read(ctx, sn.VpcId);
       if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
         await AwsVpcModule.mappers.vpc.db.create(out.vpc, ctx);
       }
