@@ -28,19 +28,15 @@ export async function logDbConnect(dbId: string, dbAlias: string, uid: string, e
   }
 }
 
-export async function logDbList(uid: string, dbCount: number, totalRecordCount: number) {
+export async function logUserRegister(uid: string) {
   if (!singleton) return;
   try {
     await singleton.logEvent({
       user_id: uid,
-      event_type: 'LIST',
-      event_properties: {
-        dbCount,
-        totalRecordCount,
-      }
+      event_type: 'REGISTER',
     });
   } catch(e: any) {
-    logger.error('failed to log LIST event', e);
+    logger.error('failed to log REGISTER event', e);
   }
 }
 

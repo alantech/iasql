@@ -110,8 +110,6 @@ db.get('/list', async (req, res) => {
     const email = dbMan.getEmail(req.user);
     const dbs = await MetadataRepo.getDbs(uid, email);
     res.json(dbs);
-    const recCount = dbs.map(d => d.recordCount).reduce((a, b) => a + b, 0);
-    telemetry.logDbList(uid, dbs.length, recCount);
   } catch (e) {
     res.status(500).end(logUserErr(e));
   }
