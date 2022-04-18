@@ -97,8 +97,12 @@ export const AwsElbModule: Module = new Module({
       out.unhealthyThresholdCount = tg.UnhealthyThresholdCount ?? null;
       out.healthCheckPath = tg.HealthCheckPath ?? null;
       out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum ?? null;
-      const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, tg.VpcId) ??
-        await AwsVpcModule.mappers.vpc.cloud.read(ctx, tg.VpcId);
+      logger.info(`tg.VpcId = ${tg.VpcId}`)
+      const dbVpc = await AwsVpcModule.mappers.vpc.db.read(ctx, tg.VpcId);
+      logger.info(`dbVpc = ${JSON.stringify(dbVpc)}`)
+      const cloudVpc = await AwsVpcModule.mappers.vpc.cloud.read(ctx, tg.VpcId);
+      logger.info(`cloudVpc = ${JSON.stringify(cloudVpc)}`)
+      const vpc = dbVpc ?? cloudVpc;
       out.vpc = vpc;
       return out;
     },
