@@ -419,15 +419,12 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
           if (r.diff.entitiesInDbOnly.length > 0) {
-            logger.info(`Object tocreate ${JSON.stringify(r.diff.entitiesInDbOnly)}`)
             updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInDbOnly);
           }
           if (r.diff.entitiesInAwsOnly.length > 0) {
-            logger.info(`Object todelete ${JSON.stringify(r.diff.entitiesInAwsOnly)}`)
             updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInAwsOnly);
           }
           if (r.diff.entitiesChanged.length > 0) {
-            logger.info(`Object difference ${JSON.stringify(r.diff.entitiesChanged)}`)
             const updates: any[] = [];
             const replaces: any[] = [];
             r.diff.entitiesChanged.forEach((e: any) => {
@@ -622,15 +619,12 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
           if (r.diff.entitiesInDbOnly.length > 0) {
-            logger.info(`Object to delete ${JSON.stringify(r.diff.entitiesInDbOnly)}`)
             updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
           }
           if (r.diff.entitiesInAwsOnly.length > 0) {
-            logger.info(`Object to create ${JSON.stringify(r.diff.entitiesInAwsOnly)}`)
             updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInAwsOnly);
           }
           if (r.diff.entitiesChanged.length > 0) {
-            logger.info(`Object difference ${JSON.stringify(r.diff.entitiesChanged)}`)
             const updates: any[] = [];
             r.diff.entitiesChanged.forEach((e: any) => {
               updates.push(e.cloud);
