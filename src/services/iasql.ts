@@ -348,8 +348,10 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
-    const mappers = (Object.values(Modules) as Modules.ModuleInterface[])
-      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`))
+    const moduleList = (Object.values(Modules) as Modules.Module[])
+      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`));
+    const rootToLeafOrder = sortModules(moduleList, []);
+    const mappers = (rootToLeafOrder as Modules.ModuleInterface[])
       .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
       .flat()
       .filter(mapper => mapper.source === 'db');
@@ -496,6 +498,15 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
                 }
               }));
             }
+            return outArr;
+          })
+          .flat(9001);
+        const reversePromiseGenerators = records
+          .reverse()
+          .map(r => {
+            const name = r.table;
+            logger.info(`Checking ${name}`);
+            const outArr = [];
             if (r.diff.entitiesInAwsOnly.length > 0) {
               logger.info(`${name} has records to delete`);
               outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
@@ -505,11 +516,12 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
             return outArr;
           })
           .flat(9001);
-        if (promiseGenerators.length > 0) {
+        const generators = [...promiseGenerators, ...reversePromiseGenerators];
+        if (generators.length > 0) {
           ranUpdate = true;
           ranFullUpdate = true;
           try {
-            await lazyLoader(promiseGenerators);
+            await lazyLoader(generators);
           } catch (e: any) {
             if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
             failureCount = e.metadata?.generatorsToRun?.length;
@@ -549,8 +561,10 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
     // Get the mappers, regardless of source-of-truth
-    const mappers = (Object.values(Modules) as Modules.ModuleInterface[])
-      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`))
+    const moduleList = (Object.values(Modules) as Modules.Module[])
+      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`));
+    const rootToLeafOrder = sortModules(moduleList, []);
+    const mappers = (rootToLeafOrder as Modules.ModuleInterface[])
       .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
       .flat();
     const t2 = Date.now();
@@ -690,6 +704,15 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
                 }
               }));
             }
+            return outArr;
+          })
+          .flat(9001);
+        const reversePromiseGenerators = records
+          .reverse()
+          .map(r => {
+            const name = r.table;
+            logger.info(`Checking ${name}`);
+            const outArr = [];
             if (r.diff.entitiesInDbOnly.length > 0) {
               logger.info(`${name} has records to delete`);
               outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
@@ -699,11 +722,12 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
             return outArr;
           })
           .flat(9001);
-        if (promiseGenerators.length > 0) {
+        const generators = [...promiseGenerators, ...reversePromiseGenerators];
+        if (generators.length > 0) {
           ranUpdate = true;
           ranFullUpdate = true;
           try {
-            await lazyLoader(promiseGenerators);
+            await lazyLoader(generators);
           } catch (e: any) {
             if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
             failureCount = e.metadata?.generatorsToRun?.length;
