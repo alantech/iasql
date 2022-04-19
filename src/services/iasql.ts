@@ -243,16 +243,6 @@ export async function disconnect(dbAlias: string, uid: string) {
   }
 }
 
-export async function list(uid: string, email: string, verbose = false) {
-  try {
-    const dbs = await MetadataRepo.getDbs(uid, email);
-    if (verbose) return dbs;
-    return dbs.map(db => db.alias);
-  } catch (e: any) {
-    throw e;
-  }
-}
-
 export async function dump(dbId: string, dataOnly: boolean) {
   const pgUrl = dbMan.ourPgUrl(dbId);
   const excludedDataTables = '--exclude-table-data \'aws_account\' --exclude-table-data \'iasql_*\''
