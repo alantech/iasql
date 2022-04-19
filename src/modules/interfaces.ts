@@ -44,17 +44,11 @@ export class Crud<E> {
     const dest = this.dest ?? 'What?';
     const entityName = this.entity?.name ?? 'What?';
     const entityId = this.entityId ?? ((_e: E) => { return 'What?'; });
-    es.forEach((e, i) => {
+    es.forEach((e) => {
       ctx.memo[dest] = ctx.memo[dest] ?? {};
       ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
       if (!ctx.memo[dest][entityName][entityId(e)]) {
         ctx.memo[dest][entityName][entityId(e)] = e;
-      } else {
-        // Transfer the properties from the entity to the one already memoized so other references
-        // to the same entity also get updated, then update the output array
-        const realE = ctx.memo[dest][entityName][entityId(e)];
-        Object.keys(e).forEach(k => realE[k] = (e as any)[k]);
-        es[i] = realE;
       }
     });
     if (Array.isArray(entity) && (Array.isArray(input) || input === undefined)) {
@@ -103,12 +97,8 @@ export class Crud<E> {
         const vals = id.map(i => {
           const val = ctx.memo[dest]?.[entityName]?.[i];
           if (!val || (val && Object.keys(val).length === 0)) {
-            // We create a placeholder value to put here so recursive calls will resolve an object
-            // and we will rely on later code to stitch things back together to make sure circular
-            // references are fine
             ctx.memo[dest] = ctx.memo[dest] ?? {};
             ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
-            ctx.memo[dest][entityName][i] = new (this.entity as new () => E)();
             missing.push(i);
             return i;
           } else {
@@ -126,10 +116,8 @@ export class Crud<E> {
         // The order is the same in both lists, so we can cheat and do a single pass
         for (let i = 0, j = 0; i < vals.length; i++) {
           if (vals[i] === missing[j]) {
-            const realE = ctx.memo[dest][entityName][vals[i]];
-            if (missingVals && missingVals.length) Object.keys(missingVals[j]).forEach(k => realE[k] = (missingVals[j] as any)[k]);
-            if (realE && !!Object.keys(realE).length) {
-              vals[i] = realE;
+            if (missingVals[j] && !!Object.keys(missingVals[j] ?? {}).length) {
+              vals[i] = missingVals[j];
             } else {
               delete ctx.memo[dest][entityName][vals[i]];
               vals.splice(i, 1);
@@ -145,13 +133,7 @@ export class Crud<E> {
         ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
         if (!ctx.memo[dest][entityName][id]) {
           logger.info(`Cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
-          ctx.memo[dest][entityName][id] = new (this.entity as new () => E)();
         } else {
-          // If object is empty it means it is a placeholder and it is not in the memo yet.
-          if (!Object.keys(ctx.memo[dest][entityName][id]).length) {
-            logger.info(`Cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
-            return undefined;
-          }
           logger.info(`Cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
           return ctx.memo[dest][entityName][id];
         }
@@ -165,13 +147,13 @@ export class Crud<E> {
           throw e;
         }
         if (!o || o.length === 0) {
-          // Don't memo in this case, just pass it through, also remove the registered placeholder
+          // Don't memo in this case, just pass it through, also remove the registered placeholder if any
           delete ctx.memo[dest][entityName][id];
           return undefined;
         } else if (Array.isArray(o) && o.length === 1) {
           return this.memo(o[0], ctx, id);
         } else {
-          // Don't memo in this case, just pass it through, also remove the registered placeholder
+          // Don't memo in this case, just pass it through, also remove the registered placeholder if any
           delete ctx.memo[dest][entityName][id];
           return o;
         }
