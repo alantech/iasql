@@ -251,9 +251,7 @@ BEGIN
     SELECT tables_array INTO aux_tables_array;
     FOR table_elem IN array_lower(aux_tables_array, 1)..array_upper(aux_tables_array, 1) LOOP
       BEGIN
-        IF aux_tables_array[table_elem] <> 'subnet' AND aux_tables_array[table_elem] <> 'vpc' THEN
-          EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
-        END IF;
+        EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
         SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
       EXCEPTION
         WHEN others THEN
