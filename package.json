@@ -8,7 +8,7 @@
     "clean": "rm -rf dist",
     "lint": "tslint --project .",
     "test": "IASQL_ENV=test jest -i",
-    "coverage": "IASQL_ENV=test jest -i --coverage",
+    "coverage": "IASQL_ENV=test jest -i --coverage --no-cache",
     "coverage:local": "IASQL_ENV=test export $(cat .env | xargs) && yarn coverage",
     "serve": "node --max_old_space_size=8192 dist/index.js",
     "start": "yarn serve",
