@@ -23,7 +23,6 @@ import { AwsVpcModule, } from '../aws_vpc@0.0.1'
 import { Context, Crud, Mapper, Module, } from '../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
-import logger from '../../services/logger'
 
 export const AwsElbModule: Module = new Module({
   ...metadata,
@@ -97,12 +96,8 @@ export const AwsElbModule: Module = new Module({
       out.unhealthyThresholdCount = tg.UnhealthyThresholdCount ?? null;
       out.healthCheckPath = tg.HealthCheckPath ?? null;
       out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum ?? null;
-      logger.info(`tg.VpcId = ${tg.VpcId}`)
-      const dbVpc = await AwsVpcModule.mappers.vpc.db.read(ctx, tg.VpcId);
-      logger.info(`dbVpc = ${JSON.stringify(dbVpc)}`)
-      const cloudVpc = await AwsVpcModule.mappers.vpc.cloud.read(ctx, tg.VpcId);
-      logger.info(`cloudVpc = ${JSON.stringify(cloudVpc)}`)
-      const vpc = dbVpc ?? cloudVpc;
+      const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, tg.VpcId) ??
+        await AwsVpcModule.mappers.vpc.cloud.read(ctx, tg.VpcId);
       if (tg.VpcId && !vpc) throw new Error(`Waiting for VPC ${tg.VpcId}`);
       out.vpc = vpc;
       return out;
@@ -314,90 +309,22 @@ export const AwsElbModule: Module = new Module({
     }),
     targetGroup: new Mapper<TargetGroup>({
       entity: TargetGroup,
-      equals: (a: TargetGroup, b: TargetGroup) => {
-        let eq = true;
-        if (!Object.is(a.targetGroupArn, b.targetGroupArn)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.targetGroupName, b.targetGroupName)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.targetType, b.targetType)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.ipAddressType, b.ipAddressType)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.protocol, b.protocol)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.port, b.port)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.vpc?.vpcId, b.vpc?.vpcId)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.protocolVersion, b.protocolVersion)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.healthCheckProtocol, b.healthCheckProtocol)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.healthCheckPort, b.healthCheckPort)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.healthCheckPath, b.healthCheckPath)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.healthCheckEnabled, b.healthCheckEnabled)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.healthCheckIntervalSeconds, b.healthCheckIntervalSeconds)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.healthCheckTimeoutSeconds, b.healthCheckTimeoutSeconds)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.healthyThresholdCount, b.healthyThresholdCount)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        if (!Object.is(a.unhealthyThresholdCount, b.unhealthyThresholdCount)) {
-          logger.info(`a = ${JSON.stringify(a)} - b = ${JSON.stringify(b)}`)
-          eq = false;
-        }
-        return eq;
-      },
-      // equals: (a: TargetGroup, b: TargetGroup) => Object.is(a.targetGroupArn, b.targetGroupArn)
-      //   && Object.is(a.targetGroupName, b.targetGroupName)
-      //   && Object.is(a.targetType, b.targetType)
-      //   && Object.is(a.ipAddressType, b.ipAddressType)
-      //   && Object.is(a.protocol, b.protocol)
-      //   && Object.is(a.port, b.port)
-      //   && Object.is(a.vpc?.vpcId, b.vpc?.vpcId)
-      //   && Object.is(a.protocolVersion, b.protocolVersion)
-      //   && Object.is(a.healthCheckProtocol, b.healthCheckProtocol)
-      //   && Object.is(a.healthCheckPort, b.healthCheckPort)
-      //   && Object.is(a.healthCheckPath, b.healthCheckPath)
-      //   && Object.is(a.healthCheckEnabled, b.healthCheckEnabled)
-      //   && Object.is(a.healthCheckIntervalSeconds, b.healthCheckIntervalSeconds)
-      //   && Object.is(a.healthCheckTimeoutSeconds, b.healthCheckTimeoutSeconds)
-      //   && Object.is(a.healthyThresholdCount, b.healthyThresholdCount)
-      //   && Object.is(a.unhealthyThresholdCount, b.unhealthyThresholdCount),
+      equals: (a: TargetGroup, b: TargetGroup) => Object.is(a.targetGroupArn, b.targetGroupArn)
+        && Object.is(a.targetGroupName, b.targetGroupName)
+        && Object.is(a.targetType, b.targetType)
+        && Object.is(a.ipAddressType, b.ipAddressType)
+        && Object.is(a.protocol, b.protocol)
+        && Object.is(a.port, b.port)
+        && Object.is(a.vpc?.vpcId, b.vpc?.vpcId)
+        && Object.is(a.protocolVersion, b.protocolVersion)
+        && Object.is(a.healthCheckProtocol, b.healthCheckProtocol)
+        && Object.is(a.healthCheckPort, b.healthCheckPort)
+        && Object.is(a.healthCheckPath, b.healthCheckPath)
+        && Object.is(a.healthCheckEnabled, b.healthCheckEnabled)
+        && Object.is(a.healthCheckIntervalSeconds, b.healthCheckIntervalSeconds)
+        && Object.is(a.healthCheckTimeoutSeconds, b.healthCheckTimeoutSeconds)
+        && Object.is(a.healthyThresholdCount, b.healthyThresholdCount)
+        && Object.is(a.unhealthyThresholdCount, b.unhealthyThresholdCount),
       source: 'db',
       cloud: new Crud({
         create: async (es: TargetGroup[], ctx: Context) => {
