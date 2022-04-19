@@ -1136,6 +1136,7 @@ export class AWS {
           async (client, cmd) => {
             try {
               const eni = await client.send(cmd);
+              logger.info(`ENI ATTACHMENTS ${JSON.stringify(eni)}`)
               if (eni.NetworkInterfaces?.length) {
                 return { state: WaiterState.RETRY };
               }
