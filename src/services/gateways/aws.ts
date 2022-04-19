@@ -1129,8 +1129,8 @@ export class AWS {
             client: this.ec2client,
             // all in seconds
             maxWaitTime: 1200,
-            minDelay: 1,
-            maxDelay: 4,
+            minDelay: 5,
+            maxDelay: 20,
           },
           describeEniCommand,
           async (client, cmd) => {
