@@ -147,6 +147,11 @@ export class Crud<E> {
           logger.info(`Cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
           ctx.memo[dest][entityName][id] = new (this.entity as new () => E)();
         } else {
+          // If object is empty it means it is a placeholder and it is not in the memo yet.
+          if (!Object.keys(ctx.memo[dest][entityName][id]).length) {
+            logger.info(`Cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
+            return undefined;
+          }
           logger.info(`Cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
           return ctx.memo[dest][entityName][id];
         }

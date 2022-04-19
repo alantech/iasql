@@ -98,6 +98,7 @@ export const AwsElbModule: Module = new Module({
       out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum ?? null;
       const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, tg.VpcId) ??
         await AwsVpcModule.mappers.vpc.cloud.read(ctx, tg.VpcId);
+      if (tg.VpcId && !vpc) throw new Error(`Waiting for VPC ${tg.VpcId}`);
       out.vpc = vpc;
       return out;
     },
