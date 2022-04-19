@@ -348,9 +348,12 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
-    const rootToLeafOrder = sortModules(Object.values(Modules) as Modules.Module[], []);
+    const moduleList = (Object.values(Modules) as Modules.Module[])
+      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`));
+    logger.info(`modules = ${JSON.stringify(moduleList)}`)
+    const rootToLeafOrder = sortModules(moduleList, []);
+    logger.info(`modules sorted = ${JSON.stringify(rootToLeafOrder)}`)
     const mappers = (rootToLeafOrder as Modules.ModuleInterface[])
-      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`))
       .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
       .flat()
       .filter(mapper => mapper.source === 'db');
@@ -550,9 +553,10 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
     // Get the mappers, regardless of source-of-truth
-    const rootToLeafOrder = sortModules(Object.values(Modules) as Modules.Module[], []);
+    const moduleList = (Object.values(Modules) as Modules.Module[])
+      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`));
+    const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as Modules.ModuleInterface[])
-      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`))
       .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
       .flat();
     const t2 = Date.now();
