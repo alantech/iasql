@@ -21,7 +21,8 @@ BEGIN
         ELSIF aux_tables_array[table_elem] = 'role' THEN
           -- raise notice '%', format('DELETE FROM role WHERE role_name LIKE ''%s''', '%' || aws_region);
           EXECUTE format('DELETE FROM role WHERE role_name LIKE ''%s''', '%' || aws_region);
-        ELSIF aux_tables_array[table_elem] <> 'subnet' AND aux_tables_array[table_elem] <> 'vpc' THEN
+        -- ELSIF aux_tables_array[table_elem] <> 'subnet' AND aux_tables_array[table_elem] <> 'vpc' THEN
+        ELSE
           EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
         END IF;
         SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
