@@ -1129,14 +1129,14 @@ export class AWS {
             client: this.ec2client,
             // all in seconds
             maxWaitTime: 1200,
-            minDelay: 20,
+            // This operation need bigger delays since it takes time and we do not want to overload AWS API
+            minDelay: 30,
             maxDelay: 60,
           },
           describeEniCommand,
           async (client, cmd) => {
             try {
               const eni = await client.send(cmd);
-              logger.info(`ENI ATTACHMENTS ${JSON.stringify(eni)}`)
               if (eni.NetworkInterfaces?.length) {
                 return { state: WaiterState.RETRY };
               }
