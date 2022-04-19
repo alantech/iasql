@@ -27,10 +27,10 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
         await g();
       } catch (e: any) {
         logger.info(`error object ${JSON.stringify(e)}`)
-        logger.info(`error object ${JSON.stringify(e.reason)}`)
-        const reason = (e as PromiseRejectedResult).reason;
-        const err = new Error((reason ?? 'An unexpected error occurred'));
-        err.stack = reason.stack ?? err.stack;
+        // logger.info(`error object ${JSON.stringify(e.reason)}`)
+        // const reason = (e as PromiseRejectedResult).reason;
+        const err = new Error((e ?? 'An unexpected error occurred'));
+        err.stack = e.stack ?? err.stack;
         failures.push(err);
         generatorsToRerun.push(g);
       }
