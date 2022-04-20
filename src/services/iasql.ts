@@ -728,16 +728,17 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
 
 export async function modules(all: boolean, installed: boolean, dbId: string) {
   // TODO rm special casing for aws_account, but keep iasql_platform and iasql_functions
+  const whyIsItAlwaysYouThree = [
+    'aws_account@0.0.1',
+    'iasql_platform@0.0.1',
+    'iasql_functions@0.0.1',
+  ];
   const allModules = Object.values(Modules)
-    .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && m.name !== 'aws_account')
+    .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && m.hasOwnProperty('version') && !whyIsItAlwaysYouThree.includes(`${m.name}@${m.version}`))
     .map((m: any) => ({
       moduleName: m.name,
       moduleVersion: m.version,
-      dependencies: m.dependencies.filter((d: any) => ![
-        'aws_account@0.0.1',
-        'iasql_platform@0.0.1',
-        'iasql_functions@0.0.1',
-      ].includes(d)),
+      dependencies: m.dependencies.filter((d: any) => !whyIsItAlwaysYouThree.includes(d)),
     }));
   if (all) {
     return JSON.stringify(allModules);
