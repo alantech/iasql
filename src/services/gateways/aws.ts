@@ -1083,7 +1083,7 @@ export class AWS {
   }
 
   async deleteService(name: string, cluster: string, tasksArns: string[]) {
-    await this.ecsClient.send(
+    const deleted = await this.ecsClient.send(
       new DeleteServiceCommand({
         service: name,
         cluster,
@@ -1113,6 +1113,15 @@ export class AWS {
       },
     );
     try {
+      const groupIds = deleted.service?.networkConfiguration?.awsvpcConfiguration?.securityGroups;
+      const sginfo =  await this.ec2client.send(new DescribeSecurityGroupsCommand({Filters: [
+        {
+          Name: 'ip-permission.group-id',
+          Values: groupIds
+        }
+      ]
+      }));
+      logger.info(`SECURITY GROUP INFO: ${sginfo}`)
       const tasks = await this.ecsClient.send(new DescribeTasksCommand({tasks: tasksArns, cluster}));
       const taskAttachmentIds = tasks.tasks?.map(t => t.attachments?.map(a => a.id)).flat()
       if (taskAttachmentIds?.length) {
