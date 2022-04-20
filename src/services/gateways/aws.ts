@@ -1121,7 +1121,7 @@ export class AWS {
         }
       ]
       }));
-      logger.info(`SECURITY GROUP INFO: ${sginfo}`)
+      logger.info(`SECURITY GROUP INFO: ${JSON.stringify(sginfo)}`)
       const tasks = await this.ecsClient.send(new DescribeTasksCommand({tasks: tasksArns, cluster}));
       const taskAttachmentIds = tasks.tasks?.map(t => t.attachments?.map(a => a.id)).flat()
       if (taskAttachmentIds?.length) {
