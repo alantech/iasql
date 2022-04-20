@@ -1140,7 +1140,7 @@ export class AWS {
               const eni = await client.send(cmd);
               if (eni.NetworkInterfaces?.length) {
                 try {
-                  await Promise.all(eni.NetworkInterfaces?.map(ni => this.ec2client.send(new DetachNetworkInterfaceCommand({AttachmentId: ni.Attachment?.AttachmentId, Force: true}))) ?? []);
+                  await Promise.allSettled(eni.NetworkInterfaces?.map(ni => this.ec2client.send(new DetachNetworkInterfaceCommand({AttachmentId: ni.Attachment?.AttachmentId, Force: true}))) ?? []);
                 } catch (e) {
                   logger.info(`Error trying to detach network interfaces: ${JSON.stringify(e)}`);
                 }
