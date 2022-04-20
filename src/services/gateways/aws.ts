@@ -45,7 +45,6 @@ import {
   paginateDescribeSubnets,
   paginateDescribeVpcs,
   DescribeNetworkInterfacesCommand,
-  ModifyNetworkInterfaceAttributeCommand,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -1084,7 +1083,7 @@ export class AWS {
   }
 
   async deleteService(name: string, cluster: string, tasksArns: string[]) {
-    const deleted = await this.ecsClient.send(
+    await this.ecsClient.send(
       new DeleteServiceCommand({
         service: name,
         cluster,
@@ -1138,13 +1137,7 @@ export class AWS {
           async (client, cmd) => {
             try {
               const eni = await client.send(cmd);
-              logger.info(`ENIIIII = ${JSON.stringify(eni)}`)
               if (eni.NetworkInterfaces?.length) {
-                try {
-                  await Promise.all(eni.NetworkInterfaces?.map(ni => this.ec2client.send(new ModifyNetworkInterfaceAttributeCommand({NetworkInterfaceId: ni.NetworkInterfaceId, Groups:[]}))) ?? []);
-                } catch (e) {
-                  logger.info(`Error trying to modify network interfaces: ${JSON.stringify(e)}`);
-                }
                 return { state: WaiterState.RETRY };
               }
               return { state: WaiterState.SUCCESS };
