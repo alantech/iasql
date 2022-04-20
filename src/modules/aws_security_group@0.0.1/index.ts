@@ -6,6 +6,7 @@ import { Context, Crud, Mapper, Module, } from '../interfaces'
 import * as metadata from './module.json'
 import { AwsVpcModule } from '../aws_vpc@0.0.1'
 import { Vpc } from '../aws_vpc@0.0.1/entity'
+import logger from '../../services/logger'
 
 export const AwsSecurityGroupModule: Module = new Module({
   ...metadata,
@@ -16,8 +17,11 @@ export const AwsSecurityGroupModule: Module = new Module({
       out.groupName = sg.GroupName;
       out.ownerId = sg.OwnerId;
       out.groupId = sg.GroupId;
-      if (sg.VpcId) out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sg.VpcId) ??
-        await AwsVpcModule.mappers.vpc.cloud.read(ctx, sg.VpcId);
+      if (sg.VpcId) {
+        out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sg.VpcId) ??
+          await AwsVpcModule.mappers.vpc.cloud.read(ctx, sg.VpcId);
+        if (!out.vpc) throw new Error(`Waiting for VPC ${sg.VpcId}`);
+      };
       return out;
     },
     sgrMapper: async (sgr: any, ctx: Context) => {
@@ -384,21 +388,37 @@ export const AwsSecurityGroupModule: Module = new Module({
           }
           const client = await ctx.getAwsClient() as AWS;
           for (const GroupId of Object.keys(egressDeletesToRun)) {
-            const res = (await client.deleteSecurityGroupEgressRules([{
-              GroupId,
-              SecurityGroupRuleIds: egressDeletesToRun[GroupId],
-            }]))[0];
-            if (res.Return !== true) {
-              throw new Error(`Failed to remove the security group rules ${res}`);
+            try {
+              const res = (await client.deleteSecurityGroupEgressRules([{
+                GroupId,
+                SecurityGroupRuleIds: egressDeletesToRun[GroupId],
+              }]))[0];
+              if (res.Return !== true) {
+                throw new Error(`Failed to remove the security group rules ${res}`);
+              }
+            } catch (e: any) {
+              if (e.Code === 'InvalidGroup.NotFound'){
+                logger.info('Security Group have been deleted');
+              } else {
+                throw e;
+              }
             }
           }
           for (const GroupId of Object.keys(ingressDeletesToRun)) {
-            const res = (await client.deleteSecurityGroupIngressRules([{
-              GroupId,
-              SecurityGroupRuleIds: ingressDeletesToRun[GroupId],
-            }]))[0];
-            if (res.Return !== true) {
-              throw new Error(`Failed to remove the security group rules ${res}`);
+            try {
+              const res = (await client.deleteSecurityGroupIngressRules([{
+                GroupId,
+                SecurityGroupRuleIds: ingressDeletesToRun[GroupId],
+              }]))[0];
+              if (res.Return !== true) {
+                throw new Error(`Failed to remove the security group rules ${res}`);
+              }
+            } catch (e: any) {
+              if (e.Code === 'InvalidGroup.NotFound'){
+                logger.info('Security Group have been deleted');
+              } else {
+                throw e;
+              }
             }
           }
           // Let's just clear the record from both caches on a delete

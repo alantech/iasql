@@ -64,7 +64,8 @@ const publicRepositoryName = `${prefix}${dbAlias}publicrepository-${region}`;
 const containerNamePublicRepository = `${prefix}${dbAlias}containerpublicrepository`;
 const securityGroup = `${prefix}${dbAlias}sg`;
 
-jest.setTimeout(960000);
+// TODO: Improve timings for this test
+jest.setTimeout(1800000);  // 30min timeout
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown(modules));
 
