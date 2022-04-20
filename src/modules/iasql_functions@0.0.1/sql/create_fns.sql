@@ -176,23 +176,6 @@ declare
     _dblink_sql text;
     _out json;
 begin
-    return query select * from iasql_module_uninstall(_mods);
-end;
-$$;
-
-create or replace function iasql_uninstall(variadic _mods text[]) returns table (
-    module_name character varying,
-    dropped_table_name character varying,
-    record_count int
-)
-language plpgsql security definer
-as $$
-declare
-    _db_id text;
-    _dblink_conn_count int;
-    _dblink_sql text;
-    _out json;
-begin
     select current_database() into _db_id;
     -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
     -- dblink connection closes automatically at the end of a session
@@ -223,6 +206,23 @@ begin
     perform until_iasql_operation('UNINSTALL', _mods);
     -- And extract the metadata from the JSON blob and return it to the user
     return query select f1 as module_name, f2 as dropped_table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
+end;
+$$;
+
+create or replace function iasql_uninstall(variadic _mods text[]) returns table (
+    module_name character varying,
+    dropped_table_name character varying,
+    record_count int
+)
+language plpgsql security definer
+as $$
+declare
+    _db_id text;
+    _dblink_conn_count int;
+    _dblink_sql text;
+    _out json;
+begin
+    return query select * from iasql_module_uninstall(_mods);
 end;
 $$;
 
