@@ -45,6 +45,7 @@ import {
   paginateDescribeSubnets,
   paginateDescribeVpcs,
   DescribeNetworkInterfacesCommand,
+  DetachNetworkInterfaceCommand,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -1113,15 +1114,6 @@ export class AWS {
       },
     );
     try {
-      const groupIds = deleted.service?.networkConfiguration?.awsvpcConfiguration?.securityGroups;
-      const sginfo =  await this.ec2client.send(new DescribeSecurityGroupsCommand({Filters: [
-        {
-          Name: 'ip-permission.group-id',
-          Values: groupIds
-        }
-      ]
-      }));
-      logger.info(`SECURITY GROUP INFO: ${JSON.stringify(sginfo)}`)
       const tasks = await this.ecsClient.send(new DescribeTasksCommand({tasks: tasksArns, cluster}));
       const taskAttachmentIds = tasks.tasks?.map(t => t.attachments?.map(a => a.id)).flat()
       if (taskAttachmentIds?.length) {
@@ -1147,6 +1139,11 @@ export class AWS {
             try {
               const eni = await client.send(cmd);
               if (eni.NetworkInterfaces?.length) {
+                try {
+                  await Promise.all(eni.NetworkInterfaces?.map(ni => this.ec2client.send(new DetachNetworkInterfaceCommand({AttachmentId: ni.Attachment?.AttachmentId, Force: true}))) ?? []);
+                } catch (e) {
+                  logger.info(`Error trying to detach network interfaces: ${JSON.stringify(e)}`);
+                }
                 return { state: WaiterState.RETRY };
               }
               return { state: WaiterState.SUCCESS };
