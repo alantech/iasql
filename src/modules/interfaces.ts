@@ -52,9 +52,9 @@ export class Crud<E> {
       } else {
         // Transfer the properties from the entity to the one already memoized so other references
         // to the same entity also get updated, then update the output array
-        const realE = ctx.memo[dest][entityName][entityId(e)];
-        Object.keys(e).forEach(k => realE[k] = (e as any)[k]);
-        es[i] = realE;
+        // const realE = ctx.memo[dest][entityName][entityId(e)];
+        // Object.keys(e).forEach(k => realE[k] = (e as any)[k]);
+        // es[i] = realE;
       }
     });
     if (Array.isArray(entity) && (Array.isArray(input) || input === undefined)) {
@@ -108,7 +108,7 @@ export class Crud<E> {
             // references are fine
             ctx.memo[dest] = ctx.memo[dest] ?? {};
             ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
-            ctx.memo[dest][entityName][i] = new (this.entity as new () => E)();
+            // ctx.memo[dest][entityName][i] = new (this.entity as new () => E)();
             missing.push(i);
             return i;
           } else {
@@ -126,10 +126,10 @@ export class Crud<E> {
         // The order is the same in both lists, so we can cheat and do a single pass
         for (let i = 0, j = 0; i < vals.length; i++) {
           if (vals[i] === missing[j]) {
-            const realE = ctx.memo[dest][entityName][vals[i]];
-            if (missingVals && missingVals.length) Object.keys(missingVals[j]).forEach(k => realE[k] = (missingVals[j] as any)[k]);
-            if (realE && !!Object.keys(realE).length) {
-              vals[i] = realE;
+            // const realE = ctx.memo[dest][entityName][vals[i]];
+            // if (missingVals && missingVals.length) Object.keys(missingVals[j]).forEach(k => realE[k] = (missingVals[j] as any)[k]);
+            if (missingVals[j] && !!Object.keys(missingVals[j]).length) {
+              vals[i] = missingVals[j];
             } else {
               delete ctx.memo[dest][entityName][vals[i]];
               vals.splice(i, 1);
@@ -145,13 +145,13 @@ export class Crud<E> {
         ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
         if (!ctx.memo[dest][entityName][id]) {
           logger.info(`Cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
-          ctx.memo[dest][entityName][id] = new (this.entity as new () => E)();
+          // ctx.memo[dest][entityName][id] = new (this.entity as new () => E)();
         } else {
           // If object is empty it means it is a placeholder and it is not in the memo yet.
-          if (!Object.keys(ctx.memo[dest][entityName][id]).length) {
-            logger.info(`Cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
-            return undefined;
-          }
+          // if (!Object.keys(ctx.memo[dest][entityName][id]).length) {
+          //   logger.info(`Cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
+          //   return undefined;
+          // }
           logger.info(`Cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
           return ctx.memo[dest][entityName][id];
         }
