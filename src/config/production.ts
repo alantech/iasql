@@ -25,7 +25,10 @@ const config: ConfigInterface = {
   },
   telemetry: {
     amplitudeKey: '968524573d0f8bd2e84460099bca9353'
-  }
+  },
+  graphql: {
+    withGraphiql: false,
+  },
 };
 
 export default config;
