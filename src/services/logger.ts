@@ -8,7 +8,7 @@ import config from '../config'
 const logFactory: LogFunctionFactory = (scope) => {
   // Better to check the config once in the factory and return fixed functions instead of checking
   // on each log output
-  if (config.debugLogger && config.testLogger) {
+  if (config.logger.debug && config.logger.test) {
     return (level, message, meta) => {
       const str = `${level}: ${message} ${util.inspect(scope)}${meta ? ` ${util.inspect(meta, { depth: 6, })}` : ''}\n`;
       switch (level) {
@@ -21,7 +21,7 @@ const logFactory: LogFunctionFactory = (scope) => {
           break;
       }
     };
-  } else if (config.debugLogger) {
+  } else if (config.logger.debug) {
     return (level, message, meta) => {
       switch (level) {
         case 'error':
@@ -33,7 +33,7 @@ const logFactory: LogFunctionFactory = (scope) => {
           break;
       }
     };
-  } else if (config.testLogger) {
+  } else if (config.logger.test) {
     return (level, message, meta) => {
       const str = `${level}: ${message} ${util.inspect(scope)}${meta ? ` ${util.inspect(meta, { depth: 6, })}` : ''}\n`;
       switch (level) {
@@ -65,7 +65,7 @@ const logFactory: LogFunctionFactory = (scope) => {
 const singleton = new Logger(logFactory);
 
 export function debugObj(e: any) {
-  if (config.debugLogger) console.dir(e, { depth: 6 });
+  if (config.logger.debug) console.dir(e, { depth: 6 });
 }
 
 // this function should only be used in the catch statement of the routes and scheduler
@@ -79,7 +79,7 @@ export function logUserErr(e: any): string {
     err = e.metadata.failures.map((f: Error) => f?.message).join('\n');
     errStack = e.metadata.failures.map((f: Error) => f?.stack ?? f?.message).join('\n');
   }
-  if (config.sentryEnabled) err += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureException(errStack)}`;
+  if (config.sentry) err += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureException(errStack)}`;
   singleton.error(err);
   return err;
 }

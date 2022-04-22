@@ -3,8 +3,9 @@ import { run } from 'graphile-worker';
 
 import { IasqlOperationType } from '../modules/iasql_functions@0.0.1/entity';
 import MetadataRepo from './repositories/metadata'
-import * as iasql from '../services/iasql'
-import logger, { logUserErr } from '../services/logger'
+import * as iasql from './iasql'
+import * as telemetry from './telemetry'
+import logger, { logUserErr } from './logger'
 import { TypeormWrapper } from './typeorm';
 import { IasqlDatabase } from '../entity';
 import config from '../config';
@@ -22,8 +23,8 @@ export async function start(dbId: string, dbUser:string) {
   // create a dblink server per db to reduce connections when calling dblink in iasql op SP
   // https://aws.amazon.com/blogs/database/migrating-oracle-autonomous-transactions-to-postgresql/
   await conn.query(`CREATE EXTENSION IF NOT EXISTS dblink;`);
-  await conn.query(`CREATE SERVER IF NOT EXISTS loopback_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.dbHost}', dbname '${dbId}', port '${config.dbPort}');`);
-  await conn.query(`CREATE USER MAPPING IF NOT EXISTS FOR ${config.dbUser} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.dbUser}', password '${config.dbPassword}')`);
+  await conn.query(`CREATE SERVER IF NOT EXISTS loopback_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname '${dbId}', port '${config.db.port}');`);
+  await conn.query(`CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.db.user}', password '${config.db.password}')`);
   const runner = await run({
     pgPool: conn.getMasterConnection(),
     concurrency: 5,
@@ -72,8 +73,10 @@ export async function start(dbId: string, dbUser:string) {
             break;
           }
         }
+        let output;
+        let error;
         try {
-          let output = await promise;
+          output = await promise;
           // once the operation completes updating the `end_date`
           // will complete the polling
           const query = `
@@ -91,7 +94,7 @@ export async function start(dbId: string, dbUser:string) {
           // error must be valid JSON as a string
           const errorStringify = JSON.stringify({ message: errorMessage });
           // replace single quotes to make it valid
-          const error = errorStringify.replace(/[\']/g, "\\\"");
+          error = errorStringify.replace(/[\']/g, "\\\"");
           const query = `
             update iasql_operation
             set end_date = now(), err = '${error}'
@@ -99,8 +102,18 @@ export async function start(dbId: string, dbUser:string) {
           `
           await conn.query(query);
         } finally {
-          const recCount = await iasql.getDbRecCount(conn);
-          await MetadataRepo.updateDbRecCount(dbId, recCount);
+          try {
+            const recordCount = await iasql.getDbRecCount(conn);
+            await MetadataRepo.updateDbRecCount(dbId, recordCount);
+            telemetry.logDbOp(dbId, optype, {
+              params,
+              output,
+              error,
+              recordCount,
+            });
+          } catch(e: any) {
+            logger.error('could not log op event', e);
+          }
         }
       },
     },

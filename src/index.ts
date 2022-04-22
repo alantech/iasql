@@ -1,24 +1,24 @@
 import 'reflect-metadata';
+import * as sentry from '@sentry/node';
 import cors from 'cors';
 import express from 'express';
 import { inspect } from 'util';
-import * as sentry from '@sentry/node';
 
-import config from './config';
-import { v1 } from './router';
-import MetadataRepo from './services/repositories/metadata';
 import * as scheduler from './services/scheduler'
+import MetadataRepo from './services/repositories/metadata';
+import config from './config';
 import logger from './services/logger'
+import { v1, } from './router';
 
-const port = config.port;
+const port = config.http.port;
 const app = express();
 
 app.use(cors({
   origin: ['http://localhost:3000', 'https://app.iasql.com', 'https://app-staging.iasql.com'],
 }));
-if (config.sentryEnabled) {
+if (config.sentry) {
   sentry.init({
-    dsn: config.sentryDsn,
+    dsn: config.sentry.dsn,
   });
   // RequestHandler creates a separate execution context using domains, so that every
   // transaction/span/breadcrumb is attached to its own Hub instance
@@ -26,9 +26,9 @@ if (config.sentryEnabled) {
 }
 app.get('/health', (_, res) => res.send('ok'));
 app.use('/v1', v1);
-app.get('/debug-error', (req, res) => { throw new Error("Testing error handling!") });
+app.get('/debug-error', (_req, _res) => { throw new Error("Testing error handling!") });
 // The error handler must be before any other error middleware and after all controllers
-if (config.sentryEnabled) {
+if (config.sentry) {
   app.use(
     sentry.Handlers.errorHandler({
       shouldHandleError(error) {
@@ -45,7 +45,7 @@ app.use((error: any, _req: any, res: any, _next: any) => {
   // and optionally displayed to the user for support.
   logger.error(inspect(error));
   let msg = error.message || inspect(error);
-  if (config.sentryEnabled) msg += `\nPlease provide this error ID when reporting this bug: ${res.sentry}`;
+  if (config.sentry) msg += `\nPlease provide this error ID when reporting this bug: ${res.sentry}`;
   return res
     .status(error.statusCode || error.status || 500)
     .end(msg);

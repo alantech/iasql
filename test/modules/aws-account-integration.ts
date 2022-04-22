@@ -62,6 +62,10 @@ describe('AwsAccount Integration Testing', () => {
     DELETE FROM aws_account WHERE access_key_id = 'fake'
   `));
 
+  it('returns records when calling iasql_help', query(`
+    SELECT * FROM iasql_help();
+  `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));

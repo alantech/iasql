@@ -9,8 +9,8 @@ import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 import { snakeCase, } from 'typeorm/util/StringUtils'
 
-import { DepError, lazyLoader, } from '../services/lazy-dep'
-import { findDiff, } from '../services/diff'
+import { DepError, lazyLoader, } from './lazy-dep'
+import { findDiff, } from './diff'
 import MetadataRepo from './repositories/metadata'
 import { TypeormWrapper, } from './typeorm'
 import { IasqlModule, IasqlTables, } from '../modules/iasql_platform@0.0.1/entity'
@@ -234,7 +234,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     `);
     await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser));
     await MetadataRepo.delDb(uid, dbAlias);
-    return `disconnected ${dbAlias}`;
+    return db.pgName;
   } catch (e: any) {
     // re-throw
     throw e;
@@ -243,24 +243,7 @@ export async function disconnect(dbAlias: string, uid: string) {
   }
 }
 
-export async function list(uid: string, email: string, verbose = false) {
-  try {
-    const dbs = await MetadataRepo.getDbs(uid, email);
-    if (verbose) return dbs;
-    return dbs.map(db => db.alias);
-  } catch (e: any) {
-    throw e;
-  }
-}
-
-export async function dump(dbAlias: string, uid: any, dataOnly: boolean) {
-  let dbId;
-  try {
-    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    dbId = db.pgName;
-  } catch (e: any) {
-    throw e;
-  }
+export async function dump(dbId: string, dataOnly: boolean) {
   const pgUrl = dbMan.ourPgUrl(dbId);
   const excludedDataTables = '--exclude-table-data \'aws_account\' --exclude-table-data \'iasql_*\''
   const { stdout, } = await exec(
@@ -745,16 +728,17 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
 
 export async function modules(all: boolean, installed: boolean, dbId: string) {
   // TODO rm special casing for aws_account, but keep iasql_platform and iasql_functions
+  const whyIsItAlwaysYouThree = [
+    'aws_account@0.0.1',
+    'iasql_platform@0.0.1',
+    'iasql_functions@0.0.1',
+  ];
   const allModules = Object.values(Modules)
-    .filter(m => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && m.name !== 'aws_account')
+    .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && m.hasOwnProperty('version') && !whyIsItAlwaysYouThree.includes(`${m.name}@${m.version}`))
     .map((m: any) => ({
       moduleName: m.name,
       moduleVersion: m.version,
-      dependencies: m.dependencies.filter((d: any) => ![
-        'aws_account@0.0.1',
-        'iasql_platform@0.0.1',
-        'iasql_functions@0.0.1',
-      ].includes(d)),
+      dependencies: m.dependencies.filter((d: any) => !whyIsItAlwaysYouThree.includes(d)),
     }));
   if (all) {
     return JSON.stringify(allModules);
