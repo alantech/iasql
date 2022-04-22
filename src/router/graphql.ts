@@ -29,7 +29,7 @@ if (config.graphql) {
     postgraphiles[db] = postgraphiles[db] ?? {
       lastAccessMs: Date.now(),
       graphile: postgraphile(
-        `postgresql://${config.db.user}:${config.db.password}@${config.db.host}/${db}${config.db.forceSSL ? '?sslmode=require' : ''}`,
+        `postgresql://${config.db.user}:${config.db.password}@${config.db.host}/${db}${config.db.forceSSL ? '?sslmode=no-verify' : ''}`,
         'public',
         {
           externalUrlBase: `/v1/graphql/${db}`,
