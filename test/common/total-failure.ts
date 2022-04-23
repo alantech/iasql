@@ -8,14 +8,11 @@ const applyModules = ['aws_ec2', 'aws_security_group', 'aws_vpc']
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
-afterAll(async () => await execComposeDown([...applyModules]));
+afterAll(async () => await execComposeDown());
 
 describe('Testing failure path', () => {
   it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
-    process.env.AWS_REGION ?? 'barf',
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
 
   // Fail on install
@@ -54,8 +51,15 @@ describe('Testing failure path', () => {
     expect(JSON.parse(row[0].err)).toHaveProperty('message');
   }));
 
+  it('installs the aws_account module', install(['aws_account']));
+
+  it('inserts aws credentials', query(`
+    INSERT INTO aws_account (region, access_key_id, secret_access_key)
+    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `));
+
   // Fail on apply
-  it('installs the ec2 module', install(applyModules));
+  it('installs the ec2 module (and others needed)', install(applyModules));
 
   it('insert a new instance with wrong values', query(`
     BEGIN;

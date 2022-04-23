@@ -11,9 +11,6 @@ afterAll(async () => await execComposeDown());
 describe('Testing metadata repo', () => {
   it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
-    process.env.AWS_REGION ?? 'barf',
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
 
   it('check row in iasql database table exists', query(`
