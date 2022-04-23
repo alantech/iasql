@@ -9,19 +9,19 @@ import logger, { logUserErr } from '../services/logger'
 
 export const db = express.Router();
 
-db.get('/connect/:dbAlias/:awsRegion/:awsAccessKeyId/:awsSecretAccessKey', async (req, res) => {
+db.get('/connect/:dbAlias', async (req, res) => {
   logger.info('Calling /connect');
-  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey} = req.params;
-  if (!dbAlias || !awsRegion) return res.status(400).json(
+  const {dbAlias} = req.params;
+  if (!dbAlias) return res.status(400).json(
     `Required key(s) not provided: ${[
-      'awsRegion', 'dbAlias'
+      'dbAlias'
     ].filter(k => !req.params.hasOwnProperty(k)).join(', ')}`
   );
   try {
     const uid = dbMan.getUid(req.user);
     const email = dbMan.getEmail(req.user);
     const database = await iasql.connect(
-      dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, uid, email
+      dbAlias, uid, email
     );
     res.json(database);
     telemetry.logDbConnect(database.id, dbAlias, uid, email, false);
@@ -32,17 +32,17 @@ db.get('/connect/:dbAlias/:awsRegion/:awsAccessKeyId/:awsSecretAccessKey', async
 
 db.post('/connect', async (req, res) => {
   logger.info('Calling /connect');
-  const {dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, directConnect} = req.body;
-  if (!dbAlias || !awsRegion) return res.status(400).json(
+  const {dbAlias, directConnect} = req.body;
+  if (!dbAlias) return res.status(400).json(
     `Required key(s) not provided: ${[
-      'awsRegion', 'dbAlias'
+      'dbAlias'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
   try {
     const uid = dbMan.getUid(req.user);
     const email = dbMan.getEmail(req.user);
     const database = await iasql.connect(
-      dbAlias, awsRegion, awsAccessKeyId, awsSecretAccessKey, uid, email, !!directConnect
+      dbAlias, uid, email, !!directConnect
     );
     res.json(database);
     telemetry.logDbConnect(database.id, dbAlias, uid, email, !!directConnect);

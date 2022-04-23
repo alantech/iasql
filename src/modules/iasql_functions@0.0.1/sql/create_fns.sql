@@ -10,9 +10,6 @@ declare
     _db_id text;
     _dblink_conn_count int;
 begin
-    if (select region from aws_account limit 1) is null then
-      raise exception 'Database is not connected to an AWS account';
-    end if;
     select md5(random()::text || clock_timestamp()::text)::uuid into _opid;
     select current_database() into _db_id;
     -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
@@ -271,9 +268,7 @@ DECLARE
   tables_array_length integer;
   tables_array text[];
   aux_tables_array text[];
-  aws_region text;
 BEGIN
-  SELECT region INTO aws_region FROM aws_account;
   SELECT ARRAY(SELECT "table" FROM iasql_tables) INTO tables_array;
   SELECT array_length(tables_array, 1) INTO tables_array_length;
   WHILE tables_array_length > 0 AND loop_count < 20 LOOP

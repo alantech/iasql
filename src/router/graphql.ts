@@ -26,17 +26,26 @@ if (config.graphql) {
   // For a given DB name, either acquire the postgraphile middleware that already exists or create a
   // new one. No matter what, set the last access time to now so it is not terminated.
   const getPostgraphile = (db: string) => {
-    postgraphiles[db] = postgraphiles[db] ?? {
-      lastAccessMs: Date.now(),
-      graphile: postgraphile(
-        `postgresql://${config.db.user}:${config.db.password}@${config.db.host}/${db}${config.db.forceSSL ? '?sslmode=no-verify' : ''}`,
-        'public',
-        {
-          externalUrlBase: `/v1/graphql/${db}`,
-          graphiql: withGraphiql,
-          watchPg: true,
-        }),
-    };
+    try {
+      postgraphiles[db] = postgraphiles[db] ?? {
+        lastAccessMs: Date.now(),
+        graphile: postgraphile(
+          `postgresql://${config.db.user}:${config.db.password}@${config.db.host}/${db}${config.db.forceSSL ? '?sslmode=no-verify' : ''}`,
+          'public',
+          {
+            externalUrlBase: `/v1/graphql/${db}`,
+            graphiql: withGraphiql,
+            watchPg: true,
+          }),
+      };
+    } catch(e) {
+      // If postgraphile fails during construction, that error could crash the server. Instead
+      // we pass back an Express middleware that always fails
+      postgraphiles[db] = {
+        lastAccessMs: Date.now(),
+        graphile: (_req: any, _res: any, next: any) => next(new Error(`${db} does not exist`)),
+      };
+    }
     postgraphiles[db].lastAccessMs = Date.now();
     return postgraphiles[db].graphile;
   };

@@ -19,9 +19,6 @@ export class IasqlDatabase {
   alias: string;
 
   @Column()
-  region: string;
-
-  @Column()
   pgUser: string;
 
   @Column({
