@@ -48,10 +48,14 @@ afterAll(async () => await execComposeDown(modules));
 describe('IAM Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
-    region,
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the aws_account module', install(['aws_account']));
+
+  it('inserts aws credentials', query(`
+    INSERT INTO aws_account (region, access_key_id, secret_access_key)
+    VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `));
 
   it('installs the iam module', install(modules));
 
@@ -192,10 +196,14 @@ describe('IAM Integration Testing', () => {
 describe('IAM install/uninstall', () => {
   it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
-    'us-east-1', // Share region with common tests
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the aws_account module', install(['aws_account']));
+
+  it('inserts aws credentials', query(`
+    INSERT INTO aws_account (region, access_key_id, secret_access_key)
+    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `));
 
   it('installs the IAM module', install(modules));
 

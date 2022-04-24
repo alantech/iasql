@@ -1,4 +1,4 @@
-import { CpuMemCombination, TaskDefinitionStatus } from '../../src/modules/aws_ecs_fargate@0.0.1/entity';
+import { CpuMemCombination, } from '../../src/modules/aws_ecs_fargate@0.0.1/entity';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runInstall, runUninstall, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
@@ -12,6 +12,8 @@ const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const query2 = runQuery.bind(null, dbAliasSidecar);
+const install2 = runInstall.bind(null, dbAliasSidecar);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ecr', 'aws_elb', 'aws_security_group', 'aws_cloudwatch', 'aws_ecs_fargate', 'aws_vpc', 'aws_iam'];
 
@@ -45,15 +47,11 @@ const taskRolePolicyDoc = JSON.stringify({
 });
 const taskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy';
 const tdCpuMem = CpuMemCombination['vCPU2-8GB'];
-const tdActive = TaskDefinitionStatus.ACTIVE;
 const serviceDesiredCount = 1;
 const serviceTargetGroupName = `${serviceName}tg`;
 const serviceLoadBalancerName = `${serviceName}lb`;
-const newServiceName = `${serviceName}replace`;
 const repositoryName = `${prefix}${dbAlias}repository`;
 const containerNameRepository = `${prefix}${dbAlias}containerrepository`;
-const publicRepositoryName = `${prefix}${dbAlias}publicrepository-${region}`;
-const containerNamePublicRepository = `${prefix}${dbAlias}containerpublicrepository`;
 const securityGroup = `${prefix}${dbAlias}sg`;
 
 // TODO: Improve timings for this test
@@ -64,17 +62,25 @@ afterAll(async () => await execComposeDown(modules));
 describe('ECS Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.connect(
     dbAlias,
-    region,
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the aws_account module', install(['aws_account']));
+
+  it('inserts aws credentials', query(`
+    INSERT INTO aws_account (region, access_key_id, secret_access_key)
+    VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `));
 
   it('creates a new sidecar test db ECS', (done) => void iasql.connect(
     dbAliasSidecar,
-    region,
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the aws_account module', install2(['aws_account']));
+
+  it('inserts aws credentials', query2(`
+    INSERT INTO aws_account (region, access_key_id, secret_access_key)
+    VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `));
 
   it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 
