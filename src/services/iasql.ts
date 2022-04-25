@@ -722,7 +722,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
 
 export async function modules(all: boolean, installed: boolean, dbId: string) {
   const allModules = Object.values(Modules)
-    .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && m.hasOwnProperty('version') && !/iasql_.*/.test(m.name))
+    .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && !/iasql_.*/.test(m.name))
     .map((m: any) => ({
       moduleName: m.name,
       moduleVersion: m.version,
@@ -735,7 +735,7 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
     const orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
     const mods = await orm.find(IasqlModule);
     const modsInstalled = mods.map((m: IasqlModule) => (m.name));
-    return JSON.stringify(allModules.filter(m => modsInstalled.includes(m.moduleName)));
+    return JSON.stringify(allModules.filter(m => modsInstalled.includes(`${m.moduleName}@${m.moduleVersion}`)));
   } else {
     throw new Error('Invalid request parameters');
   }
@@ -744,7 +744,10 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
 export async function install(moduleList: string[], dbId: string, dbUser: string, allModules = false, ormOpt?: TypeormWrapper) {
   // Check to make sure that all specified modules actually exist
   if (allModules) {
+    const installedModules = JSON.parse(await modules(false, true, dbId))
+      .map((r: any) => r.moduleName);
     moduleList = (Object.values(Modules) as Modules.ModuleInterface[])
+      .filter((m: Modules.ModuleInterface) => !installedModules.includes(m.name))
       .filter((m: Modules.ModuleInterface) => m.name && m.version && ![
         'iasql_platform',
         'iasql_functions',
