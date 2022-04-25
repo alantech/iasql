@@ -11,9 +11,9 @@ const ubuntuAmiId = 'ami-0892d3c7ee96c0bf7';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const query2 = runQuery.bind(null, `${dbAlias}_sync`);
+const querySync = runQuery.bind(null, `${dbAlias}_sync`);
 const install = runInstall.bind(null, dbAlias);
-const install2 = runInstall.bind(null, `${dbAlias}_sync`);
+const installSync = runInstall.bind(null, `${dbAlias}_sync`);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ec2', 'aws_security_group', 'aws_vpc'];
 
@@ -37,9 +37,9 @@ describe('EC2 Integration Testing', () => {
     `${dbAlias}_sync`,
     'not-needed', 'not-needed').then(...finish(done)));
 
-  it('installs the aws_account module', install2(['aws_account']));
+  it('installs the aws_account module', installSync(['aws_account']));
 
-  it('inserts aws credentials', query2(`
+  it('inserts aws credentials', querySync(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `));

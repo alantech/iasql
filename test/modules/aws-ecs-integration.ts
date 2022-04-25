@@ -13,8 +13,8 @@ const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
-const query2 = runQuery.bind(null, dbAliasSidecar);
-const install2 = runInstall.bind(null, dbAliasSidecar);
+const querySync = runQuery.bind(null, dbAliasSidecar);
+const installSync = runInstall.bind(null, dbAliasSidecar);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ecr', 'aws_elb', 'aws_security_group', 'aws_cloudwatch', 'aws_ecs_fargate', 'aws_vpc', 'aws_iam'];
 
@@ -79,9 +79,9 @@ describe('ECS Integration Testing', () => {
     dbAliasSidecar,
     'not-needed', 'not-needed').then(...finish(done)));
 
-  it('installs the aws_account module', install2(['aws_account']));
+  it('installs the aws_account module', installSync(['aws_account']));
 
-  it('inserts aws credentials', query2(`
+  it('inserts aws credentials', querySync(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `));
