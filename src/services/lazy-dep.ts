@@ -21,17 +21,16 @@ export async function lazyLoader(promiseGenerators: (() => Promise<any>)[]) {
   const failures = [];
   do {
     logger.info('Starting a loop...');
-    const results = await Promise.allSettled(generatorsToRun.map(g => g()));
     const generatorsToRerun = [];
-    for (let i = 0; i < results.length; i++) {
-      if (results[i].status === 'fulfilled') {
-        continue;
+    for (const g of generatorsToRun) {
+      try {
+        await g();
+      } catch (e: any) {
+        const err = e ?? new Error('An unexpected error occurred');
+        err.stack = e.stack ?? err.stack;
+        failures.push(err);
+        generatorsToRerun.push(g);
       }
-      const reason = (results[i] as PromiseRejectedResult).reason;
-      const err = new Error((reason ?? 'An unexpected error occurred'));
-      err.stack = reason.stack ?? err.stack;
-      failures.push(err);
-      generatorsToRerun.push(generatorsToRun[i]);
     }
     if (generatorsToRun.length === generatorsToRerun.length) break;
     generatorsToRun = generatorsToRerun;
