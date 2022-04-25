@@ -148,6 +148,7 @@ import {
   DeleteHostedZoneCommand,
   GetHostedZoneCommand,
   ListResourceRecordSetsCommand,
+  ListResourceRecordSetsCommandInput,
   paginateListHostedZones,
   ResourceRecordSet,
   Route53Client
@@ -1474,21 +1475,19 @@ export class AWS {
 
   async getRecords(hostedZoneId: string) {
     const records = [];
-    let res = await this.route53Client.send(
-      new ListResourceRecordSetsCommand({
-        HostedZoneId: hostedZoneId,
-      })
-    );
+    let res;
     do {
-      records.push(...(res.ResourceRecordSets ?? []));
+      const listResourceRecordSetsCommandInput: ListResourceRecordSetsCommandInput = {
+        HostedZoneId: hostedZoneId,
+      };
+      if (res?.NextRecordName) {
+        listResourceRecordSetsCommandInput.StartRecordName = res.NextRecordName;
+      }
       res = await this.route53Client.send(
-        new ListResourceRecordSetsCommand({
-          HostedZoneId: hostedZoneId,
-          StartRecordName: res.NextRecordName,
-        })
+        new ListResourceRecordSetsCommand(listResourceRecordSetsCommandInput)
       );
-    } while (res.IsTruncated);
-    records.push(...(res.ResourceRecordSets ?? []));
+      records.push(...(res.ResourceRecordSets ?? []));
+    } while (res?.IsTruncated);
     return records;
   }
 
