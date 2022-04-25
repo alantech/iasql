@@ -23,6 +23,4 @@ export class HostedZone {
   @Column()
   domainName: string;
 
-  @OneToMany(() => ResourceRecordSet, r => r.parentHostedZone)
-  records: ResourceRecordSet[];
 }
