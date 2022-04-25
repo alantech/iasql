@@ -63,7 +63,7 @@
     "axios": "^0.26.1",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "express-jwt": "^6.1.0",
+    "express-jwt": "^7.4.3",
     "graphile-worker": "^0.12.2",
     "jwks-rsa": "^2.0.4",
     "pg": "^8.7.3",
