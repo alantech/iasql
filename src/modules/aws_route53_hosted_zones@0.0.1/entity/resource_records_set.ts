@@ -4,6 +4,9 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  AfterLoad,
+  AfterInsert,
+  AfterUpdate,
 } from 'typeorm'
 
 import { HostedZone } from './hosted_zone';
@@ -53,4 +56,14 @@ export class ResourceRecordSet {
     name: 'parent_hosted_zone_id',
   })
   parentHostedZone: HostedZone;
+
+  @AfterLoad()
+  @AfterInsert()
+  @AfterUpdate()
+  updateNulls() {
+    const that: any = this;
+    Object.keys(this).forEach(k => {
+      if (that[k] === null) that[k] = undefined;
+    });
+  }
 }
