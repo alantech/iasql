@@ -45,10 +45,10 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
         create: async (hz: HostedZone[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           return await Promise.all(hz.map(async (e) => {
-            const hz = await client.createHostedZone(e.domainName);
-            if (!hz?.Id) throw new Error('How this happen!?')
+            const createdHz = await client.createHostedZone(e.domainName);
+            if (!createdHz?.Id) throw new Error('How this happen!?')
             // Re-get the inserted record to get all of the relevant records we care about
-            const newObject = await client.getHostedZone(hz?.Id);
+            const newObject = await client.getHostedZone(createdHz?.Id);
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsRoute53HostedZoneModule.utils.hostedZoneMapper(newObject, ctx);
             // We attach the original object's ID to this new one, indicating the exact record it is
@@ -90,9 +90,9 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
     }),
     resourceRecordSet: new Mapper<ResourceRecordSet>({
       entity: ResourceRecordSet,
-      entityId: (e: ResourceRecordSet) => e.parentHostedZone?.hostedZoneId ? 
+      entityId: (e: ResourceRecordSet) => e.parentHostedZone?.hostedZoneId ?
         `${e.parentHostedZone.hostedZoneId}${AwsRoute53HostedZoneModule.utils.resourceRecordSetName(e)}${e.recordType}` : `${e.id}`,
-      equals: (a: ResourceRecordSet, b: ResourceRecordSet) => 
+      equals: (a: ResourceRecordSet, b: ResourceRecordSet) =>
         Object.is(AwsRoute53HostedZoneModule.utils.resourceRecordSetName(a), AwsRoute53HostedZoneModule.utils.resourceRecordSetName(b))
         && Object.is(a.parentHostedZone?.hostedZoneId, b.parentHostedZone?.hostedZoneId)
         && Object.is(a.recordType, b.recordType)
@@ -171,9 +171,9 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
             if (!!dbHostedZone && (Object.is(e.recordType, 'SOA') || Object.is(e.recordType, 'NS'))) {
               const recordsSet: ResourceRecordSet[] | undefined = await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.read(ctx);
               let hasRecord;
-              if (Object.is(e.recordType, 'SOA')) hasRecord = recordsSet?.some(r => Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId) 
+              if (Object.is(e.recordType, 'SOA')) hasRecord = recordsSet?.some(r => Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId)
                 && Object.is(r.recordType, 'SOA'));
-              if (Object.is(e.recordType, 'NS')) hasRecord = recordsSet?.some(r => Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId) 
+              if (Object.is(e.recordType, 'NS')) hasRecord = recordsSet?.some(r => Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId)
                 && Object.is(r.recordType, 'NS'));
               // If theres no record we have to created it in database instead of delete it from cloud
               if (!hasRecord) {

@@ -25,7 +25,7 @@ export enum RecordType {
   SPF = "SPF",
   SRV = "SRV",
   TXT = "TXT",
-} 
+}
 
 // TODO add unique constraint based on name + record type + parenthostedzone
 @Entity()
