@@ -27,6 +27,9 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
       }
       out.recordType = rrs.Type as RecordType;
       out.ttl = rrs.TTL;
+      // TODO: right now just supporting `ResourceRecords`.
+      // If AliasTarget or TrafficPolicyInstanceId do not fail but ignore that record
+      if (!rrs.ResourceRecords && (rrs.AliasTarget || rrs.TrafficPolicyInstanceId)) return null;
       out.records = rrs.ResourceRecords?.map((o: { Value: string }) => o.Value).join('\n') ?? '';
       return out;
     },
@@ -115,6 +118,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
             // We map this into the same kind of entity as `obj`
             const newObject = { ...newResourceRecordSet, HostedZoneId: e.parentHostedZone.hostedZoneId };
             const newEntity = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(newObject, ctx);
+            if (!newEntity) return;
             // We attach the original object's ID to this new one, indicating the exact record it is
             // replacing in the database.
             newEntity.id = e.id;
@@ -139,7 +143,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
               continue;
             }
           }
-          return await Promise.all(records.map((r: any) => AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(r, ctx)));
+          return (await Promise.all(records.map((r: any) => AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(r, ctx)))).filter(r => !!r);
         },
         updateOrReplace: () => 'update',
         update: async (es: ResourceRecordSet[], ctx: Context) => {
@@ -156,6 +160,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
             const updatedRecordSet = await client.getRecord(e.parentHostedZone.hostedZoneId, e.name, e.recordType);
             if (!updatedRecordSet) throw new Error('Error updating record');
             const newEntity = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(updatedRecordSet, ctx);
+            if (!newEntity) return;
             newEntity.id = cloudRecord.id;
             await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.update(newEntity, ctx);
             return newEntity;
