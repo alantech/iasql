@@ -140,7 +140,21 @@ import {
   ECRPUBLICClient,
   paginateDescribeRepositories as paginateDescribePubRepositories,
 } from '@aws-sdk/client-ecr-public'
+import {
+  ChangeAction,
+  ChangeResourceRecordSetsCommand,
+  CreateHostedZoneCommand,
+  CreateHostedZoneCommandInput,
+  DeleteHostedZoneCommand,
+  GetHostedZoneCommand,
+  ListResourceRecordSetsCommand,
+  ListResourceRecordSetsCommandInput,
+  paginateListHostedZones,
+  ResourceRecordSet,
+  Route53Client
+} from '@aws-sdk/client-route-53'
 import { IAM } from '@aws-sdk/client-iam'
+import { RecordType } from '../../modules/aws_route53_hosted_zones@0.0.1/entity/resource_records_set'
 
 import logger from '../logger'
 
@@ -164,6 +178,7 @@ export class AWS {
   private rdsClient: RDSClient
   private cwClient: CloudWatchLogsClient
   private ecrPubClient: ECRPUBLICClient
+  private route53Client: Route53Client
   private iamClient: IAM;
   private credentials: AWSCreds
   public region: string
@@ -177,6 +192,7 @@ export class AWS {
     this.ecsClient = new ECSClient(config);
     this.rdsClient = new RDSClient(config);
     this.cwClient = new CloudWatchLogsClient(config);
+    this.route53Client = new Route53Client(config);
     this.iamClient = new IAM(config);
     // Service endpoint only available in 'us-esat-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
     this.ecrPubClient = new ECRPUBLICClient({credentials: config.credentials, region: 'us-east-1'});
@@ -1395,6 +1411,103 @@ export class AWS {
         repositoryName: name,
       }),
     );
+  }
+
+  async createHostedZone(domainName: string) {
+    const input: CreateHostedZoneCommandInput = {
+      Name: domainName,
+      CallerReference: `${this.region}-${Date.now()}`,
+    }
+    const res = await this.route53Client.send(
+      new CreateHostedZoneCommand(input)
+    );
+    return res.HostedZone;
+  }
+
+  async getHostedZones() {
+    const hostedZones = [];
+    const paginator = paginateListHostedZones({
+      client: this.route53Client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      hostedZones.push(...(page.HostedZones ?? []));
+    }
+    return hostedZones;
+  }
+
+  async getHostedZone(hostedZoneId: string) {
+    const res = await this.route53Client.send(
+      new GetHostedZoneCommand({
+        Id: hostedZoneId,
+      })
+    );
+    return res.HostedZone;
+  }
+
+  async deleteHostedZone(hostedZoneId: string) {
+    const res = await this.route53Client.send(
+      new DeleteHostedZoneCommand({
+        Id: hostedZoneId,
+      })
+    );
+    return res.ChangeInfo;
+  }
+
+  newChangeResourceRecordSetsCommand(hostedZoneId: string, record: ResourceRecordSet, action: ChangeAction) {
+    return new ChangeResourceRecordSetsCommand({
+      HostedZoneId: hostedZoneId,
+      ChangeBatch: {
+        Changes: [{
+          Action: action,
+          ResourceRecordSet: record
+        }]
+      }
+    })
+  }
+
+  async createResourceRecordSet(hostedZoneId: string, record: ResourceRecordSet) {
+    const res = await this.route53Client.send(
+      this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'CREATE')
+    );
+    return res;
+  }
+
+  async getRecords(hostedZoneId: string) {
+    const records = [];
+    let res;
+    do {
+      const listResourceRecordSetsCommandInput: ListResourceRecordSetsCommandInput = {
+        HostedZoneId: hostedZoneId,
+      };
+      if (res?.NextRecordName) {
+        listResourceRecordSetsCommandInput.StartRecordName = res.NextRecordName;
+      }
+      res = await this.route53Client.send(
+        new ListResourceRecordSetsCommand(listResourceRecordSetsCommandInput)
+      );
+      records.push(...(res.ResourceRecordSets ?? []));
+    } while (res?.IsTruncated);
+    return records;
+  }
+
+  async getRecord(hostedZoneId: string, recordName: string, recordType: RecordType) {
+    const records = await this.getRecords(hostedZoneId);
+    return records.find(r => Object.is(r.Type, recordType) && Object.is(r.Name, recordName));
+  }
+
+  async updateResourceRecordSet(hostedZoneId: string, record: ResourceRecordSet) {
+    const res = await this.route53Client.send(
+      this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'UPSERT')
+    );
+    return res;
+  }
+
+  async deleteResourceRecordSet(hostedZoneId: string, record: ResourceRecordSet) {
+    const res = await this.route53Client.send(
+      this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'DELETE')
+    );
+    return res;
   }
 
 }
