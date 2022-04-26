@@ -13,6 +13,8 @@ const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
+const querySync = runQuery.bind(null, dbAliasSidecar);
+const installSync = runInstall.bind(null, dbAliasSidecar);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ecr', 'aws_elb', 'aws_security_group', 'aws_cloudwatch', 'aws_ecs_fargate', 'aws_vpc', 'aws_iam'];
 
@@ -64,17 +66,25 @@ afterAll(async () => await execComposeDown(modules));
 describe('ECS Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.connect(
     dbAlias,
-    region,
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the aws_account module', install(['aws_account']));
+
+  it('inserts aws credentials', query(`
+    INSERT INTO aws_account (region, access_key_id, secret_access_key)
+    VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `));
 
   it('creates a new sidecar test db ECS', (done) => void iasql.connect(
     dbAliasSidecar,
-    region,
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the aws_account module', installSync(['aws_account']));
+
+  it('inserts aws credentials', querySync(`
+    INSERT INTO aws_account (region, access_key_id, secret_access_key)
+    VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `));
 
   it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 
@@ -482,10 +492,14 @@ describe('ECS Integration Testing', () => {
 describe('ECS install/uninstall', () => {
   it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
-    'us-east-1', // Share region with common tests
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
     'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the aws_account module', install(['aws_account']));
+
+  it('inserts aws credentials', query(`
+    INSERT INTO aws_account (region, access_key_id, secret_access_key)
+    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `));
 
   it('installs the ECS module', install(
     modules));

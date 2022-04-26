@@ -84,10 +84,9 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
   const dbAlias = `cleandb${Date.now()}`;
   const awsRegion = region ?? process.env.AWS_REGION ?? 'barf';
   logger.info(`Cleaning ${dbAlias} in ${awsRegion}...`);
-  await iasql.connect(dbAlias, awsRegion, process.env.AWS_ACCESS_KEY_ID ?? 'barf', process.env.  AWS_SECRET_ACCESS_KEY ?? 'barf', 'not-needed', 'not-needed');
+  await iasql.connect(dbAlias, 'not-needed', 'not-needed');
   logger.info('DB created...');
-  await iasql.install(modules, dbAlias, config.db.user);
-  logger.info(`Modules ${modules} installed...`);
+  await iasql.install(['aws_account@0.0.1'], dbAlias, config.db.user);
   const conn = await createConnection({
     name: dbAlias,
     type: 'postgres',
@@ -99,6 +98,13 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
     extra: { ssl: false, },
   });
   logger.info(`Connection created...`);
+  await conn.query(`
+    INSERT INTO aws_account (region, access_key_id, secret_access_key)
+    VALUES ('${awsRegion}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `);
+  logger.info('AWS Account set up');
+  await iasql.install(modules, dbAlias, config.db.user);
+  logger.info(`Modules ${modules.join(', ')} installed...`);
   const delQuery = fs.readFileSync(`${__dirname}/sql/delete_records.sql`, 'utf8');
   logger.info(delQuery);
   await conn.query(delQuery);

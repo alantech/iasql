@@ -34,10 +34,7 @@ describe('Basic integration testing', () => {
       --show-error --silent --fail \
       --header 'content-type: application/json' \
       --data '{
-        "dbAlias": "__${sha}__",
-        "awsRegion": "us-east-1",
-        "awsAccessKeyId": "${process.env.AWS_ACCESS_KEY_ID}",
-        "awsSecretAccessKey": "${process.env.AWS_SECRET_ACCESS_KEY}"
+        "dbAlias": "__${sha}__"
       }'
     `);
   });

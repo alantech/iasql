@@ -72,9 +72,6 @@ export async function getDbRecCount(conn: TypeormWrapper): Promise<number> {
 
 export async function connect(
   dbAlias: string,
-  awsRegion: string,
-  awsAccessKeyId: string | undefined,
-  awsSecretAccessKey: string | undefined,
   uid: string,
   email: string,
   directConnect: boolean = false,
@@ -86,14 +83,11 @@ export async function connect(
     dbUser = dbGen[0];
     const dbPass = dbGen[1];
     dbId = dbMan.genDbId(dbAlias);
-    const hasCredentials = !!awsAccessKeyId && !!awsSecretAccessKey;
     const metaDb = new IasqlDatabase();
     metaDb.alias = dbAlias;
     metaDb.pgUser = dbUser;
-    metaDb.region = awsRegion;
     metaDb.pgName = dbId;
     metaDb.directConnect = directConnect
-    metaDb.isReady = hasCredentials;
     await MetadataRepo.saveDb(uid, email, metaDb);
     logger.info('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
@@ -109,30 +103,6 @@ export async function connect(
       database: dbId,
     });
     await dbMan.migrate(conn2);
-    const queryRunner = conn2.createQueryRunner();
-    await Modules.AwsAccount.migrations.install?.(queryRunner);
-    logger.info('Adding aws_account@0.0.1 schema...');
-    // TODO: Use the entity for this in the future?
-    await conn2.query(`
-      INSERT INTO iasql_module VALUES ('aws_account@0.0.1')
-    `);
-    if (hasCredentials) {
-      // Attach credentials
-      await attach(uid, dbAlias, dbId, awsRegion, awsAccessKeyId, awsSecretAccessKey, conn2);
-    } else {
-      let counter = 0;
-      const checkCredInterval = setInterval(async () => {
-        try {
-          const updated = await maybeUpdateStatus(uid, dbAlias, dbId);
-          if (updated) clearInterval(checkCredInterval);
-          counter++;
-          if (counter === 60) clearInterval(checkCredInterval); // try for 30 min
-        } catch (e: any) {
-          clearInterval(checkCredInterval);
-          logger.error('maybeUpdateStatus failed. clear Interval', e)
-        }
-      }, 30000);
-    }
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
     await MetadataRepo.updateDbRecCount(dbId, await getDbRecCount(conn2));
@@ -177,8 +147,6 @@ export async function attach(
     await conn.query(`
       INSERT INTO aws_account (access_key_id, secret_access_key, region) VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}')
     `);
-    // Set database to ready
-    await MetadataRepo.updateDbStatus(uid, dbAlias, true);
     logger.info('Loading aws_account data...');
     // Manually load the relevant data from the cloud side for the `aws_account` module.
     // TODO: Figure out how to eliminate *most* of this special-casing for this module in the future
@@ -751,18 +719,12 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
 }
 
 export async function modules(all: boolean, installed: boolean, dbId: string) {
-  // TODO rm special casing for aws_account, but keep iasql_platform and iasql_functions
-  const whyIsItAlwaysYouThree = [
-    'aws_account@0.0.1',
-    'iasql_platform@0.0.1',
-    'iasql_functions@0.0.1',
-  ];
   const allModules = Object.values(Modules)
-    .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && m.hasOwnProperty('version') && !whyIsItAlwaysYouThree.includes(`${m.name}@${m.version}`))
+    .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && !/iasql_.*/.test(m.name))
     .map((m: any) => ({
       moduleName: m.name,
       moduleVersion: m.version,
-      dependencies: m.dependencies.filter((d: any) => !whyIsItAlwaysYouThree.includes(d)),
+      dependencies: m.dependencies.filter((d: any) => !/iasql_.*/.test(d)),
     }));
   if (all) {
     return JSON.stringify(allModules);
@@ -771,7 +733,7 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
     const orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
     const mods = await orm.find(IasqlModule);
     const modsInstalled = mods.map((m: IasqlModule) => (m.name));
-    return JSON.stringify(allModules.filter(m => modsInstalled.includes(m.moduleName)));
+    return JSON.stringify(allModules.filter(m => modsInstalled.includes(`${m.moduleName}@${m.moduleVersion}`)));
   } else {
     throw new Error('Invalid request parameters');
   }
@@ -780,9 +742,11 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
 export async function install(moduleList: string[], dbId: string, dbUser: string, allModules = false, ormOpt?: TypeormWrapper) {
   // Check to make sure that all specified modules actually exist
   if (allModules) {
+    const installedModules = JSON.parse(await modules(false, true, dbId))
+      .map((r: any) => r.moduleName);
     moduleList = (Object.values(Modules) as Modules.ModuleInterface[])
+      .filter((m: Modules.ModuleInterface) => !installedModules.includes(m.name))
       .filter((m: Modules.ModuleInterface) => m.name && m.version && ![
-        'aws_account',
         'iasql_platform',
         'iasql_functions',
       ].includes(m.name)).map((m: Modules.ModuleInterface) => `${m.name}@${m.version}`);
@@ -804,12 +768,10 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
       i--;
     }
   }
-  // TODO rm special casing for aws_account, but keep for iasql_platform and iasql_functions
   // Check to make sure that all dependent modules are in the list
   const missingDeps = mods
     .flatMap((m: Modules.Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
     .filter((m: any) => ![
-      'aws_account@0.0.1',
       'iasql_platform@0.0.1',
       'iasql_functions@0.0.1',
     ].includes(m) && m !== undefined);
@@ -994,32 +956,5 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
     await queryRunner.release();
   }
   return "Done!";
-}
-
-export async function maybeUpdateStatus(uid: string, dbAlias: string, dbId: string, ormOpt?: TypeormWrapper) {
-  logger.info(`Maybe update ${dbId} status`);
-  let orm: TypeormWrapper | null = null;
-  try {
-    orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
-    const memo: any = {}; // TODO: Stronger typing here
-    const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
-    const accountModule = (Object.values(Modules) as Modules.ModuleInterface[])
-      .find(mod => ['aws_account@0.0.1'].includes(`${mod.name}@${mod.version}`)) as Modules.Module;
-    if (!accountModule) throw new Error(`This should be impossible. Cannot find module aws_account`);
-    const awsAccounts = await accountModule.mappers.awsAccount.db.read(context);
-    if (awsAccounts.length) {
-      await MetadataRepo.updateDbStatus(uid, dbAlias, true);
-      logger.info(`Updated ${dbId} status`);
-      return true;
-    }
-    logger.info(`${dbId} status not updated`);
-    return false;
-  } catch (e: any) {
-    debugObj(e);
-    throw e;
-  } finally {
-    // do not drop the conn if it was provided
-    if (orm !== ormOpt) orm?.dropConn();
-  }
 }
 

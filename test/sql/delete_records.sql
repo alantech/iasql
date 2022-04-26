@@ -7,7 +7,7 @@ DECLARE
   aws_region text;
 BEGIN
   SELECT region INTO aws_region FROM aws_account;
-  SELECT ARRAY(SELECT "table" FROM iasql_tables) INTO tables_array;
+  SELECT ARRAY(SELECT "table" FROM iasql_tables WHERE "table" <> 'aws_account') INTO tables_array;
   SELECT array_length(tables_array, 1) INTO tables_array_length;
   WHILE tables_array_length > 0 AND loop_count < 20 LOOP
     SELECT tables_array INTO aux_tables_array;

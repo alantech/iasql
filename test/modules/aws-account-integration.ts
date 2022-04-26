@@ -5,12 +5,14 @@ import {
   execComposeUp,
   finish,
   runApply,
+  runInstall,
   runQuery,
   runSync,
 } from '../helpers'
 
 const dbAlias = 'accounttest';
 const apply = runApply.bind(null, dbAlias);
+const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 
@@ -31,11 +33,14 @@ describe('AwsAccount Integration Testing', () => {
     ));*/
 
   it('creates a new test db with the same name', (done) => void iasql.connect(
-    dbAlias,
-    process.env.AWS_REGION ?? 'barf',
-    process.env.AWS_ACCESS_KEY_ID ?? 'barf',
-    process.env.AWS_SECRET_ACCESS_KEY ?? 'barf',
-    'not-needed', 'not-needed').then(...finish(done)));
+    dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the aws_account module', install(['aws_account']));
+
+  it('inserts aws credentials', query(`
+    INSERT INTO aws_account (region, access_key_id, secret_access_key)
+    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `));
 
   it('inserts a second, useless row into the aws_account table', query(`
     INSERT INTO aws_account (access_key_id, secret_access_key, region)
