@@ -64,7 +64,7 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "express-jwt": "^6.1.0",
-    "graphile-worker": "^0.12.2",
+    "graphile-worker": "^0.13.0",
     "jwks-rsa": "^2.0.4",
     "pg": "^8.7.3",
     "postgraphile": "^4.12.9",
