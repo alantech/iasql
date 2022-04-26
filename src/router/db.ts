@@ -64,7 +64,7 @@ db.post('/attach', async (req, res) => {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     res.json(
       await iasql.attach(
-        uid, dbAlias, database.pgName, awsRegion, awsAccessKeyId, awsSecretAccessKey
+        dbAlias, database.pgName, awsRegion, awsAccessKeyId, awsSecretAccessKey
       )
     );
   } catch (e) {

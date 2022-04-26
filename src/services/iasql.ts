@@ -8,6 +8,7 @@ const exec = promisify(execNode);
 import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 import { snakeCase, } from 'typeorm/util/StringUtils'
+import { find, } from 'node-levenshtein'
 
 import { DepError, lazyLoader, } from './lazy-dep'
 import { findDiff, } from './diff'
@@ -128,7 +129,6 @@ export async function connect(
 }
 
 export async function attach(
-  uid: string,
   dbAlias: string,
   dbId: string,
   awsRegion: string,
@@ -754,8 +754,18 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@0.0.1`);
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === n)) as Modules.Module[];
   if (mods.some((m: any) => m === undefined)) {
-    throw new Error(`The following modules do not exist: ${moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
-      }`);
+    const modNames = (Object.values(Modules) as Modules.ModuleInterface[])
+      .filter(m => m.hasOwnProperty('name') && m.hasOwnProperty('version'))
+      .map(m => `${m.name}@${m.version}`);
+    const missingModules = moduleList
+      .filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[])
+        .find(m => `${m.name}@${m.version}` === n));
+    const missingSuggestions = [
+      ...new Set(missingModules.map(m => find(m, modNames))).values(),
+    ];
+    throw new Error(`The following modules do not exist: ${
+      missingModules.join(', ')
+    }. Did you mean: ${missingSuggestions.join(', ')}`);
   }
   const orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
   const queryRunner = orm.createQueryRunner();

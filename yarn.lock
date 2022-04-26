@@ -4239,6 +4239,11 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
 
+node-levenshtein@^3.0.7:
+  version "3.0.7"
+  resolved "https://registry.yarnpkg.com/node-levenshtein/-/node-levenshtein-3.0.7.tgz#531c87f4ffab5e9f108c783c08013a113e704cb7"
+  integrity sha512-ry7kU3/8sXKeyb/rilOhim20AuVBoMAla1LMqkuP9DaHpekeh50xUiEkOiSalQn7ZhpWRPfro2tfwySvu121QA==
+
 node-releases@^2.0.3:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/node-releases/-/node-releases-2.0.3.tgz#225ee7488e4a5e636da8da52854844f9d716ca96"

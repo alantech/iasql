@@ -67,6 +67,7 @@
     "express-jwt": "^6.1.0",
     "graphile-worker": "^0.13.0",
     "jwks-rsa": "^2.0.4",
+    "node-levenshtein": "^3.0.7",
     "pg": "^8.7.3",
     "postgraphile": "^4.12.9",
     "reflect-metadata": "^0.1.13",
