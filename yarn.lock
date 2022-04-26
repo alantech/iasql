@@ -3521,10 +3521,10 @@ graphile-utils@^4.12.2:
     graphql ">=0.9 <0.14 || ^14.0.2 || ^15.4.0"
     tslib "^2.0.1"
 
-graphile-worker@^0.12.2:
-  version "0.12.2"
-  resolved "https://registry.yarnpkg.com/graphile-worker/-/graphile-worker-0.12.2.tgz#d26a00006e1d683c0a11a6d60e21fe9544670a44"
-  integrity sha512-eHDOm15bWDAg4HFWo4FHklIxbtQip44p0nelP7AbkZGvnHKiZMPp8D/hi2HO96bJBHB6A4Zo3zH9o5jBejm5Yw==
+graphile-worker@^0.13.0:
+  version "0.13.0"
+  resolved "https://registry.yarnpkg.com/graphile-worker/-/graphile-worker-0.13.0.tgz#8cf2ef75d1d58f2a634c4dcb7fe700c4fda9a77f"
+  integrity sha512-8Hl5XV6hkabZRhYzvbUfvjJfPFR5EPxYRVWlzQC2rqYHrjULTLBgBYZna5R9ukbnsbWSvn4vVrzOBIOgIC1jjw==
   dependencies:
     "@graphile/logger" "^0.2.0"
     "@types/debug" "^4.1.2"
