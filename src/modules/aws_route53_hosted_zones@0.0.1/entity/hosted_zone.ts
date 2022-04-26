@@ -6,7 +6,6 @@ import {
 } from 'typeorm'
 
 import { cloudId, } from '../../../services/cloud-id'
-import { ResourceRecordSet } from './resource_records_set';
 
 @Entity()
 export class HostedZone {
