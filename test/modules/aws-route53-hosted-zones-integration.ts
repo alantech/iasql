@@ -100,7 +100,7 @@ describe('Route53 Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('adds a new record to hosted zone', query(`
-    INSERT INTO resource_record_set (name, record_type, records, ttl, parent_hosted_zone_id)
+    INSERT INTO resource_record_set (name, record_type, record, ttl, parent_hosted_zone_id)
     SELECT '${resourceRecordSetName}', '${resourceRecordSetTypeCNAME}', '${resourceRecordSetRecord}', ${resourceRecordSetTtl}, id
     FROM hosted_zone
     WHERE domain_name = '${domainName}';
@@ -149,7 +149,7 @@ describe('Route53 Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('adds a new record to hosted zone', query(`
-    INSERT INTO resource_record_set (name, record_type, records, ttl, parent_hosted_zone_id)
+    INSERT INTO resource_record_set (name, record_type, record, ttl, parent_hosted_zone_id)
     SELECT '${resourceRecordSetMultilineName}', '${resourceRecordSetTypeA}', '${resourceRecordSetRecordMultiline}', ${resourceRecordSetTtl}, id
     FROM hosted_zone
     WHERE domain_name = '${replaceDomainName}';
@@ -173,7 +173,7 @@ describe('Route53 Integration Testing', () => {
     console.log(`${JSON.stringify(res)}`)
     const multiline = res.find(r => {console.log(JSON.stringify(r)); return r.name === resourceRecordSetMultilineName && r.record_type === resourceRecordSetTypeA});
     expect(multiline).toBeDefined();  
-    expect(multiline?.records?.split('\n').length).toBe(2);  
+    expect(multiline?.record?.split('\n').length).toBe(2);
     return expect(res.length).toBe(4);
   }));
 

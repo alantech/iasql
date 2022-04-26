@@ -30,7 +30,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
       // TODO: right now just supporting `ResourceRecords`.
       // If AliasTarget or TrafficPolicyInstanceId do not fail but ignore that record
       if (!rrs.ResourceRecords && (rrs.AliasTarget || rrs.TrafficPolicyInstanceId)) return null;
-      out.records = rrs.ResourceRecords?.map((o: { Value: string }) => o.Value).join('\n') ?? '';
+      out.record = rrs.ResourceRecords?.map((o: { Value: string }) => o.Value).join('\n') ?? '';
       return out;
     },
     resourceRecordSetName: (rrs: any) => {
@@ -100,7 +100,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
         && Object.is(a.parentHostedZone?.hostedZoneId, b.parentHostedZone?.hostedZoneId)
         && Object.is(a.recordType, b.recordType)
         && Object.is(a.ttl, b.ttl)
-        && Object.is(a.records, b.records),
+        && Object.is(a.record, b.record),
       source: 'db',
       cloud: new Crud({
         create: async (rrs: ResourceRecordSet[], ctx: Context) => {
@@ -110,7 +110,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
               Name: AwsRoute53HostedZoneModule.utils.resourceRecordSetName(e),
               Type: e.recordType,
               TTL: e.ttl,
-              ResourceRecords: e.records.split('\n').map(r => ({ Value: r }))
+              ResourceRecords: e.record.split('\n').map(r => ({ Value: r }))
             }
             await client.createResourceRecordSet(e.parentHostedZone.hostedZoneId, resourceRecordSet);
             // Re-get the inserted record to get all of the relevant records we care about
@@ -154,7 +154,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
               Name: AwsRoute53HostedZoneModule.utils.resourceRecordSetName(e),
               Type: e.recordType,
               TTL: e.ttl,
-              ResourceRecords: e.records.split('\n').map(r => ({ Value: r }))
+              ResourceRecords: e.record.split('\n').map(r => ({ Value: r }))
             };
             await client.updateResourceRecordSet(e.parentHostedZone.hostedZoneId, resourceRecordSet);
             const updatedRecordSet = await client.getRecord(e.parentHostedZone.hostedZoneId, e.name, e.recordType);
@@ -192,7 +192,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
               Name: AwsRoute53HostedZoneModule.utils.resourceRecordSetName(e),
               Type: e.recordType,
               TTL: e.ttl,
-              ResourceRecords: e.records.split('\n').map(r => ({ Value: r }))
+              ResourceRecords: e.record.split('\n').map(r => ({ Value: r }))
             };
             return await client.deleteResourceRecordSet(e.parentHostedZone.hostedZoneId, resourceRecordSet);
           }

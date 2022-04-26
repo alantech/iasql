@@ -43,7 +43,7 @@ export class ResourceRecordSet {
   recordType: RecordType;
 
   @Column()
-  records: string
+  record: string
 
   @Column({
     type: 'int',
