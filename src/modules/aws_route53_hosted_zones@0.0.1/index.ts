@@ -31,7 +31,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
       return out;
     },
     resourceRecordSetName: (rrs: any) => {
-      const name = rrs.name[rrs.name.length - 1] ? (rrs.name[rrs.name.length - 1] === '.' ? rrs.name : `${rrs.name}.`) : '';
+      const name = rrs.name && rrs.name[rrs.name.length - 1] ? (rrs.name[rrs.name.length - 1] === '.' ? rrs.name : `${rrs.name}.`) : '';
       const domainName = rrs.parentHostedZone.domainName;
       return `${name}${domainName}`;
     }
