@@ -1,5 +1,5 @@
 import * as express from 'express'
-import { expressjwt as jwt, GetVerificationKey, } from "express-jwt";
+import { expressjwt as jwt, GetVerificationKey, } from 'express-jwt'
 import jwksRsa from 'jwks-rsa'
 
 import config from '../config'
@@ -14,6 +14,7 @@ v1.use(express.json({ limit: '10000MB' }));
 v1.use(express.text({ limit: '10000MB' }));
 if (config.auth) {
   const checkJwt = jwt({
+    // TODO: Once @types/express-jwt is updated, remove this type mangling
     secret: jwksRsa.expressJwtSecret({
       jwksUri: `${config.auth.domain}.well-known/jwks.json`,
     }) as GetVerificationKey, // https://github.com/auth0/express-jwt/issues/288
