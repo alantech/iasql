@@ -147,8 +147,6 @@ export async function attach(
     await conn.query(`
       INSERT INTO aws_account (access_key_id, secret_access_key, region) VALUES ('${awsAccessKeyId}', '${awsSecretAccessKey}', '${awsRegion}')
     `);
-    // Set database to ready
-    await MetadataRepo.updateDbStatus(uid, dbAlias, true);
     logger.info('Loading aws_account data...');
     // Manually load the relevant data from the cloud side for the `aws_account` module.
     // TODO: Figure out how to eliminate *most* of this special-casing for this module in the future
@@ -958,32 +956,5 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
     await queryRunner.release();
   }
   return "Done!";
-}
-
-export async function maybeUpdateStatus(uid: string, dbAlias: string, dbId: string, ormOpt?: TypeormWrapper) {
-  logger.info(`Maybe update ${dbId} status`);
-  let orm: TypeormWrapper | null = null;
-  try {
-    orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
-    const memo: any = {}; // TODO: Stronger typing here
-    const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
-    const accountModule = (Object.values(Modules) as Modules.ModuleInterface[])
-      .find(mod => ['aws_account@0.0.1'].includes(`${mod.name}@${mod.version}`)) as Modules.Module;
-    if (!accountModule) throw new Error(`This should be impossible. Cannot find module aws_account`);
-    const awsAccounts = await accountModule.mappers.awsAccount.db.read(context);
-    if (awsAccounts.length) {
-      await MetadataRepo.updateDbStatus(uid, dbAlias, true);
-      logger.info(`Updated ${dbId} status`);
-      return true;
-    }
-    logger.info(`${dbId} status not updated`);
-    return false;
-  } catch (e: any) {
-    debugObj(e);
-    throw e;
-  } finally {
-    // do not drop the conn if it was provided
-    if (orm !== ormOpt) orm?.dropConn();
-  }
 }
 
