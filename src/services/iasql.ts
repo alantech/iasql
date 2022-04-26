@@ -8,7 +8,7 @@ const exec = promisify(execNode);
 import { createConnection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 import { snakeCase, } from 'typeorm/util/StringUtils'
-import { find, } from 'node-levenshtein'
+import * as levenshtein from 'fastest-levenshtein'
 
 import { DepError, lazyLoader, } from './lazy-dep'
 import { findDiff, } from './diff'
@@ -761,7 +761,7 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
       .filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[])
         .find(m => `${m.name}@${m.version}` === n));
     const missingSuggestions = [
-      ...new Set(missingModules.map(m => find(m, modNames))).values(),
+      ...new Set(missingModules.map(m => levenshtein.closest(m, modNames))).values(),
     ];
     throw new Error(`The following modules do not exist: ${
       missingModules.join(', ')
