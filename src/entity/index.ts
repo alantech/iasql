@@ -37,6 +37,9 @@ export class IasqlDatabase {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @ManyToMany(() => IasqlUser, user => user.iasqlDatabases)
+  iasqlUsers: IasqlUser[];
 }
 
 @Entity()
@@ -48,7 +51,7 @@ export class IasqlUser {
   @Column()
   email: string;
 
-  @ManyToMany(() => IasqlDatabase, {
+  @ManyToMany(() => IasqlDatabase, db => db.iasqlUsers, {
     eager: true,
   })
   @JoinTable({

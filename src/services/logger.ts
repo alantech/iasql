@@ -72,14 +72,25 @@ export function debugObj(e: any) {
 // everywhere else `throw` the error upstream
 // TODO is there a way to DRY that?
 // returns the sentry error id
-export function logUserErr(e: any): string {
+export function logUserErr(e: any, uid: string, email: string, dbAlias?: string): string {
   let err = e?.message ?? '';
   let errStack = err;
   if (e.metadata?.failures) {
     err = e.metadata.failures.map((f: Error) => f?.message).join('\n');
     errStack = e.metadata.failures.map((f: Error) => f?.stack ?? f?.message).join('\n');
   }
-  if (config.sentry) err += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureException(errStack)}`;
+  if (config.sentry) {
+    err += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureException(errStack, {
+      // https://docs.sentry.io/platforms/node/guides/express/enriching-events/identify-user/
+      user: {
+        id: uid,
+        email,
+      },
+      extra: {
+        dbAlias
+      }
+    })}`;
+  }
   singleton.error(err);
   return err;
 }

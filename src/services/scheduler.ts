@@ -88,7 +88,9 @@ export async function start(dbId: string, dbUser:string) {
           output = typeof output === 'string' ? output : JSON.stringify(output);
           await conn.query(query);
         } catch (e) {
-          let errorMessage: string | string[] = logUserErr(e);
+          const user = await MetadataRepo.getUserFromDbId(dbId);
+          const db = user.iasqlDatabases[0];
+          let errorMessage: string | string[] = logUserErr(e, user.id, user.email, db.alias);
           // split message if multiple lines in it
           if (errorMessage.includes('\n')) errorMessage = errorMessage.split('\n');
           // error must be valid JSON as a string
