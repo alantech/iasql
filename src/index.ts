@@ -13,9 +13,11 @@ import { v1, } from './router';
 const port = config.http.port;
 const app = express();
 
-app.use(cors({
-  origin: ['http://localhost:3000', 'https://app.iasql.com', 'https://app-staging.iasql.com'],
-}));
+if (config.cors) {
+  app.use(cors({
+    origin: config.cors.origin,
+  }));
+}
 if (config.sentry) {
   sentry.init({
     dsn: config.sentry.dsn,

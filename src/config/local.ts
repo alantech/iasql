@@ -15,6 +15,9 @@ const config: ConfigInterface = {
     debug: true,
     test: false,
   },
+  cors: {
+    origin: 'localhost:3000'
+  },
   graphql: {
     withGraphiql: true,
   },
