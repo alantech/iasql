@@ -1,5 +1,5 @@
 
-Description: 'IaSQL: user and databse creation'
+Description: 'IaSQL: user and database creation'
 
 ###
 ### CloudFormation Interface Metadata
@@ -11,20 +11,14 @@ Metadata:
     - Label:
         default: IaSQL Connection Setup
       Parameters:
-      - pIasqlDbName
       - pAwsRegion
-      - pAuthToken
-      - pIasqlUrl
+      - pConnectionString
       - pIasqlBucket
     ParameterLabels:
-      pIasqlDbName:
-        default: IaSQL Database Name
       pAwsRegion:
         default: IaSQL AWS Region
-      pIasqlUrl:
-        default: IaSQL API URL
-      pAuthToken:
-        default: IaSQL Auth Bearer Token
+      pConnectionString:
+        default: IaSQL Connection String
       pIasqlBucket:
         default: IaSQL S3 Bucket
 
@@ -33,17 +27,10 @@ Metadata:
 ####
 
 Parameters:
-  pIasqlDbName:
-    Type: String
-    Description: Do not modify
-    AllowedPattern: ^[a-zA-Z0-9_]{0,63}
   pAwsRegion:
     Type: String
     Description: Do not modify
-  pIasqlUrl:
-    Type: String
-    Description: Do not modify
-  pAuthToken:
+  pConnectionString:
     Type: String
     Description: Do not modify
   pIasqlBucket:
@@ -137,9 +124,7 @@ Resources:
           access_key_id: !Ref 'rIamUserAccessKey'
           secret_access_key: !GetAtt 'rIamUserAccessKey.SecretAccessKey'
           aws_region: !Ref 'pAwsRegion'
-          db_alias: !Ref 'pIasqlDbName'
-          auth_token: !Ref 'pAuthToken'
-          api_url: !Ref 'pIasqlUrl'
+          connection_string: !Ref 'pConnectionString'
       Handler: index.handler
       Timeout: 60
       Runtime: nodejs14.x
