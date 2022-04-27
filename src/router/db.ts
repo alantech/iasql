@@ -26,7 +26,7 @@ db.get('/connect/:dbAlias', async (req, res) => {
     res.json(database);
     telemetry.logDbConnect(database.id, dbAlias, uid, email, false);
   } catch (e) {
-    res.status(500).end(logUserErr(e, dbAlias, uid, email));
+    res.status(500).end(logUserErr(e, uid, email, dbAlias));
   }
 });
 
@@ -47,7 +47,7 @@ db.post('/connect', async (req, res) => {
     res.json(database);
     telemetry.logDbConnect(database.id, dbAlias, uid, email, !!directConnect);
   } catch (e) {
-    res.status(500).end(logUserErr(e, dbAlias, uid, email));
+    res.status(500).end(logUserErr(e, uid, email, dbAlias));
   }
 });
 
@@ -80,7 +80,7 @@ db.post('/export', async (req, res) => {
     res.send(await iasql.dump(database.pgName, !!dataOnly));
     telemetry.logDbExport(database.pgName, !!dataOnly);
   } catch (e) {
-    res.status(500).end(logUserErr(e, dbAlias, uid, email));
+    res.status(500).end(logUserErr(e, uid, email, dbAlias));
   }
 });
 
@@ -105,6 +105,6 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
     telemetry.logDbDisconnect(dbId);
     res.json(`disconnected ${dbAlias}`);
   } catch (e) {
-    res.status(500).end(logUserErr(e, dbAlias, uid, email));
+    res.status(500).end(logUserErr(e, uid, email, dbAlias));
   }
 });
