@@ -3,7 +3,7 @@ const {Client} = require('pg')
 const ACCESS_KEY_ID = process.env.access_key_id;
 const SECRET_ACCESS_KEY = process.env.secret_access_key;
 const AWS_REGION = process.env.aws_region;
-const CONNECTION_STRING = process.env.connection_string;
+const CONNECTION_STRING = decodeURI(process.env.connection_string);
 
 exports.handler = async function (event) {
   console.log('Lambda received event:');
