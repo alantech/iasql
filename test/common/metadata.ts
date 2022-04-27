@@ -1,8 +1,10 @@
 import * as iasql from '../../src/services/iasql'
 import { runQuery, finish, execComposeUp, execComposeDown } from '../helpers'
+import MetadataRepo from '../../src/services/repositories/metadata'
 
 const query = runQuery.bind(null, 'iasql_metadata');
 const dbAlias = 'metadatatest';
+const uid = '12345'
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -11,7 +13,7 @@ afterAll(async () => await execComposeDown());
 describe('Testing metadata repo', () => {
   it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
-    'not-needed', 'not-needed').then(...finish(done)));
+    uid, 'not-needed').then(...finish(done)));
 
   it('check row in iasql database table exists', query(`
     SELECT *
@@ -23,10 +25,14 @@ describe('Testing metadata repo', () => {
     SELECT *
     FROM iasql_user_databases
     WHERE iasql_database_pg_name = '${dbAlias}';
-  `, (row: any[]) => expect(row.length).toBe(1)));
+  `, async (row: any[]) => {
+    expect(row.length).toBe(1);
+    const user = await MetadataRepo.getUserFromDbId(dbAlias);
+    expect(user.id).toBe(uid);
+  }));
 
   it('deletes the test db', (done) => void iasql
-    .disconnect(dbAlias, 'not-needed')
+    .disconnect(dbAlias, uid)
     .then(...finish(done)));
 
   it('check there is no row in iasql database', query(`

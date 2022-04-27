@@ -72,7 +72,7 @@ export function debugObj(e: any) {
 // everywhere else `throw` the error upstream
 // TODO is there a way to DRY that?
 // returns the sentry error id
-export function logUserErr(e: any, db?: string, uid?: string, email?: string): string {
+export function logUserErr(e: any, uid: string, email: string, dbAlias?: string): string {
   let err = e?.message ?? '';
   let errStack = err;
   if (e.metadata?.failures) {
@@ -87,7 +87,7 @@ export function logUserErr(e: any, db?: string, uid?: string, email?: string): s
         email,
       },
       extra: {
-        db
+        dbAlias
       }
     })}`;
   }

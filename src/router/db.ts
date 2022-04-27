@@ -17,10 +17,9 @@ db.get('/connect/:dbAlias', async (req, res) => {
       'dbAlias'
     ].filter(k => !req.params.hasOwnProperty(k)).join(', ')}`
   );
-  let uid, email;
+  const uid = dbMan.getUid(req.user);
+  const email = dbMan.getEmail(req.user);
   try {
-    uid = dbMan.getUid(req.user);
-    email = dbMan.getEmail(req.user);
     const database = await iasql.connect(
       dbAlias, uid, email
     );
@@ -39,10 +38,9 @@ db.post('/connect', async (req, res) => {
       'dbAlias'
     ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
   );
-  let uid, email;
+  const uid = dbMan.getUid(req.user);
+  const email = dbMan.getEmail(req.user);
   try {
-    uid = dbMan.getUid(req.user);
-    email = dbMan.getEmail(req.user);
     const database = await iasql.connect(
       dbAlias, uid, email, !!directConnect
     );
@@ -75,10 +73,9 @@ db.post('/export', async (req, res) => {
   logger.info('Calling /export');
   const { dbAlias, dataOnly } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  let uid, email;
+  const uid = dbMan.getUid(req.user);
+  const email = dbMan.getEmail(req.user);
   try {
-    uid = dbMan.getUid(req.user);
-    email = dbMan.getEmail(req.user);
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     res.send(await iasql.dump(database.pgName, !!dataOnly));
     telemetry.logDbExport(database.pgName, !!dataOnly);
@@ -88,24 +85,22 @@ db.post('/export', async (req, res) => {
 });
 
 db.get('/list', async (req, res) => {
-  let uid, email;
+  const uid = dbMan.getUid(req.user);
+  const email = dbMan.getEmail(req.user);
   try {
-    uid = dbMan.getUid(req.user);
-    email = dbMan.getEmail(req.user);
     const dbs = await MetadataRepo.getDbs(uid, email);
     res.json(dbs);
   } catch (e) {
-    res.status(500).end(logUserErr(e, undefined, uid, email));
+    res.status(500).end(logUserErr(e, uid, email));
   }
 });
 
 db.get('/disconnect/:dbAlias', async (req, res) => {
   const { dbAlias } = req.params;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  let uid, email;
+  const uid = dbMan.getUid(req.user);
+  const email = dbMan.getEmail(req.user);
   try {
-    uid = dbMan.getUid(req.user);
-    email = dbMan.getEmail(req.user);
     const dbId = await iasql.disconnect(dbAlias, uid);
     telemetry.logDbDisconnect(dbId);
     res.json(`disconnected ${dbAlias}`);
