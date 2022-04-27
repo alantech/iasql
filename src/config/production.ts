@@ -21,7 +21,7 @@ const config: ConfigInterface = {
     audience: 'https://api.iasql.com', // id of this api in auth0
   },
   cors: {
-    origin: 'https://api-staging.iasql.com'
+    origin: 'https://api.iasql.com'
   },
   sentry: {
     dsn: 'https://e257e8d6646e4657b4f556efc1de31e8@o1090662.ingest.sentry.io/6106929',
