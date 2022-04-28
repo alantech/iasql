@@ -21,6 +21,10 @@ export interface ConfigInterface {
     domain: string;
     audience: string;
   };
+  // Configuration for CORS
+  cors?: {
+    origin: string;
+  };
   // Configuration for amplitude telemetry
   telemetry?: { // Not including this sub-object implies it is not enabled
     amplitudeKey: string;

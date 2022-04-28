@@ -5,15 +5,34 @@ import MetadataRepo from '../../src/services/repositories/metadata'
 const query = runQuery.bind(null, 'iasql_metadata');
 const dbAlias = 'metadatatest';
 const uid = '12345'
+const email = 'test@example.com'
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
 describe('Testing metadata repo', () => {
+  it('no users should exist', query(`
+    SELECT *
+    FROM iasql_user
+  `, (row: any[]) => expect(row.length).toBe(0)));
+
+  it('list dbs', (done) => void MetadataRepo.getDbs(
+    uid, email).then(...finish(done)));
+
+  it('user should exist after listing databases', query(`
+    SELECT *
+    FROM iasql_user;
+  `, (row: any[]) => expect(row.length).toBe(1)));
+
+  it('no database should exist', query(`
+    SELECT *
+    FROM iasql_database;
+  `, (row: any[]) => expect(row.length).toBe(0)));
+
   it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
-    uid, 'not-needed').then(...finish(done)));
+    uid, email).then(...finish(done)));
 
   it('check row in iasql database table exists', query(`
     SELECT *
