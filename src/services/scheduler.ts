@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 import { run } from 'graphile-worker';
 
-import { IasqlOperationType } from '../modules/iasql_functions@0.0.1/entity';
+import { IasqlOperationType } from '../modules/0.0.1/iasql_functions/entity';
 import MetadataRepo from './repositories/metadata'
 import * as iasql from './iasql'
 import * as telemetry from './telemetry'

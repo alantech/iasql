@@ -4,8 +4,8 @@ import { Connection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
 import config from '../config'
-import { IasqlPlatform, } from '../modules/iasql_platform@0.0.1'
-import { IasqlFunctions, } from '../modules/iasql_functions@0.0.1'
+import { IasqlPlatform, } from '../modules/0.0.1/iasql_platform'
+import { IasqlFunctions, } from '../modules/0.0.1/iasql_functions'
 
 export async function migrate(conn: Connection) {
   const qr = conn.createQueryRunner();

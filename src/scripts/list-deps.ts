@@ -7,7 +7,7 @@ const modJsons = getModJsons();
 const depModules: { [key: string]: ModJson, } = {};
 
 const getModule = (name: string) => (Object.values(modJsons) as ModJson[])
-  .find(m => name === `${m.name}@${m.version}`);
+  .find(m => name === m.name);
 
 const processDep = (dep: string) => {
   const depMod = getModule(dep);
@@ -15,14 +15,14 @@ const processDep = (dep: string) => {
     throw new Error(`Could not find dependency ${dep}`);
   }
   depModules[dep] = depMod;
-  depMod.dependencies.forEach(processDep);
+  depMod.dependencies.map(d => d.split('@')[0]).forEach(processDep);
 };
 
 processDep(moduleName);
 
 // TODO: Remove this hackery once typeorm migration doesn't do weird alter table crap
-if (moduleName !== 'iasql_platform@0.0.1') {
-  delete depModules['iasql_platform@0.0.1'];
+if (moduleName !== 'iasql_platform') {
+  delete depModules.iasql_platform;
 }
 
 console.log(Object.keys(depModules).join(':'));

@@ -2,7 +2,7 @@ import * as Amplitude from '@amplitude/node';
 
 import config from '../config';
 import logger from './logger';
-import { IasqlOperationType } from '../modules/iasql_functions@0.0.1/entity';
+import { IasqlOperationType } from '../modules/0.0.1/iasql_functions/entity';
 
 const singleton = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
 
