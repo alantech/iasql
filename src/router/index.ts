@@ -14,7 +14,7 @@ v1.use(express.json({ limit: '10000MB' }));
 if (config.auth) {
   const checkJwt = jwt({
     secret: jwksRsa.expressJwtSecret({
-      jwksUri: `${config.auth.domain}/.well-known/jwks.json`,
+      jwksUri: `${config.auth.domain}.well-known/jwks.json`,
     }),
     audience: config.auth.audience,
     issuer: config.auth.domain,
