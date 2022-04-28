@@ -1,4 +1,4 @@
-import { CpuMemCombination, } from '../../src/modules/aws_ecs_fargate@0.0.1/entity';
+import { CpuMemCombination, } from '../../src/modules/0.0.1/aws_ecs_fargate/entity';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runInstall, runUninstall, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
