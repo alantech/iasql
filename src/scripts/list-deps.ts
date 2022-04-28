@@ -22,7 +22,7 @@ processDep(moduleName);
 
 // TODO: Remove this hackery once typeorm migration doesn't do weird alter table crap
 if (moduleName !== 'iasql_platform') {
-  delete depModules['iasql_platform'];
+  delete depModules.iasql_platform;
 }
 
 console.log(Object.keys(depModules).join(':'));
