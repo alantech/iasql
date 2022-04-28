@@ -1,6 +1,7 @@
 import { Subnet as AwsSubnet, Vpc as AwsVpc, } from '@aws-sdk/client-ec2'
+import { AWS, } from 'iasql/services/gateways/aws'
+import { Context, Crud, Mapper, Module, } from 'iasql/modules'
 
-import { AWS, } from '../../../services/gateways/aws'
 import {
   AvailabilityZone,
   Subnet,
@@ -8,7 +9,6 @@ import {
   SubnetState,
   VpcState,
 } from './entity'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
 import * as metadata from './module.json'
 
 export const AwsVpcModule: Module = new Module({

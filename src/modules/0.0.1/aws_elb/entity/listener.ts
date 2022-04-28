@@ -6,10 +6,10 @@ import {
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm'
+import { cloudId, } from 'iasql/services/cloud-id'
 
 import { LoadBalancer, } from './load_balancer'
 import { TargetGroup, ProtocolEnum, } from './target_group'
-import { cloudId, } from '../../../../services/cloud-id'
 
 export enum ActionTypeEnum {
   // AUTHENTICATE_COGNITO = "authenticate-cognito",

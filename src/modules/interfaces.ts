@@ -2,8 +2,8 @@ import fs from 'fs'
 
 import { In, QueryRunner, getMetadataArgsStorage, } from 'typeorm'
 
-import { getCloudId, } from '../services/cloud-id'
-import logger from '../services/logger'
+import { getCloudId, } from 'iasql/services/cloud-id'
+import logger from 'iasql/services/logger'
 
 // The exported interfaces are meant to provide better type checking both at compile time and in the
 // editor. They *shouldn't* have to be ever imported directly, only the classes ought to be, but as

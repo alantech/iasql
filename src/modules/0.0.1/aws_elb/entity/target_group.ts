@@ -8,8 +8,8 @@ import {
   ManyToOne,
   PrimaryColumn,
 } from 'typeorm'
+import { cloudId, } from 'iasql/services/cloud-id'
 
-import { cloudId, } from '../../../../services/cloud-id'
 import { Vpc, } from '../../aws_vpc/entity'
 
 export enum TargetTypeEnum {

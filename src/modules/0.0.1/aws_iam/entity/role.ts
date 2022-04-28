@@ -3,8 +3,7 @@ import {
   Entity,
   PrimaryColumn,
 } from 'typeorm';
-
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId, } from 'iasql/services/cloud-id'
 
 // TODO complete schema
 @Entity()

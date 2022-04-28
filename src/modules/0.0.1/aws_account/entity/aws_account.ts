@@ -3,8 +3,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
 } from 'typeorm'
-
-import { cloudId, } from '../../../../services/cloud-id' // This is ridiculous. Can we fix this?
+import { cloudId, } from 'iasql/services/cloud-id'
 
 @Entity({
   name: 'aws_account',

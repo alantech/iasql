@@ -10,11 +10,11 @@ import {
   ManyToOne,
   PrimaryColumn,
 } from 'typeorm'
+import { cloudId, } from 'iasql/services/cloud-id'
 
-import { Cluster, TaskDefinition, ContainerDefinition } from '.';
+import { Cluster, TaskDefinition, } from '.';
 import { TargetGroup } from '../../aws_elb/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
-import { cloudId, } from '../../../../services/cloud-id'
 
 export enum AssignPublicIp {
   DISABLED = "DISABLED",

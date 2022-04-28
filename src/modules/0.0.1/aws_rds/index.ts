@@ -1,8 +1,8 @@
 import { ModifyDBInstanceCommandInput } from '@aws-sdk/client-rds'
+import { AWS, } from 'iasql/services/gateways/aws'
+import { Context, Crud, Mapper, Module, } from 'iasql/modules'
 
-import { AWS, } from '../../../services/gateways/aws'
 import { RDS, } from './entity'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
 

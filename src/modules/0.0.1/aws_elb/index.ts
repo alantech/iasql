@@ -3,8 +3,9 @@ import {
   Listener as ListenerAws,
   LoadBalancer as LoadBalancerAws,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
+import { AWS, } from 'iasql/services/gateways/aws'
+import { Context, Crud, Mapper, Module, } from 'iasql/modules'
 
-import { AWS, } from '../../../services/gateways/aws'
 import {
   ActionTypeEnum,
   Listener,
@@ -20,7 +21,6 @@ import {
   TargetTypeEnum,
 } from './entity'
 import { AwsVpcModule, } from '../aws_vpc'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
 

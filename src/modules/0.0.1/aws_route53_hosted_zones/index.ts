@@ -1,6 +1,7 @@
 import { ResourceRecordSet as AwsResourceRecordSet } from '@aws-sdk/client-route-53'
-import { AWS, } from '../../../services/gateways/aws'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { AWS, } from 'iasql/services/gateways/aws'
+import { Context, Crud, Mapper, Module, } from 'iasql/modules'
+
 import { HostedZone } from './entity'
 import { RecordType, ResourceRecordSet } from './entity/resource_records_set';
 import * as metadata from './module.json'

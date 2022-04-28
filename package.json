@@ -47,6 +47,7 @@
     "typescript": "^4.6.3"
   },
   "dependencies": {
+    "iasql": "link:./src",
     "@amplitude/node": "^1.10.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.76.0",
     "@aws-sdk/client-ec2": "^3.67.0",

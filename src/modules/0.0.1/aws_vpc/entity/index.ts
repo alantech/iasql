@@ -6,8 +6,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm'
-
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId, } from 'iasql/services/cloud-id'
 
 export enum VpcState {
   AVAILABLE = 'available',

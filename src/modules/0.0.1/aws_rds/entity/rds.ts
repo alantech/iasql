@@ -5,9 +5,9 @@ import {
   ManyToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm'
+import { cloudId, } from 'iasql/services/cloud-id'
 
 import { SecurityGroup, } from '../../aws_security_group/entity'
-import { cloudId, } from '../../../../services/cloud-id'
 
 @Entity()
 export class RDS {

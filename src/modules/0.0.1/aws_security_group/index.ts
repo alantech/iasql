@@ -1,12 +1,12 @@
 import { In, } from 'typeorm'
+import { AWS, } from 'iasql/services/gateways/aws'
+import { Context, Crud, Mapper, Module, } from 'iasql/modules'
+import logger from 'iasql/services/logger'
 
-import { AWS, } from '../../../services/gateways/aws'
 import { SecurityGroup, SecurityGroupRule, } from './entity'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsVpcModule } from '../aws_vpc'
 import { Vpc } from '../aws_vpc/entity'
-import logger from '../../../services/logger'
 
 export const AwsSecurityGroupModule: Module = new Module({
   ...metadata,

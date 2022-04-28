@@ -1,9 +1,9 @@
 import { Instance as InstanceAWS, } from '@aws-sdk/client-ec2'
+import { AWS, IASQL_EC2_TAG_NAME } from 'iasql/services/gateways/aws'
+import { Context, Crud, Mapper, Module, } from 'iasql/modules'
 
-import { Instance, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
-import { AWS, IASQL_EC2_TAG_NAME } from '../../../services/gateways/aws'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Instance, } from './entity'
 import * as metadata from './module.json'
 
 export const AwsEc2Module: Module = new Module({

@@ -1,8 +1,8 @@
 import { Role as AWSRole } from '@aws-sdk/client-iam'
+import { AWS, } from 'iasql/services/gateways/aws'
+import { Context, Crud, Mapper, Module, } from 'iasql/modules'
 
 import { Role } from './entity'
-import { AWS, } from '../../../services/gateways/aws'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
 import * as metadata from './module.json'
 
 export const AwsIamModule: Module = new Module({

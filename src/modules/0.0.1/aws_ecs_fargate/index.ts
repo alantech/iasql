@@ -1,4 +1,7 @@
-import { AWS, } from '../../../services/gateways/aws'
+import { AWS, } from 'iasql/services/gateways/aws'
+import { Context, Crud, Mapper, Module, } from 'iasql/modules'
+import logger from 'iasql/services/logger'
+
 import {
   Cluster,
   ContainerDefinition,
@@ -6,10 +9,8 @@ import {
   Service,
   TaskDefinition,
 } from './entity'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
 import { AwsEcrModule, AwsElbModule, AwsIamModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
 import * as metadata from './module.json'
-import logger from '../../../services/logger'
 
 export const AwsEcsFargateModule: Module = new Module({
   ...metadata,

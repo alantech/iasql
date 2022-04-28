@@ -8,10 +8,10 @@ import {
   ManyToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { cloudId, } from 'iasql/services/cloud-id'
 
 // TODO: Is there a better way to deal with cross-module entities?
 import { SecurityGroup, } from '../../aws_security_group/entity';
-import { cloudId, } from '../../../../services/cloud-id'
 
 // TODO complete instance schema
 @Entity()

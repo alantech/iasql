@@ -9,9 +9,9 @@ import {
   JoinColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { cloudId, } from 'iasql/services/cloud-id'
 
 import { ContainerDefinition } from '.';
-import { cloudId, } from '../../../../services/cloud-id'
 import { Role, } from '../../aws_iam/entity';
 
 export enum TaskDefinitionStatus {

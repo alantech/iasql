@@ -3,8 +3,7 @@ import {
   PrimaryColumn,
   Column,
 } from 'typeorm'
-
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId, } from 'iasql/services/cloud-id'
 
 @Entity()
 export class LogGroup {

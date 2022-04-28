@@ -1,5 +1,6 @@
-import { AWS, } from '../../../services/gateways/aws'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { AWS, } from 'iasql/services/gateways/aws'
+import { Context, Crud, Mapper, Module, } from 'iasql/modules'
+
 import { LogGroup } from './entity'
 import * as metadata from './module.json'
 
