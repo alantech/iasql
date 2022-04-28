@@ -17,7 +17,7 @@ const config: ConfigInterface = {
     test: false,
   },
   auth: {
-    domain: 'https://iasql-staging.us.auth0.com/',
+    domain: 'https://auth-staging.iasql.com',
     audience: 'https://api-staging.iasql.com', // id of this api in auth0
   },
   cors: {
