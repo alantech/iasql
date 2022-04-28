@@ -5,7 +5,7 @@ import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConn
 import { PostgresDriver, } from 'typeorm/driver/postgres/PostgresDriver';
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import * as Modules from '../modules'
+import { v0_0_1 as Modules, } from '../modules'
 import config from '../config';
 
 // Grab all of the entities and create the TypeORM connection with it. Theoretically only need the

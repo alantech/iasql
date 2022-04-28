@@ -14,10 +14,10 @@ import { DepError, lazyLoader, } from './lazy-dep'
 import { findDiff, } from './diff'
 import MetadataRepo from './repositories/metadata'
 import { TypeormWrapper, } from './typeorm'
-import { IasqlModule, IasqlTables, } from '../modules/iasql_platform@0.0.1/entity'
+import { IasqlModule, IasqlTables, } from '../modules/0.0.1/iasql_platform/entity'
 import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
-import * as Modules from '../modules'
+import { Context, MapperInterface, v0_0_1 as Modules, Module, ModuleInterface, } from '../modules'
 import * as scheduler from './scheduler'
 import { IasqlDatabase } from '../entity';
 import logger, { debugObj } from './logger';
@@ -155,7 +155,7 @@ export async function attach(
     entities.push(IasqlTables);
     orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
     const mappers = Object.values(Modules.AwsAccount.mappers);
-    const context: Modules.Context = { orm, memo: {}, ...Modules.AwsAccount.provides.context, };
+    const context: Context = { orm, memo: {}, ...Modules.AwsAccount.provides.context, };
     for (const mapper of mappers) {
       logger.info(`Loading aws_account table ${mapper.entity.name}...`);
       const e = await mapper.cloud.read(context);
@@ -308,19 +308,19 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
-    const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
+    const context: Context = { orm, memo, }; // Every module gets access to the DB
     for (const name of moduleNames) {
-      const mod = (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === name) as Modules.Module;
+      const mod = (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === name) as Module;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod.provides.context ?? {};
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
-    const moduleList = (Object.values(Modules) as Modules.Module[])
+    const moduleList = (Object.values(Modules) as Module[])
       .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`));
     const rootToLeafOrder = sortModules(moduleList, []);
-    const mappers = (rootToLeafOrder as Modules.ModuleInterface[])
-      .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
+    const mappers = (rootToLeafOrder as ModuleInterface[])
+      .map(mod => Object.values((mod as ModuleInterface).mappers))
       .flat()
       .filter(mapper => mapper.source === 'db');
     const t2 = Date.now();
@@ -372,7 +372,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
         const updatePlan = (
           crupde: Crupde,
           entityName: string,
-          mapper: Modules.MapperInterface<any>,
+          mapper: MapperInterface<any>,
           es: any[]
         ) => {
           crupde[entityName] = crupde[entityName] ?? [];
@@ -521,19 +521,19 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
     // Find all of the installed modules, and create the context object only for these
     const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
-    const context: Modules.Context = { orm, memo, }; // Every module gets access to the DB
+    const context: Context = { orm, memo, }; // Every module gets access to the DB
     for (const name of moduleNames) {
-      const mod = (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === name) as Modules.Module;
+      const mod = (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === name) as Module;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod.provides.context ?? {};
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
     // Get the mappers, regardless of source-of-truth
-    const moduleList = (Object.values(Modules) as Modules.Module[])
+    const moduleList = (Object.values(Modules) as Module[])
       .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`));
     const rootToLeafOrder = sortModules(moduleList, []);
-    const mappers = (rootToLeafOrder as Modules.ModuleInterface[])
-      .map(mod => Object.values((mod as Modules.ModuleInterface).mappers))
+    const mappers = (rootToLeafOrder as ModuleInterface[])
+      .map(mod => Object.values((mod as ModuleInterface).mappers))
       .flat();
     const t2 = Date.now();
     logger.info(`Setup took ${t2 - t1}ms`);
@@ -584,7 +584,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
         const updatePlan = (
           crupde: Crupde,
           entityName: string,
-          mapper: Modules.MapperInterface<any>,
+          mapper: MapperInterface<any>,
           es: any[]
         ) => {
           crupde[entityName] = crupde[entityName] ?? [];
@@ -744,21 +744,21 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   if (allModules) {
     const installedModules = JSON.parse(await modules(false, true, dbId))
       .map((r: any) => r.moduleName);
-    moduleList = (Object.values(Modules) as Modules.ModuleInterface[])
-      .filter((m: Modules.ModuleInterface) => !installedModules.includes(m.name))
-      .filter((m: Modules.ModuleInterface) => m.name && m.version && ![
+    moduleList = (Object.values(Modules) as ModuleInterface[])
+      .filter((m: ModuleInterface) => !installedModules.includes(m.name))
+      .filter((m: ModuleInterface) => m.name && m.version && ![
         'iasql_platform',
         'iasql_functions',
-      ].includes(m.name)).map((m: Modules.ModuleInterface) => `${m.name}@${m.version}`);
+      ].includes(m.name)).map((m: ModuleInterface) => `${m.name}@${m.version}`);
   }
   moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@0.0.1`);
-  const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === n)) as Modules.Module[];
+  const mods = moduleList.map((n: string) => (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === n)) as Module[];
   if (mods.some((m: any) => m === undefined)) {
-    const modNames = (Object.values(Modules) as Modules.ModuleInterface[])
+    const modNames = (Object.values(Modules) as ModuleInterface[])
       .filter(m => m.hasOwnProperty('name') && m.hasOwnProperty('version'))
       .map(m => `${m.name}@${m.version}`);
     const missingModules = moduleList
-      .filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[])
+      .filter((n: string) => !(Object.values(Modules) as ModuleInterface[])
         .find(m => `${m.name}@${m.version}` === n));
     const missingSuggestions = [
       ...new Set(missingModules.map(m => levenshtein.closest(m, modNames))).values(),
@@ -780,7 +780,7 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   }
   // Check to make sure that all dependent modules are in the list
   const missingDeps = mods
-    .flatMap((m: Modules.Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
+    .flatMap((m: Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
     .filter((m: any) => ![
       'iasql_platform@0.0.1',
       'iasql_functions@0.0.1',
@@ -872,9 +872,9 @@ ${Object.keys(tableCollisions)
 
   // Find all of the installed modules, and create the context object only for these
   const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
-  const context: Modules.Context = { orm, memo: {}, }; // Every module gets access to the DB
+  const context: Context = { orm, memo: {}, }; // Every module gets access to the DB
   for (const name of moduleNames) {
-    const md = (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === name) as Modules.Module;
+    const md = (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === name) as Module;
     if (!md) throw new Error(`This should be impossible. Cannot find module ${name}`);
     const moduleContext = md.provides.context ?? {};
     Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
@@ -913,9 +913,9 @@ ${Object.keys(tableCollisions)
 export async function uninstall(moduleList: string[], dbId: string, orm?: TypeormWrapper) {
   // Check to make sure that all specified modules actually exist
   moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@0.0.1`);
-  const mods = moduleList.map((n: string) => (Object.values(Modules) as Modules.Module[]).find(m => `${m.name}@${m.version}` === n)) as Modules.Module[];
+  const mods = moduleList.map((n: string) => (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === n)) as Module[];
   if (mods.some((m: any) => m === undefined)) {
-    throw new Error(`The following modules do not exist: ${moduleList.filter((n: string) => !(Object.values(Modules) as Modules.ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
+    throw new Error(`The following modules do not exist: ${moduleList.filter((n: string) => !(Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
       }`);
   }
   orm = !orm ? await TypeormWrapper.createConn(dbId) : orm;
