@@ -4,17 +4,19 @@ import { Connection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
 import config from '../config'
-import { IasqlPlatform, } from '../modules/0.0.1/iasql_platform'
-import { IasqlFunctions, } from '../modules/0.0.1/iasql_functions'
+import { latest, } from '../modules'
+
+const { IasqlPlatform, IasqlFunctions, } = latest;
+const version = IasqlPlatform.version;
 
 export async function migrate(conn: Connection) {
   const qr = conn.createQueryRunner();
   await qr.connect();
   await IasqlPlatform.migrations.install(qr);
-  await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@0.0.1')`);
+  await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@${version}')`);
   await IasqlFunctions.migrations.install(qr);
-  await qr.query(`INSERT INTO iasql_module VALUES ('iasql_functions@0.0.1')`);
-  await qr.query(`INSERT INTO iasql_dependencies VALUES ('iasql_functions@0.0.1', 'iasql_platform@0.0.1')`);
+  await qr.query(`INSERT INTO iasql_module VALUES ('iasql_functions@${version}')`);
+  await qr.query(`INSERT INTO iasql_dependencies VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`);
   await qr.release();
 }
 

@@ -1,21 +1,12 @@
-import { randomInt, } from 'crypto';
-import { Pool } from 'pg';
-import { Connection, createConnection, EntityTarget, getConnectionManager, } from 'typeorm';
-import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import { PostgresDriver, } from 'typeorm/driver/postgres/PostgresDriver';
+import { randomInt, } from 'crypto'
+import { Pool } from 'pg'
+import { Connection, createConnection, EntityTarget, getConnectionManager, } from 'typeorm'
+import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConnectionOptions'
+import { PostgresDriver, } from 'typeorm/driver/postgres/PostgresDriver'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import { v0_0_1 as Modules, } from '../modules'
-import config from '../config';
-
-// Grab all of the entities and create the TypeORM connection with it. Theoretically only need the
-// module in question at first, but when we try to use the module to acquire the cloud records, it
-// may use one or more other modules it depends on, so we just load them all into the TypeORM client
-const entities = Object.values(Modules)
-  .filter(m => m.hasOwnProperty('provides'))
-  .map((m: any) => Object.values(m.provides.entities))
-  .flat()
-  .filter(e => typeof e === 'function') as Function[];
+import * as AllModules from '../modules'
+import config from '../config'
 
 export class TypeormWrapper {
   private connection: Connection
@@ -24,7 +15,6 @@ export class TypeormWrapper {
     username: config.db.user,
     password: config.db.password,
     host: config.db.host,
-    entities,
     namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
     extra: {
       ssl: ['postgresql', 'localhost'].includes(config.db.host) ? false : {
@@ -34,6 +24,9 @@ export class TypeormWrapper {
   }
 
   static async createConn(database: string, connectionConfig = {}): Promise<TypeormWrapper> {
+    // First step: we need to probe the database to see what version it is. This should probably
+    // be moved into Metadata at some point in the future, but for now let's assume that the
+    // `iasql_module` table is stable
     const typeorm = new TypeormWrapper();
     const connMan = getConnectionManager();
     const dbname = `database-${randomInt(200000)}`;
@@ -45,8 +38,27 @@ export class TypeormWrapper {
       name: dbname,
       ...connectionConfig as PostgresConnectionOptions,
       database,
-    }
-    typeorm.connection = await createConnection(connOpts);
+    };
+    const tempconn = await createConnection(connOpts);
+    const res = await tempconn.query(`
+      SELECT DISTINCT version FROM iasql_module LIMIT 1;
+    `);
+    const versionString = `v${res[0].version.replaceAll('.', '_')}`;
+    const Modules = (AllModules as any)[versionString];
+    // Grab all of the entities and create the TypeORM connection with it. Theoretically only need
+    // the module in question at first, but when we try to use the module to acquire the cloud
+    // records, it may use one or more other modules it depends on, so we just load them all into
+    // the TypeORM client
+    const entities = Object.values(Modules)
+      .filter((m: any) => m.hasOwnProperty('provides'))
+      .map((m: any) => Object.values(m.provides.entities))
+      .flat()
+      .filter(e => typeof e === 'function') as Function[];
+
+    // Now that we have the entities for this database, close the temporary connection and create
+    // the real connection with the entities present
+    await tempconn.close();
+    typeorm.connection = await createConnection({ ...connOpts, entities, });
     return typeorm;
   }
 

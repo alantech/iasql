@@ -1,14 +1,16 @@
-import EventEmitter from 'events';
-import { run } from 'graphile-worker';
+import EventEmitter from 'events'
+import { run } from 'graphile-worker'
 
-import { IasqlOperationType } from '../modules/0.0.1/iasql_functions/entity';
+import { latest, } from '../modules'
 import MetadataRepo from './repositories/metadata'
 import * as iasql from './iasql'
 import * as telemetry from './telemetry'
 import logger, { logUserErr } from './logger'
-import { TypeormWrapper } from './typeorm';
-import { IasqlDatabase } from '../entity';
-import config from '../config';
+import { TypeormWrapper } from './typeorm'
+import { IasqlDatabase } from '../entity'
+import config from '../config'
+
+const { IasqlOperationType, } = latest.IasqlFunctions.utils;
 
 const workerShutdownEmitter = new EventEmitter();
 // no max number of listeners warning

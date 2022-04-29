@@ -154,8 +154,6 @@ import {
   Route53Client
 } from '@aws-sdk/client-route-53'
 import { IAM } from '@aws-sdk/client-iam'
-// WTF? Why is this circular reference here?
-import { RecordType } from '../../modules/0.0.1/aws_route53_hosted_zones/entity/resource_records_set'
 
 import logger from '../logger'
 
@@ -1492,7 +1490,7 @@ export class AWS {
     return records;
   }
 
-  async getRecord(hostedZoneId: string, recordName: string, recordType: RecordType) {
+  async getRecord(hostedZoneId: string, recordName: string, recordType: string) {
     const records = await this.getRecords(hostedZoneId);
     return records.find(r => Object.is(r.Type, recordType) && Object.is(r.Name, recordName));
   }
