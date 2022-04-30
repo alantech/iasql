@@ -1041,13 +1041,13 @@ export async function upgrade(dbId: string, dbUser: string) {
             SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;
           `))[0];
         }
-        // 3. Manually drop all tables and stored procedures from the DB
+        // 3. Manually drop all tables and function from the DB
         await conn.query(`
           -- This first drop should take care of most of the functions
-          DROP PROCEDURE IF EXISTS until_iasql_operation CASCADE;
+          DROP FUNCTION IF EXISTS until_iasql_operation CASCADE;
           -- And the few that don't depend directly or indirectly on it
-          DROP PROCEDURE IF EXISTS delete_all_records CASCADE;
-          DROP PROCEDURE IF EXISTS iasql_help CASCADE;
+          DROP FUNCTION IF EXISTS delete_all_records CASCADE;
+          DROP FUNCTION IF EXISTS iasql_help CASCADE;
         `);
         for (const table of tables) {
           await conn.query(`
