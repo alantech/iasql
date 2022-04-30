@@ -1012,3 +1012,73 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   return "Done!";
 }
 
+// This function is always going to have special-cased logic for it, but hopefully it ends up in a
+// few different 'groups' by version number instead of being special-cased for each version.
+export async function upgrade(dbId: string, dbUser: string) {
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  switch (versionString) {
+    case 'v0_0_1':
+      // The upgrade path here is manual and can't assume much because we broke the versioning
+      // contract with v0.0.1.
+      let conn: any;
+      try {
+        conn = await createConnection({
+          ...dbMan.baseConnConfig,
+          name: dbId,
+          database: dbId,
+        });
+        // 1. Read the `iasql_module` table to get all currently installed modules.
+        const modules = (await conn.query(`
+          SELECT name FROM iasql_module;
+        `)).map((r: any) => r.name.split('@')[0]);
+        const tables = (await conn.query(`
+          SELECT "table" FROM iasql_tables;
+        `)).map((r: any) => r.table);
+        let creds: any;
+        // 2. Read the `aws_account` table to get the credentials (if any).
+        if (modules.includes('aws_account')) {
+          creds = (await conn.query(`
+            SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;
+          `))[0];
+        }
+        // 3. Manually drop all tables and stored procedures from the DB
+        await conn.query(`
+          -- This first drop should take care of most of the functions
+          DROP PROCEDURE IF EXISTS until_iasql_operation CASCADE;
+          -- And the few that don't depend directly or indirectly on it
+          DROP PROCEDURE IF EXISTS delete_all_records CASCADE;
+          DROP PROCEDURE IF EXISTS iasql_help CASCADE;
+        `);
+        for (const table of tables) {
+          await conn.query(`
+            DROP TABLE IF EXISTS ${table} CASCADE;
+          `);
+        }
+        // 4. Re-run a the `/connect` logic to get the latest structure in the DB.
+        await dbMan.migrate(conn);
+        // 5. If `aws_account` and other modules are installed, install `aws_account`, insert the
+        //    credentials, then install the rest of the modules.
+        if (!!creds) {
+          await install(['aws_account'], dbId, dbUser);
+          await conn.query(`
+            INSERT INTO aws_account (access_key_id, secret_access_key, region)
+            VALUES ('${creds.access_key_id}', '${creds.secret_access_key}', '${creds.region}');
+          `);
+          await install(modules.filter((m: string) => m !== 'aws_account'), dbId, dbUser);
+        }
+        throw new Error('Upgrade complete');
+      } catch (e) {
+        // TODO: Anything else to handle here?
+        throw e;
+      } finally {
+        conn?.close();
+      }
+    case 'v0_0_2':
+    case 'latest':
+      throw new Error('Up to date');
+    default:
+      throw new Error(
+        'Unknown version. No upgrade possible, please drop this database and create a new one.'
+      );
+  }
+}

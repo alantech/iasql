@@ -68,7 +68,7 @@ export async function start(dbId: string, dbUser:string) {
             break;
           }
           case IasqlOperationType.UPGRADE: {
-            promise = (async () => {throw new Error('Upgrade not yet implemented'); })();
+            promise = iasql.upgrade(dbId, dbUser);
             break;
           }
           default: {
