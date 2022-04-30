@@ -23,13 +23,42 @@ export class TypeormWrapper {
     },  // TODO: remove once DB instance with custom ssl cert is in place
   }
 
-  static async createConn(database: string, connectionConfig = {}): Promise<TypeormWrapper> {
-    // First step: we need to probe the database to see what version it is. This should probably
+  static async getVersionString(database: string) {
+    // Pulled this out as a function so it can be re-used in the iasql service. This should probably
     // be moved into Metadata at some point in the future, but for now let's assume that the
     // `iasql_module` table is stable
-    const typeorm = new TypeormWrapper();
     const connMan = getConnectionManager();
     const dbname = `database-${randomInt(200000)}`;
+    if (connMan.has(dbname)) {
+      throw new Error(`Connection ${dbname} already exists`)
+    }
+    const typeorm = new TypeormWrapper();
+    const connOpts: PostgresConnectionOptions = {
+      ...typeorm.connectionConfig,
+      name: dbname,
+      database,
+    };
+    const tempconn = await createConnection(connOpts);
+    // If this connection is being used to create a new DB, assume we're creating one with the
+    // newest module versions
+    let versionString: string = 'latest';
+    try {
+      const res = await tempconn.query(`
+        SELECT DISTINCT name FROM iasql_module LIMIT 1;
+      `);
+      versionString = `v${res[0].name.split('@')[1].replaceAll('.', '_')}`;
+    } catch (e) {
+      // We're fine with just defaulting to 'latest'. It's what the initial db construction needs
+    }
+    await tempconn.close();
+    return versionString;
+  }
+
+  static async createConn(database: string, connectionConfig = {}): Promise<TypeormWrapper> {
+    // First step: we need to probe the database to see what version it is.
+    const typeorm = new TypeormWrapper();
+    const connMan = getConnectionManager();
+    const dbname = `${database}-${randomInt(200000)}`;
     if (connMan.has(dbname)) {
       throw new Error(`Connection ${dbname} already exists`)
     }
@@ -39,11 +68,10 @@ export class TypeormWrapper {
       ...connectionConfig as PostgresConnectionOptions,
       database,
     };
-    const tempconn = await createConnection(connOpts);
-    const res = await tempconn.query(`
-      SELECT DISTINCT version FROM iasql_module LIMIT 1;
-    `);
-    const versionString = `v${res[0].version.replaceAll('.', '_')}`;
+    console.log({
+      connOpts,
+    });
+    const versionString = await TypeormWrapper.getVersionString(database);
     const Modules = (AllModules as any)[versionString];
     // Grab all of the entities and create the TypeORM connection with it. Theoretically only need
     // the module in question at first, but when we try to use the module to acquire the cloud
@@ -54,11 +82,13 @@ export class TypeormWrapper {
       .map((m: any) => Object.values(m.provides.entities))
       .flat()
       .filter(e => typeof e === 'function') as Function[];
+    console.log({ entities, })
 
     // Now that we have the entities for this database, close the temporary connection and create
     // the real connection with the entities present
-    await tempconn.close();
-    typeorm.connection = await createConnection({ ...connOpts, entities, });
+    const name = `${database}-${randomInt(200000)}`;
+    console.log({ ...connOpts, entities, name, });
+    typeorm.connection = await createConnection({ ...connOpts, entities, name, });
     return typeorm;
   }
 

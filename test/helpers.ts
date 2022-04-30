@@ -86,7 +86,7 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
   logger.info(`Cleaning ${dbAlias} in ${awsRegion}...`);
   await iasql.connect(dbAlias, 'not-needed', 'not-needed');
   logger.info('DB created...');
-  await iasql.install(['aws_account@0.0.1'], dbAlias, config.db.user);
+  await iasql.install(['aws_account'], dbAlias, config.db.user);
   const conn = await createConnection({
     name: dbAlias,
     type: 'postgres',

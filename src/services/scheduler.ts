@@ -40,27 +40,27 @@ export async function start(dbId: string, dbUser:string) {
         let promise;
         switch(optype) {
           case IasqlOperationType.APPLY: {
-            promise = iasql.apply(dbId, false, conn);
+            promise = iasql.apply(dbId, false);
             break;
           }
           case IasqlOperationType.PLAN_APPLY: {
-            promise = iasql.apply(dbId, true, conn);
+            promise = iasql.apply(dbId, true);
             break;
           }
           case IasqlOperationType.SYNC: {
-            promise = iasql.sync(dbId, false, conn);
+            promise = iasql.sync(dbId, false);
             break;
           }
           case IasqlOperationType.PLAN_SYNC: {
-            promise = iasql.sync(dbId, true, conn);
+            promise = iasql.sync(dbId, true);
             break;
           }
           case IasqlOperationType.INSTALL: {
-            promise = iasql.install(params, dbId, dbUser, false, conn);
+            promise = iasql.install(params, dbId, dbUser, false);
             break;
           }
           case IasqlOperationType.UNINSTALL: {
-            promise = iasql.uninstall(params, dbId, conn);
+            promise = iasql.uninstall(params, dbId);
             break;
           }
           case IasqlOperationType.LIST: {
