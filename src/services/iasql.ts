@@ -1077,7 +1077,9 @@ export async function upgrade(dbId: string, dbUser: string) {
               INSERT INTO aws_account (access_key_id, secret_access_key, region)
               VALUES ('${creds.access_key_id}', '${creds.secret_access_key}', '${creds.region}');
             `);
-            await install(mods.filter((m: string) => m !== 'aws_account'), dbId, dbUser);
+            await install(mods.filter((m: string) => ![
+              'aws_account', 'iasql_platform', 'iasql_functions'
+            ].includes(m)), dbId, dbUser);
           }
         } catch (e) {
           logger.error('Failed to upgrade', { e, });
