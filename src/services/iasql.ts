@@ -1036,6 +1036,12 @@ export async function upgrade(dbId: string, dbUser: string) {
           const tables = (await conn.query(`
             SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public';
           `)).map((r: any) => r.tablename);
+          const enums = (await conn.query(`
+            SELECT t.typname
+            FROM pg_catalog.pg_type AS t
+            INNER JOIN pg_catalog.pg_namespace AS n ON t.typnamespace = n.oid
+            WHERE n.nspname = 'public' AND t.typtype = 'e';
+          `)).map((r: any) => r.typname);
           let creds: any;
           // 2. Read the `aws_account` table to get the credentials (if any).
           if (mods.includes('aws_account')) {
@@ -1054,6 +1060,11 @@ export async function upgrade(dbId: string, dbUser: string) {
           for (const table of tables) {
             await conn.query(`
               DROP TABLE IF EXISTS ${table} CASCADE;
+            `);
+          }
+          for (const enu of enums) {
+            await conn.query(`
+              DROP TYPE IF EXISTS ${enu} CASCADE;
             `);
           }
           // 4. Re-run a the `/connect` logic to get the latest structure in the DB.
