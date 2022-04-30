@@ -3,7 +3,7 @@ import { execSync, } from 'child_process'
 import { createConnection, EntityTarget, } from 'typeorm'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import * as Entities from '../../src/modules/0.0.1/iasql_platform/entity'
+import * as Entities from '../../src/modules/0.0.2/iasql_platform/entity'
 import { TypeormWrapper, } from '../../src/services/typeorm'
 import { migrate, } from '../../src/services/db-manager'
 

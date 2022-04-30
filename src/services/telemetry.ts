@@ -1,8 +1,13 @@
-import * as Amplitude from '@amplitude/node';
+import * as Amplitude from '@amplitude/node'
 
-import config from '../config';
-import logger from './logger';
-import { IasqlOperationType } from '../modules/0.0.1/iasql_functions/entity';
+import config from '../config'
+import logger from './logger'
+import { latest, } from '../modules'
+
+// Weird little dance to make it a type again.
+// From: https://www.typescriptlang.org/docs/handbook/enums.html#objects-vs-enums
+const { IasqlOperationType, } = latest.IasqlFunctions.utils;
+type IasqlOperationType = typeof IasqlOperationType[keyof typeof IasqlOperationType];
 
 const singleton = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
 

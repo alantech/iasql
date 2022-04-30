@@ -320,7 +320,7 @@ export class Module {
     this.dependencies = def.dependencies;
     if (
       this.name !== 'iasql_platform' &&
-      !def.dependencies.includes('iasql_platform@0.0.1')
+      !def.dependencies.includes(`iasql_platform@${this.version}`)
     ) throw new Error(`${def.name} did not declare an iasql_platform dependency and cannot be loaded.`);
     const entityDir = `${dirname}/entity`;
     const entities = require(`${entityDir}/index`);

@@ -14,10 +14,10 @@ import { DepError, lazyLoader, } from './lazy-dep'
 import { findDiff, } from './diff'
 import MetadataRepo from './repositories/metadata'
 import { TypeormWrapper, } from './typeorm'
-import { IasqlModule, IasqlTables, } from '../modules/0.0.1/iasql_platform/entity'
+import * as AllModules from '../modules'
 import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
-import { Context, MapperInterface, v0_0_1 as Modules, Module, ModuleInterface, } from '../modules'
+import { Context, MapperInterface, Module, ModuleInterface, } from '../modules'
 import * as scheduler from './scheduler'
 import { IasqlDatabase } from '../entity';
 import logger, { debugObj } from './logger';
@@ -136,6 +136,8 @@ export async function attach(
   awsSecretAccessKey: string,
   connOpt?: any
 ) {
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const Modules = (AllModules as any)[versionString];
   let conn: any;
   let orm: TypeormWrapper | undefined;
   try {
@@ -150,33 +152,33 @@ export async function attach(
     logger.info('Loading aws_account data...');
     // Manually load the relevant data from the cloud side for the `aws_account` module.
     // TODO: Figure out how to eliminate *most* of this special-casing for this module in the future
-    const entities: Function[] = Object.values(Modules.AwsAccount.mappers).map(m => m.entity);
-    entities.push(IasqlModule);
-    entities.push(IasqlTables);
+    const entities: Function[] = Object.values(Modules.AwsAccount.mappers).map((m: any) => m.entity);
+    entities.push(Modules.IasqlPlatform.utils.IasqlModule);
+    entities.push(Modules.IasqlPlatform.utils.IasqlTables);
     orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
     const mappers = Object.values(Modules.AwsAccount.mappers);
     const context: Context = { orm, memo: {}, ...Modules.AwsAccount.provides.context, };
     for (const mapper of mappers) {
-      logger.info(`Loading aws_account table ${mapper.entity.name}...`);
-      const e = await mapper.cloud.read(context);
+      logger.info(`Loading aws_account table ${(mapper as any).entity.name}...`);
+      const e = await (mapper as any).cloud.read(context);
       if (!e || (Array.isArray(e) && !e.length)) {
-        logger.info(`${mapper.entity.name} has no records in the cloud to store`);
+        logger.info(`${(mapper as any).entity.name} has no records in the cloud to store`);
       } else {
         // Since we manually inserted a half-broken record into `region` above, we need extra logic
         // here to make sure the newly-acquired records are properly inserted/updated in the DB. The
         // logic here is made generic for all mappers in `aws_account` in case we decide to do this
         // for other tables in the future above and not have it break unexpectedly.
-        const existingRecords: any[] = await orm.find(mapper.entity);
-        const existingIds = existingRecords.map((er: any) => mapper.entityId(er));
+        const existingRecords: any[] = await orm.find((mapper as any).entity);
+        const existingIds = existingRecords.map((er: any) => (mapper as any).entityId(er));
         for (const entity of e) {
           if (existingRecords.length > 0) {
-            const id = mapper.entityId(entity);
+            const id = (mapper as any).entityId(entity);
             if (existingIds.includes(id)) {
               const ind = existingRecords.findIndex((_er, i) => existingIds[i] === id);
               entity.id = existingRecords[ind].id;
             }
           }
-          await mapper.db.create(entity, context);
+          await (mapper as any).db.create(entity, context);
         }
       }
     }
@@ -302,11 +304,13 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
 export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   logger.info(`Applying ${dbId}`);
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const Modules = (AllModules as any)[versionString];
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
-    const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
+    const moduleNames = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
     const context: Context = { orm, memo, }; // Every module gets access to the DB
     for (const name of moduleNames) {
@@ -515,11 +519,13 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
 export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   logger.info(`Syncing ${dbId}`);
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const Modules = (AllModules as any)[versionString];
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
-    const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
+    const moduleNames = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
     const context: Context = { orm, memo, }; // Every module gets access to the DB
     for (const name of moduleNames) {
@@ -719,6 +725,8 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
 }
 
 export async function modules(all: boolean, installed: boolean, dbId: string) {
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const Modules = (AllModules as any)[versionString];
   const allModules = Object.values(Modules)
     .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && !/iasql_.*/.test(m.name))
     .map((m: any) => ({
@@ -729,10 +737,13 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
   if (all) {
     return JSON.stringify(allModules);
   } else if (installed && dbId) {
-    const entities: Function[] = [IasqlModule, IasqlTables];
+    const entities: Function[] = [
+      Modules.IasqlPlatform.utils.IasqlModule,
+      Modules.IasqlPlatform.utils.IasqlTables
+    ];
     const orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
-    const mods = await orm.find(IasqlModule);
-    const modsInstalled = mods.map((m: IasqlModule) => (m.name));
+    const mods = await orm.find(Modules.IasqlPlatform.utils.IasqlModule);
+    const modsInstalled = mods.map((m: any) => (m.name));
     return JSON.stringify(allModules.filter(m => modsInstalled.includes(`${m.moduleName}@${m.moduleVersion}`)));
   } else {
     throw new Error('Invalid request parameters');
@@ -740,6 +751,12 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
 }
 
 export async function install(moduleList: string[], dbId: string, dbUser: string, allModules = false, ormOpt?: TypeormWrapper) {
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const Modules = (AllModules as any)[versionString];
+  console.log({
+    versionString,
+    Modules,
+  })
   // Check to make sure that all specified modules actually exist
   if (allModules) {
     const installedModules = JSON.parse(await modules(false, true, dbId))
@@ -751,8 +768,17 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
         'iasql_functions',
       ].includes(m.name)).map((m: ModuleInterface) => `${m.name}@${m.version}`);
   }
-  moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@0.0.1`);
+  const version = Modules.IasqlPlatform.version;
+  console.log({
+    versionString,
+    version,
+  })
+  moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@${version}`);
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === n)) as Module[];
+  console.log({
+    moduleList,
+    mods,
+  })
   if (mods.some((m: any) => m === undefined)) {
     const modNames = (Object.values(Modules) as ModuleInterface[])
       .filter(m => m.hasOwnProperty('name') && m.hasOwnProperty('version'))
@@ -767,28 +793,38 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
       missingModules.join(', ')
     }. Did you mean: ${missingSuggestions.join(', ')}`);
   }
+  console.log(1);
   const orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
+  console.log({
+    orm,
+    ormOpt,
+  })
   const queryRunner = orm.createQueryRunner();
+  console.log(1.1)
   await queryRunner.connect();
+  console.log(1.2);
   // See what modules are already installed and prune them from the list
-  const existingModules = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
+  const existingModules = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
+  console.log(1.3);
   for (let i = 0; i < mods.length; i++) {
     if (existingModules.includes(mods[i].name)) {
       mods.splice(i, 1);
       i--;
     }
   }
+  console.log(2);
   // Check to make sure that all dependent modules are in the list
   const missingDeps = mods
     .flatMap((m: Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
     .filter((m: any) => ![
-      'iasql_platform@0.0.1',
-      'iasql_functions@0.0.1',
+      `iasql_platform@${version}`,
+      `iasql_functions@${version}`,
     ].includes(m) && m !== undefined);
   if (missingDeps.length > 0) {
     throw new Error(`The provided modules depend on the following modules that are not provided or installed: ${missingDeps.join(', ')
       }`);
   }
+  console.log(3);
   // See if we need to abort because now there's nothing to do
   if (mods.length === 0) {
     throw new Error("All modules already installed");
@@ -812,6 +848,7 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
       }
     }
   }
+  console.log(4);
   if (hasCollision) {
     throw new Error(`Collision with existing tables detected.
 ${Object.keys(tableCollisions)
@@ -820,6 +857,7 @@ ${Object.keys(tableCollisions)
         .join('\n')
       }`);
   }
+  console.log(5);
   // We're now good to go with installing the requested modules. To make sure they install correctly
   // we first need to sync the existing modules to make sure there are no records the newly-added
   // modules have a dependency on.
@@ -829,6 +867,7 @@ ${Object.keys(tableCollisions)
     logger.error('Sync during module install failed', e);
     throw e;
   }
+  console.log(6);
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(mods, existingModules);
   // Actually run the installation. The install scripts are run from root-to-leaf. Wrapped in a
@@ -839,20 +878,20 @@ ${Object.keys(tableCollisions)
       if (md.migrations?.install) {
         await md.migrations.install(queryRunner);
       }
-      const e = new IasqlModule();
+      const e = new Modules.IasqlPlatform.utils.IasqlModule();
       e.name = `${md.name}@${md.version}`;
       e.dependencies = await Promise.all(
-        md.dependencies.map(async (dep) => await orm.findOne(IasqlModule, { name: dep, }))
+        md.dependencies.map(async (dep) => await orm.findOne(Modules.IasqlPlatform.utils.IasqlModule, { name: dep, }))
       );
-      await orm.save(IasqlModule, e);
+      await orm.save(Modules.IasqlPlatform.utils.IasqlModule, e);
 
       const modTables = md.provides.tables?.map((t) => {
-        const mt = new IasqlTables();
+        const mt = new Modules.IasqlPlatform.utils.IasqlTables();
         mt.table = t;
         mt.module = e;
         return mt;
       }) ?? [];
-      await orm.save(IasqlTables, modTables);
+      await orm.save(Modules.IasqlPlatform.utils.IasqlTables, modTables);
     }
     await queryRunner.commitTransaction();
     await orm.query(dbMan.grantPostgresRoleQuery(dbUser));
@@ -862,6 +901,7 @@ ${Object.keys(tableCollisions)
   } finally {
     await queryRunner.release();
   }
+  console.log(7);
   // For all newly installed modules, query the cloud state, if any, and save it to the database.
   // Since the context requires all installed modules and that has changed, for simplicity's sake
   // we're re-loading the modules and constructing the context that way, first, but then iterating
@@ -871,7 +911,7 @@ ${Object.keys(tableCollisions)
   // mapper to make batch create/update/delete more efficient.
 
   // Find all of the installed modules, and create the context object only for these
-  const moduleNames = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
+  const moduleNames = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
   const context: Context = { orm, memo: {}, }; // Every module gets access to the DB
   for (const name of moduleNames) {
     const md = (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === name) as Module;
@@ -879,6 +919,7 @@ ${Object.keys(tableCollisions)
     const moduleContext = md.provides.context ?? {};
     Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
   }
+  console.log(8);
 
   try {
     for (const md of rootToLeafOrder) {
@@ -911,8 +952,11 @@ ${Object.keys(tableCollisions)
 }
 
 export async function uninstall(moduleList: string[], dbId: string, orm?: TypeormWrapper) {
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const Modules = (AllModules as any)[versionString];
   // Check to make sure that all specified modules actually exist
-  moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@0.0.1`);
+  const version = Modules.IasqlPlatform.version
+  moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@${version}`);
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === n)) as Module[];
   if (mods.some((m: any) => m === undefined)) {
     throw new Error(`The following modules do not exist: ${moduleList.filter((n: string) => !(Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
@@ -922,7 +966,7 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already uninstalled and prune them from the list
-  const existingModules = (await orm.find(IasqlModule)).map((m: IasqlModule) => m.name);
+  const existingModules = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
   for (let i = 0; i < mods.length; i++) {
     if (!existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
       mods.splice(i, 1);
@@ -948,15 +992,15 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
       }
     }
     for (const md of rootToLeafOrder) {
-      const e = await orm.findOne(IasqlModule, { name: `${md.name}@${md.version}`, });
-      const mt = await orm.find(IasqlTables, {
+      const e = await orm.findOne(Modules.IasqlPlatform.utils.IasqlModule, { name: `${md.name}@${md.version}`, });
+      const mt = await orm.find(Modules.IasqlPlatform.utils.IasqlTables, {
         where: {
           module: e,
         },
         relations: ['module',]
       }) ?? [];
-      await orm.remove(IasqlTables, mt);
-      await orm.remove(IasqlModule, e);
+      await orm.remove(Modules.IasqlPlatform.utils.IasqlTables, mt);
+      await orm.remove(Modules.IasqlPlatform.utils.IasqlModule, e);
     }
     await queryRunner.commitTransaction();
   } catch (e: any) {
