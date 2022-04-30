@@ -993,7 +993,7 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
     }
     for (const md of rootToLeafOrder) {
       const e = await orm.findOne(Modules.IasqlPlatform.utils.IasqlModule, { name: `${md.name}@${md.version}`, });
-      const mt = await orm.find(Modules.IaslqPlatform.utils.IasqlTables, {
+      const mt = await orm.find(Modules.IasqlPlatform.utils.IasqlTables, {
         where: {
           module: e,
         },
