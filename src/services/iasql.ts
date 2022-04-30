@@ -1028,7 +1028,7 @@ export async function upgrade(dbId: string, dbUser: string) {
           database: dbId,
         });
         // 1. Read the `iasql_module` table to get all currently installed modules.
-        const modules = (await conn.query(`
+        const mods = (await conn.query(`
           SELECT name FROM iasql_module;
         `)).map((r: any) => r.name.split('@')[0]);
         const tables = (await conn.query(`
@@ -1036,7 +1036,7 @@ export async function upgrade(dbId: string, dbUser: string) {
         `)).map((r: any) => r.table);
         let creds: any;
         // 2. Read the `aws_account` table to get the credentials (if any).
-        if (modules.includes('aws_account')) {
+        if (mods.includes('aws_account')) {
           creds = (await conn.query(`
             SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;
           `))[0];
@@ -1064,7 +1064,7 @@ export async function upgrade(dbId: string, dbUser: string) {
             INSERT INTO aws_account (access_key_id, secret_access_key, region)
             VALUES ('${creds.access_key_id}', '${creds.secret_access_key}', '${creds.region}');
           `);
-          await install(modules.filter((m: string) => m !== 'aws_account'), dbId, dbUser);
+          await install(mods.filter((m: string) => m !== 'aws_account'), dbId, dbUser);
         }
         throw new Error('Upgrade complete');
       } catch (e) {
