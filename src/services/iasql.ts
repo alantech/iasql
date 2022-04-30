@@ -1019,60 +1019,62 @@ export async function upgrade(dbId: string, dbUser: string) {
   switch (versionString) {
     case 'v0_0_1':
       // The upgrade path here is manual and can't assume much because we broke the versioning
-      // contract with v0.0.1.
-      let conn: any;
-      try {
-        conn = await createConnection({
-          ...dbMan.baseConnConfig,
-          name: dbId,
-          database: dbId,
-        });
-        // 1. Read the `iasql_module` table to get all currently installed modules.
-        const mods = (await conn.query(`
-          SELECT name FROM iasql_module;
-        `)).map((r: any) => r.name.split('@')[0]);
-        const tables = (await conn.query(`
-          SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public';
-        `)).map((r: any) => r.tablename);
-        let creds: any;
-        // 2. Read the `aws_account` table to get the credentials (if any).
-        if (mods.includes('aws_account')) {
-          creds = (await conn.query(`
-            SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;
-          `))[0];
-        }
-        // 3. Manually drop all tables and function from the DB
-        await conn.query(`
-          -- This first drop should take care of most of the functions
-          DROP FUNCTION IF EXISTS until_iasql_operation CASCADE;
-          -- And the few that don't depend directly or indirectly on it
-          DROP FUNCTION IF EXISTS delete_all_records CASCADE;
-          DROP FUNCTION IF EXISTS iasql_help CASCADE;
-        `);
-        for (const table of tables) {
+      // contract with v0.0.1. It also has to happen async to the response because Postgres itself
+      // locks up if you drop the tables out from under it, apparently?
+      (async () => {
+        let conn: any;
+        try {
+          conn = await createConnection({
+            ...dbMan.baseConnConfig,
+            name: dbId,
+            database: dbId,
+          });
+          // 1. Read the `iasql_module` table to get all currently installed modules.
+          const mods = (await conn.query(`
+            SELECT name FROM iasql_module;
+          `)).map((r: any) => r.name.split('@')[0]);
+          const tables = (await conn.query(`
+            SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public';
+          `)).map((r: any) => r.tablename);
+          let creds: any;
+          // 2. Read the `aws_account` table to get the credentials (if any).
+          if (mods.includes('aws_account')) {
+            creds = (await conn.query(`
+              SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;
+            `))[0];
+          }
+          // 3. Manually drop all tables and function from the DB
           await conn.query(`
-            DROP TABLE IF EXISTS ${table} CASCADE;
+            -- This first drop should take care of most of the functions
+            DROP FUNCTION IF EXISTS until_iasql_operation CASCADE;
+            -- And the few that don't depend directly or indirectly on it
+            DROP FUNCTION IF EXISTS delete_all_records CASCADE;
+            DROP FUNCTION IF EXISTS iasql_help CASCADE;
           `);
+          for (const table of tables) {
+            await conn.query(`
+              DROP TABLE IF EXISTS ${table} CASCADE;
+            `);
+          }
+          // 4. Re-run a the `/connect` logic to get the latest structure in the DB.
+          await dbMan.migrate(conn);
+          // 5. If `aws_account` and other modules are installed, install `aws_account`, insert the
+          //    credentials, then install the rest of the modules.
+          if (!!creds) {
+            await install(['aws_account'], dbId, dbUser);
+            await conn.query(`
+              INSERT INTO aws_account (access_key_id, secret_access_key, region)
+              VALUES ('${creds.access_key_id}', '${creds.secret_access_key}', '${creds.region}');
+            `);
+            await install(mods.filter((m: string) => m !== 'aws_account'), dbId, dbUser);
+          }
+        } catch (e) {
+          logger.error('Failed to upgrade', { e, });
+        } finally {
+          conn?.close();
         }
-        // 4. Re-run a the `/connect` logic to get the latest structure in the DB.
-        await dbMan.migrate(conn);
-        // 5. If `aws_account` and other modules are installed, install `aws_account`, insert the
-        //    credentials, then install the rest of the modules.
-        if (!!creds) {
-          await install(['aws_account'], dbId, dbUser);
-          await conn.query(`
-            INSERT INTO aws_account (access_key_id, secret_access_key, region)
-            VALUES ('${creds.access_key_id}', '${creds.secret_access_key}', '${creds.region}');
-          `);
-          await install(mods.filter((m: string) => m !== 'aws_account'), dbId, dbUser);
-        }
-        throw new Error('Upgrade complete');
-      } catch (e) {
-        // TODO: Anything else to handle here?
-        throw e;
-      } finally {
-        conn?.close();
-      }
+      })();
+      throw new Error('Upgrading. Please disconnect and reconnect to the database');
     case 'v0_0_2':
     case 'latest':
       throw new Error('Up to date');
