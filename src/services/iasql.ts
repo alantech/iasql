@@ -1032,8 +1032,8 @@ export async function upgrade(dbId: string, dbUser: string) {
           SELECT name FROM iasql_module;
         `)).map((r: any) => r.name.split('@')[0]);
         const tables = (await conn.query(`
-          SELECT "table" FROM iasql_tables;
-        `)).map((r: any) => r.table);
+          SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public';
+        `)).map((r: any) => r.tablename);
         let creds: any;
         // 2. Read the `aws_account` table to get the credentials (if any).
         if (mods.includes('aws_account')) {
