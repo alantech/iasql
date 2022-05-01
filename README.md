@@ -56,9 +56,9 @@ AWS is our main focus at the moment, but we plan to support GCP, Azure and other
 - [x] RDS
 - [x] VPC
 - [x] IAM
+- [x] Route53
 - [ ] ACM
 - [ ] Dynamo DB
 - [ ] Lambda
-- [ ] Route53
 - [ ] S3
 - [ ] Secrets Manager
