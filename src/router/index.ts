@@ -23,7 +23,8 @@ if (config.auth) {
   v1.use(checkJwt);
 }
 // TODO secure with scope
-v1.use('/db', db)
-if (config.graphql) v1.use('/graphql', graphql)
+v1.use('/db', db);
+if (config.graphql) v1.use('/graphql', graphql);
+v1.get('/version', (_req, res) => res.send('0.0.2')); // TODO: DRY this somehow
 
 export { v1 };
