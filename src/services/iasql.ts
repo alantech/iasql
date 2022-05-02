@@ -1088,7 +1088,8 @@ export async function upgrade(dbId: string, dbUser: string) {
         }
       })();
       throw new Error('Upgrading. Please disconnect and reconnect to the database');
-    case 'v0_0_2':
+    case 'v0_0_2': // TODO: Implement this upgrade before release of v0.0.3
+    case 'v0_0_3':
     case 'latest':
       throw new Error('Up to date');
     default:
