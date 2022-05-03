@@ -115,7 +115,7 @@ export async function connect(
       password: dbPass,
     };
   } catch (e: any) {
-    scheduler.stop(dbId);
+    await scheduler.stop(dbId);
     // delete db in psql and metadata
     await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
     if (dbUser) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser));
@@ -197,7 +197,7 @@ export async function disconnect(dbAlias: string, uid: string) {
   let conn;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    scheduler.stop(db.pgName);
+    await scheduler.stop(db.pgName);
     conn = await createConnection(dbMan.baseConnConfig);
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
