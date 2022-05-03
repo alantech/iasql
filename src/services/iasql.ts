@@ -753,10 +753,6 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
 export async function install(moduleList: string[], dbId: string, dbUser: string, allModules = false, ormOpt?: TypeormWrapper) {
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
-  console.log({
-    versionString,
-    Modules,
-  })
   // Check to make sure that all specified modules actually exist
   if (allModules) {
     const installedModules = JSON.parse(await modules(false, true, dbId))
@@ -769,16 +765,8 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
       ].includes(m.name)).map((m: ModuleInterface) => `${m.name}@${m.version}`);
   }
   const version = Modules.IasqlPlatform.version;
-  console.log({
-    versionString,
-    version,
-  })
   moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@${version}`);
   const mods = moduleList.map((n: string) => (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === n)) as Module[];
-  console.log({
-    moduleList,
-    mods,
-  })
   if (mods.some((m: any) => m === undefined)) {
     const modNames = (Object.values(Modules) as ModuleInterface[])
       .filter(m => m.hasOwnProperty('name') && m.hasOwnProperty('version'))
@@ -793,26 +781,17 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
       missingModules.join(', ')
     }. Did you mean: ${missingSuggestions.join(', ')}`);
   }
-  console.log(1);
   const orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
-  console.log({
-    orm,
-    ormOpt,
-  })
   const queryRunner = orm.createQueryRunner();
-  console.log(1.1)
   await queryRunner.connect();
-  console.log(1.2);
   // See what modules are already installed and prune them from the list
   const existingModules = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
-  console.log(1.3);
   for (let i = 0; i < mods.length; i++) {
     if (existingModules.includes(mods[i].name)) {
       mods.splice(i, 1);
       i--;
     }
   }
-  console.log(2);
   // Check to make sure that all dependent modules are in the list
   const missingDeps = mods
     .flatMap((m: Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
@@ -824,7 +803,6 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
     throw new Error(`The provided modules depend on the following modules that are not provided or installed: ${missingDeps.join(', ')
       }`);
   }
-  console.log(3);
   // See if we need to abort because now there's nothing to do
   if (mods.length === 0) {
     throw new Error("All modules already installed");
@@ -848,7 +826,6 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
       }
     }
   }
-  console.log(4);
   if (hasCollision) {
     throw new Error(`Collision with existing tables detected.
 ${Object.keys(tableCollisions)
@@ -857,7 +834,6 @@ ${Object.keys(tableCollisions)
         .join('\n')
       }`);
   }
-  console.log(5);
   // We're now good to go with installing the requested modules. To make sure they install correctly
   // we first need to sync the existing modules to make sure there are no records the newly-added
   // modules have a dependency on.
@@ -867,7 +843,6 @@ ${Object.keys(tableCollisions)
     logger.error('Sync during module install failed', e);
     throw e;
   }
-  console.log(6);
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(mods, existingModules);
   // Actually run the installation. The install scripts are run from root-to-leaf. Wrapped in a
@@ -901,7 +876,6 @@ ${Object.keys(tableCollisions)
   } finally {
     await queryRunner.release();
   }
-  console.log(7);
   // For all newly installed modules, query the cloud state, if any, and save it to the database.
   // Since the context requires all installed modules and that has changed, for simplicity's sake
   // we're re-loading the modules and constructing the context that way, first, but then iterating
@@ -919,7 +893,6 @@ ${Object.keys(tableCollisions)
     const moduleContext = md.provides.context ?? {};
     Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
   }
-  console.log(8);
 
   try {
     for (const md of rootToLeafOrder) {

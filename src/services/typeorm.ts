@@ -68,9 +68,6 @@ export class TypeormWrapper {
       ...connectionConfig as PostgresConnectionOptions,
       database,
     };
-    console.log({
-      connOpts,
-    });
     const versionString = await TypeormWrapper.getVersionString(database);
     const Modules = (AllModules as any)[versionString];
     // Grab all of the entities and create the TypeORM connection with it. Theoretically only need
@@ -82,12 +79,10 @@ export class TypeormWrapper {
       .map((m: any) => Object.values(m.provides.entities))
       .flat()
       .filter(e => typeof e === 'function') as Function[];
-    console.log({ entities, })
 
     // Now that we have the entities for this database, close the temporary connection and create
     // the real connection with the entities present
     const name = uuidv4();
-    console.log({ ...connOpts, entities, name, });
     typeorm.connection = await createConnection({ ...connOpts, entities, name, });
     return typeorm;
   }

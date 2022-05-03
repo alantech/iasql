@@ -389,7 +389,7 @@ export class AWS {
         const regionAZs = await client.send(new DescribeAvailabilityZonesCommand({ AllAvailabilityZones: true, }));
         availabilityZones = availabilityZones.concat(regionAZs.AvailabilityZones ?? []);
       } catch (e) {
-        console.log(`Could not get availability zones for region: ${region}. Error: ${e}`);
+        logger.info(`Could not get availability zones for region: ${region}. Error: ${e}`);
       }
     }
     return availabilityZones;
