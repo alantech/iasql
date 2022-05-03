@@ -150,6 +150,30 @@ describe('IAM Integration Testing', () => {
     WHERE role_name = '${lambdaRoleName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
+  it('creates a lot of similar roles to try to hit the rate-limiter', query(`
+    INSERT INTO role (role_name, assume_role_policy_document)
+    VALUES ${Array(100)
+      .fill('')
+      .map((_, i) => `('${lambdaRoleName}-${i}', '${attachAssumeLambdaPolicy}')`)
+      .join(', ')};
+  `));
+
+  it('creates these things', apply());
+
+  it('uninstalls the iam module', uninstall(modules));
+
+  it('installs the iam module', install(modules));
+
+  it('deletes all of this similar roles', query(`
+    DELETE FROM role
+    WHERE role_name in (${Array(100)
+      .fill('')
+      .map((_, i) => `'${lambdaRoleName}-${i}'`)
+      .join(', ')});
+  `));
+
+  it('deletes these things', apply());
+
   describe('AWS service roles', () => {
     it('check service role', query(`
       SELECT *
