@@ -107,22 +107,59 @@ describe('Security Group Integration Testing', () => {
     WHERE group_name = '${prefix}sgtest2';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
+  // Testing potential race condition with security group with very large ruleset, particularly
+  // during install
+  
+  it('inserts a security group with a large ruleset', query(`
+    INSERT INTO security_group (description, group_name)
+    VALUES ('Security Group with a large ruleset', '${prefix}beegbeegsg');
+
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT x.is_egress, x.ip_protocol, x.from_port, x.to_port, x.cidr_ipv4, x.description, s.security_group_id
+    FROM json_to_recordset('${JSON.stringify(Array(20).fill('').map(_ => ({
+      is_egress: Math.random() > 0.5,
+      ip_protocol: Math.random() > 0.5 ? 'tcp' : 'udp',
+      from_port: Math.floor(Math.random()*32768),
+      to_port: Math.floor(Math.random()*32768+32768),
+      cidr_ipv4: `192.${Math.floor(Math.random() * 255)}.0.0/16`,
+      description: [
+        ['My', 'Your', 'Our', 'Their'],
+        ['Fluffy', 'Stinky', 'Fuzzy', 'Angry', 'Dirty', 'Dry', 'Dangerous', 'Dingy', 'Ecstatic'],
+        ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Indigo', 'Violet'],
+        ['Cat', 'Dog', 'Horse', 'Orangutan', 'Parrot', 'Sheep', 'GOAT', 'Walrus', 'Llama', 'Uncle Jim'],
+        ['Ate', 'Sat On', 'Punched', 'Debated With', 'Raced', 'Worshipped', 'Cleaned', 'Observed'],
+        ['Two', 'Five', 'Three', 'Twenty-Seven', 'OVER 9000'],
+        ['Seahorses', 'Gorillas', 'Bats', 'Gerbils', 'Orcas', 'Sharks', 'Second Cousins'],
+      ].map(r => r[Math.floor(Math.random() * r.length)]).join(' '),
+    })), undefined, '  ')}') AS x(is_egress boolean, ip_protocol varchar, from_port integer, to_port integer, cidr_ipv4 cidr, description varchar)
+    INNER JOIN (
+      SELECT id AS security_group_id FROM security_group WHERE group_name = '${prefix}beegbeegsg'
+    ) AS s ON 1 = 1;
+  `, (res: any[]) => console.log(res)));
+
+  it('should successfully create this mess', apply());
+
   it('uninstalls the security group module', uninstall(
     modules));
 
   it('installs the security group module', install(
     modules));
 
-  it('deletes the security group rule', query(`
+  it('deletes the security group rules', query(`
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule';
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule2';
+
+    DELETE FROM security_group_rule
+    USING security_group
+    WHERE security_group_rule.security_group_id = security_group.id
+    AND security_group.group_name = '${prefix}beegbeegsg';
   `));
 
   it('applies the security group rule change (last time)', apply());
 
-  it('deletes the security group', query(`
+  it('deletes the security groups', query(`
     DELETE FROM security_group
-    WHERE group_name = '${prefix}sgtest2';
+    WHERE group_name = '${prefix}sgtest2' OR group_name = '${prefix}beegbeegsg';
   `));
 
   it('applies the security group change (last time)', apply());
