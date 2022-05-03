@@ -4,6 +4,9 @@ const config: ConfigInterface = {
   http: {
     port: 8088,
   },
+  modules: {
+    latestVersion: '0.0.3',
+  },
   db: {
     host: 'db-staging.iasql.com',
     // TODO: Move away from env var to secret

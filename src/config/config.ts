@@ -3,6 +3,9 @@ export interface ConfigInterface {
   http: {
     port: number;
   };
+  modules: {
+    latestVersion: string; // Which version of the modules should be considered latest
+  };
   // Configuration for the postgres database
   db: {
     host: string;
