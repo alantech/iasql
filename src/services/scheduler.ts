@@ -1,5 +1,6 @@
 import EventEmitter from 'events'
 import { run } from 'graphile-worker'
+import { v4 as uuidv4, } from 'uuid'
 
 import { latest, } from '../modules'
 import MetadataRepo from './repositories/metadata'
@@ -21,7 +22,7 @@ workerShutdownEmitter.setMaxListeners(0);
 // (graphile_worker) and migrations in each uid db using our credentials
 export async function start(dbId: string, dbUser:string) {
   // use the same connection for the scheduler and its operations
-  const conn = await TypeormWrapper.createConn(dbId, { name: `${dbId}-${Math.floor(Math.random()*10000)}-scheduler`, });
+  const conn = await TypeormWrapper.createConn(dbId, { name: uuidv4(), });
   // create a dblink server per db to reduce connections when calling dblink in iasql op SP
   // https://aws.amazon.com/blogs/database/migrating-oracle-autonomous-transactions-to-postgresql/
   await conn.query(`CREATE EXTENSION IF NOT EXISTS dblink;`);

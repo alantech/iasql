@@ -38,6 +38,7 @@
     "@types/cors": "^2.8.12",
     "@types/jest": "^27.0.2",
     "@types/node": "^16.11.28",
+    "@types/uuid": "^8.3.4",
     "copyfiles": "^2.4.1",
     "jest": "^27.5.1",
     "nodemon": "^2.0.13",
@@ -72,6 +73,7 @@
     "postgraphile": "^4.12.9",
     "reflect-metadata": "^0.1.13",
     "typeorm": "^0.2.37",
-    "typeorm-naming-strategies": "^4.1.0"
+    "typeorm-naming-strategies": "^4.1.0",
+    "uuid": "^8.3.2"
   }
 }

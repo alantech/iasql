@@ -1,4 +1,4 @@
-import { randomInt, } from 'crypto'
+import { v4 as uuidv4, } from 'uuid'
 import { Pool } from 'pg'
 import { Connection, createConnection, EntityTarget, getConnectionManager, } from 'typeorm'
 import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConnectionOptions'
@@ -28,7 +28,7 @@ export class TypeormWrapper {
     // be moved into Metadata at some point in the future, but for now let's assume that the
     // `iasql_module` table is stable
     const connMan = getConnectionManager();
-    const dbname = `database-${randomInt(200000)}`;
+    const dbname = uuidv4();
     if (connMan.has(dbname)) {
       throw new Error(`Connection ${dbname} already exists`)
     }
@@ -58,7 +58,7 @@ export class TypeormWrapper {
     // First step: we need to probe the database to see what version it is.
     const typeorm = new TypeormWrapper();
     const connMan = getConnectionManager();
-    const dbname = `${database}-${randomInt(200000)}`;
+    const dbname = uuidv4();
     if (connMan.has(dbname)) {
       throw new Error(`Connection ${dbname} already exists`)
     }
@@ -86,7 +86,7 @@ export class TypeormWrapper {
 
     // Now that we have the entities for this database, close the temporary connection and create
     // the real connection with the entities present
-    const name = `${database}-${randomInt(200000)}`;
+    const name = uuidv4();
     console.log({ ...connOpts, entities, name, });
     typeorm.connection = await createConnection({ ...connOpts, entities, name, });
     return typeorm;
