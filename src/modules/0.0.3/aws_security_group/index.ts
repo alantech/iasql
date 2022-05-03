@@ -139,7 +139,7 @@ export const AwsSecurityGroupModule: Module = new Module({
             relations,
           } : { relations, };
           const securityGroups = await ctx.orm.find(SecurityGroup, opts);
-          securityGroups.map(async (sg: SecurityGroup) => {
+          await Promise.all(securityGroups.map(async (sg: SecurityGroup) => {
             if (!sg.vpc) {
               const vpcs: Vpc[] = await AwsVpcModule.mappers.vpc.db.read(ctx);
               if (!vpcs.length) {
@@ -153,7 +153,7 @@ export const AwsSecurityGroupModule: Module = new Module({
               }
             }
             return sg;
-          });
+          }));
           return securityGroups;
         },
         update: async (e: SecurityGroup[], ctx: Context) => {
