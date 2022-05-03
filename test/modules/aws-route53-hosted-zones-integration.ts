@@ -1,5 +1,6 @@
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql'
+import logger from '../../src/services/logger'
 import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const prefix = getPrefix();
@@ -174,8 +175,8 @@ describe('Route53 Integration Testing', () => {
     INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id
     WHERE domain_name = '${replaceDomainName}';
   `, (res: any[]) => {
-    console.log(`${JSON.stringify(res)}`)
-    const multiline = res.find(r => {console.log(JSON.stringify(r)); return r.name === resourceRecordSetMultilineName && r.record_type === resourceRecordSetTypeA});
+    logger.info(`${JSON.stringify(res)}`)
+    const multiline = res.find(r => {logger.info(JSON.stringify(r)); return r.name === resourceRecordSetMultilineName && r.record_type === resourceRecordSetTypeA});
     expect(multiline).toBeDefined();  
     expect(multiline?.record?.split('\n').length).toBe(2);
     return expect(res.length).toBe(4);
@@ -197,7 +198,7 @@ describe('Route53 Integration Testing', () => {
     WHERE domain_name = '${replaceDomainName}';
   `, (res: any[]) => {
     const updated = res.find(r => r.name === resourceRecordSetMultilineNameReplace && r.record_type === resourceRecordSetTypeA);
-    console.log(JSON.stringify(updated))
+    logger.info(JSON.stringify(updated))
     expect(updated).toBeDefined();
     expect(updated.record_type).toBe(resourceRecordSetTypeA);
     return expect(res.length).toBe(4); 
