@@ -12,6 +12,7 @@ const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_security_group', 'aws_vpc'];
 const randIPBlock = Math.floor(Math.random() * 255);
+const randIPBlock2 = Math.floor(Math.random() * 255);
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -110,9 +111,17 @@ describe('Security Group Integration Testing', () => {
   // Testing potential race condition with security group with very large ruleset, particularly
   // during install
   
-  it('inserts a security group with a large ruleset', query(`
+  it('inserts a security group with a large ruleset and more', query(`
+    INSERT INTO vpc (cidr_block)
+    VALUES ('192.${randIPBlock}.0.0/16'), ('192.${randIPBlock2}.0.0/16');
+
     INSERT INTO security_group (description, group_name)
-    VALUES ('Security Group with a large ruleset', '${prefix}beegbeegsg');
+    VALUES
+      ('Security Group with a large ruleset', '${prefix}beegbeegsg'),
+      ('Security Group with no rules', '${prefix}teenysg'),
+      ('Another *smashes cup*', '${prefix}thorsg'),
+      ('And Another One And Another One...', '${prefix}djkaledsg'),
+      ('The end', '${prefix}lastsg');
 
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT x.is_egress, x.ip_protocol, x.from_port, x.to_port, x.cidr_ipv4, x.description, s.security_group_id
@@ -135,7 +144,7 @@ describe('Security Group Integration Testing', () => {
     INNER JOIN (
       SELECT id AS security_group_id FROM security_group WHERE group_name = '${prefix}beegbeegsg'
     ) AS s ON 1 = 1;
-  `, (res: any[]) => console.log(res)));
+  `));
 
   it('should successfully create this mess', apply());
 
@@ -151,6 +160,11 @@ describe('Security Group Integration Testing', () => {
 
     DELETE FROM security_group_rule
     USING security_group
+    INNER JOIN vpc on security_group.vpc_id = vpc.id
+    WHERE vpc.cidr_block IN ('192.${randIPBlock}.0.0/16', '192.${randIPBlock2}.0.0/16');
+
+    DELETE FROM security_group_rule
+    USING security_group
     WHERE security_group_rule.security_group_id = security_group.id
     AND security_group.group_name = '${prefix}beegbeegsg';
   `));
@@ -159,7 +173,17 @@ describe('Security Group Integration Testing', () => {
 
   it('deletes the security groups', query(`
     DELETE FROM security_group
-    WHERE group_name = '${prefix}sgtest2' OR group_name = '${prefix}beegbeegsg';
+    WHERE group_name in (
+      '${prefix}sgtest2', '${prefix}beegbeegsg', '${prefix}teenysg',
+      '${prefix}thorsg', '${prefix}djkaledsg', '${prefix}lastsg'
+    );
+
+    DELETE FROM security_group
+    USING vpc
+    WHERE security_group.vpc_id = vpc.id
+    AND vpc.cidr_block IN ('192.${randIPBlock}.0.0/16', '192.${randIPBlock2}.0.0/16');
+
+    DELETE FROM vpc WHERE cidr_block IN ('192.${randIPBlock}.0.0/16', '192.${randIPBlock2}.0.0/16');
   `));
 
   it('applies the security group change (last time)', apply());
