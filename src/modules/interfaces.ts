@@ -150,10 +150,10 @@ export class Crud<E> {
           // If object is empty it means it is a placeholder and it is not in the memo yet.
           if (!Object.keys(ctx.memo[dest][entityName][id]).length) {
             logger.info(`Cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
-            return undefined;
+          } else {
+            logger.info(`Cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
+            return ctx.memo[dest][entityName][id];
           }
-          logger.info(`Cache hit for ${this.entity?.name ?? ''} ${this.dest}`);
-          return ctx.memo[dest][entityName][id];
         }
         // Linter thinks this is shadowing the other one on line 152 because JS hoisting nonsense
         let o;
