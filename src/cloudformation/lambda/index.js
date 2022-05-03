@@ -3,13 +3,16 @@ const {Client} = require('pg')
 const ACCESS_KEY_ID = process.env.access_key_id;
 const SECRET_ACCESS_KEY = process.env.secret_access_key;
 const AWS_REGION = process.env.aws_region;
-const CONNECTION_STRING = decodeURI(process.env.connection_string);
+const CONNECTION_STRING = process.env.connection_string;
 
 exports.handler = async function (event) {
   console.log('Lambda received event:');
   console.log(event);
   try {
-    const client = new Client(CONNECTION_STRING);
+    const connStrSplit = CONNECTION_STRING.split('?');
+    const connStr = connStrSplit[0];
+    const queryStr = connStrSplit[1];
+    const client = new Client(`${decodeURI(connStr)}${queryStr ? '?' + decodeURIComponent(queryStr) : ''}`);
     await client.connect();
     const insertCreds = {
       name: 'insert-creds',
