@@ -1,4 +1,3 @@
-import EventEmitter from 'events'
 import { run } from 'graphile-worker'
 import { v4 as uuidv4, } from 'uuid'
 
@@ -13,9 +12,7 @@ import config from '../config'
 
 const { IasqlOperationType, } = latest.IasqlFunctions.utils;
 
-const workerShutdownEmitter = new EventEmitter();
-// no max number of listeners warning
-workerShutdownEmitter.setMaxListeners(0);
+const workerRunners: { [key: string]: { runner: any, conn: any}, } = {}; // TODO: What is the runner type?
 
 // graphile-worker here functions as a library, not a child process.
 // It manages its own database schema
@@ -123,25 +120,26 @@ export async function start(dbId: string, dbUser:string) {
       },
     },
   });
-  // register the shutdown listener
-  workerShutdownEmitter.on(dbId, async () => {
-    await runner.stop()
-    await conn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
-    await conn.dropConn();
-  });
-  // deregister it when already stopped
-  runner.events.on('stop', () => {
-    workerShutdownEmitter.removeAllListeners(dbId);
-  })
+  workerRunners[dbId] = { runner, conn, };
 }
 
-export function stop(dbId: string) {
-  workerShutdownEmitter.emit(dbId);
+export async function stop(dbId: string) {
+  const { runner, conn, } = workerRunners[dbId];
+  if (runner && conn) {
+    await runner.stop();
+    await conn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
+    await conn.dropConn();
+    delete workerRunners[dbId];
+  } else {
+    throw new Error(`Graphile worker for ${dbId} not found`);
+  }
 }
 
 export async function stopAll() {
   const dbs: IasqlDatabase[] = await MetadataRepo.getAllDbs();
-  dbs.forEach(db => stop(db.pgName));
+  for (const db of dbs) {
+    await stop(db.pgName);
+  }
 }
 
 // spin up a worker for every db that this server is already managing
