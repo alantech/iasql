@@ -2,13 +2,29 @@ import * as util from 'util'
 
 import * as sentry from '@sentry/node'
 import { Logger, LogFunctionFactory } from 'graphile-worker'
+import { createLogger, } from '@logdna/logger'
 
 import config from '../config'
 
 const logFactory: LogFunctionFactory = (scope) => {
   // Better to check the config once in the factory and return fixed functions instead of checking
   // on each log output
-  if (config.logger.debug && config.logger.test) {
+  if (config.logger.logDnaKey) {
+    const levels = ['info', 'warn', 'error'];
+    if (config.logger.debug) levels.push('debug');
+    const logfn = createLogger(config.logger.logDnaKey, {
+      levels,
+    });
+    return (level, message, meta) => {
+      logfn.log(message, {
+        level: level === 'warning' ? 'warn' : level, // Graphile Logger vs LogDNA levels fix
+        meta,
+        indexMeta: true,
+        app: 'iasql-engine',
+        env: process.env.IASQL_ENV,
+      });
+    }
+  } else if (config.logger.debug && config.logger.test) {
     return (level, message, meta) => {
       const str = `${level}: ${message} ${util.inspect(scope)}${meta ? ` ${util.inspect(meta, { depth: 6, })}` : ''}\n`;
       switch (level) {
