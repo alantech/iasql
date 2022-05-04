@@ -92,11 +92,11 @@ export const AwsRdsModule: Module = new Module({
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const rdses = Array.isArray(ids) ? await (async () => {
-            const out = [];
+            const o = [];
             for (const id of ids) {
-              out.push(await client.getDBInstance(id));
+              o.push(await client.getDBInstance(id));
             }
-            return out;
+            return o;
           })() :
             (await client.getDBInstances()).DBInstances;
           const out = [];

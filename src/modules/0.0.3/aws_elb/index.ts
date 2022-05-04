@@ -144,11 +144,11 @@ export const AwsElbModule: Module = new Module({
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const listeners = Array.isArray(ids) ? await (async () => {
-            const out = [];
+            const o = [];
             for (const id of ids) {
-              out.push(await client.getListener(id));
+              o.push(await client.getListener(id));
             }
-            return out;
+            return o;
           })() :
             await (async () => {
               // TODO: Should this behavior be standard?
@@ -261,11 +261,11 @@ export const AwsElbModule: Module = new Module({
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const lbs = Array.isArray(ids) ? await (async () => {
-            const out = [];
+            const o = [];
             for (const id of ids) {
-              out.push(await client.getLoadBalancer(id));
+              o.push(await client.getLoadBalancer(id));
             }
-            return out;
+            return o;
           })() :
             (await client.getLoadBalancers()).LoadBalancers;
           const out = [];
@@ -397,11 +397,11 @@ export const AwsElbModule: Module = new Module({
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const tgs = Array.isArray(ids) ? await (async () => {
-            const out = [];
+            const o = [];
             for (const id of ids) {
-              out.push(await client.getTargetGroup(id));
+              o.push(await client.getTargetGroup(id));
             }
-            return out;
+            return o;
           })() :
             (await client.getTargetGroups()).TargetGroups;
           const out = [];

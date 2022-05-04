@@ -58,11 +58,11 @@ export const AwsEc2Module: Module = new Module({
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const instances = Array.isArray(ids) ? await (async () => {
-            const out = [];
+            const o = [];
             for (const id of ids) {
-              out.push(await client.getInstance(id));
+              o.push(await client.getInstance(id));
             }
-            return out;
+            return o;
           })() :
             (await client.getInstances()).Instances ?? [];
           // ignore instances in "Terminated" and "Shutting down" state

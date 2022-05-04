@@ -14,7 +14,7 @@ export const AwsIamModule: Module = new Module({
       out.roleName = role.RoleName ?? '';
       out.description = role.Description ?? '';
       out.assumeRolePolicyDocument = decodeURIComponent(role.AssumeRolePolicyDocument ?? '');
-      return out
+      return out;
     },
     roleNameFromArn: (arn: string, _ctx: Context) => {
       const roleName = arn.split(':role/')[1];
@@ -58,11 +58,11 @@ export const AwsIamModule: Module = new Module({
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const roles = Array.isArray(ids) ? await (async () => {
-            const out = [];
+            const o = [];
             for (const id of ids) {
-              out.push(await client.getRole(id));
+              o.push(await client.getRole(id));
             }
-            return out;
+            return o;
           })() :
             (await client.getRoles()) ?? [];
           const out = [];

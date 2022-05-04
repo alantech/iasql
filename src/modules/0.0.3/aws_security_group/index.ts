@@ -183,11 +183,11 @@ export const AwsSecurityGroupModule: Module = new Module({
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const sgs = Array.isArray(ids) ? await (async () => {
-            const out = [];
+            const o = [];
             for (const id of ids) {
-              out.push(await client.getSecurityGroup(id));
+              o.push(await client.getSecurityGroup(id));
             }
-            return out;
+            return o;
           })() :
             (await client.getSecurityGroups()).SecurityGroups;
           const out = [];
@@ -372,11 +372,11 @@ export const AwsSecurityGroupModule: Module = new Module({
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
           const sgrs = Array.isArray(ids) ? await (async () => {
-            const out = [];
+            const o = [];
             for (const id of ids) {
-              out.push(await client.getSecurityGroupRule(id));
+              o.push(await client.getSecurityGroupRule(id));
             }
-            return out;
+            return o;
           })() :
             (await client.getSecurityGroupRules()).SecurityGroupRules;
           const out = [];

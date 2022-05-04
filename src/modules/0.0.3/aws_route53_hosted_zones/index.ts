@@ -93,7 +93,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           for (const e of hz) {
             await client.deleteHostedZone(e.hostedZoneId);
-          } 
+          }
         },
       }),
     }),
