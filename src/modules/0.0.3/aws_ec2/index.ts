@@ -57,23 +57,32 @@ export const AwsEc2Module: Module = new Module({
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          const instances = Array.isArray(ids) ?
-            await Promise.all(ids.map(id => client.getInstance(id))) :
+          const instances = Array.isArray(ids) ? await (async () => {
+            const out = [];
+            for (const id of ids) {
+              out.push(await client.getInstance(id));
+            }
+            return out;
+          })() :
             (await client.getInstances()).Instances ?? [];
           // ignore instances in "Terminated" and "Shutting down" state
-          return await Promise.all(instances
-            .filter(i => i?.State?.Name !== "terminated" && i?.State?.Name !== "shutting-down")
-            .map(i => AwsEc2Module.utils.instanceMapper(i, ctx))
-          );
+          const out = [];
+          for (const i of instances) {
+            if (i?.State?.Name === 'terminated' || i?.State?.Name === 'shutting-down') continue;
+            out.push(await AwsEc2Module.utils.instanceMapper(i, ctx));
+          }
+          return out;
         },
         updateOrReplace: (_a: Instance, _b: Instance) => 'replace',
         update: async (es: Instance[], ctx: Context) => {
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? e.name];
-            const created = AwsEc2Module.mappers.instance.cloud.create([e], ctx);
+            const created = await AwsEc2Module.mappers.instance.cloud.create([e], ctx);
             await AwsEc2Module.mappers.instance.cloud.delete([cloudRecord], ctx);
-            return created;
-          }));
+            out.push(created);
+          }
+          return out;
         },
         delete: async (es: Instance[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;

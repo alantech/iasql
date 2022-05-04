@@ -10,7 +10,7 @@ import * as metadata from './module.json'
 export const AwsEcrModule: Module = new Module({
   ...metadata,
   utils: {
-    publicRepositoryMapper: (r: PublicRepositoryAws, _ctx: Context) => {
+    publicRepositoryMapper: (r: PublicRepositoryAws) => {
       const out = new Repository();
       if (!r?.repositoryName) throw new Error('No repository name defined.');
       out.repositoryName = r.repositoryName;
@@ -20,7 +20,7 @@ export const AwsEcrModule: Module = new Module({
       out.createdAt = r.createdAt ? new Date(r.createdAt) : r.createdAt;
       return out;
     },
-    repositoryMapper: (r: RepositoryAws, _ctx: Context) => {
+    repositoryMapper: (r: RepositoryAws) => {
       const out = new Repository();
       if (!r?.repositoryName) throw new Error('No repository name defined.');
       out.repositoryName = r.repositoryName;
@@ -66,9 +66,10 @@ export const AwsEcrModule: Module = new Module({
         && Object.is(a.createdAt?.getTime(), b.createdAt?.getTime()),
       source: 'db',
       cloud: new Crud({
-        create: async (sg: PublicRepository[], ctx: Context) => {
+        create: async (es: PublicRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(sg.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const result = await client.createECRPubRepository({
               repositoryName: e.repositoryName,
             });
@@ -82,33 +83,39 @@ export const AwsEcrModule: Module = new Module({
             const newEntity = await AwsEcrModule.utils.publicRepositoryMapper(newObject, ctx);
             // Save the record back into the database to get the new fields updated
             await AwsEcrModule.mappers.publicRepository.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            out.push(newEntity);
+          }
+          return out;
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          const ecrs = Array.isArray(ids) ?
-            await Promise.all(ids.map(id => client.getECRPubRepository(id))) :
+          const ecrs = Array.isArray(ids) ? await (async () => {
+            const out = [];
+            for (const id of ids) {
+              out.push(await client.getECRPubRepository(id));
+            }
+            return out;
+          })() :
             (await client.getECRPubRepositories()).Repositories ?? [];
-          return await Promise.all(ecrs.map(
-            ecr => AwsEcrModule.utils.publicRepositoryMapper(ecr, ctx)
-          ));
+          return ecrs.map(ecr => AwsEcrModule.utils.publicRepositoryMapper(ecr));
         },
         updateOrReplace: () => 'update',
         update: async (es: PublicRepository[], ctx: Context) => {
           // Right now we can only modify AWS-generated fields in the database.
           // This implies that on `update`s we only have to restore the db values with the cloud records.
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.PublicRepository?.[e.repositoryName ?? ''];
             await AwsEcrModule.mappers.publicRepository.db.update(cloudRecord, ctx);
-            return cloudRecord;
-          }));
+            out.push(cloudRecord);
+          }
+          return out;
         },
         delete: async (es: PublicRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          await Promise.all(es.map(async (e) => {
+          for (const e of es) {
             await client.deleteECRPubRepository(e.repositoryName!);
-          }));
+          }
         },
       }),
     }),
@@ -123,9 +130,10 @@ export const AwsEcrModule: Module = new Module({
         && Object.is(a.scanOnPush, b.scanOnPush),
       source: 'db',
       cloud: new Crud({
-        create: async (sg: Repository[], ctx: Context) => {
+        create: async (es: Repository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(sg.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const result = await client.createECRRepository({
               repositoryName: e.repositoryName,
               imageTagMutability: e.imageTagMutability,
@@ -143,22 +151,27 @@ export const AwsEcrModule: Module = new Module({
             const newEntity = await AwsEcrModule.utils.repositoryMapper(newObject, ctx);
             // Save the record back into the database to get the new fields updated
             await AwsEcrModule.mappers.repository.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            out.push(newEntity);
+          }
+          return out;
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          const ecrs = Array.isArray(ids) ?
-            await Promise.all(ids.map(id => client.getECRRepository(id))) :
+          const ecrs = Array.isArray(ids) ? await (async () => {
+            const out = [];
+            for (const id of ids) {
+              out.push(await client.getECRRepository(id));
+            }
+            return out;
+          })() :
             (await client.getECRRepositories()).Repositories ?? [];
-          return await Promise.all(ecrs.map(
-            ecr => AwsEcrModule.utils.repositoryMapper(ecr, ctx)
-          ));
+          return ecrs.map(ecr => AwsEcrModule.utils.repositoryMapper(ecr));
         },
         updateOrReplace: () => 'update',
         update: async (es: Repository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Repository?.[e.repositoryName ?? ''];
             let updatedRecord = { ...cloudRecord };
             if (cloudRecord?.imageTagMutability !== e.imageTagMutability) {
@@ -170,18 +183,19 @@ export const AwsEcrModule: Module = new Module({
               updatedRecord = AwsEcrModule.utils.repositoryMapper(updatedRepository, ctx);
             }
             await AwsEcrModule.mappers.repository.db.update(updatedRecord, ctx);
-            return updatedRecord;
-          }));
+            out.push(updatedRecord);
+          }
+          return out;
         },
         delete: async (es: Repository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          await Promise.all(es.map(async (e) => {
+          for (const e of es) {
             await client.deleteECRRepository(e.repositoryName!);
             // Also need to delete the repository policy associated with this repository,
             // if any
             const policy = await AwsEcrModule.mappers.repositoryPolicy.db.read(ctx, e.repositoryName);
             await AwsEcrModule.mappers.repositoryPolicy.db.delete(policy, ctx);
-          }));
+          }
         },
       }),
     }),
@@ -201,7 +215,8 @@ export const AwsEcrModule: Module = new Module({
       cloud: new Crud({
         create: async (es: RepositoryPolicy[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const result = await client.setECRRepositoryPolicy({
               repositoryName: e.repository.repositoryName,
               policyText: e.policyText,
@@ -219,18 +234,21 @@ export const AwsEcrModule: Module = new Module({
             newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsEcrModule.mappers.repositoryPolicy.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            out.push(newEntity);
+          }
+          return out;
         },
         read: async (ctx: Context, ids?: string[]) => {
           // TODO: Can this function be refactored to be simpler?
           const client = await ctx.getAwsClient() as AWS;
           if (ids) {
-            return await Promise.all(ids.map(async (id) => {
-              return await AwsEcrModule.utils.repositoryPolicyMapper(
+            const out = [];
+            for (const id of ids) {
+              out.push(await AwsEcrModule.utils.repositoryPolicyMapper(
                 await client.getECRRepositoryPolicy(id), ctx
-              );
-            }));
+              ));
+            }
+            return out;
           } else {
             const repositories = ctx.memo?.cloud?.Repository ? Object.values(ctx.memo?.cloud?.Repository) : await AwsEcrModule.mappers.repository.cloud.read(ctx);
             const policies: any = [];
@@ -243,14 +261,17 @@ export const AwsEcrModule: Module = new Module({
                 continue;
               }
             }
-            return await Promise.all(policies.map(async (rp: any) => {
-              return await AwsEcrModule.utils.repositoryPolicyMapper(rp, ctx);
-            }));
+            const out = [];
+            for (const rp of policies) {
+              out.push(await AwsEcrModule.utils.repositoryPolicyMapper(rp, ctx));
+            }
+            return out;
           }
         },
         updateOrReplace: () => 'update',
         update: async (es: RepositoryPolicy[], ctx: Context) => {
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[e.repository.repositoryName ?? ''];
             try {
               if (!AwsEcrModule.utils.policyComparisonEq(JSON.parse(cloudRecord.policyText!), JSON.parse(e.policyText!))) {
@@ -261,12 +282,13 @@ export const AwsEcrModule: Module = new Module({
             }
             cloudRecord.id = e.id;
             await AwsEcrModule.mappers.repositoryPolicy.db.update(cloudRecord, ctx);
-            return cloudRecord;
-          }));
+            out.push(cloudRecord);
+          }
+          return out;
         },
         delete: async (es: RepositoryPolicy[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          await Promise.all(es.map(async (e) => {
+          for (const e of es) {
             try {
               await client.deleteECRRepositoryPolicy(e.repository.repositoryName!);
             } catch (e: any) {
@@ -274,7 +296,7 @@ export const AwsEcrModule: Module = new Module({
               // the policy has already been removed
               if (e.name !== 'RepositoryNotFoundException') throw e;
             }
-          }));
+          }
         },
       }),
     }),

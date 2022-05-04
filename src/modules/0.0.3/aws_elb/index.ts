@@ -116,7 +116,8 @@ export const AwsElbModule: Module = new Module({
       cloud: new Crud({
         create: async (es: Listener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const result = await client.createListener({
               Port: e.port,
               Protocol: e.protocol,
@@ -136,13 +137,19 @@ export const AwsElbModule: Module = new Module({
             newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsElbModule.mappers.listener.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            out.push(newEntity);
+          }
+          return out;
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          const listeners = Array.isArray(ids) ?
-            await Promise.all(ids.map(id => client.getListener(id))) :
+          const listeners = Array.isArray(ids) ? await (async () => {
+            const out = [];
+            for (const id of ids) {
+              out.push(await client.getListener(id));
+            }
+            return out;
+          })() :
             await (async () => {
               // TODO: Should this behavior be standard?
               const loadBalancers = ctx.memo?.cloud?.LoadBalancer ?
@@ -151,7 +158,11 @@ export const AwsElbModule: Module = new Module({
               const loadBalancerArns = loadBalancers.map((lb: any) => lb.loadBalancerArn);
               return (await client.getListeners(loadBalancerArns)).Listeners;
             })();
-          return await Promise.all(listeners.map(l => AwsElbModule.utils.listenerMapper(l, ctx)));
+          const out = [];
+          for (const l of listeners) {
+            out.push(await AwsElbModule.utils.listenerMapper(l, ctx));
+          }
+          return out;
         },
         updateOrReplace: (prev: Listener, next: Listener) => {
           if (!Object.is(prev.loadBalancer.loadBalancerArn, next.loadBalancer.loadBalancerArn)) {
@@ -161,7 +172,8 @@ export const AwsElbModule: Module = new Module({
         },
         update: async (es: Listener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Listener?.[e.listenerArn ?? ''];
             const isUpdate = AwsElbModule.mappers.listener.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
@@ -171,18 +183,21 @@ export const AwsElbModule: Module = new Module({
                 Protocol: e.protocol,
                 DefaultActions: [{ Type: e.actionType, TargetGroupArn: e.targetGroup.targetGroupArn }],
               });
-              return AwsElbModule.utils.listenerMapper(updatedListener, ctx);
+              out.push(AwsElbModule.utils.listenerMapper(updatedListener, ctx));
             } else {
               // We need to delete the current cloud record and create the new one.
               // The id in database will be the same `e` will keep it.
               await AwsElbModule.mappers.listener.cloud.delete(cloudRecord, ctx);
-              return await AwsElbModule.mappers.listener.cloud.create(e, ctx);
+              out.push(await AwsElbModule.mappers.listener.cloud.create(e, ctx));
             }
-          }));
+          }
+          return out;
         },
         delete: async (es: Listener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          await Promise.all(es.map(e => client.deleteListener(e.listenerArn!)));
+          for (const e of es) {
+            await client.deleteListener(e.listenerArn!);
+          }
         },
       }),
     }),
@@ -211,7 +226,8 @@ export const AwsElbModule: Module = new Module({
         create: async (es: LoadBalancer[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const subnets = (await client.getSubnets()).Subnets.map(s => s.SubnetId ?? '');
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const securityGroups = e.securityGroups?.map(sg => {
               if (!sg.groupId) throw new Error('Security group need to be loaded first');
               return sg.groupId;
@@ -238,15 +254,25 @@ export const AwsElbModule: Module = new Module({
             const newEntity = await AwsElbModule.utils.loadBalancerMapper(newObject, ctx);
             // Save the record back into the database to get the new fields updated
             await AwsElbModule.mappers.loadBalancer.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            out.push(newEntity);
+          }
+          return out;
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          const lbs = Array.isArray(ids) ?
-            await Promise.all(ids.map(id => client.getLoadBalancer(id))) :
+          const lbs = Array.isArray(ids) ? await (async () => {
+            const out = [];
+            for (const id of ids) {
+              out.push(await client.getLoadBalancer(id));
+            }
+            return out;
+          })() :
             (await client.getLoadBalancers()).LoadBalancers;
-          return await Promise.all(lbs.map(lb => AwsElbModule.utils.loadBalancerMapper(lb, ctx)));
+          const out = [];
+          for (const lb of lbs) {
+            out.push(await AwsElbModule.utils.loadBalancerMapper(lb, ctx));
+          }
+          return out;
         },
         updateOrReplace: (prev: LoadBalancer, next: LoadBalancer) => {
           if (
@@ -261,7 +287,8 @@ export const AwsElbModule: Module = new Module({
         },
         update: async (es: LoadBalancer[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.LoadBalancer?.[e.loadBalancerArn ?? ''];
             let updatedRecord = { ...cloudRecord };
             const isUpdate = AwsElbModule.mappers.loadBalancer.cloud.updateOrReplace(cloudRecord, e) === 'update';
@@ -292,18 +319,21 @@ export const AwsElbModule: Module = new Module({
                 updatedRecord = AwsElbModule.utils.loadBalancerMapper(updatedLoadBalancer, ctx);
               }
               await AwsElbModule.mappers.loadBalancer.db.update(updatedRecord, ctx);
-              return updatedRecord;
+              out.push(updatedRecord);
             } else {
               // We need to delete the current cloud record and create the new one.
               // The id will be the same in database since `e` will keep it.
               await AwsElbModule.mappers.loadBalancer.cloud.delete(cloudRecord, ctx);
-              return await AwsElbModule.mappers.loadBalancer.cloud.create(e, ctx);
+              out.push(await AwsElbModule.mappers.loadBalancer.cloud.create(e, ctx));
             }
-          }));
+          }
+          return out;
         },
         delete: async (es: LoadBalancer[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          await Promise.all(es.map(e => client.deleteLoadBalancer(e.loadBalancerArn!)));
+          for (const e of es) {
+            await client.deleteLoadBalancer(e.loadBalancerArn!);
+          }
         },
       }),
     }),
@@ -331,7 +361,8 @@ export const AwsElbModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const vpcs = (await client.getVpcs()).Vpcs;
           const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const result = await client.createTargetGroup({
               Name: e.targetGroupName,
               TargetType: e.targetType,
@@ -359,15 +390,25 @@ export const AwsElbModule: Module = new Module({
             const newEntity = await AwsElbModule.utils.targetGroupMapper(newObject, ctx);
             // Save the record back into the database to get the new fields updated
             await AwsElbModule.mappers.targetGroup.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            out.push(newEntity);
+          }
+          return out;
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          const tgs = Array.isArray(ids) ?
-            await Promise.all(ids.map(id => client.getTargetGroup(id))) :
+          const tgs = Array.isArray(ids) ? await (async () => {
+            const out = [];
+            for (const id of ids) {
+              out.push(await client.getTargetGroup(id));
+            }
+            return out;
+          })() :
             (await client.getTargetGroups()).TargetGroups;
-          return await Promise.all(tgs.map(tg => AwsElbModule.utils.targetGroupMapper(tg, ctx)));
+          const out = [];
+          for (const tg of tgs) {
+            out.push(await AwsElbModule.utils.targetGroupMapper(tg, ctx));
+          }
+          return out;
         },
         updateOrReplace: (prev: TargetGroup, next: TargetGroup) => {
           if (
@@ -385,7 +426,8 @@ export const AwsElbModule: Module = new Module({
         },
         update: async (es: TargetGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.TargetGroup?.[e.targetGroupArn ?? ''] as TargetGroup;
             // Short-circuit if it's just a default VPC vs no-VPC difference
             if (cloudRecord.vpc?.isDefault && !e.vpc) {
@@ -405,19 +447,22 @@ export const AwsElbModule: Module = new Module({
                 HealthyThresholdCount: e.healthyThresholdCount,
                 UnhealthyThresholdCount: e.unhealthyThresholdCount,
               });
-              return AwsElbModule.utils.targetGroupMapper(updatedTargetGroup, ctx);
+              out.push(AwsElbModule.utils.targetGroupMapper(updatedTargetGroup, ctx));
             } else {
               // We need to delete the current cloud record and create the new one.
               // The id will be the same in database since `e` will keep it.
               // TODO: what to do when a load balancer depends on the target group??
               await AwsElbModule.mappers.targetGroup.cloud.delete(cloudRecord, ctx);
-              return await AwsElbModule.mappers.targetGroup.cloud.create(e, ctx);
+              out.push(await AwsElbModule.mappers.targetGroup.cloud.create(e, ctx));
             }
-          }));
+          }
+          return out;
         },
         delete: async (es: TargetGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          await Promise.all(es.map(e => client.deleteTargetGroup(e.targetGroupArn!)));
+          for (const e of es) {
+            await client.deleteTargetGroup(e.targetGroupArn!);
+          }
         },
       }),
     }),

@@ -8,7 +8,7 @@ import * as metadata from './module.json'
 export const AwsRoute53HostedZoneModule: Module = new Module({
   ...metadata,
   utils: {
-    hostedZoneMapper: (hz: any, _ctx: Context) => {
+    hostedZoneMapper: (hz: any) => {
       const out = new HostedZone();
       if (!hz?.Id) throw new Error('No HostedZoneId defined');
       out.hostedZoneId = hz.Id;
@@ -47,7 +47,8 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
       cloud: new Crud({
         create: async (hz: HostedZone[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(hz.map(async (e) => {
+          const out = [];
+          for (const e of hz) {
             const createdHz = await client.createHostedZone(e.domainName);
             if (!createdHz?.Id) throw new Error('How this happen!?')
             // Re-get the inserted record to get all of the relevant records we care about
@@ -59,8 +60,9 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
             newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsRoute53HostedZoneModule.mappers.hostedZone.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            out.push(newEntity);
+          }
+          return out;
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -72,22 +74,26 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
           } else {
             hostedZones = (await client.getHostedZones()) ?? [];
           }
-          return await Promise.all(hostedZones.map((hz: any) => AwsRoute53HostedZoneModule.utils.hostedZoneMapper(hz, ctx)));
+          return hostedZones.map((hz: any) => AwsRoute53HostedZoneModule.utils.hostedZoneMapper(hz));
         },
         updateOrReplace: () => 'replace',
         update: async (es: HostedZone[], ctx: Context) => {
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.HostedZone?.[e.hostedZoneId ?? ''];
             // We need to create the new entity in the cloud and keep the id.
             // In the next iteration the previous one will be deleted from.
             const newEntity = await AwsRoute53HostedZoneModule.mappers.hostedZone.cloud.create(e, ctx);
             newEntity.id = cloudRecord.id;
-            return newEntity;
-          }));
+            out.push(newEntity);
+          }
+          return out;
         },
         delete: async (hz: HostedZone[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          await Promise.all(hz.map((e) => client.deleteHostedZone(e.hostedZoneId)));
+          for (const e of hz) {
+            await client.deleteHostedZone(e.hostedZoneId);
+          } 
         },
       }),
     }),
@@ -105,7 +111,8 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
       cloud: new Crud({
         create: async (rrs: ResourceRecordSet[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(rrs.map(async (e) => {
+          const out = [];
+          for (const e of rrs) {
             const resourceRecordSet: AwsResourceRecordSet = {
               Name: AwsRoute53HostedZoneModule.utils.resourceRecordSetName(e),
               Type: e.recordType,
@@ -124,8 +131,9 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
             newEntity.id = e.id;
             // Save the record back into the database to get the new fields updated
             await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            out.push(newEntity);
+          }
+          return out;
         },
         read: async (ctx: Context, _ids?: string[]) => {
           // TODO: How to identify a unique record? Is it necessary?
@@ -143,12 +151,18 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
               continue;
             }
           }
-          return (await Promise.all(records.map((r: any) => AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(r, ctx)))).filter(r => !!r);
+          const out = [];
+          for (const r of records) {
+            const rec = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(r, ctx);
+            if (!rec) out.push(rec);
+          }
+          return out;
         },
         updateOrReplace: () => 'update',
         update: async (es: ResourceRecordSet[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.ResourceRecordSet[AwsRoute53HostedZoneModule.mappers.resourceRecordSet.entityId(e)];
             const resourceRecordSet: AwsResourceRecordSet = {
               Name: AwsRoute53HostedZoneModule.utils.resourceRecordSetName(e),
@@ -163,8 +177,9 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
             if (!newEntity) return;
             newEntity.id = cloudRecord.id;
             await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            out.push(newEntity);
+          }
+          return out;
         },
         delete: async (rrs: ResourceRecordSet[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;

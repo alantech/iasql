@@ -855,6 +855,7 @@ ${Object.keys(tableCollisions)
       }
       const e = new Modules.IasqlPlatform.utils.IasqlModule();
       e.name = `${md.name}@${md.version}`;
+      // Promise.all is okay here because it's guaranteed to not hit the cloud services
       e.dependencies = await Promise.all(
         md.dependencies.map(async (dep) => await orm.findOne(Modules.IasqlPlatform.utils.IasqlModule, { name: dep, }))
       );
