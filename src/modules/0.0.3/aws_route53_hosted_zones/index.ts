@@ -174,7 +174,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
             const updatedRecordSet = await client.getRecord(e.parentHostedZone.hostedZoneId, e.name, e.recordType);
             if (!updatedRecordSet) throw new Error('Error updating record');
             const newEntity = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(updatedRecordSet, ctx);
-            if (!newEntity) return;
+            if (!newEntity) continue;
             newEntity.id = cloudRecord.id;
             await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.update(newEntity, ctx);
             out.push(newEntity);
