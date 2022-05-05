@@ -457,7 +457,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
               }));
             }
             if (r.diff.entitiesChanged.length > 0) {
-              logger.info(`${name} has records to update`);
+              logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged, });
               outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
                 const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
                 if (out) {
@@ -664,7 +664,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
               }));
             }
             if (r.diff.entitiesChanged.length > 0) {
-              logger.info(`${name} has records to update`);
+              logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged, });
               outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
                 ec.cloud.id = ec.db.id;
                 const out = await r.mapper.db.update(ec.cloud, context); // When `sync`ing we assume SoT is the Cloud
@@ -855,6 +855,7 @@ ${Object.keys(tableCollisions)
       }
       const e = new Modules.IasqlPlatform.utils.IasqlModule();
       e.name = `${md.name}@${md.version}`;
+      // Promise.all is okay here because it's guaranteed to not hit the cloud services
       e.dependencies = await Promise.all(
         md.dependencies.map(async (dep) => await orm.findOne(Modules.IasqlPlatform.utils.IasqlModule, { name: dep, }))
       );

@@ -210,19 +210,28 @@ export class AWS {
     return role.Role?.Arn ?? '';
   }
 
+  async newRoleLin(
+    name: string,
+    assumeRolePolicyDocument: string,
+    attachedPolicyArns: string[],
+    description: string
+  ): Promise<string> {
+    const role = await this.iamClient.createRole({
+      RoleName: name,
+      AssumeRolePolicyDocument: assumeRolePolicyDocument,
+      Description: description,
+    });
+    for (const arn of attachedPolicyArns) {
+      this.iamClient.attachRolePolicy({PolicyArn: arn, RoleName: name});
+    }
+    return role.Role?.Arn ?? '';
+  }
+
   async updateRoleDescription(name: string, description: string) {
     await this.iamClient.updateRole({
       RoleName: name,
       Description: description
     });
-  }
-
-  async updateAttachedPoliciesArns(name: string, attachedPolicyArns: string[]) {
-    const existingArns = await this.getRoleAttachedPoliciesArns(name);
-    const addedArns = attachedPolicyArns.filter(p => !existingArns.includes(p));
-    const removedArns = existingArns.filter(p => !attachedPolicyArns.includes(p));
-    await Promise.all(addedArns.map(p => this.iamClient.attachRolePolicy({ RoleName: name, PolicyArn: p})));
-    await Promise.all(removedArns.map(p => this.iamClient.detachRolePolicy({ RoleName: name, PolicyArn: p})));
   }
 
   async updateRoleAssumePolicy(name: string, assumeRolePolicyDocument: string) {
@@ -247,6 +256,13 @@ export class AWS {
 
   async deleteRole(name: string, policyArns: string[]) {
     await Promise.all(policyArns.map(arn => this.iamClient.detachRolePolicy({RoleName: name, PolicyArn: arn})));
+    await this.iamClient.deleteRole({RoleName: name});
+  }
+
+  async deleteRoleLin(name: string, policyArns: string[]) {
+    for (const arn of policyArns) {
+      await this.iamClient.detachRolePolicy({RoleName: name, PolicyArn: arn});
+    }
     await this.iamClient.deleteRole({RoleName: name});
   }
 
@@ -957,6 +973,41 @@ export class AWS {
         });
         return this.deleteService(s.serviceName!, id, serviceTasksArns);
       }));
+    }
+    const tasks = await this.getTasksArns(id);
+    if (tasks.length) {
+      await waitUntilTasksStopped({
+        client: this.ecsClient,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      }, {
+        cluster: id,
+        tasks,
+      });
+    }
+    await this.ecsClient.send(
+      new DeleteClusterCommand({
+        cluster: id,
+      })
+    );
+  }
+
+  async deleteClusterLin(id: string) {
+    const clusterServices = await this.getServices([id]);
+    if (clusterServices.length) {
+      for (const s of clusterServices) {
+        if (!s.serviceName) continue;
+        const serviceTasksArns = await this.getTasksArns(id, s.serviceName);
+        s.desiredCount = 0;
+        await this.updateService({
+          service: s.serviceName,
+          cluster: id,
+          desiredCount: s.desiredCount,
+        });
+        return this.deleteService(s.serviceName!, id, serviceTasksArns);
+      }
     }
     const tasks = await this.getTasksArns(id);
     if (tasks.length) {
