@@ -154,7 +154,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
           const out = [];
           for (const r of records) {
             const rec = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(r, ctx);
-            if (!rec) out.push(rec);
+            if (rec) out.push(rec);
           }
           return out;
         },
