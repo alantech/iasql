@@ -18,6 +18,7 @@ const config: ConfigInterface = {
   logger: {
     debug: true,
     test: false,
+    logDnaKey: 'b98181227b606d8ee6c5674b5bb948e7',
   },
   auth: {
     domain: 'https://auth-staging.iasql.com/',

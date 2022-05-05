@@ -18,6 +18,7 @@ export interface ConfigInterface {
   logger: {
     debug: boolean; // Whether or not debug logging is enabled (does `logger.debug` do anything)
     test: boolean; // Whether or not a special test logger is enabled (bypass weirdness with Jest)
+    logDnaKey?: string; // Indicates that logdna should be used if present
   }
   // Configuration for auth0 access control
   auth?: { // Not including this sub-object implies it is not enabled
