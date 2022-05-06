@@ -2,6 +2,9 @@ import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
+  AfterLoad,
+  AfterInsert,
+  AfterUpdate,
 } from 'typeorm'
 
 import { cloudId, } from '../../../../services/cloud-id'
@@ -35,6 +38,7 @@ export class Certificate {
 
   @Column({
     nullable: true,
+    unique: true,
   })
   @cloudId
   arn?: string;
@@ -72,5 +76,15 @@ export class Certificate {
     default: false,
   })
   inUse: boolean;
+
+  @AfterLoad()
+  @AfterInsert()
+  @AfterUpdate()
+  updateNulls() {
+    const that: any = this;
+    Object.keys(this).forEach(k => {
+      if (that[k] === null) that[k] = undefined;
+    });
+  }
 
 }
