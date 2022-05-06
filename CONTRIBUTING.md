@@ -57,16 +57,16 @@ Instead of a centralized linear list of migrations, we have a module-based appro
 
 Development of a new module is expected to follow this pattern:
 
-1. Create the module directory, and create `entity` and `migration` directories inside of it.
+1. Create the module directory inside the latest version directory, and create `entity` and `migration` directories inside of it.
 2. Create the entity or entities in the `entity` directory and export them all from the `index.ts` file (or just define them in there).
-3. Run the `yarn gen-module my_new_module_name` script and have it generate the migration file. (`my_new_module_name` needs to match the directory name for the module in question.)
+3. Run the `yarn gen-module my_new_module_name my_new_module_version` script and have it generate the migration file. (`my_new_module_name` needs to match the directory name for the module in question and `my_new_module_version` needs to match the module's parent directory.)
 4. Write the module's `index.ts` file. It must implement the `MapperInterface` inside of `modules/interfaces.ts`, which also requires importing and constructing `Mapper` and `Crud` objects.
 
 Development of an existing module is expected to follow this pattern:
 
 1. Make the changes to the entities that you want to make.
-2. Run the `yarn gen-module my_existing_module_name` script and have it generate a new migration file. (`my_existing_module_name` needs to match the directory name for the module in question.)
-5. Commit the removal of the old migration and add in the new one. You can only have one migration file per module.
+2. Run the `yarn gen-module my_existing_module_name my_existing_module_version` script and have it generate a new migration file. (`my_existing_module_name` needs to match the directory name for the module in question and `my_existing_module_version` needs to match the module's parent directory.)
+3. Commit the removal of the old migration and add in the new one. You can only have one migration file per module.
 
 ### Migrations
 
