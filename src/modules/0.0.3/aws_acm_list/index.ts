@@ -10,7 +10,7 @@ export const AwsAcmListModule: Module = new Module({
       const out = new Certificate();
       if (!e?.CertificateArn) throw new Error('No CertificateArn defined');
       out.arn = e.CertificateArn;
-      out.certificateId = e.Serial;
+      out.certificateId = e.CertificateArn.split('/').pop();
       out.certificateType = e.Type;
       out.domainName = e.DomainName;
       out.inUse = !!e.InUseBy?.length;
@@ -54,6 +54,7 @@ export const AwsAcmListModule: Module = new Module({
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Certificate?.[e.arn ?? ''];
+            cloudRecord.id = e.id;
             await AwsAcmListModule.mappers.certificate.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
           }
