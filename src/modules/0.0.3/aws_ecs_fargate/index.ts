@@ -14,7 +14,7 @@ import logger from '../../../services/logger'
 export const AwsEcsFargateModule: Module = new Module({
   ...metadata,
   utils: {
-    clusterMapper: (c: any, _ctx: Context) => {
+    clusterMapper: (c: any) => {
       const out = new Cluster();
       out.clusterName = c.clusterName ?? 'default';
       out.clusterArn = c.clusterArn ?? null;
@@ -193,7 +193,8 @@ export const AwsEcsFargateModule: Module = new Module({
       cloud: new Crud({
         create: async (es: Cluster[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const result = await client.createCluster({
               clusterName: e.clusterName,
             });
@@ -207,38 +208,46 @@ export const AwsEcsFargateModule: Module = new Module({
             const newEntity = await AwsEcsFargateModule.utils.clusterMapper(newObject, ctx);
             // Save the record back into the database to get the new fields updated
             await AwsEcsFargateModule.mappers.cluster.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            out.push(newEntity);
+          }
+          return out;
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          const clusters = Array.isArray(ids) ?
-            await Promise.all(ids.map(id => client.getCluster(id))) :
+          const clusters = Array.isArray(ids) ? await (async () => {
+            const out = [];
+            for (const id of ids) {
+              out.push(await client.getCluster(id));
+            }
+            return out;
+          })() :
             await client.getClusters() ?? [];
-          return await Promise.all(clusters.map((c: any) => AwsEcsFargateModule.utils.clusterMapper(c, ctx)));
+          return clusters.map((c: any) => AwsEcsFargateModule.utils.clusterMapper(c, ctx));
         },
         updateOrReplace: (prev: Cluster, next: Cluster) => {
           if (!Object.is(prev.clusterName, next.clusterName)) return 'replace';
           return 'update';
         },
         update: async (es: Cluster[], ctx: Context) => {
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Cluster?.[e.clusterArn ?? ''];
             const isUpdate = AwsEcsFargateModule.mappers.cluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               await AwsEcsFargateModule.mappers.cluster.db.update(cloudRecord, ctx);
-              return cloudRecord;
+              out.push(cloudRecord);
             } else {
               // We need to delete the current cloud record and create the new one.
               // The id in database will be the same `e` will keep it.
               await AwsEcsFargateModule.mappers.cluster.cloud.delete(cloudRecord, ctx);
-              return await AwsEcsFargateModule.mappers.cluster.cloud.create(e, ctx);
+              out.push(await AwsEcsFargateModule.mappers.cluster.cloud.create(e, ctx));
             }
-          }));
+          }
+          return out;
         },
         delete: async (es: Cluster[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          await Promise.all(es.map(async e => {
+          for (const e of es) {
             if (e.clusterStatus === 'INACTIVE' && e.clusterName === 'default') {
               const dbCluster = await AwsEcsFargateModule.mappers.cluster.db.read(ctx, e.clusterArn);
               // Temporarily create again the default inactive cluster if deleted from DB to avoid infinite loops.
@@ -246,9 +255,9 @@ export const AwsEcsFargateModule: Module = new Module({
                 await AwsEcsFargateModule.mappers.cluster.db.create(e, ctx);
               }
             } else {
-              return await client.deleteCluster(e.clusterName)
+              await client.deleteClusterLin(e.clusterName)
             }
-          }));
+          }
         },
       }),
     }),

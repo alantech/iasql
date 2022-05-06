@@ -49,7 +49,8 @@ export const AwsRdsModule: Module = new Module({
       cloud: new Crud({
         create: async (es: RDS[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const securityGroupIds = e.vpcSecurityGroups?.map(sg => {
               if (!sg.groupId) throw new Error('Security group needs to exist')
               return sg.groupId;
@@ -84,20 +85,31 @@ export const AwsRdsModule: Module = new Module({
             newEntity.masterUserPassword = null;
             // Save the record back into the database to get the new fields updated
             await AwsRdsModule.mappers.rds.db.update(newEntity, ctx);
-            return newEntity;
-          }));
+            out.push(newEntity);
+          }
+          return out;
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          const rdses = Array.isArray(ids) ?
-            await Promise.all(ids.map(id => client.getDBInstance(id))) :
+          const rdses = Array.isArray(ids) ? await (async () => {
+            const o = [];
+            for (const id of ids) {
+              o.push(await client.getDBInstance(id));
+            }
+            return o;
+          })() :
             (await client.getDBInstances()).DBInstances;
-          return await Promise.all(rdses.map(rds => AwsRdsModule.utils.rdsMapper(rds, ctx)));
+          const out = [];
+          for (const rds of rdses) {
+            out.push(await AwsRdsModule.utils.rdsMapper(rds, ctx));
+          }
+          return out;
         },
         updateOrReplace: () => 'update',
         update: async (es: RDS[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          return await Promise.all(es.map(async (e) => {
+          const out = [];
+          for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.RDS?.[e.dbInstanceIdentifier ?? ''];
             let updatedRecord = { ...cloudRecord };
             if (!(Object.is(e.dbInstanceClass, cloudRecord.dbInstanceClass)
@@ -132,12 +144,13 @@ export const AwsRdsModule: Module = new Module({
             // Reminder: Password need to be null since when we read RDS instances from AWS this property is not retrieved
             updatedRecord.masterUserPassword = null;
             await AwsRdsModule.mappers.rds.db.update(updatedRecord, ctx);
-            return updatedRecord;
-          }));
+            out.push(updatedRecord);
+          }
+          return out;
         },
         delete: async (es: RDS[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          await Promise.all(es.map(async (e) => {
+          for (const e of es) {
             const input = {
               DBInstanceIdentifier: e.dbInstanceIdentifier,
               // TODO: do users will have access to this type of config?
@@ -148,7 +161,7 @@ export const AwsRdsModule: Module = new Module({
               // DeleteAutomatedBackups: false,
             };
             return client.deleteDBInstance(input);
-          }));
+          }
         },
       }),
     }),
