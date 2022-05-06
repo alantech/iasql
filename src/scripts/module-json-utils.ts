@@ -6,10 +6,10 @@ export type ModJson = {
   dependencies: string[],
 }
 
-export const getModJsons = () => {
-  const modDir = fs.readdirSync(`${__dirname}/../modules/0.0.1`).filter(r => !/.ts$/.test(r));
+export const getModJsons = (version: string) => {
+  const modDir = fs.readdirSync(`${__dirname}/../modules/${version}`).filter(r => !/.ts$/.test(r));
   const modJsons: ModJson[] = modDir
-    .map(r => fs.readFileSync(`${__dirname}/../modules/0.0.1/${r}/module.json`, 'utf8'))
+    .map(r => fs.readFileSync(`${__dirname}/../modules/${version}/${r}/module.json`, 'utf8'))
     .map(r => JSON.parse(r) as ModJson);
   const mods: { [key: string]: ModJson, } = {};
   modJsons.forEach(m => mods[m.name] = m);
@@ -17,8 +17,8 @@ export const getModJsons = () => {
 }
 
 // TODO: Figure out some way to DRY this logic with `interfaces.ts`
-export const getModMigration = (name: string) => {
-  const migrationDir = `${__dirname}/../modules/0.0.1/${name}/migration`;
+export const getModMigration = (name: string, version: string) => {
+  const migrationDir = `${__dirname}/../modules/${version}/${name}/migration`;
   const files = fs.readdirSync(migrationDir)
     .filter(r => !/.map$/.test(r));
   if (files.length !== 1) throw new Error('Cannot determine migration file');
@@ -32,8 +32,8 @@ export const getModMigration = (name: string) => {
 }
 
 // TODO: Figure out some way to DRY this logic with `dep-sorting.ts`
-export const sortMods = (name: string, includeRoot: boolean) => {
-  const mods = getModJsons();
+export const sortMods = (name: string, version: string, includeRoot: boolean) => {
+  const mods = getModJsons(version);
   const rootMod = mods[name];
   console.log({ mods, rootMod, });
   const modSubset: { [key: string]: ModJson, } = includeRoot ? { name: rootMod, } : {};

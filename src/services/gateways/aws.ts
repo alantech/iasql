@@ -154,6 +154,12 @@ import {
   Route53Client
 } from '@aws-sdk/client-route-53'
 import { IAM } from '@aws-sdk/client-iam'
+import {
+  ACMClient,
+  DeleteCertificateCommand,
+  DescribeCertificateCommand,
+  paginateListCertificates
+} from '@aws-sdk/client-acm'
 
 import logger from '../logger'
 
@@ -179,6 +185,7 @@ export class AWS {
   private ecrPubClient: ECRPUBLICClient
   private route53Client: Route53Client
   private iamClient: IAM;
+  private acmClient: ACMClient
   private credentials: AWSCreds
   public region: string
 
@@ -193,6 +200,7 @@ export class AWS {
     this.cwClient = new CloudWatchLogsClient(config);
     this.route53Client = new Route53Client(config);
     this.iamClient = new IAM(config);
+    this.acmClient = new ACMClient(config);
     // Service endpoint only available in 'us-esat-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
     this.ecrPubClient = new ECRPUBLICClient({credentials: config.credentials, region: 'us-east-1'});
   }
@@ -1558,6 +1566,38 @@ export class AWS {
       this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'DELETE')
     );
     return res;
+  }
+
+  async getCertificates() {
+    const certificates = [];
+    const certificatesSummary = [];
+    const paginator = paginateListCertificates({
+      client: this.acmClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      certificatesSummary.push(...(page.CertificateSummaryList ?? []));
+    }
+    for (const certificate of certificatesSummary) {
+      const c = await this.acmClient.send(
+        new DescribeCertificateCommand({ CertificateArn: certificate.CertificateArn })
+      );
+      certificates.push(c.Certificate);
+    }
+    return certificates;
+  }
+
+  async getCertificate(arn: string) {
+    const res = await this.acmClient.send(
+      new DescribeCertificateCommand({ CertificateArn: arn })
+    );
+    return res.Certificate;
+  }
+
+  async deleteCertificate(arn: string) {
+    await this.acmClient.send(
+      new DeleteCertificateCommand({ CertificateArn: arn })
+    );
   }
 
 }
