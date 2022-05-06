@@ -20,7 +20,7 @@ export enum certificateTypeEnum {
   AMAZON_ISSUED = "AMAZON_ISSUED",
   IMPORTED = "IMPORTED",
   // TODO: add private certs support
-  // PRIVATE = "PRIVATE", 
+  // PRIVATE = "PRIVATE",
 }
 
 export enum certificateRenewalEligibilityEnum {
