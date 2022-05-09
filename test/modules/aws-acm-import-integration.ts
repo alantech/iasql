@@ -6,10 +6,11 @@ const prefix = getPrefix();
 const dbAlias = 'acmimporttest';
 const domainName = `${prefix}${dbAlias}.com`;
 const stdout = execSync(
-  `openssl req -x509 -nodes -days 365 -newkey rsa:2048 -outform PEM \
+  `openssl req -x509 -new -nodes -days 1 -newkey rsa:2048 -outform PEM \
   -subj "/C=US/ST=test/L=test/O=test LLC/OU=devops/CN=${domainName}" | cat`,
   { shell: '/bin/bash', encoding: 'utf-8'}
 );
+console.log(stdout)
 const certBeginTag = '-----BEGIN CERTIFICATE-----';
 const certEndTag = '-----END CERTIFICATE-----';
 const keyBeginTag = '-----BEGIN PRIVATE KEY-----';
