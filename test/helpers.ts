@@ -116,9 +116,14 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
   logger.info(delQuery);
   await conn.query(delQuery);
   await conn.close();
-  const res = await iasql.apply(dbAlias, false);
-  logger.info('Deletes applied...');
-  logger.info('', res as any);
-  await iasql.disconnect(dbAlias, 'not-needed');
-  logger.info('DB removed...');
+  try {
+    const res = await iasql.apply(dbAlias, false);
+    logger.info('Deletes applied...');
+    logger.info('', res as any);
+  } catch (e) {
+    throw e;
+  } finally {
+    await iasql.disconnect(dbAlias, 'not-needed');
+    logger.info('DB removed...');
+  }
 }
