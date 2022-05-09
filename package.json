@@ -36,7 +36,7 @@
   "homepage": "https://iasql.com",
   "devDependencies": {
     "@types/cors": "^2.8.12",
-    "@types/jest": "^27.0.2",
+    "@types/jest": "^27.5.0",
     "@types/node": "^16.11.28",
     "@types/uuid": "^8.3.4",
     "copyfiles": "^2.4.1",
