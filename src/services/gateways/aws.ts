@@ -158,6 +158,8 @@ import {
   ACMClient,
   DeleteCertificateCommand,
   DescribeCertificateCommand,
+  ImportCertificateCommand,
+  ImportCertificateCommandInput,
   paginateListCertificates
 } from '@aws-sdk/client-acm'
 
@@ -1568,8 +1570,7 @@ export class AWS {
     return res;
   }
 
-  async getCertificates() {
-    const certificates = [];
+  async getCertificatesSummary() {
     const certificatesSummary = [];
     const paginator = paginateListCertificates({
       client: this.acmClient,
@@ -1578,6 +1579,12 @@ export class AWS {
     for await (const page of paginator) {
       certificatesSummary.push(...(page.CertificateSummaryList ?? []));
     }
+    return certificatesSummary;
+  }
+
+  async getCertificates() {
+    const certificates = [];
+    const certificatesSummary = await this.getCertificatesSummary();
     for (const certificate of certificatesSummary) {
       const c = await this.acmClient.send(
         new DescribeCertificateCommand({ CertificateArn: certificate.CertificateArn })
@@ -1598,6 +1605,23 @@ export class AWS {
     await this.acmClient.send(
       new DeleteCertificateCommand({ CertificateArn: arn })
     );
+  }
+
+  async importCertificate(input: ImportCertificateCommandInput) {
+    const res = await this.acmClient.send(
+      new ImportCertificateCommand(input)
+    );
+    const arn = res.CertificateArn ?? '';
+    let certificates: string[] = [];
+    let i = 0;
+     // Wait for ~1min until imported cert is available
+    do {
+      const start = Date.now();
+      while (Date.now() - start < 2000); // Sleep for 2s
+      certificates = (await this.getCertificatesSummary())?.map(c => c.CertificateArn ?? '') ?? [];
+      i++;
+    } while (!certificates.includes(arn) || i > 30);
+    return arn;
   }
 
 }
