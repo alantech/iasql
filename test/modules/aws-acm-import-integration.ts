@@ -97,12 +97,12 @@ describe('AwsAcmImport Integration Testing', () => {
     FROM certificate_import;
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  // it('deletes a certificate imported', query(`
-  //   DELETE FROM certificate
-  //   WHERE domain_name = '${domainName}';
-  // `));
+  it('deletes a certificate imported', query(`
+    DELETE FROM certificate
+    WHERE domain_name = '${domainName}';
+  `));
 
-  // it('applies the delete', apply());
+  it('applies the delete', apply());
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
