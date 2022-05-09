@@ -800,12 +800,14 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
       `iasql_functions@${version}`,
     ].includes(m) && m !== undefined);
   if (missingDeps.length > 0) {
-    throw new Error(`The provided modules depend on the following modules that are not provided or installed: ${missingDeps.join(', ')
-      }`);
+    logger.warn('Automatically attaching missing dependencies to this install', { moduleList, missingDeps, });
+    const extraMods = missingDeps.map((n: string) => (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === n)) as Module[];
+    mods.push(...extraMods);
   }
   // See if we need to abort because now there's nothing to do
   if (mods.length === 0) {
-    throw new Error("All modules already installed");
+    logger.warn('All modules already installed', { moduleList, });
+    return "Done!";
   }
   // Scan the database and see if there are any collisions
   const tables = (await queryRunner.query(`
@@ -949,7 +951,8 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   }
   // See if we need to abort because now there's nothing to do
   if (mods.length === 0) {
-    throw new Error("All modules already uninstalled.");
+    logger.warn('All modules already uninstalled', { moduleList, });
+    return "Done!";
   }
   const remainingModules = existingModules.filter((m: string) => !mods.some(m2 => `${m2.name}@${m2.version}` === m));
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
