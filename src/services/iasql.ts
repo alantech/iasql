@@ -1062,7 +1062,71 @@ export async function upgrade(dbId: string, dbUser: string) {
         }
       })();
       throw new Error('Upgrading. Please disconnect and reconnect to the database');
-    case 'v0_0_2': // TODO: Implement this upgrade before release of v0.0.3
+    case 'v0_0_2':
+      // The upgrade path here *should* work for all versions going forward. 0.0.1 was the exception
+      // since we broke the migration contract with it. If/when there's a change to this statement
+      // this code will need to be updated with another branch
+      (async () => {
+        // The first half of the logic is the same as the v0.0.1 upgrade logic: Figure out all of
+        // the modules installed, and if the `aws_account` module is installed, also grab those
+        // credentials (eventually need to make this distinction and need generalized). But now we
+        // then run the `uninstall` code for the old version of the modules, then install with the
+        // new versions, with a special 'breakpoint' with `aws_account` if it exists to insert the
+        // credentials so the other modules install correctly. (This should also be automated in
+        // some way later.)
+        let conn: any;
+        try {
+          conn = await createConnection({
+            ...dbMan.baseConnConfig,
+            name: dbId,
+            database: dbId,
+          });
+          // 1. Read the `iasql_module` table to get all currently installed modules.
+          const mods: string[] = (await conn.query(`
+            SELECT name FROM iasql_module;
+          `)).map((r: any) => r.name.split('@')[0]);
+          // 2. Read the `aws_account` table to get the credentials (if any).
+          let creds: any;
+          if (mods.includes('aws_account')) {
+            creds = (await conn.query(`
+              SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;
+            `))[0];
+          }
+          // 3. Uninstall all of the non-`iasql_*` modules
+          const nonIasqlMods = mods.filter(m => !/^iasql/.test(m));
+          await uninstall(nonIasqlMods, dbId);
+          // 4. Uninstall the `iasql_*` modules manually
+          const OldModules = AllModules.v0_0_2;
+          const qr = conn.createQueryRunner();
+          await OldModules.IasqlFunctions.migrations.remove(qr);
+          await OldModules.IasqlPlatform.migrations.remove(qr);
+          // 5. Install the new `iasql_*` modules manually
+          const NewModules = AllModules.v0_0_3;
+          await NewModules.IasqlPlatform.migrations.install(qr);
+          await NewModules.IasqlFunctions.migrations.install(qr);
+          await conn.query(`
+            INSERT INTO iasql_module (name) VALUES ('iasql_platform@0.0.3'), ('iasql_functions@0.0.3');
+            INSERT INTO iasql_dependencies (module, dependency) VALUES ('iasql_functions@0.0.3', 'iasql_platform@0.0.3');
+          `);
+          // 6. Install the `aws_account` module and then re-insert the creds if present, then add
+          //    the rest of the modules back.
+          if (!!creds) {
+            await install(['aws_account'], dbId, dbUser);
+            await conn.query(`
+              INSERT INTO aws_account (access_key_id, secret_access_key, region)
+              VALUES ('${creds.access_key_id}', '${creds.secret_access_key}', '${creds.region}');
+            `);
+            await install(mods.filter((m: string) => ![
+              'aws_account', 'iasql_platform', 'iasql_functions'
+            ].includes(m)), dbId, dbUser);
+          }
+        } catch (e) {
+          logger.error('Failed to upgrade', { e, });
+        } finally {
+          conn?.close();
+        }
+      })();
+      throw new Error('Upgrading. Please disconnect and reconnect to the database');
     case 'v0_0_3':
     case 'latest':
       throw new Error('Up to date');
