@@ -11,6 +11,11 @@ const stdout = execSync(
   { shell: '/bin/bash', encoding: 'utf-8'}
 );
 console.log(stdout)
+const stdoutKey = execSync(
+  `cat privkey.pem`,
+  { shell: '/bin/bash', encoding: 'utf-8'}
+);
+console.log(stdoutKey)
 const certBeginTag = '-----BEGIN CERTIFICATE-----';
 const certEndTag = '-----END CERTIFICATE-----';
 const keyBeginTag = '-----BEGIN PRIVATE KEY-----';
@@ -18,7 +23,7 @@ const keyEndTag = '-----END PRIVATE KEY-----';
 
 const cert = stdout.substring(stdout.indexOf(certBeginTag), stdout.lastIndexOf(certEndTag) + certEndTag.length);
 console.log(cert)
-const key = stdout.substring(stdout.indexOf(keyBeginTag), stdout.lastIndexOf(keyEndTag) + keyEndTag.length);
+const key = stdoutKey.substring(stdoutKey.indexOf(keyBeginTag), stdoutKey.lastIndexOf(keyEndTag) + keyEndTag.length);
 console.log(key)
 
 const apply = runApply.bind(null, dbAlias);
