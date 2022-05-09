@@ -99,7 +99,7 @@ describe('AwsAcmList install/uninstall', () => {
     'postgres',
     true).then(...finish(done)));
 
-  it('uninstalls the module', uninstall(modules));
+  it('uninstalls the module', uninstall(['aws_acm_list', 'aws_acm_import']));
 
   it('installs the module', install(modules));
 
