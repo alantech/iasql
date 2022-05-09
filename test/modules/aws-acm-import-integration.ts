@@ -5,26 +5,22 @@ import { execSync } from 'child_process'
 const prefix = getPrefix();
 const dbAlias = 'acmimporttest';
 const domainName = `${prefix}${dbAlias}.com`;
-const stdout = execSync(
+const stdoutCert = execSync(
   `openssl req -x509 -new -nodes -days 1 -newkey rsa:2048 -outform PEM \
   -subj "/C=US/ST=test/L=test/O=test LLC/OU=devops/CN=${domainName}" | cat`,
   { shell: '/bin/bash', encoding: 'utf-8'}
 );
-console.log(stdout)
+const certBeginTag = '-----BEGIN CERTIFICATE-----';
+const certEndTag = '-----END CERTIFICATE-----';
+const cert = stdoutCert.substring(stdoutCert.indexOf(certBeginTag), stdoutCert.lastIndexOf(certEndTag) + certEndTag.length);
+
 const stdoutKey = execSync(
   `cat privkey.pem`,
   { shell: '/bin/bash', encoding: 'utf-8'}
 );
-console.log(stdoutKey)
-const certBeginTag = '-----BEGIN CERTIFICATE-----';
-const certEndTag = '-----END CERTIFICATE-----';
 const keyBeginTag = '-----BEGIN PRIVATE KEY-----';
 const keyEndTag = '-----END PRIVATE KEY-----';
-
-const cert = stdout.substring(stdout.indexOf(certBeginTag), stdout.lastIndexOf(certEndTag) + certEndTag.length);
-console.log(cert)
 const key = stdoutKey.substring(stdoutKey.indexOf(keyBeginTag), stdoutKey.lastIndexOf(keyEndTag) + keyEndTag.length);
-console.log(key)
 
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
