@@ -1605,6 +1605,15 @@ export class AWS {
     await this.acmClient.send(
       new DeleteCertificateCommand({ CertificateArn: arn })
     );
+    let certificates: string[] = [];
+    let i = 0;
+     // Wait for ~1min until imported cert is available
+    do {
+      const start = Date.now();
+      while (Date.now() - start < 2000); // Sleep for 2s
+      certificates = (await this.getCertificatesSummary())?.map(c => c.CertificateArn ?? '') ?? [];
+      i++;
+    } while (!certificates.includes(arn) || i > 30);
   }
 
   async importCertificate(input: ImportCertificateCommandInput) {
