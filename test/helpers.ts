@@ -14,7 +14,14 @@ export async function execComposeUp() {
 }
 
 export async function execComposeDown(modules?: string[], region?: string) {
-  if (modules?.length) await cleanDB(modules, region);
+  if (modules?.length) {
+    try {
+      await cleanDB(modules, region);
+    } catch (e: any) {
+      console.log(`Error cleaning db with error: ${e.message}`);
+      console.dir(e, {depth: 6});
+    }
+  }
   execSync('cd test && docker-compose down');
 }
 
