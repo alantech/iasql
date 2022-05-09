@@ -29,7 +29,7 @@ export const AwsAcmListModule: Module = new Module({
         Object.is(a.inUse, b.inUse) &&
         Object.is(a.renewalEligibility, b.renewalEligibility) &&
         Object.is(a.status, b.status),
-      source: 'db', // TODO: source cloud??
+      source: 'db',
       cloud: new Crud({
         create: async (es: Certificate[], ctx: Context) => {
           // Do not cloud create, just restore database
