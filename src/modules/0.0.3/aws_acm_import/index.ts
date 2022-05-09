@@ -19,7 +19,7 @@ export const AwsAcmImportModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const textEncoder = new TextEncoder();
           for (const e of es) {
-            let input: ImportCertificateCommandInput = {
+            const input: ImportCertificateCommandInput = {
               Certificate: textEncoder.encode(e.body),
               PrivateKey: textEncoder.encode(e.privateKey),
             };
@@ -33,9 +33,9 @@ export const AwsAcmImportModule: Module = new Module({
             await AwsAcmListModule.mappers.certificate.db.create(importedCert, ctx);
           }
         },
-        read: async () => {},
-        update: async () => {},
-        delete: async () => {},
+        read: async () => { return; },
+        update: async () => { return; },
+        delete: async () => { return; },
       }),
     }),
   },
