@@ -7,7 +7,7 @@ const dbAlias = 'acmimporttest';
 const domainName = `${prefix}${dbAlias}.com`;
 const stdout = execSync(
   `openssl req -x509 -nodes -days 365 -newkey rsa:2048 -outform PEM \
-  -subj "/C=US/ST=test/L=test/O=test LLC/OU=devops/CN=${domainName}"`,
+  -subj "/C=US/ST=test/L=test/O=test LLC/OU=devops/CN=${domainName}" | cat`,
   { shell: '/bin/bash', encoding: 'utf-8'}
 );
 const certBeginTag = '-----BEGIN CERTIFICATE-----';
