@@ -1613,7 +1613,7 @@ export class AWS {
       while (Date.now() - start < 2000); // Sleep for 2s
       certificates = (await this.getCertificatesSummary())?.map(c => c.CertificateArn ?? '') ?? [];
       i++;
-    } while (!certificates.includes(arn) || i < 30);
+    } while (!certificates.includes(arn) && i < 30);
   }
 
   async importCertificate(input: ImportCertificateCommandInput) {
@@ -1629,7 +1629,7 @@ export class AWS {
       while (Date.now() - start < 2000); // Sleep for 2s
       certificates = (await this.getCertificatesSummary())?.map(c => c.CertificateArn ?? '') ?? [];
       i++;
-    } while (!certificates.includes(arn) || i < 30);
+    } while (!certificates.includes(arn) && i < 30);
     return arn;
   }
 
