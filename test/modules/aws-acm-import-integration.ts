@@ -104,6 +104,12 @@ describe('AwsAcmImport Integration Testing', () => {
 
   it('applies the delete', apply());
 
+  it('check certificate count after delete', query(`
+    SELECT *
+    FROM certificate
+    WHERE domain_name = '${domainName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
