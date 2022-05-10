@@ -14,10 +14,15 @@ const certBeginTag = '-----BEGIN CERTIFICATE-----';
 const certEndTag = '-----END CERTIFICATE-----';
 const cert = stdoutCert.substring(stdoutCert.indexOf(certBeginTag), stdoutCert.lastIndexOf(certEndTag) + certEndTag.length);
 
-const stdoutKey = execSync(
-  `cat privkey.pem`,
-  { shell: '/bin/bash', encoding: 'utf-8'}
-);
+let stdoutKey;
+if (process.env.IASQL_ENV === 'local') {
+  stdoutKey = stdoutCert;
+} else {
+  stdoutKey = execSync(
+    `cat privkey.pem`,
+    { shell: '/bin/bash', encoding: 'utf-8'}
+  );
+}
 const keyBeginTag = '-----BEGIN PRIVATE KEY-----';
 const keyEndTag = '-----END PRIVATE KEY-----';
 const key = stdoutKey.substring(stdoutKey.indexOf(keyBeginTag), stdoutKey.lastIndexOf(keyEndTag) + keyEndTag.length);
