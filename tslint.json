@@ -7,7 +7,6 @@
   "rules": {
     "one-variable-per-declaration": false,
     "ban-types": false,
-    "no-console": false,
     "max-classes-per-file": 9001
   },
   "rulesDirectory": [],

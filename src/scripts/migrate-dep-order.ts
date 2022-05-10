@@ -1,3 +1,4 @@
+/* tslint:disable no-console */
 import { sortMods, getModMigration, } from './module-json-utils'
 import { TypeormWrapper, } from '../services/typeorm'
 
