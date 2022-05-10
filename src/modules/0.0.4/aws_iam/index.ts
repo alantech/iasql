@@ -64,7 +64,7 @@ export const AwsIamModule: Module = new Module({
             }
             return o;
           })() :
-            (await client.getRoles()) ?? [];
+            (await client.getAllRoles()) ?? [];
           const out = [];
           for (const r of roles) {
             const role = AwsIamModule.utils.roleMapper(r);
