@@ -153,7 +153,7 @@ import {
   ResourceRecordSet,
   Route53Client
 } from '@aws-sdk/client-route-53'
-import { IAM } from '@aws-sdk/client-iam'
+import { IAM, paginateListRoles, } from '@aws-sdk/client-iam'
 import {
   ACMClient,
   DeleteCertificateCommand,
@@ -255,6 +255,20 @@ export class AWS {
 
   async getRoles() {
     return (await this.iamClient.listRoles({})).Roles ?? [];
+  }
+
+  async getAllRoles() {
+    const roles = [];
+    const paginator = paginateListRoles({
+      client: this.iamClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      for (const r of page.Roles ?? []) {
+        roles.push(r);
+      }
+    }
+    return roles;
   }
 
   async getRoleAttachedPoliciesArns(name: string) {
