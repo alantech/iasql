@@ -5,7 +5,7 @@ const config: ConfigInterface = {
     port: 8088,
   },
   modules: {
-    latestVersion: '0.0.2',
+    latestVersion: '0.0.3',
   },
   db: {
     host: 'db.iasql.com',
