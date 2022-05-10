@@ -36,6 +36,8 @@ export interface ConfigInterface {
   // Configuration for sentry error reporting
   sentry?: { // Not including this sub-object implies it is not enabled
     dsn: string;
+    environment: string;
+    release: string;
   };
   // Configuration for graphql access
   graphql?: { // Not including this sub-object implies it is not enabled
