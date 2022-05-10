@@ -20,7 +20,7 @@ export const AwsAcmImportModule: Module = new Module({
           const textEncoder = new TextEncoder();
           for (const e of es) {
             const input: ImportCertificateCommandInput = {
-              Certificate: textEncoder.encode(e.body),
+              Certificate: textEncoder.encode(e.certificate),
               PrivateKey: textEncoder.encode(e.privateKey),
             };
             if (e.chain) {

@@ -14,7 +14,7 @@ export class CertificateImport {
   id: number;
 
   @Column()
-  body: string;
+  certificate: string;
 
   @Column()
   privateKey: string;

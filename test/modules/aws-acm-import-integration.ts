@@ -53,7 +53,7 @@ describe('AwsAcmImport Integration Testing', () => {
   it('installs the acm_import module', install(modules));
 
   it('adds a new certificate to import', query(`
-    INSERT INTO certificate_import (body, private_key)
+    INSERT INTO certificate_import (certificate, private_key)
     VALUES ('${cert}', '${key}');
   `));
 
@@ -65,7 +65,7 @@ describe('AwsAcmImport Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(0)));
     
   it('adds a new certificate to import', query(`
-    INSERT INTO certificate_import (body, private_key)
+    INSERT INTO certificate_import (certificate, private_key)
     VALUES ('${cert}', '${key}');
   `));
 
