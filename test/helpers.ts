@@ -14,7 +14,14 @@ export async function execComposeUp() {
 }
 
 export async function execComposeDown(modules?: string[], region?: string) {
-  if (modules?.length) await cleanDB(modules, region);
+  if (modules?.length) {
+    try {
+      await cleanDB(modules, region);
+    } catch (e: any) {
+      console.log(`Error cleaning db with error: ${e.message}`);
+      console.dir(e, {depth: 6});
+    }
+  }
   execSync('cd test && docker-compose down');
 }
 
@@ -109,9 +116,14 @@ async function cleanDB(modules: string[], region: string | undefined): Promise<v
   logger.info(delQuery);
   await conn.query(delQuery);
   await conn.close();
-  const res = await iasql.apply(dbAlias, false);
-  logger.info('Deletes applied...');
-  logger.info('', res as any);
-  await iasql.disconnect(dbAlias, 'not-needed');
-  logger.info('DB removed...');
+  try {
+    const res = await iasql.apply(dbAlias, false);
+    logger.info('Deletes applied...');
+    logger.info('', res as any);
+  } catch (e) {
+    throw e;
+  } finally {
+    await iasql.disconnect(dbAlias, 'not-needed');
+    logger.info('DB removed...');
+  }
 }
