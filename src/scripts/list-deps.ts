@@ -1,3 +1,4 @@
+/* tslint:disable no-console */
 import { getModJsons, ModJson, } from './module-json-utils'
 
 const moduleName = process.argv[process.argv.length - 2];
