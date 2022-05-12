@@ -914,6 +914,27 @@ export class AWS {
     };
   }
 
+  async getSubnetsByVpcId(vpcId: string) {
+    const subnets = [];
+    const paginator = paginateDescribeSubnets({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {
+      Filters: [
+        {
+          Name: 'vpc-id',
+          Values: [vpcId]
+        }
+      ],
+    });
+    for await (const page of paginator) {
+      subnets.push(...(page.Subnets ?? []));
+    }
+    return {
+      Subnets: subnets,
+    };
+  }
+
   async getSubnet(id: string) {
     const subnets = await this.ec2client.send(
       new DescribeSubnetsCommand({ SubnetIds: [id], })

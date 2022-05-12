@@ -9,6 +9,8 @@ import { LogGroup } from '../aws_cloudwatch/entity'
 import { Repository } from '../aws_ecr/entity'
 import { Role } from '../aws_iam/entity'
 import { Cluster, ContainerDefinition, CpuMemCombination, TaskDefinition, TransportProtocol } from '../aws_ecs_fargate/entity'
+import { Subnet, Vpc } from '@aws-sdk/client-ec2'
+import { CreateLoadBalancerCommandInput } from '@aws-sdk/client-elastic-load-balancing-v2'
 
 export type EcsQuickstartObject = {
   securityGroup: SecurityGroup;
@@ -175,16 +177,25 @@ export const AwsEcsQuickstartModule: Module = new Module({
       out.logGroup = lg;
       return out;
     },
-    // Cloud create
-    createSecurityGroup: async (client: AWS, e: SecurityGroup) => {
+    // Cloud getters
+    getDefaultVpc: async (client: AWS) => {
       // Get default vpc
       const vpcs = (await client.getVpcs()).Vpcs ?? [];
       const defaultVpc = vpcs.find(vpc => vpc.IsDefault);
+      return defaultVpc;
+    },
+    getDefaultSubnets: async (client: AWS, vpcId: string) => {
+      // Get subnets
+      const subnets = (await client.getSubnetsByVpcId(vpcId)).Subnets ?? [];
+      return subnets;
+    },
+    // Cloud creates
+    createSecurityGroup: async (client: AWS, e: SecurityGroup, defaultVpc: Vpc) => {
       // First construct the security group
       return await client.createSecurityGroup({
         Description: e.description,
         GroupName: e.groupName,
-        VpcId: defaultVpc?.VpcId,
+        VpcId: defaultVpc.VpcId,
       });
     },
     createSecurityGroupRules: async (client: AWS, es: SecurityGroupRule[],) => {
@@ -219,6 +230,45 @@ export const AwsEcsQuickstartModule: Module = new Module({
       }
       return out;
     },
+    createTargetGroup: async (client: AWS, e: TargetGroup, defaultVpc: Vpc) => {
+      return await client.createTargetGroup({
+        Name: e.targetGroupName,
+        TargetType: e.targetType,
+        Port: e.port,
+        VpcId: defaultVpc.VpcId,
+        Protocol: e.protocol,
+        ProtocolVersion: e.protocolVersion,
+        IpAddressType: e.ipAddressType,
+        HealthCheckProtocol: e.healthCheckProtocol,
+        HealthCheckPort: e.healthCheckPort,
+        HealthCheckPath: e.healthCheckPath,
+        HealthCheckEnabled: e.healthCheckEnabled,
+        HealthCheckIntervalSeconds: e.healthCheckIntervalSeconds,
+        HealthCheckTimeoutSeconds: e.healthCheckTimeoutSeconds,
+        HealthyThresholdCount: e.healthyThresholdCount,
+        UnhealthyThresholdCount: e.unhealthyThresholdCount,
+      });
+    },
+    createLoadBalancer: async (client: AWS, e: LoadBalancer, defaultSubnets: Subnet[]) => {
+      const input: CreateLoadBalancerCommandInput = {
+        Name: e.loadBalancerName,
+        Subnets: defaultSubnets.map(s => s.SubnetId ?? ''),
+        Scheme: e.scheme,
+        Type: e.loadBalancerType,
+        IpAddressType: e.ipAddressType,
+        CustomerOwnedIpv4Pool: e.customerOwnedIpv4Pool,
+        SecurityGroups: e.securityGroups?.map(sg => sg.groupId ?? ''),
+      };
+      return await client.createLoadBalancer(input);
+    },
+    createListener: async (client: AWS, e: Listener) => {
+      return await client.createListener({
+        Port: e.port,
+        Protocol: e.protocol,
+        LoadBalancerArn: e.loadBalancer?.loadBalancerArn,
+        DefaultActions: [{ Type: e.actionType, TargetGroupArn: e.targetGroup.targetGroupArn }],
+      });
+    },
   },
   mappers: {
     ecsQuickstart: new Mapper<EcsQuickstart>({
@@ -230,13 +280,15 @@ export const AwsEcsQuickstartModule: Module = new Module({
         create: async (es: EcsQuickstart[], ctx: Context) => {
           // todo: create all pieces with defualt values if necessary
           const client = await ctx.getAwsClient() as AWS;
+          const defaultVpc = await AwsEcsQuickstartModule.utils.getDefaultVpc(client);
+          const defaultSubnets = await AwsEcsQuickstartModule.utils.getDefaultSubnets(client, defaultVpc.VpcId);
           const out = [];
           for (const e of es) {
             let step;
             const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
             try {
               // security groups and security group rules
-              const newSg = await AwsEcsQuickstartModule.utils.createSecurityGroup(client, completeEcsQuickstartObject.securityGroup);
+              const newSg = await AwsEcsQuickstartModule.utils.createSecurityGroup(client, completeEcsQuickstartObject.securityGroup, defaultVpc);
               step = 'createSecurityGroup';
               completeEcsQuickstartObject.securityGroupRules = completeEcsQuickstartObject.securityGroupRules.map(r => {
                 r.securityGroup.groupId = newSg.GroupId;
@@ -245,8 +297,20 @@ export const AwsEcsQuickstartModule: Module = new Module({
               await AwsEcsQuickstartModule.utils.createSecurityGroupRules(client, completeEcsQuickstartObject.securityGroupRules);
               step = 'createSecurityGroupRules';
               // target group
+              const newTg = await AwsEcsQuickstartModule.utils.createTargetGroup(client, completeEcsQuickstartObject.targetGroup, defaultVpc);
+              step = 'createTargetGroup';
               // load balancer y lb security group
+              completeEcsQuickstartObject.loadBalancer.securityGroups = completeEcsQuickstartObject.loadBalancer.securityGroups?.map(sg => {
+                sg.groupId = newSg.GroupId;
+                return sg;
+              });
+              const newLb = await AwsEcsQuickstartModule.utils.createLoadBalancer(client, completeEcsQuickstartObject.loadBalancer, defaultSubnets);
+              step = 'createLoadBalancer';
               // listener
+              completeEcsQuickstartObject.listener.loadBalancer.loadBalancerArn = newLb.LoadBalancerArn;
+              completeEcsQuickstartObject.listener.targetGroup.targetGroupArn = newTg.TargetGroupArn;
+              await AwsEcsQuickstartModule.utils.createListener(client, completeEcsQuickstartObject.listener);
+              step = 'createListener';
               // cw log group
               // ecr
               // role
@@ -255,7 +319,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
               // service and serv sg
               out.push(e); // TODO: is this ok? return valid property
             } catch (e: any) {
-              logger.error('SOMETHING BAD HAPPEN!!!!');
+              logger.error('SOMETHING BAD HAPPENED!!!!');
               // Rollback
               // Throw error
             }
