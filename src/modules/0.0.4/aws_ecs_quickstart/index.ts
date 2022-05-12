@@ -327,6 +327,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 return sg;
               });
               const newLb = await AwsEcsQuickstartModule.utils.createLoadBalancer(client, completeEcsQuickstartObject.loadBalancer, defaultSubnets);
+              // TODO: should we update the value of the `e` in databse here?
               step = 'createLoadBalancer';
               // listener
               completeEcsQuickstartObject.listener.loadBalancer.loadBalancerArn = newLb.LoadBalancerArn;
@@ -340,6 +341,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
               // ecr
               if (completeEcsQuickstartObject.repository) {
                 await AwsEcsQuickstartModule.utils.createEcr(client, completeEcsQuickstartObject.repository);
+                // TODO: should we update the value of the `e` in databse here?
                 // TODO: this probably should be the first to be deleted?
                 step = 'createEcr';
               }
