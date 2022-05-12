@@ -6,7 +6,7 @@ import * as metadata from './module.json'
 import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity'
 import { ActionTypeEnum, IpAddressType, Listener, LoadBalancer, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEnum, TargetGroup, TargetTypeEnum } from '../aws_elb/entity'
 import { LogGroup } from '../aws_cloudwatch/entity'
-import { ImageTagMutability, Repository } from '../aws_ecr/entity'
+import { Repository } from '../aws_ecr/entity'
 import { Role } from '../aws_iam/entity'
 import { Cluster, ContainerDefinition, CpuMemCombination, TaskDefinition, TransportProtocol } from '../aws_ecs_fargate/entity'
 
@@ -56,7 +56,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
       const cl = AwsEcsQuickstartModule.utils.getCluster(e.appName);
       // task and container
       const td = AwsEcsQuickstartModule.utils.getTaskDefinition(e.appName, rl, e.cpuMem);
-      const cd = AwsEcsQuickstartModule.utils.getContainerDefinition(e.appName);
+      const cd = AwsEcsQuickstartModule.utils.getContainerDefinition(e.appName, e.appPort, e.cpuMem, td, lg);
       // service and serv sg
       const ecsQuickstart: EcsQuickstartObject = {
         securityGroup: sg,
@@ -73,6 +73,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
       }
       return ecsQuickstart
     },
+    // Entity getters
     getSecurityGroup: (appName: string) => {
       const out = new SecurityGroup();
       out.groupName = `${prefix}${appName}-sg`;
@@ -92,7 +93,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
     },
     getTargetGroup: (appName: string, appPort: number) => {
       const out = new TargetGroup();
-      out.targetGroupName =  `${prefix}${appName}-tg`;
+      out.targetGroupName = `${prefix}${appName}-tg`;
       out.targetType = TargetTypeEnum.IP;
       out.protocol = ProtocolEnum.HTTP;
       out.port = appPort;
@@ -133,14 +134,14 @@ export const AwsEcsQuickstartModule: Module = new Module({
       out.assumeRolePolicyDocument = JSON.stringify({
         "Version": "2012-10-17",
         "Statement": [
-            {
-                "Sid": "",
-                "Effect": "Allow",
-                "Principal": {
-                    "Service": "ecs-tasks.amazonaws.com"
-                },
-                "Action": "sts:AssumeRole"
-            }
+          {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "ecs-tasks.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
         ]
       });
       out.attachedPoliciesArns = ['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'];
@@ -174,6 +175,50 @@ export const AwsEcsQuickstartModule: Module = new Module({
       out.logGroup = lg;
       return out;
     },
+    // Cloud create
+    createSecurityGroup: async (client: AWS, e: SecurityGroup) => {
+      // Get default vpc
+      const vpcs = (await client.getVpcs()).Vpcs ?? [];
+      const defaultVpc = vpcs.find(vpc => vpc.IsDefault);
+      // First construct the security group
+      return await client.createSecurityGroup({
+        Description: e.description,
+        GroupName: e.groupName,
+        VpcId: defaultVpc?.VpcId,
+      });
+    },
+    createSecurityGroupRules: async (client: AWS, es: SecurityGroupRule[],) => {
+      const out = [];
+      for (const e of es) {
+        const GroupId = e?.securityGroup?.groupId;
+        const newRule: any = {};
+        // The rest of these should be defined if present
+        if (e.cidrIpv4) newRule.IpRanges = [{ CidrIp: e.cidrIpv4, }];
+        if (e.cidrIpv6) newRule.Ipv6Ranges = [{ CidrIpv6: e.cidrIpv6, }];
+        if (e.description) {
+          if (e.cidrIpv4) newRule.IpRanges[0].Description = e.description;
+          if (e.cidrIpv6) newRule.Ipv6Ranges[0].Description = e.description;
+        }
+        if (e.fromPort) newRule.FromPort = e.fromPort;
+        if (e.ipProtocol) newRule.IpProtocol = e.ipProtocol;
+        if (e.prefixListId) newRule.PrefixListIds = [e.prefixListId];
+        if (e.toPort) newRule.ToPort = e.toPort;
+        let res;
+        if (e.isEgress) {
+          res = (await client.createSecurityGroupEgressRules([{
+            GroupId,
+            IpPermissions: [newRule],
+          }]))[0];
+        } else {
+          res = (await client.createSecurityGroupIngressRules([{
+            GroupId,
+            IpPermissions: [newRule],
+          }]))[0];
+        }
+        out.push(res);
+      }
+      return out;
+    },
   },
   mappers: {
     ecsQuickstart: new Mapper<EcsQuickstart>({
@@ -183,25 +228,38 @@ export const AwsEcsQuickstartModule: Module = new Module({
       source: 'db',
       cloud: new Crud({
         create: async (es: EcsQuickstart[], ctx: Context) => {
-          // todo: create all pieces with defualt values if necessary.
+          // todo: create all pieces with defualt values if necessary
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
-            // security groups and security group rules
-            // target group
-            // load balancer y lb security group
-            // listener
-            // cw log group
-            // ecr
-            // role
-            // cluster
-            // task and container
-            // service and serv sg
+            let step;
+            const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
+            try {
+              // security groups and security group rules
+              const newSg = await AwsEcsQuickstartModule.utils.createSecurityGroup(client, completeEcsQuickstartObject.securityGroup);
+              step = 'createSecurityGroup';
+              completeEcsQuickstartObject.securityGroupRules = completeEcsQuickstartObject.securityGroupRules.map(r => {
+                r.securityGroup.groupId = newSg.GroupId;
+                return r;
+              })
+              await AwsEcsQuickstartModule.utils.createSecurityGroupRules(client, completeEcsQuickstartObject.securityGroupRules);
+              step = 'createSecurityGroupRules';
+              // target group
+              // load balancer y lb security group
+              // listener
+              // cw log group
+              // ecr
+              // role
+              // cluster
+              // task and container
+              // service and serv sg
+              out.push(e); // TODO: is this ok? return valid property
+            } catch (e: any) {
+              logger.error('SOMETHING BAD HAPPEN!!!!');
+              // Rollback
+              // Throw error
+            }
 
-
-            
-            
-            
             // const result = await client.createECRPubRepository({
             //   repositoryName: e.repositoryName,
             // });
@@ -237,13 +295,14 @@ export const AwsEcsQuickstartModule: Module = new Module({
           // todo: just update if valid. if an inner piece need replacement it should be all a replace?
           // Right now we can only modify AWS-generated fields in the database.
           // This implies that on `update`s we only have to restore the db values with the cloud records.
-          const out = [];
-          for (const e of es) {
+          // const out = [];
+          // for (const e of es) {
             // const cloudRecord = ctx?.memo?.cloud?.EcsQuickstart?.[e.repositoryName ?? ''];
             // await AwsEcrModule.mappers.publicRepository.db.update(cloudRecord, ctx);
             // out.push(cloudRecord);
-          }
-          return out;
+          // }
+          // return out;
+          return;
         },
         delete: async (es: EcsQuickstart[], ctx: Context) => {
           // todo: just delete if is a valid resource
