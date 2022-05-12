@@ -61,7 +61,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
       const td = AwsEcsQuickstartModule.utils.getTaskDefinition(e.appName, rl, e.cpuMem);
       const cd = AwsEcsQuickstartModule.utils.getContainerDefinition(e.appName, e.appPort, e.cpuMem, td, lg);
       // service
-      const svc = AwsEcsQuickstartModule.utils.getService(e.appName, e.desiredCount, e.publicIp, td, tg, sg)
+      const svc = AwsEcsQuickstartModule.utils.getService(e.appName, e.desiredCount, e.publicIp, cl, td, tg, sg)
       const ecsQuickstart: EcsQuickstartObject = {
         securityGroup: sg,
         securityGroupRules: [sgrIngress, sgrEgress],
@@ -182,7 +182,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
       out.logGroup = lg;
       return out;
     },
-    getService: (appName: string, desiredCount: number, assignPublicIp: string, td: TaskDefinition, tg: TargetGroup, sg: SecurityGroup) => {
+    getService: (appName: string, desiredCount: number, assignPublicIp: string, cl: Cluster, td: TaskDefinition, tg: TargetGroup, sg: SecurityGroup) => {
       const out = new Service();
       out.name = `${prefix}${appName}-svc`;
       out.desiredCount = desiredCount;
@@ -191,6 +191,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
       out.assignPublicIp = assignPublicIp ? AssignPublicIp.ENABLED : AssignPublicIp.DISABLED;
       out.securityGroups = [sg];
       out.forceNewDeployment = false;
+      out.cluster = cl;
       return out;
     },
     // Cloud getters
