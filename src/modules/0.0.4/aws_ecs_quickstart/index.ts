@@ -8,7 +8,7 @@ import { ActionTypeEnum, IpAddressType, Listener, LoadBalancer, LoadBalancerSche
 import { LogGroup } from '../aws_cloudwatch/entity'
 import { ImageTagMutability, Repository } from '../aws_ecr/entity'
 import { Role } from '../aws_iam/entity'
-import { Cluster, ContainerDefinition, CpuMemCombination, TaskDefinition, TransportProtocol } from '../aws_ecs_fargate/entity'
+import { AssignPublicIp, Cluster, ContainerDefinition, CpuMemCombination, Service, TaskDefinition, TransportProtocol } from '../aws_ecs_fargate/entity'
 import { Subnet, Vpc } from '@aws-sdk/client-ec2'
 import { CreateLoadBalancerCommandInput } from '@aws-sdk/client-elastic-load-balancing-v2'
 
@@ -24,6 +24,7 @@ export type EcsQuickstartObject = {
   cluster: Cluster;
   taskDefinition: TaskDefinition;
   containerDefinition: ContainerDefinition;
+  service: Service;
 };
 const prefix = 'iasql-ecs-'
 
@@ -59,7 +60,8 @@ export const AwsEcsQuickstartModule: Module = new Module({
       // task and container
       const td = AwsEcsQuickstartModule.utils.getTaskDefinition(e.appName, rl, e.cpuMem);
       const cd = AwsEcsQuickstartModule.utils.getContainerDefinition(e.appName, e.appPort, e.cpuMem, td, lg);
-      // service and serv sg
+      // service
+      const svc = AwsEcsQuickstartModule.utils.getService(e.appName, e.desiredCount, e.publicIp, td, tg, sg)
       const ecsQuickstart: EcsQuickstartObject = {
         securityGroup: sg,
         securityGroupRules: [sgrIngress, sgrEgress],
@@ -72,6 +74,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
         cluster: cl,
         taskDefinition: td,
         containerDefinition: cd,
+        service: svc,
       }
       return ecsQuickstart
     },
@@ -177,6 +180,17 @@ export const AwsEcsQuickstartModule: Module = new Module({
       out.containerPort = appPort;
       out.protocol = TransportProtocol.TCP;
       out.logGroup = lg;
+      return out;
+    },
+    getService: (appName: string, desiredCount: number, assignPublicIp: string, td: TaskDefinition, tg: TargetGroup, sg: SecurityGroup) => {
+      const out = new Service();
+      out.name = `${prefix}${appName}-svc`;
+      out.desiredCount = desiredCount;
+      out.task = td;
+      out.targetGroup = tg;
+      out.assignPublicIp = assignPublicIp ? AssignPublicIp.ENABLED : AssignPublicIp.DISABLED;
+      out.securityGroups = [sg];
+      out.forceNewDeployment = false;
       return out;
     },
     // Cloud getters
@@ -365,6 +379,29 @@ export const AwsEcsQuickstartModule: Module = new Module({
       }
       return await client.createTaskDefinition(input);
     },
+    createService: async (client: AWS, e: Service, cd: ContainerDefinition, defaultSubnets: Subnet[]) => {
+      const input: any = {
+        serviceName: e.name,
+        taskDefinition: e.task?.taskDefinitionArn,
+        launchType: 'FARGATE',
+        cluster: e.cluster?.clusterName,
+        schedulingStrategy: 'REPLICA',
+        desiredCount: e.desiredCount,
+        networkConfiguration: {
+          awsvpcConfiguration: {
+            subnets: defaultSubnets.map(sn => sn.SubnetId),
+            securityGroups: e.securityGroups.map(sg => sg.groupId),
+            assignPublicIp: e.assignPublicIp,
+          }
+        },
+        loadBalancers: [{
+          targetGroupArn: e.targetGroup?.targetGroupArn,
+          containerName: cd.name,
+          containerPort: cd.containerPort,
+        }],
+      };
+      return await client.createService(input);
+    },
   },
   mappers: {
     ecsQuickstart: new Mapper<EcsQuickstart>({
@@ -428,9 +465,17 @@ export const AwsEcsQuickstartModule: Module = new Module({
               // task with container
               completeEcsQuickstartObject.taskDefinition.executionRole!.arn = newRl;
               completeEcsQuickstartObject.taskDefinition.taskRole!.arn = newRl;
-              await AwsEcsQuickstartModule.utils.createTaskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, e.repositoryUri, e.imageTag);
+              const newTd = await AwsEcsQuickstartModule.utils.createTaskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, e.repositoryUri, e.imageTag);
               step = 'createTaskDefinition';
               // service and serv sg
+              completeEcsQuickstartObject.service.task!.taskDefinitionArn = newTd.taskDefinitionArn;
+              completeEcsQuickstartObject.service.targetGroup!.targetGroupArn = newTg.TargetGroupArn;
+              completeEcsQuickstartObject.service.securityGroups = completeEcsQuickstartObject.service.securityGroups.map(sg => {
+                sg.groupId = newSg.GroupId;
+                return sg;
+              });
+              await AwsEcsQuickstartModule.utils.createService(client, completeEcsQuickstartObject.service, completeEcsQuickstartObject.containerDefinition, defaultSubnets);
+              step = 'createService';
               out.push(e); // TODO: is this ok? return valid property
             } catch (e: any) {
               logger.error('SOMETHING BAD HAPPENED!!!!');
