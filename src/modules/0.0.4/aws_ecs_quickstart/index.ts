@@ -291,6 +291,14 @@ export const AwsEcsQuickstartModule: Module = new Module({
         },
       });
     },
+    createRole: async (client: AWS, e: Role) => {
+      return await client.newRoleLin(
+        e.roleName,
+        e.assumeRolePolicyDocument,
+        e.attachedPoliciesArns,
+        e.description ?? ''
+      );
+    },
   },
   mappers: {
     ecsQuickstart: new Mapper<EcsQuickstart>({
@@ -346,6 +354,8 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 step = 'createEcr';
               }
               // role
+              await AwsEcsQuickstartModule.utils.createRole(client, completeEcsQuickstartObject.role);
+              step = 'createRole';
               // cluster
               // task and container
               // service and serv sg
