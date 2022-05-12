@@ -1,5 +1,5 @@
 import { AWS, } from '../../../services/gateways/aws'
-import logger from '../../../services/logger'
+import logger, { debugObj } from '../../../services/logger'
 import { EcsQuickstart } from './entity'
 import { Context, Crud, Mapper, Module, } from '../../interfaces'
 import * as metadata from './module.json'
@@ -216,6 +216,14 @@ export const AwsEcsQuickstartModule: Module = new Module({
         if (e.toPort) newRule.ToPort = e.toPort;
         let res;
         if (e.isEgress) {
+          // By default there is an egress rule, lets delete it and create the new one to be able to identify it with our description
+          const securityGroupRules = await (await client.getSecurityGroupRules()).SecurityGroupRules ?? [];
+          const securityGroupRule = securityGroupRules.find(sgr => Object.is(sgr.GroupId, e.securityGroup.groupId) 
+            && Object.is(sgr.CidrIpv4, e.cidrIpv4) && Object.is(sgr.FromPort, e.fromPort) && Object.is(sgr.ToPort, e.toPort));
+          await client.deleteSecurityGroupEgressRules([{
+            GroupId,
+            SecurityGroupRuleIds: [securityGroupRule?.SecurityGroupRuleId ?? ''],
+          }]);
           res = (await client.createSecurityGroupEgressRules([{
             GroupId,
             IpPermissions: [newRule],
@@ -320,6 +328,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
               out.push(e); // TODO: is this ok? return valid property
             } catch (e: any) {
               logger.error('SOMETHING BAD HAPPENED!!!!');
+              debugObj(e)
               // Rollback
               // Throw error
             }
