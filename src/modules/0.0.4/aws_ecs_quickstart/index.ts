@@ -299,6 +299,11 @@ export const AwsEcsQuickstartModule: Module = new Module({
         e.description ?? ''
       );
     },
+    createCluster: async (client: AWS, e: Cluster) => {
+      return await client.createCluster({
+        clusterName: e.clusterName,
+      });
+    },
   },
   mappers: {
     ecsQuickstart: new Mapper<EcsQuickstart>({
@@ -357,6 +362,8 @@ export const AwsEcsQuickstartModule: Module = new Module({
               await AwsEcsQuickstartModule.utils.createRole(client, completeEcsQuickstartObject.role);
               step = 'createRole';
               // cluster
+              await AwsEcsQuickstartModule.utils.createCluster(client, completeEcsQuickstartObject.cluster);
+              step = 'createCluster';
               // task and container
               // service and serv sg
               out.push(e); // TODO: is this ok? return valid property
