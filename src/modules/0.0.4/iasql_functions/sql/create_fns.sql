@@ -1,17 +1,18 @@
 -- TODO: Does this belong here or in a similar file in the iasql_platform module?
-create or replace function iasql_audit() returns trigger as $$
+create or replace function iasql_audit() returns trigger
 language plpgsql security definer
+as $$
 begin
   if (TG_OP = 'INSERT') then
     INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
-    VALUES (now(), user, TG_TABLE_NAME, 'INSERT', '{"change":' || to_json(NEW.*) || '}');
-  elif (TG_OP = 'DELETE') then
+    VALUES (now(), user, TG_TABLE_NAME, 'INSERT', ('{"change":' || to_json(NEW.*) || '}')::json);
+  elsif (TG_OP = 'DELETE') then
     INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
-    VALUES (now(), user, TG_TABLE_NAME, 'DELETE', '{"original":' || to_json(OLD.*) || '}');
-  elif (TG_OP = 'UPDATE') then
+    VALUES (now(), user, TG_TABLE_NAME, 'DELETE', ('{"original":' || to_json(OLD.*) || '}')::json);
+  elsif (TG_OP = 'UPDATE') then
     INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
-    VALUES (now(), user, TG_TABLE_NAME, 'UPDATE', '{"original":' || to_json(OLD.*) || ', "change":' || to_json(NEW.*) || '}');
-  endif;
+    VALUES (now(), user, TG_TABLE_NAME, 'UPDATE', ('{"original":' || to_json(OLD.*) || ', "change":' || to_json(NEW.*) || '}')::json);
+  end if;
   return NULL;
 end;
 $$;
