@@ -218,7 +218,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
         if (e.isEgress) {
           // By default there is an egress rule, lets delete it and create the new one to be able to identify it with our description
           const securityGroupRules = await (await client.getSecurityGroupRules()).SecurityGroupRules ?? [];
-          const securityGroupRule = securityGroupRules.find(sgr => Object.is(sgr.GroupId, e.securityGroup.groupId) 
+          const securityGroupRule = securityGroupRules.find(sgr => Object.is(sgr.GroupId, e.securityGroup.groupId)
             && Object.is(sgr.CidrIpv4, e.cidrIpv4) && Object.is(sgr.FromPort, e.fromPort) && Object.is(sgr.ToPort, e.toPort));
           await client.deleteSecurityGroupEgressRules([{
             GroupId,
@@ -277,6 +277,9 @@ export const AwsEcsQuickstartModule: Module = new Module({
         DefaultActions: [{ Type: e.actionType, TargetGroupArn: e.targetGroup.targetGroupArn }],
       });
     },
+    createLogGroup: async (client: AWS, e: LogGroup) => {
+      return await client.createLogGroup(e.logGroupName);
+    },
   },
   mappers: {
     ecsQuickstart: new Mapper<EcsQuickstart>({
@@ -320,6 +323,8 @@ export const AwsEcsQuickstartModule: Module = new Module({
               await AwsEcsQuickstartModule.utils.createListener(client, completeEcsQuickstartObject.listener);
               step = 'createListener';
               // cw log group
+              await AwsEcsQuickstartModule.utils.createLogGroup(client, completeEcsQuickstartObject.logGroup);
+              step = 'createLogGroup';
               // ecr
               // role
               // cluster
@@ -370,9 +375,9 @@ export const AwsEcsQuickstartModule: Module = new Module({
           // This implies that on `update`s we only have to restore the db values with the cloud records.
           // const out = [];
           // for (const e of es) {
-            // const cloudRecord = ctx?.memo?.cloud?.EcsQuickstart?.[e.repositoryName ?? ''];
-            // await AwsEcrModule.mappers.publicRepository.db.update(cloudRecord, ctx);
-            // out.push(cloudRecord);
+          // const cloudRecord = ctx?.memo?.cloud?.EcsQuickstart?.[e.repositoryName ?? ''];
+          // await AwsEcrModule.mappers.publicRepository.db.update(cloudRecord, ctx);
+          // out.push(cloudRecord);
           // }
           // return out;
           return;
