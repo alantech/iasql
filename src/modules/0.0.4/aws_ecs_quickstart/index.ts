@@ -304,6 +304,67 @@ export const AwsEcsQuickstartModule: Module = new Module({
         clusterName: e.clusterName,
       });
     },
+    createTaskDefinition: async (client: AWS, td: TaskDefinition, cd: ContainerDefinition, repositoryUri: string, tag: string) => {
+      const container: any = { ...cd };
+      // TODO: implement this logic properly
+      container.image = `${repositoryUri}:${tag}`;
+      // let image;
+      // if (cd.image) {
+      //   image = cd.image;
+      // } else if (cd.repository) {
+      //   if (!cd.repository?.repositoryUri) {
+      //     throw new Error('Repository need to be created first');
+      //   }
+      //   image = cd.repository.repositoryUri;
+      // } else if (cd.publicRepository) {
+      //   if (!cd.publicRepository?.repositoryUri) {
+      //     throw new Error('Public repository need to be created first');
+      //   }
+      //   image = cd.publicRepository.repositoryUri;
+      // } else {
+      //   logger.error('How the DB constraint have been ignored?');
+      // }
+      // if (cd.digest) {
+      //   container.image = `${image}@${cd.digest}`;
+      // } else if (cd.tag) {
+      //   container.image = `${image}:${cd.tag}`;
+      // } else {
+      //   container.image = image;
+      // }
+      if (container.logGroup) {
+        container.logConfiguration = {
+          logDriver: 'awslogs',
+          options: {
+            "awslogs-group": container.logGroup.logGroupName,
+            "awslogs-region": client.region,
+            "awslogs-stream-prefix": `awslogs-${cd.name}`
+          }
+        };
+      }
+      if (container.containerPort && container.hostPort && container.protocol) {
+        container.portMappings = [{
+          containerPort: container.containerPort,
+          hostPort: container.hostPort,
+          protocol: container.protocol,
+        }];
+      }
+      const input: any = {
+        family: td.family,
+        containerDefinitions: [container],
+        requiresCompatibilities: ['FARGATE',],
+        networkMode: 'awsvpc',
+        taskRoleArn: td.taskRole?.arn,
+        executionRoleArn: td.executionRole?.arn,
+      };
+      if (td.cpuMemory) {
+        const [cpuStr, memoryStr] = td.cpuMemory.split('-');
+        const cpu = cpuStr.split('vCPU')[1];
+        input.cpu = `${+cpu * 1024}`;
+        const memory = memoryStr.split('GB')[0];
+        input.memory = `${+memory * 1024}`;
+      }
+      return await client.createTaskDefinition(input);
+    },
   },
   mappers: {
     ecsQuickstart: new Mapper<EcsQuickstart>({
@@ -359,12 +420,16 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 step = 'createEcr';
               }
               // role
-              await AwsEcsQuickstartModule.utils.createRole(client, completeEcsQuickstartObject.role);
+              const newRl = await AwsEcsQuickstartModule.utils.createRole(client, completeEcsQuickstartObject.role);
               step = 'createRole';
               // cluster
               await AwsEcsQuickstartModule.utils.createCluster(client, completeEcsQuickstartObject.cluster);
               step = 'createCluster';
-              // task and container
+              // task with container
+              completeEcsQuickstartObject.taskDefinition.executionRole!.arn = newRl;
+              completeEcsQuickstartObject.taskDefinition.taskRole!.arn = newRl;
+              await AwsEcsQuickstartModule.utils.createTaskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, e.repositoryUri, e.imageTag);
+              step = 'createTaskDefinition';
               // service and serv sg
               out.push(e); // TODO: is this ok? return valid property
             } catch (e: any) {
