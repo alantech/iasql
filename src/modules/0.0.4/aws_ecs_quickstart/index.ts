@@ -6,7 +6,7 @@ import * as metadata from './module.json'
 import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity'
 import { ActionTypeEnum, IpAddressType, Listener, LoadBalancer, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEnum, TargetGroup, TargetTypeEnum } from '../aws_elb/entity'
 import { LogGroup } from '../aws_cloudwatch/entity'
-import { Repository } from '../aws_ecr/entity'
+import { ImageTagMutability, Repository } from '../aws_ecr/entity'
 import { Role } from '../aws_iam/entity'
 import { Cluster, ContainerDefinition, CpuMemCombination, TaskDefinition, TransportProtocol } from '../aws_ecs_fargate/entity'
 import { Subnet, Vpc } from '@aws-sdk/client-ec2'
@@ -128,6 +128,8 @@ export const AwsEcsQuickstartModule: Module = new Module({
     getPrivateEcr: (appName: string) => {
       const out = new Repository();
       out.repositoryName = `${prefix}${appName}-ecr`;  // TODO: what to do if provided?
+      out.imageTagMutability = ImageTagMutability.MUTABLE;
+      out.scanOnPush = false;
       return out;
     },
     getRole: (appName: string) => {
@@ -280,6 +282,15 @@ export const AwsEcsQuickstartModule: Module = new Module({
     createLogGroup: async (client: AWS, e: LogGroup) => {
       return await client.createLogGroup(e.logGroupName);
     },
+    createEcr: async (client: AWS, e: Repository) => {
+      return await client.createECRRepository({
+        repositoryName: e.repositoryName,
+        imageTagMutability: e.imageTagMutability,
+        imageScanningConfiguration: {
+          scanOnPush: e.scanOnPush,
+        },
+      });
+    },
   },
   mappers: {
     ecsQuickstart: new Mapper<EcsQuickstart>({
@@ -325,7 +336,13 @@ export const AwsEcsQuickstartModule: Module = new Module({
               // cw log group
               await AwsEcsQuickstartModule.utils.createLogGroup(client, completeEcsQuickstartObject.logGroup);
               step = 'createLogGroup';
+              // TODO: add check later if it really need to be created
               // ecr
+              if (completeEcsQuickstartObject.repository) {
+                await AwsEcsQuickstartModule.utils.createEcr(client, completeEcsQuickstartObject.repository);
+                // TODO: this probably should be the first to be deleted?
+                step = 'createEcr';
+              }
               // role
               // cluster
               // task and container
