@@ -1,3 +1,21 @@
+-- TODO: Does this belong here or in a similar file in the iasql_platform module?
+create or replace function iasql_audit() returns trigger as $$
+language plpgsql security definer
+begin
+  if (TG_OP = 'INSERT') then
+    INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
+    VALUES (now(), user, TG_TABLE_NAME, 'INSERT', '{"change":' || to_json(NEW.*) || '}');
+  elif (TG_OP = 'DELETE') then
+    INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
+    VALUES (now(), user, TG_TABLE_NAME, 'DELETE', '{"original":' || to_json(OLD.*) || '}');
+  elif (TG_OP = 'UPDATE') then
+    INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
+    VALUES (now(), user, TG_TABLE_NAME, 'UPDATE', '{"original":' || to_json(OLD.*) || ', "change":' || to_json(NEW.*) || '}');
+  endif;
+  return NULL;
+end;
+$$;
+
 create or replace function until_iasql_operation(_optype iasql_operation_optype_enum, _params text[]) returns uuid
 language plpgsql security definer
 as $$

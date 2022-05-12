@@ -870,6 +870,16 @@ ${Object.keys(tableCollisions)
         return mt;
       }) ?? [];
       await orm.save(Modules.IasqlPlatform.utils.IasqlTables, modTables);
+      // For each table, we need to attach the audit log trigger, if the platform is >=0.0.4
+      if (!['v0_0_1', 'v0_0_2', 'v0_0_3'].includes(versionString)) {
+        for (const table of md.provides.tables) {
+          await queryRunner.query(`
+            CREATE TRIGGER ${table}_audit
+            AFTER INSERT OR UPDATE OR DELETE ON ${table}
+            FOR EACH ROW EXECUTE FUNCTION iasql_audit();
+          `);
+        }
+      }
     }
     await queryRunner.commitTransaction();
     await orm.query(dbMan.grantPostgresRoleQuery(dbUser));
@@ -964,6 +974,14 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   await queryRunner.startTransaction();
   try {
     for (const md of leafToRootOrder) {
+      // For each table, we need to attach the audit log trigger, if the platform is >=0.0.4
+      if (!['v0_0_1', 'v0_0_2', 'v0_0_3'].includes(versionString)) {
+        for (const table of md.provides.tables) {
+          await queryRunner.query(`
+            DROP TRIGGER IF EXISTS ${table}_audit ON ${table};
+          `);
+        }
+      }
       if (md.migrations?.remove) {
         await md.migrations.remove(queryRunner);
       }
