@@ -489,7 +489,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           const defaultVpc = await AwsEcsQuickstartModule.utils.getDefaultVpc(client);
           const defaultSubnets = await AwsEcsQuickstartModule.utils.getDefaultSubnets(client, defaultVpc.VpcId);
-          const out = [];
+          const out: any[] = [];
           for (const e of es) {
             let step;
             const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
@@ -552,33 +552,32 @@ export const AwsEcsQuickstartModule: Module = new Module({
               step = 'createService';
               out.push(e); // TODO: is this ok? return valid property
             } catch (e: any) {
-              logger.error('SOMETHING BAD HAPPENED!!!!');
-              debugObj(e)
               // Rollback
               try {
                 switch (step) {
                   case 'createService':
-                    await AwsEcsQuickstartModule.utils.deleteService(completeEcsQuickstartObject.service);
+                    logger.info('ACTUALLY TRYING TO DELETE THE SERVICE?')
+                    await AwsEcsQuickstartModule.utils.deleteService(client, completeEcsQuickstartObject.service);
                   case 'createTaskDefinition':
-                    await AwsEcsQuickstartModule.utils.deleteTaskDefinition(completeEcsQuickstartObject.taskDefinition);
+                    await AwsEcsQuickstartModule.utils.deleteTaskDefinition(client, completeEcsQuickstartObject.taskDefinition);
                   case 'createCluster':
-                    await AwsEcsQuickstartModule.utils.deleteCluster(completeEcsQuickstartObject.cluster);
+                    await AwsEcsQuickstartModule.utils.deleteCluster(client, completeEcsQuickstartObject.cluster);
                   case 'createRole':
-                    await AwsEcsQuickstartModule.utils.deleteRole(completeEcsQuickstartObject.role);
+                    await AwsEcsQuickstartModule.utils.deleteRole(client, completeEcsQuickstartObject.role);
                   case 'createEcr':
-                    await AwsEcsQuickstartModule.utils.deleteEcr(completeEcsQuickstartObject.repository);
-                  case 'createLogGroup':
-                    await AwsEcsQuickstartModule.utils.deleteLogGroup(completeEcsQuickstartObject.logGroup);
+                    await AwsEcsQuickstartModule.utils.deleteEcr(client, completeEcsQuickstartObject.repository);
+                  case 'createLogGroup': 
+                    await AwsEcsQuickstartModule.utils.deleteLogGroup(client, completeEcsQuickstartObject.logGroup);
                   case 'createListener':
-                    await AwsEcsQuickstartModule.utils.deleteListener(completeEcsQuickstartObject.listener);
+                    await AwsEcsQuickstartModule.utils.deleteListener(client, completeEcsQuickstartObject.listener);
                   case 'createLoadBalancer':
-                    await AwsEcsQuickstartModule.utils.deleteLoadBalancer(completeEcsQuickstartObject.loadBalancer);
+                    await AwsEcsQuickstartModule.utils.deleteLoadBalancer(client, completeEcsQuickstartObject.loadBalancer);
                   case 'createTargetGroup':
-                    await AwsEcsQuickstartModule.utils.deleteTargetGroup(completeEcsQuickstartObject.targetGroup);
+                    await AwsEcsQuickstartModule.utils.deleteTargetGroup(client, completeEcsQuickstartObject.targetGroup);
                   case 'createSecurityGroupRules':
-                    await AwsEcsQuickstartModule.utils.deleteSecurityGroupRules(completeEcsQuickstartObject.securityGroupRules);
+                    await AwsEcsQuickstartModule.utils.deleteSecurityGroupRules(client, completeEcsQuickstartObject.securityGroupRules);
                   case 'createSecurityGroup':
-                    await AwsEcsQuickstartModule.utils.deleteSecurityGroup(completeEcsQuickstartObject.securityGroup);
+                    await AwsEcsQuickstartModule.utils.deleteSecurityGroup(client, completeEcsQuickstartObject.securityGroup);
                   default:
                     break;
                 }
