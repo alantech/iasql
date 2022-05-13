@@ -1193,6 +1193,44 @@ export class AWS {
     return result.services?.[0];
   }
 
+  async getServiceByName(cluster: string, name: string) {
+    const services = [];
+    const serviceArns: string[] = [];
+    const paginator = paginateListServices({
+      client: this.ecsClient,
+    }, {
+      cluster: cluster,
+      maxResults: 100,
+    });
+    for await (const page of paginator) {
+      serviceArns.push(...(page.serviceArns ?? []));
+    }
+    if (serviceArns.length) {
+      const batchSize = 10; // Following AWS directions
+      if (serviceArns.length > batchSize) {
+        for (let i = 0; i < serviceArns.length; i += batchSize) {
+          const batch = serviceArns.slice(i, i + batchSize);
+          const result = await this.ecsClient.send(
+            new DescribeServicesCommand({
+              cluster: cluster,
+              services: batch
+            })
+          );
+          services.push(...(result.services ?? []));
+        }
+      } else {
+        const result = await this.ecsClient.send(
+          new DescribeServicesCommand({
+            cluster: cluster,
+            services: serviceArns
+          })
+        );
+        services.push(...(result.services ?? []));
+      }
+    }
+    return services.find(s => Object.is(s.serviceName, name));
+  }
+
   async deleteService(name: string, cluster: string, tasksArns: string[]) {
     await this.ecsClient.send(
       new DeleteServiceCommand({

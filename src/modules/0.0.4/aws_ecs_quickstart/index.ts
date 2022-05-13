@@ -492,7 +492,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
         cluster: e.cluster?.clusterName,
         desiredCount: 0,
       });
-      await client.deleteService(e.name, e.cluster?.clusterArn!, tasksArns);
+      await client.deleteService(e.name, e.cluster?.clusterName!, tasksArns);
     },
   },
   mappers: {
@@ -584,7 +584,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
                     await AwsEcsQuickstartModule.utils.deleteRole(client, completeEcsQuickstartObject.role);
                   case 'createEcr':
                     await AwsEcsQuickstartModule.utils.deleteEcr(client, completeEcsQuickstartObject.repository);
-                  case 'createLogGroup': 
+                  case 'createLogGroup':
                     await AwsEcsQuickstartModule.utils.deleteLogGroup(client, completeEcsQuickstartObject.logGroup);
                   case 'createListener':
                     await AwsEcsQuickstartModule.utils.deleteListener(client, completeEcsQuickstartObject.listener);
@@ -655,10 +655,27 @@ export const AwsEcsQuickstartModule: Module = new Module({
         },
         delete: async (es: EcsQuickstart[], ctx: Context) => {
           // todo: just delete if is a valid resource
-          // delete service + cluster?
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            // await client.deleteECRPubRepository(e.repositoryName!);
+            const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
+            const service = await client.getServiceByName(completeEcsQuickstartObject.cluster.clusterName, completeEcsQuickstartObject.service.name);
+            completeEcsQuickstartObject.cluster.clusterArn = service?.clusterArn;
+            completeEcsQuickstartObject.securityGroup.groupId = service?.networkConfiguration?.awsvpcConfiguration?.securityGroups?.pop();
+            completeEcsQuickstartObject.taskDefinition.taskDefinitionArn = service?.taskDefinition;
+            const serviceLoadBalancer = service?.loadBalancers?.pop();
+            // Find load balancer
+            completeEcsQuickstartObject.targetGroup.targetGroupArn = serviceLoadBalancer?.targetGroupArn;
+            const targetGroup = await client.getTargetGroup(completeEcsQuickstartObject.targetGroup.targetGroupArn ?? '');
+            completeEcsQuickstartObject.loadBalancer.loadBalancerArn = targetGroup?.LoadBalancerArns?.pop();
+            await AwsEcsQuickstartModule.utils.deleteService(client, completeEcsQuickstartObject.service);
+            await AwsEcsQuickstartModule.utils.deleteTaskDefinition(client, completeEcsQuickstartObject.taskDefinition);
+            await AwsEcsQuickstartModule.utils.deleteCluster(client, completeEcsQuickstartObject.cluster);
+            await AwsEcsQuickstartModule.utils.deleteRole(client, completeEcsQuickstartObject.role);
+            await AwsEcsQuickstartModule.utils.deleteEcr(client, completeEcsQuickstartObject.repository);
+            await AwsEcsQuickstartModule.utils.deleteLogGroup(client, completeEcsQuickstartObject.logGroup);
+            await AwsEcsQuickstartModule.utils.deleteLoadBalancer(client, completeEcsQuickstartObject.loadBalancer);
+            await AwsEcsQuickstartModule.utils.deleteTargetGroup(client, completeEcsQuickstartObject.targetGroup);
+            await AwsEcsQuickstartModule.utils.deleteSecurityGroup(client, completeEcsQuickstartObject.securityGroup);
           }
         },
       }),
