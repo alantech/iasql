@@ -533,7 +533,6 @@ export const AwsEcsQuickstartModule: Module = new Module({
               step = 'createTargetGroup';
               // load balancer y lb security group
               await AwsEcsQuickstartModule.utils.cloud.create.loadBalancer(client, completeEcsQuickstartObject.loadBalancer, defaultSubnets);
-              // TODO: should we update the value of the `e` in databse here?
               step = 'createLoadBalancer';
               // listener
               await AwsEcsQuickstartModule.utils.cloud.create.listener(client, completeEcsQuickstartObject.listener);
@@ -545,7 +544,6 @@ export const AwsEcsQuickstartModule: Module = new Module({
               // ecr
               if (completeEcsQuickstartObject.repository) {
                 await AwsEcsQuickstartModule.utils.cloud.create.ecr(client, completeEcsQuickstartObject.repository);
-                // TODO: should we update the value of the `e` in databse here?
                 // TODO: this probably should be the first to be deleted?
                 step = 'createEcr';
               }
@@ -566,7 +564,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
               // TODO: Update ecs quickstart record in database with the new ecr repository uri if needed
               await AwsEcsQuickstartModule.mappers.ecsQuickstart.db.update(e, ctx);
               out.push(e);
-            } catch (e: any) {
+            } catch (err: any) {
               // Rollback
               try {
                 switch (step) {
@@ -595,12 +593,12 @@ export const AwsEcsQuickstartModule: Module = new Module({
                   default:
                     break;
                 }
-              } catch (_) {
+              } catch (err2: any) {
                 // TODO: improve this error message, also this should not happen?
-                e.message = `${e.message}. Could not rollback all entities created.`;
+                err.message = `${err.message}. Could not rollback all entities created with error ${err2.message}`;
               }
               // Throw error
-              throw e;
+              throw err;
             }
           }
           return out;
