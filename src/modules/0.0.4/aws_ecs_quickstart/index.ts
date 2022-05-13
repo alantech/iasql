@@ -11,6 +11,7 @@ import { Role } from '../aws_iam/entity'
 import { AssignPublicIp, Cluster, ContainerDefinition, CpuMemCombination, Service, TaskDefinition, TransportProtocol } from '../aws_ecs_fargate/entity'
 import { Subnet, Vpc } from '@aws-sdk/client-ec2'
 import { CreateLoadBalancerCommandInput } from '@aws-sdk/client-elastic-load-balancing-v2'
+import { Service as AwsService } from '@aws-sdk/client-ecs'
 
 export type EcsQuickstartObject = {
   securityGroup: SecurityGroup;
@@ -31,9 +32,26 @@ const prefix = 'iasql-ecs-'
 export const AwsEcsQuickstartModule: Module = new Module({
   ...metadata,
   utils: {
-    ecsQuickstartMapper: (e: any) => {
+    ecsQuickstartMapper: async (e: AwsService, ctx: Context) => {
+      const client = await ctx.getAwsClient() as AWS;
       const out = new EcsQuickstart();
-      // Map entity
+      out.appName = e.serviceName?.substring(e.serviceName.indexOf(prefix) + prefix.length, e.serviceName.indexOf('-svc')) ?? '';
+      out.desiredCount = e.desiredCount;
+      const serviceLoadBalancer = e.loadBalancers?.pop() ?? {};
+      const loadBalancers = (await client.getLoadBalancers()).LoadBalancers ?? [];
+      const relevantLoadBalancer = loadBalancers.find(lb => Object.is(lb.LoadBalancerName, serviceLoadBalancer.loadBalancerName));
+      out.loadBalancerDns = relevantLoadBalancer?.DNSName;
+      out.appPort = serviceLoadBalancer.containerPort ?? -1;
+      out.publicIp = e.networkConfiguration?.awsvpcConfiguration?.assignPublicIp === AssignPublicIp.ENABLED;
+      const taskDefinitionArn = e.taskDefinition ?? '';
+      const taskDefinition = await client.getTaskDefinition(taskDefinitionArn) ?? {};
+      out.cpuMem = `vCPU${+(taskDefinition.cpu ?? '256') / 1024}-${+(taskDefinition.memory ?? '512') / 1024}GB` as CpuMemCombination;
+      const containerDefinition = taskDefinition.containerDefinitions?.pop();
+      // TODO: Do this correctly!!
+      const imageStrSplit = containerDefinition?.image?.split(':') ?? [];
+      out.repositoryUri = imageStrSplit[0];
+      out.imageTag = imageStrSplit[1];
+      logger.info(`OUT OBJECT READ FROM CLOUD ${JSON.stringify(out)}`)
       return out;
     },
     // todo: Should add valid method to check if all pieces are in place
@@ -603,20 +621,23 @@ export const AwsEcsQuickstartModule: Module = new Module({
         },
         read: async (ctx: Context, ids?: string[]) => {
           const client = await ctx.getAwsClient() as AWS;
-          // todo:
-          // read all clusters
-          // read all services
-          // if any, read all important resources
-          // if valid return if not filter
-          // const ecrs = Array.isArray(ids) ? await (async () => {
-          //   const out = [];
-          //   for (const id of ids) {
-          //     out.push(await client.getECRPubRepository(id));
-          //   }
-          //   return out;
-          // })() :
-          //   (await client.getECRPubRepositories()).Repositories ?? [];
-          // return ecrs.map(ecr => AwsEcrModule.utils.publicRepositoryMapper(ecr));
+          // read all clusters and find the ones that match our pattern
+          const clusters = await client.getClusters();
+          const relevantClusters = clusters?.filter(c => c.clusterName?.includes(prefix)) ?? [];
+          // read all services from relevant clusters
+          let relevantServices = [];
+          for (const c of relevantClusters) {
+            const services = await client.getServices([c.clusterName!]) ?? [];
+            relevantServices.push(...services.filter(s => s.serviceName?.includes(prefix)));
+          }
+          if (ids) {
+            relevantServices = relevantServices.filter(s => ids.includes(s.serviceArn!));
+          }
+          const out = [];
+          for (const s of relevantServices) {
+            out.push(await AwsEcsQuickstartModule.utils.ecsQuickstartMapper(s, ctx));
+          }
+          return out;
         },
         updateOrReplace: () => 'update', // todo: implement
         update: async (es: EcsQuickstart[], ctx: Context) => {
