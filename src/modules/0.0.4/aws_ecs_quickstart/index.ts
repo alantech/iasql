@@ -58,28 +58,28 @@ export const AwsEcsQuickstartModule: Module = new Module({
     // todo: should we add a default values method to be abdle to compare later?
     getEcsQuickstartObject: (e: EcsQuickstart) => {
       // security groups and security group rules
-      const sg = AwsEcsQuickstartModule.utils.getSecurityGroup(e.appName);
-      const sgrIngress = AwsEcsQuickstartModule.utils.getSecurityGroupRule(sg, e.appPort, false);
-      const sgrEgress = AwsEcsQuickstartModule.utils.getSecurityGroupRule(sg, e.appPort, true);
+      const sg = AwsEcsQuickstartModule.utils.entityMappers.securityGroup(e.appName);
+      const sgrIngress = AwsEcsQuickstartModule.utils.entityMappers.securityGroupRule(sg, e.appPort, false);
+      const sgrEgress = AwsEcsQuickstartModule.utils.entityMappers.securityGroupRule(sg, e.appPort, true);
       // target group
-      const tg = AwsEcsQuickstartModule.utils.getTargetGroup(e.appName, e.appPort);
+      const tg = AwsEcsQuickstartModule.utils.entityMappers.targetGroup(e.appName, e.appPort);
       // load balancer y lb security group
-      const lb = AwsEcsQuickstartModule.utils.getLoadBalancer(e.appName, sg);
+      const lb = AwsEcsQuickstartModule.utils.entityMappers.loadBalancer(e.appName, sg);
       // listener
-      const lsn = AwsEcsQuickstartModule.utils.getListener(e.appPort, lb, tg);
+      const lsn = AwsEcsQuickstartModule.utils.entityMappers.listener(e.appPort, lb, tg);
       // cw log group
-      const lg = AwsEcsQuickstartModule.utils.getLogGroup(e.appName);
+      const lg = AwsEcsQuickstartModule.utils.entityMappers.logGroup(e.appName);
       // ecr
-      const ecr = AwsEcsQuickstartModule.utils.getPrivateEcr(e.appName);
+      const ecr = AwsEcsQuickstartModule.utils.entityMappers.privateEcr(e.appName);
       // role
-      const rl = AwsEcsQuickstartModule.utils.getRole(e.appName);
+      const rl = AwsEcsQuickstartModule.utils.entityMappers.role(e.appName);
       // cluster
-      const cl = AwsEcsQuickstartModule.utils.getCluster(e.appName);
+      const cl = AwsEcsQuickstartModule.utils.entityMappers.cluster(e.appName);
       // task and container
-      const td = AwsEcsQuickstartModule.utils.getTaskDefinition(e.appName, rl, e.cpuMem);
-      const cd = AwsEcsQuickstartModule.utils.getContainerDefinition(e.appName, e.appPort, e.cpuMem, td, lg);
+      const td = AwsEcsQuickstartModule.utils.entityMappers.taskDefinition(e.appName, rl, e.cpuMem);
+      const cd = AwsEcsQuickstartModule.utils.entityMappers.containerDefinition(e.appName, e.appPort, e.cpuMem, td, lg);
       // service
-      const svc = AwsEcsQuickstartModule.utils.getService(e.appName, e.desiredCount, e.publicIp, cl, td, tg, sg)
+      const svc = AwsEcsQuickstartModule.utils.entityMappers.service(e.appName, e.desiredCount, e.publicIp, cl, td, tg, sg)
       const ecsQuickstart: EcsQuickstartObject = {
         securityGroup: sg,
         securityGroupRules: [sgrIngress, sgrEgress],
@@ -97,402 +97,412 @@ export const AwsEcsQuickstartModule: Module = new Module({
       return ecsQuickstart
     },
     // Entity getters
-    getSecurityGroup: (appName: string) => {
-      const out = new SecurityGroup();
-      out.groupName = `${prefix}${appName}-sg`;
-      out.description = `${prefix}${appName} security group`;
-      return out;
+    entityMappers: {
+      securityGroup: (appName: string) => {
+        const out = new SecurityGroup();
+        out.groupName = `${prefix}${appName}-sg`;
+        out.description = `${prefix}${appName} security group`;
+        return out;
+      },
+      securityGroupRule: (sg: SecurityGroup, appPort: number, isEgress: boolean) => {
+        const out = new SecurityGroupRule();
+        out.securityGroup = sg;
+        out.isEgress = isEgress;
+        out.ipProtocol = isEgress ? '-1' : 'tcp';
+        out.fromPort = isEgress ? -1 : appPort;
+        out.toPort = isEgress ? -1 : appPort;
+        out.cidrIpv4 = '0.0.0.0/0';
+        out.description = sg.groupName;
+        return out;
+      },
+      targetGroup: (appName: string, appPort: number) => {
+        const out = new TargetGroup();
+        out.targetGroupName = `${prefix}${appName}-tg`;
+        out.targetType = TargetTypeEnum.IP;
+        out.protocol = ProtocolEnum.HTTP;
+        out.port = appPort;
+        out.healthCheckPath = '/health';
+        return out;
+      },
+      loadBalancer: (appName: string, sg: SecurityGroup) => {
+        const out = new LoadBalancer();
+        out.loadBalancerName = `${prefix}${appName}-lb`;
+        out.scheme = LoadBalancerSchemeEnum.INTERNET_FACING;
+        out.loadBalancerType = LoadBalancerTypeEnum.APPLICATION;
+        out.securityGroups = [sg];
+        out.ipAddressType = IpAddressType.IPV4;
+        return out;
+      },
+      listener: (appPort: number, lb: LoadBalancer, tg: TargetGroup) => {
+        const out = new Listener();
+        out.loadBalancer = lb;
+        out.port = appPort;
+        out.protocol = ProtocolEnum.HTTP;
+        out.actionType = ActionTypeEnum.FORWARD;
+        out.targetGroup = tg;
+        return out;
+      },
+      logGroup: (appName: string) => {
+        const out = new LogGroup();
+        out.logGroupName = `${prefix}${appName}-lg`;
+        return out;
+      },
+      privateEcr: (appName: string) => {
+        const out = new Repository();
+        out.repositoryName = `${prefix}${appName}-ecr`;  // TODO: what to do if provided?
+        out.imageTagMutability = ImageTagMutability.MUTABLE;
+        out.scanOnPush = false;
+        return out;
+      },
+      role: (appName: string) => {
+        const out = new Role();
+        out.roleName = `${prefix}${appName}-rl`;
+        out.assumeRolePolicyDocument = JSON.stringify({
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        });
+        out.attachedPoliciesArns = ['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'];
+        return out;
+      },
+      cluster: (appName: string) => {
+        const out = new Cluster();
+        out.clusterName = `${prefix}${appName}-cl`;
+        return out;
+      },
+      taskDefinition: (appName: string, rl: Role, cpuMem: string) => {
+        const out = new TaskDefinition();
+        out.family = `${prefix}${appName}-fm`;
+        out.taskRole = rl;
+        out.executionRole = rl;
+        out.cpuMemory = cpuMem as CpuMemCombination ?? null;
+        return out;
+      },
+      containerDefinition: (appName: string, appPort: number, cpuMem: string, td: TaskDefinition, lg: LogGroup) => {
+        const out = new ContainerDefinition();
+        out.name = `${prefix}${appName}-cn`;
+        out.essential = true;
+        out.taskDefinition = td;
+        out.memoryReservation = +cpuMem.split('-')[1].split('GB')[0] * 1024;
+        // out.repository = ecr; // TODO: SHOULD THIS BE DEFINED HERE?
+        // out.tag = tag; // TODO: SHOULD THIS BE DEFINED HERE?
+        // out.digest = digest; // TODO: SHOULD THIS BE DEFINED HERE?
+        out.hostPort = appPort;
+        out.containerPort = appPort;
+        out.protocol = TransportProtocol.TCP;
+        out.logGroup = lg;
+        return out;
+      },
+      service: (appName: string, desiredCount: number, assignPublicIp: string, cl: Cluster, td: TaskDefinition, tg: TargetGroup, sg: SecurityGroup) => {
+        const out = new Service();
+        out.name = `${prefix}${appName}-svc`;
+        out.desiredCount = desiredCount;
+        out.task = td;
+        out.targetGroup = tg;
+        out.assignPublicIp = assignPublicIp ? AssignPublicIp.ENABLED : AssignPublicIp.DISABLED;
+        out.securityGroups = [sg];
+        out.forceNewDeployment = false;
+        out.cluster = cl;
+        return out;
+      },
     },
-    getSecurityGroupRule: (sg: SecurityGroup, appPort: number, isEgress: boolean) => {
-      const out = new SecurityGroupRule();
-      out.securityGroup = sg;
-      out.isEgress = isEgress;
-      out.ipProtocol = isEgress ? '-1' : 'tcp';
-      out.fromPort = isEgress ? -1 : appPort;
-      out.toPort = isEgress ? -1 : appPort;
-      out.cidrIpv4 = '0.0.0.0/0';
-      out.description = sg.groupName;
-      return out;
-    },
-    getTargetGroup: (appName: string, appPort: number) => {
-      const out = new TargetGroup();
-      out.targetGroupName = `${prefix}${appName}-tg`;
-      out.targetType = TargetTypeEnum.IP;
-      out.protocol = ProtocolEnum.HTTP;
-      out.port = appPort;
-      out.healthCheckPath = '/health';
-      return out;
-    },
-    getLoadBalancer: (appName: string, sg: SecurityGroup) => {
-      const out = new LoadBalancer();
-      out.loadBalancerName = `${prefix}${appName}-lb`;
-      out.scheme = LoadBalancerSchemeEnum.INTERNET_FACING;
-      out.loadBalancerType = LoadBalancerTypeEnum.APPLICATION;
-      out.securityGroups = [sg];
-      out.ipAddressType = IpAddressType.IPV4;
-      return out;
-    },
-    getListener: (appPort: number, lb: LoadBalancer, tg: TargetGroup) => {
-      const out = new Listener();
-      out.loadBalancer = lb;
-      out.port = appPort;
-      out.protocol = ProtocolEnum.HTTP;
-      out.actionType = ActionTypeEnum.FORWARD;
-      out.targetGroup = tg;
-      return out;
-    },
-    getLogGroup: (appName: string) => {
-      const out = new LogGroup();
-      out.logGroupName = `${prefix}${appName}-lg`;
-      return out;
-    },
-    getPrivateEcr: (appName: string) => {
-      const out = new Repository();
-      out.repositoryName = `${prefix}${appName}-ecr`;  // TODO: what to do if provided?
-      out.imageTagMutability = ImageTagMutability.MUTABLE;
-      out.scanOnPush = false;
-      return out;
-    },
-    getRole: (appName: string) => {
-      const out = new Role();
-      out.roleName = `${prefix}${appName}-rl`;
-      out.assumeRolePolicyDocument = JSON.stringify({
-        "Version": "2012-10-17",
-        "Statement": [
-          {
-            "Sid": "",
-            "Effect": "Allow",
-            "Principal": {
-              "Service": "ecs-tasks.amazonaws.com"
+    cloud: {
+      // Cloud getters
+      get: {
+        defaultVpc: async (client: AWS) => {
+          // Get default vpc
+          const vpcs = (await client.getVpcs()).Vpcs ?? [];
+          const defaultVpc = vpcs.find(vpc => vpc.IsDefault);
+          return defaultVpc;
+        },
+        defaultSubnets: async (client: AWS, vpcId: string) => {
+          // Get subnets
+          const subnets = (await client.getSubnetsByVpcId(vpcId)).Subnets ?? [];
+          return subnets;
+        },
+      },
+      // Cloud creates
+      create: {
+        securityGroup: async (client: AWS, e: SecurityGroup, defaultVpc: Vpc) => {
+          const res = await client.createSecurityGroup({
+            Description: e.description,
+            GroupName: e.groupName,
+            VpcId: defaultVpc.VpcId,
+          });
+          e.groupId = res.GroupId;
+          return res;
+        },
+        securityGroupRules: async (client: AWS, es: SecurityGroupRule[],) => {
+          const out = [];
+          for (const e of es) {
+            const GroupId = e?.securityGroup?.groupId;
+            const newRule: any = {};
+            // The rest of these should be defined if present
+            if (e.cidrIpv4) newRule.IpRanges = [{ CidrIp: e.cidrIpv4, }];
+            if (e.cidrIpv6) newRule.Ipv6Ranges = [{ CidrIpv6: e.cidrIpv6, }];
+            if (e.description) {
+              if (e.cidrIpv4) newRule.IpRanges[0].Description = e.description;
+              if (e.cidrIpv6) newRule.Ipv6Ranges[0].Description = e.description;
+            }
+            if (e.fromPort) newRule.FromPort = e.fromPort;
+            if (e.ipProtocol) newRule.IpProtocol = e.ipProtocol;
+            if (e.prefixListId) newRule.PrefixListIds = [e.prefixListId];
+            if (e.toPort) newRule.ToPort = e.toPort;
+            let res;
+            if (e.isEgress) {
+              // By default there is an egress rule, lets delete it and create the new one to be able to identify it with our description
+              const securityGroupRules = await (await client.getSecurityGroupRules()).SecurityGroupRules ?? [];
+              const securityGroupRule = securityGroupRules.find(sgr => Object.is(sgr.GroupId, e.securityGroup.groupId)
+                && Object.is(sgr.CidrIpv4, e.cidrIpv4) && Object.is(sgr.FromPort, e.fromPort) && Object.is(sgr.ToPort, e.toPort));
+              await client.deleteSecurityGroupEgressRules([{
+                GroupId,
+                SecurityGroupRuleIds: [securityGroupRule?.SecurityGroupRuleId ?? ''],
+              }]);
+              res = (await client.createSecurityGroupEgressRules([{
+                GroupId,
+                IpPermissions: [newRule],
+              }]))[0];
+            } else {
+              res = (await client.createSecurityGroupIngressRules([{
+                GroupId,
+                IpPermissions: [newRule],
+              }]))[0];
+            }
+            e.securityGroupRuleId = res.SecurityGroupRules?.[0].SecurityGroupRuleId;
+            out.push(res);
+          }
+          return out;
+        },
+        targetGroup: async (client: AWS, e: TargetGroup, defaultVpc: Vpc) => {
+          const res = await client.createTargetGroup({
+            Name: e.targetGroupName,
+            TargetType: e.targetType,
+            Port: e.port,
+            VpcId: defaultVpc.VpcId,
+            Protocol: e.protocol,
+            ProtocolVersion: e.protocolVersion,
+            IpAddressType: e.ipAddressType,
+            HealthCheckProtocol: e.healthCheckProtocol,
+            HealthCheckPort: e.healthCheckPort,
+            HealthCheckPath: e.healthCheckPath,
+            HealthCheckEnabled: e.healthCheckEnabled,
+            HealthCheckIntervalSeconds: e.healthCheckIntervalSeconds,
+            HealthCheckTimeoutSeconds: e.healthCheckTimeoutSeconds,
+            HealthyThresholdCount: e.healthyThresholdCount,
+            UnhealthyThresholdCount: e.unhealthyThresholdCount,
+          });
+          e.targetGroupArn = res?.TargetGroupArn;
+          return res;
+        },
+        loadBalancer: async (client: AWS, e: LoadBalancer, defaultSubnets: Subnet[]) => {
+          const input: CreateLoadBalancerCommandInput = {
+            Name: e.loadBalancerName,
+            Subnets: defaultSubnets.map(s => s.SubnetId ?? ''),
+            Scheme: e.scheme,
+            Type: e.loadBalancerType,
+            IpAddressType: e.ipAddressType,
+            CustomerOwnedIpv4Pool: e.customerOwnedIpv4Pool,
+            SecurityGroups: e.securityGroups?.map(sg => sg.groupId ?? ''),
+          };
+          const res = await client.createLoadBalancer(input);
+          e.loadBalancerArn = res?.LoadBalancerArn;
+          return res;
+        },
+        listener: async (client: AWS, e: Listener) => {
+          const res = await client.createListener({
+            Port: e.port,
+            Protocol: e.protocol,
+            LoadBalancerArn: e.loadBalancer?.loadBalancerArn,
+            DefaultActions: [{ Type: e.actionType, TargetGroupArn: e.targetGroup.targetGroupArn }],
+          });
+          e.listenerArn = res?.ListenerArn;
+          return res;
+        },
+        logGroup: async (client: AWS, e: LogGroup) => {
+          return await client.createLogGroup(e.logGroupName);
+        },
+        ecr: async (client: AWS, e: Repository) => {
+          const res = await client.createECRRepository({
+            repositoryName: e.repositoryName,
+            imageTagMutability: e.imageTagMutability,
+            imageScanningConfiguration: {
+              scanOnPush: e.scanOnPush,
             },
-            "Action": "sts:AssumeRole"
-          }
-        ]
-      });
-      out.attachedPoliciesArns = ['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'];
-      return out;
-    },
-    getCluster: (appName: string) => {
-      const out = new Cluster();
-      out.clusterName = `${prefix}${appName}-cl`;
-      return out;
-    },
-    getTaskDefinition: (appName: string, rl: Role, cpuMem: string) => {
-      const out = new TaskDefinition();
-      out.family = `${prefix}${appName}-fm`;
-      out.taskRole = rl;
-      out.executionRole = rl;
-      out.cpuMemory = cpuMem as CpuMemCombination ?? null;
-      return out;
-    },
-    getContainerDefinition: (appName: string, appPort: number, cpuMem: string, td: TaskDefinition, lg: LogGroup) => {
-      const out = new ContainerDefinition();
-      out.name = `${prefix}${appName}-cn`;
-      out.essential = true;
-      out.taskDefinition = td;
-      out.memoryReservation = +cpuMem.split('-')[1].split('GB')[0] * 1024;
-      // out.repository = ecr; // TODO: SHOULD THIS BE DEFINED HERE?
-      // out.tag = tag; // TODO: SHOULD THIS BE DEFINED HERE?
-      // out.digest = digest; // TODO: SHOULD THIS BE DEFINED HERE?
-      out.hostPort = appPort;
-      out.containerPort = appPort;
-      out.protocol = TransportProtocol.TCP;
-      out.logGroup = lg;
-      return out;
-    },
-    getService: (appName: string, desiredCount: number, assignPublicIp: string, cl: Cluster, td: TaskDefinition, tg: TargetGroup, sg: SecurityGroup) => {
-      const out = new Service();
-      out.name = `${prefix}${appName}-svc`;
-      out.desiredCount = desiredCount;
-      out.task = td;
-      out.targetGroup = tg;
-      out.assignPublicIp = assignPublicIp ? AssignPublicIp.ENABLED : AssignPublicIp.DISABLED;
-      out.securityGroups = [sg];
-      out.forceNewDeployment = false;
-      out.cluster = cl;
-      return out;
-    },
-    // Cloud getters
-    getDefaultVpc: async (client: AWS) => {
-      // Get default vpc
-      const vpcs = (await client.getVpcs()).Vpcs ?? [];
-      const defaultVpc = vpcs.find(vpc => vpc.IsDefault);
-      return defaultVpc;
-    },
-    getDefaultSubnets: async (client: AWS, vpcId: string) => {
-      // Get subnets
-      const subnets = (await client.getSubnetsByVpcId(vpcId)).Subnets ?? [];
-      return subnets;
-    },
-    // Cloud creates
-    createSecurityGroup: async (client: AWS, e: SecurityGroup, defaultVpc: Vpc) => {
-      const res = await client.createSecurityGroup({
-        Description: e.description,
-        GroupName: e.groupName,
-        VpcId: defaultVpc.VpcId,
-      });
-      e.groupId = res.GroupId;
-      return res;
-    },
-    createSecurityGroupRules: async (client: AWS, es: SecurityGroupRule[],) => {
-      const out = [];
-      for (const e of es) {
-        const GroupId = e?.securityGroup?.groupId;
-        const newRule: any = {};
-        // The rest of these should be defined if present
-        if (e.cidrIpv4) newRule.IpRanges = [{ CidrIp: e.cidrIpv4, }];
-        if (e.cidrIpv6) newRule.Ipv6Ranges = [{ CidrIpv6: e.cidrIpv6, }];
-        if (e.description) {
-          if (e.cidrIpv4) newRule.IpRanges[0].Description = e.description;
-          if (e.cidrIpv6) newRule.Ipv6Ranges[0].Description = e.description;
-        }
-        if (e.fromPort) newRule.FromPort = e.fromPort;
-        if (e.ipProtocol) newRule.IpProtocol = e.ipProtocol;
-        if (e.prefixListId) newRule.PrefixListIds = [e.prefixListId];
-        if (e.toPort) newRule.ToPort = e.toPort;
-        let res;
-        if (e.isEgress) {
-          // By default there is an egress rule, lets delete it and create the new one to be able to identify it with our description
-          const securityGroupRules = await (await client.getSecurityGroupRules()).SecurityGroupRules ?? [];
-          const securityGroupRule = securityGroupRules.find(sgr => Object.is(sgr.GroupId, e.securityGroup.groupId)
-            && Object.is(sgr.CidrIpv4, e.cidrIpv4) && Object.is(sgr.FromPort, e.fromPort) && Object.is(sgr.ToPort, e.toPort));
-          await client.deleteSecurityGroupEgressRules([{
-            GroupId,
-            SecurityGroupRuleIds: [securityGroupRule?.SecurityGroupRuleId ?? ''],
-          }]);
-          res = (await client.createSecurityGroupEgressRules([{
-            GroupId,
-            IpPermissions: [newRule],
-          }]))[0];
-        } else {
-          res = (await client.createSecurityGroupIngressRules([{
-            GroupId,
-            IpPermissions: [newRule],
-          }]))[0];
-        }
-        e.securityGroupRuleId = res.SecurityGroupRules?.[0].SecurityGroupRuleId;
-        out.push(res);
-      }
-      return out;
-    },
-    createTargetGroup: async (client: AWS, e: TargetGroup, defaultVpc: Vpc) => {
-      const res = await client.createTargetGroup({
-        Name: e.targetGroupName,
-        TargetType: e.targetType,
-        Port: e.port,
-        VpcId: defaultVpc.VpcId,
-        Protocol: e.protocol,
-        ProtocolVersion: e.protocolVersion,
-        IpAddressType: e.ipAddressType,
-        HealthCheckProtocol: e.healthCheckProtocol,
-        HealthCheckPort: e.healthCheckPort,
-        HealthCheckPath: e.healthCheckPath,
-        HealthCheckEnabled: e.healthCheckEnabled,
-        HealthCheckIntervalSeconds: e.healthCheckIntervalSeconds,
-        HealthCheckTimeoutSeconds: e.healthCheckTimeoutSeconds,
-        HealthyThresholdCount: e.healthyThresholdCount,
-        UnhealthyThresholdCount: e.unhealthyThresholdCount,
-      });
-      e.targetGroupArn = res?.TargetGroupArn;
-      return res;
-    },
-    createLoadBalancer: async (client: AWS, e: LoadBalancer, defaultSubnets: Subnet[]) => {
-      const input: CreateLoadBalancerCommandInput = {
-        Name: e.loadBalancerName,
-        Subnets: defaultSubnets.map(s => s.SubnetId ?? ''),
-        Scheme: e.scheme,
-        Type: e.loadBalancerType,
-        IpAddressType: e.ipAddressType,
-        CustomerOwnedIpv4Pool: e.customerOwnedIpv4Pool,
-        SecurityGroups: e.securityGroups?.map(sg => sg.groupId ?? ''),
-      };
-      const res = await client.createLoadBalancer(input);
-      e.loadBalancerArn = res?.LoadBalancerArn;
-      return res;
-    },
-    createListener: async (client: AWS, e: Listener) => {
-      const res = await client.createListener({
-        Port: e.port,
-        Protocol: e.protocol,
-        LoadBalancerArn: e.loadBalancer?.loadBalancerArn,
-        DefaultActions: [{ Type: e.actionType, TargetGroupArn: e.targetGroup.targetGroupArn }],
-      });
-      e.listenerArn = res?.ListenerArn;
-      return res;
-    },
-    createLogGroup: async (client: AWS, e: LogGroup) => {
-      return await client.createLogGroup(e.logGroupName);
-    },
-    createEcr: async (client: AWS, e: Repository) => {
-      const res = await client.createECRRepository({
-        repositoryName: e.repositoryName,
-        imageTagMutability: e.imageTagMutability,
-        imageScanningConfiguration: {
-          scanOnPush: e.scanOnPush,
+          });
+          e.repositoryArn = res?.repositoryArn;
+          return res;
         },
-      });
-      e.repositoryArn = res?.repositoryArn;
-      return res;
-    },
-    createRole: async (client: AWS, e: Role) => {
-      const res = await client.newRoleLin(
-        e.roleName,
-        e.assumeRolePolicyDocument,
-        e.attachedPoliciesArns,
-        e.description ?? ''
-      );
-      e.arn = res;
-      return res;
-    },
-    createCluster: async (client: AWS, e: Cluster) => {
-      const res = await client.createCluster({
-        clusterName: e.clusterName,
-      });
-      e.clusterArn = res?.clusterArn;
-      return res;
-    },
-    createTaskDefinition: async (client: AWS, td: TaskDefinition, cd: ContainerDefinition, repositoryUri: string, tag: string) => {
-      const container: any = { ...cd };
-      // TODO: implement this logic properly
-      container.image = `${repositoryUri}:${tag}`;
-      // let image;
-      // if (cd.image) {
-      //   image = cd.image;
-      // } else if (cd.repository) {
-      //   if (!cd.repository?.repositoryUri) {
-      //     throw new Error('Repository need to be created first');
-      //   }
-      //   image = cd.repository.repositoryUri;
-      // } else if (cd.publicRepository) {
-      //   if (!cd.publicRepository?.repositoryUri) {
-      //     throw new Error('Public repository need to be created first');
-      //   }
-      //   image = cd.publicRepository.repositoryUri;
-      // } else {
-      //   logger.error('How the DB constraint have been ignored?');
-      // }
-      // if (cd.digest) {
-      //   container.image = `${image}@${cd.digest}`;
-      // } else if (cd.tag) {
-      //   container.image = `${image}:${cd.tag}`;
-      // } else {
-      //   container.image = image;
-      // }
-      if (container.logGroup) {
-        container.logConfiguration = {
-          logDriver: 'awslogs',
-          options: {
-            "awslogs-group": container.logGroup.logGroupName,
-            "awslogs-region": client.region,
-            "awslogs-stream-prefix": `awslogs-${cd.name}`
+        role: async (client: AWS, e: Role) => {
+          const res = await client.newRoleLin(
+            e.roleName,
+            e.assumeRolePolicyDocument,
+            e.attachedPoliciesArns,
+            e.description ?? ''
+          );
+          e.arn = res;
+          return res;
+        },
+        cluster: async (client: AWS, e: Cluster) => {
+          const res = await client.createCluster({
+            clusterName: e.clusterName,
+          });
+          e.clusterArn = res?.clusterArn;
+          return res;
+        },
+        taskDefinition: async (client: AWS, td: TaskDefinition, cd: ContainerDefinition, repositoryUri: string, tag: string) => {
+          const container: any = { ...cd };
+          // TODO: implement this logic properly
+          container.image = `${repositoryUri}:${tag}`;
+          // let image;
+          // if (cd.image) {
+          //   image = cd.image;
+          // } else if (cd.repository) {
+          //   if (!cd.repository?.repositoryUri) {
+          //     throw new Error('Repository need to be created first');
+          //   }
+          //   image = cd.repository.repositoryUri;
+          // } else if (cd.publicRepository) {
+          //   if (!cd.publicRepository?.repositoryUri) {
+          //     throw new Error('Public repository need to be created first');
+          //   }
+          //   image = cd.publicRepository.repositoryUri;
+          // } else {
+          //   logger.error('How the DB constraint have been ignored?');
+          // }
+          // if (cd.digest) {
+          //   container.image = `${image}@${cd.digest}`;
+          // } else if (cd.tag) {
+          //   container.image = `${image}:${cd.tag}`;
+          // } else {
+          //   container.image = image;
+          // }
+          if (container.logGroup) {
+            container.logConfiguration = {
+              logDriver: 'awslogs',
+              options: {
+                "awslogs-group": container.logGroup.logGroupName,
+                "awslogs-region": client.region,
+                "awslogs-stream-prefix": `awslogs-${cd.name}`
+              }
+            };
           }
-        };
-      }
-      if (container.containerPort && container.hostPort && container.protocol) {
-        container.portMappings = [{
-          containerPort: container.containerPort,
-          hostPort: container.hostPort,
-          protocol: container.protocol,
-        }];
-      }
-      const input: any = {
-        family: td.family,
-        containerDefinitions: [container],
-        requiresCompatibilities: ['FARGATE',],
-        networkMode: 'awsvpc',
-        taskRoleArn: td.taskRole?.arn,
-        executionRoleArn: td.executionRole?.arn,
-      };
-      if (td.cpuMemory) {
-        const [cpuStr, memoryStr] = td.cpuMemory.split('-');
-        const cpu = cpuStr.split('vCPU')[1];
-        input.cpu = `${+cpu * 1024}`;
-        const memory = memoryStr.split('GB')[0];
-        input.memory = `${+memory * 1024}`;
-      }
-      const res = await client.createTaskDefinition(input);
-      td.taskDefinitionArn = res?.taskDefinitionArn;
-      return res;
-    },
-    createService: async (client: AWS, e: Service, cd: ContainerDefinition, defaultSubnets: Subnet[]) => {
-      const input: any = {
-        serviceName: e.name,
-        taskDefinition: e.task?.taskDefinitionArn,
-        launchType: 'FARGATE',
-        cluster: e.cluster?.clusterName,
-        schedulingStrategy: 'REPLICA',
-        desiredCount: e.desiredCount,
-        networkConfiguration: {
-          awsvpcConfiguration: {
-            subnets: defaultSubnets.map(sn => sn.SubnetId),
-            securityGroups: e.securityGroups.map(sg => sg.groupId),
-            assignPublicIp: e.assignPublicIp,
+          if (container.containerPort && container.hostPort && container.protocol) {
+            container.portMappings = [{
+              containerPort: container.containerPort,
+              hostPort: container.hostPort,
+              protocol: container.protocol,
+            }];
+          }
+          const input: any = {
+            family: td.family,
+            containerDefinitions: [container],
+            requiresCompatibilities: ['FARGATE',],
+            networkMode: 'awsvpc',
+            taskRoleArn: td.taskRole?.arn,
+            executionRoleArn: td.executionRole?.arn,
+          };
+          if (td.cpuMemory) {
+            const [cpuStr, memoryStr] = td.cpuMemory.split('-');
+            const cpu = cpuStr.split('vCPU')[1];
+            input.cpu = `${+cpu * 1024}`;
+            const memory = memoryStr.split('GB')[0];
+            input.memory = `${+memory * 1024}`;
+          }
+          const res = await client.createTaskDefinition(input);
+          td.taskDefinitionArn = res?.taskDefinitionArn;
+          return res;
+        },
+        service: async (client: AWS, e: Service, cd: ContainerDefinition, defaultSubnets: Subnet[]) => {
+          const input: any = {
+            serviceName: e.name,
+            taskDefinition: e.task?.taskDefinitionArn,
+            launchType: 'FARGATE',
+            cluster: e.cluster?.clusterName,
+            schedulingStrategy: 'REPLICA',
+            desiredCount: e.desiredCount,
+            networkConfiguration: {
+              awsvpcConfiguration: {
+                subnets: defaultSubnets.map(sn => sn.SubnetId),
+                securityGroups: e.securityGroups.map(sg => sg.groupId),
+                assignPublicIp: e.assignPublicIp,
+              }
+            },
+            loadBalancers: [{
+              targetGroupArn: e.targetGroup?.targetGroupArn,
+              containerName: cd.name,
+              containerPort: cd.containerPort,
+            }],
+          };
+          const res = await client.createService(input);
+          e.arn = res?.serviceArn;
+          return res;
+        },
+      },
+      // Cloud deletes
+      delete: {
+        securityGroup: async (client: AWS, e: SecurityGroup) => {
+          await client.deleteSecurityGroup({
+            GroupId: e.groupId,
+          });
+        },
+        securityGroupRules: async (client: AWS, es: SecurityGroupRule[]) => {
+          for (const e of es) {
+            const GroupId = e?.securityGroup?.groupId;
+            if (e.isEgress) {
+              await client.deleteSecurityGroupEgressRules([{
+                GroupId,
+                SecurityGroupRuleIds: [e?.securityGroupRuleId ?? ''],
+              }]);
+            } else {
+              await client.deleteSecurityGroupIngressRules([{
+                GroupId,
+                SecurityGroupRuleIds: [e?.securityGroupRuleId ?? ''],
+              }])
+            }
           }
         },
-        loadBalancers: [{
-          targetGroupArn: e.targetGroup?.targetGroupArn,
-          containerName: cd.name,
-          containerPort: cd.containerPort,
-        }],
-      };
-      const res = await client.createService(input);
-      e.arn = res?.serviceArn;
-      return res;
-    },
-    // Cloud deletes
-    deleteSecurityGroup: async (client: AWS, e: SecurityGroup) => {
-      await client.deleteSecurityGroup({
-        GroupId: e.groupId,
-      });
-    },
-    deleteSecurityGroupRules: async (client: AWS, es: SecurityGroupRule[]) => {
-      for (const e of es) {
-        const GroupId = e?.securityGroup?.groupId;
-        if (e.isEgress) {
-          await client.deleteSecurityGroupEgressRules([{
-            GroupId,
-            SecurityGroupRuleIds: [e?.securityGroupRuleId ?? ''],
-          }]);
-        } else {
-          await client.deleteSecurityGroupIngressRules([{
-            GroupId,
-            SecurityGroupRuleIds: [e?.securityGroupRuleId ?? ''],
-          }])
-        }
-      }
-    },
-    deleteTargetGroup: async (client: AWS, e: TargetGroup) => {
-      await client.deleteTargetGroup(e.targetGroupArn!);
-    },
-    deleteLoadBalancer: async (client: AWS, e: LoadBalancer) => {
-      await client.deleteLoadBalancer(e.loadBalancerArn!);
-    },
-    deleteListener: async (client: AWS, e: Listener) => {
-      await client.deleteListener(e.listenerArn!);
-    },
-    deleteLogGroup: async (client: AWS, e: LogGroup) => {
-      return await client.deleteLogGroup(e.logGroupName);
-    },
-    deleteEcr: async (client: AWS, e: Repository) => {
-      return await client.deleteECRRepository(e.repositoryName);
-    },
-    deleteRole: async (client: AWS, e: Role) => {
-      return await client.deleteRoleLin(e.roleName, e.attachedPoliciesArns);
-    },
-    deleteCluster: async (client: AWS, e: Cluster) => {
-      return await client.deleteCluster(e.clusterName);
-    },
-    deleteTaskDefinition: async (client: AWS, e: TaskDefinition) => {
-      await client.deleteTaskDefinition(e.taskDefinitionArn!);
-    },
-    deleteService: async (client: AWS, e: Service) => {
-      const tasksArns = await client.getTasksArns(e.cluster?.clusterName!, e.name);
-      await client.updateService({
-        service: e.name,
-        cluster: e.cluster?.clusterName,
-        desiredCount: 0,
-      });
-      await client.deleteService(e.name, e.cluster?.clusterName!, tasksArns);
+        targetGroup: async (client: AWS, e: TargetGroup) => {
+          await client.deleteTargetGroup(e.targetGroupArn!);
+        },
+        loadBalancer: async (client: AWS, e: LoadBalancer) => {
+          await client.deleteLoadBalancer(e.loadBalancerArn!);
+        },
+        listener: async (client: AWS, e: Listener) => {
+          await client.deleteListener(e.listenerArn!);
+        },
+        logGroup: async (client: AWS, e: LogGroup) => {
+          await client.deleteLogGroup(e.logGroupName);
+        },
+        ecr: async (client: AWS, e: Repository) => {
+          await client.deleteECRRepository(e.repositoryName);
+        },
+        role: async (client: AWS, e: Role) => {
+          await client.deleteRoleLin(e.roleName, e.attachedPoliciesArns);
+        },
+        cluster: async (client: AWS, e: Cluster) => {
+          await client.deleteCluster(e.clusterName);
+        },
+        taskDefinition: async (client: AWS, e: TaskDefinition) => {
+          await client.deleteTaskDefinition(e.taskDefinitionArn!);
+        },
+        service: async (client: AWS, e: Service) => {
+          const tasksArns = await client.getTasksArns(e.cluster?.clusterName!, e.name);
+          await client.updateService({
+            service: e.name,
+            cluster: e.cluster?.clusterName,
+            desiredCount: 0,
+          });
+          await client.deleteService(e.name, e.cluster?.clusterName!, tasksArns);
+        },
+      },
     },
   },
   mappers: {
@@ -505,59 +515,59 @@ export const AwsEcsQuickstartModule: Module = new Module({
         create: async (es: EcsQuickstart[], ctx: Context) => {
           // todo: create all pieces with defualt values if necessary
           const client = await ctx.getAwsClient() as AWS;
-          const defaultVpc = await AwsEcsQuickstartModule.utils.getDefaultVpc(client);
-          const defaultSubnets = await AwsEcsQuickstartModule.utils.getDefaultSubnets(client, defaultVpc.VpcId);
+          const defaultVpc = await AwsEcsQuickstartModule.utils.cloud.get.defaultVpc(client);
+          const defaultSubnets = await AwsEcsQuickstartModule.utils.cloud.get.defaultSubnets(client, defaultVpc.VpcId);
           const out: any[] = [];
           for (const e of es) {
             let step;
             const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
             try {
               // security groups and security group rules
-              const newSg = await AwsEcsQuickstartModule.utils.createSecurityGroup(client, completeEcsQuickstartObject.securityGroup, defaultVpc);
+              const newSg = await AwsEcsQuickstartModule.utils.cloud.create.securityGroup(client, completeEcsQuickstartObject.securityGroup, defaultVpc);
               step = 'createSecurityGroup';
               // completeEcsQuickstartObject.securityGroupRules = completeEcsQuickstartObject.securityGroupRules.map(r => {
               //   r.securityGroup.groupId = newSg.GroupId;
               //   return r;
               // })
-              await AwsEcsQuickstartModule.utils.createSecurityGroupRules(client, completeEcsQuickstartObject.securityGroupRules);
+              await AwsEcsQuickstartModule.utils.cloud.create.securityGroupRules(client, completeEcsQuickstartObject.securityGroupRules);
               step = 'createSecurityGroupRules';
               // target group
-              const newTg = await AwsEcsQuickstartModule.utils.createTargetGroup(client, completeEcsQuickstartObject.targetGroup, defaultVpc);
+              const newTg = await AwsEcsQuickstartModule.utils.cloud.create.targetGroup(client, completeEcsQuickstartObject.targetGroup, defaultVpc);
               step = 'createTargetGroup';
               // load balancer y lb security group
               // completeEcsQuickstartObject.loadBalancer.securityGroups = completeEcsQuickstartObject.loadBalancer.securityGroups?.map(sg => {
               //   sg.groupId = newSg.GroupId;
               //   return sg;
               // });
-              const newLb = await AwsEcsQuickstartModule.utils.createLoadBalancer(client, completeEcsQuickstartObject.loadBalancer, defaultSubnets);
+              const newLb = await AwsEcsQuickstartModule.utils.cloud.create.loadBalancer(client, completeEcsQuickstartObject.loadBalancer, defaultSubnets);
               // TODO: should we update the value of the `e` in databse here?
               step = 'createLoadBalancer';
               // listener
               // completeEcsQuickstartObject.listener.loadBalancer.loadBalancerArn = newLb.LoadBalancerArn;
               // completeEcsQuickstartObject.listener.targetGroup.targetGroupArn = newTg.TargetGroupArn;
-              await AwsEcsQuickstartModule.utils.createListener(client, completeEcsQuickstartObject.listener);
+              await AwsEcsQuickstartModule.utils.cloud.create.listener(client, completeEcsQuickstartObject.listener);
               step = 'createListener';
               // cw log group
-              await AwsEcsQuickstartModule.utils.createLogGroup(client, completeEcsQuickstartObject.logGroup);
+              await AwsEcsQuickstartModule.utils.cloud.create.logGroup(client, completeEcsQuickstartObject.logGroup);
               step = 'createLogGroup';
               // TODO: add check later if it really need to be created
               // ecr
               if (completeEcsQuickstartObject.repository) {
-                await AwsEcsQuickstartModule.utils.createEcr(client, completeEcsQuickstartObject.repository);
+                await AwsEcsQuickstartModule.utils.cloud.create.ecr(client, completeEcsQuickstartObject.repository);
                 // TODO: should we update the value of the `e` in databse here?
                 // TODO: this probably should be the first to be deleted?
                 step = 'createEcr';
               }
               // role
-              const newRl = await AwsEcsQuickstartModule.utils.createRole(client, completeEcsQuickstartObject.role);
+              const newRl = await AwsEcsQuickstartModule.utils.cloud.create.role(client, completeEcsQuickstartObject.role);
               step = 'createRole';
               // cluster
-              await AwsEcsQuickstartModule.utils.createCluster(client, completeEcsQuickstartObject.cluster);
+              await AwsEcsQuickstartModule.utils.cloud.create.cluster(client, completeEcsQuickstartObject.cluster);
               step = 'createCluster';
               // task with container
               // completeEcsQuickstartObject.taskDefinition.executionRole!.arn = newRl;
               // completeEcsQuickstartObject.taskDefinition.taskRole!.arn = newRl;
-              const newTd = await AwsEcsQuickstartModule.utils.createTaskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, e.repositoryUri, e.imageTag);
+              const newTd = await AwsEcsQuickstartModule.utils.cloud.create.taskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, e.repositoryUri, e.imageTag);
               step = 'createTaskDefinition';
               // service and serv sg
               // completeEcsQuickstartObject.service.task!.taskDefinitionArn = newTd.taskDefinitionArn;
@@ -566,7 +576,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
               //   sg.groupId = newSg.GroupId;
               //   return sg;
               // });
-              await AwsEcsQuickstartModule.utils.createService(client, completeEcsQuickstartObject.service, completeEcsQuickstartObject.containerDefinition, defaultSubnets);
+              await AwsEcsQuickstartModule.utils.cloud.create.service(client, completeEcsQuickstartObject.service, completeEcsQuickstartObject.containerDefinition, defaultSubnets);
               step = 'createService';
               out.push(e); // TODO: is this ok? return valid property
             } catch (e: any) {
@@ -575,27 +585,27 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 switch (step) {
                   case 'createService':
                     logger.info('ACTUALLY TRYING TO DELETE THE SERVICE?')
-                    await AwsEcsQuickstartModule.utils.deleteService(client, completeEcsQuickstartObject.service);
+                    await AwsEcsQuickstartModule.utils.cloud.delete.service(client, completeEcsQuickstartObject.service);
                   case 'createTaskDefinition':
-                    await AwsEcsQuickstartModule.utils.deleteTaskDefinition(client, completeEcsQuickstartObject.taskDefinition);
+                    await AwsEcsQuickstartModule.utils.cloud.delete.taskDefinition(client, completeEcsQuickstartObject.taskDefinition);
                   case 'createCluster':
-                    await AwsEcsQuickstartModule.utils.deleteCluster(client, completeEcsQuickstartObject.cluster);
+                    await AwsEcsQuickstartModule.utils.cloud.delete.cluster(client, completeEcsQuickstartObject.cluster);
                   case 'createRole':
-                    await AwsEcsQuickstartModule.utils.deleteRole(client, completeEcsQuickstartObject.role);
+                    await AwsEcsQuickstartModule.utils.cloud.delete.role(client, completeEcsQuickstartObject.role);
                   case 'createEcr':
-                    await AwsEcsQuickstartModule.utils.deleteEcr(client, completeEcsQuickstartObject.repository);
+                    await AwsEcsQuickstartModule.utils.cloud.delete.ecr(client, completeEcsQuickstartObject.repository);
                   case 'createLogGroup':
-                    await AwsEcsQuickstartModule.utils.deleteLogGroup(client, completeEcsQuickstartObject.logGroup);
+                    await AwsEcsQuickstartModule.utils.cloud.delete.logGroup(client, completeEcsQuickstartObject.logGroup);
                   case 'createListener':
-                    await AwsEcsQuickstartModule.utils.deleteListener(client, completeEcsQuickstartObject.listener);
+                    await AwsEcsQuickstartModule.utils.cloud.delete.listener(client, completeEcsQuickstartObject.listener);
                   case 'createLoadBalancer':
-                    await AwsEcsQuickstartModule.utils.deleteLoadBalancer(client, completeEcsQuickstartObject.loadBalancer);
+                    await AwsEcsQuickstartModule.utils.cloud.delete.loadBalancer(client, completeEcsQuickstartObject.loadBalancer);
                   case 'createTargetGroup':
-                    await AwsEcsQuickstartModule.utils.deleteTargetGroup(client, completeEcsQuickstartObject.targetGroup);
+                    await AwsEcsQuickstartModule.utils.cloud.delete.targetGroup(client, completeEcsQuickstartObject.targetGroup);
                   case 'createSecurityGroupRules':
-                    await AwsEcsQuickstartModule.utils.deleteSecurityGroupRules(client, completeEcsQuickstartObject.securityGroupRules);
+                    await AwsEcsQuickstartModule.utils.cloud.delete.securityGroupRules(client, completeEcsQuickstartObject.securityGroupRules);
                   case 'createSecurityGroup':
-                    await AwsEcsQuickstartModule.utils.deleteSecurityGroup(client, completeEcsQuickstartObject.securityGroup);
+                    await AwsEcsQuickstartModule.utils.cloud.delete.securityGroup(client, completeEcsQuickstartObject.securityGroup);
                   default:
                     break;
                 }
@@ -667,15 +677,15 @@ export const AwsEcsQuickstartModule: Module = new Module({
             completeEcsQuickstartObject.targetGroup.targetGroupArn = serviceLoadBalancer?.targetGroupArn;
             const targetGroup = await client.getTargetGroup(completeEcsQuickstartObject.targetGroup.targetGroupArn ?? '');
             completeEcsQuickstartObject.loadBalancer.loadBalancerArn = targetGroup?.LoadBalancerArns?.pop();
-            await AwsEcsQuickstartModule.utils.deleteService(client, completeEcsQuickstartObject.service);
-            await AwsEcsQuickstartModule.utils.deleteTaskDefinition(client, completeEcsQuickstartObject.taskDefinition);
-            await AwsEcsQuickstartModule.utils.deleteCluster(client, completeEcsQuickstartObject.cluster);
-            await AwsEcsQuickstartModule.utils.deleteRole(client, completeEcsQuickstartObject.role);
-            await AwsEcsQuickstartModule.utils.deleteEcr(client, completeEcsQuickstartObject.repository);
-            await AwsEcsQuickstartModule.utils.deleteLogGroup(client, completeEcsQuickstartObject.logGroup);
-            await AwsEcsQuickstartModule.utils.deleteLoadBalancer(client, completeEcsQuickstartObject.loadBalancer);
-            await AwsEcsQuickstartModule.utils.deleteTargetGroup(client, completeEcsQuickstartObject.targetGroup);
-            await AwsEcsQuickstartModule.utils.deleteSecurityGroup(client, completeEcsQuickstartObject.securityGroup);
+            await AwsEcsQuickstartModule.utils.cloud.delete.service(client, completeEcsQuickstartObject.service);
+            await AwsEcsQuickstartModule.utils.cloud.delete.taskDefinition(client, completeEcsQuickstartObject.taskDefinition);
+            await AwsEcsQuickstartModule.utils.cloud.delete.cluster(client, completeEcsQuickstartObject.cluster);
+            await AwsEcsQuickstartModule.utils.cloud.delete.role(client, completeEcsQuickstartObject.role);
+            await AwsEcsQuickstartModule.utils.cloud.delete.ecr(client, completeEcsQuickstartObject.repository);
+            await AwsEcsQuickstartModule.utils.cloud.delete.logGroup(client, completeEcsQuickstartObject.logGroup);
+            await AwsEcsQuickstartModule.utils.cloud.delete.loadBalancer(client, completeEcsQuickstartObject.loadBalancer);
+            await AwsEcsQuickstartModule.utils.cloud.delete.targetGroup(client, completeEcsQuickstartObject.targetGroup);
+            await AwsEcsQuickstartModule.utils.cloud.delete.securityGroup(client, completeEcsQuickstartObject.securityGroup);
           }
         },
       }),
