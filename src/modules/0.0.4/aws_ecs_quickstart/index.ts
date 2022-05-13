@@ -571,7 +571,6 @@ export const AwsEcsQuickstartModule: Module = new Module({
               try {
                 switch (step) {
                   case 'createService':
-                    logger.info('ACTUALLY TRYING TO DELETE THE SERVICE?')
                     await AwsEcsQuickstartModule.utils.cloud.delete.service(client, completeEcsQuickstartObject.service);
                   case 'createTaskDefinition':
                     await AwsEcsQuickstartModule.utils.cloud.delete.taskDefinition(client, completeEcsQuickstartObject.taskDefinition);
@@ -620,6 +619,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
           if (ids) {
             relevantServices = relevantServices.filter(s => ids.includes(s.serviceArn!));
           }
+          // TODO: add extra filter checking validation
           const out = [];
           for (const s of relevantServices) {
             out.push(await AwsEcsQuickstartModule.utils.ecsQuickstartMapper(s, ctx));
