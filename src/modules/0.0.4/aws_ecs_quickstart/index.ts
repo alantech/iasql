@@ -314,6 +314,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
           };
           const res = await client.createLoadBalancer(input);
           e.loadBalancerArn = res?.LoadBalancerArn;
+          e.dnsName = res?.DNSName;
           return res;
         },
         listener: async (client: AWS, e: Listener) => {
@@ -523,28 +524,18 @@ export const AwsEcsQuickstartModule: Module = new Module({
             const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
             try {
               // security groups and security group rules
-              const newSg = await AwsEcsQuickstartModule.utils.cloud.create.securityGroup(client, completeEcsQuickstartObject.securityGroup, defaultVpc);
+              await AwsEcsQuickstartModule.utils.cloud.create.securityGroup(client, completeEcsQuickstartObject.securityGroup, defaultVpc);
               step = 'createSecurityGroup';
-              // completeEcsQuickstartObject.securityGroupRules = completeEcsQuickstartObject.securityGroupRules.map(r => {
-              //   r.securityGroup.groupId = newSg.GroupId;
-              //   return r;
-              // })
               await AwsEcsQuickstartModule.utils.cloud.create.securityGroupRules(client, completeEcsQuickstartObject.securityGroupRules);
               step = 'createSecurityGroupRules';
               // target group
-              const newTg = await AwsEcsQuickstartModule.utils.cloud.create.targetGroup(client, completeEcsQuickstartObject.targetGroup, defaultVpc);
+              await AwsEcsQuickstartModule.utils.cloud.create.targetGroup(client, completeEcsQuickstartObject.targetGroup, defaultVpc);
               step = 'createTargetGroup';
               // load balancer y lb security group
-              // completeEcsQuickstartObject.loadBalancer.securityGroups = completeEcsQuickstartObject.loadBalancer.securityGroups?.map(sg => {
-              //   sg.groupId = newSg.GroupId;
-              //   return sg;
-              // });
-              const newLb = await AwsEcsQuickstartModule.utils.cloud.create.loadBalancer(client, completeEcsQuickstartObject.loadBalancer, defaultSubnets);
+              await AwsEcsQuickstartModule.utils.cloud.create.loadBalancer(client, completeEcsQuickstartObject.loadBalancer, defaultSubnets);
               // TODO: should we update the value of the `e` in databse here?
               step = 'createLoadBalancer';
               // listener
-              // completeEcsQuickstartObject.listener.loadBalancer.loadBalancerArn = newLb.LoadBalancerArn;
-              // completeEcsQuickstartObject.listener.targetGroup.targetGroupArn = newTg.TargetGroupArn;
               await AwsEcsQuickstartModule.utils.cloud.create.listener(client, completeEcsQuickstartObject.listener);
               step = 'createListener';
               // cw log group
@@ -559,26 +550,22 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 step = 'createEcr';
               }
               // role
-              const newRl = await AwsEcsQuickstartModule.utils.cloud.create.role(client, completeEcsQuickstartObject.role);
+              await AwsEcsQuickstartModule.utils.cloud.create.role(client, completeEcsQuickstartObject.role);
               step = 'createRole';
               // cluster
               await AwsEcsQuickstartModule.utils.cloud.create.cluster(client, completeEcsQuickstartObject.cluster);
               step = 'createCluster';
               // task with container
-              // completeEcsQuickstartObject.taskDefinition.executionRole!.arn = newRl;
-              // completeEcsQuickstartObject.taskDefinition.taskRole!.arn = newRl;
-              const newTd = await AwsEcsQuickstartModule.utils.cloud.create.taskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, e.repositoryUri, e.imageTag);
+              await AwsEcsQuickstartModule.utils.cloud.create.taskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, e.repositoryUri, e.imageTag);
               step = 'createTaskDefinition';
               // service and serv sg
-              // completeEcsQuickstartObject.service.task!.taskDefinitionArn = newTd.taskDefinitionArn;
-              // completeEcsQuickstartObject.service.targetGroup!.targetGroupArn = newTg.TargetGroupArn;
-              // completeEcsQuickstartObject.service.securityGroups = completeEcsQuickstartObject.service.securityGroups.map(sg => {
-              //   sg.groupId = newSg.GroupId;
-              //   return sg;
-              // });
               await AwsEcsQuickstartModule.utils.cloud.create.service(client, completeEcsQuickstartObject.service, completeEcsQuickstartObject.containerDefinition, defaultSubnets);
               step = 'createService';
-              out.push(e); // TODO: is this ok? return valid property
+              // Update ecs quickstart record in database with the new load balancer dns
+              e.loadBalancerDns = completeEcsQuickstartObject.loadBalancer.dnsName;
+              // TODO: Update ecs quickstart record in database with the new ecr repository uri if needed
+              await AwsEcsQuickstartModule.mappers.ecsQuickstart.db.update(e, ctx);
+              out.push(e);
             } catch (e: any) {
               // Rollback
               try {
@@ -616,16 +603,6 @@ export const AwsEcsQuickstartModule: Module = new Module({
               // Throw error
               throw e;
             }
-            // const result = await client.createECRPubRepository({
-            //   repositoryName: e.repositoryName,
-            // });
-            // // Re-get the inserted record to get all of the relevant records we care about
-            // const newObject = await client.getECRPubRepository(result.repositoryName ?? '');
-            // // We map this into the same kind of entity as `obj`
-            // const newEntity = await AwsEcrModule.utils.publicRepositoryMapper(newObject, ctx);
-            // // Save the record back into the database to get the new fields updated
-            // await AwsEcrModule.mappers.publicRepository.db.update(newEntity, ctx);
-            // out.push(newEntity);
           }
           return out;
         },
