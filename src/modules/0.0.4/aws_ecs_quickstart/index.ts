@@ -105,18 +105,26 @@ export const AwsEcsQuickstartModule: Module = new Module({
       const securityGroupRuleIngress = securityGroupRules.SecurityGroupRules.find(sgr => !sgr.IsEgress);
       // Grab container port as appPort
       const appPort = containerDefinition?.portMappings?.[0].containerPort;
-      // Compare ports
+      // Check port configuration
       if (![targetGroup?.Port, containerDefinition?.portMappings?.[0].hostPort, serviceLoadBalancerInfo?.containerPort, securityGroupRuleIngress?.ToPort, securityGroupRuleIngress?.FromPort]
           .every(p => Object.is(p, appPort))) return false;
-      // check task definition is valid
-      // check role is valid
-      // check ports configuration is valid
- 
-      // Get all resources
-      // Get all services in the cluster
-      // Check resource existance
-      // Check all names follow the pattern
-      // Check reosurce count (load balancer, security groups, listeners, rules, containers)
+      // Check role is valid
+      if (!Object.is(taskDefinition.executionRoleArn, taskDefinition.taskRoleArn)) return false;
+      const role = await client.getRole(`${prefix}${appName}-rl`);
+      const roleAttachedPoliciesArns = await client.getRoleAttachedPoliciesArns(role?.RoleName ?? '');
+      if (roleAttachedPoliciesArns.length !== 1) return false;
+      // Get cloudwatch log group
+      const logGroups = await client.getLogGroups(containerDefinition?.logConfiguration?.options?.["awslogs-group"] ?? '');
+      if (logGroups.length !== 1) return false;
+      // Check log group name pattern
+      if (!Object.is(logGroups[0].logGroupName, `${prefix}${appName}-lg`)) return false;
+      // TODO: improve ecr validation
+      // Get ECR
+      const parts = containerDefinition?.image?.split('/') ?? [];
+      const repositoryName = parts[parts.length - 1] ?? null;
+      if (!Object.is(repositoryName, `${prefix}${appName}-ecr`)) return false;
+      const repository = await client.getECRRepository(repositoryName);
+      // TODO: A comparison with default objects is needed?
       return true;
     },
     getEcsQuickstartObject: (e: EcsQuickstart) => {
