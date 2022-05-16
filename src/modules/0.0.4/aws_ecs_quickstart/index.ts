@@ -38,9 +38,9 @@ export const AwsEcsQuickstartModule: Module = new Module({
       out.appName = e.serviceName?.substring(e.serviceName.indexOf(prefix) + prefix.length, e.serviceName.indexOf('-svc')) ?? '';
       out.desiredCount = e.desiredCount;
       const serviceLoadBalancer = e.loadBalancers?.pop() ?? {};
-      const loadBalancers = (await client.getLoadBalancers()).LoadBalancers ?? [];
-      const relevantLoadBalancer = loadBalancers.find(lb => Object.is(lb.LoadBalancerName, serviceLoadBalancer.loadBalancerName));
-      out.loadBalancerDns = relevantLoadBalancer?.DNSName;
+      const targetGroup = await client.getTargetGroup(serviceLoadBalancer.targetGroupArn ?? '');
+      const loadBalancer = await client.getLoadBalancer(targetGroup?.LoadBalancerArns?.[0] ?? '') ?? null;
+      out.loadBalancerDns = loadBalancer?.DNSName;
       out.appPort = serviceLoadBalancer.containerPort ?? -1;
       out.publicIp = e.networkConfiguration?.awsvpcConfiguration?.assignPublicIp === AssignPublicIp.ENABLED;
       const taskDefinitionArn = e.taskDefinition ?? '';
@@ -70,7 +70,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
       // Check security groups count to be 1
       if (service.networkConfiguration?.awsvpcConfiguration?.securityGroups?.length !== 1) return false;
       // Check load balancer is valid
-      const serviceLoadBalancerInfo = service.loadBalancers.pop();
+      const serviceLoadBalancerInfo = service.loadBalancers[0];
       const targetGroup = await client.getTargetGroup(serviceLoadBalancerInfo?.targetGroupArn ?? '');
       // Check target group name pattern
       if (!Object.is(targetGroup?.TargetGroupName, `${prefix}${appName}-tg`)) return false;
@@ -90,11 +90,11 @@ export const AwsEcsQuickstartModule: Module = new Module({
       if (!Object.is(taskDefinition?.family, `${prefix}${appName}-td`)) return false;
       // Check container count
       if (taskDefinition?.containerDefinitions?.length !== 1) return false;
-      const containerDefinition = taskDefinition.containerDefinitions.pop();
+      const containerDefinition = taskDefinition.containerDefinitions[0];
       // Check container definition pattern name
       if (!Object.is(containerDefinition?.name, `${prefix}${appName}-cd`)) return false;
       // Get Security group
-      const securityGroup = await client.getSecurityGroup(service.networkConfiguration?.awsvpcConfiguration?.securityGroups?.pop() ?? '');
+      const securityGroup = await client.getSecurityGroup(service.networkConfiguration?.awsvpcConfiguration?.securityGroups?.[0] ?? '');
       // Check security group name pattern
       if (!Object.is(securityGroup.GroupName, `${prefix}${appName}-sg`)) return false;
       // Get security group rules
