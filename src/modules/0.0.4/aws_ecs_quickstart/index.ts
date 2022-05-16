@@ -130,28 +130,28 @@ export const AwsEcsQuickstartModule: Module = new Module({
     getEcsQuickstartObject: (e: EcsQuickstart) => {
       // TODO: improve variable naming
       // security groups and security group rules
-      const sg = AwsEcsQuickstartModule.utils.entityMappers.securityGroup(e.appName);
-      const sgrIngress = AwsEcsQuickstartModule.utils.entityMappers.securityGroupRule(sg, e.appPort, false);
-      const sgrEgress = AwsEcsQuickstartModule.utils.entityMappers.securityGroupRule(sg, e.appPort, true);
+      const sg = AwsEcsQuickstartModule.utils.defaultEntityMapper.securityGroup(e.appName);
+      const sgrIngress = AwsEcsQuickstartModule.utils.defaultEntityMapper.securityGroupRule(sg, e.appPort, false);
+      const sgrEgress = AwsEcsQuickstartModule.utils.defaultEntityMapper.securityGroupRule(sg, e.appPort, true);
       // target group
-      const tg = AwsEcsQuickstartModule.utils.entityMappers.targetGroup(e.appName, e.appPort);
+      const tg = AwsEcsQuickstartModule.utils.defaultEntityMapper.targetGroup(e.appName, e.appPort);
       // load balancer y lb security group
-      const lb = AwsEcsQuickstartModule.utils.entityMappers.loadBalancer(e.appName, sg);
+      const lb = AwsEcsQuickstartModule.utils.defaultEntityMapper.loadBalancer(e.appName, sg);
       // listener
-      const lsn = AwsEcsQuickstartModule.utils.entityMappers.listener(e.appPort, lb, tg);
+      const lsn = AwsEcsQuickstartModule.utils.defaultEntityMapper.listener(e.appPort, lb, tg);
       // cw log group
-      const lg = AwsEcsQuickstartModule.utils.entityMappers.logGroup(e.appName);
+      const lg = AwsEcsQuickstartModule.utils.defaultEntityMapper.logGroup(e.appName);
       // ecr
-      const ecr = AwsEcsQuickstartModule.utils.entityMappers.privateEcr(e.appName);
+      const ecr = AwsEcsQuickstartModule.utils.defaultEntityMapper.privateEcr(e.appName);
       // role
-      const rl = AwsEcsQuickstartModule.utils.entityMappers.role(e.appName);
+      const rl = AwsEcsQuickstartModule.utils.defaultEntityMapper.role(e.appName);
       // cluster
-      const cl = AwsEcsQuickstartModule.utils.entityMappers.cluster(e.appName);
+      const cl = AwsEcsQuickstartModule.utils.defaultEntityMapper.cluster(e.appName);
       // task and container
-      const td = AwsEcsQuickstartModule.utils.entityMappers.taskDefinition(e.appName, rl, e.cpuMem);
-      const cd = AwsEcsQuickstartModule.utils.entityMappers.containerDefinition(e.appName, e.appPort, e.cpuMem, td, lg);
+      const td = AwsEcsQuickstartModule.utils.defaultEntityMapper.taskDefinition(e.appName, rl, e.cpuMem);
+      const cd = AwsEcsQuickstartModule.utils.defaultEntityMapper.containerDefinition(e.appName, e.appPort, e.cpuMem, td, lg);
       // service
-      const svc = AwsEcsQuickstartModule.utils.entityMappers.service(e.appName, e.desiredCount, e.publicIp, cl, td, tg, sg)
+      const svc = AwsEcsQuickstartModule.utils.defaultEntityMapper.service(e.appName, e.desiredCount, e.publicIp, cl, td, tg, sg)
       const ecsQuickstart: EcsQuickstartObject = {
         securityGroup: sg,
         securityGroupRules: [sgrIngress, sgrEgress],
@@ -169,7 +169,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
       return ecsQuickstart
     },
     // Entity getters
-    entityMappers: {
+    defaultEntityMapper: {
       securityGroup: (appName: string) => {
         const out = new SecurityGroup();
         out.groupName = `${prefix}${appName}-sg`;
