@@ -508,7 +508,7 @@ export class AWS {
       pageSize: 25,
     }, {
       Filters: [
-        { 
+        {
           Name: 'group-id',
           Values: [groupId],
         }
@@ -1220,7 +1220,7 @@ export class AWS {
     const paginator = paginateListServices({
       client: this.ecsClient,
     }, {
-      cluster: cluster,
+      cluster,
       maxResults: 100,
     });
     for await (const page of paginator) {
@@ -1233,7 +1233,7 @@ export class AWS {
           const batch = serviceArns.slice(i, i + batchSize);
           const result = await this.ecsClient.send(
             new DescribeServicesCommand({
-              cluster: cluster,
+              cluster,
               services: batch
             })
           );
@@ -1242,7 +1242,7 @@ export class AWS {
       } else {
         const result = await this.ecsClient.send(
           new DescribeServicesCommand({
-            cluster: cluster,
+            cluster,
             services: serviceArns
           })
         );

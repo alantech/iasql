@@ -107,7 +107,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
       const appPort = containerDefinition?.portMappings?.[0].containerPort;
       // Check port configuration
       if (![targetGroup?.Port, containerDefinition?.portMappings?.[0].hostPort, serviceLoadBalancerInfo?.containerPort, securityGroupRuleIngress?.ToPort, securityGroupRuleIngress?.FromPort]
-          .every(p => Object.is(p, appPort))) return false;
+        .every(p => Object.is(p, appPort))) return false;
       // Check if role is valid
       if (!Object.is(taskDefinition.executionRoleArn, taskDefinition.taskRoleArn)) return false;
       const role = await client.getRole(`${prefix}${appName}-rl`);
