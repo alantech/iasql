@@ -1,26 +1,27 @@
 // TODO: It seems like a lot of this logic could be migrated into the iasql_platform module and make
 // sense there. Need to think a bit more on that, but module manipulation that way could allow for
 // meta operations within the module code itself, if desirable.
-import { promisify, } from 'util'
 import { exec as execNode, } from 'child_process'
+import { promisify, } from 'util'
 const exec = promisify(execNode);
 
-import { createConnection, } from 'typeorm'
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
-import { snakeCase, } from 'typeorm/util/StringUtils'
 import * as levenshtein from 'fastest-levenshtein'
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
+import { createConnection, } from 'typeorm'
+import { snakeCase, } from 'typeorm/util/StringUtils'
 
-import { DepError, lazyLoader, } from './lazy-dep'
-import { findDiff, } from './diff'
-import MetadataRepo from './repositories/metadata'
-import { TypeormWrapper, } from './typeorm'
 import * as AllModules from '../modules'
-import { sortModules, } from './mod-sort'
 import * as dbMan from './db-manager'
-import { Context, MapperInterface, Module, ModuleInterface, } from '../modules'
 import * as scheduler from './scheduler'
-import { IasqlDatabase } from '../entity';
-import logger, { debugObj } from './logger';
+import MetadataRepo from './repositories/metadata'
+import config from '../config'
+import logger, { debugObj } from './logger'
+import { Context, MapperInterface, Module, ModuleInterface, } from '../modules'
+import { DepError, lazyLoader, } from './lazy-dep'
+import { IasqlDatabase } from '../entity'
+import { TypeormWrapper, } from './typeorm'
+import { findDiff, } from './diff'
+import { sortModules, } from './mod-sort'
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string, description: string, }[], };
@@ -1084,6 +1085,7 @@ export async function upgrade(dbId: string, dbUser: string) {
       })();
       throw new Error('Upgrading. Please disconnect and reconnect to the database');
     case 'v0_0_2':
+    case 'v0_0_3':
       // The upgrade path here *should* work for all versions going forward. 0.0.1 was the exception
       // since we broke the migration contract with it. If/when there's a change to this statement
       // this code will need to be updated with another branch
@@ -1117,17 +1119,17 @@ export async function upgrade(dbId: string, dbUser: string) {
           const nonIasqlMods = mods.filter(m => !/^iasql/.test(m));
           await uninstall(nonIasqlMods, dbId);
           // 4. Uninstall the `iasql_*` modules manually
-          const OldModules = AllModules.v0_0_2;
+          const OldModules = AllModules[versionString];
           const qr = conn.createQueryRunner();
           await OldModules.IasqlFunctions.migrations.remove(qr);
           await OldModules.IasqlPlatform.migrations.remove(qr);
           // 5. Install the new `iasql_*` modules manually
-          const NewModules = AllModules.v0_0_3;
+          const NewModules = AllModules.latest;
           await NewModules.IasqlPlatform.migrations.install(qr);
           await NewModules.IasqlFunctions.migrations.install(qr);
           await conn.query(`
-            INSERT INTO iasql_module (name) VALUES ('iasql_platform@0.0.3'), ('iasql_functions@0.0.3');
-            INSERT INTO iasql_dependencies (module, dependency) VALUES ('iasql_functions@0.0.3', 'iasql_platform@0.0.3');
+            INSERT INTO iasql_module (name) VALUES ('iasql_platform@${config.modules.latestVersion}'), ('iasql_functions@${config.modules.latestVersion}');
+            INSERT INTO iasql_dependencies (module, dependency) VALUES ('iasql_functions@${config.modules.latestVersion}', 'iasql_platform@${config.modules.latestVersion}');
           `);
           // 6. Install the `aws_account` module and then re-insert the creds if present, then add
           //    the rest of the modules back.
@@ -1148,7 +1150,7 @@ export async function upgrade(dbId: string, dbUser: string) {
         }
       })();
       throw new Error('Upgrading. Please disconnect and reconnect to the database');
-    case 'v0_0_3':
+    case 'v0_0_4':
     case 'latest':
       throw new Error('Up to date');
     default:
