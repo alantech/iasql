@@ -1,3 +1,4 @@
+/* tslint:disable no-console */
 import * as util from 'util'
 
 import * as sentry from '@sentry/node'

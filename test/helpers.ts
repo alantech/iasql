@@ -18,8 +18,7 @@ export async function execComposeDown(modules?: string[], region?: string) {
     try {
       await cleanDB(modules, region);
     } catch (e: any) {
-      console.log(`Error cleaning db with error: ${e.message}`);
-      console.dir(e, {depth: 6});
+      logger.error(`Error cleaning db with error: ${e.message}`, e);
     }
   }
   execSync('cd test && docker-compose down');

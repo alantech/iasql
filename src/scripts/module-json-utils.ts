@@ -1,3 +1,4 @@
+/* tslint:disable no-console */
 import fs from 'fs'
 
 export type ModJson = {

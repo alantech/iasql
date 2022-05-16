@@ -29,6 +29,8 @@ const config: ConfigInterface = {
   },
   sentry: {
     dsn: 'https://e257e8d6646e4657b4f556efc1de31e8@o1090662.ingest.sentry.io/6106929',
+    environment: 'production',
+    release: process.env.SENTRY_RELEASE ?? throwError('No Sentry Release defined'),
   },
   telemetry: {
     amplitudeKey: '968524573d0f8bd2e84460099bca9353'

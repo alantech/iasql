@@ -19,9 +19,7 @@ if (config.cors) {
   }));
 }
 if (config.sentry) {
-  sentry.init({
-    dsn: config.sentry.dsn,
-  });
+  sentry.init(config.sentry);
   // RequestHandler creates a separate execution context using domains, so that every
   // transaction/span/breadcrumb is attached to its own Hub instance
   app.use(sentry.Handlers.requestHandler());

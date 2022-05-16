@@ -1,5 +1,8 @@
+/* tslint:disable no-console */
+import { createConnection, } from 'typeorm'
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
+
 import { sortMods, getModMigration, } from './module-json-utils'
-import { TypeormWrapper, } from '../services/typeorm'
 
 const moduleName = process.argv[process.argv.length - 2];
 const moduleVersion = process.argv[process.argv.length - 1];
@@ -14,11 +17,15 @@ if (moduleName !== 'iasql_platform') {
 const entities = sortedDeps.map(d => `${__dirname}/../modules/${moduleVersion}/${d.name}/entity/*.ts`) as any[]
 
 (async () => {
-  const conn = await TypeormWrapper.createConn('__example__', {
-    entities,
+  const conn = await createConnection({
+    type: 'postgres',
+    name: '__example__',
+    database: '__example__',
     host: 'localhost',
     username: 'postgres',
     password: 'test',
+    namingStrategy: new SnakeNamingStrategy(),
+    entities,
   });
 
   const qr = conn.createQueryRunner();
