@@ -501,6 +501,27 @@ export class AWS {
     };
   }
 
+  async getSecurityGroupRulesByGroupId(groupId: string) {
+    const securityGroupRules = [];
+    const paginator = paginateDescribeSecurityGroupRules({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {
+      Filters: [
+        { 
+          Name: 'group-id',
+          Values: [groupId],
+        }
+      ]
+    });
+    for await (const page of paginator) {
+      securityGroupRules.push(...(page.SecurityGroupRules ?? []));
+    }
+    return {
+      SecurityGroupRules: securityGroupRules, // Make it "look like" the regular query again
+    };
+  }
+
   async getSecurityGroupRule(id: string) {
     const rule = await this.ec2client.send(
       new DescribeSecurityGroupRulesCommand({ SecurityGroupRuleIds: [id], })

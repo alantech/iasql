@@ -55,8 +55,72 @@ export const AwsEcsQuickstartModule: Module = new Module({
       return out;
     },
     // todo: Should add valid method to check if all pieces are in place
-    // todo: should we add a default values method to be abdle to compare later?
+    isValid: async (service: AwsService, ctx: Context) => {
+      // We use the service name as the appName
+      const appName = service.serviceName?.substring(service.serviceName.indexOf(prefix) + prefix.length, service.serviceName.indexOf('-svc')) ?? '';
+      const client = await ctx.getAwsClient() as AWS;
+      // Check if the cluster follow the name pattern
+      const cluster = await client.getCluster(service.clusterArn ?? '');
+      if (!Object.is(cluster?.clusterName, `${prefix}${appName}-cl`)) return false;
+      // Check if the cluster just have one service
+      const services = await client.getServices([service.clusterArn ?? '']);
+      if (services.length !== 1) return false;
+      // Check load balancer count to be 1
+      if (service.loadBalancers?.length !== 1) return false;
+      // Check security groups count to be 1
+      if (service.networkConfiguration?.awsvpcConfiguration?.securityGroups?.length !== 1) return false;
+      // Check load balancer is valid
+      const serviceLoadBalancerInfo = service.loadBalancers.pop();
+      const targetGroup = await client.getTargetGroup(serviceLoadBalancerInfo?.targetGroupArn ?? '');
+      // Check target group name pattern
+      if (!Object.is(targetGroup?.TargetGroupName, `${prefix}${appName}-tg`)) return false;
+      const loadBalancer = await client.getLoadBalancer(targetGroup?.LoadBalancerArns?.[0] ?? '');
+      // Check load balancer name pattern
+      if (!Object.is(loadBalancer?.LoadBalancerName, `${prefix}${appName}-lb`)) return false;
+      // Check load balancer security group count
+      if (loadBalancer?.SecurityGroups?.length !== 1) return false;
+      const listeners = await client.getListeners([loadBalancer.LoadBalancerArn ?? '']);
+      // Check listeners count
+      if (listeners.Listeners.length !== 1) return false;
+      // Check listener actions count
+      if (listeners.Listeners?.[0]?.DefaultActions?.length !== 1) return false;
+      // Check task definiton
+      const taskDefinition = await client.getTaskDefinition(service.taskDefinition ?? '');
+      // Check task definition pattern name
+      if (!Object.is(taskDefinition?.family, `${prefix}${appName}-td`)) return false;
+      // Check container count
+      if (taskDefinition?.containerDefinitions?.length !== 1) return false;
+      const containerDefinition = taskDefinition.containerDefinitions.pop();
+      // Check container definition pattern name
+      if (!Object.is(containerDefinition?.name, `${prefix}${appName}-cd`)) return false;
+      // Get Security group
+      const securityGroup = await client.getSecurityGroup(service.networkConfiguration?.awsvpcConfiguration?.securityGroups?.pop() ?? '');
+      // Check security group name pattern
+      if (!Object.is(securityGroup.GroupName, `${prefix}${appName}-sg`)) return false;
+      // Get security group rules
+      const securityGroupRules = await client.getSecurityGroupRulesByGroupId(securityGroup.GroupId ?? '');
+      // Check security group rule count
+      if (securityGroupRules.SecurityGroupRules?.length !== 2) return false;
+      // Get ingress rule port
+      const securityGroupRuleIngress = securityGroupRules.SecurityGroupRules.find(sgr => !sgr.IsEgress);
+      // Grab container port as appPort
+      const appPort = containerDefinition?.portMappings?.[0].containerPort;
+      // Compare ports
+      if (![targetGroup?.Port, containerDefinition?.portMappings?.[0].hostPort, serviceLoadBalancerInfo?.containerPort, securityGroupRuleIngress?.ToPort, securityGroupRuleIngress?.FromPort]
+          .every(p => Object.is(p, appPort))) return false;
+      // check task definition is valid
+      // check role is valid
+      // check ports configuration is valid
+ 
+      // Get all resources
+      // Get all services in the cluster
+      // Check resource existance
+      // Check all names follow the pattern
+      // Check reosurce count (load balancer, security groups, listeners, rules, containers)
+      return true;
+    },
     getEcsQuickstartObject: (e: EcsQuickstart) => {
+      // TODO: improve variable naming
       // security groups and security group rules
       const sg = AwsEcsQuickstartModule.utils.entityMappers.securityGroup(e.appName);
       const sgrIngress = AwsEcsQuickstartModule.utils.entityMappers.securityGroupRule(sg, e.appPort, false);
@@ -180,7 +244,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
       },
       taskDefinition: (appName: string, rl: Role, cpuMem: string) => {
         const out = new TaskDefinition();
-        out.family = `${prefix}${appName}-fm`;
+        out.family = `${prefix}${appName}-td`;
         out.taskRole = rl;
         out.executionRole = rl;
         out.cpuMemory = cpuMem as CpuMemCombination ?? null;
@@ -188,7 +252,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
       },
       containerDefinition: (appName: string, appPort: number, cpuMem: string, td: TaskDefinition, lg: LogGroup) => {
         const out = new ContainerDefinition();
-        out.name = `${prefix}${appName}-cn`;
+        out.name = `${prefix}${appName}-cd`;
         out.essential = true;
         out.taskDefinition = td;
         out.memoryReservation = +cpuMem.split('-')[1].split('GB')[0] * 1024;
@@ -514,7 +578,6 @@ export const AwsEcsQuickstartModule: Module = new Module({
       source: 'db',
       cloud: new Crud({
         create: async (es: EcsQuickstart[], ctx: Context) => {
-          // todo: create all pieces with defualt values if necessary
           const client = await ctx.getAwsClient() as AWS;
           const defaultVpc = await AwsEcsQuickstartModule.utils.cloud.get.defaultVpc(client);
           const defaultSubnets = await AwsEcsQuickstartModule.utils.cloud.get.defaultSubnets(client, defaultVpc.VpcId);
@@ -617,7 +680,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
           if (ids) {
             relevantServices = relevantServices.filter(s => ids.includes(s.serviceArn!));
           }
-          // TODO: add extra filter checking validation
+          // TODO: add extra filter checking validation, if not valid delete from database?
           const out = [];
           for (const s of relevantServices) {
             out.push(await AwsEcsQuickstartModule.utils.ecsQuickstartMapper(s, ctx));
