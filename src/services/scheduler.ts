@@ -27,7 +27,7 @@ export async function start(dbId: string, dbUser:string) {
   await conn.query(`CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.db.user}', password '${config.db.password}')`);
   const runner = await run({
     pgPool: conn.getMasterConnection(),
-    concurrency: 5,
+    concurrency: 1,
     logger,
     // Install signal handlers for graceful shutdown on SIGINT, SIGTERM, etc
     noHandleSignals: false,
