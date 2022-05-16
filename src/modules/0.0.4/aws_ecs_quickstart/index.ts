@@ -118,12 +118,13 @@ export const AwsEcsQuickstartModule: Module = new Module({
       if (logGroups.length !== 1) return false;
       // Check log group name pattern
       if (!Object.is(logGroups[0].logGroupName, `${prefix}${appName}-lg`)) return false;
-      // TODO: improve ecr validation
+      // TODO: implement proper ecr validation
       // Get ECR
-      const parts = containerDefinition?.image?.split('/') ?? [];
-      const repositoryName = parts[parts.length - 1] ?? null;
-      if (!Object.is(repositoryName, `${prefix}${appName}-ecr`)) return false;
-      const repository = await client.getECRRepository(repositoryName);
+      // const imageSplit = containerDefinition?.image?.split(':') ?? [];
+      // const parts = imageSplit[0]?.split('/');
+      // const repositoryName = parts[parts.length - 1] ?? null;
+      // if (!Object.is(repositoryName, `${prefix}${appName}-ecr`)) return false;
+      // const repository = await client.getECRRepository(repositoryName);
       // TODO: A comparison with default objects is needed?
       return true;
     },
@@ -688,9 +689,15 @@ export const AwsEcsQuickstartModule: Module = new Module({
           if (ids) {
             relevantServices = relevantServices.filter(s => ids.includes(s.serviceArn!));
           }
-          // TODO: add extra filter checking validation, if not valid delete from database?
-          const out = [];
+          const validServices = [];
+          logger.info(`relevant services = ${JSON.stringify(relevantServices)}`);
           for (const s of relevantServices) {
+            const isValid = await AwsEcsQuickstartModule.utils.isValid(s, ctx);
+            if (isValid) validServices.push(s);
+          }
+          logger.info(`valid services = ${JSON.stringify(validServices)}`);
+          const out = [];
+          for (const s of validServices) {
             out.push(await AwsEcsQuickstartModule.utils.ecsQuickstartMapper(s, ctx));
           }
           return out;
