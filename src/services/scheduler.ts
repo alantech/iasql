@@ -126,7 +126,11 @@ export async function start(dbId: string, dbUser:string) {
 export async function stop(dbId: string) {
   const { runner, conn, } = workerRunners[dbId];
   if (runner && conn) {
-    await runner.stop();
+    try {
+      await runner.stop();
+    } catch (e) {
+      logger.warn(`Graphile workers for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`, { e, });
+    }
     await conn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
     await conn.dropConn();
     delete workerRunners[dbId];
