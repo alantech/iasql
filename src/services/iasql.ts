@@ -666,7 +666,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
             if (r.diff.entitiesChanged.length > 0) {
               logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged, });
               outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
-                ec.cloud.id = ec.db.id;
+                if (ec.db.id) ec.cloud.id = ec.db.id;
                 const out = await r.mapper.db.update(ec.cloud, context); // When `sync`ing we assume SoT is the Cloud
                 if (out) {
                   const es = Array.isArray(out) ? out : [out];
