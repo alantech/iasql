@@ -1084,6 +1084,7 @@ export async function upgrade(dbId: string, dbUser: string) {
       })();
       throw new Error('Upgrading. Please disconnect and reconnect to the database');
     case 'v0_0_2':
+    case 'v0_0_3':
       // The upgrade path here *should* work for all versions going forward. 0.0.1 was the exception
       // since we broke the migration contract with it. If/when there's a change to this statement
       // this code will need to be updated with another branch
@@ -1117,12 +1118,12 @@ export async function upgrade(dbId: string, dbUser: string) {
           const nonIasqlMods = mods.filter(m => !/^iasql/.test(m));
           await uninstall(nonIasqlMods, dbId);
           // 4. Uninstall the `iasql_*` modules manually
-          const OldModules = AllModules.v0_0_2;
+          const OldModules = AllModules[versionString];
           const qr = conn.createQueryRunner();
           await OldModules.IasqlFunctions.migrations.remove(qr);
           await OldModules.IasqlPlatform.migrations.remove(qr);
           // 5. Install the new `iasql_*` modules manually
-          const NewModules = AllModules.v0_0_3;
+          const NewModules = AllModules.latest;
           await NewModules.IasqlPlatform.migrations.install(qr);
           await NewModules.IasqlFunctions.migrations.install(qr);
           await conn.query(`
@@ -1148,7 +1149,7 @@ export async function upgrade(dbId: string, dbUser: string) {
         }
       })();
       throw new Error('Upgrading. Please disconnect and reconnect to the database');
-    case 'v0_0_3':
+    case 'v0_0_4':
     case 'latest':
       throw new Error('Up to date');
     default:
