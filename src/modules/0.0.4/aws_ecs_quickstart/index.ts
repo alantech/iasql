@@ -582,7 +582,14 @@ export const AwsEcsQuickstartModule: Module = new Module({
   mappers: {
     ecsQuickstart: new Mapper<EcsQuickstart>({
       entity: EcsQuickstart,
-      equals: (a: EcsQuickstart, b: EcsQuickstart) => true, // todo: implement equals
+      equals: (a: EcsQuickstart, b: EcsQuickstart) => Object.is(a.appPort, b.appPort) &&
+        Object.is(a.cpuMem, b.cpuMem) &&
+        Object.is(a.desiredCount, b.desiredCount) &&
+        Object.is(a.repositoryUri, b.repositoryUri) &&
+        Object.is(a.imageTag, b.imageTag) &&
+        Object.is(a.imageDigest, b.imageDigest) &&
+        Object.is(a.loadBalancerDns, b.loadBalancerDns) &&
+        Object.is(a.publicIp, b.publicIp),
       entityId: (e: EcsQuickstart) => e.appName ?? '', // todo: is this enough?
       source: 'db',
       cloud: new Crud({
