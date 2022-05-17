@@ -1,4 +1,4 @@
-import { CpuMemCombination, } from '../../src/modules/0.0.4/aws_ecs_fargate/entity'; // TODO: Don't hardwire
+import { CpuMemCombination, } from '../../src/modules/0.0.5/aws_ecs_fargate/entity'; // TODO: Don't hardwire
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runInstall, runUninstall, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
