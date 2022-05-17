@@ -1012,7 +1012,7 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
 // few different 'groups' by version number instead of being special-cased for each version.
 export async function upgrade(dbId: string, dbUser: string) {
   const versionString = await TypeormWrapper.getVersionString(dbId);
-  if (versionString === config.modules.latestVersion.replace(/\./g, '_')) {
+  if (versionString === `v${config.modules.latestVersion.replace(/\./g, '_')}`) {
     throw new Error('Up to date');
   } else {
     (async () => {
