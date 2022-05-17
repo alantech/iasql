@@ -717,16 +717,50 @@ export const AwsEcsQuickstartModule: Module = new Module({
         },
         update: async (es: EcsQuickstart[], ctx: Context) => {
           // todo: just update if valid. if an inner piece need replacement it should be all a replace?
-          // Right now we can only modify AWS-generated fields in the database.
-          // This implies that on `update`s we only have to restore the db values with the cloud records.
-          // const out = [];
-          // for (const e of es) {
-          // const cloudRecord = ctx?.memo?.cloud?.EcsQuickstart?.[e.repositoryName ?? ''];
-          // await AwsEcrModule.mappers.publicRepository.db.update(cloudRecord, ctx);
-          // out.push(cloudRecord);
-          // }
-          // return out;
-          return;
+          const client = await ctx.getAwsClient() as AWS;
+          const out = [];
+          for (const e of es) {
+            const cloudRecord = ctx?.memo?.cloud?.EcsQuickstart?.[e.appName ?? ''];
+            const isUpdate = AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            if (isUpdate) {
+              const isServiceUpdate = !(Object.is(e.desiredCount, cloudRecord.desiredCount) && Object.is(e.cpuMem, cloudRecord.cpuMem)); // TODO: add here image changes
+              // Desired count or task definition and container changes
+              const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
+              const updateServiceInput: any = {
+                service: completeEcsQuickstartObject.service.name,
+                cluster: completeEcsQuickstartObject.cluster.clusterName,
+                desiredCount: completeEcsQuickstartObject.service.desiredCount,
+              };
+              if (!Object.is(e.cpuMem, cloudRecord.cpuMem)) {  // TODO: add here image changes
+                // Get current task definition from service
+                const service = await client.getServiceByName(completeEcsQuickstartObject.cluster.clusterName, completeEcsQuickstartObject.service.name);
+                const taskDefinition = await client.getTaskDefinition(service?.taskDefinition ?? '');
+                completeEcsQuickstartObject.taskDefinition.taskRole!.arn = taskDefinition?.taskRoleArn;
+                completeEcsQuickstartObject.taskDefinition.executionRole!.arn = taskDefinition?.executionRoleArn;
+                const logGroup = await client.getLogGroups(taskDefinition?.containerDefinitions?.[0]?.logConfiguration?.options?.["awslogs-group"]);
+                completeEcsQuickstartObject.logGroup.logGroupArn = logGroup[0].arn;
+                // Create new task definition
+                const newTaskDefinition = await AwsEcsQuickstartModule.utils.cloud.create.taskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, e.repositoryUri, e.imageTag);  // todo: implement better ecr
+                // Set new task definition ARN to service input object
+                updateServiceInput.taskDefinition = newTaskDefinition.taskDefinitionArn ?? '';
+              }
+              if (isServiceUpdate) {
+                const updatedService = await client.updateService(updateServiceInput);
+                out.push(await AwsEcsQuickstartModule.utils.ecsQuickstartMapper(updatedService, ctx));
+              } else {
+                // Restore values
+                await AwsEcsQuickstartModule.mappers.ecsQuickstart.db.update(cloudRecord, ctx);
+                out.push(cloudRecord);
+              }
+            } else {
+              // We need to delete the current cloud record and create the new one.
+              // The id in database will be the same `e` will keep it.
+              // await AwsEcsFargateModule.mappers.service.cloud.delete(cloudRecord, ctx);
+              // res.push(await AwsEcsFargateModule.mappers.service.cloud.create(e, ctx));
+              continue;
+            }
+          }
+          return out;
         },
         delete: async (es: EcsQuickstart[], ctx: Context) => {
           // todo: just delete if is a valid resource
