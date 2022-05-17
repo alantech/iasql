@@ -709,7 +709,12 @@ export const AwsEcsQuickstartModule: Module = new Module({
           }
           return out;
         },
-        updateOrReplace: () => 'update', // todo: implement
+        updateOrReplace: (prev: EcsQuickstart, next: EcsQuickstart) => {
+          if (!(Object.is(prev?.appPort, next?.appPort) && Object.is(prev?.publicIp, next?.publicIp))) {
+            return 'replace';
+          }
+          return 'update';
+        },
         update: async (es: EcsQuickstart[], ctx: Context) => {
           // todo: just update if valid. if an inner piece need replacement it should be all a replace?
           // Right now we can only modify AWS-generated fields in the database.
