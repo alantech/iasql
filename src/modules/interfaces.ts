@@ -319,7 +319,7 @@ export class Module {
   constructor(def: ModuleInterface, dirname: string) {
     def.provides = def.provides ?? {};
     this.name = def.name;
-    if (def.version) { 
+    if (def.version) {
       this.version = def.version;
     } else {
       // Extract the version from the `dirname`, guaranteed by project structure
@@ -327,10 +327,10 @@ export class Module {
       const version = pathSegments[pathSegments.length - 2];
       this.version = version;
     }
-    this.dependencies = def.dependencies.map(dep => dep.includes('@') ? dep : `dep@${this.version}`);
+    this.dependencies = def.dependencies.map(dep => dep.includes('@') ? dep : `${dep}@${this.version}`);
     if (
       this.name !== 'iasql_platform' &&
-      !def.dependencies.includes(`iasql_platform@${this.version}`)
+      !this.dependencies.includes(`iasql_platform@${this.version}`)
     ) throw new Error(`${def.name} did not declare an iasql_platform dependency and cannot be loaded.`);
     const entityDir = `${dirname}/entity`;
     const entities = require(`${entityDir}/index`);
