@@ -1,5 +1,0 @@
-{
-  "name": "aws_cloudwatch",
-  "version": "0.0.1",
-  "dependencies": ["iasql_platform@0.0.1", "aws_account@0.0.1"]
-}

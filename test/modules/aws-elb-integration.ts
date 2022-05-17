@@ -6,7 +6,7 @@ import {
   LoadBalancerTypeEnum,
   ProtocolEnum,
   TargetTypeEnum,
-} from '../../src/modules/0.0.4/aws_elb/entity'; // TODO: Don't hardwire
+} from '../../src/modules/0.0.5/aws_elb/entity'; // TODO: Don't hardwire
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
