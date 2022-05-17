@@ -10,8 +10,8 @@ import logger from './logger'
 // mode I do not expect childProcess to actually work, but also in that situation we don't need to
 // put the workers into a separate process for Kubernetes' sake since that's only during testing,
 // so in that case, we can just pass-through re-export the graphile worker scheduler.
-const files = readdirSync('./');
-const isTs = files.some(file => /.ts$/.test(file));
+const files = readdirSync(__dirname);
+const isTs = files.some(file => /.*ts$/.test(file));
 
 const child = isTs ? undefined : childProcess.fork(`${__dirname}/scheduler.js`);
 
