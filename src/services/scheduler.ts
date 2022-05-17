@@ -156,3 +156,23 @@ export async function init() {
     }
   }
 }
+
+// Primitive RPC between parent and child process. Requires the parent to produce a unique ID per
+// request to pair up to the correct response. May replace with a revived multitransport-jsonrpc?
+process.on('message', (m: string[]) => {
+  const [fn, ...args] = m;
+  switch (fn) {
+    case 'init':
+      init().then(() => process.send?.(['initComplete', ...args]));
+      break;
+    case 'start':
+      start(args[0], args[1]).then(() => process.send?.(['startComplete', ...args]));
+      break;
+    case 'stop':
+      stop(args[0]).then(() => process.send?.(['stopComplete', ...args]));
+      break;
+    case 'stopAll':
+      stopAll().then(() => process.send?.(['stopAllComplete', ...args]));
+      break;
+  }
+});

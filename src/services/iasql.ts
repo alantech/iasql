@@ -12,7 +12,7 @@ import { snakeCase, } from 'typeorm/util/StringUtils'
 
 import * as AllModules from '../modules'
 import * as dbMan from './db-manager'
-import * as scheduler from './scheduler'
+import * as scheduler from './scheduler-api'
 import MetadataRepo from './repositories/metadata'
 import config from '../config'
 import logger, { debugObj } from './logger'
