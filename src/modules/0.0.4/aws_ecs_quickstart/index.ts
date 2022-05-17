@@ -716,15 +716,20 @@ export const AwsEcsQuickstartModule: Module = new Module({
           return 'update';
         },
         update: async (es: EcsQuickstart[], ctx: Context) => {
-          // todo: just update if valid. if an inner piece need replacement it should be all a replace?
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.EcsQuickstart?.[e.appName ?? ''];
-            const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
             const isUpdate = AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               const isServiceUpdate = !(Object.is(e.desiredCount, cloudRecord.desiredCount) && Object.is(e.cpuMem, cloudRecord.cpuMem)); // TODO: add here image changes
+              if (!isServiceUpdate) {
+                // Restore values
+                await AwsEcsQuickstartModule.mappers.ecsQuickstart.db.update(cloudRecord, ctx);
+                out.push(cloudRecord);
+                continue;
+              }
+              const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
               // Desired count or task definition and container changes
               const updateServiceInput: any = {
                 service: completeEcsQuickstartObject.service.name,
@@ -744,14 +749,8 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 // Set new task definition ARN to service input object
                 updateServiceInput.taskDefinition = newTaskDefinition.taskDefinitionArn ?? '';
               }
-              if (isServiceUpdate) {
-                const updatedService = await client.updateService(updateServiceInput);
-                out.push(await AwsEcsQuickstartModule.utils.ecsQuickstartMapper(updatedService, ctx));
-              } else {
-                // Restore values
-                await AwsEcsQuickstartModule.mappers.ecsQuickstart.db.update(cloudRecord, ctx);
-                out.push(cloudRecord);
-              }
+              const updatedService = await client.updateService(updateServiceInput);
+              out.push(await AwsEcsQuickstartModule.utils.ecsQuickstartMapper(updatedService, ctx));
             } else {
               await AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.delete([cloudRecord], ctx);
               const res = await AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.create([e], ctx);
