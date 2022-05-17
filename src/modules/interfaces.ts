@@ -1,4 +1,5 @@
 import fs from 'fs'
+import path from 'path'
 
 import { In, QueryRunner, getMetadataArgsStorage, } from 'typeorm'
 
@@ -281,7 +282,7 @@ export class Mapper<E> {
 
 export interface ModuleInterface {
   name: string;
-  version: string;
+  version?: string;
   dependencies: string[];
   provides?: {
     tables?: string[];
@@ -318,8 +319,15 @@ export class Module {
   constructor(def: ModuleInterface, dirname: string) {
     def.provides = def.provides ?? {};
     this.name = def.name;
-    this.version = def.version;
-    this.dependencies = def.dependencies;
+    if (def.version) { 
+      this.version = def.version;
+    } else {
+      // Extract the version from the `dirname`, guaranteed by project structure
+      const pathSegments = dirname.split(path.sep);
+      const version = pathSegments[pathSegments.length - 2];
+      this.version = version;
+    }
+    this.dependencies = def.dependencies.map(dep => dep.includes('@') ? dep : `dep@${this.version}`);
     if (
       this.name !== 'iasql_platform' &&
       !def.dependencies.includes(`iasql_platform@${this.version}`)

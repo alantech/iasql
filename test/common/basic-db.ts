@@ -3,9 +3,11 @@ import { execSync, } from 'child_process'
 import { createConnection, EntityTarget, } from 'typeorm'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import * as Entities from '../../src/modules/0.0.5/iasql_platform/entity' // TODO: Don't hardwire
 import { TypeormWrapper, } from '../../src/services/typeorm'
 import { migrate, } from '../../src/services/db-manager'
+import config from '../../src/config'
+
+const Entities = require(`../../src/modules/${config.modules.latestVersion}/iasql_platform/entity`);
 
 jest.setTimeout(30000);
 

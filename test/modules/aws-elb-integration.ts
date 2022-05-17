@@ -1,14 +1,25 @@
 import { LoadBalancerStateEnum } from '@aws-sdk/client-elastic-load-balancing-v2';
 import config from '../../src/config';
+import * as iasql from '../../src/services/iasql'
 import {
+  getPrefix,
+  runQuery,
+  runInstall,
+  runUninstall,
+  runApply,
+  finish,
+  execComposeUp,
+  execComposeDown,
+  runSync,
+} from '../helpers'
+
+const {
   IpAddressType,
   LoadBalancerSchemeEnum,
   LoadBalancerTypeEnum,
   ProtocolEnum,
   TargetTypeEnum,
-} from '../../src/modules/0.0.5/aws_elb/entity'; // TODO: Don't hardwire
-import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+} = require(`../../src/modules/${config.modules.latestVersion}/aws_elb/entity`);
 
 const prefix = getPrefix();
 const dbAlias = 'elbtest';

@@ -1,6 +1,20 @@
-import { CpuMemCombination } from '../../src/modules/0.0.5/aws_ecs_fargate/entity' // TODO: Fix this hardwired version
+import config from '../../src/config'
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runInstall, runUninstall, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import {
+  getPrefix,
+  runInstall,
+  runUninstall,
+  runQuery,
+  runApply,
+  finish,
+  execComposeUp,
+  execComposeDown,
+  runSync,
+} from '../helpers'
+
+const {
+  CpuMemCombination,
+} = require(`../../src/modules/${config.modules.latestVersion}/aws_ecs_fargate/entity`);
 
 const prefix = getPrefix();
 const dbAlias = 'ecstest';
@@ -15,7 +29,15 @@ const install = runInstall.bind(null, dbAlias);
 const querySync = runQuery.bind(null, dbAliasSidecar);
 const installSync = runInstall.bind(null, dbAliasSidecar);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_ecr', 'aws_elb', 'aws_security_group', 'aws_cloudwatch', 'aws_ecs_fargate', 'aws_vpc', 'aws_iam'];
+const modules = [
+  'aws_ecr',
+  'aws_elb',
+  'aws_security_group',
+  'aws_cloudwatch',
+  'aws_ecs_fargate',
+  'aws_vpc',
+  'aws_iam',
+];
 
 // Test constants
 const serviceName = `${prefix}${dbAlias}service`;

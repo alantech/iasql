@@ -1,7 +1,21 @@
 import config from '../../src/config';
-import { CpuMemCombination, TaskDefinitionStatus } from '../../src/modules/0.0.5/aws_ecs_fargate/entity'; // TODO: Don't hardwire
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runInstall, runUninstall, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import {
+  getPrefix,
+  runInstall,
+  runUninstall,
+  runQuery,
+  runApply,
+  finish,
+  execComposeUp,
+  execComposeDown,
+  runSync,
+} from '../helpers'
+
+const {
+  CpuMemCombination,
+  TaskDefinitionStatus,
+} = require(`../../src/modules/${config.modules.latestVersion}/aws_ecs_fargate/entity`);
 
 const prefix = getPrefix();
 const dbAlias = 'ecstest';
