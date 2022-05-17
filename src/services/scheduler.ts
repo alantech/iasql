@@ -148,6 +148,7 @@ export async function stopAll() {
 
 // spin up a worker for every db that this server is already managing
 export async function init() {
+  if (!MetadataRepo.initialized) await MetadataRepo.init(); // Necessary in the child process
   const dbs: IasqlDatabase[] = await MetadataRepo.getAllDbs();
   const inits = await Promise.allSettled(dbs.map(db => start(db.pgName, db.pgUser)));
   for (const bootstrap of inits) {
