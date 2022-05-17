@@ -872,7 +872,7 @@ ${Object.keys(tableCollisions)
       }) ?? [];
       await orm.save(Modules.IasqlPlatform.utils.IasqlTables, modTables);
       // For each table, we need to attach the audit log trigger, if the platform is >=0.0.4
-      if (!['v0_0_1', 'v0_0_2', 'v0_0_3'].includes(versionString)) {
+      if (!['v0_0_2', 'v0_0_3'].includes(versionString)) {
         for (const table of md.provides.tables) {
           await queryRunner.query(`
             CREATE TRIGGER ${table}_audit
@@ -976,7 +976,7 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   try {
     for (const md of leafToRootOrder) {
       // For each table, we need to attach the audit log trigger, if the platform is >=0.0.4
-      if (!['v0_0_1', 'v0_0_2', 'v0_0_3'].includes(versionString)) {
+      if (!['v0_0_2', 'v0_0_3'].includes(versionString)) {
         for (const table of md.provides.tables) {
           await queryRunner.query(`
             DROP TRIGGER IF EXISTS ${table}_audit ON ${table};
@@ -1012,150 +1012,68 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
 // few different 'groups' by version number instead of being special-cased for each version.
 export async function upgrade(dbId: string, dbUser: string) {
   const versionString = await TypeormWrapper.getVersionString(dbId);
-  switch (versionString) {
-    case 'v0_0_1':
-      // The upgrade path here is manual and can't assume much because we broke the versioning
-      // contract with v0.0.1. It also has to happen async to the response because Postgres itself
-      // locks up if you drop the tables out from under it, apparently?
-      (async () => {
-        let conn: any;
-        try {
-          conn = await createConnection({
-            ...dbMan.baseConnConfig,
-            name: dbId,
-            database: dbId,
-          });
-          // 1. Read the `iasql_module` table to get all currently installed modules.
-          const mods = (await conn.query(`
-            SELECT name FROM iasql_module;
-          `)).map((r: any) => r.name.split('@')[0]);
-          const tables = (await conn.query(`
-            SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public';
-          `)).map((r: any) => r.tablename);
-          const enums = (await conn.query(`
-            SELECT t.typname
-            FROM pg_catalog.pg_type AS t
-            INNER JOIN pg_catalog.pg_namespace AS n ON t.typnamespace = n.oid
-            WHERE n.nspname = 'public' AND t.typtype = 'e';
-          `)).map((r: any) => r.typname);
-          let creds: any;
-          // 2. Read the `aws_account` table to get the credentials (if any).
-          if (mods.includes('aws_account')) {
-            creds = (await conn.query(`
-              SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;
-            `))[0];
-          }
-          // 3. Manually drop all tables and function from the DB
-          await conn.query(`
-            -- This first drop should take care of most of the functions
-            DROP FUNCTION IF EXISTS until_iasql_operation CASCADE;
-            -- And the few that don't depend directly or indirectly on it
-            DROP FUNCTION IF EXISTS delete_all_records CASCADE;
-            DROP FUNCTION IF EXISTS iasql_help CASCADE;
-          `);
-          for (const table of tables) {
-            await conn.query(`
-              DROP TABLE IF EXISTS ${table} CASCADE;
-            `);
-          }
-          for (const enu of enums) {
-            await conn.query(`
-              DROP TYPE IF EXISTS ${enu} CASCADE;
-            `);
-          }
-          // 4. Re-run a the `/connect` logic to get the latest structure in the DB.
-          await dbMan.migrate(conn);
-          // 5. If `aws_account` and other modules are installed, install `aws_account`, insert the
-          //    credentials, then install the rest of the modules.
-          if (!!creds) {
-            await install(['aws_account'], dbId, dbUser);
-            await conn.query(`
-              INSERT INTO aws_account (access_key_id, secret_access_key, region)
-              VALUES ('${creds.access_key_id}', '${creds.secret_access_key}', '${creds.region}');
-            `);
-            await install(mods.filter((m: string) => ![
-              'aws_account', 'iasql_platform', 'iasql_functions'
-            ].includes(m)), dbId, dbUser);
-          }
-        } catch (e) {
-          logger.error('Failed to upgrade', { e, });
-        } finally {
-          conn?.close();
+  if (versionString === config.modules.latestVersion.replace(/\./g, '_')) {
+    throw new Error('Up to date');
+  } else {
+    (async () => {
+      // First, figure out all of the modules installed, and if the `aws_account` module is
+      // installed, also grab those credentials (eventually need to make this distinction and need
+      // generalized). But now we then run the `uninstall` code for the old version of the modules,
+      // then install with the new versions, with a special 'breakpoint' with `aws_account` if it
+      // exists to insert the credentials so the other modules install correctly. (This should also
+      // be automated in some way later.)
+      let conn: any;
+      try {
+        conn = await createConnection({
+          ...dbMan.baseConnConfig,
+          name: dbId,
+          database: dbId,
+        });
+        // 1. Read the `iasql_module` table to get all currently installed modules.
+        const mods: string[] = (await conn.query(`
+          SELECT name FROM iasql_module;
+        `)).map((r: any) => r.name.split('@')[0]);
+        // 2. Read the `aws_account` table to get the credentials (if any).
+        let creds: any;
+        if (mods.includes('aws_account')) {
+          creds = (await conn.query(`
+            SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;
+          `))[0];
         }
-      })();
-      throw new Error('Upgrading. Please disconnect and reconnect to the database');
-    case 'v0_0_2':
-    case 'v0_0_3':
-      // The upgrade path here *should* work for all versions going forward. 0.0.1 was the exception
-      // since we broke the migration contract with it. If/when there's a change to this statement
-      // this code will need to be updated with another branch
-      (async () => {
-        // The first half of the logic is the same as the v0.0.1 upgrade logic: Figure out all of
-        // the modules installed, and if the `aws_account` module is installed, also grab those
-        // credentials (eventually need to make this distinction and need generalized). But now we
-        // then run the `uninstall` code for the old version of the modules, then install with the
-        // new versions, with a special 'breakpoint' with `aws_account` if it exists to insert the
-        // credentials so the other modules install correctly. (This should also be automated in
-        // some way later.)
-        let conn: any;
-        try {
-          conn = await createConnection({
-            ...dbMan.baseConnConfig,
-            name: dbId,
-            database: dbId,
-          });
-          // 1. Read the `iasql_module` table to get all currently installed modules.
-          const mods: string[] = (await conn.query(`
-            SELECT name FROM iasql_module;
-          `)).map((r: any) => r.name.split('@')[0]);
-          // 2. Read the `aws_account` table to get the credentials (if any).
-          let creds: any;
-          if (mods.includes('aws_account')) {
-            creds = (await conn.query(`
-              SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;
-            `))[0];
-          }
-          // 3. Uninstall all of the non-`iasql_*` modules
-          const nonIasqlMods = mods.filter(m => !/^iasql/.test(m));
-          await uninstall(nonIasqlMods, dbId);
-          // 4. Uninstall the `iasql_*` modules manually
-          const OldModules = AllModules[versionString];
-          const qr = conn.createQueryRunner();
-          await OldModules.IasqlFunctions.migrations.remove(qr);
-          await OldModules.IasqlPlatform.migrations.remove(qr);
-          // 5. Install the new `iasql_*` modules manually
-          const NewModules = AllModules.latest;
-          await NewModules.IasqlPlatform.migrations.install(qr);
-          await NewModules.IasqlFunctions.migrations.install(qr);
+        // 3. Uninstall all of the non-`iasql_*` modules
+        const nonIasqlMods = mods.filter(m => !/^iasql/.test(m));
+        await uninstall(nonIasqlMods, dbId);
+        // 4. Uninstall the `iasql_*` modules manually
+        const OldModules = (AllModules as any)[versionString];
+        const qr = conn.createQueryRunner();
+        await OldModules.IasqlFunctions.migrations.remove(qr);
+        await OldModules.IasqlPlatform.migrations.remove(qr);
+        // 5. Install the new `iasql_*` modules manually
+        const NewModules = AllModules.latest;
+        await NewModules.IasqlPlatform.migrations.install(qr);
+        await NewModules.IasqlFunctions.migrations.install(qr);
+        await conn.query(`
+          INSERT INTO iasql_module (name) VALUES ('iasql_platform@${config.modules.latestVersion}'), ('iasql_functions@${config.modules.latestVersion}');
+          INSERT INTO iasql_dependencies (module, dependency) VALUES ('iasql_functions@${config.modules.latestVersion}', 'iasql_platform@${config.modules.latestVersion}');
+        `);
+        // 6. Install the `aws_account` module and then re-insert the creds if present, then add
+        //    the rest of the modules back.
+        if (!!creds) {
+          await install(['aws_account'], dbId, dbUser);
           await conn.query(`
-            INSERT INTO iasql_module (name) VALUES ('iasql_platform@${config.modules.latestVersion}'), ('iasql_functions@${config.modules.latestVersion}');
-            INSERT INTO iasql_dependencies (module, dependency) VALUES ('iasql_functions@${config.modules.latestVersion}', 'iasql_platform@${config.modules.latestVersion}');
+            INSERT INTO aws_account (access_key_id, secret_access_key, region)
+            VALUES ('${creds.access_key_id}', '${creds.secret_access_key}', '${creds.region}');
           `);
-          // 6. Install the `aws_account` module and then re-insert the creds if present, then add
-          //    the rest of the modules back.
-          if (!!creds) {
-            await install(['aws_account'], dbId, dbUser);
-            await conn.query(`
-              INSERT INTO aws_account (access_key_id, secret_access_key, region)
-              VALUES ('${creds.access_key_id}', '${creds.secret_access_key}', '${creds.region}');
-            `);
-            await install(mods.filter((m: string) => ![
-              'aws_account', 'iasql_platform', 'iasql_functions'
-            ].includes(m)), dbId, dbUser);
-          }
-        } catch (e) {
-          logger.error('Failed to upgrade', { e, });
-        } finally {
-          conn?.close();
+          await install(mods.filter((m: string) => ![
+            'aws_account', 'iasql_platform', 'iasql_functions'
+          ].includes(m)), dbId, dbUser);
         }
-      })();
-      throw new Error('Upgrading. Please disconnect and reconnect to the database');
-    case 'v0_0_4':
-    case 'latest':
-      throw new Error('Up to date');
-    default:
-      throw new Error(
-        'Unknown version. No upgrade possible, please drop this database and create a new one.'
-      );
+      } catch (e) {
+        logger.error('Failed to upgrade', { e, });
+      } finally {
+        conn?.close();
+      }
+    })();
+    throw new Error('Upgrading. Please disconnect and reconnect to the database');
   }
 }

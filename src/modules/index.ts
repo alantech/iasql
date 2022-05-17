@@ -5,8 +5,8 @@ import config from '../config'
 // tslint:disable-next-line:no-var-requires
 export const latest = require(`./${config.modules.latestVersion}`);
 
-export * as v0_0_1 from './0.0.1'
 export * as v0_0_2 from './0.0.2'
 export * as v0_0_3 from './0.0.3'
 export * as v0_0_4 from './0.0.4'
+export * as v0_0_5 from './0.0.5'
 export * from './interfaces'
