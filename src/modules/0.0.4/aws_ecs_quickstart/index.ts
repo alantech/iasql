@@ -721,11 +721,11 @@ export const AwsEcsQuickstartModule: Module = new Module({
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.EcsQuickstart?.[e.appName ?? ''];
+            const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
             const isUpdate = AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               const isServiceUpdate = !(Object.is(e.desiredCount, cloudRecord.desiredCount) && Object.is(e.cpuMem, cloudRecord.cpuMem)); // TODO: add here image changes
               // Desired count or task definition and container changes
-              const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
               const updateServiceInput: any = {
                 service: completeEcsQuickstartObject.service.name,
                 cluster: completeEcsQuickstartObject.cluster.clusterName,
@@ -753,11 +753,9 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 out.push(cloudRecord);
               }
             } else {
-              // We need to delete the current cloud record and create the new one.
-              // The id in database will be the same `e` will keep it.
-              // await AwsEcsFargateModule.mappers.service.cloud.delete(cloudRecord, ctx);
-              // res.push(await AwsEcsFargateModule.mappers.service.cloud.create(e, ctx));
-              continue;
+              await AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.delete([cloudRecord], ctx);
+              const res = await AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.create([e], ctx);
+              out.push(...res);
             }
           }
           return out;
