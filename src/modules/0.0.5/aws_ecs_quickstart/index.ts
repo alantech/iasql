@@ -787,9 +787,9 @@ export const AwsEcsQuickstartModule: Module = new Module({
                     completeEcsQuickstartObject.repository!.repositoryUri = repository.repositoryUri;
                   }
                 } catch (_) {
-                  // Do nothing. The repository probably does not exist.
+                  // If the repository does not exists we create it
+                  await AwsEcsQuickstartModule.utils.cloud.create.repository(client, completeEcsQuickstartObject.repository);
                 }
-                await AwsEcsQuickstartModule.utils.cloud.create.repository(client, completeEcsQuickstartObject.repository);
               }
               if (!(Object.is(e.cpuMem, cloudRecord.cpuMem) &&
                 Object.is(e.repositoryUri, cloudRecord.repositoryUri) &&
@@ -800,6 +800,10 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 const taskDefinition = await client.getTaskDefinition(service?.taskDefinition ?? '');
                 completeEcsQuickstartObject.taskDefinition.taskRole!.arn = taskDefinition?.taskRoleArn;
                 completeEcsQuickstartObject.taskDefinition.executionRole!.arn = taskDefinition?.executionRoleArn;
+                // If no new reporsitory, set image
+                if (!completeEcsQuickstartObject.repository) {
+                  completeEcsQuickstartObject.containerDefinition.image = e.repositoryUri;
+                }
                 const logGroup = await client.getLogGroups(taskDefinition?.containerDefinitions?.[0]?.logConfiguration?.options?.["awslogs-group"]);
                 completeEcsQuickstartObject.logGroup.logGroupArn = logGroup[0].arn;
                 // Create new task definition
@@ -808,7 +812,9 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 updateServiceInput.taskDefinition = newTaskDefinition.taskDefinitionArn ?? '';
               }
               const updatedService = await client.updateService(updateServiceInput);
-              out.push(await AwsEcsQuickstartModule.utils.ecsQuickstartMapper(updatedService, ctx));
+              const ecsQs = await AwsEcsQuickstartModule.utils.ecsQuickstartMapper(updatedService, ctx);
+              await AwsEcsQuickstartModule.mappers.ecsQuickstart.db.update(ecsQs, ctx);
+              out.push(ecsQs);
             } else {
               await AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.delete([cloudRecord], ctx);
               const res = await AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.create([e], ctx);
