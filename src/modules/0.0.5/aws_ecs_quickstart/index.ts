@@ -56,7 +56,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
       return out;
     },
     processImageFromString: (image: string) => {
-      let res: {
+      const res: {
         repositoryUri?: string,
         tag?: string,
         digest?: string,
@@ -792,9 +792,9 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 await AwsEcsQuickstartModule.utils.cloud.create.repository(client, completeEcsQuickstartObject.repository);
               }
               if (!(Object.is(e.cpuMem, cloudRecord.cpuMem) &&
-                  Object.is(e.repositoryUri, cloudRecord.repositoryUri) &&
-                  Object.is(e.imageTag, cloudRecord.imageTag) &&
-                  Object.is(e.imageDigest, cloudRecord.imageDigest))) {
+                Object.is(e.repositoryUri, cloudRecord.repositoryUri) &&
+                Object.is(e.imageTag, cloudRecord.imageTag) &&
+                Object.is(e.imageDigest, cloudRecord.imageDigest))) {
                 // Get current task definition from service
                 const service = await client.getServiceByName(completeEcsQuickstartObject.cluster.clusterName, completeEcsQuickstartObject.service.name);
                 const taskDefinition = await client.getTaskDefinition(service?.taskDefinition ?? '');
