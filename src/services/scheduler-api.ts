@@ -40,4 +40,4 @@ if (!isTs) child?.on('message', (m: string[]) => {
 export const init = isTs ? scheduler.init : simpleRpc.bind(this, 'init');
 export const start = isTs ? scheduler.start : simpleRpc.bind(this, 'start');
 export const stop = isTs ? scheduler.stop : simpleRpc.bind(this, 'stop');
-export const stopAll = isTs ? scheduler.stop : simpleRpc.bind(this, 'stopAll');
+export const stopAll = isTs ? scheduler.stopAll : simpleRpc.bind(this, 'stopAll');
