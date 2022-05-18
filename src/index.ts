@@ -4,7 +4,7 @@ import cors from 'cors';
 import express from 'express';
 import { inspect } from 'util';
 
-import * as scheduler from './services/scheduler'
+import * as scheduler from './services/scheduler-api'
 import MetadataRepo from './services/repositories/metadata';
 import config from './config';
 import logger from './services/logger'
