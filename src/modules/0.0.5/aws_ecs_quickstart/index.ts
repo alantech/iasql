@@ -627,8 +627,6 @@ export const AwsEcsQuickstartModule: Module = new Module({
         Object.is(a.repositoryUri, b.repositoryUri) &&
         Object.is(a.imageTag, b.imageTag) &&
         Object.is(a.imageDigest, b.imageDigest) &&
-        Object.is(a.privateEcr, b.privateEcr) &&
-        Object.is(a.publicEcr, b.publicEcr) &&
         Object.is(a.loadBalancerDns, b.loadBalancerDns) &&
         Object.is(a.publicIp, b.publicIp),
       entityId: (e: EcsQuickstart) => e.appName ?? '', // todo: is this enough?
