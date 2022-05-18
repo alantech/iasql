@@ -164,16 +164,24 @@ process.on('message', (m: string[]) => {
   const [fn, ...args] = m;
   switch (fn) {
     case 'init':
-      init().then(() => process.send?.(['initComplete', ...args]));
+      init()
+        .then(() => process.send?.(['initComplete', ...args, undefined]))
+        .catch((e) => process.send?.(['initComplete', ...args, e.message]));
       break;
     case 'start':
-      start(args[0], args[1]).then(() => process.send?.(['startComplete', ...args]));
+      start(args[0], args[1])
+        .then(() => process.send?.(['startComplete', ...args, undefined]))
+        .catch((e) => process.send?.(['startComplete', ...args, e.message]));
       break;
     case 'stop':
-      stop(args[0]).then(() => process.send?.(['stopComplete', ...args]));
+      stop(args[0])
+        .then(() => process.send?.(['stopComplete', ...args, undefined]))
+        .catch((e) => process.send?.(['stopComplete', ...args, e.message]));
       break;
     case 'stopAll':
-      stopAll().then(() => process.send?.(['stopAllComplete', ...args]));
+      stopAll()
+        .then(() => process.send?.(['stopAllComplete', ...args, undefined]))
+        .catch((e) => process.send?.(['stopAllComplete', ...args, e.message]));
       break;
   }
 });
