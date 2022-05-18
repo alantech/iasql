@@ -469,34 +469,21 @@ export const AwsEcsQuickstartModule: Module = new Module({
           e.clusterArn = res?.clusterArn;
           return res;
         },
-        taskDefinition: async (client: AWS, td: TaskDefinition, cd: ContainerDefinition, repositoryUri: string, tag: string) => {
-          // TODO: fix parameters
+        taskDefinition: async (client: AWS, td: TaskDefinition, cd: ContainerDefinition, repository?: Repository) => {
           const container: any = { ...cd };
-          // TODO: implement this logic properly
-          container.image = `${repositoryUri}:${tag}`;
-          // let image;
-          // if (cd.image) {
-          //   image = cd.image;
-          // } else if (cd.repository) {
-          //   if (!cd.repository?.repositoryUri) {
-          //     throw new Error('Repository need to be created first');
-          //   }
-          //   image = cd.repository.repositoryUri;
-          // } else if (cd.publicRepository) {
-          //   if (!cd.publicRepository?.repositoryUri) {
-          //     throw new Error('Public repository need to be created first');
-          //   }
-          //   image = cd.publicRepository.repositoryUri;
-          // } else {
-          //   logger.error('How the DB constraint have been ignored?');
-          // }
-          // if (cd.digest) {
-          //   container.image = `${image}@${cd.digest}`;
-          // } else if (cd.tag) {
-          //   container.image = `${image}:${cd.tag}`;
-          // } else {
-          //   container.image = image;
-          // }
+          let imageName;
+          if (repository) {
+            imageName = repository.repositoryUri;
+          } else {
+            imageName = cd.image;
+          }
+          if (cd.tag) {
+            container.image = `${imageName}:${cd.tag}`;
+          } else if (cd.digest) {
+            container.image = `${imageName}@${cd.digest}`;
+          } else {
+            container.image = imageName;
+          }
           if (container.logGroup) {
             container.logConfiguration = {
               logDriver: 'awslogs',
@@ -682,7 +669,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
               await AwsEcsQuickstartModule.utils.cloud.create.cluster(client, completeEcsQuickstartObject.cluster);
               step = 'createCluster';
               // task with container
-              await AwsEcsQuickstartModule.utils.cloud.create.taskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, e.repositoryUri, e.imageTag);
+              await AwsEcsQuickstartModule.utils.cloud.create.taskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, completeEcsQuickstartObject.repository);
               step = 'createTaskDefinition';
               // service and serv sg
               await AwsEcsQuickstartModule.utils.cloud.create.service(client, completeEcsQuickstartObject.service, completeEcsQuickstartObject.containerDefinition, defaultSubnets);
