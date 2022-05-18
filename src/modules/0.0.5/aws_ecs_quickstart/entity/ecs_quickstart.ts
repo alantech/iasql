@@ -42,7 +42,7 @@ export class EcsQuickstart {
   @Column({ nullable: true, })
   imageDigest?: string;
 
-  @Column({ nullable: true, })
+  @Column({ default: false, })
   publicIp?: boolean;
 
   @Column({ nullable: true, })
