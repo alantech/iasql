@@ -10,6 +10,7 @@ import {
 import { CpuMemCombination } from '../../../0.0.4/aws_ecs_fargate/entity';
 
 @Check(`("image_tag" is null and "image_digest" is null) or ("image_tag" is not null and "image_digest" is null) or ("image_tag" is null and "image_digest" is not null)`)
+@Check(`("private_ecr" is TRUE and "public_ecr" is FALSE) or ("private_ecr" is FALSE and "public_ecr" is TRUE) or ("private_ecr" is FALSE and "public_ecr" is FALSE)`)
 @Entity()
 export class EcsQuickstart {
 
@@ -41,6 +42,12 @@ export class EcsQuickstart {
 
   @Column({ nullable: true, })
   imageDigest?: string;
+
+  @Column({ default: false, })
+  privateEcr: boolean;
+
+  @Column({ default: false, })
+  publicEcr: boolean;
 
   @Column({ nullable: true, })
   publicIp?: boolean;

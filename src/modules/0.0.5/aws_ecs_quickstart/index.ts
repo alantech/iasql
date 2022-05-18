@@ -12,6 +12,7 @@ import { AssignPublicIp, Cluster, ContainerDefinition, CpuMemCombination, Servic
 import { Subnet, Vpc } from '@aws-sdk/client-ec2'
 import { CreateLoadBalancerCommandInput } from '@aws-sdk/client-elastic-load-balancing-v2'
 import { Service as AwsService } from '@aws-sdk/client-ecs'
+import { PublicRepository } from '../aws_ecr/entity'
 
 export type EcsQuickstartObject = {
   securityGroup: SecurityGroup;
@@ -21,7 +22,8 @@ export type EcsQuickstartObject = {
   listener: Listener;
   logGroup: LogGroup;
   repository?: Repository;
-  role?: Role;
+  pubRepository?: PublicRepository;
+  role: Role;
   cluster: Cluster;
   taskDefinition: TaskDefinition;
   containerDefinition: ContainerDefinition;
@@ -47,14 +49,47 @@ export const AwsEcsQuickstartModule: Module = new Module({
       const taskDefinition = await client.getTaskDefinition(taskDefinitionArn) ?? {};
       out.cpuMem = `vCPU${+(taskDefinition.cpu ?? '256') / 1024}-${+(taskDefinition.memory ?? '512') / 1024}GB` as CpuMemCombination;
       const containerDefinition = taskDefinition.containerDefinitions?.pop();
-      // TODO: Do this correctly!!
-      const imageStrSplit = containerDefinition?.image?.split(':') ?? [];
-      out.repositoryUri = imageStrSplit[0];
-      out.imageTag = imageStrSplit[1];
-      logger.info(`OUT OBJECT READ FROM CLOUD ${JSON.stringify(out)}`)
+      const baseImage = AwsEcsQuickstartModule.utils.processImageFromString(containerDefinition?.image);
+      out.repositoryUri = baseImage.repositoryUri;
+      if (!!baseImage.tag) out.imageTag = baseImage.tag;
+      if (!!baseImage.digest) out.imageDigest = baseImage.digest;
+      out.privateEcr = baseImage.isPrivateEcr;
+      out.publicEcr = baseImage.isPublicEcr;
       return out;
     },
-    // todo: Should add valid method to check if all pieces are in place
+    processImageFromString: (image: string) => {
+      let res: {
+        repositoryUri?: string,
+        tag?: string,
+        digest?: string,
+        isPrivateEcr?: boolean,
+        isPublicEcr?: boolean,
+        ecrRepositoryName?: string,
+      } = {};
+      if (image.includes('@')) {  // Image with digest
+        const split = image.split('@');
+        res.repositoryUri = split[0];
+        res.digest = split[1];
+      } else if (image?.includes(':')) {  // Image with tag
+        const split = image.split(':');
+        res.repositoryUri = split[0];
+        res.tag = split[1];
+      } else {  // Just image name
+        res.repositoryUri = image;
+      }
+      if (res.repositoryUri?.includes('amazonaws.com')) {  // Private ECR
+        const parts = res.repositoryUri.split('/');
+        const repositoryName = parts[parts.length - 1] ?? null;
+        res.ecrRepositoryName = repositoryName;
+        res.isPrivateEcr = true;
+      } else if (res.repositoryUri?.includes('public.ecr.aws')) {  // Public ECR
+        const parts = res.repositoryUri.split('/');
+        const publicRepositoryName = parts[parts.length - 1] ?? null;
+        res.ecrRepositoryName = publicRepositoryName;
+        res.isPublicEcr = true;
+      }
+      return res;
+    },
     isValid: async (service: AwsService, ctx: Context) => {
       // We use the service name as the appName
       const appName = service.serviceName?.substring(service.serviceName.indexOf(prefix) + prefix.length, service.serviceName.indexOf('-svc')) ?? '';
@@ -588,6 +623,8 @@ export const AwsEcsQuickstartModule: Module = new Module({
         Object.is(a.repositoryUri, b.repositoryUri) &&
         Object.is(a.imageTag, b.imageTag) &&
         Object.is(a.imageDigest, b.imageDigest) &&
+        Object.is(a.privateEcr, b.privateEcr) &&
+        Object.is(a.publicEcr, b.publicEcr) &&
         Object.is(a.loadBalancerDns, b.loadBalancerDns) &&
         Object.is(a.publicIp, b.publicIp),
       entityId: (e: EcsQuickstart) => e.appName ?? '', // todo: is this enough?
