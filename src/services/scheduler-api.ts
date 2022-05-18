@@ -1,5 +1,5 @@
 import childProcess from 'child_process'
-import { readdirSync } from 'fs'
+import { readdirSync, } from 'fs'
 
 import { v4 as uuidv4, } from 'uuid'
 
@@ -37,7 +37,7 @@ if (!isTs) child?.on('message', (m: string[]) => {
   messagePromises[id]?.();
 });
 
-export const init = isTs ? scheduler.init : simpleRpc.bind(this, 'init');
-export const start = isTs ? scheduler.start : simpleRpc.bind(this, 'start');
-export const stop = isTs ? scheduler.stop : simpleRpc.bind(this, 'stop');
-export const stopAll = isTs ? scheduler.stopAll : simpleRpc.bind(this, 'stopAll');
+export const init = () => isTs ? scheduler.init() : simpleRpc('init');
+export const start = (dbId: string, dbUser: string) => isTs ? scheduler.start(dbId, dbUser) : simpleRpc('start', dbId, dbUser);
+export const stop = (dbId: string) => isTs ? scheduler.stop(dbId) : simpleRpc('stop', dbId);
+export const stopAll = () => isTs ? scheduler.stopAll() : simpleRpc('stopAll');
