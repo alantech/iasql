@@ -49,12 +49,10 @@ export const AwsEcsQuickstartModule: Module = new Module({
       const taskDefinition = await client.getTaskDefinition(taskDefinitionArn) ?? {};
       out.cpuMem = `vCPU${+(taskDefinition.cpu ?? '256') / 1024}-${+(taskDefinition.memory ?? '512') / 1024}GB` as CpuMemCombination;
       const containerDefinition = taskDefinition.containerDefinitions?.pop();
-      const baseImage = AwsEcsQuickstartModule.utils.processImageFromString(containerDefinition?.image);
-      out.repositoryUri = baseImage.repositoryUri;
-      if (!!baseImage.tag) out.imageTag = baseImage.tag;
-      if (!!baseImage.digest) out.imageDigest = baseImage.digest;
-      out.privateEcr = baseImage.isPrivateEcr;
-      out.publicEcr = baseImage.isPublicEcr;
+      const image = AwsEcsQuickstartModule.utils.processImageFromString(containerDefinition?.image);
+      out.repositoryUri = image.repositoryUri;
+      if (!!image.tag) out.imageTag = image.tag;
+      if (!!image.digest) out.imageDigest = image.digest;
       return out;
     },
     processImageFromString: (image: string) => {
@@ -66,7 +64,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
         isPublicEcr?: boolean,
         ecrRepositoryName?: string,
       } = {};
-      if (image.includes('@')) {  // Image with digest
+      if (image?.includes('@')) {  // Image with digest
         const split = image.split('@');
         res.repositoryUri = split[0];
         res.digest = split[1];
@@ -178,11 +176,9 @@ export const AwsEcsQuickstartModule: Module = new Module({
       // cw log group
       const lg = AwsEcsQuickstartModule.utils.defaultEntityMapper.logGroup(e.appName);
       // ecr
-      let pubEcr, privEcr;
-      if (e.privateEcr) {
-        privEcr = AwsEcsQuickstartModule.utils.defaultEntityMapper.privateEcr(e.appName);
-      } else if (e.publicEcr) {
-        pubEcr = AwsEcsQuickstartModule.utils.defaultEntityMapper.publicEcr(e.appName);
+      let repository;
+      if (!e.repositoryUri) {
+        repository = AwsEcsQuickstartModule.utils.defaultEntityMapper.repository(e.appName);
       }
       // role
       const rl = AwsEcsQuickstartModule.utils.defaultEntityMapper.role(e.appName);
@@ -206,10 +202,8 @@ export const AwsEcsQuickstartModule: Module = new Module({
         containerDefinition: cd,
         service: svc,
       };
-      if (!!pubEcr) {
-        ecsQuickstart.pubRepository = pubEcr;
-      } else if (!!privEcr) {
-        ecsQuickstart.repository = privEcr;
+      if (!!repository) {
+        ecsQuickstart.repository = repository;
       }
       return ecsQuickstart
     },
@@ -264,16 +258,11 @@ export const AwsEcsQuickstartModule: Module = new Module({
         out.logGroupName = `${prefix}${appName}-lg`;
         return out;
       },
-      privateEcr: (appName: string) => {
+      repository: (appName: string) => {
         const out = new Repository();
         out.repositoryName = `${prefix}${appName}-ecr`;
         out.imageTagMutability = ImageTagMutability.MUTABLE;
         out.scanOnPush = false;
-        return out;
-      },
-      publicEcr: (appName: string) => {
-        const out = new PublicRepository();
-        out.repositoryName = `${prefix}${appName}-pub-ecr`;
         return out;
       },
       role: (appName: string) => {
@@ -451,7 +440,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
         logGroup: async (client: AWS, e: LogGroup) => {
           return await client.createLogGroup(e.logGroupName);
         },
-        ecr: async (client: AWS, e: Repository) => {
+        repository: async (client: AWS, e: Repository) => {
           const res = await client.createECRRepository({
             repositoryName: e.repositoryName,
             imageTagMutability: e.imageTagMutability,
@@ -460,6 +449,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
             },
           });
           e.repositoryArn = res?.repositoryArn;
+          e.repositoryUri = res?.repositoryUri;
           return res;
         },
         role: async (client: AWS, e: Role) => {
@@ -480,6 +470,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
           return res;
         },
         taskDefinition: async (client: AWS, td: TaskDefinition, cd: ContainerDefinition, repositoryUri: string, tag: string) => {
+          // TODO: fix parameters
           const container: any = { ...cd };
           // TODO: implement this logic properly
           container.image = `${repositoryUri}:${tag}`;
@@ -603,7 +594,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
         logGroup: async (client: AWS, e: LogGroup) => {
           await client.deleteLogGroup(e.logGroupName);
         },
-        ecr: async (client: AWS, e: Repository) => {
+        repository: async (client: AWS, e: Repository) => {
           await client.deleteECRRepository(e.repositoryName);
         },
         role: async (client: AWS, e: Role) => {
@@ -651,6 +642,23 @@ export const AwsEcsQuickstartModule: Module = new Module({
           for (const e of es) {
             let step;
             const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
+            // Container image
+            // The next path implies a new repository needs to be created
+            if (!!completeEcsQuickstartObject.repository) {
+              try {
+                await AwsEcsQuickstartModule.utils.cloud.create.repository(client, completeEcsQuickstartObject.repository);
+              } catch (err) {
+                // Ty to rollback on error
+                try {
+                  await AwsEcsQuickstartModule.utils.cloud.delete.repository(client, completeEcsQuickstartObject.repository);
+                } catch (_) {
+                  // Do nothing, repositories could have images
+                }
+                throw err;
+              }
+            } else {  // This branch implies a valid repository uri have been provided to be used
+              completeEcsQuickstartObject.containerDefinition.image = e.repositoryUri;
+            }
             try {
               // security groups and security group rules
               await AwsEcsQuickstartModule.utils.cloud.create.securityGroup(client, completeEcsQuickstartObject.securityGroup, defaultVpc);
@@ -669,13 +677,6 @@ export const AwsEcsQuickstartModule: Module = new Module({
               // cw log group
               await AwsEcsQuickstartModule.utils.cloud.create.logGroup(client, completeEcsQuickstartObject.logGroup);
               step = 'createLogGroup';
-              // TODO: add check later if it really need to be created
-              // ecr
-              if (completeEcsQuickstartObject.repository) {
-                await AwsEcsQuickstartModule.utils.cloud.create.ecr(client, completeEcsQuickstartObject.repository);
-                // TODO: this probably should be the first to be deleted?
-                step = 'createEcr';
-              }
               // role
               await AwsEcsQuickstartModule.utils.cloud.create.role(client, completeEcsQuickstartObject.role);
               step = 'createRole';
@@ -690,7 +691,10 @@ export const AwsEcsQuickstartModule: Module = new Module({
               step = 'createService';
               // Update ecs quickstart record in database with the new load balancer dns
               e.loadBalancerDns = completeEcsQuickstartObject.loadBalancer.dnsName;
-              // TODO: Update ecs quickstart record in database with the new ecr repository uri if needed
+              // Update ecs quickstart record in database with the new ecr repository uri if needed
+              if (!!completeEcsQuickstartObject.repository) {
+                e.repositoryUri = completeEcsQuickstartObject.repository.repositoryUri;
+              }
               await AwsEcsQuickstartModule.mappers.ecsQuickstart.db.update(e, ctx);
               out.push(e);
             } catch (err: any) {
@@ -705,8 +709,6 @@ export const AwsEcsQuickstartModule: Module = new Module({
                     await AwsEcsQuickstartModule.utils.cloud.delete.cluster(client, completeEcsQuickstartObject.cluster);
                   case 'createRole':
                     await AwsEcsQuickstartModule.utils.cloud.delete.role(client, completeEcsQuickstartObject.role);
-                  case 'createEcr':
-                    await AwsEcsQuickstartModule.utils.cloud.delete.ecr(client, completeEcsQuickstartObject.repository);
                   case 'createLogGroup':
                     await AwsEcsQuickstartModule.utils.cloud.delete.logGroup(client, completeEcsQuickstartObject.logGroup);
                   case 'createListener':
@@ -810,7 +812,6 @@ export const AwsEcsQuickstartModule: Module = new Module({
           return out;
         },
         delete: async (es: EcsQuickstart[], ctx: Context) => {
-          // todo: just delete if is a valid resource
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
             const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
@@ -827,11 +828,29 @@ export const AwsEcsQuickstartModule: Module = new Module({
             await AwsEcsQuickstartModule.utils.cloud.delete.taskDefinition(client, completeEcsQuickstartObject.taskDefinition);
             await AwsEcsQuickstartModule.utils.cloud.delete.cluster(client, completeEcsQuickstartObject.cluster);
             await AwsEcsQuickstartModule.utils.cloud.delete.role(client, completeEcsQuickstartObject.role);
-            await AwsEcsQuickstartModule.utils.cloud.delete.ecr(client, completeEcsQuickstartObject.repository);
             await AwsEcsQuickstartModule.utils.cloud.delete.logGroup(client, completeEcsQuickstartObject.logGroup);
             await AwsEcsQuickstartModule.utils.cloud.delete.loadBalancer(client, completeEcsQuickstartObject.loadBalancer);
             await AwsEcsQuickstartModule.utils.cloud.delete.targetGroup(client, completeEcsQuickstartObject.targetGroup);
             await AwsEcsQuickstartModule.utils.cloud.delete.securityGroup(client, completeEcsQuickstartObject.securityGroup);
+            // Try to delete ECR if any
+            if (!!completeEcsQuickstartObject.repository) {
+              try {
+                await AwsEcsQuickstartModule.utils.cloud.delete.repository(client, completeEcsQuickstartObject.repository);
+              } catch (_) {
+                // Do nothing, repository could have images
+              }
+            } else {
+              const image = AwsEcsQuickstartModule.utils.processImageFromString(e.repositoryUri);
+              // If pattern match, means that we create it and we should try to delete it
+              if (image.ecrRepositoryName && Object.is(image.ecrRepositoryName, `${prefix}${e.appName}-ecr`)) {
+                completeEcsQuickstartObject.repository = AwsEcsQuickstartModule.utils.defaultEntityMapper.repository(e.appName);
+                try {
+                  await AwsEcsQuickstartModule.utils.cloud.delete.repository(client, completeEcsQuickstartObject.repository);
+                } catch (_) {
+                  // Do nothing, repository could have images
+                }
+              }
+            }
           }
         },
       }),
