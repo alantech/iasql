@@ -178,14 +178,19 @@ export const AwsEcsQuickstartModule: Module = new Module({
       // cw log group
       const lg = AwsEcsQuickstartModule.utils.defaultEntityMapper.logGroup(e.appName);
       // ecr
-      const ecr = AwsEcsQuickstartModule.utils.defaultEntityMapper.privateEcr(e.appName);
+      let pubEcr, privEcr;
+      if (e.privateEcr) {
+        privEcr = AwsEcsQuickstartModule.utils.defaultEntityMapper.privateEcr(e.appName);
+      } else if (e.publicEcr) {
+        pubEcr = AwsEcsQuickstartModule.utils.defaultEntityMapper.publicEcr(e.appName);
+      }
       // role
       const rl = AwsEcsQuickstartModule.utils.defaultEntityMapper.role(e.appName);
       // cluster
       const cl = AwsEcsQuickstartModule.utils.defaultEntityMapper.cluster(e.appName);
       // task and container
       const td = AwsEcsQuickstartModule.utils.defaultEntityMapper.taskDefinition(e.appName, rl, e.cpuMem);
-      const cd = AwsEcsQuickstartModule.utils.defaultEntityMapper.containerDefinition(e.appName, e.appPort, e.cpuMem, td, lg);
+      const cd = AwsEcsQuickstartModule.utils.defaultEntityMapper.containerDefinition(e.appName, e.appPort, e.cpuMem, td, lg, e.imageTag, e.imageDigest);
       // service
       const svc = AwsEcsQuickstartModule.utils.defaultEntityMapper.service(e.appName, e.desiredCount, e.publicIp, cl, td, tg, sg)
       const ecsQuickstart: EcsQuickstartObject = {
@@ -195,12 +200,16 @@ export const AwsEcsQuickstartModule: Module = new Module({
         loadBalancer: lb,
         listener: lsn,
         logGroup: lg,
-        repository: ecr,
         role: rl,
         cluster: cl,
         taskDefinition: td,
         containerDefinition: cd,
         service: svc,
+      };
+      if (!!pubEcr) {
+        ecsQuickstart.pubRepository = pubEcr;
+      } else if (!!privEcr) {
+        ecsQuickstart.repository = privEcr;
       }
       return ecsQuickstart
     },
@@ -257,9 +266,14 @@ export const AwsEcsQuickstartModule: Module = new Module({
       },
       privateEcr: (appName: string) => {
         const out = new Repository();
-        out.repositoryName = `${prefix}${appName}-ecr`;  // TODO: what to do if provided?
+        out.repositoryName = `${prefix}${appName}-ecr`;
         out.imageTagMutability = ImageTagMutability.MUTABLE;
         out.scanOnPush = false;
+        return out;
+      },
+      publicEcr: (appName: string) => {
+        const out = new PublicRepository();
+        out.repositoryName = `${prefix}${appName}-pub-ecr`;
         return out;
       },
       role: (appName: string) => {
@@ -294,15 +308,14 @@ export const AwsEcsQuickstartModule: Module = new Module({
         out.cpuMemory = cpuMem as CpuMemCombination ?? null;
         return out;
       },
-      containerDefinition: (appName: string, appPort: number, cpuMem: string, td: TaskDefinition, lg: LogGroup) => {
+      containerDefinition: (appName: string, appPort: number, cpuMem: string, td: TaskDefinition, lg: LogGroup, imageTag?: string, imageDigest?: string) => {
         const out = new ContainerDefinition();
         out.name = `${prefix}${appName}-cd`;
         out.essential = true;
         out.taskDefinition = td;
         out.memoryReservation = +cpuMem.split('-')[1].split('GB')[0] * 1024;
-        // out.repository = ecr; // TODO: SHOULD THIS BE DEFINED HERE?
-        // out.tag = tag; // TODO: SHOULD THIS BE DEFINED HERE?
-        // out.digest = digest; // TODO: SHOULD THIS BE DEFINED HERE?
+        out.tag = imageTag;
+        out.digest = imageDigest;
         out.hostPort = appPort;
         out.containerPort = appPort;
         out.protocol = TransportProtocol.TCP;
