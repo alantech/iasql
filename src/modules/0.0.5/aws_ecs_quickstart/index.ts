@@ -759,7 +759,11 @@ export const AwsEcsQuickstartModule: Module = new Module({
             const cloudRecord = ctx?.memo?.cloud?.EcsQuickstart?.[e.appName ?? ''];
             const isUpdate = AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
-              const isServiceUpdate = !(Object.is(e.desiredCount, cloudRecord.desiredCount) && Object.is(e.cpuMem, cloudRecord.cpuMem)); // TODO: add here image changes
+              const isServiceUpdate = !(Object.is(e.desiredCount, cloudRecord.desiredCount) &&
+                Object.is(e.cpuMem, cloudRecord.cpuMem) &&
+                Object.is(e.repositoryUri, cloudRecord.repositoryUri) &&
+                Object.is(e.imageTag, cloudRecord.imageTag) &&
+                Object.is(e.imageDigest, cloudRecord.imageDigest));
               if (!isServiceUpdate) {
                 // Restore values
                 await AwsEcsQuickstartModule.mappers.ecsQuickstart.db.update(cloudRecord, ctx);
@@ -773,7 +777,24 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 cluster: completeEcsQuickstartObject.cluster.clusterName,
                 desiredCount: completeEcsQuickstartObject.service.desiredCount,
               };
-              if (!Object.is(e.cpuMem, cloudRecord.cpuMem)) {  // TODO: add here image changes
+              // Create new ecr if needed
+              if (!Object.is(e.repositoryUri, cloudRecord.repositoryUri) && !e.repositoryUri) {
+                // We first check if a repositroy with the expected name exists.
+                try {
+                  const repository = await client.getECRRepository(completeEcsQuickstartObject.repository?.repositoryName ?? '');
+                  if (!!repository) {
+                    completeEcsQuickstartObject.repository!.repositoryArn = repository.repositoryArn;
+                    completeEcsQuickstartObject.repository!.repositoryUri = repository.repositoryUri;
+                  }
+                } catch (_) {
+                  // Do nothing. The repository probably does not exist.
+                }
+                await AwsEcsQuickstartModule.utils.cloud.create.repository(client, completeEcsQuickstartObject.repository);
+              }
+              if (!(Object.is(e.cpuMem, cloudRecord.cpuMem) &&
+                  Object.is(e.repositoryUri, cloudRecord.repositoryUri) &&
+                  Object.is(e.imageTag, cloudRecord.imageTag) &&
+                  Object.is(e.imageDigest, cloudRecord.imageDigest))) {
                 // Get current task definition from service
                 const service = await client.getServiceByName(completeEcsQuickstartObject.cluster.clusterName, completeEcsQuickstartObject.service.name);
                 const taskDefinition = await client.getTaskDefinition(service?.taskDefinition ?? '');
@@ -782,7 +803,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 const logGroup = await client.getLogGroups(taskDefinition?.containerDefinitions?.[0]?.logConfiguration?.options?.["awslogs-group"]);
                 completeEcsQuickstartObject.logGroup.logGroupArn = logGroup[0].arn;
                 // Create new task definition
-                const newTaskDefinition = await AwsEcsQuickstartModule.utils.cloud.create.taskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, e.repositoryUri, e.imageTag);  // todo: implement better ecr
+                const newTaskDefinition = await AwsEcsQuickstartModule.utils.cloud.create.taskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, completeEcsQuickstartObject.repository);
                 // Set new task definition ARN to service input object
                 updateServiceInput.taskDefinition = newTaskDefinition.taskDefinitionArn ?? '';
               }
