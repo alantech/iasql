@@ -25,6 +25,7 @@ import {
 import { PublicRepository } from '../aws_ecr/entity'
 import cloudFns from './cloud_fns';
 import simplifiedMappers from './simplified_mappers';
+import { generateResourceName, processImageFromString } from './helpers';
 
 export type SimplifiedObjectMapped = {
   securityGroup: SecurityGroup;
@@ -62,44 +63,11 @@ export const AwsEcsSimplifiedModule: Module = new Module({
       const taskDefinition = await client.getTaskDefinition(taskDefinitionArn) ?? {};
       out.cpuMem = `vCPU${+(taskDefinition.cpu ?? '256') / 1024}-${+(taskDefinition.memory ?? '512') / 1024}GB` as CpuMemCombination;
       const containerDefinition = taskDefinition.containerDefinitions?.pop();
-      const image = AwsEcsSimplifiedModule.utils.processImageFromString(containerDefinition?.image);
+      const image = processImageFromString(containerDefinition?.image ?? '');
       out.repositoryUri = image.repositoryUri;
       if (!!image.tag) out.imageTag = image.tag;
       if (!!image.digest) out.imageDigest = image.digest;
       return out;
-    },
-    processImageFromString: (image: string) => {
-      const res: {
-        repositoryUri?: string,
-        tag?: string,
-        digest?: string,
-        isPrivateEcr?: boolean,
-        isPublicEcr?: boolean,
-        ecrRepositoryName?: string,
-      } = {};
-      if (image?.includes('@')) {  // Image with digest
-        const split = image.split('@');
-        res.repositoryUri = split[0];
-        res.digest = split[1];
-      } else if (image?.includes(':')) {  // Image with tag
-        const split = image.split(':');
-        res.repositoryUri = split[0];
-        res.tag = split[1];
-      } else {  // Just image name
-        res.repositoryUri = image;
-      }
-      if (res.repositoryUri?.includes('amazonaws.com')) {  // Private ECR
-        const parts = res.repositoryUri.split('/');
-        const repositoryName = parts[parts.length - 1] ?? null;
-        res.ecrRepositoryName = repositoryName;
-        res.isPrivateEcr = true;
-      } else if (res.repositoryUri?.includes('public.ecr.aws')) {  // Public ECR
-        const parts = res.repositoryUri.split('/');
-        const publicRepositoryName = parts[parts.length - 1] ?? null;
-        res.ecrRepositoryName = publicRepositoryName;
-        res.isPublicEcr = true;
-      }
-      return res;
     },
     isValid: async (service: AwsService, ctx: Context) => {
       // We use the service name as the appName
@@ -107,7 +75,7 @@ export const AwsEcsSimplifiedModule: Module = new Module({
       const client = await ctx.getAwsClient() as AWS;
       // Check if the cluster follow the name pattern
       const cluster = await client.getCluster(service.clusterArn ?? '');
-      if (!Object.is(cluster?.clusterName, `${prefix}${appName}-cl`)) return false;
+      if (!Object.is(cluster?.clusterName, generateResourceName(prefix, appName, 'Cluster'))) return false;
       // Check if the cluster just have one service
       const services = await client.getServices([service.clusterArn ?? '']);
       if (services.length !== 1) return false;
@@ -119,10 +87,10 @@ export const AwsEcsSimplifiedModule: Module = new Module({
       const serviceLoadBalancerInfo = service.loadBalancers[0];
       const targetGroup = await client.getTargetGroup(serviceLoadBalancerInfo?.targetGroupArn ?? '');
       // Check target group name pattern
-      if (!Object.is(targetGroup?.TargetGroupName, `${prefix}${appName}-tg`)) return false;
+      if (!Object.is(targetGroup?.TargetGroupName, generateResourceName(prefix, appName, 'TargetGroup'))) return false;
       const loadBalancer = await client.getLoadBalancer(targetGroup?.LoadBalancerArns?.[0] ?? '');
       // Check load balancer name pattern
-      if (!Object.is(loadBalancer?.LoadBalancerName, `${prefix}${appName}-lb`)) return false;
+      if (!Object.is(loadBalancer?.LoadBalancerName, generateResourceName(prefix, appName, 'LoadBalancer'))) return false;
       // Check load balancer security group count
       if (loadBalancer?.SecurityGroups?.length !== 1) return false;
       const listeners = await client.getListeners([loadBalancer.LoadBalancerArn ?? '']);
@@ -133,16 +101,16 @@ export const AwsEcsSimplifiedModule: Module = new Module({
       // Check task definiton
       const taskDefinition = await client.getTaskDefinition(service.taskDefinition ?? '');
       // Check task definition pattern name
-      if (!Object.is(taskDefinition?.family, `${prefix}${appName}-td`)) return false;
+      if (!Object.is(taskDefinition?.family, generateResourceName(prefix, appName, 'TaskDefinition'))) return false;
       // Check container count
       if (taskDefinition?.containerDefinitions?.length !== 1) return false;
       const containerDefinition = taskDefinition.containerDefinitions[0];
       // Check container definition pattern name
-      if (!Object.is(containerDefinition?.name, `${prefix}${appName}-cd`)) return false;
+      if (!Object.is(containerDefinition?.name, generateResourceName(prefix, appName, 'ContainerDefinition'))) return false;
       // Get Security group
       const securityGroup = await client.getSecurityGroup(service.networkConfiguration?.awsvpcConfiguration?.securityGroups?.[0] ?? '');
       // Check security group name pattern
-      if (!Object.is(securityGroup.GroupName, `${prefix}${appName}-sg`)) return false;
+      if (!Object.is(securityGroup.GroupName, generateResourceName(prefix, appName, 'SecurityGroup'))) return false;
       // Get security group rules
       const securityGroupRules = await client.getSecurityGroupRulesByGroupId(securityGroup.GroupId ?? '');
       // Check security group rule count
@@ -156,14 +124,14 @@ export const AwsEcsSimplifiedModule: Module = new Module({
         .every(p => Object.is(p, appPort))) return false;
       // Check if role is valid
       if (!Object.is(taskDefinition.executionRoleArn, taskDefinition.taskRoleArn)) return false;
-      const role = await client.getRole(`${prefix}${appName}-rl`);
+      const role = await client.getRole(generateResourceName(prefix, appName, 'Role'));
       const roleAttachedPoliciesArns = await client.getRoleAttachedPoliciesArns(role?.RoleName ?? '');
       if (roleAttachedPoliciesArns.length !== 1) return false;
       // Get cloudwatch log group
       const logGroups = await client.getLogGroups(containerDefinition?.logConfiguration?.options?.["awslogs-group"] ?? '');
       if (logGroups.length !== 1) return false;
       // Check log group name pattern
-      if (!Object.is(logGroups[0].logGroupName, `${prefix}${appName}-lg`)) return false;
+      if (!Object.is(logGroups[0].logGroupName, generateResourceName(prefix, appName, 'LogGroup'))) return false;
       return true;
     },
     getSimplifiedObjectMapped: (e: EcsSimplified) => {
@@ -217,7 +185,7 @@ export const AwsEcsSimplifiedModule: Module = new Module({
         Object.is(a.imageDigest, b.imageDigest) &&
         Object.is(a.loadBalancerDns, b.loadBalancerDns) &&
         Object.is(a.publicIp, b.publicIp),
-      entityId: (e: EcsSimplified) => e.appName ?? '', // todo: is this enough?
+      entityId: (e: EcsSimplified) => e.appName ?? '',
       source: 'db',
       cloud: new Crud({
         create: async (es: EcsSimplified[], ctx: Context) => {
@@ -312,7 +280,6 @@ export const AwsEcsSimplifiedModule: Module = new Module({
                     break;
                 }
               } catch (err2: any) {
-                // TODO: improve this error message, also this should not happen?
                 err.message = `${err.message}. Could not rollback all entities created with error ${err2.message}`;
               }
               // Throw error
@@ -454,9 +421,9 @@ export const AwsEcsSimplifiedModule: Module = new Module({
                 // Do nothing, repository could have images
               }
             } else {
-              const image = AwsEcsSimplifiedModule.utils.processImageFromString(e.repositoryUri);
+              const image = processImageFromString(e.repositoryUri ?? '');
               // If pattern match, means that we create it and we should try to delete it
-              if (image.ecrRepositoryName && Object.is(image.ecrRepositoryName, `${prefix}${e.appName}-ecr`)) {
+              if (image.ecrRepositoryName && Object.is(image.ecrRepositoryName, generateResourceName(prefix, e.appName, 'Repository'))) {
                 simplifiedObjectMapped.repository = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.repository(prefix, e.appName);
                 try {
                   await AwsEcsSimplifiedModule.utils.cloud.delete.repository(client, simplifiedObjectMapped.repository);

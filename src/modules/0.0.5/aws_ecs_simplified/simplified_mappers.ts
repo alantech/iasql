@@ -1,14 +1,32 @@
 import { LogGroup } from '../aws_cloudwatch/entity';
 import { ImageTagMutability, Repository } from '../aws_ecr/entity';
-import { AssignPublicIp, Cluster, ContainerDefinition, CpuMemCombination, Service, TaskDefinition, TransportProtocol } from '../aws_ecs_fargate/entity';
-import { ActionTypeEnum, IpAddressType, Listener, LoadBalancer, LoadBalancerSchemeEnum, LoadBalancerTypeEnum, ProtocolEnum, TargetGroup, TargetTypeEnum } from '../aws_elb/entity';
+import {
+  AssignPublicIp,
+  Cluster,
+  ContainerDefinition,
+  CpuMemCombination, Service,
+  TaskDefinition,
+  TransportProtocol
+} from '../aws_ecs_fargate/entity';
+import {
+  ActionTypeEnum,
+  IpAddressType,
+  Listener,
+  LoadBalancer,
+  LoadBalancerSchemeEnum,
+  LoadBalancerTypeEnum,
+  ProtocolEnum,
+  TargetGroup,
+  TargetTypeEnum
+} from '../aws_elb/entity';
 import { Role } from '../aws_iam/entity';
 import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity';
+import { generateResourceName } from './helpers';
 
 const simplifiedMappers = {
   securityGroup: (prefix: string, appName: string) => {
     const out = new SecurityGroup();
-    out.groupName = `${prefix}${appName}-sg`;
+    out.groupName = generateResourceName(prefix, appName, 'SecurityGroup');
     out.description = `${prefix}${appName} security group`;
     return out;
   },
@@ -25,7 +43,7 @@ const simplifiedMappers = {
   },
   targetGroup: (prefix: string, appName: string, appPort: number) => {
     const out = new TargetGroup();
-    out.targetGroupName = `${prefix}${appName}-tg`;
+    out.targetGroupName = generateResourceName(prefix, appName, 'TargetGroup');
     out.targetType = TargetTypeEnum.IP;
     out.protocol = ProtocolEnum.HTTP;
     out.port = appPort;
@@ -34,7 +52,7 @@ const simplifiedMappers = {
   },
   loadBalancer: (prefix: string, appName: string, sg: SecurityGroup) => {
     const out = new LoadBalancer();
-    out.loadBalancerName = `${prefix}${appName}-lb`;
+    out.loadBalancerName = generateResourceName(prefix, appName, 'LoadBalancer');
     out.scheme = LoadBalancerSchemeEnum.INTERNET_FACING;
     out.loadBalancerType = LoadBalancerTypeEnum.APPLICATION;
     out.securityGroups = [sg];
@@ -52,19 +70,19 @@ const simplifiedMappers = {
   },
   logGroup: (prefix: string, appName: string) => {
     const out = new LogGroup();
-    out.logGroupName = `${prefix}${appName}-lg`;
+    out.logGroupName = generateResourceName(prefix, appName, 'LogGroup');
     return out;
   },
   repository: (prefix: string, appName: string) => {
     const out = new Repository();
-    out.repositoryName = `${prefix}${appName}-ecr`;
+    out.repositoryName = generateResourceName(prefix, appName, 'Repository');
     out.imageTagMutability = ImageTagMutability.MUTABLE;
     out.scanOnPush = false;
     return out;
   },
   role: (prefix: string, appName: string) => {
     const out = new Role();
-    out.roleName = `${prefix}${appName}-rl`;
+    out.roleName = generateResourceName(prefix, appName, 'Role');
     out.assumeRolePolicyDocument = JSON.stringify({
       "Version": "2012-10-17",
       "Statement": [
@@ -83,12 +101,12 @@ const simplifiedMappers = {
   },
   cluster: (prefix: string, appName: string) => {
     const out = new Cluster();
-    out.clusterName = `${prefix}${appName}-cl`;
+    out.clusterName = generateResourceName(prefix, appName, 'Cluster');
     return out;
   },
   taskDefinition: (prefix: string, appName: string, rl: Role, cpuMem: string) => {
     const out = new TaskDefinition();
-    out.family = `${prefix}${appName}-td`;
+    out.family = generateResourceName(prefix, appName, 'TaskDefinition');
     out.taskRole = rl;
     out.executionRole = rl;
     out.cpuMemory = cpuMem as CpuMemCombination ?? null;
@@ -96,7 +114,7 @@ const simplifiedMappers = {
   },
   containerDefinition: (prefix: string, appName: string, appPort: number, cpuMem: string, td: TaskDefinition, lg: LogGroup, imageTag?: string, imageDigest?: string) => {
     const out = new ContainerDefinition();
-    out.name = `${prefix}${appName}-cd`;
+    out.name = generateResourceName(prefix, appName, 'ContainerDefinition');
     out.essential = true;
     out.taskDefinition = td;
     out.memoryReservation = +cpuMem.split('-')[1].split('GB')[0] * 1024;
@@ -110,7 +128,7 @@ const simplifiedMappers = {
   },
   service: (prefix: string, appName: string, desiredCount: number, assignPublicIp: string, cl: Cluster, td: TaskDefinition, tg: TargetGroup, sg: SecurityGroup) => {
     const out = new Service();
-    out.name = `${prefix}${appName}-svc`;
+    out.name = generateResourceName(prefix, appName, 'Service');
     out.desiredCount = desiredCount;
     out.task = td;
     out.targetGroup = tg;
