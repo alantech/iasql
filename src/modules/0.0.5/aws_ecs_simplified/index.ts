@@ -7,18 +7,12 @@ import { Context, Crud, Mapper, Module, } from '../../interfaces'
 import * as metadata from './module.json'
 import { SecurityGroup, SecurityGroupRule } from '../../0.0.4/aws_security_group/entity'
 import {
-  ActionTypeEnum,
-  IpAddressType,
   Listener,
   LoadBalancer,
-  LoadBalancerSchemeEnum,
-  LoadBalancerTypeEnum,
-  ProtocolEnum,
   TargetGroup,
-  TargetTypeEnum
 } from '../../0.0.4/aws_elb/entity'
 import { LogGroup } from '../../0.0.4/aws_cloudwatch/entity'
-import { ImageTagMutability, Repository } from '../../0.0.4/aws_ecr/entity'
+import { Repository } from '../../0.0.4/aws_ecr/entity'
 import { Role } from '../../0.0.4/aws_iam/entity'
 import {
   AssignPublicIp,
@@ -27,10 +21,10 @@ import {
   CpuMemCombination,
   Service,
   TaskDefinition,
-  TransportProtocol
 } from '../../0.0.4/aws_ecs_fargate/entity'
 import { PublicRepository } from '../aws_ecr/entity'
 import cloudFns from './cloud_fns';
+import simplifiedMappers from './simplified_mappers';
 
 export type EcsSimplifiedObject = {
   securityGroup: SecurityGroup;
@@ -47,7 +41,8 @@ export type EcsSimplifiedObject = {
   containerDefinition: ContainerDefinition;
   service: Service;
 };
-const prefix = 'iasql-ecs-'
+
+const prefix = 'iasql-ecs-';
 
 export const AwsEcsSimplifiedModule: Module = new Module({
   ...metadata,
@@ -174,31 +169,31 @@ export const AwsEcsSimplifiedModule: Module = new Module({
     getEcsSimplifiedObject: (e: EcsSimplified) => {
       // TODO: improve variable naming
       // security groups and security group rules
-      const sg = AwsEcsSimplifiedModule.utils.defaultEntityMapper.securityGroup(e.appName);
-      const sgrIngress = AwsEcsSimplifiedModule.utils.defaultEntityMapper.securityGroupRule(sg, e.appPort, false);
-      const sgrEgress = AwsEcsSimplifiedModule.utils.defaultEntityMapper.securityGroupRule(sg, e.appPort, true);
+      const sg = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.securityGroup(prefix, e.appName);
+      const sgrIngress = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.securityGroupRule(sg, e.appPort, false);
+      const sgrEgress = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.securityGroupRule(sg, e.appPort, true);
       // target group
-      const tg = AwsEcsSimplifiedModule.utils.defaultEntityMapper.targetGroup(e.appName, e.appPort);
+      const tg = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.targetGroup(prefix, e.appName, e.appPort);
       // load balancer y lb security group
-      const lb = AwsEcsSimplifiedModule.utils.defaultEntityMapper.loadBalancer(e.appName, sg);
+      const lb = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.loadBalancer(prefix, e.appName, sg);
       // listener
-      const lsn = AwsEcsSimplifiedModule.utils.defaultEntityMapper.listener(e.appPort, lb, tg);
+      const lsn = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.listener(e.appPort, lb, tg);
       // cw log group
-      const lg = AwsEcsSimplifiedModule.utils.defaultEntityMapper.logGroup(e.appName);
+      const lg = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.logGroup(prefix, e.appName);
       // ecr
       let repository;
       if (!e.repositoryUri) {
-        repository = AwsEcsSimplifiedModule.utils.defaultEntityMapper.repository(e.appName);
+        repository = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.repository(prefix, e.appName);
       }
       // role
-      const rl = AwsEcsSimplifiedModule.utils.defaultEntityMapper.role(e.appName);
+      const rl = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.role(prefix, e.appName);
       // cluster
-      const cl = AwsEcsSimplifiedModule.utils.defaultEntityMapper.cluster(e.appName);
+      const cl = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.cluster(prefix, e.appName);
       // task and container
-      const td = AwsEcsSimplifiedModule.utils.defaultEntityMapper.taskDefinition(e.appName, rl, e.cpuMem);
-      const cd = AwsEcsSimplifiedModule.utils.defaultEntityMapper.containerDefinition(e.appName, e.appPort, e.cpuMem, td, lg, e.imageTag, e.imageDigest);
+      const td = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.taskDefinition(prefix, e.appName, rl, e.cpuMem);
+      const cd = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.containerDefinition(prefix, e.appName, e.appPort, e.cpuMem, td, lg, e.imageTag, e.imageDigest);
       // service
-      const svc = AwsEcsSimplifiedModule.utils.defaultEntityMapper.service(e.appName, e.desiredCount, e.publicIp, cl, td, tg, sg)
+      const svc = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.service(prefix, e.appName, e.desiredCount, e.publicIp, cl, td, tg, sg)
       const ecsSimplified: EcsSimplifiedObject = {
         securityGroup: sg,
         securityGroupRules: [sgrIngress, sgrEgress],
@@ -217,123 +212,7 @@ export const AwsEcsSimplifiedModule: Module = new Module({
       }
       return ecsSimplified
     },
-    // Entity getters
-    defaultEntityMapper: {
-      securityGroup: (appName: string) => {
-        const out = new SecurityGroup();
-        out.groupName = `${prefix}${appName}-sg`;
-        out.description = `${prefix}${appName} security group`;
-        return out;
-      },
-      securityGroupRule: (sg: SecurityGroup, appPort: number, isEgress: boolean) => {
-        const out = new SecurityGroupRule();
-        out.securityGroup = sg;
-        out.isEgress = isEgress;
-        out.ipProtocol = isEgress ? '-1' : 'tcp';
-        out.fromPort = isEgress ? -1 : appPort;
-        out.toPort = isEgress ? -1 : appPort;
-        out.cidrIpv4 = '0.0.0.0/0';
-        out.description = sg.groupName;
-        return out;
-      },
-      targetGroup: (appName: string, appPort: number) => {
-        const out = new TargetGroup();
-        out.targetGroupName = `${prefix}${appName}-tg`;
-        out.targetType = TargetTypeEnum.IP;
-        out.protocol = ProtocolEnum.HTTP;
-        out.port = appPort;
-        out.healthCheckPath = '/health';
-        return out;
-      },
-      loadBalancer: (appName: string, sg: SecurityGroup) => {
-        const out = new LoadBalancer();
-        out.loadBalancerName = `${prefix}${appName}-lb`;
-        out.scheme = LoadBalancerSchemeEnum.INTERNET_FACING;
-        out.loadBalancerType = LoadBalancerTypeEnum.APPLICATION;
-        out.securityGroups = [sg];
-        out.ipAddressType = IpAddressType.IPV4;
-        return out;
-      },
-      listener: (appPort: number, lb: LoadBalancer, tg: TargetGroup) => {
-        const out = new Listener();
-        out.loadBalancer = lb;
-        out.port = appPort;
-        out.protocol = ProtocolEnum.HTTP;
-        out.actionType = ActionTypeEnum.FORWARD;
-        out.targetGroup = tg;
-        return out;
-      },
-      logGroup: (appName: string) => {
-        const out = new LogGroup();
-        out.logGroupName = `${prefix}${appName}-lg`;
-        return out;
-      },
-      repository: (appName: string) => {
-        const out = new Repository();
-        out.repositoryName = `${prefix}${appName}-ecr`;
-        out.imageTagMutability = ImageTagMutability.MUTABLE;
-        out.scanOnPush = false;
-        return out;
-      },
-      role: (appName: string) => {
-        const out = new Role();
-        out.roleName = `${prefix}${appName}-rl`;
-        out.assumeRolePolicyDocument = JSON.stringify({
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Sid": "",
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "ecs-tasks.amazonaws.com"
-              },
-              "Action": "sts:AssumeRole"
-            }
-          ]
-        });
-        out.attachedPoliciesArns = ['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'];
-        return out;
-      },
-      cluster: (appName: string) => {
-        const out = new Cluster();
-        out.clusterName = `${prefix}${appName}-cl`;
-        return out;
-      },
-      taskDefinition: (appName: string, rl: Role, cpuMem: string) => {
-        const out = new TaskDefinition();
-        out.family = `${prefix}${appName}-td`;
-        out.taskRole = rl;
-        out.executionRole = rl;
-        out.cpuMemory = cpuMem as CpuMemCombination ?? null;
-        return out;
-      },
-      containerDefinition: (appName: string, appPort: number, cpuMem: string, td: TaskDefinition, lg: LogGroup, imageTag?: string, imageDigest?: string) => {
-        const out = new ContainerDefinition();
-        out.name = `${prefix}${appName}-cd`;
-        out.essential = true;
-        out.taskDefinition = td;
-        out.memoryReservation = +cpuMem.split('-')[1].split('GB')[0] * 1024;
-        out.tag = imageTag;
-        out.digest = imageDigest;
-        out.hostPort = appPort;
-        out.containerPort = appPort;
-        out.protocol = TransportProtocol.TCP;
-        out.logGroup = lg;
-        return out;
-      },
-      service: (appName: string, desiredCount: number, assignPublicIp: string, cl: Cluster, td: TaskDefinition, tg: TargetGroup, sg: SecurityGroup) => {
-        const out = new Service();
-        out.name = `${prefix}${appName}-svc`;
-        out.desiredCount = desiredCount;
-        out.task = td;
-        out.targetGroup = tg;
-        out.assignPublicIp = assignPublicIp ? AssignPublicIp.ENABLED : AssignPublicIp.DISABLED;
-        out.securityGroups = [sg];
-        out.forceNewDeployment = false;
-        out.cluster = cl;
-        return out;
-      },
-    },
+    simplifiedEntityMapper: simplifiedMappers,
     cloud: cloudFns,
   },
   mappers: {
@@ -587,7 +466,7 @@ export const AwsEcsSimplifiedModule: Module = new Module({
               const image = AwsEcsSimplifiedModule.utils.processImageFromString(e.repositoryUri);
               // If pattern match, means that we create it and we should try to delete it
               if (image.ecrRepositoryName && Object.is(image.ecrRepositoryName, `${prefix}${e.appName}-ecr`)) {
-                completeEcsSimplifiedObject.repository = AwsEcsSimplifiedModule.utils.defaultEntityMapper.repository(e.appName);
+                completeEcsSimplifiedObject.repository = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.repository(prefix, e.appName);
                 try {
                   await AwsEcsSimplifiedModule.utils.cloud.delete.repository(client, completeEcsSimplifiedObject.repository);
                 } catch (_) {
