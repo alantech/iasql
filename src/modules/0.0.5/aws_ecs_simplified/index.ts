@@ -234,7 +234,6 @@ export const AwsEcsSimplifiedModule: Module = new Module({
               // role
               await AwsEcsSimplifiedModule.utils.cloud.create.role(client, simplifiedObjectMapped.role);
               step = 'createRole';
-              logger.warn(`SIMPLIFIED ROLE CREATED ${JSON.stringify(simplifiedObjectMapped.role)}`)
               // cluster
               await AwsEcsSimplifiedModule.utils.cloud.create.cluster(client, simplifiedObjectMapped.cluster);
               step = 'createCluster';
