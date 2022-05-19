@@ -13,24 +13,29 @@ import { CpuMemCombination } from '../../aws_ecs_fargate/entity';
 @Entity()
 export class EcsSimplified {
 
-  @Column({ unique: true, type: 'varchar', length: 18, primary: true, })
+  @Column({
+    primary: true,
+    unique: true,
+    type: 'varchar',
+    length: 18,
+  })
   appName: string;
 
   @Column({
     type: 'int',
-    nullable: true,
+    default: 1,
   })
-  desiredCount?: number;
+  desiredCount: number;
 
   @Column({ type: 'int', })
   appPort: number;
 
   @Column({
-    nullable: true,
     type: 'enum',
     enum: CpuMemCombination,
+    default: CpuMemCombination['vCPU2-8GB'],
   })
-  cpuMem?: CpuMemCombination;
+  cpuMem: CpuMemCombination;
 
   @Column({ nullable: true, })
   repositoryUri?: string;
