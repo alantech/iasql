@@ -173,6 +173,12 @@ describe('ECS Simplified Integration Testing', () => {
 
   it('applies deletes the app', apply());
 
+  it('check there are no more rows', query(`
+    SELECT *
+    FROM ecs_simplified
+    WHERE app_name = '${appName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
