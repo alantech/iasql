@@ -5,15 +5,15 @@ import logger from '../../../services/logger'
 import { EcsSimplified } from './entity'
 import { Context, Crud, Mapper, Module, } from '../../interfaces'
 import * as metadata from './module.json'
-import { SecurityGroup, SecurityGroupRule } from '../../0.0.4/aws_security_group/entity'
+import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity'
 import {
   Listener,
   LoadBalancer,
   TargetGroup,
-} from '../../0.0.4/aws_elb/entity'
-import { LogGroup } from '../../0.0.4/aws_cloudwatch/entity'
-import { Repository } from '../../0.0.4/aws_ecr/entity'
-import { Role } from '../../0.0.4/aws_iam/entity'
+} from '../aws_elb/entity'
+import { LogGroup } from '../aws_cloudwatch/entity'
+import { Repository } from '../aws_ecr/entity'
+import { Role } from '../aws_iam/entity'
 import {
   AssignPublicIp,
   Cluster,
@@ -21,7 +21,7 @@ import {
   CpuMemCombination,
   Service,
   TaskDefinition,
-} from '../../0.0.4/aws_ecs_fargate/entity'
+} from '../aws_ecs_fargate/entity'
 import { PublicRepository } from '../aws_ecr/entity'
 import cloudFns from './cloud_fns';
 import simplifiedMappers from './simplified_mappers';
