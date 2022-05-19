@@ -234,6 +234,7 @@ export const AwsEcsSimplifiedModule: Module = new Module({
               // role
               await AwsEcsSimplifiedModule.utils.cloud.create.role(client, simplifiedObjectMapped.role);
               step = 'createRole';
+              logger.warn(`SIMPLIFIED ROLE CREATED ${JSON.stringify(simplifiedObjectMapped.role)}`)
               // cluster
               await AwsEcsSimplifiedModule.utils.cloud.create.cluster(client, simplifiedObjectMapped.cluster);
               step = 'createCluster';
@@ -303,12 +304,10 @@ export const AwsEcsSimplifiedModule: Module = new Module({
             relevantServices = relevantServices.filter(s => ids.includes(s.serviceArn!));
           }
           const validServices = [];
-          logger.info(`relevant services = ${JSON.stringify(relevantServices)}`);
           for (const s of relevantServices) {
             const isValid = await AwsEcsSimplifiedModule.utils.isValid(s, ctx);
             if (isValid) validServices.push(s);
           }
-          logger.info(`valid services = ${JSON.stringify(validServices)}`);
           const out = [];
           for (const s of validServices) {
             out.push(await AwsEcsSimplifiedModule.utils.ecsSimplifiedMapper(s, ctx));
