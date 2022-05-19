@@ -625,7 +625,7 @@ export const AwsEcsSimplifiedModule: Module = new Module({
               try {
                 await AwsEcsSimplifiedModule.utils.cloud.create.repository(client, completeEcsQuickstartObject.repository);
               } catch (err) {
-                // Ty to rollback on error
+                // Try to rollback on error
                 try {
                   await AwsEcsSimplifiedModule.utils.cloud.delete.repository(client, completeEcsQuickstartObject.repository);
                 } catch (_) {
@@ -675,6 +675,7 @@ export const AwsEcsSimplifiedModule: Module = new Module({
               await AwsEcsSimplifiedModule.mappers.ecsQuickstart.db.update(e, ctx);
               out.push(e);
             } catch (err: any) {
+              logger.warn(`Error creating ecs simplified resources. Rolling back on step ${step} with error: ${err.message}`);
               // Rollback
               try {
                 switch (step) {
