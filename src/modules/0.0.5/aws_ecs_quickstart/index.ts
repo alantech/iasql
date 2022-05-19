@@ -151,14 +151,6 @@ export const AwsEcsQuickstartModule: Module = new Module({
       if (logGroups.length !== 1) return false;
       // Check log group name pattern
       if (!Object.is(logGroups[0].logGroupName, `${prefix}${appName}-lg`)) return false;
-      // TODO: implement proper ecr validation
-      // Get ECR
-      // const imageSplit = containerDefinition?.image?.split(':') ?? [];
-      // const parts = imageSplit[0]?.split('/');
-      // const repositoryName = parts[parts.length - 1] ?? null;
-      // if (!Object.is(repositoryName, `${prefix}${appName}-ecr`)) return false;
-      // const repository = await client.getECRRepository(repositoryName);
-      // TODO: A comparison with default objects is needed?
       return true;
     },
     getEcsQuickstartObject: (e: EcsQuickstart) => {
