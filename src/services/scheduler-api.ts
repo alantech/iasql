@@ -12,8 +12,10 @@ import logger from './logger'
 // so in that case, we can just pass-through re-export the graphile worker scheduler.
 const files = readdirSync(__dirname);
 const isTs = files.some(file => /.*ts$/.test(file));
+const isChild = process.connected;
+const shouldRpc = !isTs && !isChild;
 
-const child = isTs ? undefined : childProcess.fork(`${__dirname}/scheduler.js`);
+const child = shouldRpc ? childProcess.fork(`${__dirname}/scheduler.js`) : undefined;
 
 // Primitive RPC handler. Only the parent process can trigger an RPC call, so we can track it all
 // here. Currently-active requests are turned into promises that are eventually resolved by the
@@ -38,7 +40,7 @@ if (!isTs) child?.on('message', (m: string[]) => {
   messagePromises[id][!!error ? 1 : 0]?.(!!error ? new Error(error) : undefined);
 });
 
-export const init = () => isTs ? scheduler.init() : simpleRpc('init');
-export const start = (dbId: string, dbUser: string) => isTs ? scheduler.start(dbId, dbUser) : simpleRpc('start', dbId, dbUser);
-export const stop = (dbId: string) => isTs ? scheduler.stop(dbId) : simpleRpc('stop', dbId);
-export const stopAll = () => isTs ? scheduler.stopAll() : simpleRpc('stopAll');
+export const init = () => shouldRpc ? simpleRpc('init') : scheduler.init();
+export const start = (dbId: string, dbUser: string) => shouldRpc ? simpleRpc('start', dbId, dbUser) : scheduler.start(dbId, dbUser);
+export const stop = (dbId: string) => shouldRpc ? simpleRpc('stop', dbId) : scheduler.stop(dbId);
+export const stopAll = () => shouldRpc ? simpleRpc('stopAll') : scheduler.stopAll();
