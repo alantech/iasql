@@ -26,7 +26,7 @@ import { PublicRepository } from '../aws_ecr/entity'
 import cloudFns from './cloud_fns';
 import simplifiedMappers from './simplified_mappers';
 
-export type EcsSimplifiedObject = {
+export type SimplifiedObjectMapped = {
   securityGroup: SecurityGroup;
   securityGroupRules: SecurityGroupRule[];
   targetGroup: TargetGroup;
@@ -166,51 +166,42 @@ export const AwsEcsSimplifiedModule: Module = new Module({
       if (!Object.is(logGroups[0].logGroupName, `${prefix}${appName}-lg`)) return false;
       return true;
     },
-    getEcsSimplifiedObject: (e: EcsSimplified) => {
-      // TODO: improve variable naming
-      // security groups and security group rules
-      const sg = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.securityGroup(prefix, e.appName);
-      const sgrIngress = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.securityGroupRule(sg, e.appPort, false);
-      const sgrEgress = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.securityGroupRule(sg, e.appPort, true);
-      // target group
-      const tg = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.targetGroup(prefix, e.appName, e.appPort);
-      // load balancer y lb security group
-      const lb = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.loadBalancer(prefix, e.appName, sg);
-      // listener
-      const lsn = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.listener(e.appPort, lb, tg);
-      // cw log group
-      const lg = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.logGroup(prefix, e.appName);
-      // ecr
+    getSimplifiedObjectMapped: (e: EcsSimplified) => {
+      const securityGroup = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.securityGroup(prefix, e.appName);
+      const sgIngressRule = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.securityGroupRule(securityGroup, e.appPort, false);
+      const sgEgressRule = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.securityGroupRule(securityGroup, e.appPort, true);
+      const targetGroup = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.targetGroup(prefix, e.appName, e.appPort);
+      const loadBalancer = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.loadBalancer(prefix, e.appName, securityGroup);
+      const listener = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.listener(e.appPort, loadBalancer, targetGroup);
+      const logGroup = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.logGroup(prefix, e.appName);
       let repository;
       if (!e.repositoryUri) {
         repository = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.repository(prefix, e.appName);
       }
-      // role
-      const rl = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.role(prefix, e.appName);
-      // cluster
-      const cl = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.cluster(prefix, e.appName);
-      // task and container
-      const td = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.taskDefinition(prefix, e.appName, rl, e.cpuMem);
-      const cd = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.containerDefinition(prefix, e.appName, e.appPort, e.cpuMem, td, lg, e.imageTag, e.imageDigest);
-      // service
-      const svc = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.service(prefix, e.appName, e.desiredCount, e.publicIp, cl, td, tg, sg)
-      const ecsSimplified: EcsSimplifiedObject = {
-        securityGroup: sg,
-        securityGroupRules: [sgrIngress, sgrEgress],
-        targetGroup: tg,
-        loadBalancer: lb,
-        listener: lsn,
-        logGroup: lg,
-        role: rl,
-        cluster: cl,
-        taskDefinition: td,
-        containerDefinition: cd,
-        service: svc,
+      const role = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.role(prefix, e.appName);
+      const cluster = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.cluster(prefix, e.appName);
+      const taskDefinition = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.taskDefinition(prefix, e.appName, role, e.cpuMem);
+      const containerDefinition = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.containerDefinition(prefix, e.appName, e.appPort,
+        e.cpuMem, taskDefinition, logGroup, e.imageTag, e.imageDigest);
+      const service = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.service(prefix, e.appName, e.desiredCount, e.publicIp, cluster,
+        taskDefinition, targetGroup, securityGroup);
+      const ecsSimplified: SimplifiedObjectMapped = {
+        securityGroup,
+        securityGroupRules: [sgIngressRule, sgEgressRule],
+        targetGroup,
+        loadBalancer,
+        listener,
+        logGroup,
+        role,
+        cluster,
+        taskDefinition,
+        containerDefinition,
+        service,
       };
       if (!!repository) {
         ecsSimplified.repository = repository;
       }
-      return ecsSimplified
+      return ecsSimplified;
     },
     simplifiedEntityMapper: simplifiedMappers,
     cloud: cloudFns,
@@ -236,59 +227,59 @@ export const AwsEcsSimplifiedModule: Module = new Module({
           const out: any[] = [];
           for (const e of es) {
             let step;
-            const completeEcsSimplifiedObject: EcsSimplifiedObject = AwsEcsSimplifiedModule.utils.getEcsSimplifiedObject(e);
+            const simplifiedObjectMapped: SimplifiedObjectMapped = AwsEcsSimplifiedModule.utils.getSimplifiedObjectMapped(e);
             // Container image
             // The next path implies a new repository needs to be created
-            if (!!completeEcsSimplifiedObject.repository) {
+            if (!!simplifiedObjectMapped.repository) {
               try {
-                await AwsEcsSimplifiedModule.utils.cloud.create.repository(client, completeEcsSimplifiedObject.repository);
+                await AwsEcsSimplifiedModule.utils.cloud.create.repository(client, simplifiedObjectMapped.repository);
               } catch (err) {
                 // Try to rollback on error
                 try {
-                  await AwsEcsSimplifiedModule.utils.cloud.delete.repository(client, completeEcsSimplifiedObject.repository);
+                  await AwsEcsSimplifiedModule.utils.cloud.delete.repository(client, simplifiedObjectMapped.repository);
                 } catch (_) {
                   // Do nothing, repositories could have images
                 }
                 throw err;
               }
             } else {  // This branch implies a valid repository uri have been provided to be used
-              completeEcsSimplifiedObject.containerDefinition.image = e.repositoryUri;
+              simplifiedObjectMapped.containerDefinition.image = e.repositoryUri;
             }
             try {
               // security groups and security group rules
-              await AwsEcsSimplifiedModule.utils.cloud.create.securityGroup(client, completeEcsSimplifiedObject.securityGroup, defaultVpc);
+              await AwsEcsSimplifiedModule.utils.cloud.create.securityGroup(client, simplifiedObjectMapped.securityGroup, defaultVpc);
               step = 'createSecurityGroup';
-              await AwsEcsSimplifiedModule.utils.cloud.create.securityGroupRules(client, completeEcsSimplifiedObject.securityGroupRules);
+              await AwsEcsSimplifiedModule.utils.cloud.create.securityGroupRules(client, simplifiedObjectMapped.securityGroupRules);
               step = 'createSecurityGroupRules';
               // target group
-              await AwsEcsSimplifiedModule.utils.cloud.create.targetGroup(client, completeEcsSimplifiedObject.targetGroup, defaultVpc);
+              await AwsEcsSimplifiedModule.utils.cloud.create.targetGroup(client, simplifiedObjectMapped.targetGroup, defaultVpc);
               step = 'createTargetGroup';
               // load balancer y lb security group
-              await AwsEcsSimplifiedModule.utils.cloud.create.loadBalancer(client, completeEcsSimplifiedObject.loadBalancer, defaultSubnets);
+              await AwsEcsSimplifiedModule.utils.cloud.create.loadBalancer(client, simplifiedObjectMapped.loadBalancer, defaultSubnets);
               step = 'createLoadBalancer';
               // listener
-              await AwsEcsSimplifiedModule.utils.cloud.create.listener(client, completeEcsSimplifiedObject.listener);
+              await AwsEcsSimplifiedModule.utils.cloud.create.listener(client, simplifiedObjectMapped.listener);
               step = 'createListener';
               // cw log group
-              await AwsEcsSimplifiedModule.utils.cloud.create.logGroup(client, completeEcsSimplifiedObject.logGroup);
+              await AwsEcsSimplifiedModule.utils.cloud.create.logGroup(client, simplifiedObjectMapped.logGroup);
               step = 'createLogGroup';
               // role
-              await AwsEcsSimplifiedModule.utils.cloud.create.role(client, completeEcsSimplifiedObject.role);
+              await AwsEcsSimplifiedModule.utils.cloud.create.role(client, simplifiedObjectMapped.role);
               step = 'createRole';
               // cluster
-              await AwsEcsSimplifiedModule.utils.cloud.create.cluster(client, completeEcsSimplifiedObject.cluster);
+              await AwsEcsSimplifiedModule.utils.cloud.create.cluster(client, simplifiedObjectMapped.cluster);
               step = 'createCluster';
               // task with container
-              await AwsEcsSimplifiedModule.utils.cloud.create.taskDefinition(client, completeEcsSimplifiedObject.taskDefinition, completeEcsSimplifiedObject.containerDefinition, completeEcsSimplifiedObject.repository);
+              await AwsEcsSimplifiedModule.utils.cloud.create.taskDefinition(client, simplifiedObjectMapped.taskDefinition, simplifiedObjectMapped.containerDefinition, simplifiedObjectMapped.repository);
               step = 'createTaskDefinition';
               // service and serv sg
-              await AwsEcsSimplifiedModule.utils.cloud.create.service(client, completeEcsSimplifiedObject.service, completeEcsSimplifiedObject.containerDefinition, defaultSubnets);
+              await AwsEcsSimplifiedModule.utils.cloud.create.service(client, simplifiedObjectMapped.service, simplifiedObjectMapped.containerDefinition, defaultSubnets);
               step = 'createService';
               // Update ecs simplified record in database with the new load balancer dns
-              e.loadBalancerDns = completeEcsSimplifiedObject.loadBalancer.dnsName;
+              e.loadBalancerDns = simplifiedObjectMapped.loadBalancer.dnsName;
               // Update ecs simplified record in database with the new ecr repository uri if needed
-              if (!!completeEcsSimplifiedObject.repository) {
-                e.repositoryUri = completeEcsSimplifiedObject.repository.repositoryUri;
+              if (!!simplifiedObjectMapped.repository) {
+                e.repositoryUri = simplifiedObjectMapped.repository.repositoryUri;
               }
               await AwsEcsSimplifiedModule.mappers.ecsSimplified.db.update(e, ctx);
               out.push(e);
@@ -298,25 +289,25 @@ export const AwsEcsSimplifiedModule: Module = new Module({
               try {
                 switch (step) {
                   case 'createService':
-                    await AwsEcsSimplifiedModule.utils.cloud.delete.service(client, completeEcsSimplifiedObject.service);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.service(client, simplifiedObjectMapped.service);
                   case 'createTaskDefinition':
-                    await AwsEcsSimplifiedModule.utils.cloud.delete.taskDefinition(client, completeEcsSimplifiedObject.taskDefinition);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.taskDefinition(client, simplifiedObjectMapped.taskDefinition);
                   case 'createCluster':
-                    await AwsEcsSimplifiedModule.utils.cloud.delete.cluster(client, completeEcsSimplifiedObject.cluster);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.cluster(client, simplifiedObjectMapped.cluster);
                   case 'createRole':
-                    await AwsEcsSimplifiedModule.utils.cloud.delete.role(client, completeEcsSimplifiedObject.role);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.role(client, simplifiedObjectMapped.role);
                   case 'createLogGroup':
-                    await AwsEcsSimplifiedModule.utils.cloud.delete.logGroup(client, completeEcsSimplifiedObject.logGroup);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.logGroup(client, simplifiedObjectMapped.logGroup);
                   case 'createListener':
-                    await AwsEcsSimplifiedModule.utils.cloud.delete.listener(client, completeEcsSimplifiedObject.listener);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.listener(client, simplifiedObjectMapped.listener);
                   case 'createLoadBalancer':
-                    await AwsEcsSimplifiedModule.utils.cloud.delete.loadBalancer(client, completeEcsSimplifiedObject.loadBalancer);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.loadBalancer(client, simplifiedObjectMapped.loadBalancer);
                   case 'createTargetGroup':
-                    await AwsEcsSimplifiedModule.utils.cloud.delete.targetGroup(client, completeEcsSimplifiedObject.targetGroup);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.targetGroup(client, simplifiedObjectMapped.targetGroup);
                   case 'createSecurityGroupRules':
-                    await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroupRules(client, completeEcsSimplifiedObject.securityGroupRules);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroupRules(client, simplifiedObjectMapped.securityGroupRules);
                   case 'createSecurityGroup':
-                    await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroup(client, completeEcsSimplifiedObject.securityGroup);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroup(client, simplifiedObjectMapped.securityGroup);
                   default:
                     break;
                 }
@@ -381,25 +372,25 @@ export const AwsEcsSimplifiedModule: Module = new Module({
                 out.push(cloudRecord);
                 continue;
               }
-              const completeEcsSimplifiedObject: EcsSimplifiedObject = AwsEcsSimplifiedModule.utils.getEcsSimplifiedObject(e);
+              const simplifiedObjectMapped: SimplifiedObjectMapped = AwsEcsSimplifiedModule.utils.getSimplifiedObjectMapped(e);
               // Desired count or task definition and container changes
               const updateServiceInput: any = {
-                service: completeEcsSimplifiedObject.service.name,
-                cluster: completeEcsSimplifiedObject.cluster.clusterName,
-                desiredCount: completeEcsSimplifiedObject.service.desiredCount,
+                service: simplifiedObjectMapped.service.name,
+                cluster: simplifiedObjectMapped.cluster.clusterName,
+                desiredCount: simplifiedObjectMapped.service.desiredCount,
               };
               // Create new ecr if needed
               if (!Object.is(e.repositoryUri, cloudRecord.repositoryUri) && !e.repositoryUri) {
                 // We first check if a repositroy with the expected name exists.
                 try {
-                  const repository = await client.getECRRepository(completeEcsSimplifiedObject.repository?.repositoryName ?? '');
+                  const repository = await client.getECRRepository(simplifiedObjectMapped.repository?.repositoryName ?? '');
                   if (!!repository) {
-                    completeEcsSimplifiedObject.repository!.repositoryArn = repository.repositoryArn;
-                    completeEcsSimplifiedObject.repository!.repositoryUri = repository.repositoryUri;
+                    simplifiedObjectMapped.repository!.repositoryArn = repository.repositoryArn;
+                    simplifiedObjectMapped.repository!.repositoryUri = repository.repositoryUri;
                   }
                 } catch (_) {
                   // If the repository does not exists we create it
-                  await AwsEcsSimplifiedModule.utils.cloud.create.repository(client, completeEcsSimplifiedObject.repository);
+                  await AwsEcsSimplifiedModule.utils.cloud.create.repository(client, simplifiedObjectMapped.repository);
                 }
               }
               if (!(Object.is(e.cpuMem, cloudRecord.cpuMem) &&
@@ -407,18 +398,18 @@ export const AwsEcsSimplifiedModule: Module = new Module({
                 Object.is(e.imageTag, cloudRecord.imageTag) &&
                 Object.is(e.imageDigest, cloudRecord.imageDigest))) {
                 // Get current task definition from service
-                const service = await client.getServiceByName(completeEcsSimplifiedObject.cluster.clusterName, completeEcsSimplifiedObject.service.name);
+                const service = await client.getServiceByName(simplifiedObjectMapped.cluster.clusterName, simplifiedObjectMapped.service.name);
                 const taskDefinition = await client.getTaskDefinition(service?.taskDefinition ?? '');
-                completeEcsSimplifiedObject.taskDefinition.taskRole!.arn = taskDefinition?.taskRoleArn;
-                completeEcsSimplifiedObject.taskDefinition.executionRole!.arn = taskDefinition?.executionRoleArn;
+                simplifiedObjectMapped.taskDefinition.taskRole!.arn = taskDefinition?.taskRoleArn;
+                simplifiedObjectMapped.taskDefinition.executionRole!.arn = taskDefinition?.executionRoleArn;
                 // If no new reporsitory, set image
-                if (!completeEcsSimplifiedObject.repository) {
-                  completeEcsSimplifiedObject.containerDefinition.image = e.repositoryUri;
+                if (!simplifiedObjectMapped.repository) {
+                  simplifiedObjectMapped.containerDefinition.image = e.repositoryUri;
                 }
                 const logGroup = await client.getLogGroups(taskDefinition?.containerDefinitions?.[0]?.logConfiguration?.options?.["awslogs-group"]);
-                completeEcsSimplifiedObject.logGroup.logGroupArn = logGroup[0].arn;
+                simplifiedObjectMapped.logGroup.logGroupArn = logGroup[0].arn;
                 // Create new task definition
-                const newTaskDefinition = await AwsEcsSimplifiedModule.utils.cloud.create.taskDefinition(client, completeEcsSimplifiedObject.taskDefinition, completeEcsSimplifiedObject.containerDefinition, completeEcsSimplifiedObject.repository);
+                const newTaskDefinition = await AwsEcsSimplifiedModule.utils.cloud.create.taskDefinition(client, simplifiedObjectMapped.taskDefinition, simplifiedObjectMapped.containerDefinition, simplifiedObjectMapped.repository);
                 // Set new task definition ARN to service input object
                 updateServiceInput.taskDefinition = newTaskDefinition.taskDefinitionArn ?? '';
               }
@@ -437,28 +428,28 @@ export const AwsEcsSimplifiedModule: Module = new Module({
         delete: async (es: EcsSimplified[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            const completeEcsSimplifiedObject: EcsSimplifiedObject = AwsEcsSimplifiedModule.utils.getEcsSimplifiedObject(e);
-            const service = await client.getServiceByName(completeEcsSimplifiedObject.cluster.clusterName, completeEcsSimplifiedObject.service.name);
-            completeEcsSimplifiedObject.cluster.clusterArn = service?.clusterArn;
-            completeEcsSimplifiedObject.securityGroup.groupId = service?.networkConfiguration?.awsvpcConfiguration?.securityGroups?.pop();
-            completeEcsSimplifiedObject.taskDefinition.taskDefinitionArn = service?.taskDefinition;
+            const simplifiedObjectMapped: SimplifiedObjectMapped = AwsEcsSimplifiedModule.utils.getSimplifiedObjectMapped(e);
+            const service = await client.getServiceByName(simplifiedObjectMapped.cluster.clusterName, simplifiedObjectMapped.service.name);
+            simplifiedObjectMapped.cluster.clusterArn = service?.clusterArn;
+            simplifiedObjectMapped.securityGroup.groupId = service?.networkConfiguration?.awsvpcConfiguration?.securityGroups?.pop();
+            simplifiedObjectMapped.taskDefinition.taskDefinitionArn = service?.taskDefinition;
             const serviceLoadBalancer = service?.loadBalancers?.pop();
             // Find load balancer
-            completeEcsSimplifiedObject.targetGroup.targetGroupArn = serviceLoadBalancer?.targetGroupArn;
-            const targetGroup = await client.getTargetGroup(completeEcsSimplifiedObject.targetGroup.targetGroupArn ?? '');
-            completeEcsSimplifiedObject.loadBalancer.loadBalancerArn = targetGroup?.LoadBalancerArns?.pop();
-            await AwsEcsSimplifiedModule.utils.cloud.delete.service(client, completeEcsSimplifiedObject.service);
-            await AwsEcsSimplifiedModule.utils.cloud.delete.taskDefinition(client, completeEcsSimplifiedObject.taskDefinition);
-            await AwsEcsSimplifiedModule.utils.cloud.delete.cluster(client, completeEcsSimplifiedObject.cluster);
-            await AwsEcsSimplifiedModule.utils.cloud.delete.role(client, completeEcsSimplifiedObject.role);
-            await AwsEcsSimplifiedModule.utils.cloud.delete.logGroup(client, completeEcsSimplifiedObject.logGroup);
-            await AwsEcsSimplifiedModule.utils.cloud.delete.loadBalancer(client, completeEcsSimplifiedObject.loadBalancer);
-            await AwsEcsSimplifiedModule.utils.cloud.delete.targetGroup(client, completeEcsSimplifiedObject.targetGroup);
-            await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroup(client, completeEcsSimplifiedObject.securityGroup);
+            simplifiedObjectMapped.targetGroup.targetGroupArn = serviceLoadBalancer?.targetGroupArn;
+            const targetGroup = await client.getTargetGroup(simplifiedObjectMapped.targetGroup.targetGroupArn ?? '');
+            simplifiedObjectMapped.loadBalancer.loadBalancerArn = targetGroup?.LoadBalancerArns?.pop();
+            await AwsEcsSimplifiedModule.utils.cloud.delete.service(client, simplifiedObjectMapped.service);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.taskDefinition(client, simplifiedObjectMapped.taskDefinition);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.cluster(client, simplifiedObjectMapped.cluster);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.role(client, simplifiedObjectMapped.role);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.logGroup(client, simplifiedObjectMapped.logGroup);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.loadBalancer(client, simplifiedObjectMapped.loadBalancer);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.targetGroup(client, simplifiedObjectMapped.targetGroup);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroup(client, simplifiedObjectMapped.securityGroup);
             // Try to delete ECR if any
-            if (!!completeEcsSimplifiedObject.repository) {
+            if (!!simplifiedObjectMapped.repository) {
               try {
-                await AwsEcsSimplifiedModule.utils.cloud.delete.repository(client, completeEcsSimplifiedObject.repository);
+                await AwsEcsSimplifiedModule.utils.cloud.delete.repository(client, simplifiedObjectMapped.repository);
               } catch (_) {
                 // Do nothing, repository could have images
               }
@@ -466,9 +457,9 @@ export const AwsEcsSimplifiedModule: Module = new Module({
               const image = AwsEcsSimplifiedModule.utils.processImageFromString(e.repositoryUri);
               // If pattern match, means that we create it and we should try to delete it
               if (image.ecrRepositoryName && Object.is(image.ecrRepositoryName, `${prefix}${e.appName}-ecr`)) {
-                completeEcsSimplifiedObject.repository = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.repository(prefix, e.appName);
+                simplifiedObjectMapped.repository = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.repository(prefix, e.appName);
                 try {
-                  await AwsEcsSimplifiedModule.utils.cloud.delete.repository(client, completeEcsSimplifiedObject.repository);
+                  await AwsEcsSimplifiedModule.utils.cloud.delete.repository(client, simplifiedObjectMapped.repository);
                 } catch (_) {
                   // Do nothing, repository could have images
                 }
