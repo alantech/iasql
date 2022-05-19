@@ -7,11 +7,9 @@ import { Role } from '../aws_iam/entity';
 import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity';
 
 const cloudDeleteFns = {
-  securityGroup: async (client: AWS, e: SecurityGroup) => {
-    await client.deleteSecurityGroup({
-      GroupId: e.groupId,
-    });
-  },
+  securityGroup: (client: AWS, e: SecurityGroup) => client.deleteSecurityGroup({
+    GroupId: e.groupId,
+  }),
   securityGroupRules: async (client: AWS, es: SecurityGroupRule[]) => {
     for (const e of es) {
       const GroupId = e?.securityGroup?.groupId;
@@ -28,30 +26,14 @@ const cloudDeleteFns = {
       }
     }
   },
-  targetGroup: async (client: AWS, e: TargetGroup) => {
-    await client.deleteTargetGroup(e.targetGroupArn!);
-  },
-  loadBalancer: async (client: AWS, e: LoadBalancer) => {
-    await client.deleteLoadBalancer(e.loadBalancerArn!);
-  },
-  listener: async (client: AWS, e: Listener) => {
-    await client.deleteListener(e.listenerArn!);
-  },
-  logGroup: async (client: AWS, e: LogGroup) => {
-    await client.deleteLogGroup(e.logGroupName);
-  },
-  repository: async (client: AWS, e: Repository) => {
-    await client.deleteECRRepository(e.repositoryName);
-  },
-  role: async (client: AWS, e: Role) => {
-    await client.deleteRoleLin(e.roleName, e.attachedPoliciesArns);
-  },
-  cluster: async (client: AWS, e: Cluster) => {
-    await client.deleteCluster(e.clusterName);
-  },
-  taskDefinition: async (client: AWS, e: TaskDefinition) => {
-    await client.deleteTaskDefinition(e.taskDefinitionArn!);
-  },
+  targetGroup: (client: AWS, e: TargetGroup) => client.deleteTargetGroup(e.targetGroupArn!),
+  loadBalancer: (client: AWS, e: LoadBalancer) => client.deleteLoadBalancer(e.loadBalancerArn!),
+  listener: (client: AWS, e: Listener) => client.deleteListener(e.listenerArn!),
+  logGroup: (client: AWS, e: LogGroup) => client.deleteLogGroup(e.logGroupName),
+  repository: (client: AWS, e: Repository) => client.deleteECRRepository(e.repositoryName),
+  role: (client: AWS, e: Role) => client.deleteRoleLin(e.roleName, e.attachedPoliciesArns),
+  cluster: (client: AWS, e: Cluster) => client.deleteCluster(e.clusterName),
+  taskDefinition: (client: AWS, e: TaskDefinition) => client.deleteTaskDefinition(e.taskDefinitionArn!),
   service: async (client: AWS, e: Service) => {
     const tasksArns = await client.getTasksArns(e.cluster?.clusterName!, e.name);
     await client.updateService({
