@@ -168,8 +168,10 @@ describe('EC2 install/uninstall', () => {
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `));
 
-  it('installs the ec2 module', install(modules));
+  // Install can automatically pull in all dependencies, so we only need to specify ec2 here
+  it('installs the ec2 module', install(['aws_ec2']));
 
+  // But uninstall won't uninstall dependencies, so we need to specify that we want all three here
   it('uninstalls the ec2 module', uninstall(modules));
 
   it('installs all modules', (done) => void iasql.install(
