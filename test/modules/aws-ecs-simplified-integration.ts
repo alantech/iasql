@@ -54,7 +54,7 @@ describe('ECS Simplified Integration Testing', () => {
     VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `));
 
-  it('installs the ecs module and its dependencies', install(modules));
+  it('installs the ecs simplified module and its dependencies', install(modules));
 
   it('adds a new row', query(`
     INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip)
