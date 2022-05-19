@@ -1,6 +1,6 @@
 import { AWS, } from '../../../services/gateways/aws'
 import logger, { debugObj } from '../../../services/logger'
-import { EcsQuickstart } from './entity'
+import { EcsSimplified } from './entity'
 import { Context, Crud, Mapper, Module, } from '../../interfaces'
 import * as metadata from './module.json'
 import { SecurityGroup, SecurityGroupRule } from '../../0.0.4/aws_security_group/entity'
@@ -31,12 +31,12 @@ export type EcsQuickstartObject = {
 };
 const prefix = 'iasql-ecs-'
 
-export const AwsEcsQuickstartModule: Module = new Module({
+export const AwsEcsSimplifiedModule: Module = new Module({
   ...metadata,
   utils: {
     ecsQuickstartMapper: async (e: AwsService, ctx: Context) => {
       const client = await ctx.getAwsClient() as AWS;
-      const out = new EcsQuickstart();
+      const out = new EcsSimplified();
       out.appName = e.serviceName?.substring(e.serviceName.indexOf(prefix) + prefix.length, e.serviceName.indexOf('-svc')) ?? '';
       out.desiredCount = e.desiredCount;
       const serviceLoadBalancer = e.loadBalancers?.pop() ?? {};
@@ -49,7 +49,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
       const taskDefinition = await client.getTaskDefinition(taskDefinitionArn) ?? {};
       out.cpuMem = `vCPU${+(taskDefinition.cpu ?? '256') / 1024}-${+(taskDefinition.memory ?? '512') / 1024}GB` as CpuMemCombination;
       const containerDefinition = taskDefinition.containerDefinitions?.pop();
-      const image = AwsEcsQuickstartModule.utils.processImageFromString(containerDefinition?.image);
+      const image = AwsEcsSimplifiedModule.utils.processImageFromString(containerDefinition?.image);
       out.repositoryUri = image.repositoryUri;
       if (!!image.tag) out.imageTag = image.tag;
       if (!!image.digest) out.imageDigest = image.digest;
@@ -153,34 +153,34 @@ export const AwsEcsQuickstartModule: Module = new Module({
       if (!Object.is(logGroups[0].logGroupName, `${prefix}${appName}-lg`)) return false;
       return true;
     },
-    getEcsQuickstartObject: (e: EcsQuickstart) => {
+    getEcsQuickstartObject: (e: EcsSimplified) => {
       // TODO: improve variable naming
       // security groups and security group rules
-      const sg = AwsEcsQuickstartModule.utils.defaultEntityMapper.securityGroup(e.appName);
-      const sgrIngress = AwsEcsQuickstartModule.utils.defaultEntityMapper.securityGroupRule(sg, e.appPort, false);
-      const sgrEgress = AwsEcsQuickstartModule.utils.defaultEntityMapper.securityGroupRule(sg, e.appPort, true);
+      const sg = AwsEcsSimplifiedModule.utils.defaultEntityMapper.securityGroup(e.appName);
+      const sgrIngress = AwsEcsSimplifiedModule.utils.defaultEntityMapper.securityGroupRule(sg, e.appPort, false);
+      const sgrEgress = AwsEcsSimplifiedModule.utils.defaultEntityMapper.securityGroupRule(sg, e.appPort, true);
       // target group
-      const tg = AwsEcsQuickstartModule.utils.defaultEntityMapper.targetGroup(e.appName, e.appPort);
+      const tg = AwsEcsSimplifiedModule.utils.defaultEntityMapper.targetGroup(e.appName, e.appPort);
       // load balancer y lb security group
-      const lb = AwsEcsQuickstartModule.utils.defaultEntityMapper.loadBalancer(e.appName, sg);
+      const lb = AwsEcsSimplifiedModule.utils.defaultEntityMapper.loadBalancer(e.appName, sg);
       // listener
-      const lsn = AwsEcsQuickstartModule.utils.defaultEntityMapper.listener(e.appPort, lb, tg);
+      const lsn = AwsEcsSimplifiedModule.utils.defaultEntityMapper.listener(e.appPort, lb, tg);
       // cw log group
-      const lg = AwsEcsQuickstartModule.utils.defaultEntityMapper.logGroup(e.appName);
+      const lg = AwsEcsSimplifiedModule.utils.defaultEntityMapper.logGroup(e.appName);
       // ecr
       let repository;
       if (!e.repositoryUri) {
-        repository = AwsEcsQuickstartModule.utils.defaultEntityMapper.repository(e.appName);
+        repository = AwsEcsSimplifiedModule.utils.defaultEntityMapper.repository(e.appName);
       }
       // role
-      const rl = AwsEcsQuickstartModule.utils.defaultEntityMapper.role(e.appName);
+      const rl = AwsEcsSimplifiedModule.utils.defaultEntityMapper.role(e.appName);
       // cluster
-      const cl = AwsEcsQuickstartModule.utils.defaultEntityMapper.cluster(e.appName);
+      const cl = AwsEcsSimplifiedModule.utils.defaultEntityMapper.cluster(e.appName);
       // task and container
-      const td = AwsEcsQuickstartModule.utils.defaultEntityMapper.taskDefinition(e.appName, rl, e.cpuMem);
-      const cd = AwsEcsQuickstartModule.utils.defaultEntityMapper.containerDefinition(e.appName, e.appPort, e.cpuMem, td, lg, e.imageTag, e.imageDigest);
+      const td = AwsEcsSimplifiedModule.utils.defaultEntityMapper.taskDefinition(e.appName, rl, e.cpuMem);
+      const cd = AwsEcsSimplifiedModule.utils.defaultEntityMapper.containerDefinition(e.appName, e.appPort, e.cpuMem, td, lg, e.imageTag, e.imageDigest);
       // service
-      const svc = AwsEcsQuickstartModule.utils.defaultEntityMapper.service(e.appName, e.desiredCount, e.publicIp, cl, td, tg, sg)
+      const svc = AwsEcsSimplifiedModule.utils.defaultEntityMapper.service(e.appName, e.desiredCount, e.publicIp, cl, td, tg, sg)
       const ecsQuickstart: EcsQuickstartObject = {
         securityGroup: sg,
         securityGroupRules: [sgrIngress, sgrEgress],
@@ -598,9 +598,9 @@ export const AwsEcsQuickstartModule: Module = new Module({
     },
   },
   mappers: {
-    ecsQuickstart: new Mapper<EcsQuickstart>({
-      entity: EcsQuickstart,
-      equals: (a: EcsQuickstart, b: EcsQuickstart) => Object.is(a.appPort, b.appPort) &&
+    ecsQuickstart: new Mapper<EcsSimplified>({
+      entity: EcsSimplified,
+      equals: (a: EcsSimplified, b: EcsSimplified) => Object.is(a.appPort, b.appPort) &&
         Object.is(a.cpuMem, b.cpuMem) &&
         Object.is(a.desiredCount, b.desiredCount) &&
         Object.is(a.repositoryUri, b.repositoryUri) &&
@@ -608,26 +608,26 @@ export const AwsEcsQuickstartModule: Module = new Module({
         Object.is(a.imageDigest, b.imageDigest) &&
         Object.is(a.loadBalancerDns, b.loadBalancerDns) &&
         Object.is(a.publicIp, b.publicIp),
-      entityId: (e: EcsQuickstart) => e.appName ?? '', // todo: is this enough?
+      entityId: (e: EcsSimplified) => e.appName ?? '', // todo: is this enough?
       source: 'db',
       cloud: new Crud({
-        create: async (es: EcsQuickstart[], ctx: Context) => {
+        create: async (es: EcsSimplified[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          const defaultVpc = await AwsEcsQuickstartModule.utils.cloud.get.defaultVpc(client);
-          const defaultSubnets = await AwsEcsQuickstartModule.utils.cloud.get.defaultSubnets(client, defaultVpc.VpcId);
+          const defaultVpc = await AwsEcsSimplifiedModule.utils.cloud.get.defaultVpc(client);
+          const defaultSubnets = await AwsEcsSimplifiedModule.utils.cloud.get.defaultSubnets(client, defaultVpc.VpcId);
           const out: any[] = [];
           for (const e of es) {
             let step;
-            const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
+            const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsSimplifiedModule.utils.getEcsQuickstartObject(e);
             // Container image
             // The next path implies a new repository needs to be created
             if (!!completeEcsQuickstartObject.repository) {
               try {
-                await AwsEcsQuickstartModule.utils.cloud.create.repository(client, completeEcsQuickstartObject.repository);
+                await AwsEcsSimplifiedModule.utils.cloud.create.repository(client, completeEcsQuickstartObject.repository);
               } catch (err) {
                 // Ty to rollback on error
                 try {
-                  await AwsEcsQuickstartModule.utils.cloud.delete.repository(client, completeEcsQuickstartObject.repository);
+                  await AwsEcsSimplifiedModule.utils.cloud.delete.repository(client, completeEcsQuickstartObject.repository);
                 } catch (_) {
                   // Do nothing, repositories could have images
                 }
@@ -638,33 +638,33 @@ export const AwsEcsQuickstartModule: Module = new Module({
             }
             try {
               // security groups and security group rules
-              await AwsEcsQuickstartModule.utils.cloud.create.securityGroup(client, completeEcsQuickstartObject.securityGroup, defaultVpc);
+              await AwsEcsSimplifiedModule.utils.cloud.create.securityGroup(client, completeEcsQuickstartObject.securityGroup, defaultVpc);
               step = 'createSecurityGroup';
-              await AwsEcsQuickstartModule.utils.cloud.create.securityGroupRules(client, completeEcsQuickstartObject.securityGroupRules);
+              await AwsEcsSimplifiedModule.utils.cloud.create.securityGroupRules(client, completeEcsQuickstartObject.securityGroupRules);
               step = 'createSecurityGroupRules';
               // target group
-              await AwsEcsQuickstartModule.utils.cloud.create.targetGroup(client, completeEcsQuickstartObject.targetGroup, defaultVpc);
+              await AwsEcsSimplifiedModule.utils.cloud.create.targetGroup(client, completeEcsQuickstartObject.targetGroup, defaultVpc);
               step = 'createTargetGroup';
               // load balancer y lb security group
-              await AwsEcsQuickstartModule.utils.cloud.create.loadBalancer(client, completeEcsQuickstartObject.loadBalancer, defaultSubnets);
+              await AwsEcsSimplifiedModule.utils.cloud.create.loadBalancer(client, completeEcsQuickstartObject.loadBalancer, defaultSubnets);
               step = 'createLoadBalancer';
               // listener
-              await AwsEcsQuickstartModule.utils.cloud.create.listener(client, completeEcsQuickstartObject.listener);
+              await AwsEcsSimplifiedModule.utils.cloud.create.listener(client, completeEcsQuickstartObject.listener);
               step = 'createListener';
               // cw log group
-              await AwsEcsQuickstartModule.utils.cloud.create.logGroup(client, completeEcsQuickstartObject.logGroup);
+              await AwsEcsSimplifiedModule.utils.cloud.create.logGroup(client, completeEcsQuickstartObject.logGroup);
               step = 'createLogGroup';
               // role
-              await AwsEcsQuickstartModule.utils.cloud.create.role(client, completeEcsQuickstartObject.role);
+              await AwsEcsSimplifiedModule.utils.cloud.create.role(client, completeEcsQuickstartObject.role);
               step = 'createRole';
               // cluster
-              await AwsEcsQuickstartModule.utils.cloud.create.cluster(client, completeEcsQuickstartObject.cluster);
+              await AwsEcsSimplifiedModule.utils.cloud.create.cluster(client, completeEcsQuickstartObject.cluster);
               step = 'createCluster';
               // task with container
-              await AwsEcsQuickstartModule.utils.cloud.create.taskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, completeEcsQuickstartObject.repository);
+              await AwsEcsSimplifiedModule.utils.cloud.create.taskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, completeEcsQuickstartObject.repository);
               step = 'createTaskDefinition';
               // service and serv sg
-              await AwsEcsQuickstartModule.utils.cloud.create.service(client, completeEcsQuickstartObject.service, completeEcsQuickstartObject.containerDefinition, defaultSubnets);
+              await AwsEcsSimplifiedModule.utils.cloud.create.service(client, completeEcsQuickstartObject.service, completeEcsQuickstartObject.containerDefinition, defaultSubnets);
               step = 'createService';
               // Update ecs quickstart record in database with the new load balancer dns
               e.loadBalancerDns = completeEcsQuickstartObject.loadBalancer.dnsName;
@@ -672,32 +672,32 @@ export const AwsEcsQuickstartModule: Module = new Module({
               if (!!completeEcsQuickstartObject.repository) {
                 e.repositoryUri = completeEcsQuickstartObject.repository.repositoryUri;
               }
-              await AwsEcsQuickstartModule.mappers.ecsQuickstart.db.update(e, ctx);
+              await AwsEcsSimplifiedModule.mappers.ecsQuickstart.db.update(e, ctx);
               out.push(e);
             } catch (err: any) {
               // Rollback
               try {
                 switch (step) {
                   case 'createService':
-                    await AwsEcsQuickstartModule.utils.cloud.delete.service(client, completeEcsQuickstartObject.service);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.service(client, completeEcsQuickstartObject.service);
                   case 'createTaskDefinition':
-                    await AwsEcsQuickstartModule.utils.cloud.delete.taskDefinition(client, completeEcsQuickstartObject.taskDefinition);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.taskDefinition(client, completeEcsQuickstartObject.taskDefinition);
                   case 'createCluster':
-                    await AwsEcsQuickstartModule.utils.cloud.delete.cluster(client, completeEcsQuickstartObject.cluster);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.cluster(client, completeEcsQuickstartObject.cluster);
                   case 'createRole':
-                    await AwsEcsQuickstartModule.utils.cloud.delete.role(client, completeEcsQuickstartObject.role);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.role(client, completeEcsQuickstartObject.role);
                   case 'createLogGroup':
-                    await AwsEcsQuickstartModule.utils.cloud.delete.logGroup(client, completeEcsQuickstartObject.logGroup);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.logGroup(client, completeEcsQuickstartObject.logGroup);
                   case 'createListener':
-                    await AwsEcsQuickstartModule.utils.cloud.delete.listener(client, completeEcsQuickstartObject.listener);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.listener(client, completeEcsQuickstartObject.listener);
                   case 'createLoadBalancer':
-                    await AwsEcsQuickstartModule.utils.cloud.delete.loadBalancer(client, completeEcsQuickstartObject.loadBalancer);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.loadBalancer(client, completeEcsQuickstartObject.loadBalancer);
                   case 'createTargetGroup':
-                    await AwsEcsQuickstartModule.utils.cloud.delete.targetGroup(client, completeEcsQuickstartObject.targetGroup);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.targetGroup(client, completeEcsQuickstartObject.targetGroup);
                   case 'createSecurityGroupRules':
-                    await AwsEcsQuickstartModule.utils.cloud.delete.securityGroupRules(client, completeEcsQuickstartObject.securityGroupRules);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroupRules(client, completeEcsQuickstartObject.securityGroupRules);
                   case 'createSecurityGroup':
-                    await AwsEcsQuickstartModule.utils.cloud.delete.securityGroup(client, completeEcsQuickstartObject.securityGroup);
+                    await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroup(client, completeEcsQuickstartObject.securityGroup);
                   default:
                     break;
                 }
@@ -728,28 +728,28 @@ export const AwsEcsQuickstartModule: Module = new Module({
           const validServices = [];
           logger.info(`relevant services = ${JSON.stringify(relevantServices)}`);
           for (const s of relevantServices) {
-            const isValid = await AwsEcsQuickstartModule.utils.isValid(s, ctx);
+            const isValid = await AwsEcsSimplifiedModule.utils.isValid(s, ctx);
             if (isValid) validServices.push(s);
           }
           logger.info(`valid services = ${JSON.stringify(validServices)}`);
           const out = [];
           for (const s of validServices) {
-            out.push(await AwsEcsQuickstartModule.utils.ecsQuickstartMapper(s, ctx));
+            out.push(await AwsEcsSimplifiedModule.utils.ecsQuickstartMapper(s, ctx));
           }
           return out;
         },
-        updateOrReplace: (prev: EcsQuickstart, next: EcsQuickstart) => {
+        updateOrReplace: (prev: EcsSimplified, next: EcsSimplified) => {
           if (!(Object.is(prev?.appPort, next?.appPort) && Object.is(prev?.publicIp, next?.publicIp))) {
             return 'replace';
           }
           return 'update';
         },
-        update: async (es: EcsQuickstart[], ctx: Context) => {
+        update: async (es: EcsSimplified[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
-            const cloudRecord = ctx?.memo?.cloud?.EcsQuickstart?.[e.appName ?? ''];
-            const isUpdate = AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            const cloudRecord = ctx?.memo?.cloud?.EcsSimplified?.[e.appName ?? ''];
+            const isUpdate = AwsEcsSimplifiedModule.mappers.ecsQuickstart.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               const isServiceUpdate = !(Object.is(e.desiredCount, cloudRecord.desiredCount) &&
                 Object.is(e.cpuMem, cloudRecord.cpuMem) &&
@@ -758,11 +758,11 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 Object.is(e.imageDigest, cloudRecord.imageDigest));
               if (!isServiceUpdate) {
                 // Restore values
-                await AwsEcsQuickstartModule.mappers.ecsQuickstart.db.update(cloudRecord, ctx);
+                await AwsEcsSimplifiedModule.mappers.ecsQuickstart.db.update(cloudRecord, ctx);
                 out.push(cloudRecord);
                 continue;
               }
-              const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
+              const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsSimplifiedModule.utils.getEcsQuickstartObject(e);
               // Desired count or task definition and container changes
               const updateServiceInput: any = {
                 service: completeEcsQuickstartObject.service.name,
@@ -780,7 +780,7 @@ export const AwsEcsQuickstartModule: Module = new Module({
                   }
                 } catch (_) {
                   // If the repository does not exists we create it
-                  await AwsEcsQuickstartModule.utils.cloud.create.repository(client, completeEcsQuickstartObject.repository);
+                  await AwsEcsSimplifiedModule.utils.cloud.create.repository(client, completeEcsQuickstartObject.repository);
                 }
               }
               if (!(Object.is(e.cpuMem, cloudRecord.cpuMem) &&
@@ -799,26 +799,26 @@ export const AwsEcsQuickstartModule: Module = new Module({
                 const logGroup = await client.getLogGroups(taskDefinition?.containerDefinitions?.[0]?.logConfiguration?.options?.["awslogs-group"]);
                 completeEcsQuickstartObject.logGroup.logGroupArn = logGroup[0].arn;
                 // Create new task definition
-                const newTaskDefinition = await AwsEcsQuickstartModule.utils.cloud.create.taskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, completeEcsQuickstartObject.repository);
+                const newTaskDefinition = await AwsEcsSimplifiedModule.utils.cloud.create.taskDefinition(client, completeEcsQuickstartObject.taskDefinition, completeEcsQuickstartObject.containerDefinition, completeEcsQuickstartObject.repository);
                 // Set new task definition ARN to service input object
                 updateServiceInput.taskDefinition = newTaskDefinition.taskDefinitionArn ?? '';
               }
               const updatedService = await client.updateService(updateServiceInput);
-              const ecsQs = await AwsEcsQuickstartModule.utils.ecsQuickstartMapper(updatedService, ctx);
-              await AwsEcsQuickstartModule.mappers.ecsQuickstart.db.update(ecsQs, ctx);
+              const ecsQs = await AwsEcsSimplifiedModule.utils.ecsQuickstartMapper(updatedService, ctx);
+              await AwsEcsSimplifiedModule.mappers.ecsQuickstart.db.update(ecsQs, ctx);
               out.push(ecsQs);
             } else {
-              await AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.delete([cloudRecord], ctx);
-              const res = await AwsEcsQuickstartModule.mappers.ecsQuickstart.cloud.create([e], ctx);
+              await AwsEcsSimplifiedModule.mappers.ecsQuickstart.cloud.delete([cloudRecord], ctx);
+              const res = await AwsEcsSimplifiedModule.mappers.ecsQuickstart.cloud.create([e], ctx);
               out.push(...res);
             }
           }
           return out;
         },
-        delete: async (es: EcsQuickstart[], ctx: Context) => {
+        delete: async (es: EcsSimplified[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsQuickstartModule.utils.getEcsQuickstartObject(e);
+            const completeEcsQuickstartObject: EcsQuickstartObject = AwsEcsSimplifiedModule.utils.getEcsQuickstartObject(e);
             const service = await client.getServiceByName(completeEcsQuickstartObject.cluster.clusterName, completeEcsQuickstartObject.service.name);
             completeEcsQuickstartObject.cluster.clusterArn = service?.clusterArn;
             completeEcsQuickstartObject.securityGroup.groupId = service?.networkConfiguration?.awsvpcConfiguration?.securityGroups?.pop();
@@ -828,28 +828,28 @@ export const AwsEcsQuickstartModule: Module = new Module({
             completeEcsQuickstartObject.targetGroup.targetGroupArn = serviceLoadBalancer?.targetGroupArn;
             const targetGroup = await client.getTargetGroup(completeEcsQuickstartObject.targetGroup.targetGroupArn ?? '');
             completeEcsQuickstartObject.loadBalancer.loadBalancerArn = targetGroup?.LoadBalancerArns?.pop();
-            await AwsEcsQuickstartModule.utils.cloud.delete.service(client, completeEcsQuickstartObject.service);
-            await AwsEcsQuickstartModule.utils.cloud.delete.taskDefinition(client, completeEcsQuickstartObject.taskDefinition);
-            await AwsEcsQuickstartModule.utils.cloud.delete.cluster(client, completeEcsQuickstartObject.cluster);
-            await AwsEcsQuickstartModule.utils.cloud.delete.role(client, completeEcsQuickstartObject.role);
-            await AwsEcsQuickstartModule.utils.cloud.delete.logGroup(client, completeEcsQuickstartObject.logGroup);
-            await AwsEcsQuickstartModule.utils.cloud.delete.loadBalancer(client, completeEcsQuickstartObject.loadBalancer);
-            await AwsEcsQuickstartModule.utils.cloud.delete.targetGroup(client, completeEcsQuickstartObject.targetGroup);
-            await AwsEcsQuickstartModule.utils.cloud.delete.securityGroup(client, completeEcsQuickstartObject.securityGroup);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.service(client, completeEcsQuickstartObject.service);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.taskDefinition(client, completeEcsQuickstartObject.taskDefinition);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.cluster(client, completeEcsQuickstartObject.cluster);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.role(client, completeEcsQuickstartObject.role);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.logGroup(client, completeEcsQuickstartObject.logGroup);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.loadBalancer(client, completeEcsQuickstartObject.loadBalancer);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.targetGroup(client, completeEcsQuickstartObject.targetGroup);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroup(client, completeEcsQuickstartObject.securityGroup);
             // Try to delete ECR if any
             if (!!completeEcsQuickstartObject.repository) {
               try {
-                await AwsEcsQuickstartModule.utils.cloud.delete.repository(client, completeEcsQuickstartObject.repository);
+                await AwsEcsSimplifiedModule.utils.cloud.delete.repository(client, completeEcsQuickstartObject.repository);
               } catch (_) {
                 // Do nothing, repository could have images
               }
             } else {
-              const image = AwsEcsQuickstartModule.utils.processImageFromString(e.repositoryUri);
+              const image = AwsEcsSimplifiedModule.utils.processImageFromString(e.repositoryUri);
               // If pattern match, means that we create it and we should try to delete it
               if (image.ecrRepositoryName && Object.is(image.ecrRepositoryName, `${prefix}${e.appName}-ecr`)) {
-                completeEcsQuickstartObject.repository = AwsEcsQuickstartModule.utils.defaultEntityMapper.repository(e.appName);
+                completeEcsQuickstartObject.repository = AwsEcsSimplifiedModule.utils.defaultEntityMapper.repository(e.appName);
                 try {
-                  await AwsEcsQuickstartModule.utils.cloud.delete.repository(client, completeEcsQuickstartObject.repository);
+                  await AwsEcsSimplifiedModule.utils.cloud.delete.repository(client, completeEcsQuickstartObject.repository);
                 } catch (_) {
                   // Do nothing, repository could have images
                 }
