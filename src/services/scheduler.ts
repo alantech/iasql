@@ -148,6 +148,7 @@ export async function stopAll() {
 
 // spin up a worker for every db that this server is already managing
 export async function init() {
+  if (!MetadataRepo.initialized) await MetadataRepo.init(); // Necessary in the child process
   const dbs: IasqlDatabase[] = await MetadataRepo.getAllDbs();
   const inits = await Promise.allSettled(dbs.map(db => start(db.pgName, db.pgUser)));
   for (const bootstrap of inits) {
@@ -156,3 +157,31 @@ export async function init() {
     }
   }
 }
+
+// Primitive RPC between parent and child process. Requires the parent to produce a unique ID per
+// request to pair up to the correct response. May replace with a revived multitransport-jsonrpc?
+process.on('message', (m: string[]) => {
+  const [fn, ...args] = m;
+  switch (fn) {
+    case 'init':
+      init()
+        .then(() => process.send?.(['initComplete', ...args, undefined]))
+        .catch((e) => process.send?.(['initComplete', ...args, e.message]));
+      break;
+    case 'start':
+      start(args[0], args[1])
+        .then(() => process.send?.(['startComplete', ...args, undefined]))
+        .catch((e) => process.send?.(['startComplete', ...args, e.message]));
+      break;
+    case 'stop':
+      stop(args[0])
+        .then(() => process.send?.(['stopComplete', ...args, undefined]))
+        .catch((e) => process.send?.(['stopComplete', ...args, e.message]));
+      break;
+    case 'stopAll':
+      stopAll()
+        .then(() => process.send?.(['stopAllComplete', ...args, undefined]))
+        .catch((e) => process.send?.(['stopAllComplete', ...args, e.message]));
+      break;
+  }
+});

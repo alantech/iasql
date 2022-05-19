@@ -11,6 +11,8 @@ class MetadataRepo {
   private userRepo: Repository<IasqlUser>;
   private dbRepo: Repository<IasqlDatabase>;
 
+  initialized: boolean;
+
   async init() {
     const conn = await createConnection(dbMan.baseConnConfig);
     try {
@@ -33,6 +35,7 @@ class MetadataRepo {
     await this.conn.runMigrations();
     this.userRepo = this.conn.getRepository(IasqlUser);
     this.dbRepo = this.conn.getRepository(IasqlDatabase);
+    this.initialized = true;
   }
 
   async saveDb(a0Id: string, email: string, db: IasqlDatabase): Promise<IasqlDatabase> {

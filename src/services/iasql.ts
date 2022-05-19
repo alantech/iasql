@@ -12,7 +12,7 @@ import { snakeCase, } from 'typeorm/util/StringUtils'
 
 import * as AllModules from '../modules'
 import * as dbMan from './db-manager'
-import * as scheduler from './scheduler'
+import * as scheduler from './scheduler-api'
 import MetadataRepo from './repositories/metadata'
 import config from '../config'
 import logger, { debugObj } from './logger'
@@ -794,17 +794,22 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
     }
   }
   // Check to make sure that all dependent modules are in the list
-  const missingDeps = mods
-    .flatMap((m: Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
-    .filter((m: any) => ![
-      `iasql_platform@${version}`,
-      `iasql_functions@${version}`,
-    ].includes(m) && m !== undefined);
-  if (missingDeps.length > 0) {
-    logger.warn('Automatically attaching missing dependencies to this install', { moduleList, missingDeps, });
-    const extraMods = missingDeps.map((n: string) => (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === n)) as Module[];
-    mods.push(...extraMods);
-  }
+  let missingDeps: string[] = [];
+  do {
+    missingDeps = mods
+      .flatMap((m: Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
+      .filter((m: any) => ![
+        `iasql_platform@${version}`,
+        `iasql_functions@${version}`,
+      ].includes(m) && m !== undefined);
+    if (missingDeps.length > 0) {
+      logger.warn('Automatically attaching missing dependencies to this install', { moduleList, missingDeps, });
+      const extraMods = missingDeps.map((n: string) => (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === n)) as Module[];
+      mods.push(...extraMods);
+      moduleList.push(...extraMods.map(mod => `${mod.name}@${mod.version}`));
+      continue;
+    }
+  } while (missingDeps.length > 0)
   // See if we need to abort because now there's nothing to do
   if (mods.length === 0) {
     logger.warn('All modules already installed', { moduleList, });
