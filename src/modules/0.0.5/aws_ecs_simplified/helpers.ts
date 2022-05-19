@@ -1,45 +1,18 @@
 export function generateResourceName(prefix: string, appName: string, entityClassName: string) {
-  let suffix;
-  switch (entityClassName) {
-    case 'SecurityGroup':
-      suffix = '-sg';
-      break;
-    case 'SecurityGroupRule':
-      suffix = '-sgr';
-      break;
-    case 'TargetGroup':
-      suffix = '-tg';
-      break;
-    case 'LoadBalancer':
-      suffix = '-lb';
-      break;
-    case 'Listener':
-      suffix = '-lsn';
-      break;
-    case 'LogGroup':
-      suffix = '-lg';
-      break;
-    case 'Repository':
-      suffix = '-ecr';
-      break;
-    case 'Role':
-      suffix = '-rl';
-      break;
-    case 'Cluster':
-      suffix = '-cl';
-      break;
-    case 'TaskDefinition':
-      suffix = '-td';
-      break;
-    case 'ContainerDefinition':
-      suffix = '-cd';
-      break;
-    case 'Service':
-      suffix = '-svc';
-      break;
-    default:
-      break;
-  }
+  const suffix = {
+    SecurityGroup: '-sg',
+    SecurityGroupRule: '-sgr',
+    TargetGroup: '-tg',
+    LoadBalancer: '-lb',
+    Listener: '-lsn',
+    LogGroup: '-lg',
+    Repository: '-ecr',
+    Role: '-rl',
+    Cluster: '-cl',
+    TaskDefinition: '-td',
+    ContainderDefinition: '-cd',
+    Service: '-svc',
+  }[entityClassName] ?? '';
   return `${prefix}${appName}${suffix}`;
 };
 
