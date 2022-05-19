@@ -105,9 +105,7 @@ const cloudCreateFns = {
     e.listenerArn = res?.ListenerArn;
     return res;
   },
-  logGroup: async (client: AWS, e: LogGroup) => {
-    return await client.createLogGroup(e.logGroupName);
-  },
+  logGroup: (client: AWS, e: LogGroup) => client.createLogGroup(e.logGroupName),
   repository: async (client: AWS, e: Repository) => {
     const res = await client.createECRRepository({
       repositoryName: e.repositoryName,
