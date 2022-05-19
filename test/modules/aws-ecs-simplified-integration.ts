@@ -139,7 +139,7 @@ describe('ECS Simplified Integration Testing', () => {
 
   it('applies row update and should restore using the right repository uri', apply());
 
-  it('check row was updated and restored', query(`
+  it('check that the repository_uri has been restored with the same repository', query(`
     SELECT *
     FROM ecs_simplified
     WHERE app_name = '${appName}';
