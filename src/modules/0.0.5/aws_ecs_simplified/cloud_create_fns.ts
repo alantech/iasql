@@ -137,12 +137,7 @@ const cloudCreateFns = {
   },
   taskDefinition: async (client: AWS, td: TaskDefinition, cd: ContainerDefinition, repository?: Repository) => {
     const container: any = { ...cd };
-    let imageName;
-    if (repository) {
-      imageName = repository.repositoryUri;
-    } else {
-      imageName = cd.image;
-    }
+    const imageName = !!repository ? repository.repositoryUri : cd.image;
     if (cd.tag) {
       container.image = `${imageName}:${cd.tag}`;
     } else if (cd.digest) {
