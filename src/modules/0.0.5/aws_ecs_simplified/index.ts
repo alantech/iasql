@@ -1,5 +1,5 @@
 import { AWS, } from '../../../services/gateways/aws'
-import logger, { debugObj } from '../../../services/logger'
+import logger from '../../../services/logger'
 import { EcsSimplified } from './entity'
 import { Context, Crud, Mapper, Module, } from '../../interfaces'
 import * as metadata from './module.json'
