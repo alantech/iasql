@@ -35,11 +35,14 @@ export const AwsS3Module: Module = new Module({
         // as the user can't change the create timestamp themselves, so just restore the record from
         // the cloud cache and force it into the DB cache
         update: async (es: Bucket[], ctx: Context) => {
+          const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Bucket?.[e.name ?? ''];
             await AwsS3Module.mappers.bucket.db.update(cloudRecord, ctx);
             ctx.memo.db.Bucket[cloudRecord.name] = cloudRecord;
+            out.push(cloudRecord);
           }
+          return out;
         },
         delete: async (es: Bucket[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
