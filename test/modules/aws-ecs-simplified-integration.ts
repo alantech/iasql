@@ -82,9 +82,9 @@ describe('ECS Simplified Integration Testing', () => {
     WHERE app_name = '${appName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('uninstalls the ECS module', uninstall(modules));
+  it('uninstalls the ECS Simplified module', uninstall(modules));
 
-  it('installs the ECS module', install(modules));
+  it('installs the ECS Simplified module', install(modules));
 
   it('check row was imported after uninstall/install', query(`
     SELECT *
@@ -196,9 +196,9 @@ describe('ECS Simplified install/uninstall', () => {
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `));
 
-  it('installs the ECS module', install(modules));
+  it('installs the ECS Simplified module', install(modules));
 
-  it('uninstalls the ECS module', uninstall(modules));
+  it('uninstalls the ECS Simplified module', uninstall(modules));
 
   it('installs all modules', (done) => void iasql.install(
     [],
@@ -206,9 +206,9 @@ describe('ECS Simplified install/uninstall', () => {
     config.db.user,
     true).then(...finish(done)));
 
-  it('uninstalls the ECS module', uninstall(modules));
+  it('uninstalls the ECS Simplified module', uninstall(modules));
 
-  it('installs the ECS module', install(modules));
+  it('installs the ECS Simplified module', install(modules));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
