@@ -162,6 +162,12 @@ import {
   ImportCertificateCommandInput,
   paginateListCertificates
 } from '@aws-sdk/client-acm'
+import {
+  S3Client,
+  ListBucketsCommand,
+  CreateBucketCommand,
+  DeleteBucketCommand,
+} from '@aws-sdk/client-s3'
 
 import logger from '../logger'
 
@@ -188,6 +194,7 @@ export class AWS {
   private route53Client: Route53Client
   private iamClient: IAM;
   private acmClient: ACMClient
+  private s3Client: S3Client
   private credentials: AWSCreds
   public region: string
 
@@ -203,7 +210,9 @@ export class AWS {
     this.route53Client = new Route53Client(config);
     this.iamClient = new IAM(config);
     this.acmClient = new ACMClient(config);
-    // Service endpoint only available in 'us-esat-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
+    // Technically available in multiple regions but with weird constraints, and the default is us-east-1
+    this.s3Client = new S3Client({ ...config, region: 'us-east-1', });
+    // Service endpoint only available in 'us-east-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
     this.ecrPubClient = new ECRPUBLICClient({credentials: config.credentials, region: 'us-east-1'});
   }
 
@@ -1725,6 +1734,31 @@ export class AWS {
       i++;
     } while (!certificates.includes(arn) && i < 30);
     return arn;
+  }
+
+  async getBuckets() {
+    const res = await this.s3Client.send(
+      new ListBucketsCommand({})
+    );
+    return res.Buckets ?? [];
+  }
+
+  async createBucket(name: string) {
+    const res = await this.s3Client.send(
+      new CreateBucketCommand({
+        Bucket: name, // Even the little things are inconsistent with the AWS API
+      })
+    );
+    return res;
+  }
+
+  async deleteBucket(name: string) {
+    const res = await this.s3Client.send(
+      new DeleteBucketCommand({
+        Bucket: name,
+      })
+    );
+    return res;
   }
 
 }
