@@ -25,7 +25,7 @@ export const AwsS3Module: Module = new Module({
           return allBuckets
             .filter(b => !ids || ids.length === 0 || ids.includes(b.Name ?? ''))
             .map(b => {
-              const bucket = new Bucket;
+              const bucket = new Bucket();
               bucket.name = b.Name ?? '';
               bucket.createdAt = b.CreationDate;
               return bucket;
