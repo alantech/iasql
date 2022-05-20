@@ -32,7 +32,7 @@ const entities = sortedDeps.map(d => `${__dirname}/../modules/${moduleVersion}/$
 
   for (const dep of sortedDeps) {
     console.log(`Adding ${dep.name}...`);
-    const migrationClass = getModMigration(dep.name, dep.version);
+    const migrationClass = getModMigration(dep.name, moduleVersion);
     await migrationClass.prototype.up(qr);
   }
   console.log('Done!');

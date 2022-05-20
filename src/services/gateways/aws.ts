@@ -501,6 +501,27 @@ export class AWS {
     };
   }
 
+  async getSecurityGroupRulesByGroupId(groupId: string) {
+    const securityGroupRules = [];
+    const paginator = paginateDescribeSecurityGroupRules({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {
+      Filters: [
+        {
+          Name: 'group-id',
+          Values: [groupId],
+        }
+      ]
+    });
+    for await (const page of paginator) {
+      securityGroupRules.push(...(page.SecurityGroupRules ?? []));
+    }
+    return {
+      SecurityGroupRules: securityGroupRules, // Make it "look like" the regular query again
+    };
+  }
+
   async getSecurityGroupRule(id: string) {
     const rule = await this.ec2client.send(
       new DescribeSecurityGroupRulesCommand({ SecurityGroupRuleIds: [id], })
@@ -914,6 +935,27 @@ export class AWS {
     };
   }
 
+  async getSubnetsByVpcId(vpcId: string) {
+    const subnets = [];
+    const paginator = paginateDescribeSubnets({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {
+      Filters: [
+        {
+          Name: 'vpc-id',
+          Values: [vpcId]
+        }
+      ],
+    });
+    for await (const page of paginator) {
+      subnets.push(...(page.Subnets ?? []));
+    }
+    return {
+      Subnets: subnets,
+    };
+  }
+
   async getSubnet(id: string) {
     const subnets = await this.ec2client.send(
       new DescribeSubnetsCommand({ SubnetIds: [id], })
@@ -1170,6 +1212,44 @@ export class AWS {
       })
     );
     return result.services?.[0];
+  }
+
+  async getServiceByName(cluster: string, name: string) {
+    const services = [];
+    const serviceArns: string[] = [];
+    const paginator = paginateListServices({
+      client: this.ecsClient,
+    }, {
+      cluster,
+      maxResults: 100,
+    });
+    for await (const page of paginator) {
+      serviceArns.push(...(page.serviceArns ?? []));
+    }
+    if (serviceArns.length) {
+      const batchSize = 10; // Following AWS directions
+      if (serviceArns.length > batchSize) {
+        for (let i = 0; i < serviceArns.length; i += batchSize) {
+          const batch = serviceArns.slice(i, i + batchSize);
+          const result = await this.ecsClient.send(
+            new DescribeServicesCommand({
+              cluster,
+              services: batch
+            })
+          );
+          services.push(...(result.services ?? []));
+        }
+      } else {
+        const result = await this.ecsClient.send(
+          new DescribeServicesCommand({
+            cluster,
+            services: serviceArns
+          })
+        );
+        services.push(...(result.services ?? []));
+      }
+    }
+    return services.find(s => Object.is(s.serviceName, name));
   }
 
   async deleteService(name: string, cluster: string, tasksArns: string[]) {
