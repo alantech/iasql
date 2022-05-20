@@ -10,7 +10,7 @@ export function generateResourceName(prefix: string, appName: string, entityClas
     Role: '-rl',
     Cluster: '-cl',
     TaskDefinition: '-td',
-    ContainderDefinition: '-cd',
+    ContainerDefinition: '-cd',
     Service: '-svc',
   }[entityClassName] ?? '';
   return `${prefix}${appName}${suffix}`;
