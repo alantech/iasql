@@ -145,52 +145,37 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-LambdaFunction-Caller
       Handler: index.handler
       Role: !GetAtt rLambdaRole.Arn
-      Runtime: python3.6
+      Runtime: nodejs14.x
       Timeout: 60
       Code:
         ZipFile: !Sub |
-          import boto3, json
-          import cfnresponse
+          const cfnResponse = require('cfn-response');
+          const AWS = require('aws-sdk');
+          AWS.config.region = '${pAwsRegion}';
+          const lambda = new AWS.Lambda();
 
-          def handler(event, context):
-              print('EVENT:')
-              print(event)
-
-              responseValue = ''
-
-              if event['RequestType'] == "Create":
-                lambda_client = boto3.client('lambda')
-
-                cfn_event = {
-                  "caller": "true"
+          exports.handler = function(event, context) {
+            const params = {
+              FunctionName: '${AWS::StackName}-LambdaFunction',
+              InvocationType: 'RequestResponse',
+              Payload: '{ "caller" : "true" }'
+            };
+            try {
+              lambda.invoke(params, function(err, data) {
+                let response;
+                if (err) {
+                  response = err.message ?? 'An error executing the function ocurred.';
+                } else {
+                  response = data.Payload;
                 }
-
-                response = lambda_client.invoke(
-                  FunctionName='${AWS::StackName}-LambdaFunction',
-                  InvocationType='RequestResponse',
-                  Payload=json.dumps(cfn_event)
-                )
-
-                print('response')
-                print(response)
-                
-                if 'FunctionError' in response:
-                  responseValue = str(response["Payload"].read())
-                else:
-                  try:
-                    responseValue = json.loads(response["Payload"].read())
-                  except:
-                    try:
-                      responseValue = str(response["Payload"].read())
-                    except:
-                      responseValue = 'An error executing the function ocurred.'
-
-              print('responseValue')
-              print(responseValue)
-              responseData = {}
-              responseData['Data'] = responseValue
-              cfnresponse.send(event, context, cfnresponse.SUCCESS, 
-                responseData, 'rFunctionCaller')
+                const responseData = { Data: response };
+                cfnResponse.send(event, context, cfnResponse.SUCCESS, responseData, 'rFunctionCaller');
+              });
+            } catch (e) {
+              const responseData = { Data: e.message ?? 'An error executing the function ocurred.' }
+              cfnResponse.send(event, context, cfnResponse.SUCCESS, responseData, 'rFunctionCaller');
+            }
+          };
     
   ####
   #### Lambda Function caller
