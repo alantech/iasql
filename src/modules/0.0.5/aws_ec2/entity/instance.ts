@@ -13,6 +13,7 @@ import {
 import { SecurityGroup, } from '../../aws_security_group/entity';
 import { cloudId, } from '../../../../services/cloud-id'
 
+// TODO complete instance schema
 @Entity()
 export class Instance {
   @PrimaryGeneratedColumn()
