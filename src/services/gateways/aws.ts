@@ -360,7 +360,7 @@ export class AWS {
   async newInstanceV2(instanceType: string, amiId: string, securityGroupIds: string[], keyPairName?: string, tags?: { [key: string] : string }): Promise<string> {
     let tgs: Tag[] = [];
     if (tags) {
-      tags['owner'] = 'iasql-engine';
+      tags.owner = 'iasql-engine';
       tgs = Object.keys(tags).map(k => {
         return {
           Key: k, Value: tags[k]
