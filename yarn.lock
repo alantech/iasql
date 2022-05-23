@@ -273,16 +273,16 @@
     tslib "^2.3.1"
     uuid "^8.3.2"
 
-"@aws-sdk/client-ecr-public@^3.85.0":
-  version "3.92.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-ecr-public/-/client-ecr-public-3.92.0.tgz#1bd73b5e8670f17b83ef9ce51104f05e91f445ec"
-  integrity sha512-uGRB/hdhBfGVDkxMmTvcuhnGx7rxwFxFfhp9nPZhf9qBh8NJfi9wuCCk2IpA0V49D635n5t8RW8P0y/Q6RX5pg==
+"@aws-sdk/client-ecr-public@^3.95.0":
+  version "3.95.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-ecr-public/-/client-ecr-public-3.95.0.tgz#e7cf90e8ab87fe93ca84e32e95827fbe275b46d0"
+  integrity sha512-R4OQjgBxzbMNl2vyfecNpB1PhUrFK9DGqhvo8X8J86r9QuKE6meGlaXdRXS2zHalL79nfR7pBChwhoVV2l4dLQ==
   dependencies:
     "@aws-crypto/sha256-browser" "2.0.0"
     "@aws-crypto/sha256-js" "2.0.0"
-    "@aws-sdk/client-sts" "3.92.0"
+    "@aws-sdk/client-sts" "3.95.0"
     "@aws-sdk/config-resolver" "3.80.0"
-    "@aws-sdk/credential-provider-node" "3.87.0"
+    "@aws-sdk/credential-provider-node" "3.95.0"
     "@aws-sdk/fetch-http-handler" "3.78.0"
     "@aws-sdk/hash-node" "3.78.0"
     "@aws-sdk/invalid-dependency" "3.78.0"
@@ -295,7 +295,7 @@
     "@aws-sdk/middleware-stack" "3.78.0"
     "@aws-sdk/middleware-user-agent" "3.78.0"
     "@aws-sdk/node-config-provider" "3.80.0"
-    "@aws-sdk/node-http-handler" "3.82.0"
+    "@aws-sdk/node-http-handler" "3.94.0"
     "@aws-sdk/protocol-http" "3.78.0"
     "@aws-sdk/smithy-client" "3.85.0"
     "@aws-sdk/types" "3.78.0"
