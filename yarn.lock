@@ -434,16 +434,16 @@
     fast-xml-parser "3.19.0"
     tslib "^2.3.1"
 
-"@aws-sdk/client-iam@^3.82.0":
-  version "3.92.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-iam/-/client-iam-3.92.0.tgz#2679d7ab781cf619f1e0546829010cf64e122c09"
-  integrity sha512-z0kJPosc045kAiRG0LxgrEZW8KQDkaentSzj4DgbTooVIVEh+KW+R+RBxQj0I2u7DNheasWJMxSpG5Cvo1W5TQ==
+"@aws-sdk/client-iam@^3.95.0":
+  version "3.95.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-iam/-/client-iam-3.95.0.tgz#3afdd53c064832011497d7d09f77c003c30d52f9"
+  integrity sha512-YcP20A701Y5aJEwasygQ8Uh9qTrzGb/SSXofXHPBMiKdDKpjqjJnTQFNKtMQgZfWXQKG6RUneyG/5J9saLo6Eg==
   dependencies:
     "@aws-crypto/sha256-browser" "2.0.0"
     "@aws-crypto/sha256-js" "2.0.0"
-    "@aws-sdk/client-sts" "3.92.0"
+    "@aws-sdk/client-sts" "3.95.0"
     "@aws-sdk/config-resolver" "3.80.0"
-    "@aws-sdk/credential-provider-node" "3.87.0"
+    "@aws-sdk/credential-provider-node" "3.95.0"
     "@aws-sdk/fetch-http-handler" "3.78.0"
     "@aws-sdk/hash-node" "3.78.0"
     "@aws-sdk/invalid-dependency" "3.78.0"
@@ -456,7 +456,7 @@
     "@aws-sdk/middleware-stack" "3.78.0"
     "@aws-sdk/middleware-user-agent" "3.78.0"
     "@aws-sdk/node-config-provider" "3.80.0"
-    "@aws-sdk/node-http-handler" "3.82.0"
+    "@aws-sdk/node-http-handler" "3.94.0"
     "@aws-sdk/protocol-http" "3.78.0"
     "@aws-sdk/smithy-client" "3.85.0"
     "@aws-sdk/types" "3.78.0"
