@@ -28,11 +28,6 @@ export class Instance {
   @Column()
   ami: string;
 
-  @Column({
-    unique: true,
-  })
-  name: string;
-
   @Column()
   instanceType: string;
 
@@ -40,6 +35,12 @@ export class Instance {
     nullable: true,
   })
   keyPairName: string;
+
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  tags?: { [key: string]: string }
 
   @ManyToMany(() => SecurityGroup, { eager: true, })
   @JoinTable({

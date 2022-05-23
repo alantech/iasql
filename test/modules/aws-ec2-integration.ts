@@ -49,18 +49,18 @@ describe('EC2 Integration Testing', () => {
   it('adds two ec2 instance', (done) => {
     query(`
       BEGIN;
-        INSERT INTO instance (name, ami, instance_type)
-          VALUES ('i-1','${ubuntuAmiId}', 't2.micro');
+        INSERT INTO instance (ami, instance_type, tags)
+          VALUES ('${ubuntuAmiId}', 't2.micro', '{"name":"i-1"}');
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-          (SELECT id FROM instance WHERE name='i-1'),
+          (SELECT id FROM instance WHERE tags ->> 'name' = 'i-1'),
           (SELECT id FROM security_group WHERE group_name='default');
       COMMIT;
 
       BEGIN;
-        INSERT INTO instance (name, ami, instance_type)
-          VALUES ('i-2','${amznAmiId}', 't2.micro');
+        INSERT INTO instance (ami, instance_type, tags)
+          VALUES ('${amznAmiId}', 't2.micro', '{"name":"i-2"}');
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-          (SELECT id FROM instance WHERE name='i-2'),
+          (SELECT id FROM instance WHERE tags ->> 'name' = 'i-2'),
           (SELECT id FROM security_group WHERE group_name='default');
       COMMIT;
     `)((e?: any) => {
@@ -74,26 +74,27 @@ describe('EC2 Integration Testing', () => {
   it('check number of instances', query(`
     SELECT *
     FROM instance
-    WHERE name = ANY(array['i-1', 'i-2']);
+    WHERE tags ->> 'name' = 'i-1' OR
+    tags ->> 'name' = 'i-2';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('adds two ec2 instance', (done) => {
     query(`
-      BEGIN;
-        INSERT INTO instance (name, ami, instance_type)
-          VALUES ('i-1','${ubuntuAmiId}', 't2.micro');
-        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-          (SELECT id FROM instance WHERE name='i-1'),
-          (SELECT id FROM security_group WHERE group_name='default');
-      COMMIT;
+    BEGIN;
+      INSERT INTO instance (ami, instance_type, tags)
+        VALUES ('${ubuntuAmiId}', 't2.micro', '{"name":"i-1"}');
+      INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+        (SELECT id FROM instance WHERE tags ->> 'name' = 'i-1'),
+        (SELECT id FROM security_group WHERE group_name='default');
+    COMMIT;
 
-      BEGIN;
-        INSERT INTO instance (name, ami, instance_type)
-          VALUES ('i-2','${amznAmiId}', 't2.micro');
-        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-          (SELECT id FROM instance WHERE name='i-2'),
-          (SELECT id FROM security_group WHERE group_name='default');
-      COMMIT;
+    BEGIN;
+      INSERT INTO instance (ami, instance_type, tags)
+        VALUES ('${amznAmiId}', 't2.micro', '{"name":"i-2"}');
+      INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+        (SELECT id FROM instance WHERE tags ->> 'name' = 'i-2'),
+        (SELECT id FROM security_group WHERE group_name='default');
+    COMMIT;
     `)((e?: any) => {
       if (!!e) return done(e);
       done();
@@ -103,7 +104,8 @@ describe('EC2 Integration Testing', () => {
   it('check number of instances', query(`
     SELECT *
     FROM instance
-    WHERE name = ANY(array['i-1', 'i-2']);
+    WHERE tags ->> 'name' = 'i-1' OR
+    tags ->> 'name' = 'i-2';
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('applies the created instances', apply());
@@ -111,7 +113,7 @@ describe('EC2 Integration Testing', () => {
   it('syncs the changes from the first database to the second', runSync(`${dbAlias}_sync`));
 
   it('set both ec2 instances to the same ami', query(`
-    UPDATE instance SET ami = '${amznAmiId}' WHERE name = 'i-1';
+    UPDATE instance SET ami = '${amznAmiId}' WHERE tags ->> 'name' = 'i-1';
   `));
 
   it('applies the instances change', apply());

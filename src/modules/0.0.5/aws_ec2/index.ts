@@ -1,19 +1,22 @@
-import { Instance as InstanceAWS, } from '@aws-sdk/client-ec2'
+import { Instance as AWSInstance } from '@aws-sdk/client-ec2'
 
-import { Instance, } from './entity'
+import { Instance } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
-import { AWS, IASQL_EC2_TAG_NAME } from '../../../services/gateways/aws'
+import { AWS } from '../../../services/gateways/aws'
 import { Context, Crud, Mapper, Module, } from '../../interfaces'
 import * as metadata from './module.json'
 
 export const AwsEc2Module: Module = new Module({
   ...metadata,
   utils: {
-    instanceMapper: async (instance: InstanceAWS, ctx: Context) => {
+    instanceMapper: async (instance: AWSInstance, ctx: Context) => {
       const out = new Instance();
       out.instanceId = instance.InstanceId;
-      // for instances created outside IaSQL, set the name to the instance ID
-      out.name = instance.Tags?.filter(t => t.Key === IASQL_EC2_TAG_NAME && t.Value !== undefined).pop()?.Value ?? (instance.InstanceId ?? '');
+      const tags: {[key: string]: string} = {};
+      (instance.Tags || []).filter(t => !!t.Key && !!t.Value).forEach(t => {
+        tags[t.Key as string] = t.Value as string;
+      });
+      out.tags = tags;
       out.ami = instance.ImageId ?? '';
       if (instance.KeyName) out.keyPairName = instance.KeyName;
       out.instanceType = instance.InstanceType ?? '';
@@ -28,11 +31,12 @@ export const AwsEc2Module: Module = new Module({
   mappers: {
     instance: new Mapper<Instance>({
       entity: Instance,
-      equals: (a: Instance, b: Instance) => Object.is(a.name, b.name) &&
-        Object.is(a.instanceId, b.instanceId) &&
+      equals: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
         Object.is(a.ami, b.ami) &&
         Object.is(a.instanceType, b.instanceType) &&
         Object.is(a.keyPairName, b.keyPairName) &&
+        Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
+        Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]) &&
         Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
         a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
       source: 'db',
@@ -41,11 +45,12 @@ export const AwsEc2Module: Module = new Module({
           const client = await ctx.getAwsClient() as AWS;
           for (const instance of es) {
             if (instance.ami) {
-              const instanceId = await client.newInstance(
-                instance.name,
+              const instanceId = await client.newInstanceV2(
                 instance.instanceType,
                 instance.ami,
                 instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[],
+                instance.keyPairName,
+                instance.tags
               );
               if (!instanceId) { // then who?
                 throw new Error('should not be possible');
@@ -77,7 +82,7 @@ export const AwsEc2Module: Module = new Module({
         update: async (es: Instance[], ctx: Context) => {
           const out = [];
           for (const e of es) {
-            const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? e.name];
+            const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? ''];
             const created = await AwsEc2Module.mappers.instance.cloud.create([e], ctx);
             await AwsEc2Module.mappers.instance.cloud.delete([cloudRecord], ctx);
             out.push(created);

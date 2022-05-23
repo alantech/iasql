@@ -45,6 +45,8 @@ import {
   paginateDescribeSubnets,
   paginateDescribeVpcs,
   DescribeNetworkInterfacesCommand,
+  EC2,
+  Tag,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -184,7 +186,7 @@ type AWSConfig = {
 export const IASQL_EC2_TAG_NAME = 'IaSQL_Name';
 
 export class AWS {
-  private ec2client: EC2Client
+  private ec2client: EC2
   private ecrClient: ECRClient
   private elbClient: ElasticLoadBalancingV2Client
   private ecsClient: ECSClient
@@ -201,7 +203,7 @@ export class AWS {
   constructor(config: AWSConfig) {
     this.credentials = config.credentials;
     this.region = config.region;
-    this.ec2client = new EC2Client(config);
+    this.ec2client = new EC2(config);
     this.ecrClient = new ECRClient(config);
     this.elbClient = new ElasticLoadBalancingV2Client(config);
     this.ecsClient = new ECSClient(config);
@@ -313,6 +315,68 @@ export class AWS {
             { Key: IASQL_EC2_TAG_NAME, Value: name },
             { Key: 'owner', Value: 'iasql-change-engine' },
           ],
+        },
+      ],
+      UserData: undefined,
+    };
+    if (keyPairName) instanceParams.KeyName = keyPairName;
+    const create = await this.ec2client.send(
+      new RunInstancesCommand(instanceParams),
+    );
+    const instanceIds: string[] | undefined = create.Instances?.map((i) => i?.InstanceId ?? '');
+    const input = new DescribeInstancesCommand({
+      InstanceIds: instanceIds,
+    });
+    // TODO: should we use the paginator instead?
+    await createWaiter<EC2Client, DescribeInstancesCommand>(
+      {
+        client: this.ec2client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const reservation of data?.Reservations ?? []) {
+            for (const instance of reservation?.Instances ?? []) {
+              if (instance.PublicIpAddress === undefined)
+                return { state: WaiterState.RETRY };
+            }
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
+    );
+    return instanceIds?.pop() ?? ''
+  }
+
+  async newInstanceV2(instanceType: string, amiId: string, securityGroupIds: string[], keyPairName?: string, tags?: { [key: string] : string }): Promise<string> {
+    let tgs: Tag[] = [];
+    if (tags) {
+      tags.owner = 'iasql-engine';
+      tgs = Object.keys(tags).map(k => {
+        return {
+          Key: k, Value: tags[k]
+        }
+      });
+    }
+    const instanceParams: RunInstancesCommandInput = {
+      ImageId: amiId,
+      InstanceType: instanceType,
+      MinCount: 1,
+      MaxCount: 1,
+      SecurityGroupIds: securityGroupIds,
+      TagSpecifications: [
+        {
+          ResourceType: 'instance',
+          Tags: tgs,
         },
       ],
       UserData: undefined,

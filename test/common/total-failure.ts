@@ -63,16 +63,16 @@ describe('Testing failure path', () => {
 
   it('insert a new instance with wrong values', query(`
     BEGIN;
-      INSERT INTO instance (name, ami, instance_type)
-      VALUES ('i-1','fake', 't2.micro');
+      INSERT INTO instance (ami, instance_type, tags)
+        VALUES ('fake', 't2.micro', '{"name":"i-1"}');
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-        (SELECT id FROM instance WHERE name='i-1'),
+        (SELECT id FROM instance WHERE tags ->> 'name' = 'i-1'),
         (SELECT id FROM security_group WHERE group_name='default');
 
-      INSERT INTO instance (name, ami, instance_type)
-      VALUES ('i-2','ami-0892d3c7ee96c0bf7', 't2.micr');
+      INSERT INTO instance (ami, instance_type, tags)
+        VALUES ('ami-0892d3c7ee96c0bf7', 't2.micr', '{"name":"i-2"}');
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-        (SELECT id FROM instance WHERE name='i-2'),
+        (SELECT id FROM instance WHERE tags ->> 'name' = 'i-2'),
         (SELECT id FROM security_group WHERE group_name='default');
     COMMIT;
   `));
@@ -80,7 +80,7 @@ describe('Testing failure path', () => {
   it('check number of instances', query(`
     SELECT *
     FROM instance
-    WHERE name = ANY(array['i-1']);
+    WHERE tags ->> 'name' = 'i-1';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('fails to apply', (done) => {
