@@ -40,7 +40,7 @@ export class Instance {
     type: 'json',
     nullable: true,
   })
-  tags: { [key: string]: string }
+  tags?: { [key: string]: string }
 
   @ManyToMany(() => SecurityGroup, { eager: true, })
   @JoinTable({

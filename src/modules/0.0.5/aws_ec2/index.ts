@@ -12,10 +12,11 @@ export const AwsEc2Module: Module = new Module({
     instanceMapper: async (instance: AWSInstance, ctx: Context) => {
       const out = new Instance();
       out.instanceId = instance.InstanceId;
-      out.tags = {};
+      const tags: {[key: string]: string} = {};
       (instance.Tags || []).filter(t => !!t.Key && !!t.Value).forEach(t => {
-        out.tags[t.Key as string] = t.Value as string;
+        tags[t.Key as string] = t.Value as string;
       });
+      out.tags = tags;
       out.ami = instance.ImageId ?? '';
       if (instance.KeyName) out.keyPairName = instance.KeyName;
       out.instanceType = instance.InstanceType ?? '';
@@ -34,8 +35,8 @@ export const AwsEc2Module: Module = new Module({
         Object.is(a.ami, b.ami) &&
         Object.is(a.instanceType, b.instanceType) &&
         Object.is(a.keyPairName, b.keyPairName) &&
-        Object.is(Object.keys(a.tags)?.length, Object.keys(b.tags)?.length) &&
-        Object.keys(a.tags)?.every(ak => a.tags[ak] === b.tags[ak]) &&
+        Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
+        Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]) &&
         Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
         a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
       source: 'db',
