@@ -2012,10 +2012,10 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
-"@logdna/logger@^2.6.4":
-  version "2.6.4"
-  resolved "https://registry.yarnpkg.com/@logdna/logger/-/logger-2.6.4.tgz#4676d10cc1bd11f66977747b299da70994e3a66e"
-  integrity sha512-tFOFvw7ardbzZft5IzBEa320t3jOBdJFL6CGxHk5ZLjo2Sh30gCxrlYdCbYBIh3qsNzYPOBNXn36L17PeIyEWg==
+"@logdna/logger@^2.6.5":
+  version "2.6.5"
+  resolved "https://registry.yarnpkg.com/@logdna/logger/-/logger-2.6.5.tgz#9366976269ede1081eda049ececef9e6186f79ca"
+  integrity sha512-XQ73dOFly0vWngv/LOy0wW+o6cxfMW6HCTFq6tmM8lToK1RV5Nqj90kfC3D0t51536lbWPn+ENhMRFb1tqmhZw==
   dependencies:
     "@logdna/stdlib" "^1.1.5"
     agentkeepalive "^4.1.3"
