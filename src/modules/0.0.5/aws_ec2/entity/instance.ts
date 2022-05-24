@@ -2,6 +2,7 @@ import {
   AfterLoad,
   AfterInsert,
   AfterUpdate,
+  Check,
   Column,
   Entity,
   JoinTable,
@@ -13,7 +14,16 @@ import {
 import { SecurityGroup, } from '../../aws_security_group/entity';
 import { cloudId, } from '../../../../services/cloud-id'
 
-// TODO complete instance schema
+// "terminated" is ommittted because that is achieved by deleting the row
+// "pending", "shutting-down", "stopping" are ommitted because they are interim states
+export enum State {
+  RUNNING = "running",
+  STOPPED = "stopped",
+  HIBERNATED = "hibernated",
+}
+
+// "hibernatable" = true is needed to set the "hibernated" state
+@Check(`("hibernatable" = false and "state" != 'hibernated') or "hibernatable" = true`)
 @Entity()
 export class Instance {
   @PrimaryGeneratedColumn()
@@ -34,19 +44,32 @@ export class Instance {
   @Column({
     nullable: true,
   })
-  keyPairName: string;
+  keyPairName?: string;
+
+  @Column({
+    type: 'enum',
+    enum: State,
+    default: State.RUNNING
+  })
+  state: State;
+
+  @Column({
+    type: 'bool',
+    default: false,
+  })
+  hibernatable: boolean;
 
   @Column({
     type: 'json',
     nullable: true,
   })
-  tags?: { [key: string]: string }
+  tags?: { [key: string]: string };
 
   @ManyToMany(() => SecurityGroup, { eager: true, })
   @JoinTable({
     name: 'instance_security_groups',
   })
-  securityGroups: SecurityGroup[]
+  securityGroups: SecurityGroup[];
 
   @AfterLoad()
   @AfterInsert()
@@ -58,3 +81,31 @@ export class Instance {
     });
   }
 }
+
+// TODO implement spot instance support
+// https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SpotMarketOptions.html
+// export enum SpotType {
+//   ONE_TIME = "one-time",
+//   PERSISTENT = "peristent",
+// }
+
+// export enum SpotInterruptionBehavior {
+//   HIBERNATE = "hibernate",
+//   STOP = "stop",
+//   TERMINATE = "terminate",
+// }
+
+// @Entity()
+// export class SpotInstanceRequest {
+//     @Column({
+//     type: 'enum',
+//     enum: SpotType,
+//   })
+//   SpotType?: SpotType;
+
+//   @Column({
+//     type: 'enum',
+//     enum: SpotInterruptionBehavior,
+//   })
+//   spotInterruptionBehavior?: SpotInterruptionBehavior;
+// }

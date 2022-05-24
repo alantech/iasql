@@ -357,7 +357,97 @@ export class AWS {
     return instanceIds?.pop() ?? ''
   }
 
-  async newInstanceV2(instanceType: string, amiId: string, securityGroupIds: string[], keyPairName?: string, tags?: { [key: string] : string }): Promise<string> {
+  async updateTags(instanceId: string, tags: { [key: string] : string }) {
+    let tgs: Tag[] = [];
+    if (tags) {
+      tgs = Object.keys(tags).map(k => {
+        return {
+          Key: k, Value: tags[k]
+        }
+      });
+    }
+    // recreate tags
+    await this.ec2client.deleteTags({
+      Resources: [instanceId],
+    });
+    await this.ec2client.createTags({
+      Resources: [instanceId],
+      Tags: tgs,
+    })
+  }
+
+  async startInstance(instanceId: string) {
+    await this.ec2client.startInstances({
+      InstanceIds: [instanceId],
+    });
+    const input = new DescribeInstancesCommand({
+      InstanceIds: [instanceId],
+    });
+    await createWaiter<EC2Client, DescribeInstancesCommand>(
+      {
+        client: this.ec2client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const reservation of data?.Reservations ?? []) {
+            for (const instance of reservation?.Instances ?? []) {
+              if (instance.State !== 'running')
+                return { state: WaiterState.RETRY };
+            }
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.SUCCESS };
+          throw e;
+        }
+      },
+    );
+  }
+
+  async stopInstance(instanceId: string, hibernate = false) {
+    await this.ec2client.stopInstances({
+      InstanceIds: [instanceId],
+      Hibernate: hibernate,
+    });
+    const input = new DescribeInstancesCommand({
+      InstanceIds: [instanceId],
+    });
+    await createWaiter<EC2Client, DescribeInstancesCommand>(
+      {
+        client: this.ec2client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const reservation of data?.Reservations ?? []) {
+            for (const instance of reservation?.Instances ?? []) {
+              if (instance.State !== 'stopped')
+                return { state: WaiterState.RETRY };
+            }
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.SUCCESS };
+          throw e;
+        }
+      },
+    );
+  }
+
+  async newInstanceV2(instanceType: string, amiId: string, securityGroupIds: string[], hibernatable: boolean, keyPairName?: string, tags?: { [key: string] : string }): Promise<string> {
     let tgs: Tag[] = [];
     if (tags) {
       tags.owner = 'iasql-engine';
@@ -379,6 +469,9 @@ export class AWS {
           Tags: tgs,
         },
       ],
+      HibernationOptions: {
+        Configured: hibernatable,
+      },
       UserData: undefined,
     };
     if (keyPairName) instanceParams.KeyName = keyPairName;
