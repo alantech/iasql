@@ -397,7 +397,7 @@ export class AWS {
           const data = await client.send(cmd);
           for (const reservation of data?.Reservations ?? []) {
             for (const instance of reservation?.Instances ?? []) {
-              if (instance.State !== 'running')
+              if (instance.State?.Name !== 'running')
                 return { state: WaiterState.RETRY };
             }
           }
@@ -433,7 +433,7 @@ export class AWS {
           const data = await client.send(cmd);
           for (const reservation of data?.Reservations ?? []) {
             for (const instance of reservation?.Instances ?? []) {
-              if (instance.State !== 'stopped')
+              if (instance.State?.Name !== 'stopped')
                 return { state: WaiterState.RETRY };
             }
           }
@@ -497,7 +497,7 @@ export class AWS {
           const data = await client.send(cmd);
           for (const reservation of data?.Reservations ?? []) {
             for (const instance of reservation?.Instances ?? []) {
-              if (instance.PublicIpAddress === undefined || instance.State !== 'running')
+              if (instance.PublicIpAddress === undefined || instance.State?.Name !== 'running')
                 return { state: WaiterState.RETRY };
             }
           }
