@@ -100,18 +100,19 @@ export const AwsEc2Module: Module = new Module({
             const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? ''];
             const isUpdate = AwsEc2Module.mappers.instance.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
+              const insId = e.instanceId as string;
               if (!AwsEc2Module.utils.instanceEqTags(e, cloudRecord) && e.instanceId && e.tags) {
-                await client.updateTags(e.instanceId as string, e.tags)
+                await client.updateTags(insId, e.tags)
               }
               if (!Object.is(e.state, cloudRecord.state) && e.instanceId) {
-                if (e.state === State.RUNNING) {
-                  await client.startInstance(e.instanceId as string);
-                } else if (e.state === State.HIBERNATED) {
-                  await client.stopInstance(e.instanceId as string, true);
-                } else if (e.state === State.STOPPED) {
-                  await client.stopInstance(e.instanceId as string);
+                if (cloudRecord.state === State.STOPPED && e.state === State.RUNNING) {
+                  await client.startInstance(insId);
+                } else if (cloudRecord.state === State.RUNNING && e.state === State.HIBERNATED) {
+                  await client.stopInstance(insId, true);
+                } else if (cloudRecord.state === State.RUNNING && e.state === State.STOPPED) {
+                  await client.stopInstance(insId);
                 } else {
-                  throw new Error(`Unknown instance state ${e.state}`);
+                  throw new Error(`Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`);
                 }
               }
             } else {
