@@ -95,7 +95,7 @@ export const AwsEc2Module: Module = new Module({
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? ''];
-            if (!AwsEc2Module.utils.instanceEqReplaceableFields(e, cloudRecord)) {
+            if (AwsEc2Module.utils.instanceEqReplaceableFields(e, cloudRecord)) {
               const insId = e.instanceId as string;
               if (!AwsEc2Module.utils.instanceEqTags(e, cloudRecord) && e.instanceId && e.tags) {
                 await client.updateTags(insId, e.tags);
