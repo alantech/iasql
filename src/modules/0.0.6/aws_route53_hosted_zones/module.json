@@ -1,0 +1,4 @@
+{
+  "name": "aws_route53_hosted_zones",
+  "dependencies": ["iasql_platform", "aws_account"]
+}
