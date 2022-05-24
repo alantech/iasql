@@ -497,7 +497,7 @@ export class AWS {
           const data = await client.send(cmd);
           for (const reservation of data?.Reservations ?? []) {
             for (const instance of reservation?.Instances ?? []) {
-              if (instance.PublicIpAddress === undefined)
+              if (instance.PublicIpAddress === undefined || instance.State !== 'running')
                 return { state: WaiterState.RETRY };
             }
           }
