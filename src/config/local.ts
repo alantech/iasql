@@ -5,7 +5,7 @@ const config: ConfigInterface = {
     port: 8088,
   },
   modules: {
-    latestVersion: '0.0.5',
+    latestVersion: '0.0.6',
   },
   db: {
     host: 'postgresql',
