@@ -152,17 +152,6 @@ describe('EC2 Integration Testing', () => {
   //   WHERE state = 'hibernated';
   // `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('set both ec2 instances to the same tag name', query(`
-    UPDATE instance SET tags = '{"name":"i-1"}' WHERE tags ->> 'name' = 'i-2';;
-  `));
-
-  it('applies the instances change', apply());
-
-  it('check number of instances', query(`
-    SELECT *
-    FROM instance;
-  `, (res: any[]) => expect(res.length).toBe(2)));
-
   it('uninstalls the ec2 module', uninstall(modules));
 
   it('installs the ec2 module', install(modules));

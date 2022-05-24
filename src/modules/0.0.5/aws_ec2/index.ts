@@ -104,12 +104,14 @@ export const AwsEc2Module: Module = new Module({
                 await client.updateTags(e.instanceId as string, e.tags)
               }
               if (!Object.is(e.state, cloudRecord.state) && e.instanceId) {
-                if (e.state === 'running') {
+                if (e.state === State.RUNNING) {
                   await client.startInstance(e.instanceId as string);
-                } else if (e.state === 'hibernated') {
+                } else if (e.state === State.HIBERNATED) {
                   await client.stopInstance(e.instanceId as string, true);
-                } else if (e.state === 'stopped') {
+                } else if (e.state === State.STOPPED) {
                   await client.stopInstance(e.instanceId as string);
+                } else {
+                  throw new Error(`Unknown instance state ${e.state}`);
                 }
               }
             } else {
