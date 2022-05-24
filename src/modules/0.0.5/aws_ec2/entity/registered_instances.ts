@@ -3,25 +3,26 @@ import {
   Column,
   Entity,
   JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 
 import { Instance } from './instance';
 import { TargetGroup } from '../../aws_elb/entity';
 
-@Check(`target_group.target_type = "instance"`)
+// TODO: add constraint to only join with target groups with type 'instance'  @Check(`target_group.target_type = "instance"`)
+@Unique(['instance', 'targetGroup'])
 @Entity()
 export class RegisteredInstances {
-  @Column({ primary: true, })
-  @JoinColumn({
-    name: 'instance',
-    referencedColumnName: 'id',
-  })
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => Instance, instance => instance.id)
+  @JoinColumn({ name: 'instance', })
   instance: Instance;
 
-  @Column({ primary: true, })
-  @JoinColumn({
-    name: 'target_group',
-    referencedColumnName: 'targetGroupName'
-  })
+  @ManyToOne(() => TargetGroup, targetGroup => targetGroup.targetGroupName)
+  @JoinColumn({ name: 'target_group', })
   targetGroup: TargetGroup;
 }
