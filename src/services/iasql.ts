@@ -877,7 +877,7 @@ ${Object.keys(tableCollisions)
       }) ?? [];
       await orm.save(Modules.IasqlPlatform.utils.IasqlTables, modTables);
       // For each table, we need to attach the audit log trigger, if the platform is >=0.0.4
-      if (!['v0_0_2', 'v0_0_3'].includes(versionString)) {
+      if (!['v0_0_3'].includes(versionString)) {
         for (const table of md.provides.tables) {
           await queryRunner.query(`
             CREATE TRIGGER ${table}_audit
@@ -981,7 +981,7 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   try {
     for (const md of leafToRootOrder) {
       // For each table, we need to attach the audit log trigger, if the platform is >=0.0.4
-      if (!['v0_0_2', 'v0_0_3'].includes(versionString)) {
+      if (!['v0_0_3'].includes(versionString)) {
         for (const table of md.provides.tables) {
           await queryRunner.query(`
             DROP TRIGGER IF EXISTS ${table}_audit ON ${table};
