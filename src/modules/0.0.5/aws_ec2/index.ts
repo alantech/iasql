@@ -89,20 +89,16 @@ export const AwsEc2Module: Module = new Module({
           }
           return out;
         },
-        updateOrReplace: (prev: Instance, next: Instance) => {
-          if (!AwsEc2Module.utils.instanceEqReplaceableFields(prev, next)) return 'replace';
-          return 'update'
-        },
+        updateOrReplace: (prev: Instance, next: Instance) =>  'replace',
         update: async (es: Instance[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? ''];
-            const isUpdate = AwsEc2Module.mappers.instance.cloud.updateOrReplace(cloudRecord, e) === 'update';
-            if (isUpdate) {
+            if (!AwsEc2Module.utils.instanceEqReplaceableFields(e, cloudRecord)) {
               const insId = e.instanceId as string;
               if (!AwsEc2Module.utils.instanceEqTags(e, cloudRecord) && e.instanceId && e.tags) {
-                await client.updateTags(insId, e.tags)
+                await client.updateTags(insId, e.tags);
               }
               if (!Object.is(e.state, cloudRecord.state) && e.instanceId) {
                 if (cloudRecord.state === State.STOPPED && e.state === State.RUNNING) {
@@ -115,6 +111,7 @@ export const AwsEc2Module: Module = new Module({
                   throw new Error(`Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`);
                 }
               }
+              out.push(e);
             } else {
               const created = await AwsEc2Module.mappers.instance.cloud.create([e], ctx);
               await AwsEc2Module.mappers.instance.cloud.delete([cloudRecord], ctx);

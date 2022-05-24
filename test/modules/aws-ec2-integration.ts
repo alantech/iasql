@@ -127,7 +127,8 @@ describe('EC2 Integration Testing', () => {
   it('check instance ami update', query(`
     SELECT *
     FROM instance
-    WHERE ami = '${ubuntuAmiId}';
+    WHERE ami = '${ubuntuAmiId}' AND
+    tags ->> 'name' = '${prefix}-1';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   // TODO hibernation requires EBS to be encrypted
@@ -144,7 +145,8 @@ describe('EC2 Integration Testing', () => {
   it('check number of stopped instances', query(`
     SELECT *
     FROM instance
-    WHERE state = 'stopped';
+    WHERE state = 'stopped' AND
+    tags ->> 'name' = '${prefix}-2';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   // it('check number of hibernated instances', query(`
@@ -170,7 +172,9 @@ describe('EC2 Integration Testing', () => {
 
   it('check number of instances', query(`
     SELECT *
-    FROM instance;
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-1' OR
+    tags ->> 'name' = '${prefix}-2';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('deletes the test db', (done) => void iasql

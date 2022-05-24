@@ -439,8 +439,6 @@ export class AWS {
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.SUCCESS };
           throw e;
         }
       },
