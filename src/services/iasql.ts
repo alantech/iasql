@@ -796,12 +796,12 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   // Check to make sure that all dependent modules are in the list
   let missingDeps: string[] = [];
   do {
-    missingDeps = mods
+    missingDeps = [...new Set(mods
       .flatMap((m: Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
       .filter((m: any) => ![
         `iasql_platform@${version}`,
         `iasql_functions@${version}`,
-      ].includes(m) && m !== undefined);
+      ].includes(m) && m !== undefined))];
     if (missingDeps.length > 0) {
       logger.warn('Automatically attaching missing dependencies to this install', { moduleList, missingDeps, });
       const extraMods = missingDeps.map((n: string) => (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === n)) as Module[];
