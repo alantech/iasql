@@ -22,7 +22,8 @@ export async function execComposeDown(modules?: string[], region?: string) {
     }
   }
   // Compose down and ensure everything gets tear down to avoid infinite test runs
-  execSync('cd test && docker-compose down --remove-orphans');
+  // execSync('cd test && docker-compose down --remove-orphans');
+  execSync('cd test && docker-compose down');
 }
 
 export function getPrefix(){
