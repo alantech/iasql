@@ -1234,6 +1234,32 @@ export class AWS {
     const result = await this.ecsClient.send(
       new UpdateServiceCommand(input)
     );
+    // TODO: debug and see if it is really necessary
+    logger.info(`SERVICE UPDATED THE RESULT DESIRED COUNT IS ${result.service?.desiredCount}`);
+    // We wait until the desired count is the same as the running count
+    const describeInput = new DescribeServicesCommand({
+      services: [input.service ?? ''],
+      cluster: input.cluster,
+    });
+    await createWaiter<ECSClient, DescribeServicesCommand>(
+      {
+        client: this.ecsClient,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      describeInput,
+      async (client, cmd) => {
+        const data = await client.send(cmd);
+        logger.info(`DATA SERVICE UPDATED THE RESULT DESIRED COUNT IS ${data.services?.[0]?.desiredCount}`);
+        if (data.services?.length && !data.services?.every(s => s.desiredCount === input.desiredCount)) {
+          return { state: WaiterState.RETRY };
+        } else {
+          return { state: WaiterState.SUCCESS };
+        }
+      },
+    );
     return result.service;
   }
 
