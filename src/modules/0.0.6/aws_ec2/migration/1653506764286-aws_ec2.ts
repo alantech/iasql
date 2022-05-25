@@ -1,10 +1,11 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEc21653090178922 implements MigrationInterface {
-    name = 'awsEc21653090178922'
+export class awsEc21653506764286 implements MigrationInterface {
+    name = 'awsEc21653506764286'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`CREATE TABLE "instance" ("id" SERIAL NOT NULL, "instance_id" character varying, "ami" character varying NOT NULL, "instance_type" character varying NOT NULL, "key_pair_name" character varying, "tags" json, CONSTRAINT "PK_eaf60e4a0c399c9935413e06474" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TYPE "public"."instance_state_enum" AS ENUM('running', 'stopped')`);
+        await queryRunner.query(`CREATE TABLE "instance" ("id" SERIAL NOT NULL, "instance_id" character varying, "ami" character varying NOT NULL, "instance_type" character varying NOT NULL, "key_pair_name" character varying, "state" "public"."instance_state_enum" NOT NULL DEFAULT 'running', "tags" json, CONSTRAINT "PK_eaf60e4a0c399c9935413e06474" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "instance_security_groups" ("instance_id" integer NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_8045eb55d2a16cf6e4cf80e7ee5" PRIMARY KEY ("instance_id", "security_group_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_fa3c179d5090cb1309c63b5e20" ON "instance_security_groups" ("instance_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_b3b92934eff56d2eb0477a1d27" ON "instance_security_groups" ("security_group_id") `);
@@ -19,6 +20,7 @@ export class awsEc21653090178922 implements MigrationInterface {
         await queryRunner.query(`DROP INDEX "public"."IDX_fa3c179d5090cb1309c63b5e20"`);
         await queryRunner.query(`DROP TABLE "instance_security_groups"`);
         await queryRunner.query(`DROP TABLE "instance"`);
+        await queryRunner.query(`DROP TYPE "public"."instance_state_enum"`);
     }
 
 }

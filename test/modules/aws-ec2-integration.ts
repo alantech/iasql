@@ -130,6 +130,32 @@ describe('EC2 Integration Testing', () => {
     WHERE ami = '${ubuntuAmiId}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
+  it('stop instance', query(`
+     UPDATE instance SET state = 'stopped' WHERE tags ->> 'name' = '${prefix}-2';
+   `));
+
+  it('applies the instances change', apply());
+
+  it('check number of stopped instances', query(`
+    SELECT *
+    FROM instance
+    WHERE state = 'stopped' AND
+    tags ->> 'name' = '${prefix}-2';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('start instance', query(`
+    UPDATE instance SET state = 'running' WHERE tags ->> 'name' = '${prefix}-2';
+  `));
+
+  it('applies the instances change', apply());
+
+  it('check number of stopped instances', query(`
+  SELECT *
+  FROM instance
+  WHERE state = 'running' AND
+  tags ->> 'name' = '${prefix}-2';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
   it('uninstalls the ec2 module', uninstall(modules));
 
   it('installs the ec2 module', install(modules));
