@@ -1,6 +1,6 @@
 import { Instance as AWSInstance } from '@aws-sdk/client-ec2'
 
-import { Instance } from './entity'
+import { Instance, State } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
 import { AWS } from '../../../services/gateways/aws'
 import { Context, Crud, Mapper, Module, } from '../../interfaces'
@@ -17,6 +17,9 @@ export const AwsEc2Module: Module = new Module({
         tags[t.Key as string] = t.Value as string;
       });
       out.tags = tags;
+      if (instance.State?.Name === State.STOPPED ) out.state = State.STOPPED
+       // map interim states to running
+       else out.state = State.RUNNING;
       out.ami = instance.ImageId ?? '';
       if (instance.KeyName) out.keyPairName = instance.KeyName;
       out.instanceType = instance.InstanceType ?? '';
@@ -39,8 +42,9 @@ export const AwsEc2Module: Module = new Module({
   mappers: {
     instance: new Mapper<Instance>({
       entity: Instance,
-      equals: (a: Instance, b: Instance) => AwsEc2Module.utils.instanceEqReplaceableFields(a, b) &&
-         AwsEc2Module.utils.instanceEqTags(a, b),
+      equals: (a: Instance, b: Instance) => Object.is(a.state, b.state) &&
+        AwsEc2Module.utils.instanceEqReplaceableFields(a, b) &&
+        AwsEc2Module.utils.instanceEqTags(a, b),
       source: 'db',
       cloud: new Crud({
         create: async (es: Instance[], ctx: Context) => {
@@ -90,6 +94,15 @@ export const AwsEc2Module: Module = new Module({
               const insId = e.instanceId as string;
               if (!AwsEc2Module.utils.instanceEqTags(e, cloudRecord) && e.instanceId && e.tags) {
                 await client.updateTags(insId, e.tags);
+              }
+              if (!Object.is(e.state, cloudRecord.state) && e.instanceId) {
+                if (cloudRecord.state === State.STOPPED && e.state === State.RUNNING) {
+                  await client.startInstance(insId);
+                } else if (cloudRecord.state === State.RUNNING && e.state === State.STOPPED) {
+                  await client.stopInstance(insId);
+                } else {
+                  throw new Error(`Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`);
+                }
               }
               out.push(e);
             } else {

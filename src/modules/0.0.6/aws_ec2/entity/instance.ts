@@ -13,6 +13,13 @@ import {
 import { SecurityGroup, } from '../../aws_security_group/entity';
 import { cloudId, } from '../../../../services/cloud-id'
 
+// "terminated" is ommittted because that is achieved by deleting the row
+ // "pending", "shutting-down", "stopping" are ommitted because they are interim states
+ export enum State {
+  RUNNING = "running",
+  STOPPED = "stopped",
+}
+
 // TODO complete instance schema
 @Entity()
 export class Instance {
@@ -37,16 +44,23 @@ export class Instance {
   keyPairName: string;
 
   @Column({
+    type: 'enum',
+    enum: State,
+    default: State.RUNNING
+  })
+  state: State;
+
+  @Column({
     type: 'json',
     nullable: true,
   })
-  tags?: { [key: string]: string }
+  tags?: { [key: string]: string };
 
   @ManyToMany(() => SecurityGroup, { eager: true, })
   @JoinTable({
     name: 'instance_security_groups',
   })
-  securityGroups: SecurityGroup[]
+  securityGroups: SecurityGroup[];
 
   @AfterLoad()
   @AfterInsert()
