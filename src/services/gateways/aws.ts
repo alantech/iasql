@@ -404,7 +404,7 @@ export class AWS {
           const data = await client.send(cmd);
           for (const reservation of data?.Reservations ?? []) {
             for (const instance of reservation?.Instances ?? []) {
-              if (instance.PublicIpAddress === undefined)
+              if (instance.PublicIpAddress === undefined || instance.State?.Name !== 'running')
                 return { state: WaiterState.RETRY };
             }
           }
@@ -417,6 +417,25 @@ export class AWS {
       },
     );
     return instanceIds?.pop() ?? ''
+  }
+
+  async updateTags(instanceId: string, tags: { [key: string] : string }) {
+    let tgs: Tag[] = [];
+    if (tags) {
+      tgs = Object.keys(tags).map(k => {
+        return {
+          Key: k, Value: tags[k]
+        }
+      });
+    }
+    // recreate tags
+    await this.ec2client.deleteTags({
+      Resources: [instanceId],
+    });
+    await this.ec2client.createTags({
+      Resources: [instanceId],
+      Tags: tgs,
+    })
   }
 
   async getInstances() {

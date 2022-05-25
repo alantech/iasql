@@ -27,18 +27,20 @@ export const AwsEc2Module: Module = new Module({
       );
       return out;
     },
+    instanceEqReplaceableFields: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
+      Object.is(a.ami, b.ami) &&
+      Object.is(a.instanceType, b.instanceType) &&
+      Object.is(a.keyPairName, b.keyPairName) &&
+      Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
+      a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
+    instanceEqTags: (a: Instance, b: Instance) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
+      Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak])
   },
   mappers: {
     instance: new Mapper<Instance>({
       entity: Instance,
-      equals: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
-        Object.is(a.ami, b.ami) &&
-        Object.is(a.instanceType, b.instanceType) &&
-        Object.is(a.keyPairName, b.keyPairName) &&
-        Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
-        Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]) &&
-        Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
-        a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
+      equals: (a: Instance, b: Instance) => AwsEc2Module.utils.instanceEqReplaceableFields(a, b) &&
+         AwsEc2Module.utils.instanceEqTags(a, b),
       source: 'db',
       cloud: new Crud({
         create: async (es: Instance[], ctx: Context) => {
@@ -80,12 +82,21 @@ export const AwsEc2Module: Module = new Module({
         },
         updateOrReplace: (_a: Instance, _b: Instance) => 'replace',
         update: async (es: Instance[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? ''];
-            const created = await AwsEc2Module.mappers.instance.cloud.create([e], ctx);
-            await AwsEc2Module.mappers.instance.cloud.delete([cloudRecord], ctx);
-            out.push(created);
+            if (AwsEc2Module.utils.instanceEqReplaceableFields(e, cloudRecord)) {
+              const insId = e.instanceId as string;
+              if (!AwsEc2Module.utils.instanceEqTags(e, cloudRecord) && e.instanceId && e.tags) {
+                await client.updateTags(insId, e.tags);
+              }
+              out.push(e);
+            } else {
+              const created = await AwsEc2Module.mappers.instance.cloud.create([e], ctx);
+              await AwsEc2Module.mappers.instance.cloud.delete([cloudRecord], ctx);
+              out.push(created);
+            }
           }
           return out;
         },
