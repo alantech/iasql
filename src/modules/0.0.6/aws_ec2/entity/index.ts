@@ -1,2 +1,2 @@
 export * from './instance'
-export * from './registered_instances'
+export * from './registered_instance'

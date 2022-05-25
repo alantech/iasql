@@ -73,9 +73,11 @@ import {
   DeleteListenerCommand,
   DeleteLoadBalancerCommand,
   DeleteTargetGroupCommand,
+  DeregisterTargetsCommand,
   DescribeListenersCommand,
   DescribeLoadBalancersCommand,
   DescribeTargetGroupsCommand,
+  DescribeTargetHealthCommand,
   ElasticLoadBalancingV2Client,
   ModifyListenerCommand,
   ModifyListenerCommandInput,
@@ -84,12 +86,14 @@ import {
   paginateDescribeListeners,
   paginateDescribeLoadBalancers,
   paginateDescribeTargetGroups,
+  RegisterTargetsCommand,
   SetIpAddressTypeCommand,
   SetIpAddressTypeCommandInput,
   SetSecurityGroupsCommand,
   SetSecurityGroupsCommandInput,
   SetSubnetsCommand,
   SetSubnetsCommandInput,
+  TargetTypeEnum,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 import {
   CreateClusterCommand,
@@ -1825,4 +1829,45 @@ export class AWS {
     return res;
   }
 
+  async getRegisteredInstances() {
+    const targetGroups = await this.getTargetGroups();
+    const instanceTargetGroups = targetGroups?.TargetGroups?.filter(tg => Object.is(tg.TargetType, TargetTypeEnum.INSTANCE)) ?? [];
+    const out = [];
+    for (const tg of instanceTargetGroups) {
+      const res = await this.elbClient.send(
+        new DescribeTargetHealthCommand({
+          TargetGroupArn: tg.TargetGroupArn,
+        })
+      );
+      out.push(...(res.TargetHealthDescriptions?.map(thd => (
+        {
+          targetGroupArn: tg.TargetGroupArn,
+          instanceId: thd.Target?.Id
+        }
+      )) ?? []));
+    }
+    return out;
+  } 
+
+  async registerInstance(instanceId: string, targetGroupArn: string) {
+    await this.elbClient.send(new RegisterTargetsCommand({
+      TargetGroupArn: targetGroupArn,
+      Targets: [
+        {
+          Id: instanceId,
+        }
+      ],
+    }));
+  }
+
+  async deregisterInstance(instanceId: string, targetGroupArn: string) {
+    await this.elbClient.send(new DeregisterTargetsCommand({
+      TargetGroupArn: targetGroupArn,
+      Targets: [
+        {
+          Id: instanceId,
+        }
+      ],
+    }));
+  }
 }
