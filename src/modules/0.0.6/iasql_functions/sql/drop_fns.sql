@@ -1,4 +1,5 @@
 DROP FUNCTION "iasql_help";
+DROP FUNCTION "iasql_version";
 DROP FUNCTION "iasql_upgrade";
 DROP FUNCTION "delete_all_records";
 DROP FUNCTION "iasql_modules_installed";

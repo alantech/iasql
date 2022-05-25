@@ -315,6 +315,16 @@ begin
 end;
 $$;
 
+create or replace function iasql_version() returns table (
+  version text
+)
+language plpgsql security definer
+as $$
+begin
+  return query select split_part(name, '@', 2) as version from iasql_module limit 1;
+end;
+$$;
+
 create or replace function iasql_help() returns table (
   name text,
   signature text,
@@ -335,7 +345,8 @@ begin
     {"name": "uninstall", "signature": "iasql_uninstall(variadic text[])", "description": "Uninstall modules in the hosted db", "sample_usage": "SELECT * FROM iasql_uninstall(''aws_vpc@0.0.2'', ''aws_ec2'')"},
     {"name": "modules_list", "signature": "iasql_modules_list()", "description": "Lists all modules available to be installed", "sample_usage": "SELECT * FROM iasql_modules_list()"},
     {"name": "modules_installed", "signature": "iasql_modules_installed()", "description": "Lists all modules currently installed in the hosted db", "sample_usage": "SELECT * FROM iasql_modules_installed()"},
-    {"name": "upgrade", "signature": "iasql_upgrade()", "description": "Upgrades the db to the latest IaSQL Platform", "sample_usage": "SELECT iasql_upgrade()"}
+    {"name": "upgrade", "signature": "iasql_upgrade()", "description": "Upgrades the db to the latest IaSQL Platform", "sample_usage": "SELECT iasql_upgrade()"},
+    {"name": "version", "signature": "iasql_version()", "description": "Lists the currently installed IaSQL Platform version", "sample_usage": "SELECT * from iasql_version()"}
   ]') as x(name text, signature text, description text, sample_usage text);
 end;
 $$;
