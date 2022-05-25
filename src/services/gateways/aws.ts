@@ -542,7 +542,7 @@ export class AWS {
       );
     } catch(e: any) {
       if (e.Code === 'DependencyViolation') {
-        // Just await for 5 min on every dependency violation and retry
+        // Just wait for 5 min on every dependency violation and retry
         await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
         try {
           return await this.ec2client.send(
