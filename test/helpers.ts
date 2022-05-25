@@ -21,7 +21,8 @@ export async function execComposeDown(modules?: string[], region?: string) {
       logger.error(`Error cleaning db with error: ${e.message}`, e);
     }
   }
-  execSync('cd test && docker-compose down');
+  // Compose down and ensure everything gets tear down to avoid infinite test runs
+  execSync('cd test && docker-compose down --remove-orphans');
 }
 
 export function getPrefix(){
