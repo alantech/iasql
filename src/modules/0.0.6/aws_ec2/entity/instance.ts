@@ -20,14 +20,13 @@ import { cloudId, } from '../../../../services/cloud-id'
   STOPPED = "stopped",
 }
 
-// TODO complete instance schema
 @Entity()
 export class Instance {
   @PrimaryGeneratedColumn()
   id?: number;
 
   @Column({
-    nullable: true
+    nullable: true,
   })
   @cloudId
   instanceId?: string;
