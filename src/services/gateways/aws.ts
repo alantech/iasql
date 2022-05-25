@@ -541,20 +541,31 @@ export class AWS {
         new DeleteSecurityGroupCommand(instanceParams),
       );
     } catch(e: any) {
-      // If it is a dependency violation we add the dependency to the error message in order to debug what is happening
       if (e.Code === 'DependencyViolation') {
-        const sgEniInfo = await this.ec2client.send(
-          new DescribeNetworkInterfacesCommand({
-            Filters: [
-              {
-                Name: 'group-id',
-                Values: [`${instanceParams.GroupId}`]
-              }
-            ]
-          })
-        );
-        const eniMessage = `Network interfaces associated with security group ${instanceParams.GroupId}: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
-        e.message = `${e.message} | ${eniMessage}`;
+        // Just await for 5 min on every dependency violation and retry
+        await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
+        try {
+          return await this.ec2client.send(
+            new DeleteSecurityGroupCommand(instanceParams),
+          );
+        } catch (e2: any) {
+          // If the dependency continues we add the dependency to the error message in order to debug what is happening
+          if (e2.Code === 'DependencyViolation') {
+            const sgEniInfo = await this.ec2client.send(
+              new DescribeNetworkInterfacesCommand({
+                Filters: [
+                  {
+                    Name: 'group-id',
+                    Values: [`${instanceParams.GroupId}`]
+                  }
+                ]
+              })
+            );
+            const eniMessage = `Network interfaces associated with security group ${instanceParams.GroupId}: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
+            e2.message = `${e2.message} | ${eniMessage}`;
+          }
+          throw e2;
+        }
       }
       throw e;
     }
@@ -1421,6 +1432,38 @@ export class AWS {
       // This is an extra validation to ensure that the service is fully deleted
       logger.info('Error getting network interfaces for tasks')
     }
+  }
+
+  async deleteServiceOnly(name: string, cluster: string) {
+    await this.ecsClient.send(
+      new DeleteServiceCommand({
+        service: name,
+        cluster,
+      })
+    )
+    // We wait it is completely deleted to avoid issues deleting dependent resources.
+    const input = new DescribeServicesCommand({
+      services: [name],
+      cluster,
+    });
+    await createWaiter<ECSClient, DescribeServicesCommand>(
+      {
+        client: this.ecsClient,
+        // all in seconds
+        maxWaitTime: 600,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (client, cmd) => {
+        const data = await client.send(cmd);
+        if (data.services?.length && data.services[0].status === 'DRAINING') {
+          return { state: WaiterState.RETRY };
+        } else {
+          return { state: WaiterState.SUCCESS };
+        }
+      },
+    );
   }
 
   async getEngineVersions() {
