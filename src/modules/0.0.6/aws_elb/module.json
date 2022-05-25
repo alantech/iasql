@@ -1,0 +1,9 @@
+{
+  "name": "aws_elb",
+  "dependencies": [
+    "iasql_platform",
+    "aws_account",
+    "aws_security_group",
+    "aws_vpc"
+  ]
+}
