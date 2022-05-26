@@ -21,10 +21,12 @@ export const AwsRdsModule: Module2 = new Module2({
       out.engine = `${rds?.Engine}:${rds?.EngineVersion}`;
       out.masterUsername = rds?.MasterUsername;
       const vpcSecurityGroupIds = rds?.VpcSecurityGroups?.filter((vpcsg: any) => !!vpcsg?.VpcSecurityGroupId).map((vpcsg: any) => vpcsg?.VpcSecurityGroupId);
-      out.vpcSecurityGroups = vpcSecurityGroupIds ?
-        await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, vpcSecurityGroupIds) ??
-          await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, vpcSecurityGroupIds)
-        : [];
+      out.vpcSecurityGroups = [];
+      for (const sgId of vpcSecurityGroupIds) {
+        const sg = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId) ??
+          await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sgId);
+        if (sg) out.vpcSecurityGroups.push(sg);
+      }
       out.backupRetentionPeriod = rds?.BackupRetentionPeriod ?? 1;
       return out;
     },
