@@ -6,12 +6,12 @@ import {
   Service,
   TaskDefinition,
 } from './entity'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsEcrModule, AwsElbModule, AwsIamModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
 import * as metadata from './module.json'
 import logger from '../../../services/logger'
 
-export const AwsEcsFargateModule: Module = new Module({
+export const AwsEcsFargateModule: Module2 = new Module2({
   ...metadata,
   utils: {
     clusterMapper: (c: any) => {
@@ -184,13 +184,13 @@ export const AwsEcsFargateModule: Module = new Module({
       && Object.is(a.tag, b.tag),
   },
   mappers: {
-    cluster: new Mapper<Cluster>({
+    cluster: new Mapper2<Cluster>({
       entity: Cluster,
       equals: (a: Cluster, b: Cluster) => Object.is(a.clusterArn, b.clusterArn)
         && Object.is(a.clusterName, b.clusterName)
         && Object.is(a.clusterStatus, b.clusterStatus),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: Cluster[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
@@ -212,17 +212,16 @@ export const AwsEcsFargateModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          const clusters = Array.isArray(ids) ? await (async () => {
-            const out = [];
-            for (const id of ids) {
-              out.push(await client.getCluster(id));
-            }
-            return out;
-          })() :
-            await client.getClusters() ?? [];
-          return clusters.map((c: any) => AwsEcsFargateModule.utils.clusterMapper(c, ctx));
+          if (id) {
+            const rawCluster = await client.getCluster(id);
+            if (!rawCluster) return;
+            return AwsEcsFargateModule.utils.clusterMapper(rawCluster, ctx);
+          } else {
+            const clusters = await client.getClusters() ?? [];
+            return clusters.map((c: any) => AwsEcsFargateModule.utils.clusterMapper(c, ctx));
+          }
         },
         updateOrReplace: (prev: Cluster, next: Cluster) => {
           if (!Object.is(prev.clusterName, next.clusterName)) return 'replace';
@@ -261,7 +260,7 @@ export const AwsEcsFargateModule: Module = new Module({
         },
       }),
     }),
-    taskDefinition: new Mapper<TaskDefinition>({
+    taskDefinition: new Mapper2<TaskDefinition>({
       entity: TaskDefinition,
       equals: (a: TaskDefinition, b: TaskDefinition) => Object.is(a.cpuMemory, b.cpuMemory)
         && Object.is(a.executionRole?.arn, b.executionRole?.arn)
@@ -273,7 +272,7 @@ export const AwsEcsFargateModule: Module = new Module({
         && Object.is(a.containerDefinitions.length, b.containerDefinitions.length)
         && a.containerDefinitions.every(ac => !!b.containerDefinitions.find(bc => AwsEcsFargateModule.utils.containersEq(ac, bc))),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: TaskDefinition[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const res = [];
@@ -368,23 +367,22 @@ export const AwsEcsFargateModule: Module = new Module({
           }
           return res;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          let taskDefs = [];
-          if (Array.isArray(ids)) {
-            for (const id of ids ?? []) {
-              taskDefs.push(await client.getTaskDefinition(id));
-            }
+          if (id) {
+            const rawTaskDef = await client.getTaskDefinition(id);
+            if (!rawTaskDef) return;
+            if (!rawTaskDef.compatibilities?.includes('FARGATE')) return;
+            return await AwsEcsFargateModule.utils.taskDefinitionMapper(rawTaskDef, ctx);
           } else {
-            taskDefs = (await client.getTaskDefinitions()).taskDefinitions ?? [];
-            // Make sure we just handle tasks compatibles with FARGATE
-            taskDefs = taskDefs.filter(td => td.compatibilities.includes('FARGATE'));
+            const taskDefs = ((await client.getTaskDefinitions()).taskDefinitions ?? [])
+              .filter(td => td.compatibilities.includes('FARGATE'));
+            const tds = [];
+            for (const td of taskDefs) {
+              tds.push(await AwsEcsFargateModule.utils.taskDefinitionMapper(td, ctx))
+            }
+            return tds;
           }
-          const tds = [];
-          for (const td of taskDefs) {
-            tds.push(await AwsEcsFargateModule.utils.taskDefinitionMapper(td, ctx))
-          }
-          return tds;
         },
         updateOrReplace: () => 'update',
         update: async (es: TaskDefinition[], ctx: Context) => {
@@ -441,7 +439,7 @@ export const AwsEcsFargateModule: Module = new Module({
         },
       }),
     }),
-    service: new Mapper<Service>({
+    service: new Mapper2<Service>({
       entity: Service,
       equals: (a: Service, b: Service) => Object.is(a.desiredCount, b.desiredCount)
         && Object.is(a.task?.taskDefinitionArn, b.task?.taskDefinitionArn)
@@ -457,7 +455,7 @@ export const AwsEcsFargateModule: Module = new Module({
         && (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
         && Object.is(a.forceNewDeployment, b.forceNewDeployment),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: Service[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const res = [];
@@ -504,21 +502,18 @@ export const AwsEcsFargateModule: Module = new Module({
           }
           return res;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           // TODO: Refactor this. I don't think the `ids` branch has been tested, either. So I don't want to touch it
-          if (ids) {
-            const out = [];
-            for (const id of ids) {
-              const services = ctx.memo?.cloud?.Service ? Object.values(ctx.memo?.cloud?.Service) : await AwsEcsFargateModule.mappers.service.cloud.read(ctx);
-              const service = services?.find((s: any) => s.arn === id);
-              if (service) {
-                out.push(await AwsEcsFargateModule.utils.serviceMapper(
-                  await client.getService(id, service.cluster.clusterArn), ctx
-                ));
-              }
-            }
-            return out;
+          if (id) {
+            const services = ctx.memo?.cloud?.Service ?
+              Object.values(ctx.memo?.cloud?.Service) :
+              await AwsEcsFargateModule.mappers.service.cloud.read(ctx);
+            const service = services?.find((s: any) => s.arn === id);
+            if (!service) return;
+            const rawService = await client.getService(id, service.cluster.clusterArn);
+            if (!rawService) return;
+            return await AwsEcsFargateModule.utils.serviceMapper(rawService, ctx);
           } else {
             const clusters = ctx.memo?.cloud?.Cluster ? Object.values(ctx.memo?.cloud?.Cluster) : await AwsEcsFargateModule.mappers.cluster.cloud.read(ctx);
             const result = await client.getServices(clusters?.map((c: any) => c.clusterArn) ?? []);

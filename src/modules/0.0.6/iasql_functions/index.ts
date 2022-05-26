@@ -2,9 +2,9 @@
 
 import * as metadata from './module.json'
 import { IasqlOperationType, } from './entity'
-import { Module, } from '../../interfaces'
+import { Module2, } from '../../interfaces'
 
-export const IasqlFunctions: Module = new Module({
+export const IasqlFunctions: Module2 = new Module2({
   ...metadata,
   utils: {
     // Since this is a special module, this is provided so the scheduler can always get the 'latest'

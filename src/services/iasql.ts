@@ -16,7 +16,7 @@ import * as scheduler from './scheduler-api'
 import MetadataRepo from './repositories/metadata'
 import config from '../config'
 import logger, { debugObj } from './logger'
-import { Context, MapperInterface, Module, ModuleInterface, } from '../modules'
+import { Context, MapperInterface, ModuleInterface, } from '../modules'
 import { DepError, lazyLoader, } from './lazy-dep'
 import { IasqlDatabase } from '../entity'
 import { TypeormWrapper, } from './typeorm'
@@ -315,13 +315,13 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
     const memo: any = {}; // TODO: Stronger typing here
     const context: Context = { orm, memo, }; // Every module gets access to the DB
     for (const name of moduleNames) {
-      const mod = (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === name) as Module;
+      const mod = (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
-      const moduleContext = mod.provides.context ?? {};
+      const moduleContext = mod?.provides?.context ?? {};
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
-    const moduleList = (Object.values(Modules) as Module[])
+    const moduleList = (Object.values(Modules) as ModuleInterface[])
       .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`));
     const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as ModuleInterface[])
@@ -530,13 +530,13 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
     const memo: any = {}; // TODO: Stronger typing here
     const context: Context = { orm, memo, }; // Every module gets access to the DB
     for (const name of moduleNames) {
-      const mod = (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === name) as Module;
+      const mod = (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
-      const moduleContext = mod.provides.context ?? {};
+      const moduleContext = mod?.provides?.context ?? {};
       Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
     }
     // Get the mappers, regardless of source-of-truth
-    const moduleList = (Object.values(Modules) as Module[])
+    const moduleList = (Object.values(Modules) as ModuleInterface[])
       .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`));
     const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as ModuleInterface[])
@@ -767,7 +767,7 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   }
   const version = Modules.IasqlPlatform.version;
   moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@${version}`);
-  const mods = moduleList.map((n: string) => (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === n)) as Module[];
+  const mods = moduleList.map((n: string) => (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {
     const modNames = (Object.values(Modules) as ModuleInterface[])
       .filter(m => m.hasOwnProperty('name') && m.hasOwnProperty('version'))
@@ -797,14 +797,14 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   let missingDeps: string[] = [];
   do {
     missingDeps = mods
-      .flatMap((m: Module) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
+      .flatMap((m: ModuleInterface) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
       .filter((m: any) => ![
         `iasql_platform@${version}`,
         `iasql_functions@${version}`,
       ].includes(m) && m !== undefined);
     if (missingDeps.length > 0) {
       logger.warn('Automatically attaching missing dependencies to this install', { moduleList, missingDeps, });
-      const extraMods = missingDeps.map((n: string) => (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === n)) as Module[];
+      const extraMods = missingDeps.map((n: string) => (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as ModuleInterface[];
       mods.push(...extraMods);
       moduleList.push(...extraMods.map(mod => `${mod.name}@${mod.version}`));
       continue;
@@ -869,7 +869,7 @@ ${Object.keys(tableCollisions)
       );
       await orm.save(Modules.IasqlPlatform.utils.IasqlModule, e);
 
-      const modTables = md.provides.tables?.map((t) => {
+      const modTables = md?.provides?.tables?.map((t) => {
         const mt = new Modules.IasqlPlatform.utils.IasqlTables();
         mt.table = t;
         mt.module = e;
@@ -878,7 +878,7 @@ ${Object.keys(tableCollisions)
       await orm.save(Modules.IasqlPlatform.utils.IasqlTables, modTables);
       // For each table, we need to attach the audit log trigger, if the platform is >=0.0.4
       if (!['v0_0_3'].includes(versionString)) {
-        for (const table of md.provides.tables) {
+        for (const table of md?.provides?.tables ?? []) {
           await queryRunner.query(`
             CREATE TRIGGER ${table}_audit
             AFTER INSERT OR UPDATE OR DELETE ON ${table}
@@ -907,9 +907,9 @@ ${Object.keys(tableCollisions)
   const moduleNames = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
   const context: Context = { orm, memo: {}, }; // Every module gets access to the DB
   for (const name of moduleNames) {
-    const md = (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === name) as Module;
+    const md = (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as ModuleInterface;
     if (!md) throw new Error(`This should be impossible. Cannot find module ${name}`);
-    const moduleContext = md.provides.context ?? {};
+    const moduleContext = md?.provides?.context ?? {};
     Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
   }
 
@@ -949,7 +949,7 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   // Check to make sure that all specified modules actually exist
   const version = Modules.IasqlPlatform.version
   moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@${version}`);
-  const mods = moduleList.map((n: string) => (Object.values(Modules) as Module[]).find(m => `${m.name}@${m.version}` === n)) as Module[];
+  const mods = moduleList.map((n: string) => (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {
     throw new Error(`The following modules do not exist: ${moduleList.filter((n: string) => !(Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
       }`);
@@ -982,7 +982,7 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
     for (const md of leafToRootOrder) {
       // For each table, we need to attach the audit log trigger, if the platform is >=0.0.4
       if (!['v0_0_3'].includes(versionString)) {
-        for (const table of md.provides.tables) {
+        for (const table of md?.provides?.tables ?? []) {
           await queryRunner.query(`
             DROP TRIGGER IF EXISTS ${table}_audit ON ${table};
           `);

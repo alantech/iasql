@@ -2,11 +2,11 @@ import { ModifyDBInstanceCommandInput } from '@aws-sdk/client-rds'
 
 import { AWS, } from '../../../services/gateways/aws'
 import { RDS, } from './entity'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
 
-export const AwsRdsModule: Module = new Module({
+export const AwsRdsModule: Module2 = new Module2({
   ...metadata,
   utils: {
     rdsMapper: async (rds: any, ctx: Context) => {
@@ -30,7 +30,7 @@ export const AwsRdsModule: Module = new Module({
     },
   },
   mappers: {
-    rds: new Mapper<RDS>({
+    rds: new Mapper2<RDS>({
       entity: RDS,
       equals: (a: RDS, b: RDS) => Object.is(a.engine, b.engine)
         && Object.is(a.dbInstanceClass, b.dbInstanceClass)
@@ -46,7 +46,7 @@ export const AwsRdsModule: Module = new Module({
         && Object.is(a.allocatedStorage, b.allocatedStorage)
         && Object.is(a.backupRetentionPeriod, b.backupRetentionPeriod),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: RDS[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
@@ -89,21 +89,20 @@ export const AwsRdsModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          const rdses = Array.isArray(ids) ? await (async () => {
-            const o = [];
-            for (const id of ids) {
-              o.push(await client.getDBInstance(id));
+          if (id) {
+            const rawRds = await client.getDBInstance(id);
+            if (!rawRds) return;
+            return await AwsRdsModule.utils.rdsMapper(rawRds, ctx);
+          } else {
+            const rdses = (await client.getDBInstances()).DBInstances;
+            const out = [];
+            for (const rds of rdses) {
+              out.push(await AwsRdsModule.utils.rdsMapper(rds, ctx));
             }
-            return o;
-          })() :
-            (await client.getDBInstances()).DBInstances;
-          const out = [];
-          for (const rds of rdses) {
-            out.push(await AwsRdsModule.utils.rdsMapper(rds, ctx));
+            return out;
           }
-          return out;
         },
         updateOrReplace: () => 'update',
         update: async (es: RDS[], ctx: Context) => {

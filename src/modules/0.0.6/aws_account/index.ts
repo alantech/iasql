@@ -1,11 +1,9 @@
-import { In, } from 'typeorm'
-
 import { AWS, } from '../../../services/gateways/aws'
 import { AwsAccountEntity, } from './entity'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
-export const AwsAccount: Module = new Module({
+export const AwsAccount: Module2 = new Module2({
   ...metadata,
   provides: {
     context: {
@@ -33,17 +31,17 @@ export const AwsAccount: Module = new Module({
     },
   },
   mappers: {
-    awsAccount: new Mapper<AwsAccountEntity>({
+    awsAccount: new Mapper2<AwsAccountEntity>({
       entity: AwsAccountEntity,
       equals: (_a: AwsAccountEntity, _b: AwsAccountEntity) => true,
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         // We don't actually connect to AWS for this module, because it's meta
         // TODO: Perhaps we should to validate the credentials as being valid?
         create: async (_e: AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
-        read: (ctx: Context, ids?: string[]) => ctx.orm.find(AwsAccountEntity, ids ? {
+        read: (ctx: Context, id?: string) => ctx.orm.find(AwsAccountEntity, id ? {
           where: {
-            id: In(ids),
+            id,
           },
         } : undefined),
         update: async (_e: AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },

@@ -8,10 +8,10 @@ import {
   SubnetState,
   VpcState,
 } from './entity'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
-export const AwsVpcModule: Module = new Module({
+export const AwsVpcModule: Module2 = new Module2({
   ...metadata,
   utils: {
     subnetMapper: async (sn: AwsSubnet, ctx: Context) => {
@@ -47,11 +47,11 @@ export const AwsVpcModule: Module = new Module({
     },
   },
   mappers: {
-    subnet: new Mapper<Subnet>({
+    subnet: new Mapper2<Subnet>({
       entity: Subnet,
       equals: (a: Subnet, b: Subnet) => Object.is(a.subnetId, b.subnetId), // TODO: Do better
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: Subnet[], ctx: Context) => {
           // TODO: Add support for creating default subnets (only one is allowed, also add
           // constraint that a single subnet is set as default)
@@ -72,15 +72,13 @@ export const AwsVpcModule: Module = new Module({
             }
           }
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           // TODO: Convert AWS subnet representation to our own
-          if (!!ids) {
-            const out = [];
-            for (const id of ids) {
-              out.push(await AwsVpcModule.utils.subnetMapper(await client.getSubnet(id), ctx));
-            }
-            return out;
+          if (!!id) {
+            const rawSubnet = await client.getSubnet(id);
+            if (!rawSubnet) return;
+            return await AwsVpcModule.utils.subnetMapper(rawSubnet, ctx);
           } else {
             const out = [];
             for (const sn of (await client.getSubnets()).Subnets) {
@@ -117,11 +115,11 @@ export const AwsVpcModule: Module = new Module({
         },
       }),
     }),
-    vpc: new Mapper<Vpc>({
+    vpc: new Mapper2<Vpc>({
       entity: Vpc,
       equals: (a: Vpc, b: Vpc) => Object.is(a.vpcId, b.vpcId), // TODO: Do better
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: Vpc[], ctx: Context) => {
           // TODO: Add support for creating default VPCs (only one is allowed, also add constraint
           // that a single VPC is set as default)
@@ -140,14 +138,12 @@ export const AwsVpcModule: Module = new Module({
             }
           }
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (!!ids) {
-            const out = [];
-            for (const id of ids) {
-              out.push(AwsVpcModule.utils.vpcMapper((await client.getVpc(id))));
-            }
-            return out;
+          if (!!id) {
+            const rawVpc = await client.getVpc(id);
+            if (!rawVpc) return;
+            return AwsVpcModule.utils.vpcMapper(rawVpc);
           } else {
             return (await client.getVpcs())
               .Vpcs

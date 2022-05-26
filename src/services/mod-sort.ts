@@ -1,6 +1,6 @@
-import { Module, } from '../modules/interfaces'
+import { ModuleInterface, } from '../modules/interfaces'
 
-export const sortModules = (modules: Module[], existingModules: string[]) => {
+export const sortModules = (modules: ModuleInterface[], existingModules: string[]) => {
   const moduleList = [...modules];
   const sortedModuleNames: { [key: string]: boolean } = {};
   const sortedModules = [];

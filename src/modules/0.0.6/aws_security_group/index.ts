@@ -1,14 +1,12 @@
-import { In, } from 'typeorm'
-
 import { AWS, } from '../../../services/gateways/aws'
 import { SecurityGroup, SecurityGroupRule, } from './entity'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsVpcModule } from '../aws_vpc'
 import { Vpc } from '../aws_vpc/entity'
 import logger from '../../../services/logger'
 
-export const AwsSecurityGroupModule: Module = new Module({
+export const AwsSecurityGroupModule: Module2 = new Module2({
   ...metadata,
   utils: {
     sgMapper: async (sg: any, ctx: Context) => {
@@ -106,7 +104,7 @@ export const AwsSecurityGroupModule: Module = new Module({
     },
   },
   mappers: {
-    securityGroup: new Mapper<SecurityGroup>({
+    securityGroup: new Mapper2<SecurityGroup>({
       entity: SecurityGroup,
       equals: (a: SecurityGroup, b: SecurityGroup) => Object.is(a.description, b.description) &&
         Object.is(a.groupName, b.groupName) &&
@@ -114,7 +112,7 @@ export const AwsSecurityGroupModule: Module = new Module({
         Object.is(a.groupId, b.groupId) &&
         Object.is(a.vpc?.vpcId, b.vpc?.vpcId),
       source: 'db',
-      db: new Crud({
+      db: new Crud2({
         create: async (e: SecurityGroup[], ctx: Context) => {
           // If a VPC record is associated with this security group that doesn't exist in the DB, we
           // need to create it first or TypeORM will fail
@@ -132,12 +130,12 @@ export const AwsSecurityGroupModule: Module = new Module({
           }
           await ctx.orm.save(SecurityGroup, e)
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           // TODO: Possible to automate this?
           const relations = ['securityGroupRules', 'securityGroupRules.securityGroup'];
-          const opts = ids ? {
+          const opts = id ? {
             where: {
-              groupId: In(ids),
+              groupId: id,
             },
             relations,
           } : { relations, };
@@ -177,24 +175,23 @@ export const AwsSecurityGroupModule: Module = new Module({
         },
         delete: (e: SecurityGroup[], ctx: Context) => ctx.orm.remove(SecurityGroup, e),
       }),
-      cloud: new Crud({
+      cloud: new Crud2({
         create: (es: SecurityGroup[], ctx: Context) => AwsSecurityGroupModule
           .utils.sgCloudCreate(es, ctx, false),
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          const sgs = Array.isArray(ids) ? await (async () => {
-            const o = [];
-            for (const id of ids) {
-              o.push(await client.getSecurityGroup(id));
+          if (id) {
+            const rawSecurityGroup = await client.getSecurityGroup(id);
+            if (!rawSecurityGroup) return;
+            return await AwsSecurityGroupModule.utils.sgMapper(rawSecurityGroup, ctx);
+          } else {
+            const sgs = (await client.getSecurityGroups()).SecurityGroups;
+            const out = [];
+            for (const sg of sgs) {
+              out.push(await AwsSecurityGroupModule.utils.sgMapper(sg, ctx));
             }
-            return o;
-          })() :
-            (await client.getSecurityGroups()).SecurityGroups;
-          const out = [];
-          for (const sg of sgs) {
-            out.push(await AwsSecurityGroupModule.utils.sgMapper(sg, ctx));
+            return out;
           }
-          return out;
         },
         updateOrReplace: () => 'replace',
         update: async (es: SecurityGroup[], ctx: Context) => {
@@ -297,7 +294,7 @@ export const AwsSecurityGroupModule: Module = new Module({
         },
       }),
     }),
-    securityGroupRule: new Mapper<SecurityGroupRule>({
+    securityGroupRule: new Mapper2<SecurityGroupRule>({
       entity: SecurityGroupRule,
       equals: (a: SecurityGroupRule, b: SecurityGroupRule) => Object.is(a.isEgress, b.isEgress) &&
         Object.is(a.ipProtocol, b.ipProtocol) &&
@@ -308,14 +305,14 @@ export const AwsSecurityGroupModule: Module = new Module({
         Object.is(a.prefixListId, b.prefixListId) &&
         Object.is(a.description, b.description),
       source: 'db',
-      db: new Crud({
+      db: new Crud2({
         create: (e: SecurityGroupRule[], ctx: Context) => ctx.orm.save(SecurityGroupRule, e),
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           // TODO: Possible to automate this?
           const relations = ['securityGroup', 'securityGroup.securityGroupRules',];
-          const opts = ids ? {
+          const opts = id ? {
             where: {
-              securityGroupRuleId: In(ids),
+              securityGroupRuleId: id,
             },
             relations,
           } : { relations, };
@@ -324,7 +321,7 @@ export const AwsSecurityGroupModule: Module = new Module({
         update: (e: SecurityGroupRule[], ctx: Context) => ctx.orm.save(SecurityGroupRule, e),
         delete: (e: SecurityGroupRule[], ctx: Context) => ctx.orm.remove(SecurityGroupRule, e),
       }),
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: SecurityGroupRule[], ctx: Context) => {
           // TODO: While the API supports creating multiple security group rules simultaneously,
           // I can't figure out a 100% correct way to identify which created rules are associated
@@ -370,21 +367,20 @@ export const AwsSecurityGroupModule: Module = new Module({
             await AwsSecurityGroupModule.mappers.securityGroupRule.db.update(en, ctx);
           }
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          const sgrs = Array.isArray(ids) ? await (async () => {
-            const o = [];
-            for (const id of ids) {
-              o.push(await client.getSecurityGroupRule(id));
+          if (id) {
+            const rawSecurityGroupRule = await client.getSecurityGroupRule(id);
+            if (!rawSecurityGroupRule) return;
+            return await AwsSecurityGroupModule.utils.sgrMapper(rawSecurityGroupRule, ctx);
+          } else {
+            const sgrs = (await client.getSecurityGroupRules()).SecurityGroupRules;
+            const out = [];
+            for (const sgr of sgrs) {
+              out.push(await AwsSecurityGroupModule.utils.sgrMapper(sgr, ctx));
             }
-            return o;
-          })() :
-            (await client.getSecurityGroupRules()).SecurityGroupRules;
-          const out = [];
-          for (const sgr of sgrs) {
-            out.push(await AwsSecurityGroupModule.utils.sgrMapper(sgr, ctx));
+            return out;
           }
-          return out;
         },
         // TODO: Edit rules when possible in the future
         updateOrReplace: () => 'replace',

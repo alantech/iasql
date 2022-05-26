@@ -1,9 +1,9 @@
 import { AWS, } from '../../../services/gateways/aws'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { LogGroup } from './entity'
 import * as metadata from './module.json'
 
-export const AwsCloudwatchModule: Module = new Module({
+export const AwsCloudwatchModule: Module2 = new Module2({
   ...metadata,
   utils: {
     logGroupMapper: (lg: any) => {
@@ -16,13 +16,13 @@ export const AwsCloudwatchModule: Module = new Module({
     },
   },
   mappers: {
-    logGroup: new Mapper<LogGroup>({
+    logGroup: new Mapper2<LogGroup>({
       entity: LogGroup,
       equals: (a: LogGroup, b: LogGroup) => Object.is(a.logGroupName, b.logGroupName)
         && Object.is(a.logGroupArn, b.logGroupArn)
         && Object.is(a.creationTime?.getTime(), b.creationTime?.getTime()),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (lg: LogGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = []
@@ -39,17 +39,16 @@ export const AwsCloudwatchModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          let logGroups = [];
-          if (Array.isArray(ids)) {
-            for (const id of ids) {
-              logGroups.push(...(await client.getLogGroups(id)));
-            }
+          if (id) {
+            const rawLogGroup = await client.getLogGroups(id);
+            if (!rawLogGroup) return;
+            return AwsCloudwatchModule.utils.logGroupMapper(rawLogGroup);
           } else {
-            logGroups = (await client.getLogGroups()) ?? [];
+            const logGroups = (await client.getLogGroups()) ?? [];
+            return logGroups.map((lg: any) => AwsCloudwatchModule.utils.logGroupMapper(lg));
           }
-          return logGroups.map((lg: any) => AwsCloudwatchModule.utils.logGroupMapper(lg));
         },
         updateOrReplace: () => 'update',
         update: async (es: LogGroup[], ctx: Context) => {
