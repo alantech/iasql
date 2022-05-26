@@ -400,9 +400,7 @@ export class Crud2<E> {
       } else if (Array.isArray(o) && o.length === 1) {
         return this.memo(o[0], ctx, id);
       } else {
-        // Don't memo in this case, just pass it through, also remove the registered placeholder
-        delete ctx.memo[dest][entityName][id];
-        return o;
+        return this.memo(o, ctx, id);
       }
     }
     logger.info(`Full cache miss for ${this.entity?.name ?? ''} ${this.dest}`);
