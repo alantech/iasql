@@ -11,7 +11,7 @@ export const AwsEcrModule: Module = new Module({
   ...metadata,
   utils: {
     publicRepositoryMapper: (r: PublicRepositoryAws) => {
-      const out = new Repository();
+      const out = new PublicRepository();
       if (!r?.repositoryName) throw new Error('No repository name defined.');
       out.repositoryName = r.repositoryName;
       out.repositoryArn = r.repositoryArn;
