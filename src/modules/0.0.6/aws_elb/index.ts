@@ -62,8 +62,13 @@ export const AwsElbModule: Module = new Module({
       const securityGroups = [];
       const cloudSecurityGroups = lb.SecurityGroups ?? [];
       for (const sg of cloudSecurityGroups) {
-        securityGroups.push(await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg) ??
-          await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg));
+        try {
+          securityGroups.push(await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg) ??
+            await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg));
+        } catch (_) {
+          // If security groups are misconfigured ignore them
+          continue;
+        }
       }
       if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length) throw new Error('Security groups need to be loaded first')
       out.securityGroups = securityGroups;
