@@ -1,6 +1,6 @@
 import { Instance as AWSInstance } from '@aws-sdk/client-ec2'
 
-import { Instance, RegisteredInstance } from './entity'
+import { Instance, RegisteredInstance, State, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
 import { AWS } from '../../../services/gateways/aws'
 import { Context, Crud, Mapper, Module, } from '../../interfaces'
@@ -18,6 +18,9 @@ export const AwsEc2Module: Module = new Module({
         tags[t.Key as string] = t.Value as string;
       });
       out.tags = tags;
+      if (instance.State?.Name === State.STOPPED ) out.state = State.STOPPED
+       // map interim states to running
+       else out.state = State.RUNNING;
       out.ami = instance.ImageId ?? '';
       if (instance.KeyName) out.keyPairName = instance.KeyName;
       out.instanceType = instance.InstanceType ?? '';
@@ -28,6 +31,14 @@ export const AwsEc2Module: Module = new Module({
       );
       return out;
     },
+    instanceEqReplaceableFields: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
+      Object.is(a.ami, b.ami) &&
+      Object.is(a.instanceType, b.instanceType) &&
+      Object.is(a.keyPairName, b.keyPairName) &&
+      Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
+      a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
+    instanceEqTags: (a: Instance, b: Instance) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
+      Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]),
     registredInstanceMapper: async (registredInstance: { [key: string]: string }, ctx: Context) => {
       const out = new RegisteredInstance();
       out.instance = await AwsEc2Module.mappers.instance.db.read(ctx, registredInstance.instanceId) ??
@@ -40,14 +51,9 @@ export const AwsEc2Module: Module = new Module({
   mappers: {
     instance: new Mapper<Instance>({
       entity: Instance,
-      equals: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
-        Object.is(a.ami, b.ami) &&
-        Object.is(a.instanceType, b.instanceType) &&
-        Object.is(a.keyPairName, b.keyPairName) &&
-        Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
-        Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]) &&
-        Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
-        a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
+      equals: (a: Instance, b: Instance) => Object.is(a.state, b.state) &&
+        AwsEc2Module.utils.instanceEqReplaceableFields(a, b) &&
+        AwsEc2Module.utils.instanceEqTags(a, b),
       source: 'db',
       cloud: new Crud({
         create: async (es: Instance[], ctx: Context) => {
@@ -89,12 +95,30 @@ export const AwsEc2Module: Module = new Module({
         },
         updateOrReplace: (_a: Instance, _b: Instance) => 'replace',
         update: async (es: Instance[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? ''];
-            const created = await AwsEc2Module.mappers.instance.cloud.create([e], ctx);
-            await AwsEc2Module.mappers.instance.cloud.delete([cloudRecord], ctx);
-            out.push(created);
+            if (AwsEc2Module.utils.instanceEqReplaceableFields(e, cloudRecord)) {
+              const insId = e.instanceId as string;
+              if (!AwsEc2Module.utils.instanceEqTags(e, cloudRecord) && e.instanceId && e.tags) {
+                await client.updateTags(insId, e.tags);
+              }
+              if (!Object.is(e.state, cloudRecord.state) && e.instanceId) {
+                if (cloudRecord.state === State.STOPPED && e.state === State.RUNNING) {
+                  await client.startInstance(insId);
+                } else if (cloudRecord.state === State.RUNNING && e.state === State.STOPPED) {
+                  await client.stopInstance(insId);
+                } else {
+                  throw new Error(`Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`);
+                }
+              }
+              out.push(e);
+            } else {
+              const created = await AwsEc2Module.mappers.instance.cloud.create([e], ctx);
+              await AwsEc2Module.mappers.instance.cloud.delete([cloudRecord], ctx);
+              out.push(created);
+            }
           }
           return out;
         },

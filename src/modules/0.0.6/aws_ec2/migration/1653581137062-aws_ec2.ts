@@ -1,10 +1,11 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEc21653477652139 implements MigrationInterface {
-    name = 'awsEc21653477652139'
+export class awsEc21653581137062 implements MigrationInterface {
+    name = 'awsEc21653581137062'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`CREATE TABLE "instance" ("id" SERIAL NOT NULL, "instance_id" character varying, "ami" character varying NOT NULL, "instance_type" character varying NOT NULL, "key_pair_name" character varying, "tags" json, CONSTRAINT "PK_eaf60e4a0c399c9935413e06474" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TYPE "public"."instance_state_enum" AS ENUM('running', 'stopped')`);
+        await queryRunner.query(`CREATE TABLE "instance" ("id" SERIAL NOT NULL, "instance_id" character varying, "ami" character varying NOT NULL, "instance_type" character varying NOT NULL, "key_pair_name" character varying, "state" "public"."instance_state_enum" NOT NULL DEFAULT 'running', "tags" json, CONSTRAINT "PK_eaf60e4a0c399c9935413e06474" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "registered_instance" ("id" SERIAL NOT NULL, "instance" integer, "target_group" character varying, CONSTRAINT "UQ_9bf32facbba2872745e70d25b3a" UNIQUE ("instance", "target_group"), CONSTRAINT "PK_e566c7adcf3a7974c08b7f1712c" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "instance_security_groups" ("instance_id" integer NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_8045eb55d2a16cf6e4cf80e7ee5" PRIMARY KEY ("instance_id", "security_group_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_fa3c179d5090cb1309c63b5e20" ON "instance_security_groups" ("instance_id") `);
@@ -25,6 +26,7 @@ export class awsEc21653477652139 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "instance_security_groups"`);
         await queryRunner.query(`DROP TABLE "registered_instance"`);
         await queryRunner.query(`DROP TABLE "instance"`);
+        await queryRunner.query(`DROP TYPE "public"."instance_state_enum"`);
     }
 
 }
