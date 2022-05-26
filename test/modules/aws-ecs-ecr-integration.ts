@@ -44,7 +44,6 @@ const serviceName = `${prefix}${dbAlias}service`;
 const serviceRepositoryName = `${prefix}${dbAlias}servicerepository`;
 const clusterName = `${prefix}${dbAlias}cluster`;
 const newClusterName = `${prefix}${dbAlias}clusternew`;
-const logGroupName = `${prefix}${dbAlias}loggroup`;
 const imageTag = 'latest';
 const containerMemoryReservation = 2048;  // MiB
 const containerEssential = true;
@@ -292,7 +291,19 @@ describe('ECS Integration Testing', () => {
     where role_name = '${taskExecRoleName}';
   `));
 
+  it('check role deletion', query(`
+    SELECT *
+    FROM role
+    where role_name = '${taskExecRoleName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
   it('applies role deletion', apply());
+
+  it('check role deletion', query(`
+    SELECT *
+    FROM role
+    where role_name = '${taskExecRoleName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('installs the ecs module with missing role', install(
     ['aws_ecs_fargate']));
@@ -325,9 +336,6 @@ describe('ECS Integration Testing', () => {
       delete from task_definition
       where family = '${tdRepositoryFamily}';
 
-      delete from role
-      where role_name = '${taskExecRoleName}';
-
       delete from repository
       where repository_name = '${repositoryName}';
     commit;
@@ -341,12 +349,6 @@ describe('ECS Integration Testing', () => {
     SELECT *
     FROM role
     WHERE role_name = '${taskExecRoleName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
-
-  it('check log group deletion', query(`
-    SELECT *
-    FROM log_group
-    WHERE log_group_name = '${logGroupName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('check task def deletion', query(`
