@@ -3,7 +3,7 @@ import { Service as AwsService } from '@aws-sdk/client-ecs'
 import { AWS, } from '../../../services/gateways/aws'
 import logger from '../../../services/logger'
 import { EcsSimplified } from './entity'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity'
 import {
@@ -45,7 +45,7 @@ export type SimplifiedObjectMapped = {
 
 const prefix = 'iasql-ecs-';
 
-export const AwsEcsSimplifiedModule: Module = new Module({
+export const AwsEcsSimplifiedModule: Module2 = new Module2({
   ...metadata,
   utils: {
     ecsSimplifiedMapper: async (e: AwsService, ctx: Context) => {
@@ -175,7 +175,7 @@ export const AwsEcsSimplifiedModule: Module = new Module({
     cloud: cloudFns,
   },
   mappers: {
-    ecsSimplified: new Mapper<EcsSimplified>({
+    ecsSimplified: new Mapper2<EcsSimplified>({
       entity: EcsSimplified,
       equals: (a: EcsSimplified, b: EcsSimplified) => Object.is(a.appPort, b.appPort) &&
         Object.is(a.cpuMem, b.cpuMem) &&
@@ -187,7 +187,7 @@ export const AwsEcsSimplifiedModule: Module = new Module({
         Object.is(a.publicIp, b.publicIp),
       entityId: (e: EcsSimplified) => e.appName ?? '',
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: EcsSimplified[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const defaultVpc = await AwsEcsSimplifiedModule.utils.cloud.get.defaultVpc(client);
@@ -288,7 +288,7 @@ export const AwsEcsSimplifiedModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           // read all clusters and find the ones that match our pattern
           const clusters = await client.getClusters();
@@ -299,8 +299,8 @@ export const AwsEcsSimplifiedModule: Module = new Module({
             const services = await client.getServices([c.clusterName!]) ?? [];
             relevantServices.push(...services.filter(s => s.serviceName?.includes(prefix)));
           }
-          if (ids) {
-            relevantServices = relevantServices.filter(s => ids.includes(s.serviceArn!));
+          if (id) {
+            relevantServices = relevantServices.filter(s => s.serviceArn === id);
           }
           const validServices = [];
           for (const s of relevantServices) {

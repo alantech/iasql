@@ -1,17 +1,17 @@
 import { AWS, } from '../../../services/gateways/aws'
 import { Bucket, } from './entity'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
-export const AwsS3Module: Module = new Module({
+export const AwsS3Module: Module2 = new Module2({
   ...metadata,
   mappers: {
-    bucket: new Mapper<Bucket>({
+    bucket: new Mapper2<Bucket>({
       entity: Bucket,
       equals: (a: Bucket, b: Bucket) => Object.is(a.name, b.name) &&
         Object.is(a.createdAt?.toISOString(), b.createdAt?.toISOString()),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         // TODO: There are lots of useful permission controls on create to be added to this model
         create: async (es: Bucket[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -19,11 +19,11 @@ export const AwsS3Module: Module = new Module({
             await client.createBucket(e.name);
           }
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           const allBuckets = await client.getBuckets();
           return allBuckets
-            .filter(b => !ids || ids.length === 0 || ids.includes(b.Name ?? ''))
+            .filter(b => !id || b.Name === id)
             .map(b => {
               const bucket = new Bucket();
               bucket.name = b.Name ?? '';

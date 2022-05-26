@@ -1,20 +1,20 @@
 import { ImportCertificateCommandInput } from '@aws-sdk/client-acm';
 import { AWS, } from '../../../services/gateways/aws';
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsAcmListModule } from '../aws_acm_list';
 import { CertificateImport } from './entity';
 import * as metadata from './module.json';
 
 
-export const AwsAcmImportModule: Module = new Module({
+export const AwsAcmImportModule: Module2 = new Module2({
   ...metadata,
   mappers: {
-    certificateImport: new Mapper<CertificateImport>({
+    certificateImport: new Mapper2<CertificateImport>({
       entity: CertificateImport,
       entityId: (e: CertificateImport) => e.id?.toString() ?? '',
       equals: () => true, // only database values
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: CertificateImport[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const textEncoder = new TextEncoder();
