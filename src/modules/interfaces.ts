@@ -363,7 +363,7 @@ export class Crud2<E> {
   }
 
   async read(ctx: Context, id?: string) {
-    logger.info(`Calling ${this.entity?.name ?? ''} ${this.dest} read`);
+    logger.info(`Calling ${this.entity?.name ?? ''} ${this.dest} read ${id}`);
     const entityId = this.entityId ?? ((_e: E) => { return 'What?'; });
     if (id) {
       const dest = this.dest ?? 'What?';
@@ -668,7 +668,7 @@ export class Module2 {
     this.utils = def?.utils ?? {};
     this.mappers = Object.fromEntries(
       Object.entries(def.mappers)
-        .filter(([_, m]: [string, any]) => m instanceof Mapper) as [[string, Mapper2<any>]]
+        .filter(([_, m]: [string, any]) => m instanceof Mapper2) as [[string, Mapper2<any>]]
     );
     const migrationDir = `${dirname}/migration`;
     const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
