@@ -24,10 +24,11 @@ export const AwsEc2Module: Module2 = new Module2({
       if (instance.KeyName) out.keyPairName = instance.KeyName;
       out.instanceType = instance.InstanceType ?? '';
       if (!out.instanceType) throw new Error('Cannot create Instance object without a valid InstanceType in the Database');
-      out.securityGroups = await AwsSecurityGroupModule.mappers.securityGroup.db.read(
-        ctx,
-        instance.SecurityGroups?.map(sg => sg.GroupId).filter(id => !!id) as string[],
-      );
+      out.securityGroups = [];
+      for (const sgId of instance.SecurityGroups?.map(sg => sg.GroupId) ?? []) {
+        const sg = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
+        if (sg) out.securityGroups.push(sg);
+      }
       return out;
     },
     instanceEqReplaceableFields: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
