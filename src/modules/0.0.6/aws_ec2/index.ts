@@ -3,11 +3,11 @@ import { Instance as AWSInstance } from '@aws-sdk/client-ec2'
 import { Instance, RegisteredInstance, State, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
 import { AWS } from '../../../services/gateways/aws'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
 
-export const AwsEc2Module: Module = new Module({
+export const AwsEc2Module: Module2 = new Module2({
   ...metadata,
   utils: {
     instanceMapper: async (instance: AWSInstance, ctx: Context) => {
@@ -25,10 +25,11 @@ export const AwsEc2Module: Module = new Module({
       if (instance.KeyName) out.keyPairName = instance.KeyName;
       out.instanceType = instance.InstanceType ?? '';
       if (!out.instanceType) throw new Error('Cannot create Instance object without a valid InstanceType in the Database');
-      out.securityGroups = await AwsSecurityGroupModule.mappers.securityGroup.db.read(
-        ctx,
-        instance.SecurityGroups?.map(sg => sg.GroupId).filter(id => !!id) as string[],
-      );
+      out.securityGroups = [];
+      for (const sgId of instance.SecurityGroups?.map(sg => sg.GroupId) ?? []) {
+        const sg = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
+        if (sg) out.securityGroups.push(sg);
+      }
       return out;
     },
     instanceEqReplaceableFields: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
@@ -49,13 +50,13 @@ export const AwsEc2Module: Module = new Module({
     },
   },
   mappers: {
-    instance: new Mapper<Instance>({
+    instance: new Mapper2<Instance>({
       entity: Instance,
       equals: (a: Instance, b: Instance) => Object.is(a.state, b.state) &&
         AwsEc2Module.utils.instanceEqReplaceableFields(a, b) &&
         AwsEc2Module.utils.instanceEqTags(a, b),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: Instance[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const instance of es) {
@@ -75,23 +76,22 @@ export const AwsEc2Module: Module = new Module({
             }
           }
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          const instances = Array.isArray(ids) ? await (async () => {
-            const o = [];
-            for (const id of ids) {
-              o.push(await client.getInstance(id));
+          if (id) {
+            const rawInstance = await client.getInstance(id);
+            if (!rawInstance) return;
+            if (rawInstance.State?.Name === 'terminated' || rawInstance.State?.Name === 'shutting-down') return;
+            return AwsEc2Module.utils.instanceMapper(rawInstance, ctx);
+          } else {
+            const rawInstances = (await client.getInstances()).Instances ?? [];
+            const out = [];
+            for (const i of rawInstances) {
+              if (i?.State?.Name === 'terminated' || i?.State?.Name === 'shutting-down') continue;
+              out.push(await AwsEc2Module.utils.instanceMapper(i, ctx));
             }
-            return o;
-          })() :
-            (await client.getInstances()).Instances ?? [];
-          // ignore instances in "Terminated" and "Shutting down" state
-          const out = [];
-          for (const i of instances) {
-            if (i?.State?.Name === 'terminated' || i?.State?.Name === 'shutting-down') continue;
-            out.push(await AwsEc2Module.utils.instanceMapper(i, ctx));
+            return out;
           }
-          return out;
         },
         updateOrReplace: (_a: Instance, _b: Instance) => 'replace',
         update: async (es: Instance[], ctx: Context) => {

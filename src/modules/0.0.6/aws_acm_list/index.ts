@@ -1,9 +1,9 @@
 import { AWS, } from '../../../services/gateways/aws'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { Certificate } from './entity'
 import * as metadata from './module.json'
 
-export const AwsAcmListModule: Module = new Module({
+export const AwsAcmListModule: Module2 = new Module2({
   ...metadata,
   utils: {
     certificateMapper: (e: any) => {
@@ -20,7 +20,7 @@ export const AwsAcmListModule: Module = new Module({
     },
   },
   mappers: {
-    certificate: new Mapper<Certificate>({
+    certificate: new Mapper2<Certificate>({
       entity: Certificate,
       entityId: (e: Certificate) => e.arn ?? e.id.toString(),
       equals: (a: Certificate, b: Certificate) => Object.is(a.certificateId, b.certificateId) &&
@@ -30,22 +30,21 @@ export const AwsAcmListModule: Module = new Module({
         Object.is(a.renewalEligibility, b.renewalEligibility) &&
         Object.is(a.status, b.status),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: Certificate[], ctx: Context) => {
           // Do not cloud create, just restore database
           await AwsAcmListModule.mappers.certificate.db.delete(es, ctx);
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          let out = [];
-          if (Array.isArray(ids)) {
-            for (const id of ids) {
-              out.push(await client.getCertificate(id));
-            }
+          if (id) {
+            const rawCert = await client.getCertificate(id);
+            if (!rawCert) return;
+            return AwsAcmListModule.utils.certificateMapper(rawCert);
           } else {
-            out = (await client.getCertificates()) ?? [];
+            const out = (await client.getCertificates()) ?? [];
+            return out.map(AwsAcmListModule.utils.certificateMapper);
           }
-          return out.map(AwsAcmListModule.utils.certificateMapper);
         },
         updateOrReplace: () => 'update',
         update: async (es: Certificate[], ctx: Context) => {

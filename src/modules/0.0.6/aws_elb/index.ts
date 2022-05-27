@@ -20,11 +20,11 @@ import {
   TargetTypeEnum,
 } from './entity'
 import { AwsVpcModule, } from '../aws_vpc'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
 
-export const AwsElbModule: Module = new Module({
+export const AwsElbModule: Module2 = new Module2({
   ...metadata,
   utils: {
     listenerMapper: async (l: ListenerAws, ctx: Context) => {
@@ -62,8 +62,13 @@ export const AwsElbModule: Module = new Module({
       const securityGroups = [];
       const cloudSecurityGroups = lb.SecurityGroups ?? [];
       for (const sg of cloudSecurityGroups) {
-        securityGroups.push(await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg) ??
-          await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg));
+        try {
+          securityGroups.push(await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg) ??
+            await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg));
+        } catch (_) {
+          // If security groups are misconfigured ignore them
+          continue;
+        }
       }
       if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length) throw new Error('Security groups need to be loaded first')
       out.securityGroups = securityGroups;
@@ -104,7 +109,7 @@ export const AwsElbModule: Module = new Module({
     },
   },
   mappers: {
-    listener: new Mapper<Listener>({
+    listener: new Mapper2<Listener>({
       entity: Listener,
       equals: (a: Listener, b: Listener) => Object.is(a.listenerArn, b.listenerArn)
         && Object.is(a.loadBalancer.loadBalancerArn, b.loadBalancer.loadBalancerArn)
@@ -113,7 +118,7 @@ export const AwsElbModule: Module = new Module({
         && Object.is(a.actionType, b.actionType)
         && Object.is(a.targetGroup.targetGroupArn, b.targetGroup.targetGroupArn),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: Listener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
@@ -141,16 +146,14 @@ export const AwsElbModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          const listeners = Array.isArray(ids) ? await (async () => {
-            const o = [];
-            for (const id of ids) {
-              o.push(await client.getListener(id));
-            }
-            return o;
-          })() :
-            await (async () => {
+          if (id) {
+            const rawListener = await client.getListener(id);
+            if (!rawListener) return;
+            return await AwsElbModule.utils.listenerMapper(rawListener, ctx);
+          } else {
+            const listeners = await (async () => {
               // TODO: Should this behavior be standard?
               const loadBalancers = ctx.memo?.cloud?.LoadBalancer ?
                 Object.values(ctx.memo?.cloud?.LoadBalancer) :
@@ -158,11 +161,12 @@ export const AwsElbModule: Module = new Module({
               const loadBalancerArns = loadBalancers.map((lb: any) => lb.loadBalancerArn);
               return (await client.getListeners(loadBalancerArns)).Listeners;
             })();
-          const out = [];
-          for (const l of listeners) {
-            out.push(await AwsElbModule.utils.listenerMapper(l, ctx));
+            const out = [];
+            for (const l of listeners) {
+              out.push(await AwsElbModule.utils.listenerMapper(l, ctx));
+            }
+            return out;
           }
-          return out;
         },
         updateOrReplace: (prev: Listener, next: Listener) => {
           if (!Object.is(prev.loadBalancer.loadBalancerArn, next.loadBalancer.loadBalancerArn)) {
@@ -201,7 +205,7 @@ export const AwsElbModule: Module = new Module({
         },
       }),
     }),
-    loadBalancer: new Mapper<LoadBalancer>({
+    loadBalancer: new Mapper2<LoadBalancer>({
       entity: LoadBalancer,
       equals: (a: LoadBalancer, b: LoadBalancer) => Object.is(a.availabilityZones?.length, b.availabilityZones?.length)
         && (a.availabilityZones?.filter(aaz => !!aaz).every(aaz => !!b.availabilityZones?.filter(baz => !!baz).find(baz => Object.is(aaz, baz))) ?? false)
@@ -222,7 +226,7 @@ export const AwsElbModule: Module = new Module({
         && (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
         && Object.is(a.vpc?.vpcId, b.vpc?.vpcId),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: LoadBalancer[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const subnets = (await client.getSubnets()).Subnets.map(s => s.SubnetId ?? '');
@@ -258,21 +262,20 @@ export const AwsElbModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          const lbs = Array.isArray(ids) ? await (async () => {
-            const o = [];
-            for (const id of ids) {
-              o.push(await client.getLoadBalancer(id));
+          if (id) {
+            const rawLoadBalancer = await client.getLoadBalancer(id);
+            if (!rawLoadBalancer) return;
+            return await AwsElbModule.utils.loadBalancerMapper(rawLoadBalancer, ctx);
+          } else {
+            const lbs = (await client.getLoadBalancers()).LoadBalancers;
+            const out = [];
+            for (const lb of lbs) {
+              out.push(await AwsElbModule.utils.loadBalancerMapper(lb, ctx));
             }
-            return o;
-          })() :
-            (await client.getLoadBalancers()).LoadBalancers;
-          const out = [];
-          for (const lb of lbs) {
-            out.push(await AwsElbModule.utils.loadBalancerMapper(lb, ctx));
+            return out;
           }
-          return out;
         },
         updateOrReplace: (prev: LoadBalancer, next: LoadBalancer) => {
           if (
@@ -337,7 +340,7 @@ export const AwsElbModule: Module = new Module({
         },
       }),
     }),
-    targetGroup: new Mapper<TargetGroup>({
+    targetGroup: new Mapper2<TargetGroup>({
       entity: TargetGroup,
       equals: (a: TargetGroup, b: TargetGroup) => Object.is(a.targetGroupArn, b.targetGroupArn)
         && Object.is(a.targetGroupName, b.targetGroupName)
@@ -356,7 +359,7 @@ export const AwsElbModule: Module = new Module({
         && Object.is(a.healthyThresholdCount, b.healthyThresholdCount)
         && Object.is(a.unhealthyThresholdCount, b.unhealthyThresholdCount),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: TargetGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const vpcs = (await client.getVpcs()).Vpcs;
@@ -394,21 +397,20 @@ export const AwsElbModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          const tgs = Array.isArray(ids) ? await (async () => {
-            const o = [];
-            for (const id of ids) {
-              o.push(await client.getTargetGroup(id));
+          if (id) {
+            const rawTargetGroup = await client.getTargetGroup(id);
+            if (!rawTargetGroup) return;
+            return await AwsElbModule.utils.targetGroupMapper(rawTargetGroup, ctx);
+          } else {
+            const tgs = (await client.getTargetGroups()).TargetGroups;
+            const out = [];
+            for (const tg of tgs) {
+              out.push(await AwsElbModule.utils.targetGroupMapper(tg, ctx));
             }
-            return o;
-          })() :
-            (await client.getTargetGroups()).TargetGroups;
-          const out = [];
-          for (const tg of tgs) {
-            out.push(await AwsElbModule.utils.targetGroupMapper(tg, ctx));
+            return out;
           }
-          return out;
         },
         updateOrReplace: (prev: TargetGroup, next: TargetGroup) => {
           if (

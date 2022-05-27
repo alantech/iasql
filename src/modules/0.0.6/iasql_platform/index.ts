@@ -1,10 +1,10 @@
 /* THIS MODULE IS A SPECIAL SNOWFLAKE. DON'T LOOK AT IT FOR HOW TO WRITE A REAL MODULE */
 
-import { Module, } from '../../interfaces'
+import { Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { IasqlModule, IasqlTables, } from './entity'
 
-export const IasqlPlatform: Module = new Module({
+export const IasqlPlatform: Module2 = new Module2({
   ...metadata,
   utils: {
     IasqlModule,

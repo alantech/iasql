@@ -4,14 +4,14 @@ import { Repository as PublicRepositoryAws, } from '@aws-sdk/client-ecr-public'
 import { AWS, } from '../../../services/gateways/aws'
 import logger from '../../../services/logger'
 import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability, } from './entity'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
-export const AwsEcrModule: Module = new Module({
+export const AwsEcrModule: Module2 = new Module2({
   ...metadata,
   utils: {
     publicRepositoryMapper: (r: PublicRepositoryAws) => {
-      const out = new Repository();
+      const out = new PublicRepository();
       if (!r?.repositoryName) throw new Error('No repository name defined.');
       out.repositoryName = r.repositoryName;
       out.repositoryArn = r.repositoryArn;
@@ -57,7 +57,7 @@ export const AwsEcrModule: Module = new Module({
     }
   },
   mappers: {
-    publicRepository: new Mapper<PublicRepository>({
+    publicRepository: new Mapper2<PublicRepository>({
       entity: PublicRepository,
       equals: (a: PublicRepository, b: PublicRepository) => Object.is(a.repositoryName, b.repositoryName)
         && Object.is(a.repositoryArn, b.repositoryArn)
@@ -65,7 +65,7 @@ export const AwsEcrModule: Module = new Module({
         && Object.is(a.repositoryUri, b.repositoryUri)
         && Object.is(a.createdAt?.getTime(), b.createdAt?.getTime()),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: PublicRepository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
@@ -87,17 +87,16 @@ export const AwsEcrModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          const ecrs = Array.isArray(ids) ? await (async () => {
-            const out = [];
-            for (const id of ids) {
-              out.push(await client.getECRPubRepository(id));
-            }
-            return out;
-          })() :
-            (await client.getECRPubRepositories()).Repositories ?? [];
-          return ecrs.map(ecr => AwsEcrModule.utils.publicRepositoryMapper(ecr));
+          if (id) {
+            const rawEcr = await client.getECRPubRepository(id);
+            if (!rawEcr) return;
+            return AwsEcrModule.utils.publicRepositoryMapper(rawEcr);
+          } else {
+            const ecrs = (await client.getECRPubRepositories()).Repositories ?? [];
+            return ecrs.map(ecr => AwsEcrModule.utils.publicRepositoryMapper(ecr));
+          }
         },
         updateOrReplace: () => 'update',
         update: async (es: PublicRepository[], ctx: Context) => {
@@ -119,7 +118,7 @@ export const AwsEcrModule: Module = new Module({
         },
       }),
     }),
-    repository: new Mapper<Repository>({
+    repository: new Mapper2<Repository>({
       entity: Repository,
       equals: (a: Repository, b: Repository) => Object.is(a.repositoryName, b.repositoryName)
         && Object.is(a.repositoryArn, b.repositoryArn)
@@ -129,7 +128,7 @@ export const AwsEcrModule: Module = new Module({
         && Object.is(a.imageTagMutability, b.imageTagMutability)
         && Object.is(a.scanOnPush, b.scanOnPush),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: Repository[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
@@ -155,17 +154,16 @@ export const AwsEcrModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          const ecrs = Array.isArray(ids) ? await (async () => {
-            const out = [];
-            for (const id of ids) {
-              out.push(await client.getECRRepository(id));
-            }
-            return out;
-          })() :
-            (await client.getECRRepositories()).Repositories ?? [];
-          return ecrs.map(ecr => AwsEcrModule.utils.repositoryMapper(ecr));
+          if (id) {
+            const rawEcr = await client.getECRRepository(id);
+            if (!rawEcr) return;
+            return AwsEcrModule.utils.repositoryMapper(rawEcr);
+          } else {
+            const ecrs = (await client.getECRRepositories()).Repositories ?? [];
+            return ecrs.map(ecr => AwsEcrModule.utils.repositoryMapper(ecr));
+          }
         },
         updateOrReplace: () => 'update',
         update: async (es: Repository[], ctx: Context) => {
@@ -199,7 +197,7 @@ export const AwsEcrModule: Module = new Module({
         },
       }),
     }),
-    repositoryPolicy: new Mapper<RepositoryPolicy>({
+    repositoryPolicy: new Mapper2<RepositoryPolicy>({
       entity: RepositoryPolicy,
       entityId: (e: RepositoryPolicy) => e.repository?.repositoryName + '' ?? e.id.toString(),
       equals: (a: RepositoryPolicy, b: RepositoryPolicy) => {
@@ -212,7 +210,7 @@ export const AwsEcrModule: Module = new Module({
         }
       },
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: RepositoryPolicy[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
@@ -238,17 +236,12 @@ export const AwsEcrModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           // TODO: Can this function be refactored to be simpler?
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
-            const out = [];
-            for (const id of ids) {
-              out.push(await AwsEcrModule.utils.repositoryPolicyMapper(
-                await client.getECRRepositoryPolicy(id), ctx
-              ));
-            }
-            return out;
+          if (id) {
+            const rawRepositoryPolicy = await client.getECRRepositoryPolicy(id);
+            return await AwsEcrModule.utils.repositoryPolicyMapper(rawRepositoryPolicy, ctx);
           } else {
             const repositories = ctx.memo?.cloud?.Repository ? Object.values(ctx.memo?.cloud?.Repository) : await AwsEcrModule.mappers.repository.cloud.read(ctx);
             const policies: any = [];

@@ -2,10 +2,10 @@ import { Role as AWSRole } from '@aws-sdk/client-iam'
 
 import { Role } from './entity'
 import { AWS, } from '../../../services/gateways/aws'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
-export const AwsIamModule: Module = new Module({
+export const AwsIamModule: Module2 = new Module2({
   ...metadata,
   utils: {
     roleMapper: (role: AWSRole) => {
@@ -24,7 +24,7 @@ export const AwsIamModule: Module = new Module({
     }
   },
   mappers: {
-    role: new Mapper<Role>({
+    role: new Mapper2<Role>({
       entity: Role,
       equals: (a: Role, b: Role) => Object.is(a.roleName, b.roleName) &&
         Object.is(a.arn, b.arn) &&
@@ -35,7 +35,7 @@ export const AwsIamModule: Module = new Module({
         Object.is(a.attachedPoliciesArns?.length, b.attachedPoliciesArns?.length) &&
         a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs))),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: Role[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
@@ -55,23 +55,24 @@ export const AwsIamModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          const roles = Array.isArray(ids) ? await (async () => {
-            const o = [];
-            for (const id of ids) {
-              o.push(await client.getRole(id));
-            }
-            return o;
-          })() :
-            (await client.getAllRoles()) ?? [];
-          const out = [];
-          for (const r of roles) {
-            const role = AwsIamModule.utils.roleMapper(r);
+          if (id) {
+            const rawRole = await client.getRole(id);
+            if (!rawRole) return;
+            const role = AwsIamModule.utils.roleMapper(rawRole);
             role.attachedPoliciesArns = await client.getRoleAttachedPoliciesArns(role.roleName);
-            out.push(role);
+            return role;
+          } else {
+            const roles = (await client.getAllRoles()) ?? [];
+            const out = [];
+            for (const r of roles) {
+              const role = AwsIamModule.utils.roleMapper(r);
+              role.attachedPoliciesArns = await client.getRoleAttachedPoliciesArns(role.roleName);
+              out.push(role);
+            }
+            return out;
           }
-          return out;
         },
         updateOrReplace: () => 'update',
         update: async (es: Role[], ctx: Context) => {

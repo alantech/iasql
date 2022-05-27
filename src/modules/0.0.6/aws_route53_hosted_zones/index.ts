@@ -1,11 +1,11 @@
 import { ResourceRecordSet as AwsResourceRecordSet } from '@aws-sdk/client-route-53'
 import { AWS, } from '../../../services/gateways/aws'
-import { Context, Crud, Mapper, Module, } from '../../interfaces'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { HostedZone } from './entity'
 import { RecordType, ResourceRecordSet } from './entity/resource_records_set';
 import * as metadata from './module.json'
 
-export const AwsRoute53HostedZoneModule: Module = new Module({
+export const AwsRoute53HostedZoneModule: Module2 = new Module2({
   ...metadata,
   utils: {
     hostedZoneMapper: (hz: any) => {
@@ -40,11 +40,11 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
     }
   },
   mappers: {
-    hostedZone: new Mapper<HostedZone>({
+    hostedZone: new Mapper2<HostedZone>({
       entity: HostedZone,
       equals: (a: HostedZone, b: HostedZone) => Object.is(a.domainName, b.domainName),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (hz: HostedZone[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
@@ -64,17 +64,16 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          let hostedZones = [];
-          if (Array.isArray(ids)) {
-            for (const id of ids) {
-              hostedZones.push(await client.getHostedZone(id));
-            }
+          if (id) {
+            const rawHostedZone = await client.getHostedZone(id);
+            if (!rawHostedZone) return;
+            return AwsRoute53HostedZoneModule.utils.hostedZoneMapper(rawHostedZone);
           } else {
-            hostedZones = (await client.getHostedZones()) ?? [];
+            const hostedZones = (await client.getHostedZones()) ?? [];
+            return hostedZones.map((hz: any) => AwsRoute53HostedZoneModule.utils.hostedZoneMapper(hz));
           }
-          return hostedZones.map((hz: any) => AwsRoute53HostedZoneModule.utils.hostedZoneMapper(hz));
         },
         updateOrReplace: () => 'replace',
         update: async (es: HostedZone[], ctx: Context) => {
@@ -97,7 +96,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
         },
       }),
     }),
-    resourceRecordSet: new Mapper<ResourceRecordSet>({
+    resourceRecordSet: new Mapper2<ResourceRecordSet>({
       entity: ResourceRecordSet,
       entityId: (e: ResourceRecordSet) => e.parentHostedZone?.hostedZoneId ?
         `${e.parentHostedZone.hostedZoneId}${AwsRoute53HostedZoneModule.utils.resourceRecordSetName(e)}${e.recordType}` : `${e.id}`,
@@ -108,7 +107,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
         && Object.is(a.ttl, b.ttl)
         && Object.is(a.record, b.record),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (rrs: ResourceRecordSet[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
@@ -135,7 +134,7 @@ export const AwsRoute53HostedZoneModule: Module = new Module({
           }
           return out;
         },
-        read: async (ctx: Context, _ids?: string[]) => {
+        read: async (ctx: Context, _id?: string) => {
           // TODO: How to identify a unique record? Is it necessary?
           const client = await ctx.getAwsClient() as AWS;
           const hostedZones = ctx.memo?.cloud?.HostedZone ?
