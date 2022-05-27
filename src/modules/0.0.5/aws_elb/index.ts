@@ -83,19 +83,19 @@ export const AwsElbModule: Module = new Module({
       }
       out.targetGroupName = tg.TargetGroupName;
       out.targetType = tg.TargetType as TargetTypeEnum;
-      out.targetGroupArn = tg.TargetGroupArn;
-      out.ipAddressType = tg.IpAddressType as TargetGroupIpAddressTypeEnum;
-      out.protocol = tg.Protocol as ProtocolEnum;
-      out.port = tg.Port;
-      out.healthCheckProtocol = tg.HealthCheckProtocol as ProtocolEnum;
-      out.healthCheckPort = tg.HealthCheckPort;
-      out.healthCheckEnabled = tg.HealthCheckEnabled;
-      out.healthCheckIntervalSeconds = tg.HealthCheckIntervalSeconds;
-      out.healthCheckTimeoutSeconds = tg.HealthCheckTimeoutSeconds;
-      out.healthyThresholdCount = tg.HealthyThresholdCount;
-      out.unhealthyThresholdCount = tg.UnhealthyThresholdCount;
-      out.healthCheckPath = tg.HealthCheckPath;
-      out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum;
+      out.targetGroupArn = tg.TargetGroupArn ?? null;
+      out.ipAddressType = tg.IpAddressType as TargetGroupIpAddressTypeEnum ?? null;
+      out.protocol = tg.Protocol as ProtocolEnum ?? null;
+      out.port = tg.Port ?? null;
+      out.healthCheckProtocol = tg.HealthCheckProtocol as ProtocolEnum ?? null;
+      out.healthCheckPort = tg.HealthCheckPort ?? null;
+      out.healthCheckEnabled = tg.HealthCheckEnabled ?? null;
+      out.healthCheckIntervalSeconds = tg.HealthCheckIntervalSeconds ?? null;
+      out.healthCheckTimeoutSeconds = tg.HealthCheckTimeoutSeconds ?? null;
+      out.healthyThresholdCount = tg.HealthyThresholdCount ?? null;
+      out.unhealthyThresholdCount = tg.UnhealthyThresholdCount ?? null;
+      out.healthCheckPath = tg.HealthCheckPath ?? null;
+      out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum ?? null;
       const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, tg.VpcId) ??
         await AwsVpcModule.mappers.vpc.cloud.read(ctx, tg.VpcId);
       if (tg.VpcId && !vpc) throw new Error(`Waiting for VPC ${tg.VpcId}`);
