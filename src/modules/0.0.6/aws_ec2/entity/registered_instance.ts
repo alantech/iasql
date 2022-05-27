@@ -16,11 +16,17 @@ export class RegisteredInstance {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Instance, instance => instance.id, { eager: true, })
+  @ManyToOne(() => Instance, instance => instance.id, {
+    eager: true,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'instance', })
   instance: Instance;
 
-  @ManyToOne(() => TargetGroup, targetGroup => targetGroup.targetGroupName, { eager: true, })
+  @ManyToOne(() => TargetGroup, targetGroup => targetGroup.targetGroupName, {
+    eager: true,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'target_group', })
   targetGroup: TargetGroup;
 }
