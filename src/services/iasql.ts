@@ -444,7 +444,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
             logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInDbOnly.length > 0) {
-              logger.info(`${name} has records to create`);
+              logger.info(`${name} has records to create`, { records: r.diff.entitiesInDbOnly, });
               outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 const out = await r.mapper.cloud.create(e, context);
                 if (out) {
@@ -481,7 +481,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
             logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInAwsOnly.length > 0) {
-              logger.info(`${name} has records to delete`);
+              logger.info(`${name} has records to delete`, { records: r.diff.entitiesInAwsOnly, });
               outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 await r.mapper.cloud.delete(e, context);
               }));
@@ -651,7 +651,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
             logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInAwsOnly.length > 0) {
-              logger.info(`${name} has records to create`);
+              logger.info(`${name} has records to create`, { records: r.diff.entitiesInAwsOnly, });
               outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 const out = await r.mapper.db.create(e, context);
                 if (out) {
@@ -689,7 +689,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
             logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInDbOnly.length > 0) {
-              logger.info(`${name} has records to delete`);
+              logger.info(`${name} has records to delete`, { records: r.diff.entitiesInDbOnly, });
               outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 await r.mapper.db.delete(e, context);
               }));
