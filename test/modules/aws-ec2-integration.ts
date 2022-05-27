@@ -165,6 +165,37 @@ describe('EC2 Integration Testing', () => {
     FROM instance;
   `, (res: any[]) => expect(res.length).toBe(2)));
 
+  it('adds an ec2 instance with no security group', (done) => {
+    query(`
+      INSERT INTO instance (ami, instance_type, tags)
+      VALUES ('${amznAmiId}', 't2.micro', '{"name":"${prefix}-nosg"}');
+    `)((e?: any) => {
+      if (!!e) return done(e);
+      done();
+    });
+  });
+
+  it('check number of instances', query(`
+    SELECT *
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-nosg';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('applies the created instances', apply());
+
+  it('check number of instances', query(`
+    SELECT *
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-nosg';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check number of security groups for instance', query(`
+    SELECT *
+    FROM instance_security_groups
+    INNER JOIN instance ON instance.id = instance_security_groups.instance_id
+    WHERE tags ->> 'name' = '${prefix}-nosg';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
   it('deletes both ec2 instances', query(`
     DELETE FROM instance;
   `));
