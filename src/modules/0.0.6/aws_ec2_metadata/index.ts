@@ -42,6 +42,7 @@ export const AwsEc2MetadataModule: Module2 = new Module2({
           Object.is(a.memSizeMB, b.memSizeMB),
       source: 'cloud',
       cloud: new Crud2({
+        // tslint:disable-next-line: no-empty
         create: async (_es: InstanceMetadata[], _ctx: Context) => {},
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
@@ -60,7 +61,9 @@ export const AwsEc2MetadataModule: Module2 = new Module2({
             return out;
           }
         },
+        // tslint:disable-next-line: no-empty
         update: async (_es: InstanceMetadata[], _ctx: Context) => {},
+        // tslint:disable-next-line: no-empty
         delete: async (_es: InstanceMetadata[], _ctx: Context) => {},
       }),
     }),
