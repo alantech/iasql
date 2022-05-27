@@ -136,7 +136,9 @@ export const AwsEc2Module: Module2 = new Module2({
     }),
     registeredInstances: new Mapper2<RegisteredInstance>({
       entity: RegisteredInstance,
-      entityId: (e: RegisteredInstance) => e.id?.toString() ?? '',
+      entityId: (e: RegisteredInstance) => e.instance?.instanceId && e.targetGroup.targetGroupArn ?
+        `${e.instance.instanceId}|${e.targetGroup.targetGroupArn}` :
+        e.id?.toString() ?? '',
       equals: (a: RegisteredInstance, b: RegisteredInstance) => Object.is(a.instance.instanceId, b.instance.instanceId) &&
         Object.is(a.targetGroup.targetGroupArn, b.targetGroup.targetGroupArn),
       source: 'db',
