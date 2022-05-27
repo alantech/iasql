@@ -50,6 +50,7 @@ export const AwsEc2Module: Module2 = new Module2({
       cloud: new Crud2({
         create: async (es: Instance[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
+          const out = [];
           for (const instance of es) {
             if (instance.ami) {
               const instanceId = await client.newInstanceV2(
@@ -62,10 +63,13 @@ export const AwsEc2Module: Module2 = new Module2({
               if (!instanceId) { // then who?
                 throw new Error('should not be possible');
               }
-              instance.instanceId = instanceId;
-              await AwsEc2Module.mappers.instance.db.update(instance, ctx);
+              const newEntity = await AwsEc2Module.mappers.instance.cloud.read(ctx, instanceId);
+              newEntity.id = instance.id;
+              await AwsEc2Module.mappers.instance.db.update(newEntity, ctx);
+              out.push(newEntity);
             }
           }
+          return out;
         },
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
