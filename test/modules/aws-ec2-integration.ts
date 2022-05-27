@@ -196,15 +196,21 @@ describe('EC2 Integration Testing', () => {
     WHERE tags ->> 'name' = '${prefix}-nosg';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('deletes both ec2 instances', query(`
-    DELETE FROM instance;
+  it('deletes all ec2 instances', query(`
+    DELETE FROM instance
+    WHERE tags ->> 'name' = '${prefix}-nosg' OR
+      tags ->> 'name' = '${prefix}-1' OR
+      tags ->> 'name' = '${prefix}-2';
   `));
 
   it('applies the instances deletion', apply());
 
   it('check number of instances', query(`
     SELECT *
-    FROM instance;
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-nosg' OR
+      tags ->> 'name' = '${prefix}-1' OR
+      tags ->> 'name' = '${prefix}-2';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('deletes the test db', (done) => void iasql
