@@ -134,13 +134,13 @@ export const AwsEc2Module: Module2 = new Module2({
         },
       }),
     }),
-    registeredInstances: new Mapper<RegisteredInstance>({
+    registeredInstances: new Mapper2<RegisteredInstance>({
       entity: RegisteredInstance,
       entityId: (e: RegisteredInstance) => e.id?.toString() ?? '',
       equals: (a: RegisteredInstance, b: RegisteredInstance) => Object.is(a.instance.instanceId, b.instance.instanceId) &&
         Object.is(a.targetGroup.targetGroupArn, b.targetGroup.targetGroupArn),
       source: 'db',
-      cloud: new Crud({
+      cloud: new Crud2({
         create: async (es: RegisteredInstance[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
@@ -151,9 +151,9 @@ export const AwsEc2Module: Module2 = new Module2({
           }
           return out;
         },
-        read: async (ctx: Context, ids?: string[]) => {
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          if (ids) {
+          if (id) {
             // Just return empty array. Since theres no really a cloud id this should never be called.
             return [];
           }
