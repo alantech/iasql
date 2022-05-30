@@ -273,7 +273,7 @@ describe('ELB install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the ELB module and its dependent ones', uninstall(
-    ['aws_elb', 'aws_ecs_fargate', 'aws_ec2']));
+    ['aws_elb', 'aws_ecs_fargate', 'aws_ec2', 'aws_ec2_metadata']));
 
   it('installs the ELB module', install(
     ['aws_elb',]));
