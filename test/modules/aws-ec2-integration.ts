@@ -9,16 +9,6 @@ const amznAmiId = 'ami-06cffe063efe892ad';
 const ubuntuAmiId = 'ami-0892d3c7ee96c0bf7';
 const instancePort = 1234;
 
-// ELB integration
-const {
-  TargetTypeEnum,
-  ProtocolEnum,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_elb/entity`);
-const tgType = TargetTypeEnum.INSTANCE;
-const tgName = `${dbAlias}tg`;
-const tgPort = 4142;
-const protocol = ProtocolEnum.HTTP;
-
 const prefix = getPrefix();
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
@@ -28,6 +18,16 @@ const install = runInstall.bind(null, dbAlias);
 const installSync = runInstall.bind(null, `${dbAlias}_sync`);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ec2', 'aws_security_group', 'aws_vpc'];
+
+// ELB integration
+const {
+  TargetTypeEnum,
+  ProtocolEnum,
+} = require(`../../src/modules/${config.modules.latestVersion}/aws_elb/entity`);
+const tgType = TargetTypeEnum.INSTANCE;
+const tgName = `${prefix}${dbAlias}tg`;
+const tgPort = 4142;
+const protocol = ProtocolEnum.HTTP;
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
