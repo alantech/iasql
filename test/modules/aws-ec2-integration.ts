@@ -289,7 +289,7 @@ describe('EC2 Integration Testing', () => {
     FROM registered_instance
     INNER JOIN instance ON instance.id = registered_instance.instance
     WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
-  `, (res: any[]) => expect(res[0]['port']).toBe(instancePort)));
+  `, (res: any[]) => expect(res[0]['port']).toBe(instancePort + 1)));
 
   it('adds an ec2 instance with no security group', (done) => {
     query(`
