@@ -17,7 +17,7 @@ export const AwsEc2Module: Module2 = new Module2({
         tags[t.Key as string] = t.Value as string;
       });
       out.tags = tags;
-      if (instance.State?.Name === State.STOPPED ) out.state = State.STOPPED
+      if (instance.State?.Name === State.STOPPED) out.state = State.STOPPED
        // map interim states to running
        else out.state = State.RUNNING;
       out.ami = instance.ImageId ?? '';
