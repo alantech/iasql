@@ -132,13 +132,18 @@ describe('EC2 Integration Testing', () => {
 
   it('check number of instances', query(`
     SELECT *
-    FROM instance;
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-1' OR
+    tags ->> 'name' = '${prefix}-2';
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('check instance ami update', query(`
     SELECT *
     FROM instance
-    WHERE ami = '${ubuntuAmiId}';
+    WHERE ami = '${ubuntuAmiId}' AND (
+      tags ->> 'name' = '${prefix}-1' OR
+      tags ->> 'name' = '${prefix}-2'
+    );
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('create target group and register instance to it', query(`
@@ -176,7 +181,10 @@ describe('EC2 Integration Testing', () => {
     FROM registered_instance
     INNER JOIN instance ON instance.id = registered_instance.instance
     WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-1';
-  `, (res: any[]) => expect(res[0]['port']).toBe(tgPort)));
+  `, (res: any[]) => {
+    console.log(JSON.stringify(res));
+    return expect(res[0]['port']).toBe(tgPort);
+  }));
 
   it('register instance with custom port to target group', query(`
     INSERT INTO registered_instance (instance, target_group, port)
