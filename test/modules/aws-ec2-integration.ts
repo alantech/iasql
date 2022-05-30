@@ -303,7 +303,7 @@ describe('EC2 Integration Testing', () => {
   it('deletes one of the registered instances', query(`
     DELETE FROM registered_instance
     USING instance
-    WHERE instance.tags ->> 'name' = '${prefix}-1';
+    WHERE instance.tags ->> 'name' = '${prefix}-1' AND instance.id = registered_instance.instance;
   `));
 
   it('check registered instance count', query(`
@@ -392,7 +392,7 @@ describe('EC2 Integration Testing', () => {
   it('check target group count', query(`
     SELECT *
     FROM target_group
-    WHERE target_group = '${tgName}';
+    WHERE target_group_name = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('deletes the test db', (done) => void iasql
