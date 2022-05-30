@@ -13,14 +13,14 @@ export const AwsEc2Module: Module2 = new Module2({
     instanceMapper: async (instance: AWSInstance, ctx: Context) => {
       const out = new Instance();
       out.instanceId = instance.InstanceId;
-      const tags: {[key: string]: string} = {};
+      const tags: { [key: string]: string } = {};
       (instance.Tags || []).filter(t => !!t.Key && !!t.Value).forEach(t => {
         tags[t.Key as string] = t.Value as string;
       });
       out.tags = tags;
-      if (instance.State?.Name === State.STOPPED ) out.state = State.STOPPED
-       // map interim states to running
-       else out.state = State.RUNNING;
+      if (instance.State?.Name === State.STOPPED) out.state = State.STOPPED
+      // map interim states to running
+      else out.state = State.RUNNING;
       out.ami = instance.ImageId ?? '';
       if (instance.KeyName) out.keyPairName = instance.KeyName;
       out.instanceType = instance.InstanceType ?? '';
@@ -138,8 +138,7 @@ export const AwsEc2Module: Module2 = new Module2({
     registeredInstances: new Mapper2<RegisteredInstance>({
       entity: RegisteredInstance,
       entityId: (e: RegisteredInstance) => `${e.instance.id}|${e.targetGroup.targetGroupName}` ?? '',
-      equals: (a: RegisteredInstance, b: RegisteredInstance) => Object.is(a.instance.instanceId, b.instance.instanceId) &&
-        Object.is(a.targetGroup.targetGroupArn, b.targetGroup.targetGroupArn),
+      equals: (a: RegisteredInstance, b: RegisteredInstance) => Object.is(a.port, b.port),
       source: 'db',
       cloud: new Crud2({
         create: async (es: RegisteredInstance[], ctx: Context) => {
@@ -147,8 +146,12 @@ export const AwsEc2Module: Module2 = new Module2({
           const out = [];
           for (const e of es) {
             if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
-            await client.registerInstance(e.instance.instanceId, e.targetGroup.targetGroupArn);
-            out.push(e);
+            await client.registerInstance(e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
+            const registeredInstances = await AwsEc2Module.mappers.registeredInstances.cloud.read(ctx);
+            const relevantRegister = registeredInstances.find((ri: RegisteredInstance) => Object.is(ri.instance.instanceId, e.instance.instanceId) &&
+              Object.is(ri.targetGroup.targetGroupName, e.targetGroup.targetGroupName));
+            await AwsEc2Module.mappers.registeredInstances.db.update(relevantRegister, ctx);
+            out.push(relevantRegister);
           }
           return out;
         },
@@ -173,9 +176,13 @@ export const AwsEc2Module: Module2 = new Module2({
             const cloudRecord = ctx?.memo?.cloud?.RegisteredInstance?.[AwsEc2Module.mappers.registeredInstances.entityId(e)];
             if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
             if (!cloudRecord.instance?.instanceId || !cloudRecord.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
-            await client.registerInstance(e.instance.instanceId, e.targetGroup.targetGroupArn);
+            await client.registerInstance(e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
             await client.deregisterInstance(cloudRecord.instance.instanceId, cloudRecord.targetGroup.targetGroupArn);
-            out.push(e);
+            const registeredInstances = await AwsEc2Module.mappers.registeredInstances.cloud.read(ctx);
+            const relevantRegister = registeredInstances.find((ri: RegisteredInstance) => Object.is(ri.instance.instanceId, e.instance.instanceId) &&
+              Object.is(ri.targetGroup.targetGroupName, e.targetGroup.targetGroupName));
+            await AwsEc2Module.mappers.registeredInstances.db.update(relevantRegister, ctx);
+            out.push(relevantRegister);
           }
           return out;
         },

@@ -1983,14 +1983,16 @@ export class AWS {
     return out;
   }
 
-  async registerInstance(instanceId: string, targetGroupArn: string) {
+  async registerInstance(instanceId: string, targetGroupArn: string, port?: number) {
+    const target: any = {
+      Id: instanceId,
+    };
+    if (port) {
+      target.Port = port;
+    }
     await this.elbClient.send(new RegisterTargetsCommand({
       TargetGroupArn: targetGroupArn,
-      Targets: [
-        {
-          Id: instanceId,
-        }
-      ],
+      Targets: [target],
     }));
   }
 
