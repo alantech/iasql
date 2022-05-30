@@ -7,6 +7,17 @@ const dbAlias = 'ec2test';
 const region = 'us-west-2'
 const amznAmiId = 'ami-06cffe063efe892ad';
 const ubuntuAmiId = 'ami-0892d3c7ee96c0bf7';
+const instancePort = 1234;
+
+// ELB integration
+const {
+  TargetTypeEnum,
+  ProtocolEnum,
+} = require(`../../src/modules/${config.modules.latestVersion}/aws_elb/entity`);
+const tgType = TargetTypeEnum.INSTANCE;
+const tgName = `${dbAlias}tg`;
+const tgPort = 4142;
+const protocol = ProtocolEnum.HTTP;
 
 const prefix = getPrefix();
 const apply = runApply.bind(null, dbAlias);
@@ -45,7 +56,7 @@ describe('EC2 Integration Testing', () => {
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `));
 
-  it('installs the ec2 module', install(modules));
+  it('installs the ec2 module', install(['aws_ec2']));
 
   it('adds two ec2 instance', (done) => {
     query(`
@@ -130,6 +141,69 @@ describe('EC2 Integration Testing', () => {
     WHERE ami = '${ubuntuAmiId}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
+  it('create target group and register instance to it', query(`
+    BEGIN;
+      INSERT INTO target_group (target_group_name, target_type, protocol, port, health_check_path)
+      VALUES ('${tgName}', '${tgType}', '${protocol}', ${tgPort}, '/health');
+
+      INSERT INTO registered_instance (instance, target_group)
+      SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), '${tgName}';
+    COMMIT;
+  `));
+
+  it('check target group count', query(`
+    SELECT *
+    FROM target_group
+    WHERE target_group_name = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check registered instance count', query(`
+    SELECT *
+    FROM registered_instance
+    WHERE target_group = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('applies the instance registration', apply());
+
+  it('check registered instance count', query(`
+    SELECT *
+    FROM registered_instance
+    WHERE target_group = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check registered instance port', query(`
+    SELECT *
+    FROM registered_instance
+    INNER JOIN instance ON instance.id = registered_instance.instance
+    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-1';
+  `, (res: any[]) => expect(res[0]['port']).toBe(tgPort)));
+
+  it('register instance with custom port to target group', query(`
+    INSERT INTO registered_instance (instance, target_group, port)
+    SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'), '${tgName}', ${instancePort}
+  `));
+
+  it('check registered instance count', query(`
+    SELECT *
+    FROM registered_instance
+    WHERE target_group = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
+
+  it('applies the instance registration', apply());
+
+  it('check registered instance count', query(`
+    SELECT *
+    FROM registered_instance
+    WHERE target_group = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
+
+  it('check registered instance port', query(`
+    SELECT *
+    FROM registered_instance
+    INNER JOIN instance ON instance.id = registered_instance.instance
+    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
+  `, (res: any[]) => expect(res[0]['port']).toBe(instancePort)));
+
   it('stop instance', query(`
      UPDATE instance SET state = 'stopped' WHERE tags ->> 'name' = '${prefix}-2';
    `));
@@ -165,6 +239,26 @@ describe('EC2 Integration Testing', () => {
     FROM instance;
   `, (res: any[]) => expect(res.length).toBe(2)));
 
+  it('check registered instance count', query(`
+    SELECT *
+    FROM registered_instance
+    WHERE target_group = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
+
+  it('check registered instance port', query(`
+    SELECT *
+    FROM registered_instance
+    INNER JOIN instance ON instance.id = registered_instance.instance
+    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-1';
+  `, (res: any[]) => expect(res[0]['port']).toBe(tgPort)));
+
+  it('check registered instance port', query(`
+    SELECT *
+    FROM registered_instance
+    INNER JOIN instance ON instance.id = registered_instance.instance
+    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
+  `, (res: any[]) => expect(res[0]['port']).toBe(instancePort)));
+
   it('adds an ec2 instance with no security group', (done) => {
     query(`
       INSERT INTO instance (ami, instance_type, tags)
@@ -196,6 +290,26 @@ describe('EC2 Integration Testing', () => {
     WHERE tags ->> 'name' = '${prefix}-nosg';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
+  it('deletes one of the registered instances', query(`
+    DELETE FROM registered_instance
+    USING instance
+    WHERE instance.tags ->> 'name' = '${prefix}-1';
+  `));
+
+  it('check registered instance count', query(`
+    SELECT *
+    FROM registered_instance
+    WHERE target_group = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('applies instance deregistration', apply());
+
+  it('check registered instance count', query(`
+    SELECT *
+    FROM registered_instance
+    WHERE target_group = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
   it('deletes all ec2 instances', query(`
     DELETE FROM instance
     WHERE tags ->> 'name' = '${prefix}-nosg' OR
@@ -211,6 +325,25 @@ describe('EC2 Integration Testing', () => {
     WHERE tags ->> 'name' = '${prefix}-nosg' OR
       tags ->> 'name' = '${prefix}-1' OR
       tags ->> 'name' = '${prefix}-2';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check registered instance count, should be zero due to instance CASCADE deletion', query(`
+    SELECT *
+    FROM registered_instance
+    WHERE target_group = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('deletes the target group', query(`
+    DELETE FROM target_group
+    WHERE target_group_name = '${tgName}';
+  `));
+
+  it('applies target group deletion', apply());
+
+  it('check target group count', query(`
+    SELECT *
+    FROM target_group
+    WHERE target_group = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('deletes the test db', (done) => void iasql
