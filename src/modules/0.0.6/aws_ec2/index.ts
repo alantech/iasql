@@ -147,10 +147,10 @@ export const AwsEc2Module: Module2 = new Module2({
           for (const e of es) {
             if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
             await client.registerInstance(e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
-            const registeredInstances = await AwsEc2Module.mappers.registeredInstances.cloud.read(ctx);
+            const registeredInstances = await AwsEc2Module.mappers.registeredInstance.cloud.read(ctx);
             const relevantRegister = registeredInstances.find((ri: RegisteredInstance) => Object.is(ri.instance.instanceId, e.instance.instanceId) &&
               Object.is(ri.targetGroup.targetGroupName, e.targetGroup.targetGroupName));
-            await AwsEc2Module.mappers.registeredInstances.db.update(relevantRegister, ctx);
+            await AwsEc2Module.mappers.registeredInstance.db.update(relevantRegister, ctx);
             out.push(relevantRegister);
           }
           return out;
@@ -173,15 +173,15 @@ export const AwsEc2Module: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
-            const cloudRecord = ctx?.memo?.cloud?.RegisteredInstance?.[AwsEc2Module.mappers.registeredInstances.entityId(e)];
+            const cloudRecord = ctx?.memo?.cloud?.RegisteredInstance?.[AwsEc2Module.mappers.registeredInstance.entityId(e)];
             if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
             if (!cloudRecord.instance?.instanceId || !cloudRecord.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
             await client.registerInstance(e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
             await client.deregisterInstance(cloudRecord.instance.instanceId, cloudRecord.targetGroup.targetGroupArn);
-            const registeredInstances = await AwsEc2Module.mappers.registeredInstances.cloud.read(ctx);
+            const registeredInstances = await AwsEc2Module.mappers.registeredInstance.cloud.read(ctx);
             const relevantRegister = registeredInstances.find((ri: RegisteredInstance) => Object.is(ri.instance.instanceId, e.instance.instanceId) &&
               Object.is(ri.targetGroup.targetGroupName, e.targetGroup.targetGroupName));
-            await AwsEc2Module.mappers.registeredInstances.db.update(relevantRegister, ctx);
+            await AwsEc2Module.mappers.registeredInstance.db.update(relevantRegister, ctx);
             out.push(relevantRegister);
           }
           return out;
