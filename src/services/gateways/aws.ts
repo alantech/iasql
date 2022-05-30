@@ -1975,12 +1975,13 @@ export class AWS {
       out.push(...(res.TargetHealthDescriptions?.map(thd => (
         {
           targetGroupArn: tg.TargetGroupArn,
-          instanceId: thd.Target?.Id
+          instanceId: thd.Target?.Id,
+          port: thd.Target?.Port,
         }
       )) ?? []));
     }
     return out;
-  } 
+  }
 
   async registerInstance(instanceId: string, targetGroupArn: string) {
     await this.elbClient.send(new RegisterTargetsCommand({

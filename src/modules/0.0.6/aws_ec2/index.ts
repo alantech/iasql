@@ -40,12 +40,13 @@ export const AwsEc2Module: Module2 = new Module2({
       a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
     instanceEqTags: (a: Instance, b: Instance) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
       Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]),
-    registredInstanceMapper: async (registredInstance: { [key: string]: string }, ctx: Context) => {
+    registeredInstanceMapper: async (registeredInstance: { [key: string]: string }, ctx: Context) => {
       const out = new RegisteredInstance();
-      out.instance = await AwsEc2Module.mappers.instance.db.read(ctx, registredInstance.instanceId) ??
-        await AwsEc2Module.mappers.instance.cloud.read(ctx, registredInstance.instanceId);
-      out.targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, registredInstance.targetGroupArn) ??
-        await AwsElbModule.mappers.targetGroup.cloud.read(ctx, registredInstance.targetGroupArn);
+      out.instance = await AwsEc2Module.mappers.instance.db.read(ctx, registeredInstance.instanceId) ??
+        await AwsEc2Module.mappers.instance.cloud.read(ctx, registeredInstance.instanceId);
+      out.targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, registeredInstance.targetGroupArn) ??
+        await AwsElbModule.mappers.targetGroup.cloud.read(ctx, registeredInstance.targetGroupArn);
+      out.port = registeredInstance.port ? +registeredInstance.port : undefined;
       return out;
     },
   },
@@ -136,9 +137,7 @@ export const AwsEc2Module: Module2 = new Module2({
     }),
     registeredInstances: new Mapper2<RegisteredInstance>({
       entity: RegisteredInstance,
-      entityId: (e: RegisteredInstance) => e.instance?.instanceId && e.targetGroup.targetGroupArn ?
-        `${e.instance.instanceId}|${e.targetGroup.targetGroupArn}` :
-        e.id?.toString() ?? '',
+      entityId: (e: RegisteredInstance) => `${e.instance.id}|${e.targetGroup.targetGroupName}` ?? '',
       equals: (a: RegisteredInstance, b: RegisteredInstance) => Object.is(a.instance.instanceId, b.instance.instanceId) &&
         Object.is(a.targetGroup.targetGroupArn, b.targetGroup.targetGroupArn),
       source: 'db',
@@ -159,10 +158,10 @@ export const AwsEc2Module: Module2 = new Module2({
             // Just return empty array. Since theres no really a cloud id this should never be called.
             return [];
           }
-          const registredInstances = await client.getRegisteredInstances() ?? [];
+          const registeredInstances = await client.getRegisteredInstances() ?? [];
           const out = [];
-          for (const i of registredInstances) {
-            out.push(await AwsEc2Module.utils.registredInstanceMapper(i, ctx));
+          for (const i of registeredInstances) {
+            out.push(await AwsEc2Module.utils.registeredInstanceMapper(i, ctx));
           }
           return out;
         },
@@ -171,7 +170,7 @@ export const AwsEc2Module: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
-            const cloudRecord = ctx?.memo?.cloud?.RegisteredInstance?.[e.id ?? ''];
+            const cloudRecord = ctx?.memo?.cloud?.RegisteredInstance?.[AwsEc2Module.mappers.registeredInstances.entityId(e)];
             if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
             if (!cloudRecord.instance?.instanceId || !cloudRecord.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
             await client.registerInstance(e.instance.instanceId, e.targetGroup.targetGroupArn);
