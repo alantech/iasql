@@ -26,12 +26,14 @@ export class awsEc21653932287040 implements MigrationInterface {
                 where target_group_name = _target_group_name;
                 return _target_group_type = 'instance';
             end;
-            ALTER TABLE registered_instance
-            ADD CHECK (check_target_group_instance(target_group));
-        $$;`);
+            $$;`
+        );
+        await queryRunner.query(`ALTER TABLE registered_instance ADD CONSTRAINT check_target_group_instance CHECK (check_target_group_instance(target_group));`);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE registered_instance DROP CONSTRAINT check_target_group_instance`);
+        await queryRunner.query(`DROP FUNCTION "check_target_group_instance"`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups" DROP CONSTRAINT "FK_b3b92934eff56d2eb0477a1d27f"`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups" DROP CONSTRAINT "FK_fa3c179d5090cb1309c63b5e20a"`);
         await queryRunner.query(`ALTER TABLE "registered_instance" DROP CONSTRAINT "FK_bdcacf2c01109dd6ad3ffab7a83"`);
