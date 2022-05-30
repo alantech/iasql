@@ -135,7 +135,7 @@ export const AwsEc2Module: Module2 = new Module2({
         },
       }),
     }),
-    registeredInstances: new Mapper2<RegisteredInstance>({
+    registeredInstance: new Mapper2<RegisteredInstance>({
       entity: RegisteredInstance,
       entityId: (e: RegisteredInstance) => `${e.instance.id}|${e.targetGroup.targetGroupName}` ?? '',
       equals: (a: RegisteredInstance, b: RegisteredInstance) => Object.is(a.port, b.port),
