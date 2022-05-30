@@ -272,8 +272,8 @@ describe('ELB install/uninstall', () => {
     config.db.user,
     true).then(...finish(done)));
 
-  it('uninstalls the ELB module', uninstall(
-    ['aws_elb', 'aws_ecs_fargate']));
+  it('uninstalls the ELB module and its dependent ones', uninstall(
+    ['aws_elb', 'aws_ecs_fargate', 'aws_ec2']));
 
   it('installs the ELB module', install(
     ['aws_elb',]));
