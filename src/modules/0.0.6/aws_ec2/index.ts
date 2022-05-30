@@ -168,7 +168,7 @@ export const AwsEc2Module: Module2 = new Module2({
           }
           return out;
         },
-        updateOrReplace: () => 'update',
+        updateOrReplace: () => 'replace',
         update: async (es: RegisteredInstance[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
