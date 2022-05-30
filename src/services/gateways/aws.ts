@@ -1996,14 +1996,16 @@ export class AWS {
     }));
   }
 
-  async deregisterInstance(instanceId: string, targetGroupArn: string) {
+  async deregisterInstance(instanceId: string, targetGroupArn: string, port?: number) {
+    const target: any = {
+      Id: instanceId,
+    };
+    if (port) {
+      target.Port = port;
+    }
     await this.elbClient.send(new DeregisterTargetsCommand({
       TargetGroupArn: targetGroupArn,
-      Targets: [
-        {
-          Id: instanceId,
-        }
-      ],
+      Targets: [target],
     }));
   }
 }

@@ -177,7 +177,7 @@ export const AwsEc2Module: Module2 = new Module2({
             if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
             if (!cloudRecord.instance?.instanceId || !cloudRecord.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
             await client.registerInstance(e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
-            await client.deregisterInstance(cloudRecord.instance.instanceId, cloudRecord.targetGroup.targetGroupArn);
+            await client.deregisterInstance(cloudRecord.instance.instanceId, cloudRecord.targetGroup.targetGroupArn, cloudRecord.port);
             const registeredInstances = await AwsEc2Module.mappers.registeredInstance.cloud.read(ctx);
             const relevantRegister = registeredInstances.find((ri: RegisteredInstance) => Object.is(ri.instance.instanceId, e.instance.instanceId) &&
               Object.is(ri.targetGroup.targetGroupName, e.targetGroup.targetGroupName));
@@ -190,7 +190,7 @@ export const AwsEc2Module: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
             if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
-            await client.deregisterInstance(e.instance.instanceId, e.targetGroup.targetGroupArn);
+            await client.deregisterInstance(e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
           }
         },
       }),
