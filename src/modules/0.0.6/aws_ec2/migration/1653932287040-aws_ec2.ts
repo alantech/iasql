@@ -14,6 +14,21 @@ export class awsEc21653932287040 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "registered_instance" ADD CONSTRAINT "FK_bdcacf2c01109dd6ad3ffab7a83" FOREIGN KEY ("target_group") REFERENCES "target_group"("target_group_name") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups" ADD CONSTRAINT "FK_fa3c179d5090cb1309c63b5e20a" FOREIGN KEY ("instance_id") REFERENCES "instance"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups" ADD CONSTRAINT "FK_b3b92934eff56d2eb0477a1d27f" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`
+            create or replace function check_target_group_instance(_target_group_name text) returns boolean
+            language plpgsql security definer
+            as $$
+            declare
+                _target_group_type target_group_target_type_enum;
+            begin
+                select target_type into _target_group_type
+                from target_group
+                where target_group_name = _target_group_name;
+                return _target_group_type = 'instance';
+            end;
+            ALTER TABLE registered_instance
+            ADD CHECK (check_target_group_instance(target_group));
+        $$;`);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {

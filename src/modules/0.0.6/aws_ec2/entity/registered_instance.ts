@@ -11,7 +11,7 @@ import {
 import { Instance } from '.';
 import { TargetGroup } from '../../aws_elb/entity';
 
-// TODO: add constraint to only join with target groups with type 'instance'  @Check(`target_group.target_type = "instance"`)
+// Constraint to only join with target groups with type 'instance' added in migration file
 @Entity()
 export class RegisteredInstance {
   @ManyToOne(() => Instance, instance => instance.id, {
