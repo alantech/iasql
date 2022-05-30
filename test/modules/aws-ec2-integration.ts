@@ -211,6 +211,29 @@ describe('EC2 Integration Testing', () => {
     WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
   `, (res: any[]) => expect(res[0]['port']).toBe(instancePort)));
 
+  it('updates register instance with custom port to target group', query(`
+    UPDATE registered_instance
+    SET port = ${instancePort + 1}
+    FROM registered_instance
+    INNER JOIN instance ON instance.id = registered_instance.instance
+    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
+  `));
+
+  it('applies the instance registration', apply());
+
+  it('check registered instance count', query(`
+    SELECT *
+    FROM registered_instance
+    WHERE target_group = '${tgName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
+
+  it('check registered instance port', query(`
+    SELECT *
+    FROM registered_instance
+    INNER JOIN instance ON instance.id = registered_instance.instance
+    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
+  `, (res: any[]) => expect(res[0]['port']).toBe(instancePort + 1)))
+
   it('stop instance', query(`
     UPDATE instance SET state = 'stopped'
     WHERE tags ->> 'name' = '${prefix}-2';
