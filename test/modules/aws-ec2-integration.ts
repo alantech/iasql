@@ -214,9 +214,8 @@ describe('EC2 Integration Testing', () => {
   it('updates register instance with custom port to target group', query(`
     UPDATE registered_instance
     SET port = ${instancePort + 1}
-    FROM registered_instance
-    INNER JOIN instance ON instance.id = registered_instance.instance
-    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
+    FROM instance
+    WHERE instance.id = registered_instance.instance AND target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
   `));
 
   it('applies the instance registration', apply());
