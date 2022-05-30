@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEc21653918476969 implements MigrationInterface {
-    name = 'awsEc21653918476969'
+export class awsEc21653932287040 implements MigrationInterface {
+    name = 'awsEc21653932287040'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."instance_state_enum" AS ENUM('running', 'stopped')`);

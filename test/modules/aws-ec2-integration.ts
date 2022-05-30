@@ -17,7 +17,7 @@ const querySync = runQuery.bind(null, `${dbAlias}_sync`);
 const install = runInstall.bind(null, dbAlias);
 const installSync = runInstall.bind(null, `${dbAlias}_sync`);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_ec2', 'aws_security_group', 'aws_vpc'];
+const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc'];
 
 // ELB integration
 const {
@@ -140,10 +140,9 @@ describe('EC2 Integration Testing', () => {
   it('check instance ami update', query(`
     SELECT *
     FROM instance
-    WHERE ami = '${ubuntuAmiId}' AND (
-      tags ->> 'name' = '${prefix}-1' OR
-      tags ->> 'name' = '${prefix}-2'
-    );
+    WHERE ami = '${ubuntuAmiId}' AND
+    (tags ->> 'name' = '${prefix}-1' OR
+    tags ->> 'name' = '${prefix}-2');
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('create target group and register instance to it', query(`
@@ -213,8 +212,9 @@ describe('EC2 Integration Testing', () => {
   `, (res: any[]) => expect(res[0]['port']).toBe(instancePort)));
 
   it('stop instance', query(`
-     UPDATE instance SET state = 'stopped' WHERE tags ->> 'name' = '${prefix}-2';
-   `));
+    UPDATE instance SET state = 'stopped'
+    WHERE tags ->> 'name' = '${prefix}-2';
+  `));
 
   it('applies the instances change', apply());
 
@@ -231,11 +231,11 @@ describe('EC2 Integration Testing', () => {
 
   it('applies the instances change', apply());
 
-  it('check number of stopped instances', query(`
-  SELECT *
-  FROM instance
-  WHERE state = 'running' AND
-  tags ->> 'name' = '${prefix}-2';
+  it('check number of running instances', query(`
+    SELECT *
+    FROM instance
+    WHERE state = 'running' AND
+    tags ->> 'name' = '${prefix}-2';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('uninstalls the ec2 module', uninstall(modules));
@@ -244,7 +244,9 @@ describe('EC2 Integration Testing', () => {
 
   it('check number of instances', query(`
     SELECT *
-    FROM instance;
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-1' OR
+    tags ->> 'name' = '${prefix}-2';
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('check registered instance count', query(`
@@ -318,6 +320,45 @@ describe('EC2 Integration Testing', () => {
     WHERE target_group = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
+  it('check instance metadata', query(`
+    SELECT *
+    FROM instance_metadata
+    WHERE instance_id = (
+      SELECT instance_id
+      FROM instance
+      WHERE tags ->> 'name' = '${prefix}-1'
+    );
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].spot).toBe(false);
+    expect(res[0].mem_size_mb).toBe(1024);
+    expect(res[0].cpu_cores).toBe(1);
+  }));
+
+  it('update instance metadata', query(`
+    UPDATE instance_metadata SET cpu_cores = 10
+    WHERE instance_id = (
+      SELECT instance_id
+      FROM instance
+      WHERE tags ->> 'name' = '${prefix}-1'
+    );
+  `));
+
+  it('sync instances metadata update', sync());
+
+  it('check instance metadata did not change', query(`
+    SELECT *
+    FROM instance_metadata
+    WHERE instance_id = (
+      SELECT instance_id
+      FROM instance
+      WHERE tags ->> 'name' = '${prefix}-1'
+    );
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].cpu_cores).toBe(1);
+  }));
+
   it('deletes all ec2 instances', query(`
     DELETE FROM instance
     WHERE tags ->> 'name' = '${prefix}-nosg' OR
@@ -388,11 +429,11 @@ describe('EC2 install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstall ec2 using overloaded sp', query(`
-    select iasql_uninstall('aws_ec2');
+    select iasql_uninstall('aws_ec2_metadata');
   `));
 
   it('install ec2 using overloaded sp', query(`
-    select iasql_install('aws_ec2');
+    select iasql_install('aws_ec2_metadata');
   `));
 
   it('deletes the test db', (done) => void iasql
