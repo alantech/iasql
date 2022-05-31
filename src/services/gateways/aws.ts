@@ -1977,12 +1977,12 @@ export class AWS {
     );
     const out = [...(res.TargetHealthDescriptions?.map(thd => (
       {
-        targetGroupArn: targetGroupArn,
+        targetGroupArn,
         instanceId: thd.Target?.Id,
         port: thd.Target?.Port,
       }
     )) ?? [])];
-  return out.pop();
+    return out;
   }
 
   async getRegisteredInstances() {
