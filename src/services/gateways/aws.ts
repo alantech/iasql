@@ -1982,7 +1982,7 @@ export class AWS {
         port: thd.Target?.Port,
       }
     )) ?? [])];
-    return out;
+    return out.pop();
   }
 
   async getRegisteredInstances() {
