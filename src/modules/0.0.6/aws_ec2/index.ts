@@ -146,6 +146,9 @@ export const AwsEc2Module: Module2 = new Module2({
           const out = [];
           for (const e of es) {
             if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
+            if (!e.port) {
+              e.port = e.targetGroup.port;
+            }
             await client.registerInstance(e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
             const registeredInstance = await AwsEc2Module.mappers.registeredInstance.cloud.read(ctx, AwsEc2Module.mappers.registeredInstance.entityId(e));
             await AwsEc2Module.mappers.registeredInstance.db.update(registeredInstance, ctx);
@@ -175,6 +178,9 @@ export const AwsEc2Module: Module2 = new Module2({
             const cloudRecord = ctx?.memo?.cloud?.RegisteredInstance?.[AwsEc2Module.mappers.registeredInstance.entityId(e)];
             if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
             if (!cloudRecord.instance?.instanceId || !cloudRecord.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
+            if (!e.port) {
+              e.port = e.targetGroup.port;
+            }
             await client.registerInstance(e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
             await client.deregisterInstance(cloudRecord.instance.instanceId, cloudRecord.targetGroup.targetGroupArn, cloudRecord.port);
             const registeredInstance = await AwsEc2Module.mappers.registeredInstance.cloud.read(ctx, AwsEc2Module.mappers.registeredInstance.entityId(e));
