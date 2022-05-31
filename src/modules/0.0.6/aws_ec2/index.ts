@@ -160,6 +160,7 @@ export const AwsEc2Module: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
             const [instanceId, targetGroupArn, port] = id.split('|');
+            if (!instanceId || !targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
             const registeredInstance = await client.getRegisteredInstance(instanceId, targetGroupArn, port);
             return await AwsEc2Module.utils.registeredInstanceMapper(registeredInstance, ctx);
           }
