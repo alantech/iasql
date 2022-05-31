@@ -73,9 +73,11 @@ import {
   DeleteListenerCommand,
   DeleteLoadBalancerCommand,
   DeleteTargetGroupCommand,
+  DeregisterTargetsCommand,
   DescribeListenersCommand,
   DescribeLoadBalancersCommand,
   DescribeTargetGroupsCommand,
+  DescribeTargetHealthCommand,
   ElasticLoadBalancingV2Client,
   ModifyListenerCommand,
   ModifyListenerCommandInput,
@@ -84,12 +86,14 @@ import {
   paginateDescribeListeners,
   paginateDescribeLoadBalancers,
   paginateDescribeTargetGroups,
+  RegisterTargetsCommand,
   SetIpAddressTypeCommand,
   SetIpAddressTypeCommandInput,
   SetSecurityGroupsCommand,
   SetSecurityGroupsCommandInput,
   SetSubnetsCommand,
   SetSubnetsCommandInput,
+  TargetTypeEnum,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 import {
   CreateClusterCommand,
@@ -1958,4 +1962,73 @@ export class AWS {
     return res;
   }
 
+  async getRegisteredInstance(instanceId: string, targetGroupArn: string, port?: string) {
+    const target: any = {
+      Id: instanceId,
+    };
+    if (port) {
+      target.Port = +port;
+    }
+    const res = await this.elbClient.send(
+      new DescribeTargetHealthCommand({
+        TargetGroupArn: targetGroupArn,
+        Targets: [target]
+      })
+    );
+    const out = [...(res.TargetHealthDescriptions?.map(thd => (
+      {
+        targetGroupArn,
+        instanceId: thd.Target?.Id,
+        port: thd.Target?.Port,
+      }
+    )) ?? [])];
+    return out.pop();
+  }
+
+  async getRegisteredInstances() {
+    const targetGroups = await this.getTargetGroups();
+    const instanceTargetGroups = targetGroups?.TargetGroups?.filter(tg => Object.is(tg.TargetType, TargetTypeEnum.INSTANCE)) ?? [];
+    const out = [];
+    for (const tg of instanceTargetGroups) {
+      const res = await this.elbClient.send(
+        new DescribeTargetHealthCommand({
+          TargetGroupArn: tg.TargetGroupArn,
+        })
+      );
+      out.push(...(res.TargetHealthDescriptions?.map(thd => (
+        {
+          targetGroupArn: tg.TargetGroupArn,
+          instanceId: thd.Target?.Id,
+          port: thd.Target?.Port,
+        }
+      )) ?? []));
+    }
+    return out;
+  }
+
+  async registerInstance(instanceId: string, targetGroupArn: string, port?: number) {
+    const target: any = {
+      Id: instanceId,
+    };
+    if (port) {
+      target.Port = port;
+    }
+    await this.elbClient.send(new RegisterTargetsCommand({
+      TargetGroupArn: targetGroupArn,
+      Targets: [target],
+    }));
+  }
+
+  async deregisterInstance(instanceId: string, targetGroupArn: string, port?: number) {
+    const target: any = {
+      Id: instanceId,
+    };
+    if (port) {
+      target.Port = port;
+    }
+    await this.elbClient.send(new DeregisterTargetsCommand({
+      TargetGroupArn: targetGroupArn,
+      Targets: [target],
+    }));
+  }
 }

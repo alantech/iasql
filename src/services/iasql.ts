@@ -444,7 +444,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
             logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInDbOnly.length > 0) {
-              logger.info(`${name} has records to create`);
+              logger.info(`${name} has records to create`, { records: r.diff.entitiesInDbOnly, });
               outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 const out = await r.mapper.cloud.create(e, context);
                 if (out) {
@@ -481,7 +481,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
             logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInAwsOnly.length > 0) {
-              logger.info(`${name} has records to delete`);
+              logger.info(`${name} has records to delete`, { records: r.diff.entitiesInAwsOnly, });
               outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 await r.mapper.cloud.delete(e, context);
               }));
@@ -651,7 +651,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
             logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInAwsOnly.length > 0) {
-              logger.info(`${name} has records to create`);
+              logger.info(`${name} has records to create`, { records: r.diff.entitiesInAwsOnly, });
               outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                 const out = await r.mapper.db.create(e, context);
                 if (out) {
@@ -689,7 +689,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
             logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInDbOnly.length > 0) {
-              logger.info(`${name} has records to delete`);
+              logger.info(`${name} has records to delete`, { records: r.diff.entitiesInDbOnly, });
               outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
                 await r.mapper.db.delete(e, context);
               }));
@@ -796,12 +796,12 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   // Check to make sure that all dependent modules are in the list
   let missingDeps: string[] = [];
   do {
-    missingDeps = mods
+    missingDeps = [...new Set(mods
       .flatMap((m: ModuleInterface) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
       .filter((m: any) => ![
         `iasql_platform@${version}`,
         `iasql_functions@${version}`,
-      ].includes(m) && m !== undefined);
+      ].includes(m) && m !== undefined))];
     if (missingDeps.length > 0) {
       logger.warn('Automatically attaching missing dependencies to this install', { moduleList, missingDeps, });
       const extraMods = missingDeps.map((n: string) => (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as ModuleInterface[];
