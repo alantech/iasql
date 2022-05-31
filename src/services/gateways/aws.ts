@@ -1962,6 +1962,29 @@ export class AWS {
     return res;
   }
 
+  async getRegisteredInstance(instanceId: string, targetGroupArn: string, port?: string) {
+    const target: any = {
+      Id: instanceId,
+    };
+    if (port) {
+      target.Port = +port;
+    }
+    const res = await this.elbClient.send(
+      new DescribeTargetHealthCommand({
+        TargetGroupArn: targetGroupArn,
+        Targets: [target]
+      })
+    );
+    const out = [...(res.TargetHealthDescriptions?.map(thd => (
+      {
+        targetGroupArn: targetGroupArn,
+        instanceId: thd.Target?.Id,
+        port: thd.Target?.Port,
+      }
+    )) ?? [])];
+  return out.pop();
+  }
+
   async getRegisteredInstances() {
     const targetGroups = await this.getTargetGroups();
     const instanceTargetGroups = targetGroups?.TargetGroups?.filter(tg => Object.is(tg.TargetType, TargetTypeEnum.INSTANCE)) ?? [];
