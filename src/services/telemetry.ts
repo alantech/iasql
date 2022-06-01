@@ -11,7 +11,7 @@ type IasqlOperationType = typeof IasqlOperationType[keyof typeof IasqlOperationT
 
 const singleton = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
 
-export async function logDbConnect(dbId: string, dbAlias: string, uid: string, email: string, directConnect: boolean) {
+export async function logDbConnect(dbId: string, dbAlias: string, uid: string, email: string) {
   if (!singleton) return;
   try {
     await singleton.logEvent({
@@ -24,9 +24,6 @@ export async function logDbConnect(dbId: string, dbAlias: string, uid: string, e
         email,
       },
       device_model: dbAlias,
-      event_properties: {
-        directConnect
-      },
     });
   } catch(e: any) {
     logger.error('failed to log CONNECT event', e);
