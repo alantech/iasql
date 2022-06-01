@@ -135,7 +135,7 @@ export async function stop(dbId: string) {
     await conn.dropConn();
     delete workerRunners[dbId];
   } else {
-    throw new Error(`Graphile worker for ${dbId} not found`);
+    logger.warn(`Graphile worker for ${dbId} not found`);
   }
 }
 
