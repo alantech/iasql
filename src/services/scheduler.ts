@@ -124,7 +124,7 @@ export async function start(dbId: string, dbUser:string) {
 }
 
 export async function stop(dbId: string) {
-  const { runner, conn, } = workerRunners[dbId];
+  const { runner, conn, } = workerRunners[dbId] ?? { runner: undefined, conn: undefined, };
   if (runner && conn) {
     try {
       await runner.stop();
