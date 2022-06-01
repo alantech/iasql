@@ -24,7 +24,7 @@ db.get('/connect/:dbAlias', async (req, res) => {
       dbAlias, uid, email
     );
     res.json(database);
-    telemetry.logDbConnect(database.id, dbAlias, uid, email, false);
+    telemetry.logDbConnect(database.id, dbAlias, uid, email);
   } catch (e) {
     res.status(500).end(logUserErr(e, uid, email, dbAlias));
   }
@@ -32,7 +32,7 @@ db.get('/connect/:dbAlias', async (req, res) => {
 
 db.post('/connect', async (req, res) => {
   logger.info('Calling /connect');
-  const {dbAlias, directConnect} = req.body;
+  const {dbAlias} = req.body;
   if (!dbAlias) return res.status(400).json(
     `Required key(s) not provided: ${[
       'dbAlias'
@@ -42,10 +42,10 @@ db.post('/connect', async (req, res) => {
   const email = dbMan.getEmail(req.user);
   try {
     const database = await iasql.connect(
-      dbAlias, uid, email, !!directConnect
+      dbAlias, uid, email
     );
     res.json(database);
-    telemetry.logDbConnect(database.id, dbAlias, uid, email, !!directConnect);
+    telemetry.logDbConnect(database.id, dbAlias, uid, email);
   } catch (e) {
     res.status(500).end(logUserErr(e, uid, email, dbAlias));
   }

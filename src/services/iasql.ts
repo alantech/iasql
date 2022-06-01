@@ -76,7 +76,6 @@ export async function connect(
   dbAlias: string,
   uid: string,
   email: string,
-  directConnect: boolean = false,
 ) {
   let conn1: any, conn2: any, dbId: any, dbUser: any;
   try {
@@ -89,7 +88,6 @@ export async function connect(
     metaDb.alias = dbAlias;
     metaDb.pgUser = dbUser;
     metaDb.pgName = dbId;
-    metaDb.directConnect = directConnect
     await MetadataRepo.saveDb(uid, email, metaDb);
     logger.info('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);

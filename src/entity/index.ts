@@ -22,11 +22,6 @@ export class IasqlDatabase {
   pgUser: string;
 
   @Column({
-    default: false,
-  })
-  directConnect: boolean;
-
-  @Column({
     type: 'int',
     default: 0,
   })
