@@ -106,12 +106,13 @@ export async function start(dbId: string, dbUser:string) {
         } finally {
           try {
             const recordCount = await iasql.getDbRecCount(conn);
-            await MetadataRepo.updateDbRecCount(dbId, recordCount);
+            const operationCount = await iasql.getOpCount(conn);
+            await MetadataRepo.updateDbCounts(dbId, recordCount, operationCount);
             telemetry.logDbOp(dbId, optype, {
               params,
               output,
               error,
-              recordCount,
+              operationCount,
             });
           } catch(e: any) {
             logger.error('could not log op event', e);

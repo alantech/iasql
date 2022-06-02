@@ -65,9 +65,10 @@ class MetadataRepo {
     return db;
   }
 
-  async updateDbRecCount(dbId: string, recCount: number) {
+  async updateDbCounts(dbId: string, recCount: number, opCount: number) {
     const db = await this.dbRepo.findOneOrFail(dbId);
     db.recordCount = recCount;
+    db.operationCount = opCount;
     await this.dbRepo.save(db);
   }
 
