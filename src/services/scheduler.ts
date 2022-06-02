@@ -112,6 +112,7 @@ export async function start(dbId: string, dbUser:string) {
               params,
               output,
               error,
+              recordCount,
               operationCount,
             });
           } catch(e: any) {
