@@ -7,6 +7,7 @@ import {
   AfterLoad,
   AfterInsert,
   AfterUpdate,
+  Unique,
 } from 'typeorm'
 
 import { HostedZone } from './hosted_zone';
@@ -27,13 +28,13 @@ export enum RecordType {
   TXT = "TXT",
 }
 
-// TODO add unique constraint based on name + record type + parenthostedzone
+@Unique('UQ_name__record_type', ['name', 'recordType'])
 @Entity()
 export class ResourceRecordSet {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @Column({ nullable: true, })
+  @Column()
   name: string;
 
   @Column({

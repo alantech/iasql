@@ -67,9 +67,17 @@ export async function getDbRecCount(conn: TypeormWrapper): Promise<number> {
       (xpath('/row/count/text()', query_to_xml('SELECT COUNT(*) FROM ' || format('%I.%I', table_schema, table_name), true, true, '')))[1]::text::int
     )
     FROM information_schema.tables
-    WHERE table_schema = 'public'
+    WHERE table_schema = 'public' AND table_name NOT LIKE 'iasql_%'
   `);
-  return parseInt(res[0].sum, 10);
+  return parseInt(res[0].sum ?? '0', 10);
+}
+
+export async function getOpCount(conn: TypeormWrapper): Promise<number> {
+  const res = await conn.query(`
+    SELECT COUNT(*)
+    FROM iasql_operation
+  `);
+  return parseInt(res[0].count ?? '0', 10);
 }
 
 export async function connect(
@@ -105,7 +113,11 @@ export async function connect(
     await dbMan.migrate(conn2);
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
-    await MetadataRepo.updateDbRecCount(dbId, await getDbRecCount(conn2));
+    await MetadataRepo.updateDbCounts(
+      dbId,
+      await getDbRecCount(conn2),
+      await getOpCount(conn2),
+    );
     logger.info('Done!');
     return {
       alias: dbAlias,
@@ -139,6 +151,20 @@ export async function disconnect(dbAlias: string, uid: string) {
     await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser));
     await MetadataRepo.delDb(uid, dbAlias);
     return db.pgName;
+  } catch (e: any) {
+    // re-throw
+    throw e;
+  } finally {
+    conn?.close();
+  }
+}
+
+export async function runSql(dbAlias: string, uid: string, sql: string) {
+  let conn;
+  try {
+    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+    conn = await createConnection({ ...dbMan.baseConnConfig, database: db.pgName, });
+    return await conn.query(sql);
   } catch (e: any) {
     // re-throw
     throw e;

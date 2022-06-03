@@ -14,6 +14,7 @@ const config: ConfigInterface = {
     password: process.env.DB_PASSWORD ?? throwError('No DB Password defined'),
     port: 5432,
     forceSSL: true,
+    sqlViaRest: true,
   },
   logger: {
     debug: true,

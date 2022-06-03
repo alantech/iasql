@@ -106,12 +106,14 @@ export async function start(dbId: string, dbUser:string) {
         } finally {
           try {
             const recordCount = await iasql.getDbRecCount(conn);
-            await MetadataRepo.updateDbRecCount(dbId, recordCount);
+            const operationCount = await iasql.getOpCount(conn);
+            await MetadataRepo.updateDbCounts(dbId, recordCount, operationCount);
             telemetry.logDbOp(dbId, optype, {
               params,
               output,
               error,
               recordCount,
+              operationCount,
             });
           } catch(e: any) {
             logger.error('could not log op event', e);
@@ -124,7 +126,7 @@ export async function start(dbId: string, dbUser:string) {
 }
 
 export async function stop(dbId: string) {
-  const { runner, conn, } = workerRunners[dbId];
+  const { runner, conn, } = workerRunners[dbId] ?? { runner: undefined, conn: undefined, };
   if (runner && conn) {
     try {
       await runner.stop();
@@ -135,7 +137,7 @@ export async function stop(dbId: string) {
     await conn.dropConn();
     delete workerRunners[dbId];
   } else {
-    throw new Error(`Graphile worker for ${dbId} not found`);
+    logger.warn(`Graphile worker for ${dbId} not found`);
   }
 }
 

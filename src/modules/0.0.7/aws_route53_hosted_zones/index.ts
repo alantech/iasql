@@ -21,10 +21,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
       out.parentHostedZone = await AwsRoute53HostedZoneModule.mappers.hostedZone.db.read(ctx, rrs.HostedZoneId) ??
       await AwsRoute53HostedZoneModule.mappers.hostedZone.cloud.read(ctx, rrs.HostedZoneId);
       if (!out.parentHostedZone) throw new Error('Hosted zone need to be loaded.');
-      const domainSplit = rrs.Name.split(out.parentHostedZone.domainName);
-      if (domainSplit.length > 1) {
-        out.name = domainSplit[0];
-      }
+      out.name = rrs.Name;
       out.recordType = rrs.Type as RecordType;
       out.ttl = rrs.TTL;
       // TODO: right now just supporting `ResourceRecords`.
@@ -37,6 +34,10 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
       const name = rrs.name && rrs.name[rrs.name.length - 1] ? (rrs.name[rrs.name.length - 1] === '.' ? rrs.name : `${rrs.name}.`) : '';
       const domainName = rrs.parentHostedZone.domainName;
       return `${name}${domainName}`;
+    },
+    getNameFromDomain: (recordName: string, domain: string) => {
+      const nameIndex = recordName.indexOf(domain);
+      return recordName.substring(0, nameIndex);
     }
   },
   mappers: {
@@ -80,10 +81,16 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.HostedZone?.[e.hostedZoneId ?? ''];
-            // We need to create the new entity in the cloud and keep the id.
-            // In the next iteration the previous one will be deleted from.
             const newEntity = await AwsRoute53HostedZoneModule.mappers.hostedZone.cloud.create(e, ctx);
             newEntity.id = cloudRecord.id;
+            await AwsRoute53HostedZoneModule.mappers.hostedZone.db.update(newEntity, ctx);
+            // Attach new default record sets (NS and SOA) and delete old ones from db
+            const dbRecords: ResourceRecordSet[] = await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.read(ctx);
+            const relevantDbRecords = dbRecords.filter(rrs => rrs.parentHostedZone.id === cloudRecord.id && ['NS', 'SOA'].includes(rrs.recordType));
+            await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.delete(relevantDbRecords, ctx);
+            const cloudRecords: ResourceRecordSet[] = await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.cloud.read(ctx);
+            const relevantCloudRecords = cloudRecords.filter(rrs => rrs.parentHostedZone.hostedZoneId === newEntity.hostedZoneId && ['NS', 'SOA'].includes(rrs.recordType));
+            await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.create(relevantCloudRecords, ctx);
             out.push(newEntity);
           }
           return out;
@@ -98,11 +105,9 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
     }),
     resourceRecordSet: new Mapper2<ResourceRecordSet>({
       entity: ResourceRecordSet,
-      entityId: (e: ResourceRecordSet) => e.parentHostedZone?.hostedZoneId ?
-        `${e.parentHostedZone.hostedZoneId}${AwsRoute53HostedZoneModule.utils.resourceRecordSetName(e)}${e.recordType}` : `${e.id}`,
+      entityId: (e: ResourceRecordSet) => `${e.recordType}|${e.name}`,
       equals: (a: ResourceRecordSet, b: ResourceRecordSet) =>
-        Object.is(AwsRoute53HostedZoneModule.utils.resourceRecordSetName(a), AwsRoute53HostedZoneModule.utils.resourceRecordSetName(b))
-        && Object.is(a.parentHostedZone?.hostedZoneId, b.parentHostedZone?.hostedZoneId)
+        Object.is(a.parentHostedZone?.hostedZoneId, b.parentHostedZone?.hostedZoneId)
         && Object.is(a.recordType, b.recordType)
         && Object.is(a.ttl, b.ttl)
         && Object.is(a.record, b.record),
@@ -113,7 +118,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
           const out = [];
           for (const e of rrs) {
             const resourceRecordSet: AwsResourceRecordSet = {
-              Name: AwsRoute53HostedZoneModule.utils.resourceRecordSetName(e),
+              Name: e.name,
               Type: e.recordType,
               TTL: e.ttl,
               ResourceRecords: e.record.split('\n').map(r => ({ Value: r }))
@@ -134,48 +139,53 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
           }
           return out;
         },
-        read: async (ctx: Context, _id?: string) => {
-          // TODO: How to identify a unique record? Is it necessary?
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           const hostedZones = ctx.memo?.cloud?.HostedZone ?
             Object.values(ctx.memo?.cloud?.HostedZone) :
             await AwsRoute53HostedZoneModule.mappers.hostedZone.cloud.read(ctx);
-          const records: any = [];
+          const resourceRecordSet: any = [];
           for (const hz of hostedZones) {
             try {
               const hzRecords = await client.getRecords(hz.hostedZoneId);
-              records.push(...hzRecords.map(r => ({ ...r, HostedZoneId: hz.hostedZoneId })));
+              resourceRecordSet.push(...hzRecords.map(r => ({ ...r, HostedZoneId: hz.hostedZoneId })));
             } catch (_) {
               // We try to retrieve the records for the repository, but if none it is not an error
               continue;
             }
           }
-          const out = [];
-          for (const r of records) {
-            const rec = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(r, ctx);
-            if (rec) out.push(rec);
+          if (id) {
+            const [recordType, recordName] = id.split('|');
+            const record = resourceRecordSet.find((rrs: any) => Object.is(rrs.Name, recordName) && Object.is(rrs.Type, recordType));
+            if (record) return record;
+          } else {
+            const out = [];
+            for (const rrs of resourceRecordSet) {
+              const record = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(rrs, ctx);
+              if (record) out.push(record);
+            }
+            return out;
           }
-          return out;
         },
-        updateOrReplace: () => 'update',
+        updateOrReplace: () => 'replace',
         update: async (es: ResourceRecordSet[], ctx: Context) => {
-          const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.ResourceRecordSet[AwsRoute53HostedZoneModule.mappers.resourceRecordSet.entityId(e)];
-            const resourceRecordSet: AwsResourceRecordSet = {
-              Name: AwsRoute53HostedZoneModule.utils.resourceRecordSetName(e),
-              Type: e.recordType,
-              TTL: e.ttl,
-              ResourceRecords: e.record.split('\n').map(r => ({ Value: r }))
-            };
-            await client.updateResourceRecordSet(e.parentHostedZone.hostedZoneId, resourceRecordSet);
-            const updatedRecordSet = await client.getRecord(e.parentHostedZone.hostedZoneId, e.name, e.recordType);
-            if (!updatedRecordSet) throw new Error('Error updating record');
-            const newEntity = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(updatedRecordSet, ctx);
-            if (!newEntity) continue;
-            newEntity.id = cloudRecord.id;
-            await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.update(newEntity, ctx);
+            // First check if theres a new hosted zone, the name need to change since it is based on the domain name
+            if (e.parentHostedZone.hostedZoneId !== cloudRecord.parentHostedZone.hostedZoneId) {
+              // Extract previous record name without the old domain
+              const name = AwsRoute53HostedZoneModule.utils.getNameFromDomain(e.name, cloudRecord.parentHostedZone.domainName);
+              if (name) {
+                // Attach the new domain
+                e.name = `${name}${e.parentHostedZone.domainName}`;
+              } else {
+                // If no previous name extracted is becase it was the complete domain, we just need to replace it
+                e.name = e.parentHostedZone.domainName;
+              }
+            }
+            const newEntity = await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.cloud.create(e, ctx);
+            await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.cloud.delete(cloudRecord, ctx);
             out.push(newEntity);
           }
           return out;
@@ -196,19 +206,20 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
                 && Object.is(r.recordType, 'NS'));
               // If theres no record we have to created it in database instead of delete it from cloud
               if (!hasRecord) {
-                return await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.create(e, ctx);
+                await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.create(e, ctx);
+                continue;
               }
             } else if (!dbHostedZone && (Object.is(e.recordType, 'SOA') || Object.is(e.recordType, 'NS'))) {
               // Do nothing if SOA or NS records but hosted zone have been deleted
-              return;
+              continue;
             }
             const resourceRecordSet: AwsResourceRecordSet = {
-              Name: AwsRoute53HostedZoneModule.utils.resourceRecordSetName(e),
+              Name: e.name,
               Type: e.recordType,
               TTL: e.ttl,
               ResourceRecords: e.record.split('\n').map(r => ({ Value: r }))
             };
-            return await client.deleteResourceRecordSet(e.parentHostedZone.hostedZoneId, resourceRecordSet);
+            await client.deleteResourceRecordSet(e.parentHostedZone.hostedZoneId, resourceRecordSet);
           }
         },
       }),
