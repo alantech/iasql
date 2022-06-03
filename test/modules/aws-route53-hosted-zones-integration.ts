@@ -159,7 +159,7 @@ describe('Route53 Integration Testing', () => {
     INSERT INTO resource_record_set (name, record_type, ttl, parent_hosted_zone_id, alias_target_id)
     SELECT '${resourceRecordSetName}', '${resourceRecordSetTypeA}', ${resourceRecordSetTtl}, hosted_zone.id, alias_target.id
     FROM hosted_zone, alias_target
-    INNER JOIN load_balancer ON load_balancer.load_balancer_name = alias_target.load_balancer
+    INNER JOIN load_balancer ON load_balancer.load_balancer_name = alias_target.load_balancer_name
     WHERE domain_name = '${domainName}' AND load_balancer_name = '${lbName}';
   `));
 
