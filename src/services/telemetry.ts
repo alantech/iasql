@@ -30,6 +30,32 @@ export async function logDbConnect(dbId: string, dbAlias: string, uid: string, e
   }
 }
 
+async function logDbErr(event: string, uid: string, email: string, error: string) {
+  if (!singleton) return;
+  try {
+    await singleton.logEvent({
+      event_type: event,
+      user_id: uid,
+      user_properties: {
+        email,
+      },
+      event_properties: {
+        error,
+      }
+    });
+  } catch(e: any) {
+    logger.error(`failed to log ${event} event`, e);
+  }
+}
+
+export async function logDbDisconnectErr(uid: string, email: string, error: string) {
+  await logDbErr('DISCONNECT', uid, email, error);
+}
+
+export async function logDbConnectErr(uid: string, email: string, error: string) {
+  await logDbErr('CONNECT', uid, email, error);
+}
+
 export async function logUserRegister(uid: string, email: string) {
   if (!singleton) return;
   try {
