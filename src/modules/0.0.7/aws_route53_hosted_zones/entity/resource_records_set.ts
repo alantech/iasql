@@ -8,8 +8,10 @@ import {
   AfterInsert,
   AfterUpdate,
   Unique,
+  Check,
 } from 'typeorm'
 
+import { AliasTarget } from './alias_target';
 import { HostedZone } from './hosted_zone';
 
 export enum RecordType {
@@ -29,6 +31,7 @@ export enum RecordType {
 }
 
 @Unique('UQ_name__record_type', ['name', 'recordType'])
+@Check('Check_record__alias_target', '("record" is null and "alias_target_id" is not null) or ("record" is not null and "alias_target_id" is null)')
 @Entity()
 export class ResourceRecordSet {
   @PrimaryGeneratedColumn()
@@ -43,8 +46,8 @@ export class ResourceRecordSet {
   })
   recordType: RecordType;
 
-  @Column()
-  record: string
+  @Column({ nullable: true, })
+  record?: string;
 
   @Column({
     type: 'int',
@@ -57,6 +60,16 @@ export class ResourceRecordSet {
     name: 'parent_hosted_zone_id',
   })
   parentHostedZone: HostedZone;
+
+  @ManyToOne(() => AliasTarget, {
+    cascade: true,
+    eager: true,
+    nullable: true,
+  })
+  @JoinColumn({
+    name: 'alias_target_id',
+  })
+  aliasTarget: AliasTarget;
 
   @AfterLoad()
   @AfterInsert()
