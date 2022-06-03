@@ -29,7 +29,7 @@ const tgName = `${prefix}${dbAlias}tg`;
 const tgPort = 4142;
 const protocol = ProtocolEnum.HTTP;
 
-jest.setTimeout(360000);
+jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown(modules));
 
