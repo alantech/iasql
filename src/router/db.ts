@@ -6,6 +6,7 @@ import * as iasql from '../services/iasql'
 import MetadataRepo from '../services/repositories/metadata'
 import * as telemetry from '../services/telemetry'
 import logger, { logUserErr } from '../services/logger'
+import config from '../config'
 
 export const db = express.Router();
 
@@ -85,6 +86,7 @@ db.post('/export', async (req, res) => {
 });
 
 db.get('/list', async (req, res) => {
+  logger.info('Calling /list');
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
   try {
@@ -96,6 +98,7 @@ db.get('/list', async (req, res) => {
 });
 
 db.get('/disconnect/:dbAlias', async (req, res) => {
+  logger.info('Calling /disconnect');
   const { dbAlias } = req.params;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   const uid = dbMan.getUid(req.user);
@@ -104,6 +107,21 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
     const dbId = await iasql.disconnect(dbAlias, uid);
     telemetry.logDbDisconnect(dbId);
     res.json(`disconnected ${dbAlias}`);
+  } catch (e) {
+    res.status(500).end(logUserErr(e, uid, email, dbAlias));
+  }
+});
+
+db.post('/run/:dbAlias', async (req, res) => {
+  logger.info('Calling /run');
+  if (!config.db.sqlViaRest) return res.status(400).end('SQL Querying via REST disabled');
+  const { dbAlias, } = req.params;
+  const sql = req.body;
+  const uid = dbMan.getUid(req.user);
+  const email = dbMan.getEmail(req.user);
+  try {
+    const out = await iasql.runSql(dbAlias, uid, sql);
+    res.json(out);
   } catch (e) {
     res.status(500).end(logUserErr(e, uid, email, dbAlias));
   }

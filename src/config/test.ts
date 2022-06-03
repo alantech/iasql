@@ -13,6 +13,7 @@ const config: ConfigInterface = {
     password: 'test',
     port: 5432,
     forceSSL: false,
+    sqlViaRest: false,
   },
   logger: {
     debug: false,

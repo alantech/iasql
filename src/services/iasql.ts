@@ -159,6 +159,20 @@ export async function disconnect(dbAlias: string, uid: string) {
   }
 }
 
+export async function runSql(dbAlias: string, uid: string, sql: string) {
+  let conn;
+  try {
+    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+    conn = await createConnection({ ...dbMan.baseConnConfig, database: db.pgName, });
+    return await conn.query(sql);
+  } catch (e: any) {
+    // re-throw
+    throw e;
+  } finally {
+    conn?.close();
+  }
+}
+
 export async function dump(dbId: string, dataOnly: boolean) {
   const pgUrl = dbMan.ourPgUrl(dbId);
   const excludedDataTables = '--exclude-table-data \'aws_account\' --exclude-table-data \'iasql_*\''
