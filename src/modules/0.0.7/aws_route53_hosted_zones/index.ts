@@ -139,28 +139,33 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
           }
           return out;
         },
-        read: async (ctx: Context, _id?: string) => {
-          // TODO: How to identify a unique record? Is it necessary?
+        read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           const hostedZones = ctx.memo?.cloud?.HostedZone ?
             Object.values(ctx.memo?.cloud?.HostedZone) :
             await AwsRoute53HostedZoneModule.mappers.hostedZone.cloud.read(ctx);
-          const records: any = [];
+          const resourceRecordSet: any = [];
           for (const hz of hostedZones) {
             try {
               const hzRecords = await client.getRecords(hz.hostedZoneId);
-              records.push(...hzRecords.map(r => ({ ...r, HostedZoneId: hz.hostedZoneId })));
+              resourceRecordSet.push(...hzRecords.map(r => ({ ...r, HostedZoneId: hz.hostedZoneId })));
             } catch (_) {
               // We try to retrieve the records for the repository, but if none it is not an error
               continue;
             }
           }
-          const out = [];
-          for (const r of records) {
-            const rec = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(r, ctx);
-            if (rec) out.push(rec);
+          if (id) {
+            const [recordType, recordName] = id.split('|');
+            const record = resourceRecordSet.find((rrs: any) => Object.is(rrs.Name, recordName) && Object.is(rrs.Type, recordType));
+            if (record) return record;
+          } else {
+            const out = [];
+            for (const rrs of resourceRecordSet) {
+              const record = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(rrs, ctx);
+              if (record) out.push(record);
+            }
+            return out;
           }
-          return out;
         },
         updateOrReplace: () => 'replace',
         update: async (es: ResourceRecordSet[], ctx: Context) => {
