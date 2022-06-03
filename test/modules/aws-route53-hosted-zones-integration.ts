@@ -1,7 +1,23 @@
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql'
 import logger from '../../src/services/logger'
-import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import {
+  getPrefix,
+  runQuery,
+  runInstall,
+  runUninstall,
+  runApply,
+  finish,
+  execComposeUp,
+  execComposeDown,
+  runSync,
+} from '../helpers'
+
+const {
+  IpAddressType,
+  LoadBalancerSchemeEnum,
+  LoadBalancerTypeEnum,
+} = require(`../../src/modules/${config.modules.latestVersion}/aws_elb/entity`);
 
 const prefix = getPrefix();
 const dbAlias = 'route53test';
@@ -16,6 +32,12 @@ const resourceRecordSetTtl = 300;
 const resourceRecordSetRecord = 'example.com.';
 const resourceRecordSetRecordMultiline = `192.168.0.1
 192.168.0.2`;
+// Load balancer variables
+const lbName = `${prefix}${dbAlias}lb`;
+const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
+const lbType = LoadBalancerTypeEnum.APPLICATION;
+const lbIPAddressType = IpAddressType.IPV4;
+
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -126,6 +148,36 @@ describe('Route53 Integration Testing', () => {
     INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id
     WHERE domain_name = '${domainName}';
   `, (res: any[]) => expect(res.length).toBe(3)));
+
+  // Load balancer
+  it('adds a new load balancer', query(`
+    INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, ip_address_type)
+    VALUES ('${lbName}', '${lbScheme}', '${lbType}', '${lbIPAddressType}');
+  `));
+
+  it('adds a new A record to hosted zone', query(`
+    INSERT INTO resource_record_set (name, record_type, ttl, parent_hosted_zone_id, alias_target_id)
+    SELECT '${resourceRecordSetName}', '${resourceRecordSetTypeA}', ${resourceRecordSetTtl}, hosted_zone.id, alias_target.id
+    FROM hosted_zone, alias_target
+    INNER JOIN load_balancer ON load_balancer.load_balancer_name = alias_target.load_balancer
+    WHERE domain_name = '${domainName}' AND load_balancer_name = '${lbName}';
+  `));
+
+  it('check alias target record has been added', query(`
+    SELECT *
+    FROM resource_record_set
+    INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id
+    WHERE domain_name = '${domainName}';
+  `, (res: any[]) => expect(res.length).toBe(4)));
+
+  it('applies new resource record set', apply());
+
+  it('check alias target record has been added', query(`
+    SELECT *
+    FROM resource_record_set
+    INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id
+    WHERE domain_name = '${domainName}';
+  `, (res: any[]) => expect(res.length).toBe(4)));
 
   it('tries to update a hosted zone domain name field (replace)', query(`
     UPDATE hosted_zone SET domain_name = '${replaceDomainName}' WHERE domain_name = '${domainName}';
