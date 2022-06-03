@@ -13,6 +13,7 @@ export interface ConfigInterface {
     password: string; // For the server's own user
     port: number;
     forceSSL: boolean;
+    sqlViaRest: boolean; // Enables a REST endpoint to run SQL commands via HTTPS
   };
   // Configuration for server logging
   logger: {
