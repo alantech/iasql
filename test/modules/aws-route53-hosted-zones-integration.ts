@@ -24,6 +24,7 @@ const dbAlias = 'route53test';
 const domainName = `${dbAlias}${prefix}.com.`;
 const replaceDomainName = `${dbAlias}${prefix}replace.com.`;
 const resourceRecordSetName = `test.${domainName}`;
+const aliasResourceRecordSetName = `aliastest.${domainName}`;
 const resourceRecordSetMultilineName = `test.multiline.${replaceDomainName}`;
 const resourceRecordSetMultilineNameReplace = `replace.test.multiline.${replaceDomainName}`;
 const resourceRecordSetTypeCNAME = 'CNAME';
@@ -150,15 +151,15 @@ describe('Route53 Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(3)));
 
   it('adds a new A record to hosted zone', query(`
-    BEING;
+    BEGIN;
       INSERT INTO load_balancer (load_balancer_name, scheme, load_balancer_type, ip_address_type)
       VALUES ('${lbName}', '${lbScheme}', '${lbType}', '${lbIPAddressType}');
 
       INSERT INTO alias_target (load_balancer_name)
       VALUES ('${lbName}');
 
-      INSERT INTO resource_record_set (name, record_type, ttl, parent_hosted_zone_id, alias_target_id)
-      SELECT '${resourceRecordSetName}', '${resourceRecordSetTypeA}', ${resourceRecordSetTtl}, hosted_zone.id, alias_target.id
+      INSERT INTO resource_record_set (name, record_type, parent_hosted_zone_id, alias_target_id)
+      SELECT '${aliasResourceRecordSetName}', '${resourceRecordSetTypeA}', hosted_zone.id, alias_target.id
       FROM hosted_zone, alias_target
       INNER JOIN load_balancer ON load_balancer.load_balancer_name = alias_target.load_balancer_name
       WHERE domain_name = '${domainName}' AND load_balancer.load_balancer_name = '${lbName}';
