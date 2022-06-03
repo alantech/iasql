@@ -14,14 +14,14 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
       out.evaluateTargetHealth = at.EvaluateTargetHealth;
       if (at.DNSName.includes('.elb.')) {
         // TODO: improve implementation
-        let lb;
+        let loadBalancer;
         const dbLoadBalancers = await AwsElbModule.mappers.loadBalancer.db.read(ctx);
-        lb = dbLoadBalancers.find((lb: any) => Object.is(lb.dnsName, at.DNSName));
-        if (!lb) {
+        loadBalancer = dbLoadBalancers.find((lb: any) => Object.is(lb.dnsName, at.DNSName));
+        if (!loadBalancer) {
           const cloudLoadBalancers = await AwsElbModule.mappers.loadBalancer.cloud.read(ctx);
-          lb = cloudLoadBalancers.find((lb: any) => Object.is(lb.dnsName, at.DNSName));
+          loadBalancer = cloudLoadBalancers.find((lb: any) => Object.is(lb.dnsName, at.DNSName));
         }
-        out.loadBalancer = lb;
+        out.loadBalancer = loadBalancer;
       } else {
         // We ignore other alias targets that are not ELB for now
         return undefined;
