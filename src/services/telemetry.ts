@@ -54,7 +54,6 @@ export async function logDbDisconnectErr(uid: string, email: string, error: stri
 
 export async function logDbConnectErr(uid: string, email: string, error: string) {
   await logDbErr('CONNECT', uid, email, error);
-
 }
 
 export async function logUserRegister(uid: string, email: string) {
