@@ -27,6 +27,12 @@ export class IasqlDatabase {
   })
   recordCount: number;
 
+  @Column({
+    type: 'int',
+    default: 0,
+  })
+  operationCount: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

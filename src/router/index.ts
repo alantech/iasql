@@ -11,6 +11,7 @@ import { graphql, } from './graphql'
 const v1 = express.Router();
 // 10 GB post payload limit for import dumps
 v1.use(express.json({ limit: '10000MB' }));
+v1.use(express.text({ limit: '10000MB' }));
 if (config.auth) {
   const checkJwt = jwt({
     secret: jwksRsa.expressJwtSecret({
