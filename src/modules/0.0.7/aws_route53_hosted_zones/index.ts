@@ -180,7 +180,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
                 // Attach the new domain
                 e.name = `${name}${e.parentHostedZone.domainName}`;
               } else {
-                // If no previous name extracted is becase it was the complete domain, we just need to replace it
+                // If no previous name extracted it's because it was the complete domain, we just need to replace it
                 e.name = e.parentHostedZone.domainName;
               }
             }
