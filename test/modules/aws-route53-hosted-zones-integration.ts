@@ -160,7 +160,7 @@ describe('Route53 Integration Testing', () => {
     SELECT '${resourceRecordSetName}', '${resourceRecordSetTypeA}', ${resourceRecordSetTtl}, hosted_zone.id, alias_target.id
     FROM hosted_zone, alias_target
     INNER JOIN load_balancer ON load_balancer.load_balancer_name = alias_target.load_balancer_name
-    WHERE domain_name = '${domainName}' AND load_balancer_name = '${lbName}';
+    WHERE domain_name = '${domainName}' AND load_balancer.load_balancer_name = '${lbName}';
   `));
 
   it('check alias target record has been added', query(`
