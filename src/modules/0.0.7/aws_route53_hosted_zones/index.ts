@@ -15,11 +15,12 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
       if (at.DNSName.includes('.elb.')) {
         // TODO: improve implementation
         let loadBalancer;
+        const cleanAliasDns = at.DNSName[at.DNSName.length - 1] === '.' ? at.DNSName.substring(0, at.DNSName.length - 1) : at.DNSName;
         const dbLoadBalancers = await AwsElbModule.mappers.loadBalancer.db.read(ctx);
-        loadBalancer = dbLoadBalancers.find((lb: any) => Object.is(lb.dnsName, at.DNSName));
+        loadBalancer = dbLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
         if (!loadBalancer) {
           const cloudLoadBalancers = await AwsElbModule.mappers.loadBalancer.cloud.read(ctx);
-          loadBalancer = cloudLoadBalancers.find((lb: any) => Object.is(lb.dnsName, at.DNSName));
+          loadBalancer = cloudLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
         }
         out.loadBalancer = loadBalancer;
       } else {
@@ -39,7 +40,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
       const out = new ResourceRecordSet();
       if (!(rrs.Name && rrs.Type)) throw new Error('Wrong record from AWS');
       out.parentHostedZone = await AwsRoute53HostedZoneModule.mappers.hostedZone.db.read(ctx, rrs.HostedZoneId) ??
-      await AwsRoute53HostedZoneModule.mappers.hostedZone.cloud.read(ctx, rrs.HostedZoneId);
+        await AwsRoute53HostedZoneModule.mappers.hostedZone.cloud.read(ctx, rrs.HostedZoneId);
       if (!out.parentHostedZone) throw new Error('Hosted zone need to be loaded.');
       out.name = rrs.Name;
       out.recordType = rrs.Type as RecordType;
