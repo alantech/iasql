@@ -169,10 +169,13 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
             const cloudRecord = ctx?.memo?.cloud?.ResourceRecordSet[AwsRoute53HostedZoneModule.mappers.resourceRecordSet.entityId(e)];
             // First check if theres a new hosted zone, the name need to change since it is based on the domain name
             if (e.parentHostedZone.hostedZoneId !== cloudRecord.parentHostedZone.hostedZoneId) {
+              // Extract previous record name without the old domain
               const name = AwsRoute53HostedZoneModule.utils.getNameFromDomain(e.name, cloudRecord.parentHostedZone.domainName);
               if (name) {
+                // Attach the new domain
                 e.name = `${name}${e.parentHostedZone.domainName}`;
               } else {
+                // If no previous name extracted is becase it was the complete domain, we just need to replace it
                 e.name = e.parentHostedZone.domainName;
               }
             }
@@ -198,11 +201,12 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
                 && Object.is(r.recordType, 'NS'));
               // If theres no record we have to created it in database instead of delete it from cloud
               if (!hasRecord) {
-                return await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.create(e, ctx);
+                await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.create(e, ctx);
+                continue;
               }
             } else if (!dbHostedZone && (Object.is(e.recordType, 'SOA') || Object.is(e.recordType, 'NS'))) {
               // Do nothing if SOA or NS records but hosted zone have been deleted
-              return;
+              continue;
             }
             const resourceRecordSet: AwsResourceRecordSet = {
               Name: e.name,
@@ -210,7 +214,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
               TTL: e.ttl,
               ResourceRecords: e.record.split('\n').map(r => ({ Value: r }))
             };
-            return await client.deleteResourceRecordSet(e.parentHostedZone.hostedZoneId, resourceRecordSet);
+            await client.deleteResourceRecordSet(e.parentHostedZone.hostedZoneId, resourceRecordSet);
           }
         },
       }),
