@@ -117,10 +117,6 @@ db.post('/run/:dbAlias', async (req, res) => {
   if (!config.db.sqlViaRest) return res.status(400).end('SQL Querying via REST disabled');
   const { dbAlias, } = req.params;
   const sql = req.body;
-  console.log({
-    dbAlias,
-    sql,
-  });
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
   try {
