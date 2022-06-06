@@ -1,13 +1,35 @@
 import { ResourceRecordSet as AwsResourceRecordSet } from '@aws-sdk/client-route-53'
 import { AWS, } from '../../../services/gateways/aws'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
-import { HostedZone } from './entity'
+import { AwsElbModule } from '../aws_elb';
+import { AliasTarget, HostedZone } from './entity'
 import { RecordType, ResourceRecordSet } from './entity/resource_records_set';
 import * as metadata from './module.json'
 
 export const AwsRoute53HostedZoneModule: Module2 = new Module2({
   ...metadata,
   utils: {
+    aliasTargetMapper: async (at: any, ctx: Context) => {
+      const out = new AliasTarget();
+      out.evaluateTargetHealth = at.EvaluateTargetHealth;
+      if (at.DNSName.includes('.elb.')) {
+        // TODO: improve implementation
+        let loadBalancer;
+        const cleanAliasDns = at.DNSName[at.DNSName.length - 1] === '.' ? at.DNSName.substring(0, at.DNSName.length - 1) : at.DNSName;
+        const dbLoadBalancers = await AwsElbModule.mappers.loadBalancer.db.read(ctx);
+        loadBalancer = dbLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
+        if (!loadBalancer) {
+          const cloudLoadBalancers = await AwsElbModule.mappers.loadBalancer.cloud.read(ctx);
+          loadBalancer = cloudLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
+        }
+        out.loadBalancer = loadBalancer;
+        if (!out.loadBalancer) return undefined;
+      } else {
+        // We ignore other alias targets that are not ELB for now
+        return undefined;
+      }
+      return out;
+    },
     hostedZoneMapper: (hz: any) => {
       const out = new HostedZone();
       if (!hz?.Id) throw new Error('No HostedZoneId defined');
@@ -19,15 +41,20 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
       const out = new ResourceRecordSet();
       if (!(rrs.Name && rrs.Type)) throw new Error('Wrong record from AWS');
       out.parentHostedZone = await AwsRoute53HostedZoneModule.mappers.hostedZone.db.read(ctx, rrs.HostedZoneId) ??
-      await AwsRoute53HostedZoneModule.mappers.hostedZone.cloud.read(ctx, rrs.HostedZoneId);
+        await AwsRoute53HostedZoneModule.mappers.hostedZone.cloud.read(ctx, rrs.HostedZoneId);
       if (!out.parentHostedZone) throw new Error('Hosted zone need to be loaded.');
       out.name = rrs.Name;
       out.recordType = rrs.Type as RecordType;
       out.ttl = rrs.TTL;
-      // TODO: right now just supporting `ResourceRecords`.
-      // If AliasTarget or TrafficPolicyInstanceId do not fail but ignore that record
-      if (!rrs.ResourceRecords && (rrs.AliasTarget || rrs.TrafficPolicyInstanceId)) return null;
-      out.record = rrs.ResourceRecords?.map((o: { Value: string }) => o.Value).join('\n') ?? '';
+      // TODO: right now just supporting `ResourceRecords` and `AliasTarget`.
+      // If TrafficPolicyInstanceId do not fail but ignore that record
+      if ((!rrs.ResourceRecords || !rrs.AliasTarget) && rrs.TrafficPolicyInstanceId) return null;
+      if (rrs.ResourceRecords) {
+        out.record = rrs.ResourceRecords?.map((o: { Value: string }) => o.Value).join('\n') ?? '';
+      } else if (rrs.AliasTarget) {
+        out.aliasTarget = await AwsRoute53HostedZoneModule.utils.aliasTargetMapper(rrs.AliasTarget, ctx);
+      }
+      if (!out.record && !out.aliasTarget) return undefined;
       return out;
     },
     resourceRecordSetName: (rrs: any) => {
@@ -110,7 +137,9 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
         Object.is(a.parentHostedZone?.hostedZoneId, b.parentHostedZone?.hostedZoneId)
         && Object.is(a.recordType, b.recordType)
         && Object.is(a.ttl, b.ttl)
-        && Object.is(a.record, b.record),
+        && Object.is(a.record, b.record)
+        && Object.is(a.aliasTarget?.loadBalancer?.loadBalancerArn, b.aliasTarget?.loadBalancer?.loadBalancerArn)
+        && Object.is(a.aliasTarget?.evaluateTargetHealth, b.aliasTarget?.evaluateTargetHealth),
       source: 'db',
       cloud: new Crud2({
         create: async (rrs: ResourceRecordSet[], ctx: Context) => {
@@ -121,7 +150,15 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
               Name: e.name,
               Type: e.recordType,
               TTL: e.ttl,
-              ResourceRecords: e.record.split('\n').map(r => ({ Value: r }))
+            }
+            if (e.record) {
+              resourceRecordSet.ResourceRecords = e.record.split('\n').map(r => ({ Value: r }));
+            } else if (e.aliasTarget) {
+              resourceRecordSet.AliasTarget = {
+                HostedZoneId: e.aliasTarget.loadBalancer?.canonicalHostedZoneId,
+                EvaluateTargetHealth: e.aliasTarget.evaluateTargetHealth,
+                DNSName: e.aliasTarget.loadBalancer?.dnsName,
+              };
             }
             await client.createResourceRecordSet(e.parentHostedZone.hostedZoneId, resourceRecordSet);
             // Re-get the inserted record to get all of the relevant records we care about
@@ -217,8 +254,16 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
               Name: e.name,
               Type: e.recordType,
               TTL: e.ttl,
-              ResourceRecords: e.record.split('\n').map(r => ({ Value: r }))
-            };
+            }
+            if (e.record) {
+              resourceRecordSet.ResourceRecords = e.record.split('\n').map(r => ({ Value: r }));
+            } else if (e.aliasTarget) {
+              resourceRecordSet.AliasTarget = {
+                HostedZoneId: e.aliasTarget.loadBalancer?.canonicalHostedZoneId,
+                EvaluateTargetHealth: e.aliasTarget.evaluateTargetHealth,
+                DNSName: e.aliasTarget.loadBalancer?.dnsName,
+              };
+            }
             await client.deleteResourceRecordSet(e.parentHostedZone.hostedZoneId, resourceRecordSet);
           }
         },
