@@ -23,7 +23,7 @@ db.get('/connect/:dbAlias', async (req, res) => {
   const dbId = dbMan.genDbId(dbAlias);
   try {
     const database = await iasql.connect(
-      dbId, dbAlias, uid, email
+      dbAlias, uid, email, dbId
     );
     res.json(database);
     telemetry.logDbConnect(dbId, {
@@ -53,7 +53,7 @@ db.post('/connect', async (req, res) => {
   const dbId = dbMan.genDbId(dbAlias);
   try {
     const database = await iasql.connect(
-      dbId, dbAlias, uid, email
+      dbAlias, uid, email, dbId
     );
     res.json(database);
     telemetry.logDbConnect(dbId, {
