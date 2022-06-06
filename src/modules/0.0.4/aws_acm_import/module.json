@@ -1,5 +1,0 @@
-{
-  "name": "aws_acm_import",
-  "version": "0.0.4",
-  "dependencies": ["iasql_platform@0.0.4", "aws_account@0.0.4", "aws_acm_list@0.0.4"]
-}
