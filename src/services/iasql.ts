@@ -81,17 +81,17 @@ export async function getOpCount(conn: TypeormWrapper): Promise<number> {
 }
 
 export async function connect(
+  dbId: string,
   dbAlias: string,
   uid: string,
   email: string,
 ) {
-  let conn1: any, conn2: any, dbId: any, dbUser: any;
+  let conn1: any, conn2: any, dbUser: any;
   try {
     logger.info('Creating account for user...');
     const dbGen = dbMan.genUserAndPass();
     dbUser = dbGen[0];
     const dbPass = dbGen[1];
-    dbId = dbMan.genDbId(dbAlias);
     const metaDb = new IasqlDatabase();
     metaDb.alias = dbAlias;
     metaDb.pgUser = dbUser;
@@ -113,17 +113,19 @@ export async function connect(
     await dbMan.migrate(conn2);
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
+    const recordCount = await getDbRecCount(conn2);
+    const operationCount = await getOpCount(conn2);
     await MetadataRepo.updateDbCounts(
       dbId,
-      await getDbRecCount(conn2),
-      await getOpCount(conn2),
+      recordCount,
+      operationCount,
     );
     logger.info('Done!');
     return {
-      alias: dbAlias,
-      id: dbId,
       user: dbUser,
       password: dbPass,
+      recordCount,
+      operationCount,
     };
   } catch (e: any) {
     await scheduler.stop(dbId);

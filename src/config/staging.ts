@@ -34,7 +34,7 @@ const config: ConfigInterface = {
     release: process.env.SENTRY_RELEASE ?? throwError('No Sentry Release defined'),
   },
   telemetry: {
-    amplitudeKey: '1510dabbe6997c94b7d0f1959a77fb6e'
+    amplitudeKey: '1f380d1286396641d1e9a56f15e80e65'
   },
   graphql: {
     withGraphiql: false,

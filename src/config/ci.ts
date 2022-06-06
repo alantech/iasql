@@ -5,7 +5,7 @@ const config: ConfigInterface = {
     port: 8088,
   },
   modules: {
-    latestVersion: '0.0.8',
+    latestVersion: '0.0.7',
   },
   db: {
     host: 'postgresql',
@@ -24,9 +24,6 @@ const config: ConfigInterface = {
   },
   graphql: {
     withGraphiql: true,
-  },
-  telemetry: {
-    amplitudeKey: '8fd6aa1d61c115e59e35b3adfd5dd41a'
   },
 };
 
