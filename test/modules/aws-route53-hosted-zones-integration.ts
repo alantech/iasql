@@ -21,8 +21,8 @@ const {
 
 const prefix = getPrefix();
 const dbAlias = 'route53test';
-const domainName = `${dbAlias}${prefix}.com.`;
-const replaceDomainName = `${dbAlias}${prefix}replace.com.`;
+const domainName = `${dbAlias}${prefix}.${process.env.AWS_REGION}.com.`;
+const replaceDomainName = `${dbAlias}${prefix}replace.${process.env.AWS_REGION}.com.`;
 const resourceRecordSetName = `test.${domainName}`;
 const aliasResourceRecordSetName = `aliastest.${domainName}`;
 const resourceRecordSetMultilineName = `test.multiline.${replaceDomainName}`;
