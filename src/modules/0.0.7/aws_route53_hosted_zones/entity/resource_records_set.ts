@@ -70,7 +70,7 @@ export class ResourceRecordSet {
   @JoinColumn({
     name: 'alias_target_id',
   })
-  aliasTarget: AliasTarget;
+  aliasTarget?: AliasTarget;
 
   @AfterLoad()
   @AfterInsert()
