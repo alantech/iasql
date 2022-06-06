@@ -27,6 +27,7 @@ export class Instance {
 
   @Column({
     nullable: true,
+    comment: 'Unique identifier provided by AWS once the instance is provisioned',
   })
   @cloudId
   instanceId?: string;
