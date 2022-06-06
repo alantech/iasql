@@ -44,7 +44,7 @@ async function logDbErr(event: string, uid: string, email: string, error: string
       user_properties: {
         email,
         uid,
-        env: IASQL_ENV,
+        iasqlEnv: IASQL_ENV,
       },
       event_properties: {
         error,
