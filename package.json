@@ -16,7 +16,9 @@
     "start:dev:watch": "yarn build && yarn serve",
     "gen-sql": "IASQL_ENV=local ts-node ./node_modules/.bin/typeorm migration:generate -n",
     "migrate": "IASQL_ENV=local ts-node ./node_modules/.bin/typeorm migration:run",
-    "gen-module": "IASQL_ENV=local ./.module_migration.sh"
+    "gen-module": "IASQL_ENV=local ./.module_migration.sh",
+    "docker-compose:dev": "IASQL_ENV=local docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "docker-compose": "IASQL_ENV=local docker-compose up --build"
   },
   "repository": {
     "type": "git",

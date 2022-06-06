@@ -97,7 +97,13 @@ db.post('/export', async (req, res) => {
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     res.send(await iasql.dump(database.pgName, !!dataOnly));
-    telemetry.logDbExport(database.pgName, !!dataOnly);
+    telemetry.logDbExport(database.pgName, {
+      dbAlias,
+      email,
+      uid,
+      recordCount: database.recordCount,
+      operationCount: database.operationCount,
+    }, !!dataOnly);
   } catch (e) {
     res.status(500).end(logUserErr(e, uid, email, dbAlias));
   }
@@ -123,7 +129,11 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
   const email = dbMan.getEmail(req.user);
   try {
     const dbId = await iasql.disconnect(dbAlias, uid);
-    telemetry.logDbDisconnect(dbId);
+    telemetry.logDbDisconnect(dbId, {
+      dbAlias,
+      email,
+      uid
+    });
     res.json(`disconnected ${dbAlias}`);
   } catch (e) {
     const err = logUserErr(e, uid, email, dbAlias);

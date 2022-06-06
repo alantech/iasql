@@ -84,10 +84,9 @@ export async function connect(
   dbAlias: string,
   uid: string,
   email: string,
-  dbId?: string
+  dbId = dbMan.genDbId(dbAlias),
 ) {
   let conn1: any, conn2: any, dbUser: any;
-  dbId = dbId ?? dbMan.genDbId(dbAlias);
   try {
     logger.info('Creating account for user...');
     const dbGen = dbMan.genUserAndPass();

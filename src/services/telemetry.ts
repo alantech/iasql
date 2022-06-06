@@ -1,6 +1,6 @@
 import * as Amplitude from '@amplitude/node'
 
-import config, { ENV } from '../config'
+import config, { IASQL_ENV } from '../config'
 import logger from './logger'
 import { latest, } from '../modules'
 
@@ -11,17 +11,24 @@ type IasqlOperationType = typeof IasqlOperationType[keyof typeof IasqlOperationT
 
 const singleton = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
 
-export async function logDbConnect(dbId: string, userProps: any) {
+export type UserProps = {
+  dbAlias?: string
+  uid?: string
+  iasqlEnv?: string
+  recordCount?: number
+  operationCount?: number
+  email?: string
+}
+
+export async function logDbConnect(dbId: string, userProps: UserProps) {
   if (!singleton) return;
   try {
+    userProps.iasqlEnv = IASQL_ENV;
     await singleton.logEvent({
       event_type: 'CONNECT',
       // a user maps to database
       user_id: dbId,
-      user_properties: {
-        env: ENV,
-        ...userProps
-      },
+      user_properties: userProps,
     });
   } catch(e: any) {
     logger.error('failed to log CONNECT event', e);
@@ -37,7 +44,7 @@ async function logDbErr(event: string, uid: string, email: string, error: string
       user_properties: {
         email,
         uid,
-        env: ENV,
+        env: IASQL_ENV,
       },
       event_properties: {
         error,
@@ -64,7 +71,7 @@ export async function logUserRegister(uid: string, email: string) {
       event_type: 'REGISTER',
       user_properties: {
         email,
-        env: ENV,
+        iasqlEnv: IASQL_ENV,
       },
     });
   } catch(e: any) {
@@ -72,31 +79,29 @@ export async function logUserRegister(uid: string, email: string) {
   }
 }
 
-export async function logDbDisconnect(dbId: string) {
-  await logDbEvent(dbId, {}, 'DISCONNECT');
+export async function logDbDisconnect(dbId: string, userProp: UserProps) {
+  await logDbEvent(dbId, userProp, 'DISCONNECT');
 }
 
-export async function logDbExport(dbId: string, dataOnly: boolean) {
-  await logDbEvent(dbId, {}, 'EXPORT', {
+export async function logDbExport(dbId: string, userProp: UserProps, dataOnly: boolean) {
+  await logDbEvent(dbId, userProp, 'EXPORT', {
     dataOnly,
   });
 }
 
-export async function logDbOp(dbId: string, userProps: any, opType: IasqlOperationType, eventProps: any) {
+export async function logDbOp(dbId: string, userProps: UserProps, opType: IasqlOperationType, eventProps: any) {
   await logDbEvent(dbId, userProps, opType, eventProps);
 }
 
-async function logDbEvent(dbId: string, userProps: any, eventType: string, eventProps?: any) {
+async function logDbEvent(dbId: string, userProps: UserProps, eventType: string, eventProps?: any) {
   if (!singleton) return;
   try {
+    userProps.iasqlEnv = IASQL_ENV;
     singleton.logEvent({
       event_type: eventType,
       user_id: dbId,
       event_properties: eventProps,
-      user_properties: {
-        env: ENV,
-        ...userProps
-      },
+      user_properties: userProps,
     });
   } catch(e: any) {
     logger.error(`failed to log ${eventType} event`, e);
