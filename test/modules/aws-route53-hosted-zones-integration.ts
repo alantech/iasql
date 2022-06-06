@@ -199,7 +199,7 @@ describe('Route53 Integration Testing', () => {
     FROM resource_record_set
     INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id
     WHERE domain_name = '${replaceDomainName}';
-  `, (res: any[]) => expect(res.length).toBe(3)));
+  `, (res: any[]) => expect(res.length).toBe(4)));
 
   it('check previous record sets have been removed', query(`
     SELECT *
@@ -220,7 +220,7 @@ describe('Route53 Integration Testing', () => {
     FROM resource_record_set
     INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id
     WHERE domain_name = '${replaceDomainName}';
-  `, (res: any[]) => expect(res.length).toBe(4)));
+  `, (res: any[]) => expect(res.length).toBe(5)));
 
   it('applies new multiline resource record set', apply());
 
@@ -234,7 +234,7 @@ describe('Route53 Integration Testing', () => {
     const multiline = res.find(r => {logger.info(JSON.stringify(r)); return r.name === resourceRecordSetMultilineName && r.record_type === resourceRecordSetTypeA});
     expect(multiline).toBeDefined();  
     expect(multiline?.record?.split('\n').length).toBe(2);
-    return expect(res.length).toBe(4);
+    return expect(res.length).toBe(5);
   }));
 
   it('updates a record name', query(`
@@ -256,7 +256,7 @@ describe('Route53 Integration Testing', () => {
     logger.info(JSON.stringify(updated))
     expect(updated).toBeDefined();
     expect(updated.record_type).toBe(resourceRecordSetTypeA);
-    return expect(res.length).toBe(4); 
+    return expect(res.length).toBe(5); 
   }));
 
   it('deletes records', query(`
