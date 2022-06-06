@@ -27,7 +27,9 @@ db.get('/connect/:dbAlias', async (req, res) => {
     res.json(database);
     telemetry.logDbConnect(database.id, dbAlias, uid, email);
   } catch (e) {
-    res.status(500).end(logUserErr(e, uid, email, dbAlias));
+    const err = logUserErr(e, uid, email, dbAlias);
+    res.status(500).end(err);
+    telemetry.logDbConnectErr(uid, email, err);
   }
 });
 
@@ -48,7 +50,9 @@ db.post('/connect', async (req, res) => {
     res.json(database);
     telemetry.logDbConnect(database.id, dbAlias, uid, email);
   } catch (e) {
-    res.status(500).end(logUserErr(e, uid, email, dbAlias));
+    const err = logUserErr(e, uid, email, dbAlias);
+    res.status(500).end(err);
+    telemetry.logDbConnectErr(uid, email, err);
   }
 });
 
@@ -108,7 +112,9 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
     telemetry.logDbDisconnect(dbId);
     res.json(`disconnected ${dbAlias}`);
   } catch (e) {
-    res.status(500).end(logUserErr(e, uid, email, dbAlias));
+    const err = logUserErr(e, uid, email, dbAlias);
+    res.status(500).end(err);
+    telemetry.logDbDisconnectErr(uid, email, err);
   }
 });
 

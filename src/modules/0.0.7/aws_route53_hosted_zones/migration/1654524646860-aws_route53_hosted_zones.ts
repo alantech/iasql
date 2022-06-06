@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsRoute53HostedZones1654268296480 implements MigrationInterface {
-    name = 'awsRoute53HostedZones1654268296480'
+export class awsRoute53HostedZones1654524646860 implements MigrationInterface {
+    name = 'awsRoute53HostedZones1654524646860'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "alias_target" ("id" SERIAL NOT NULL, "evaluate_target_health" boolean NOT NULL DEFAULT true, "load_balancer_name" character varying, CONSTRAINT "PK_4a417cb03bee1a157e40033cca7" PRIMARY KEY ("id"))`);
