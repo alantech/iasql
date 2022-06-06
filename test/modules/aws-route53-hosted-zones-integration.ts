@@ -46,7 +46,7 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_route53_hosted_zones'];
 
-jest.setTimeout(240000);
+jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown(modules));
 
