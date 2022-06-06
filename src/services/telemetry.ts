@@ -1,6 +1,6 @@
 import * as Amplitude from '@amplitude/node'
 
-import config from '../config'
+import config, { IASQL_ENV } from '../config'
 import logger from './logger'
 import { latest, } from '../modules'
 
@@ -11,33 +11,40 @@ type IasqlOperationType = typeof IasqlOperationType[keyof typeof IasqlOperationT
 
 const singleton = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
 
-export async function logDbConnect(dbId: string, dbAlias: string, uid: string, email: string) {
+export type UserProps = {
+  dbAlias?: string
+  uid?: string
+  iasqlEnv?: string
+  recordCount?: number
+  operationCount?: number
+  email?: string
+}
+
+export async function logDbConnect(dbId: string, userProps: UserProps) {
   if (!singleton) return;
   try {
+    userProps.iasqlEnv = IASQL_ENV;
     await singleton.logEvent({
       event_type: 'CONNECT',
-      // a user can have multiple devices in amplitude
-      // so we map a database to a device
-      device_id: dbId,
-      user_id: uid,
-      user_properties: {
-        email,
-      },
-      device_model: dbAlias,
+      // a user maps to database
+      user_id: dbId,
+      user_properties: userProps,
     });
   } catch(e: any) {
     logger.error('failed to log CONNECT event', e);
   }
 }
 
-async function logDbErr(event: string, uid: string, email: string, error: string) {
+async function logDbErr(event: string, uid: string, email: string, error: string, dbId?: string) {
   if (!singleton) return;
   try {
     await singleton.logEvent({
       event_type: event,
-      user_id: uid,
+      user_id: dbId,
       user_properties: {
         email,
+        uid,
+        iasqlEnv: IASQL_ENV,
       },
       event_properties: {
         error,
@@ -52,8 +59,8 @@ export async function logDbDisconnectErr(uid: string, email: string, error: stri
   await logDbErr('DISCONNECT', uid, email, error);
 }
 
-export async function logDbConnectErr(uid: string, email: string, error: string) {
-  await logDbErr('CONNECT', uid, email, error);
+export async function logDbConnectErr(dbId: string, uid: string, email: string, error: string) {
+  await logDbErr('CONNECT', dbId, uid, email, error);
 }
 
 export async function logUserRegister(uid: string, email: string) {
@@ -64,6 +71,7 @@ export async function logUserRegister(uid: string, email: string) {
       event_type: 'REGISTER',
       user_properties: {
         email,
+        iasqlEnv: IASQL_ENV,
       },
     });
   } catch(e: any) {
@@ -71,27 +79,29 @@ export async function logUserRegister(uid: string, email: string) {
   }
 }
 
-export async function logDbDisconnect(dbId: string) {
-  await logDbEvent(dbId, 'DISCONNECT');
+export async function logDbDisconnect(dbId: string, userProp: UserProps) {
+  await logDbEvent(dbId, userProp, 'DISCONNECT');
 }
 
-export async function logDbExport(dbId: string, dataOnly: boolean) {
-  await logDbEvent(dbId, 'EXPORT', {
+export async function logDbExport(dbId: string, userProp: UserProps, dataOnly: boolean) {
+  await logDbEvent(dbId, userProp, 'EXPORT', {
     dataOnly,
   });
 }
 
-export async function logDbOp(dbId: string, opType: IasqlOperationType, eventProps: any) {
-  await logDbEvent(dbId, opType, eventProps);
+export async function logDbOp(dbId: string, userProps: UserProps, opType: IasqlOperationType, eventProps: any) {
+  await logDbEvent(dbId, userProps, opType, eventProps);
 }
 
-async function logDbEvent(dbId: string, eventType: string, eventProps?: any) {
+async function logDbEvent(dbId: string, userProps: UserProps, eventType: string, eventProps?: any) {
   if (!singleton) return;
   try {
+    userProps.iasqlEnv = IASQL_ENV;
     singleton.logEvent({
       event_type: eventType,
-      device_id: dbId,
+      user_id: dbId,
       event_properties: eventProps,
+      user_properties: userProps,
     });
   } catch(e: any) {
     logger.error(`failed to log ${eventType} event`, e);

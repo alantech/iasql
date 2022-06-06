@@ -20,16 +20,23 @@ db.get('/connect/:dbAlias', async (req, res) => {
   );
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
+  const dbId = dbMan.genDbId(dbAlias);
   try {
     const database = await iasql.connect(
-      dbAlias, uid, email
+      dbAlias, uid, email, dbId
     );
     res.json(database);
-    telemetry.logDbConnect(database.id, dbAlias, uid, email);
+    telemetry.logDbConnect(dbId, {
+      dbAlias,
+      uid,
+      email,
+      recordCount: database.recordCount,
+      operationCount: database.operationCount
+    });
   } catch (e) {
     const err = logUserErr(e, uid, email, dbAlias);
     res.status(500).end(err);
-    telemetry.logDbConnectErr(uid, email, err);
+    telemetry.logDbConnectErr(dbId, uid, email, err);
   }
 });
 
@@ -43,16 +50,23 @@ db.post('/connect', async (req, res) => {
   );
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
+  const dbId = dbMan.genDbId(dbAlias);
   try {
     const database = await iasql.connect(
-      dbAlias, uid, email
+      dbAlias, uid, email, dbId
     );
     res.json(database);
-    telemetry.logDbConnect(database.id, dbAlias, uid, email);
+    telemetry.logDbConnect(dbId, {
+      dbAlias,
+      uid,
+      email,
+      recordCount: database.recordCount,
+      operationCount: database.operationCount
+    });
   } catch (e) {
     const err = logUserErr(e, uid, email, dbAlias);
     res.status(500).end(err);
-    telemetry.logDbConnectErr(uid, email, err);
+    telemetry.logDbConnectErr(dbId, uid, email, err);
   }
 });
 
@@ -83,7 +97,13 @@ db.post('/export', async (req, res) => {
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     res.send(await iasql.dump(database.pgName, !!dataOnly));
-    telemetry.logDbExport(database.pgName, !!dataOnly);
+    telemetry.logDbExport(database.pgName, {
+      dbAlias,
+      email,
+      uid,
+      recordCount: database.recordCount,
+      operationCount: database.operationCount,
+    }, !!dataOnly);
   } catch (e) {
     res.status(500).end(logUserErr(e, uid, email, dbAlias));
   }
@@ -109,7 +129,11 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
   const email = dbMan.getEmail(req.user);
   try {
     const dbId = await iasql.disconnect(dbAlias, uid);
-    telemetry.logDbDisconnect(dbId);
+    telemetry.logDbDisconnect(dbId, {
+      dbAlias,
+      email,
+      uid
+    });
     res.json(`disconnected ${dbAlias}`);
   } catch (e) {
     const err = logUserErr(e, uid, email, dbAlias);
