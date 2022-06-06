@@ -23,6 +23,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
           loadBalancer = cloudLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
         }
         out.loadBalancer = loadBalancer;
+        if (!out.loadBalancer) return undefined;
       } else {
         // We ignore other alias targets that are not ELB for now
         return undefined;
@@ -53,6 +54,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
       } else if (rrs.AliasTarget) {
         out.aliasTarget = await AwsRoute53HostedZoneModule.utils.aliasTargetMapper(rrs.AliasTarget, ctx);
       }
+      if (!out.record && !out.aliasTarget) return undefined;
       return out;
     },
     resourceRecordSetName: (rrs: any) => {
