@@ -241,7 +241,7 @@ describe('Route53 Integration Testing', () => {
     UPDATE resource_record_set 
     SET name = '${resourceRecordSetMultilineNameReplace}'
     FROM hosted_zone
-    WHERE domain_name = '${replaceDomainName}' AND record_type = '${resourceRecordSetTypeA}';
+    WHERE domain_name = '${replaceDomainName}' AND name = '${resourceRecordSetMultilineName}';
   `));
 
   it('applies updates a record name', apply());
