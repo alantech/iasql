@@ -61,7 +61,7 @@ export class Listener {
   })
   targetGroup: TargetGroup;
 
-  @ManyToOne(() => Certificate, { 
+  @ManyToOne(() => Certificate, {
     eager: true,
     nullable: true,
   })
@@ -74,7 +74,7 @@ export class Listener {
     nullable: true,
   })
   sslPolicy?: string;
-  
+
   // TODO: tbd
   // AlpnPolicy?: string[];
 }
