@@ -11,6 +11,7 @@ import {
   execComposeUp,
   execComposeDown,
   runSync,
+  getKeyCertPair,
 } from '../helpers'
 
 const {
@@ -23,19 +24,25 @@ const {
 
 const prefix = getPrefix();
 const dbAlias = 'elbtest';
+
+const domainName = `${prefix}${dbAlias}.com`;
+const [key, cert] = getKeyCertPair(domainName);
+
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_security_group', 'aws_elb', 'aws_vpc'];
+const modules = ['aws_security_group', 'aws_elb', 'aws_vpc', 'aws_acm_list', 'aws_acm_import'];
 
 // Test constants
 const tgName = `${prefix}${dbAlias}tg`;
 const lbName = `${prefix}${dbAlias}lb`;
 const tgType = TargetTypeEnum.IP;
 const port = 5678;
+const portHTTPS = 443;
 const protocol = ProtocolEnum.HTTP;
+const protocolHTTPS = ProtocolEnum.HTTPS;
 const lbScheme = LoadBalancerSchemeEnum.INTERNET_FACING;
 const lbType = LoadBalancerTypeEnum.APPLICATION;
 const lbIPAddressType = IpAddressType.IPV4;
@@ -187,6 +194,50 @@ describe('ELB Integration Testing', () => {
 
   it('applies the change', apply());
 
+  it('adds a new certificate to import', query(`
+    INSERT INTO certificate_import (certificate, private_key)
+    VALUES ('${cert}', '${key}');
+  `));
+
+  it('check adds new certificate to import', query(`
+    SELECT *
+    FROM certificate_import;
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('applies the new certificate import', apply());
+
+  it('check import row delete', query(`
+    SELECT *
+    FROM certificate_import;
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check new certificate added', query(`
+    SELECT *
+    FROM certificate
+    WHERE domain_name = '${domainName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('adds a new HTTPS listener', query(`
+    INSERT INTO listener (load_balancer_name, port, protocol, target_group_name, certificate_id)
+    SELECT '${lbName}', ${portHTTPS}, '${protocolHTTPS}', '${tgName}', id
+    FROM certificate
+    WHERE domain_name = '${domainName}';
+  `));
+
+  it('check https listener insertion', query(`
+    SELECT *
+    FROM listener
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
+
+  it('applies the https listener change', apply());
+
+  it('check https listener insertion', query(`
+    SELECT *
+    FROM listener
+    WHERE load_balancer_name = '${lbName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
+
   it('uninstalls the elb module', uninstall(
     ['aws_elb']));
 
@@ -235,13 +286,26 @@ describe('ELB Integration Testing', () => {
     WHERE target_group_name = '${tgName}';
   `));
 
-  it('check target_group insertion', query(`
+  it('check target_group deletion', query(`
     SELECT *
     FROM target_group
     WHERE target_group_name = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('applies the change (last time)', apply());
+
+  it('deletes the certificate', query(`
+    DELETE FROM certificate
+    WHERE domain_name = '${domainName}';
+  `));
+
+  it('check certificate deletion', query(`
+    SELECT *
+    FROM certificate
+    WHERE domain_name = '${domainName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('applies the cert delete change', apply());
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
