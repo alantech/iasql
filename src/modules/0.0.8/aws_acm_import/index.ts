@@ -30,7 +30,12 @@ export const AwsAcmImportModule: Module2 = new Module2({
             if (!importedCertArn) throw new Error('Error importing certificate');
             const importedCert = await AwsAcmListModule.mappers.certificate.cloud.read(ctx, importedCertArn);
             await AwsAcmImportModule.mappers.certificateImport.db.delete(e, ctx);
-            await AwsAcmListModule.mappers.certificate.db.create(importedCert, ctx);
+            try {
+              await AwsAcmListModule.mappers.certificate.db.create(importedCert, ctx);
+            } catch (e) {
+              // Do nothing
+              // AwsAcmListModule could not be installed and that's ok since there's no table dependency between them
+            }
           }
         },
         read: async () => { return; },
