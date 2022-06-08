@@ -121,14 +121,7 @@ export async function connect(
       opCount,
     );
     logger.info('Done!');
-    return {
-      user: dbUser,
-      password: dbPass,
-      recordCount: recCount,
-      operationCount: opCount,
-      alias: dbAlias,
-      id: dbId,
-    };
+    return await MetadataRepo.getDb(uid, dbAlias);
   } catch (e: any) {
     await scheduler.stop(dbId);
     // delete db in psql and metadata
