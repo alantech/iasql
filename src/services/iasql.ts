@@ -121,7 +121,15 @@ export async function connect(
       opCount,
     );
     logger.info('Done!');
-    return await MetadataRepo.getDb(uid, dbAlias);
+    // Return custom IasqlDatabase object since we need to return the password
+    return {
+      user: dbUser,
+      password: dbPass,
+      recordCount: recCount,
+      operationCount: opCount,
+      alias: dbAlias,
+      id: dbId,
+    };
   } catch (e: any) {
     await scheduler.stop(dbId);
     // delete db in psql and metadata
