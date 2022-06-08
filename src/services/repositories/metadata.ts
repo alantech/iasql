@@ -72,10 +72,11 @@ class MetadataRepo {
     await this.dbRepo.save(db);
   }
 
-  async getUserFromDbId(dbId: string): Promise<IasqlUser> {
-    const db = await this.dbRepo.findOneOrFail(dbId, {
+  async getUserFromDbId(dbId: string): Promise<IasqlUser | undefined> {
+    const db = await this.dbRepo.findOne(dbId, {
       relations: ['iasqlUsers']
     });
+    if (!db) return undefined;
     // TODO change when dbs have more than one user
     return db.iasqlUsers[0];
   }
