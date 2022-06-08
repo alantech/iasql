@@ -62,7 +62,7 @@ describe('Testing metadata repo', () => {
   `, async (row: any[]) => {
     expect(row.length).toBe(1);
     const user = await MetadataRepo.getUserFromDbId(dbAlias);
-    expect(user.id).toBe(uid);
+    expect(user?.id).toBe(uid);
   }));
 
   it('installs the aws_account module', install(['aws_account']));

@@ -76,9 +76,9 @@ export async function start(dbId: string, dbUser:string) {
         let output;
         let error;
         const user = await MetadataRepo.getUserFromDbId(dbId);
-        const uid = !user ? undefined : user.id;
-        const email = !user ? undefined : user.email;
-        const dbAlias = !user ? undefined : (user.iasqlDatabases[0].alias ?? undefined);
+        const uid = user?.id;
+        const email = user?.email;
+        const dbAlias = user?.iasqlDatabases?.[0]?.alias;
         try {
           output = await promise;
           // once the operation completes updating the `end_date`
