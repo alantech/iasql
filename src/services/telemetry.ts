@@ -63,22 +63,6 @@ export async function logDbConnectErr(dbId: string, uid: string, email: string, 
   await logDbErr('CONNECT', dbId, uid, email, error);
 }
 
-export async function logUserRegister(uid: string, email: string) {
-  if (!singleton) return;
-  try {
-    await singleton.logEvent({
-      user_id: uid,
-      event_type: 'REGISTER',
-      user_properties: {
-        email,
-        iasqlEnv: IASQL_ENV,
-      },
-    });
-  } catch(e: any) {
-    logger.error('failed to log REGISTER event', e);
-  }
-}
-
 export async function logDbDisconnect(dbId: string, userProp: UserProps) {
   await logDbEvent(dbId, userProp, 'DISCONNECT');
 }
