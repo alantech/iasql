@@ -1,7 +1,9 @@
 import {
+  CreateListenerCommandInput,
   CreateLoadBalancerCommandInput,
   Listener as ListenerAws,
   LoadBalancer as LoadBalancerAws,
+  ModifyListenerCommandInput,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 
 import { AWS, } from '../../../services/gateways/aws'
@@ -21,7 +23,7 @@ import {
 } from './entity'
 import { AwsVpcModule, } from '../aws_vpc'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
-import { AwsSecurityGroupModule } from '..'
+import { AwsAcmListModule, AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
 
 export const AwsElbModule: Module2 = new Module2({
@@ -43,6 +45,12 @@ export const AwsElbModule: Module2 = new Module2({
             await AwsElbModule.mappers.targetGroup.cloud.read(ctx, a?.TargetGroupArn);
           if (!out.targetGroup) throw new Error('Target groups need to be loaded first');
         }
+      }
+      if (l.SslPolicy && l.Certificates?.length) {
+        out.sslPolicy = l.SslPolicy;
+        const cloudCertificate = l.Certificates.pop();
+        out.certificate = await AwsAcmListModule.mappers.certificate.db.read(ctx, cloudCertificate?.CertificateArn) ??
+          await AwsAcmListModule.mappers.certificate.cloud.read(ctx, cloudCertificate?.CertificateArn);
       }
       return out;
     },
@@ -116,19 +124,28 @@ export const AwsElbModule: Module2 = new Module2({
         && Object.is(a.port, b.port)
         && Object.is(a.protocol, b.protocol)
         && Object.is(a.actionType, b.actionType)
-        && Object.is(a.targetGroup.targetGroupArn, b.targetGroup.targetGroupArn),
+        && Object.is(a.targetGroup.targetGroupArn, b.targetGroup.targetGroupArn)
+        && Object.is(a.sslPolicy, b.sslPolicy)
+        && Object.is(a.certificate?.arn, b.certificate?.arn),
       source: 'db',
       cloud: new Crud2({
         create: async (es: Listener[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
-            const result = await client.createListener({
+            const listenerInput: CreateListenerCommandInput = {
               Port: e.port,
               Protocol: e.protocol,
               LoadBalancerArn: e.loadBalancer?.loadBalancerArn,
               DefaultActions: [{ Type: e.actionType, TargetGroupArn: e.targetGroup.targetGroupArn }],
-            });
+            };
+            if (e.certificate) {
+              listenerInput.SslPolicy = e.sslPolicy ?? 'ELBSecurityPolicy-2016-08';
+              listenerInput.Certificates = [{
+                CertificateArn: e.certificate.arn
+              }];
+            }
+            const result = await client.createListener(listenerInput);
             // TODO: Handle if it fails (somehow)
             if (!result?.hasOwnProperty('ListenerArn')) { // Failure
               throw new Error('what should we do here?');
@@ -181,12 +198,19 @@ export const AwsElbModule: Module2 = new Module2({
             const cloudRecord = ctx?.memo?.cloud?.Listener?.[e.listenerArn ?? ''];
             const isUpdate = AwsElbModule.mappers.listener.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
-              const updatedListener = await client.updateListener({
+              const listenerInput: ModifyListenerCommandInput = {
                 ListenerArn: e.listenerArn,
                 Port: e.port,
                 Protocol: e.protocol,
                 DefaultActions: [{ Type: e.actionType, TargetGroupArn: e.targetGroup.targetGroupArn }],
-              });
+              };
+              if (e.certificate) {
+                listenerInput.SslPolicy = e.sslPolicy ?? 'ELBSecurityPolicy-2016-08';
+                listenerInput.Certificates = [{
+                  CertificateArn: e.certificate.arn
+                }];
+              }
+              const updatedListener = await client.updateListener(listenerInput);
               out.push(AwsElbModule.utils.listenerMapper(updatedListener, ctx));
             } else {
               // We need to delete the current cloud record and create the new one.

@@ -1,4 +1,7 @@
 import {
+  AfterInsert,
+  AfterLoad,
+  AfterUpdate,
   Column,
   Entity,
   JoinColumn,
@@ -10,6 +13,7 @@ import {
 import { LoadBalancer, } from './load_balancer'
 import { TargetGroup, ProtocolEnum, } from './target_group'
 import { cloudId, } from '../../../../services/cloud-id'
+import { Certificate } from '../../aws_acm_list/entity';
 
 export enum ActionTypeEnum {
   // AUTHENTICATE_COGNITO = "authenticate-cognito",
@@ -60,8 +64,30 @@ export class Listener {
   })
   targetGroup: TargetGroup;
 
+  @ManyToOne(() => Certificate, {
+    eager: true,
+    nullable: true,
+  })
+  @JoinColumn({
+    name: 'certificate_id',
+  })
+  certificate?: Certificate;
+
+  @Column({
+    nullable: true,
+  })
+  sslPolicy?: string;
+
   // TODO: tbd
-  // Certificates?: Certificate[];
-  // SslPolicy?: string;
   // AlpnPolicy?: string[];
+
+  @AfterLoad()
+  @AfterInsert()
+  @AfterUpdate()
+  updateNulls() {
+    const that: any = this;
+    Object.keys(this).forEach(k => {
+      if (that[k] === null) that[k] = undefined;
+    });
+  }
 }

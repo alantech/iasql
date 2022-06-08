@@ -4,6 +4,7 @@
     "iasql_platform",
     "aws_account",
     "aws_security_group",
-    "aws_vpc"
+    "aws_vpc",
+    "aws_acm_list"
   ]
 }

@@ -1,31 +1,21 @@
 import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runApply, finish, execComposeUp, execComposeDown, runSync, runInstall, runUninstall } from '../helpers'
-import { execSync } from 'child_process'
+import {
+  getPrefix,
+  runQuery,
+  runApply,
+  finish,
+  execComposeUp,
+  execComposeDown,
+  runSync,
+  runInstall,
+  runUninstall,
+  getKeyCertPair,
+} from '../helpers'
 
 const prefix = getPrefix();
 const dbAlias = 'acmimporttest';
 const domainName = `${prefix}${dbAlias}.com`;
-const stdoutCert = execSync(
-  `openssl req -x509 -new -nodes -days 1 -newkey rsa:2048 -outform PEM \
-  -subj "/C=US/ST=test/L=test/O=test LLC/OU=devops/CN=${domainName}" | cat`,
-  { shell: '/bin/bash', encoding: 'utf-8'}
-);
-const certBeginTag = '-----BEGIN CERTIFICATE-----';
-const certEndTag = '-----END CERTIFICATE-----';
-const cert = stdoutCert.substring(stdoutCert.indexOf(certBeginTag), stdoutCert.lastIndexOf(certEndTag) + certEndTag.length);
-
-let stdoutKey;
-if (process.env.IASQL_ENV === 'local') {
-  stdoutKey = stdoutCert;
-} else {
-  stdoutKey = execSync(
-    `cat privkey.pem`,
-    { shell: '/bin/bash', encoding: 'utf-8'}
-  );
-}
-const keyBeginTag = '-----BEGIN PRIVATE KEY-----';
-const keyEndTag = '-----END PRIVATE KEY-----';
-const key = stdoutKey.substring(stdoutKey.indexOf(keyBeginTag), stdoutKey.lastIndexOf(keyEndTag) + keyEndTag.length);
+const [key, cert] = getKeyCertPair(domainName);
 
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
