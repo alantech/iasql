@@ -75,6 +75,10 @@ export async function start(dbId: string, dbUser:string) {
         }
         let output;
         let error;
+        const user = await MetadataRepo.getUserFromDbId(dbId);
+        const uid = user?.id;
+        const email = user?.email;
+        const dbAlias = user?.iasqlDatabases?.[0]?.alias;
         try {
           output = await promise;
           // once the operation completes updating the `end_date`
@@ -88,9 +92,7 @@ export async function start(dbId: string, dbUser:string) {
           output = typeof output === 'string' ? output : JSON.stringify(output);
           await conn.query(query);
         } catch (e) {
-          const user = await MetadataRepo.getUserFromDbId(dbId);
-          const db = user.iasqlDatabases[0];
-          let errorMessage: string | string[] = logUserErr(e, user.id, user.email, db.alias);
+          let errorMessage: string | string[] = logUserErr(e, uid, email, dbAlias);
           // split message if multiple lines in it
           if (errorMessage.includes('\n')) errorMessage = errorMessage.split('\n');
           // error must be valid JSON as a string
@@ -111,6 +113,9 @@ export async function start(dbId: string, dbUser:string) {
             telemetry.logDbOp(
               dbId,
               {
+                uid,
+                email,
+                dbAlias,
                 recordCount,
                 operationCount,
               },

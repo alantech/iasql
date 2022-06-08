@@ -3,6 +3,7 @@ import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
 import { IasqlDatabase, IasqlUser } from '../../entity/index'
 import * as dbMan from '../db-manager'
+import logger from '../logger'
 import * as telemetry from '../telemetry'
 
 class MetadataRepo {
@@ -66,16 +67,24 @@ class MetadataRepo {
   }
 
   async updateDbCounts(dbId: string, recCount: number, opCount: number) {
-    const db = await this.dbRepo.findOneOrFail(dbId);
+    const db = await this.dbRepo.findOne(dbId);
+    if (!db) {
+      logger.warn(`No db with id ${dbId} found`);
+      return;
+    };
     db.recordCount = recCount;
     db.operationCount = opCount;
     await this.dbRepo.save(db);
   }
 
-  async getUserFromDbId(dbId: string): Promise<IasqlUser> {
-    const db = await this.dbRepo.findOneOrFail(dbId, {
+  async getUserFromDbId(dbId: string): Promise<IasqlUser | undefined> {
+    const db = await this.dbRepo.findOne(dbId, {
       relations: ['iasqlUsers']
     });
+    if (!db) {
+      logger.warn(`No db with id ${dbId} found`);
+      return;
+    };
     // TODO change when dbs have more than one user
     return db.iasqlUsers[0];
   }
