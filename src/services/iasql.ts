@@ -126,6 +126,8 @@ export async function connect(
       password: dbPass,
       recordCount: recCount,
       operationCount: opCount,
+      alias: dbAlias,
+      id: dbId,
     };
   } catch (e: any) {
     await scheduler.stop(dbId);
