@@ -96,6 +96,12 @@ export const AwsRdsModule: Module2 = new Module2({
             }
             // Re-get the inserted record to get all of the relevant records we care about
             const newObject = await client.getDBInstance(result.DBInstanceIdentifier ?? '');
+            // We need to update the parameter groups if its a default one and it does not exists
+            const parameterGroupName = newObject.DBParameterGroups?.[0].DBParameterGroupName;
+            if (!(await AwsRdsModule.mappers.parameterGroup.db.read(ctx, parameterGroupName))) {
+              const cloudParameterGroup = await AwsRdsModule.mappers.parameterGroup.cloud.read(ctx, parameterGroupName);
+              await AwsRdsModule.mappers.parameterGroup.db.create(cloudParameterGroup, ctx);
+            }
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsRdsModule.utils.rdsMapper(newObject, ctx);
             // We attach the original object's ID to this new one, indicating the exact record it is
