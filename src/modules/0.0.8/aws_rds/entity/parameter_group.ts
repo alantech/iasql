@@ -15,13 +15,13 @@ import { Parameter } from './parameter';
 export class ParameterGroup {
   
   @PrimaryColumn()
+  @cloudId
   name: string;
 
   @Column({
     unique: true,
     nullable: true,
   })
-  @cloudId
   arn?: string;
 
   // There's no valid enum for this and creating one will create for us the need to keep it updated constantly every time a new version goes out for any of the supported databases
@@ -33,7 +33,7 @@ export class ParameterGroup {
   @Column()
   description: string;
 
-  @OneToMany(() => Parameter, p => p.parameterGroup)
+  @OneToMany(() => Parameter, p => p.parameterGroup, { eager: true, })
   parameters: Parameter[];
 
   @AfterLoad()

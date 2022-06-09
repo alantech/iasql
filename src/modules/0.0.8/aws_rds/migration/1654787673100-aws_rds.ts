@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsRds1654784380641 implements MigrationInterface {
-    name = 'awsRds1654784380641'
+export class awsRds1654787673100 implements MigrationInterface {
+    name = 'awsRds1654787673100'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "parameter_group" ("name" character varying NOT NULL, "arn" character varying, "family" character varying NOT NULL, "description" character varying NOT NULL, CONSTRAINT "UQ_cd5d35716aae42c8f6acb7dc989" UNIQUE ("arn"), CONSTRAINT "PK_d1f1ec0894042fdb4c40575feff" PRIMARY KEY ("name"))`);
