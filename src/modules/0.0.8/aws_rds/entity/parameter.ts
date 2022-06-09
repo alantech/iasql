@@ -28,20 +28,29 @@ export class Parameter {
   @Column({ nullable: true, })
   value?: string;
 
-  @Column()
-  description: string;
+  @Column({ nullable: true, })
+  description?: string;
 
-  @Column()
-  source: string;
+  @Column({ nullable: true, })
+  source?: string;
 
-  @Column()
-  applyType: string;
+  @Column({ nullable: true, })
+  applyType?: string;
 
-  @Column()
-  dataType: string;
+  @Column({ nullable: true, })
+  dataType?: string;
 
   @Column({ default: false, })
   isModifiable: boolean;
+
+  @Column({ nullable: true, })
+  allowedValues?: string;
+
+  @Column({ nullable: true, })
+  applyMethod?: string;
+
+  @Column({ nullable: true, })
+  minimumEngineVersion?: string;
 
   @AfterLoad()
   @AfterInsert()

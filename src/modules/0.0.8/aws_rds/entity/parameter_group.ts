@@ -33,7 +33,7 @@ export class ParameterGroup {
   @Column()
   description: string;
 
-  @OneToMany(() => Parameter, p => p.parameterGroup, { eager: true, })
+  @OneToMany(() => Parameter, p => p.parameterGroup, { eager: true, cascade: true, })
   parameters: Parameter[];
 
   @AfterLoad()

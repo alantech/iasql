@@ -1,11 +1,11 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsRds1654787673100 implements MigrationInterface {
-    name = 'awsRds1654787673100'
+export class awsRds1654794559294 implements MigrationInterface {
+    name = 'awsRds1654794559294'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "parameter_group" ("name" character varying NOT NULL, "arn" character varying, "family" character varying NOT NULL, "description" character varying NOT NULL, CONSTRAINT "UQ_cd5d35716aae42c8f6acb7dc989" UNIQUE ("arn"), CONSTRAINT "PK_d1f1ec0894042fdb4c40575feff" PRIMARY KEY ("name"))`);
-        await queryRunner.query(`CREATE TABLE "parameter" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "value" character varying, "description" character varying NOT NULL, "source" character varying NOT NULL, "apply_type" character varying NOT NULL, "data_type" character varying NOT NULL, "is_modifiable" boolean NOT NULL DEFAULT false, "parameter_group_name" character varying, CONSTRAINT "PK_cc5c047040f9c69f0e0d6a844a0" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "parameter" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "value" character varying, "description" character varying, "source" character varying, "apply_type" character varying, "data_type" character varying, "is_modifiable" boolean NOT NULL DEFAULT false, "allowed_values" character varying, "apply_method" character varying, "minimum_engine_version" character varying, "parameter_group_name" character varying, CONSTRAINT "PK_cc5c047040f9c69f0e0d6a844a0" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "rds" ("id" SERIAL NOT NULL, "db_instance_identifier" character varying NOT NULL, "allocated_storage" integer NOT NULL, "availability_zone" character varying NOT NULL, "db_instance_class" character varying NOT NULL, "engine" character varying NOT NULL, "master_user_password" character varying, "master_username" character varying, "endpoint_addr" character varying, "endpoint_port" integer, "endpoint_hosted_zone_id" character varying, "backup_retention_period" integer NOT NULL DEFAULT '1', "parameter_group_name" character varying, CONSTRAINT "UQ_7fb01956cebcabd694baf5f1f6b" UNIQUE ("db_instance_identifier"), CONSTRAINT "PK_67d6c2133366c8eda49b40de7b0" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "rds_security_groups" ("rds_id" integer NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_a0b5fa8fc927a6d22d5e2125e86" PRIMARY KEY ("rds_id", "security_group_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_a1927b280e2770235e52a9e0fb" ON "rds_security_groups" ("rds_id") `);

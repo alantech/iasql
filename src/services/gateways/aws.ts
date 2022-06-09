@@ -136,6 +136,8 @@ import {
   CreateDBParameterGroupCommandInput,
   paginateDescribeDBParameterGroups,
   DeleteDBParameterGroupCommand,
+  paginateDescribeDBParameters,
+  ModifyDBParameterGroupCommand,
 } from '@aws-sdk/client-rds'
 import {
   CloudWatchLogsClient,
@@ -2066,5 +2068,37 @@ export class AWS {
       DBParameterGroupName: name
     }));
     return res;
+  }
+
+  async getDBParameterGroupParameters(parameterGroupName: string) {
+    const out = [];
+    const paginator = paginateDescribeDBParameters({
+      client: this.rdsClient,
+      pageSize: 25,
+    }, {
+      DBParameterGroupName: parameterGroupName,
+    });
+    for await (const page of paginator) {
+      out.push(...(page.Parameters ?? []));
+    }
+    return out;
+  }
+
+  async modifyParameters(parameterGroupName: string, parameters: any[]) {
+    const batchSize = 20;
+    if (parameters && parameters.length > batchSize) {
+      for (let i = 0; i < parameters.length; i += batchSize) {
+        const batch = parameters.slice(i, i + batchSize);
+        await this.rdsClient.send(new ModifyDBParameterGroupCommand({
+          DBParameterGroupName: parameterGroupName,
+          Parameters: parameters
+        }));
+      }
+    } else {
+      await this.rdsClient.send(new ModifyDBParameterGroupCommand({
+        DBParameterGroupName: parameterGroupName,
+        Parameters: parameters
+      }));
+    }
   }
 }
