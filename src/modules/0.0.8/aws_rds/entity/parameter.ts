@@ -16,7 +16,10 @@ export class Parameter {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => ParameterGroup, { eager: true, })
+  @ManyToOne(() => ParameterGroup, {
+    eager: true,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({
     name: 'parameter_group_name',
   })
