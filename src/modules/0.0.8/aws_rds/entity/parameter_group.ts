@@ -4,16 +4,14 @@ import {
   AfterUpdate,
   Column,
   Entity,
-  OneToMany,
   PrimaryColumn,
 } from 'typeorm'
 
 import { cloudId, } from '../../../../services/cloud-id'
-import { Parameter } from './parameter';
 
 @Entity()
 export class ParameterGroup {
-  
+
   @PrimaryColumn()
   @cloudId
   name: string;
@@ -32,9 +30,6 @@ export class ParameterGroup {
 
   @Column()
   description: string;
-
-  @OneToMany(() => Parameter, p => p.parameterGroup, { eager: true, cascade: true, })
-  parameters: Parameter[];
 
   @AfterLoad()
   @AfterInsert()

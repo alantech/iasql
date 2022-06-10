@@ -5,6 +5,7 @@ import { Parameter, ParameterGroup, RDS, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
+import logger from '../../../services/logger'
 
 export const AwsRdsModule: Module2 = new Module2({
   ...metadata,
@@ -35,13 +36,12 @@ export const AwsRdsModule: Module2 = new Module2({
       }
       return out;
     },
-    parameterGroupMapper: (pg: any) => {
+    parameterGroupMapper: (pg: DBParameterGroup) => {
       const out = new ParameterGroup();
       out.arn = pg?.DBParameterGroupArn;
       out.description = pg?.Description ?? '';
       out.family = pg.DBParameterGroupFamily ?? '';
       out.name = pg.DBParameterGroupName ?? '';
-      out.parameters = pg.Parameters ?? [];
       return out;
     },
     parameterMapper: async (p: any, ctx: Context) => {
@@ -52,25 +52,14 @@ export const AwsRdsModule: Module2 = new Module2({
       out.isModifiable = p.IsModifiable;
       out.name = p.ParameterName;
       out.source = p.Source;
-      out.value = p.AllowedValues;
+      out.value = p.ParameterValue;
       out.allowedValues = p.AllowedValues;
       out.applyMethod = p.ApplyMethod;
       out.minimumEngineVersion = p.MinimumEngineVersion;
-      out.parameterGroup = await AwsRdsModule.mappers.parameterGroup.db.read(ctx, p.ParameterGroupName) ??
-        await AwsRdsModule.mappers.parameterGroup.cloud.read(ctx, p.ParameterGroupName);
+      out.parameterGroup = await AwsRdsModule.mappers.parameterGroup.db.read(ctx, p.DBParameterGroupName) ??
+        await AwsRdsModule.mappers.parameterGroup.cloud.read(ctx, p.DBParameterGroupName);
       return out;
     },
-    parameterEquals: (a: Parameter, b: Parameter) => Object.is(a.allowedValues, b.allowedValues)
-      && Object.is(a.applyMethod, b.applyMethod)
-      && Object.is(a.applyType, b.applyType)
-      && Object.is(a.dataType, b.dataType)
-      && Object.is(a.description, b.description)
-      && Object.is(a.isModifiable, b.isModifiable)
-      && Object.is(a.minimumEngineVersion, b.minimumEngineVersion)
-      && Object.is(a.name, b.name)
-      && Object.is(a.parameterGroup?.arn, b.parameterGroup?.arn)
-      && Object.is(a.source, b.source)
-      && Object.is(a.value, b.value),
   },
   mappers: {
     rds: new Mapper2<RDS>({
@@ -221,9 +210,7 @@ export const AwsRdsModule: Module2 = new Module2({
       entity: ParameterGroup,
       equals: (a: ParameterGroup, b: ParameterGroup) => Object.is(a.arn, b.arn)
         && Object.is(a.family, b.family)
-        && Object.is(a.description, b.description)
-        && Object.is(a.parameters.length, b.parameters.length)
-        && a.parameters.every(pa => !!b.parameters.find(pb => AwsRdsModule.utils.parameterEquals(pa, pb))),
+        && Object.is(a.description, b.description),
       source: 'db',
       cloud: new Crud2({
         create: async (es: ParameterGroup[], ctx: Context) => {
@@ -238,17 +225,14 @@ export const AwsRdsModule: Module2 = new Module2({
             const result = await client.createDBParameterGroup(parameterGroupInput);
             // Re-get the inserted record to get all of the relevant records we care about
             const newObject = await client.getDBParameterGroup(result?.DBParameterGroupName ?? '');
-            // Get parameters and insert them in DB
-            const newObjectParameters = await client.getDBParameterGroupParameters(newObject?.DBParameterGroupName ?? '');
-            const parameters = [];
-            for (const p of newObjectParameters) {
-              parameters.push(await AwsRdsModule.utils.parameterMapper(p, ctx));
-            }
-            const customObject = { ...newObject, Parameters: parameters };
             // We map this into the same kind of entity as `obj`
-            const newEntity = AwsRdsModule.utils.parameterGroupMapper(customObject, ctx);
+            const newEntity = AwsRdsModule.utils.parameterGroupMapper(newObject, ctx);
             // Save the record back into the database to get the new fields updated
             await AwsRdsModule.mappers.parameterGroup.db.update(newEntity, ctx);
+            // Get parameters and insert them in DB
+            const newObjectParameters = await AwsRdsModule.mappers.parameter.cloud.read(ctx, newObject?.DBParameterGroupName);
+            logger.info(`++++ PARAMETERS USING MAPPER ${JSON.stringify(newObjectParameters)}`);
+            await AwsRdsModule.mappers.parameter.db.create(newObjectParameters, ctx);
             out.push(newEntity);
           }
           return out;
@@ -258,64 +242,21 @@ export const AwsRdsModule: Module2 = new Module2({
           if (id) {
             const parameterGroup = await client.getDBParameterGroup(id);
             if (!parameterGroup) return;
-            // Get parameters
-            const objectParameters = await client.getDBParameterGroupParameters(parameterGroup?.DBParameterGroupName ?? '');
-            const parameters = [];
-            for (const p of objectParameters) {
-              parameters.push(await AwsRdsModule.utils.parameterMapper(p, ctx));
-            }
-            return AwsRdsModule.utils.parameterGroupMapper({ ...parameterGroup, parameters }, ctx);
+            return AwsRdsModule.utils.parameterGroupMapper(parameterGroup, ctx);
           } else {
             const parameterGroups = await client.getDBParameterGroups();
             const out = [];
             for (const pg of parameterGroups) {
-              // Get parameters
-              const objectParameters = await client.getDBParameterGroupParameters(pg?.DBParameterGroupName ?? '');
-              const parameters = [];
-              for (const p of objectParameters) {
-                parameters.push(await AwsRdsModule.utils.parameterMapper(p, ctx));
-              }
-              out.push(AwsRdsModule.utils.parameterGroupMapper({ ...pg, Parameters: parameters, }, ctx));
+              out.push(AwsRdsModule.utils.parameterGroupMapper(pg, ctx));
             }
             return out;
           }
         },
         update: async (es: ParameterGroup[], ctx: Context) => {
-          const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.ParameterGroup?.[e.name ?? ''];
-            const parametersToModify = [];
-            for (const pcr of cloudRecord.parameters) {
-              if (!e.parameters.find(pe => AwsRdsModule.utils.parameterEquals(pcr, pe)) && pcr.isModifiable) {
-                parametersToModify.push(pcr);
-              }
-            }
-            if (parametersToModify.length) {
-              const parametersInput = [];
-              for (const p of parametersToModify) {
-                parametersInput.push({
-                  ParameterName: p.name,
-                  ParameterValue: p.value,
-                  ApplyMethod: p.applyMethod,
-                });
-              }
-              await client.modifyParameters(e.name, parametersInput);
-              // Get parameters
-              const objectParameters = await client.getDBParameterGroupParameters(e.name ?? '');
-              const parameters = [];
-              for (const p of objectParameters) {
-                parameters.push(await AwsRdsModule.utils.parameterMapper(p, ctx));
-              }
-              // Attach ids manually
-              for (let p of cloudRecord.parameters) {
-                const relevantParam = parameters.find(param => Object.is(param.name, p.name));
-                relevantParam.id = p.id;
-                p = relevantParam;
-              }
-              cloudRecord.parameters = parameters;
-          }
-            await AwsRdsModule.mappers.rds.db.update(cloudRecord, ctx);
+            await AwsRdsModule.mappers.parameterGroup.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
           }
           return out;
@@ -324,6 +265,95 @@ export const AwsRdsModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
             await client.deleteDBParameterGroup(e.name);
+          }
+        },
+      }),
+    }),
+    parameter: new Mapper2<Parameter>({
+      entity: Parameter,
+      entityId: (e: Parameter) => {
+        try {
+          return `${e.parameterGroup.name}|${e.name}`
+        } catch (err) {
+          logger.warn(`++++ NO E??? ${JSON.stringify(e)}`)
+          throw err;
+        }
+      },
+      equals: (a: Parameter, b: Parameter) => Object.is(a.allowedValues, b.allowedValues)
+        && Object.is(a.applyMethod, b.applyMethod)
+        && Object.is(a.applyType, b.applyType)
+        && Object.is(a.dataType, b.dataType)
+        && Object.is(a.description, b.description)
+        && Object.is(a.isModifiable, b.isModifiable)
+        && Object.is(a.minimumEngineVersion, b.minimumEngineVersion)
+        && Object.is(a.name, b.name)
+        && Object.is(a.parameterGroup?.arn, b.parameterGroup?.arn)
+        && Object.is(a.source, b.source)
+        && Object.is(a.value, b.value),
+      source: 'db',
+      cloud: new Crud2({
+        create: async (es: Parameter[], ctx: Context) => {
+          // Parameters cannot be created, just updated.
+          await AwsRdsModule.mappers.parameter.db.delete(es, ctx);
+          return [];
+        },
+        read: async (ctx: Context, id?: string) => {
+          const client = await ctx.getAwsClient() as AWS;
+          if (id) {
+            const [parameterGroupName, parameterName] = id.split('|');
+            logger.warn(`+++ READING WITH ID ${id}`)
+            const parameterGroupParameters = await client.getDBParameterGroupParameters(parameterGroupName ?? '');
+            if (parameterName) {
+              const parameter = parameterGroupParameters.find(p => Object.is(p.ParameterName, parameterName));
+              return await AwsRdsModule.utils.parameterMapper(parameter, ctx);
+            } else {
+              const out = [];
+              for (const p of parameterGroupParameters) {
+                out.push(await AwsRdsModule.utils.parameterMapper(p, ctx));
+              }
+              return out;
+            }
+          } else {
+            const parameterGroups = await client.getDBParameterGroups();
+            const out = [];
+            for (const pg of parameterGroups) {
+              const objectParameters = await client.getDBParameterGroupParameters(pg?.DBParameterGroupName ?? '');
+              logger.warn(`+++ READING NO ID ${JSON.stringify(objectParameters)}`)
+              for (const p of objectParameters) {
+                out.push(await AwsRdsModule.utils.parameterMapper(p, ctx));
+              }
+            }
+            return out;
+          }
+        },
+        update: async (es: Parameter[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          const out = [];
+          for (const e of es) {
+            const cloudRecord = ctx?.memo?.cloud?.Parameter?.[AwsRdsModule.mappers.parameter.entityId(e)];
+            if (cloudRecord.isModifiable) {
+              const parameterInput = {
+                ParameterName: cloudRecord.name,
+                ParameterValue: e.value,
+                ApplyMethod: cloudRecord.applyMethod,
+              };
+              await client.modifyParameter(e.parameterGroup.name, parameterInput);
+              const updatedParameter = await AwsRdsModule.mappers.parameter.cloud.read(ctx, AwsRdsModule.mappers.parameter.entityId(e));
+              await AwsRdsModule.mappers.parameter.db.update(updatedParameter, ctx);
+              out.push(updatedParameter);
+              continue;
+            }
+            // Restore value
+            await AwsRdsModule.mappers.parameter.db.update(cloudRecord, ctx);
+            out.push(cloudRecord);
+          }
+          return out;
+        },
+        delete: async (es: Parameter[], ctx: Context) => {
+          for (const e of es) {
+            // Parameters cannot be deleted, just updated.
+            const cloudRecord = ctx?.memo?.cloud?.Parameter?.[AwsRdsModule.mappers.parameter.entityId(e)];
+            await AwsRdsModule.mappers.parameter.db.create(cloudRecord, ctx);
           }
         },
       }),

@@ -12,11 +12,11 @@ import { ParameterGroup } from './parameter_group';
 
 @Entity()
 export class Parameter {
-  
+
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => ParameterGroup)
+  @ManyToOne(() => ParameterGroup, { eager: true, })
   @JoinColumn({
     name: 'parameter_group_name',
   })
