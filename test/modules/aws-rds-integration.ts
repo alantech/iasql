@@ -171,7 +171,7 @@ describe('RDS Integration Testing', () => {
 
   it('removes the parameter group and it parameters', query(`
     DELETE FROM parameter_group
-    WHERE parameter_group_name = '${parameterGroupName}';
+    WHERE name = '${parameterGroupName}';
   `));
 
   it('check parameter group count after delete', query(`
