@@ -138,7 +138,6 @@ import {
   DeleteDBParameterGroupCommand,
   paginateDescribeDBParameters,
   ModifyDBParameterGroupCommand,
-  ModifyDBParameterGroupCommandInput,
   Parameter,
 } from '@aws-sdk/client-rds'
 import {

@@ -5,7 +5,6 @@ import { Parameter, ParameterGroup, RDS, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
-import logger from '../../../services/logger'
 
 export const AwsRdsModule: Module2 = new Module2({
   ...metadata,
@@ -231,7 +230,6 @@ export const AwsRdsModule: Module2 = new Module2({
             await AwsRdsModule.mappers.parameterGroup.db.update(newEntity, ctx);
             // Get parameters and insert them in DB
             const newObjectParameters = await AwsRdsModule.mappers.parameter.cloud.read(ctx, newObject?.DBParameterGroupName);
-            logger.info(`++++ PARAMETERS USING MAPPER ${JSON.stringify(newObjectParameters)}`);
             await AwsRdsModule.mappers.parameter.db.create(newObjectParameters, ctx);
             out.push(newEntity);
           }
@@ -271,14 +269,7 @@ export const AwsRdsModule: Module2 = new Module2({
     }),
     parameter: new Mapper2<Parameter>({
       entity: Parameter,
-      entityId: (e: Parameter) => {
-        try {
-          return `${e.parameterGroup.name}|${e.name}`
-        } catch (err) {
-          logger.warn(`++++ NO E??? ${JSON.stringify(e)}`)
-          throw err;
-        }
-      },
+      entityId: (e: Parameter) => `${e.parameterGroup.name}|${e.name}`,
       equals: (a: Parameter, b: Parameter) => Object.is(a.allowedValues, b.allowedValues)
         && Object.is(a.applyMethod, b.applyMethod)
         && Object.is(a.applyType, b.applyType)
@@ -301,7 +292,6 @@ export const AwsRdsModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
             const [parameterGroupName, parameterName] = id.split('|');
-            logger.warn(`+++ READING WITH ID ${id}`)
             const parameterGroupParameters = await client.getDBParameterGroupParameters(parameterGroupName ?? '');
             if (parameterName) {
               const parameter = parameterGroupParameters.find(p => Object.is(p.ParameterName, parameterName));
@@ -318,7 +308,6 @@ export const AwsRdsModule: Module2 = new Module2({
             const out = [];
             for (const pg of parameterGroups) {
               const objectParameters = await client.getDBParameterGroupParameters(pg?.DBParameterGroupName ?? '');
-              logger.warn(`+++ READING NO ID ${JSON.stringify(objectParameters)}`)
               for (const p of objectParameters) {
                 out.push(await AwsRdsModule.utils.parameterMapper(p, ctx));
               }
@@ -338,12 +327,16 @@ export const AwsRdsModule: Module2 = new Module2({
                 ApplyMethod: cloudRecord.applyMethod,
               };
               await client.modifyParameter(e.parameterGroup.name, parameterInput);
+              // Force cloud check by deleting the memo
+              delete ctx?.memo?.cloud?.Parameter?.[AwsRdsModule.mappers.parameter.entityId(e)];
               const updatedParameter = await AwsRdsModule.mappers.parameter.cloud.read(ctx, AwsRdsModule.mappers.parameter.entityId(e));
+              updatedParameter.id = e.id;
               await AwsRdsModule.mappers.parameter.db.update(updatedParameter, ctx);
               out.push(updatedParameter);
               continue;
             }
             // Restore value
+            cloudRecord.id = e.id;
             await AwsRdsModule.mappers.parameter.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
           }
