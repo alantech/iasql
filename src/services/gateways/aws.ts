@@ -47,6 +47,12 @@ import {
   DescribeNetworkInterfacesCommand,
   EC2,
   Tag,
+  CreateNatGatewayCommandInput,
+  CreateNatGatewayCommand,
+  DescribeNatGatewaysCommand,
+  NatGatewayState,
+  paginateDescribeNatGateways,
+  DeleteNatGatewayCommand,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -2031,4 +2037,63 @@ export class AWS {
       Targets: [target],
     }));
   }
+
+  async createNatGateway(input: CreateNatGatewayCommandInput) {
+    let out;
+    const res = await this.ec2client.send(new CreateNatGatewayCommand(input));
+    out = res.NatGateway;
+    const describeInput = new DescribeNatGatewaysCommand({
+      NatGatewayIds: [res.NatGateway?.NatGatewayId ?? '']
+    });
+    await createWaiter<EC2Client, DescribeNatGatewaysCommand>(
+      {
+        client: this.ec2client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      describeInput,
+      async (client, cmd) => {
+        const data = await client.send(cmd);
+        try {
+          out = data.NatGateways?.pop();
+          // If it is not a final state we retry
+          if ([NatGatewayState.DELETING, NatGatewayState.PENDING].includes(out?.State as NatGatewayState)) {
+            return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
+    return out;
+  }
+
+  async getNatGateway(id: string) {
+    const res = await this.ec2client.send(new DescribeNatGatewaysCommand({
+      NatGatewayIds: [id],
+    }));
+    return res.NatGateways?.pop();
+  }
+
+  async getNatGateways() {
+    const natGateways = [];
+    const paginator = paginateDescribeNatGateways({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      natGateways.push(...(page.NatGateways ?? []));
+    }
+    return natGateways;
+  }
+
+  async deleteNatGateway(id: string) {
+    await this.ec2client.send(new DeleteNatGatewayCommand({
+      NatGatewayId: id,
+    }));
+  }
+  
 }
