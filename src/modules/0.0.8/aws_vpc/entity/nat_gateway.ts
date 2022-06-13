@@ -26,7 +26,7 @@ export enum NatGatewayState {
   PENDING = "pending"
 }
 
-@Check('Check_elastic_ip_when_public', '("elastic_ip" is not null AND "connectivity_type" = "public") OR "elastic_ip" is not null')
+@Check('Check_elastic_ip_when_public', `("elastic_ip" is not null AND "connectivity_type" = 'public') OR "elastic_ip" is not null`)
 @Entity()
 export class NatGateway {
   @PrimaryGeneratedColumn()

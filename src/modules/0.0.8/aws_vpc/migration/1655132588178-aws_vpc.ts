@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsVpc1655129638083 implements MigrationInterface {
-    name = 'awsVpc1655129638083'
+export class awsVpc1655132588178 implements MigrationInterface {
+    name = 'awsVpc1655132588178'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."vpc_state_enum" AS ENUM('available', 'pending')`);
@@ -12,7 +12,7 @@ export class awsVpc1655129638083 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "subnet" ("id" SERIAL NOT NULL, "availability_zone" "public"."subnet_availability_zone_enum" NOT NULL, "state" "public"."subnet_state_enum", "available_ip_address_count" integer, "cidr_block" character varying, "subnet_id" character varying, "owner_id" character varying, "subnet_arn" character varying, "vpc_id" integer NOT NULL, CONSTRAINT "PK_27239a6d70e746b9ac33497a47f" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."nat_gateway_connectivity_type_enum" AS ENUM('private', 'public')`);
         await queryRunner.query(`CREATE TYPE "public"."nat_gateway_state_enum" AS ENUM('available', 'deleted', 'deleting', 'failed', 'pending')`);
-        await queryRunner.query(`CREATE TABLE "nat_gateway" ("id" SERIAL NOT NULL, "nat_gateway_id" character varying, "connectivity_type" "public"."nat_gateway_connectivity_type_enum" NOT NULL, "elastic_ip" character varying, "state" "public"."nat_gateway_state_enum", "tags" json, "subnet_id" integer NOT NULL, CONSTRAINT "Check_elastic_ip_when_public" CHECK (("elastic_ip" is not null AND "connectivity_type" = "public") OR "elastic_ip" is not null), CONSTRAINT "PK_42e867a771bbc0df315e3c38bfa" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "nat_gateway" ("id" SERIAL NOT NULL, "nat_gateway_id" character varying, "connectivity_type" "public"."nat_gateway_connectivity_type_enum" NOT NULL, "elastic_ip" character varying, "state" "public"."nat_gateway_state_enum", "tags" json, "subnet_id" integer NOT NULL, CONSTRAINT "Check_elastic_ip_when_public" CHECK (("elastic_ip" is not null AND "connectivity_type" = 'public') OR "elastic_ip" is not null), CONSTRAINT "PK_42e867a771bbc0df315e3c38bfa" PRIMARY KEY ("id"))`);
         await queryRunner.query(`ALTER TABLE "subnet" ADD CONSTRAINT "FK_6b5bf9e47cab22f2857019b8eaf" FOREIGN KEY ("vpc_id") REFERENCES "vpc"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "nat_gateway" ADD CONSTRAINT "FK_902c1e8953c40c17c23265e14dc" FOREIGN KEY ("subnet_id") REFERENCES "subnet"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
     }
