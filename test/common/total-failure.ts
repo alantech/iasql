@@ -101,13 +101,13 @@ describe('Testing failure path', () => {
   }));
 
   // Fail on upgrade
-  it('fails to upgrade module',  (done) => {
+  it('fails to upgrade database (as it is up-to-date already)',  (done) => {
     query(`
       select * from iasql_upgrade();
     `)((_e?: any) => done());  // Ignore failure
   });
 
-  it('check upgrade error', query(`
+  it('check upgrade message', query(`
     SELECT *
     FROM iasql_operation
     ORDER BY end_date DESC
@@ -115,7 +115,7 @@ describe('Testing failure path', () => {
   `, (row: any[]) => {
     expect(row.length).toBe(1);
     expect(row[0].optype).toBe('UPGRADE');
-    expect(JSON.parse(row[0].err)).toHaveProperty('message');
+    expect(row[0].output.length).toBeGreaterThan(0);
   }));
 
   // TODO: how to test list, plan_apply, plan_sync, sync??
