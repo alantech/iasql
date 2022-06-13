@@ -2077,7 +2077,7 @@ export class AWS {
       Filter: [
         {
           Name: 'state',
-          Values: [NatGatewayState.DELETED, NatGatewayState.DELETING, NatGatewayState.PENDING]
+          Values: [NatGatewayState.AVAILABLE, NatGatewayState.FAILED]
         }
       ]
     }));
@@ -2093,7 +2093,7 @@ export class AWS {
       Filter: [
         {
           Name: 'state',
-          Values: [NatGatewayState.DELETED, NatGatewayState.DELETING, NatGatewayState.PENDING]
+          Values: [NatGatewayState.AVAILABLE, NatGatewayState.FAILED]
         }
       ]
     });
