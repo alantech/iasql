@@ -9,6 +9,7 @@ import * as levenshtein from 'fastest-levenshtein'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 import { createConnection, } from 'typeorm'
 import { snakeCase, } from 'typeorm/util/StringUtils'
+import { v4 as uuidv4, } from 'uuid'
 
 import * as AllModules from '../modules'
 import * as dbMan from './db-manager'
@@ -165,16 +166,31 @@ export async function disconnect(dbAlias: string, uid: string) {
 }
 
 export async function runSql(dbAlias: string, uid: string, sql: string) {
-  let conn;
+  let connMain: any, connTemp: any;
+  const user = `_${uuidv4().replace(/-/g, '')}`;
+  const pass = `_${uuidv4().replace(/-/g, '')}`;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    conn = await createConnection({ ...dbMan.baseConnConfig, database: db.pgName, });
-    return await conn.query(sql);
+    const database = db.pgName;
+    connMain = await createConnection({ ...dbMan.baseConnConfig, database, });
+    await connMain.query(dbMan.newPostgresRoleQuery(user, pass, database));
+    await connMain.query(dbMan.grantPostgresRoleQuery(user));
+    connTemp = await createConnection({ ...dbMan.baseConnConfig, database, name: user, });
+    const out = await connTemp.query(sql);
+    return out;
   } catch (e: any) {
     // re-throw
     throw e;
   } finally {
-    conn?.close();
+    // Put this in a timeout so it doesn't block returning to the user
+    setTimeout(async () => {
+      await connTemp.close();
+      // There's some weird latency between when this connection is closed and when Postgres is
+      // actually done with the user, so let's sleep a second and then continue
+      await new Promise(r => setTimeout(r, 1000));
+      await connMain.query(dbMan.dropPostgresRoleQuery(user));
+      await connMain.close();
+    }, 1);
   }
 }
 
