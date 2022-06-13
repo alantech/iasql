@@ -1,7 +1,7 @@
 import { CreateDBInstanceCommandInput, CreateDBParameterGroupCommandInput, DBParameterGroup, ModifyDBInstanceCommandInput } from '@aws-sdk/client-rds'
 
 import { AWS, } from '../../../services/gateways/aws'
-import { Parameter, ParameterGroup, RDS, } from './entity'
+import { Parameter, ParameterGroup, ParameterGroupFamily, RDS, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
@@ -39,7 +39,7 @@ export const AwsRdsModule: Module2 = new Module2({
       const out = new ParameterGroup();
       out.arn = pg?.DBParameterGroupArn;
       out.description = pg?.Description ?? '';
-      out.family = pg.DBParameterGroupFamily ?? '';
+      out.family = pg.DBParameterGroupFamily as ParameterGroupFamily ?? '';
       out.name = pg.DBParameterGroupName ?? '';
       return out;
     },
