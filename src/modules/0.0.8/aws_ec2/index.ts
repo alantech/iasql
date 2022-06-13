@@ -1,5 +1,7 @@
 import { Instance as AWSInstance } from '@aws-sdk/client-ec2'
 
+import { throwError } from '../../../config/config'
+
 import { Instance, RegisteredInstance, State, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
 import { AWS } from '../../../services/gateways/aws'
@@ -13,7 +15,7 @@ export const AwsEc2Module: Module2 = new Module2({
     instanceMapper: async (instance: AWSInstance, ctx: Context) => {
       const client = await ctx.getAwsClient() as AWS;
       const out = new Instance();
-      out.instanceId = instance.InstanceId as string;
+      out.instanceId = instance.InstanceId ?? throwError("AWS doesn't have an id for an instance it manages, which should be impossible")
       const tags: { [key: string]: string } = {};
       (instance.Tags || []).filter(t => !!t.Key && !!t.Value).forEach(t => {
         tags[t.Key as string] = t.Value as string;
