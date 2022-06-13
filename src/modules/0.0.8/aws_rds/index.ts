@@ -115,6 +115,9 @@ export const AwsRdsModule: Module2 = new Module2({
             if (!(await AwsRdsModule.mappers.parameterGroup.db.read(ctx, parameterGroupName))) {
               const cloudParameterGroup = await AwsRdsModule.mappers.parameterGroup.cloud.read(ctx, parameterGroupName);
               await AwsRdsModule.mappers.parameterGroup.db.create(cloudParameterGroup, ctx);
+              // Get parameters and insert them in DB
+              const cloudParameterGroupParameters = await AwsRdsModule.mappers.parameter.cloud.read(ctx, cloudParameterGroup.name);
+              await AwsRdsModule.mappers.parameter.db.create(cloudParameterGroupParameters, ctx);
             }
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsRdsModule.utils.rdsMapper(newObject, ctx);
