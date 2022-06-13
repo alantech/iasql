@@ -228,7 +228,8 @@ export const AwsVpcModule: Module2 = new Module2({
             const res: AwsNatGateway | undefined = await client.createNatGateway(input);
             if (res) {
               const newNatGateway = await AwsVpcModule.utils.natGatewayMapper(res, ctx);
-              await AwsVpcModule.mappers.subnet.db.create(newNatGateway, ctx);
+              newNatGateway.id = e.id;
+              await AwsVpcModule.mappers.subnet.db.update(newNatGateway, ctx);
               out.push(newNatGateway);
             }
           }
