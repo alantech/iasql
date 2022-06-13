@@ -995,7 +995,7 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
 export async function upgrade(dbId: string, dbUser: string) {
   const versionString = await TypeormWrapper.getVersionString(dbId);
   if (versionString === `v${config.modules.latestVersion.replace(/\./g, '_')}`) {
-    throw new Error('Up to date');
+    return 'Up to date';
   } else {
     (async () => {
       // First, figure out all of the modules installed, and if the `aws_account` module is
@@ -1056,6 +1056,11 @@ export async function upgrade(dbId: string, dbUser: string) {
         conn?.close();
       }
     })();
-    throw new Error('Upgrading. Please disconnect and reconnect to the database');
+    // TODO: Drop this conditional once these versions are no longer supported.
+    if (['v0_0_5', 'v0_0_6', 'v0_0_7'].includes(versionString)) {
+      throw new Error('Upgrading. Please disconnect and reconnect to the database');
+    } else {
+      return 'Upgrading. Please disconnect and reconnect to the database';
+    }
   }
 }
