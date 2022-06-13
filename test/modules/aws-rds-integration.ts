@@ -4,6 +4,9 @@ import { getPrefix, runQuery, runApply, runInstall, runUninstall, finish, execCo
 
 const prefix = getPrefix();
 const dbAlias = 'rdstest';
+const parameterGroupName = `${prefix}${dbAlias}pg`;
+const engineFamily = `postgres13`;
+
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -86,17 +89,116 @@ describe('RDS Integration Testing', () => {
 
   it('applies the change', apply());
 
+  it('creates an RDS parameter group', query(`
+    INSERT INTO parameter_group (name, family, description)
+    VALUES ('${parameterGroupName}', '${engineFamily}', '${parameterGroupName} desc');
+  `));
+
+  it('applies the change', apply());
+
+  it('check parameter group insertion', query(`
+    SELECT *
+    FROM parameter_group
+    WHERE name = '${parameterGroupName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check parameters for new parameter group', query(`
+    SELECT *
+    FROM parameter
+    WHERE parameter_group_name = '${parameterGroupName}';
+  `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
+  it('check all modifiable boolean parameters are not true', query(`
+    SELECT *
+    FROM parameter
+    WHERE parameter_group_name = '${parameterGroupName}' AND data_type = 'boolean' AND is_modifiable is true;
+  `, (res: any[]) => expect(res.every(r => r['value'] === '1')).toBeFalsy()));
+
+  it('changes all boolean parameters for the new parameter group to be true', query(`
+    UPDATE parameter SET value = '1' WHERE parameter_group_name = '${parameterGroupName}' AND data_type = 'boolean' AND is_modifiable is true;
+  `));
+
+  it('applies the change', apply());
+
+  it('check all modifiable boolean parameters are true', query(`
+    SELECT *
+    FROM parameter
+    WHERE parameter_group_name = '${parameterGroupName}' AND data_type = 'boolean' AND is_modifiable is true;
+  `, (res: any[]) => expect(res.every(r => r['value'] === '1')).toBeTruthy()));
+
   it('uninstalls the rds module', uninstall(
     ['aws_rds']));
 
   it('installs the rds module', install(
     ['aws_rds']));
 
+  it('check instance count after uninstall', query(`
+    SELECT *
+    FROM rds
+    WHERE db_instance_identifier = '${prefix}test';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check parameter group count after uninstall', query(`
+    SELECT *
+    FROM parameter_group
+    WHERE name = '${parameterGroupName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check parameters after uninstall', query(`
+    SELECT *
+    FROM parameter
+    WHERE parameter_group_name = '${parameterGroupName}';
+  `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
   it('removes the RDS instance', query(`
-    DELETE FROM rds;
+    DELETE FROM rds
+    WHERE db_instance_identifier = '${prefix}test';
   `));
 
+  it('check rds delete count', query(`
+    SELECT *
+    FROM rds
+    WHERE db_instance_identifier = '${prefix}test';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
   it('applies the change', apply());
+
+  it('check rds delete count', query(`
+    SELECT *
+    FROM rds
+    WHERE db_instance_identifier = '${prefix}test';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('removes the parameter group and it parameters', query(`
+    DELETE FROM parameter_group
+    WHERE name = '${parameterGroupName}';
+  `));
+
+  it('check parameter group count after delete', query(`
+    SELECT *
+    FROM parameter_group
+    WHERE name = '${parameterGroupName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check parameters after delete', query(`
+    SELECT *
+    FROM parameter
+    WHERE parameter_group_name = '${parameterGroupName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('applies the change', apply());
+
+  it('check parameter group count after delete', query(`
+    SELECT *
+    FROM parameter_group
+    WHERE name = '${parameterGroupName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check parameters after delete', query(`
+    SELECT *
+    FROM parameter
+    WHERE parameter_group_name = '${parameterGroupName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
