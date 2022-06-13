@@ -2074,6 +2074,12 @@ export class AWS {
   async getNatGateway(id: string) {
     const res = await this.ec2client.send(new DescribeNatGatewaysCommand({
       NatGatewayIds: [id],
+      Filter: [
+        {
+          Name: 'state',
+          Values: [NatGatewayState.DELETED, NatGatewayState.DELETING, NatGatewayState.PENDING]
+        }
+      ]
     }));
     return res.NatGateways?.pop();
   }
@@ -2083,7 +2089,14 @@ export class AWS {
     const paginator = paginateDescribeNatGateways({
       client: this.ec2client,
       pageSize: 25,
-    }, {});
+    }, {
+      Filter: [
+        {
+          Name: 'state',
+          Values: [NatGatewayState.DELETED, NatGatewayState.DELETING, NatGatewayState.PENDING]
+        }
+      ]
+    });
     for await (const page of paginator) {
       natGateways.push(...(page.NatGateways ?? []));
     }
@@ -2094,6 +2107,32 @@ export class AWS {
     await this.ec2client.send(new DeleteNatGatewayCommand({
       NatGatewayId: id,
     }));
+    const describeInput = new DescribeNatGatewaysCommand({
+      NatGatewayIds: [id ?? '']
+    });
+    await createWaiter<EC2Client, DescribeNatGatewaysCommand>(
+      {
+        client: this.ec2client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      describeInput,
+      async (client, cmd) => {
+        const data = await client.send(cmd);
+        try {
+          const nat = data.NatGateways?.pop();
+          // If it is not a final state we retry
+          if ([NatGatewayState.DELETING, NatGatewayState.PENDING].includes(nat?.State as NatGatewayState)) {
+            return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
   }
   
 }
