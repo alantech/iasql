@@ -51,6 +51,12 @@ export class Instance {
   state: State;
 
   @Column({
+    type: 'text',
+    nullable: true,
+  })
+  userData?: string;
+
+  @Column({
     type: 'json',
     nullable: true,
   })

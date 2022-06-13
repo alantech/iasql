@@ -1,5 +1,7 @@
 import { Instance as AWSInstance } from '@aws-sdk/client-ec2'
 
+import { throwError } from '../../../config/config'
+
 import { Instance, RegisteredInstance, State, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
 import { AWS } from '../../../services/gateways/aws'
@@ -11,13 +13,16 @@ export const AwsEc2Module: Module2 = new Module2({
   ...metadata,
   utils: {
     instanceMapper: async (instance: AWSInstance, ctx: Context) => {
+      const client = await ctx.getAwsClient() as AWS;
       const out = new Instance();
-      out.instanceId = instance.InstanceId;
+      out.instanceId = instance.InstanceId ?? throwError("AWS doesn't have an id for an instance it manages, which should be impossible")
       const tags: { [key: string]: string } = {};
       (instance.Tags || []).filter(t => !!t.Key && !!t.Value).forEach(t => {
         tags[t.Key as string] = t.Value as string;
       });
       out.tags = tags;
+      const userDataBase64 = await client.getInstanceUserData(out.instanceId);
+      out.userData = userDataBase64 ? Buffer.from(userDataBase64, 'base64').toString('ascii') : undefined;
       if (instance.State?.Name === State.STOPPED) out.state = State.STOPPED
       // map interim states to running
       else out.state = State.RUNNING;
@@ -35,6 +40,7 @@ export const AwsEc2Module: Module2 = new Module2({
     instanceEqReplaceableFields: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
       Object.is(a.ami, b.ami) &&
       Object.is(a.instanceType, b.instanceType) &&
+      Object.is(a.userData, b.userData) &&
       Object.is(a.keyPairName, b.keyPairName) &&
       Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
       a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
@@ -63,10 +69,11 @@ export const AwsEc2Module: Module2 = new Module2({
           const out = [];
           for (const instance of es) {
             if (instance.ami) {
-              const instanceId = await client.newInstanceV2(
+              const instanceId = await client.newInstanceV3(
                 instance.instanceType,
                 instance.ami,
                 instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[],
+                instance.userData ? Buffer.from(instance.userData).toString('base64') : undefined,
                 instance.keyPairName,
                 instance.tags
               );
