@@ -564,17 +564,17 @@
     fast-xml-parser "3.19.0"
     tslib "^2.3.1"
 
-"@aws-sdk/client-s3@^3.100.0":
-  version "3.100.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-s3/-/client-s3-3.100.0.tgz#6cae596da29889848b009e34a4126842038906b0"
-  integrity sha512-UmgFdJabWtiUS4dWsC3kZ+ZMvH5QUUbDnLS8pT12duwLGt+xlWPn3PUkV8kL6qjG6XePLUgCqFTLjDD4tsTZNg==
+"@aws-sdk/client-s3@^3.107.0":
+  version "3.107.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-s3/-/client-s3-3.107.0.tgz#f819dbb414b4e1f931752d139f007d737610bc3f"
+  integrity sha512-2wWlr4lnfr/3NCKjven0umTRNxpMwrrt1fm8ZN0DucFhD4B3jee7qZQtpTnQxkGJkzyzKeE7qlzsHYeMi2HL1Q==
   dependencies:
     "@aws-crypto/sha1-browser" "2.0.0"
     "@aws-crypto/sha256-browser" "2.0.0"
     "@aws-crypto/sha256-js" "2.0.0"
-    "@aws-sdk/client-sts" "3.100.0"
+    "@aws-sdk/client-sts" "3.105.0"
     "@aws-sdk/config-resolver" "3.80.0"
-    "@aws-sdk/credential-provider-node" "3.100.0"
+    "@aws-sdk/credential-provider-node" "3.105.0"
     "@aws-sdk/eventstream-serde-browser" "3.78.0"
     "@aws-sdk/eventstream-serde-config-resolver" "3.78.0"
     "@aws-sdk/eventstream-serde-node" "3.78.0"
@@ -591,8 +591,9 @@
     "@aws-sdk/middleware-host-header" "3.78.0"
     "@aws-sdk/middleware-location-constraint" "3.78.0"
     "@aws-sdk/middleware-logger" "3.78.0"
+    "@aws-sdk/middleware-recursion-detection" "3.105.0"
     "@aws-sdk/middleware-retry" "3.80.0"
-    "@aws-sdk/middleware-sdk-s3" "3.86.0"
+    "@aws-sdk/middleware-sdk-s3" "3.105.0"
     "@aws-sdk/middleware-serde" "3.78.0"
     "@aws-sdk/middleware-signing" "3.78.0"
     "@aws-sdk/middleware-ssec" "3.78.0"
@@ -1266,10 +1267,10 @@
     "@aws-sdk/types" "3.78.0"
     tslib "^2.3.1"
 
-"@aws-sdk/middleware-sdk-s3@3.86.0":
-  version "3.86.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-s3/-/middleware-sdk-s3-3.86.0.tgz#92470446c62eec1cbe502e4f04585194bb5b1ff7"
-  integrity sha512-1L9q8iJXy/KNyVR8JRs4DZ5SJse6nJPiK4AR8c2xF5FWHdGoFaLcdqpg2/TLB1kpdcfGgNp96uCROxh+IPXtDQ==
+"@aws-sdk/middleware-sdk-s3@3.105.0":
+  version "3.105.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-s3/-/middleware-sdk-s3-3.105.0.tgz#0aae8f87653e091c996b5435481140d468949af7"
+  integrity sha512-GI2vYiboOc3GNpjNUtGyBVi9R6hwLhjId2PPqchyiRntlzz9CfF4F2qMjH/Vv0kE383hT8TN+5kGmaVSmeJqmg==
   dependencies:
     "@aws-sdk/protocol-http" "3.78.0"
     "@aws-sdk/types" "3.78.0"
