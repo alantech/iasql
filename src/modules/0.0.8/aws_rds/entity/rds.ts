@@ -1,13 +1,16 @@
 import {
   Column,
   Entity,
+  JoinColumn,
   JoinTable,
   ManyToMany,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm'
 
 import { SecurityGroup, } from '../../aws_security_group/entity'
 import { cloudId, } from '../../../../services/cloud-id'
+import { ParameterGroup } from './parameter_group';
 
 @Entity()
 export class RDS {
@@ -87,4 +90,13 @@ export class RDS {
     default: 1,
   })
   backupRetentionPeriod: number;
+
+  @ManyToOne(() => ParameterGroup, {
+    eager: true,
+    nullable: true,
+  })
+  @JoinColumn({
+    name: 'parameter_group_name',
+  })
+  parameterGroup?: ParameterGroup;
 }

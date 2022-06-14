@@ -93,16 +93,16 @@ describe('EC2 Integration Testing', () => {
   it('adds two ec2 instance', (done) => {
     query(`
     BEGIN;
-      INSERT INTO instance (ami, instance_type, tags)
-        VALUES ('${ubuntuAmiId}', 't2.micro', '{"name":"${prefix}-1"}');
+      INSERT INTO instance (ami, instance_type, tags, user_data)
+        VALUES ('${ubuntuAmiId}', 't2.micro', '{"name":"${prefix}-1"}', 'ls;');
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
         (SELECT id FROM security_group WHERE group_name='default');
     COMMIT;
 
     BEGIN;
-      INSERT INTO instance (ami, instance_type, tags)
-        VALUES ('${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}');
+      INSERT INTO instance (ami, instance_type, tags, user_data)
+        VALUES ('${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}', 'pwd;');
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
         (SELECT id FROM security_group WHERE group_name='default');
@@ -121,6 +121,33 @@ describe('EC2 Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('applies the created instances', apply());
+
+  it('check number of instances', query(`
+    SELECT *
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-1' OR
+    tags ->> 'name' = '${prefix}-2';
+  `, (res: any[]) => expect(res.length).toBe(2)));
+
+  // TODO add table to allow creating key value pairs and then check user_data ran
+  // https://stackoverflow.com/questions/15904095/how-to-check-whether-my-user-data-passing-to-ec2-instance-is-working
+  it('check user data', query(`
+    SELECT user_data
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-1';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].user_data).toBe('ls;');
+  }));
+
+  it('check user data', query(`
+    SELECT user_data
+    FROM instance
+    WHERE tags ->> 'name' = '${prefix}-2';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].user_data).toBe('pwd;');
+  }));
 
   it('syncs the changes from the first database to the second', runSync(`${dbAlias}_sync`));
 

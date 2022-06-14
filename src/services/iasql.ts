@@ -9,6 +9,7 @@ import * as levenshtein from 'fastest-levenshtein'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 import { createConnection, } from 'typeorm'
 import { snakeCase, } from 'typeorm/util/StringUtils'
+import { v4 as uuidv4, } from 'uuid'
 
 import * as AllModules from '../modules'
 import * as dbMan from './db-manager'
@@ -165,16 +166,31 @@ export async function disconnect(dbAlias: string, uid: string) {
 }
 
 export async function runSql(dbAlias: string, uid: string, sql: string) {
-  let conn;
+  let connMain: any, connTemp: any;
+  const user = `_${uuidv4().replace(/-/g, '')}`;
+  const pass = `_${uuidv4().replace(/-/g, '')}`;
   try {
     const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    conn = await createConnection({ ...dbMan.baseConnConfig, database: db.pgName, });
-    return await conn.query(sql);
+    const database = db.pgName;
+    connMain = await createConnection({ ...dbMan.baseConnConfig, database, });
+    await connMain.query(dbMan.newPostgresRoleQuery(user, pass, database));
+    await connMain.query(dbMan.grantPostgresRoleQuery(user));
+    connTemp = await createConnection({ ...dbMan.baseConnConfig, database, name: user, });
+    const out = await connTemp.query(sql);
+    return out;
   } catch (e: any) {
     // re-throw
     throw e;
   } finally {
-    conn?.close();
+    // Put this in a timeout so it doesn't block returning to the user
+    setTimeout(async () => {
+      await connTemp.close();
+      // There's some weird latency between when this connection is closed and when Postgres is
+      // actually done with the user, so let's sleep a second and then continue
+      await new Promise(r => setTimeout(r, 1000));
+      await connMain.query(dbMan.dropPostgresRoleQuery(user));
+      await connMain.close();
+    }, 1);
   }
 }
 
@@ -692,6 +708,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
 export async function modules(all: boolean, installed: boolean, dbId: string) {
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
+  if (!Modules) throw new Error('Unsupported Module Version in Database');
   const allModules = Object.values(Modules)
     .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && !/iasql_.*/.test(m.name))
     .filter((m: any) => process.env.IASQL_ENV !== 'production' || !/aws_ecs_simplified.*/.test(m.name)) // Temporarily disable ecs_simplified in production
@@ -979,7 +996,7 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
 export async function upgrade(dbId: string, dbUser: string) {
   const versionString = await TypeormWrapper.getVersionString(dbId);
   if (versionString === `v${config.modules.latestVersion.replace(/\./g, '_')}`) {
-    throw new Error('Up to date');
+    return 'Up to date';
   } else {
     (async () => {
       // First, figure out all of the modules installed, and if the `aws_account` module is
@@ -1040,6 +1057,11 @@ export async function upgrade(dbId: string, dbUser: string) {
         conn?.close();
       }
     })();
-    throw new Error('Upgrading. Please disconnect and reconnect to the database');
+    // TODO: Drop this conditional once these versions are no longer supported.
+    if (['v0_0_5', 'v0_0_6', 'v0_0_7'].includes(versionString)) {
+      throw new Error('Upgrading. Please disconnect and reconnect to the database');
+    } else {
+      return 'Upgrading. Please disconnect and reconnect to the database';
+    }
   }
 }

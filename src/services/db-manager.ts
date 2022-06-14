@@ -67,6 +67,7 @@ export function grantPostgresRoleQuery(user: string) {
 
 export function dropPostgresRoleQuery(user: string) {
   return `
+    DROP OWNED BY ${user};
     DROP ROLE IF EXISTS ${user};
   `;
 }

@@ -5,6 +5,7 @@ export interface ConfigInterface {
   };
   modules: {
     latestVersion: string; // Which version of the modules should be considered latest
+    oldestVersion: string; // Last version still supported
   };
   // Configuration for the postgres database
   db: {

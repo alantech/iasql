@@ -5,7 +5,8 @@ const config: ConfigInterface = {
     port: 8088,
   },
   modules: {
-    latestVersion: '0.0.7',
+    latestVersion: '0.0.8',
+    oldestVersion: '0.0.5',
   },
   db: {
     host: 'db.iasql.com',
@@ -14,7 +15,7 @@ const config: ConfigInterface = {
     password: process.env.DB_PASSWORD ?? throwError('No DB Password defined'),
     port: 5432,
     forceSSL: true,
-    sqlViaRest: false,
+    sqlViaRest: true,
   },
   logger: {
     debug: true,

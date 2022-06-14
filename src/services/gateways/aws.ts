@@ -137,6 +137,14 @@ import {
   DescribeDBEngineVersionsCommand,
   ModifyDBInstanceCommand,
   ModifyDBInstanceCommandInput,
+  DescribeDBParameterGroupsCommand,
+  CreateDBParameterGroupCommand,
+  CreateDBParameterGroupCommandInput,
+  paginateDescribeDBParameterGroups,
+  DeleteDBParameterGroupCommand,
+  paginateDescribeDBParameters,
+  ModifyDBParameterGroupCommand,
+  Parameter,
 } from '@aws-sdk/client-rds'
 import {
   CloudWatchLogsClient,
@@ -429,6 +437,68 @@ export class AWS {
     return instanceIds?.pop() ?? ''
   }
 
+  async newInstanceV3(instanceType: string, amiId: string, securityGroupIds: string[], userData: string | undefined, keyPairName?: string, tags?: { [key: string] : string }): Promise<string> {
+    let tgs: Tag[] = [];
+    if (tags) {
+      tags.owner = 'iasql-engine';
+      tgs = Object.keys(tags).map(k => {
+        return {
+          Key: k, Value: tags[k]
+        }
+      });
+    }
+    const instanceParams: RunInstancesCommandInput = {
+      ImageId: amiId,
+      InstanceType: instanceType,
+      MinCount: 1,
+      MaxCount: 1,
+      SecurityGroupIds: securityGroupIds,
+      TagSpecifications: [
+        {
+          ResourceType: 'instance',
+          Tags: tgs,
+        },
+      ],
+      UserData: userData,
+    };
+    if (keyPairName) instanceParams.KeyName = keyPairName;
+    const create = await this.ec2client.send(
+      new RunInstancesCommand(instanceParams),
+    );
+    const instanceIds: string[] | undefined = create.Instances?.map((i) => i?.InstanceId ?? '');
+    const input = new DescribeInstancesCommand({
+      InstanceIds: instanceIds,
+    });
+    // TODO: should we use the paginator instead?
+    await createWaiter<EC2Client, DescribeInstancesCommand>(
+      {
+        client: this.ec2client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (client, cmd) => {
+        try {
+          const data = await client.send(cmd);
+          for (const reservation of data?.Reservations ?? []) {
+            for (const instance of reservation?.Instances ?? []) {
+              if (instance.PublicIpAddress === undefined || instance.State?.Name !== 'running')
+                return { state: WaiterState.RETRY };
+            }
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
+    );
+    return instanceIds?.pop() ?? ''
+  }
+
   async startInstance(instanceId: string) {
     await this.ec2client.startInstances({
       InstanceIds: [instanceId],
@@ -533,6 +603,14 @@ export class AWS {
     return {
       Instances: instances, // Make it "look like" the regular query again
     };
+  }
+
+  async getInstanceUserData(id: string): Promise<string | undefined> {
+    const attr = await this.ec2client.describeInstanceAttribute({
+      Attribute: "userData",
+      InstanceId: id
+    });
+    return attr.UserData?.Value
   }
 
   async getInstance(id: string) {
@@ -2135,4 +2213,55 @@ export class AWS {
     );
   }
   
+  async createDBParameterGroup(input: CreateDBParameterGroupCommandInput) {
+    const res = await this.rdsClient.send(new CreateDBParameterGroupCommand(input));
+    return res.DBParameterGroup;
+  }
+
+  async getDBParameterGroup(name: string) {
+    const res = await this.rdsClient.send(new DescribeDBParameterGroupsCommand({
+      DBParameterGroupName: name
+    }));
+    return res.DBParameterGroups?.pop();
+  }
+
+  async getDBParameterGroups() {
+    const out = [];
+    const paginator = paginateDescribeDBParameterGroups({
+      client: this.rdsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      out.push(...(page.DBParameterGroups ?? []));
+    }
+    return out;
+  }
+
+  async deleteDBParameterGroup(name: string) {
+    const res = await this.rdsClient.send(new DeleteDBParameterGroupCommand({
+      DBParameterGroupName: name
+    }));
+    return res;
+  }
+
+  async getDBParameterGroupParameters(parameterGroupName: string) {
+    const out = [];
+    const paginator = paginateDescribeDBParameters({
+      client: this.rdsClient,
+      pageSize: 25,
+    }, {
+      DBParameterGroupName: parameterGroupName,
+    });
+    for await (const page of paginator) {
+      out.push(...(page.Parameters ?? []));
+    }
+    return out.map(o => ({ ...o, DBParameterGroupName: parameterGroupName, }));
+  }
+
+  async modifyParameter(parameterGroupName: string, parameter: Parameter) {
+    await this.rdsClient.send(new ModifyDBParameterGroupCommand({
+      DBParameterGroupName: parameterGroupName,
+      Parameters: [parameter],
+    }));
+  }
 }
