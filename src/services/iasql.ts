@@ -708,6 +708,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
 export async function modules(all: boolean, installed: boolean, dbId: string) {
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
+  if (!Modules) throw new Error('Unsupported Module Version in Database');
   const allModules = Object.values(Modules)
     .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && !/iasql_.*/.test(m.name))
     .filter((m: any) => process.env.IASQL_ENV !== 'production' || !/aws_ecs_simplified.*/.test(m.name)) // Temporarily disable ecs_simplified in production
