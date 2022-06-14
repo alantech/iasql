@@ -65,9 +65,12 @@ export function grantPostgresRoleQuery(user: string) {
   `;
 }
 
-export function dropPostgresRoleQuery(user: string) {
+export function dropPostgresRoleQuery(user: string, ephemeral = false) {
+  // Ephemeral users need to drop their owned properties first. I do not understand why only them
+  // and not the originally-created users for the database. Nor do I understand why dropping for
+  // the originally created users causes issues.
   return `
-    DROP OWNED BY ${user};
+    ${ephemeral ? `DROP OWNED BY ${user};` : ''}
     DROP ROLE IF EXISTS ${user};
   `;
 }
