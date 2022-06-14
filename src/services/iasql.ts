@@ -188,7 +188,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
       // There's some weird latency between when this connection is closed and when Postgres is
       // actually done with the user, so let's sleep a second and then continue
       await new Promise(r => setTimeout(r, 1000));
-      await connMain.query(dbMan.dropPostgresRoleQuery(user, true));
+      await connMain.query(dbMan.dropPostgresRoleQuery(user, config.db.dropBeforeUserDeletion));
       await connMain.close();
     }, 1);
   }
