@@ -20,8 +20,6 @@ import {
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
-import logger from '../../../services/logger'
-
 export const AwsVpcModule: Module2 = new Module2({
   ...metadata,
   utils: {
@@ -57,7 +55,6 @@ export const AwsVpcModule: Module2 = new Module2({
       return out;
     },
     natGatewayMapper: async (nat: AwsNatGateway, ctx: Context) => {
-      logger.warn(`++++ aws nat ${JSON.stringify(nat)}`)
       const out = new NatGateway();
       out.connectivityType = nat.ConnectivityType as ConnectivityType;
       // TODO: implement public ip path
