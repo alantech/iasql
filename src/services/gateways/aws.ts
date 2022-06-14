@@ -2212,7 +2212,7 @@ export class AWS {
       },
     );
   }
-  
+
   async createDBParameterGroup(input: CreateDBParameterGroupCommandInput) {
     const res = await this.rdsClient.send(new CreateDBParameterGroupCommand(input));
     return res.DBParameterGroup;
