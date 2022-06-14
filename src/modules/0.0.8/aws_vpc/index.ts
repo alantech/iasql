@@ -1,4 +1,10 @@
-import { CreateNatGatewayCommandInput, NatGateway as AwsNatGateway, Subnet as AwsSubnet, Vpc as AwsVpc, } from '@aws-sdk/client-ec2'
+import {
+  CreateNatGatewayCommandInput,
+  NatGateway as AwsNatGateway,
+  Subnet as AwsSubnet,
+  Tag,
+  Vpc as AwsVpc,
+} from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../../../services/gateways/aws'
 import {
@@ -226,11 +232,24 @@ export const AwsVpcModule: Module2 = new Module2({
               SubnetId: e.subnet?.subnetId,
               ConnectivityType: e.connectivityType,
             };
+            if (e.tags && Object.keys(e.tags).length) {
+              const tags: Tag[] = Object.keys(e.tags).map((k: string) => {
+                return {
+                  Key: k, Value: e.tags![k],
+                }
+              });
+              input.TagSpecifications = [
+                {
+                  ResourceType: 'natgateway',
+                  Tags: tags,
+                },
+              ]
+            }
             const res: AwsNatGateway | undefined = await client.createNatGateway(input);
             if (res) {
               const newNatGateway = await AwsVpcModule.utils.natGatewayMapper(res, ctx);
               newNatGateway.id = e.id;
-              await AwsVpcModule.mappers.subnet.db.update(newNatGateway, ctx);
+              await AwsVpcModule.mappers.natGateway.db.update(newNatGateway, ctx);
               out.push(newNatGateway);
             }
           }
