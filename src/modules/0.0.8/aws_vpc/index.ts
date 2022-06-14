@@ -54,6 +54,7 @@ export const AwsVpcModule: Module2 = new Module2({
       logger.warn(`++++ aws nat ${JSON.stringify(nat)}`)
       const out = new NatGateway();
       out.connectivityType = nat.ConnectivityType as ConnectivityType;
+      // TODO: implement public ip path
       // out.elasticIp = nat.NatGatewayAddresses?.pop();
       out.natGatewayId = nat.NatGatewayId;
       out.state = nat.State as NatGatewayState;

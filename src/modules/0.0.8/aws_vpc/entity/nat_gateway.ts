@@ -13,9 +13,11 @@ import {
 import { cloudId, } from '../../../../services/cloud-id'
 import { Subnet } from './subnet';
 
+// TODO: implement public ip path
+
 export enum ConnectivityType {
   PRIVATE = "private",
-  PUBLIC = "public"
+  // PUBLIC = "public"
 }
 
 export enum NatGatewayState {
@@ -26,7 +28,7 @@ export enum NatGatewayState {
   PENDING = "pending"
 }
 
-@Check('Check_elastic_ip_when_public', `("elastic_ip" is not null AND "connectivity_type" = 'public') OR "elastic_ip" is null`)
+// @Check('Check_elastic_ip_when_public', `("elastic_ip" is not null AND "connectivity_type" = 'public') OR "elastic_ip" is null`)
 @Entity()
 export class NatGateway {
   @PrimaryGeneratedColumn()
@@ -48,8 +50,8 @@ export class NatGateway {
   })
   connectivityType: ConnectivityType;
 
-  @Column({ nullable: true, })
-  elasticIp?: string;
+  // @Column({ nullable: true, })
+  // elasticIp?: string;
 
   @Column({
     nullable: true,
