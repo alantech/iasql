@@ -50,7 +50,7 @@ export const AwsVpcModule: Module2 = new Module2({
       const out = new ElasticIp();
       out.allocationId = eip.AllocationId;
       if (!out.allocationId) throw new Error('AWS should assign an AllocationId, this must not happen!');
-      out.publicIp = eip.publicIp;
+      out.publicIp = eip.PublicIp;
       const tags: { [key: string]: string } = {};
       (eip.Tags || []).filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
         tags[t.Key as string] = t.Value as string;
@@ -209,11 +209,11 @@ export const AwsVpcModule: Module2 = new Module2({
           const out = [];
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            const res = await client.createElasticIp();
+            const res = await client.createElasticIp(e.tags);
             const rawElasticIp = await client.getElasticIp(res.AllocationId ?? '');
             const newElasticIp = AwsVpcModule.utils.elasticIpMapper(rawElasticIp);
             newElasticIp.id = e.id;
-            await AwsVpcModule.mappers.subnet.db.update(newElasticIp, ctx);
+            await AwsVpcModule.mappers.elasticIp.db.update(newElasticIp, ctx);
             out.push(newElasticIp);
           }
           return out;
@@ -239,11 +239,11 @@ export const AwsVpcModule: Module2 = new Module2({
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.ElasticIp?.[e.allocationId ?? ''];
-            if (e.tags && !AwsVpcModule.utils.elasticIpEqTags(cloudRecord.tags, e.tags)) {
+            if (e.tags && !AwsVpcModule.utils.elasticIpEqTags(cloudRecord, e)) {
               await client.updateTags(e.allocationId ?? '', e.tags);
               const rawElasticIp = await client.getElasticIp(e.allocationId ?? '');
               const newElasticIp = AwsVpcModule.utils.elasticIpMapper(rawElasticIp);
-              newElasticIp.id = cloudRecord.id;
+              newElasticIp.id = e.id;
               await AwsVpcModule.mappers.elasticIp.db.update(newElasticIp, ctx);
               // Push
               out.push(newElasticIp);
