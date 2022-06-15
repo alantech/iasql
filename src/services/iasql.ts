@@ -169,9 +169,9 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
   let connMain: any, connTemp: any;
   const user = `_${uuidv4().replace(/-/g, '')}`;
   const pass = `_${uuidv4().replace(/-/g, '')}`;
+  const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+  const database = db.pgName;
   try {
-    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    const database = db.pgName;
     connMain = await createConnection({ ...dbMan.baseConnConfig, database, });
     await connMain.query(dbMan.newPostgresRoleQuery(user, pass, database));
     await connMain.query(dbMan.grantPostgresRoleQuery(user));
@@ -185,10 +185,8 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
     // Put this in a timeout so it doesn't block returning to the user
     setTimeout(async () => {
       await connTemp.close();
-      // There's some weird latency between when this connection is closed and when Postgres is
-      // actually done with the user, so let's sleep a second and then continue
-      await new Promise(r => setTimeout(r, 1000));
-      await connMain.query(dbMan.dropPostgresRoleQuery(user, true));
+      await connMain.query(dbMan.revokePostgresRoleQuery(user, database));
+      await connMain.query(dbMan.dropPostgresRoleQuery(user));
       await connMain.close();
     }, 1);
   }
