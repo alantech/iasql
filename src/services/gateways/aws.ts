@@ -50,6 +50,7 @@ import {
   AllocateAddressCommand,
   DescribeAddressesCommand,
   ReleaseAddressCommand,
+  AllocateAddressCommandInput,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -2165,11 +2166,25 @@ export class AWS {
     }));
   }
 
-  async createElasticIp() {
-    const res = await this.ec2client.send(new AllocateAddressCommand({
+  async createElasticIp(tags?: { [key: string] : string }) {
+    const allocateAddressCommandInput: AllocateAddressCommandInput = {
       Domain: 'vpc',
-    }));
-    return res;
+    };
+    if (tags) {
+      let tgs: Tag[] = [];
+      tgs = Object.keys(tags).map(k => {
+        return {
+          Key: k, Value: tags[k]
+        }
+      });
+      allocateAddressCommandInput.TagSpecifications = [
+        {
+          ResourceType: 'elastic-ip',
+          Tags: tgs,
+        },
+      ];
+    }
+    return await this.ec2client.send(new AllocateAddressCommand(allocateAddressCommandInput));
   }
 
   async getElasticIp(allocationId: string) {
