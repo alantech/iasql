@@ -53,6 +53,10 @@ import {
   NatGatewayState,
   paginateDescribeNatGateways,
   DeleteNatGatewayCommand,
+  AllocateAddressCommand,
+  DescribeAddressesCommand,
+  ReleaseAddressCommand,
+  AllocateAddressCommandInput,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -570,7 +574,7 @@ export class AWS {
     );
   }
 
-  async updateTags(instanceId: string, tags: { [key: string] : string }) {
+  async updateTags(resourceId: string, tags: { [key: string] : string }) {
     let tgs: Tag[] = [];
     if (tags) {
       tgs = Object.keys(tags).map(k => {
@@ -581,10 +585,10 @@ export class AWS {
     }
     // recreate tags
     await this.ec2client.deleteTags({
-      Resources: [instanceId],
+      Resources: [resourceId],
     });
     await this.ec2client.createTags({
-      Resources: [instanceId],
+      Resources: [resourceId],
       Tags: tgs,
     })
   }
@@ -2262,6 +2266,47 @@ export class AWS {
     await this.rdsClient.send(new ModifyDBParameterGroupCommand({
       DBParameterGroupName: parameterGroupName,
       Parameters: [parameter],
+    }));
+  }
+
+  async createElasticIp(tags?: { [key: string] : string }) {
+    const allocateAddressCommandInput: AllocateAddressCommandInput = {
+      Domain: 'vpc',
+    };
+    if (tags) {
+      let tgs: Tag[] = [];
+      tgs = Object.keys(tags).map(k => {
+        return {
+          Key: k, Value: tags[k]
+        }
+      });
+      allocateAddressCommandInput.TagSpecifications = [
+        {
+          ResourceType: 'elastic-ip',
+          Tags: tgs,
+        },
+      ];
+    }
+    return await this.ec2client.send(new AllocateAddressCommand(allocateAddressCommandInput));
+  }
+
+  async getElasticIp(allocationId: string) {
+    const res = await this.ec2client.send(new DescribeAddressesCommand({
+      AllocationIds: [allocationId],
+    }));
+    return res.Addresses?.pop();
+  }
+
+  async getElasticIps() {
+    const out = [];
+    const res = await this.ec2client.send(new DescribeAddressesCommand({}));
+    out.push(...(res.Addresses?.filter(a => !!a.AllocationId) ?? []));
+    return out;
+  }
+
+  async deleteElasticIp(allocationId: string) {
+    await this.ec2client.send(new ReleaseAddressCommand({
+      AllocationId: allocationId,
     }));
   }
 }

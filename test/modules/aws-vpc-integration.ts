@@ -5,6 +5,7 @@ import { runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, ex
 const prefix = getPrefix();
 const dbAlias = 'vpctest';
 const ng = `${prefix}${dbAlias}-ng`;
+const eip = `${prefix}${dbAlias}-eip`;
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -79,6 +80,21 @@ describe('VPC Integration Testing', () => {
     SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
   `, (res: any) => expect(res.length).toBe(1)));
 
+  it('adds a new elastic ip', query(`
+    INSERT INTO elastic_ip (tags)
+    VALUES ('{"name": "${eip}"}');
+  `));
+
+  it('check elastic ip count', query(`
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
+  it('applies the elastic ip change', apply());
+
+  it('check elastic ip count', query(`
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
   it('uninstalls the vpc module', uninstall(
     modules));
 
@@ -122,6 +138,33 @@ describe('VPC Integration Testing', () => {
 
   it('check nat gateway count', query(`
     SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+  `, (res: any) => expect(res.length).toBe(0)));
+
+  it('updates a elastic ip', query(`
+    UPDATE elastic_ip
+    SET tags = '{"name": "${eip}", "updated": "true"}'
+    WHERE tags ->> 'name' = '${eip}';
+  `));
+
+  it('applies the elastic ip change', apply());
+
+  it('check elastic ip count', query(`
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
+  it('checks elastic ip update', query(`
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res[0]['tags']['updated']).toBe('true')));
+
+  it('deletes a elastic ip', query(`
+    DELETE FROM elastic_ip
+    WHERE tags ->> 'name' = '${eip}';
+  `));
+
+  it('applies the elastic ip change', apply());
+
+  it('check elastic ip count', query(`
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
   `, (res: any) => expect(res.length).toBe(0)));
 
   it('deletes the subnet', query(`

@@ -7,7 +7,7 @@ import {
 } from 'typeorm'
 
 import { cloudId, } from '../../../../services/cloud-id'
-import { Vpc } from './vpc';
+import { Vpc, } from './vpc';
 
 export enum SubnetState {
   AVAILABLE = 'available',
