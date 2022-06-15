@@ -187,7 +187,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
       // Ephemeral users need to drop their owned properties first. I do not understand why only
       // them and not the originally-created users for the database. Nor do I understand why
       // dropping for the originally created users causes issues.
-      await connTemp.query(`DROP OWNED BY ${user};`);
+      await connMain.query(`REVOKE ALL PRIVILEGES FROM ${user};`);
       await connTemp.close();
       // There's some weird latency between when this connection is closed and when Postgres is
       // actually done with the user, so let's sleep a second and then continue
