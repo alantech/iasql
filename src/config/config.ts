@@ -15,8 +15,6 @@ export interface ConfigInterface {
     port: number;
     forceSSL: boolean;
     sqlViaRest: boolean; // Enables a REST endpoint to run SQL commands via HTTPS
-    dropBeforeUserDeletion: boolean; // This config shouldn't need to exist, but weird difference
-                                     // in behavior between Postgres locally and in RDS
   };
   // Configuration for server logging
   logger: {

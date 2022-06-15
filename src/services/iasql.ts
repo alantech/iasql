@@ -184,11 +184,15 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
   } finally {
     // Put this in a timeout so it doesn't block returning to the user
     setTimeout(async () => {
+      // Ephemeral users need to drop their owned properties first. I do not understand why only
+      // them and not the originally-created users for the database. Nor do I understand why
+      // dropping for the originally created users causes issues.
+      await connTemp.query(`DROP OWNED BY ${user};`);
       await connTemp.close();
       // There's some weird latency between when this connection is closed and when Postgres is
       // actually done with the user, so let's sleep a second and then continue
-      await new Promise(r => setTimeout(r, 1000));
-      await connMain.query(dbMan.dropPostgresRoleQuery(user, config.db.dropBeforeUserDeletion));
+      // await new Promise(r => setTimeout(r, 1000));
+      await connMain.query(dbMan.dropPostgresRoleQuery(user));
       await connMain.close();
     }, 1);
   }

@@ -16,7 +16,6 @@ const config: ConfigInterface = {
     port: 5432,
     forceSSL: true,
     sqlViaRest: true,
-    dropBeforeUserDeletion: false,
   },
   logger: {
     debug: true,
