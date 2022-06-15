@@ -4,7 +4,6 @@ import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 import { IasqlDatabase, IasqlUser } from '../../entity/index'
 import * as dbMan from '../db-manager'
 import logger from '../logger'
-import * as telemetry from '../telemetry'
 
 class MetadataRepo {
   private database = 'iasql_metadata';
@@ -36,6 +35,16 @@ class MetadataRepo {
     await this.conn.runMigrations();
     this.userRepo = this.conn.getRepository(IasqlUser);
     this.dbRepo = this.conn.getRepository(IasqlDatabase);
+    // In case of partially-failed disconnects, we delete all IasqlDatabase records that don't
+    // actually have a database on startup.
+    const expectedDbs = await this.dbRepo.find();
+    const actualDbs = (await this.conn.query(`
+      SELECT datname FROM pg_database;
+    `)).map((r: any) => r.datname);
+    for (const expectedDb of expectedDbs) {
+      if (actualDbs.includes(expectedDb.pgName)) continue;
+      await this.dbRepo.remove(expectedDb);
+    }
     this.initialized = true;
   }
 
