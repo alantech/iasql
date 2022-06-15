@@ -18,7 +18,7 @@ export class ElasticIp {
   @cloudId
   allocationId?: string;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true, unique: true, })
   publicIp?: string;
 
   @Column({
