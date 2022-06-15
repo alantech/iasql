@@ -7,6 +7,7 @@ import {
   Vpc,
   SubnetState,
   VpcState,
+  ElasticIp,
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
@@ -45,6 +46,20 @@ export const AwsVpcModule: Module2 = new Module2({
       out.isDefault = vpc.IsDefault ?? false;
       return out;
     },
+    elasticIpMapper: (eip: any) => {
+      const out = new ElasticIp();
+      out.allocationId = eip.AllocationId;
+      if (!out.allocationId) throw new Error('AWS should assign an AllocationId, this must not happen!');
+      out.publicIp = eip.publicIp;
+      const tags: { [key: string]: string } = {};
+      (eip.Tags || []).filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
+        tags[t.Key as string] = t.Value as string;
+      });
+      out.tags = tags;
+      return out;
+    },
+    elasticIpEqTags: (a: ElasticIp, b: ElasticIp) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
+      Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]),
   },
   mappers: {
     subnet: new Mapper2<Subnet>({
@@ -180,6 +195,70 @@ export const AwsVpcModule: Module2 = new Module2({
                 VpcId: e.vpcId,
               });
             }
+          }
+        },
+      }),
+    }),
+    elasticIp: new Mapper2<ElasticIp>({
+      entity: ElasticIp,
+      equals: (a: ElasticIp, b: ElasticIp) => Object.is(a.publicIp, b.publicIp)
+        && AwsVpcModule.utils.elasticIpEqTags(a, b),
+      source: 'db',
+      cloud: new Crud2({
+        create: async (es: ElasticIp[], ctx: Context) => {
+          const out = [];
+          const client = await ctx.getAwsClient() as AWS;
+          for (const e of es) {
+            const res = await client.createElasticIp();
+            const rawElasticIp = await client.getElasticIp(res.AllocationId ?? '');
+            const newElasticIp = AwsVpcModule.utils.elasticIpMapper(rawElasticIp);
+            newElasticIp.id = e.id;
+            await AwsVpcModule.mappers.subnet.db.update(newElasticIp, ctx);
+            out.push(newElasticIp);
+          }
+          return out;
+        },
+        read: async (ctx: Context, id?: string) => {
+          const client = await ctx.getAwsClient() as AWS;
+          if (!!id) {
+            const rawElasticIp = await client.getElasticIp(id);
+            if (!rawElasticIp) return;
+            return AwsVpcModule.utils.elasticIpMapper(rawElasticIp);
+          } else {
+            const out = [];
+            for (const eip of (await client.getElasticIps())) {
+              out.push(AwsVpcModule.utils.elasticIpMapper(eip));
+            }
+            return out;
+          }
+        },
+        update: async (es: ElasticIp[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          // Elastic ip properties cannot be updated other than tags.
+          // If the public ip is updated we just restor it
+          const out = [];
+          for (const e of es) {
+            const cloudRecord = ctx?.memo?.cloud?.ElasticIp?.[e.allocationId ?? ''];
+            if (e.tags && !AwsVpcModule.utils.elasticIpEqTags(cloudRecord.tags, e.tags)) {
+              await client.updateTags(e.allocationId ?? '', e.tags);
+              const rawElasticIp = await client.getElasticIp(e.allocationId ?? '');
+              const newElasticIp = AwsVpcModule.utils.elasticIpMapper(rawElasticIp);
+              newElasticIp.id = cloudRecord.id;
+              await AwsVpcModule.mappers.elasticIp.db.update(newElasticIp, ctx);
+              // Push
+              out.push(newElasticIp);
+              continue;
+            }
+            cloudRecord.id = e.id;
+            await AwsVpcModule.mappers.elasticIp.db.update(cloudRecord, ctx);
+            out.push(cloudRecord);
+          }
+          return out;
+        },
+        delete: async (es: ElasticIp[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          for (const e of es) {
+            await client.deleteElasticIp(e.allocationId ?? '');
           }
         },
       }),
