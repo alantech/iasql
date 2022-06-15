@@ -65,6 +65,21 @@ export function grantPostgresRoleQuery(user: string) {
   `;
 }
 
+export function revokePostgresRoleQuery(user: string, dbId: string) {
+  return `
+    REVOKE SELECT ON ALL TABLES IN SCHEMA public FROM ${user};
+    REVOKE INSERT ON ALL TABLES IN SCHEMA public FROM ${user};
+    REVOKE UPDATE ON ALL TABLES IN SCHEMA public FROM ${user};
+    REVOKE DELETE ON ALL TABLES IN SCHEMA public FROM ${user};
+    REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM ${user};
+    REVOKE EXECUTE ON ALL PROCEDURES IN SCHEMA public FROM ${user};
+    REVOKE USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public FROM ${user};
+    REVOKE CREATE ON SCHEMA public FROM ${user};
+    REVOKE CONNECT ON DATABASE ${dbId} FROM ${user};
+    DROP OWNED BY ${user};
+  `;
+}
+
 export function dropPostgresRoleQuery(user: string) {
   return `
     DROP ROLE IF EXISTS ${user};

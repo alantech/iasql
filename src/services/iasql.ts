@@ -169,9 +169,9 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
   let connMain: any, connTemp: any;
   const user = `_${uuidv4().replace(/-/g, '')}`;
   const pass = `_${uuidv4().replace(/-/g, '')}`;
+  const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+  const database = db.pgName;
   try {
-    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    const database = db.pgName;
     connMain = await createConnection({ ...dbMan.baseConnConfig, database, });
     await connMain.query(dbMan.newPostgresRoleQuery(user, pass, database));
     await connMain.query(dbMan.grantPostgresRoleQuery(user));
@@ -187,7 +187,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
       // Ephemeral users need to drop their owned properties first. I do not understand why only
       // them and not the originally-created users for the database. Nor do I understand why
       // dropping for the originally created users causes issues.
-      await connMain.query(`REVOKE ALL PRIVILEGES FROM ${user};`);
+      await connMain.query(dbMan.revokePostgresRoleQuery(user, database));
       await connTemp.close();
       // There's some weird latency between when this connection is closed and when Postgres is
       // actually done with the user, so let's sleep a second and then continue
