@@ -299,7 +299,6 @@ export const AwsVpcModule: Module2 = new Module2({
           }
         },
       }),
-      
     }),
     elasticIp: new Mapper2<ElasticIp>({
       entity: ElasticIp,
