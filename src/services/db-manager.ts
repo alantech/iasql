@@ -77,8 +77,6 @@ export function revokePostgresRoleQuery(user: string, dbId: string) {
     REVOKE CREATE ON SCHEMA public FROM ${user};
     REVOKE CONNECT ON DATABASE ${dbId} FROM ${user};
   `;
-  // TODO: is this necessary?
-  // DROP OWNED BY ${user};
 }
 
 export function dropPostgresRoleQuery(user: string) {
