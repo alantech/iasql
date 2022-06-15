@@ -1,10 +1,4 @@
-import {
-  CreateNatGatewayCommandInput,
-  NatGateway as AwsNatGateway,
-  Subnet as AwsSubnet,
-  Tag,
-  Vpc as AwsVpc,
-} from '@aws-sdk/client-ec2'
+import { Subnet as AwsSubnet, Vpc as AwsVpc, } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../../../services/gateways/aws'
 import {
@@ -13,9 +7,6 @@ import {
   Vpc,
   SubnetState,
   VpcState,
-  NatGateway,
-  ConnectivityType,
-  NatGatewayState,
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
@@ -54,25 +45,6 @@ export const AwsVpcModule: Module2 = new Module2({
       out.isDefault = vpc.IsDefault ?? false;
       return out;
     },
-    natGatewayMapper: async (nat: AwsNatGateway, ctx: Context) => {
-      const out = new NatGateway();
-      out.connectivityType = nat.ConnectivityType as ConnectivityType;
-      // TODO: implement public ip path
-      // out.elasticIp = nat.NatGatewayAddresses?.pop();
-      out.natGatewayId = nat.NatGatewayId;
-      out.state = nat.State as NatGatewayState;
-      out.subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, nat.SubnetId) ??
-        await AwsVpcModule.mappers.subnet.cloud.read(ctx, nat.SubnetId);
-      if (nat.SubnetId && !out.subnet) return undefined;
-      const tags: { [key: string]: string } = {};
-      (nat.Tags || []).filter(t => !!t.Key && !!t.Value).forEach(t => {
-        tags[t.Key as string] = t.Value as string;
-      });
-      out.tags = tags;
-      return out;
-    },
-    natGatewayEqTags: (a: NatGateway, b: NatGateway) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
-      Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]),
   },
   mappers: {
     subnet: new Mapper2<Subnet>({
@@ -208,79 +180,6 @@ export const AwsVpcModule: Module2 = new Module2({
                 VpcId: e.vpcId,
               });
             }
-          }
-        },
-      }),
-    }),
-    natGateway: new Mapper2<NatGateway>({
-      entity: NatGateway,
-      equals: (a: NatGateway, b: NatGateway) => Object.is(a.connectivityType, b.connectivityType)
-        // && Object.is(a.elasticIp, b.elasticIp) TODO: add elastic ip
-        && Object.is(a.state, b.state)
-        && Object.is(a.subnet?.subnetArn, b.subnet?.subnetArn)
-        && AwsVpcModule.utils.natGatewayEqTags(a, b),
-      source: 'db',
-      cloud: new Crud2({
-        create: async (es: NatGateway[], ctx: Context) => {
-          const out = [];
-          const client = await ctx.getAwsClient() as AWS;
-          for (const e of es) {
-            const input: CreateNatGatewayCommandInput = {
-              SubnetId: e.subnet?.subnetId,
-              ConnectivityType: e.connectivityType,
-            };
-            if (e.tags && Object.keys(e.tags).length) {
-              const tags: Tag[] = Object.keys(e.tags).map((k: string) => {
-                return {
-                  Key: k, Value: e.tags![k],
-                }
-              });
-              input.TagSpecifications = [
-                {
-                  ResourceType: 'natgateway',
-                  Tags: tags,
-                },
-              ]
-            }
-            const res: AwsNatGateway | undefined = await client.createNatGateway(input);
-            if (res) {
-              const newNatGateway = await AwsVpcModule.utils.natGatewayMapper(res, ctx);
-              newNatGateway.id = e.id;
-              await AwsVpcModule.mappers.natGateway.db.update(newNatGateway, ctx);
-              out.push(newNatGateway);
-            }
-          }
-          return out;
-        },
-        read: async (ctx: Context, id?: string) => {
-          const client = await ctx.getAwsClient() as AWS;
-          if (!!id) {
-            const rawNatGateway = await client.getNatGateway(id);
-            if (!rawNatGateway) return;
-            return await AwsVpcModule.utils.natGatewayMapper(rawNatGateway, ctx);
-          } else {
-            const out = [];
-            for (const ng of (await client.getNatGateways())) {
-              out.push(await AwsVpcModule.utils.natGatewayMapper(ng, ctx));
-            }
-            return out;
-          }
-        },
-        update: async (es: NatGateway[], ctx: Context) => {
-          // There is no update mechanism for a NatGateway so instead we will restore the values
-          const out = [];
-          for (const e of es) {
-            const cloudRecord = ctx?.memo?.cloud?.NatGateway?.[e.natGatewayId ?? ''];
-            cloudRecord.id = e.id;
-            await AwsVpcModule.mappers.natGateway.db.update(cloudRecord, ctx);
-            out.push(cloudRecord);
-          }
-          return out;
-        },
-        delete: async (es: NatGateway[], ctx: Context) => {
-          const client = await ctx.getAwsClient() as AWS;
-          for (const e of es) {
-            await client.deleteNatGateway(e.natGatewayId ?? '');
           }
         },
       }),
