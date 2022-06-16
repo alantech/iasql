@@ -48,11 +48,9 @@ import {
   EC2,
   Tag,
   CreateNatGatewayCommandInput,
-  CreateNatGatewayCommand,
   DescribeNatGatewaysCommand,
   NatGatewayState,
   paginateDescribeNatGateways,
-  DeleteNatGatewayCommand,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -2118,7 +2116,7 @@ export class AWS {
 
   async createNatGateway(input: CreateNatGatewayCommandInput) {
     let out;
-    const res = await this.ec2client.send(new CreateNatGatewayCommand(input));
+    const res = await this.ec2client.createNatGateway(input);
     out = res.NatGateway;
     const describeInput = new DescribeNatGatewaysCommand({
       NatGatewayIds: [res.NatGateway?.NatGatewayId ?? '']
@@ -2150,7 +2148,7 @@ export class AWS {
   }
 
   async getNatGateway(id: string) {
-    const res = await this.ec2client.send(new DescribeNatGatewaysCommand({
+    const res = await this.ec2client.describeNatGateways({
       NatGatewayIds: [id],
       Filter: [
         {
@@ -2158,7 +2156,7 @@ export class AWS {
           Values: [NatGatewayState.AVAILABLE, NatGatewayState.FAILED]
         }
       ]
-    }));
+    });
     return res.NatGateways?.pop();
   }
 
@@ -2182,9 +2180,9 @@ export class AWS {
   }
 
   async deleteNatGateway(id: string) {
-    await this.ec2client.send(new DeleteNatGatewayCommand({
+    await this.ec2client.deleteNatGateway({
       NatGatewayId: id,
-    }));
+    });
     const describeInput = new DescribeNatGatewaysCommand({
       NatGatewayIds: [id ?? '']
     });
