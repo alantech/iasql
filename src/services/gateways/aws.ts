@@ -47,9 +47,6 @@ import {
   DescribeNetworkInterfacesCommand,
   EC2,
   Tag,
-  AllocateAddressCommand,
-  DescribeAddressesCommand,
-  ReleaseAddressCommand,
   AllocateAddressCommandInput,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
@@ -2184,26 +2181,26 @@ export class AWS {
         },
       ];
     }
-    return await this.ec2client.send(new AllocateAddressCommand(allocateAddressCommandInput));
+    return await this.ec2client.allocateAddress(allocateAddressCommandInput);
   }
 
   async getElasticIp(allocationId: string) {
-    const res = await this.ec2client.send(new DescribeAddressesCommand({
+    const res = await this.ec2client.describeAddresses({
       AllocationIds: [allocationId],
-    }));
+    });
     return res.Addresses?.pop();
   }
 
   async getElasticIps() {
     const out = [];
-    const res = await this.ec2client.send(new DescribeAddressesCommand({}));
+    const res = await this.ec2client.describeAddresses({});
     out.push(...(res.Addresses?.filter(a => !!a.AllocationId) ?? []));
     return out;
   }
 
   async deleteElasticIp(allocationId: string) {
-    await this.ec2client.send(new ReleaseAddressCommand({
+    await this.ec2client.releaseAddress({
       AllocationId: allocationId,
-    }));
+    });
   }
 }
