@@ -48,6 +48,10 @@ import {
   EC2,
   Tag,
   AllocateAddressCommandInput,
+  CreateNatGatewayCommandInput,
+  DescribeNatGatewaysCommand,
+  NatGatewayState,
+  paginateDescribeNatGateways,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -2109,6 +2113,103 @@ export class AWS {
       TargetGroupArn: targetGroupArn,
       Targets: [target],
     }));
+  }
+
+  async createNatGateway(input: CreateNatGatewayCommandInput) {
+    let out;
+    const res = await this.ec2client.createNatGateway(input);
+    out = res.NatGateway;
+    const describeInput = new DescribeNatGatewaysCommand({
+      NatGatewayIds: [res.NatGateway?.NatGatewayId ?? '']
+    });
+    await createWaiter<EC2Client, DescribeNatGatewaysCommand>(
+      {
+        client: this.ec2client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      describeInput,
+      async (client, cmd) => {
+        const data = await client.send(cmd);
+        try {
+          out = data.NatGateways?.pop();
+          // If it is not a final state we retry
+          if ([NatGatewayState.DELETING, NatGatewayState.PENDING].includes(out?.State as NatGatewayState)) {
+            return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
+    return out;
+  }
+
+  async getNatGateway(id: string) {
+    const res = await this.ec2client.describeNatGateways({
+      NatGatewayIds: [id],
+      Filter: [
+        {
+          Name: 'state',
+          Values: [NatGatewayState.AVAILABLE, NatGatewayState.FAILED]
+        }
+      ]
+    });
+    return res.NatGateways?.pop();
+  }
+
+  async getNatGateways() {
+    const natGateways = [];
+    const paginator = paginateDescribeNatGateways({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {
+      Filter: [
+        {
+          Name: 'state',
+          Values: [NatGatewayState.AVAILABLE, NatGatewayState.FAILED]
+        }
+      ]
+    });
+    for await (const page of paginator) {
+      natGateways.push(...(page.NatGateways ?? []));
+    }
+    return natGateways;
+  }
+
+  async deleteNatGateway(id: string) {
+    await this.ec2client.deleteNatGateway({
+      NatGatewayId: id,
+    });
+    const describeInput = new DescribeNatGatewaysCommand({
+      NatGatewayIds: [id ?? '']
+    });
+    await createWaiter<EC2Client, DescribeNatGatewaysCommand>(
+      {
+        client: this.ec2client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      describeInput,
+      async (client, cmd) => {
+        const data = await client.send(cmd);
+        try {
+          const nat = data.NatGateways?.pop();
+          // If it is not a final state we retry
+          if ([NatGatewayState.DELETING, NatGatewayState.PENDING].includes(nat?.State as NatGatewayState)) {
+            return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
   }
 
   async createDBParameterGroup(input: CreateDBParameterGroupCommandInput) {

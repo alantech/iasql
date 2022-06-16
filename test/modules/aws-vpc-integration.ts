@@ -5,6 +5,7 @@ import { runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, ex
 const prefix = getPrefix();
 const dbAlias = 'vpctest';
 const eip = `${prefix}${dbAlias}-eip`;
+const ng = `${prefix}${dbAlias}-ng`;
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -74,11 +75,35 @@ describe('VPC Integration Testing', () => {
     SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
   `, (res: any) => expect(res.length).toBe(1)));
 
+  it('adds a new vpc', query(`  
+    INSERT INTO vpc (cidr_block)
+    VALUES ('192.${randIPBlock}.0.0/16');
+  `));
+
+  it('applies the vpc change', apply());
+
+  it('adds a nat gateway', query(`
+    INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
+    SELECT 'private', id, '{"Name":"${ng}"}'
+    FROM subnet
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+  `));
+
+  it('applies the nat gateway change', apply());
+
+  it('check nat gateway count', query(`
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
   it('uninstalls the vpc module', uninstall(
     modules));
 
   it('installs the vpc module again (to make sure it reloads stuff)', install(
     modules));
+
+  it('check nat gateway count', query(`
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+  `, (res: any) => expect(res.length).toBe(1)));
 
   it('queries the subnets to confirm the record is present', query(`
     SELECT * FROM subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16'
@@ -113,6 +138,33 @@ describe('VPC Integration Testing', () => {
 
   it('check elastic ip count', query(`
     SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res.length).toBe(0)));
+
+  it('updates a nat gateway', query(`
+    UPDATE nat_gateway
+    SET state = 'failed'
+    WHERE tags ->> 'Name' = '${ng}';
+  `));
+
+  it('applies the nat gateway change', apply());
+
+  it('check nat gateway count', query(`
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
+  it('check nat gateway state', query(`
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+  `, (res: any) => expect(res[0]['state']).toBe('available')));
+
+  it('deletes a nat gateway', query(`
+    DELETE FROM nat_gateway
+    WHERE tags ->> 'Name' = '${ng}';
+  `));
+
+  it('applies the nat gateway change', apply());
+
+  it('check nat gateway count', query(`
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
   `, (res: any) => expect(res.length).toBe(0)));
 
   it('deletes the subnet', query(`

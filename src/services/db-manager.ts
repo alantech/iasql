@@ -65,12 +65,22 @@ export function grantPostgresRoleQuery(user: string) {
   `;
 }
 
-export function dropPostgresRoleQuery(user: string, ephemeral = false) {
-  // Ephemeral users need to drop their owned properties first. I do not understand why only them
-  // and not the originally-created users for the database. Nor do I understand why dropping for
-  // the originally created users causes issues.
+export function revokePostgresRoleQuery(user: string, dbId: string) {
   return `
-    ${ephemeral ? `DROP OWNED BY ${user};` : ''}
+    REVOKE SELECT ON ALL TABLES IN SCHEMA public FROM ${user};
+    REVOKE INSERT ON ALL TABLES IN SCHEMA public FROM ${user};
+    REVOKE UPDATE ON ALL TABLES IN SCHEMA public FROM ${user};
+    REVOKE DELETE ON ALL TABLES IN SCHEMA public FROM ${user};
+    REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM ${user};
+    REVOKE EXECUTE ON ALL PROCEDURES IN SCHEMA public FROM ${user};
+    REVOKE USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public FROM ${user};
+    REVOKE CREATE ON SCHEMA public FROM ${user};
+    REVOKE CONNECT ON DATABASE ${dbId} FROM ${user};
+  `;
+}
+
+export function dropPostgresRoleQuery(user: string) {
+  return `
     DROP ROLE IF EXISTS ${user};
   `;
 }
