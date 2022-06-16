@@ -58,8 +58,12 @@ export const AwsVpcModule: Module2 = new Module2({
     natGatewayMapper: async (nat: AwsNatGateway, ctx: Context) => {
       const out = new NatGateway();
       out.connectivityType = nat.ConnectivityType as ConnectivityType;
-      // TODO: implement public ip path
-      // out.elasticIp = nat.NatGatewayAddresses?.pop();
+      const natPublicAddress = nat.NatGatewayAddresses?.filter(n => !!n.AllocationId).pop();
+      if (natPublicAddress) {
+        out.elasticIp = await AwsVpcModule.mappers.elasticIp.db.read(ctx, natPublicAddress.AllocationId) ?? 
+          await AwsVpcModule.mappers.elasticIp.cloud.read(ctx, natPublicAddress.AllocationId);
+        if (!out.elasticIp) throw new Error('Not valid elastic ip, yet?');
+      }
       out.natGatewayId = nat.NatGatewayId;
       out.state = nat.State as NatGatewayState;
       out.subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, nat.SubnetId) ??
@@ -230,7 +234,7 @@ export const AwsVpcModule: Module2 = new Module2({
     natGateway: new Mapper2<NatGateway>({
       entity: NatGateway,
       equals: (a: NatGateway, b: NatGateway) => Object.is(a.connectivityType, b.connectivityType)
-        // && Object.is(a.elasticIp, b.elasticIp) TODO: add elastic ip
+        && Object.is(a.elasticIp?.allocationId, b.elasticIp?.allocationId)
         && Object.is(a.state, b.state)
         && Object.is(a.subnet?.subnetArn, b.subnet?.subnetArn)
         && AwsVpcModule.utils.natGatewayEqTags(a, b),
@@ -257,6 +261,11 @@ export const AwsVpcModule: Module2 = new Module2({
                 },
               ]
             }
+            if (e.elasticIp) {
+              input.AllocationId = e.elasticIp.allocationId;
+            } else if (!e.elasticIp && e.connectivityType === ConnectivityType.PUBLIC) {
+              // TODO: Allocate address on the flight
+            }
             const res: AwsNatGateway | undefined = await client.createNatGateway(input);
             if (res) {
               const newNatGateway = await AwsVpcModule.utils.natGatewayMapper(res, ctx);
@@ -282,6 +291,7 @@ export const AwsVpcModule: Module2 = new Module2({
           }
         },
         update: async (es: NatGateway[], ctx: Context) => {
+          // TODO: update elastic ip??
           // There is no update mechanism for a NatGateway so instead we will restore the values
           const out = [];
           for (const e of es) {
