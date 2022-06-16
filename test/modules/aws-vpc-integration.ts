@@ -60,6 +60,21 @@ describe('VPC Integration Testing', () => {
 
   it('applies the subnet change', apply());
 
+  it('adds a new elastic ip', query(`
+    INSERT INTO elastic_ip (tags)
+    VALUES ('{"name": "${eip}"}');
+  `));
+
+  it('check elastic ip count', query(`
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
+  it('applies the elastic ip change', apply());
+
+  it('check elastic ip count', query(`
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
   it('adds a new vpc', query(`  
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
@@ -80,21 +95,6 @@ describe('VPC Integration Testing', () => {
     SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
   `, (res: any) => expect(res.length).toBe(1)));
 
-  it('adds a new elastic ip', query(`
-    INSERT INTO elastic_ip (tags)
-    VALUES ('{"name": "${eip}"}');
-  `));
-
-  it('check elastic ip count', query(`
-    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
-  `, (res: any) => expect(res.length).toBe(1)));
-
-  it('applies the elastic ip change', apply());
-
-  it('check elastic ip count', query(`
-    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
-  `, (res: any) => expect(res.length).toBe(1)));
-
   it('uninstalls the vpc module', uninstall(
     modules));
 
@@ -112,33 +112,6 @@ describe('VPC Integration Testing', () => {
   it('queries the vpcs to confirm the record is present', query(`
     SELECT * FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
   `, (res: any) => expect(res.length).toBeGreaterThan(0)));
-
-  it('updates a nat gateway', query(`
-    UPDATE nat_gateway
-    SET state = 'failed'
-    WHERE tags ->> 'Name' = '${ng}';
-  `));
-
-  it('applies the nat gateway change', apply());
-
-  it('check nat gateway count', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
-  `, (res: any) => expect(res.length).toBe(1)));
-
-  it('check nat gateway state', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
-  `, (res: any) => expect(res[0]['state']).toBe('available')));
-
-  it('deletes a nat gateway', query(`
-    DELETE FROM nat_gateway
-    WHERE tags ->> 'Name' = '${ng}';
-  `));
-
-  it('applies the nat gateway change', apply());
-
-  it('check nat gateway count', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
-  `, (res: any) => expect(res.length).toBe(0)));
 
   it('updates a elastic ip', query(`
     UPDATE elastic_ip
@@ -165,6 +138,33 @@ describe('VPC Integration Testing', () => {
 
   it('check elastic ip count', query(`
     SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res.length).toBe(0)));
+
+  it('updates a nat gateway', query(`
+    UPDATE nat_gateway
+    SET state = 'failed'
+    WHERE tags ->> 'Name' = '${ng}';
+  `));
+
+  it('applies the nat gateway change', apply());
+
+  it('check nat gateway count', query(`
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
+  it('check nat gateway state', query(`
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+  `, (res: any) => expect(res[0]['state']).toBe('available')));
+
+  it('deletes a nat gateway', query(`
+    DELETE FROM nat_gateway
+    WHERE tags ->> 'Name' = '${ng}';
+  `));
+
+  it('applies the nat gateway change', apply());
+
+  it('check nat gateway count', query(`
+    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
   `, (res: any) => expect(res.length).toBe(0)));
 
   it('deletes the subnet', query(`

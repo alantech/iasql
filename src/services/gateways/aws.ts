@@ -47,11 +47,11 @@ import {
   DescribeNetworkInterfacesCommand,
   EC2,
   Tag,
+  AllocateAddressCommandInput,
   CreateNatGatewayCommandInput,
   DescribeNatGatewaysCommand,
   NatGatewayState,
   paginateDescribeNatGateways,
-  AllocateAddressCommandInput,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
