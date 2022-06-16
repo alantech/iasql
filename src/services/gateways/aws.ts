@@ -47,6 +47,7 @@ import {
   DescribeNetworkInterfacesCommand,
   EC2,
   Tag,
+  AllocateAddressCommandInput,
   CreateNatGatewayCommandInput,
   DescribeNatGatewaysCommand,
   NatGatewayState,
@@ -568,7 +569,7 @@ export class AWS {
     );
   }
 
-  async updateTags(instanceId: string, tags: { [key: string] : string }) {
+  async updateTags(resourceId: string, tags: { [key: string] : string }) {
     let tgs: Tag[] = [];
     if (tags) {
       tgs = Object.keys(tags).map(k => {
@@ -579,10 +580,10 @@ export class AWS {
     }
     // recreate tags
     await this.ec2client.deleteTags({
-      Resources: [instanceId],
+      Resources: [resourceId],
     });
     await this.ec2client.createTags({
-      Resources: [instanceId],
+      Resources: [resourceId],
       Tags: tgs,
     })
   }
@@ -2261,5 +2262,46 @@ export class AWS {
       DBParameterGroupName: parameterGroupName,
       Parameters: [parameter],
     }));
+  }
+
+  async createElasticIp(tags?: { [key: string] : string }) {
+    const allocateAddressCommandInput: AllocateAddressCommandInput = {
+      Domain: 'vpc',
+    };
+    if (tags) {
+      let tgs: Tag[] = [];
+      tgs = Object.keys(tags).map(k => {
+        return {
+          Key: k, Value: tags[k]
+        }
+      });
+      allocateAddressCommandInput.TagSpecifications = [
+        {
+          ResourceType: 'elastic-ip',
+          Tags: tgs,
+        },
+      ];
+    }
+    return await this.ec2client.allocateAddress(allocateAddressCommandInput);
+  }
+
+  async getElasticIp(allocationId: string) {
+    const res = await this.ec2client.describeAddresses({
+      AllocationIds: [allocationId],
+    });
+    return res.Addresses?.pop();
+  }
+
+  async getElasticIps() {
+    const out = [];
+    const res = await this.ec2client.describeAddresses({});
+    out.push(...(res.Addresses?.filter(a => !!a.AllocationId) ?? []));
+    return out;
+  }
+
+  async deleteElasticIp(allocationId: string) {
+    await this.ec2client.releaseAddress({
+      AllocationId: allocationId,
+    });
   }
 }

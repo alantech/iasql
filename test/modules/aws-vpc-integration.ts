@@ -4,6 +4,7 @@ import { runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, ex
 
 const prefix = getPrefix();
 const dbAlias = 'vpctest';
+const eip = `${prefix}${dbAlias}-eip`;
 const ng = `${prefix}${dbAlias}-ng`;
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
@@ -59,6 +60,21 @@ describe('VPC Integration Testing', () => {
 
   it('applies the subnet change', apply());
 
+  it('adds a new elastic ip', query(`
+    INSERT INTO elastic_ip (tags)
+    VALUES ('{"name": "${eip}"}');
+  `));
+
+  it('check elastic ip count', query(`
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
+  it('applies the elastic ip change', apply());
+
+  it('check elastic ip count', query(`
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
   it('adds a new vpc', query(`  
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
@@ -96,6 +112,33 @@ describe('VPC Integration Testing', () => {
   it('queries the vpcs to confirm the record is present', query(`
     SELECT * FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
   `, (res: any) => expect(res.length).toBeGreaterThan(0)));
+
+  it('updates a elastic ip', query(`
+    UPDATE elastic_ip
+    SET tags = '{"name": "${eip}", "updated": "true"}'
+    WHERE tags ->> 'name' = '${eip}';
+  `));
+
+  it('applies the elastic ip change', apply());
+
+  it('check elastic ip count', query(`
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
+  it('checks elastic ip update', query(`
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res[0]['tags']['updated']).toBe('true')));
+
+  it('deletes a elastic ip', query(`
+    DELETE FROM elastic_ip
+    WHERE tags ->> 'name' = '${eip}';
+  `));
+
+  it('applies the elastic ip change', apply());
+
+  it('check elastic ip count', query(`
+    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+  `, (res: any) => expect(res.length).toBe(0)));
 
   it('updates a nat gateway', query(`
     UPDATE nat_gateway
