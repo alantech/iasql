@@ -1,21 +1,45 @@
+import { CertificateDetail, } from '@aws-sdk/client-acm'
+
 import { AWS, } from '../../../services/gateways/aws'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
-import { Certificate } from './entity'
+import {
+  Certificate,
+  certificateTypeEnum,
+  certificateRenewalEligibilityEnum,
+  certificateStatusEnum,
+} from './entity'
 import * as metadata from './module.json'
+
+// Get Typescript to understand enum matching
+const isCertType = (t?: string): t is certificateTypeEnum => {
+  if (!t) return false;
+  return Object.values<string>(certificateTypeEnum).includes(t);
+}
+const isRenewalEligibility = (t?: string): t is certificateRenewalEligibilityEnum => {
+  if (!t) return false;
+  return Object.values<string>(certificateRenewalEligibilityEnum).includes(t);
+}
+const isStatusType = (t?: string): t is certificateStatusEnum => {
+  if (!t) return false;
+  return Object.values<string>(certificateStatusEnum).includes(t);
+}
 
 export const AwsAcmListModule: Module2 = new Module2({
   ...metadata,
   utils: {
-    certificateMapper: (e: any) => {
+    certificateMapper: (e: CertificateDetail) => {
       const out = new Certificate();
-      if (!e?.CertificateArn) throw new Error('No CertificateArn defined');
+      // To ignore faulty data in AWS, instead of throwing an error on bad data, we return
+      // undefined
+      if (!e?.CertificateArn) return undefined;
       out.arn = e.CertificateArn;
       out.certificateId = e.CertificateArn.split('/').pop();
-      out.certificateType = e.Type;
+      if (isCertType(e.Type)) out.certificateType = e.Type;
+      if (!e.DomainName) return undefined;
       out.domainName = e.DomainName;
       out.inUse = !!e.InUseBy?.length;
-      out.renewalEligibility = e.RenewalEligibility;
-      out.status = e.Status;
+      if (isRenewalEligibility(e.RenewalEligibility)) out.renewalEligibility = e.RenewalEligibility;
+      if (isStatusType(e.Status)) out.status = e.Status;
       return out;
     },
   },

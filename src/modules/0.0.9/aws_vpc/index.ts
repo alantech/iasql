@@ -26,11 +26,10 @@ export const AwsVpcModule: Module2 = new Module2({
   utils: {
     subnetMapper: async (sn: AwsSubnet, ctx: Context) => {
       const out = new Subnet();
-      if (!sn?.SubnetId || !sn?.VpcId) {
-        throw new Error('Subnet not defined properly');
-      }
+      if (!sn?.SubnetId || !sn?.VpcId) return undefined;
       out.state = sn.State as SubnetState;
-      out.availabilityZone = (sn.AvailabilityZone ?? '') as AvailabilityZone;
+      if (!sn.AvailabilityZone) return undefined;
+      out.availabilityZone = sn.AvailabilityZone as AvailabilityZone;
       out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sn.VpcId) ??
         await AwsVpcModule.mappers.vpc.cloud.read(ctx, sn.VpcId);
       if (sn.VpcId && !out.vpc) throw new Error(`Waiting for VPC ${sn.VpcId}`);
@@ -46,9 +45,7 @@ export const AwsVpcModule: Module2 = new Module2({
     },
     vpcMapper: (vpc: AwsVpc) => {
       const out = new Vpc();
-      if (!vpc?.VpcId || !vpc?.CidrBlock) {
-        throw new Error('VPC not defined properly');
-      }
+      if (!vpc?.VpcId || !vpc?.CidrBlock) return undefined;
       out.vpcId = vpc.VpcId;
       out.cidrBlock = vpc.CidrBlock;
       out.state = vpc.State as VpcState;
@@ -79,7 +76,7 @@ export const AwsVpcModule: Module2 = new Module2({
     elasticIpMapper: (eip: any) => {
       const out = new ElasticIp();
       out.allocationId = eip.AllocationId;
-      if (!out.allocationId) throw new Error('AWS should assign an AllocationId, this must not happen!');
+      if (!out.allocationId) return undefined;
       out.publicIp = eip.PublicIp;
       const tags: { [key: string]: string } = {};
       (eip.Tags || []).filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {

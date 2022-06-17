@@ -32,14 +32,14 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
     },
     hostedZoneMapper: (hz: any) => {
       const out = new HostedZone();
-      if (!hz?.Id) throw new Error('No HostedZoneId defined');
+      if (!hz?.Id) return undefined;
       out.hostedZoneId = hz.Id;
       out.domainName = hz.Name;
       return out;
     },
     resourceRecordSetMapper: async (rrs: any, ctx: Context) => {
       const out = new ResourceRecordSet();
-      if (!(rrs.Name && rrs.Type)) throw new Error('Wrong record from AWS');
+      if (!(rrs.Name && rrs.Type)) return undefined;
       out.parentHostedZone = await AwsRoute53HostedZoneModule.mappers.hostedZone.db.read(ctx, rrs.HostedZoneId) ??
         await AwsRoute53HostedZoneModule.mappers.hostedZone.cloud.read(ctx, rrs.HostedZoneId);
       if (!out.parentHostedZone) throw new Error('Hosted zone need to be loaded.');
