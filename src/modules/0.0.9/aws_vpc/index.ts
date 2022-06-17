@@ -60,7 +60,7 @@ export const AwsVpcModule: Module2 = new Module2({
       out.connectivityType = nat.ConnectivityType as ConnectivityType;
       const natPublicAddress = nat.NatGatewayAddresses?.filter(n => !!n.AllocationId).pop();
       if (natPublicAddress) {
-        out.elasticIp = await AwsVpcModule.mappers.elasticIp.db.read(ctx, natPublicAddress.AllocationId) ?? 
+        out.elasticIp = await AwsVpcModule.mappers.elasticIp.db.read(ctx, natPublicAddress.AllocationId) ??
           await AwsVpcModule.mappers.elasticIp.cloud.read(ctx, natPublicAddress.AllocationId);
         if (!out.elasticIp) throw new Error('Not valid elastic ip, yet?');
       }
@@ -262,11 +262,11 @@ export const AwsVpcModule: Module2 = new Module2({
             if (e.elasticIp) {
               input.AllocationId = e.elasticIp.allocationId;
             } else if (!e.elasticIp && e.connectivityType === ConnectivityType.PUBLIC) {
-              const newElasticIp = new ElasticIp();
+              const elasticIp = new ElasticIp();
               // Attach the same tags in case we want to associate them visualy through the AWS Console
-              newElasticIp.tags = e.tags;
-              const res = await AwsVpcModule.mappers.elasticIp.cloud.create(newElasticIp, ctx);
-              input.AllocationId = res.allocationId;
+              elasticIp.tags = e.tags;
+              const newElasticIp = await AwsVpcModule.mappers.elasticIp.cloud.create(elasticIp, ctx);
+              input.AllocationId = newElasticIp.allocationId;
             }
             const res: AwsNatGateway | undefined = await client.createNatGateway(input);
             if (res) {
