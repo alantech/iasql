@@ -302,12 +302,12 @@ export const AwsVpcModule: Module2 = new Module2({
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.NatGateway?.[e.natGatewayId ?? ''];
-            const isUpdate = AwsVpcModule.mappers.natGateway.cloud.updateOrReplace(cloudRecord, e);
+            const isUpdate = Object.is(AwsVpcModule.mappers.natGateway.cloud.updateOrReplace(cloudRecord, e), 'update');
             if (isUpdate) {
               if (!AwsVpcModule.utils.eqTags(cloudRecord.tags, e.tags)) {
                 await client.updateTags(e.natGatewayId ?? '', e.tags);
                 const rawNatGateway = await client.getNatGateway(e.natGatewayId ?? '');
-                const updatedNatGateway = AwsVpcModule.utils.natGatewayMapper(rawNatGateway);
+                const updatedNatGateway = await AwsVpcModule.utils.natGatewayMapper(rawNatGateway, ctx);
                 updatedNatGateway.id = e.id;
                 await AwsVpcModule.mappers.natGateway.db.update(updatedNatGateway, ctx);
                 out.push(updatedNatGateway);
@@ -318,8 +318,9 @@ export const AwsVpcModule: Module2 = new Module2({
               out.push(cloudRecord);
               continue;
             }
-            const newNatGateway = await AwsVpcModule.mappers.natGateway.cloud.create(e, ctx);
+            // Need to delete first to make the elastic ip address available
             await AwsVpcModule.mappers.natGateway.cloud.delete(cloudRecord, ctx);
+            const newNatGateway = await AwsVpcModule.mappers.natGateway.cloud.create(e, ctx);
             out.push(newNatGateway);
           }
           return out;
