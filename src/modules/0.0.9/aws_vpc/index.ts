@@ -262,7 +262,9 @@ export const AwsVpcModule: Module2 = new Module2({
             if (e.elasticIp) {
               input.AllocationId = e.elasticIp.allocationId;
             } else if (!e.elasticIp && e.connectivityType === ConnectivityType.PUBLIC) {
-              // TODO: Allocate address on the flight
+              const newElasticIp = new ElasticIp();
+              const res = await AwsVpcModule.mappers.elasticIp.cloud.create(newElasticIp, ctx);
+              input.AllocationId = res.allocationId;
             }
             const res: AwsNatGateway | undefined = await client.createNatGateway(input);
             if (res) {
