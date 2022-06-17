@@ -12,7 +12,7 @@ export const AwsEcrModule: Module2 = new Module2({
   utils: {
     publicRepositoryMapper: (r: PublicRepositoryAws) => {
       const out = new PublicRepository();
-      if (!r?.repositoryName) throw new Error('No repository name defined.');
+      if (!r?.repositoryName) return undefined;
       out.repositoryName = r.repositoryName;
       out.repositoryArn = r.repositoryArn;
       out.registryId = r.registryId;
@@ -22,7 +22,7 @@ export const AwsEcrModule: Module2 = new Module2({
     },
     repositoryMapper: (r: RepositoryAws) => {
       const out = new Repository();
-      if (!r?.repositoryName) throw new Error('No repository name defined.');
+      if (!r?.repositoryName) return undefined;
       out.repositoryName = r.repositoryName;
       out.repositoryArn = r.repositoryArn;
       out.registryId = r.registryId;
