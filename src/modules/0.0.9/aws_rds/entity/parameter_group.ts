@@ -84,6 +84,12 @@ export class ParameterGroup {
   @Column()
   description: string;
 
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  parameters?: { [key: string]: any };
+
   @AfterLoad()
   @AfterInsert()
   @AfterUpdate()

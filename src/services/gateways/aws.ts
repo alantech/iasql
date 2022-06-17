@@ -2224,6 +2224,14 @@ export class AWS {
     return res.DBParameterGroups?.pop();
   }
 
+  async getDBParameterGroupV2(name: string) {
+    const res = await this.rdsClient.send(new DescribeDBParameterGroupsCommand({
+      DBParameterGroupName: name
+    }));
+    const parameters = await this.getDBParameterGroupParameters(name);
+    return { ...res.DBParameterGroups?.pop(), Parameters: parameters };
+  }
+
   async getDBParameterGroups() {
     const out = [];
     const paginator = paginateDescribeDBParameterGroups({
@@ -2232,6 +2240,21 @@ export class AWS {
     }, {});
     for await (const page of paginator) {
       out.push(...(page.DBParameterGroups ?? []));
+    }
+    return out;
+  }
+
+  async getDBParameterGroupsV2() {
+    const out = [];
+    const paginator = paginateDescribeDBParameterGroups({
+      client: this.rdsClient,
+      pageSize: 25,
+    }, {});
+    for await (const page of paginator) {
+      for (const pg of page.DBParameterGroups ?? []) {
+        const parameters = await this.getDBParameterGroupParameters(pg.DBParameterGroupName ?? '');
+        out.push({...pg, Parameters: parameters });
+      }
     }
     return out;
   }
