@@ -569,7 +569,7 @@ export class AWS {
     );
   }
 
-  async updateTags(resourceId: string, tags: { [key: string] : string }) {
+  async updateTags(resourceId: string, tags?: { [key: string] : string }) {
     let tgs: Tag[] = [];
     if (tags) {
       tgs = Object.keys(tags).map(k => {
