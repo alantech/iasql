@@ -13,10 +13,10 @@ import {
   Vpc,
   SubnetState,
   VpcState,
-  ElasticIp,
   NatGateway,
   ConnectivityType,
   NatGatewayState,
+  ElasticIp,
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
@@ -52,23 +52,15 @@ export const AwsVpcModule: Module2 = new Module2({
       out.isDefault = vpc.IsDefault ?? false;
       return out;
     },
-    elasticIpMapper: (eip: any) => {
-      const out = new ElasticIp();
-      out.allocationId = eip.AllocationId;
-      if (!out.allocationId) return undefined;
-      out.publicIp = eip.PublicIp;
-      const tags: { [key: string]: string } = {};
-      (eip.Tags || []).filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
-        tags[t.Key as string] = t.Value as string;
-      });
-      out.tags = tags;
-      return out;
-    },
     natGatewayMapper: async (nat: AwsNatGateway, ctx: Context) => {
       const out = new NatGateway();
       out.connectivityType = nat.ConnectivityType as ConnectivityType;
-      // TODO: implement public ip path
-      // out.elasticIp = nat.NatGatewayAddresses?.pop();
+      const natPublicAddress = nat.NatGatewayAddresses?.filter(n => !!n.AllocationId).pop();
+      if (natPublicAddress) {
+        out.elasticIp = await AwsVpcModule.mappers.elasticIp.db.read(ctx, natPublicAddress.AllocationId) ??
+          await AwsVpcModule.mappers.elasticIp.cloud.read(ctx, natPublicAddress.AllocationId);
+        if (!out.elasticIp) throw new Error('Not valid elastic ip, yet?');
+      }
       out.natGatewayId = nat.NatGatewayId;
       out.state = nat.State as NatGatewayState;
       out.subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, nat.SubnetId) ??
@@ -81,10 +73,20 @@ export const AwsVpcModule: Module2 = new Module2({
       out.tags = tags;
       return out;
     },
-    elasticIpEqTags: (a: ElasticIp, b: ElasticIp) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
-      Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]),
-    natGatewayEqTags: (a: NatGateway, b: NatGateway) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
-      Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]),
+    elasticIpMapper: (eip: any) => {
+      const out = new ElasticIp();
+      out.allocationId = eip.AllocationId;
+      if (!out.allocationId) return undefined;
+      out.publicIp = eip.PublicIp;
+      const tags: { [key: string]: string } = {};
+      (eip.Tags || []).filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
+        tags[t.Key as string] = t.Value as string;
+      });
+      out.tags = tags;
+      return out;
+    },
+    eqTags: (a: { [key: string]: string }, b: { [key: string]: string }) => Object.is(Object.keys(a ?? {})?.length, Object.keys(b ?? {})?.length) &&
+      Object.keys(a ?? {})?.every(ak => (a ?? {})[ak] === (b ?? {})[ak]),
   },
   mappers: {
     subnet: new Mapper2<Subnet>({
@@ -227,10 +229,10 @@ export const AwsVpcModule: Module2 = new Module2({
     natGateway: new Mapper2<NatGateway>({
       entity: NatGateway,
       equals: (a: NatGateway, b: NatGateway) => Object.is(a.connectivityType, b.connectivityType)
-        // && Object.is(a.elasticIp, b.elasticIp) TODO: add elastic ip
+        && Object.is(a.elasticIp?.allocationId, b.elasticIp?.allocationId)
         && Object.is(a.state, b.state)
         && Object.is(a.subnet?.subnetArn, b.subnet?.subnetArn)
-        && AwsVpcModule.utils.natGatewayEqTags(a, b),
+        && AwsVpcModule.utils.eqTags(a.tags, b.tags),
       source: 'db',
       cloud: new Crud2({
         create: async (es: NatGateway[], ctx: Context) => {
@@ -253,6 +255,15 @@ export const AwsVpcModule: Module2 = new Module2({
                   Tags: tags,
                 },
               ]
+            }
+            if (e.elasticIp) {
+              input.AllocationId = e.elasticIp.allocationId;
+            } else if (!e.elasticIp && e.connectivityType === ConnectivityType.PUBLIC) {
+              const elasticIp = new ElasticIp();
+              // Attach the same tags in case we want to associate them visualy through the AWS Console
+              elasticIp.tags = e.tags;
+              const newElasticIp = await AwsVpcModule.mappers.elasticIp.cloud.create(elasticIp, ctx);
+              input.AllocationId = newElasticIp.allocationId;
             }
             const res: AwsNatGateway | undefined = await client.createNatGateway(input);
             if (res) {
@@ -278,14 +289,40 @@ export const AwsVpcModule: Module2 = new Module2({
             return out;
           }
         },
+        updateOrReplace: (a: NatGateway, b: NatGateway) => {
+          if (!(Object.is(a.state, b.state) && AwsVpcModule.utils.eqTags(a.tags, b.tags))
+            && Object.is(a.connectivityType, b.connectivityType)
+            && Object.is(a.elasticIp?.allocationId, b.elasticIp?.allocationId)
+            && Object.is(a.subnet?.subnetId, b.subnet?.subnetId)) return 'update';
+          return 'replace';
+        },
         update: async (es: NatGateway[], ctx: Context) => {
-          // There is no update mechanism for a NatGateway so instead we will restore the values
+          const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.NatGateway?.[e.natGatewayId ?? ''];
-            cloudRecord.id = e.id;
-            await AwsVpcModule.mappers.natGateway.db.update(cloudRecord, ctx);
-            out.push(cloudRecord);
+            // `isUpdate` means only `tags` and/or `state` have changed
+            const isUpdate = Object.is(AwsVpcModule.mappers.natGateway.cloud.updateOrReplace(cloudRecord, e), 'update');
+            if (isUpdate && !AwsVpcModule.utils.eqTags(cloudRecord.tags, e.tags)) {
+              // If `tags` have changed, no matter if `state` changed or not, we update the tags, call AWS and update the DB
+              await client.updateTags(e.natGatewayId ?? '', e.tags);
+              const rawNatGateway = await client.getNatGateway(e.natGatewayId ?? '');
+              const updatedNatGateway = await AwsVpcModule.utils.natGatewayMapper(rawNatGateway, ctx);
+              updatedNatGateway.id = e.id;
+              await AwsVpcModule.mappers.natGateway.db.update(updatedNatGateway, ctx);
+              out.push(updatedNatGateway);
+            } else if (isUpdate && AwsVpcModule.utils.eqTags(cloudRecord.tags, e.tags)) {
+              // If `tags` have **not** changed, it means only `state` changed. This is the restore path. We do not call AWS again, just use the record we have in memo.
+              cloudRecord.id = e.id;
+              await AwsVpcModule.mappers.natGateway.db.update(cloudRecord, ctx);
+              out.push(cloudRecord);
+            } else {
+              // Replace path
+              // Need to delete first to make the elastic ip address available
+              await AwsVpcModule.mappers.natGateway.cloud.delete(cloudRecord, ctx);
+              const newNatGateway = await AwsVpcModule.mappers.natGateway.cloud.create(e, ctx);
+              out.push(newNatGateway);
+            }
           }
           return out;
         },
@@ -300,7 +337,7 @@ export const AwsVpcModule: Module2 = new Module2({
     elasticIp: new Mapper2<ElasticIp>({
       entity: ElasticIp,
       equals: (a: ElasticIp, b: ElasticIp) => Object.is(a.publicIp, b.publicIp)
-        && AwsVpcModule.utils.elasticIpEqTags(a, b),
+        && AwsVpcModule.utils.eqTags(a.tags, b.tags),
       source: 'db',
       cloud: new Crud2({
         create: async (es: ElasticIp[], ctx: Context) => {
@@ -337,7 +374,7 @@ export const AwsVpcModule: Module2 = new Module2({
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.ElasticIp?.[e.allocationId ?? ''];
-            if (e.tags && !AwsVpcModule.utils.elasticIpEqTags(cloudRecord, e)) {
+            if (e.tags && !AwsVpcModule.utils.eqTags(cloudRecord.tags, e.tags)) {
               await client.updateTags(e.allocationId ?? '', e.tags);
               const rawElasticIp = await client.getElasticIp(e.allocationId ?? '');
               const newElasticIp = AwsVpcModule.utils.elasticIpMapper(rawElasticIp);
