@@ -31,9 +31,7 @@ export const AwsElbModule: Module2 = new Module2({
   utils: {
     listenerMapper: async (l: ListenerAws, ctx: Context) => {
       const out = new Listener();
-      if (!l?.LoadBalancerArn || !l?.Port) {
-        throw new Error('Listerner not defined properly');
-      }
+      if (!l?.LoadBalancerArn || !l?.Port) return undefined;
       out.listenerArn = l?.ListenerArn;
       out.loadBalancer = ctx.memo?.db?.LoadBalancer?.[l.LoadBalancerArn] ?? await AwsElbModule.mappers.loadBalancer.db.read(ctx, l?.LoadBalancerArn);
       out.port = l?.Port;
@@ -57,7 +55,7 @@ export const AwsElbModule: Module2 = new Module2({
     loadBalancerMapper: async (lb: LoadBalancerAws, ctx: Context) => {
       const out = new LoadBalancer();
       if (!lb?.LoadBalancerName || !lb?.Scheme || !lb?.Type || !lb?.IpAddressType || !lb.VpcId) {
-        throw new Error('Load balancer not defined properly');
+        return undefined;
       }
       out.loadBalancerName = lb.LoadBalancerName;
       out.loadBalancerArn = lb.LoadBalancerArn;
@@ -91,9 +89,7 @@ export const AwsElbModule: Module2 = new Module2({
     },
     targetGroupMapper: async (tg: any, ctx: Context) => {
       const out = new TargetGroup();
-      if (!tg?.TargetGroupName) {
-        throw new Error('Target group not defined properly');
-      }
+      if (!tg?.TargetGroupName) return undefined;
       out.targetGroupName = tg.TargetGroupName;
       out.targetType = tg.TargetType as TargetTypeEnum;
       out.targetGroupArn = tg.TargetGroupArn;

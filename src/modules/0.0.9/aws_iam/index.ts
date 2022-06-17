@@ -11,9 +11,11 @@ export const AwsIamModule: Module2 = new Module2({
     roleMapper: (role: AWSRole) => {
       const out = new Role();
       out.arn = role.Arn;
-      out.roleName = role.RoleName ?? '';
+      if (!role.RoleName) return undefined;
+      out.roleName = role.RoleName;
       out.description = role.Description ?? '';
-      out.assumeRolePolicyDocument = decodeURIComponent(role.AssumeRolePolicyDocument ?? '');
+      if (!role.AssumeRolePolicyDocument) return undefined;
+      out.assumeRolePolicyDocument = decodeURIComponent(role.AssumeRolePolicyDocument);
       return out;
     },
     roleNameFromArn: (arn: string, _ctx: Context) => {

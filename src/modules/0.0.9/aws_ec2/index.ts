@@ -15,7 +15,8 @@ export const AwsEc2Module: Module2 = new Module2({
     instanceMapper: async (instance: AWSInstance, ctx: Context) => {
       const client = await ctx.getAwsClient() as AWS;
       const out = new Instance();
-      out.instanceId = instance.InstanceId ?? throwError("AWS doesn't have an id for an instance it manages, which should be impossible")
+      if (!instance.InstanceId) return undefined;
+      out.instanceId = instance.InstanceId;
       const tags: { [key: string]: string } = {};
       (instance.Tags || []).filter(t => !!t.Key && !!t.Value).forEach(t => {
         tags[t.Key as string] = t.Value as string;
@@ -29,7 +30,7 @@ export const AwsEc2Module: Module2 = new Module2({
       out.ami = instance.ImageId ?? '';
       if (instance.KeyName) out.keyPairName = instance.KeyName;
       out.instanceType = instance.InstanceType ?? '';
-      if (!out.instanceType) throw new Error('Cannot create Instance object without a valid InstanceType in the Database');
+      if (!out.instanceType) return undefined;
       out.securityGroups = [];
       for (const sgId of instance.SecurityGroups?.map(sg => sg.GroupId) ?? []) {
         const sg = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
@@ -167,7 +168,7 @@ export const AwsEc2Module: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
             const [instanceId, targetGroupArn, port] = id.split('|');
-            if (!instanceId || !targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
+            if (!instanceId || !targetGroupArn) return undefined;
             const registeredInstance = await client.getRegisteredInstance(instanceId, targetGroupArn, port);
             return await AwsEc2Module.utils.registeredInstanceMapper(registeredInstance, ctx);
           }

@@ -12,7 +12,8 @@ export const AwsEc2MetadataModule: Module2 = new Module2({
     instanceMetadataMapper: async (instance: AWSInstance, ctx: Context) => {
       const client = await ctx.getAwsClient() as AWS;
       const out = new InstanceMetadata();
-      out.instanceId = instance.InstanceId ?? '';
+      if (!instance.InstanceId) return undefined;
+      out.instanceId = instance.InstanceId;
       // fill join column which is the id from the `instance` table
       const ins = await AwsEc2Module.mappers.instance.db.read(
         ctx,
@@ -20,11 +21,13 @@ export const AwsEc2MetadataModule: Module2 = new Module2({
       );
       out.id = ins.id;
       out.architecture = instance.Architecture as Architecture;
-      out.privateIpAddress = instance.PrivateIpAddress ?? '';
+      if (!instance.PrivateIpAddress) return undefined;
+      out.privateIpAddress = instance.PrivateIpAddress;
       out.launchTime = instance.LaunchTime as Date;
       out.spot = instance.InstanceLifecycle === 'spot';
       out.cpuCores = instance.CpuOptions?.CoreCount as number;
-      const instanceType = await client.getInstanceType(instance.InstanceType ?? '');
+      if (!instance.InstanceType) return undefined;
+      const instanceType = await client.getInstanceType(instance.InstanceType);
       out.memSizeMB = instanceType?.MemoryInfo?.SizeInMiB as number;
       return out;
     },

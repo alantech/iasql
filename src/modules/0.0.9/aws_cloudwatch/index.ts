@@ -8,7 +8,7 @@ export const AwsCloudwatchModule: Module2 = new Module2({
   utils: {
     logGroupMapper: (lg: any) => {
       const out = new LogGroup();
-      if (!lg?.logGroupName) throw new Error('No log group name defined');
+      if (!lg?.logGroupName) return undefined;
       out.logGroupName = lg.logGroupName;
       out.logGroupArn = lg.arn;
       out.creationTime = lg.creationTime ? new Date(lg.creationTime) : lg.creationTime;

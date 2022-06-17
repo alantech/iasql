@@ -24,9 +24,10 @@ export const AwsS3Module: Module2 = new Module2({
           const allBuckets = await client.getBuckets();
           return allBuckets
             .filter(b => !id || b.Name === id)
+            .filter(b => !!b.Name)
             .map(b => {
               const bucket = new Bucket();
-              bucket.name = b.Name ?? '';
+              bucket.name = b.Name ?? ''; // The filter above is guarding this but TS is confused
               bucket.createdAt = b.CreationDate;
               return bucket;
             });
