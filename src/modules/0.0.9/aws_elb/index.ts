@@ -6,7 +6,7 @@ import {
   ModifyListenerCommandInput,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 
-import { AWS, } from '../../../services/gateways/aws'
+import { AWS, } from '../../../services/gateways/aws_2'
 import {
   ActionTypeEnum,
   Listener,

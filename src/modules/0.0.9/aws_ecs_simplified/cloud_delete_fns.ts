@@ -1,4 +1,4 @@
-import { AWS } from '../../../services/gateways/aws';
+import { AWS } from '../../../services/gateways/aws_2';
 import { LogGroup } from '../aws_cloudwatch/entity';
 import { Repository } from '../aws_ecr/entity';
 import { Cluster, Service, TaskDefinition } from '../aws_ecs_fargate/entity';

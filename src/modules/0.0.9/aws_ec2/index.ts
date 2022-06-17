@@ -1,10 +1,8 @@
 import { Instance as AWSInstance, RunInstancesCommandInput, Tag as AWSTag } from '@aws-sdk/client-ec2'
 
-import { throwError } from '../../../config/config'
-
 import { Instance, RegisteredInstance, State, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
-import { AWS } from '../../../services/gateways/aws'
+import { AWS } from '../../../services/gateways/aws_2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'

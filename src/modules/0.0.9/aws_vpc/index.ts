@@ -6,7 +6,7 @@ import {
   Vpc as AwsVpc,
 } from '@aws-sdk/client-ec2'
 
-import { AWS, } from '../../../services/gateways/aws'
+import { AWS, } from '../../../services/gateways/aws_2'
 import {
   AvailabilityZone,
   Subnet,

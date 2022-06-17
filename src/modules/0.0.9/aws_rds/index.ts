@@ -1,6 +1,6 @@
 import { CreateDBInstanceCommandInput, CreateDBParameterGroupCommandInput, DBParameterGroup, ModifyDBInstanceCommandInput } from '@aws-sdk/client-rds'
 
-import { AWS, } from '../../../services/gateways/aws'
+import { AWS, } from '../../../services/gateways/aws_2'
 import { Parameter, ParameterGroup, ParameterGroupFamily, RDS, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsSecurityGroupModule } from '..'
