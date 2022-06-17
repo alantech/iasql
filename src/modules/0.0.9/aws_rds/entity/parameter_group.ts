@@ -1,3 +1,4 @@
+import { Parameter } from '@aws-sdk/client-rds';
 import {
   AfterInsert,
   AfterLoad,
@@ -88,7 +89,7 @@ export class ParameterGroup {
     type: 'json',
     nullable: true,
   })
-  parameters?: { [key: string]: any };
+  parameters?: Parameter[];
 
   @AfterLoad()
   @AfterInsert()

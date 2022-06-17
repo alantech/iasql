@@ -1,4 +1,4 @@
-import { CreateDBInstanceCommandInput, CreateDBParameterGroupCommandInput, DBParameterGroup, ModifyDBInstanceCommandInput } from '@aws-sdk/client-rds'
+import { CreateDBInstanceCommandInput, CreateDBParameterGroupCommandInput, DBParameterGroup, ModifyDBInstanceCommandInput, Parameter } from '@aws-sdk/client-rds'
 
 import { AWS, } from '../../../services/gateways/aws'
 import { ParameterGroup, ParameterGroupFamily, RDS, } from './entity'
@@ -7,7 +7,7 @@ import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
 
 interface DBParameterGroupWParameters extends DBParameterGroup {
-  Parameters:  { [key: string]: any };
+  Parameters:  Parameter[];
 }
 
 export const AwsRdsModule: Module2 = new Module2({
@@ -47,6 +47,24 @@ export const AwsRdsModule: Module2 = new Module2({
       out.name = pg.DBParameterGroupName ?? '';
       out.parameters = pg.Parameters;
       return out;
+    },
+    parametersNotEqual: (a: Parameter[], b: Parameter[]) => {
+      const parameters: Parameter[] = [];
+      a?.forEach(ap => {
+        const bParam = b?.find(bp => Object.is(ap.ParameterName, bp.ParameterName));
+        if (!bParam || !(Object.is(ap.AllowedValues, bParam.AllowedValues)
+          && Object.is(ap.ApplyMethod, bParam.ApplyMethod)
+          && Object.is(ap.ApplyType, bParam.ApplyType)
+          && Object.is(ap.DataType, bParam.DataType)
+          && Object.is(ap.Description, bParam.Description)
+          && Object.is(ap.IsModifiable, bParam.IsModifiable)
+          && Object.is(ap.MinimumEngineVersion, bParam.MinimumEngineVersion)
+          && Object.is(ap.ParameterValue, bParam.ParameterValue)
+          && Object.is(ap.Source, bParam.Source))) {
+            parameters.push(ap);
+        }
+      });
+      return parameters;
     },
   },
   mappers: {
@@ -198,8 +216,8 @@ export const AwsRdsModule: Module2 = new Module2({
       entity: ParameterGroup,
       equals: (a: ParameterGroup, b: ParameterGroup) => Object.is(a.arn, b.arn)
         && Object.is(a.family, b.family)
-        && Object.is(a.description, b.description),
-        // TODO: Add parameters comparison
+        && Object.is(a.description, b.description)
+        && !AwsRdsModule.utils.parametersNotEqual(a.parameters, b.parameters).length,
       source: 'db',
       cloud: new Crud2({
         create: async (es: ParameterGroup[], ctx: Context) => {
@@ -238,10 +256,29 @@ export const AwsRdsModule: Module2 = new Module2({
           }
         },
         update: async (es: ParameterGroup[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.ParameterGroup?.[e.name ?? ''];
-            // TODO: update parameters if necessary
+            const parametersNotEqual = AwsRdsModule.utils.parametersNotEqual(cloudRecord.parameters, e.parameters);
+            let anyUpdate = false;
+            for (const p of parametersNotEqual ?? []) {
+              if (p.IsModifiable) {
+                const parameterInput = {
+                  ParameterName: p.ParameterName,
+                  ParameterValue: p.ParameterValue,
+                  ApplyMethod: p.ApplyMethod,
+                };
+                await client.modifyParameter(e.name, parameterInput);
+                anyUpdate = true;
+              }
+            }
+            if (anyUpdate) {
+              const updatedParameterGroup = await AwsRdsModule.mappers.parameterGroup.cloud.read(ctx, e.name);
+              await AwsRdsModule.mappers.parameterGroup.db.update(updatedParameterGroup, ctx);
+              out.push(updatedParameterGroup);
+              continue;
+            }
             await AwsRdsModule.mappers.parameterGroup.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
           }
