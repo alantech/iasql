@@ -263,6 +263,8 @@ export const AwsVpcModule: Module2 = new Module2({
               input.AllocationId = e.elasticIp.allocationId;
             } else if (!e.elasticIp && e.connectivityType === ConnectivityType.PUBLIC) {
               const newElasticIp = new ElasticIp();
+              // Attach the same tags in case we want to associate them visualy through the AWS Console
+              newElasticIp.tags = e.tags;
               const res = await AwsVpcModule.mappers.elasticIp.cloud.create(newElasticIp, ctx);
               input.AllocationId = res.allocationId;
             }
