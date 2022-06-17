@@ -88,10 +88,8 @@ export const AwsVpcModule: Module2 = new Module2({
       out.tags = tags;
       return out;
     },
-    natGatewayEqTags: (a: NatGateway, b: NatGateway) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
-      Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]),
-    elasticIpEqTags: (a: ElasticIp, b: ElasticIp) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
-      Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]),
+    eqTags: (a: { [key: string]: string }, b: { [key: string]: string }) => Object.is(Object.keys(a ?? {})?.length, Object.keys(b ?? {})?.length) &&
+      Object.keys(a ?? {})?.every(ak => (a ?? {})[ak] === (b ?? {})[ak]),
   },
   mappers: {
     subnet: new Mapper2<Subnet>({
@@ -237,7 +235,7 @@ export const AwsVpcModule: Module2 = new Module2({
         && Object.is(a.elasticIp?.allocationId, b.elasticIp?.allocationId)
         && Object.is(a.state, b.state)
         && Object.is(a.subnet?.subnetArn, b.subnet?.subnetArn)
-        && AwsVpcModule.utils.natGatewayEqTags(a, b),
+        && AwsVpcModule.utils.eqTags(a.tags, b.tags),
       source: 'db',
       cloud: new Crud2({
         create: async (es: NatGateway[], ctx: Context) => {
@@ -313,7 +311,7 @@ export const AwsVpcModule: Module2 = new Module2({
     elasticIp: new Mapper2<ElasticIp>({
       entity: ElasticIp,
       equals: (a: ElasticIp, b: ElasticIp) => Object.is(a.publicIp, b.publicIp)
-        && AwsVpcModule.utils.elasticIpEqTags(a, b),
+        && AwsVpcModule.utils.eqTags(a.tags, b.tags),
       source: 'db',
       cloud: new Crud2({
         create: async (es: ElasticIp[], ctx: Context) => {
@@ -350,7 +348,7 @@ export const AwsVpcModule: Module2 = new Module2({
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.ElasticIp?.[e.allocationId ?? ''];
-            if (e.tags && !AwsVpcModule.utils.elasticIpEqTags(cloudRecord, e)) {
+            if (e.tags && !AwsVpcModule.utils.eqTags(cloudRecord.tags, e.tags)) {
               await client.updateTags(e.allocationId ?? '', e.tags);
               const rawElasticIp = await client.getElasticIp(e.allocationId ?? '');
               const newElasticIp = AwsVpcModule.utils.elasticIpMapper(rawElasticIp);
