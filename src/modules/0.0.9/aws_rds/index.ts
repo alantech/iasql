@@ -7,7 +7,7 @@ import { AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
 
 interface DBParameterGroupWParameters extends DBParameterGroup {
-  Parameters:  { [key: string]: any }; 
+  Parameters:  { [key: string]: any };
 }
 
 export const AwsRdsModule: Module2 = new Module2({
