@@ -290,15 +290,37 @@ export const AwsVpcModule: Module2 = new Module2({
             return out;
           }
         },
+        updateOrReplace: (a: NatGateway, b: NatGateway) => {
+          if (!(Object.is(a.state, b.state) && AwsVpcModule.utils.eqTags(a.tags, b.tags))
+            && Object.is(a.connectivityType, b.connectivityType)
+            && Object.is(a.elasticIp?.allocationId, b.elasticIp?.allocationId)
+            && Object.is(a.subnet?.subnetId, b.subnet?.subnetId)) return 'update';
+          return 'replace';
+        },
         update: async (es: NatGateway[], ctx: Context) => {
-          // TODO: update elastic ip??
-          // There is no update mechanism for a NatGateway so instead we will restore the values
+          const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.NatGateway?.[e.natGatewayId ?? ''];
-            cloudRecord.id = e.id;
-            await AwsVpcModule.mappers.natGateway.db.update(cloudRecord, ctx);
-            out.push(cloudRecord);
+            const isUpdate = AwsVpcModule.mappers.natGateway.cloud.updateOrReplace(cloudRecord, e);
+            if (isUpdate) {
+              if (!AwsVpcModule.utils.eqTags(cloudRecord.tags, e.tags)) {
+                await client.updateTags(e.natGatewayId ?? '', e.tags);
+                const rawNatGateway = await client.getNatGateway(e.natGatewayId ?? '');
+                const updatedNatGateway = AwsVpcModule.utils.natGatewayMapper(rawNatGateway);
+                updatedNatGateway.id = e.id;
+                await AwsVpcModule.mappers.natGateway.db.update(updatedNatGateway, ctx);
+                out.push(updatedNatGateway);
+                continue;
+              }
+              cloudRecord.id = e.id;
+              await AwsVpcModule.mappers.natGateway.db.update(cloudRecord, ctx);
+              out.push(cloudRecord);
+              continue;
+            }
+            const newNatGateway = await AwsVpcModule.mappers.natGateway.cloud.create(e, ctx);
+            await AwsVpcModule.mappers.natGateway.cloud.delete(cloudRecord, ctx);
+            out.push(newNatGateway);
           }
           return out;
         },
