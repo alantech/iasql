@@ -301,26 +301,28 @@ export const AwsVpcModule: Module2 = new Module2({
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.NatGateway?.[e.natGatewayId ?? ''];
+            // `isUpdate` means only `tags` and/or `state` have changed
             const isUpdate = Object.is(AwsVpcModule.mappers.natGateway.cloud.updateOrReplace(cloudRecord, e), 'update');
-            if (isUpdate) {
-              if (!AwsVpcModule.utils.eqTags(cloudRecord.tags, e.tags)) {
-                await client.updateTags(e.natGatewayId ?? '', e.tags);
-                const rawNatGateway = await client.getNatGateway(e.natGatewayId ?? '');
-                const updatedNatGateway = await AwsVpcModule.utils.natGatewayMapper(rawNatGateway, ctx);
-                updatedNatGateway.id = e.id;
-                await AwsVpcModule.mappers.natGateway.db.update(updatedNatGateway, ctx);
-                out.push(updatedNatGateway);
-                continue;
-              }
+            if (isUpdate && !AwsVpcModule.utils.eqTags(cloudRecord.tags, e.tags)) {
+              // If `tags` have changed, no matter if `state` changed or not, we update the tags, call AWS and update the DB
+              await client.updateTags(e.natGatewayId ?? '', e.tags);
+              const rawNatGateway = await client.getNatGateway(e.natGatewayId ?? '');
+              const updatedNatGateway = await AwsVpcModule.utils.natGatewayMapper(rawNatGateway, ctx);
+              updatedNatGateway.id = e.id;
+              await AwsVpcModule.mappers.natGateway.db.update(updatedNatGateway, ctx);
+              out.push(updatedNatGateway);
+            } else if (isUpdate && AwsVpcModule.utils.eqTags(cloudRecord.tags, e.tags)) {
+              // If `tags` have **not** changed, it means only `state` changed. This is the restore path. We do not call AWS again, just use the record we have in memo.
               cloudRecord.id = e.id;
               await AwsVpcModule.mappers.natGateway.db.update(cloudRecord, ctx);
               out.push(cloudRecord);
-              continue;
+            } else {
+              // Replace path
+              // Need to delete first to make the elastic ip address available
+              await AwsVpcModule.mappers.natGateway.cloud.delete(cloudRecord, ctx);
+              const newNatGateway = await AwsVpcModule.mappers.natGateway.cloud.create(e, ctx);
+              out.push(newNatGateway);
             }
-            // Need to delete first to make the elastic ip address available
-            await AwsVpcModule.mappers.natGateway.cloud.delete(cloudRecord, ctx);
-            const newNatGateway = await AwsVpcModule.mappers.natGateway.cloud.create(e, ctx);
-            out.push(newNatGateway);
           }
           return out;
         },
