@@ -1,4 +1,4 @@
-import { AWS, } from '../../../services/gateways/aws'
+import { AWS, } from '../../../services/gateways/aws_2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { LogGroup } from './entity'
 import * as metadata from './module.json'

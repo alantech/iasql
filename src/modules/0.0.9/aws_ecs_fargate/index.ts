@@ -1,4 +1,4 @@
-import { AWS, } from '../../../services/gateways/aws'
+import { AWS, } from '../../../services/gateways/aws_2'
 import {
   Cluster,
   ContainerDefinition,

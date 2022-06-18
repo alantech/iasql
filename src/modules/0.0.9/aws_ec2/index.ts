@@ -1,10 +1,8 @@
-import { Instance as AWSInstance } from '@aws-sdk/client-ec2'
-
-import { throwError } from '../../../config/config'
+import { Instance as AWSInstance, RunInstancesCommandInput, Tag as AWSTag } from '@aws-sdk/client-ec2'
 
 import { Instance, RegisteredInstance, State, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
-import { AWS } from '../../../services/gateways/aws'
+import { AWS } from '../../../services/gateways/aws_2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
@@ -70,14 +68,34 @@ export const AwsEc2Module: Module2 = new Module2({
           const out = [];
           for (const instance of es) {
             if (instance.ami) {
-              const instanceId = await client.newInstanceV3(
-                instance.instanceType,
-                instance.ami,
-                instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[],
-                instance.userData ? Buffer.from(instance.userData).toString('base64') : undefined,
-                instance.keyPairName,
-                instance.tags
-              );
+              let tgs: AWSTag[] = [];
+              if (instance.tags !== undefined) {
+                const tags: {[key: string]: string} = instance.tags;
+                tags.owner = 'iasql-engine';
+                tgs = Object.keys(tags).map(k => {
+                  return {
+                    Key: k, Value: tags[k]
+                  }
+                });
+              }
+              const sgIds = instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[];
+              const userData = instance.userData ? Buffer.from(instance.userData).toString('base64') : undefined;
+              const instanceParams: RunInstancesCommandInput = {
+                ImageId: instance.ami,
+                InstanceType: instance.instanceType,
+                MinCount: 1,
+                MaxCount: 1,
+                SecurityGroupIds: sgIds,
+                TagSpecifications: [
+                  {
+                    ResourceType: 'instance',
+                    Tags: tgs,
+                  },
+                ],
+                KeyName: instance.keyPairName,
+                UserData: userData,
+              };
+              const instanceId = await client.newInstance(instanceParams);
               if (!instanceId) { // then who?
                 throw new Error('should not be possible');
               }

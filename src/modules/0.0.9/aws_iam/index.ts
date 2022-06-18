@@ -1,7 +1,7 @@
 import { Role as AWSRole } from '@aws-sdk/client-iam'
 
 import { Role } from './entity'
-import { AWS, } from '../../../services/gateways/aws'
+import { AWS, } from '../../../services/gateways/aws_2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
