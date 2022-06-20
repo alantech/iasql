@@ -86,7 +86,7 @@ export class ParameterGroup {
   description: string;
 
   @Column({
-    type: 'json',
+    type: 'jsonb',
     nullable: true,
   })
   parameters?: Parameter[];
