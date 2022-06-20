@@ -59,8 +59,8 @@ describe('AwsAccount Integration Testing', () => {
 
   it('does absolutely nothing when you sync this', sync());
 
-  it('does absolutely nothing when you plan this', query(`
-    select iasql_plan_apply();
+  it('does absolutely nothing when you preview this', query(`
+    select iasql_preview_apply();
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('removes the useless row', query(`
