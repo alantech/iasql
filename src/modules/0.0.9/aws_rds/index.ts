@@ -48,7 +48,7 @@ export const AwsRdsModule: Module2 = new Module2({
       out.parameters = pg.Parameters;
       return out;
     },
-    parametersNotEqual: (a: Parameter[], b: Parameter[]) => {
+    getParametersNotEqual: (a: Parameter[], b: Parameter[]) => {
       const parameters: Parameter[] = [];
       a?.forEach(ap => {
         const bParam = b?.find(bp => Object.is(ap.ParameterName, bp.ParameterName));
@@ -217,7 +217,7 @@ export const AwsRdsModule: Module2 = new Module2({
       equals: (a: ParameterGroup, b: ParameterGroup) => Object.is(a.arn, b.arn)
         && Object.is(a.family, b.family)
         && Object.is(a.description, b.description)
-        && !AwsRdsModule.utils.parametersNotEqual(a.parameters, b.parameters).length,
+        && !AwsRdsModule.utils.getParametersNotEqual(a.parameters, b.parameters).length,
       source: 'db',
       cloud: new Crud2({
         create: async (es: ParameterGroup[], ctx: Context) => {
@@ -260,9 +260,10 @@ export const AwsRdsModule: Module2 = new Module2({
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.ParameterGroup?.[e.name ?? ''];
-            const parametersNotEqual = AwsRdsModule.utils.parametersNotEqual(cloudRecord.parameters, e.parameters);
+            let updatedRecord = { ...cloudRecord };
+            const getParametersNotEqual = AwsRdsModule.utils.getParametersNotEqual(cloudRecord.parameters, e.parameters);
             let anyUpdate = false;
-            for (const p of parametersNotEqual ?? []) {
+            for (const p of getParametersNotEqual ?? []) {
               if (p.IsModifiable) {
                 const parameterInput = {
                   ParameterName: p.ParameterName,
@@ -274,13 +275,12 @@ export const AwsRdsModule: Module2 = new Module2({
               }
             }
             if (anyUpdate) {
-              const updatedParameterGroup = await AwsRdsModule.mappers.parameterGroup.cloud.read(ctx, e.name);
-              await AwsRdsModule.mappers.parameterGroup.db.update(updatedParameterGroup, ctx);
-              out.push(updatedParameterGroup);
-              continue;
+              // Delete record from memo since we want a fresh read from cloud
+              delete ctx?.memo?.cloud?.ParameterGroup?.[e.name ?? ''];
+              updatedRecord = await AwsRdsModule.mappers.parameterGroup.cloud.read(ctx, e.name);
             }
-            await AwsRdsModule.mappers.parameterGroup.db.update(cloudRecord, ctx);
-            out.push(cloudRecord);
+            await AwsRdsModule.mappers.parameterGroup.db.update(updatedRecord, ctx);
+            out.push(updatedRecord);
           }
           return out;
         },
