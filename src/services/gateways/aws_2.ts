@@ -1827,7 +1827,8 @@ export class AWS {
     const res = await this.rdsClient.describeDBParameterGroups({
       DBParameterGroupName: name
     });
-    return res.DBParameterGroups?.pop();
+    const parameters = await this.getDBParameterGroupParameters(name);
+    return { ...res.DBParameterGroups?.pop(), Parameters: parameters };
   }
 
   async getDBParameterGroups() {
@@ -1837,7 +1838,10 @@ export class AWS {
       pageSize: 25,
     }, {});
     for await (const page of paginator) {
-      out.push(...(page.DBParameterGroups ?? []));
+      for (const pg of page.DBParameterGroups ?? []) {
+        const parameters = await this.getDBParameterGroupParameters(pg.DBParameterGroupName ?? '');
+        out.push({...pg, Parameters: parameters });
+      }
     }
     return out;
   }
