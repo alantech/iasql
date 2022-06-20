@@ -115,7 +115,7 @@ describe('RDS Integration Testing', () => {
           jsonb_array_elements(parameters) params
       WHERE name = '${parameterGroupName}' AND params ->> 'DataType' = 'boolean' AND params->> 'IsModifiable' = 'true'
     ), updated_parameters AS (
-      select name, jsonb_set(params, '{ParameterValue}', '1', false) updated_params
+      select name, jsonb_set(params, '{ParameterValue}', '1', true) updated_params
       from parameters
     )
     UPDATE parameter_group
