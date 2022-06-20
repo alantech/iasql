@@ -103,9 +103,9 @@ describe('RDS Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('check all modifiable boolean parameters are not true', query(`
-    SELECT parameters ->> 'ParameterValue' value
-    FROM parameter_group
-    WHERE parameter_group_name = '${parameterGroupName}' AND parameters ->> 'DataType' = 'boolean' AND parameters ->> 'IsModifiable' = 'true';
+    SELECT params ->> 'ParameterValue' as value
+    FROM parameter_group, jsonb_array_elements(parameters) as params
+    WHERE name = '${parameterGroupName}' AND params ->> 'DataType' = 'boolean' AND params ->> 'IsModifiable' = 'true';
   `, (res: any[]) => expect(res.every(r => r['value'] === '1')).toBeFalsy()));
 
   it('changes all boolean parameters for the new parameter group to be true', query(`
@@ -129,9 +129,9 @@ describe('RDS Integration Testing', () => {
   it('applies the change', apply());
 
   it('check all modifiable boolean parameters are true', query(`
-    SELECT parameters ->> 'ParameterValue' value
-    FROM parameter_group
-    WHERE parameter_group_name = '${parameterGroupName}' AND parameters ->> 'DataType' = 'boolean' AND parameters ->> 'IsModifiable' = 'true';
+    SELECT params ->> 'ParameterValue' as value
+    FROM parameter_group, jsonb_array_elements(parameters) as params
+    WHERE name = '${parameterGroupName}' AND params ->> 'DataType' = 'boolean' AND params ->> 'IsModifiable' = 'true';
   `, (res: any[]) => expect(res.every(r => r['value'] === '1')).toBeTruthy()));
 
   it('uninstalls the rds module', uninstall(
