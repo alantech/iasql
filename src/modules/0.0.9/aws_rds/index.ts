@@ -261,9 +261,9 @@ export const AwsRdsModule: Module2 = new Module2({
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.ParameterGroup?.[e.name ?? ''];
             let updatedRecord = { ...cloudRecord };
-            const getParametersNotEqual = AwsRdsModule.utils.getParametersNotEqual(cloudRecord.parameters, e.parameters);
+            const parametersNotEqual = AwsRdsModule.utils.getParametersNotEqual(e.parameters, cloudRecord.parameters);
             let anyUpdate = false;
-            for (const p of getParametersNotEqual ?? []) {
+            for (const p of parametersNotEqual ?? []) {
               if (p.IsModifiable) {
                 const parameterInput = {
                   ParameterName: p.ParameterName,
