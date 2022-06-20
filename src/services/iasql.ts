@@ -768,7 +768,7 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   // See what modules are already installed and prune them from the list
   const existingModules = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
   for (let i = 0; i < mods.length; i++) {
-    if (existingModules.includes(mods[i].name)) {
+    if (existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
       mods.splice(i, 1);
       i--;
     }
