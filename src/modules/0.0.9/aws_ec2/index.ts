@@ -111,7 +111,8 @@ export const AwsEc2Module: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
             const rawInstance = await client.getInstance(id);
-            if (!rawInstance) return;
+            // exclude spot instances
+            if (!rawInstance || rawInstance.InstanceLifecycle === 'spot') return;
             if (rawInstance.State?.Name === 'terminated' || rawInstance.State?.Name === 'shutting-down') return;
             return AwsEc2Module.utils.instanceMapper(rawInstance, ctx);
           } else {

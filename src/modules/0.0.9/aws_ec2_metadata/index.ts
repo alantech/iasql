@@ -24,7 +24,6 @@ export const AwsEc2MetadataModule: Module2 = new Module2({
       if (!instance.PrivateIpAddress) return undefined;
       out.privateIpAddress = instance.PrivateIpAddress;
       out.launchTime = instance.LaunchTime as Date;
-      out.spot = instance.InstanceLifecycle === 'spot';
       out.cpuCores = instance.CpuOptions?.CoreCount as number;
       if (!instance.InstanceType) return undefined;
       const instanceType = await client.getInstanceType(instance.InstanceType);
@@ -43,7 +42,6 @@ export const AwsEc2MetadataModule: Module2 = new Module2({
           Object.is(a.architecture, b.architecture) &&
           // https://stackabuse.com/compare-two-dates-in-javascript/
           !(a.launchTime > b.launchTime) && !(a.launchTime < b.launchTime) &&
-          Object.is(a.spot, b.spot) &&
           Object.is(a.cpuCores, b.cpuCores) &&
           Object.is(a.memSizeMB, b.memSizeMB),
       source: 'cloud',
