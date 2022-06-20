@@ -37,7 +37,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.12",
     "@types/jest": "^27.5.0",
-    "@types/node": "^16.11.28",
+    "@types/node": "^18.0.0",
     "@types/uuid": "^8.3.4",
     "copyfiles": "^2.4.1",
     "jest": "^27.5.1",
@@ -51,7 +51,7 @@
     "@amplitude/node": "^1.10.0",
     "@aws-sdk/client-acm": "^3.105.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.105.0",
-    "@aws-sdk/client-ec2": "^3.81.0",
+    "@aws-sdk/client-ec2": "^3.112.0",
     "@aws-sdk/client-ecr": "^3.112.0",
     "@aws-sdk/client-ecr-public": "^3.100.0",
     "@aws-sdk/client-ecs": "^3.100.0",
