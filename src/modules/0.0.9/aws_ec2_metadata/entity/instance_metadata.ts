@@ -16,6 +16,11 @@ export enum Architecture {
   X86_64_MAC = "x86_64_mac",
 }
 
+export enum RootDeviceType {
+  EBS = "ebs",
+  INSTANCE_STORE = "instance-store",
+}
+
 @Entity()
 export class InstanceMetadata {
   // same id as the `instance` table
@@ -63,4 +68,20 @@ export class InstanceMetadata {
     type: 'int',
   })
   memSizeMB: number;
+
+  @Column({
+    type: 'boolean',
+  })
+  ebsOptimized: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: RootDeviceType,
+  })
+  rootDeviceType: RootDeviceType;
+
+  @Column({
+    nullable: true,
+  })
+  rootDeviceName?: string;
 }

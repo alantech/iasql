@@ -1,7 +1,7 @@
 import { Instance as AWSInstance } from '@aws-sdk/client-ec2'
 
 import { AwsEc2Module, } from '../aws_ec2'
-import { Architecture, InstanceMetadata } from './entity'
+import { Architecture, InstanceMetadata, RootDeviceType } from './entity'
 import { AWS } from '../../../services/gateways/aws_2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
@@ -29,6 +29,9 @@ export const AwsEc2MetadataModule: Module2 = new Module2({
       if (!instance.InstanceType) return undefined;
       const instanceType = await client.getInstanceType(instance.InstanceType);
       out.memSizeMB = instanceType?.MemoryInfo?.SizeInMiB as number;
+      out.ebsOptimized = instance.EbsOptimized ?? false;
+      out.rootDeviceName = instance.RootDeviceName ?? '';
+      out.rootDeviceType = instance.RootDeviceType as RootDeviceType ?? RootDeviceType.EBS;
       return out;
     },
   },
