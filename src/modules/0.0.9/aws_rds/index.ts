@@ -1,6 +1,6 @@
 import { CreateDBInstanceCommandInput, CreateDBParameterGroupCommandInput, DBParameterGroup, ModifyDBInstanceCommandInput, Parameter } from '@aws-sdk/client-rds'
 
-import { AWS, } from '../../../services/gateways/aws'
+import { AWS, } from '../../../services/gateways/aws_2'
 import { ParameterGroup, ParameterGroupFamily, RDS, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsSecurityGroupModule } from '..'
@@ -231,7 +231,7 @@ export const AwsRdsModule: Module2 = new Module2({
             };
             const result = await client.createDBParameterGroup(parameterGroupInput);
             // Re-get the inserted record to get all of the relevant records we care about
-            const newObject = await client.getDBParameterGroupV2(result?.DBParameterGroupName ?? '');
+            const newObject = await client.getDBParameterGroup(result?.DBParameterGroupName ?? '');
             // We map this into the same kind of entity as `obj`
             const newEntity = AwsRdsModule.utils.parameterGroupMapper(newObject, ctx);
             // Save the record back into the database to get the new fields updated
@@ -243,11 +243,11 @@ export const AwsRdsModule: Module2 = new Module2({
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
-            const parameterGroup = await client.getDBParameterGroupV2(id);
+            const parameterGroup = await client.getDBParameterGroup(id);
             if (!parameterGroup) return;
             return AwsRdsModule.utils.parameterGroupMapper(parameterGroup, ctx);
           } else {
-            const parameterGroups = await client.getDBParameterGroupsV2();
+            const parameterGroups = await client.getDBParameterGroups();
             const out = [];
             for (const pg of parameterGroups) {
               out.push(AwsRdsModule.utils.parameterGroupMapper(pg, ctx));

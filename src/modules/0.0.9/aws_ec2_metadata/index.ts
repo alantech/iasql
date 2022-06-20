@@ -2,7 +2,7 @@ import { Instance as AWSInstance } from '@aws-sdk/client-ec2'
 
 import { AwsEc2Module, } from '../aws_ec2'
 import { Architecture, InstanceMetadata } from './entity'
-import { AWS } from '../../../services/gateways/aws'
+import { AWS } from '../../../services/gateways/aws_2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 

@@ -1,4 +1,4 @@
-import { AWS } from '../../../services/gateways/aws';
+import { AWS } from '../../../services/gateways/aws_2';
 import cloudCreateFns from './cloud_create_fns';
 import cloudDeleteFns from './cloud_delete_fns';
 

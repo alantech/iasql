@@ -1,6 +1,6 @@
 import { Service as AwsService } from '@aws-sdk/client-ecs'
 
-import { AWS, } from '../../../services/gateways/aws'
+import { AWS, } from '../../../services/gateways/aws_2'
 import logger from '../../../services/logger'
 import { EcsSimplified } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'

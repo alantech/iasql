@@ -1,7 +1,7 @@
 import { Repository as RepositoryAws, } from '@aws-sdk/client-ecr'
 import { Repository as PublicRepositoryAws, } from '@aws-sdk/client-ecr-public'
 
-import { AWS, } from '../../../services/gateways/aws'
+import { AWS, } from '../../../services/gateways/aws_2'
 import logger from '../../../services/logger'
 import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'

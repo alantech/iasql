@@ -1,191 +1,112 @@
 import {
   // DescribeInstanceTypesRequest,
   // TerminateInstancesRequest,
-  AuthorizeSecurityGroupEgressCommand,
   AuthorizeSecurityGroupEgressCommandInput,
-  AuthorizeSecurityGroupIngressCommand,
   AuthorizeSecurityGroupIngressCommandInput,
   AvailabilityZone,
-  CreateSecurityGroupCommand,
   CreateSecurityGroupRequest,
-  CreateSubnetCommand,
   CreateSubnetCommandInput,
-  CreateVpcCommand,
   CreateVpcCommandInput,
-  DeleteSecurityGroupCommand,
   DeleteSecurityGroupRequest,
-  DeleteSubnetCommand,
   DeleteSubnetCommandInput,
-  DeleteVpcCommand,
   DeleteVpcCommandInput,
-  DescribeAvailabilityZonesCommand,
-  DescribeImagesCommand,
-  DescribeInstanceTypesCommand,
-  DescribeInstancesCommand,
-  DescribeRegionsCommand,
-  DescribeSecurityGroupRulesCommand,
-  DescribeSecurityGroupsCommand,
-  DescribeSubnetsCommand,
-  DescribeVpcsCommand,
-  EC2Client,
-  ModifySecurityGroupRulesCommand,
   ModifySecurityGroupRulesCommandInput,
   ModifySecurityGroupRulesCommandOutput,
-  RevokeSecurityGroupEgressCommand,
   RevokeSecurityGroupEgressCommandInput,
-  RevokeSecurityGroupIngressCommand,
   RevokeSecurityGroupIngressCommandInput,
-  RunInstancesCommand,
   RunInstancesCommandInput,
-  TerminateInstancesCommand,
   paginateDescribeInstanceTypes,
   paginateDescribeInstances,
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
   paginateDescribeSubnets,
   paginateDescribeVpcs,
-  DescribeNetworkInterfacesCommand,
   EC2,
   Tag,
   AllocateAddressCommandInput,
   CreateNatGatewayCommandInput,
-  DescribeNatGatewaysCommand,
   NatGatewayState,
   paginateDescribeNatGateways,
+  DescribeInstancesCommandInput,
+  DescribeNetworkInterfacesCommandInput,
+  DescribeNatGatewaysCommandInput,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
-  CreateRepositoryCommand,
   CreateRepositoryCommandInput,
-  DeleteRepositoryCommand,
-  DeleteRepositoryPolicyCommand,
-  DescribeRepositoriesCommand,
-  ECRClient,
-  GetRepositoryPolicyCommand,
+  ECR,
   paginateDescribeRepositories,
-  PutImageScanningConfigurationCommand,
-  PutImageTagMutabilityCommand,
-  SetRepositoryPolicyCommand,
   SetRepositoryPolicyCommandInput
 } from '@aws-sdk/client-ecr'
 import {
-  CreateListenerCommand,
   CreateListenerCommandInput,
-  CreateLoadBalancerCommand,
   CreateLoadBalancerCommandInput,
-  CreateTargetGroupCommand,
   CreateTargetGroupCommandInput,
-  DeleteListenerCommand,
-  DeleteLoadBalancerCommand,
-  DeleteTargetGroupCommand,
-  DeregisterTargetsCommand,
-  DescribeListenersCommand,
-  DescribeLoadBalancersCommand,
-  DescribeTargetGroupsCommand,
-  DescribeTargetHealthCommand,
-  ElasticLoadBalancingV2Client,
-  ModifyListenerCommand,
+  DescribeLoadBalancersCommandInput,
+  ElasticLoadBalancingV2,
   ModifyListenerCommandInput,
-  ModifyTargetGroupCommand,
   ModifyTargetGroupCommandInput,
   paginateDescribeListeners,
   paginateDescribeLoadBalancers,
   paginateDescribeTargetGroups,
-  RegisterTargetsCommand,
-  SetIpAddressTypeCommand,
   SetIpAddressTypeCommandInput,
-  SetSecurityGroupsCommand,
   SetSecurityGroupsCommandInput,
-  SetSubnetsCommand,
   SetSubnetsCommandInput,
   TargetTypeEnum,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 import {
-  CreateClusterCommand,
   CreateClusterCommandInput,
-  CreateServiceCommand,
   CreateServiceCommandInput,
-  DeleteClusterCommand,
-  DeleteServiceCommand,
-  DeregisterTaskDefinitionCommand,
-  DescribeClustersCommand,
-  DescribeServicesCommand,
-  DescribeTaskDefinitionCommand,
-  DescribeTasksCommand,
-  ECSClient,
+  DescribeServicesCommandInput,
+  ECS,
   paginateListClusters,
   paginateListServices,
   paginateListTaskDefinitions,
   paginateListTasks,
-  RegisterTaskDefinitionCommand,
   RegisterTaskDefinitionCommandInput,
-  UpdateServiceCommand,
   UpdateServiceCommandInput,
   waitUntilTasksStopped,
 } from '@aws-sdk/client-ecs'
 
 import {
-  CreateDBInstanceCommand,
   CreateDBInstanceCommandInput,
-  DeleteDBInstanceCommand,
   DeleteDBInstanceMessage,
-  DescribeDBInstancesCommand,
   paginateDescribeDBInstances,
-  RDSClient,
   paginateDescribeDBEngineVersions,
-  DescribeDBEngineVersionsCommand,
-  ModifyDBInstanceCommand,
   ModifyDBInstanceCommandInput,
-  DescribeDBParameterGroupsCommand,
-  CreateDBParameterGroupCommand,
   CreateDBParameterGroupCommandInput,
   paginateDescribeDBParameterGroups,
-  DeleteDBParameterGroupCommand,
   paginateDescribeDBParameters,
-  ModifyDBParameterGroupCommand,
   Parameter,
+  RDS,
+  DescribeDBInstancesCommandInput,
 } from '@aws-sdk/client-rds'
 import {
-  CloudWatchLogsClient,
-  CreateLogGroupCommand,
-  DeleteLogGroupCommand,
+  CloudWatchLogs,
   paginateDescribeLogGroups,
 } from '@aws-sdk/client-cloudwatch-logs'
 import {
-  CreateRepositoryCommand as CreatePubRepositoryCommand,
   CreateRepositoryCommandInput as CreatePubRepositoryCommandInput,
-  DeleteRepositoryCommand as DeletePubRepositoryCommand,
-  DescribeRepositoriesCommand as DescribePubRepositoriesCommand,
-  ECRPUBLICClient,
+  ECRPUBLIC,
   paginateDescribeRepositories as paginateDescribePubRepositories,
 } from '@aws-sdk/client-ecr-public'
 import {
   ChangeAction,
-  ChangeResourceRecordSetsCommand,
-  CreateHostedZoneCommand,
+  ChangeResourceRecordSetsCommandInput,
   CreateHostedZoneCommandInput,
-  DeleteHostedZoneCommand,
-  GetHostedZoneCommand,
-  ListResourceRecordSetsCommand,
   ListResourceRecordSetsCommandInput,
   paginateListHostedZones,
   ResourceRecordSet,
-  Route53Client
+  Route53,
 } from '@aws-sdk/client-route-53'
 import { IAM, paginateListRoles, } from '@aws-sdk/client-iam'
 import {
-  ACMClient,
-  DeleteCertificateCommand,
-  DescribeCertificateCommand,
-  ImportCertificateCommand,
+  ACM,
   ImportCertificateCommandInput,
   paginateListCertificates
 } from '@aws-sdk/client-acm'
 import {
-  S3Client,
-  ListBucketsCommand,
-  CreateBucketCommand,
-  DeleteBucketCommand,
+  S3,
 } from '@aws-sdk/client-s3'
 
 import logger from '../logger'
@@ -204,16 +125,16 @@ export const IASQL_EC2_TAG_NAME = 'IaSQL_Name';
 
 export class AWS {
   private ec2client: EC2
-  private ecrClient: ECRClient
-  private elbClient: ElasticLoadBalancingV2Client
-  private ecsClient: ECSClient
-  private rdsClient: RDSClient
-  private cwClient: CloudWatchLogsClient
-  private ecrPubClient: ECRPUBLICClient
-  private route53Client: Route53Client
+  private ecrClient: ECR
+  private elbClient: ElasticLoadBalancingV2
+  private ecsClient: ECS
+  private rdsClient: RDS
+  private cwClient: CloudWatchLogs
+  private ecrPubClient: ECRPUBLIC
+  private route53Client: Route53
   private iamClient: IAM;
-  private acmClient: ACMClient
-  private s3Client: S3Client
+  private acmClient: ACM
+  private s3Client: S3
   private credentials: AWSCreds
   public region: string
 
@@ -221,18 +142,18 @@ export class AWS {
     this.credentials = config.credentials;
     this.region = config.region;
     this.ec2client = new EC2(config);
-    this.ecrClient = new ECRClient(config);
-    this.elbClient = new ElasticLoadBalancingV2Client(config);
-    this.ecsClient = new ECSClient(config);
-    this.rdsClient = new RDSClient(config);
-    this.cwClient = new CloudWatchLogsClient(config);
-    this.route53Client = new Route53Client(config);
+    this.ecrClient = new ECR(config);
+    this.elbClient = new ElasticLoadBalancingV2(config);
+    this.ecsClient = new ECS(config);
+    this.rdsClient = new RDS(config);
+    this.cwClient = new CloudWatchLogs(config);
+    this.route53Client = new Route53(config);
     this.iamClient = new IAM(config);
-    this.acmClient = new ACMClient(config);
+    this.acmClient = new ACM(config);
     // Technically available in multiple regions but with weird constraints, and the default is us-east-1
-    this.s3Client = new S3Client({ ...config, region: 'us-east-1', });
+    this.s3Client = new S3({ ...config, region: 'us-east-1', });
     // Service endpoint only available in 'us-east-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
-    this.ecrPubClient = new ECRPUBLICClient({credentials: config.credentials, region: 'us-east-1'});
+    this.ecrPubClient = new ECRPUBLIC({credentials: config.credentials, region: 'us-east-1'});
   }
 
   async newRole(name: string, assumeRolePolicyDocument: string, attachedPolicyArns: string[], description: string): Promise<string> {
@@ -318,34 +239,14 @@ export class AWS {
     await this.iamClient.deleteRole({RoleName: name});
   }
 
-  async newInstance(name: string, instanceType: string, amiId: string, securityGroupIds: string[], keyPairName?: string): Promise<string> {
-    const instanceParams: RunInstancesCommandInput = {
-      ImageId: amiId,
-      InstanceType: instanceType,
-      MinCount: 1,
-      MaxCount: 1,
-      SecurityGroupIds: securityGroupIds,
-      TagSpecifications: [
-        {
-          ResourceType: 'instance',
-          Tags: [
-            { Key: IASQL_EC2_TAG_NAME, Value: name },
-            { Key: 'owner', Value: 'iasql-change-engine' },
-          ],
-        },
-      ],
-      UserData: undefined,
-    };
-    if (keyPairName) instanceParams.KeyName = keyPairName;
-    const create = await this.ec2client.send(
-      new RunInstancesCommand(instanceParams),
-    );
+  async newInstance(newInstancesInput: RunInstancesCommandInput): Promise<string> {
+    const create = await this.ec2client.runInstances(newInstancesInput);
     const instanceIds: string[] | undefined = create.Instances?.map((i) => i?.InstanceId ?? '');
-    const input = new DescribeInstancesCommand({
+    const input: DescribeInstancesCommandInput = {
       InstanceIds: instanceIds,
-    });
+    };
     // TODO: should we use the paginator instead?
-    await createWaiter<EC2Client, DescribeInstancesCommand>(
+    await createWaiter<EC2, DescribeInstancesCommandInput>(
       {
         client: this.ec2client,
         // all in seconds
@@ -356,69 +257,7 @@ export class AWS {
       input,
       async (client, cmd) => {
         try {
-          const data = await client.send(cmd);
-          for (const reservation of data?.Reservations ?? []) {
-            for (const instance of reservation?.Instances ?? []) {
-              if (instance.PublicIpAddress === undefined)
-                return { state: WaiterState.RETRY };
-            }
-          }
-          return { state: WaiterState.SUCCESS };
-        } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.RETRY };
-          throw e;
-        }
-      },
-    );
-    return instanceIds?.pop() ?? ''
-  }
-
-  async newInstanceV2(instanceType: string, amiId: string, securityGroupIds: string[], keyPairName?: string, tags?: { [key: string] : string }): Promise<string> {
-    let tgs: Tag[] = [];
-    if (tags) {
-      tags.owner = 'iasql-engine';
-      tgs = Object.keys(tags).map(k => {
-        return {
-          Key: k, Value: tags[k]
-        }
-      });
-    }
-    const instanceParams: RunInstancesCommandInput = {
-      ImageId: amiId,
-      InstanceType: instanceType,
-      MinCount: 1,
-      MaxCount: 1,
-      SecurityGroupIds: securityGroupIds,
-      TagSpecifications: [
-        {
-          ResourceType: 'instance',
-          Tags: tgs,
-        },
-      ],
-      UserData: undefined,
-    };
-    if (keyPairName) instanceParams.KeyName = keyPairName;
-    const create = await this.ec2client.send(
-      new RunInstancesCommand(instanceParams),
-    );
-    const instanceIds: string[] | undefined = create.Instances?.map((i) => i?.InstanceId ?? '');
-    const input = new DescribeInstancesCommand({
-      InstanceIds: instanceIds,
-    });
-    // TODO: should we use the paginator instead?
-    await createWaiter<EC2Client, DescribeInstancesCommand>(
-      {
-        client: this.ec2client,
-        // all in seconds
-        maxWaitTime: 300,
-        minDelay: 1,
-        maxDelay: 4,
-      },
-      input,
-      async (client, cmd) => {
-        try {
-          const data = await client.send(cmd);
+          const data = await client.describeInstances(cmd);
           for (const reservation of data?.Reservations ?? []) {
             for (const instance of reservation?.Instances ?? []) {
               if (instance.PublicIpAddress === undefined || instance.State?.Name !== 'running')
@@ -436,76 +275,15 @@ export class AWS {
     return instanceIds?.pop() ?? ''
   }
 
-  async newInstanceV3(instanceType: string, amiId: string, securityGroupIds: string[], userData: string | undefined, keyPairName?: string, tags?: { [key: string] : string }): Promise<string> {
-    let tgs: Tag[] = [];
-    if (tags) {
-      tags.owner = 'iasql-engine';
-      tgs = Object.keys(tags).map(k => {
-        return {
-          Key: k, Value: tags[k]
-        }
-      });
-    }
-    const instanceParams: RunInstancesCommandInput = {
-      ImageId: amiId,
-      InstanceType: instanceType,
-      MinCount: 1,
-      MaxCount: 1,
-      SecurityGroupIds: securityGroupIds,
-      TagSpecifications: [
-        {
-          ResourceType: 'instance',
-          Tags: tgs,
-        },
-      ],
-      UserData: userData,
-    };
-    if (keyPairName) instanceParams.KeyName = keyPairName;
-    const create = await this.ec2client.send(
-      new RunInstancesCommand(instanceParams),
-    );
-    const instanceIds: string[] | undefined = create.Instances?.map((i) => i?.InstanceId ?? '');
-    const input = new DescribeInstancesCommand({
-      InstanceIds: instanceIds,
-    });
-    // TODO: should we use the paginator instead?
-    await createWaiter<EC2Client, DescribeInstancesCommand>(
-      {
-        client: this.ec2client,
-        // all in seconds
-        maxWaitTime: 300,
-        minDelay: 1,
-        maxDelay: 4,
-      },
-      input,
-      async (client, cmd) => {
-        try {
-          const data = await client.send(cmd);
-          for (const reservation of data?.Reservations ?? []) {
-            for (const instance of reservation?.Instances ?? []) {
-              if (instance.PublicIpAddress === undefined || instance.State?.Name !== 'running')
-                return { state: WaiterState.RETRY };
-            }
-          }
-          return { state: WaiterState.SUCCESS };
-        } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.RETRY };
-          throw e;
-        }
-      },
-    );
-    return instanceIds?.pop() ?? ''
-  }
 
   async startInstance(instanceId: string) {
     await this.ec2client.startInstances({
       InstanceIds: [instanceId],
     });
-    const input = new DescribeInstancesCommand({
+    const input: DescribeInstancesCommandInput = {
       InstanceIds: [instanceId],
-    });
-    await createWaiter<EC2Client, DescribeInstancesCommand>(
+    };
+    await createWaiter<EC2, DescribeInstancesCommandInput>(
       {
         client: this.ec2client,
         // all in seconds
@@ -516,7 +294,7 @@ export class AWS {
       input,
       async (client, cmd) => {
         try {
-          const data = await client.send(cmd);
+          const data = await client.describeInstances(cmd);
           for (const reservation of data?.Reservations ?? []) {
             for (const instance of reservation?.Instances ?? []) {
               if (instance.State?.Name !== 'running')
@@ -538,10 +316,10 @@ export class AWS {
       InstanceIds: [instanceId],
       Hibernate: hibernate,
     });
-    const input = new DescribeInstancesCommand({
+    const input: DescribeInstancesCommandInput = {
       InstanceIds: [instanceId],
-    });
-    await createWaiter<EC2Client, DescribeInstancesCommand>(
+    };
+    await createWaiter<EC2, DescribeInstancesCommandInput>(
       {
         client: this.ec2client,
         // all in seconds
@@ -552,7 +330,7 @@ export class AWS {
       input,
       async (client, cmd) => {
         try {
-          const data = await client.send(cmd);
+          const data = await client.describeInstances(cmd);
           for (const reservation of data?.Reservations ?? []) {
             for (const instance of reservation?.Instances ?? []) {
               if (instance.State?.Name !== 'stopped')
@@ -613,16 +391,12 @@ export class AWS {
   }
 
   async getInstance(id: string) {
-    const reservations = await this.ec2client.send(
-      new DescribeInstancesCommand({ InstanceIds: [id], })
-    );
+    const reservations = await this.ec2client.describeInstances({ InstanceIds: [id], });
     return (reservations?.Reservations?.map(r => r.Instances?.map(i => i)) ?? []).pop()?.pop();
   }
 
   async terminateInstance(id: string) {
-    const response = await this.ec2client.send(
-      new TerminateInstancesCommand({ InstanceIds: [id], })
-    );
+    const response = await this.ec2client.terminateInstances({ InstanceIds: [id], });
     return (response?.TerminatingInstances ?? []).pop();
   }
 
@@ -641,42 +415,40 @@ export class AWS {
   }
 
   async getInstanceType(instanceType: string) {
-    return (await this.ec2client.send(
-      new DescribeInstanceTypesCommand({
-        InstanceTypes: [instanceType,],
-      })
-    ))?.InstanceTypes?.[0];
+    return (await this.ec2client.describeInstanceTypes({
+      InstanceTypes: [instanceType,],
+    }))?.InstanceTypes?.[0];
   }
 
   async getAMIs() {
-    return await this.ec2client.send(new DescribeImagesCommand({}));
+    return this.ec2client.describeImages({});
   }
 
   async getAMI(imageId: string) {
-    return (await this.ec2client.send(new DescribeImagesCommand({
+    return (await this.ec2client.describeImages({
       ImageIds: [imageId,],
-    })))?.Images?.[0];
+    }))?.Images?.[0];
   }
 
   async getRegions() {
-    return await this.ec2client.send(new DescribeRegionsCommand({ AllRegions: true, }));
+    return await this.ec2client.describeRegions(({ AllRegions: true, }));
   }
 
   async getRegion(regionName: string) {
-    return (await this.ec2client.send(new DescribeRegionsCommand({
+    return (await this.ec2client.describeRegions({
       RegionNames: [regionName,],
-    })))?.Regions?.[0];
+    }))?.Regions?.[0];
   }
 
   async getAvailabilityZones(regions: string[]): Promise<AvailabilityZone[]> {
     let availabilityZones: AvailabilityZone[] = [];
     for (const region of regions) {
       try {
-        const client = new EC2Client({
+        const client = new EC2({
           credentials: this.credentials,
           region
         });
-        const regionAZs = await client.send(new DescribeAvailabilityZonesCommand({ AllAvailabilityZones: true, }));
+        const regionAZs = await client.describeAvailabilityZones({ AllAvailabilityZones: true, });
         availabilityZones = availabilityZones.concat(regionAZs.AvailabilityZones ?? []);
       } catch (e) {
         logger.info(`Could not get availability zones for region: ${region}. Error: ${e}`);
@@ -700,44 +472,34 @@ export class AWS {
   }
 
   async getSecurityGroup(id: string) {
-    const group = await this.ec2client.send(
-      new DescribeSecurityGroupsCommand({ GroupIds: [id], })
-    );
+    const group = await this.ec2client.describeSecurityGroups({ GroupIds: [id], });
     return (group?.SecurityGroups ?? [])[0];
   }
 
   async createSecurityGroup(instanceParams: CreateSecurityGroupRequest) {
-    return await this.ec2client.send(
-      new CreateSecurityGroupCommand(instanceParams),
-    );
+    return this.ec2client.createSecurityGroup(instanceParams);
   }
 
   async deleteSecurityGroup(instanceParams: DeleteSecurityGroupRequest) {
     try {
-      return await this.ec2client.send(
-        new DeleteSecurityGroupCommand(instanceParams),
-      );
+      return this.ec2client.deleteSecurityGroup(instanceParams);
     } catch(e: any) {
       if (e.Code === 'DependencyViolation') {
         // Just wait for 5 min on every dependency violation and retry
         await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
         try {
-          return await this.ec2client.send(
-            new DeleteSecurityGroupCommand(instanceParams),
-          );
+          return this.ec2client.deleteSecurityGroup(instanceParams);
         } catch (e2: any) {
           // If the dependency continues we add the dependency to the error message in order to debug what is happening
           if (e2.Code === 'DependencyViolation') {
-            const sgEniInfo = await this.ec2client.send(
-              new DescribeNetworkInterfacesCommand({
-                Filters: [
-                  {
-                    Name: 'group-id',
-                    Values: [`${instanceParams.GroupId}`]
-                  }
-                ]
-              })
-            );
+            const sgEniInfo = await this.ec2client.describeNetworkInterfaces({
+              Filters: [
+                {
+                  Name: 'group-id',
+                  Values: [`${instanceParams.GroupId}`]
+                }
+              ]
+            });
             const eniMessage = `Network interfaces associated with security group ${instanceParams.GroupId}: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
             e2.message = `${e2.message} | ${eniMessage}`;
           }
@@ -784,18 +546,14 @@ export class AWS {
   }
 
   async getSecurityGroupRule(id: string) {
-    const rule = await this.ec2client.send(
-      new DescribeSecurityGroupRulesCommand({ SecurityGroupRuleIds: [id], })
-    );
+    const rule = await this.ec2client.describeSecurityGroupRules({ SecurityGroupRuleIds: [id], });
     return (rule?.SecurityGroupRules ?? [])[0];
   }
 
   async createSecurityGroupEgressRules(is: AuthorizeSecurityGroupEgressCommandInput[]) {
     const reses = [];
     for (const i of is) {
-      const res = await this.ec2client.send(
-        new AuthorizeSecurityGroupEgressCommand(i)
-      );
+      const res = await this.ec2client.authorizeSecurityGroupEgress(i);
       reses.push(res);
     }
     return reses;
@@ -804,9 +562,7 @@ export class AWS {
   async createSecurityGroupIngressRules(is: AuthorizeSecurityGroupIngressCommandInput[]) {
     const reses = [];
     for (const i of is) {
-      const res = await this.ec2client.send(
-        new AuthorizeSecurityGroupIngressCommand(i)
-      );
+      const res = await this.ec2client.authorizeSecurityGroupIngress(i);
       reses.push(res);
     }
     return reses;
@@ -815,9 +571,7 @@ export class AWS {
   async deleteSecurityGroupEgressRules(is: RevokeSecurityGroupEgressCommandInput[]) {
     const reses = [];
     for (const i of is) {
-      const res = await this.ec2client.send(
-        new RevokeSecurityGroupEgressCommand(i)
-      );
+      const res = await this.ec2client.revokeSecurityGroupEgress(i);
       reses.push(res);
     }
     return reses;
@@ -826,47 +580,35 @@ export class AWS {
   async deleteSecurityGroupIngressRules(is: RevokeSecurityGroupIngressCommandInput[]) {
     const reses = [];
     for (const i of is) {
-      const res = await this.ec2client.send(
-        new RevokeSecurityGroupIngressCommand(i)
-      );
+      const res = await this.ec2client.revokeSecurityGroupIngress(i);
       reses.push(res);
     }
     return reses;
   }
 
   async modifySecurityGroupRules(i: ModifySecurityGroupRulesCommandInput): Promise<ModifySecurityGroupRulesCommandOutput> {
-    return await this.ec2client.send(
-      new ModifySecurityGroupRulesCommand(i),
-    );
+    return this.ec2client.modifySecurityGroupRules(i);
   }
 
   async createECRRepository(input: CreateRepositoryCommandInput) {
-    const repository = await this.ecrClient.send(
-      new CreateRepositoryCommand(input),
-    );
+    const repository = await this.ecrClient.createRepository(input);
     return repository.repository;
   }
 
   async updateECRRepositoryImageScanningConfiguration(repositoryName: string, scanOnPush: boolean) {
-    await this.ecrClient.send(
-      new PutImageScanningConfigurationCommand({
-        repositoryName,
-        imageScanningConfiguration: { scanOnPush }
-      }),
-    );
-    const repository = await this.getECRRepository(repositoryName);
-    return repository;
+    await this.ecrClient.putImageScanningConfiguration({
+      repositoryName,
+      imageScanningConfiguration: { scanOnPush }
+    });
+    return this.getECRRepository(repositoryName);
   }
 
   async updateECRRepositoryImageTagMutability(repositoryName: string, imageTagMutability: string) {
-    await this.ecrClient.send(
-      new PutImageTagMutabilityCommand({
-        repositoryName,
-        imageTagMutability,
-      }),
-    );
-    const repository = await this.getECRRepository(repositoryName);
-    return repository;
+    await this.ecrClient.putImageTagMutability({
+      repositoryName,
+      imageTagMutability,
+    });
+    return this.getECRRepository(repositoryName);
   }
 
   async getECRRepositories() {
@@ -884,58 +626,41 @@ export class AWS {
   }
 
   async getECRRepository(name: string) {
-    const repositories = await this.ecrClient.send(
-      new DescribeRepositoriesCommand({
-        repositoryNames: [name],
-      }),
-    );
+    const repositories = await this.ecrClient.describeRepositories({
+      repositoryNames: [name],
+    });
     return (repositories.repositories ?? [])[0];
   }
 
   async deleteECRRepository(name: string) {
-    return await this.ecrClient.send(
-      new DeleteRepositoryCommand({
-        repositoryName: name,
-      }),
-    );
+    return this.ecrClient.deleteRepository({
+      repositoryName: name,
+    });
   }
 
   async getECRRepositoryPolicy(repositoryName: string) {
-    const policy = await this.ecrClient.send(
-      new GetRepositoryPolicyCommand({
-        repositoryName,
-      })
-    );
-    return policy;
+    return this.ecrClient.getRepositoryPolicy({
+      repositoryName,
+    });
   }
 
   async setECRRepositoryPolicy(input: SetRepositoryPolicyCommandInput) {
-    const policy = await this.ecrClient.send(
-      new SetRepositoryPolicyCommand(input)
-    );
-    return policy;
+    return this.ecrClient.setRepositoryPolicy(input);
   }
 
   async deleteECRRepositoryPolicy(repositoryName: string) {
-    const policy = await this.ecrClient.send(
-      new DeleteRepositoryPolicyCommand({
-        repositoryName,
-      })
-    );
-    return policy;
+    return this.ecrClient.deleteRepositoryPolicy({
+      repositoryName,
+    });
   }
 
   async createListener(input: CreateListenerCommandInput) {
-    const create = await this.elbClient.send(
-      new CreateListenerCommand(input),
-    );
+    const create = await this.elbClient.createListener(input);
     return create?.Listeners?.pop() ?? null;
   }
 
   async updateListener(input: ModifyListenerCommandInput) {
-    const update = await this.elbClient.send(
-      new ModifyListenerCommand(input),
-    );
+    const update = await this.elbClient.modifyListener(input);
     return update?.Listeners?.pop() ?? null;
   }
 
@@ -958,29 +683,23 @@ export class AWS {
   }
 
   async getListener(arn: string) {
-    const result = await this.elbClient.send(
-      new DescribeListenersCommand({ ListenerArns: [arn], })
-    );
+    const result = await this.elbClient.describeListeners({ ListenerArns: [arn], });
     return result?.Listeners?.[0];
   }
 
   async deleteListener(arn: string) {
-    await this.elbClient.send(
-      new DeleteListenerCommand({ ListenerArn: arn, })
-    );
+    await this.elbClient.deleteListener({ ListenerArn: arn, });
   }
 
   async createLoadBalancer(input: CreateLoadBalancerCommandInput) {
-    const create = await this.elbClient.send(
-      new CreateLoadBalancerCommand(input),
-    );
+    const create = await this.elbClient.createLoadBalancer(input);
     let loadBalancer = create?.LoadBalancers?.pop() ?? null;
     if (!loadBalancer) return loadBalancer;
-    const waiterInput = new DescribeLoadBalancersCommand({
+    const waiterInput: DescribeLoadBalancersCommandInput = {
       LoadBalancerArns: [loadBalancer?.LoadBalancerArn!],
-    });
+    };
     // TODO: should we use the paginator instead?
-    await createWaiter<ElasticLoadBalancingV2Client, DescribeLoadBalancersCommand>(
+    await createWaiter<ElasticLoadBalancingV2, DescribeLoadBalancersCommandInput>(
       {
         client: this.elbClient,
         // all in seconds
@@ -991,7 +710,7 @@ export class AWS {
       waiterInput,
       async (client, cmd) => {
         try {
-          const data = await client.send(cmd);
+          const data = await client.describeLoadBalancers(cmd);
           for (const lb of data?.LoadBalancers ?? []) {
             if (lb.State?.Code !== 'active')
               return { state: WaiterState.RETRY };
@@ -1007,27 +726,18 @@ export class AWS {
   }
 
   async updateLoadBalancerIPAddressType(input: SetIpAddressTypeCommandInput) {
-    await this.elbClient.send(
-      new SetIpAddressTypeCommand(input),
-    );
-    const loadBalancer = await this.getLoadBalancer(input.LoadBalancerArn!);
-    return loadBalancer;
+    await this.elbClient.setIpAddressType(input);
+    return this.getLoadBalancer(input.LoadBalancerArn!);
   }
 
   async updateLoadBalancerSubnets(input: SetSubnetsCommandInput) {
-    await this.elbClient.send(
-      new SetSubnetsCommand(input),
-    );
-    const loadBalancer = await this.getLoadBalancer(input.LoadBalancerArn!);
-    return loadBalancer;
+    await this.elbClient.setSubnets(input);
+    return this.getLoadBalancer(input.LoadBalancerArn!);
   }
 
   async updateLoadBalancerSecurityGroups(input: SetSecurityGroupsCommandInput) {
-    await this.elbClient.send(
-      new SetSecurityGroupsCommand(input),
-    );
-    const loadBalancer = await this.getLoadBalancer(input.LoadBalancerArn!);
-    return loadBalancer;
+    await this.elbClient.setSecurityGroups(input);
+    return this.getLoadBalancer(input.LoadBalancerArn!);
   }
 
   async getLoadBalancers() {
@@ -1045,19 +755,15 @@ export class AWS {
   }
 
   async getLoadBalancer(arn: string) {
-    const result = await this.elbClient.send(
-      new DescribeLoadBalancersCommand({ LoadBalancerArns: [arn], })
-    );
+    const result = await this.elbClient.describeLoadBalancers({ LoadBalancerArns: [arn], });
     return result?.LoadBalancers?.[0];
   }
 
   async deleteLoadBalancer(arn: string) {
-    await this.elbClient.send(
-      new DeleteLoadBalancerCommand({ LoadBalancerArn: arn, })
-    );
+    await this.elbClient.deleteLoadBalancer({ LoadBalancerArn: arn, });
     // We wait it is completely deleted to avoid issues deleting dependent resources.
-    const input = new DescribeLoadBalancersCommand({ LoadBalancerArns: [arn], });
-    await createWaiter<ElasticLoadBalancingV2Client, DescribeLoadBalancersCommand>(
+    const input: DescribeLoadBalancersCommandInput = { LoadBalancerArns: [arn], };
+    await createWaiter<ElasticLoadBalancingV2, DescribeLoadBalancersCommandInput>(
       {
         client: this.elbClient,
         // all in seconds
@@ -1068,7 +774,7 @@ export class AWS {
       input,
       async (client, cmd) => {
         try {
-          await client.send(cmd);
+          await client.describeLoadBalancers(cmd);
           return { state: WaiterState.RETRY };
         } catch (_) {
           return { state: WaiterState.SUCCESS };
@@ -1077,15 +783,15 @@ export class AWS {
     );
     // Now we need wait the load balancer to be fully deattached from any network interface
     const loadBalancerName = arn.split(':loadbalancer/')?.[1] ?? '';
-    const describeEniCommand = new DescribeNetworkInterfacesCommand({
+    const describeEniCommand: DescribeNetworkInterfacesCommandInput = {
       Filters: [
         {
           Name: 'description',
           Values: [`*${loadBalancerName}`]
         }
       ]
-    });
-    await createWaiter<EC2Client, DescribeNetworkInterfacesCommand>(
+    };
+    await createWaiter<EC2, DescribeNetworkInterfacesCommandInput>(
       {
         client: this.ec2client,
         // all in seconds
@@ -1096,7 +802,7 @@ export class AWS {
       describeEniCommand,
       async (client, cmd) => {
         try {
-          const eni = await client.send(cmd);
+          const eni = await client.describeNetworkInterfaces(cmd);
           if (loadBalancerName && eni.NetworkInterfaces?.length) {
             return { state: WaiterState.RETRY };
           }
@@ -1109,16 +815,12 @@ export class AWS {
   }
 
   async createTargetGroup(input: CreateTargetGroupCommandInput) {
-    const create = await this.elbClient.send(
-      new CreateTargetGroupCommand(input),
-    );
+    const create = await this.elbClient.createTargetGroup(input);
     return create?.TargetGroups?.pop() ?? null;
   }
 
   async updateTargetGroup(input: ModifyTargetGroupCommandInput) {
-    const update = await this.elbClient.send(
-      new ModifyTargetGroupCommand(input),
-    );
+    const update = await this.elbClient.modifyTargetGroup(input);
     return update?.TargetGroups?.pop() ?? null;
   }
 
@@ -1137,16 +839,12 @@ export class AWS {
   }
 
   async getTargetGroup(arn: string) {
-    const result = await this.elbClient.send(
-      new DescribeTargetGroupsCommand({ TargetGroupArns: [arn], })
-    );
+    const result = await this.elbClient.describeTargetGroups({ TargetGroupArns: [arn], });
     return result?.TargetGroups?.[0];
   }
 
   async deleteTargetGroup(arn: string) {
-    await this.elbClient.send(
-      new DeleteTargetGroupCommand({ TargetGroupArn: arn, })
-    );
+    await this.elbClient.deleteTargetGroup({ TargetGroupArn: arn, });
   }
 
   async getVpcs() {
@@ -1164,22 +862,16 @@ export class AWS {
   }
 
   async getVpc(id: string) {
-    const vpcs = await this.ec2client.send(
-      new DescribeVpcsCommand({ VpcIds: [id], })
-    );
+    const vpcs = await this.ec2client.describeVpcs({ VpcIds: [id], });
     return vpcs?.Vpcs?.[0];
   }
 
   async createVpc(input: CreateVpcCommandInput) {
-    return await this.ec2client.send(
-      new CreateVpcCommand(input)
-    );
+    return this.ec2client.createVpc(input);
   }
 
   async deleteVpc(input: DeleteVpcCommandInput) {
-    return await this.ec2client.send(
-      new DeleteVpcCommand(input)
-    );
+    return this.ec2client.deleteVpc(input);
   }
 
   async getSubnets() {
@@ -1218,28 +910,20 @@ export class AWS {
   }
 
   async getSubnet(id: string) {
-    const subnets = await this.ec2client.send(
-      new DescribeSubnetsCommand({ SubnetIds: [id], })
-    );
+    const subnets = await this.ec2client.describeSubnets({ SubnetIds: [id], });
     return subnets?.Subnets?.[0];
   }
 
   async createSubnet(input: CreateSubnetCommandInput) {
-    return await this.ec2client.send(
-      new CreateSubnetCommand(input)
-    );
+    return this.ec2client.createSubnet(input);
   }
 
   async deleteSubnet(input: DeleteSubnetCommandInput) {
-    return await this.ec2client.send(
-      new DeleteSubnetCommand(input)
-    );
+    return this.ec2client.deleteSubnet(input);
   }
 
   async createCluster(input: CreateClusterCommandInput) {
-    const result = await this.ecsClient.send(
-      new CreateClusterCommand(input)
-    );
+    const result = await this.ecsClient.createCluster(input);
     return result.cluster;
   }
 
@@ -1252,20 +936,16 @@ export class AWS {
     for await (const page of paginator) {
       clusterArns.push(...(page.clusterArns ?? []));
     }
-    const result = await this.ecsClient.send(
-      new DescribeClustersCommand({
-        clusters: clusterArns
-      })
-    );
+    const result = await this.ecsClient.describeClusters({
+      clusters: clusterArns
+    });
     return result.clusters;
   }
 
   async getCluster(id: string) {
-    const cluster = await this.ecsClient.send(
-      new DescribeClustersCommand({
-        clusters: [id]
-      })
-    );
+    const cluster = await this.ecsClient.describeClusters({
+      clusters: [id]
+    });
     return cluster.clusters?.[0];
   }
 
@@ -1314,11 +994,9 @@ export class AWS {
         tasks,
       });
     }
-    await this.ecsClient.send(
-      new DeleteClusterCommand({
-        cluster: id,
-      })
-    );
+    await this.ecsClient.deleteCluster({
+      cluster: id,
+    });
   }
 
   async deleteClusterLin(id: string) {
@@ -1349,17 +1027,13 @@ export class AWS {
         tasks,
       });
     }
-    await this.ecsClient.send(
-      new DeleteClusterCommand({
-        cluster: id,
-      })
-    );
+    await this.ecsClient.deleteCluster({
+      cluster: id,
+    });
   }
 
   async createTaskDefinition(input: RegisterTaskDefinitionCommandInput) {
-    const taskDefinition = await this.ecsClient.send(
-      new RegisterTaskDefinitionCommand(input)
-    );
+    const taskDefinition = await this.ecsClient.registerTaskDefinition(input);
     return taskDefinition.taskDefinition;
   }
 
@@ -1395,33 +1069,25 @@ export class AWS {
 
   // :id could be `family:revision` or ARN
   async getTaskDefinition(id: string) {
-    const taskDefinition = await this.ecsClient.send(
-      new DescribeTaskDefinitionCommand({
-        taskDefinition: id
-      })
-    );
+    const taskDefinition = await this.ecsClient.describeTaskDefinition({
+      taskDefinition: id
+    });
     return taskDefinition.taskDefinition;
   }
 
   async deleteTaskDefinition(name: string) {
-    await this.ecsClient.send(
-      new DeregisterTaskDefinitionCommand({
-        taskDefinition: name
-      })
-    );
+    await this.ecsClient.deregisterTaskDefinition({
+      taskDefinition: name
+    });
   }
 
   async createService(input: CreateServiceCommandInput) {
-    const result = await this.ecsClient.send(
-      new CreateServiceCommand(input)
-    );
+    const result = await this.ecsClient.createService(input);
     return result.service;
   }
 
   async updateService(input: UpdateServiceCommandInput) {
-    const result = await this.ecsClient.send(
-      new UpdateServiceCommand(input)
-    );
+    const result = await this.ecsClient.updateService(input);
     return result.service;
   }
 
@@ -1443,21 +1109,17 @@ export class AWS {
         if (serviceArns.length > batchSize) {
           for (let i = 0; i < serviceArns.length; i += batchSize) {
             const batch = serviceArns.slice(i, i + batchSize);
-            const result = await this.ecsClient.send(
-              new DescribeServicesCommand({
-                cluster: id,
-                services: batch
-              })
-            );
+            const result = await this.ecsClient.describeServices({
+              cluster: id,
+              services: batch
+            });
             services.push(...(result.services ?? []));
           }
         } else {
-          const result = await this.ecsClient.send(
-            new DescribeServicesCommand({
-              cluster: id,
-              services: serviceArns
-            })
-          );
+          const result = await this.ecsClient.describeServices({
+            cluster: id,
+            services: serviceArns
+          });
           services.push(...(result.services ?? []));
         }
       }
@@ -1466,12 +1128,10 @@ export class AWS {
   }
 
   async getService(id: string, cluster: string) {
-    const result = await this.ecsClient.send(
-      new DescribeServicesCommand({
-        services: [id],
-        cluster,
-      })
-    );
+    const result = await this.ecsClient.describeServices({
+      services: [id],
+      cluster,
+    });
     return result.services?.[0];
   }
 
@@ -1492,21 +1152,17 @@ export class AWS {
       if (serviceArns.length > batchSize) {
         for (let i = 0; i < serviceArns.length; i += batchSize) {
           const batch = serviceArns.slice(i, i + batchSize);
-          const result = await this.ecsClient.send(
-            new DescribeServicesCommand({
-              cluster,
-              services: batch
-            })
-          );
+          const result = await this.ecsClient.describeServices({
+            cluster,
+            services: batch
+          });
           services.push(...(result.services ?? []));
         }
       } else {
-        const result = await this.ecsClient.send(
-          new DescribeServicesCommand({
-            cluster,
-            services: serviceArns
-          })
-        );
+        const result = await this.ecsClient.describeServices({
+          cluster,
+          services: serviceArns
+        });
         services.push(...(result.services ?? []));
       }
     }
@@ -1514,18 +1170,16 @@ export class AWS {
   }
 
   async deleteService(name: string, cluster: string, tasksArns: string[]) {
-    await this.ecsClient.send(
-      new DeleteServiceCommand({
-        service: name,
-        cluster,
-      })
-    )
-    // We wait it is completely deleted to avoid issues deleting dependent resources.
-    const input = new DescribeServicesCommand({
-      services: [name],
+    await this.ecsClient.deleteService({
+      service: name,
       cluster,
     });
-    await createWaiter<ECSClient, DescribeServicesCommand>(
+    // We wait it is completely deleted to avoid issues deleting dependent resources.
+    const input: DescribeServicesCommandInput = {
+      services: [name],
+      cluster,
+    };
+    await createWaiter<ECS, DescribeServicesCommandInput>(
       {
         client: this.ecsClient,
         // all in seconds
@@ -1535,7 +1189,7 @@ export class AWS {
       },
       input,
       async (client, cmd) => {
-        const data = await client.send(cmd);
+        const data = await client.describeServices(cmd);
         if (data.services?.length && data.services[0].status === 'DRAINING') {
           return { state: WaiterState.RETRY };
         } else {
@@ -1544,18 +1198,18 @@ export class AWS {
       },
     );
     try {
-      const tasks = await this.ecsClient.send(new DescribeTasksCommand({tasks: tasksArns, cluster}));
+      const tasks = await this.ecsClient.describeTasks({tasks: tasksArns, cluster});
       const taskAttachmentIds = tasks.tasks?.map(t => t.attachments?.map(a => a.id)).flat()
       if (taskAttachmentIds?.length) {
-        const describeEniCommand = new DescribeNetworkInterfacesCommand({
+        const describeEniCommand: DescribeNetworkInterfacesCommandInput = {
           Filters: [
             {
               Name: 'description',
               Values: taskAttachmentIds?.map(id => `*${id}`)
             }
           ]
-        });
-        await createWaiter<EC2Client, DescribeNetworkInterfacesCommand>(
+        };
+        await createWaiter<EC2, DescribeNetworkInterfacesCommandInput>(
           {
             client: this.ec2client,
             // all in seconds
@@ -1567,7 +1221,7 @@ export class AWS {
           describeEniCommand,
           async (client, cmd) => {
             try {
-              const eni = await client.send(cmd);
+              const eni = await client.describeNetworkInterfaces(cmd);
               if (eni.NetworkInterfaces?.length) {
                 return { state: WaiterState.RETRY };
               }
@@ -1586,18 +1240,16 @@ export class AWS {
   }
 
   async deleteServiceOnly(name: string, cluster: string) {
-    await this.ecsClient.send(
-      new DeleteServiceCommand({
-        service: name,
-        cluster,
-      })
-    )
-    // We wait it is completely deleted to avoid issues deleting dependent resources.
-    const input = new DescribeServicesCommand({
-      services: [name],
+    await this.ecsClient.deleteService({
+      service: name,
       cluster,
     });
-    await createWaiter<ECSClient, DescribeServicesCommand>(
+    // We wait it is completely deleted to avoid issues deleting dependent resources.
+    const input: DescribeServicesCommandInput = {
+      services: [name],
+      cluster,
+    };
+    await createWaiter<ECS, DescribeServicesCommandInput>(
       {
         client: this.ecsClient,
         // all in seconds
@@ -1607,7 +1259,7 @@ export class AWS {
       },
       input,
       async (client, cmd) => {
-        const data = await client.send(cmd);
+        const data = await client.describeServices(cmd);
         if (data.services?.length && data.services[0].status === 'DRAINING') {
           return { state: WaiterState.RETRY };
         } else {
@@ -1634,10 +1286,10 @@ export class AWS {
 
   async getEngineVersion(engineVersionKey: string) {
     const [engine, version] = engineVersionKey.split(':');
-    let dbEngineVersion: any = (await this.rdsClient.send(new DescribeDBEngineVersionsCommand({
+    let dbEngineVersion: any = (await this.rdsClient.describeDBEngineVersions({
       Engine: engine,
       EngineVersion: version,
-    })))?.DBEngineVersions?.[0];
+    }))?.DBEngineVersions?.[0];
     if (dbEngineVersion) {
       dbEngineVersion = {
         ...dbEngineVersion,
@@ -1648,14 +1300,12 @@ export class AWS {
   }
 
   async createDBInstance(instanceParams: CreateDBInstanceCommandInput) {
-    let newDBInstance = (await this.rdsClient.send(
-      new CreateDBInstanceCommand(instanceParams),
-    )).DBInstance;
-    const input = new DescribeDBInstancesCommand({
+    let newDBInstance = (await this.rdsClient.createDBInstance(instanceParams)).DBInstance;
+    const input: DescribeDBInstancesCommandInput = {
       DBInstanceIdentifier: instanceParams.DBInstanceIdentifier,
-    });
+    };
     // TODO: should we use the paginator instead?
-    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
+    await createWaiter<RDS, DescribeDBInstancesCommandInput>(
       {
         client: this.rdsClient,
         // all in seconds
@@ -1666,7 +1316,7 @@ export class AWS {
       input,
       async (client, cmd) => {
         try {
-          const data = await client.send(cmd);
+          const data = await client.describeDBInstances(cmd);
           for (const dbInstance of data?.DBInstances ?? []) {
             if (dbInstance.DBInstanceStatus !== 'available')
               return { state: WaiterState.RETRY };
@@ -1684,9 +1334,7 @@ export class AWS {
   }
 
   async getDBInstance(id: string) {
-    const dbInstance = await this.rdsClient.send(
-      new DescribeDBInstancesCommand({ DBInstanceIdentifier: id, }),
-    );
+    const dbInstance = await this.rdsClient.describeDBInstances({ DBInstanceIdentifier: id, });
     return (dbInstance?.DBInstances ?? [])[0];
   }
 
@@ -1705,13 +1353,11 @@ export class AWS {
   }
 
   async deleteDBInstance(deleteInput: DeleteDBInstanceMessage) {
-    await this.rdsClient.send(
-      new DeleteDBInstanceCommand(deleteInput),
-    );
-    const inputCommand = new DescribeDBInstancesCommand({
+    await this.rdsClient.deleteDBInstance(deleteInput);
+    const cmdInput: DescribeDBInstancesCommandInput = {
       DBInstanceIdentifier: deleteInput.DBInstanceIdentifier,
-    });
-    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
+    };
+    await createWaiter<RDS, DescribeDBInstancesCommandInput>(
       {
         client: this.rdsClient,
         // all in seconds
@@ -1719,9 +1365,9 @@ export class AWS {
         minDelay: 1,
         maxDelay: 4,
       },
-      inputCommand,
-      async (client, cmd) => {
-        const data = await client.send(cmd);
+      cmdInput,
+      async (client, input) => {
+        const data = await client.describeDBInstances(input);
         for (const dbInstance of data?.DBInstances ?? []) {
           if (dbInstance.DBInstanceStatus === 'deleting')
             return { state: WaiterState.RETRY };
@@ -1732,13 +1378,11 @@ export class AWS {
   }
 
   async updateDBInstance(input: ModifyDBInstanceCommandInput) {
-    let updatedDBInstance = (await this.rdsClient.send(
-      new ModifyDBInstanceCommand(input)
-    ))?.DBInstance;
-    const inputCommand = new DescribeDBInstancesCommand({
+    let updatedDBInstance = (await this.rdsClient.modifyDBInstance(input))?.DBInstance;
+    const inputCommand: DescribeDBInstancesCommandInput = {
       DBInstanceIdentifier: input.DBInstanceIdentifier,
-    });
-    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
+    };
+    await createWaiter<RDS, DescribeDBInstancesCommandInput>(
       {
         client: this.rdsClient,
         // all in seconds
@@ -1749,7 +1393,7 @@ export class AWS {
       inputCommand,
       async (client, cmd) => {
         try {
-          const data = await client.send(cmd);
+          const data = await client.describeDBInstances(cmd);
           if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
           for (const dbInstance of data?.DBInstances ?? []) {
             if (dbInstance.DBInstanceStatus === 'available')
@@ -1763,7 +1407,7 @@ export class AWS {
         }
       },
     );
-    await createWaiter<RDSClient, DescribeDBInstancesCommand>(
+    await createWaiter<RDS, DescribeDBInstancesCommandInput>(
       {
         client: this.rdsClient,
         // all in seconds
@@ -1774,7 +1418,7 @@ export class AWS {
       inputCommand,
       async (client, cmd) => {
         try {
-          const data = await client.send(cmd);
+          const data = await client.describeDBInstances(cmd);
           if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
           for (const dbInstance of data?.DBInstances ?? []) {
             if (dbInstance.DBInstanceStatus !== 'available')
@@ -1793,11 +1437,9 @@ export class AWS {
   }
 
   async createLogGroup(groupName: string) {
-    await this.cwClient.send(
-      new CreateLogGroupCommand({
-        logGroupName: groupName,
-      }),
-    );
+    await this.cwClient.createLogGroup({
+      logGroupName: groupName,
+    });
   }
 
   async getLogGroups(groupName?: string) {
@@ -1815,17 +1457,13 @@ export class AWS {
   }
 
   async deleteLogGroup(groupName: string) {
-    await this.cwClient.send(
-      new DeleteLogGroupCommand({
-        logGroupName: groupName,
-      }),
-    );
+    await this.cwClient.deleteLogGroup({
+      logGroupName: groupName,
+    });
   }
 
   async createECRPubRepository(input: CreatePubRepositoryCommandInput) {
-    const repository = await this.ecrPubClient.send(
-      new CreatePubRepositoryCommand(input),
-    );
+    const repository = await this.ecrPubClient.createRepository(input);
     return repository.repository;
   }
 
@@ -1844,20 +1482,16 @@ export class AWS {
   }
 
   async getECRPubRepository(name: string) {
-    const repositories = await this.ecrPubClient.send(
-      new DescribePubRepositoriesCommand({
-        repositoryNames: [name],
-      }),
-    );
+    const repositories = await this.ecrPubClient.describeRepositories({
+      repositoryNames: [name],
+    });
     return (repositories.repositories ?? [])[0];
   }
 
   async deleteECRPubRepository(name: string) {
-    return await this.ecrPubClient.send(
-      new DeletePubRepositoryCommand({
-        repositoryName: name,
-      }),
-    );
+    return await this.ecrPubClient.deleteRepository({
+      repositoryName: name,
+    });
   }
 
   async createHostedZone(domainName: string) {
@@ -1865,9 +1499,7 @@ export class AWS {
       Name: domainName,
       CallerReference: `${this.region}-${Date.now()}`,
     }
-    const res = await this.route53Client.send(
-      new CreateHostedZoneCommand(input)
-    );
+    const res = await this.route53Client.createHostedZone(input);
     return res.HostedZone;
   }
 
@@ -1884,25 +1516,21 @@ export class AWS {
   }
 
   async getHostedZone(hostedZoneId: string) {
-    const res = await this.route53Client.send(
-      new GetHostedZoneCommand({
-        Id: hostedZoneId,
-      })
-    );
+    const res = await this.route53Client.getHostedZone({
+      Id: hostedZoneId,
+    });
     return res.HostedZone;
   }
 
   async deleteHostedZone(hostedZoneId: string) {
-    const res = await this.route53Client.send(
-      new DeleteHostedZoneCommand({
-        Id: hostedZoneId,
-      })
-    );
+    const res = await this.route53Client.deleteHostedZone({
+      Id: hostedZoneId,
+    });
     return res.ChangeInfo;
   }
 
-  newChangeResourceRecordSetsCommand(hostedZoneId: string, record: ResourceRecordSet, action: ChangeAction) {
-    return new ChangeResourceRecordSetsCommand({
+  newChangeResourceRecordSetsCommand(hostedZoneId: string, record: ResourceRecordSet, action: ChangeAction): ChangeResourceRecordSetsCommandInput {
+    return {
       HostedZoneId: hostedZoneId,
       ChangeBatch: {
         Changes: [{
@@ -1910,11 +1538,11 @@ export class AWS {
           ResourceRecordSet: record
         }]
       }
-    })
+    }
   }
 
   async createResourceRecordSet(hostedZoneId: string, record: ResourceRecordSet) {
-    const res = await this.route53Client.send(
+    const res = await this.route53Client.changeResourceRecordSets(
       this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'CREATE')
     );
     return res;
@@ -1924,15 +1552,13 @@ export class AWS {
     const records = [];
     let res;
     do {
-      const listResourceRecordSetsCommandInput: ListResourceRecordSetsCommandInput = {
+      const input: ListResourceRecordSetsCommandInput = {
         HostedZoneId: hostedZoneId,
       };
       if (res?.NextRecordName) {
-        listResourceRecordSetsCommandInput.StartRecordName = res.NextRecordName;
+        input.StartRecordName = res.NextRecordName;
       }
-      res = await this.route53Client.send(
-        new ListResourceRecordSetsCommand(listResourceRecordSetsCommandInput)
-      );
+      res = await this.route53Client.listResourceRecordSets(input);
       records.push(...(res.ResourceRecordSets ?? []));
     } while (res?.IsTruncated);
     return records;
@@ -1944,14 +1570,14 @@ export class AWS {
   }
 
   async updateResourceRecordSet(hostedZoneId: string, record: ResourceRecordSet) {
-    const res = await this.route53Client.send(
+    const res = await this.route53Client.changeResourceRecordSets(
       this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'UPSERT')
     );
     return res;
   }
 
   async deleteResourceRecordSet(hostedZoneId: string, record: ResourceRecordSet) {
-    const res = await this.route53Client.send(
+    const res = await this.route53Client.changeResourceRecordSets(
       this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'DELETE')
     );
     return res;
@@ -1973,25 +1599,19 @@ export class AWS {
     const certificates = [];
     const certificatesSummary = await this.getCertificatesSummary();
     for (const certificate of certificatesSummary) {
-      const c = await this.acmClient.send(
-        new DescribeCertificateCommand({ CertificateArn: certificate.CertificateArn })
-      );
+      const c = await this.acmClient.describeCertificate({ CertificateArn: certificate.CertificateArn });
       certificates.push(c.Certificate);
     }
     return certificates;
   }
 
   async getCertificate(arn: string) {
-    const res = await this.acmClient.send(
-      new DescribeCertificateCommand({ CertificateArn: arn })
-    );
+    const res = await this.acmClient.describeCertificate({ CertificateArn: arn });
     return res.Certificate;
   }
 
   async deleteCertificate(arn: string) {
-    await this.acmClient.send(
-      new DeleteCertificateCommand({ CertificateArn: arn })
-    );
+    await this.acmClient.deleteCertificate({ CertificateArn: arn });
     let certificates: string[] = [];
     let i = 0;
      // Wait for ~1min until imported cert is available
@@ -2004,9 +1624,7 @@ export class AWS {
   }
 
   async importCertificate(input: ImportCertificateCommandInput) {
-    const res = await this.acmClient.send(
-      new ImportCertificateCommand(input)
-    );
+    const res = await this.acmClient.importCertificate(input);
     const arn = res.CertificateArn ?? '';
     let certificates: string[] = [];
     let i = 0;
@@ -2021,28 +1639,20 @@ export class AWS {
   }
 
   async getBuckets() {
-    const res = await this.s3Client.send(
-      new ListBucketsCommand({})
-    );
+    const res = await this.s3Client.listBuckets({});
     return res.Buckets ?? [];
   }
 
   async createBucket(name: string) {
-    const res = await this.s3Client.send(
-      new CreateBucketCommand({
-        Bucket: name, // Even the little things are inconsistent with the AWS API
-      })
-    );
-    return res;
+    return this.s3Client.createBucket({
+      Bucket: name, // Even the little things are inconsistent with the AWS API
+    });
   }
 
   async deleteBucket(name: string) {
-    const res = await this.s3Client.send(
-      new DeleteBucketCommand({
-        Bucket: name,
-      })
-    );
-    return res;
+    return this.s3Client.deleteBucket({
+      Bucket: name,
+    });
   }
 
   async getRegisteredInstance(instanceId: string, targetGroupArn: string, port?: string) {
@@ -2052,12 +1662,10 @@ export class AWS {
     if (port) {
       target.Port = +port;
     }
-    const res = await this.elbClient.send(
-      new DescribeTargetHealthCommand({
-        TargetGroupArn: targetGroupArn,
-        Targets: [target]
-      })
-    );
+    const res = await this.elbClient.describeTargetHealth({
+      TargetGroupArn: targetGroupArn,
+      Targets: [target]
+    });
     const out = [...(res.TargetHealthDescriptions?.map(thd => (
       {
         targetGroupArn,
@@ -2073,11 +1681,9 @@ export class AWS {
     const instanceTargetGroups = targetGroups?.TargetGroups?.filter(tg => Object.is(tg.TargetType, TargetTypeEnum.INSTANCE)) ?? [];
     const out = [];
     for (const tg of instanceTargetGroups) {
-      const res = await this.elbClient.send(
-        new DescribeTargetHealthCommand({
-          TargetGroupArn: tg.TargetGroupArn,
-        })
-      );
+      const res = await this.elbClient.describeTargetHealth({
+        TargetGroupArn: tg.TargetGroupArn,
+      });
       out.push(...(res.TargetHealthDescriptions?.map(thd => (
         {
           targetGroupArn: tg.TargetGroupArn,
@@ -2096,10 +1702,10 @@ export class AWS {
     if (port) {
       target.Port = port;
     }
-    await this.elbClient.send(new RegisterTargetsCommand({
+    await this.elbClient.registerTargets({
       TargetGroupArn: targetGroupArn,
       Targets: [target],
-    }));
+    });
   }
 
   async deregisterInstance(instanceId: string, targetGroupArn: string, port?: number) {
@@ -2109,20 +1715,20 @@ export class AWS {
     if (port) {
       target.Port = port;
     }
-    await this.elbClient.send(new DeregisterTargetsCommand({
+    await this.elbClient.deregisterTargets({
       TargetGroupArn: targetGroupArn,
       Targets: [target],
-    }));
+    });
   }
 
   async createNatGateway(input: CreateNatGatewayCommandInput) {
     let out;
     const res = await this.ec2client.createNatGateway(input);
     out = res.NatGateway;
-    const describeInput = new DescribeNatGatewaysCommand({
+    const describeInput: DescribeNatGatewaysCommandInput = {
       NatGatewayIds: [res.NatGateway?.NatGatewayId ?? '']
-    });
-    await createWaiter<EC2Client, DescribeNatGatewaysCommand>(
+    };
+    await createWaiter<EC2, DescribeNatGatewaysCommandInput>(
       {
         client: this.ec2client,
         // all in seconds
@@ -2132,7 +1738,7 @@ export class AWS {
       },
       describeInput,
       async (client, cmd) => {
-        const data = await client.send(cmd);
+        const data = await client.describeNatGateways(cmd);
         try {
           out = data.NatGateways?.pop();
           // If it is not a final state we retry
@@ -2184,10 +1790,10 @@ export class AWS {
     await this.ec2client.deleteNatGateway({
       NatGatewayId: id,
     });
-    const describeInput = new DescribeNatGatewaysCommand({
+    const describeInput: DescribeNatGatewaysCommandInput = {
       NatGatewayIds: [id ?? '']
-    });
-    await createWaiter<EC2Client, DescribeNatGatewaysCommand>(
+    };
+    await createWaiter<EC2, DescribeNatGatewaysCommandInput>(
       {
         client: this.ec2client,
         // all in seconds
@@ -2197,7 +1803,7 @@ export class AWS {
       },
       describeInput,
       async (client, cmd) => {
-        const data = await client.send(cmd);
+        const data = await client.describeNatGateways(cmd);
         try {
           const nat = data.NatGateways?.pop();
           // If it is not a final state we retry
@@ -2213,15 +1819,16 @@ export class AWS {
   }
 
   async createDBParameterGroup(input: CreateDBParameterGroupCommandInput) {
-    const res = await this.rdsClient.send(new CreateDBParameterGroupCommand(input));
+    const res = await this.rdsClient.createDBParameterGroup(input);
     return res.DBParameterGroup;
   }
 
   async getDBParameterGroup(name: string) {
-    const res = await this.rdsClient.send(new DescribeDBParameterGroupsCommand({
+    const res = await this.rdsClient.describeDBParameterGroups({
       DBParameterGroupName: name
-    }));
-    return res.DBParameterGroups?.pop();
+    });
+    const parameters = await this.getDBParameterGroupParameters(name);
+    return { ...res.DBParameterGroups?.pop(), Parameters: parameters };
   }
 
   async getDBParameterGroups() {
@@ -2231,16 +1838,18 @@ export class AWS {
       pageSize: 25,
     }, {});
     for await (const page of paginator) {
-      out.push(...(page.DBParameterGroups ?? []));
+      for (const pg of page.DBParameterGroups ?? []) {
+        const parameters = await this.getDBParameterGroupParameters(pg.DBParameterGroupName ?? '');
+        out.push({...pg, Parameters: parameters });
+      }
     }
     return out;
   }
 
   async deleteDBParameterGroup(name: string) {
-    const res = await this.rdsClient.send(new DeleteDBParameterGroupCommand({
+    return this.rdsClient.deleteDBParameterGroup({
       DBParameterGroupName: name
-    }));
-    return res;
+    });
   }
 
   async getDBParameterGroupParameters(parameterGroupName: string) {
@@ -2258,10 +1867,10 @@ export class AWS {
   }
 
   async modifyParameter(parameterGroupName: string, parameter: Parameter) {
-    await this.rdsClient.send(new ModifyDBParameterGroupCommand({
+    await this.rdsClient.modifyDBParameterGroup({
       DBParameterGroupName: parameterGroupName,
       Parameters: [parameter],
-    }));
+    });
   }
 
   async createElasticIp(tags?: { [key: string] : string }) {
