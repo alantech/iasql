@@ -9,6 +9,10 @@ import {
   runQuery,
   runSync,
 } from '../helpers'
+import config from '../../src/config'
+
+const latestVersion = config.modules.latestVersion;
+const oldestVersion = config.modules.oldestVersion;
 
 const dbAlias = 'accounttest';
 const apply = runApply.bind(null, dbAlias);
@@ -72,6 +76,38 @@ describe('AwsAccount Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
 
   it('deletes the test db', (done) => void iasql
+    .disconnect(dbAlias, 'not-needed')
+    .then(...finish(done)));
+
+  it('creates a new test db using the oldest version via trickery', (done) => {
+    // This works because we don't actually `Object.freeze` the config and `const` in JS is dumb
+    config.modules.latestVersion = oldestVersion;
+    iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done));
+  });
+
+  it('confirms the version is the oldest version', query(`
+    SELECT name FROM iasql_module LIMIT 1;
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].name.split('@')[1]).toEqual(oldestVersion);
+  }));
+
+  it('deletes the test db and restores the version', (done) => {
+    iasql.disconnect(dbAlias, 'not-needed').then(...finish(done));
+    config.modules.latestVersion = latestVersion;
+  });
+
+  it('creates another test db', (done) => void iasql
+    .connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+
+
+  it('updates the iasql_* modules to pretend to be an ancient version', query(`
+    UPDATE iasql_module SET name = 'iasql_platform@0.0.2' WHERE name = 'iasql_platform@${latestVersion}';
+    UPDATE iasql_module SET name = 'iasql_functions@0.0.2' WHERE name = 'iasql_functions@${latestVersion}';
+  `));
+
+
+  it('deletes the busted test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
 });
