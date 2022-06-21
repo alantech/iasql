@@ -17,7 +17,7 @@ import * as scheduler from './scheduler-api'
 import MetadataRepo from './repositories/metadata'
 import config from '../config'
 import logger, { debugObj } from './logger'
-import { Context, MapperInterface, ModuleInterface, } from '../modules'
+import { Context, MapperInterface2, ModuleInterface, } from '../modules'
 import { DepError, lazyLoader, } from './lazy-dep'
 import { IasqlDatabase } from '../entity'
 import { TypeormWrapper, } from './typeorm'
@@ -355,7 +355,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
         const updatePlan = (
           crupde: Crupde,
           entityName: string,
-          mapper: MapperInterface<any>,
+          mapper: MapperInterface2<any>,
           es: any[]
         ) => {
           crupde[entityName] = crupde[entityName] ?? [];
@@ -569,7 +569,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
         const updatePlan = (
           crupde: Crupde,
           entityName: string,
-          mapper: MapperInterface<any>,
+          mapper: MapperInterface2<any>,
           es: any[]
         ) => {
           crupde[entityName] = crupde[entityName] ?? [];
