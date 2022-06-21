@@ -1,4 +1,4 @@
-import { Instance as AWSInstance, RunInstancesCommandInput, Tag as AWSTag } from '@aws-sdk/client-ec2'
+import { Instance as AWSInstance, InstanceLifecycle, RunInstancesCommandInput, Tag as AWSTag } from '@aws-sdk/client-ec2'
 
 import { Instance, RegisteredInstance, State, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
@@ -112,7 +112,7 @@ export const AwsEc2Module: Module2 = new Module2({
           if (id) {
             const rawInstance = await client.getInstance(id);
             // exclude spot instances
-            if (!rawInstance || rawInstance.InstanceLifecycle === 'spot') return;
+            if (!rawInstance || rawInstance.InstanceLifecycle === InstanceLifecycle.SPOT) return;
             if (rawInstance.State?.Name === 'terminated' || rawInstance.State?.Name === 'shutting-down') return;
             return AwsEc2Module.utils.instanceMapper(rawInstance, ctx);
           } else {
