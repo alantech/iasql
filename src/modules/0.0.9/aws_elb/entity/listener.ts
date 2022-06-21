@@ -58,7 +58,10 @@ export class Listener {
   })
   actionType: ActionTypeEnum;
 
-  @ManyToOne(() => TargetGroup, { eager: true })
+  @ManyToOne(() => TargetGroup, {
+    nullable:false,
+    eager: true
+  })
   @JoinColumn({
     name: 'target_group_name',
   })

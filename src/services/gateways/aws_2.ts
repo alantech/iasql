@@ -482,13 +482,13 @@ export class AWS {
 
   async deleteSecurityGroup(instanceParams: DeleteSecurityGroupRequest) {
     try {
-      return this.ec2client.deleteSecurityGroup(instanceParams);
+      return await this.ec2client.deleteSecurityGroup(instanceParams);
     } catch(e: any) {
       if (e.Code === 'DependencyViolation') {
         // Just wait for 5 min on every dependency violation and retry
         await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
         try {
-          return this.ec2client.deleteSecurityGroup(instanceParams);
+          return await this.ec2client.deleteSecurityGroup(instanceParams);
         } catch (e2: any) {
           // If the dependency continues we add the dependency to the error message in order to debug what is happening
           if (e2.Code === 'DependencyViolation') {

@@ -41,7 +41,7 @@ export const AwsElbModule: Module2 = new Module2({
           out.actionType = (a.Type as ActionTypeEnum);
           out.targetGroup =  await AwsElbModule.mappers.targetGroup.db.read(ctx, a?.TargetGroupArn) ??
             await AwsElbModule.mappers.targetGroup.cloud.read(ctx, a?.TargetGroupArn);
-          if (!out.targetGroup) throw new Error('Target groups need to be loaded first');
+          if (!out.targetGroup) return undefined;
         }
       }
       if (l.SslPolicy && l.Certificates?.length) {
@@ -76,8 +76,7 @@ export const AwsElbModule: Module2 = new Module2({
           continue;
         }
       }
-      if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length) throw new Error('Security groups need to be loaded first')
-      out.securityGroups = securityGroups;
+      out.securityGroups = securityGroups.filter(sg => !!sg);
       out.ipAddressType = lb.IpAddressType as IpAddressType;
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
       const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, lb.VpcId) ??

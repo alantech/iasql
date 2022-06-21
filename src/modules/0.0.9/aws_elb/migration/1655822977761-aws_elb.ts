@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsElb1654619715201 implements MigrationInterface {
-    name = 'awsElb1654619715201'
+export class awsElb1655822977761 implements MigrationInterface {
+    name = 'awsElb1655822977761'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."load_balancer_scheme_enum" AS ENUM('internal', 'internet-facing')`);
@@ -17,7 +17,7 @@ export class awsElb1654619715201 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "target_group" ("target_group_name" character varying NOT NULL, "target_type" "public"."target_group_target_type_enum" NOT NULL, "target_group_arn" character varying, "ip_address_type" "public"."target_group_ip_address_type_enum", "protocol" "public"."target_group_protocol_enum", "port" integer, "health_check_protocol" "public"."target_group_health_check_protocol_enum", "health_check_port" character varying, "health_check_enabled" boolean, "health_check_interval_seconds" integer, "health_check_timeout_seconds" integer, "healthy_threshold_count" integer, "unhealthy_threshold_count" integer, "health_check_path" character varying, "protocol_version" "public"."target_group_protocol_version_enum", "vpc" integer, CONSTRAINT "PK_1957da369918349223c6d3c01b0" PRIMARY KEY ("target_group_name"))`);
         await queryRunner.query(`CREATE TYPE "public"."listener_protocol_enum" AS ENUM('GENEVE', 'HTTP', 'HTTPS', 'TCP', 'TCP_UDP', 'TLS', 'UDP')`);
         await queryRunner.query(`CREATE TYPE "public"."listener_action_type_enum" AS ENUM('forward')`);
-        await queryRunner.query(`CREATE TABLE "listener" ("id" SERIAL NOT NULL, "listener_arn" character varying, "port" integer NOT NULL, "protocol" "public"."listener_protocol_enum" NOT NULL, "action_type" "public"."listener_action_type_enum" NOT NULL DEFAULT 'forward', "ssl_policy" character varying, "load_balancer_name" character varying NOT NULL, "target_group_name" character varying, "certificate_id" integer, CONSTRAINT "UQ_load_balancer__port" UNIQUE ("load_balancer_name", "port"), CONSTRAINT "PK_422c9d250eb7b0c0b6c96cdce94" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "listener" ("id" SERIAL NOT NULL, "listener_arn" character varying, "port" integer NOT NULL, "protocol" "public"."listener_protocol_enum" NOT NULL, "action_type" "public"."listener_action_type_enum" NOT NULL DEFAULT 'forward', "ssl_policy" character varying, "load_balancer_name" character varying NOT NULL, "target_group_name" character varying NOT NULL, "certificate_id" integer, CONSTRAINT "UQ_load_balancer__port" UNIQUE ("load_balancer_name", "port"), CONSTRAINT "PK_422c9d250eb7b0c0b6c96cdce94" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "load_balancer_security_groups" ("load_balancer_name" character varying NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_c3263aa4b606967900de62e3619" PRIMARY KEY ("load_balancer_name", "security_group_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_e1020e4ee5063ea1f0b20b3c9c" ON "load_balancer_security_groups" ("load_balancer_name") `);
         await queryRunner.query(`CREATE INDEX "IDX_4da7e08287b5693e5b22959ced" ON "load_balancer_security_groups" ("security_group_id") `);
