@@ -421,7 +421,7 @@ export class AWS {
   }
 
   async getAMIs() {
-    return this.ec2client.describeImages({});
+    return await this.ec2client.describeImages({});
   }
 
   async getAMI(imageId: string) {
@@ -477,7 +477,7 @@ export class AWS {
   }
 
   async createSecurityGroup(instanceParams: CreateSecurityGroupRequest) {
-    return this.ec2client.createSecurityGroup(instanceParams);
+    return await this.ec2client.createSecurityGroup(instanceParams);
   }
 
   async deleteSecurityGroup(instanceParams: DeleteSecurityGroupRequest) {
@@ -587,7 +587,7 @@ export class AWS {
   }
 
   async modifySecurityGroupRules(i: ModifySecurityGroupRulesCommandInput): Promise<ModifySecurityGroupRulesCommandOutput> {
-    return this.ec2client.modifySecurityGroupRules(i);
+    return await this.ec2client.modifySecurityGroupRules(i);
   }
 
   async createECRRepository(input: CreateRepositoryCommandInput) {
@@ -633,23 +633,23 @@ export class AWS {
   }
 
   async deleteECRRepository(name: string) {
-    return this.ecrClient.deleteRepository({
+    return await this.ecrClient.deleteRepository({
       repositoryName: name,
     });
   }
 
   async getECRRepositoryPolicy(repositoryName: string) {
-    return this.ecrClient.getRepositoryPolicy({
+    return await this.ecrClient.getRepositoryPolicy({
       repositoryName,
     });
   }
 
   async setECRRepositoryPolicy(input: SetRepositoryPolicyCommandInput) {
-    return this.ecrClient.setRepositoryPolicy(input);
+    return await this.ecrClient.setRepositoryPolicy(input);
   }
 
   async deleteECRRepositoryPolicy(repositoryName: string) {
-    return this.ecrClient.deleteRepositoryPolicy({
+    return await this.ecrClient.deleteRepositoryPolicy({
       repositoryName,
     });
   }
@@ -867,11 +867,11 @@ export class AWS {
   }
 
   async createVpc(input: CreateVpcCommandInput) {
-    return this.ec2client.createVpc(input);
+    return await this.ec2client.createVpc(input);
   }
 
   async deleteVpc(input: DeleteVpcCommandInput) {
-    return this.ec2client.deleteVpc(input);
+    return await this.ec2client.deleteVpc(input);
   }
 
   async getSubnets() {
@@ -915,11 +915,11 @@ export class AWS {
   }
 
   async createSubnet(input: CreateSubnetCommandInput) {
-    return this.ec2client.createSubnet(input);
+    return await this.ec2client.createSubnet(input);
   }
 
   async deleteSubnet(input: DeleteSubnetCommandInput) {
-    return this.ec2client.deleteSubnet(input);
+    return await this.ec2client.deleteSubnet(input);
   }
 
   async createCluster(input: CreateClusterCommandInput) {
