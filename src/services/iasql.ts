@@ -1056,7 +1056,7 @@ export async function upgrade(dbId: string, dbUser: string) {
       }
     })();
     // TODO: Drop this conditional once these versions are no longer supported.
-    if (['v0_0_6', 'v0_0_7'].includes(versionString)) {
+    if (['v0_0_7'].includes(versionString)) {
       throw new Error('Upgrading. Please disconnect and reconnect to the database');
     } else {
       return 'Upgrading. Please disconnect and reconnect to the database';
