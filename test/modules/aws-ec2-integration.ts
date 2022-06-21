@@ -379,7 +379,6 @@ describe('EC2 Integration Testing', () => {
     );
   `, (res: any[]) => {
     expect(res.length).toBe(1);
-    expect(res[0].spot).toBe(false);
     expect(res[0].mem_size_mb).toBe(1024);
     expect(res[0].cpu_cores).toBe(1);
   }));

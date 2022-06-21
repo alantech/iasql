@@ -60,11 +60,6 @@ export class InstanceMetadata {
   cpuCores: number;
 
   @Column({
-    type: 'boolean',
-  })
-  spot: boolean;
-
-  @Column({
     type: 'int',
   })
   memSizeMB: number;
