@@ -173,7 +173,7 @@ export class AWS {
     name: string,
     assumeRolePolicyDocument: string,
     attachedPolicyArns: string[],
-    description: string
+    description?: string
   ): Promise<string> {
     const role = await this.iamClient.createRole({
       RoleName: name,
@@ -186,7 +186,7 @@ export class AWS {
     return role.Role?.Arn ?? '';
   }
 
-  async updateRoleDescription(name: string, description: string) {
+  async updateRoleDescription(name: string, description?: string) {
     await this.iamClient.updateRole({
       RoleName: name,
       Description: description
@@ -224,7 +224,7 @@ export class AWS {
 
   async getRoleAttachedPoliciesArns(name: string) {
     const rolePolicies = (await this.iamClient.listAttachedRolePolicies({RoleName: name})).AttachedPolicies ?? [];
-    return rolePolicies.map(p => p.PolicyArn ?? '');
+    return rolePolicies.length ? rolePolicies.map(p => p.PolicyArn ?? '') : undefined;
   }
 
   async deleteRole(name: string, policyArns: string[]) {

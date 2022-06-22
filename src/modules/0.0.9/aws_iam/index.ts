@@ -5,6 +5,8 @@ import { AWS, } from '../../../services/gateways/aws_2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
+import logger from '../../../services/logger';
+
 export const AwsIamModule: Module2 = new Module2({
   ...metadata,
   utils: {
@@ -13,7 +15,10 @@ export const AwsIamModule: Module2 = new Module2({
       out.arn = role.Arn;
       if (!role.RoleName) return undefined;
       out.roleName = role.RoleName;
-      out.description = role.Description ?? '';
+      if (out.roleName.includes('iamtesttask-us-west-2')) {
+        logger.warn(`+++ description for role ${out.roleName} is ${role.Description}`)
+      }
+      out.description = role.Description;
       if (!role.AssumeRolePolicyDocument) return undefined;
       out.assumeRolePolicyDocument = decodeURIComponent(role.AssumeRolePolicyDocument);
       return out;
@@ -35,7 +40,7 @@ export const AwsIamModule: Module2 = new Module2({
         // we are trusting aws won't change it from under us
         Object.is(a.assumeRolePolicyDocument, b.assumeRolePolicyDocument) &&
         Object.is(a.attachedPoliciesArns?.length, b.attachedPoliciesArns?.length) &&
-        a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs))),
+        ((!a.attachedPoliciesArns && !b.attachedPoliciesArns) || !!a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs)))),
       source: 'db',
       cloud: new Crud2({
         create: async (es: Role[], ctx: Context) => {
@@ -45,8 +50,8 @@ export const AwsIamModule: Module2 = new Module2({
             const roleArn = await client.newRoleLin(
               role.roleName,
               role.assumeRolePolicyDocument,
-              role.attachedPoliciesArns,
-              role.description ?? ''
+              role.attachedPoliciesArns ?? [],
+              role.description
             );
             if (!roleArn) { // then who?
               throw new Error('should not be possible');
@@ -96,15 +101,18 @@ export const AwsIamModule: Module2 = new Module2({
               update = true;
             }
             if (!Object.is(e.description, b.description)) {
-              await client.updateRoleDescription(e.roleName, e.description ?? '');
+              await client.updateRoleDescription(e.roleName, e.description);
               update = true;
             }
+            logger.warn(`+++ UPDATE SHOULD BE FALSE ${update}`)
             if (update) {
               const dbRole = await client.getRole(e.roleName);
               updatedRecord = await AwsIamModule.utils.roleMapper(dbRole, ctx);
               updatedRecord.attachedPoliciesArns = await client.getRoleAttachedPoliciesArns(updatedRecord.roleName);
             }
+            logger.warn(`+++ UPDATED RECORD IS ${JSON.stringify(updatedRecord)}`)
             await AwsIamModule.mappers.role.db.update(updatedRecord, ctx);
+            logger.warn(`+++ DB MEMO RECORD ${JSON.stringify(ctx.memo.db.Role[updatedRecord.roleName])}`)
             out.push(updatedRecord);
           }
           return out;
@@ -117,7 +125,7 @@ export const AwsIamModule: Module2 = new Module2({
               if (entity.arn.includes(':role/aws-service-role/')) {
                 await AwsIamModule.mappers.role.db.create(entity, ctx);
               } else {
-                await client.deleteRoleLin(entity.roleName, entity.attachedPoliciesArns);
+                await client.deleteRoleLin(entity.roleName, entity.attachedPoliciesArns ?? []);
               }
             }
           }

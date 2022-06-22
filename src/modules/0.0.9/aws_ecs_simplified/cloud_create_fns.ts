@@ -122,7 +122,7 @@ const cloudCreateFns = {
     const res = await client.newRoleLin(
       e.roleName,
       e.assumeRolePolicyDocument,
-      e.attachedPoliciesArns,
+      e.attachedPoliciesArns ?? [],
       e.description ?? ''
     );
     e.arn = res;
