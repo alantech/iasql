@@ -6,7 +6,7 @@ name: CI
 # events but only for the main branch.
 on:
   push:
-    branches: [main]
+    branches: [main, refactor-iam]
   pull_request:
     branches: [main]
 
@@ -67,11 +67,14 @@ jobs:
       - run: yarn
       - id: set-test-modules
         name: Set modules tests
+        # run: >
+        #   echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
         run: >
-          echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
+          echo "::set-output name=test-modules::$(npx jest **/modules/*iam* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
       - id: set-test-module-names
         name: Set modules tests names
-        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+        run: echo "::set-output name=test-module-names::$(npx jest **/modules/*iam* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+        # run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
       - id: set-region
         name: Set region
         # All regions except us-east-1 to not collide with common tests
