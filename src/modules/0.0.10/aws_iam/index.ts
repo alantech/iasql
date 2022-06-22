@@ -5,6 +5,8 @@ import { AWS, } from '../../../services/gateways/aws_2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
+import logger from '../../../services/logger';
+
 export const AwsIamModule: Module2 = new Module2({
   ...metadata,
   utils: {
@@ -13,7 +15,7 @@ export const AwsIamModule: Module2 = new Module2({
       out.arn = role.Arn;
       if (!role.RoleName) return undefined;
       out.roleName = role.RoleName;
-      out.description = role.Description ?? '';
+      out.description = role.Description;
       if (!role.AssumeRolePolicyDocument) return undefined;
       out.assumeRolePolicyDocument = decodeURIComponent(role.AssumeRolePolicyDocument);
       return out;
@@ -35,7 +37,7 @@ export const AwsIamModule: Module2 = new Module2({
         // we are trusting aws won't change it from under us
         Object.is(a.assumeRolePolicyDocument, b.assumeRolePolicyDocument) &&
         Object.is(a.attachedPoliciesArns?.length, b.attachedPoliciesArns?.length) &&
-        a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs))),
+        ((!a.attachedPoliciesArns && !b.attachedPoliciesArns) || !!a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs)))),
       source: 'db',
       cloud: new Crud2({
         create: async (es: Role[], ctx: Context) => {
@@ -45,8 +47,8 @@ export const AwsIamModule: Module2 = new Module2({
             const roleArn = await client.newRoleLin(
               role.roleName,
               role.assumeRolePolicyDocument,
-              role.attachedPoliciesArns,
-              role.description ?? ''
+              role.attachedPoliciesArns ?? [],
+              role.description
             );
             if (!roleArn) { // then who?
               throw new Error('should not be possible');
@@ -63,14 +65,14 @@ export const AwsIamModule: Module2 = new Module2({
             const rawRole = await client.getRole(id);
             if (!rawRole) return;
             const role = AwsIamModule.utils.roleMapper(rawRole);
-            role.attachedPoliciesArns = await client.getRoleAttachedPoliciesArns(role.roleName);
+            role.attachedPoliciesArns = await client.getRoleAttachedPoliciesArnsV2(role.roleName);
             return role;
           } else {
             const roles = (await client.getAllRoles()) ?? [];
             const out = [];
             for (const r of roles) {
               const role = AwsIamModule.utils.roleMapper(r);
-              role.attachedPoliciesArns = await client.getRoleAttachedPoliciesArns(role.roleName);
+              role.attachedPoliciesArns = await client.getRoleAttachedPoliciesArnsV2(role.roleName);
               out.push(role);
             }
             return out;
@@ -80,6 +82,7 @@ export const AwsIamModule: Module2 = new Module2({
         update: async (es: Role[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
+          logger.warn(`+++ CLOUD UPDATE ENTITIES ${JSON.stringify(es)}`)
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Role?.[e.roleName ?? ''];
             // aws-service-roles are immutable so undo change and return
@@ -96,17 +99,22 @@ export const AwsIamModule: Module2 = new Module2({
               update = true;
             }
             if (!Object.is(e.description, b.description)) {
-              await client.updateRoleDescription(e.roleName, e.description ?? '');
+              await client.updateRoleDescription(e.roleName, e.description);
               update = true;
             }
             if (update) {
               const dbRole = await client.getRole(e.roleName);
+              logger.warn(`+++ WHAT ROLE AM I RETRIEVING ${JSON.stringify(dbRole)}`)
               updatedRecord = await AwsIamModule.utils.roleMapper(dbRole, ctx);
-              updatedRecord.attachedPoliciesArns = await client.getRoleAttachedPoliciesArns(updatedRecord.roleName);
+              updatedRecord.attachedPoliciesArns = await client.getRoleAttachedPoliciesArnsV2(updatedRecord.roleName);
             }
+            logger.warn(`+++ UPDATED RECORD IS ${JSON.stringify(updatedRecord)}`)
             await AwsIamModule.mappers.role.db.update(updatedRecord, ctx);
+            logger.warn(`+++ UPDATED RECORD AFTER DB UPDATE ${JSON.stringify(updatedRecord)}`)
+            logger.warn(`+++ DB MEMO RECORD ${JSON.stringify(ctx.memo.db.Role[updatedRecord.roleName])}`)
             out.push(updatedRecord);
           }
+          logger.warn(`+++ CLOUD UPDATE RESPONSE ${JSON.stringify(out)}`)
           return out;
         },
         delete: async (es: Role[], ctx: Context) => {
@@ -117,7 +125,7 @@ export const AwsIamModule: Module2 = new Module2({
               if (entity.arn.includes(':role/aws-service-role/')) {
                 await AwsIamModule.mappers.role.db.create(entity, ctx);
               } else {
-                await client.deleteRoleLin(entity.roleName, entity.attachedPoliciesArns);
+                await client.deleteRoleLin(entity.roleName, entity.attachedPoliciesArns ?? []);
               }
             }
           }

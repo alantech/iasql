@@ -125,8 +125,8 @@ export const AwsEcsSimplifiedModule: Module2 = new Module2({
       // Check if role is valid
       if (!Object.is(taskDefinition.executionRoleArn, taskDefinition.taskRoleArn)) return false;
       const role = await client.getRole(generateResourceName(prefix, appName, 'Role'));
-      const roleAttachedPoliciesArns = await client.getRoleAttachedPoliciesArns(role?.RoleName ?? '');
-      if (roleAttachedPoliciesArns.length !== 1) return false;
+      const roleAttachedPoliciesArns = await client.getRoleAttachedPoliciesArnsV2(role?.RoleName ?? '');
+      if (roleAttachedPoliciesArns?.length !== 1) return false;
       // Get cloudwatch log group
       const logGroups = await client.getLogGroups(containerDefinition?.logConfiguration?.options?.["awslogs-group"] ?? '');
       if (logGroups.length !== 1) return false;
