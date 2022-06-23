@@ -183,6 +183,10 @@ describe('VPC Integration Testing', () => {
     SELECT * FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
   `, (res: any) => expect(res.length).toBeGreaterThan(0)));
 
+  it('checks endpoint gateway count', query(`
+    SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
   describe('Elastic Ip and Nat gateway updates', () => {
     it('updates a elastic ip', query(`
       UPDATE elastic_ip
