@@ -1,5 +1,7 @@
 import {
   CreateNatGatewayCommandInput,
+  CreateVpcEndpointCommandInput,
+  ModifyVpcEndpointCommandInput,
   NatGateway as AwsNatGateway,
   Subnet as AwsSubnet,
   Tag,
@@ -17,6 +19,7 @@ import {
   ConnectivityType,
   NatGatewayState,
   ElasticIp,
+  EndpointGateway,
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
@@ -394,6 +397,150 @@ export const AwsVpcModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
             await client.deleteElasticIp(e.allocationId ?? '');
+          }
+        },
+      }),
+    }),
+    endpointGateway: new Mapper2<EndpointGateway>({
+      entity: EndpointGateway,
+      equals: (a: EndpointGateway, b: EndpointGateway) => Object.is(a.dnsRecordIpType, b.dnsRecordIpType)
+        && Object.is(a.ipAddressType, b.ipAddressType)
+        // the policy document is stringified json
+        // we are trusting aws won't change it from under us
+        && Object.is(a.policyDocument, b.policyDocument)
+        && Object.is(a.serviceName, b.serviceName)
+        && Object.is(a.state, b.state)
+        && Object.is(a.vpc?.vpcId, b.vpc?.vpcId)
+        && AwsVpcModule.utils.eqTags(a.tags, b.tags),
+      source: 'db',
+      cloud: new Crud2({
+        create: async (es: EndpointGateway[], ctx: Context) => {
+          const out = [];
+          const client = await ctx.getAwsClient() as AWS;
+          for (const e of es) {
+            const input: CreateVpcEndpointCommandInput = {
+              VpcEndpointType: 'Gateway',
+              ServiceName: e.serviceName,
+              VpcId: e.vpc?.vpcId,
+              IpAddressType: e.ipAddressType,
+            };
+            if (e.policyDocument) {
+              input.PolicyDocument = e.policyDocument;
+            }
+            if (e.dnsRecordIpType) {
+              input.DnsOptions = {
+                DnsRecordIpType: e.dnsRecordIpType,
+              };
+            }
+            if (e.tags && Object.keys(e.tags).length) {
+              const tags: Tag[] = Object.keys(e.tags).map((k: string) => {
+                return {
+                  Key: k, Value: e.tags![k],
+                }
+              });
+              input.TagSpecifications = [
+                {
+                  ResourceType: 'vpc-endpoint',
+                  Tags: tags,
+                },
+              ];
+            }
+            const res = await client.createVpcEndpointGateway(input);
+            const rawEndpointGateway = await client.getVpcEndpointGateway(res?.VpcEndpointId ?? '');
+            const newEndpointGateway = AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway);
+            newEndpointGateway.id = e.id;
+            await AwsVpcModule.mappers.endpointGateway.db.update(newEndpointGateway, ctx);
+            out.push(newEndpointGateway);
+          }
+          return out;
+        },
+        read: async (ctx: Context, id?: string) => {
+          const client = await ctx.getAwsClient() as AWS;
+          if (!!id) {
+            const rawEndpointGateway = await client.getVpcEndpointGateway(id);
+            if (!rawEndpointGateway) return;
+            return AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway);
+          } else {
+            const out = [];
+            for (const eg of (await client.getVpcEndpointGateways())) {
+              out.push(AwsVpcModule.utils.endpointGatewayMapper(eg));
+            }
+            return out;
+          }
+        },
+        updateOrReplace: (a: EndpointGateway, b: EndpointGateway) => {
+          // Update vpc endpoint
+          // !Object.is(a.dnsRecordIpType, b.dnsRecordIpType)
+          // !Object.is(a.ipAddressType, b.ipAddressType)
+          // !Object.is(a.policyDocument, b.policyDocument)
+          // Update tags
+          // !AwsVpcModule.utils.eqTags(a.tags, b.tags)
+          // Restore
+          // !Object.is(a.state, b.state)
+          // Replace
+          // !Object.is(a.vpc?.vpcId, b.vpc?.vpcId)
+          // !Object.is(a.serviceName, b.serviceName)
+          if (!(Object.is(a.vpc?.vpcId, b.vpc?.vpcId) && Object.is(a.serviceName, b.serviceName))) return 'replace';
+          return 'update';
+        },
+        update: async (es: EndpointGateway[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          const out = [];
+          for (const e of es) {
+            const cloudRecord = ctx?.memo?.cloud?.EndpointGateway?.[e.vpcEndpointId ?? ''];
+            const isUpdate = AwsVpcModule.mappers.endpointGateway.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            if (isUpdate) {
+              let update = false;
+              if (!(Object.is(cloudRecord.dnsRecordIpType, e.dnsRecordIpType) &&
+                Object.is(cloudRecord.ipAddressType, e.ipAddressType) && Object.is(cloudRecord.policyDocument, e.policyDocument))) {
+                // VPC endpoint modify
+                const input: ModifyVpcEndpointCommandInput = {
+                  VpcEndpointId: e.vpcEndpointId,
+                  IpAddressType: e.ipAddressType,
+                };
+                if (e.policyDocument) {
+                  input.PolicyDocument = e.policyDocument;
+                } else {
+                  input.ResetPolicy = true;
+                }
+                if (e.dnsRecordIpType) {
+                  input.DnsOptions = {
+                    DnsRecordIpType: e.dnsRecordIpType,
+                  };
+                }
+                await client.modifyVpcEndpointGateway(input);
+                update = true;
+              }
+              if (!AwsVpcModule.utils.eqTags(cloudRecord.tags, e.tags)) {
+                // Tags update
+                await client.updateTags(e.vpcEndpointId ?? '', e.tags);
+                update = true;
+              }
+              if (update) {
+                const rawEndpointGateway = await client.getVpcEndpointGateway(e.vpcEndpointId ?? '');
+                const newEndpointGateway = AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway);
+                newEndpointGateway.id = e.id;
+                await AwsVpcModule.mappers.endpointGateway.db.update(newEndpointGateway, ctx);
+                out.push(newEndpointGateway);
+              } else {
+                // Restore record
+                cloudRecord.id = e.id;
+                await AwsVpcModule.mappers.endpointGateway.db.update(cloudRecord, ctx);
+                out.push(cloudRecord);
+              }
+            } else {
+              // Replace record
+              const newEndpointGateway = await AwsVpcModule.mappers.endpointGateway.cloud.create(e, ctx);
+              await AwsVpcModule.mappers.endpointGateway.cloud.delete(cloudRecord, ctx);
+              out.push(newEndpointGateway);
+            }
+          }
+          return out;
+        },
+        delete: async (es: EndpointGateway[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          for (const e of es) {
+            await client.deleteVpcEndpointGateway(e.vpcEndpointId ?? '');
           }
         },
       }),

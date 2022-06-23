@@ -30,6 +30,9 @@ import {
   DescribeInstancesCommandInput,
   DescribeNetworkInterfacesCommandInput,
   DescribeNatGatewaysCommandInput,
+  CreateVpcEndpointCommandInput,
+  paginateDescribeVpcEndpoints,
+  ModifyVpcEndpointCommandInput,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import {
@@ -1912,5 +1915,54 @@ export class AWS {
     await this.ec2client.releaseAddress({
       AllocationId: allocationId,
     });
+  }
+
+  async createVpcEndpointGateway(input: CreateVpcEndpointCommandInput) {
+    const res = await this.ec2client.createVpcEndpoint(input);
+    return res.VpcEndpoint;
+  }
+
+  async getVpcEndpointGateway(endpointId: string) {
+    const res = await this.ec2client.describeVpcEndpoints({
+      VpcEndpointIds: [endpointId],
+    });
+    return res.VpcEndpoints?.pop();
+  }
+
+  async getVpcEndpointGateways() {
+    const vpcEndpoints = [];
+    const paginator = paginateDescribeVpcEndpoints({
+      client: this.ec2client,
+      pageSize: 25,
+    }, {
+      Filters: [
+        {
+          Name: 'vpc-endpoint-type',
+          Values: ['Gateway']
+        },
+        // vpc-endpoint-state - The state of the endpoint:
+        // pendingAcceptance | pending | available | deleting | deleted | rejected | failed
+        {
+          Name: 'vpc-endpoint-state',
+          Values: ['available', 'rejected', 'failed']
+        }
+      ]
+    });
+    for await (const page of paginator) {
+      vpcEndpoints.push(...(page.VpcEndpoints ?? []));
+    }
+    return vpcEndpoints;
+  }
+
+  async deleteVpcEndpointGateway(endpointId: string) {
+    const res = await this.ec2client.deleteVpcEndpoints({
+      VpcEndpointIds: [endpointId],
+    });
+    return res.Unsuccessful;
+  }
+
+  async modifyVpcEndpointGateway(input: ModifyVpcEndpointCommandInput) {
+    const res = await this.ec2client.modifyVpcEndpoint(input);
+    return res.Return;
   }
 }
