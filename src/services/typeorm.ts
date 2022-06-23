@@ -120,6 +120,7 @@ export class TypeormWrapper {
     } else {
       await repository.save(value);
     }
+    this.updateNulls(value);
   }
 
   async remove(entity: EntityTarget<any>, value: any) {
@@ -129,5 +130,20 @@ export class TypeormWrapper {
 
   createQueryRunner() {
     return this.connection.createQueryRunner();
+  }
+
+  updateNulls(value: any): void {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      for (const v of value) {
+        Object.keys(v).forEach((k: string) => {
+          if (v[k] === null) v[k] = undefined;
+        });
+      }
+    } else if (Object.keys(value).length) {
+      Object.keys(value).forEach((k: string) => {
+        if (value[k] === null) value[k] = undefined;
+      });
+    }
   }
 }
