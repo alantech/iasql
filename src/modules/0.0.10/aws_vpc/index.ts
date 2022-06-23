@@ -496,16 +496,6 @@ export const AwsVpcModule: Module2 = new Module2({
           }
         },
         updateOrReplace: (a: EndpointGateway, b: EndpointGateway) => {
-          // Update vpc endpoint
-          // !Object.is(a.policyDocument, b.policyDocument)
-          // !Object.is(a.routeTableIds, b.routeTableIds)
-          // Update tags
-          // !AwsVpcModule.utils.eqTags(a.tags, b.tags)
-          // Restore
-          // !Object.is(a.state, b.state)
-          // Replace
-          // !Object.is(a.vpc?.vpcId, b.vpc?.vpcId)
-          // !Object.is(a.service, b.service)
           if (!(Object.is(a.vpc?.vpcId, b.vpc?.vpcId) && Object.is(a.service, b.service))) return 'replace';
           return 'update';
         },
