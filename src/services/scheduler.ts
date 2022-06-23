@@ -5,7 +5,7 @@ import { latest, } from '../modules'
 import MetadataRepo from './repositories/metadata'
 import * as iasql from './iasql'
 import * as telemetry from './telemetry'
-import logger, { logUserErr } from './logger'
+import logger, { logErrSentry } from './logger'
 import { TypeormWrapper } from './typeorm'
 import { IasqlDatabase } from '../entity'
 import config from '../config'
@@ -92,7 +92,7 @@ export async function start(dbId: string, dbUser:string) {
           output = typeof output === 'string' ? output : JSON.stringify(output);
           await conn.query(query);
         } catch (e) {
-          let errorMessage: string | string[] = logUserErr(e, uid, email, dbAlias);
+          let errorMessage: string | string[] = logErrSentry(e, uid, email, dbAlias);
           // split message if multiple lines in it
           if (errorMessage.includes('\n')) errorMessage = errorMessage.split('\n');
           // error must be valid JSON as a string
@@ -164,9 +164,13 @@ export async function init() {
   if (!MetadataRepo.initialized) await MetadataRepo.init(); // Necessary in the child process
   const dbs: IasqlDatabase[] = await MetadataRepo.getAllDbs();
   const inits = await Promise.allSettled(dbs.map(db => start(db.pgName, db.pgUser)));
-  for (const bootstrap of inits) {
+  for (const [i, bootstrap] of inits.entries()) {
     if (bootstrap.status === 'rejected') {
-      logger.error(bootstrap.reason);
+      const db = dbs[i];
+      const user = await MetadataRepo.getUserFromDbId(db.pgName);
+      const message = `Failed to bootstrap db ${db.pgName} on startup. Reason: ${bootstrap.reason}`;
+      logger.error(message);
+      logErrSentry(message, user?.id, user?.email, db.alias);
     }
   }
 }

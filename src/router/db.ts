@@ -5,14 +5,14 @@ import * as dbMan from '../services/db-manager';
 import * as iasql from '../services/iasql'
 import MetadataRepo from '../services/repositories/metadata'
 import * as telemetry from '../services/telemetry'
-import logger, { logUserErr } from '../services/logger'
+import logger, { logErrSentry } from '../services/logger'
 import config from '../config'
 
 export const db = express.Router();
 
-db.get('/connect/:dbAlias', async (req, res) => {
+async function connectHandler(req: any, res: any) {
   logger.info('Calling /connect');
-  const {dbAlias} = req.params;
+  const dbAlias = req.params?.dbAlias ?? req.body?.dbAlias;
   if (!dbAlias) return res.status(400).json(
     `Required key(s) not provided: ${[
       'dbAlias'
@@ -34,41 +34,15 @@ db.get('/connect/:dbAlias', async (req, res) => {
       operationCount: database.operationCount
     }, {}, dbId);
   } catch (e) {
-    const error = logUserErr(e, uid, email, dbAlias);
+    const error = logErrSentry(e, uid, email, dbAlias);
     res.status(500).end(error);
     telemetry.logConnect({ uid, email }, { error }, dbId);
   }
-});
+}
 
-db.post('/connect', async (req, res) => {
-  logger.info('Calling /connect');
-  const {dbAlias} = req.body;
-  if (!dbAlias) return res.status(400).json(
-    `Required key(s) not provided: ${[
-      'dbAlias'
-    ].filter(k => !req.body.hasOwnProperty(k)).join(', ')}`
-  );
-  const uid = dbMan.getUid(req.user);
-  const email = dbMan.getEmail(req.user);
-  const dbId = dbMan.genDbId(dbAlias);
-  try {
-    const database = await iasql.connect(
-      dbAlias, uid, email, dbId
-    );
-    res.json(database);
-    telemetry.logConnect({
-      dbAlias,
-      uid,
-      email,
-      recordCount: database.recordCount,
-      operationCount: database.operationCount
-    }, {}, dbId);
-  } catch (e) {
-    const error = logUserErr(e, uid, email, dbAlias);
-    res.status(500).end(error);
-    telemetry.logConnect({ uid, email },  { error }, dbId);
-  }
-});
+db.get('/connect/:dbAlias', connectHandler);
+
+db.post('/connect', connectHandler);
 
 // TODO revive and test
 /*db.post('/import', async (req, res) => {
@@ -105,7 +79,7 @@ db.post('/export', async (req, res) => {
       operationCount: database.operationCount,
     }, { dataOnly: !!dataOnly }, database.pgName);
   } catch (e) {
-    res.status(500).end(logUserErr(e, uid, email, dbAlias));
+    res.status(500).end(logErrSentry(e, uid, email, dbAlias));
   }
 });
 
@@ -117,7 +91,7 @@ db.get('/list', async (req, res) => {
     const dbs = await MetadataRepo.getDbs(uid, email);
     res.json(dbs);
   } catch (e) {
-    res.status(500).end(logUserErr(e, uid, email));
+    res.status(500).end(logErrSentry(e, uid, email));
   }
 });
 
@@ -136,7 +110,7 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
     }, {}, dbId);
     res.json(`disconnected ${dbAlias}`);
   } catch (e) {
-    const error = logUserErr(e, uid, email, dbAlias);
+    const error = logErrSentry(e, uid, email, dbAlias);
     res.status(500).end(error);
     telemetry.logDisconnect({ uid, email }, { error });
   }
