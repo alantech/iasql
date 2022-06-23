@@ -167,7 +167,7 @@ db.post('/run/:dbAlias', async (req, res) => {
     // do not send to sentry
     const error = e?.message ?? '';
     logger.error(`RunSQL user error: ${error}`, { uid, email, dbAlias})
-    telemetry.logRunSql({ uid, email }, { error }, dbId);
+    telemetry.logRunSql({ uid, email }, { sql, error }, dbId);
     res.status(500).end(error);
   }
 });
