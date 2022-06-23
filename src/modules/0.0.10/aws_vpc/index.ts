@@ -103,14 +103,14 @@ export const AwsVpcModule: Module2 = new Module2({
         await AwsVpcModule.mappers.vpc.cloud.read(ctx, eg.VpcId);
       if (!out.vpc) return undefined;
       out.policyDocument = eg.PolicyDocument;
-      out.state = eg.State as EndpointGatewayState;
-      if (eg.IpAddressType) out.ipAddressType = eg.IpAddressType as IpAddressType;
-      if (eg.DnsOptions?.DnsRecordIpType) out.dnsRecordIpType = eg.DnsOptions?.DnsRecordIpType as DnsRecordIpType;
-      const tags: { [key: string]: string } = {};
-      (eg.Tags || []).filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
-        tags[t.Key as string] = t.Value as string;
-      });
-      out.tags = tags;
+      out.state = eg.State;
+      if (eg.Tags?.length) {
+        const tags: { [key: string]: string } = {};
+        eg.Tags.filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
+          tags[t.Key as string] = t.Value as string;
+        });
+        out.tags = tags;
+      }
       return out;
     },
     getServiceFromServiceName: (serviceName: string) => {
