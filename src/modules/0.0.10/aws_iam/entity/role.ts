@@ -38,7 +38,7 @@ export class Role {
     nullable: true,
   })
   attachedPoliciesArns?: string[];
-  
+
   @AfterLoad()
   @AfterInsert()
   @AfterUpdate()
