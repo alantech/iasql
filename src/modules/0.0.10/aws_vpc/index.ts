@@ -6,6 +6,7 @@ import {
   Subnet as AwsSubnet,
   Tag,
   Vpc as AwsVpc,
+  VpcEndpoint as AwsVpcEndpoint,
 } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../../../services/gateways/aws_2'
@@ -20,6 +21,10 @@ import {
   NatGatewayState,
   ElasticIp,
   EndpointGateway,
+  DnsRecordIpType,
+  IpAddressType,
+  EndpointGatewayService,
+  EndpointGatewayState,
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
@@ -87,6 +92,30 @@ export const AwsVpcModule: Module2 = new Module2({
       });
       out.tags = tags;
       return out;
+    },
+    endpointGatewayMapper:  async (eg: AwsVpcEndpoint, ctx: Context) => {
+      const out = new EndpointGateway();
+      out.vpcEndpointId = eg.VpcEndpointId;
+      if (!out.vpcEndpointId) return undefined;
+      out.service = AwsVpcModule.utils.getServiceFromServiceName(eg.ServiceName);
+      if (!out.service) return undefined;
+      out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, eg.VpcId) ??
+        await AwsVpcModule.mappers.vpc.cloud.read(ctx, eg.VpcId);
+      if (!out.vpc) return undefined;
+      out.policyDocument = eg.PolicyDocument;
+      out.state = eg.State as EndpointGatewayState;
+      if (eg.IpAddressType) out.ipAddressType = eg.IpAddressType as IpAddressType;
+      if (eg.DnsOptions?.DnsRecordIpType) out.dnsRecordIpType = eg.DnsOptions?.DnsRecordIpType as DnsRecordIpType;
+      const tags: { [key: string]: string } = {};
+      (eg.Tags || []).filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
+        tags[t.Key as string] = t.Value as string;
+      });
+      out.tags = tags;
+      return out;
+    },
+    getServiceFromServiceName: (serviceName: string) => {
+      if (serviceName.includes('s3')) return EndpointGatewayService.S3;
+      if (serviceName.includes('dynamodb')) return EndpointGatewayService.DYNAMODB;
     },
     eqTags: (a: { [key: string]: string }, b: { [key: string]: string }) => Object.is(Object.keys(a ?? {})?.length, Object.keys(b ?? {})?.length) &&
       Object.keys(a ?? {})?.every(ak => (a ?? {})[ak] === (b ?? {})[ak]),
