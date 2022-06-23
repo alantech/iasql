@@ -3,19 +3,15 @@ import {
   // TerminateInstancesRequest,
   AuthorizeSecurityGroupEgressCommandInput,
   AuthorizeSecurityGroupIngressCommandInput,
-  AvailabilityZone,
   CreateSecurityGroupRequest,
   CreateSubnetCommandInput,
   CreateVpcCommandInput,
   DeleteSecurityGroupRequest,
   DeleteSubnetCommandInput,
   DeleteVpcCommandInput,
-  ModifySecurityGroupRulesCommandInput,
-  ModifySecurityGroupRulesCommandOutput,
   RevokeSecurityGroupEgressCommandInput,
   RevokeSecurityGroupIngressCommandInput,
   RunInstancesCommandInput,
-  paginateDescribeInstanceTypes,
   paginateDescribeInstances,
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
@@ -72,7 +68,6 @@ import {
   CreateDBInstanceCommandInput,
   DeleteDBInstanceMessage,
   paginateDescribeDBInstances,
-  paginateDescribeDBEngineVersions,
   ModifyDBInstanceCommandInput,
   CreateDBParameterGroupCommandInput,
   paginateDescribeDBParameterGroups,
@@ -135,11 +130,9 @@ export class AWS {
   private iamClient: IAM;
   private acmClient: ACM
   private s3Client: S3
-  private credentials: AWSCreds
   public region: string
 
   constructor(config: AWSConfig) {
-    this.credentials = config.credentials;
     this.region = config.region;
     this.ec2client = new EC2(config);
     this.ecrClient = new ECR(config);
@@ -156,19 +149,6 @@ export class AWS {
     this.ecrPubClient = new ECRPUBLIC({credentials: config.credentials, region: 'us-east-1'});
   }
 
-  async newRole(name: string, assumeRolePolicyDocument: string, attachedPolicyArns: string[], description: string): Promise<string> {
-    const role = await this.iamClient.createRole({
-      RoleName: name,
-      AssumeRolePolicyDocument: assumeRolePolicyDocument,
-      Description: description,
-    });
-    await Promise.all(
-      attachedPolicyArns
-        .map(arn => this.iamClient.attachRolePolicy({PolicyArn: arn, RoleName: name}))
-    );
-    return role.Role?.Arn ?? '';
-  }
-
   async newRoleLin(
     name: string,
     assumeRolePolicyDocument: string,
@@ -181,7 +161,7 @@ export class AWS {
       Description: description,
     });
     for (const arn of attachedPolicyArns) {
-      this.iamClient.attachRolePolicy({PolicyArn: arn, RoleName: name});
+      await this.iamClient.attachRolePolicy({PolicyArn: arn, RoleName: name});
     }
     return role.Role?.Arn ?? '';
   }
@@ -202,10 +182,6 @@ export class AWS {
 
   async getRole(name: string) {
     return (await this.iamClient.getRole({RoleName: name})).Role;
-  }
-
-  async getRoles() {
-    return (await this.iamClient.listRoles({})).Roles ?? [];
   }
 
   async getAllRoles() {
@@ -230,11 +206,6 @@ export class AWS {
   async getRoleAttachedPoliciesArnsV2(name: string) {
     const rolePolicies = (await this.iamClient.listAttachedRolePolicies({RoleName: name})).AttachedPolicies ?? [];
     return rolePolicies.length ? rolePolicies.map(p => p.PolicyArn ?? '') : undefined;
-  }
-
-  async deleteRole(name: string, policyArns: string[]) {
-    await Promise.all(policyArns.map(arn => this.iamClient.detachRolePolicy({RoleName: name, PolicyArn: arn})));
-    await this.iamClient.deleteRole({RoleName: name});
   }
 
   async deleteRoleLin(name: string, policyArns: string[]) {
@@ -279,7 +250,6 @@ export class AWS {
     );
     return instanceIds?.pop() ?? ''
   }
-
 
   async startInstance(instanceId: string) {
     await this.ec2client.startInstances({
@@ -405,61 +375,10 @@ export class AWS {
     return (response?.TerminatingInstances ?? []).pop();
   }
 
-  async getInstanceTypes() {
-    const instanceTypes = [];
-    const paginator = paginateDescribeInstanceTypes({
-      client: this.ec2client,
-      pageSize: 25,
-    }, {});
-    for await (const page of paginator) {
-      instanceTypes.push(...(page.InstanceTypes ?? []));
-    }
-    return {
-      InstanceTypes: instanceTypes, // Make it "look like" the regular query again
-    };
-  }
-
   async getInstanceType(instanceType: string) {
     return (await this.ec2client.describeInstanceTypes({
       InstanceTypes: [instanceType,],
     }))?.InstanceTypes?.[0];
-  }
-
-  async getAMIs() {
-    return await this.ec2client.describeImages({});
-  }
-
-  async getAMI(imageId: string) {
-    return (await this.ec2client.describeImages({
-      ImageIds: [imageId,],
-    }))?.Images?.[0];
-  }
-
-  async getRegions() {
-    return await this.ec2client.describeRegions(({ AllRegions: true, }));
-  }
-
-  async getRegion(regionName: string) {
-    return (await this.ec2client.describeRegions({
-      RegionNames: [regionName,],
-    }))?.Regions?.[0];
-  }
-
-  async getAvailabilityZones(regions: string[]): Promise<AvailabilityZone[]> {
-    let availabilityZones: AvailabilityZone[] = [];
-    for (const region of regions) {
-      try {
-        const client = new EC2({
-          credentials: this.credentials,
-          region
-        });
-        const regionAZs = await client.describeAvailabilityZones({ AllAvailabilityZones: true, });
-        availabilityZones = availabilityZones.concat(regionAZs.AvailabilityZones ?? []);
-      } catch (e) {
-        logger.info(`Could not get availability zones for region: ${region}. Error: ${e}`);
-      }
-    }
-    return availabilityZones;
   }
 
   async getSecurityGroups() {
@@ -589,10 +508,6 @@ export class AWS {
       reses.push(res);
     }
     return reses;
-  }
-
-  async modifySecurityGroupRules(i: ModifySecurityGroupRulesCommandInput): Promise<ModifySecurityGroupRulesCommandOutput> {
-    return await this.ec2client.modifySecurityGroupRules(i);
   }
 
   async createECRRepository(input: CreateRepositoryCommandInput) {
@@ -1274,36 +1189,6 @@ export class AWS {
     );
   }
 
-  async getEngineVersions() {
-    const engines = [];
-    const paginator = paginateDescribeDBEngineVersions({
-      client: this.rdsClient,
-      pageSize: 100,
-    }, {});
-    for await (const page of paginator) {
-      engines.push(...(page.DBEngineVersions ?? []));
-    }
-    return {
-      DBEngineVersions: engines.map(e =>
-        ({ ...e, EngineVersionKey: `${e.Engine}:${e.EngineVersion}` })),
-    };
-  }
-
-  async getEngineVersion(engineVersionKey: string) {
-    const [engine, version] = engineVersionKey.split(':');
-    let dbEngineVersion: any = (await this.rdsClient.describeDBEngineVersions({
-      Engine: engine,
-      EngineVersion: version,
-    }))?.DBEngineVersions?.[0];
-    if (dbEngineVersion) {
-      dbEngineVersion = {
-        ...dbEngineVersion,
-        EngineVersionKey: `${dbEngineVersion!.Engine}:${dbEngineVersion!.EngineVersion}`
-      }
-    }
-    return dbEngineVersion;
-  }
-
   async createDBInstance(instanceParams: CreateDBInstanceCommandInput) {
     let newDBInstance = (await this.rdsClient.createDBInstance(instanceParams)).DBInstance;
     const input: DescribeDBInstancesCommandInput = {
@@ -1572,13 +1457,6 @@ export class AWS {
   async getRecord(hostedZoneId: string, recordName: string, recordType: string) {
     const records = await this.getRecords(hostedZoneId);
     return records.find(r => Object.is(r.Type, recordType) && Object.is(r.Name, recordName));
-  }
-
-  async updateResourceRecordSet(hostedZoneId: string, record: ResourceRecordSet) {
-    const res = await this.route53Client.changeResourceRecordSets(
-      this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'UPSERT')
-    );
-    return res;
   }
 
   async deleteResourceRecordSet(hostedZoneId: string, record: ResourceRecordSet) {
