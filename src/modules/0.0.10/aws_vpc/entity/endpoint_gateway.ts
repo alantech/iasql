@@ -36,7 +36,11 @@ export enum IpAddressType {
   ipv6 = "ipv6"
 }
 
-// VpcEndpointType = 'Gateway'
+export enum EndpointGatewayService {
+  'com.amazonaws.ap-south-1.dynamodb' = 'dynamodb',
+  'com.amazonaws.ap-south-1.s3' = 's3',
+}
+
 @Entity()
 export class EndpointGateway {
   @PrimaryGeneratedColumn()
@@ -47,8 +51,12 @@ export class EndpointGateway {
   vpcEndpointId?: string;
 
 
-  @Column({ nullable: true, })
-  serviceName: string;
+  @Column({
+    nullable: false,
+    type: 'enum',
+    enum: EndpointGatewayService,
+  })
+  serviceName: EndpointGatewayService;
 
   @Column({ nullable: true, })
   policyDocument?: string;
