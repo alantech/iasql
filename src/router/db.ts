@@ -38,6 +38,7 @@ async function connectHandler(req: any, res: any) {
     res.status(500).end(error);
     telemetry.logConnect({ uid, email }, { error }, dbId);
   }
+}
 
 db.get('/connect/:dbAlias', connectHandler);
 
