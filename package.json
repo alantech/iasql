@@ -11,13 +11,13 @@
     "coverage": "IASQL_ENV=test jest -i --coverage --forceExit",
     "coverage:local": "IASQL_ENV=test export $(cat .env | xargs) && yarn coverage",
     "serve": "node --max_old_space_size=8192 dist/index.js",
+    "serve:debug": "node --inspect=0.0.0.0:9229 --max_old_space_size=8192 dist/index.js",
     "start": "yarn serve",
-    "start:dev": "nodemon -e ts -w ./src -x yarn start:dev:watch",
-    "start:dev:watch": "yarn build && yarn serve",
+    "start:debug": "nodemon -e ts -w ./src -x yarn serve:debug",
     "gen-sql": "IASQL_ENV=local ts-node ./node_modules/.bin/typeorm migration:generate -n",
     "migrate": "IASQL_ENV=local ts-node ./node_modules/.bin/typeorm migration:run",
     "gen-module": "IASQL_ENV=local ./.module_migration.sh",
-    "docker-compose:dev": "IASQL_ENV=local docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "docker-compose:debug": "IASQL_ENV=local docker-compose -f docker-compose.yml -f docker-compose.debug.yml up --build",
     "docker-compose": "IASQL_ENV=local docker-compose up --build"
   },
   "repository": {

@@ -319,6 +319,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
     let bothCount = -1;
     let spinCount = 0;
     do {
+      logger.info('Starting outer loop');
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
       memo.db = {}; // Flush the DB entities on the outer loop to restore the actual intended state
@@ -329,6 +330,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
       const idGens = mappers.map(mapper => mapper.entityId);
       let ranUpdate = false;
       do {
+        logger.info('Starting inner loop');
         ranUpdate = false;
         memo.cloud = {}; // Flush the Cloud entities on the inner loop to track changes to the state
         await lazyLoader(mappers.map(mapper => async () => {

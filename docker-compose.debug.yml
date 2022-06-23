@@ -3,3 +3,5 @@ services:
   change_engine:
     volumes:
       - .:/engine
+    ports:
+      - "9229:9229"
