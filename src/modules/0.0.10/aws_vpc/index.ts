@@ -21,10 +21,7 @@ import {
   NatGatewayState,
   ElasticIp,
   EndpointGateway,
-  DnsRecordIpType,
-  IpAddressType,
   EndpointGatewayService,
-  EndpointGatewayState,
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
@@ -104,6 +101,7 @@ export const AwsVpcModule: Module2 = new Module2({
       if (!out.vpc) return undefined;
       out.policyDocument = eg.PolicyDocument;
       out.state = eg.State;
+      out.routeTableIds = eg.RouteTableIds;
       if (eg.Tags?.length) {
         const tags: { [key: string]: string } = {};
         eg.Tags.filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
@@ -432,14 +430,14 @@ export const AwsVpcModule: Module2 = new Module2({
     }),
     endpointGateway: new Mapper2<EndpointGateway>({
       entity: EndpointGateway,
-      equals: (a: EndpointGateway, b: EndpointGateway) => Object.is(a.dnsRecordIpType, b.dnsRecordIpType)
-        && Object.is(a.ipAddressType, b.ipAddressType)
+      equals: (a: EndpointGateway, b: EndpointGateway) => Object.is(a.service, b.service)
         // the policy document is stringified json
         // we are trusting aws won't change it from under us
         && Object.is(a.policyDocument, b.policyDocument)
-        && Object.is(a.service, b.service)
         && Object.is(a.state, b.state)
         && Object.is(a.vpc?.vpcId, b.vpc?.vpcId)
+        && Object.is(a.routeTableIds?.length, b.routeTableIds?.length)
+        && !!a.routeTableIds?.every(art => !!b.routeTableIds?.find(brt => Object.is(art, brt)))
         && AwsVpcModule.utils.eqTags(a.tags, b.tags),
       source: 'db',
       cloud: new Crud2({
@@ -451,15 +449,15 @@ export const AwsVpcModule: Module2 = new Module2({
               VpcEndpointType: 'Gateway',
               ServiceName: await client.getVpcEndpointGatewayServiceName(e.service),
               VpcId: e.vpc?.vpcId,
-              IpAddressType: e.ipAddressType,
             };
             if (e.policyDocument) {
               input.PolicyDocument = e.policyDocument;
             }
-            if (e.dnsRecordIpType) {
-              input.DnsOptions = {
-                DnsRecordIpType: e.dnsRecordIpType,
-              };
+            if (e.routeTableIds?.length) {
+              input.RouteTableIds = e.routeTableIds;
+            } else {
+              const vpcRouteTables = await client.getVpcRouteTables(e.vpc?.vpcId ?? '');
+              input.RouteTableIds = vpcRouteTables?.map(rt => rt.RouteTableId ?? '')?.filter(id => !!id) ?? [];
             }
             if (e.tags && Object.keys(e.tags).length) {
               const tags: Tag[] = Object.keys(e.tags).map((k: string) => {
@@ -499,9 +497,8 @@ export const AwsVpcModule: Module2 = new Module2({
         },
         updateOrReplace: (a: EndpointGateway, b: EndpointGateway) => {
           // Update vpc endpoint
-          // !Object.is(a.dnsRecordIpType, b.dnsRecordIpType)
-          // !Object.is(a.ipAddressType, b.ipAddressType)
           // !Object.is(a.policyDocument, b.policyDocument)
+          // !Object.is(a.routeTableIds, b.routeTableIds)
           // Update tags
           // !AwsVpcModule.utils.eqTags(a.tags, b.tags)
           // Restore
@@ -520,23 +517,24 @@ export const AwsVpcModule: Module2 = new Module2({
             const isUpdate = AwsVpcModule.mappers.endpointGateway.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               let update = false;
-              if (!(Object.is(cloudRecord.dnsRecordIpType, e.dnsRecordIpType) &&
-                Object.is(cloudRecord.ipAddressType, e.ipAddressType) && Object.is(cloudRecord.policyDocument, e.policyDocument))) {
-                // VPC endpoint modify
+              if (!Object.is(cloudRecord.policyDocument, e.policyDocument)) {
+                // VPC endpoint policy document update
                 const input: ModifyVpcEndpointCommandInput = {
                   VpcEndpointId: e.vpcEndpointId,
-                  IpAddressType: e.ipAddressType,
+                  PolicyDocument: e.policyDocument,
+                  ResetPolicy: !e.policyDocument
                 };
-                if (e.policyDocument) {
-                  input.PolicyDocument = e.policyDocument;
-                } else {
-                  input.ResetPolicy = true;
-                }
-                if (e.dnsRecordIpType) {
-                  input.DnsOptions = {
-                    DnsRecordIpType: e.dnsRecordIpType,
-                  };
-                }
+                await client.modifyVpcEndpointGateway(input);
+                update = true;
+              }
+              if (!(Object.is(cloudRecord.routeTableIds?.length, e.routeTableIds?.length)
+                  && !!cloudRecord.routeTableIds?.every((crrt: any) => !!e.routeTableIds?.find(ert => Object.is(crrt, ert))))) {
+                // VPC endpoint route tables update
+                const input: ModifyVpcEndpointCommandInput = {
+                  VpcEndpointId: e.vpcEndpointId,
+                  RemoveRouteTableIds: cloudRecord.routeTableIds,
+                  AddRouteTableIds: e.routeTableIds,
+                };
                 await client.modifyVpcEndpointGateway(input);
                 update = true;
               }

@@ -1977,4 +1977,16 @@ export class AWS {
     });
     return res.ServiceNames?.find(sn => sn.includes(service));
   }
+
+  async getVpcRouteTables(vpcId: string) {
+    const res = await this.ec2client.describeRouteTables({
+      Filters: [
+        {
+          Name: 'vpc-id',
+          Values: [vpcId]
+        }
+      ]
+    });
+    return res.RouteTables;
+  }
 }
