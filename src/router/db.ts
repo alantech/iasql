@@ -26,17 +26,17 @@ db.get('/connect/:dbAlias', async (req, res) => {
       dbAlias, uid, email, dbId
     );
     res.json(database);
-    telemetry.logDbConnect(dbId, {
+    telemetry.logConnect({
       dbAlias,
       uid,
       email,
       recordCount: database.recordCount,
       operationCount: database.operationCount
-    });
+    }, {}, dbId);
   } catch (e) {
-    const err = logUserErr(e, uid, email, dbAlias);
-    res.status(500).end(err);
-    telemetry.logDbConnectErr(dbId, uid, email, err);
+    const error = logUserErr(e, uid, email, dbAlias);
+    res.status(500).end(error);
+    telemetry.logConnect({ uid, email }, { error }, dbId);
   }
 });
 
@@ -56,17 +56,17 @@ db.post('/connect', async (req, res) => {
       dbAlias, uid, email, dbId
     );
     res.json(database);
-    telemetry.logDbConnect(dbId, {
+    telemetry.logConnect({
       dbAlias,
       uid,
       email,
       recordCount: database.recordCount,
       operationCount: database.operationCount
-    });
+    }, {}, dbId);
   } catch (e) {
-    const err = logUserErr(e, uid, email, dbAlias);
-    res.status(500).end(err);
-    telemetry.logDbConnectErr(dbId, uid, email, err);
+    const error = logUserErr(e, uid, email, dbAlias);
+    res.status(500).end(error);
+    telemetry.logConnect({ uid, email },  { error }, dbId);
   }
 });
 
@@ -97,13 +97,13 @@ db.post('/export', async (req, res) => {
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     res.send(await iasql.dump(database.pgName, !!dataOnly));
-    telemetry.logDbExport(database.pgName, {
+    telemetry.logExport({
       dbAlias,
       email,
       uid,
       recordCount: database.recordCount,
       operationCount: database.operationCount,
-    }, !!dataOnly);
+    }, { dataOnly: !!dataOnly }, database.pgName);
   } catch (e) {
     res.status(500).end(logUserErr(e, uid, email, dbAlias));
   }
@@ -129,16 +129,16 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
   const email = dbMan.getEmail(req.user);
   try {
     const dbId = await iasql.disconnect(dbAlias, uid);
-    telemetry.logDbDisconnect(dbId, {
+    telemetry.logDisconnect({
       dbAlias,
       email,
       uid
-    });
+    }, {}, dbId);
     res.json(`disconnected ${dbAlias}`);
   } catch (e) {
-    const err = logUserErr(e, uid, email, dbAlias);
-    res.status(500).end(err);
-    telemetry.logDbDisconnectErr(uid, email, err);
+    const error = logUserErr(e, uid, email, dbAlias);
+    res.status(500).end(error);
+    telemetry.logDisconnect({ uid, email }, { error });
   }
 });
 
@@ -149,10 +149,25 @@ db.post('/run/:dbAlias', async (req, res) => {
   const sql = req.body;
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
+  let dbId;
   try {
-    const out = await iasql.runSql(dbAlias, uid, sql);
-    res.json(out);
-  } catch (e) {
-    res.status(500).end(logUserErr(e, uid, email, dbAlias));
+    const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+    dbId = database.pgName;
+    const output = await iasql.runSql(dbAlias, uid, sql);
+    telemetry.logRunSql({
+      dbAlias,
+      email,
+      uid
+    }, {
+      output,
+      sql
+    }, database.pgName);
+    res.json(output);
+  } catch (e: any) {
+    // do not send to sentry
+    const error = e?.message ?? '';
+    logger.error(`RunSQL user error: ${error}`, { uid, email, dbAlias})
+    telemetry.logRunSql({ uid, email }, { sql, error }, dbId);
+    res.status(500).end(error);
   }
 });
