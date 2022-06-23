@@ -476,7 +476,7 @@ export const AwsVpcModule: Module2 = new Module2({
             }
             const res = await client.createVpcEndpointGateway(input);
             const rawEndpointGateway = await client.getVpcEndpointGateway(res?.VpcEndpointId ?? '');
-            const newEndpointGateway = AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway);
+            const newEndpointGateway = await AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway, ctx);
             newEndpointGateway.id = e.id;
             await AwsVpcModule.mappers.endpointGateway.db.update(newEndpointGateway, ctx);
             out.push(newEndpointGateway);
@@ -488,11 +488,11 @@ export const AwsVpcModule: Module2 = new Module2({
           if (!!id) {
             const rawEndpointGateway = await client.getVpcEndpointGateway(id);
             if (!rawEndpointGateway) return;
-            return AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway);
+            return await AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway, ctx);
           } else {
             const out = [];
             for (const eg of (await client.getVpcEndpointGateways())) {
-              out.push(AwsVpcModule.utils.endpointGatewayMapper(eg));
+              out.push(await AwsVpcModule.utils.endpointGatewayMapper(eg, ctx));
             }
             return out;
           }
@@ -547,7 +547,7 @@ export const AwsVpcModule: Module2 = new Module2({
               }
               if (update) {
                 const rawEndpointGateway = await client.getVpcEndpointGateway(e.vpcEndpointId ?? '');
-                const newEndpointGateway = AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway);
+                const newEndpointGateway = await AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway, ctx);
                 newEndpointGateway.id = e.id;
                 await AwsVpcModule.mappers.endpointGateway.db.update(newEndpointGateway, ctx);
                 out.push(newEndpointGateway);
