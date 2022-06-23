@@ -45,8 +45,6 @@ export class Crud2<E> {
     const dest = this.dest ?? 'What?';
     const entityName = this.entity?.name ?? 'What?';
     const entityId = this.entityId ?? ((_e: E) => { return 'What?'; });
-    logger.warn(`+++ MEMO ENTITY ${JSON.stringify(es)}`);
-    logger.warn(`+++ MEMO INPUT ${JSON.stringify(input)}`);
     es.forEach((e, i) => {
       ctx.memo[dest] = ctx.memo[dest] ?? {};
       ctx.memo[dest][entityName] = ctx.memo[dest][entityName] ?? {};
@@ -56,8 +54,6 @@ export class Crud2<E> {
         // Transfer the properties from the entity to the one already memoized so other references
         // to the same entity also get updated, then update the output array
         const realE = ctx.memo[dest][entityName][entityId(e)];
-        logger.warn(`+++ MEMO REALE ${JSON.stringify(realE)}`);
-        logger.warn(`+++ MEMO E ${JSON.stringify(e)}`);
         Object.keys(e).forEach(k => realE[k] = (e as any)[k]);
         es[i] = realE;
       }
@@ -153,14 +149,7 @@ export class Crud2<E> {
   async update(e: E | E[], ctx: Context) {
     logger.info(`Calling ${this.entity?.name ?? ''} ${this.dest} update`);
     const es = Array.isArray(e) ? e : [e];
-    logger.warn(`${this.dest} update entities ${JSON.stringify(es)}`);
-    const updateRes = await this.updateFn(es, ctx);
-    logger.warn(`${this.dest} update updateRes ${JSON.stringify(updateRes)}`);
-    logger.warn(`${this.dest} update entities after updateRes ${JSON.stringify(es)}`);
-    const memores =  this.memo(updateRes, ctx, e);
-    logger.warn(`${this.dest} update memoRes ${JSON.stringify(memores)}`);
-    logger.warn(`${this.dest} update entities after memores ${JSON.stringify(es)}`);
-    return memores;
+    return this.memo(await this.updateFn(es, ctx), ctx, e);
   }
 
   async delete(e: E | E[], ctx: Context) {
