@@ -1,4 +1,5 @@
 import * as Amplitude from '@amplitude/node'
+import * as sentry from '@sentry/node'
 
 import config, { IASQL_ENV } from '../config'
 import logger from './logger'
@@ -39,7 +40,13 @@ async function logEvent(event: string, dbProps: DbProps, eventProps?: EventProps
       event_properties: eventProps
     });
   } catch(e: any) {
-    logger.error(`failed to log ${event} event`, e);
+    const message = `failed to log ${event} event`;
+    if (config.sentry) {
+      sentry.captureException(e, {
+        extra: { message },
+      });
+    }
+    logger.error(message, e);
   }
 }
 
