@@ -135,7 +135,27 @@ describe('VPC Integration Testing', () => {
     it('checks public nat gateway with no existing elastic ip count', query(`
       SELECT * FROM elastic_ip WHERE tags ->> 'Name' = '${pubNg2}';
     `, (res: any) => expect(res.length).toBe(1)));
-  })
+  });
+
+  describe('VPC endpoint gateway creation', () => {
+    it('adds a new s3 endpoint gateway', query(`
+      INSERT INTO endpoint_gateway (service, vpc_id, tags)
+      SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}'
+      FROM vpc
+      WHERE is_default = false
+      AND cidr_block = '192.${randIPBlock}.0.0/16';
+    `));
+  
+    it('checks endpoint gateway count', query(`
+      SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  
+    it('applies the endpoint gateway change', apply());
+  
+    it('checks endpoint gateway count', query(`
+      SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  });
 
   it('uninstalls the vpc module', uninstall(
     modules));
@@ -214,6 +234,72 @@ describe('VPC Integration Testing', () => {
     `, (res: any) => expect(res[0]['tags']['updated']).toBe('true')));
   });
 
+  describe('VPC endpoint gateway updates', () => {
+    it('updates a endpoint gateway to be restored', query(`
+      UPDATE endpoint_gateway
+      SET state = 'fake'
+      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `));
+  
+    it('applies the endpoint_gateway change', apply());
+  
+    it('checks endpoint_gateway count', query(`
+      SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  
+    it('checks endpoint_gateway restored', query(`
+      SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `, (res: any) => expect(res[0]['state']).toBe('available')));
+  
+    it('updates a endpoint gateway policy', query(`
+      UPDATE endpoint_gateway
+      SET policy_document = '${testPolicy}'
+      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `));
+  
+    it('applies the endpoint_gateway change', apply());
+  
+    it('checks endpoint_gateway count', query(`
+      SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  
+    it('checks endpoint_gateway policy update', query(`
+      SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `, (res: any) => expect(res[0]['policy_document']).toBe(testPolicy)));
+
+    it('updates a endpoint gateway tags', query(`
+      UPDATE endpoint_gateway
+      SET tags = '{"Name": "${s3VpcEndpoint}", "updated": "true"}'
+      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `));
+
+    it('applies the endpoint_gateway change', apply());
+
+    it('checks endpoint_gateway count', query(`
+      SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `, (res: any) => expect(res.length).toBe(1)));
+
+    it('checks endpoint_gateway policy update', query(`
+      SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `, (res: any) => expect(res[0]['tags']['updated']).toBe('true')));
+
+    it('updates a endpoint gateway to be replaced', query(`
+      UPDATE endpoint_gateway
+      SET service = 'dynamodb', tags = '{"Name": "${dynamodbVpcEndpoint}"}'
+      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `));
+
+    it('applies the endpoint_gateway change', apply());
+
+    it('checks endpoint_gateway count', query(`
+      SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+    `, (res: any) => expect(res.length).toBe(0)));
+
+    it('checks endpoint_gateway count', query(`
+      SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  });
+
   describe('Elastic Ip and Nat gateway deletion', () => {
     it('deletes a public nat gateways', query(`
       DELETE FROM nat_gateway
@@ -273,6 +359,19 @@ describe('VPC Integration Testing', () => {
   
     it('checks private nat gateway count', query(`
       SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+    `, (res: any) => expect(res.length).toBe(0)));
+  });
+
+  describe('VPC endpoint gateway deletion', () => {
+    it('deletes a endpoint_gateway', query(`
+      DELETE FROM endpoint_gateway
+      WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}';
+    `));
+  
+    it('applies theendpoint_gateway change', apply());
+  
+    it('checksendpoint_gateway count', query(`
+      SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}' OR tags ->> 'Name' = '${s3VpcEndpoint}'
     `, (res: any) => expect(res.length).toBe(0)));
   });
 
