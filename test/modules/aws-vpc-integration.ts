@@ -8,6 +8,21 @@ const ng = `${prefix}${dbAlias}-ng`;
 const pubNg1 = `${prefix}${dbAlias}-pub-ng1`;
 const pubNg2 = `${prefix}${dbAlias}-pub-ng2`;
 const eip = `${prefix}${dbAlias}-eip`;
+const s3VpcEndpoint = `${prefix}${dbAlias}-s3-vpce`;
+const dynamodbVpcEndpoint = `${prefix}${dbAlias}-dynamodb-vpce`;
+const testPolicy = JSON.stringify({
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Effect": "Allow",
+          "Principal": {
+              "Service": "lambda.amazonaws.com"
+          },
+          "Action": "sts:AssumeRole"
+      }
+  ]
+});
+
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -62,70 +77,65 @@ describe('VPC Integration Testing', () => {
 
   it('applies the subnet change', apply());
 
-  it('adds a new elastic ip', query(`
-    INSERT INTO elastic_ip (tags)
-    VALUES ('{"name": "${eip}"}');
-  `));
-
-  it('check elastic ip count', query(`
-    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
-  `, (res: any) => expect(res.length).toBe(1)));
-
-  it('applies the elastic ip change', apply());
-
-  it('check elastic ip count', query(`
-    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
-  `, (res: any) => expect(res.length).toBe(1)));
-
-  it('adds a new vpc', query(`  
-    INSERT INTO vpc (cidr_block)
-    VALUES ('192.${randIPBlock}.0.0/16');
-  `));
-
-  it('applies the vpc change', apply());
-
-  it('adds a private nat gateway', query(`
-    INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
-    SELECT 'private', id, '{"Name":"${ng}"}'
-    FROM subnet
-    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
-  `));
-
-  it('applies the private nat gateway change', apply());
-
-  it('checks private nat gateway count', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
-  `, (res: any) => expect(res.length).toBe(1)));
-
-  it('adds a public nat gateway with existing elastic ip', query(`
-    INSERT INTO nat_gateway (connectivity_type, subnet_id, tags, elastic_ip_id)
-    SELECT 'public', subnet.id, '{"Name":"${pubNg1}"}', elastic_ip.id
-    FROM subnet, elastic_ip
-    WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
-  `));
-
-  it('applies the public nat gateway with existing elastic ip change', apply());
-
-  it('checks public nat gateway with existing elastic ip count', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}';
-  `, (res: any) => expect(res.length).toBe(1)));
-
-  it('adds a public nat gateway with no existing elastic ip', query(`
-    INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
-    SELECT 'public', subnet.id, '{"Name":"${pubNg2}"}'
-    FROM subnet
-    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
-  `));
-
-  it('applies the public nat gateway with no existing elastic ip change', apply());
-
-  it('checks public nat gateway with no existing elastic ip count', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
-  `, (res: any) => expect(res.length).toBe(1)));
-
-  it('checks public nat gateway with no existing elastic ip count', query(`
-    SELECT * FROM elastic_ip WHERE tags ->> 'Name' = '${pubNg2}';
-  `, (res: any) => expect(res.length).toBe(1)));
+  describe('Elastic IP and nat gateway creation', () => {
+    it('adds a new elastic ip', query(`
+      INSERT INTO elastic_ip (tags)
+      VALUES ('{"name": "${eip}"}');
+    `));
+  
+    it('check elastic ip count', query(`
+      SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  
+    it('applies the elastic ip change', apply());
+  
+    it('check elastic ip count', query(`
+      SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  
+    it('adds a private nat gateway', query(`
+      INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
+      SELECT 'private', id, '{"Name":"${ng}"}'
+      FROM subnet
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+    `));
+  
+    it('applies the private nat gateway change', apply());
+  
+    it('checks private nat gateway count', query(`
+      SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  
+    it('adds a public nat gateway with existing elastic ip', query(`
+      INSERT INTO nat_gateway (connectivity_type, subnet_id, tags, elastic_ip_id)
+      SELECT 'public', subnet.id, '{"Name":"${pubNg1}"}', elastic_ip.id
+      FROM subnet, elastic_ip
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
+    `));
+  
+    it('applies the public nat gateway with existing elastic ip change', apply());
+  
+    it('checks public nat gateway with existing elastic ip count', query(`
+      SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  
+    it('adds a public nat gateway with no existing elastic ip', query(`
+      INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
+      SELECT 'public', subnet.id, '{"Name":"${pubNg2}"}'
+      FROM subnet
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+    `));
+  
+    it('applies the public nat gateway with no existing elastic ip change', apply());
+  
+    it('checks public nat gateway with no existing elastic ip count', query(`
+      SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  
+    it('checks public nat gateway with no existing elastic ip count', query(`
+      SELECT * FROM elastic_ip WHERE tags ->> 'Name' = '${pubNg2}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  })
 
   it('uninstalls the vpc module', uninstall(
     modules));
@@ -153,114 +163,118 @@ describe('VPC Integration Testing', () => {
     SELECT * FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
   `, (res: any) => expect(res.length).toBeGreaterThan(0)));
 
-  it('updates a elastic ip', query(`
-    UPDATE elastic_ip
-    SET tags = '{"name": "${eip}", "updated": "true"}'
-    WHERE tags ->> 'name' = '${eip}';
-  `));
+  describe('Elastic Ip and Nat gateway updates', () => {
+    it('updates a elastic ip', query(`
+      UPDATE elastic_ip
+      SET tags = '{"name": "${eip}", "updated": "true"}'
+      WHERE tags ->> 'name' = '${eip}';
+    `));
+  
+    it('applies the elastic ip change', apply());
+  
+    it('check elastic ip count', query(`
+      SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  
+    it('checks elastic ip update', query(`
+      SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+    `, (res: any) => expect(res[0]['tags']['updated']).toBe('true')));
+  
+    it('updates a public nat gateway with existing elastic ip to be private', query(`
+      UPDATE nat_gateway
+      SET elastic_ip_id = NULL, connectivity_type = 'private'
+      WHERE nat_gateway.tags ->> 'Name' = '${pubNg1}';
+    `));
+  
+    it('applies the public nat gateway with existing elastic ip to be private change', apply());
+  
+    it('checks public nat gateway with existing elastic ip to be private count', query(`
+      SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  
+    it('checks public nat gateway with existing elastic ip to be private update', query(`
+      SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}';
+    `, (res: any) => expect(res[0]['connectivity_type']).toBe('private')));
+  
+    it('updates a public nat gateway with no existing elastic ip', query(`
+      UPDATE nat_gateway
+      SET elastic_ip_id = elastic_ip.id, tags = '{"Name": "${pubNg2}", "updated": "true"}'
+      FROM elastic_ip
+      WHERE nat_gateway.tags ->> 'Name' = '${pubNg2}' AND elastic_ip.tags ->> 'name' = '${eip}';
+    `));
+  
+    it('applies the public nat gateway with no existing elastic ip change', apply());
+  
+    it('checks public nat gateway with no existing elastic ip count', query(`
+      SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  
+    it('checks public nat gateway with no existing elastic ip update', query(`
+      SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
+    `, (res: any) => expect(res[0]['tags']['updated']).toBe('true')));
+  });
 
-  it('applies the elastic ip change', apply());
-
-  it('check elastic ip count', query(`
-    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
-  `, (res: any) => expect(res.length).toBe(1)));
-
-  it('checks elastic ip update', query(`
-    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
-  `, (res: any) => expect(res[0]['tags']['updated']).toBe('true')));
-
-  it('updates a public nat gateway with existing elastic ip to be private', query(`
-    UPDATE nat_gateway
-    SET elastic_ip_id = NULL, connectivity_type = 'private'
-    WHERE nat_gateway.tags ->> 'Name' = '${pubNg1}';
-  `));
-
-  it('applies the public nat gateway with existing elastic ip to be private change', apply());
-
-  it('checks public nat gateway with existing elastic ip to be private count', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}';
-  `, (res: any) => expect(res.length).toBe(1)));
-
-  it('checks public nat gateway with existing elastic ip to be private update', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}';
-  `, (res: any) => expect(res[0]['connectivity_type']).toBe('private')));
-
-  it('updates a public nat gateway with no existing elastic ip', query(`
-    UPDATE nat_gateway
-    SET elastic_ip_id = elastic_ip.id, tags = '{"Name": "${pubNg2}", "updated": "true"}'
-    FROM elastic_ip
-    WHERE nat_gateway.tags ->> 'Name' = '${pubNg2}' AND elastic_ip.tags ->> 'name' = '${eip}';
-  `));
-
-  it('applies the public nat gateway with no existing elastic ip change', apply());
-
-  it('checks public nat gateway with no existing elastic ip count', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
-  `, (res: any) => expect(res.length).toBe(1)));
-
-  it('checks public nat gateway with no existing elastic ip update', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
-  `, (res: any) => expect(res[0]['tags']['updated']).toBe('true')));
-
-  it('deletes a public nat gateways', query(`
-    DELETE FROM nat_gateway
-    WHERE tags ->> 'Name' = '${pubNg1}' OR tags ->> 'Name' = '${pubNg2}';
-  `));
-
-  it('applies the public nat gateways change', apply());
-
-  it('checks public nat gateways count', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}' OR tags ->> 'Name' = '${pubNg2}'
-  `, (res: any) => expect(res.length).toBe(0)));
-
-  it('deletes a elastic ip created by the nat gateway', query(`
-    DELETE FROM elastic_ip
-    WHERE tags ->> 'Name' = '${pubNg2}';
-  `));
-
-  it('applies the elastic ip created by the nat gateway change', apply());
-
-  it('check elastic ip created by the nat gateway count', query(`
-    SELECT * FROM elastic_ip WHERE tags ->> 'Name' = '${pubNg2}';
-  `, (res: any) => expect(res.length).toBe(0)));
-
-  it('deletes a elastic ip', query(`
-    DELETE FROM elastic_ip
-    WHERE tags ->> 'name' = '${eip}';
-  `));
-
-  it('applies the elastic ip change', apply());
-
-  it('check elastic ip count', query(`
-    SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
-  `, (res: any) => expect(res.length).toBe(0)));
-
-  it('updates a private nat gateway', query(`
-    UPDATE nat_gateway
-    SET state = 'failed'
-    WHERE tags ->> 'Name' = '${ng}';
-  `));
-
-  it('applies the private nat gateway change', apply());
-
-  it('checks private nat gateway count', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
-  `, (res: any) => expect(res.length).toBe(1)));
-
-  it('checks private nat gateway state', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
-  `, (res: any) => expect(res[0]['state']).toBe('available')));
-
-  it('deletes a private nat gateway', query(`
-    DELETE FROM nat_gateway
-    WHERE tags ->> 'Name' = '${ng}';
-  `));
-
-  it('applies the private nat gateway change', apply());
-
-  it('checks private nat gateway count', query(`
-    SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
-  `, (res: any) => expect(res.length).toBe(0)));
+  describe('Elastic Ip and Nat gateway deletion', () => {
+    it('deletes a public nat gateways', query(`
+      DELETE FROM nat_gateway
+      WHERE tags ->> 'Name' = '${pubNg1}' OR tags ->> 'Name' = '${pubNg2}';
+    `));
+  
+    it('applies the public nat gateways change', apply());
+  
+    it('checks public nat gateways count', query(`
+      SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg1}' OR tags ->> 'Name' = '${pubNg2}'
+    `, (res: any) => expect(res.length).toBe(0)));
+  
+    it('deletes a elastic ip created by the nat gateway', query(`
+      DELETE FROM elastic_ip
+      WHERE tags ->> 'Name' = '${pubNg2}';
+    `));
+  
+    it('applies the elastic ip created by the nat gateway change', apply());
+  
+    it('check elastic ip created by the nat gateway count', query(`
+      SELECT * FROM elastic_ip WHERE tags ->> 'Name' = '${pubNg2}';
+    `, (res: any) => expect(res.length).toBe(0)));
+  
+    it('deletes a elastic ip', query(`
+      DELETE FROM elastic_ip
+      WHERE tags ->> 'name' = '${eip}';
+    `));
+  
+    it('applies the elastic ip change', apply());
+  
+    it('check elastic ip count', query(`
+      SELECT * FROM elastic_ip WHERE tags ->> 'name' = '${eip}';
+    `, (res: any) => expect(res.length).toBe(0)));
+  
+    it('updates a private nat gateway', query(`
+      UPDATE nat_gateway
+      SET state = 'failed'
+      WHERE tags ->> 'Name' = '${ng}';
+    `));
+  
+    it('applies the private nat gateway change', apply());
+  
+    it('checks private nat gateway count', query(`
+      SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+    `, (res: any) => expect(res.length).toBe(1)));
+  
+    it('checks private nat gateway state', query(`
+      SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+    `, (res: any) => expect(res[0]['state']).toBe('available')));
+  
+    it('deletes a private nat gateway', query(`
+      DELETE FROM nat_gateway
+      WHERE tags ->> 'Name' = '${ng}';
+    `));
+  
+    it('applies the private nat gateway change', apply());
+  
+    it('checks private nat gateway count', query(`
+      SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${ng}';
+    `, (res: any) => expect(res.length).toBe(0)));
+  });
 
   it('deletes the subnet', query(`
     WITH vpc as (
