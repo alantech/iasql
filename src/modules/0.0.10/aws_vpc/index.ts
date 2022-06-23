@@ -1,9 +1,12 @@
 import {
   CreateNatGatewayCommandInput,
+  CreateVpcEndpointCommandInput,
+  ModifyVpcEndpointCommandInput,
   NatGateway as AwsNatGateway,
   Subnet as AwsSubnet,
   Tag,
   Vpc as AwsVpc,
+  VpcEndpoint as AwsVpcEndpoint,
 } from '@aws-sdk/client-ec2'
 
 import { AWS, } from '../../../services/gateways/aws_2'
@@ -17,6 +20,8 @@ import {
   ConnectivityType,
   NatGatewayState,
   ElasticIp,
+  EndpointGateway,
+  EndpointGatewayService,
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
@@ -84,6 +89,31 @@ export const AwsVpcModule: Module2 = new Module2({
       });
       out.tags = tags;
       return out;
+    },
+    endpointGatewayMapper:  async (eg: AwsVpcEndpoint, ctx: Context) => {
+      const out = new EndpointGateway();
+      out.vpcEndpointId = eg.VpcEndpointId;
+      if (!out.vpcEndpointId) return undefined;
+      out.service = AwsVpcModule.utils.getServiceFromServiceName(eg.ServiceName);
+      if (!out.service) return undefined;
+      out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, eg.VpcId) ??
+        await AwsVpcModule.mappers.vpc.cloud.read(ctx, eg.VpcId);
+      if (!out.vpc) return undefined;
+      out.policyDocument = eg.PolicyDocument;
+      out.state = eg.State;
+      out.routeTableIds = eg.RouteTableIds;
+      if (eg.Tags?.length) {
+        const tags: { [key: string]: string } = {};
+        eg.Tags.filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
+          tags[t.Key as string] = t.Value as string;
+        });
+        out.tags = tags;
+      }
+      return out;
+    },
+    getServiceFromServiceName: (serviceName: string) => {
+      if (serviceName.includes('s3')) return EndpointGatewayService.S3;
+      if (serviceName.includes('dynamodb')) return EndpointGatewayService.DYNAMODB;
     },
     eqTags: (a: { [key: string]: string }, b: { [key: string]: string }) => Object.is(Object.keys(a ?? {})?.length, Object.keys(b ?? {})?.length) &&
       Object.keys(a ?? {})?.every(ak => (a ?? {})[ak] === (b ?? {})[ak]),
@@ -394,6 +424,140 @@ export const AwsVpcModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
             await client.deleteElasticIp(e.allocationId ?? '');
+          }
+        },
+      }),
+    }),
+    endpointGateway: new Mapper2<EndpointGateway>({
+      entity: EndpointGateway,
+      equals: (a: EndpointGateway, b: EndpointGateway) => Object.is(a.service, b.service)
+        // the policy document is stringified json
+        // we are trusting aws won't change it from under us
+        && Object.is(a.policyDocument, b.policyDocument)
+        && Object.is(a.state, b.state)
+        && Object.is(a.vpc?.vpcId, b.vpc?.vpcId)
+        && Object.is(a.routeTableIds?.length, b.routeTableIds?.length)
+        && !!a.routeTableIds?.every(art => !!b.routeTableIds?.find(brt => Object.is(art, brt)))
+        && AwsVpcModule.utils.eqTags(a.tags, b.tags),
+      source: 'db',
+      cloud: new Crud2({
+        create: async (es: EndpointGateway[], ctx: Context) => {
+          const out = [];
+          const client = await ctx.getAwsClient() as AWS;
+          for (const e of es) {
+            const input: CreateVpcEndpointCommandInput = {
+              VpcEndpointType: 'Gateway',
+              ServiceName: await client.getVpcEndpointGatewayServiceName(e.service),
+              VpcId: e.vpc?.vpcId,
+            };
+            if (e.policyDocument) {
+              input.PolicyDocument = e.policyDocument;
+            }
+            if (e.routeTableIds?.length) {
+              input.RouteTableIds = e.routeTableIds;
+            } else {
+              const vpcRouteTables = await client.getVpcRouteTables(e.vpc?.vpcId ?? '');
+              input.RouteTableIds = vpcRouteTables?.map(rt => rt.RouteTableId ?? '')?.filter(id => !!id) ?? [];
+            }
+            if (e.tags && Object.keys(e.tags).length) {
+              const tags: Tag[] = Object.keys(e.tags).map((k: string) => {
+                return {
+                  Key: k, Value: e.tags![k],
+                }
+              });
+              input.TagSpecifications = [
+                {
+                  ResourceType: 'vpc-endpoint',
+                  Tags: tags,
+                },
+              ];
+            }
+            const res = await client.createVpcEndpointGateway(input);
+            const rawEndpointGateway = await client.getVpcEndpointGateway(res?.VpcEndpointId ?? '');
+            const newEndpointGateway = await AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway, ctx);
+            newEndpointGateway.id = e.id;
+            await AwsVpcModule.mappers.endpointGateway.db.update(newEndpointGateway, ctx);
+            out.push(newEndpointGateway);
+          }
+          return out;
+        },
+        read: async (ctx: Context, id?: string) => {
+          const client = await ctx.getAwsClient() as AWS;
+          if (!!id) {
+            const rawEndpointGateway = await client.getVpcEndpointGateway(id);
+            if (!rawEndpointGateway) return;
+            return await AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway, ctx);
+          } else {
+            const out = [];
+            for (const eg of (await client.getVpcEndpointGateways())) {
+              out.push(await AwsVpcModule.utils.endpointGatewayMapper(eg, ctx));
+            }
+            return out;
+          }
+        },
+        updateOrReplace: (a: EndpointGateway, b: EndpointGateway) => {
+          if (!(Object.is(a.vpc?.vpcId, b.vpc?.vpcId) && Object.is(a.service, b.service))) return 'replace';
+          return 'update';
+        },
+        update: async (es: EndpointGateway[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          const out = [];
+          for (const e of es) {
+            const cloudRecord = ctx?.memo?.cloud?.EndpointGateway?.[e.vpcEndpointId ?? ''];
+            const isUpdate = AwsVpcModule.mappers.endpointGateway.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            if (isUpdate) {
+              let update = false;
+              if (!Object.is(cloudRecord.policyDocument, e.policyDocument)) {
+                // VPC endpoint policy document update
+                const input: ModifyVpcEndpointCommandInput = {
+                  VpcEndpointId: e.vpcEndpointId,
+                  PolicyDocument: e.policyDocument,
+                  ResetPolicy: !e.policyDocument
+                };
+                await client.modifyVpcEndpointGateway(input);
+                update = true;
+              }
+              if (!(Object.is(cloudRecord.routeTableIds?.length, e.routeTableIds?.length)
+                  && !!cloudRecord.routeTableIds?.every((crrt: any) => !!e.routeTableIds?.find(ert => Object.is(crrt, ert))))) {
+                // VPC endpoint route tables update
+                const input: ModifyVpcEndpointCommandInput = {
+                  VpcEndpointId: e.vpcEndpointId,
+                  RemoveRouteTableIds: cloudRecord.routeTableIds,
+                  AddRouteTableIds: e.routeTableIds,
+                };
+                await client.modifyVpcEndpointGateway(input);
+                update = true;
+              }
+              if (!AwsVpcModule.utils.eqTags(cloudRecord.tags, e.tags)) {
+                // Tags update
+                await client.updateTags(e.vpcEndpointId ?? '', e.tags);
+                update = true;
+              }
+              if (update) {
+                const rawEndpointGateway = await client.getVpcEndpointGateway(e.vpcEndpointId ?? '');
+                const newEndpointGateway = await AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway, ctx);
+                newEndpointGateway.id = e.id;
+                await AwsVpcModule.mappers.endpointGateway.db.update(newEndpointGateway, ctx);
+                out.push(newEndpointGateway);
+              } else {
+                // Restore record
+                cloudRecord.id = e.id;
+                await AwsVpcModule.mappers.endpointGateway.db.update(cloudRecord, ctx);
+                out.push(cloudRecord);
+              }
+            } else {
+              // Replace record
+              const newEndpointGateway = await AwsVpcModule.mappers.endpointGateway.cloud.create(e, ctx);
+              await AwsVpcModule.mappers.endpointGateway.cloud.delete(cloudRecord, ctx);
+              out.push(newEndpointGateway);
+            }
+          }
+          return out;
+        },
+        delete: async (es: EndpointGateway[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          for (const e of es) {
+            await client.deleteVpcEndpointGateway(e.vpcEndpointId ?? '');
           }
         },
       }),

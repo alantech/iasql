@@ -288,13 +288,13 @@ describe('Security Group install/uninstall', () => {
   it('installs the Security Group module and confirms two tables are created', query(`
     select * from iasql_install('aws_security_group', 'aws_vpc');
   `, (res: any[]) => {
-      expect(res.length).toBe(6);
+      expect(res.length).toBe(7);
   }));
 
   it('uninstalls the Security Group module and confirms two tables are removed', query(`
     select * from iasql_uninstall('aws_security_group', 'aws_vpc');
   `, (res: any[]) => {
-    expect(res.length).toBe(6);
+    expect(res.length).toBe(7);
   }));
 
   it('installs all modules', (done) => void iasql.install(
