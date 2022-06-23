@@ -119,8 +119,6 @@ type AWSConfig = {
   region: string
 }
 
-export const IASQL_EC2_TAG_NAME = 'IaSQL_Name';
-
 export class AWS {
   private ec2client: EC2
   private ecrClient: ECR
@@ -1497,8 +1495,7 @@ export class AWS {
     let i = 0;
      // Wait for ~1min until imported cert is available
     do {
-      const start = Date.now();
-      while (Date.now() - start < 2000); // Sleep for 2s
+      await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
       certificates = (await this.getCertificatesSummary())?.map(c => c.CertificateArn ?? '') ?? [];
       i++;
     } while (!certificates.includes(arn) && i < 30);
@@ -1511,8 +1508,7 @@ export class AWS {
     let i = 0;
      // Wait for ~1min until imported cert is available
     do {
-      const start = Date.now();
-      while (Date.now() - start < 2000); // Sleep for 2s
+      await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
       certificates = (await this.getCertificatesSummary())?.map(c => c.CertificateArn ?? '') ?? [];
       i++;
     } while (!certificates.includes(arn) && i < 30);
