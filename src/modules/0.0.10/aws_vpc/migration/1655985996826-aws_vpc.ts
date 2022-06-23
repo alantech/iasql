@@ -1,15 +1,15 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsVpc1655980731410 implements MigrationInterface {
-    name = 'awsVpc1655980731410'
+export class awsVpc1655985996826 implements MigrationInterface {
+    name = 'awsVpc1655985996826'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "elastic_ip" ("id" SERIAL NOT NULL, "allocation_id" character varying, "public_ip" character varying, "tags" json, CONSTRAINT "UQ_7d16382cad0b5eea714bd8d79b1" UNIQUE ("public_ip"), CONSTRAINT "PK_8f7ca624855a83f6ce36f8a88a1" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TYPE "public"."endpoint_gateway_service_name_enum" AS ENUM('dynamodb', 's3')`);
+        await queryRunner.query(`CREATE TYPE "public"."endpoint_gateway_service_enum" AS ENUM('dynamodb', 's3')`);
         await queryRunner.query(`CREATE TYPE "public"."endpoint_gateway_ip_address_type_enum" AS ENUM('dualstack', 'ipv4', 'ipv6', 'service-defined')`);
         await queryRunner.query(`CREATE TYPE "public"."endpoint_gateway_dns_record_ip_type_enum" AS ENUM('dualstack', 'ipv4', 'ipv6', 'service-defined')`);
         await queryRunner.query(`CREATE TYPE "public"."endpoint_gateway_state_enum" AS ENUM('Available', 'Deleted', 'Deleting', 'Expired', 'Failed', 'Pending', 'PendingAcceptance', 'Rejected')`);
-        await queryRunner.query(`CREATE TABLE "endpoint_gateway" ("id" SERIAL NOT NULL, "vpc_endpoint_id" character varying, "service_name" "public"."endpoint_gateway_service_name_enum" NOT NULL, "policy_document" character varying, "ip_address_type" "public"."endpoint_gateway_ip_address_type_enum", "dns_record_ip_type" "public"."endpoint_gateway_dns_record_ip_type_enum", "state" "public"."endpoint_gateway_state_enum", "tags" json, "vpc_id" integer NOT NULL, CONSTRAINT "PK_b81d6fec498a6dca8304f9de403" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "endpoint_gateway" ("id" SERIAL NOT NULL, "vpc_endpoint_id" character varying, "service" "public"."endpoint_gateway_service_enum" NOT NULL, "policy_document" character varying, "ip_address_type" "public"."endpoint_gateway_ip_address_type_enum", "dns_record_ip_type" "public"."endpoint_gateway_dns_record_ip_type_enum", "state" "public"."endpoint_gateway_state_enum", "tags" json, "vpc_id" integer NOT NULL, CONSTRAINT "PK_b81d6fec498a6dca8304f9de403" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."vpc_state_enum" AS ENUM('available', 'pending')`);
         await queryRunner.query(`CREATE TABLE "vpc" ("id" SERIAL NOT NULL, "vpc_id" character varying, "cidr_block" character varying NOT NULL, "state" "public"."vpc_state_enum", "is_default" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_293725cf47b341e1edc38bd2075" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE UNIQUE INDEX "IDX_b978cbc48bf5ef1c8eb8bfbdb3" ON "vpc" ("vpc_id") WHERE vpc_id IS NOT NULL`);
@@ -43,7 +43,7 @@ export class awsVpc1655980731410 implements MigrationInterface {
         await queryRunner.query(`DROP TYPE "public"."endpoint_gateway_state_enum"`);
         await queryRunner.query(`DROP TYPE "public"."endpoint_gateway_dns_record_ip_type_enum"`);
         await queryRunner.query(`DROP TYPE "public"."endpoint_gateway_ip_address_type_enum"`);
-        await queryRunner.query(`DROP TYPE "public"."endpoint_gateway_service_name_enum"`);
+        await queryRunner.query(`DROP TYPE "public"."endpoint_gateway_service_enum"`);
         await queryRunner.query(`DROP TABLE "elastic_ip"`);
     }
 

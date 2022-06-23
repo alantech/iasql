@@ -1965,4 +1965,16 @@ export class AWS {
     const res = await this.ec2client.modifyVpcEndpoint(input);
     return res.Return;
   }
+
+  async getVpcEndpointGatewayServiceName(service: string) {
+    const res = await this.ec2client.describeVpcEndpointServices({
+      Filters: [
+        {
+          Name: 'service-type',
+          Values: ['Gateway']
+        }
+      ]
+    });
+    return res.ServiceNames?.find(sn => sn.includes(service));
+  }
 }

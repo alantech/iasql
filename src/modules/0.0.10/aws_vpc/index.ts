@@ -408,7 +408,7 @@ export const AwsVpcModule: Module2 = new Module2({
         // the policy document is stringified json
         // we are trusting aws won't change it from under us
         && Object.is(a.policyDocument, b.policyDocument)
-        && Object.is(a.serviceName, b.serviceName)
+        && Object.is(a.service, b.service)
         && Object.is(a.state, b.state)
         && Object.is(a.vpc?.vpcId, b.vpc?.vpcId)
         && AwsVpcModule.utils.eqTags(a.tags, b.tags),
@@ -420,7 +420,7 @@ export const AwsVpcModule: Module2 = new Module2({
           for (const e of es) {
             const input: CreateVpcEndpointCommandInput = {
               VpcEndpointType: 'Gateway',
-              ServiceName: e.serviceName,
+              ServiceName: await client.getVpcEndpointGatewayServiceName(e.service),
               VpcId: e.vpc?.vpcId,
               IpAddressType: e.ipAddressType,
             };
@@ -479,8 +479,8 @@ export const AwsVpcModule: Module2 = new Module2({
           // !Object.is(a.state, b.state)
           // Replace
           // !Object.is(a.vpc?.vpcId, b.vpc?.vpcId)
-          // !Object.is(a.serviceName, b.serviceName)
-          if (!(Object.is(a.vpc?.vpcId, b.vpc?.vpcId) && Object.is(a.serviceName, b.serviceName))) return 'replace';
+          // !Object.is(a.service, b.service)
+          if (!(Object.is(a.vpc?.vpcId, b.vpc?.vpcId) && Object.is(a.service, b.service))) return 'replace';
           return 'update';
         },
         update: async (es: EndpointGateway[], ctx: Context) => {
