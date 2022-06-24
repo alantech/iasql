@@ -89,14 +89,14 @@ export function paginateBuilder(
 
 export function crudBuilder(
   methodName: string,
-  argMapper: (args: any[]) => any,
+  argMapper: (...args: any[]) => any,
   retFormatter?: (arg0: any) => any
-): ((client: any) => Promise<any>) {
+): ((client: any, ...args: any[]) => Promise<any>) {
   if (retFormatter) {
     return async (client: any, ...args: any[]) => retFormatter(
-      await client[methodName](argMapper(args))
+      await client[methodName](argMapper(...args))
     );
   } else {
-    return async (client: any, ...args: any[]) => await client[methodName](argMapper(args));
+    return async (client: any, ...args: any[]) => await client[methodName](argMapper(...args));
   }
 }

@@ -1,14 +1,40 @@
-import { CertificateDetail, } from '@aws-sdk/client-acm'
+import {
+  ACM,
+  CertificateDetail,
+  DescribeCertificateCommandOutput,
+  paginateListCertificates,
+} from '@aws-sdk/client-acm'
 
-import { AWS, } from '../../../services/gateways/aws_2'
+import { AWS, crudBuilder, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import {
   Certificate,
-  certificateTypeEnum,
   certificateRenewalEligibilityEnum,
   certificateStatusEnum,
+  certificateTypeEnum,
 } from './entity'
 import * as metadata from './module.json'
+
+const getCertificate = crudBuilder(
+  'describeCertificate',
+  (arn: string) => ({ CertificateArn: arn, }),
+  (res: DescribeCertificateCommandOutput) => res.Certificate
+);
+const getCertificates = paginateBuilder(paginateListCertificates, 'CertificateSummaryList');
+const getCertificatesSummary = paginateBuilder(paginateListCertificates, 'CertificateSummaryList');
+// TODO: How to macro-ify this function, or should the waiting bit be another macro function and we
+// compose two macro functions together?
+async function deleteCertificate(client: ACM, arn: string) {
+  await client.deleteCertificate({ CertificateArn: arn });
+  let certificates: string[] = [];
+  let i = 0;
+   // Wait for ~1min until imported cert is available
+  do {
+    await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
+    certificates = (await getCertificatesSummary(client))?.map(c => c.CertificateArn ?? '') ?? [];
+    i++;
+  } while (!certificates.includes(arn) && i < 30);
+}
 
 // Get Typescript to understand enum matching
 const isCertType = (t?: string): t is certificateTypeEnum => {
@@ -62,11 +88,12 @@ export const AwsAcmListModule: Module2 = new Module2({
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
-            const rawCert = await client.getCertificate(id);
+            // const rawCert = await client.getCertificate(id);
+            const rawCert = await getCertificate(client, id);
             if (!rawCert) return;
             return AwsAcmListModule.utils.certificateMapper(rawCert);
           } else {
-            const out = (await client.getCertificates()) ?? [];
+            const out = (await getCertificates(client)) ?? [];
             return out.map(AwsAcmListModule.utils.certificateMapper);
           }
         },
@@ -86,7 +113,7 @@ export const AwsAcmListModule: Module2 = new Module2({
         delete: async (es: Certificate[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            await client.deleteCertificate(e.arn ?? '');
+            await deleteCertificate(client.acmClient, e.arn ?? '');
           }
         },
       }),
