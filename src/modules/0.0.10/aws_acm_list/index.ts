@@ -15,13 +15,13 @@ import {
 } from './entity'
 import * as metadata from './module.json'
 
-const getCertificate = crudBuilder(
+const getCertificate = crudBuilder<ACM>(
   'describeCertificate',
   (arn: string) => ({ CertificateArn: arn, }),
   (res: DescribeCertificateCommandOutput) => res.Certificate
 );
-const getCertificates = paginateBuilder(paginateListCertificates, 'CertificateSummaryList');
-const getCertificatesSummary = paginateBuilder(paginateListCertificates, 'CertificateSummaryList');
+const getCertificates = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
+const getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
 // TODO: How to macro-ify this function, or should the waiting bit be another macro function and we
 // compose two macro functions together?
 async function deleteCertificate(client: ACM, arn: string) {

@@ -52,12 +52,12 @@ export class AWS {
   }
 }
 
-export function paginateBuilder(
+export function paginateBuilder<T>(
   paginateFn: (...args: any[]) => any,
   propName: string,
   pageName?: string,
   pageSize = 25
-): ((client: any) => Promise<any[]>) {
+): ((client: T) => Promise<any[]>) {
   if (pageName) {
     return async (client: any) => {
       const vals = [];
@@ -87,11 +87,11 @@ export function paginateBuilder(
   }
 }
 
-export function crudBuilder(
+export function crudBuilder<T>(
   methodName: string,
   argMapper: (...args: any[]) => any,
   retFormatter?: (arg0: any) => any
-): ((client: any, ...args: any[]) => Promise<any>) {
+): ((client: T, ...args: any[]) => Promise<any>) {
   if (retFormatter) {
     return async (client: any, ...args: any[]) => retFormatter(
       await client[methodName](argMapper(...args))

@@ -1,14 +1,14 @@
-import { ImportCertificateCommandInput, paginateListCertificates, } from '@aws-sdk/client-acm'
+import { ACM, ImportCertificateCommandInput, paginateListCertificates, } from '@aws-sdk/client-acm'
 import { AWS, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsAcmListModule } from '../aws_acm_list'
 import { CertificateImport } from './entity'
 import * as metadata from './module.json'
 
-const getCertificatesSummary = paginateBuilder(paginateListCertificates, 'CertificateSummaryList');
+const getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
 
 // TODO: Can I macro this somehow?
-async function importCertificate(client: any, input: ImportCertificateCommandInput) {
+async function importCertificate(client: ACM, input: ImportCertificateCommandInput) {
   const res = await client.importCertificate(input);
   const arn = res.CertificateArn ?? '';
   let certificates: string[] = [];
