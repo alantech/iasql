@@ -28,12 +28,12 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
       out.securityGroup = await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sgr?.GroupId);
       out.isEgress = sgr?.IsEgress ?? false;
       out.ipProtocol = sgr?.IpProtocol ?? '';
-      out.fromPort = sgr?.FromPort ?? null;
-      out.toPort = sgr?.ToPort ?? null;
-      out.cidrIpv4 = sgr?.CidrIpv4 ?? null;
-      out.cidrIpv6 = sgr?.CidrIpv6 ?? null;
-      out.prefixListId = sgr?.PrefixListId ?? null;
-      out.description = sgr?.Description ?? null;
+      out.fromPort = sgr?.FromPort;
+      out.toPort = sgr?.ToPort;
+      out.cidrIpv4 = sgr?.CidrIpv4;
+      out.cidrIpv6 = sgr?.CidrIpv6;
+      out.prefixListId = sgr?.PrefixListId;
+      out.description = sgr?.Description;
       return out;
     },
     sgCloudCreate: async (es: SecurityGroup[], ctx: Context, doNotSave: boolean) => {
