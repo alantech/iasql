@@ -89,11 +89,11 @@ export const AwsAcmListModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
             // const rawCert = await client.getCertificate(id);
-            const rawCert = await getCertificate(client, id);
+            const rawCert = await getCertificate(client.acmClient, id);
             if (!rawCert) return;
             return AwsAcmListModule.utils.certificateMapper(rawCert);
           } else {
-            const out = (await getCertificates(client)) ?? [];
+            const out = (await getCertificates(client.acmClient)) ?? [];
             return out.map(AwsAcmListModule.utils.certificateMapper);
           }
         },
