@@ -1,7 +1,31 @@
-import { AWS, } from '../../../services/gateways/aws_2'
+import {
+  CloudWatchLogs,
+  CreateLogGroupCommandOutput,
+  DeleteLogGroupCommandOutput,
+  paginateDescribeLogGroups,
+} from '@aws-sdk/client-cloudwatch-logs'
+import { AWS, crudBuilder, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { LogGroup } from './entity'
 import * as metadata from './module.json'
+
+const createLogGroup = crudBuilder<CloudWatchLogs>(
+  'createLogGroup',
+  (logGroupName: string) => ({ logGroupName, }),
+  (_lg: CreateLogGroupCommandOutput) => undefined,
+);
+const getLogGroups = paginateBuilder<CloudWatchLogs>(
+  paginateDescribeLogGroups,
+  'logGroups',
+);
+const getLogGroup = async (client: CloudWatchLogs, groupName: string) => (
+  await getLogGroups(client)
+).find(lg => lg.logGroupName === groupName);
+const deleteLogGroup = crudBuilder<CloudWatchLogs>(
+  'deleteLogGroup',
+  (logGroupName: string) => ({ logGroupName, }),
+  (_lg: DeleteLogGroupCommandOutput) => undefined,
+);
 
 export const AwsCloudwatchModule: Module2 = new Module2({
   ...metadata,
@@ -27,10 +51,9 @@ export const AwsCloudwatchModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           const out = []
           for (const e of lg) {
-            await client.createLogGroup(e.logGroupName);
+            await createLogGroup(client.cwClient, e.logGroupName);
             // Re-get the inserted record to get all of the relevant records we care about
-            const logGroups = await client.getLogGroups(e.logGroupName);
-            const newObject = logGroups.find(l => l.logGroupName === e.logGroupName);
+            const newObject = await getLogGroup(client.cwClient, e.logGroupName);
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsCloudwatchModule.utils.logGroupMapper(newObject, ctx);
             // Save the record back into the database to get the new fields updated
@@ -42,11 +65,11 @@ export const AwsCloudwatchModule: Module2 = new Module2({
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
-            const rawLogGroup = await client.getLogGroups(id);
+            const rawLogGroup = await getLogGroup(client.cwClient, id);
             if (!rawLogGroup) return;
             return AwsCloudwatchModule.utils.logGroupMapper(rawLogGroup);
           } else {
-            const logGroups = (await client.getLogGroups()) ?? [];
+            const logGroups = (await getLogGroups(client.cwClient)) ?? [];
             return logGroups.map((lg: any) => AwsCloudwatchModule.utils.logGroupMapper(lg));
           }
         },
@@ -65,7 +88,7 @@ export const AwsCloudwatchModule: Module2 = new Module2({
         delete: async (lg: LogGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of lg) {
-            await client.deleteLogGroup(e.logGroupName);
+            await deleteLogGroup(client.cwClient, e.logGroupName);
           }
         },
       }),
