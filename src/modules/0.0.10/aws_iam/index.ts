@@ -37,7 +37,7 @@ export const AwsIamModule: Module2 = new Module2({
         // we are trusting aws won't change it from under us
         Object.is(a.assumeRolePolicyDocument, b.assumeRolePolicyDocument) &&
         Object.is(a.attachedPoliciesArns?.length, b.attachedPoliciesArns?.length) &&
-        (a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs))) ?? false),
+        ((!a.attachedPoliciesArns && !b.attachedPoliciesArns) || !!a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs)))),
       source: 'db',
       cloud: new Crud2({
         create: async (es: Role[], ctx: Context) => {
