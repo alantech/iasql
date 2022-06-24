@@ -1,5 +1,6 @@
 import { execSync, } from 'child_process'
 import fs from 'fs'
+import { v4 as uuidv4, } from 'uuid'
 
 import { createConnection, } from 'typeorm'
 import config from '../src/config';
@@ -57,7 +58,7 @@ export function runQuery(databaseName: string, queryString: string, assertFn?: (
   return function (done: (e?: any) => {}) {
     logger.info(queryString);
     createConnection({
-      name: `${databaseName}-conn`,
+      name: uuidv4(),
       type: 'postgres',
       username: 'postgres',
       password: 'test',

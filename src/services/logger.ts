@@ -89,7 +89,7 @@ export function debugObj(e: any) {
 // everywhere else `throw` the error upstream
 // TODO is there a way to DRY that?
 // returns the sentry error id
-export function logUserErr(e: any, uid?: string, email?: string, dbAlias?: string): string {
+export function logErrSentry(e: any, uid?: string, email?: string, dbAlias?: string): string {
   let message = e?.message ?? '';
   let err = e;
   let metadata;
@@ -111,7 +111,7 @@ export function logUserErr(e: any, uid?: string, email?: string, dbAlias?: strin
       }
     })}`;
   }
-  singleton.error(message);
+  singleton.error(message, e);
   return message;
 }
 
