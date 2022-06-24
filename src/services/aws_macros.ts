@@ -100,3 +100,14 @@ export function crudBuilder<T>(
     return async (client: any, ...args: any[]) => await client[methodName](argMapper(...args));
   }
 }
+
+export async function mapLin(arrProm: Promise<any[] | undefined>, mapper: (arg: any) => Promise<any>): Promise<any[]> {
+  const out = [];
+  const inp = await arrProm;
+  if (inp) {
+    for (const val of inp) {
+      out.push(await mapper(val));
+    }
+  }
+  return out;
+}

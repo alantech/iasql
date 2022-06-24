@@ -5,7 +5,7 @@ import {
   paginateListCertificates,
 } from '@aws-sdk/client-acm'
 
-import { AWS, crudBuilder, paginateBuilder, } from '../../../services/aws_macros'
+import { AWS, crudBuilder, paginateBuilder, mapLin, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import {
   Certificate,
@@ -21,14 +21,10 @@ const getCertificate = crudBuilder<ACM>(
   (res: DescribeCertificateCommandOutput) => res.Certificate
 );
 const getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
-const getCertificates = async (client: ACM) => {
-  const certificates = [];
-  const summaries = await getCertificatesSummary(client);
-  for (const cert of summaries) {
-    certificates.push(await getCertificate(client, cert.CertificateArn));
-  }
-  return certificates;
-}
+const getCertificates = (client: ACM) => mapLin(
+  getCertificatesSummary(client),
+  (cert: any) => getCertificate(client, cert.CertificateArn)
+);
 // TODO: How to macro-ify this function, or should the waiting bit be another macro function and we
 // compose two macro functions together?
 async function deleteCertificate(client: ACM, arn: string) {
