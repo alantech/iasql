@@ -136,7 +136,7 @@ export class TypeormWrapper {
     if (!value) return;
     if (Array.isArray(value)) {
       for (const v of value) {
-        Object.keys(v).forEach((k: string) => {
+        Object.keys(v ?? {}).forEach((k: string) => {
           if (v[k] === null) v[k] = undefined;
         });
       }
