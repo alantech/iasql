@@ -20,8 +20,15 @@ const getCertificate = crudBuilder<ACM>(
   (arn: string) => ({ CertificateArn: arn, }),
   (res: DescribeCertificateCommandOutput) => res.Certificate
 );
-const getCertificates = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
 const getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
+const getCertificates = async (client: ACM) => {
+  const certificates = [];
+  const summaries = await getCertificatesSummary(client);
+  for (const cert of summaries) {
+    certificates.push(await getCertificate(client, cert.CertificateArn));
+  }
+  return certificates;
+}
 // TODO: How to macro-ify this function, or should the waiting bit be another macro function and we
 // compose two macro functions together?
 async function deleteCertificate(client: ACM, arn: string) {
