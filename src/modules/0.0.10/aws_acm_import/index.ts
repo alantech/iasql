@@ -15,9 +15,7 @@ async function importCertificate(client: any, input: ImportCertificateCommandInp
   let i = 0;
    // Wait for ~1min until imported cert is available
   do {
-    const start = Date.now();
     await new Promise(r => setTimeout(r, 2000));
-    while (Date.now() - start < 2000); // Sleep for 2s
     certificates = (await getCertificatesSummary(client))?.map(c => c.CertificateArn ?? '') ?? [];
     i++;
   } while (!certificates.includes(arn) && i < 30);
