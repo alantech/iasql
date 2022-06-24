@@ -121,7 +121,7 @@ export class SecurityGroupRule {
     nullable: true,
   })
   description?: string;
-  
+
   @AfterLoad()
   @AfterInsert()
   @AfterUpdate()
