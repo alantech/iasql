@@ -23,7 +23,7 @@ import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
 
 const getInstanceUserData = crudBuilder<EC2>(
-  'describeInstanceAttributes',
+  'describeInstanceAttribute',
   (InstanceId: string) => ({ Attribute: 'userData', InstanceId, }),
   (res: any) => res.UserData?.Value,
 );
