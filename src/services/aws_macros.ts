@@ -90,11 +90,12 @@ export function paginateBuilder<T>(
 export function crudBuilder<T>(
   methodName: string,
   argMapper: (...args: any[]) => any,
-  retFormatter?: (arg0: any) => any
+  retFormatter?: (arg0: any, ...args: any[]) => any
 ): ((client: T, ...args: any[]) => Promise<any>) {
   if (retFormatter) {
     return async (client: any, ...args: any[]) => retFormatter(
-      await client[methodName](argMapper(...args))
+      await client[methodName](argMapper(...args)),
+      ...args
     );
   } else {
     return async (client: any, ...args: any[]) => await client[methodName](argMapper(...args));
