@@ -1,10 +1,14 @@
 import {
-  Column,
   Entity,
   PrimaryColumn,
-} from 'typeorm';
+  Column,
+  AfterLoad,
+  AfterInsert,
+  AfterUpdate,
+} from 'typeorm'
 
 import { cloudId, } from '../../../../services/cloud-id'
+
 
 // TODO complete schema
 @Entity()
@@ -33,5 +37,15 @@ export class Role {
     array: true,
     nullable: true,
   })
-  attachedPoliciesArns: string[];
+  attachedPoliciesArns?: string[];
+
+  @AfterLoad()
+  @AfterInsert()
+  @AfterUpdate()
+  updateNulls() {
+    const that: any = this;
+    Object.keys(this).forEach(k => {
+      if (that[k] === null) that[k] = undefined;
+    });
+  }
 }
