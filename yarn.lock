@@ -531,16 +531,16 @@
     fast-xml-parser "3.19.0"
     tslib "^2.3.1"
 
-"@aws-sdk/client-route-53@^3.112.0":
-  version "3.112.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-route-53/-/client-route-53-3.112.0.tgz#505f89858bac511b9889f790a4153aeef6cf3d7c"
-  integrity sha512-fz20Ux2X2pO3wkc+eH+fPBp6+UgEyTS3RIluEF+5XG66lbf4OPDjKvvnUXUz31CpBS/vBd4s9HEY/wovOuhKUw==
+"@aws-sdk/client-route-53@^3.118.0":
+  version "3.118.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-route-53/-/client-route-53-3.118.0.tgz#b7a75296c8edda68511f942dbb0503b5e4816ef6"
+  integrity sha512-Pk4YUkUmDySnKS8aAlnT3sFJsqyRLAGtj+L7Qj9E+Q72q74SggzN++SDQG63e4aegvyhqHZvDZ5OXjaeH/dfug==
   dependencies:
     "@aws-crypto/sha256-browser" "2.0.0"
     "@aws-crypto/sha256-js" "2.0.0"
-    "@aws-sdk/client-sts" "3.112.0"
+    "@aws-sdk/client-sts" "3.118.0"
     "@aws-sdk/config-resolver" "3.110.0"
-    "@aws-sdk/credential-provider-node" "3.112.0"
+    "@aws-sdk/credential-provider-node" "3.118.0"
     "@aws-sdk/fetch-http-handler" "3.110.0"
     "@aws-sdk/hash-node" "3.110.0"
     "@aws-sdk/invalid-dependency" "3.110.0"
@@ -567,7 +567,7 @@
     "@aws-sdk/util-defaults-mode-browser" "3.110.0"
     "@aws-sdk/util-defaults-mode-node" "3.110.0"
     "@aws-sdk/util-user-agent-browser" "3.110.0"
-    "@aws-sdk/util-user-agent-node" "3.110.0"
+    "@aws-sdk/util-user-agent-node" "3.118.0"
     "@aws-sdk/util-utf8-browser" "3.109.0"
     "@aws-sdk/util-utf8-node" "3.109.0"
     "@aws-sdk/util-waiter" "3.110.0"
