@@ -76,7 +76,7 @@
     "pg": "^8.7.3",
     "postgraphile": "^4.12.9",
     "reflect-metadata": "^0.1.13",
-    "typeorm": "^0.2.37",
+    "typeorm": "^0.3.6",
     "typeorm-naming-strategies": "^4.1.0",
     "uuid": "^8.3.2"
   }
