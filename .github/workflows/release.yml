@@ -8,14 +8,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Format Version
+        id: format-version
+        run: |
+          VERSION="$(echo ${{ github.event.ref }} | sed 's/v//g')"
+          echo ::set-output version=${VERSION}
       - name: Emit doc generation
         uses: mvasigh/dispatch-action@main
         with:
           token: ${{ secrets.GH_PAT }}
           repo: docs
           owner: iasql
-          event_type: RELEASE
+          event_type: release
           message: |
             {
-              "version": "${{ github.event.ref }}"
+              "version": "${{ steps.format-version.outputs.version }}"
             }
