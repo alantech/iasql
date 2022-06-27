@@ -91,7 +91,6 @@ export const AwsAcmListModule: Module2 = new Module2({
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
-            // const rawCert = await client.getCertificate(id);
             const rawCert = await getCertificate(client.acmClient, id);
             if (!rawCert) return;
             return AwsAcmListModule.utils.certificateMapper(rawCert);
