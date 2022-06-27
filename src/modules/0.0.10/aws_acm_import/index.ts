@@ -1,10 +1,26 @@
-import { ImportCertificateCommandInput } from '@aws-sdk/client-acm';
-import { AWS, } from '../../../services/gateways/aws_2';
+import { ACM, ImportCertificateCommandInput, paginateListCertificates, } from '@aws-sdk/client-acm'
+import { AWS, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
-import { AwsAcmListModule } from '../aws_acm_list';
-import { CertificateImport } from './entity';
-import * as metadata from './module.json';
+import { AwsAcmListModule } from '../aws_acm_list'
+import { CertificateImport } from './entity'
+import * as metadata from './module.json'
 
+const getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
+
+// TODO: Can I macro this somehow?
+async function importCertificate(client: ACM, input: ImportCertificateCommandInput) {
+  const res = await client.importCertificate(input);
+  const arn = res.CertificateArn ?? '';
+  let certificates: string[] = [];
+  let i = 0;
+   // Wait for ~1min until imported cert is available
+  do {
+    await new Promise(r => setTimeout(r, 2000));
+    certificates = (await getCertificatesSummary(client))?.map(c => c.CertificateArn ?? '') ?? [];
+    i++;
+  } while (!certificates.includes(arn) && i < 30);
+  return arn;
+}
 
 export const AwsAcmImportModule: Module2 = new Module2({
   ...metadata,
@@ -26,7 +42,7 @@ export const AwsAcmImportModule: Module2 = new Module2({
             if (e.chain) {
               input.CertificateChain = textEncoder.encode(e.chain);
             }
-            const importedCertArn = await client.importCertificate(input);
+            const importedCertArn = await importCertificate(client.acmClient, input);
             if (!importedCertArn) throw new Error('Error importing certificate');
             const importedCert = await AwsAcmListModule.mappers.certificate.cloud.read(ctx, importedCertArn);
             await AwsAcmImportModule.mappers.certificateImport.db.delete(e, ctx);
