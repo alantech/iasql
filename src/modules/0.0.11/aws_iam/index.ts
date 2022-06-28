@@ -21,10 +21,11 @@ export const AwsIamModule: Module2 = new Module2({
       return out;
     },
     roleNameFromArn: (arn: string, _ctx: Context) => {
-      const roleName = arn.split(':role/')[1];
+      // Role name is always the last element
       // Regular role example - arn:aws:iam::547931376551:role/AWSECSTaskExecution
       // AWS service role example - arn:aws:iam::547931376551:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS
-      return roleName.split('/').length === 3 ? roleName.split('/')[2] : roleName;
+      // EC2 role instance profile ARN example - arn:aws:iam::257682470237:instance-profile/test-role
+      return  arn.split('/').pop();
     }
   },
   mappers: {
