@@ -29,6 +29,21 @@ const tgName = `${prefix}${dbAlias}tg`;
 const tgPort = 4142;
 const protocol = ProtocolEnum.HTTP;
 
+// IAM integration
+const roleName = `${prefix}-ec2-${process.env.AWS_REGION}`;
+const ec2RolePolicy = JSON.stringify({
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Effect": "Allow",
+          "Principal": {
+              "Service": "ec2.amazonaws.com"
+          },
+          "Action": "sts:AssumeRole"
+      }
+  ]
+});
+
 jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown(modules));
@@ -172,6 +187,27 @@ describe('EC2 Integration Testing', () => {
     tags ->> 'name' = '${prefix}-2');
   `, (res: any[]) => expect(res.length).toBe(0)));
 
+  describe('create IAM role', () => {
+    it('creates ec2 nstance role', query(`
+      INSERT INTO role (role_name, assume_role_policy_document)
+      VALUES ('${roleName}', '${ec2RolePolicy}');
+    `));
+
+    it('checks role count', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${roleName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('applies the role creation', apply());
+
+    it('checks role count', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${roleName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+  });
+
   it('create target group and register instance to it', query(`
     BEGIN;
       INSERT INTO target_group (target_group_name, target_type, protocol, port, health_check_path)
@@ -259,6 +295,27 @@ describe('EC2 Integration Testing', () => {
     INNER JOIN instance ON instance.id = registered_instance.instance
     WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
   `, (res: any[]) => expect(res[0]['port']).toBe(instancePort + 1)))
+
+  describe('update instance with IAM role', () => {
+    it('assigns role to instance', query(`
+      UPDATE instance SET role_name = '${roleName}'
+      WHERE tags ->> 'name' = '${prefix}-2';
+    `));
+
+    it('checks instance count', query(`
+      SELECT *
+      FROM instance
+      WHERE role_name = '${roleName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+
+    it('applies the instance update', apply());
+
+    it('checks instance count', query(`
+      SELECT *
+      FROM instance
+      WHERE role_name = '${roleName}';
+    `, (res: any[]) => expect(res.length).toBe(1)));
+  });
 
   it('stop instance', query(`
     UPDATE instance SET state = 'stopped'
@@ -442,6 +499,26 @@ describe('EC2 Integration Testing', () => {
     FROM target_group
     WHERE target_group_name = '${tgName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
+
+  describe('delete role', () => {
+    it('deletes role', query(`
+      DELETE FROM role WHERE role_name = '${roleName}';
+    `));
+
+    it('checks role count', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${roleName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+
+    it('applies the role deletion', apply());
+
+    it('checks role count', query(`
+      SELECT *
+      FROM role
+      WHERE role_name = '${roleName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
+  });
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
