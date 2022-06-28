@@ -7,11 +7,14 @@ import {
   JoinTable,
   ManyToMany,
   PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 
 // TODO: Is there a better way to deal with cross-module entities?
 import { SecurityGroup, } from '../../aws_security_group/entity';
 import { cloudId, } from '../../../../services/cloud-id'
+import { Role } from '../../aws_iam/entity';
 
 // "terminated" is ommittted because that is achieved by deleting the row
  // "pending", "shutting-down", "stopping" are ommitted because they are interim states
@@ -67,6 +70,15 @@ export class Instance {
     name: 'instance_security_groups',
   })
   securityGroups: SecurityGroup[];
+
+  @ManyToOne(() => Role, role => role.roleName, {
+    nullable: true,
+    eager: true,
+  })
+  @JoinColumn({
+    name: 'role_name',
+  })
+  role?: Role;
 
   @AfterLoad()
   @AfterInsert()

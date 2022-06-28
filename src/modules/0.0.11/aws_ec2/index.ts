@@ -21,6 +21,7 @@ import { AWS, crudBuilder, paginateBuilder, } from '../../../services/aws_macros
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
+import { AwsIamModule } from '../aws_iam'
 
 const getInstanceUserData = crudBuilder<EC2>(
   'describeInstanceAttribute',
@@ -264,6 +265,16 @@ export const AwsEc2Module: Module2 = new Module2({
         const sg = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
         if (sg) out.securityGroups.push(sg);
       }
+      if (instance.IamInstanceProfile?.Arn) {
+        const roleName = AwsIamModule.utils.roleNameFromArn(instance.IamInstanceProfile.Arn);
+        try {
+          const role = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
+            await AwsIamModule.mappers.role.cloud.read(ctx, roleName);
+          if (role) {
+            out.role = role;
+          }
+        } catch (_) { /** Do nothing */ }
+      }
       return out;
     },
     instanceEqReplaceableFields: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
@@ -272,7 +283,8 @@ export const AwsEc2Module: Module2 = new Module2({
       Object.is(a.userData, b.userData) &&
       Object.is(a.keyPairName, b.keyPairName) &&
       Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
-      a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))),
+      a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))) &&
+      Object.is(a.role?.arn, b.role?.arn),
     instanceEqTags: (a: Instance, b: Instance) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
       Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]),
     registeredInstanceMapper: async (registeredInstance: { [key: string]: string }, ctx: Context) => {
@@ -310,6 +322,7 @@ export const AwsEc2Module: Module2 = new Module2({
               }
               const sgIds = instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[];
               const userData = instance.userData ? Buffer.from(instance.userData).toString('base64') : undefined;
+              const iamInstanceProfile = instance.role?.arn ? { Arn: instance.role.arn.replace(':role/', ':instance-profile/') } : undefined;
               const instanceParams: RunInstancesCommandInput = {
                 ImageId: instance.ami,
                 InstanceType: instance.instanceType,
@@ -324,6 +337,7 @@ export const AwsEc2Module: Module2 = new Module2({
                 ],
                 KeyName: instance.keyPairName,
                 UserData: userData,
+                IamInstanceProfile: iamInstanceProfile,
               };
               const instanceId = await newInstance(client.ec2client, instanceParams);
               if (!instanceId) { // then who?
