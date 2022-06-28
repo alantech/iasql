@@ -2998,24 +2998,16 @@
   dependencies:
     "@types/ms" "*"
 
-"@types/express-jwt@^6.0.2":
-  version "6.0.4"
-  resolved "https://registry.yarnpkg.com/@types/express-jwt/-/express-jwt-6.0.4.tgz#ce617f65025959f24fba9ee34564a34eaf59e44b"
-  integrity sha512-I53KRQ9D0eTA6hVCN9S73iOeprKS3JNWK+Cp2mDPB6uOIkTVpkgSkX394kHQzb5cd0U02I0adRmsMxHk+zX8tA==
-  dependencies:
-    "@types/express" "*"
-    "@types/express-unless" "*"
-
 "@types/express-serve-static-core@^4.17.18":
-  version "4.17.28"
-  resolved "https://registry.yarnpkg.com/@types/express-serve-static-core/-/express-serve-static-core-4.17.28.tgz#c47def9f34ec81dc6328d0b1b5303d1ec98d86b8"
-  integrity sha512-P1BJAEAW3E2DJUlkgq4tOL3RyMunoWXqbSCygWo5ZIWTjUgN1YnaXWW4VWl/oc8vs/XoYibEGBKP0uZyF4AHig==
+  version "4.17.29"
+  resolved "https://registry.yarnpkg.com/@types/express-serve-static-core/-/express-serve-static-core-4.17.29.tgz#2a1795ea8e9e9c91b4a4bbe475034b20c1ec711c"
+  integrity sha512-uMd++6dMKS32EOuw1Uli3e3BPgdLIXmezcfHv7N4c1s3gkhikBplORPpMq3fuWkxncZN1reb16d5n8yhQ80x7Q==
   dependencies:
     "@types/node" "*"
     "@types/qs" "*"
     "@types/range-parser" "*"
 
-"@types/express-unless@*":
+"@types/express-unless@^0.5.3":
   version "0.5.3"
   resolved "https://registry.yarnpkg.com/@types/express-unless/-/express-unless-0.5.3.tgz#271f8603617445568ed0d6efe25a7d2f338544c1"
   integrity sha512-TyPLQaF6w8UlWdv4gj8i46B+INBVzURBNRahCozCSXfsK2VTlL1wNyTlMKw817VHygBtlcl5jfnPadlydr06Yw==
@@ -3089,9 +3081,9 @@
   integrity sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==
 
 "@types/node@*":
-  version "17.0.34"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.34.tgz#3b0b6a50ff797280b8d000c6281d229f9c538cef"
-  integrity sha512-XImEz7XwTvDBtzlTnm8YvMqGW/ErMWBsKZ+hMTvnDIjGCKxwK5Xpc+c/oQjOauwq8M4OS11hEkpjX8rrI/eEgA==
+  version "18.0.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.0.0.tgz#67c7b724e1bcdd7a8821ce0d5ee184d3b4dd525a"
+  integrity sha512-cHlGmko4gWLVI27cGJntjs/Sj8th9aYwplmZFwmmgYQQvL5NUsgVJG7OddLvNfLqYS31KFN0s3qlaD9qCaxACA==
 
 "@types/node@^16.11.28":
   version "16.11.36"
@@ -3318,11 +3310,6 @@ array-flatten@1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/array-flatten/-/array-flatten-1.1.1.tgz#9a5f699051b1e7073328f2a008968b64ea2955d2"
   integrity sha512-PCVAQswWemu6UdxsDFFX/+gVeYqKAod3D3UVm91jHwynguOwAvYPhx8nNlM++NqRcK6CxxpUafjmhIdKiHibqg==
-
-async@^3.2.2:
-  version "3.2.3"
-  resolved "https://registry.yarnpkg.com/async/-/async-3.2.3.tgz#ac53dafd3f4720ee9e8a160628f18ea91df196c9"
-  integrity sha512-spZRyzKL5l5BZQrr/6m/SqFdBN0q3OCI0f9rjfBzCMBIP4p75P620rR3gTmaksNOhmzgdxcaxdNfMy6anrbM0g==
 
 asynckit@^0.4.0:
   version "0.4.0"
@@ -4112,20 +4099,20 @@ expect@^27.5.1:
     jest-matcher-utils "^27.5.1"
     jest-message-util "^27.5.1"
 
-express-jwt@^6.1.0:
-  version "6.1.2"
-  resolved "https://registry.yarnpkg.com/express-jwt/-/express-jwt-6.1.2.tgz#4a6cc11d1dcff6f23126dd79ec5b2b441333e78b"
-  integrity sha512-l5dlf5lNM/1EODMsJGfHn1VnrhhsUYEetzrKFStJZLjFQXtR+HGdBiW+jUNZ+ISsFe+h7Wl/hQKjLrY2TX0Qkg==
+express-jwt@^7.5.0:
+  version "7.7.5"
+  resolved "https://registry.yarnpkg.com/express-jwt/-/express-jwt-7.7.5.tgz#5b46e056be33abdfbcbcb3d8ddc79639e6994508"
+  integrity sha512-2CMse20Ex2vbqvsuGAcai7TgQuvmFa1n39PwKLaEszTGhuRzckBERII4PwdZIibtwfYUGSNVQzPpf+QcGo2yHw==
   dependencies:
-    async "^3.2.2"
-    express-unless "^1.0.0"
-    jsonwebtoken "^8.1.0"
-    lodash "^4.17.21"
+    "@types/express-unless" "^0.5.3"
+    "@types/jsonwebtoken" "^8.5.8"
+    express-unless "^2.0.2"
+    jsonwebtoken "^8.5.1"
 
-express-unless@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/express-unless/-/express-unless-1.0.0.tgz#ecd1c354c5ccf7709a8a17ece617934e037cccd8"
-  integrity sha512-zXSSClWBPfcSYjg0hcQNompkFN/MxQQ53eyrzm9BYgik2ut2I7PxAf2foVqBRMYCwWaZx/aWodi+uk76npdSAw==
+express-unless@^2.0.2:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/express-unless/-/express-unless-2.1.0.tgz#090a56de501130e63b8c1aa708cf0bbf4e9c2320"
+  integrity sha512-666xLp2L3eM1hYhabyZq0HTdedDdcM9QdKsQSROl610VMc2f98KKenc8M3XTPuS/4zpa0QoB8gyDh8K1d8jgDw==
 
 express@^4.18.1:
   version "4.18.1"
@@ -5253,7 +5240,7 @@ json5@2.x, json5@^2.1.1, json5@^2.1.3, json5@^2.2.1:
   resolved "https://registry.yarnpkg.com/json5/-/json5-2.2.1.tgz#655d50ed1e6f95ad1a3caababd2b0efda10b395c"
   integrity sha512-1hqLFMSrGHRHxav9q9gNjJ5EXznIxGVO09xQRrwplcS8qs28pZ8s8hupZAmqDwZUmVZ2Qb2jnyPOWcDH8m8dlA==
 
-jsonwebtoken@^8.0.0, jsonwebtoken@^8.1.0, jsonwebtoken@^8.5.1:
+jsonwebtoken@^8.0.0, jsonwebtoken@^8.5.1:
   version "8.5.1"
   resolved "https://registry.yarnpkg.com/jsonwebtoken/-/jsonwebtoken-8.5.1.tgz#00e71e0b8df54c2121a1f26137df2280673bcc0d"
   integrity sha512-XjwVfRS6jTMsqYs0EsuJ4LGxXV14zQybNd4L2r0UvbVnSF9Af8x7p5MzbJ90Ioz/9TI41/hTCvznF/loiSzn8w==
@@ -5350,7 +5337,7 @@ locate-path@^5.0.0:
 lodash.clonedeep@^4.5.0:
   version "4.5.0"
   resolved "https://registry.yarnpkg.com/lodash.clonedeep/-/lodash.clonedeep-4.5.0.tgz#e23f3f9c4f8fbdde872529c1071857a086e5ccef"
-  integrity sha1-4j8/nE+Pvd6HJSnBBxhXoIblzO8=
+  integrity sha512-H5ZhCF25riFd9uB5UCkVKo61m3S/xZk1x4wA6yp/L3RFP6Z/eHH1ymQcGLo7J3GMPfm0V/7m1tryHuGVxpqEBQ==
 
 lodash.includes@^4.3.0:
   version "4.3.0"
@@ -5392,7 +5379,7 @@ lodash.once@^4.0.0:
   resolved "https://registry.yarnpkg.com/lodash.once/-/lodash.once-4.1.1.tgz#0dd3971213c7c56df880977d504c88fb471a97ac"
   integrity sha1-DdOXEhPHxW34gJd9UEyI+0cal6w=
 
-"lodash@>=4 <5", lodash@^4.17.21, lodash@^4.7.0:
+"lodash@>=4 <5", lodash@^4.7.0:
   version "4.17.21"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
   integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
@@ -5432,7 +5419,7 @@ lru-cache@^6.0.0:
 lru-cache@~4.0.0:
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-4.0.2.tgz#1d17679c069cda5d040991a09dbc2c0db377e55e"
-  integrity sha1-HRdnnAac2l0ECZGgnbwsDbN35V4=
+  integrity sha512-uQw9OqphAGiZhkuPlpFGmdTU2tEuhxTourM/19qGJrxBPHAr/f8BT1a0i/lOclESnGatdJG/UCkP9kZB/Lh1iw==
   dependencies:
     pseudomap "^1.0.1"
     yallist "^2.0.0"

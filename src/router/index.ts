@@ -1,5 +1,5 @@
 import * as express from 'express'
-import jwt from 'express-jwt'
+import { expressjwt as jwt, GetVerificationKey, } from "express-jwt";
 import jwksRsa from 'jwks-rsa'
 
 import config from '../config'
@@ -16,7 +16,7 @@ if (config.auth) {
   const checkJwt = jwt({
     secret: jwksRsa.expressJwtSecret({
       jwksUri: `${config.auth.domain}.well-known/jwks.json`,
-    }),
+    }) as GetVerificationKey, // https://github.com/auth0/express-jwt/issues/288
     audience: config.auth.audience,
     issuer: config.auth.domain,
     algorithms: ['RS256'],

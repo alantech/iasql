@@ -1,4 +1,5 @@
 import * as express from 'express'
+import Request from 'express-jwt'
 import { IasqlDatabase } from '../entity';
 
 import * as dbMan from '../services/db-manager';
@@ -62,7 +63,7 @@ db.post('/connect', connectHandler);
   }
 });*/
 
-db.post('/export', async (req, res) => {
+db.post('/export', async (req: Request, res: express.Response) => {
   logger.info('Calling /export');
   const { dbAlias, dataOnly } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
