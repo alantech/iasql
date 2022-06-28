@@ -62,7 +62,10 @@ const updateECRRepositoryImageTagMutability = crudBuilder<ECR>(
 );
 const updateECRRepositoryImageScanningConfiguration = crudBuilder<ECR>(
   'putImageScanningConfiguration',
-  (repositoryName: string, scanOnPush: boolean) => ({ repositoryName, scanOnPush, }),
+  (repositoryName: string, scanOnPush: boolean) => ({
+    repositoryName,
+    imageScanningConfiguration: { scanOnPush, },
+  }),
   (_res: any) => undefined,
 );
 const deleteECRRepository = crudBuilder<ECR>(
