@@ -82,7 +82,7 @@ const getECRRepositoryPolicy = crudBuilder<ECR>(
   (repositoryName: string) => ({ repositoryName, }),
 );
 const deleteECRRepositoryPolicy = crudBuilder<ECR>(
-  'deleteRepositoryPolicty',
+  'deleteRepositoryPolicy',
   (repositoryName: string) => ({ repositoryName, }),
 );
 
