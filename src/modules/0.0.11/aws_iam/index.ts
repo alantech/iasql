@@ -69,15 +69,10 @@ export const AwsIamModule: Module2 = new Module2({
             if (!roleArn) { // then who?
               throw new Error('should not be possible');
             }
-            try {
-              const allowEc2Service = AwsIamModule.utils.allowEc2Service(role);
-              if (allowEc2Service) {
-                await client.createInstanceProfile(role.roleName);
-                await client.attachRoleToInstanceProfile(role.roleName);
-              }
-            } catch (err: any) {
-              // Do not throw if for any reason this does not work
-              logger.warn(err.message ?? 'Error attaching instance profile on role create');
+            const allowEc2Service = AwsIamModule.utils.allowEc2Service(role);
+            if (allowEc2Service) {
+              await client.createInstanceProfile(role.roleName);
+              await client.attachRoleToInstanceProfile(role.roleName);
             }
             const rawRole = await client.getRole(role.roleName);
             const newRole = await AwsIamModule.utils.roleMapper(rawRole, ctx);
@@ -120,15 +115,14 @@ export const AwsIamModule: Module2 = new Module2({
             let updatedRecord = { ...cloudRecord };
             if (!AwsIamModule.utils.rolePolicyComparison(e.assumeRolePolicyDocument, b.assumeRolePolicyDocument)) {
               await client.updateRoleAssumePolicy(e.roleName, JSON.stringify(e.assumeRolePolicyDocument));
-              try {
-                const allowEc2Service = AwsIamModule.utils.allowEc2Service(e);
-                if (allowEc2Service) {
-                  await client.createInstanceProfile(e.roleName);
-                  await client.attachRoleToInstanceProfile(e.roleName);
-                }
-              } catch (err: any) {
-                // Do not throw if for any reason this does not work
-                logger.warn(err.message ?? 'Error attaching instance profile on role update');
+              const eAllowEc2Service = AwsIamModule.utils.allowEc2Service(e);
+              const cloudRecordAllowEc2Service = AwsIamModule.utils.allowEc2Service(cloudRecord);
+              if (eAllowEc2Service && !cloudRecordAllowEc2Service) {
+                await client.createInstanceProfile(e.roleName);
+                await client.attachRoleToInstanceProfile(e.roleName);
+              } else if (cloudRecordAllowEc2Service && !eAllowEc2Service) {
+                await client.detachRoleToInstanceProfile(e.roleName);
+                await client.deleteInstanceProfile(e.roleName);
               }
               update = true;
             }
@@ -153,15 +147,10 @@ export const AwsIamModule: Module2 = new Module2({
               if (entity.arn.includes(':role/aws-service-role/')) {
                 await AwsIamModule.mappers.role.db.create(entity, ctx);
               } else {
-                try {
-                  const allowEc2Service = AwsIamModule.utils.allowEc2Service(entity);
-                  if (allowEc2Service) {
-                    await client.detachRoleToInstanceProfile(entity.roleName);
-                    await client.deleteInstanceProfile(entity.roleName);
-                  }
-                } catch (err: any) {
-                  // Do not throw if for any reason this does not work
-                  logger.warn(err.message ?? 'Error detaching instance profile on role delete');
+                const allowEc2Service = AwsIamModule.utils.allowEc2Service(entity);
+                if (allowEc2Service) {
+                  await client.detachRoleToInstanceProfile(entity.roleName);
+                  await client.deleteInstanceProfile(entity.roleName);
                 }
                 await client.deleteRoleLin(entity.roleName, entity.attachedPoliciesArns ?? []);
               }
