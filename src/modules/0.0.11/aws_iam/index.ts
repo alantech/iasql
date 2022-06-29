@@ -31,7 +31,7 @@ const attachRolePolicy = crudBuilder<IAM>(
 );
 
 const attachRolePolicies = (client: IAM, roleName: string, policyArns: string[]) => mapLin(
-  Promise.resolve(policyArns),
+  policyArns,
   (policyArn: string) => attachRolePolicy(client, roleName, policyArn)
 );
 
@@ -96,7 +96,7 @@ const detachRolePolicy = crudBuilder<IAM>(
 );
 
 const detachRolePolicies = (client: IAM, roleName: string, policyArns: string[]) => mapLin(
-  Promise.resolve(policyArns),
+  policyArns,
   (policyArn: string) => detachRolePolicy(client, roleName, policyArn)
 );
 
