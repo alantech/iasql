@@ -17,7 +17,7 @@ const querySync = runQuery.bind(null, `${dbAlias}_sync`);
 const install = runInstall.bind(null, dbAlias);
 const installSync = runInstall.bind(null, `${dbAlias}_sync`);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb'];
+const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
 
 // ELB integration
 const {

@@ -289,7 +289,7 @@ describe('IAM install/uninstall', () => {
     config.db.user,
     true).then(...finish(done)));
 
-  it('uninstalls the IAM module', uninstall(['aws_ec2', 'aws_ecs_fargate', 'aws_iam']));
+  it('uninstalls the IAM module', uninstall(['aws_ec2', 'aws_ec2_metadata', 'aws_ecs_fargate', 'aws_iam']));
 
   it('installs the IAM module', install(modules));
 
