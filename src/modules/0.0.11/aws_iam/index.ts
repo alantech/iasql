@@ -34,10 +34,10 @@ export const AwsIamModule: Module2 = new Module2({
     },
     rolePolicyComparison: (a: any, b: any) => {
       return Object.is(Object.keys(a).length, Object.keys(b).length)
-      && Object.is(a['Statement']?.length, b['Statement']?.length)
-      && a['Statement'].every((as: any) => !!b['Statement'].find((
-        bs: any) => Object.is(as['Effect'], bs['Effect']) && Object.is(as['Action'], bs['Action']) && 
-        Object.is(JSON.stringify(as['Principal']), JSON.stringify(bs['Principal']))))
+      && Object.is(a.Statement?.length, b.Statement?.length)
+      && a.Statement.every((as: any) => !!b.Statement.find((
+        bs: any) => Object.is(as.Effect, bs.Effect) && Object.is(as.Action, bs.Action) &&
+        Object.is(JSON.stringify(as.Principal), JSON.stringify(bs.Principal))))
     },
   },
   mappers: {
@@ -64,8 +64,8 @@ export const AwsIamModule: Module2 = new Module2({
             if (!roleArn) { // then who?
               throw new Error('should not be possible');
             }
-            const allowEc2Service = role.assumeRolePolicyDocument['Statement'].find(
-              (s: any) => s['Effect'] === 'Allow' && s['Principal']['Service'].includes('ec2'));
+            const allowEc2Service = role.assumeRolePolicyDocument.Statement.find(
+              (s: any) => s.Effect === 'Allow' && s.Principal?.Service?.includes('ec2'));
             if (allowEc2Service) {
               await client.createInstanceProfile(role.roleName);
               await client.attachRoleToInstanceProfile(role.roleName);
