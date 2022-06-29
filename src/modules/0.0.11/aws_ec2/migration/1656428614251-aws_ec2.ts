@@ -1,5 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
+import * as sql from '../sql';
+
 export class awsEc21656428614251 implements MigrationInterface {
     name = 'awsEc21656428614251'
 
@@ -15,26 +17,11 @@ export class awsEc21656428614251 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "registered_instance" ADD CONSTRAINT "FK_bdcacf2c01109dd6ad3ffab7a83" FOREIGN KEY ("target_group") REFERENCES "target_group"("target_group_name") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups" ADD CONSTRAINT "FK_fa3c179d5090cb1309c63b5e20a" FOREIGN KEY ("instance_id") REFERENCES "instance"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups" ADD CONSTRAINT "FK_b3b92934eff56d2eb0477a1d27f" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`
-            create or replace function check_target_group_instance(_target_group_name text) returns boolean
-            language plpgsql security definer
-            as $$
-            declare
-                _target_group_type target_group_target_type_enum;
-            begin
-                select target_type into _target_group_type
-                from target_group
-                where target_group_name = _target_group_name;
-                return _target_group_type = 'instance';
-            end;
-            $$;`
-        );
-        await queryRunner.query(`ALTER TABLE registered_instance ADD CONSTRAINT check_target_group_instance CHECK (check_target_group_instance(target_group));`);
+        await queryRunner.query(sql.createCustomConstraints);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE registered_instance DROP CONSTRAINT check_target_group_instance`);
-        await queryRunner.query(`DROP FUNCTION "check_target_group_instance"`);
+        await queryRunner.query(sql.dropCustomConstraints);
         await queryRunner.query(`ALTER TABLE "instance_security_groups" DROP CONSTRAINT "FK_b3b92934eff56d2eb0477a1d27f"`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups" DROP CONSTRAINT "FK_fa3c179d5090cb1309c63b5e20a"`);
         await queryRunner.query(`ALTER TABLE "registered_instance" DROP CONSTRAINT "FK_bdcacf2c01109dd6ad3ffab7a83"`);
