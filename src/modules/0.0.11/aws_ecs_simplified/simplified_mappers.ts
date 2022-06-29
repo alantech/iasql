@@ -83,7 +83,7 @@ const simplifiedMappers = {
   role: (prefix: string, appName: string) => {
     const out = new Role();
     out.roleName = generateResourceName(prefix, appName, 'Role');
-    out.assumeRolePolicyDocument = JSON.stringify({
+    out.assumeRolePolicyDocument = {
       "Version": "2012-10-17",
       "Statement": [
         {
@@ -95,7 +95,7 @@ const simplifiedMappers = {
           "Action": "sts:AssumeRole"
         }
       ]
-    });
+    };
     out.attachedPoliciesArns = ['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'];
     return out;
   },

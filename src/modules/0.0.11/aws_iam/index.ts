@@ -15,9 +15,14 @@ export const AwsIamModule: Module2 = new Module2({
       if (!role.RoleName) return undefined;
       out.roleName = role.RoleName;
       out.description = role.Description;
-      if (!role.AssumeRolePolicyDocument) return undefined;
-      out.assumeRolePolicyDocument = decodeURIComponent(role.AssumeRolePolicyDocument);
       out.attachedPoliciesArns = await client.getRoleAttachedPoliciesArnsV2(out.roleName);
+      if (!role.AssumeRolePolicyDocument) return undefined;
+      try {
+        out.assumeRolePolicyDocument = JSON.parse(decodeURIComponent(role.AssumeRolePolicyDocument));
+      } catch (_) {
+        // Without policy the role is misconfigured
+        return undefined;
+      }
       return out;
     },
     roleNameFromArn: (arn: string, _ctx: Context) => {
@@ -26,7 +31,14 @@ export const AwsIamModule: Module2 = new Module2({
       // AWS service role example - arn:aws:iam::547931376551:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS
       // EC2 role instance profile ARN example - arn:aws:iam::257682470237:instance-profile/test-role
       return  arn.split('/').pop();
-    }
+    },
+    rolePolicyComparison: (a: any, b: any) => {
+      return Object.is(Object.keys(a).length, Object.keys(b).length)
+      && Object.is(a['Statement']?.length, b['Statement']?.length)
+      && a['Statement'].every((as: any) => !!b['Statement'].find((
+        bs: any) => Object.is(as['Effect'], bs['Effect']) && Object.is(as['Action'], bs['Action']) && 
+        Object.is(JSON.stringify(as['Principal']), JSON.stringify(bs['Principal']))))
+    },
   },
   mappers: {
     role: new Mapper2<Role>({
@@ -34,9 +46,7 @@ export const AwsIamModule: Module2 = new Module2({
       equals: (a: Role, b: Role) => Object.is(a.roleName, b.roleName) &&
         Object.is(a.arn, b.arn) &&
         Object.is(a.description, b.description) &&
-        // the policy document is stringified json
-        // we are trusting aws won't change it from under us
-        Object.is(a.assumeRolePolicyDocument, b.assumeRolePolicyDocument) &&
+        AwsIamModule.utils.rolePolicyComparison(a.assumeRolePolicyDocument, b.assumeRolePolicyDocument) &&
         Object.is(a.attachedPoliciesArns?.length, b.attachedPoliciesArns?.length) &&
         ((!a.attachedPoliciesArns && !b.attachedPoliciesArns) || !!a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs)))),
       source: 'db',
@@ -47,12 +57,18 @@ export const AwsIamModule: Module2 = new Module2({
           for (const role of es) {
             const roleArn = await client.newRoleLin(
               role.roleName,
-              role.assumeRolePolicyDocument,
+              JSON.stringify(role.assumeRolePolicyDocument),
               role.attachedPoliciesArns ?? [],
               role.description
             );
             if (!roleArn) { // then who?
               throw new Error('should not be possible');
+            }
+            const allowEc2Service = role.assumeRolePolicyDocument['Statement'].find(
+              (s: any) => s['Effect'] === 'Allow' && s['Principal']['Service'].includes('ec2'));
+            if (allowEc2Service) {
+              await client.createInstanceProfile(role.roleName);
+              await client.attachRoleToInstanceProfile(role.roleName);
             }
             const rawRole = await client.getRole(role.roleName);
             const newRole = await AwsIamModule.utils.roleMapper(rawRole, ctx);
@@ -93,8 +109,8 @@ export const AwsIamModule: Module2 = new Module2({
             const b = cloudRecord;
             let update = false;
             let updatedRecord = { ...cloudRecord };
-            if (!Object.is(e.assumeRolePolicyDocument, b.assumeRolePolicyDocument)) {
-              await client.updateRoleAssumePolicy(e.roleName, e.assumeRolePolicyDocument);
+            if (!AwsIamModule.utils.rolePolicyComparison(e.assumeRolePolicyDocument, b.assumeRolePolicyDocument)) {
+              await client.updateRoleAssumePolicy(e.roleName, JSON.stringify(e.assumeRolePolicyDocument));
               update = true;
             }
             if (!Object.is(e.description, b.description)) {

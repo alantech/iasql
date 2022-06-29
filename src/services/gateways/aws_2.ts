@@ -1868,4 +1868,17 @@ export class AWS {
     });
     return res.RouteTables;
   }
+
+  async createInstanceProfile(roleName: string) {
+    await this.iamClient.createInstanceProfile({
+      InstanceProfileName: roleName,
+    });
+  }
+
+  async attachRoleToInstanceProfile(roleName: string) {
+    await this.iamClient.addRoleToInstanceProfile({
+      InstanceProfileName: roleName,
+      RoleName: roleName,
+    });
+  }
 }
