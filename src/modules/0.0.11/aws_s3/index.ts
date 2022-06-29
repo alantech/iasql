@@ -7,7 +7,7 @@ import * as metadata from './module.json'
 
 const createBucket = crudBuilder2<S3, 'createBucket'>(
   'createBucket',
-  (Bucket) => ({ Bucket, }),
+  (b) => ({ Bucket: b, }),
 );
 const getBuckets = crudBuilder2<S3, 'listBuckets'>(
   'listBuckets',
@@ -16,7 +16,7 @@ const getBuckets = crudBuilder2<S3, 'listBuckets'>(
 );
 const deleteBucket = crudBuilder2<S3, 'deleteBucket'>(
   'deleteBucket',
-  (Bucket: string) => ({ Bucket, }),
+  (b) => ({ Bucket: b, }),
 );
 
 export const AwsS3Module: Module2 = new Module2({
