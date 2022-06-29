@@ -1881,4 +1881,17 @@ export class AWS {
       RoleName: roleName,
     });
   }
+
+  async deleteInstanceProfile(roleName: string) {
+    await this.iamClient.deleteInstanceProfile({
+      InstanceProfileName: roleName,
+    });
+  }
+
+  async detachRoleToInstanceProfile(roleName: string) {
+    await this.iamClient.removeRoleFromInstanceProfile({
+      InstanceProfileName: roleName,
+      RoleName: roleName,
+    });
+  }
 }

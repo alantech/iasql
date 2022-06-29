@@ -4,6 +4,7 @@ import { Role } from './entity'
 import { AWS, } from '../../../services/gateways/aws_2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
+import logger from '../../../services/logger'
 
 export const AwsIamModule: Module2 = new Module2({
   ...metadata,
@@ -39,6 +40,10 @@ export const AwsIamModule: Module2 = new Module2({
         bs: any) => Object.is(as.Effect, bs.Effect) && Object.is(as.Action, bs.Action) &&
         Object.is(JSON.stringify(as.Principal), JSON.stringify(bs.Principal))))
     },
+    allowEc2Service: (a: Role) => {
+      return a.assumeRolePolicyDocument?.Statement?.find(
+        (s: any) => s.Effect === 'Allow' && s.Principal?.Service?.includes('ec2'));
+    },
   },
   mappers: {
     role: new Mapper2<Role>({
@@ -64,11 +69,15 @@ export const AwsIamModule: Module2 = new Module2({
             if (!roleArn) { // then who?
               throw new Error('should not be possible');
             }
-            const allowEc2Service = role.assumeRolePolicyDocument.Statement.find(
-              (s: any) => s.Effect === 'Allow' && s.Principal?.Service?.includes('ec2'));
-            if (allowEc2Service) {
-              await client.createInstanceProfile(role.roleName);
-              await client.attachRoleToInstanceProfile(role.roleName);
+            try {
+              const allowEc2Service = AwsIamModule.utils.allowEc2Service(role);
+              if (allowEc2Service) {
+                await client.createInstanceProfile(role.roleName);
+                await client.attachRoleToInstanceProfile(role.roleName);
+              }
+            } catch (err: any) {
+              // Do not throw if for any reason this does not work
+              logger.warn(err.message ?? 'Error attaching instance profile on role create');
             }
             const rawRole = await client.getRole(role.roleName);
             const newRole = await AwsIamModule.utils.roleMapper(rawRole, ctx);
@@ -111,6 +120,16 @@ export const AwsIamModule: Module2 = new Module2({
             let updatedRecord = { ...cloudRecord };
             if (!AwsIamModule.utils.rolePolicyComparison(e.assumeRolePolicyDocument, b.assumeRolePolicyDocument)) {
               await client.updateRoleAssumePolicy(e.roleName, JSON.stringify(e.assumeRolePolicyDocument));
+              try {
+                const allowEc2Service = AwsIamModule.utils.allowEc2Service(e);
+                if (allowEc2Service) {
+                  await client.createInstanceProfile(e.roleName);
+                  await client.attachRoleToInstanceProfile(e.roleName);
+                }
+              } catch (err: any) {
+                // Do not throw if for any reason this does not work
+                logger.warn(err.message ?? 'Error attaching instance profile on role update');
+              }
               update = true;
             }
             if (!Object.is(e.description, b.description)) {
@@ -134,6 +153,16 @@ export const AwsIamModule: Module2 = new Module2({
               if (entity.arn.includes(':role/aws-service-role/')) {
                 await AwsIamModule.mappers.role.db.create(entity, ctx);
               } else {
+                try {
+                  const allowEc2Service = AwsIamModule.utils.allowEc2Service(entity);
+                  if (allowEc2Service) {
+                    await client.detachRoleToInstanceProfile(entity.roleName);
+                    await client.deleteInstanceProfile(entity.roleName);
+                  }
+                } catch (err: any) {
+                  // Do not throw if for any reason this does not work
+                  logger.warn(err.message ?? 'Error detaching instance profile on role delete');
+                }
                 await client.deleteRoleLin(entity.roleName, entity.attachedPoliciesArns ?? []);
               }
             }
