@@ -20,6 +20,18 @@ type AWSConfig = {
   region: string
 }
 
+// The commented ones below are the "correct" way to do this as far as I can tell from the docs, but
+// I have done some weird shit and got it working. Hopefully it doesn't blow up in my face. :/
+// type ArgumentTypes<F> = F extends (...args: infer A) => infer _B ? A : never;
+// type PromiseReturnType<F> = F extends (...args: any[]) => Promise<infer A> ? A : never;
+
+// To explain the weird shit, I infer the args and the return type, and then I shove them all into
+// a array of types.
+type ArgumentTypes<F> = F extends (...args: infer A) => infer B ? [...A, B] : never;
+// There is no way to access "end of array", though. The numbers are "magic" and I hope they don't
+// break.
+type PromiseReturnType<F> = ArgumentTypes<ArgumentTypes<F>[2]>[1];
+
 export class AWS {
   acmClient: ACM
   cwClient: CloudWatchLogs
@@ -87,6 +99,21 @@ export function paginateBuilder<T>(
   }
 }
 
+export function crudBuilder2<T, U extends keyof T>(
+  methodName: U,
+  argMapper: (...args: any[]) => ArgumentTypes<T[U]>[0],
+  retFormatter?: (arg0: PromiseReturnType<T[U]>, ...args: any[]) => any,
+): ((client: T, ...args: any[]) => Promise<any>) {
+  if (retFormatter) {
+    return async (client: T, ...args: any[]) => retFormatter(
+      (await (client[methodName] as T[U] extends Function ? T[U] : any)(argMapper(...args))) as PromiseReturnType<T[U]>,
+      ...args
+    );
+  } else {
+    return async (client: T, ...args: any[]) => await (client[methodName] as any)(argMapper(...args));
+  }
+}
+
 export function crudBuilder<T>(
   methodName: keyof T,
   argMapper: (...args: any[]) => any,
@@ -95,8 +122,8 @@ export function crudBuilder<T>(
   if (retFormatter) {
     return async (client: any, ...args: any[]) => retFormatter(
       await client[methodName](argMapper(...args)),
-      ...args
-    );
+       ...args
+     );
   } else {
     return async (client: any, ...args: any[]) => await client[methodName](argMapper(...args));
   }

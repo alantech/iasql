@@ -1,11 +1,10 @@
 import {
   ACM,
   CertificateDetail,
-  DescribeCertificateCommandOutput,
   paginateListCertificates,
 } from '@aws-sdk/client-acm'
 
-import { AWS, crudBuilder, paginateBuilder, mapLin, } from '../../../services/aws_macros'
+import { AWS, crudBuilder2, paginateBuilder, mapLin, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import {
   Certificate,
@@ -15,10 +14,10 @@ import {
 } from './entity'
 import * as metadata from './module.json'
 
-const getCertificate = crudBuilder<ACM>(
+const getCertificate = crudBuilder2<ACM, 'describeCertificate'>(
   'describeCertificate',
-  (arn: string) => ({ CertificateArn: arn, }),
-  (res: DescribeCertificateCommandOutput) => res.Certificate
+  (CertificateArn) => ({ CertificateArn, }),
+  (res) => res?.Certificate
 );
 const getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
 const getCertificates = (client: ACM) => mapLin(

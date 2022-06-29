@@ -1,18 +1,13 @@
-import {
-  CloudWatchLogs,
-  CreateLogGroupCommandOutput,
-  DeleteLogGroupCommandOutput,
-  paginateDescribeLogGroups,
-} from '@aws-sdk/client-cloudwatch-logs'
-import { AWS, crudBuilder, paginateBuilder, } from '../../../services/aws_macros'
+import { CloudWatchLogs, paginateDescribeLogGroups, } from '@aws-sdk/client-cloudwatch-logs'
+import { AWS, crudBuilder2, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { LogGroup } from './entity'
 import * as metadata from './module.json'
 
-const createLogGroup = crudBuilder<CloudWatchLogs>(
+const createLogGroup = crudBuilder2<CloudWatchLogs, 'createLogGroup'>(
   'createLogGroup',
-  (logGroupName: string) => ({ logGroupName, }),
-  (_lg: CreateLogGroupCommandOutput) => undefined,
+  (logGroupName) => ({ logGroupName, }),
+  (_lg) => undefined,
 );
 const getLogGroups = paginateBuilder<CloudWatchLogs>(
   paginateDescribeLogGroups,
@@ -21,10 +16,10 @@ const getLogGroups = paginateBuilder<CloudWatchLogs>(
 const getLogGroup = async (client: CloudWatchLogs, groupName: string) => (
   await getLogGroups(client)
 ).find(lg => lg.logGroupName === groupName);
-const deleteLogGroup = crudBuilder<CloudWatchLogs>(
+const deleteLogGroup = crudBuilder2<CloudWatchLogs, 'deleteLogGroup'>(
   'deleteLogGroup',
-  (logGroupName: string) => ({ logGroupName, }),
-  (_lg: DeleteLogGroupCommandOutput) => undefined,
+  (logGroupName) => ({ logGroupName, }),
+  (_lg) => undefined,
 );
 
 export const AwsCloudwatchModule: Module2 = new Module2({
