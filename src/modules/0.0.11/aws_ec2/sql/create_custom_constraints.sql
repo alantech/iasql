@@ -27,4 +27,4 @@ begin
   return _number_of_records > 0;
 end;
 $$;
-ALTER TABLE instance ADD CONSTRAINT check_role_ec2 CHECK (check_role_ec2(role_name));
+ALTER TABLE instance ADD CONSTRAINT check_role_ec2 CHECK (role_name is NULL OR (role_name is NOT NULL AND check_role_ec2(role_name)));
