@@ -143,6 +143,18 @@ describe('IAM Integration Testing', () => {
 
   it('applies change', apply());
 
+  it('tries to update ec2 policy field', query(`
+    UPDATE role SET assume_role_policy_document = '${attachAssumeLambdaPolicy}' WHERE role_name = '${ec2RoleName}';
+  `));
+
+  it('applies change', apply());
+
+  it('tries to restore ec2 policy field', query(`
+    UPDATE role SET assume_role_policy_document = '${attachAssumeEc2Policy}' WHERE role_name = '${ec2RoleName}';
+  `));
+
+  it('applies change', apply());
+
   it('check update role description', query(`
     SELECT *
     FROM role
