@@ -121,7 +121,7 @@ const cloudCreateFns = {
   role: async (client: AWS, e: Role) => {
     const res = await client.newRoleLin(
       e.roleName,
-      e.assumeRolePolicyDocument,
+      JSON.stringify(e.assumeRolePolicyDocument),
       e.attachedPoliciesArns ?? [],
       e.description ?? ''
     );

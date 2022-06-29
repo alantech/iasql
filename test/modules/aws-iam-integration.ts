@@ -9,6 +9,7 @@ const awsServiceRoleName = 'AWSServiceRoleForSupport';
 const taskRoleName = `${prefix}${dbAlias}task-${region}`;
 const taskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy';
 const lambdaRoleName = `${prefix}${dbAlias}lambda-${region}`;
+const ec2RoleName = `${prefix}${dbAlias}ec2-${region}`;
 const attachAssumeTaskPolicy= JSON.stringify({
   "Version": "2012-10-17",
   "Statement": [
@@ -34,6 +35,19 @@ const attachAssumeLambdaPolicy = JSON.stringify({
       }
   ]
 });
+const attachAssumeEc2Policy = JSON.stringify({
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Effect": "Allow",
+          "Principal": {
+              "Service": "ec2.amazonaws.com"
+          },
+          "Action": "sts:AssumeRole"
+      }
+  ]
+});
+
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
@@ -84,6 +98,13 @@ describe('IAM Integration Testing', () => {
     COMMIT;
   `));
 
+  it('adds a new role', query(`
+    BEGIN;
+      INSERT INTO role (role_name, assume_role_policy_document)
+      VALUES ('${ec2RoleName}', '${attachAssumeEc2Policy}');
+    COMMIT;
+  `));
+
   it('check a new role addition', query(`
     SELECT *
     FROM role
@@ -94,6 +115,12 @@ describe('IAM Integration Testing', () => {
     SELECT *
     FROM role
     WHERE role_name = '${lambdaRoleName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check a new role addition', query(`
+    SELECT *
+    FROM role
+    WHERE role_name = '${ec2RoleName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies the role additions', apply());
@@ -112,6 +139,18 @@ describe('IAM Integration Testing', () => {
 
   it('tries to update a role description', query(`
     UPDATE role SET description = 'description' WHERE role_name = '${taskRoleName}';
+  `));
+
+  it('applies change', apply());
+
+  it('tries to update ec2 policy field', query(`
+    UPDATE role SET assume_role_policy_document = '${attachAssumeLambdaPolicy}' WHERE role_name = '${ec2RoleName}';
+  `));
+
+  it('applies change', apply());
+
+  it('tries to restore ec2 policy field', query(`
+    UPDATE role SET assume_role_policy_document = '${attachAssumeEc2Policy}' WHERE role_name = '${ec2RoleName}';
   `));
 
   it('applies change', apply());
@@ -136,6 +175,11 @@ describe('IAM Integration Testing', () => {
     WHERE role_name = '${lambdaRoleName}';
   `));
 
+  it('deletes the role', query(`
+    DELETE FROM role
+    WHERE role_name = '${ec2RoleName}';
+  `));
+
   it('applies the change', apply());
 
   it('check deletes the role', query(`
@@ -148,6 +192,12 @@ describe('IAM Integration Testing', () => {
     SELECT *
     FROM role
     WHERE role_name = '${lambdaRoleName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check deletes the role', query(`
+    SELECT *
+    FROM role
+    WHERE role_name = '${ec2RoleName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('creates a lot of similar roles to try to hit the rate-limiter', query(`
@@ -239,7 +289,7 @@ describe('IAM install/uninstall', () => {
     config.db.user,
     true).then(...finish(done)));
 
-  it('uninstalls the IAM module', uninstall(['aws_ecs_fargate', 'aws_iam']));
+  it('uninstalls the IAM module', uninstall(['aws_ec2', 'aws_ec2_metadata', 'aws_ecs_fargate', 'aws_iam']));
 
   it('installs the IAM module', install(modules));
 

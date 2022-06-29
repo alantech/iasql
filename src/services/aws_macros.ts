@@ -102,7 +102,7 @@ export function crudBuilder<T>(
   }
 }
 
-export async function mapLin(arrProm: Promise<any[] | undefined>, mapper: (arg: any) => Promise<any>): Promise<any[]> {
+export async function mapLin(arrProm: any[] | Promise<any[] | undefined>, mapper: (arg: any) => Promise<any>): Promise<any[]> {
   const out = [];
   const inp = await arrProm;
   if (inp) {

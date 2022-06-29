@@ -24,8 +24,10 @@ export class Role {
   @cloudId
   roleName: string;
 
-  @Column()
-  assumeRolePolicyDocument: string;
+  @Column({
+    type: 'jsonb',
+  })
+  assumeRolePolicyDocument: { [key: string]: any };
 
   @Column({
     nullable: true,
