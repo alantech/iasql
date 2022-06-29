@@ -1868,30 +1868,4 @@ export class AWS {
     });
     return res.RouteTables;
   }
-
-  async createInstanceProfile(roleName: string) {
-    await this.iamClient.createInstanceProfile({
-      InstanceProfileName: roleName,
-    });
-  }
-
-  async attachRoleToInstanceProfile(roleName: string) {
-    await this.iamClient.addRoleToInstanceProfile({
-      InstanceProfileName: roleName,
-      RoleName: roleName,
-    });
-  }
-
-  async deleteInstanceProfile(roleName: string) {
-    await this.iamClient.deleteInstanceProfile({
-      InstanceProfileName: roleName,
-    });
-  }
-
-  async detachRoleToInstanceProfile(roleName: string) {
-    await this.iamClient.removeRoleFromInstanceProfile({
-      InstanceProfileName: roleName,
-      RoleName: roleName,
-    });
-  }
 }
