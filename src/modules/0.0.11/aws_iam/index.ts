@@ -1,5 +1,6 @@
 import {
   CreateRoleCommandInput,
+  CreateRoleCommandOutput,
   GetRoleCommandOutput,
   IAM,
   ListAttachedRolePoliciesCommandOutput,
@@ -18,14 +19,22 @@ const getRoleAttachedPoliciesArns = crudBuilder<IAM>(
   (res: ListAttachedRolePoliciesCommandOutput) => res.AttachedPolicies?.length ? res.AttachedPolicies.map(p => p.PolicyArn ?? '') : undefined,
 );
 
-// TODO: How to macro-ify this passing the attachedPolicyArns as argument for the return formatter?
-async function createNewRole(client: IAM, input: CreateRoleCommandInput, attachedPolicyArns: string[]): Promise<string> {
-  const role = await client.createRole(input);
-  for (const arn of attachedPolicyArns) {
-    await client.attachRolePolicy({PolicyArn: arn, RoleName: input.RoleName});
-  }
-  return role.Role?.Arn ?? '';
-}
+const createNewRole = crudBuilder<IAM>(
+  'createRole',
+  (input: CreateRoleCommandInput,) => input,
+  (res: CreateRoleCommandOutput) => res.Role?.Arn ?? '',
+);
+
+const attachRolePolicy = crudBuilder<IAM>(
+  'attachRolePolicy',
+  (roleName: string, policyArn: string) => ({ RoleName: roleName, PolicyArn: policyArn, }),
+);
+
+const attachRolePolicies = (client: IAM, roleName: string, policyArns: string[]) => mapLin(
+  Promise.resolve(policyArns),
+  (policyArn: string) => attachRolePolicy(client, roleName, policyArn)
+);
+
 
 const createInstanceProfile = crudBuilder<IAM>(
   'createInstanceProfile',
@@ -85,6 +94,7 @@ const detachRolePolicy = crudBuilder<IAM>(
   'detachRolePolicy',
   (roleName: string, policyArn: string) => ({ RoleName: roleName, PolicyArn: policyArn, }),
 );
+
 const detachRolePolicies = (client: IAM, roleName: string, policyArns: string[]) => mapLin(
   Promise.resolve(policyArns),
   (policyArn: string) => detachRolePolicy(client, roleName, policyArn)
@@ -156,11 +166,11 @@ export const AwsIamModule: Module2 = new Module2({
                 AssumeRolePolicyDocument: JSON.stringify(role.assumeRolePolicyDocument),
                 Description: role.description,
               },
-              role.attachedPoliciesArns ?? [],
             );
             if (!roleArn) { // then who?
               throw new Error('should not be possible');
             }
+            await attachRolePolicies(client.iamClient, role.roleName, role.attachedPoliciesArns ?? []);
             const allowEc2Service = AwsIamModule.utils.allowEc2Service(role);
             if (allowEc2Service) {
               await createInstanceProfile(client.iamClient, role.roleName);
