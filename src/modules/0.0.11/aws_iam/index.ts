@@ -15,7 +15,7 @@ import * as metadata from './module.json'
 
 const getRoleAttachedPoliciesArns = crudBuilder<IAM>(
   'listAttachedRolePolicies',
-  (roleName: string) => ({ RoleName: roleName, }),
+  (RoleName: string) => ({ RoleName, }),
   (res: ListAttachedRolePoliciesCommandOutput) => res.AttachedPolicies?.length ? res.AttachedPolicies.map(p => p.PolicyArn ?? '') : undefined,
 );
 
@@ -38,33 +38,33 @@ const attachRolePolicies = (client: IAM, roleName: string, policyArns: string[])
 
 const createInstanceProfile = crudBuilder<IAM>(
   'createInstanceProfile',
-  (roleName: string) => ({ InstanceProfileName: roleName, }),
+  (InstanceProfileName: string) => ({ InstanceProfileName, }),
 );
 
 const attachRoleToInstanceProfile = crudBuilder<IAM>(
   'addRoleToInstanceProfile',
-  (roleName: string) => ({
-    InstanceProfileName: roleName,
-    RoleName: roleName,
+  (RoleName: string) => ({
+    InstanceProfileName: RoleName,
+    RoleName,
   }),
 );
 
 const deleteInstanceProfile = crudBuilder<IAM>(
   'deleteInstanceProfile',
-  (roleName: string) => ({ InstanceProfileName: roleName, }),
+  (InstanceProfileName: string) => ({ InstanceProfileName, }),
 );
 
 const detachRoleToInstanceProfile = crudBuilder<IAM>(
   'removeRoleFromInstanceProfile',
-  (roleName: string) => ({
-    InstanceProfileName: roleName,
-    RoleName: roleName,
+  (RoleName: string) => ({
+    InstanceProfileName: RoleName,
+    RoleName,
   }),
 );
 
 const getRole = crudBuilder<IAM>(
   'getRole',
-  (roleName: string) => ({ RoleName: roleName, }),
+  (RoleName: string) => ({ RoleName, }),
   (res: GetRoleCommandOutput) => res.Role,
 );
 
@@ -76,23 +76,23 @@ const getAllRoles = paginateBuilder<IAM>(
 
 const updateRoleAssumePolicy = crudBuilder<IAM>(
   'updateAssumeRolePolicy',
-  (roleName: string, assumeRolePolicyDocument: string) => ({
-    RoleName: roleName,
-    PolicyDocument: assumeRolePolicyDocument,
+  (RoleName: string, PolicyDocument: string) => ({
+    RoleName,
+    PolicyDocument,
   }),
 );
 
 const updateRoleDescription = crudBuilder<IAM>(
   'updateRole',
-  (roleName: string, description?: string) => ({
-    RoleName: roleName,
-    Description: description
+  (RoleName: string, Description?: string) => ({
+    RoleName,
+    Description,
   }),
 );
 
 const detachRolePolicy = crudBuilder<IAM>(
   'detachRolePolicy',
-  (roleName: string, policyArn: string) => ({ RoleName: roleName, PolicyArn: policyArn, }),
+  (RoleName: string, PolicyArn: string) => ({ RoleName, PolicyArn, }),
 );
 
 const detachRolePolicies = (client: IAM, roleName: string, policyArns: string[]) => mapLin(
@@ -102,7 +102,7 @@ const detachRolePolicies = (client: IAM, roleName: string, policyArns: string[])
 
 const deleteRole = crudBuilder<IAM>(
   'deleteRole',
-  (roleName: string) => ({ RoleName: roleName, }),
+  (RoleName: string) => ({ RoleName, }),
 );
 
 export const AwsIamModule: Module2 = new Module2({
