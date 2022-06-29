@@ -88,7 +88,7 @@ export function paginateBuilder<T>(
 }
 
 export function crudBuilder<T>(
-  methodName: string,
+  methodName: keyof T,
   argMapper: (...args: any[]) => any,
   retFormatter?: (arg0: any, ...args: any[]) => any
 ): ((client: T, ...args: any[]) => Promise<any>) {
