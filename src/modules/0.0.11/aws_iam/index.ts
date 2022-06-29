@@ -42,7 +42,7 @@ export const AwsIamModule: Module2 = new Module2({
     },
     allowEc2Service: (a: Role) => {
       return a.assumeRolePolicyDocument?.Statement?.find(
-        (s: any) => s.Effect === 'Allow' && s.Principal?.Service?.includes('ec2'));
+        (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com');
     },
   },
   mappers: {
