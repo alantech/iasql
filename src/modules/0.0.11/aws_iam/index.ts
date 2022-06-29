@@ -4,7 +4,6 @@ import { Role } from './entity'
 import { AWS, } from '../../../services/gateways/aws_2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
-import logger from '../../../services/logger'
 
 export const AwsIamModule: Module2 = new Module2({
   ...metadata,
