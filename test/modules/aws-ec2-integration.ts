@@ -17,7 +17,7 @@ const querySync = runQuery.bind(null, `${dbAlias}_sync`);
 const install = runInstall.bind(null, dbAlias);
 const installSync = runInstall.bind(null, `${dbAlias}_sync`);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
+const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam', 'aws_vpc'];
 
 // ELB integration
 const {
@@ -43,6 +43,10 @@ const ec2RolePolicy = JSON.stringify({
       }
   ]
 });
+
+// VPC integration
+const availabilityZone = `us-east-1a`;
+const randIPBlock = Math.floor(Math.random() * 255);
 
 jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
@@ -105,6 +109,23 @@ describe('EC2 Integration Testing', () => {
     tags ->> 'name' = '${prefix}-2';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
+  describe('Adds vpc and subnet', () => {
+    it('adds a new vpc', query(`  
+      INSERT INTO vpc (cidr_block)
+      VALUES ('192.${randIPBlock}.0.0/16');
+    `));
+
+    it('adds a subnet', query(`
+      INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
+      SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16'
+      FROM vpc
+      WHERE is_default = false
+      AND cidr_block = '192.${randIPBlock}.0.0/16';
+    `));
+
+    it('applies the vpc and subnet change', apply());
+  });
+
   it('adds two ec2 instance', (done) => {
     query(`
     BEGIN;
@@ -116,8 +137,10 @@ describe('EC2 Integration Testing', () => {
     COMMIT;
 
     BEGIN;
-      INSERT INTO instance (ami, instance_type, tags, user_data)
-        VALUES ('${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}', 'pwd;');
+      INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
+        SELECT '${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}', 'pwd;', id
+        FROM subnet
+        WHERE cidr_block = '192.${randIPBlock}.0.0/16';
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
         (SELECT id FROM security_group WHERE group_name='default');
@@ -518,6 +541,18 @@ describe('EC2 Integration Testing', () => {
       FROM role
       WHERE role_name = '${roleName}';
     `, (res: any[]) => expect(res.length).toBe(0)));
+  });
+
+  describe('Delete vpc and subnet', () => {
+    it('adds a subnet', query(`
+      DELETE FROM subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+    `));
+
+    it('deletes vpc', query(`  
+      DELETE FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+    `));
+
+    it('applies the vpc and subnet change', apply());
   });
 
   it('deletes the test db', (done) => void iasql
