@@ -45,8 +45,7 @@ const ec2RolePolicy = JSON.stringify({
 });
 
 // VPC integration
-const availabilityZone = `${region}a`;
-const randIPBlock = Math.floor(Math.random() * 255);
+const availabilityZone = `${region}d`;
 
 jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
@@ -109,32 +108,6 @@ describe('EC2 Integration Testing', () => {
     tags ->> 'name' = '${prefix}-2';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  describe('Adds vpc and subnet', () => {
-    it('adds a new vpc', query(`  
-      INSERT INTO vpc (cidr_block)
-      VALUES ('192.${randIPBlock}.0.0/16');
-    `));
-
-    it('adds a subnet', query(`
-      INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
-      SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16'
-      FROM vpc
-      WHERE is_default = false
-      AND cidr_block = '192.${randIPBlock}.0.0/16';
-    `));
-
-    it('applies the vpc and subnet change', apply());
-  });
-
-  it('checks', query(`
-    SELECT *
-    FROM subnet
-    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
-  `, (res: any[]) => {
-    console.log(JSON.stringify(res))
-    expect(res.length).toBe(2);
-  }));
-
   it('adds two ec2 instance', (done) => {
     query(`
     BEGIN;
@@ -149,7 +122,8 @@ describe('EC2 Integration Testing', () => {
       INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
         SELECT '${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}', 'pwd;', id
         FROM subnet
-        WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+        WHERE availability_zone = '${availabilityZone}'
+        LIMIT 1;
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
         (SELECT id FROM security_group WHERE group_name='default');
@@ -550,18 +524,6 @@ describe('EC2 Integration Testing', () => {
       FROM role
       WHERE role_name = '${roleName}';
     `, (res: any[]) => expect(res.length).toBe(0)));
-  });
-
-  describe('Delete vpc and subnet', () => {
-    it('adds a subnet', query(`
-      DELETE FROM subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16';
-    `));
-
-    it('deletes vpc', query(`  
-      DELETE FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16';
-    `));
-
-    it('applies the vpc and subnet change', apply());
   });
 
   it('deletes the test db', (done) => void iasql
