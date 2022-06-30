@@ -11,22 +11,21 @@ import {
   ElasticLoadBalancingV2,
   paginateDescribeTargetGroups,
   TargetTypeEnum,
-  DescribeTargetHealthCommandOutput,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
 import { Instance, RegisteredInstance, State, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
-import { AWS, crudBuilder, paginateBuilder, } from '../../../services/aws_macros'
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
 import { AwsIamModule } from '../aws_iam'
 
-const getInstanceUserData = crudBuilder<EC2>(
+const getInstanceUserData = crudBuilderFormat<EC2, 'describeInstanceAttribute', string | undefined>(
   'describeInstanceAttribute',
-  (InstanceId: string) => ({ Attribute: 'userData', InstanceId, }),
-  (res: any) => res.UserData?.Value,
+  (InstanceId) => ({ Attribute: 'userData', InstanceId, }),
+  (res) => res?.UserData?.Value,
 );
 // TODO: Macro-ify the waiter usage
 async function newInstance(client: EC2, newInstancesInput: RunInstancesCommandInput): Promise<string> {
@@ -64,9 +63,9 @@ async function newInstance(client: EC2, newInstancesInput: RunInstancesCommandIn
   );
   return instanceIds?.pop() ?? '';
 }
-const describeInstances = crudBuilder<EC2>(
+const describeInstances = crudBuilder2<EC2, 'describeInstances'>(
   'describeInstances',
-  (InstanceIds: string[]) => ({ InstanceIds, }),
+  (InstanceIds) => ({ InstanceIds, }),
 );
 const getInstance = async (client: EC2, id: string) => {
   const reservations = await describeInstances(client, [id]);
@@ -163,12 +162,12 @@ async function stopInstance(client: EC2, instanceId: string, hibernate = false) 
     },
   );
 }
-const terminateInstance = crudBuilder<EC2>(
+const terminateInstance = crudBuilderFormat<EC2, 'terminateInstances', undefined>(
   'terminateInstances',
-  (id: string) => ({ InstanceIds: [id], }),
-  (res: any) => (res?.TerminatingInstances ?? []).pop(),
+  (id) => ({ InstanceIds: [id], }),
+  (_res) => undefined,
 );
-const registerInstance = crudBuilder<ElasticLoadBalancingV2>(
+const registerInstance = crudBuilderFormat<ElasticLoadBalancingV2, 'registerTargets', undefined>(
   'registerTargets',
   (Id: string, TargetGroupArn: string, Port?: number) => {
     const target: any = {
@@ -180,7 +179,7 @@ const registerInstance = crudBuilder<ElasticLoadBalancingV2>(
       Targets: [target],
     }
   },
-  (_res: any) => undefined,
+  (_res) => undefined,
 );
 const getTargetGroups = paginateBuilder<ElasticLoadBalancingV2>(
   paginateDescribeTargetGroups,
@@ -205,7 +204,11 @@ async function getRegisteredInstances(client: ElasticLoadBalancingV2) {
   }
   return out;
 }
-const getRegisteredInstance = crudBuilder<ElasticLoadBalancingV2>(
+const getRegisteredInstance = crudBuilderFormat<
+  ElasticLoadBalancingV2,
+  'describeTargetHealth',
+  { targetGroupArn: string, instanceId: string | undefined, port: number | undefined, } | undefined
+>(
   'describeTargetHealth',
   (Id: string, TargetGroupArn: string, Port?: string) => {
     const target: any = { Id, };
@@ -215,15 +218,15 @@ const getRegisteredInstance = crudBuilder<ElasticLoadBalancingV2>(
       Targets: [target],
     };
   },
-  (res: DescribeTargetHealthCommandOutput, _Id: string, TargetGroupArn: string, _Port?: string) => [
-    ...(res.TargetHealthDescriptions?.map(thd => ({
+  (res, _Id, TargetGroupArn, _Port?) => [
+    ...(res?.TargetHealthDescriptions?.map(thd => ({
       targetGroupArn: TargetGroupArn,
       instanceId: thd.Target?.Id,
       port: thd.Target?.Port,
     })) ?? [])
   ].pop(),
 );
-const deregisterInstance = crudBuilder<ElasticLoadBalancingV2>(
+const deregisterInstance = crudBuilderFormat<ElasticLoadBalancingV2, 'deregisterTargets', undefined>(
   'deregisterTargets',
   (Id: string, TargetGroupArn: string, Port?: number) => {
     const target: any = {
@@ -235,7 +238,7 @@ const deregisterInstance = crudBuilder<ElasticLoadBalancingV2>(
       Targets: [target],
     }
   },
-  (_res: any) => undefined,
+  (_res) => undefined,
 );
 
 export const AwsEc2Module: Module2 = new Module2({

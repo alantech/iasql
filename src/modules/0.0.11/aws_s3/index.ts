@@ -1,7 +1,23 @@
-import { AWS, } from '../../../services/gateways/aws_2'
+import { S3, Bucket as BucketAWS, } from '@aws-sdk/client-s3'
+
+import { AWS, crudBuilder2, crudBuilderFormat, } from '../../../services/aws_macros'
 import { Bucket, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
+
+const createBucket = crudBuilder2<S3, 'createBucket'>(
+  'createBucket',
+  (b) => ({ Bucket: b, }),
+);
+const getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
+  'listBuckets',
+  () => ({}),
+  (res) => res?.Buckets ?? [],
+);
+const deleteBucket = crudBuilder2<S3, 'deleteBucket'>(
+  'deleteBucket',
+  (b) => ({ Bucket: b, }),
+);
 
 export const AwsS3Module: Module2 = new Module2({
   ...metadata,
@@ -16,12 +32,12 @@ export const AwsS3Module: Module2 = new Module2({
         create: async (es: Bucket[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            await client.createBucket(e.name);
+            await createBucket(client.s3Client, e.name);
           }
         },
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
-          const allBuckets = await client.getBuckets();
+          const allBuckets = await getBuckets(client.s3Client);
           return allBuckets
             .filter(b => !id || b.Name === id)
             .filter(b => !!b.Name)
@@ -48,7 +64,7 @@ export const AwsS3Module: Module2 = new Module2({
         delete: async (es: Bucket[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            await client.deleteBucket(e.name);
+            await deleteBucket(client.s3Client, e.name);
           }
         },
       }),
