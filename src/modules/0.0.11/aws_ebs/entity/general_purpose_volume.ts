@@ -45,11 +45,10 @@ export class GeneralPurposeVolume {
   volumeType: GeneralPurposeVolumeType;
 
   @Column({
-    nullable: true,
     type: 'enum',
     enum: AvailabilityZone,
   })
-  availabilityZone?: AvailabilityZone;
+  availabilityZone: AvailabilityZone;
 
   @Check('Check_size_min_max', 'size > 0 AND size < 16385')
   @Column({
