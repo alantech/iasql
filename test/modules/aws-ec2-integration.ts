@@ -45,7 +45,7 @@ const ec2RolePolicy = JSON.stringify({
 });
 
 // VPC integration
-const availabilityZone = `us-east-1a`;
+const availabilityZone = `${region}a`;
 const randIPBlock = Math.floor(Math.random() * 255);
 
 jest.setTimeout(480000);
