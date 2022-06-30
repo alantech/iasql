@@ -2,15 +2,16 @@ import {
   EC2,
   Instance as AWSInstance,
   paginateDescribeInstances,
+  InstanceTypeInfo
 } from '@aws-sdk/client-ec2'
 
 import { AwsEc2Module, } from '../aws_ec2'
 import { Architecture, InstanceMetadata, RootDeviceType } from './entity'
-import { AWS, crudBuilder2, paginateBuilder, } from '../../../services/aws_macros'
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
-const getInstanceType = crudBuilder2<EC2, 'describeInstanceTypes'>(
+const getInstanceType = crudBuilderFormat<EC2, 'describeInstanceTypes', InstanceTypeInfo | undefined>(
   'describeInstanceTypes',
   (instanceType) => ({ InstanceTypes: [instanceType], }),
   (res) => res?.InstanceTypes?.[0]

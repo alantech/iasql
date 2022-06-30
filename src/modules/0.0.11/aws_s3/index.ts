@@ -1,6 +1,6 @@
-import { S3, } from '@aws-sdk/client-s3'
+import { S3, Bucket as BucketAWS, } from '@aws-sdk/client-s3'
 
-import { AWS, crudBuilder2, } from '../../../services/aws_macros'
+import { AWS, crudBuilder2, crudBuilderFormat, } from '../../../services/aws_macros'
 import { Bucket, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
@@ -9,7 +9,7 @@ const createBucket = crudBuilder2<S3, 'createBucket'>(
   'createBucket',
   (b) => ({ Bucket: b, }),
 );
-const getBuckets = crudBuilder2<S3, 'listBuckets'>(
+const getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
   'listBuckets',
   () => ({}),
   (res) => res?.Buckets ?? [],
@@ -39,9 +39,9 @@ export const AwsS3Module: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           const allBuckets = await getBuckets(client.s3Client);
           return allBuckets
-            .filter((b: any) => !id || b.Name === id)
-            .filter((b: any) => !!b.Name)
-            .map((b: any) => {
+            .filter(b => !id || b.Name === id)
+            .filter(b => !!b.Name)
+            .map(b => {
               const bucket = new Bucket();
               bucket.name = b.Name ?? ''; // The filter above is guarding this but TS is confused
               bucket.createdAt = b.CreationDate;

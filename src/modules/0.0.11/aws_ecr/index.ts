@@ -9,18 +9,18 @@ import {
   paginateDescribeRepositories as paginateDescribePubRepositories,
 } from '@aws-sdk/client-ecr-public'
 
-import { AWS, crudBuilder2, paginateBuilder, } from '../../../services/aws_macros'
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
 import logger from '../../../services/logger'
 import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
-const createECRPubRepository = crudBuilder2<ECRPUBLIC, 'createRepository'>(
+const createECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'createRepository', RepositoryAws | undefined>(
   'createRepository',
   (input) => input,
   (res) => res?.repository,
 );
-const getECRPubRepository = crudBuilder2<ECRPUBLIC, 'describeRepositories'>(
+const getECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'describeRepositories', RepositoryAws | undefined>(
   'describeRepositories',
   (name) => ({ repositoryNames: [name], }),
   (res) => (res?.repositories ?? [])[0],
@@ -29,17 +29,17 @@ const getECRPubRepositories = paginateBuilder<ECRPUBLIC>(
   paginateDescribePubRepositories,
   'repositories',
 );
-const deleteECRPubRepository = crudBuilder2<ECRPUBLIC, 'deleteRepository'>(
+const deleteECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'deleteRepository', undefined>(
   'deleteRepository',
   (repositoryName) => ({ repositoryName, }),
   (_res) => undefined,
 );
-const createECRRepository = crudBuilder2<ECR, 'createRepository'>(
+const createECRRepository = crudBuilderFormat<ECR, 'createRepository', RepositoryAws | undefined>(
   'createRepository',
   (input) => input,
   (res) => res?.repository,
 );
-const getECRRepository = crudBuilder2<ECR, 'describeRepositories'>(
+const getECRRepository = crudBuilderFormat<ECR, 'describeRepositories', RepositoryAws | undefined>(
   'describeRepositories',
   (name) => ({ repositoryNames: [name], }),
   (res) => (res?.repositories ?? [])[0],
@@ -48,12 +48,20 @@ const getECRRepositories = paginateBuilder<ECR>(
   paginateDescribeRepositories,
   'repositories',
 );
-const updateECRRepositoryImageTagMutability = crudBuilder2<ECR, 'putImageTagMutability'>(
+const updateECRRepositoryImageTagMutability = crudBuilderFormat<
+  ECR,
+  'putImageTagMutability',
+  undefined
+>(
   'putImageTagMutability',
   (repositoryName, imageTagMutability) => ({ repositoryName, imageTagMutability, }),
   (_res) => undefined,
 );
-const updateECRRepositoryImageScanningConfiguration = crudBuilder2<ECR, 'putImageScanningConfiguration'>(
+const updateECRRepositoryImageScanningConfiguration = crudBuilderFormat<
+  ECR,
+  'putImageScanningConfiguration',
+  undefined
+>(
   'putImageScanningConfiguration',
   (repositoryName, scanOnPush) => ({
     repositoryName,
@@ -61,7 +69,7 @@ const updateECRRepositoryImageScanningConfiguration = crudBuilder2<ECR, 'putImag
   }),
   (_res) => undefined,
 );
-const deleteECRRepository = crudBuilder2<ECR, 'deleteRepository'>(
+const deleteECRRepository = crudBuilderFormat<ECR, 'deleteRepository', undefined>(
   'deleteRepository',
   (repositoryName) => ({ repositoryName, }),
   (_res) => undefined,
@@ -297,7 +305,7 @@ export const AwsEcrModule: Module2 = new Module2({
               policyText: e.policyText,
             });
             // TODO: Handle if it fails (somehow)
-            if (!result.hasOwnProperty('repositoryName')) { // Failure
+            if (!result?.hasOwnProperty('repositoryName')) { // Failure
               throw new Error('what should we do here?');
             }
             // Re-get the inserted record to get all of the relevant records we care about

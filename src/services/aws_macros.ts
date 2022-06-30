@@ -99,19 +99,22 @@ export function paginateBuilder<T>(
   }
 }
 
+export function crudBuilderFormat<T, U extends keyof T, V>(
+  methodName: U,
+  argMapper: (...args: any[]) => ArgumentTypes<T[U]>[0],
+  retFormatter: (arg0: PromiseReturnType<T[U]>, ...args: any[]) => V,
+) {
+  return async (client: T, ...args: any[]): Promise<V> => retFormatter(
+    (await (client[methodName] as T[U] extends Function ? T[U] : any)(argMapper(...args))) as PromiseReturnType<T[U]>,
+    ...args
+  );
+}
+
 export function crudBuilder2<T, U extends keyof T>(
   methodName: U,
   argMapper: (...args: any[]) => ArgumentTypes<T[U]>[0],
-  retFormatter?: (arg0: PromiseReturnType<T[U]>, ...args: any[]) => any,
-): ((client: T, ...args: any[]) => Promise<any>) {
-  if (retFormatter) {
-    return async (client: T, ...args: any[]) => retFormatter(
-      (await (client[methodName] as T[U] extends Function ? T[U] : any)(argMapper(...args))) as PromiseReturnType<T[U]>,
-      ...args
-    );
-  } else {
-    return async (client: T, ...args: any[]) => await (client[methodName] as any)(argMapper(...args));
-  }
+) {
+  return async (client: T, ...args: any[]): Promise<PromiseReturnType<T[U]>> => await (client[methodName] as any)(argMapper(...args));
 }
 
 export function crudBuilder<T>(

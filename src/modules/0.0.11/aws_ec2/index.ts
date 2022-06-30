@@ -16,13 +16,13 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
 import { Instance, RegisteredInstance, State, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
-import { AWS, crudBuilder2, paginateBuilder, } from '../../../services/aws_macros'
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
 import { AwsIamModule } from '../aws_iam'
 
-const getInstanceUserData = crudBuilder2<EC2, 'describeInstanceAttribute'>(
+const getInstanceUserData = crudBuilderFormat<EC2, 'describeInstanceAttribute', string | undefined>(
   'describeInstanceAttribute',
   (InstanceId) => ({ Attribute: 'userData', InstanceId, }),
   (res) => res?.UserData?.Value,
@@ -162,12 +162,12 @@ async function stopInstance(client: EC2, instanceId: string, hibernate = false) 
     },
   );
 }
-const terminateInstance = crudBuilder2<EC2, 'terminateInstances'>(
+const terminateInstance = crudBuilderFormat<EC2, 'terminateInstances', undefined>(
   'terminateInstances',
   (id) => ({ InstanceIds: [id], }),
-  (res) => (res?.TerminatingInstances ?? []).pop(),
+  (_res) => undefined,
 );
-const registerInstance = crudBuilder2<ElasticLoadBalancingV2, 'registerTargets'>(
+const registerInstance = crudBuilderFormat<ElasticLoadBalancingV2, 'registerTargets', undefined>(
   'registerTargets',
   (Id: string, TargetGroupArn: string, Port?: number) => {
     const target: any = {
@@ -204,7 +204,11 @@ async function getRegisteredInstances(client: ElasticLoadBalancingV2) {
   }
   return out;
 }
-const getRegisteredInstance = crudBuilder2<ElasticLoadBalancingV2, 'describeTargetHealth'>(
+const getRegisteredInstance = crudBuilderFormat<
+  ElasticLoadBalancingV2,
+  'describeTargetHealth',
+  { targetGroupArn: string, instanceId: string | undefined, port: number | undefined, } | undefined
+>(
   'describeTargetHealth',
   (Id: string, TargetGroupArn: string, Port?: string) => {
     const target: any = { Id, };
@@ -222,7 +226,7 @@ const getRegisteredInstance = crudBuilder2<ElasticLoadBalancingV2, 'describeTarg
     })) ?? [])
   ].pop(),
 );
-const deregisterInstance = crudBuilder2<ElasticLoadBalancingV2, 'deregisterTargets'>(
+const deregisterInstance = crudBuilderFormat<ElasticLoadBalancingV2, 'deregisterTargets', undefined>(
   'deregisterTargets',
   (Id: string, TargetGroupArn: string, Port?: number) => {
     const target: any = {

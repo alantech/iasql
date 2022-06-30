@@ -1,10 +1,10 @@
 import { CloudWatchLogs, paginateDescribeLogGroups, } from '@aws-sdk/client-cloudwatch-logs'
-import { AWS, crudBuilder2, paginateBuilder, } from '../../../services/aws_macros'
+import { AWS, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { LogGroup } from './entity'
 import * as metadata from './module.json'
 
-const createLogGroup = crudBuilder2<CloudWatchLogs, 'createLogGroup'>(
+const createLogGroup = crudBuilderFormat<CloudWatchLogs, 'createLogGroup', undefined>(
   'createLogGroup',
   (logGroupName) => ({ logGroupName, }),
   (_lg) => undefined,
@@ -16,7 +16,7 @@ const getLogGroups = paginateBuilder<CloudWatchLogs>(
 const getLogGroup = async (client: CloudWatchLogs, groupName: string) => (
   await getLogGroups(client)
 ).find(lg => lg.logGroupName === groupName);
-const deleteLogGroup = crudBuilder2<CloudWatchLogs, 'deleteLogGroup'>(
+const deleteLogGroup = crudBuilderFormat<CloudWatchLogs, 'deleteLogGroup', undefined>(
   'deleteLogGroup',
   (logGroupName) => ({ logGroupName, }),
   (_lg) => undefined,

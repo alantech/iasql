@@ -5,17 +5,21 @@ import {
 } from '@aws-sdk/client-iam'
 
 import { Role } from './entity'
-import { AWS, crudBuilder2, mapLin, paginateBuilder, } from '../../../services/aws_macros'
+import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
-const getRoleAttachedPoliciesArns = crudBuilder2<IAM, 'listAttachedRolePolicies'>(
+const getRoleAttachedPoliciesArns = crudBuilderFormat<
+  IAM,
+  'listAttachedRolePolicies',
+  string[] | undefined
+>(
   'listAttachedRolePolicies',
   (RoleName) => ({ RoleName, }),
   (res) => res?.AttachedPolicies?.length ? res.AttachedPolicies.map(p => p.PolicyArn ?? '') : undefined,
 );
 
-const createNewRole = crudBuilder2<IAM, 'createRole'>(
+const createNewRole = crudBuilderFormat<IAM, 'createRole', string>(
   'createRole',
   (input) => input,
   (res) => res?.Role?.Arn ?? '',
@@ -58,7 +62,7 @@ const detachRoleToInstanceProfile = crudBuilder2<IAM, 'removeRoleFromInstancePro
   }),
 );
 
-const getRole = crudBuilder2<IAM, 'getRole'>(
+const getRole = crudBuilderFormat<IAM, 'getRole', AWSRole | undefined>(
   'getRole',
   (RoleName) => ({ RoleName, }),
   (res) => res?.Role,
