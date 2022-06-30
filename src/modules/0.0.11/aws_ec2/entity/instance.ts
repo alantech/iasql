@@ -15,6 +15,7 @@ import {
 import { SecurityGroup, } from '../../aws_security_group/entity';
 import { cloudId, } from '../../../../services/cloud-id'
 import { Role } from '../../aws_iam/entity';
+import { Subnet } from '../../aws_vpc/entity';
 
 // "terminated" is ommittted because that is achieved by deleting the row
  // "pending", "shutting-down", "stopping" are ommitted because they are interim states
@@ -79,6 +80,15 @@ export class Instance {
     name: 'role_name',
   })
   role?: Role;
+
+  @ManyToOne(() => Subnet, subnet => subnet.id, {
+    nullable: true,
+    eager: true,
+  })
+  @JoinColumn({
+    name: 'subnet_id',
+  })
+  subnet?: Subnet;
 
   @AfterLoad()
   @AfterInsert()
