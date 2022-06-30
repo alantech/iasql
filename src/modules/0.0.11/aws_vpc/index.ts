@@ -7,16 +7,17 @@ import {
   EC2,
   ModifyVpcEndpointCommandInput,
   NatGateway as AwsNatGateway,
+  NatGatewayState as AwsNatGatewayState,
   RouteTable,
   Subnet as AwsSubnet,
   Tag,
+  UnsuccessfulItem,
   Vpc as AwsVpc,
   VpcEndpoint as AwsVpcEndpoint,
   paginateDescribeNatGateways,
   paginateDescribeSubnets,
   paginateDescribeVpcEndpoints,
   paginateDescribeVpcs,
-  UnsuccessfulItem,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
@@ -65,7 +66,7 @@ const getNatGateway = crudBuilderFormat<EC2, 'describeNatGateways', AwsNatGatewa
     Filter: [
       {
         Name: 'state',
-        Values: [NatGatewayState.AVAILABLE, NatGatewayState.FAILED]
+        Values: [AwsNatGatewayState.AVAILABLE, AwsNatGatewayState.FAILED]
       },
     ],
   }),
@@ -76,12 +77,11 @@ const getNatGateways = paginateBuilder<EC2>(
   'NatGateways',
   undefined,
   undefined,
-  (id) => ({
-    NatGatewayIds: [id],
+  () => ({
     Filter: [
       {
         Name: 'state',
-        Values: [NatGatewayState.AVAILABLE, NatGatewayState.FAILED]
+        Values: [AwsNatGatewayState.AVAILABLE, AwsNatGatewayState.FAILED]
       },
     ],
   }),
@@ -202,7 +202,7 @@ async function createNatGateway(client: EC2, input: CreateNatGatewayCommandInput
       try {
         out = data.NatGateways?.pop();
         // If it is not a final state we retry
-        if ([NatGatewayState.DELETING, NatGatewayState.PENDING].includes(out?.State as NatGatewayState)) {
+        if ([AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(out?.State as AwsNatGatewayState)) {
           return { state: WaiterState.RETRY };
         }
         return { state: WaiterState.SUCCESS };
@@ -234,7 +234,7 @@ async function deleteNatGateway(client: EC2, id: string) {
       try {
         const nat = data.NatGateways?.pop();
         // If it is not a final state we retry
-        if ([NatGatewayState.DELETING, NatGatewayState.PENDING].includes(nat?.State as NatGatewayState)) {
+        if ([AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(nat?.State as AwsNatGatewayState)) {
           return { state: WaiterState.RETRY };
         }
         return { state: WaiterState.SUCCESS };
