@@ -96,9 +96,9 @@ async function createDBInstance(client: AWSRDS, instanceParams: CreateDBInstance
       maxDelay: 4,
     },
     input,
-    async (client, cmd) => {
+    async (cl, cmd) => {
       try {
-        const data = await client.describeDBInstances(cmd);
+        const data = await cl.describeDBInstances(cmd);
         for (const dbInstance of data?.DBInstances ?? []) {
           if (dbInstance.DBInstanceStatus !== 'available')
             return { state: WaiterState.RETRY };
@@ -128,9 +128,9 @@ async function updateDBInstance(client: AWSRDS, input: ModifyDBInstanceCommandIn
       maxDelay: 4,
     },
     inputCommand,
-    async (client, cmd) => {
+    async (cl, cmd) => {
       try {
-        const data = await client.describeDBInstances(cmd);
+        const data = await cl.describeDBInstances(cmd);
         if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
         for (const dbInstance of data?.DBInstances ?? []) {
           if (dbInstance.DBInstanceStatus === 'available')
@@ -153,9 +153,9 @@ async function updateDBInstance(client: AWSRDS, input: ModifyDBInstanceCommandIn
       maxDelay: 4,
     },
     inputCommand,
-    async (client, cmd) => {
+    async (cl, cmd) => {
       try {
-        const data = await client.describeDBInstances(cmd);
+        const data = await cl.describeDBInstances(cmd);
         if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
         for (const dbInstance of data?.DBInstances ?? []) {
           if (dbInstance.DBInstanceStatus !== 'available')
@@ -186,8 +186,8 @@ async function deleteDBInstance(client: AWSRDS, deleteInput: DeleteDBInstanceMes
       maxDelay: 4,
     },
     cmdInput,
-    async (client, input) => {
-      const data = await client.describeDBInstances(input);
+    async (cl, input) => {
+      const data = await cl.describeDBInstances(input);
       for (const dbInstance of data?.DBInstances ?? []) {
         if (dbInstance.DBInstanceStatus === 'deleting')
           return { state: WaiterState.RETRY };
