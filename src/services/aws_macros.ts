@@ -68,15 +68,16 @@ export function paginateBuilder<T>(
   paginateFn: (...args: any[]) => any,
   propName: string,
   pageName?: string,
-  pageSize = 25
-): ((client: T) => Promise<any[]>) {
+  pageSize = 25,
+  filterFn?: (...args: any[]) => Object,
+): ((client: T, ...args: any[]) => Promise<any[]>) {
   if (pageName) {
-    return async (client: any) => {
+    return async (client: any, ...args: any[]) => {
       const vals = [];
       const paginator = paginateFn({
         client,
         pageSize,
-      }, {});
+      }, filterFn?.(...args) ?? {});
       for await (const page of paginator) {
         for (const r of page[pageName] ?? []) {
           vals.push(...(r[propName] ??[]));
@@ -85,12 +86,12 @@ export function paginateBuilder<T>(
       return vals;
     };
   } else {
-    return async (client: any) => {
+    return async (client: any, ...args: any[]) => {
       const vals = [];
       const paginator = paginateFn({
         client,
         pageSize,
-      }, {});
+      }, filterFn?.(...args) ?? {});
       for await (const page of paginator) {
         vals.push(...(page[propName] ??[]));
       }
