@@ -44,6 +44,9 @@ const ec2RolePolicy = JSON.stringify({
   ]
 });
 
+// VPC integration
+const availabilityZone = `${region}c`;
+
 jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown(modules));
@@ -116,8 +119,11 @@ describe('EC2 Integration Testing', () => {
     COMMIT;
 
     BEGIN;
-      INSERT INTO instance (ami, instance_type, tags, user_data)
-        VALUES ('${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}', 'pwd;');
+      INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
+        SELECT '${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}', 'pwd;', id
+        FROM subnet
+        WHERE availability_zone = '${availabilityZone}'
+        LIMIT 1;
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
         (SELECT id FROM security_group WHERE group_name='default');

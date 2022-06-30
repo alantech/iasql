@@ -21,6 +21,7 @@ import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
 import { AwsIamModule } from '../aws_iam'
+import { AwsVpcModule } from '../aws_vpc'
 
 const getInstanceUserData = crudBuilderFormat<EC2, 'describeInstanceAttribute', string | undefined>(
   'describeInstanceAttribute',
@@ -278,6 +279,8 @@ export const AwsEc2Module: Module2 = new Module2({
           }
         } catch (_) { /** Do nothing */ }
       }
+      out.subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, instance.SubnetId) ??
+        await AwsVpcModule.mappers.subnet.cloud.read(ctx, instance.SubnetId);
       return out;
     },
     instanceEqReplaceableFields: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
@@ -287,7 +290,8 @@ export const AwsEc2Module: Module2 = new Module2({
       Object.is(a.keyPairName, b.keyPairName) &&
       Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
       a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))) &&
-      Object.is(a.role?.arn, b.role?.arn),
+      Object.is(a.role?.arn, b.role?.arn) &&
+      Object.is(a.subnet?.subnetId, b.subnet?.subnetId),
     instanceEqTags: (a: Instance, b: Instance) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
       Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]),
     registeredInstanceMapper: async (registeredInstance: { [key: string]: string }, ctx: Context) => {
@@ -326,6 +330,9 @@ export const AwsEc2Module: Module2 = new Module2({
               const sgIds = instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[];
               const userData = instance.userData ? Buffer.from(instance.userData).toString('base64') : undefined;
               const iamInstanceProfile = instance.role?.arn ? { Arn: instance.role.arn.replace(':role/', ':instance-profile/') } : undefined;
+              if (instance.subnet && !instance.subnet.subnetId) {
+                throw new Error('Subnet assigned but not created yet in AWS');
+              }
               const instanceParams: RunInstancesCommandInput = {
                 ImageId: instance.ami,
                 InstanceType: instance.instanceType,
@@ -341,6 +348,7 @@ export const AwsEc2Module: Module2 = new Module2({
                 KeyName: instance.keyPairName,
                 UserData: userData,
                 IamInstanceProfile: iamInstanceProfile,
+                SubnetId: instance.subnet?.subnetId,
               };
               const instanceId = await newInstance(client.ec2client, instanceParams);
               if (!instanceId) { // then who?
