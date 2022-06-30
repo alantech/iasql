@@ -28,4 +28,14 @@ export const updateVolume = crudBuilder2<EC2, 'modifyVolume'>(
   (input) => (input)
 );
 
+export const attachVolume = crudBuilder2<EC2, 'attachVolume'>(
+  'attachVolume',
+  (VolumeId, InstanceId, Device) => ({ VolumeId, InstanceId, Device, })
+);
+
+export const detachVolume = crudBuilder2<EC2, 'detachVolume'>(
+  'detachVolume',
+  (VolumeId) => ({ VolumeId, })
+);
+
 export { AWS }

@@ -20,9 +20,10 @@ export const AwsEbsModule: Module2 = new Module2({
       out.throughput = vol.Throughput;
       out.state = vol.State as VolumeState;
       if (vol.Attachments?.length) {
-        const instanceId = vol.Attachments.pop()?.InstanceId;
-        out.attachedInstance = await AwsEc2Module.mappers.instance.db.read(ctx, instanceId) ??
-          await AwsEc2Module.mappers.instance.cloud.read(ctx, instanceId);
+        const attachment = vol.Attachments.pop();
+        out.attachedInstance = await AwsEc2Module.mappers.instance.db.read(ctx, attachment?.InstanceId) ??
+          await AwsEc2Module.mappers.instance.cloud.read(ctx, attachment?.InstanceId);
+        out.instanceDeviceName = attachment?.Device;
       }
       if (vol.Tags?.length) {
         const tags: { [key: string]: string } = {};
@@ -40,6 +41,7 @@ export const AwsEbsModule: Module2 = new Module2({
     generalPurposeVolume: new Mapper2<GeneralPurposeVolume>({
       entity: GeneralPurposeVolume,
       equals: (a: GeneralPurposeVolume, b: GeneralPurposeVolume) => Object.is(a.attachedInstance?.instanceId, b.attachedInstance?.instanceId)
+        && Object.is(a.instanceDeviceName, b.instanceDeviceName)
         && Object.is(a.availabilityZone, b.availabilityZone)
         && Object.is(a.iops, b.iops)
         && Object.is(a.size, b.size)

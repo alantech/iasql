@@ -71,6 +71,12 @@ export class GeneralPurposeVolume {
   @JoinColumn({ name: 'attached_instance_id', })
   attachedInstance?: Instance;
 
+  @Check('Check_instance_device', '(instance_device_name IS NULL AND attached_instance_id IS NULL) OR (instance_device_name IS NOT NULL AND attached_instance_id IS NOT NULL)')
+  @Column({
+    nullable: true,
+  })
+  instanceDeviceName?: string;
+
   @Check('Check_gp3_iops', 'iops is NOT NULL AND volume_type = "gp3" AND iops <= 16000 AND iops >= 3000')
   @Check('Check_gp2_iops', 'iops is NOT NULL AND volume_type = "gp2" AND iops > 0')
   @Column({
