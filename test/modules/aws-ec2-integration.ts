@@ -45,7 +45,7 @@ const ec2RolePolicy = JSON.stringify({
 });
 
 // VPC integration
-const availabilityZone = `${region}d`;
+const availabilityZone = `${region}c`;
 
 jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
