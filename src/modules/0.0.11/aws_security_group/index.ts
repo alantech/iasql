@@ -1,10 +1,104 @@
-import { AWS, } from '../../../services/gateways/aws_2'
+import {
+  AuthorizeSecurityGroupEgressCommandInput,
+  AuthorizeSecurityGroupIngressCommandInput,
+  RevokeSecurityGroupEgressCommandInput,
+  RevokeSecurityGroupIngressCommandInput,
+  DeleteSecurityGroupRequest,
+  EC2,
+  SecurityGroup as AwsSecurityGroup,
+  SecurityGroupRule as AwsSecurityGroupRule,
+  paginateDescribeSecurityGroups,
+  paginateDescribeSecurityGroupRules,
+} from '@aws-sdk/client-ec2'
+
+import {
+  AWS,
+  crudBuilder2,
+  crudBuilderFormat,
+  mapLin,
+  paginateBuilder,
+} from '../../../services/aws_macros'
 import { SecurityGroup, SecurityGroupRule, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsVpcModule } from '../aws_vpc'
 import { Vpc } from '../aws_vpc/entity'
 import logger from '../../../services/logger'
+
+const createSecurityGroup = crudBuilder2<EC2, 'createSecurityGroup'>(
+  'createSecurityGroup',
+  (input) => input,
+);
+const getSecurityGroup = crudBuilderFormat<
+  EC2,
+  'describeSecurityGroups',
+  AwsSecurityGroup | undefined
+>(
+  'describeSecurityGroups',
+  (id) => ({ GroupIds: [id], }),
+  (res) => res?.SecurityGroups?.[0],
+);
+const getSecurityGroups = paginateBuilder<EC2>(paginateDescribeSecurityGroups, 'SecurityGroups');
+const createSecurityGroupEgressRules = async (
+  client: EC2,
+  rules: AuthorizeSecurityGroupEgressCommandInput[],
+) => mapLin(rules, client.authorizeSecurityGroupEgress.bind(client));
+const createSecurityGroupIngressRules = async (
+  client: EC2,
+  rules: AuthorizeSecurityGroupIngressCommandInput[],
+) => mapLin(rules, client.authorizeSecurityGroupIngress.bind(client));
+const getSecurityGroupRule = crudBuilderFormat<
+  EC2,
+  'describeSecurityGroupRules',
+  AwsSecurityGroupRule | undefined
+>(
+  'describeSecurityGroupRules',
+  (id) => ({ SecurityGroupRuleIds: [id], }),
+  (res) => res?.SecurityGroupRules?.[0],
+);
+const getSecurityGroupRules = paginateBuilder<EC2>(
+  paginateDescribeSecurityGroupRules,
+  'SecurityGroupRules',
+);
+const deleteSecurityGroupEgressRules = async (
+  client: EC2,
+  rules: RevokeSecurityGroupEgressCommandInput[],
+) => mapLin(rules, client.revokeSecurityGroupEgress.bind(client));
+const deleteSecurityGroupIngressRules = async (
+  client: EC2,
+  rules: RevokeSecurityGroupIngressCommandInput[],
+) => mapLin(rules, client.revokeSecurityGroupIngress.bind(client));
+
+// TODO: Would it ever be possible to macro this?
+async function deleteSecurityGroup(client: EC2, instanceParams: DeleteSecurityGroupRequest) {
+  try {
+    return await client.deleteSecurityGroup(instanceParams);
+  } catch(e: any) {
+    if (e.Code === 'DependencyViolation') {
+      // Just wait for 5 min on every dependency violation and retry
+      await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
+      try {
+        return await client.deleteSecurityGroup(instanceParams);
+      } catch (e2: any) {
+        // If the dependency continues we add the dependency to the error message in order to debug what is happening
+        if (e2.Code === 'DependencyViolation') {
+          const sgEniInfo = await client.describeNetworkInterfaces({
+            Filters: [
+              {
+                Name: 'group-id',
+                Values: [`${instanceParams.GroupId}`]
+              }
+            ]
+          });
+          const eniMessage = `Network interfaces associated with security group ${instanceParams.GroupId}: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
+          e2.message = `${e2.message} | ${eniMessage}`;
+        }
+        throw e2;
+      }
+    }
+    throw e;
+  }
+}
 
 export const AwsSecurityGroupModule: Module2 = new Module2({
   ...metadata,
@@ -78,18 +172,18 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
           }
         }
         // First construct the security group
-        const result = await client.createSecurityGroup({
+        const result = await createSecurityGroup(client.ec2client, {
           Description: e.description,
           GroupName: e.groupName,
           VpcId: e.vpc?.vpcId,
           // TODO: Tags
         });
         // TODO: Handle if it fails (somehow)
-        if (!result.hasOwnProperty('GroupId')) { // Failure
+        if (!result?.hasOwnProperty('GroupId')) { // Failure
           throw new Error('what should we do here?');
         }
         // Re-get the inserted security group to get all of the relevant records we care about
-        const newGroup = await client.getSecurityGroup(result.GroupId ?? '');
+        const newGroup = await getSecurityGroup(client.ec2client, result.GroupId ?? '');
         // We map this into the same kind of entity as `obj`
         const newEntity = await AwsSecurityGroupModule.utils.sgMapper(newGroup, ctx);
         if (doNotSave) return newEntity;
@@ -181,11 +275,11 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
-            const rawSecurityGroup = await client.getSecurityGroup(id);
+            const rawSecurityGroup = await getSecurityGroup(client.ec2client, id);
             if (!rawSecurityGroup) return;
             return await AwsSecurityGroupModule.utils.sgMapper(rawSecurityGroup, ctx);
           } else {
-            const sgs = (await client.getSecurityGroups()).SecurityGroups;
+            const sgs = await getSecurityGroups(client.ec2client);
             const out = [];
             for (const sg of sgs) {
               out.push(await AwsSecurityGroupModule.utils.sgMapper(sg, ctx));
@@ -268,7 +362,7 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
                 await AwsSecurityGroupModule.mappers.securityGroupRule.db.update(relevantRules, ctx);
               }
             } else {
-              await client.deleteSecurityGroup({
+              await deleteSecurityGroup(client.ec2client, {
                 GroupId: e.groupId,
               });
               // Also need to delete the security group rules associated with this security group,
@@ -348,12 +442,12 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
             if (en.toPort) newRule.ToPort = en.toPort;
             let res;
             if (en.isEgress) {
-              res = (await client.createSecurityGroupEgressRules([{
+              res = (await createSecurityGroupEgressRules(client.ec2client, [{
                 GroupId,
                 IpPermissions: [newRule],
               }]))[0];
             } else {
-              res = (await client.createSecurityGroupIngressRules([{
+              res = (await createSecurityGroupIngressRules(client.ec2client, [{
                 GroupId,
                 IpPermissions: [newRule],
               }]))[0];
@@ -370,11 +464,11 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
-            const rawSecurityGroupRule = await client.getSecurityGroupRule(id);
+            const rawSecurityGroupRule = await getSecurityGroupRule(client.ec2client, id);
             if (!rawSecurityGroupRule) return;
             return await AwsSecurityGroupModule.utils.sgrMapper(rawSecurityGroupRule, ctx);
           } else {
-            const sgrs = (await client.getSecurityGroupRules()).SecurityGroupRules;
+            const sgrs = await getSecurityGroupRules(client.ec2client);
             const out = [];
             for (const sgr of sgrs) {
               out.push(await AwsSecurityGroupModule.utils.sgrMapper(sgr, ctx));
@@ -410,7 +504,7 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           for (const GroupId of Object.keys(egressDeletesToRun)) {
             try {
-              const res = (await client.deleteSecurityGroupEgressRules([{
+              const res = (await deleteSecurityGroupEgressRules(client.ec2client, [{
                 GroupId,
                 SecurityGroupRuleIds: egressDeletesToRun[GroupId],
               }]))[0];
@@ -427,7 +521,7 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
           }
           for (const GroupId of Object.keys(ingressDeletesToRun)) {
             try {
-              const res = (await client.deleteSecurityGroupIngressRules([{
+              const res = (await deleteSecurityGroupIngressRules(client.ec2client, [{
                 GroupId,
                 SecurityGroupRuleIds: ingressDeletesToRun[GroupId],
               }]))[0];
