@@ -94,6 +94,7 @@ export const AwsEbsModule: Module2 = new Module2({
             if (!rawVolume) return;
             return AwsEbsModule.utils.generalPurposeVolumeMapper(rawVolume);
           } else {
+            // TODO: ADD GENERAL PURPOSE VOLUME FILTER
             const logGroups = (await getVolumes(client.ec2client)) ?? [];
             return logGroups.map((vol: any) => AwsEbsModule.utils.generalPurposeVolumeMapper(vol));
           }
