@@ -11,22 +11,22 @@ import {
   ElasticLoadBalancingV2,
   paginateDescribeTargetGroups,
   TargetTypeEnum,
-  DescribeTargetHealthCommandOutput,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
 import { Instance, RegisteredInstance, State, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
-import { AWS, crudBuilder, paginateBuilder, } from '../../../services/aws_macros'
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
 import { AwsIamModule } from '../aws_iam'
+import { AwsVpcModule } from '../aws_vpc'
 
-const getInstanceUserData = crudBuilder<EC2>(
+const getInstanceUserData = crudBuilderFormat<EC2, 'describeInstanceAttribute', string | undefined>(
   'describeInstanceAttribute',
-  (InstanceId: string) => ({ Attribute: 'userData', InstanceId, }),
-  (res: any) => res.UserData?.Value,
+  (InstanceId) => ({ Attribute: 'userData', InstanceId, }),
+  (res) => res?.UserData?.Value,
 );
 // TODO: Macro-ify the waiter usage
 async function newInstance(client: EC2, newInstancesInput: RunInstancesCommandInput): Promise<string> {
@@ -64,9 +64,9 @@ async function newInstance(client: EC2, newInstancesInput: RunInstancesCommandIn
   );
   return instanceIds?.pop() ?? '';
 }
-const describeInstances = crudBuilder<EC2>(
+const describeInstances = crudBuilder2<EC2, 'describeInstances'>(
   'describeInstances',
-  (InstanceIds: string[]) => ({ InstanceIds, }),
+  (InstanceIds) => ({ InstanceIds, }),
 );
 const getInstance = async (client: EC2, id: string) => {
   const reservations = await describeInstances(client, [id]);
@@ -163,12 +163,12 @@ async function stopInstance(client: EC2, instanceId: string, hibernate = false) 
     },
   );
 }
-const terminateInstance = crudBuilder<EC2>(
+const terminateInstance = crudBuilderFormat<EC2, 'terminateInstances', undefined>(
   'terminateInstances',
-  (id: string) => ({ InstanceIds: [id], }),
-  (res: any) => (res?.TerminatingInstances ?? []).pop(),
+  (id) => ({ InstanceIds: [id], }),
+  (_res) => undefined,
 );
-const registerInstance = crudBuilder<ElasticLoadBalancingV2>(
+const registerInstance = crudBuilderFormat<ElasticLoadBalancingV2, 'registerTargets', undefined>(
   'registerTargets',
   (Id: string, TargetGroupArn: string, Port?: number) => {
     const target: any = {
@@ -180,7 +180,7 @@ const registerInstance = crudBuilder<ElasticLoadBalancingV2>(
       Targets: [target],
     }
   },
-  (_res: any) => undefined,
+  (_res) => undefined,
 );
 const getTargetGroups = paginateBuilder<ElasticLoadBalancingV2>(
   paginateDescribeTargetGroups,
@@ -205,7 +205,11 @@ async function getRegisteredInstances(client: ElasticLoadBalancingV2) {
   }
   return out;
 }
-const getRegisteredInstance = crudBuilder<ElasticLoadBalancingV2>(
+const getRegisteredInstance = crudBuilderFormat<
+  ElasticLoadBalancingV2,
+  'describeTargetHealth',
+  { targetGroupArn: string, instanceId: string | undefined, port: number | undefined, } | undefined
+>(
   'describeTargetHealth',
   (Id: string, TargetGroupArn: string, Port?: string) => {
     const target: any = { Id, };
@@ -215,15 +219,15 @@ const getRegisteredInstance = crudBuilder<ElasticLoadBalancingV2>(
       Targets: [target],
     };
   },
-  (res: DescribeTargetHealthCommandOutput, _Id: string, TargetGroupArn: string, _Port?: string) => [
-    ...(res.TargetHealthDescriptions?.map(thd => ({
+  (res, _Id, TargetGroupArn, _Port?) => [
+    ...(res?.TargetHealthDescriptions?.map(thd => ({
       targetGroupArn: TargetGroupArn,
       instanceId: thd.Target?.Id,
       port: thd.Target?.Port,
     })) ?? [])
   ].pop(),
 );
-const deregisterInstance = crudBuilder<ElasticLoadBalancingV2>(
+const deregisterInstance = crudBuilderFormat<ElasticLoadBalancingV2, 'deregisterTargets', undefined>(
   'deregisterTargets',
   (Id: string, TargetGroupArn: string, Port?: number) => {
     const target: any = {
@@ -235,7 +239,7 @@ const deregisterInstance = crudBuilder<ElasticLoadBalancingV2>(
       Targets: [target],
     }
   },
-  (_res: any) => undefined,
+  (_res) => undefined,
 );
 
 export const AwsEc2Module: Module2 = new Module2({
@@ -275,6 +279,8 @@ export const AwsEc2Module: Module2 = new Module2({
           }
         } catch (_) { /** Do nothing */ }
       }
+      out.subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, instance.SubnetId) ??
+        await AwsVpcModule.mappers.subnet.cloud.read(ctx, instance.SubnetId);
       return out;
     },
     instanceEqReplaceableFields: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
@@ -284,7 +290,8 @@ export const AwsEc2Module: Module2 = new Module2({
       Object.is(a.keyPairName, b.keyPairName) &&
       Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
       a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))) &&
-      Object.is(a.role?.arn, b.role?.arn),
+      Object.is(a.role?.arn, b.role?.arn) &&
+      Object.is(a.subnet?.subnetId, b.subnet?.subnetId),
     instanceEqTags: (a: Instance, b: Instance) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
       Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]),
     registeredInstanceMapper: async (registeredInstance: { [key: string]: string }, ctx: Context) => {
@@ -323,6 +330,9 @@ export const AwsEc2Module: Module2 = new Module2({
               const sgIds = instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[];
               const userData = instance.userData ? Buffer.from(instance.userData).toString('base64') : undefined;
               const iamInstanceProfile = instance.role?.arn ? { Arn: instance.role.arn.replace(':role/', ':instance-profile/') } : undefined;
+              if (instance.subnet && !instance.subnet.subnetId) {
+                throw new Error('Subnet assigned but not created yet in AWS');
+              }
               const instanceParams: RunInstancesCommandInput = {
                 ImageId: instance.ami,
                 InstanceType: instance.instanceType,
@@ -338,6 +348,7 @@ export const AwsEc2Module: Module2 = new Module2({
                 KeyName: instance.keyPairName,
                 UserData: userData,
                 IamInstanceProfile: iamInstanceProfile,
+                SubnetId: instance.subnet?.subnetId,
               };
               const instanceId = await newInstance(client.ec2client, instanceParams);
               if (!instanceId) { // then who?
