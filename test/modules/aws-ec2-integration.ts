@@ -126,6 +126,15 @@ describe('EC2 Integration Testing', () => {
     it('applies the vpc and subnet change', apply());
   });
 
+  it('checks', query(`
+    SELECT *
+    FROM subnet
+    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+  `, (res: any[]) => {
+    console.log(JSON.stringify(res))
+    expect(res.length).toBe(2);
+  }));
+
   it('adds two ec2 instance', (done) => {
     query(`
     BEGIN;
