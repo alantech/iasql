@@ -100,6 +100,7 @@ export const AwsEbsModule: Module2 = new Module2({
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEbsModule.utils.generalPurposeVolumeMapper(newObject, ctx);
             // Save the record back into the database to get the new fields updated
+            newEntity.id = e.id;
             await AwsEbsModule.mappers.generalPurposeVolume.db.update(newEntity, ctx);
             out.push(newEntity);
           }
@@ -171,10 +172,12 @@ export const AwsEbsModule: Module2 = new Module2({
               if (update) {
                 const rawVolume = await getVolume(client.ec2client, e.volumeId);
                 const updatedVolume = await AwsEbsModule.utils.generalPurposeVolumeMapper(rawVolume, ctx);
+                updatedVolume.id = e.id;
                 await AwsEbsModule.mappers.generalPurposeVolume.db.update(updatedVolume, ctx);
                 out.push(updatedVolume);
               } else {
                 // Restore
+                cloudRecord.id = e.id;
                 await AwsEbsModule.mappers.generalPurposeVolume.db.update(cloudRecord, ctx);
                 out.push(cloudRecord);
               }
