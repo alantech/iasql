@@ -1,0 +1,2 @@
+ALTER TABLE general_purpose_volume DROP CONSTRAINT check_instance_ebs_availability_zone;
+DROP FUNCTION "check_instance_ebs_availability_zone";

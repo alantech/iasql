@@ -1,5 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
+import * as sql from '../sql';
+
 export class awsEbs1656686355585 implements MigrationInterface {
     name = 'awsEbs1656686355585'
 
@@ -9,9 +11,11 @@ export class awsEbs1656686355585 implements MigrationInterface {
         await queryRunner.query(`CREATE TYPE "public"."general_purpose_volume_state_enum" AS ENUM('available', 'creating', 'deleted', 'deleting', 'error', 'in-use')`);
         await queryRunner.query(`CREATE TABLE "general_purpose_volume" ("id" SERIAL NOT NULL, "volume_id" character varying, "volume_type" "public"."general_purpose_volume_volume_type_enum" NOT NULL, "availability_zone" "public"."general_purpose_volume_availability_zone_enum" NOT NULL, "size" integer NOT NULL DEFAULT '8', "state" "public"."general_purpose_volume_state_enum", "instance_device_name" character varying, "iops" integer, "throughput" integer, "snapshot_id" character varying, "tags" json, "attached_instance_id" integer, CONSTRAINT "Unique_gp_instance_device_name" UNIQUE ("instance_device_name", "attached_instance_id"), CONSTRAINT "Check_gp_volume_size_min_max" CHECK ("size" > 0 AND "size" < 16385), CONSTRAINT "Check_gp_volume_instance_device" CHECK (("instance_device_name" IS NULL AND "attached_instance_id" IS NULL) OR ("instance_device_name" IS NOT NULL AND "attached_instance_id" IS NOT NULL)), CONSTRAINT "Check_gp_volume_iops" CHECK ("iops" is NULL OR ("iops" is NOT NULL AND (("volume_type" = 'gp3' AND "iops" <= 16000 AND "iops" >= 3000) OR ("volume_type" = 'gp2' AND "iops" > 0)))), CONSTRAINT "Check_gp_volume_throughput" CHECK ("throughput" IS NULL OR ("throughput" IS NOT NULL AND "volume_type" = 'gp3' AND "throughput" >= 125 AND "throughput" <= 1000)), CONSTRAINT "PK_ded6aa0f99ab2bc666ee032778e" PRIMARY KEY ("id"))`);
         await queryRunner.query(`ALTER TABLE "general_purpose_volume" ADD CONSTRAINT "FK_b60cd423a9b292b547913dcc6ac" FOREIGN KEY ("attached_instance_id") REFERENCES "instance"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(sql.createCustomConstraints);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(sql.dropCustomConstraints);
         await queryRunner.query(`ALTER TABLE "general_purpose_volume" DROP CONSTRAINT "FK_b60cd423a9b292b547913dcc6ac"`);
         await queryRunner.query(`DROP TABLE "general_purpose_volume"`);
         await queryRunner.query(`DROP TYPE "public"."general_purpose_volume_state_enum"`);
