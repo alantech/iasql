@@ -112,8 +112,12 @@ export const AwsEbsModule: Module2 = new Module2({
             if (!rawVolume) return;
             return AwsEbsModule.utils.generalPurposeVolumeMapper(rawVolume, ctx);
           } else {
-            const logGroups = (await getGeneralPurposeVolumes(client.ec2client)) ?? [];
-            return logGroups.map((vol: any) => AwsEbsModule.utils.generalPurposeVolumeMapper(vol, ctx));
+            const rawVolumes = (await getGeneralPurposeVolumes(client.ec2client)) ?? [];
+            const out = [];
+            for (const vol of rawVolumes) {
+              out.push(await AwsEbsModule.utils.generalPurposeVolumeMapper(vol, ctx));
+            }
+            return out;
           }
         },
         updateOrReplace: (prev: GeneralPurposeVolume, next: GeneralPurposeVolume) => {
