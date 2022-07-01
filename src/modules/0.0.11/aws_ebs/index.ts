@@ -2,7 +2,17 @@ import { CreateVolumeCommandInput, ModifyVolumeCommandInput, Tag, Volume } from 
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsEc2Module } from '../aws_ec2';
 import { AvailabilityZone } from '../aws_vpc/entity';
-import { AWS, createVolume, deleteVolume, getVolume, getGeneralPurposeVolumes, attachVolume, detachVolume, updateVolume } from './aws_helper';
+import {
+  AWS,
+  createVolume,
+  deleteVolume,
+  getVolume,
+  getGeneralPurposeVolumes,
+  attachVolume,
+  detachVolume,
+  updateVolume,
+  updateTags,
+} from './aws_helper';
 import { GeneralPurposeVolume, GeneralPurposeVolumeType, VolumeState } from './entity'
 import * as metadata from './module.json'
 
@@ -97,10 +107,10 @@ export const AwsEbsModule: Module2 = new Module2({
           if (id) {
             const rawVolume = await getVolume(client.ec2client, id);
             if (!rawVolume) return;
-            return AwsEbsModule.utils.generalPurposeVolumeMapper(rawVolume);
+            return AwsEbsModule.utils.generalPurposeVolumeMapper(rawVolume, ctx);
           } else {
             const logGroups = (await getGeneralPurposeVolumes(client.ec2client)) ?? [];
-            return logGroups.map((vol: any) => AwsEbsModule.utils.generalPurposeVolumeMapper(vol));
+            return logGroups.map((vol: any) => AwsEbsModule.utils.generalPurposeVolumeMapper(vol, ctx));
           }
         },
         updateOrReplace: (prev: GeneralPurposeVolume, next: GeneralPurposeVolume) => {
@@ -135,25 +145,38 @@ export const AwsEbsModule: Module2 = new Module2({
               }
               // Update tags
               if (!AwsEbsModule.utils.eqTags(cloudRecord.tags, e.tags)) {
-                
+                await updateTags(client.ec2client, 'volume', e.tags);
                 update = true;
               }
               // Attach/detach instance
+              if (!(Object.is(cloudRecord.attachedInstance?.instanceId, e.attachedInstance?.instanceId) 
+                && Object.is(cloudRecord.instanceDeviceName, e.instanceDeviceName))) {
+                if (!cloudRecord.attachedInstance?.instanceId && e.attachedInstance?.instanceId) {
+                  await attachVolume(client.ec2client, e.volumeId, e.attachedInstance.instanceId, e.instanceDeviceName);
+                } else if (cloudRecord.attachedInstance?.instanceId && !e.attachedInstance?.instanceId) {
+                  await detachVolume(client.ec2client, e.volumeId);
+                } else {
+                  await detachVolume(client.ec2client, e.volumeId);
+                  await attachVolume(client.ec2client, e.volumeId, e.attachedInstance?.instanceId, e.instanceDeviceName);
+                }
+                update = true;
+              }
               if (update) {
-                // Get volume
-                // Update db
+                const rawVolume = await getVolume(client.ec2client, e.volumeId);
+                const updatedVolume = await AwsEbsModule.utils.generalPurposeVolumeMapper(rawVolume, ctx);
+                await AwsEbsModule.mappers.generalPurposeVolume.db.update(updatedVolume, ctx);
+                out.push(updatedVolume);
               } else {
                 // Restore
+                await AwsEbsModule.mappers.generalPurposeVolume.db.update(cloudRecord, ctx);
+                out.push(cloudRecord);
               }
-              // push?
             } else {
               // Replace
               const newVolume = await AwsEbsModule.mappers.generalPurposeVolume.cloud.create(e, ctx);
               await AwsEbsModule.mappers.generalPurposeVolume.cloud.delete(cloudRecord, ctx);
               out.push(newVolume);
             }
-            // await AwsEbsModule.mappers.generalPurposeVolume.db.update(cloudRecord, ctx);
-            // out.push(cloudRecord);
           }
           return out;
         },
