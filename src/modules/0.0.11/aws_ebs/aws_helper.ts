@@ -7,9 +7,17 @@ export const createVolume = crudBuilderFormat<EC2, 'createVolume', string | unde
   (res) => res?.VolumeId,
 );
 
-export const getVolumes = paginateBuilder<EC2>(
+export const getGeneralPurposeVolumes = paginateBuilder<EC2>(
   paginateDescribeVolumes,
   'Volumes',
+  undefined,
+  undefined,
+  () => ({
+    Filters: [{
+      Name: 'volume-type',
+      Values: ['gp2', 'gp3'],
+    }]
+  })
 );
 
 export const getVolume = crudBuilderFormat<EC2, 'describeVolumes', Volume | undefined>(

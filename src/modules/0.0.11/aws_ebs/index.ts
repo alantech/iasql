@@ -2,7 +2,7 @@ import { CreateVolumeCommandInput, Tag, Volume } from '@aws-sdk/client-ec2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsEc2Module } from '../aws_ec2';
 import { AvailabilityZone } from '../aws_vpc/entity';
-import { AWS, createVolume, deleteVolume, getVolume, getVolumes } from './aws_helper';
+import { AWS, createVolume, deleteVolume, getVolume, getGeneralPurposeVolumes } from './aws_helper';
 import { GeneralPurposeVolume, GeneralPurposeVolumeType, VolumeState } from './entity'
 import * as metadata from './module.json'
 
@@ -94,8 +94,7 @@ export const AwsEbsModule: Module2 = new Module2({
             if (!rawVolume) return;
             return AwsEbsModule.utils.generalPurposeVolumeMapper(rawVolume);
           } else {
-            // TODO: ADD GENERAL PURPOSE VOLUME FILTER
-            const logGroups = (await getVolumes(client.ec2client)) ?? [];
+            const logGroups = (await getGeneralPurposeVolumes(client.ec2client)) ?? [];
             return logGroups.map((vol: any) => AwsEbsModule.utils.generalPurposeVolumeMapper(vol));
           }
         },
