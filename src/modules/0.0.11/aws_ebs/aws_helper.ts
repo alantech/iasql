@@ -62,8 +62,8 @@ export const attachVolume = async (client: EC2, VolumeId: string, InstanceId: st
       maxDelay: 4,
     },
     describeInput,
-    async (client, input) => {
-      const data = await client.describeVolumes(input);
+    async (cl, input) => {
+      const data = await cl.describeVolumes(input);
       try {
         const vol = data.Volumes?.pop();
         // If state is not 'in-use' retry
@@ -98,8 +98,8 @@ export const detachVolume = async (client: EC2, VolumeId: string) => {
       maxDelay: 4,
     },
     describeInput,
-    async (client, input) => {
-      const data = await client.describeVolumes(input);
+    async (cl, input) => {
+      const data = await cl.describeVolumes(input);
       try {
         const vol = data.Volumes?.pop();
         // If state is not 'available' retry

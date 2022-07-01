@@ -157,7 +157,7 @@ export const AwsEbsModule: Module2 = new Module2({
                 update = true;
               }
               // Attach/detach instance
-              if (!(Object.is(cloudRecord.attachedInstance?.instanceId, e.attachedInstance?.instanceId) 
+              if (!(Object.is(cloudRecord.attachedInstance?.instanceId, e.attachedInstance?.instanceId)
                 && Object.is(cloudRecord.instanceDeviceName, e.instanceDeviceName))) {
                 if (!cloudRecord.attachedInstance?.instanceId && e.attachedInstance?.instanceId) {
                   await attachVolume(client.ec2client, e.volumeId ?? '', e.attachedInstance.instanceId, e.instanceDeviceName ?? '');
