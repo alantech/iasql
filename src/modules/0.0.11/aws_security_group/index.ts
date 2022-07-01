@@ -184,6 +184,7 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
         }
         // Re-get the inserted security group to get all of the relevant records we care about
         const newGroup = await getSecurityGroup(client.ec2client, result.GroupId ?? '');
+        if (!newGroup) continue;
         // We map this into the same kind of entity as `obj`
         const newEntity = await AwsSecurityGroupModule.utils.sgMapper(newGroup, ctx);
         if (doNotSave) return newEntity;
