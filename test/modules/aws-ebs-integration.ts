@@ -56,7 +56,7 @@ describe('AwsEbsModule Integration Testing', () => {
   it('checks volume count', query(`
     SELECT *
     FROM general_purpose_volume
-    WHERE tags -> "Name" = '${gp2VolumeName}' OR tags -> "Name" = '${gp3VolumeName}';
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('sync before apply', sync());
@@ -64,7 +64,7 @@ describe('AwsEbsModule Integration Testing', () => {
   it('checks volume count', query(`
     SELECT *
     FROM general_purpose_volume
-    WHERE tags -> "Name" = '${gp2VolumeName}' OR tags -> "Name" = '${gp3VolumeName}';
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
   
   it('adds new volumes', query(`
@@ -80,7 +80,7 @@ describe('AwsEbsModule Integration Testing', () => {
   it('checks volume count', query(`
     SELECT *
     FROM general_purpose_volume
-    WHERE tags -> "Name" = '${gp2VolumeName}' OR tags -> "Name" = '${gp3VolumeName}';
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('applies the change', apply());
@@ -88,7 +88,7 @@ describe('AwsEbsModule Integration Testing', () => {
   it('checks volume count', query(`
     SELECT *
     FROM general_purpose_volume
-    WHERE tags -> "Name" = '${gp2VolumeName}' OR tags -> "Name" = '${gp3VolumeName}';
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('uninstalls the module', uninstall(modules));
@@ -98,11 +98,11 @@ describe('AwsEbsModule Integration Testing', () => {
   it('checks volume count', query(`
     SELECT *
     FROM general_purpose_volume
-    WHERE tags -> "Name" = '${gp2VolumeName}' OR tags -> "Name" = '${gp3VolumeName}';
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('tries to update a volume field to be restored', query(`
-    UPDATE general_purpose_volume SET state = 'creating' WHERE tags -> "Name" = '${gp2VolumeName}';
+    UPDATE general_purpose_volume SET state = 'creating' WHERE tags ->> 'Name' = '${gp2VolumeName}';
   `));
   
   it('applies the change which will undo the change', apply());
@@ -110,11 +110,11 @@ describe('AwsEbsModule Integration Testing', () => {
   it('checks volume restored', query(`
     SELECT *
     FROM general_purpose_volume
-    WHERE tags -> "Name" = '${gp2VolumeName}';
+    WHERE tags ->> 'Name' = '${gp2VolumeName}';
   `, (res: any[]) => expect(res[0]['state']).toBe('available')));
 
   it('tries to update a volume size', query(`
-    UPDATE general_purpose_volume SET size = 150 WHERE tags -> "Name" = '${gp3VolumeName}';
+    UPDATE general_purpose_volume SET size = 150 WHERE tags ->> 'Name' = '${gp3VolumeName}';
   `));
 
   it('applies the change', apply());
@@ -122,11 +122,11 @@ describe('AwsEbsModule Integration Testing', () => {
   it('checks volume update', query(`
     SELECT *
     FROM general_purpose_volume
-    WHERE tags -> "Name" = '${gp3VolumeName}';
+    WHERE tags ->> 'Name' = '${gp3VolumeName}';
   `, (res: any[]) => expect(res[0]['size']).toBe(150)));
 
   it('tries to update a volume availability zone', query(`
-    UPDATE general_purpose_volume SET availability_zone = '${availabilityZoneA}' WHERE tags -> "Name" = '${gp3VolumeName}';
+    UPDATE general_purpose_volume SET availability_zone = '${availabilityZoneA}' WHERE tags ->> 'Name' = '${gp3VolumeName}';
   `));
 
   it('applies the change', apply());
@@ -134,17 +134,17 @@ describe('AwsEbsModule Integration Testing', () => {
   it('checks volume count', query(`
     SELECT *
     FROM general_purpose_volume
-    WHERE tags -> "Name" = '${gp2VolumeName}' OR tags -> "Name" = '${gp3VolumeName}';
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('checks volume replace', query(`
     SELECT *
     FROM general_purpose_volume
-    WHERE tags -> "Name" = '${gp3VolumeName}';
+    WHERE tags ->> 'Name' = '${gp3VolumeName}';
   `, (res: any[]) => expect(res[0]['availability_zone']).toBe(availabilityZoneA)));
 
   it('tries to update a volume availability zone', query(`
-    UPDATE general_purpose_volume SET tags = '{"Name": "${gp2VolumeName}", "updated": true}' WHERE tags -> "Name" = '${gp2VolumeName}';
+    UPDATE general_purpose_volume SET tags = '{"Name": "${gp2VolumeName}", "updated": true}' WHERE tags ->> 'Name' = '${gp2VolumeName}';
   `));
 
   it('applies the change', apply());
@@ -152,12 +152,12 @@ describe('AwsEbsModule Integration Testing', () => {
   it('checks volume update', query(`
     SELECT *
     FROM general_purpose_volume
-    WHERE tags -> "Name" = '${gp2VolumeName}';
+    WHERE tags ->> 'Name' = '${gp2VolumeName}';
   `, (res: any[]) => expect(res[0]['tags']['updated']).toBe(true)));
 
   it('deletes the volumes', query(`
     DELETE FROM general_purpose_volume
-    WHERE tags -> "Name" = '${gp2VolumeName}' OR tags -> "Name" = '${gp3VolumeName}';
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
   `));
 
   it('applies the change', apply());
@@ -165,7 +165,7 @@ describe('AwsEbsModule Integration Testing', () => {
   it('check deletes the volumes', query(`
     SELECT *
     FROM general_purpose_volume
-    WHERE tags -> "Name" = '${gp2VolumeName}' OR tags -> "Name" = '${gp3VolumeName}';
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
     `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('deletes the test db', (done) => void iasql
