@@ -8,6 +8,7 @@ import {
   AfterInsert,
   AfterUpdate,
   Check,
+  Unique,
 } from 'typeorm'
 
 import { cloudId, } from '../../../../services/cloud-id'
@@ -28,6 +29,7 @@ export enum VolumeState {
   IN_USE = "in-use",
 }
 
+@Unique('Unique_gp_instance_device_name', ['instanceDeviceName', 'attachedInstance'])
 @Entity()
 export class GeneralPurposeVolume {
   @PrimaryGeneratedColumn()
