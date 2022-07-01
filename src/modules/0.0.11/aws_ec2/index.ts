@@ -22,6 +22,7 @@ import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
 import { AwsIamModule } from '../aws_iam'
 import { AwsVpcModule } from '../aws_vpc'
+import { AwsEbsModule } from '../aws_ebs'
 
 const getInstanceUserData = crudBuilderFormat<EC2, 'describeInstanceAttribute', string | undefined>(
   'describeInstanceAttribute',
@@ -354,6 +355,15 @@ export const AwsEc2Module: Module2 = new Module2({
               if (!instanceId) { // then who?
                 throw new Error('should not be possible');
               }
+              // Update ebs volumes if necessary
+              try {
+                delete ctx?.memo?.cloud?.GeneralPurposeVolume;
+                const volumes = await AwsEbsModule.mappers.generalPurposeVolume.cloud.read(ctx);
+                await AwsEbsModule.mappers.generalPurposeVolume.db.update(volumes, ctx);
+              } catch (_) {
+                // Do nothing
+                // AwsEbsModule could not be installed and that's ok since ec2 does not depends directly on ebs
+              }
               const newEntity = await AwsEc2Module.mappers.instance.cloud.read(ctx, instanceId);
               newEntity.id = instance.id;
               await AwsEc2Module.mappers.instance.db.update(newEntity, ctx);
@@ -413,6 +423,15 @@ export const AwsEc2Module: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           for (const entity of es) {
             if (entity.instanceId) await terminateInstance(client.ec2client, entity.instanceId);
+            // Update ebs volumes if necessary
+            try {
+              delete ctx?.memo?.cloud?.GeneralPurposeVolume;
+              const volumes = await AwsEbsModule.mappers.generalPurposeVolume.cloud.read(ctx);
+              await AwsEbsModule.mappers.generalPurposeVolume.db.update(volumes, ctx);
+            } catch (_) {
+              // Do nothing
+              // AwsEbsModule could not be installed and that's ok since ec2 does not depends directly on ebs
+            }
           }
         },
       }),
