@@ -172,7 +172,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
   const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
   const database = db.pgName;
   try {
-    connMain = await createConnection({ ...dbMan.baseConnConfig, database, });
+    connMain = await createConnection({ ...dbMan.baseConnConfig, database, name: pass, });
     await connMain.query(dbMan.newPostgresRoleQuery(user, pass, database));
     await connMain.query(dbMan.grantPostgresRoleQuery(user));
     connTemp = await createConnection({ ...dbMan.baseConnConfig, database, name: user, });
@@ -184,10 +184,10 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
   } finally {
     // Put this in a timeout so it doesn't block returning to the user
     setTimeout(async () => {
-      await connTemp.close();
-      await connMain.query(dbMan.revokePostgresRoleQuery(user, database));
-      await connMain.query(dbMan.dropPostgresRoleQuery(user));
-      await connMain.close();
+      await connTemp?.close();
+      await connMain?.query(dbMan.revokePostgresRoleQuery(user, database));
+      await connMain?.query(dbMan.dropPostgresRoleQuery(user));
+      await connMain?.close();
     }, 1);
   }
 }
