@@ -56,7 +56,7 @@ const getClusters = async (client: ECS) => getClustersCore(
 );
 const deleteClusterCore = crudBuilder2<ECS, 'deleteCluster'>(
   'deleteCluster',
-  (cluster) => ({ cluster, }),
+  (cluster: string) => ({ cluster, }),
 );
 const updateService = crudBuilderFormat<ECS, 'updateService', AwsService | undefined>(
   'updateService',
