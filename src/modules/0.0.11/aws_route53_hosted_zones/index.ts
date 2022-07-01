@@ -1,10 +1,85 @@
-import { ResourceRecordSet as AwsResourceRecordSet } from '@aws-sdk/client-route-53'
-import { AWS, } from '../../../services/gateways/aws_2'
+import {
+  ChangeInfo,
+  HostedZone as AwsHostedZone,
+  ResourceRecordSet as AwsResourceRecordSet,
+  Route53,
+  paginateListHostedZones,
+  ListResourceRecordSetsCommandInput,
+} from '@aws-sdk/client-route-53'
+import { AWS, crudBuilderFormat, paginateBuilder, crudBuilder2, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsElbModule } from '../aws_elb';
 import { AliasTarget, HostedZone } from './entity'
 import { RecordType, ResourceRecordSet } from './entity/resource_records_set';
 import * as metadata from './module.json'
+
+const createHostedZone = crudBuilderFormat<Route53, 'createHostedZone', AwsHostedZone | undefined>(
+  'createHostedZone',
+  (Name, region) => ({ Name, CallerReference: `${region}-${Date.now()}`, }),
+  (res) => res?.HostedZone,
+);
+const getHostedZone = crudBuilderFormat<Route53, 'getHostedZone', AwsHostedZone | undefined>(
+  'getHostedZone',
+  (Id) => ({ Id, }),
+  (res) => res?.HostedZone,
+);
+const getHostedZones = paginateBuilder<Route53>(paginateListHostedZones, 'HostedZones');
+const deleteHostedZone = crudBuilderFormat<Route53, 'deleteHostedZone', ChangeInfo | undefined>(
+  'deleteHostedZone',
+  (Id) => ({ Id, }),
+  (res) => res?.ChangeInfo,
+);
+const createResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'>(
+  'changeResourceRecordSets',
+  (HostedZoneId, record) => ({
+    HostedZoneId,
+    ChangeBatch: {
+      Changes: [{
+        Action: 'CREATE',
+        ResourceRecordSet: record,
+      }],
+    },
+  }),
+);
+const deleteResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'>(
+  'changeResourceRecordSets',
+  (HostedZoneId, record) => ({
+    HostedZoneId,
+    ChangeBatch: {
+      Changes: [{
+        Action: 'DELETE',
+        ResourceRecordSet: record,
+      }],
+    },
+  }),
+);
+
+// TODO: Convert this to a paginate form once AWS supports pagination on this one (seriously!?)
+async function getRecords(client: Route53, hostedZoneId: string) {
+  const records = [];
+  let res;
+  do {
+    const input: ListResourceRecordSetsCommandInput = {
+      HostedZoneId: hostedZoneId,
+    };
+    if (res?.NextRecordName) {
+      input.StartRecordName = res.NextRecordName;
+    }
+    res = await client.listResourceRecordSets(input);
+    records.push(...(res.ResourceRecordSets ?? []));
+  } while (res?.IsTruncated);
+  return records;
+}
+const getRecord = async (
+  client: Route53,
+  hostedZoneId: string,
+  recordName: string,
+  recordType: string,
+) => {
+  const records = await getRecords(client, hostedZoneId);
+  return records.find(r => Object.is(r.Type, recordType) && Object.is(r.Name, recordName));
+}
+
 
 export const AwsRoute53HostedZoneModule: Module2 = new Module2({
   ...metadata,
@@ -77,10 +152,10 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of hz) {
-            const createdHz = await client.createHostedZone(e.domainName);
+            const createdHz = await createHostedZone(client.route53Client, e.domainName, client.region);
             if (!createdHz?.Id) throw new Error('How this happen!?')
             // Re-get the inserted record to get all of the relevant records we care about
-            const newObject = await client.getHostedZone(createdHz?.Id);
+            const newObject = await getHostedZone(client.route53Client, createdHz?.Id);
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsRoute53HostedZoneModule.utils.hostedZoneMapper(newObject, ctx);
             // We attach the original object's ID to this new one, indicating the exact record it is
@@ -95,11 +170,11 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
-            const rawHostedZone = await client.getHostedZone(id);
+            const rawHostedZone = await getHostedZone(client.route53Client, id);
             if (!rawHostedZone) return;
             return AwsRoute53HostedZoneModule.utils.hostedZoneMapper(rawHostedZone);
           } else {
-            const hostedZones = (await client.getHostedZones()) ?? [];
+            const hostedZones = (await getHostedZones(client.route53Client)) ?? [];
             return hostedZones.map((hz: any) => AwsRoute53HostedZoneModule.utils.hostedZoneMapper(hz));
           }
         },
@@ -125,7 +200,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
         delete: async (hz: HostedZone[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of hz) {
-            await client.deleteHostedZone(e.hostedZoneId);
+            await deleteHostedZone(client.route53Client, e.hostedZoneId);
           }
         },
       }),
@@ -160,9 +235,9 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
                 DNSName: e.aliasTarget.loadBalancer?.dnsName,
               };
             }
-            await client.createResourceRecordSet(e.parentHostedZone.hostedZoneId, resourceRecordSet);
+            await createResourceRecordSet(client.route53Client, e.parentHostedZone.hostedZoneId, resourceRecordSet);
             // Re-get the inserted record to get all of the relevant records we care about
-            const newResourceRecordSet = await client.getRecord(e.parentHostedZone.hostedZoneId, e.name, e.recordType);
+            const newResourceRecordSet = await getRecord(client.route53Client, e.parentHostedZone.hostedZoneId, e.name, e.recordType);
             // We map this into the same kind of entity as `obj`
             const newObject = { ...newResourceRecordSet, HostedZoneId: e.parentHostedZone.hostedZoneId };
             const newEntity = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(newObject, ctx);
@@ -184,7 +259,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
           const resourceRecordSet: any = [];
           for (const hz of hostedZones) {
             try {
-              const hzRecords = await client.getRecords(hz.hostedZoneId);
+              const hzRecords = await getRecords(client.route53Client, hz.hostedZoneId);
               resourceRecordSet.push(...hzRecords.map(r => ({ ...r, HostedZoneId: hz.hostedZoneId })));
             } catch (_) {
               // We try to retrieve the records for the repository, but if none it is not an error
@@ -264,7 +339,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
                 DNSName: e.aliasTarget.loadBalancer?.dnsName,
               };
             }
-            await client.deleteResourceRecordSet(e.parentHostedZone.hostedZoneId, resourceRecordSet);
+            await deleteResourceRecordSet(client.route53Client, e.parentHostedZone.hostedZoneId, resourceRecordSet);
           }
         },
       }),
