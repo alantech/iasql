@@ -92,7 +92,7 @@ export const AwsEbsModule: Module2 = new Module2({
               ]
             }
             const newVolumeId = await createVolume(client.ec2client, input);
-            if (e.attachedInstance && e.instanceDeviceName) {
+            if (newVolumeId && e.attachedInstance?.instanceId && e.instanceDeviceName) {
               await attachVolume(client.ec2client, newVolumeId, e.attachedInstance.instanceId, e.instanceDeviceName);
             }
             // Re-get the inserted record to get all of the relevant records we care about
@@ -160,12 +160,12 @@ export const AwsEbsModule: Module2 = new Module2({
               if (!(Object.is(cloudRecord.attachedInstance?.instanceId, e.attachedInstance?.instanceId) 
                 && Object.is(cloudRecord.instanceDeviceName, e.instanceDeviceName))) {
                 if (!cloudRecord.attachedInstance?.instanceId && e.attachedInstance?.instanceId) {
-                  await attachVolume(client.ec2client, e.volumeId, e.attachedInstance.instanceId, e.instanceDeviceName);
+                  await attachVolume(client.ec2client, e.volumeId ?? '', e.attachedInstance.instanceId, e.instanceDeviceName ?? '');
                 } else if (cloudRecord.attachedInstance?.instanceId && !e.attachedInstance?.instanceId) {
-                  await detachVolume(client.ec2client, e.volumeId);
+                  await detachVolume(client.ec2client, e.volumeId ?? '');
                 } else {
-                  await detachVolume(client.ec2client, e.volumeId);
-                  await attachVolume(client.ec2client, e.volumeId, e.attachedInstance?.instanceId, e.instanceDeviceName);
+                  await detachVolume(client.ec2client, e.volumeId ?? '');
+                  await attachVolume(client.ec2client, e.volumeId ?? '', e.attachedInstance?.instanceId ?? '', e.instanceDeviceName ?? '');
                 }
                 update = true;
               }
@@ -194,7 +194,7 @@ export const AwsEbsModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           for (const e of vol) {
             if (e.attachedInstance) {
-              await detachVolume(client.ec2client, e.volumeId);
+              await detachVolume(client.ec2client, e.volumeId ?? '');
             }
             await deleteVolume(client.ec2client, e.volumeId);
           }
