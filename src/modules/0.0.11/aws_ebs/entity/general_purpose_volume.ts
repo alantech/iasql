@@ -93,6 +93,9 @@ export class GeneralPurposeVolume {
   })
   throughput?: number;
 
+  @Column({ nullable: true, })
+  snapshotId?: string;
+
   @Column({
     type: 'json',
     nullable: true,

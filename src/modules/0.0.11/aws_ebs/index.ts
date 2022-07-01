@@ -29,6 +29,7 @@ export const AwsEbsModule: Module2 = new Module2({
       out.iops = vol.Iops;
       out.throughput = vol.Throughput;
       out.state = vol.State as VolumeState;
+      out.snapshotId = vol.SnapshotId;
       if (vol.Attachments?.length) {
         const attachment = vol.Attachments.pop();
         out.attachedInstance = await AwsEc2Module.mappers.instance.db.read(ctx, attachment?.InstanceId) ??
@@ -58,6 +59,7 @@ export const AwsEbsModule: Module2 = new Module2({
         && Object.is(a.state, b.state)
         && Object.is(a.throughput, b.throughput)
         && Object.is(a.volumeType, b.volumeType)
+        && Object.is(a.snapshotId, b.snapshotId)
         && AwsEbsModule.utils.eqTags(a.tags, b.tags),
       source: 'db',
       cloud: new Crud2({
@@ -74,6 +76,7 @@ export const AwsEbsModule: Module2 = new Module2({
               Size: e.size,
               Iops: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.iops : undefined,
               Throughput:  e.volumeType === GeneralPurposeVolumeType.GP3 ? e.throughput : undefined,
+              SnapshotId: e.snapshotId,
             };
             if (e.tags && Object.keys(e.tags).length) {
               const tags: Tag[] = Object.keys(e.tags).map((k: string) => {
@@ -114,7 +117,7 @@ export const AwsEbsModule: Module2 = new Module2({
           }
         },
         updateOrReplace: (prev: GeneralPurposeVolume, next: GeneralPurposeVolume) => {
-          if (!Object.is(prev.availabilityZone, next.availabilityZone)) return 'replace';
+          if (!Object.is(prev.availabilityZone, next.availabilityZone) || !Object.is(prev.snapshotId, next.snapshotId)) return 'replace';
           return 'update';
         },
         update: async (es: GeneralPurposeVolume[], ctx: Context) => {
