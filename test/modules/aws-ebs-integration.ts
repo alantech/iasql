@@ -48,8 +48,8 @@ describe('AwsEbsModule Integration Testing', () => {
       INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
       VALUES ('gp2', '${availabilityZoneA}', '{"Name": "${gp2VolumeName}"}');
 
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-      VALUES ('gp3', '${availabilityZoneB}', '{"Name": "${gp3VolumeName}"}');
+      INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
+      VALUES ('gp3', '${availabilityZoneB}', 50, '{"Name": "${gp3VolumeName}"}');
     COMMIT;
   `));
 
@@ -72,8 +72,8 @@ describe('AwsEbsModule Integration Testing', () => {
       INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
       VALUES ('gp2', '${availabilityZoneA}', '{"Name": "${gp2VolumeName}"}');
 
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-      VALUES ('gp3', '${availabilityZoneB}', '{"Name": "${gp3VolumeName}"}');
+      INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
+      VALUES ('gp3', '${availabilityZoneB}', 50, '{"Name": "${gp3VolumeName}"}');
     COMMIT;
   `));
 
