@@ -2,7 +2,7 @@ import { CreateVolumeCommandInput, Tag, Volume } from '@aws-sdk/client-ec2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsEc2Module } from '../aws_ec2';
 import { AvailabilityZone } from '../aws_vpc/entity';
-import { AWS, createVolume, deleteVolume, getVolume, getGeneralPurposeVolumes } from './aws_helper';
+import { AWS, createVolume, deleteVolume, getVolume, getGeneralPurposeVolumes, attachVolume } from './aws_helper';
 import { GeneralPurposeVolume, GeneralPurposeVolumeType, VolumeState } from './entity'
 import * as metadata from './module.json'
 
@@ -55,6 +55,9 @@ export const AwsEbsModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           const out = []
           for (const e of es) {
+            if (e.attachedInstance && !e.attachedInstance.instanceId) {
+              throw new Error('Want to attach volume to an instance not created yet');
+            }
             const input: CreateVolumeCommandInput = {
               AvailabilityZone: e.availabilityZone,
               VolumeType: e.volumeType,
@@ -76,7 +79,9 @@ export const AwsEbsModule: Module2 = new Module2({
               ]
             }
             const newVolumeId = await createVolume(client.ec2client, input);
-            // TODO: attach instance if necessary
+            if (e.attachedInstance && e.instanceDeviceName) {
+              await attachVolume(client.ec2client, newVolumeId, e.attachedInstance.instanceId, e.instanceDeviceName);
+            }
             // Re-get the inserted record to get all of the relevant records we care about
             const newObject = await getVolume(client.ec2client, newVolumeId);
             // We map this into the same kind of entity as `obj`
