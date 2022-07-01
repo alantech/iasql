@@ -17,7 +17,7 @@ const querySync = runQuery.bind(null, `${dbAlias}_sync`);
 const install = runInstall.bind(null, dbAlias);
 const installSync = runInstall.bind(null, `${dbAlias}_sync`);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
+const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam', 'aws_ebs'];
 
 // ELB integration
 const {
@@ -169,6 +169,14 @@ describe('EC2 Integration Testing', () => {
     expect(res.length).toBe(1);
     expect(res[0].user_data).toBe('pwd;');
   }));
+
+  it('check number of volumes', query(`
+    SELECT *
+    FROM general_purpose_volume
+    INNER JOIN instance on instance.id = general_purpose_volume.attached_instance_id
+    WHERE instance.tags ->> 'name' = '${prefix}-1' OR
+      instance.tags ->> 'name' = '${prefix}-2';
+  `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('syncs the changes from the first database to the second', runSync(`${dbAlias}_sync`));
 
@@ -485,6 +493,14 @@ describe('EC2 Integration Testing', () => {
     WHERE tags ->> 'name' = '${prefix}-nosg' OR
       tags ->> 'name' = '${prefix}-1' OR
       tags ->> 'name' = '${prefix}-2';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check number of volumes', query(`
+    SELECT *
+    FROM general_purpose_volume
+    INNER JOIN instance on instance.id = general_purpose_volume.attached_instance_id
+    WHERE instance.tags ->> 'name' = '${prefix}-1' OR
+      instance.tags ->> 'name' = '${prefix}-2';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('check registered instance count, should be zero due to instance CASCADE deletion', query(`
