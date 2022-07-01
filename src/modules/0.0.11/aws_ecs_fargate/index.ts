@@ -1,4 +1,27 @@
-import { AWS, } from '../../../services/gateways/aws_2'
+import {
+  Cluster as AwsCluster,
+  DescribeServicesCommandInput,
+  ECS,
+  Service as AwsService,
+  TaskDefinition as AwsTaskDefinition,
+  paginateListClusters,
+  paginateListServices,
+  paginateListTaskDefinitions,
+  paginateListTasks,
+  waitUntilTasksStopped,
+} from '@aws-sdk/client-ecs'
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
+import {
+  EC2,
+  DescribeNetworkInterfacesCommandInput,
+} from '@aws-sdk/client-ec2'
+
+import {
+  AWS,
+  crudBuilder2,
+  crudBuilderFormat,
+  paginateBuilder,
+} from '../../../services/aws_macros'
 import {
   Cluster,
   ContainerDefinition,
@@ -10,6 +33,282 @@ import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsEcrModule, AwsElbModule, AwsIamModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
 import * as metadata from './module.json'
 import logger from '../../../services/logger'
+
+const createCluster = crudBuilderFormat<ECS, 'createCluster', AwsCluster | undefined>(
+  'createCluster',
+  (input) => input,
+  (res) => res?.cluster,
+);
+const getCluster = crudBuilderFormat<ECS, 'describeClusters', AwsCluster | undefined>(
+  'describeClusters',
+  (id) => ({ clusters: [id], }),
+  (res) => res?.clusters?.[0],
+);
+const getClusterArns = paginateBuilder<ECS>(paginateListClusters, 'clusterArns');
+const getClustersCore = crudBuilderFormat<ECS, 'describeClusters', AwsCluster[]>(
+  'describeClusters',
+  (input) => input,
+  (res) => res?.clusters ?? [],
+);
+const getClusters = async (client: ECS) => getClustersCore(
+  client,
+  { clusters: await getClusterArns(client), }
+);
+const deleteClusterCore = crudBuilder2<ECS, 'deleteCluster'>(
+  'deleteCluster',
+  (cluster) => ({ cluster, }),
+);
+const updateService = crudBuilderFormat<ECS, 'updateService', AwsService | undefined>(
+  'updateService',
+  (input) => input,
+  (res) => res?.service,
+);
+const createTaskDefinition = crudBuilderFormat<
+  ECS,
+  'registerTaskDefinition',
+  AwsTaskDefinition | undefined
+>(
+  'registerTaskDefinition',
+  (input) => input,
+  (res) => res?.taskDefinition,
+);
+const getTaskDefinition = crudBuilderFormat<
+  ECS,
+  'describeTaskDefinition',
+  AwsTaskDefinition | undefined
+>(
+  'describeTaskDefinition',
+  (taskDefinition) => ({ taskDefinition, }),
+  (res) => res?.taskDefinition,
+);
+const deleteTaskDefinition = crudBuilder2<ECS, 'deregisterTaskDefinition'>(
+  'deregisterTaskDefinition',
+  (taskDefinition) => ({ taskDefinition, }),
+);
+const createService = crudBuilderFormat<ECS, 'createService', AwsService | undefined>(
+  'createService',
+  (input) => input,
+  (res) => res?.service,
+);
+const getService = crudBuilderFormat<ECS, 'describeServices', AwsService | undefined>(
+  'describeServices',
+  (id, cluster) => ({ services: [id], cluster, }),
+  (res) => res?.services?.[0],
+);
+
+// TODO: This a whole lot of tangled business logic baked into these functions. It may make sense to
+// decompose them in the future.
+async function getServices(client: ECS, clusterIds: string[]) {
+  const services = [];
+  for (const id of clusterIds) {
+    const serviceArns: string[] = [];
+    const paginator = paginateListServices({
+      client,
+    }, {
+      cluster: id,
+      maxResults: 100,
+    });
+    for await (const page of paginator) {
+      serviceArns.push(...(page.serviceArns ?? []));
+    }
+    if (serviceArns.length) {
+      const batchSize = 10; // Following AWS directions
+      if (serviceArns.length > batchSize) {
+        for (let i = 0; i < serviceArns.length; i += batchSize) {
+          const batch = serviceArns.slice(i, i + batchSize);
+          const result = await client.describeServices({
+            cluster: id,
+            services: batch
+          });
+          services.push(...(result.services ?? []));
+        }
+      } else {
+        const result = await client.describeServices({
+          cluster: id,
+          services: serviceArns
+        });
+        services.push(...(result.services ?? []));
+      }
+    }
+  }
+  return services;
+}
+async function getTasksArns(client: ECS, cluster: string, serviceName?: string) {
+  const tasksArns: string[] = [];
+  let input: any = {
+    cluster
+  };
+  if (serviceName) {
+    input = { ...input, serviceName }
+  }
+  const paginator = paginateListTasks({
+    client,
+    pageSize: 25,
+  }, input);
+  for await (const page of paginator) {
+    tasksArns.push(...(page.taskArns ?? []));
+  }
+  return tasksArns;
+}
+async function deleteService(client: { ecsClient: ECS, ec2client: EC2, }, name: string, cluster: string, tasksArns: string[]) {
+  await client.ecsClient.deleteService({
+    service: name,
+    cluster,
+  });
+  // We wait it is completely deleted to avoid issues deleting dependent resources.
+  const input: DescribeServicesCommandInput = {
+    services: [name],
+    cluster,
+  };
+  await createWaiter<ECS, DescribeServicesCommandInput>(
+    {
+      client: client.ecsClient,
+      // all in seconds
+      maxWaitTime: 600,
+      minDelay: 1,
+      maxDelay: 4,
+    },
+    input,
+    async (cl, cmd) => {
+      const data = await cl.describeServices(cmd);
+      if (data.services?.length && data.services[0].status === 'DRAINING') {
+        return { state: WaiterState.RETRY };
+      } else {
+        return { state: WaiterState.SUCCESS };
+      }
+    },
+  );
+  try {
+    const tasks = await client.ecsClient.describeTasks({tasks: tasksArns, cluster});
+    const taskAttachmentIds = tasks.tasks?.map(t => t.attachments?.map(a => a.id)).flat()
+    if (taskAttachmentIds?.length) {
+      const describeEniCommand: DescribeNetworkInterfacesCommandInput = {
+        Filters: [
+          {
+            Name: 'description',
+            Values: taskAttachmentIds?.map(id => `*${id}`)
+          }
+        ]
+      };
+      await createWaiter<EC2, DescribeNetworkInterfacesCommandInput>(
+        {
+          client: client.ec2client,
+          // all in seconds
+          maxWaitTime: 1200,
+          // This operation need bigger delays since it takes time and we do not want to overload AWS API
+          minDelay: 30,
+          maxDelay: 60,
+        },
+        describeEniCommand,
+        async (cl, cmd) => {
+          try {
+            const eni = await cl.describeNetworkInterfaces(cmd);
+            if (eni.NetworkInterfaces?.length) {
+              return { state: WaiterState.RETRY };
+            }
+            return { state: WaiterState.SUCCESS };
+          } catch (e) {
+            return { state: WaiterState.RETRY };
+          }
+        },
+      );
+    }
+  } catch (_) {
+    // We should not throw here.
+    // This is an extra validation to ensure that the service is fully deleted
+    logger.info('Error getting network interfaces for tasks')
+  }
+}
+async function deleteCluster(client: { ecsClient: ECS, ec2client: EC2, }, id: string) {
+  const clusterServices = await getServices(client.ecsClient, [id]);
+  if (clusterServices.length) {
+    for (const s of clusterServices) {
+      if (!s.serviceName) continue;
+      const serviceTasksArns = await getTasksArns(client.ecsClient, id, s.serviceName);
+      s.desiredCount = 0;
+      await updateService(client.ecsClient, {
+        service: s.serviceName,
+        cluster: id,
+        desiredCount: s.desiredCount,
+      });
+      return deleteService(client, s.serviceName!, id, serviceTasksArns);
+    }
+  }
+  const tasks = await getTasksArns(client.ecsClient, id);
+  if (tasks.length) {
+    await waitUntilTasksStopped({
+      client: client.ecsClient,
+      // all in seconds
+      maxWaitTime: 300,
+      minDelay: 1,
+      maxDelay: 4,
+    }, {
+      cluster: id,
+      tasks,
+    });
+  }
+  await deleteClusterCore(client.ecsClient, {
+    cluster: id,
+  });
+}
+async function getTaskDefinitions(client: ECS) {
+  const taskDefinitions: any[] = [];
+  const activeTaskDefinitionArns: string[] = [];
+  const activePaginator = paginateListTaskDefinitions({
+    client,
+  }, {
+    status: 'ACTIVE',
+    maxResults: 100,
+  });
+  for await (const page of activePaginator) {
+    activeTaskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
+  }
+  // Look for INACTIVE task definitons being used
+  const clusters = await getClusters(client) ?? [];
+  const services = await getServices(client, clusters.map(c => c.clusterArn!)) ?? [];
+  const servicesTasks = services.map(s => s.taskDefinition!) ?? [];
+  for (const st of servicesTasks) {
+    if (!activeTaskDefinitionArns.includes(st)) {
+      taskDefinitions.push(await getTaskDefinition(client, st));
+    }
+  }
+  // Do not run them in parallel to avoid AWS throttling error
+  for (const arn of activeTaskDefinitionArns) {
+    taskDefinitions.push(await getTaskDefinition(client, arn));
+  }
+  return {
+    taskDefinitions,
+  };
+}
+async function deleteServiceOnly(client: ECS, name: string, cluster: string) {
+  await client.deleteService({
+    service: name,
+    cluster,
+  });
+  // We wait it is completely deleted to avoid issues deleting dependent resources.
+  const input: DescribeServicesCommandInput = {
+    services: [name],
+    cluster,
+  };
+  await createWaiter<ECS, DescribeServicesCommandInput>(
+    {
+      client,
+      // all in seconds
+      maxWaitTime: 600,
+      minDelay: 1,
+      maxDelay: 4,
+    },
+    input,
+    async (cl, cmd) => {
+      const data = await cl.describeServices(cmd);
+      if (data.services?.length && data.services[0].status === 'DRAINING') {
+        return { state: WaiterState.RETRY };
+      } else {
+        return { state: WaiterState.SUCCESS };
+      }
+    },
+  );
+}
 
 export const AwsEcsFargateModule: Module2 = new Module2({
   ...metadata,
@@ -195,7 +494,7 @@ export const AwsEcsFargateModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
-            const result = await client.createCluster({
+            const result = await createCluster(client.ecsClient, {
               clusterName: e.clusterName,
             });
             // TODO: Handle if it fails (somehow)
@@ -203,7 +502,8 @@ export const AwsEcsFargateModule: Module2 = new Module2({
               throw new Error('what should we do here?');
             }
             // Re-get the inserted record to get all of the relevant records we care about
-            const newObject = await client.getCluster(result.clusterArn!);
+            const newObject = await getCluster(client.ecsClient, result.clusterArn!);
+            if (!newObject) continue;
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcsFargateModule.utils.clusterMapper(newObject, ctx);
             // Save the record back into the database to get the new fields updated
@@ -215,11 +515,11 @@ export const AwsEcsFargateModule: Module2 = new Module2({
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
-            const rawCluster = await client.getCluster(id);
+            const rawCluster = await getCluster(client.ecsClient, id);
             if (!rawCluster) return;
             return AwsEcsFargateModule.utils.clusterMapper(rawCluster, ctx);
           } else {
-            const clusters = await client.getClusters() ?? [];
+            const clusters = await getClusters(client.ecsClient) ?? [];
             return clusters.map((c: any) => AwsEcsFargateModule.utils.clusterMapper(c, ctx));
           }
         },
@@ -254,7 +554,7 @@ export const AwsEcsFargateModule: Module2 = new Module2({
                 await AwsEcsFargateModule.mappers.cluster.db.create(e, ctx);
               }
             } else {
-              await client.deleteClusterLin(e.clusterName)
+              await deleteCluster(client, e.clusterName)
             }
           }
         },
@@ -340,13 +640,14 @@ export const AwsEcsFargateModule: Module2 = new Module2({
               const memory = memoryStr.split('GB')[0];
               input.memory = `${+memory * 1024}`;
             }
-            const result = await client.createTaskDefinition(input);
+            const result = await createTaskDefinition(client.ecsClient, input);
             // TODO: Handle if it fails (somehow)
             if (!result?.hasOwnProperty('taskDefinitionArn')) { // Failure
               throw new Error('what should we do here?');
             }
             // Re-get the inserted record to get all of the relevant records we care about
-            const newObject = await client.getTaskDefinition(result.taskDefinitionArn ?? '');
+            const newObject = await getTaskDefinition(client.ecsClient, result.taskDefinitionArn ?? '');
+            if (!newObject) continue;
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcsFargateModule.utils.taskDefinitionMapper(newObject, ctx);
             // We attach the original object's ID to this new one, indicating the exact record it is
@@ -370,12 +671,12 @@ export const AwsEcsFargateModule: Module2 = new Module2({
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           if (id) {
-            const rawTaskDef = await client.getTaskDefinition(id);
+            const rawTaskDef = await getTaskDefinition(client.ecsClient, id);
             if (!rawTaskDef) return;
             if (!rawTaskDef.compatibilities?.includes('FARGATE')) return;
             return await AwsEcsFargateModule.utils.taskDefinitionMapper(rawTaskDef, ctx);
           } else {
-            const taskDefs = ((await client.getTaskDefinitions()).taskDefinitions ?? [])
+            const taskDefs = ((await getTaskDefinitions(client.ecsClient)).taskDefinitions ?? [])
               .filter(td => td.compatibilities.includes('FARGATE'));
             const tds = [];
             for (const td of taskDefs) {
@@ -431,7 +732,7 @@ export const AwsEcsFargateModule: Module2 = new Module2({
             }
           };
           for (const e of esToDelete) {
-            await client.deleteTaskDefinition(e.taskDefinitionArn!);
+            await deleteTaskDefinition(client.ecsClient, e.taskDefinitionArn!);
           }
           if (esWithServiceAttached.length) {
             throw new Error('Some tasks could not be deleted. They are attached to an existing service.')
@@ -487,13 +788,13 @@ export const AwsEcsFargateModule: Module2 = new Module2({
                 containerPort: essentialContainer?.containerPort,
               }];
             }
-            const result = await client.createService(input);
+            const result = await createService(client.ecsClient, input);
             // TODO: Handle if it fails (somehow)
             if (!result?.hasOwnProperty('serviceName') || !result?.hasOwnProperty('clusterArn')) { // Failure
               throw new Error('what should we do here?');
             }
             // Re-get the inserted record to get all of the relevant records we care about
-            const newObject = await client.getService(result.serviceName!, result.clusterArn!);
+            const newObject = await getService(client.ecsClient, result.serviceName!, result.clusterArn!);
             // We map this into the same kind of entity as `obj`
             const newEntity = await AwsEcsFargateModule.utils.serviceMapper(newObject, ctx);
             // Save the record back into the database to get the new fields updated
@@ -511,12 +812,12 @@ export const AwsEcsFargateModule: Module2 = new Module2({
               await AwsEcsFargateModule.mappers.service.cloud.read(ctx);
             const service = services?.find((s: any) => s.arn === id);
             if (!service) return;
-            const rawService = await client.getService(id, service.cluster.clusterArn);
+            const rawService = await getService(client.ecsClient, id, service.cluster.clusterArn);
             if (!rawService) return;
             return await AwsEcsFargateModule.utils.serviceMapper(rawService, ctx);
           } else {
             const clusters = ctx.memo?.cloud?.Cluster ? Object.values(ctx.memo?.cloud?.Cluster) : await AwsEcsFargateModule.mappers.cluster.cloud.read(ctx);
-            const result = await client.getServices(clusters?.map((c: any) => c.clusterArn) ?? []);
+            const result = await getServices(client.ecsClient, clusters?.map((c: any) => c.clusterArn) ?? []);
             // Make sure we just handle FARGATE services
             const fargateResult = result.filter(s => s.launchType === 'FARGATE');
             const out = [];
@@ -549,7 +850,7 @@ export const AwsEcsFargateModule: Module2 = new Module2({
               // Desired count or task definition
               if (!(Object.is(e.desiredCount, cloudRecord.desiredCount) && Object.is(e.task?.taskDefinitionArn, cloudRecord.task?.taskDefinitionArn)
                     && Object.is(e.forceNewDeployment, cloudRecord.forceNewDeployment))) {
-                const updatedService = await client.updateService({
+                const updatedService = await updateService(client.ecsClient, {
                   service: e.name,
                   cluster: e.cluster?.clusterName,
                   taskDefinition: e.task?.taskDefinitionArn,
@@ -581,14 +882,14 @@ export const AwsEcsFargateModule: Module2 = new Module2({
           for (const e of es) {
             const t1 = Date.now();
             e.desiredCount = 0;
-            await client.updateService({
+            await updateService(client.ecsClient, {
               service: e.name,
               cluster: e.cluster?.clusterName,
               desiredCount: e.desiredCount,
             });
             const t2 = Date.now();
             logger.info(`Setting service ${e.name} desired count to 0 in ${t2 - t1}ms`);
-            await client.deleteServiceOnly(e.name, e.cluster?.clusterArn!);
+            await deleteServiceOnly(client.ecsClient, e.name, e.cluster?.clusterArn!);
             const t3 = Date.now();
             logger.info(`Deleting service ${e.name} in ${t3 - t2}ms`);
           }
