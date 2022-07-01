@@ -16,8 +16,8 @@ const prefix = getPrefix();
 const dbAlias = 'ebstest';
 const gp2VolumeName = `${prefix}gp2volume`;
 const gp3VolumeName = `${prefix}gp3volume`;
-const availabilityZoneA = `${process.env.AWS_REGION}a`;
 const availabilityZoneB = `${process.env.AWS_REGION}b`;
+const availabilityZoneC = `${process.env.AWS_REGION}c`;
 
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
@@ -46,7 +46,7 @@ describe('AwsEbsModule Integration Testing', () => {
   it('adds new volumes', query(`
     BEGIN;
       INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-      VALUES ('gp2', '${availabilityZoneA}', '{"Name": "${gp2VolumeName}"}');
+      VALUES ('gp2', '${availabilityZoneC}', '{"Name": "${gp2VolumeName}"}');
 
       INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
       VALUES ('gp3', '${availabilityZoneB}', 50, '{"Name": "${gp3VolumeName}"}');
@@ -70,7 +70,7 @@ describe('AwsEbsModule Integration Testing', () => {
   it('adds new volumes', query(`
     BEGIN;
       INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-      VALUES ('gp2', '${availabilityZoneA}', '{"Name": "${gp2VolumeName}"}');
+      VALUES ('gp2', '${availabilityZoneC}', '{"Name": "${gp2VolumeName}"}');
 
       INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
       VALUES ('gp3', '${availabilityZoneB}', 50, '{"Name": "${gp3VolumeName}"}');
@@ -126,7 +126,7 @@ describe('AwsEbsModule Integration Testing', () => {
   `, (res: any[]) => expect(res[0]['size']).toBe(150)));
 
   it('tries to update a volume availability zone', query(`
-    UPDATE general_purpose_volume SET availability_zone = '${availabilityZoneA}' WHERE tags ->> 'Name' = '${gp3VolumeName}';
+    UPDATE general_purpose_volume SET availability_zone = '${availabilityZoneC}' WHERE tags ->> 'Name' = '${gp3VolumeName}';
   `));
 
   it('applies the change', apply());
@@ -141,7 +141,7 @@ describe('AwsEbsModule Integration Testing', () => {
     SELECT *
     FROM general_purpose_volume
     WHERE tags ->> 'Name' = '${gp3VolumeName}';
-  `, (res: any[]) => expect(res[0]['availability_zone']).toBe(availabilityZoneA)));
+  `, (res: any[]) => expect(res[0]['availability_zone']).toBe(availabilityZoneC)));
 
   it('tries to update a volume availability zone', query(`
     UPDATE general_purpose_volume SET tags = '{"Name": "${gp2VolumeName}", "updated": true}' WHERE tags ->> 'Name' = '${gp2VolumeName}';
