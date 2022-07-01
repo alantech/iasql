@@ -16,6 +16,10 @@ export const getGeneralPurposeVolumes = paginateBuilder<EC2>(
     Filters: [{
       Name: 'volume-type',
       Values: ['gp2', 'gp3'],
+    },
+    {
+      Name: 'status',
+      Values: ['available', 'in-use', 'error'],
     }]
   })
 );

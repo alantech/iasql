@@ -86,7 +86,7 @@ export class GeneralPurposeVolume {
   iops?: number;
 
   @Check('Check_no_gp2_throughput', 'throughput IS NULL AND volume_type = ANY("{gp2, gp3}")')
-  @Check('Check_no_gp2_throughput', 'throughput IS NOT NULL AND volume_type = "gp3" AND throughput >= 125 AND throughput <= 1000')
+  @Check('Check_gp3_throughput', 'throughput IS NOT NULL AND volume_type = "gp3" AND throughput >= 125 AND throughput <= 1000')
   @Column({
     nullable: true,
     type: 'int',

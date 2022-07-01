@@ -1,8 +1,8 @@
-import { CreateVolumeCommandInput, Tag, Volume } from '@aws-sdk/client-ec2'
+import { CreateVolumeCommandInput, ModifyVolumeCommandInput, Tag, Volume } from '@aws-sdk/client-ec2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsEc2Module } from '../aws_ec2';
 import { AvailabilityZone } from '../aws_vpc/entity';
-import { AWS, createVolume, deleteVolume, getVolume, getGeneralPurposeVolumes, attachVolume, detachVolume } from './aws_helper';
+import { AWS, createVolume, deleteVolume, getVolume, getGeneralPurposeVolumes, attachVolume, detachVolume, updateVolume } from './aws_helper';
 import { GeneralPurposeVolume, GeneralPurposeVolumeType, VolumeState } from './entity'
 import * as metadata from './module.json'
 
@@ -103,15 +103,57 @@ export const AwsEbsModule: Module2 = new Module2({
             return logGroups.map((vol: any) => AwsEbsModule.utils.generalPurposeVolumeMapper(vol));
           }
         },
+        updateOrReplace: (prev: GeneralPurposeVolume, next: GeneralPurposeVolume) => {
+          if (!Object.is(prev.availabilityZone, next.availabilityZone)) return 'replace';
+          return 'update';
+        },
         update: async (es: GeneralPurposeVolume[], ctx: Context) => {
-          // Right now we can only modify AWS-generated fields in the database.
-          // This implies that on `update`s we only have to restore the values for those records.
+          const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.GeneralPurposeVolume?.[e.volumeId ?? ''];
             // TODO: implement update/restore. Do not let replace until we handle correctly snapshots
-            await AwsEbsModule.mappers.generalPurposeVolume.db.update(cloudRecord, ctx);
-            out.push(cloudRecord);
+            const isUpdate = AwsEbsModule.mappers.generalPurposeVolume.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            if (isUpdate) {
+              let update = false;
+              // Update volume
+              if (!(Object.is(cloudRecord.iops, e.iops) && Object.is(cloudRecord.size, e.size)
+                && Object.is(cloudRecord.throughput, e.throughput) && Object.is(cloudRecord.volumeType, e.volumeType))) {
+                if (e.volumeType === GeneralPurposeVolumeType.GP2) {
+                  e.throughput = undefined;
+                  e.iops = undefined;
+                }
+                const input: ModifyVolumeCommandInput = {
+                  VolumeId: e.volumeId,
+                  Size: e.size,
+                  Throughput: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.throughput : undefined,
+                  Iops: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.iops : undefined,
+                  VolumeType: e.volumeType,
+                };
+                await updateVolume(client.ec2client, input)
+                update = true;
+              }
+              // Update tags
+              if (!AwsEbsModule.utils.eqTags(cloudRecord.tags, e.tags)) {
+                
+                update = true;
+              }
+              // Attach/detach instance
+              if (update) {
+                // Get volume
+                // Update db
+              } else {
+                // Restore
+              }
+              // push?
+            } else {
+              // Replace
+              const newVolume = await AwsEbsModule.mappers.generalPurposeVolume.cloud.create(e, ctx);
+              await AwsEbsModule.mappers.generalPurposeVolume.cloud.delete(cloudRecord, ctx);
+              out.push(newVolume);
+            }
+            // await AwsEbsModule.mappers.generalPurposeVolume.db.update(cloudRecord, ctx);
+            // out.push(cloudRecord);
           }
           return out;
         },
