@@ -23,6 +23,7 @@ import { AwsElbModule } from '../aws_elb'
 import { AwsIamModule } from '../aws_iam'
 import { AwsVpcModule } from '../aws_vpc'
 import { AwsEbsModule } from '../aws_ebs'
+import { getVolumeByInstanceId, waitUntilAvailable, waitUntilDeleted, waitUntilInUse } from '../aws_ebs/aws_helper'
 
 const getInstanceUserData = crudBuilderFormat<EC2, 'describeInstanceAttribute', string | undefined>(
   'describeInstanceAttribute',
@@ -357,9 +358,10 @@ export const AwsEc2Module: Module2 = new Module2({
               }
               // Update ebs volumes if necessary
               try {
-                delete ctx?.memo?.cloud?.GeneralPurposeVolume;
-                const volumes = await AwsEbsModule.mappers.generalPurposeVolume.cloud.read(ctx);
-                await AwsEbsModule.mappers.generalPurposeVolume.db.update(volumes, ctx);
+                const attachedVolume = await getVolumeByInstanceId(client.ec2client, instanceId);
+                await waitUntilInUse(client.ec2client, attachedVolume?.VolumeId ?? '');
+                delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[attachedVolume?.VolumeId ?? ''];
+                await AwsEbsModule.mappers.generalPurposeVolume.db.create(attachedVolume, ctx);
               } catch (_) {
                 // Do nothing
                 // AwsEbsModule could not be installed and that's ok since ec2 does not depends directly on ebs
@@ -425,9 +427,10 @@ export const AwsEc2Module: Module2 = new Module2({
             if (entity.instanceId) await terminateInstance(client.ec2client, entity.instanceId);
             // Update ebs volumes if necessary
             try {
-              delete ctx?.memo?.cloud?.GeneralPurposeVolume;
-              const volumes = await AwsEbsModule.mappers.generalPurposeVolume.cloud.read(ctx);
-              await AwsEbsModule.mappers.generalPurposeVolume.db.update(volumes, ctx);
+              const attachedVolume = await getVolumeByInstanceId(client.ec2client, entity.instanceId ?? '');
+              await waitUntilDeleted(client.ec2client, attachedVolume?.VolumeId ?? '');
+              delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[attachedVolume?.VolumeId ?? ''];
+              await AwsEbsModule.mappers.generalPurposeVolume.db.delete(attachedVolume, ctx);
             } catch (_) {
               // Do nothing
               // AwsEbsModule could not be installed and that's ok since ec2 does not depends directly on ebs

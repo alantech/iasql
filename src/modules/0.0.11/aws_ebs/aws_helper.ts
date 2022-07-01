@@ -44,19 +44,26 @@ export const getVolume = crudBuilderFormat<EC2, 'describeVolumes', Volume | unde
   (res) => res?.Volumes?.pop()
 );
 
+const getVolumeByInstanceIdInternal = crudBuilderFormat<EC2, 'describeVolumes', Volume | undefined>(
+  'describeVolumes',
+  (instanceId) => ({ Filters: [{
+    Name: 'attachment.instance-id',
+    Values: [instanceId],
+  }] }),
+  (res) => res?.Volumes?.pop()
+);
+
+export const getVolumeByInstanceId = async (client: EC2, instanceId: string) => {
+  return await getVolumeByInstanceIdInternal(client, instanceId);
+}
+
 const deleteVolumeInternal = crudBuilder2<EC2, 'deleteVolume'>(
   'deleteVolume',
   (VolumeId) => ({ VolumeId, }),
 );
 export const deleteVolume = async (client: EC2, VolumeId: string) => {
   await deleteVolumeInternal(client, VolumeId);
-  await volumeWaiter(client, VolumeId, (vol: Volume | undefined) => {
-    // If state is not 'deleted' retry
-    if (!Object.is(vol?.State, VolumeState.DELETED)) {
-      return { state: WaiterState.RETRY };
-    }
-    return { state: WaiterState.SUCCESS };
-  });
+  await waitUntilDeleted(client, VolumeId);
 }
 
 export const updateVolume = crudBuilder2<EC2, 'modifyVolume'>(
@@ -71,13 +78,7 @@ const attachVolumeInternal = crudBuilder2<EC2, 'attachVolume'>(
 
 export const attachVolume = async (client: EC2, VolumeId: string, InstanceId: string, Device: string) => {
   await attachVolumeInternal(client, VolumeId, InstanceId, Device);
-  await volumeWaiter(client, VolumeId, (vol: Volume | undefined) => {
-    // If state is not 'in-use' retry
-    if (!Object.is(vol?.State, VolumeState.IN_USE)) {
-      return { state: WaiterState.RETRY };
-    }
-    return { state: WaiterState.SUCCESS };
-  });
+  await waitUntilInUse(client, VolumeId);
 }
 
 const detachVolumeInternal = crudBuilder2<EC2, 'detachVolume'>(
@@ -87,13 +88,7 @@ const detachVolumeInternal = crudBuilder2<EC2, 'detachVolume'>(
 
 export const detachVolume = async (client: EC2, VolumeId: string) => {
   await detachVolumeInternal(client, VolumeId);
-  await volumeWaiter(client, VolumeId, (vol: Volume | undefined) => {
-    // If state is not 'available' retry
-    if (!Object.is(vol?.State, VolumeState.AVAILABLE)) {
-      return { state: WaiterState.RETRY };
-    }
-    return { state: WaiterState.SUCCESS };
-  });
+  await waitUntilAvailable(client, VolumeId);
 }
 
 // TODO: Figure out if/how to macro-ify this thing
@@ -139,6 +134,36 @@ const volumeWaiter = async (client: EC2, volumeId: string, handleState: (vol: Vo
       }
     },
   );
+}
+
+export const waitUntilAvailable = (client: EC2, volumeId: string) => {
+  return volumeWaiter(client, volumeId, (vol: Volume | undefined) => {
+    // If state is not 'in-use' retry
+    if (!!Object.is(vol?.State, VolumeState.AVAILABLE)) {
+      return { state: WaiterState.RETRY };
+    }
+    return { state: WaiterState.SUCCESS };
+  });
+}
+
+export const waitUntilInUse = (client: EC2, volumeId: string) => {
+  return volumeWaiter(client, volumeId, (vol: Volume | undefined) => {
+    // If state is not 'in-use' retry
+    if (!!Object.is(vol?.State, VolumeState.IN_USE)) {
+      return { state: WaiterState.RETRY };
+    }
+    return { state: WaiterState.SUCCESS };
+  });
+}
+
+export const waitUntilDeleted = (client: EC2, volumeId: string) => {
+  return volumeWaiter(client, volumeId, (vol: Volume | undefined) => {
+    // If state is not 'in-use' retry
+    if (!!Object.is(vol?.State, VolumeState.DELETED)) {
+      return { state: WaiterState.RETRY };
+    }
+    return { state: WaiterState.SUCCESS };
+  });
 }
 
 export { AWS }
