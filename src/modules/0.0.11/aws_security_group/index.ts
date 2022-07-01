@@ -184,6 +184,7 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
         }
         // Re-get the inserted security group to get all of the relevant records we care about
         const newGroup = await getSecurityGroup(client.ec2client, result.GroupId ?? '');
+        if (!newGroup) continue;
         // We map this into the same kind of entity as `obj`
         const newEntity = await AwsSecurityGroupModule.utils.sgMapper(newGroup, ctx);
         if (doNotSave) return newEntity;
@@ -537,22 +538,22 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
             }
           }
           // Let's just clear the record from both caches on a delete
-          ctx.memo.cloud.SecurityGroupRule = Object.fromEntries(
+          ctx.memo.cloud.SecurityGroupRule = ctx?.memo?.cloud?.SecurityGroupRule ? Object.fromEntries(
             Object
               .entries(ctx.memo.cloud.SecurityGroupRule)
               .filter(([_, v]) => !es
                 .map(e => e.securityGroupRuleId)
                 .includes((v as SecurityGroupRule).securityGroupRuleId)
               )
-          );
-          ctx.memo.db.SecurityGroupRule = Object.fromEntries(
+          ) : {};
+          ctx.memo.db.SecurityGroupRule = ctx?.memo?.db?.SecurityGroupRule ? Object.fromEntries(
             Object
               .entries(ctx.memo.db.SecurityGroupRule)
               .filter(([_, v]) => !es
                 .map(e => e.securityGroupRuleId)
                 .includes((v as SecurityGroupRule).securityGroupRuleId)
               )
-          );
+          ) : {};
         },
       }),
     }),
