@@ -53,8 +53,8 @@ const getVolumeByInstanceIdInternal = crudBuilderFormat<EC2, 'describeVolumes', 
   (res) => res?.Volumes?.pop()
 );
 
-export const getVolumeByInstanceId = async (client: EC2, instanceId: string) => {
-  return await getVolumeByInstanceIdInternal(client, instanceId);
+export const getVolumeByInstanceId = (client: EC2, instanceId: string) => {
+  return getVolumeByInstanceIdInternal(client, instanceId);
 }
 
 const deleteVolumeInternal = crudBuilder2<EC2, 'deleteVolume'>(
@@ -139,7 +139,7 @@ const volumeWaiter = async (client: EC2, volumeId: string, handleState: (vol: Vo
 export const waitUntilAvailable = (client: EC2, volumeId: string) => {
   return volumeWaiter(client, volumeId, (vol: Volume | undefined) => {
     // If state is not 'in-use' retry
-    if (!!Object.is(vol?.State, VolumeState.AVAILABLE)) {
+    if (!Object.is(vol?.State, VolumeState.AVAILABLE)) {
       return { state: WaiterState.RETRY };
     }
     return { state: WaiterState.SUCCESS };
@@ -149,7 +149,7 @@ export const waitUntilAvailable = (client: EC2, volumeId: string) => {
 export const waitUntilInUse = (client: EC2, volumeId: string) => {
   return volumeWaiter(client, volumeId, (vol: Volume | undefined) => {
     // If state is not 'in-use' retry
-    if (!!Object.is(vol?.State, VolumeState.IN_USE)) {
+    if (!Object.is(vol?.State, VolumeState.IN_USE)) {
       return { state: WaiterState.RETRY };
     }
     return { state: WaiterState.SUCCESS };
@@ -159,7 +159,7 @@ export const waitUntilInUse = (client: EC2, volumeId: string) => {
 export const waitUntilDeleted = (client: EC2, volumeId: string) => {
   return volumeWaiter(client, volumeId, (vol: Volume | undefined) => {
     // If state is not 'in-use' retry
-    if (!!Object.is(vol?.State, VolumeState.DELETED)) {
+    if (!Object.is(vol?.State, VolumeState.DELETED)) {
       return { state: WaiterState.RETRY };
     }
     return { state: WaiterState.SUCCESS };
