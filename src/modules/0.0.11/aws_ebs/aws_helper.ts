@@ -1,13 +1,25 @@
-import { DescribeVolumesCommandInput, EC2, paginateDescribeVolumes, Tag, Volume } from '@aws-sdk/client-ec2';
+import { CreateVolumeCommandInput, DescribeVolumesCommandInput, EC2, paginateDescribeVolumes, Tag, Volume } from '@aws-sdk/client-ec2';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
 import { VolumeState } from './entity';
 
-export const createVolume = crudBuilderFormat<EC2, 'createVolume', string | undefined>(
+const createVolumeInternal = crudBuilderFormat<EC2, 'createVolume', string | undefined>(
   'createVolume',
   (input) => (input),
   (res) => res?.VolumeId,
 );
+
+export const createVolume = async (client: EC2, input: CreateVolumeCommandInput) => {
+  const volumeId = await createVolumeInternal(client, input);
+  await volumeWaiter(client, volumeId ?? '', (vol: Volume | undefined) => {
+    // If state is not 'available' OR 'in-use' retry
+    if (!Object.is(vol?.State, VolumeState.AVAILABLE) && !Object.is(vol?.State, VolumeState.IN_USE)) {
+      return { state: WaiterState.RETRY };
+    }
+    return { state: WaiterState.SUCCESS };
+  });
+  return volumeId;
+}
 
 export const getGeneralPurposeVolumes = paginateBuilder<EC2>(
   paginateDescribeVolumes,
@@ -32,10 +44,20 @@ export const getVolume = crudBuilderFormat<EC2, 'describeVolumes', Volume | unde
   (res) => res?.Volumes?.pop()
 );
 
-export const deleteVolume = crudBuilder2<EC2, 'deleteVolume'>(
+const deleteVolumeInternal = crudBuilder2<EC2, 'deleteVolume'>(
   'deleteVolume',
   (VolumeId) => ({ VolumeId, }),
 );
+export const deleteVolume = async (client: EC2, VolumeId: string) => {
+  await deleteVolumeInternal(client, VolumeId);
+  await volumeWaiter(client, VolumeId, (vol: Volume | undefined) => {
+    // If state is not 'deleted' retry
+    if (!Object.is(vol?.State, VolumeState.DELETED)) {
+      return { state: WaiterState.RETRY };
+    }
+    return { state: WaiterState.SUCCESS };
+  });
+}
 
 export const updateVolume = crudBuilder2<EC2, 'modifyVolume'>(
   'modifyVolume',
@@ -47,35 +69,15 @@ const attachVolumeInternal = crudBuilder2<EC2, 'attachVolume'>(
   (VolumeId, InstanceId, Device) => ({ VolumeId, InstanceId, Device, })
 );
 
-// TODO: Figure out if/how to macro-ify this thing
 export const attachVolume = async (client: EC2, VolumeId: string, InstanceId: string, Device: string) => {
   await attachVolumeInternal(client, VolumeId, InstanceId, Device);
-  const describeInput: DescribeVolumesCommandInput = {
-    VolumeIds: [VolumeId],
-  };
-  await createWaiter<EC2, DescribeVolumesCommandInput>(
-    {
-      client,
-      // all in seconds
-      maxWaitTime: 300,
-      minDelay: 1,
-      maxDelay: 4,
-    },
-    describeInput,
-    async (cl, input) => {
-      const data = await cl.describeVolumes(input);
-      try {
-        const vol = data.Volumes?.pop();
-        // If state is not 'in-use' retry
-        if (!Object.is(vol?.State, VolumeState.IN_USE)) {
-          return { state: WaiterState.RETRY };
-        }
-        return { state: WaiterState.SUCCESS };
-      } catch (e: any) {
-        throw e;
-      }
-    },
-  );
+  await volumeWaiter(client, VolumeId, (vol: Volume | undefined) => {
+    // If state is not 'in-use' retry
+    if (!Object.is(vol?.State, VolumeState.IN_USE)) {
+      return { state: WaiterState.RETRY };
+    }
+    return { state: WaiterState.SUCCESS };
+  });
 }
 
 const detachVolumeInternal = crudBuilder2<EC2, 'detachVolume'>(
@@ -83,35 +85,15 @@ const detachVolumeInternal = crudBuilder2<EC2, 'detachVolume'>(
   (VolumeId) => ({ VolumeId, })
 );
 
-// TODO: Figure out if/how to macro-ify this thing
 export const detachVolume = async (client: EC2, VolumeId: string) => {
   await detachVolumeInternal(client, VolumeId);
-  const describeInput: DescribeVolumesCommandInput = {
-    VolumeIds: [VolumeId],
-  };
-  await createWaiter<EC2, DescribeVolumesCommandInput>(
-    {
-      client,
-      // all in seconds
-      maxWaitTime: 300,
-      minDelay: 1,
-      maxDelay: 4,
-    },
-    describeInput,
-    async (cl, input) => {
-      const data = await cl.describeVolumes(input);
-      try {
-        const vol = data.Volumes?.pop();
-        // If state is not 'available' retry
-        if (!Object.is(vol?.State, VolumeState.AVAILABLE)) {
-          return { state: WaiterState.RETRY };
-        }
-        return { state: WaiterState.SUCCESS };
-      } catch (e: any) {
-        throw e;
-      }
-    },
-  );
+  await volumeWaiter(client, VolumeId, (vol: Volume | undefined) => {
+    // If state is not 'available' retry
+    if (!Object.is(vol?.State, VolumeState.AVAILABLE)) {
+      return { state: WaiterState.RETRY };
+    }
+    return { state: WaiterState.SUCCESS };
+  });
 }
 
 // TODO: Figure out if/how to macro-ify this thing
@@ -132,6 +114,31 @@ export const updateTags = async (client: EC2, resourceId: string, tags?: { [key:
     Resources: [resourceId],
     Tags: tgs,
   })
+}
+
+// TODO: Figure out if/how to macro-ify this thing
+const volumeWaiter = async (client: EC2, volumeId: string, handleState: (vol: Volume | undefined) => ({ state: WaiterState })) => {
+  return createWaiter<EC2, DescribeVolumesCommandInput>(
+    {
+      client,
+      // all in seconds
+      maxWaitTime: 300,
+      minDelay: 1,
+      maxDelay: 4,
+    },
+    {
+      VolumeIds: [volumeId],
+    },
+    async (cl, input) => {
+      const data = await cl.describeVolumes(input);
+      try {
+        const vol = data.Volumes?.pop();
+        return handleState(vol);
+      } catch (e: any) {
+        throw e;
+      }
+    },
+  );
 }
 
 export { AWS }

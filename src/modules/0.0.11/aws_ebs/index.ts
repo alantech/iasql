@@ -196,7 +196,7 @@ export const AwsEbsModule: Module2 = new Module2({
             if (e.attachedInstance) {
               await detachVolume(client.ec2client, e.volumeId ?? '');
             }
-            await deleteVolume(client.ec2client, e.volumeId);
+            await deleteVolume(client.ec2client, e.volumeId ?? '');
           }
         },
       }),
