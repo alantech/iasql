@@ -2,7 +2,7 @@ import { CreateVolumeCommandInput, Tag, Volume } from '@aws-sdk/client-ec2'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsEc2Module } from '../aws_ec2';
 import { AvailabilityZone } from '../aws_vpc/entity';
-import { AWS, createVolume, deleteVolume, getVolume, getGeneralPurposeVolumes, attachVolume } from './aws_helper';
+import { AWS, createVolume, deleteVolume, getVolume, getGeneralPurposeVolumes, attachVolume, detachVolume } from './aws_helper';
 import { GeneralPurposeVolume, GeneralPurposeVolumeType, VolumeState } from './entity'
 import * as metadata from './module.json'
 
@@ -118,6 +118,9 @@ export const AwsEbsModule: Module2 = new Module2({
         delete: async (vol: GeneralPurposeVolume[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of vol) {
+            if (e.attachedInstance) {
+              await detachVolume(client.ec2client, e.volumeId);
+            }
             await deleteVolume(client.ec2client, e.volumeId);
           }
         },
