@@ -475,6 +475,7 @@ export const AwsEcsSimplifiedModule: Module2 = new Module2({
                   case 'createSecurityGroupRules':
                     await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroupRules(client, simplifiedObjectMapped.securityGroupRules);
                   case 'createSecurityGroup':
+                  case '':
                     await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroup(client, simplifiedObjectMapped.securityGroup);
                   default:
                     break;
