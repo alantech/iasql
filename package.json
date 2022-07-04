@@ -38,7 +38,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.12",
     "@types/jest": "^27.5.0",
-    "@types/node": "^16.11.28",
+    "@types/node": "^18.0.1",
     "@types/uuid": "^8.3.4",
     "copyfiles": "^2.4.1",
     "jest": "^27.5.1",
