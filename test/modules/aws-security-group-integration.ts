@@ -304,7 +304,7 @@ describe('Security Group install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the Security Group module', uninstall(
-    ['aws_rds', 'aws_ecs_fargate', 'aws_elb', 'aws_security_group', 'aws_ec2', 'aws_ec2_metadata', 'aws_route53_hosted_zones', 'aws_ebs'],
+    ['aws_rds', 'aws_ecs_fargate', 'aws_elb', 'aws_security_group', 'aws_ec2', 'aws_ec2_metadata', 'aws_route53_hosted_zones'],
   ));
 
   it('inserts a new VPC (that creates a new default SG automatically)', query(`
