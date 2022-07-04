@@ -24,7 +24,7 @@ import {
   detachVolume,
   getGeneralPurposeVolumes,
   getVolume,
-  getVolumeByInstanceId,
+  getVolumesByInstanceId,
   updateVolume,
   waitUntilDeleted,
   waitUntilInUse,
@@ -185,12 +185,24 @@ export const AwsEc2Module: Module2 = new Module2({
               await AwsEc2Module.mappers.instance.db.update(newEntity, ctx);
               out.push(newEntity);
               // Attach volume
-              const rawAttachedVolume = await getVolumeByInstanceId(client.ec2client, instanceId);
+              const rawAttachedVolume = (await getVolumesByInstanceId(client.ec2client, instanceId))?.pop();
               await waitUntilInUse(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
               delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
               const attachedVolume: GeneralPurposeVolume = await AwsEc2Module.mappers.generalPurposeVolume.cloud.read(ctx, rawAttachedVolume?.VolumeId ?? '');
-              attachedVolume.attachedInstance = newEntity;
-              await AwsEc2Module.mappers.generalPurposeVolume.db.create(attachedVolume, ctx);
+              if (attachedVolume && !Array.isArray(attachedVolume)) {
+                attachedVolume.attachedInstance = newEntity;
+                const dbAttachedVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
+                  where: {
+                    attachedInstance: {
+                      id: newEntity.id
+                    },
+                    instanceDeviceName: attachedVolume.instanceDeviceName,
+                  },
+                  relations: ['attachedInstance'],
+                });
+                await AwsEc2Module.mappers.generalPurposeVolume.db.delete(dbAttachedVolume, ctx);
+                await AwsEc2Module.mappers.generalPurposeVolume.db.create(attachedVolume, ctx);
+              }
             }
           }
           return out;
@@ -245,13 +257,14 @@ export const AwsEc2Module: Module2 = new Module2({
         delete: async (es: Instance[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const entity of es) {
-            if (entity.instanceId) await terminateInstance(client.ec2client, entity.instanceId);
             // Remove attached volume
-            const rawAttachedVolume = await getVolumeByInstanceId(client.ec2client, entity.instanceId ?? '');
+            const rawAttachedVolume = (await getVolumesByInstanceId(client.ec2client, entity.instanceId ?? ''))?.pop();
+            if (entity.instanceId) await terminateInstance(client.ec2client, entity.instanceId);
             await waitUntilDeleted(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
             delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
-            const attachedVolume = await AwsEc2Module.mappers.generalPurposeVolume.cloud.read(ctx, rawAttachedVolume?.VolumeId ?? '');
-            await AwsEc2Module.mappers.generalPurposeVolume.db.delete(attachedVolume, ctx);
+            delete ctx?.memo?.db?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
+            const attachedVolume = await AwsEc2Module.mappers.generalPurposeVolume.db.read(ctx, rawAttachedVolume?.VolumeId ?? '');
+            if (attachedVolume && !Array.isArray(attachedVolume)) await AwsEc2Module.mappers.generalPurposeVolume.db.delete(attachedVolume, ctx);
           }
         },
       }),

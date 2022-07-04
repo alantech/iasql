@@ -294,17 +294,17 @@ export const getVolume = crudBuilderFormat<EC2, 'describeVolumes', AWSVolume | u
   (res) => res?.Volumes?.pop()
 );
 
-const getVolumeByInstanceIdInternal = crudBuilderFormat<EC2, 'describeVolumes', AWSVolume | undefined>(
+const getVolumesByInstanceIdInternal = crudBuilderFormat<EC2, 'describeVolumes', AWSVolume[] | undefined>(
   'describeVolumes',
   (instanceId) => ({ Filters: [{
     Name: 'attachment.instance-id',
     Values: [instanceId],
   }] }),
-  (res) => res?.Volumes?.pop()
+  (res) => res?.Volumes
 );
 
-export const getVolumeByInstanceId = (client: EC2, instanceId: string) => {
-  return getVolumeByInstanceIdInternal(client, instanceId);
+export const getVolumesByInstanceId = (client: EC2, instanceId: string) => {
+  return getVolumesByInstanceIdInternal(client, instanceId);
 }
 
 const deleteVolumeInternal = crudBuilder2<EC2, 'deleteVolume'>(
