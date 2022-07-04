@@ -57,6 +57,10 @@ const deleteECRRepository = crudBuilderFormat<ECR, 'deleteRepository', undefined
   (repositoryName) => ({ repositoryName, }),
   (_res) => undefined,
 );
+const detachRolePolicies = async (client: IAM, RoleName: string, policyArns: string[]) => mapLin(
+  policyArns,
+  (PolicyArn: string) => client.detachRolePolicy({ RoleName, PolicyArn, }),
+);
 const deleteRole = crudBuilder2<IAM, 'deleteRole'>(
   'deleteRole',
   (RoleName) => ({ RoleName, }),
@@ -339,7 +343,10 @@ const cloudDeleteFns = {
   listener: (client: AWS, e: Listener) => deleteListener(client.elbClient, e.listenerArn!),
   logGroup: (client: AWS, e: LogGroup) => deleteLogGroup(client.cwClient, e.logGroupName),
   repository: (client: AWS, e: Repository) => deleteECRRepository(client.ecrClient, e.repositoryName),
-  role: (client: AWS, e: Role) => deleteRole(client.iamClient, e.roleName, e.attachedPoliciesArns ?? []),
+  role: async (client: AWS, e: Role) => {
+    await detachRolePolicies(client.iamClient, e.roleName, e.attachedPoliciesArns ?? []);
+    await deleteRole(client.iamClient, { RoleName: e.roleName, });
+  },
   cluster: (client: AWS, e: Cluster) => deleteCluster(client, e.clusterName),
   taskDefinition: (client: AWS, e: TaskDefinition) => deleteTaskDefinition(client.ecsClient, e.taskDefinitionArn!),
   service: async (client: AWS, e: Service) => {
