@@ -46,6 +46,10 @@ const createSecurityGroup = crudBuilder2<EC2, 'createSecurityGroup'>(
   'createSecurityGroup',
   (input) => input,
 );
+const attachRolePolicy = crudBuilder2<IAM, 'attachRolePolicy'>(
+  'attachRolePolicy',
+  (input) => input,
+);
 const getSecurityGroupRules = paginateBuilder<EC2>(
   paginateDescribeSecurityGroupRules,
   'SecurityGroupRules',
@@ -263,14 +267,18 @@ const cloudCreateFns = {
     return res;
   },
   role: async (client: AWS, e: Role) => {
-    const res = await createNewRole(
-      client.iamClient,
-      e.roleName,
-      JSON.stringify(e.assumeRolePolicyDocument),
-      e.attachedPoliciesArns ?? [],
-      e.description ?? ''
-    );
+    const res = await createNewRole(client.iamClient, {
+      RoleName: e.roleName,
+      AssumeRolePolicyDocument: JSON.stringify(e.assumeRolePolicyDocument),
+      Description: e.description ?? '',
+    });
     e.arn = res;
+    for (const arn of e.attachedPoliciesArns ?? []) {
+      await attachRolePolicy(client.iamClient, {
+        PolicyArn: arn,
+        RoleName: e.roleName,
+      });
+    }
     return res;
   },
   cluster: async (client: AWS, e: Cluster) => {
