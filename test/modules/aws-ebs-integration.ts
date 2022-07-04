@@ -157,7 +157,7 @@ describe('AwsEbsModule Integration Testing', () => {
     SELECT *
     FROM general_purpose_volume
     WHERE tags ->> 'Name' = '${gp2VolumeName}';
-  `, (res: any[]) => expect(res[0]['tags']['updated']).toBe(true)));
+  `, (res: any[]) => expect(res[0]['tags']['updated']).toBe('true')));
 
   it('deletes the volumes', query(`
     DELETE FROM general_purpose_volume
