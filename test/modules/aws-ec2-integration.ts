@@ -74,7 +74,7 @@ describe('EC2 Integration Testing', () => {
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `));
 
-  it('installs the ec2 module', install([modules]));
+  it('installs the ec2 module', install(modules));
 
   it('adds two ec2 instance', (done) => {
     query(`
