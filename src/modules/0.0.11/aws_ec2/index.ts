@@ -92,8 +92,8 @@ export const AwsEc2Module: Module2 = new Module2({
       a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))) &&
       Object.is(a.role?.arn, b.role?.arn) &&
       Object.is(a.subnet?.subnetId, b.subnet?.subnetId),
-    instanceEqTags: (a: Instance, b: Instance) => Object.is(Object.keys(a.tags ?? {})?.length, Object.keys(b.tags ?? {})?.length) &&
-      Object.keys(a.tags ?? {})?.every(ak => (a.tags ?? {})[ak] === (b.tags ?? {})[ak]),
+    eqTags: (a: { [key: string]: string }, b: { [key: string]: string }) => Object.is(Object.keys(a ?? {})?.length, Object.keys(b ?? {})?.length) &&
+      Object.keys(a ?? {})?.every(ak => (a ?? {})[ak] === (b ?? {})[ak]),
     registeredInstanceMapper: async (registeredInstance: { [key: string]: string }, ctx: Context) => {
       const out = new RegisteredInstance();
       out.instance = await AwsEc2Module.mappers.instance.db.read(ctx, registeredInstance.instanceId) ??
@@ -135,7 +135,7 @@ export const AwsEc2Module: Module2 = new Module2({
       entity: Instance,
       equals: (a: Instance, b: Instance) => Object.is(a.state, b.state) &&
         AwsEc2Module.utils.instanceEqReplaceableFields(a, b) &&
-        AwsEc2Module.utils.instanceEqTags(a, b),
+        AwsEc2Module.utils.eqTags(a.tags, b.tags),
       source: 'db',
       cloud: new Crud2({
         create: async (es: Instance[], ctx: Context) => {
@@ -219,7 +219,7 @@ export const AwsEc2Module: Module2 = new Module2({
             const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? ''];
             if (AwsEc2Module.utils.instanceEqReplaceableFields(e, cloudRecord)) {
               const insId = e.instanceId as string;
-              if (!AwsEc2Module.utils.instanceEqTags(e, cloudRecord) && e.instanceId && e.tags) {
+              if (!AwsEc2Module.utils.eqTags(e.tags, cloudRecord.tags) && e.instanceId && e.tags) {
                 await updateTags(client.ec2client, insId, e.tags);
               }
               if (!Object.is(e.state, cloudRecord.state) && e.instanceId) {
