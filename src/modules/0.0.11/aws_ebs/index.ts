@@ -130,7 +130,6 @@ export const AwsEbsModule: Module2 = new Module2({
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.GeneralPurposeVolume?.[e.volumeId ?? ''];
-            // TODO: implement update/restore. Do not let replace until we handle correctly snapshots
             const isUpdate = AwsEbsModule.mappers.generalPurposeVolume.cloud.updateOrReplace(cloudRecord, e) === 'update';
             if (isUpdate) {
               let update = false;
@@ -153,7 +152,7 @@ export const AwsEbsModule: Module2 = new Module2({
               }
               // Update tags
               if (!AwsEbsModule.utils.eqTags(cloudRecord.tags, e.tags)) {
-                await updateTags(client.ec2client, 'volume', e.tags);
+                await updateTags(client.ec2client, e.volumeId ?? '', e.tags);
                 update = true;
               }
               // Attach/detach instance
