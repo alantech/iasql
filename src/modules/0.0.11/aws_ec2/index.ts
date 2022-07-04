@@ -181,9 +181,10 @@ export const AwsEc2Module: Module2 = new Module2({
                 throw new Error('should not be possible');
               }
               // Attach volume
-              const attachedVolume = await getVolumeByInstanceId(client.ec2client, instanceId);
-              await waitUntilInUse(client.ec2client, attachedVolume?.VolumeId ?? '');
-              delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[attachedVolume?.VolumeId ?? ''];
+              const rawAttachedVolume = await getVolumeByInstanceId(client.ec2client, instanceId);
+              await waitUntilInUse(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
+              delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
+              const attachedVolume = await AwsEc2Module.mappers.generalPurposeVolume.cloud.read(ctx, rawAttachedVolume?.VolumeId ?? '');
               await AwsEc2Module.mappers.generalPurposeVolume.db.create(attachedVolume, ctx);
               const newEntity = await AwsEc2Module.mappers.instance.cloud.read(ctx, instanceId);
               newEntity.id = instance.id;
@@ -245,9 +246,10 @@ export const AwsEc2Module: Module2 = new Module2({
           for (const entity of es) {
             if (entity.instanceId) await terminateInstance(client.ec2client, entity.instanceId);
             // Remove attached volume
-            const attachedVolume = await getVolumeByInstanceId(client.ec2client, entity.instanceId ?? '');
-            await waitUntilDeleted(client.ec2client, attachedVolume?.VolumeId ?? '');
-            delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[attachedVolume?.VolumeId ?? ''];
+            const rawAttachedVolume = await getVolumeByInstanceId(client.ec2client, entity.instanceId ?? '');
+            await waitUntilDeleted(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
+            delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
+            const attachedVolume = await AwsEc2Module.mappers.generalPurposeVolume.cloud.read(ctx, rawAttachedVolume?.VolumeId ?? '');
             await AwsEc2Module.mappers.generalPurposeVolume.db.delete(attachedVolume, ctx);
           }
         },
