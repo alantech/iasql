@@ -202,7 +202,7 @@ export const AwsEc2Module: Module2 = new Module2({
                   },
                   relations: ['attachedInstance'],
                 });
-                await AwsEc2Module.mappers.generalPurposeVolume.db.delete(dbAttachedVolume, ctx);
+                if (dbAttachedVolume) await AwsEc2Module.mappers.generalPurposeVolume.db.delete(dbAttachedVolume, ctx);
                 await AwsEc2Module.mappers.generalPurposeVolume.db.create(attachedVolume, ctx);
               }
             }
