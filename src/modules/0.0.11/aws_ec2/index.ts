@@ -180,16 +180,17 @@ export const AwsEc2Module: Module2 = new Module2({
               if (!instanceId) { // then who?
                 throw new Error('should not be possible');
               }
-              // Attach volume
-              const rawAttachedVolume = await getVolumeByInstanceId(client.ec2client, instanceId);
-              await waitUntilInUse(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
-              delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
-              const attachedVolume = await AwsEc2Module.mappers.generalPurposeVolume.cloud.read(ctx, rawAttachedVolume?.VolumeId ?? '');
-              await AwsEc2Module.mappers.generalPurposeVolume.db.create(attachedVolume, ctx);
               const newEntity = await AwsEc2Module.mappers.instance.cloud.read(ctx, instanceId);
               newEntity.id = instance.id;
               await AwsEc2Module.mappers.instance.db.update(newEntity, ctx);
               out.push(newEntity);
+              // Attach volume
+              const rawAttachedVolume = await getVolumeByInstanceId(client.ec2client, instanceId);
+              await waitUntilInUse(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
+              delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
+              const attachedVolume: GeneralPurposeVolume = await AwsEc2Module.mappers.generalPurposeVolume.cloud.read(ctx, rawAttachedVolume?.VolumeId ?? '');
+              attachedVolume.attachedInstance = newEntity;
+              await AwsEc2Module.mappers.generalPurposeVolume.db.create(attachedVolume, ctx);
             }
           }
           return out;
