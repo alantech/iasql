@@ -56,7 +56,7 @@
     "@aws-sdk/client-ecr": "^3.112.0",
     "@aws-sdk/client-ecr-public": "^3.100.0",
     "@aws-sdk/client-ecs": "^3.100.0",
-    "@aws-sdk/client-elastic-load-balancing-v2": "^3.87.0",
+    "@aws-sdk/client-elastic-load-balancing-v2": "^3.121.0",
     "@aws-sdk/client-iam": "^3.100.0",
     "@aws-sdk/client-rds": "^3.100.0",
     "@aws-sdk/client-route-53": "^3.118.0",
