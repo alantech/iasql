@@ -74,7 +74,7 @@ describe('EC2 Integration Testing', () => {
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `));
 
-  it('installs the ec2 module', install(['aws_ec2']));
+  it('installs the ec2 module', install([modules]));
 
   it('adds two ec2 instance', (done) => {
     query(`
@@ -479,10 +479,18 @@ describe('EC2 Integration Testing', () => {
   }));
 
   it('deletes all ec2 instances', query(`
-    DELETE FROM instance
-    WHERE tags ->> 'name' = '${prefix}-nosg' OR
-      tags ->> 'name' = '${prefix}-1' OR
-      tags ->> 'name' = '${prefix}-2';
+    BEGIN;
+      DELETE FROM general_purpose_volume
+      INNER JOIN instance on instance.id = general_purpose_volume.attached_instance_id
+      WHERE tags ->> 'name' = '${prefix}-nosg' OR
+        instance.tags ->> 'name' = '${prefix}-1' OR
+        instance.tags ->> 'name' = '${prefix}-2';
+
+        DELETE FROM instance
+        WHERE tags ->> 'name' = '${prefix}-nosg' OR
+          tags ->> 'name' = '${prefix}-1' OR
+          tags ->> 'name' = '${prefix}-2';
+    COMMIT;
   `));
 
   it('applies the instances deletion', apply());
