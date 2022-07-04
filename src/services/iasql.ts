@@ -373,6 +373,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
         }
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+          console.dir({ r, }, { depth: 4, });
           if (r.diff.entitiesInDbOnly.length > 0) {
             updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInDbOnly);
           }
