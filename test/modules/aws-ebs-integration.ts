@@ -1,5 +1,5 @@
-// TODO: do this with latest version
-import { AvailabilityZone } from '../../src/modules/0.0.11/aws_vpc/entity';
+import config from '../../src/config'
+const vpcEntity = require(`../../src/modules/${config.modules.latestVersion}/aws_vpc/entity`);
 import * as iasql from '../../src/services/iasql'
 import {
   getPrefix,
@@ -19,7 +19,7 @@ const dbAlias = 'ebstest';
 const gp2VolumeName = `${prefix}gp2volume`;
 const gp3VolumeName = `${prefix}gp3volume`;
 const region = process.env.AWS_REGION;
-const availabilityZones = Object.values(AvailabilityZone).filter(az => az.includes(region ?? ''));
+const availabilityZones = Object.values(vpcEntity.AvailabilityZone as string []).filter((az: string) => az.includes(region ?? ''));
 const availabilityZone1 = availabilityZones.pop();
 const availabilityZone2 = availabilityZones.pop();
 
@@ -29,7 +29,7 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 
-jest.setTimeout(240000);
+jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown(modules));
 
