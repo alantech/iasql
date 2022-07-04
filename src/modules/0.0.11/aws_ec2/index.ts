@@ -191,6 +191,8 @@ export const AwsEc2Module: Module2 = new Module2({
               const attachedVolume: GeneralPurposeVolume = await AwsEc2Module.mappers.generalPurposeVolume.cloud.read(ctx, rawAttachedVolume?.VolumeId ?? '');
               if (attachedVolume && !Array.isArray(attachedVolume)) {
                 attachedVolume.attachedInstance = newEntity;
+                // If this is a replace path, there could be already a root volume in db, we need to find it and delete it
+                // before creating the new one.
                 const dbAttachedVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
                   where: {
                     attachedInstance: {
