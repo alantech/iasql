@@ -2815,10 +2815,10 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
-"@logdna/logger@^2.6.5":
-  version "2.6.5"
-  resolved "https://registry.yarnpkg.com/@logdna/logger/-/logger-2.6.5.tgz#9366976269ede1081eda049ececef9e6186f79ca"
-  integrity sha512-XQ73dOFly0vWngv/LOy0wW+o6cxfMW6HCTFq6tmM8lToK1RV5Nqj90kfC3D0t51536lbWPn+ENhMRFb1tqmhZw==
+"@logdna/logger@^2.6.6":
+  version "2.6.6"
+  resolved "https://registry.yarnpkg.com/@logdna/logger/-/logger-2.6.6.tgz#7774a2af60ff1c2cd58bf82f3cfeb34f7dba641e"
+  integrity sha512-29nlMdSWMRffqTUAa896jBT6+5N9cYa+Zf6FfFDzULPCSfHQA7w8sYv9U8vo+FuEIluZ+VDq1je2aIaGI89ZhQ==
   dependencies:
     "@logdna/stdlib" "^1.1.5"
     agentkeepalive "^4.1.3"
