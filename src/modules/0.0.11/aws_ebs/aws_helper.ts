@@ -1,4 +1,13 @@
-import { CreateVolumeCommandInput, DescribeVolumesCommandInput, EC2, paginateDescribeVolumes, Tag, Volume } from '@aws-sdk/client-ec2';
+import {
+  CreateVolumeCommandInput,
+  DescribeVolumesCommandInput,
+  DescribeVolumesModificationsCommandInput,
+  EC2,
+  ModifyVolumeCommandInput,
+  paginateDescribeVolumes,
+  Tag,
+  Volume,
+} from '@aws-sdk/client-ec2';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
 import { VolumeState } from './entity';
@@ -66,10 +75,15 @@ export const deleteVolume = async (client: EC2, VolumeId: string) => {
   await waitUntilDeleted(client, VolumeId);
 }
 
-export const updateVolume = crudBuilder2<EC2, 'modifyVolume'>(
+const updateVolumeInternal = crudBuilder2<EC2, 'modifyVolume'>(
   'modifyVolume',
   (input) => (input)
 );
+
+export const updateVolume = async (client: EC2, input: ModifyVolumeCommandInput) => {
+  await updateVolumeInternal(client, input);
+  await waitUntilModificationsComplete(client, input.VolumeId ?? '');
+}
 
 const attachVolumeInternal = crudBuilder2<EC2, 'attachVolume'>(
   'attachVolume',
@@ -164,6 +178,34 @@ export const waitUntilDeleted = (client: EC2, volumeId: string) => {
     }
     return { state: WaiterState.SUCCESS };
   });
+}
+
+export const waitUntilModificationsComplete = (client: EC2, volumeId: string) => {
+  return createWaiter<EC2, DescribeVolumesModificationsCommandInput>(
+    {
+      client,
+      // all in seconds
+      maxWaitTime: 300,
+      minDelay: 1,
+      maxDelay: 4,
+    },
+    {
+      VolumeIds: [volumeId],
+    },
+    async (cl, input) => {
+      const data = await cl.describeVolumesModifications(input);
+      try {
+        const volModif = data.VolumesModifications?.pop();
+        // If state is not 'completed' or 'failed' retry
+        if (!Object.is(volModif?.ModificationState, 'completed') && !Object.is(volModif?.ModificationState, 'failed')) {
+          return { state: WaiterState.RETRY };
+        }
+        return { state: WaiterState.SUCCESS };
+      } catch (e: any) {
+        throw e;
+      }
+    },
+  );
 }
 
 export { AWS }
