@@ -193,16 +193,19 @@ export const AwsEc2Module: Module2 = new Module2({
                 attachedVolume.attachedInstance = newEntity;
                 // If this is a replace path, there could be already a root volume in db, we need to find it and delete it
                 // before creating the new one.
-                const dbAttachedVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-                  where: {
-                    attachedInstance: {
-                      id: newEntity.id
+                if (instance.instanceId) {
+                  const rawPreviousInstance: AWSInstance = await getInstance(client.ec2client, instance.instanceId);
+                  const dbAttachedVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
+                    where: {
+                      attachedInstance: {
+                        id: newEntity.id
+                      },
+                      instanceDeviceName: rawPreviousInstance.RootDeviceName,
                     },
-                    instanceDeviceName: attachedVolume.instanceDeviceName,
-                  },
-                  relations: ['attachedInstance'],
-                });
-                if (dbAttachedVolume) await AwsEc2Module.mappers.generalPurposeVolume.db.delete(dbAttachedVolume, ctx);
+                    relations: ['attachedInstance'],
+                  });
+                  if (dbAttachedVolume) await AwsEc2Module.mappers.generalPurposeVolume.db.delete(dbAttachedVolume, ctx);
+                }
                 await AwsEc2Module.mappers.generalPurposeVolume.db.create(attachedVolume, ctx);
               }
             }
