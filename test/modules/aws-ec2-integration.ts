@@ -567,7 +567,7 @@ describe('EC2 Integration Testing', () => {
     .then(...finish(done)));
 });
 
-describe('Ec2 general purpose volume Integration Testing', () => {
+describe('EC2 General Purpose Volume Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
     'not-needed', 'not-needed').then(...finish(done)));
