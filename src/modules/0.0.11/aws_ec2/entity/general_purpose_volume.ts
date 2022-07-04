@@ -12,7 +12,7 @@ import {
 } from 'typeorm'
 
 import { cloudId, } from '../../../../services/cloud-id'
-import { Instance } from '../../aws_ec2/entity';
+import { Instance } from '../entity';
 import { AvailabilityZone } from '../../aws_vpc/entity';
 
 export enum GeneralPurposeVolumeType {

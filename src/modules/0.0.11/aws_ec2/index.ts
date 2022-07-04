@@ -1,248 +1,46 @@
 import {
-  EC2,
   Instance as AWSInstance,
   InstanceLifecycle,
   RunInstancesCommandInput,
-  DescribeInstancesCommandInput,
-  paginateDescribeInstances,
   Tag as AWSTag,
+  Volume as AWSVolume,
+  CreateVolumeCommandInput,
+  ModifyVolumeCommandInput,
 } from '@aws-sdk/client-ec2'
-import {
-  ElasticLoadBalancingV2,
-  paginateDescribeTargetGroups,
-  TargetTypeEnum,
-} from '@aws-sdk/client-elastic-load-balancing-v2'
-import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
-import { Instance, RegisteredInstance, State, } from './entity'
+import { GeneralPurposeVolume, GeneralPurposeVolumeType, Instance, RegisteredInstance, State, VolumeState, } from './entity'
 import { AwsSecurityGroupModule, } from '../aws_security_group'
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
 import { AwsIamModule } from '../aws_iam'
 import { AwsVpcModule } from '../aws_vpc'
-import { AwsEbsModule } from '../aws_ebs'
-import { getVolumeByInstanceId, waitUntilAvailable, waitUntilDeleted, waitUntilInUse } from '../aws_ebs/aws_helper'
-
-const getInstanceUserData = crudBuilderFormat<EC2, 'describeInstanceAttribute', string | undefined>(
-  'describeInstanceAttribute',
-  (InstanceId) => ({ Attribute: 'userData', InstanceId, }),
-  (res) => res?.UserData?.Value,
-);
-// TODO: Macro-ify the waiter usage
-async function newInstance(client: EC2, newInstancesInput: RunInstancesCommandInput): Promise<string> {
-  const create = await client.runInstances(newInstancesInput);
-  const instanceIds: string[] | undefined = create.Instances?.map((i) => i?.InstanceId ?? '');
-  const input: DescribeInstancesCommandInput = {
-    InstanceIds: instanceIds,
-  };
-  // TODO: should we use the paginator instead?
-  await createWaiter<EC2, DescribeInstancesCommandInput>(
-    {
-      client,
-      // all in seconds
-      maxWaitTime: 300,
-      minDelay: 1,
-      maxDelay: 4,
-    },
-    input,
-    async (cl, cmd) => {
-      try {
-        const data = await cl.describeInstances(cmd);
-        for (const reservation of data?.Reservations ?? []) {
-          for (const instance of reservation?.Instances ?? []) {
-            if (instance.PublicIpAddress === undefined || instance.State?.Name !== 'running')
-              return { state: WaiterState.RETRY };
-          }
-        }
-        return { state: WaiterState.SUCCESS };
-      } catch (e: any) {
-        if (e.Code === 'InvalidInstanceID.NotFound')
-          return { state: WaiterState.RETRY };
-        throw e;
-      }
-    },
-  );
-  return instanceIds?.pop() ?? '';
-}
-const describeInstances = crudBuilder2<EC2, 'describeInstances'>(
-  'describeInstances',
-  (InstanceIds) => ({ InstanceIds, }),
-);
-const getInstance = async (client: EC2, id: string) => {
-  const reservations = await describeInstances(client, [id]);
-  return (reservations?.Reservations?.map((r: any) => r.Instances) ?? []).pop()?.pop();
-}
-const getInstances = paginateBuilder<EC2>(paginateDescribeInstances, 'Instances', 'Reservations');
-// TODO: Macro-ify this somehow?
-async function updateTags(client: EC2, resourceId: string, tags?: { [key: string] : string }) {
-  let tgs: AWSTag[] = [];
-  if (tags) {
-    tgs = Object.keys(tags).map(k => {
-      return {
-        Key: k, Value: tags[k]
-      }
-    });
-  }
-  // recreate tags
-  await client.deleteTags({
-    Resources: [resourceId],
-  });
-  await client.createTags({
-    Resources: [resourceId],
-    Tags: tgs,
-  })
-}
-// TODO: More to fix
-async function startInstance(client: EC2, instanceId: string) {
-  await client.startInstances({
-    InstanceIds: [instanceId],
-  });
-  const input: DescribeInstancesCommandInput = {
-    InstanceIds: [instanceId],
-  };
-  await createWaiter<EC2, DescribeInstancesCommandInput>(
-    {
-      client,
-      // all in seconds
-      maxWaitTime: 300,
-      minDelay: 1,
-      maxDelay: 4,
-    },
-    input,
-    async (cl, cmd) => {
-      try {
-        const data = await cl.describeInstances(cmd);
-        for (const reservation of data?.Reservations ?? []) {
-          for (const instance of reservation?.Instances ?? []) {
-            if (instance.State?.Name !== 'running')
-              return { state: WaiterState.RETRY };
-          }
-        }
-        return { state: WaiterState.SUCCESS };
-      } catch (e: any) {
-        if (e.Code === 'InvalidInstanceID.NotFound')
-          return { state: WaiterState.SUCCESS };
-        throw e;
-      }
-    },
-  );
-}
-// TODO: Macro-ify this
-async function stopInstance(client: EC2, instanceId: string, hibernate = false) {
-  await client.stopInstances({
-    InstanceIds: [instanceId],
-    Hibernate: hibernate,
-  });
-  const input: DescribeInstancesCommandInput = {
-    InstanceIds: [instanceId],
-  };
-  await createWaiter<EC2, DescribeInstancesCommandInput>(
-    {
-      client,
-      // all in seconds
-      maxWaitTime: 300,
-      minDelay: 1,
-      maxDelay: 4,
-    },
-    input,
-    async (cl, cmd) => {
-      try {
-        const data = await cl.describeInstances(cmd);
-        for (const reservation of data?.Reservations ?? []) {
-          for (const instance of reservation?.Instances ?? []) {
-            if (instance.State?.Name !== 'stopped')
-              return { state: WaiterState.RETRY };
-          }
-        }
-        return { state: WaiterState.SUCCESS };
-      } catch (e: any) {
-        if (e.Code === 'InvalidInstanceID.NotFound')
-          return { state: WaiterState.SUCCESS };
-        throw e;
-      }
-    },
-  );
-}
-const terminateInstance = crudBuilderFormat<EC2, 'terminateInstances', undefined>(
-  'terminateInstances',
-  (id) => ({ InstanceIds: [id], }),
-  (_res) => undefined,
-);
-const registerInstance = crudBuilderFormat<ElasticLoadBalancingV2, 'registerTargets', undefined>(
-  'registerTargets',
-  (Id: string, TargetGroupArn: string, Port?: number) => {
-    const target: any = {
-      Id,
-    };
-    if (Port) target.Port = Port;
-    return {
-      TargetGroupArn,
-      Targets: [target],
-    }
-  },
-  (_res) => undefined,
-);
-const getTargetGroups = paginateBuilder<ElasticLoadBalancingV2>(
-  paginateDescribeTargetGroups,
-  'TargetGroups',
-);
-// TODO: Macro-ify this
-async function getRegisteredInstances(client: ElasticLoadBalancingV2) {
-  const targetGroups = await getTargetGroups(client);
-  const instanceTargetGroups = targetGroups.filter(tg => Object.is(tg.TargetType, TargetTypeEnum.INSTANCE)) ?? [];
-  const out = [];
-  for (const tg of instanceTargetGroups) {
-    const res = await client.describeTargetHealth({
-      TargetGroupArn: tg.TargetGroupArn,
-    });
-    out.push(...(res.TargetHealthDescriptions?.map(thd => (
-      {
-        targetGroupArn: tg.TargetGroupArn,
-        instanceId: thd.Target?.Id,
-        port: thd.Target?.Port,
-      }
-    )) ?? []));
-  }
-  return out;
-}
-const getRegisteredInstance = crudBuilderFormat<
-  ElasticLoadBalancingV2,
-  'describeTargetHealth',
-  { targetGroupArn: string, instanceId: string | undefined, port: number | undefined, } | undefined
->(
-  'describeTargetHealth',
-  (Id: string, TargetGroupArn: string, Port?: string) => {
-    const target: any = { Id, };
-    if (Port) target.Port = Port;
-    return {
-      TargetGroupArn,
-      Targets: [target],
-    };
-  },
-  (res, _Id, TargetGroupArn, _Port?) => [
-    ...(res?.TargetHealthDescriptions?.map(thd => ({
-      targetGroupArn: TargetGroupArn,
-      instanceId: thd.Target?.Id,
-      port: thd.Target?.Port,
-    })) ?? [])
-  ].pop(),
-);
-const deregisterInstance = crudBuilderFormat<ElasticLoadBalancingV2, 'deregisterTargets', undefined>(
-  'deregisterTargets',
-  (Id: string, TargetGroupArn: string, Port?: number) => {
-    const target: any = {
-      Id,
-    };
-    if (Port) target.Port = Port;
-    return {
-      TargetGroupArn,
-      Targets: [target],
-    }
-  },
-  (_res) => undefined,
-);
+import { AvailabilityZone } from '../aws_vpc/entity'
+import {
+  AWS,
+  attachVolume,
+  createVolume,
+  deleteVolume,
+  detachVolume,
+  getGeneralPurposeVolumes,
+  getVolume,
+  getVolumeByInstanceId,
+  updateVolume,
+  waitUntilDeleted,
+  waitUntilInUse,
+  getInstanceUserData,
+  newInstance,
+  getInstance,
+  getInstances,
+  updateTags,
+  startInstance,
+  stopInstance,
+  terminateInstance,
+  registerInstance,
+  getRegisteredInstance,
+  getRegisteredInstances,
+  deregisterInstance,
+} from './aws'
 
 export const AwsEc2Module: Module2 = new Module2({
   ...metadata,
@@ -305,6 +103,32 @@ export const AwsEc2Module: Module2 = new Module2({
       out.port = registeredInstance.port ? +registeredInstance.port : undefined;
       return out;
     },
+    generalPurposeVolumeMapper: async (vol: AWSVolume, ctx: Context) => {
+      const out = new GeneralPurposeVolume();
+      if (!vol?.VolumeId) return undefined;
+      out.volumeId = vol.VolumeId;
+      out.volumeType = vol.VolumeType as GeneralPurposeVolumeType;
+      out.availabilityZone = vol.AvailabilityZone as AvailabilityZone;
+      out.size = vol.Size ?? 1;
+      out.iops = vol.Iops;
+      out.throughput = vol.Throughput;
+      out.state = vol.State as VolumeState;
+      out.snapshotId = vol.SnapshotId;
+      if (vol.Attachments?.length) {
+        const attachment = vol.Attachments.pop();
+        out.attachedInstance = await AwsEc2Module.mappers.instance.db.read(ctx, attachment?.InstanceId) ??
+          await AwsEc2Module.mappers.instance.cloud.read(ctx, attachment?.InstanceId);
+        out.instanceDeviceName = attachment?.Device;
+      }
+      if (vol.Tags?.length) {
+        const tags: { [key: string]: string } = {};
+        vol.Tags.filter((t: any) => !!t.Key && !!t.Value).forEach((t: any) => {
+          tags[t.Key as string] = t.Value as string;
+        });
+        out.tags = tags;
+      }
+      return out;
+    },
   },
   mappers: {
     instance: new Mapper2<Instance>({
@@ -356,16 +180,11 @@ export const AwsEc2Module: Module2 = new Module2({
               if (!instanceId) { // then who?
                 throw new Error('should not be possible');
               }
-              // Update ebs volumes if necessary
-              try {
-                const attachedVolume = await getVolumeByInstanceId(client.ec2client, instanceId);
-                await waitUntilInUse(client.ec2client, attachedVolume?.VolumeId ?? '');
-                delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[attachedVolume?.VolumeId ?? ''];
-                await AwsEbsModule.mappers.generalPurposeVolume.db.create(attachedVolume, ctx);
-              } catch (_) {
-                // Do nothing
-                // AwsEbsModule could not be installed and that's ok since ec2 does not depends directly on ebs
-              }
+              // Attach volume
+              const attachedVolume = await getVolumeByInstanceId(client.ec2client, instanceId);
+              await waitUntilInUse(client.ec2client, attachedVolume?.VolumeId ?? '');
+              delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[attachedVolume?.VolumeId ?? ''];
+              await AwsEc2Module.mappers.generalPurposeVolume.db.create(attachedVolume, ctx);
               const newEntity = await AwsEc2Module.mappers.instance.cloud.read(ctx, instanceId);
               newEntity.id = instance.id;
               await AwsEc2Module.mappers.instance.db.update(newEntity, ctx);
@@ -425,16 +244,11 @@ export const AwsEc2Module: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           for (const entity of es) {
             if (entity.instanceId) await terminateInstance(client.ec2client, entity.instanceId);
-            // Update ebs volumes if necessary
-            try {
-              const attachedVolume = await getVolumeByInstanceId(client.ec2client, entity.instanceId ?? '');
-              await waitUntilDeleted(client.ec2client, attachedVolume?.VolumeId ?? '');
-              delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[attachedVolume?.VolumeId ?? ''];
-              await AwsEbsModule.mappers.generalPurposeVolume.db.delete(attachedVolume, ctx);
-            } catch (_) {
-              // Do nothing
-              // AwsEbsModule could not be installed and that's ok since ec2 does not depends directly on ebs
-            }
+            // Remove attached volume
+            const attachedVolume = await getVolumeByInstanceId(client.ec2client, entity.instanceId ?? '');
+            await waitUntilDeleted(client.ec2client, attachedVolume?.VolumeId ?? '');
+            delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[attachedVolume?.VolumeId ?? ''];
+            await AwsEc2Module.mappers.generalPurposeVolume.db.delete(attachedVolume, ctx);
           }
         },
       }),
@@ -499,6 +313,157 @@ export const AwsEc2Module: Module2 = new Module2({
           for (const e of es) {
             if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn) throw new Error('Valid targetGroup and instance needed.');
             await deregisterInstance(client.elbClient, e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
+          }
+        },
+      }),
+    }),
+    generalPurposeVolume: new Mapper2<GeneralPurposeVolume>({
+      entity: GeneralPurposeVolume,
+      equals: (a: GeneralPurposeVolume, b: GeneralPurposeVolume) => Object.is(a.attachedInstance?.instanceId, b.attachedInstance?.instanceId)
+        && Object.is(a.instanceDeviceName, b.instanceDeviceName)
+        && Object.is(a.availabilityZone, b.availabilityZone)
+        && Object.is(a.iops, b.iops)
+        && Object.is(a.size, b.size)
+        && Object.is(a.state, b.state)
+        && Object.is(a.throughput, b.throughput)
+        && Object.is(a.volumeType, b.volumeType)
+        && Object.is(a.snapshotId, b.snapshotId)
+        && AwsEc2Module.utils.eqTags(a.tags, b.tags),
+      source: 'db',
+      cloud: new Crud2({
+        create: async (es: GeneralPurposeVolume[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          const out = []
+          for (const e of es) {
+            if (e.attachedInstance && !e.attachedInstance.instanceId) {
+              throw new Error('Want to attach volume to an instance not created yet');
+            }
+            const input: CreateVolumeCommandInput = {
+              AvailabilityZone: e.availabilityZone,
+              VolumeType: e.volumeType,
+              Size: e.size,
+              Iops: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.iops : undefined,
+              Throughput:  e.volumeType === GeneralPurposeVolumeType.GP3 ? e.throughput : undefined,
+              SnapshotId: e.snapshotId,
+            };
+            if (e.tags && Object.keys(e.tags).length) {
+              const tags: AWSTag[] = Object.keys(e.tags).map((k: string) => {
+                return {
+                  Key: k, Value: e.tags![k],
+                }
+              });
+              input.TagSpecifications = [
+                {
+                  ResourceType: 'volume',
+                  Tags: tags,
+                },
+              ]
+            }
+            const newVolumeId = await createVolume(client.ec2client, input);
+            if (newVolumeId && e.attachedInstance?.instanceId && e.instanceDeviceName) {
+              await attachVolume(client.ec2client, newVolumeId, e.attachedInstance.instanceId, e.instanceDeviceName);
+            }
+            // Re-get the inserted record to get all of the relevant records we care about
+            const newObject = await getVolume(client.ec2client, newVolumeId);
+            // We map this into the same kind of entity as `obj`
+            const newEntity = await AwsEc2Module.utils.generalPurposeVolumeMapper(newObject, ctx);
+            // Save the record back into the database to get the new fields updated
+            newEntity.id = e.id;
+            await AwsEc2Module.mappers.generalPurposeVolume.db.update(newEntity, ctx);
+            out.push(newEntity);
+          }
+          return out;
+        },
+        read: async (ctx: Context, id?: string) => {
+          const client = await ctx.getAwsClient() as AWS;
+          if (id) {
+            const rawVolume = await getVolume(client.ec2client, id);
+            if (!rawVolume) return;
+            return AwsEc2Module.utils.generalPurposeVolumeMapper(rawVolume, ctx);
+          } else {
+            const rawVolumes = (await getGeneralPurposeVolumes(client.ec2client)) ?? [];
+            const out = [];
+            for (const vol of rawVolumes) {
+              out.push(await AwsEc2Module.utils.generalPurposeVolumeMapper(vol, ctx));
+            }
+            return out;
+          }
+        },
+        updateOrReplace: (prev: GeneralPurposeVolume, next: GeneralPurposeVolume) => {
+          if (!Object.is(prev.availabilityZone, next.availabilityZone) || !Object.is(prev.snapshotId, next.snapshotId)) return 'replace';
+          return 'update';
+        },
+        update: async (es: GeneralPurposeVolume[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          const out = [];
+          for (const e of es) {
+            const cloudRecord = ctx?.memo?.cloud?.GeneralPurposeVolume?.[e.volumeId ?? ''];
+            const isUpdate = AwsEc2Module.mappers.generalPurposeVolume.cloud.updateOrReplace(cloudRecord, e) === 'update';
+            if (isUpdate) {
+              let update = false;
+              // Update volume
+              if (!(Object.is(cloudRecord.iops, e.iops) && Object.is(cloudRecord.size, e.size)
+                && Object.is(cloudRecord.throughput, e.throughput) && Object.is(cloudRecord.volumeType, e.volumeType))) {
+                if (e.volumeType === GeneralPurposeVolumeType.GP2) {
+                  e.throughput = undefined;
+                  e.iops = undefined;
+                }
+                const input: ModifyVolumeCommandInput = {
+                  VolumeId: e.volumeId,
+                  Size: e.size,
+                  Throughput: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.throughput : undefined,
+                  Iops: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.iops : undefined,
+                  VolumeType: e.volumeType,
+                };
+                await updateVolume(client.ec2client, input)
+                update = true;
+              }
+              // Update tags
+              if (!AwsEc2Module.utils.eqTags(cloudRecord.tags, e.tags)) {
+                await updateTags(client.ec2client, e.volumeId ?? '', e.tags);
+                update = true;
+              }
+              // Attach/detach instance
+              if (!(Object.is(cloudRecord.attachedInstance?.instanceId, e.attachedInstance?.instanceId)
+                && Object.is(cloudRecord.instanceDeviceName, e.instanceDeviceName))) {
+                if (!cloudRecord.attachedInstance?.instanceId && e.attachedInstance?.instanceId) {
+                  await attachVolume(client.ec2client, e.volumeId ?? '', e.attachedInstance.instanceId, e.instanceDeviceName ?? '');
+                } else if (cloudRecord.attachedInstance?.instanceId && !e.attachedInstance?.instanceId) {
+                  await detachVolume(client.ec2client, e.volumeId ?? '');
+                } else {
+                  await detachVolume(client.ec2client, e.volumeId ?? '');
+                  await attachVolume(client.ec2client, e.volumeId ?? '', e.attachedInstance?.instanceId ?? '', e.instanceDeviceName ?? '');
+                }
+                update = true;
+              }
+              if (update) {
+                const rawVolume = await getVolume(client.ec2client, e.volumeId);
+                const updatedVolume = await AwsEc2Module.utils.generalPurposeVolumeMapper(rawVolume, ctx);
+                updatedVolume.id = e.id;
+                await AwsEc2Module.mappers.generalPurposeVolume.db.update(updatedVolume, ctx);
+                out.push(updatedVolume);
+              } else {
+                // Restore
+                cloudRecord.id = e.id;
+                await AwsEc2Module.mappers.generalPurposeVolume.db.update(cloudRecord, ctx);
+                out.push(cloudRecord);
+              }
+            } else {
+              // Replace
+              const newVolume = await AwsEc2Module.mappers.generalPurposeVolume.cloud.create(e, ctx);
+              await AwsEc2Module.mappers.generalPurposeVolume.cloud.delete(cloudRecord, ctx);
+              out.push(newVolume);
+            }
+          }
+          return out;
+        },
+        delete: async (vol: GeneralPurposeVolume[], ctx: Context) => {
+          const client = await ctx.getAwsClient() as AWS;
+          for (const e of vol) {
+            if (e.attachedInstance) {
+              await detachVolume(client.ec2client, e.volumeId ?? '');
+            }
+            await deleteVolume(client.ec2client, e.volumeId ?? '');
           }
         },
       }),
