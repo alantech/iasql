@@ -1,7 +1,40 @@
-import { Subnet as AwsSubnet, Vpc as AwsVpc } from '@aws-sdk/client-ec2'
-import { CreateLoadBalancerCommandInput } from '@aws-sdk/client-elastic-load-balancing-v2';
+import {
+  AuthorizeSecurityGroupEgressCommandInput,
+  AuthorizeSecurityGroupIngressCommandInput,
+  EC2,
+  RevokeSecurityGroupEgressCommandInput,
+  Subnet as AwsSubnet,
+  Vpc as AwsVpc,
+  paginateDescribeSecurityGroupRules,
+} from '@aws-sdk/client-ec2'
+import {
+  CreateLoadBalancerCommandInput,
+  DescribeLoadBalancersCommandInput,
+  ElasticLoadBalancingV2,
+  Listener as ListenerAws,
+  TargetGroup as TargetGroupAws,
+} from '@aws-sdk/client-elastic-load-balancing-v2';
+import { CloudWatchLogs, } from '@aws-sdk/client-cloudwatch-logs'
+import {
+  ECR,
+  Repository as RepositoryAws,
+} from '@aws-sdk/client-ecr'
+import { IAM, } from '@aws-sdk/client-iam'
+import {
+  Cluster as AwsCluster,
+  ECS,
+  Service as AwsService,
+  TaskDefinition as AwsTaskDefinition,
+} from '@aws-sdk/client-ecs'
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
-import { AWS } from '../../../services/gateways/aws_2';
+import {
+  AWS,
+  crudBuilder2,
+  crudBuilderFormat,
+  mapLin,
+  paginateBuilder,
+} from '../../../services/aws_macros'
 import { LogGroup } from '../aws_cloudwatch/entity';
 import { Repository } from '../aws_ecr/entity';
 import { Cluster, ContainerDefinition, Service, TaskDefinition } from '../aws_ecs_fargate/entity';
@@ -9,14 +42,125 @@ import { Listener, LoadBalancer, TargetGroup } from '../aws_elb/entity';
 import { Role } from '../aws_iam/entity';
 import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity';
 
+const createSecurityGroup = crudBuilder2<EC2, 'createSecurityGroup'>(
+  'createSecurityGroup',
+  (input) => input,
+);
+const getSecurityGroupRules = paginateBuilder<EC2>(
+  paginateDescribeSecurityGroupRules,
+  'SecurityGroupRules',
+);
+const deleteSecurityGroupEgressRules = async (
+  client: EC2,
+  rules: RevokeSecurityGroupEgressCommandInput[],
+) => mapLin(rules, client.revokeSecurityGroupEgress.bind(client));
+const createSecurityGroupEgressRules = async (
+  client: EC2,
+  rules: AuthorizeSecurityGroupEgressCommandInput[],
+) => mapLin(rules, client.authorizeSecurityGroupEgress.bind(client));
+const createSecurityGroupIngressRules = async (
+  client: EC2,
+  rules: AuthorizeSecurityGroupIngressCommandInput[],
+) => mapLin(rules, client.authorizeSecurityGroupIngress.bind(client));
+const createTargetGroup = crudBuilderFormat<
+  ElasticLoadBalancingV2,
+  'createTargetGroup',
+  TargetGroupAws | undefined
+>(
+  'createTargetGroup',
+  (input) => input,
+  (res) => res?.TargetGroups?.pop(),
+);
+const createListener = crudBuilderFormat<
+  ElasticLoadBalancingV2,
+  'createListener',
+  ListenerAws | undefined
+>(
+  'createListener',
+  (input) => input,
+  (res) => res?.Listeners?.pop(),
+);
+const createLogGroup = crudBuilderFormat<CloudWatchLogs, 'createLogGroup', undefined>(
+  'createLogGroup',
+  (logGroupName) => ({ logGroupName, }),
+  (_lg) => undefined,
+);
+const createECRRepository = crudBuilderFormat<ECR, 'createRepository', RepositoryAws | undefined>(
+  'createRepository',
+  (input) => input,
+  (res) => res?.repository,
+);
+const createNewRole = crudBuilderFormat<IAM, 'createRole', string>(
+  'createRole',
+  (input) => input,
+  (res) => res?.Role?.Arn ?? '',
+);
+const createCluster = crudBuilderFormat<ECS, 'createCluster', AwsCluster | undefined>(
+  'createCluster',
+  (input) => input,
+  (res) => res?.cluster,
+);
+const createTaskDefinition = crudBuilderFormat<
+  ECS,
+  'registerTaskDefinition',
+  AwsTaskDefinition | undefined
+>(
+  'registerTaskDefinition',
+  (input) => input,
+  (res) => res?.taskDefinition,
+);
+const createService = crudBuilderFormat<ECS, 'createService', AwsService | undefined>(
+  'createService',
+  (input) => input,
+  (res) => res?.service,
+);
+
+// TODO: Create a waiter macro function
+async function createLoadBalancer(
+  client: ElasticLoadBalancingV2,
+  input: CreateLoadBalancerCommandInput
+) {
+  const create = await client.createLoadBalancer(input);
+  let loadBalancer = create?.LoadBalancers?.pop() ?? null;
+  if (!loadBalancer) return loadBalancer;
+  const waiterInput: DescribeLoadBalancersCommandInput = {
+    LoadBalancerArns: [loadBalancer?.LoadBalancerArn!],
+  };
+  // TODO: should we use the paginator instead?
+  await createWaiter<ElasticLoadBalancingV2, DescribeLoadBalancersCommandInput>(
+    {
+      client,
+      // all in seconds
+      maxWaitTime: 600,
+      minDelay: 1,
+      maxDelay: 4,
+    },
+    waiterInput,
+    async (cl, cmd) => {
+      try {
+        const data = await cl.describeLoadBalancers(cmd);
+        for (const lb of data?.LoadBalancers ?? []) {
+          if (lb.State?.Code !== 'active')
+            return { state: WaiterState.RETRY };
+          loadBalancer = lb;
+        }
+        return { state: WaiterState.SUCCESS };
+      } catch (e: any) {
+        return { state: WaiterState.RETRY };
+      }
+    },
+  );
+  return loadBalancer;
+}
+
 const cloudCreateFns = {
   securityGroup: async (client: AWS, e: SecurityGroup, defaultVpc: AwsVpc) => {
-    const res = await client.createSecurityGroup({
+    const res = await createSecurityGroup(client.ec2client, {
       Description: e.description,
       GroupName: e.groupName,
       VpcId: defaultVpc.VpcId,
     });
-    e.groupId = res.GroupId;
+    e.groupId = res?.GroupId;
     return res;
   },
   securityGroupRules: async (client: AWS, es: SecurityGroupRule[],) => {
@@ -37,19 +181,19 @@ const cloudCreateFns = {
       let res;
       if (e.isEgress) {
         // By default there is an egress rule, lets delete it and create the new one to be able to identify it with our description
-        const securityGroupRules = await (await client.getSecurityGroupRules()).SecurityGroupRules ?? [];
+        const securityGroupRules = await getSecurityGroupRules(client.ec2client) ?? [];
         const securityGroupRule = securityGroupRules.find(sgr => Object.is(sgr.GroupId, e.securityGroup.groupId)
           && Object.is(sgr.CidrIpv4, e.cidrIpv4) && Object.is(sgr.FromPort, e.fromPort) && Object.is(sgr.ToPort, e.toPort));
-        await client.deleteSecurityGroupEgressRules([{
+        await deleteSecurityGroupEgressRules(client.ec2client, [{
           GroupId,
           SecurityGroupRuleIds: [securityGroupRule?.SecurityGroupRuleId ?? ''],
         }]);
-        res = (await client.createSecurityGroupEgressRules([{
+        res = (await createSecurityGroupEgressRules(client.ec2client, [{
           GroupId,
           IpPermissions: [newRule],
         }]))[0];
       } else {
-        res = (await client.createSecurityGroupIngressRules([{
+        res = (await createSecurityGroupIngressRules(client.ec2client, [{
           GroupId,
           IpPermissions: [newRule],
         }]))[0];
@@ -60,7 +204,7 @@ const cloudCreateFns = {
     return out;
   },
   targetGroup: async (client: AWS, e: TargetGroup, defaultVpc: AwsVpc) => {
-    const res = await client.createTargetGroup({
+    const res = await createTargetGroup(client.elbClient, {
       Name: e.targetGroupName,
       TargetType: e.targetType,
       Port: e.port,
@@ -90,13 +234,13 @@ const cloudCreateFns = {
       CustomerOwnedIpv4Pool: e.customerOwnedIpv4Pool,
       SecurityGroups: e.securityGroups?.map(sg => sg.groupId ?? ''),
     };
-    const res = await client.createLoadBalancer(input);
+    const res = await createLoadBalancer(client.elbClient, input);
     e.loadBalancerArn = res?.LoadBalancerArn;
     e.dnsName = res?.DNSName;
     return res;
   },
   listener: async (client: AWS, e: Listener) => {
-    const res = await client.createListener({
+    const res = await createListener(client.elbClient, {
       Port: e.port,
       Protocol: e.protocol,
       LoadBalancerArn: e.loadBalancer?.loadBalancerArn,
@@ -105,9 +249,9 @@ const cloudCreateFns = {
     e.listenerArn = res?.ListenerArn;
     return res;
   },
-  logGroup: (client: AWS, e: LogGroup) => client.createLogGroup(e.logGroupName),
+  logGroup: (client: AWS, e: LogGroup) => createLogGroup(client.cwClient, e.logGroupName),
   repository: async (client: AWS, e: Repository) => {
-    const res = await client.createECRRepository({
+    const res = await createECRRepository(client.ecrClient, {
       repositoryName: e.repositoryName,
       imageTagMutability: e.imageTagMutability,
       imageScanningConfiguration: {
@@ -119,7 +263,8 @@ const cloudCreateFns = {
     return res;
   },
   role: async (client: AWS, e: Role) => {
-    const res = await client.newRoleLin(
+    const res = await createNewRole(
+      client.iamClient,
       e.roleName,
       JSON.stringify(e.assumeRolePolicyDocument),
       e.attachedPoliciesArns ?? [],
@@ -129,7 +274,7 @@ const cloudCreateFns = {
     return res;
   },
   cluster: async (client: AWS, e: Cluster) => {
-    const res = await client.createCluster({
+    const res = await createCluster(client.ecsClient, {
       clusterName: e.clusterName,
     });
     e.clusterArn = res?.clusterArn;
@@ -177,7 +322,7 @@ const cloudCreateFns = {
       const memory = memoryStr.split('GB')[0];
       input.memory = `${+memory * 1024}`;
     }
-    const res = await client.createTaskDefinition(input);
+    const res = await createTaskDefinition(client.ecsClient, input);
     td.taskDefinitionArn = res?.taskDefinitionArn;
     return res;
   },
@@ -202,7 +347,7 @@ const cloudCreateFns = {
         containerPort: cd.containerPort,
       }],
     };
-    const res = await client.createService(input);
+    const res = await createService(client.ecsClient, input);
     e.arn = res?.serviceArn;
     return res;
   },
