@@ -491,7 +491,7 @@ describe('EC2 Integration Testing', () => {
       DELETE FROM general_purpose_volume
       USING instance
       WHERE instance.id = general_purpose_volume.attached_instance_id AND 
-        (tags ->> 'name' = '${prefix}-nosg' OR
+        (instance.tags ->> 'name' = '${prefix}-nosg' OR
         instance.tags ->> 'name' = '${prefix}-1' OR
         instance.tags ->> 'name' = '${prefix}-2');
 
