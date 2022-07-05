@@ -3,6 +3,7 @@
 // meta operations within the module code itself, if desirable.
 import { exec as execNode, } from 'child_process'
 import { promisify, } from 'util'
+import pg from 'pg'
 const exec = promisify(execNode);
 
 import * as levenshtein from 'fastest-levenshtein'
@@ -179,16 +180,31 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
     connMain = await createConnection({ ...dbMan.baseConnConfig, database, name: pass, });
     await connMain.query(dbMan.newPostgresRoleQuery(user, pass, database));
     await connMain.query(dbMan.grantPostgresRoleQuery(user));
-    connTemp = await createConnection({ ...dbMan.baseConnConfig, database, name: user, });
+    connTemp = new pg.Client({
+      database,
+      user: dbMan.baseConnConfig.username,
+      password: dbMan.baseConnConfig.password,
+      host: dbMan.baseConnConfig.host,
+      ssl: dbMan.baseConnConfig.extra.ssl,
+    });
+    await connTemp.connect();
     const out = await connTemp.query(sql);
-    return out;
+    // Let's make this a bit easier to parse. Error -> string, single table -> array of objects,
+    // multiple tables -> array of array of objects
+    if (typeof out === 'string') {
+      return out;
+    } else if (!!out.rows) {
+      return out.rows;
+    } else if (out instanceof Array) {
+      return out.map(t => t.rows);
+    }
   } catch (e: any) {
     // re-throw
     throw e;
   } finally {
     // Put this in a timeout so it doesn't block returning to the user
     setTimeout(async () => {
-      await connTemp?.close();
+      await connTemp?.end();
       await connMain?.query(dbMan.revokePostgresRoleQuery(user, database));
       await connMain?.query(dbMan.dropPostgresRoleQuery(user));
       await connMain?.close();
