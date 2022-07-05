@@ -489,10 +489,11 @@ describe('EC2 Integration Testing', () => {
   it('deletes all ec2 instances', query(`
     BEGIN;
       DELETE FROM general_purpose_volume
-      INNER JOIN instance on instance.id = general_purpose_volume.attached_instance_id
-      WHERE tags ->> 'name' = '${prefix}-nosg' OR
+      USING instance
+      WHERE instance.id = general_purpose_volume.attached_instance_id AND 
+        (tags ->> 'name' = '${prefix}-nosg' OR
         instance.tags ->> 'name' = '${prefix}-1' OR
-        instance.tags ->> 'name' = '${prefix}-2';
+        instance.tags ->> 'name' = '${prefix}-2');
 
       DELETE FROM instance
       WHERE tags ->> 'name' = '${prefix}-nosg' OR
