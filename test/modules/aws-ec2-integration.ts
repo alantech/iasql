@@ -1,13 +1,11 @@
 import config from '../../src/config';
-const vpcEntity = require(`../../src/modules/${config.modules.latestVersion}/aws_vpc/entity`);
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const dbAlias = 'ec2test';
-// specific to us-west-2, varies per region
-const region = 'us-west-2'
-const amznAmiId = 'ami-06cffe063efe892ad';
-const ubuntuAmiId = 'ami-0892d3c7ee96c0bf7';
+const region = process.env.AWS_REGION;
+const amznAmiId = 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2';
+const ubuntuAmiId = 'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 const instancePort = 1234;
 
 const prefix = getPrefix();
@@ -31,7 +29,7 @@ const tgPort = 4142;
 const protocol = ProtocolEnum.HTTP;
 
 // IAM integration
-const roleName = `${prefix}-ec2-${process.env.AWS_REGION}`;
+const roleName = `${prefix}-ec2-${region}`;
 const ec2RolePolicy = JSON.stringify({
   "Version": "2012-10-17",
   "Statement": [
@@ -45,15 +43,17 @@ const ec2RolePolicy = JSON.stringify({
   ]
 });
 
-// VPC integration
-const availabilityZone = `${region}c`;
-
-// EBS integration
-const gp2VolumeName = `${prefix}gp2volume`;
-const gp3VolumeName = `${prefix}gp3volume`;
-const availabilityZones = Object.values(vpcEntity.AvailabilityZone as string []).filter((az: string) => az.includes(process.env.AWS_REGION ?? ''));
+// Get Availability zones dynamically
+const {
+  AvailabilityZone,
+} = require(`../../src/modules/${config.modules.latestVersion}/aws_vpc/entity`);
+const availabilityZones = Object.values(AvailabilityZone as string []).filter((az: string) => az.includes(region ?? ''));
 const availabilityZone1 = availabilityZones.pop();
 const availabilityZone2 = availabilityZones.pop();
+
+// Ebs integration
+const gp2VolumeName = `${prefix}gp2volume`;
+const gp3VolumeName = `${prefix}gp3volume`;
 
 jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
@@ -130,7 +130,7 @@ describe('EC2 Integration Testing', () => {
       INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
         SELECT '${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}', 'pwd;', id
         FROM subnet
-        WHERE availability_zone = '${availabilityZone}'
+        WHERE availability_zone = '${availabilityZone1}'
         LIMIT 1;
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
