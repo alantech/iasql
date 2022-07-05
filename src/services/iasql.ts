@@ -88,6 +88,7 @@ export async function connect(
   dbId = dbMan.genDbId(dbAlias),
 ) {
   let conn1: any, conn2: any, dbUser: any;
+  let dbSaved, schedulerStarted, roleGranted = false;
   try {
     logger.info('Creating account for user...');
     const dbGen = dbMan.genUserAndPass();
@@ -98,6 +99,7 @@ export async function connect(
     metaDb.pgUser = dbUser;
     metaDb.pgName = dbId;
     await MetadataRepo.saveDb(uid, email, metaDb);
+    dbSaved = true;
     logger.info('Establishing DB connections...');
     conn1 = await createConnection(dbMan.baseConnConfig);
     await conn1.query(`
@@ -106,6 +108,7 @@ export async function connect(
     // wait for the scheduler to start and register its migrations before ours so that the stored procedures
     // that use the scheduler's schema succeed
     await scheduler.start(dbId, dbUser);
+    schedulerStarted = true;
     conn2 = await createConnection({
       ...dbMan.baseConnConfig,
       name: dbId,
@@ -114,6 +117,7 @@ export async function connect(
     await dbMan.migrate(conn2);
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
+    roleGranted = true;
     const recCount = await getDbRecCount(conn2);
     const opCount = await getOpCount(conn2);
     await MetadataRepo.updateDbCounts(
@@ -132,11 +136,11 @@ export async function connect(
       id: dbId,
     };
   } catch (e: any) {
-    await scheduler.stop(dbId);
+    if (schedulerStarted) await scheduler.stop(dbId);
     // delete db in psql and metadata
-    await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
-    if (dbUser) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser));
-    await MetadataRepo.delDb(uid, dbAlias);
+    if (dbSaved) await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
+    if (dbUser && roleGranted) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser));
+    if (dbSaved) await MetadataRepo.delDb(uid, dbAlias);
     // rethrow the error
     throw e;
   } finally {
