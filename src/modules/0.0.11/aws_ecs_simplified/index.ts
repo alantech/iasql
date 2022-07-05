@@ -511,6 +511,13 @@ export const AwsEcsSimplifiedModule: Module2 = new Module2({
           for (const s of validServices) {
             out.push(await AwsEcsSimplifiedModule.utils.ecsSimplifiedMapper(s, ctx));
           }
+          console.dir({
+            clusters,
+            relevantClusters,
+            relevantServices,
+            validServices,
+            out,
+          }, { depth: 4, });
           return out;
         },
         updateOrReplace: (prev: EcsSimplified, next: EcsSimplified) => {
