@@ -568,183 +568,183 @@ describe('EC2 Integration Testing', () => {
     .then(...finish(done)));
 });
 
-// describe('EC2 General Purpose Volume Integration Testing', () => {
-//   it('creates a new test db', (done) => void iasql.connect(
-//     dbAlias,
-//     'not-needed', 'not-needed').then(...finish(done)));
+describe('EC2 General Purpose Volume Integration Testing', () => {
+  it('creates a new test db', (done) => void iasql.connect(
+    dbAlias,
+    'not-needed', 'not-needed').then(...finish(done)));
 
-//   it('installs the aws_account module', install(['aws_account']));
+  it('installs the aws_account module', install(['aws_account']));
 
-//   it('inserts aws credentials', query(`
-//     INSERT INTO aws_account (region, access_key_id, secret_access_key)
-//     VALUES ('${process.env.AWS_REGION}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-//   `));
+  it('inserts aws credentials', query(`
+    INSERT INTO aws_account (region, access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_REGION}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `));
 
-//   it('installs the module', install(modules));
+  it('installs the module', install(modules));
 
-//   it('adds new volumes', query(`
-//     BEGIN;
-//       INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-//       VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
+  it('adds new volumes', query(`
+    BEGIN;
+      INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
+      VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
 
-//       INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
-//       VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
-//     COMMIT;
-//   `));
+      INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
+      VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
+    COMMIT;
+  `));
 
-//   it('checks volume count', query(`
-//     SELECT *
-//     FROM general_purpose_volume
-//     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-//   `, (res: any[]) => expect(res.length).toBe(2)));
+  it('checks volume count', query(`
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
 
-//   it('sync before apply', sync());
+  it('sync before apply', sync());
 
-//   it('checks volume count', query(`
-//     SELECT *
-//     FROM general_purpose_volume
-//     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-//   `, (res: any[]) => expect(res.length).toBe(0)));
+  it('checks volume count', query(`
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
   
-//   it('adds new volumes', query(`
-//     BEGIN;
-//       INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-//       VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
+  it('adds new volumes', query(`
+    BEGIN;
+      INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
+      VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
 
-//       INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
-//       VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
-//     COMMIT;
-//   `));
+      INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
+      VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
+    COMMIT;
+  `));
 
-//   it('checks volume count', query(`
-//     SELECT *
-//     FROM general_purpose_volume
-//     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-//   `, (res: any[]) => expect(res.length).toBe(2)));
+  it('checks volume count', query(`
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
 
-//   it('applies the change', apply());
+  it('applies the change', apply());
 
-//   it('checks volume count', query(`
-//     SELECT *
-//     FROM general_purpose_volume
-//     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-//   `, (res: any[]) => expect(res.length).toBe(2)));
+  it('checks volume count', query(`
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
 
-//   it('uninstalls the module', uninstall(modules));
+  it('uninstalls the module', uninstall(modules));
 
-//   it('installs the module', install(modules));
+  it('installs the module', install(modules));
 
-//   it('checks volume count', query(`
-//     SELECT *
-//     FROM general_purpose_volume
-//     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-//   `, (res: any[]) => expect(res.length).toBe(2)));
+  it('checks volume count', query(`
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
 
-//   it('tries to update a volume field to be restored', query(`
-//     UPDATE general_purpose_volume SET state = 'creating' WHERE tags ->> 'Name' = '${gp2VolumeName}';
-//   `));
+  it('tries to update a volume field to be restored', query(`
+    UPDATE general_purpose_volume SET state = 'creating' WHERE tags ->> 'Name' = '${gp2VolumeName}';
+  `));
   
-//   it('applies the change which will undo the change', apply());
+  it('applies the change which will undo the change', apply());
   
-//   it('checks volume restored', query(`
-//     SELECT *
-//     FROM general_purpose_volume
-//     WHERE tags ->> 'Name' = '${gp2VolumeName}';
-//   `, (res: any[]) => expect(res[0]['state']).toBe('available')));
+  it('checks volume restored', query(`
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp2VolumeName}';
+  `, (res: any[]) => expect(res[0]['state']).toBe('available')));
 
-//   it('tries to update a volume size', query(`
-//     UPDATE general_purpose_volume SET size = 150 WHERE tags ->> 'Name' = '${gp3VolumeName}';
-//   `));
+  it('tries to update a volume size', query(`
+    UPDATE general_purpose_volume SET size = 150 WHERE tags ->> 'Name' = '${gp3VolumeName}';
+  `));
 
-//   it('applies the change', apply());
+  it('applies the change', apply());
 
-//   it('checks volume update', query(`
-//     SELECT *
-//     FROM general_purpose_volume
-//     WHERE tags ->> 'Name' = '${gp3VolumeName}';
-//   `, (res: any[]) => expect(res[0]['size']).toBe(150)));
+  it('checks volume update', query(`
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp3VolumeName}';
+  `, (res: any[]) => expect(res[0]['size']).toBe(150)));
 
-//   it('tries to update a volume availability zone', query(`
-//     UPDATE general_purpose_volume SET availability_zone = '${availabilityZone2}' WHERE tags ->> 'Name' = '${gp3VolumeName}';
-//   `));
+  it('tries to update a volume availability zone', query(`
+    UPDATE general_purpose_volume SET availability_zone = '${availabilityZone2}' WHERE tags ->> 'Name' = '${gp3VolumeName}';
+  `));
 
-//   it('applies the change', apply());
+  it('applies the change', apply());
 
-//   it('checks volume count', query(`
-//     SELECT *
-//     FROM general_purpose_volume
-//     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-//   `, (res: any[]) => expect(res.length).toBe(2)));
+  it('checks volume count', query(`
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
 
-//   it('checks volume replace', query(`
-//     SELECT *
-//     FROM general_purpose_volume
-//     WHERE tags ->> 'Name' = '${gp3VolumeName}';
-//   `, (res: any[]) => expect(res[0]['availability_zone']).toBe(availabilityZone2)));
+  it('checks volume replace', query(`
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp3VolumeName}';
+  `, (res: any[]) => expect(res[0]['availability_zone']).toBe(availabilityZone2)));
 
-//   it('tries to update a volume availability zone', query(`
-//     UPDATE general_purpose_volume SET tags = '{"Name": "${gp2VolumeName}", "updated": true}' WHERE tags ->> 'Name' = '${gp2VolumeName}';
-//   `));
+  it('tries to update a volume availability zone', query(`
+    UPDATE general_purpose_volume SET tags = '{"Name": "${gp2VolumeName}", "updated": true}' WHERE tags ->> 'Name' = '${gp2VolumeName}';
+  `));
 
-//   it('applies the change', apply());
+  it('applies the change', apply());
 
-//   it('checks volume update', query(`
-//     SELECT *
-//     FROM general_purpose_volume
-//     WHERE tags ->> 'Name' = '${gp2VolumeName}';
-//   `, (res: any[]) => expect(res[0]['tags']['updated']).toBe('true')));
+  it('checks volume update', query(`
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp2VolumeName}';
+  `, (res: any[]) => expect(res[0]['tags']['updated']).toBe('true')));
 
-//   it('deletes the volumes', query(`
-//     DELETE FROM general_purpose_volume
-//     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-//   `));
+  it('deletes the volumes', query(`
+    DELETE FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
+  `));
 
-//   it('applies the change', apply());
+  it('applies the change', apply());
 
-//   it('check deletes the volumes', query(`
-//     SELECT *
-//     FROM general_purpose_volume
-//     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-//     `, (res: any[]) => expect(res.length).toBe(0)));
+  it('check deletes the volumes', query(`
+    SELECT *
+    FROM general_purpose_volume
+    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
+    `, (res: any[]) => expect(res.length).toBe(0)));
 
-//   it('deletes the test db', (done) => void iasql
-//     .disconnect(dbAlias, 'not-needed')
-//     .then(...finish(done)));
-// });
+  it('deletes the test db', (done) => void iasql
+    .disconnect(dbAlias, 'not-needed')
+    .then(...finish(done)));
+});
 
-// describe('EC2 install/uninstall', () => {
-//   it('creates a new test db', (done) => void iasql.connect(
-//     dbAlias,
-//     'not-needed', 'not-needed').then(...finish(done)));
+describe('EC2 install/uninstall', () => {
+  it('creates a new test db', (done) => void iasql.connect(
+    dbAlias,
+    'not-needed', 'not-needed').then(...finish(done)));
 
-//   it('installs the aws_account module', install(['aws_account']));
+  it('installs the aws_account module', install(['aws_account']));
 
-//   it('inserts aws credentials', query(`
-//     INSERT INTO aws_account (region, access_key_id, secret_access_key)
-//     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-//   `));
+  it('inserts aws credentials', query(`
+    INSERT INTO aws_account (region, access_key_id, secret_access_key)
+    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `));
 
-//   // Install can automatically pull in all dependencies, so we only need to specify ec2 here
-//   it('installs the ec2 module', install(['aws_ec2']));
+  // Install can automatically pull in all dependencies, so we only need to specify ec2 here
+  it('installs the ec2 module', install(['aws_ec2']));
 
-//   // But uninstall won't uninstall dependencies, so we need to specify that we want all three here
-//   it('uninstalls the ec2 module', uninstall(modules));
+  // But uninstall won't uninstall dependencies, so we need to specify that we want all three here
+  it('uninstalls the ec2 module', uninstall(modules));
 
-//   it('installs all modules', (done) => void iasql.install(
-//     [],
-//     dbAlias,
-//     config.db.user,
-//     true).then(...finish(done)));
+  it('installs all modules', (done) => void iasql.install(
+    [],
+    dbAlias,
+    config.db.user,
+    true).then(...finish(done)));
 
-//   it('uninstall ec2 using overloaded sp', query(`
-//     select iasql_uninstall('aws_ec2_metadata');
-//   `));
+  it('uninstall ec2 using overloaded sp', query(`
+    select iasql_uninstall('aws_ec2_metadata');
+  `));
 
-//   it('install ec2 using overloaded sp', query(`
-//     select iasql_install('aws_ec2_metadata');
-//   `));
+  it('install ec2 using overloaded sp', query(`
+    select iasql_install('aws_ec2_metadata');
+  `));
 
-//   it('deletes the test db', (done) => void iasql
-//     .disconnect(dbAlias, 'not-needed')
-//     .then(...finish(done)));
-// });
+  it('deletes the test db', (done) => void iasql
+    .disconnect(dbAlias, 'not-needed')
+    .then(...finish(done)));
+});
