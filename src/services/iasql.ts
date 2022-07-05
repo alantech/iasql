@@ -189,7 +189,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
     });
     await connTemp.connect();
     const out = await connTemp.query(sql);
-    // Let's make this a bit easier to parse. Error -> string, single table -> array of objects,
+    // Let's make this a bit easier to parse. Error -> error path, single table -> array of objects,
     // multiple tables -> array of array of objects
     if (typeof out === 'string') {
       return out;

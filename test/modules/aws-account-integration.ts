@@ -19,7 +19,7 @@ const apply = runApply.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
-const runSql = iasql.runSql.bind(null, dbAlias, dbAlias);
+const runSql = iasql.runSql.bind(null, dbAlias, 'not-needed');
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -47,42 +47,41 @@ describe('AwsAccount Integration Testing', () => {
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `));
 
-  describe('runSql segue', () => {
-    it('confirms bad sql queries return an error string', (done) => {
-      (async () => {
-        if (typeof (await runSql('SELECT * FROM foo')) === 'string') {
-          done();
-        } else {
-          done(new Error('Unexpected response from error query'));
-        }
-      })();
-    });
+  it('runSql segue: confirms bad sql queries return an error string', (done) => {
+    (async () => {
+      try {
+        await runSql('SELECT * FROM foo');
+        done(new Error('This line should not be reached'));
+      } catch (_) {
+        done();
+      }
+    })();
+  });
 
-    it('confirms good sql queries return an array of records', (done) => {
-      (async () => {
-        const rows = await runSql('SELECT * FROM aws_account');
-        if (rows instanceof Array && rows[0].region === 'us-east-1') {
-          done();
-        } else {
-          done(new Error('Unexpected response from normal query'));
-        }
-      })();
-    });
+  it('runSql segue: confirms good sql queries return an array of records', (done) => {
+    (async () => {
+      const rows = await runSql('SELECT * FROM aws_account');
+      if (rows instanceof Array && rows[0].region === 'us-east-1') {
+        done();
+      } else {
+        done(new Error('Unexpected response from normal query'));
+      }
+    })();
+  });
 
-    it('confirms multiple sql queries returns an array of arrays of records', (done) => {
-      (async () => {
-        const results = await runSql('SELECT * FROM aws_account; SELECT * FROM iasql_help();');
-        if (
-          results instanceof Array &&
-          results[0] instanceof Array &&
-          (results[0] as any).region === 'us-east-1'
-        ) {
-          done();
-        } else {
-          done(new Error('Unexpected response from batch query'));
-        }
-      })();
-    });
+  it('runSql segue: confirms multiple sql queries returns an array of arrays of records', (done) => {
+    (async () => {
+      const results = await runSql('SELECT * FROM aws_account; SELECT * FROM iasql_help();');
+      if (
+        results instanceof Array &&
+        results[0] instanceof Array &&
+        (results[0][0] as any).region === 'us-east-1'
+      ) {
+        done();
+      } else {
+        done(new Error('Unexpected response from batch query'));
+      }
+    })();
   });
 
   it('inserts a second, useless row into the aws_account table', query(`
