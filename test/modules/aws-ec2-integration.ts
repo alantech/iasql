@@ -1,11 +1,44 @@
+import { EC2 } from '@aws-sdk/client-ec2';
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const dbAlias = 'ec2test';
-const region = process.env.AWS_REGION;
-// t3.micro is availvaile in almost every az except one of us-east-1 region
-const instanceType = region === 'us-east-1' ? 't2.micro' : 't3.micro';
+const region = process.env.AWS_REGION ?? '';
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
+// Get Availability zones dynamically
+const {
+  AvailabilityZone,
+} = require(`../../src/modules/${config.modules.latestVersion}/aws_vpc/entity`);
+const availabilityZones = Object.values(AvailabilityZone as string []).filter((az: string) => az.includes(region ?? ''));
+const availabilityZone1 = availabilityZones.pop();
+const availabilityZone2 = availabilityZones.pop();
+
+const ec2client = new EC2({
+  credentials: {
+    accessKeyId,
+    secretAccessKey
+  },
+  region
+});
+
+const getInstanceTypeOffering = async () => {
+  return await ec2client.describeInstanceTypeOfferings({
+    LocationType: 'availability-zone',
+    Filters: [
+      {
+        Name: 'location',
+        Values: [availabilityZone1 ?? '', availabilityZone2 ?? ''],
+      },
+      {
+        Name: 'instance-type',
+        Values: ['t2.micro', 't3.micro'],
+      }
+    ],
+  });
+}
+let instanceType: string;
 const amznAmiId = 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2';
 const ubuntuAmiId = 'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 const instancePort = 1234;
@@ -45,20 +78,16 @@ const ec2RolePolicy = JSON.stringify({
   ]
 });
 
-// Get Availability zones dynamically
-const {
-  AvailabilityZone,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_vpc/entity`);
-const availabilityZones = Object.values(AvailabilityZone as string []).filter((az: string) => az.includes(region ?? ''));
-const availabilityZone1 = availabilityZones.pop();
-const availabilityZone2 = availabilityZones.pop();
-
 // Ebs integration
 const gp2VolumeName = `${prefix}gp2volume`;
 const gp3VolumeName = `${prefix}gp3volume`;
 
-jest.setTimeout(480000);
-beforeAll(async () => await execComposeUp());
+jest.setTimeout(560000);
+beforeAll(async () => {
+  const instanceTypes = await getInstanceTypeOffering();
+  instanceType = instanceTypes.InstanceTypeOfferings?.pop()?.InstanceType ?? '';  
+  await execComposeUp()
+});
 afterAll(async () => await execComposeDown(modules));
 
 describe('EC2 Integration Testing', () => {
@@ -70,7 +99,7 @@ describe('EC2 Integration Testing', () => {
 
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    VALUES ('${region}', '${accessKeyId}', '${secretAccessKey}')
   `));
 
   it('creates a new test db to test sync', (done) => void iasql.connect(
@@ -81,8 +110,12 @@ describe('EC2 Integration Testing', () => {
 
   it('inserts aws credentials', querySync(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    VALUES ('us-east-1', '${accessKeyId}', '${secretAccessKey}')
   `));
+
+  test('two plus two is four', () => {
+    expect(2 + 2).toBe(5);
+  });
 
   it('installs the ec2 module', install(modules));
 
@@ -579,7 +612,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_REGION}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    VALUES ('${process.env.AWS_REGION}', '${accessKeyId}', '${secretAccessKey}')
   `));
 
   it('installs the module', install(modules));
@@ -723,7 +756,7 @@ describe('EC2 install/uninstall', () => {
 
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    VALUES ('us-east-1', '${accessKeyId}', '${secretAccessKey}')
   `));
 
   // Install can automatically pull in all dependencies, so we only need to specify ec2 here
