@@ -1,9 +1,49 @@
+import { EC2 } from '@aws-sdk/client-ec2';
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const dbAlias = 'ec2test';
-const region = process.env.AWS_REGION;
+const region = process.env.AWS_REGION ?? '';
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
+const ec2client = new EC2({
+  credentials: {
+    accessKeyId,
+    secretAccessKey
+  },
+  region
+});
+
+const getAvailabilityZones = async () => {
+  return await ec2client.describeAvailabilityZones({
+    Filters: [
+      {
+        Name: 'region-name',
+        Values: [region,],
+      },
+    ],
+  })
+}
+
+const getInstanceTypeOffering = async (availabilityZones: string[]) => {
+  return await ec2client.describeInstanceTypeOfferings({
+    LocationType: 'availability-zone',
+    Filters: [
+      {
+        Name: 'location',
+        Values: availabilityZones,
+      },
+      {
+        Name: 'instance-type',
+        Values: ['t2.micro', 't3.micro'],
+      }
+    ],
+  });
+}
+let instanceType: string;
+let availabilityZone1: string;
+let availabilityZone2: string;
 const amznAmiId = 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2';
 const ubuntuAmiId = 'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 const instancePort = 1234;
@@ -43,20 +83,19 @@ const ec2RolePolicy = JSON.stringify({
   ]
 });
 
-// Get Availability zones dynamically
-const {
-  AvailabilityZone,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_vpc/entity`);
-const availabilityZones = Object.values(AvailabilityZone as string []).filter((az: string) => az.includes(region ?? ''));
-const availabilityZone1 = availabilityZones.pop();
-const availabilityZone2 = availabilityZones.pop();
-
 // Ebs integration
 const gp2VolumeName = `${prefix}gp2volume`;
 const gp3VolumeName = `${prefix}gp3volume`;
 
-jest.setTimeout(480000);
-beforeAll(async () => await execComposeUp());
+jest.setTimeout(560000);
+beforeAll(async () => {
+  const availabilityZones = (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
+  const instanceTypes = await getInstanceTypeOffering(availabilityZones);
+  instanceType = instanceTypes.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
+  availabilityZone1 = availabilityZones.pop() ?? '';
+  availabilityZone2 = availabilityZones.pop() ?? '';
+  await execComposeUp()
+});
 afterAll(async () => await execComposeDown(modules));
 
 describe('EC2 Integration Testing', () => {
@@ -68,7 +107,7 @@ describe('EC2 Integration Testing', () => {
 
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    VALUES ('${region}', '${accessKeyId}', '${secretAccessKey}')
   `));
 
   it('creates a new test db to test sync', (done) => void iasql.connect(
@@ -79,7 +118,7 @@ describe('EC2 Integration Testing', () => {
 
   it('inserts aws credentials', querySync(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    VALUES ('us-east-1', '${accessKeyId}', '${secretAccessKey}')
   `));
 
   it('installs the ec2 module', install(modules));
@@ -88,7 +127,7 @@ describe('EC2 Integration Testing', () => {
     query(`
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags)
-          VALUES ('${ubuntuAmiId}', 't2.micro', '{"name":"${prefix}-1"}');
+          VALUES ('${ubuntuAmiId}', '${instanceType}', '{"name":"${prefix}-1"}');
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
           (SELECT id FROM security_group WHERE group_name='default');
@@ -96,7 +135,7 @@ describe('EC2 Integration Testing', () => {
 
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags)
-          VALUES ('${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}');
+          VALUES ('${amznAmiId}', '${instanceType}', '{"name":"${prefix}-2"}');
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
           (SELECT id FROM security_group WHERE group_name='default');
@@ -118,24 +157,24 @@ describe('EC2 Integration Testing', () => {
 
   it('adds two ec2 instance', (done) => {
     query(`
-    BEGIN;
-      INSERT INTO instance (ami, instance_type, tags, user_data)
-        VALUES ('${ubuntuAmiId}', 't2.micro', '{"name":"${prefix}-1"}', 'ls;');
-      INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-        (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
-        (SELECT id FROM security_group WHERE group_name='default');
-    COMMIT;
+      BEGIN;
+        INSERT INTO instance (ami, instance_type, tags, user_data)
+          VALUES ('${ubuntuAmiId}', '${instanceType}', '{"name":"${prefix}-1"}', 'ls;');
+        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+          (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
+          (SELECT id FROM security_group WHERE group_name='default');
+      COMMIT;
 
-    BEGIN;
-      INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
-        SELECT '${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}', 'pwd;', id
-        FROM subnet
-        WHERE availability_zone = '${availabilityZone1}'
-        LIMIT 1;
-      INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-        (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
-        (SELECT id FROM security_group WHERE group_name='default');
-    COMMIT;
+      BEGIN;
+        INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
+          SELECT '${amznAmiId}', '${instanceType}', '{"name":"${prefix}-2"}', 'pwd;', id
+          FROM subnet
+          WHERE availability_zone = '${availabilityZone2}'
+          LIMIT 1;
+        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+          (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
+          (SELECT id FROM security_group WHERE group_name='default');
+      COMMIT;
     `)((e?: any) => {
       if (!!e) return done(e);
       done();
@@ -400,7 +439,7 @@ describe('EC2 Integration Testing', () => {
   it('adds an ec2 instance with no security group', (done) => {
     query(`
       INSERT INTO instance (ami, instance_type, tags)
-      VALUES ('${amznAmiId}', 't2.micro', '{"name":"${prefix}-nosg"}');
+      VALUES ('${amznAmiId}', '${instanceType}', '{"name":"${prefix}-nosg"}');
     `)((e?: any) => {
       if (!!e) return done(e);
       done();
@@ -577,20 +616,22 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_REGION}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    VALUES ('${process.env.AWS_REGION}', '${accessKeyId}', '${secretAccessKey}')
   `));
 
   it('installs the module', install(modules));
 
-  it('adds new volumes', query(`
-    BEGIN;
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-      VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
+  it('adds new volumes', (done) => {
+    query(`
+      BEGIN;
+        INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
+        VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
 
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
-      VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
-    COMMIT;
-  `));
+        INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
+        VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
+      COMMIT;
+    `)((e?: any) => !!e ? done(e) : done());
+  });
 
   it('checks volume count', query(`
     SELECT *
@@ -606,15 +647,17 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
   
-  it('adds new volumes', query(`
-    BEGIN;
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-      VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
+  it('adds new volumes', (done) => {
+    query(`
+      BEGIN;
+        INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
+        VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
 
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
-      VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
-    COMMIT;
-  `));
+        INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
+        VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
+      COMMIT;
+    `)((e?: any) => !!e ? done(e) : done());
+  });
 
   it('checks volume count', query(`
     SELECT *
@@ -664,9 +707,13 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     WHERE tags ->> 'Name' = '${gp3VolumeName}';
   `, (res: any[]) => expect(res[0]['size']).toBe(150)));
 
-  it('tries to update a volume availability zone', query(`
-    UPDATE general_purpose_volume SET availability_zone = '${availabilityZone2}' WHERE tags ->> 'Name' = '${gp3VolumeName}';
-  `));
+  it('tries to update a volume availability zone', (done) => {
+    query(`
+      UPDATE general_purpose_volume
+      SET availability_zone = '${availabilityZone2}'
+      WHERE tags ->> 'Name' = '${gp3VolumeName}';
+    `)((e?: any) => !!e ? done(e) : done());
+  });
 
   it('applies the change', apply());
 
@@ -721,7 +768,7 @@ describe('EC2 install/uninstall', () => {
 
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    VALUES ('us-east-1', '${accessKeyId}', '${secretAccessKey}')
   `));
 
   // Install can automatically pull in all dependencies, so we only need to specify ec2 here
