@@ -94,13 +94,6 @@ beforeAll(async () => {
   instanceType = instanceTypes.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
   availabilityZone1 = availabilityZones.pop() ?? '';
   availabilityZone2 = availabilityZones.pop() ?? '';
-  console.log({
-    availabilityZones,
-    instanceTypes,
-    instanceType,
-    availabilityZone1,
-    availabilityZone2,
-  });
   await execComposeUp()
 });
 afterAll(async () => await execComposeDown(modules));
@@ -628,15 +621,17 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
 
   it('installs the module', install(modules));
 
-  it('adds new volumes', query(`
-    BEGIN;
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-      VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
+  it('adds new volumes', (done) => {
+    query(`
+      BEGIN;
+        INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
+        VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
 
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
-      VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
-    COMMIT;
-  `));
+        INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
+        VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
+      COMMIT;
+    `)((e?: any) => !!e ? done(e) : done());
+  });
 
   it('checks volume count', query(`
     SELECT *
@@ -652,15 +647,17 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
   
-  it('adds new volumes', query(`
-    BEGIN;
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-      VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
+  it('adds new volumes', (done) => {
+    query(`
+      BEGIN;
+        INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
+        VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
 
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
-      VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
-    COMMIT;
-  `));
+        INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
+        VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
+      COMMIT;
+    `)((e?: any) => !!e ? done(e) : done());
+  });
 
   it('checks volume count', query(`
     SELECT *
