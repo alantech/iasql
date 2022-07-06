@@ -7,14 +7,6 @@ const dbAlias = 'ec2test';
 const region = process.env.AWS_REGION ?? '';
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
-// Get Availability zones dynamically
-const {
-  AvailabilityZone,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_vpc/entity`);
-const availabilityZones = Object.values(AvailabilityZone as string []).filter((az: string) => az.includes(region ?? ''));
-const availabilityZone1 = availabilityZones.pop();
-const availabilityZone2 = availabilityZones.pop();
-
 const ec2client = new EC2({
   credentials: {
     accessKeyId,
@@ -23,13 +15,24 @@ const ec2client = new EC2({
   region
 });
 
-const getInstanceTypeOffering = async () => {
+const getAvailabilityZones = async () => {
+  return await ec2client.describeAvailabilityZones({
+    Filters: [
+      {
+        Name: 'region-name',
+        Values: [region,],
+      },
+    ],
+  })
+}
+
+const getInstanceTypeOffering = async (availabilityZones: string[]) => {
   return await ec2client.describeInstanceTypeOfferings({
     LocationType: 'availability-zone',
     Filters: [
       {
         Name: 'location',
-        Values: [availabilityZone1 ?? '', availabilityZone2 ?? ''],
+        Values: availabilityZones,
       },
       {
         Name: 'instance-type',
@@ -39,6 +42,8 @@ const getInstanceTypeOffering = async () => {
   });
 }
 let instanceType: string;
+let availabilityZone1: string;
+let availabilityZone2: string;
 const amznAmiId = 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2';
 const ubuntuAmiId = 'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 const instancePort = 1234;
@@ -84,8 +89,11 @@ const gp3VolumeName = `${prefix}gp3volume`;
 
 jest.setTimeout(560000);
 beforeAll(async () => {
-  const instanceTypes = await getInstanceTypeOffering();
-  instanceType = instanceTypes.InstanceTypeOfferings?.pop()?.InstanceType ?? '';  
+  const availabilityZones = (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
+  const instanceTypes = await getInstanceTypeOffering(availabilityZones);
+  instanceType = instanceTypes.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
+  availabilityZone1 = availabilityZones.pop() ?? '';
+  availabilityZone2 = availabilityZones.pop() ?? '';
   await execComposeUp()
 });
 afterAll(async () => await execComposeDown(modules));
