@@ -3,9 +3,10 @@ import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
 const dbAlias = 'ec2test';
-const region = process.env.AWS_REGION;
-const amznAmiId = 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2';
-const ubuntuAmiId = 'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
+// specific to us-west-2, varies per region
+const region = 'us-west-2'
+const amznAmiId = 'ami-06cffe063efe892ad';
+const ubuntuAmiId = 'ami-0892d3c7ee96c0bf7';
 const instancePort = 1234;
 
 const prefix = getPrefix();
@@ -29,7 +30,7 @@ const tgPort = 4142;
 const protocol = ProtocolEnum.HTTP;
 
 // IAM integration
-const roleName = `${prefix}-ec2-${region}`;
+const roleName = `${prefix}-ec2-${process.env.AWS_REGION}`;
 const ec2RolePolicy = JSON.stringify({
   "Version": "2012-10-17",
   "Statement": [
@@ -43,17 +44,8 @@ const ec2RolePolicy = JSON.stringify({
   ]
 });
 
-// Get Availability zones dynamically
-const {
-  AvailabilityZone,
-} = require(`../../src/modules/${config.modules.latestVersion}/aws_vpc/entity`);
-const availabilityZones = Object.values(AvailabilityZone as string []).filter((az: string) => az.includes(region ?? ''));
-const availabilityZone1 = availabilityZones.pop();
-const availabilityZone2 = availabilityZones.pop();
-
-// Ebs integration
-const gp2VolumeName = `${prefix}gp2volume`;
-const gp3VolumeName = `${prefix}gp3volume`;
+// VPC integration
+const availabilityZone = `${region}c`;
 
 jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
@@ -82,7 +74,7 @@ describe('EC2 Integration Testing', () => {
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `));
 
-  it('installs the ec2 module', install(modules));
+  it('installs the ec2 module', install(['aws_ec2']));
 
   it('adds two ec2 instance', (done) => {
     query(`
@@ -130,7 +122,7 @@ describe('EC2 Integration Testing', () => {
       INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
         SELECT '${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}', 'pwd;', id
         FROM subnet
-        WHERE availability_zone = '${availabilityZone1}'
+        WHERE availability_zone = '${availabilityZone}'
         LIMIT 1;
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
@@ -177,14 +169,6 @@ describe('EC2 Integration Testing', () => {
     expect(res.length).toBe(1);
     expect(res[0].user_data).toBe('pwd;');
   }));
-
-  it('check number of volumes', query(`
-    SELECT *
-    FROM general_purpose_volume
-    INNER JOIN instance on instance.id = general_purpose_volume.attached_instance_id
-    WHERE instance.tags ->> 'name' = '${prefix}-1' OR
-      instance.tags ->> 'name' = '${prefix}-2';
-  `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('syncs the changes from the first database to the second', runSync(`${dbAlias}_sync`));
 
@@ -487,19 +471,10 @@ describe('EC2 Integration Testing', () => {
   }));
 
   it('deletes all ec2 instances', query(`
-    BEGIN;
-      DELETE FROM general_purpose_volume
-      USING instance
-      WHERE instance.id = general_purpose_volume.attached_instance_id AND 
-        (instance.tags ->> 'name' = '${prefix}-nosg' OR
-        instance.tags ->> 'name' = '${prefix}-1' OR
-        instance.tags ->> 'name' = '${prefix}-2');
-
-      DELETE FROM instance
-      WHERE tags ->> 'name' = '${prefix}-nosg' OR
-        tags ->> 'name' = '${prefix}-1' OR
-        tags ->> 'name' = '${prefix}-2';
-    COMMIT;
+    DELETE FROM instance
+    WHERE tags ->> 'name' = '${prefix}-nosg' OR
+      tags ->> 'name' = '${prefix}-1' OR
+      tags ->> 'name' = '${prefix}-2';
   `));
 
   it('applies the instances deletion', apply());
@@ -510,14 +485,6 @@ describe('EC2 Integration Testing', () => {
     WHERE tags ->> 'name' = '${prefix}-nosg' OR
       tags ->> 'name' = '${prefix}-1' OR
       tags ->> 'name' = '${prefix}-2';
-  `, (res: any[]) => expect(res.length).toBe(0)));
-
-  it('check number of volumes', query(`
-    SELECT *
-    FROM general_purpose_volume
-    INNER JOIN instance on instance.id = general_purpose_volume.attached_instance_id
-    WHERE instance.tags ->> 'name' = '${prefix}-1' OR
-      instance.tags ->> 'name' = '${prefix}-2';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('check registered instance count, should be zero due to instance CASCADE deletion', query(`
@@ -565,150 +532,6 @@ describe('EC2 Integration Testing', () => {
 
   it('deletes the test sync db', (done) => void iasql
     .disconnect(`${dbAlias}_sync`, 'not-needed')
-    .then(...finish(done)));
-});
-
-describe('EC2 General Purpose Volume Integration Testing', () => {
-  it('creates a new test db', (done) => void iasql.connect(
-    dbAlias,
-    'not-needed', 'not-needed').then(...finish(done)));
-
-  it('installs the aws_account module', install(['aws_account']));
-
-  it('inserts aws credentials', query(`
-    INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_REGION}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `));
-
-  it('installs the module', install(modules));
-
-  it('adds new volumes', query(`
-    BEGIN;
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-      VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
-
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
-      VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
-    COMMIT;
-  `));
-
-  it('checks volume count', query(`
-    SELECT *
-    FROM general_purpose_volume
-    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-  `, (res: any[]) => expect(res.length).toBe(2)));
-
-  it('sync before apply', sync());
-
-  it('checks volume count', query(`
-    SELECT *
-    FROM general_purpose_volume
-    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
-  
-  it('adds new volumes', query(`
-    BEGIN;
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-      VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
-
-      INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
-      VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
-    COMMIT;
-  `));
-
-  it('checks volume count', query(`
-    SELECT *
-    FROM general_purpose_volume
-    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-  `, (res: any[]) => expect(res.length).toBe(2)));
-
-  it('applies the change', apply());
-
-  it('checks volume count', query(`
-    SELECT *
-    FROM general_purpose_volume
-    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-  `, (res: any[]) => expect(res.length).toBe(2)));
-
-  it('uninstalls the module', uninstall(modules));
-
-  it('installs the module', install(modules));
-
-  it('checks volume count', query(`
-    SELECT *
-    FROM general_purpose_volume
-    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-  `, (res: any[]) => expect(res.length).toBe(2)));
-
-  it('tries to update a volume field to be restored', query(`
-    UPDATE general_purpose_volume SET state = 'creating' WHERE tags ->> 'Name' = '${gp2VolumeName}';
-  `));
-  
-  it('applies the change which will undo the change', apply());
-  
-  it('checks volume restored', query(`
-    SELECT *
-    FROM general_purpose_volume
-    WHERE tags ->> 'Name' = '${gp2VolumeName}';
-  `, (res: any[]) => expect(res[0]['state']).toBe('available')));
-
-  it('tries to update a volume size', query(`
-    UPDATE general_purpose_volume SET size = 150 WHERE tags ->> 'Name' = '${gp3VolumeName}';
-  `));
-
-  it('applies the change', apply());
-
-  it('checks volume update', query(`
-    SELECT *
-    FROM general_purpose_volume
-    WHERE tags ->> 'Name' = '${gp3VolumeName}';
-  `, (res: any[]) => expect(res[0]['size']).toBe(150)));
-
-  it('tries to update a volume availability zone', query(`
-    UPDATE general_purpose_volume SET availability_zone = '${availabilityZone2}' WHERE tags ->> 'Name' = '${gp3VolumeName}';
-  `));
-
-  it('applies the change', apply());
-
-  it('checks volume count', query(`
-    SELECT *
-    FROM general_purpose_volume
-    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-  `, (res: any[]) => expect(res.length).toBe(2)));
-
-  it('checks volume replace', query(`
-    SELECT *
-    FROM general_purpose_volume
-    WHERE tags ->> 'Name' = '${gp3VolumeName}';
-  `, (res: any[]) => expect(res[0]['availability_zone']).toBe(availabilityZone2)));
-
-  it('tries to update a volume availability zone', query(`
-    UPDATE general_purpose_volume SET tags = '{"Name": "${gp2VolumeName}", "updated": true}' WHERE tags ->> 'Name' = '${gp2VolumeName}';
-  `));
-
-  it('applies the change', apply());
-
-  it('checks volume update', query(`
-    SELECT *
-    FROM general_purpose_volume
-    WHERE tags ->> 'Name' = '${gp2VolumeName}';
-  `, (res: any[]) => expect(res[0]['tags']['updated']).toBe('true')));
-
-  it('deletes the volumes', query(`
-    DELETE FROM general_purpose_volume
-    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-  `));
-
-  it('applies the change', apply());
-
-  it('check deletes the volumes', query(`
-    SELECT *
-    FROM general_purpose_volume
-    WHERE tags ->> 'Name' = '${gp2VolumeName}' OR tags ->> 'Name' = '${gp3VolumeName}';
-    `, (res: any[]) => expect(res.length).toBe(0)));
-
-  it('deletes the test db', (done) => void iasql
-    .disconnect(dbAlias, 'not-needed')
     .then(...finish(done)));
 });
 
