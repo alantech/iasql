@@ -1,7 +1,7 @@
 import { Subnet as AwsSubnet, Vpc as AwsVpc } from '@aws-sdk/client-ec2'
 import { CreateLoadBalancerCommandInput } from '@aws-sdk/client-elastic-load-balancing-v2';
 
-import { AWS } from '../../../services/gateways/aws_2';
+import { AWS } from './aws';
 import { LogGroup } from '../aws_cloudwatch/entity';
 import { Repository } from '../aws_ecr/entity';
 import { Cluster, ContainerDefinition, Service, TaskDefinition } from '../aws_ecs_fargate/entity';
