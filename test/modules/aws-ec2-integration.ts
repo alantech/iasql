@@ -132,7 +132,7 @@ describe('EC2 Integration Testing', () => {
       INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
         SELECT '${amznAmiId}', '${instanceType}', '{"name":"${prefix}-2"}', 'pwd;', id
         FROM subnet
-        WHERE availability_zone = '${availabilityZone1}'
+        WHERE availability_zone = '${availabilityZone2}'
         LIMIT 1;
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
