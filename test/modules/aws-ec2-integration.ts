@@ -94,6 +94,13 @@ beforeAll(async () => {
   instanceType = instanceTypes.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
   availabilityZone1 = availabilityZones.pop() ?? '';
   availabilityZone2 = availabilityZones.pop() ?? '';
+  console.log({
+    availabilityZones,
+    instanceTypes,
+    instanceType,
+    availabilityZone1,
+    availabilityZone2,
+  });
   await execComposeUp()
 });
 afterAll(async () => await execComposeDown(modules));
