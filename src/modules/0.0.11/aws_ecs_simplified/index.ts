@@ -617,6 +617,7 @@ export const AwsEcsSimplifiedModule: Module2 = new Module2({
             await AwsEcsSimplifiedModule.utils.cloud.delete.logGroup(client, simplifiedObjectMapped.logGroup);
             await AwsEcsSimplifiedModule.utils.cloud.delete.loadBalancer(client, simplifiedObjectMapped.loadBalancer);
             await AwsEcsSimplifiedModule.utils.cloud.delete.targetGroup(client, simplifiedObjectMapped.targetGroup);
+            await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroupRules(client, simplifiedObjectMapped.securityGroupRules);
             await AwsEcsSimplifiedModule.utils.cloud.delete.securityGroup(client, simplifiedObjectMapped.securityGroup);
             // Try to delete ECR if any
             if (!!simplifiedObjectMapped.repository) {
