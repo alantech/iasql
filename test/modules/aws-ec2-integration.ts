@@ -4,6 +4,8 @@ import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execCo
 
 const dbAlias = 'ec2test';
 const region = process.env.AWS_REGION;
+// t3.micro is availvaile in almost every az except one of us-east-1 region
+const instanceType = region === 'us-east-1' ? 't2.micro' : 't3.micro';
 const amznAmiId = 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2';
 const ubuntuAmiId = 'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 const instancePort = 1234;
@@ -88,7 +90,7 @@ describe('EC2 Integration Testing', () => {
     query(`
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags)
-          VALUES ('${ubuntuAmiId}', 't2.micro', '{"name":"${prefix}-1"}');
+          VALUES ('${ubuntuAmiId}', '${instanceType}', '{"name":"${prefix}-1"}');
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
           (SELECT id FROM security_group WHERE group_name='default');
@@ -96,7 +98,7 @@ describe('EC2 Integration Testing', () => {
 
       BEGIN;
         INSERT INTO instance (ami, instance_type, tags)
-          VALUES ('${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}');
+          VALUES ('${amznAmiId}', '${instanceType}', '{"name":"${prefix}-2"}');
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
           (SELECT id FROM security_group WHERE group_name='default');
@@ -120,7 +122,7 @@ describe('EC2 Integration Testing', () => {
     query(`
     BEGIN;
       INSERT INTO instance (ami, instance_type, tags, user_data)
-        VALUES ('${ubuntuAmiId}', 't2.micro', '{"name":"${prefix}-1"}', 'ls;');
+        VALUES ('${ubuntuAmiId}', '${instanceType}', '{"name":"${prefix}-1"}', 'ls;');
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
         (SELECT id FROM security_group WHERE group_name='default');
@@ -128,7 +130,7 @@ describe('EC2 Integration Testing', () => {
 
     BEGIN;
       INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
-        SELECT '${amznAmiId}', 't2.micro', '{"name":"${prefix}-2"}', 'pwd;', id
+        SELECT '${amznAmiId}', '${instanceType}', '{"name":"${prefix}-2"}', 'pwd;', id
         FROM subnet
         WHERE availability_zone = '${availabilityZone1}'
         LIMIT 1;
@@ -400,7 +402,7 @@ describe('EC2 Integration Testing', () => {
   it('adds an ec2 instance with no security group', (done) => {
     query(`
       INSERT INTO instance (ami, instance_type, tags)
-      VALUES ('${amznAmiId}', 't2.micro', '{"name":"${prefix}-nosg"}');
+      VALUES ('${amznAmiId}', '${instanceType}', '{"name":"${prefix}-nosg"}');
     `)((e?: any) => {
       if (!!e) return done(e);
       done();
