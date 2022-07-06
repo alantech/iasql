@@ -113,10 +113,6 @@ describe('EC2 Integration Testing', () => {
     VALUES ('us-east-1', '${accessKeyId}', '${secretAccessKey}')
   `));
 
-  test('two plus two is four', () => {
-    expect(2 + 2).toBe(5);
-  });
-
   it('installs the ec2 module', install(modules));
 
   it('adds two ec2 instance', (done) => {
