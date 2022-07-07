@@ -277,7 +277,7 @@ export const AwsEc2Module: Module2 = new Module2({
                 } else if (cloudRecord.state === State.RUNNING && e.state === State.HIBERNATE) {
                   await stopInstance(client.ec2client, insId, true);
                   e.state = State.STOPPED;
-                  await AwsEc2Module.mappers.instance.cloud.update(e, ctx);
+                  await AwsEc2Module.mappers.instance.db.update(e, ctx);
                 } else {
                   throw new Error(`Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`);
                 }
