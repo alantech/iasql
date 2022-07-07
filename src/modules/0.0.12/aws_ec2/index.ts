@@ -40,8 +40,8 @@ import {
   getRegisteredInstance,
   getRegisteredInstances,
   deregisterInstance,
-  getParameters,
   describeImages,
+  getParameter,
 } from './aws'
 
 export const AwsEc2Module: Module2 = new Module2({
@@ -184,8 +184,8 @@ export const AwsEc2Module: Module2 = new Module2({
                 // Resolve amiId if necessary
                 if (instance.ami.includes('resolve:ssm:')) {
                   const amiPath = instance.ami.split('resolve:ssm:').pop() ?? '';
-                  const ssmParameters = await getParameters(client.ssmClient, [amiPath]);
-                  amiId = ssmParameters?.Parameters?.pop()?.Value;
+                  const ssmParameter = await getParameter(client.ssmClient, amiPath);
+                  amiId = ssmParameter?.Parameter?.Value;
                 } else {
                   amiId = instance.ami;
                 }
