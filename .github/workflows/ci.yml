@@ -6,7 +6,7 @@ name: CI
 # events but only for the main branch.
 on:
   push:
-    branches: [main, fix-instance-type-az]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -61,20 +61,17 @@ jobs:
     outputs:
       test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
       set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
-      # region: ${{ steps['set-region'].outputs['region'] }}
-      region: sa-east-1
+      region: ${{ steps['set-region'].outputs['region'] }}
     steps:
       - uses: actions/checkout@v2
       - run: yarn
       - id: set-test-modules
         name: Set modules tests
         run: >
-          echo "::set-output name=test-modules::$(npx jest **/modules/*ec2* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
-        # echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
+          echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
       - id: set-test-module-names
         name: Set modules tests names
-        run: echo "::set-output name=test-module-names::$(npx jest **/modules/*ec2* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
-        # run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
       - id: set-region
         name: Set region
         # All regions except us-east-1 to not collide with common tests
