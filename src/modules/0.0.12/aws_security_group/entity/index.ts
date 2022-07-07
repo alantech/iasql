@@ -25,9 +25,9 @@ export class SecurityGroup {
   description?: string;
 
   @Column({
-    nullable: true,
+    unique: true,
   })
-  groupName?: string;
+  groupName: string;
 
   @Column({
     nullable: true,
