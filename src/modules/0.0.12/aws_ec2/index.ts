@@ -146,6 +146,7 @@ export const AwsEc2Module: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const instance of es) {
+            const previousInstanceId = instance.instanceId;
             if (instance.ami) {
               let tgs: AWSTag[] = [];
               if (instance.tags !== undefined) {
@@ -220,8 +221,8 @@ export const AwsEc2Module: Module2 = new Module2({
                 attachedVolume.attachedInstance = newEntity;
                 // If this is a replace path, there could be already a root volume in db, we need to find it and delete it
                 // before creating the new one.
-                if (instance.instanceId) {
-                  const rawPreviousInstance: AWSInstance = await getInstance(client.ec2client, instance.instanceId);
+                if (previousInstanceId) {
+                  const rawPreviousInstance: AWSInstance = await getInstance(client.ec2client, previousInstanceId);
                   const dbAttachedVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
                     where: {
                       attachedInstance: {
@@ -283,8 +284,8 @@ export const AwsEc2Module: Module2 = new Module2({
               }
               out.push(e);
             } else {
-              const created = await AwsEc2Module.mappers.instance.cloud.create([e], ctx);
-              await AwsEc2Module.mappers.instance.cloud.delete([cloudRecord], ctx);
+              const created = await AwsEc2Module.mappers.instance.cloud.create(e, ctx);
+              await AwsEc2Module.mappers.instance.cloud.delete(cloudRecord, ctx);
               out.push(created);
             }
           }
