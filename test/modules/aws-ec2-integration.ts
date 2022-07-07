@@ -42,8 +42,9 @@ const getInstanceTypeOffering = async (availabilityZones: string[]) => {
   });
 }
 let instanceType: string;
-let availabilityZone1: string;
-let availabilityZone2: string;
+let instanceAvailabilityZone: string;
+let volumeAvailabilityZone1: string;
+let volumeAvailabilityZone2: string;
 const amznAmiId = 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2';
 const ubuntuAmiId = 'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 const instancePort = 1234;
@@ -90,10 +91,11 @@ const gp3VolumeName = `${prefix}gp3volume`;
 jest.setTimeout(560000);
 beforeAll(async () => {
   const availabilityZones = (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
-  const instanceTypes = await getInstanceTypeOffering(availabilityZones);
+  volumeAvailabilityZone1 = availabilityZones.pop() ?? '';
+  volumeAvailabilityZone2 = availabilityZones.pop() ?? '';
+  instanceAvailabilityZone = volumeAvailabilityZone1;
+  const instanceTypes = await getInstanceTypeOffering([instanceAvailabilityZone]);
   instanceType = instanceTypes.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
-  availabilityZone1 = availabilityZones.pop() ?? '';
-  availabilityZone2 = availabilityZones.pop() ?? '';
   await execComposeUp()
 });
 afterAll(async () => await execComposeDown(modules));
@@ -126,16 +128,22 @@ describe('EC2 Integration Testing', () => {
   it('adds two ec2 instance', (done) => {
     query(`
       BEGIN;
-        INSERT INTO instance (ami, instance_type, tags)
-          VALUES ('${ubuntuAmiId}', '${instanceType}', '{"name":"${prefix}-1"}');
+        INSERT INTO instance (ami, instance_type, tags, subnet_id)
+          SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${prefix}-1"}', id
+          FROM subnet
+          WHERE availability_zone = '${instanceAvailabilityZone}'
+          LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
           (SELECT id FROM security_group WHERE group_name='default');
       COMMIT;
 
       BEGIN;
-        INSERT INTO instance (ami, instance_type, tags)
-          VALUES ('${amznAmiId}', '${instanceType}', '{"name":"${prefix}-2"}');
+        INSERT INTO instance (ami, instance_type, tags, subnet_id)
+          SELECT '${amznAmiId}', '${instanceType}', '{"name":"${prefix}-2"}', id
+          FROM subnet
+          WHERE availability_zone = '${instanceAvailabilityZone}'
+          LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
           (SELECT id FROM security_group WHERE group_name='default');
@@ -158,8 +166,11 @@ describe('EC2 Integration Testing', () => {
   it('adds two ec2 instance', (done) => {
     query(`
       BEGIN;
-        INSERT INTO instance (ami, instance_type, tags, user_data)
-          VALUES ('${ubuntuAmiId}', '${instanceType}', '{"name":"${prefix}-1"}', 'ls;');
+        INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
+          SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${prefix}-1"}', 'ls;', id
+          FROM subnet
+          WHERE availability_zone = '${instanceAvailabilityZone}'
+          LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
           (SELECT id FROM security_group WHERE group_name='default');
@@ -169,7 +180,7 @@ describe('EC2 Integration Testing', () => {
         INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
           SELECT '${amznAmiId}', '${instanceType}', '{"name":"${prefix}-2"}', 'pwd;', id
           FROM subnet
-          WHERE availability_zone = '${availabilityZone2}'
+          WHERE availability_zone = '${instanceAvailabilityZone}'
           LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
@@ -438,8 +449,11 @@ describe('EC2 Integration Testing', () => {
 
   it('adds an ec2 instance with no security group', (done) => {
     query(`
-      INSERT INTO instance (ami, instance_type, tags)
-      VALUES ('${amznAmiId}', '${instanceType}', '{"name":"${prefix}-nosg"}');
+      INSERT INTO instance (ami, instance_type, tags, subnet_id)
+        SELECT '${amznAmiId}', '${instanceType}', '{"name":"${prefix}-nosg"}', id
+        FROM subnet
+        WHERE availability_zone = '${instanceAvailabilityZone}'
+        LIMIT 1;
     `)((e?: any) => {
       if (!!e) return done(e);
       done();
@@ -625,10 +639,10 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     query(`
       BEGIN;
         INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-        VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
+        VALUES ('gp2', '${volumeAvailabilityZone2}', '{"Name": "${gp2VolumeName}"}');
 
         INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
-        VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
+        VALUES ('gp3', '${volumeAvailabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
       COMMIT;
     `)((e?: any) => !!e ? done(e) : done());
   });
@@ -651,10 +665,10 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     query(`
       BEGIN;
         INSERT INTO general_purpose_volume (volume_type, availability_zone, tags)
-        VALUES ('gp2', '${availabilityZone2}', '{"Name": "${gp2VolumeName}"}');
+        VALUES ('gp2', '${volumeAvailabilityZone2}', '{"Name": "${gp2VolumeName}"}');
 
         INSERT INTO general_purpose_volume (volume_type, availability_zone, size, tags)
-        VALUES ('gp3', '${availabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
+        VALUES ('gp3', '${volumeAvailabilityZone1}', 50, '{"Name": "${gp3VolumeName}"}');
       COMMIT;
     `)((e?: any) => !!e ? done(e) : done());
   });
@@ -710,7 +724,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   it('tries to update a volume availability zone', (done) => {
     query(`
       UPDATE general_purpose_volume
-      SET availability_zone = '${availabilityZone2}'
+      SET availability_zone = '${volumeAvailabilityZone2}'
       WHERE tags ->> 'Name' = '${gp3VolumeName}';
     `)((e?: any) => !!e ? done(e) : done());
   });
@@ -727,7 +741,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     SELECT *
     FROM general_purpose_volume
     WHERE tags ->> 'Name' = '${gp3VolumeName}';
-  `, (res: any[]) => expect(res[0]['availability_zone']).toBe(availabilityZone2)));
+  `, (res: any[]) => expect(res[0]['availability_zone']).toBe(volumeAvailabilityZone2)));
 
   it('tries to update a volume availability zone', query(`
     UPDATE general_purpose_volume SET tags = '{"Name": "${gp2VolumeName}", "updated": true}' WHERE tags ->> 'Name' = '${gp2VolumeName}';
