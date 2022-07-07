@@ -83,6 +83,7 @@ export const AwsEc2Module: Module2 = new Module2({
       }
       out.subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, instance.SubnetId) ??
         await AwsVpcModule.mappers.subnet.cloud.read(ctx, instance.SubnetId);
+      out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
       return out;
     },
     instanceEqReplaceableFields: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
@@ -93,7 +94,8 @@ export const AwsEc2Module: Module2 = new Module2({
       Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
       a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))) &&
       Object.is(a.role?.arn, b.role?.arn) &&
-      Object.is(a.subnet?.subnetId, b.subnet?.subnetId),
+      Object.is(a.subnet?.subnetId, b.subnet?.subnetId) &&
+      Object.is(a.hibernationEnabled, b.hibernationEnabled),
     eqTags: (a: { [key: string]: string }, b: { [key: string]: string }) => Object.is(Object.keys(a ?? {})?.length, Object.keys(b ?? {})?.length) &&
       Object.keys(a ?? {})?.every(ak => (a ?? {})[ak] === (b ?? {})[ak]),
     registeredInstanceMapper: async (registeredInstance: { [key: string]: string }, ctx: Context) => {
@@ -178,8 +180,7 @@ export const AwsEc2Module: Module2 = new Module2({
                 IamInstanceProfile: iamInstanceProfile,
                 SubnetId: instance.subnet?.subnetId,
               };
-              // TODO: DO THIS IF HIBERNATION IS ON
-              if (true) {
+              if (instance.hibernationEnabled) {
                 let amiId;
                 // Resolve amiId if necessary
                 if (instance.ami.includes('resolve:ssm:')) {
@@ -272,6 +273,10 @@ export const AwsEc2Module: Module2 = new Module2({
                   await startInstance(client.ec2client, insId);
                 } else if (cloudRecord.state === State.RUNNING && e.state === State.STOPPED) {
                   await stopInstance(client.ec2client, insId);
+                } else if (cloudRecord.state === State.RUNNING && e.state === State.HIBERNATE) {
+                  await stopInstance(client.ec2client, insId, true);
+                  e.state = State.STOPPED;
+                  await AwsEc2Module.mappers.instance.cloud.update(e, ctx);
                 } else {
                   throw new Error(`Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`);
                 }

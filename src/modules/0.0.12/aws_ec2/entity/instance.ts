@@ -22,6 +22,7 @@ import { Subnet } from '../../aws_vpc/entity';
  export enum State {
   RUNNING = "running",
   STOPPED = "stopped",
+  HIBERNATE = "hibernate",
 }
 
 @Entity()
@@ -89,6 +90,11 @@ export class Instance {
     name: 'subnet_id',
   })
   subnet?: Subnet;
+
+  @Column({
+    default: false,
+  })
+  hibernationEnabled: boolean;
 
   @AfterLoad()
   @AfterInsert()
