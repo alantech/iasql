@@ -40,6 +40,8 @@ import {
   getRegisteredInstance,
   getRegisteredInstances,
   deregisterInstance,
+  getParameters,
+  describeImages,
 } from './aws'
 
 export const AwsEc2Module: Module2 = new Module2({
@@ -176,6 +178,30 @@ export const AwsEc2Module: Module2 = new Module2({
                 IamInstanceProfile: iamInstanceProfile,
                 SubnetId: instance.subnet?.subnetId,
               };
+              // TODO: DO THIS IF HIBERNATION IS ON
+              if (true) {
+                let amiId;
+                // Resolve amiId if necessary
+                if (instance.ami.includes('resolve:ssm:')) {
+                  const amiPath = instance.ami.split('resolve:ssm:').pop() ?? '';
+                  const ssmParameters = await getParameters(client.ssmClient, [amiPath]);
+                  amiId = ssmParameters?.Parameters?.pop()?.Value;
+                } else {
+                  amiId = instance.ami;
+                }
+                // Get AMI image
+                const amiImage = (await describeImages(client.ec2client, [amiId]))?.Images?.pop();
+                // Update input object
+                instanceParams.HibernationOptions = {
+                  Configured: true
+                };
+                instanceParams.BlockDeviceMappings = [{
+                  DeviceName: amiImage?.RootDeviceName,
+                  Ebs: {
+                    Encrypted: true,
+                  }
+                }];
+              }
               const instanceId = await newInstance(client.ec2client, instanceParams);
               if (!instanceId) { // then who?
                 throw new Error('should not be possible');

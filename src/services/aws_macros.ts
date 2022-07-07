@@ -9,6 +9,7 @@ import { IAM, } from '@aws-sdk/client-iam'
 import { RDS, } from '@aws-sdk/client-rds'
 import { Route53, } from '@aws-sdk/client-route-53'
 import { S3, } from '@aws-sdk/client-s3'
+import { SSM } from '@aws-sdk/client-ssm'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -45,6 +46,7 @@ export class AWS {
   region: string
   route53Client: Route53
   s3Client: S3
+  ssmClient: SSM
 
   constructor(config: AWSConfig) {
     this.region = config.region;
@@ -57,6 +59,7 @@ export class AWS {
     this.route53Client = new Route53(config);
     this.iamClient = new IAM(config);
     this.acmClient = new ACM(config);
+    this.ssmClient = new SSM(config);
     // Technically available in multiple regions but with weird constraints, and the default is us-east-1
     this.s3Client = new S3({ ...config, region: 'us-east-1', });
     // Service endpoint only available in 'us-east-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
