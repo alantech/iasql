@@ -177,7 +177,7 @@ describe('EC2 Integration Testing', () => {
       COMMIT;
 
       BEGIN;
-        INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id, hibernate_enabled)
+        INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id, hibernation_enabled)
           SELECT '${amznAmiId}', '${instanceType}', '{"name":"${prefix}-2"}', 'pwd;', id, true
           FROM subnet
           WHERE availability_zone = '${instanceAvailabilityZone}'
