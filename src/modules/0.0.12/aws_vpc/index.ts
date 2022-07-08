@@ -836,7 +836,7 @@ export const AwsVpcModule: Module2 = new Module2({
       cloud: new Crud2({
         create: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
         read: async (ctx: Context, name?: string) => {
-          const client = ctx.getAwsClient() as AWS;
+          const client = await ctx.getAwsClient() as AWS;
           const availabilityZones = await getAvailabilityZones(client.ec2client, client.region);
           const azs = availabilityZones
             ?.AvailabilityZones
