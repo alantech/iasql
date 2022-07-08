@@ -98,6 +98,7 @@ export class LoadBalancer {
   @Column("varchar", { array: true, nullable: true, })
   subnets?: string[];
 
+  // TODO: Tie this to the AvailabilityZone entity somehow
   @Column("varchar", { array: true, nullable: true, })
   availabilityZones?: string[];
 

@@ -36,8 +36,6 @@ export const AwsAccount: Module2 = new Module2({
       equals: (_a: AwsAccountEntity, _b: AwsAccountEntity) => true,
       source: 'db',
       cloud: new Crud2({
-        // We don't actually connect to AWS for this module, because it's meta
-        // TODO: Perhaps we should to validate the credentials as being valid?
         create: async (_e: AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
         read: (ctx: Context, id?: string) => ctx.orm.find(AwsAccountEntity, id ? {
           where: {

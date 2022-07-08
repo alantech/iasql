@@ -46,9 +46,8 @@ export class GeneralPurposeVolume {
   })
   volumeType: GeneralPurposeVolumeType;
 
-  @Column({
-    type: 'enum',
-    enum: AvailabilityZone,
+  @JoinColumn({
+    name: 'availability_zone',
   })
   availabilityZone: AvailabilityZone;
 

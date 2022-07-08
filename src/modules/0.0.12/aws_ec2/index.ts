@@ -15,7 +15,6 @@ import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
 import { AwsIamModule } from '../aws_iam'
 import { AwsVpcModule } from '../aws_vpc'
-import { AvailabilityZone } from '../aws_vpc/entity'
 import {
   AWS,
   attachVolume,
@@ -112,7 +111,7 @@ export const AwsEc2Module: Module2 = new Module2({
       if (!vol?.VolumeId) return undefined;
       out.volumeId = vol.VolumeId;
       out.volumeType = vol.VolumeType as GeneralPurposeVolumeType;
-      out.availabilityZone = vol.AvailabilityZone as AvailabilityZone;
+      out.availabilityZone = await AwsVpcModule.mappers.availabilityZone.db.read(ctx, vol.AvailabilityZone);
       out.size = vol.Size ?? 1;
       out.iops = vol.Iops;
       out.throughput = vol.Throughput;
@@ -392,7 +391,7 @@ export const AwsEc2Module: Module2 = new Module2({
               throw new Error('Want to attach volume to an instance not created yet');
             }
             const input: CreateVolumeCommandInput = {
-              AvailabilityZone: e.availabilityZone,
+              AvailabilityZone: e.availabilityZone.name,
               VolumeType: e.volumeType,
               Size: e.size,
               Iops: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.iops : undefined,

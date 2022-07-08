@@ -32,6 +32,7 @@ export class RDS {
   })
   allocatedStorage: number;
 
+  // TODO: Tie this to the AvailabilityZone entity in the future
   @Column()
   availabilityZone: string;
 

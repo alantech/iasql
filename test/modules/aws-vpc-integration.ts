@@ -53,6 +53,10 @@ describe('VPC Integration Testing', () => {
 
   it('installs the vpc module', install(modules));
 
+  it('confirms there are availability zones present', query(`
+    SELECT * FROM availability_zone;
+  `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
+
   it('adds a new vpc', query(`  
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');

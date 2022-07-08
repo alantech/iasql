@@ -1,5 +1,5 @@
-import { EC2 } from '@aws-sdk/client-ec2';
-import config from '../../src/config';
+import { EC2 } from '@aws-sdk/client-ec2'
+import config from '../../src/config'
 import * as iasql from '../../src/services/iasql'
 import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
 
