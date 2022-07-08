@@ -46,6 +46,7 @@ export class GeneralPurposeVolume {
   })
   volumeType: GeneralPurposeVolumeType;
 
+  @ManyToOne(() => AvailabilityZone, { nullable: false, eager: true, })
   @JoinColumn({
     name: 'availability_zone',
   })

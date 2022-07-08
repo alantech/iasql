@@ -20,6 +20,7 @@ export class Subnet {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @ManyToOne(() => AvailabilityZone, { nullable: false, eager: true, })
   @JoinColumn({
     name: 'availability_zone',
   })
