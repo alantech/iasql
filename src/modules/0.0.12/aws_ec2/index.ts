@@ -40,6 +40,8 @@ import {
   getRegisteredInstance,
   getRegisteredInstances,
   deregisterInstance,
+  describeImages,
+  getParameter,
 } from './aws'
 
 export const AwsEc2Module: Module2 = new Module2({
@@ -81,6 +83,7 @@ export const AwsEc2Module: Module2 = new Module2({
       }
       out.subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, instance.SubnetId) ??
         await AwsVpcModule.mappers.subnet.cloud.read(ctx, instance.SubnetId);
+      out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
       return out;
     },
     instanceEqReplaceableFields: (a: Instance, b: Instance) => Object.is(a.instanceId, b.instanceId) &&
@@ -91,7 +94,8 @@ export const AwsEc2Module: Module2 = new Module2({
       Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
       a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))) &&
       Object.is(a.role?.arn, b.role?.arn) &&
-      Object.is(a.subnet?.subnetId, b.subnet?.subnetId),
+      Object.is(a.subnet?.subnetId, b.subnet?.subnetId) &&
+      Object.is(a.hibernationEnabled, b.hibernationEnabled),
     eqTags: (a: { [key: string]: string }, b: { [key: string]: string }) => Object.is(Object.keys(a ?? {})?.length, Object.keys(b ?? {})?.length) &&
       Object.keys(a ?? {})?.every(ak => (a ?? {})[ak] === (b ?? {})[ak]),
     registeredInstanceMapper: async (registeredInstance: { [key: string]: string }, ctx: Context) => {
@@ -142,6 +146,7 @@ export const AwsEc2Module: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const instance of es) {
+            const previousInstanceId = instance.instanceId;
             if (instance.ami) {
               let tgs: AWSTag[] = [];
               if (instance.tags !== undefined) {
@@ -176,6 +181,29 @@ export const AwsEc2Module: Module2 = new Module2({
                 IamInstanceProfile: iamInstanceProfile,
                 SubnetId: instance.subnet?.subnetId,
               };
+              if (instance.hibernationEnabled) {
+                let amiId;
+                // Resolve amiId if necessary
+                if (instance.ami.includes('resolve:ssm:')) {
+                  const amiPath = instance.ami.split('resolve:ssm:').pop() ?? '';
+                  const ssmParameter = await getParameter(client.ssmClient, amiPath);
+                  amiId = ssmParameter?.Parameter?.Value;
+                } else {
+                  amiId = instance.ami;
+                }
+                // Get AMI image
+                const amiImage = (await describeImages(client.ec2client, [amiId]))?.Images?.pop();
+                // Update input object
+                instanceParams.HibernationOptions = {
+                  Configured: true
+                };
+                instanceParams.BlockDeviceMappings = [{
+                  DeviceName: amiImage?.RootDeviceName,
+                  Ebs: {
+                    Encrypted: true,
+                  }
+                }];
+              }
               const instanceId = await newInstance(client.ec2client, instanceParams);
               if (!instanceId) { // then who?
                 throw new Error('should not be possible');
@@ -193,8 +221,8 @@ export const AwsEc2Module: Module2 = new Module2({
                 attachedVolume.attachedInstance = newEntity;
                 // If this is a replace path, there could be already a root volume in db, we need to find it and delete it
                 // before creating the new one.
-                if (instance.instanceId) {
-                  const rawPreviousInstance: AWSInstance = await getInstance(client.ec2client, instance.instanceId);
+                if (previousInstanceId) {
+                  const rawPreviousInstance: AWSInstance = await getInstance(client.ec2client, previousInstanceId);
                   const dbAttachedVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
                     where: {
                       attachedInstance: {
@@ -246,14 +274,18 @@ export const AwsEc2Module: Module2 = new Module2({
                   await startInstance(client.ec2client, insId);
                 } else if (cloudRecord.state === State.RUNNING && e.state === State.STOPPED) {
                   await stopInstance(client.ec2client, insId);
+                } else if (cloudRecord.state === State.RUNNING && e.state === State.HIBERNATE) {
+                  await stopInstance(client.ec2client, insId, true);
+                  e.state = State.STOPPED;
+                  await AwsEc2Module.mappers.instance.db.update(e, ctx);
                 } else {
                   throw new Error(`Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`);
                 }
               }
               out.push(e);
             } else {
-              const created = await AwsEc2Module.mappers.instance.cloud.create([e], ctx);
-              await AwsEc2Module.mappers.instance.cloud.delete([cloudRecord], ctx);
+              const created = await AwsEc2Module.mappers.instance.cloud.create(e, ctx);
+              await AwsEc2Module.mappers.instance.cloud.delete(cloudRecord, ctx);
               out.push(created);
             }
           }

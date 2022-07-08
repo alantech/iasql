@@ -177,8 +177,8 @@ describe('EC2 Integration Testing', () => {
       COMMIT;
 
       BEGIN;
-        INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id)
-          SELECT '${amznAmiId}', '${instanceType}', '{"name":"${prefix}-2"}', 'pwd;', id
+        INSERT INTO instance (ami, instance_type, tags, user_data, subnet_id, hibernation_enabled)
+          SELECT '${amznAmiId}', '${instanceType}', '{"name":"${prefix}-2"}', 'pwd;', id, true
           FROM subnet
           WHERE availability_zone = '${instanceAvailabilityZone}'
           LIMIT 1;
@@ -391,6 +391,33 @@ describe('EC2 Integration Testing', () => {
 
   it('stop instance', query(`
     UPDATE instance SET state = 'stopped'
+    WHERE tags ->> 'name' = '${prefix}-2';
+  `));
+
+  it('applies the instances change', apply());
+
+  it('check number of stopped instances', query(`
+    SELECT *
+    FROM instance
+    WHERE state = 'stopped' AND
+    tags ->> 'name' = '${prefix}-2';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('start instance', query(`
+    UPDATE instance SET state = 'running' WHERE tags ->> 'name' = '${prefix}-2';
+  `));
+
+  it('applies the instances change', apply());
+
+  it('check number of running instances', query(`
+    SELECT *
+    FROM instance
+    WHERE state = 'running' AND
+    tags ->> 'name' = '${prefix}-2';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('hibernates instance', query(`
+    UPDATE instance SET state = 'hibernate'
     WHERE tags ->> 'name' = '${prefix}-2';
   `));
 

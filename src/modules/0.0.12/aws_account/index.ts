@@ -1,7 +1,4 @@
-// TODO: Before merging this PR replace the AWS import with the non-gateway version. Fortunately,
-// the new logic is compatible with the old object to make incremental dev possible
-// import { AWS, } from '../../../services/aws_macros'
-import { AWS, } from '../../../services/gateways/aws_2'
+import { AWS, } from '../../../services/aws_macros'
 import { AwsAccountEntity, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'

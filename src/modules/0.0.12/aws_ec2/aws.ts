@@ -16,6 +16,7 @@ import {
   paginateDescribeTargetGroups,
   TargetTypeEnum,
 } from '@aws-sdk/client-elastic-load-balancing-v2'
+import { SSM } from '@aws-sdk/client-ssm';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
@@ -428,5 +429,17 @@ export const waitUntilModificationsComplete = (client: EC2, volumeId: string) =>
     },
   );
 }
+
+export const getParameter = crudBuilder2<SSM, 'getParameter'>(
+  'getParameter',
+  (Name) => ({ Name })
+);
+
+export const describeImages = crudBuilder2<EC2, 'describeImages'>(
+  'describeImages',
+  (ImageIds) => ({
+    ImageIds,
+  })
+);
 
 export { AWS }
