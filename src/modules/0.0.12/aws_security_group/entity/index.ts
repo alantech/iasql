@@ -14,6 +14,7 @@ import {
 import { cloudId, } from '../../../../services/cloud-id'
 import { Vpc } from '../../aws_vpc/entity';
 
+@Unique('UQ_groupNameByVpc', ['groupName', 'vpc'])
 @Entity()
 export class SecurityGroup {
   @PrimaryGeneratedColumn()
@@ -24,10 +25,8 @@ export class SecurityGroup {
   })
   description?: string;
 
-  @Column({
-    nullable: true,
-  })
-  groupName?: string;
+  @Column()
+  groupName: string;
 
   @Column({
     nullable: true,
