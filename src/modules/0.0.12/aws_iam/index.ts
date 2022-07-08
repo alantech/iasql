@@ -1,3 +1,4 @@
+import isEqual from 'lodash.isequal';
 import {
   IAM,
   paginateListRoles,
@@ -132,13 +133,7 @@ export const AwsIamModule: Module2 = new Module2({
       // EC2 role instance profile ARN example - arn:aws:iam::257682470237:instance-profile/test-role
       return  arn.split('/').pop();
     },
-    rolePolicyComparison: (a: any, b: any) => {
-      return Object.is(Object.keys(a).length, Object.keys(b).length)
-      && Object.is(a.Statement?.length, b.Statement?.length)
-      && a.Statement.every((as: any) => !!b.Statement.find((
-        bs: any) => Object.is(as.Effect, bs.Effect) && Object.is(as.Action, bs.Action) &&
-        Object.is(JSON.stringify(as.Principal), JSON.stringify(bs.Principal))))
-    },
+    rolePolicyComparison: (a: any, b: any) => isEqual(a, b),
     allowEc2Service: (a: Role) => {
       return a.assumeRolePolicyDocument?.Statement?.find(
         (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com');
