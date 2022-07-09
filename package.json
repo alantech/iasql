@@ -17,6 +17,8 @@
     "gen-sql": "IASQL_ENV=ci ts-node ./node_modules/.bin/typeorm migration:generate -n",
     "migrate": "IASQL_ENV=ci ts-node ./node_modules/.bin/typeorm migration:run",
     "gen-module": "IASQL_ENV=ci ./.module_migration.sh",
+    "docker-compose:debug": "IASQL_ENV=ci docker-compose -f docker-compose.yml -f docker-compose.debug.yml up --build",
+    "docker-compose": "IASQL_ENV=local docker-compose up --build",
     "version": "./.version.sh"
   },
   "repository": {
