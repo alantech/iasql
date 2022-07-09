@@ -1,4 +1,5 @@
 import { run } from 'graphile-worker'
+import * as sentry from '@sentry/node';
 import { v4 as uuidv4, } from 'uuid'
 
 import { latest, } from '../modules'
@@ -161,7 +162,9 @@ export async function stopAll() {
 
 // spin up a worker for every db that this server is already managing
 export async function init() {
-  if (!MetadataRepo.initialized) await MetadataRepo.init(); // Necessary in the child process
+  // Necessary in the child process
+  if (config.sentry) sentry.init(config.sentry);
+  if (!MetadataRepo.initialized) await MetadataRepo.init();
   const dbs: IasqlDatabase[] = await MetadataRepo.getAllDbs();
   const inits = await Promise.allSettled(dbs.map(db => start(db.pgName, db.pgUser)));
   for (const [i, bootstrap] of inits.entries()) {
