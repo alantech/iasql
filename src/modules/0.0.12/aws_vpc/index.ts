@@ -398,7 +398,7 @@ export const AwsVpcModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
             const input: any = {
-              AvailabilityZone: e.availabilityZone,
+              AvailabilityZone: e.availabilityZone.name,
               VpcId: e.vpc.vpcId,
             };
             if (e.cidrBlock) input.CidrBlock = e.cidrBlock;
