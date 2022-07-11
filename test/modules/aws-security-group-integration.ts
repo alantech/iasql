@@ -11,8 +11,8 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_security_group', 'aws_vpc'];
-const randIPBlock = Math.floor(Math.random() * 255);
-const randIPBlock2 = Math.floor(Math.random() * 255);
+const randIPBlock = Math.floor(Math.random() * 254) + 1; // 0 collides with the default CIDR block
+const randIPBlock2 = Math.floor(Math.random() * 254) + 1; // 0 collides with the default CIDR block
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());

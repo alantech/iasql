@@ -33,7 +33,7 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_vpc', 'aws_security_group'];
 
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
-const randIPBlock = Math.floor(Math.random() * 255);
+const randIPBlock = Math.floor(Math.random() * 254) + 1; // 0 collides with the default CIDR block
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
