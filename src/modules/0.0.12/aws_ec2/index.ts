@@ -42,6 +42,7 @@ import {
   describeImages,
   getParameter,
 } from './aws'
+import { throwError, } from '../../../config/config'
 
 export const AwsEc2Module: Module2 = new Module2({
   ...metadata,
@@ -111,7 +112,7 @@ export const AwsEc2Module: Module2 = new Module2({
       if (!vol?.VolumeId) return undefined;
       out.volumeId = vol.VolumeId;
       out.volumeType = vol.VolumeType as GeneralPurposeVolumeType;
-      out.availabilityZone = await AwsVpcModule.mappers.availabilityZone.db.read(ctx, vol.AvailabilityZone);
+      out.availabilityZone = await AwsVpcModule.mappers.availabilityZone.db.read(ctx, vol.AvailabilityZone) ?? throwError('Cannot create an EBS volume without an availability zone');
       out.size = vol.Size ?? 1;
       out.iops = vol.Iops;
       out.throughput = vol.Throughput;
