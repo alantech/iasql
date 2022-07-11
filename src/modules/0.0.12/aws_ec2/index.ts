@@ -374,7 +374,7 @@ export const AwsEc2Module: Module2 = new Module2({
       entity: GeneralPurposeVolume,
       equals: (a: GeneralPurposeVolume, b: GeneralPurposeVolume) => Object.is(a.attachedInstance?.instanceId, b.attachedInstance?.instanceId)
         && Object.is(a.instanceDeviceName, b.instanceDeviceName)
-        && Object.is(a.availabilityZone, b.availabilityZone)
+        && Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name)
         && Object.is(a.iops, b.iops)
         && Object.is(a.size, b.size)
         && Object.is(a.state, b.state)
@@ -443,7 +443,7 @@ export const AwsEc2Module: Module2 = new Module2({
           }
         },
         updateOrReplace: (prev: GeneralPurposeVolume, next: GeneralPurposeVolume) => {
-          if (!Object.is(prev.availabilityZone, next.availabilityZone) || !Object.is(prev.snapshotId, next.snapshotId)) return 'replace';
+          if (!Object.is(prev?.availabilityZone?.name, next?.availabilityZone?.name) || !Object.is(prev.snapshotId, next.snapshotId)) return 'replace';
           return 'update';
         },
         update: async (es: GeneralPurposeVolume[], ctx: Context) => {

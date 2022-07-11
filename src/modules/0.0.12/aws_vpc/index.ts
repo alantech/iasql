@@ -390,7 +390,8 @@ export const AwsVpcModule: Module2 = new Module2({
   mappers: {
     subnet: new Mapper2<Subnet>({
       entity: Subnet,
-      equals: (a: Subnet, b: Subnet) => Object.is(a.subnetId, b.subnetId), // TODO: Do better
+      equals: (a: Subnet, b: Subnet) => Object.is(a.subnetId, b.subnetId) &&
+        Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name), // TODO: Do better
       source: 'db',
       cloud: new Crud2({
         create: async (es: Subnet[], ctx: Context) => {
