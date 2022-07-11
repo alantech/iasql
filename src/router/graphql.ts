@@ -4,6 +4,7 @@ import { postgraphile, } from 'postgraphile'
 import * as dbMan from '../services/db-manager';
 import config from '../config'
 import metadata from '../services/repositories/metadata'
+import { logErrSentry, } from '../services/logger'
 
 export const graphql = express.Router();
 
@@ -25,7 +26,7 @@ if (config.graphql) {
   }, 30 * 1000);
   // For a given DB name, either acquire the postgraphile middleware that already exists or create a
   // new one. No matter what, set the last access time to now so it is not terminated.
-  const getPostgraphile = (db: string) => {
+  const getPostgraphile = (db: string, uid: string, email: string) => {
     try {
       postgraphiles[db] = postgraphiles[db] ?? {
         lastAccessMs: Date.now(),
@@ -36,6 +37,12 @@ if (config.graphql) {
             externalUrlBase: `/v1/graphql/${db}`,
             graphiql: withGraphiql,
             watchPg: true,
+            handleErrors: (errors, _req, _res) => {
+              for (const error of errors) {
+                logErrSentry(error, uid, email, db);
+              }
+              return errors;
+            }
           }),
       };
     } catch(e) {
@@ -55,6 +62,6 @@ if (config.graphql) {
       // This will throw an error if the user is not allowed to access the specified DB
       (await metadata.getDb(dbMan.getUid(req.user), req.params.db)).pgName :
       req.params.db;
-    getPostgraphile(db)(req, res, next);
+    getPostgraphile(db, dbMan.getUid(req.user), dbMan.getEmail(req.user))(req, res, next);
   });
 }
