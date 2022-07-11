@@ -322,7 +322,7 @@ describe('Security Group install/uninstall', () => {
     INNER JOIN vpc on vpc.id = sg.vpc_id
     WHERE vpc.cidr_block = '192.${randIPBlock}.0.0/16';
   `, (res: any[]) => {
-    expect(res.length).toBe(1);
+    expect(res.length).toBeGreaterThanOrEqual(1);
   }));
 
   it('uninstalls the Security Group module again (to be easier)', uninstall(
