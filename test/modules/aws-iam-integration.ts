@@ -10,6 +10,7 @@ const taskRoleName = `${prefix}${dbAlias}task-${region}`;
 const taskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy';
 const lambdaRoleName = `${prefix}${dbAlias}lambda-${region}`;
 const ec2RoleName = `${prefix}${dbAlias}ec2-${region}`;
+const anotherRoleName = `${prefix}${dbAlias}another-${region}`;
 const attachAssumeTaskPolicy= JSON.stringify({
   "Version": "2012-10-17",
   "Statement": [
@@ -45,6 +46,26 @@ const attachAssumeEc2Policy = JSON.stringify({
           },
           "Action": "sts:AssumeRole"
       }
+  ]
+});
+const attachAnotherPolicy = JSON.stringify({
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "sts:AssumeRoleWithSAML",
+        "sts:TagSession"
+      ],
+      "Effect": "Allow",
+      "Condition": {
+        "StringEquals": {
+          "SAML:aud": "https://signin.aws.amazon.com/saml"
+        }
+      },
+      "Principal": {
+        "Federated": "arn:aws:iam::123456789123:saml-provider/AWSSSO_01c318b42a2dcb07_DO_NOT_DELETE"
+      }
+    }
   ]
 });
 
@@ -95,13 +116,12 @@ describe('IAM Integration Testing', () => {
     BEGIN;
       INSERT INTO role (role_name, assume_role_policy_document)
       VALUES ('${lambdaRoleName}', '${attachAssumeLambdaPolicy}');
-    COMMIT;
-  `));
 
-  it('adds a new role', query(`
-    BEGIN;
       INSERT INTO role (role_name, assume_role_policy_document)
       VALUES ('${ec2RoleName}', '${attachAssumeEc2Policy}');
+
+      INSERT INTO role (role_name, assume_role_policy_document)
+      VALUES ('${anotherRoleName}', '${attachAnotherPolicy}');
     COMMIT;
   `));
 
@@ -121,6 +141,12 @@ describe('IAM Integration Testing', () => {
     SELECT *
     FROM role
     WHERE role_name = '${ec2RoleName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check a new role addition', query(`
+    SELECT *
+    FROM role
+    WHERE role_name = '${anotherRoleName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies the role additions', apply());
@@ -180,6 +206,11 @@ describe('IAM Integration Testing', () => {
     WHERE role_name = '${ec2RoleName}';
   `));
 
+  it('deletes the role', query(`
+    DELETE FROM role
+    WHERE role_name = '${anotherRoleName}';
+  `));
+
   it('applies the change', apply());
 
   it('check deletes the role', query(`
@@ -198,6 +229,12 @@ describe('IAM Integration Testing', () => {
     SELECT *
     FROM role
     WHERE role_name = '${ec2RoleName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check deletes the role', query(`
+    SELECT *
+    FROM role
+    WHERE role_name = '${anotherRoleName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('creates a lot of similar roles to try to hit the rate-limiter', query(`
