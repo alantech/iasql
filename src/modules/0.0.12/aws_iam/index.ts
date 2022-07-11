@@ -8,6 +8,7 @@ import { Role } from './entity'
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
+import isEqual from 'lodash.isequal'
 
 const getRoleAttachedPoliciesArns = crudBuilderFormat<
   IAM,
@@ -132,22 +133,7 @@ export const AwsIamModule: Module2 = new Module2({
       // EC2 role instance profile ARN example - arn:aws:iam::257682470237:instance-profile/test-role
       return  arn.split('/').pop();
     },
-    rolePolicyComparison: (a: any, b: any) => {
-      if (Object.is(a, b)) return true;
-      if (Object.is(a, null) || Object.is(a, null) || !Object.is(typeof a, 'object') || !Object.is(typeof b, 'object')) return false;
-      const aKeys = Object.keys(a);
-      const bKeys = Object.keys(b);
-      if (!Object.is(aKeys.length, bKeys.length)) return false;
-      if (Array.isArray(a) && Array.isArray(b)) {
-        return a.every(ai => !!b.find(bj => AwsIamModule.utils.rolePolicyComparison(ai, bj)))
-      } else {
-        for (const ak of aKeys) {
-          if (!bKeys.includes(ak)) return false;
-          if (!AwsIamModule.utils.rolePolicyComparison(a[ak], b[ak])) return false;
-        }
-      }
-      return true;
-    },
+    rolePolicyComparison: (a: any, b: any) => isEqual(a, b),
     allowEc2Service: (a: Role) => {
       return a.assumeRolePolicyDocument?.Statement?.find(
         (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com');
