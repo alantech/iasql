@@ -834,7 +834,7 @@ export const AwsVpcModule: Module2 = new Module2({
     availabilityZone: new Mapper2<AvailabilityZone>({
       entity: AvailabilityZone,
       equals: (a: AvailabilityZone, b: AvailabilityZone) => a.name === b.name,
-      source: 'cloud',
+      source: 'db',
       cloud: new Crud2({
         create: async (e: AvailabilityZone[], ctx: Context) => AwsVpcModule.mappers.availabilityZone.db.delete(e, ctx),
         read: async (ctx: Context, name?: string) => {
