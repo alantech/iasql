@@ -99,7 +99,9 @@ export function logErrSentry(e: any, uid?: string, email?: string, dbAlias?: str
     metadata = e.metadata;
   }
   if (config.sentry) {
-    message += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureException(err, {
+    // TODO figure out how to use the stacktrace for the last error
+    message += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureEvent({
+      message,
       // https://docs.sentry.io/platforms/node/guides/express/enriching-events/identify-user/
       user: {
         id: uid,
