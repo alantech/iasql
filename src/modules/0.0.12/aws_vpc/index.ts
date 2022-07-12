@@ -29,19 +29,20 @@ import {
 } from '../../../services/aws_macros'
 import {
   AvailabilityZone,
-  Subnet,
-  Vpc,
-  SubnetState,
-  VpcState,
-  NatGateway,
   ConnectivityType,
-  NatGatewayState,
   ElasticIp,
   EndpointGateway,
   EndpointGatewayService,
+  NatGateway,
+  NatGatewayState,
+  Subnet,
+  SubnetState,
+  Vpc,
+  VpcState,
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
+import { throwError, } from '../../../config/config'
 
 const createSubnet = crudBuilder2<EC2, 'createSubnet'>('createSubnet', (input) => input);
 const getSubnet = crudBuilderFormat<EC2, 'describeSubnets', AwsSubnet | undefined>(
@@ -179,6 +180,15 @@ const deleteVpcEndpointGateway = crudBuilderFormat<
   (endpointId) => ({ VpcEndpointIds: [endpointId], }),
   (res) => res?.Unsuccessful,
 );
+const getAvailabilityZones = crudBuilder2<EC2, 'describeAvailabilityZones'>(
+  'describeAvailabilityZones',
+  (region) => ({
+    Filters: [{
+      Name: 'region-name',
+      Values: [ region, ],
+    }],
+  }),
+);
 
 // TODO: Add a waiter macro
 async function createNatGateway(client: EC2, input: CreateNatGatewayCommandInput) {
@@ -293,7 +303,7 @@ export const AwsVpcModule: Module2 = new Module2({
       if (!sn?.SubnetId || !sn?.VpcId) return undefined;
       out.state = sn.State as SubnetState;
       if (!sn.AvailabilityZone) return undefined;
-      out.availabilityZone = sn.AvailabilityZone as AvailabilityZone;
+      out.availabilityZone = await AwsVpcModule.mappers.availabilityZone.db.read(ctx, sn.AvailabilityZone) ?? throwError('Cannot create a subnet without an availability zone');
       out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sn.VpcId) ??
         await AwsVpcModule.mappers.vpc.cloud.read(ctx, sn.VpcId);
       if (sn.VpcId && !out.vpc) throw new Error(`Waiting for VPC ${sn.VpcId}`);
@@ -380,7 +390,8 @@ export const AwsVpcModule: Module2 = new Module2({
   mappers: {
     subnet: new Mapper2<Subnet>({
       entity: Subnet,
-      equals: (a: Subnet, b: Subnet) => Object.is(a.subnetId, b.subnetId), // TODO: Do better
+      equals: (a: Subnet, b: Subnet) => Object.is(a.subnetId, b.subnetId) &&
+        Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name), // TODO: Do better
       source: 'db',
       cloud: new Crud2({
         create: async (es: Subnet[], ctx: Context) => {
@@ -389,7 +400,7 @@ export const AwsVpcModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
             const input: any = {
-              AvailabilityZone: e.availabilityZone,
+              AvailabilityZone: e.availabilityZone.name,
               VpcId: e.vpc.vpcId,
             };
             if (e.cidrBlock) input.CidrBlock = e.cidrBlock;
@@ -818,6 +829,30 @@ export const AwsVpcModule: Module2 = new Module2({
             await deleteVpcEndpointGateway(client.ec2client, e.vpcEndpointId ?? '');
           }
         },
+      }),
+    }),
+    availabilityZone: new Mapper2<AvailabilityZone>({
+      entity: AvailabilityZone,
+      equals: (a: AvailabilityZone, b: AvailabilityZone) => a.name === b.name,
+      source: 'cloud',
+      cloud: new Crud2({
+        create: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
+        read: async (ctx: Context, name?: string) => {
+          const client = await ctx.getAwsClient() as AWS;
+          const availabilityZones = await getAvailabilityZones(client.ec2client, client.region);
+          const azs = availabilityZones
+            ?.AvailabilityZones
+            ?.filter(az => !!az.ZoneName)
+            .map(az => {
+              const out = new AvailabilityZone();
+              out.name = az.ZoneName as string; // TS should have figured this out from the filter
+              return out;
+            }) ?? [];
+          if (!!name) return azs.filter(az => az.name === name);
+          return azs;
+        },
+        update: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
+        delete: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
       }),
     }),
   },

@@ -11,8 +11,8 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_security_group', 'aws_vpc'];
-const randIPBlock = Math.floor(Math.random() * 255);
-const randIPBlock2 = Math.floor(Math.random() * 255);
+const randIPBlock = Math.floor(Math.random() * 254) + 1; // 0 collides with the default CIDR block
+const randIPBlock2 = Math.floor(Math.random() * 254) + 1; // 0 collides with the default CIDR block
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -288,13 +288,13 @@ describe('Security Group install/uninstall', () => {
   it('installs the Security Group module and confirms two tables are created', query(`
     select * from iasql_install('aws_security_group', 'aws_vpc');
   `, (res: any[]) => {
-      expect(res.length).toBe(7);
+      expect(res.length).toBe(8);
   }));
 
   it('uninstalls the Security Group module and confirms two tables are removed', query(`
     select * from iasql_uninstall('aws_security_group', 'aws_vpc');
   `, (res: any[]) => {
-    expect(res.length).toBe(7);
+    expect(res.length).toBe(8);
   }));
 
   it('installs all modules', (done) => void iasql.install(
@@ -322,7 +322,7 @@ describe('Security Group install/uninstall', () => {
     INNER JOIN vpc on vpc.id = sg.vpc_id
     WHERE vpc.cidr_block = '192.${randIPBlock}.0.0/16';
   `, (res: any[]) => {
-    expect(res.length).toBe(1);
+    expect(res.length).toBeGreaterThanOrEqual(1);
   }));
 
   it('uninstalls the Security Group module again (to be easier)', uninstall(

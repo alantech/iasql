@@ -15,7 +15,6 @@ import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
 import { AwsIamModule } from '../aws_iam'
 import { AwsVpcModule } from '../aws_vpc'
-import { AvailabilityZone } from '../aws_vpc/entity'
 import {
   AWS,
   attachVolume,
@@ -43,6 +42,7 @@ import {
   describeImages,
   getParameter,
 } from './aws'
+import { throwError, } from '../../../config/config'
 
 export const AwsEc2Module: Module2 = new Module2({
   ...metadata,
@@ -112,7 +112,7 @@ export const AwsEc2Module: Module2 = new Module2({
       if (!vol?.VolumeId) return undefined;
       out.volumeId = vol.VolumeId;
       out.volumeType = vol.VolumeType as GeneralPurposeVolumeType;
-      out.availabilityZone = vol.AvailabilityZone as AvailabilityZone;
+      out.availabilityZone = await AwsVpcModule.mappers.availabilityZone.db.read(ctx, vol.AvailabilityZone) ?? throwError('Cannot create an EBS volume without an availability zone');
       out.size = vol.Size ?? 1;
       out.iops = vol.Iops;
       out.throughput = vol.Throughput;
@@ -374,7 +374,7 @@ export const AwsEc2Module: Module2 = new Module2({
       entity: GeneralPurposeVolume,
       equals: (a: GeneralPurposeVolume, b: GeneralPurposeVolume) => Object.is(a.attachedInstance?.instanceId, b.attachedInstance?.instanceId)
         && Object.is(a.instanceDeviceName, b.instanceDeviceName)
-        && Object.is(a.availabilityZone, b.availabilityZone)
+        && Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name)
         && Object.is(a.iops, b.iops)
         && Object.is(a.size, b.size)
         && Object.is(a.state, b.state)
@@ -392,7 +392,7 @@ export const AwsEc2Module: Module2 = new Module2({
               throw new Error('Want to attach volume to an instance not created yet');
             }
             const input: CreateVolumeCommandInput = {
-              AvailabilityZone: e.availabilityZone,
+              AvailabilityZone: e.availabilityZone.name,
               VolumeType: e.volumeType,
               Size: e.size,
               Iops: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.iops : undefined,
@@ -443,7 +443,7 @@ export const AwsEc2Module: Module2 = new Module2({
           }
         },
         updateOrReplace: (prev: GeneralPurposeVolume, next: GeneralPurposeVolume) => {
-          if (!Object.is(prev.availabilityZone, next.availabilityZone) || !Object.is(prev.snapshotId, next.snapshotId)) return 'replace';
+          if (!Object.is(prev?.availabilityZone?.name, next?.availabilityZone?.name) || !Object.is(prev.snapshotId, next.snapshotId)) return 'replace';
           return 'update';
         },
         update: async (es: GeneralPurposeVolume[], ctx: Context) => {

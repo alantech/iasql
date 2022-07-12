@@ -33,7 +33,7 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_vpc', 'aws_security_group'];
 
 const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
-const randIPBlock = Math.floor(Math.random() * 255);
+const randIPBlock = Math.floor(Math.random() * 254) + 1; // 0 collides with the default CIDR block
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -52,6 +52,10 @@ describe('VPC Integration Testing', () => {
   `));
 
   it('installs the vpc module', install(modules));
+
+  it('confirms there are availability zones present', query(`
+    SELECT * FROM availability_zone;
+  `, (res: any[]) => expect(res.length).toBeGreaterThan(0)));
 
   it('adds a new vpc', query(`  
     INSERT INTO vpc (cidr_block)
