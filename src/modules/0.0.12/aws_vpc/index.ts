@@ -42,7 +42,6 @@ import {
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
-import { throwError, } from '../../../config/config'
 
 const createSubnet = crudBuilder2<EC2, 'createSubnet'>('createSubnet', (input) => input);
 const getSubnet = crudBuilderFormat<EC2, 'describeSubnets', AwsSubnet | undefined>(
@@ -303,7 +302,8 @@ export const AwsVpcModule: Module2 = new Module2({
       if (!sn?.SubnetId || !sn?.VpcId) return undefined;
       out.state = sn.State as SubnetState;
       if (!sn.AvailabilityZone) return undefined;
-      out.availabilityZone = await AwsVpcModule.mappers.availabilityZone.db.read(ctx, sn.AvailabilityZone) ?? throwError('Cannot create a subnet without an availability zone');
+      out.availabilityZone = await AwsVpcModule.mappers.availabilityZone.db.read(ctx, sn.AvailabilityZone) ??
+        await AwsVpcModule.mappers.availabilityZone.cloud.read(ctx, sn.AvailabilityZone);
       out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sn.VpcId) ??
         await AwsVpcModule.mappers.vpc.cloud.read(ctx, sn.VpcId);
       if (sn.VpcId && !out.vpc) throw new Error(`Waiting for VPC ${sn.VpcId}`);
