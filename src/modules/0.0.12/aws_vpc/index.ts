@@ -836,7 +836,7 @@ export const AwsVpcModule: Module2 = new Module2({
       equals: (a: AvailabilityZone, b: AvailabilityZone) => a.name === b.name,
       source: 'cloud',
       cloud: new Crud2({
-        create: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
+        create: async (e: AvailabilityZone[], ctx: Context) => AwsVpcModule.mappers.availabilityZone.db.delete(e, ctx),
         read: async (ctx: Context, name?: string) => {
           const client = await ctx.getAwsClient() as AWS;
           const availabilityZones = await getAvailabilityZones(client.ec2client, client.region);
@@ -851,8 +851,9 @@ export const AwsVpcModule: Module2 = new Module2({
           if (!!name) return azs.filter(az => az.name === name);
           return azs;
         },
+        // Update should never happen because the name is the only field
         update: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
-        delete: async (_e: AvailabilityZone[], _ctx: Context) => { /* Do nothing */ },
+        delete: async (e: AvailabilityZone[], ctx: Context) => AwsVpcModule.mappers.availabilityZone.db.create(e, ctx),
       }),
     }),
   },
