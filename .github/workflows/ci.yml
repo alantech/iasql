@@ -71,7 +71,7 @@ jobs:
         run: yarn
 
       - name: Run common tests
-        run: yarn coverage **/common/*
+        run: yarn coverage **/readonly/*
         env:
           IASQL_ENV: test
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_READONLY_TESTING }}
