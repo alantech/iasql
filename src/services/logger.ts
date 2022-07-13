@@ -6,6 +6,7 @@ import { Logger, LogFunctionFactory } from 'graphile-worker'
 import { createLogger, } from '@logdna/logger'
 
 import config from '../config'
+import { DepError } from './lazy-dep'
 
 const logFactory: LogFunctionFactory = (scope) => {
   // Better to check the config once in the factory and return fixed functions instead of checking
@@ -90,10 +91,13 @@ export function debugObj(e: any) {
 // TODO is there a way to DRY that?
 // returns the sentry error id
 export function logErrSentry(e: any, uid?: string, email?: string, dbAlias?: string): string {
+  if (!(e instanceof DepError) && !(e instanceof Error)) {
+    singleton.error(`Invalid error type ${typeof e} when logging to sentry. e = ${JSON.stringify(e)}`)
+  }
   let message = e?.message ?? '';
   let err = e;
   let metadata;
-  if (e.metadata?.failures) {
+  if (e instanceof DepError && e.metadata?.failures) {
     message = [...new Set(e.metadata.failures.map((f: Error) => f?.message))].join('\n');
     err = e.metadata.failures[e.metadata.failures.length - 1];
     metadata = e.metadata;
@@ -113,7 +117,7 @@ export function logErrSentry(e: any, uid?: string, email?: string, dbAlias?: str
       }
     })}`;
   }
-  singleton.error(message, e);
+  singleton.error(message, e instanceof DepError ? e.metadata: err);
   return message;
 }
 
