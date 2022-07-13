@@ -70,7 +70,7 @@ jobs:
       - name: Install dependencies
         run: yarn
 
-      - name: Run common tests
+      - name: Run read-only tests
         run: yarn coverage **/readonly/*
         env:
           IASQL_ENV: test
