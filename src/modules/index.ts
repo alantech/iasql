@@ -9,6 +9,6 @@ import config from '../config'
 // tslint:disable-next-line:no-var-requires
 export const latest = require(`./${config.modules.latestVersion}`);
 
-export const modules = fs.readdirSync(__dirname, 'utf8').filter(m => semver.valid(m)).map(v => [`v${v.replace(/\./g, '_')}`, require(v)]);
+export const modules = fs.readdirSync(__dirname, 'utf8').filter(m => semver.valid(m)).map(v => [`v${v.replace(/\./g, '_')}`, require(`./${v}`)]);
 
 export * from './interfaces'
