@@ -173,7 +173,7 @@ export async function init() {
       const user = await MetadataRepo.getUserFromDbId(db.pgName);
       const message = `Failed to bootstrap db ${db.pgName} on startup. Reason: ${bootstrap.reason}`;
       logger.error(message);
-      logErrSentry(message, user?.id, user?.email, db.alias);
+      logErrSentry({message}, user?.id, user?.email, db.alias);
     }
   }
 }
