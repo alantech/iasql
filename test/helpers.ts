@@ -50,8 +50,20 @@ export function runInstall(dbAlias: string, mods: string[]) {
   return runQuery(dbAlias, `select iasql_install(${mods.map(m => `'${m}'`)});`);
 }
 
+export function runInstallAll(dbAlias: string) {
+  return runQuery(dbAlias, `select iasql_module_install(
+    array(select module_name from iasql_modules_list() where module_name != 'aws_account' and module_name not like 'iasql_%')
+  );`);
+}
+
 export function runUninstall(dbAlias: string, mods: string[]) {
   return runQuery(dbAlias, `select iasql_uninstall(${mods.map(m => `'${m}'`)});`);
+}
+
+export function runUninstallAll(dbAlias: string) {
+  return runQuery(dbAlias, `select iasql_module_uninstall(
+    array(select module_name from iasql_modules_list() where module_name != 'aws_account' and module_name not like 'iasql_%')
+  );`);
 }
 
 export function runQuery(databaseName: string, queryString: string, assertFn?: (res: any[]) => void) {
