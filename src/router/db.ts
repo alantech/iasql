@@ -120,7 +120,7 @@ db.post('/run/:dbAlias', async (req, res) => {
   logger.info('Calling /run');
   if (!config.db.sqlViaRest) return res.status(400).end('SQL Querying via REST disabled');
   const { dbAlias, } = req.params;
-  const sql = req.body;
+  const { sql, button } = req.body;
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
   let dbId;
@@ -134,14 +134,15 @@ db.post('/run/:dbAlias', async (req, res) => {
       uid
     }, {
       output,
-      sql
+      sql,
+      button
     }, database.pgName);
     res.json(output);
   } catch (e: any) {
     // do not send to sentry
     const error = e?.message ?? '';
     logger.error(`RunSQL user error: ${error}`, { uid, email, dbAlias})
-    telemetry.logRunSql({ uid, email }, { sql, error }, dbId);
+    telemetry.logRunSql({ uid, email }, { sql, button, error }, dbId);
     res.status(500).end(error);
   }
 });
