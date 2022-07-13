@@ -92,7 +92,7 @@ export function debugObj(e: any) {
 // returns the sentry error id
 export function logErrSentry(e: any, uid?: string, email?: string, dbAlias?: string): string {
   if (!(e instanceof DepError) && !(e instanceof Error)) {
-    singleton.error(`Invalid error type ${typeof e} when logging to sentry`)
+    singleton.error(`Invalid error type ${typeof e} when logging to sentry. e = ${JSON.stringify(e)}`)
   }
   let message = e?.message ?? '';
   let err = e;
