@@ -27,6 +27,7 @@ export type EventProps = {
   dataOnly?: boolean
   params?: string[]
   sql?: string
+  button?: boolean
 }
 
 async function logEvent(event: string, dbProps: DbProps, eventProps?: EventProps, dbId?: string) {
