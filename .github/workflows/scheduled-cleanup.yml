@@ -3,8 +3,8 @@ name: Clean-up AWS accounts on a CRON Schedule
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch.
 on:
-  # push:
-  #   branches: [clean-test]
+  push:
+    branches: [clean-test]
   # schedule:
   #   # Runs "daily at 6am UTC - 11pm PDT - 1am CDT - 8am CEST"
   #   - cron: '0 6 * * *'
