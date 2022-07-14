@@ -476,7 +476,7 @@ export const AwsRdsModule: Module2 = new Module2({
           for (const e of es) {
             // Default parameter groups cannot be deleted
             if (e.name.startsWith('default.')) {
-              await AwsRdsModule.mappers.parameterGroup.db.update(e, ctx);
+              await AwsRdsModule.mappers.parameterGroup.db.create(e, ctx);
             } else {
               await deleteDBParameterGroup(client.rdsClient, e.name);
             }
