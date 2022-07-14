@@ -50,7 +50,6 @@ jobs:
       - uses: ./.github/workflows/module-cleanup
         with:
           AWS_REGION: ${{ matrix.region }}
-        secrets:
           AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
 
