@@ -3,13 +3,13 @@ name: Clean-up AWS accounts on a CRON Schedule
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch.
 on:
+  # TODO: delete this before merge
   push:
-    branches: [main, clean-test]
-  pull_request:
-    branches: [main]
+    branches: [clean-test]
   # schedule:
-  #   # Runs "daily at 6am UTC - 11pm PDT - 1am CDT - 8am CEST"
-  #   - cron: '0 6 * * *'
+  #   # Runs "daily at 6:15am UTC - 11:15pm PDT - 1:15am CDT - 8:15am CEST"
+  #   # Github Actions have heavy load every start hour, so we wait 15 min to avoid delays in our jobs
+  #   - cron: '15 6 * * *'
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
@@ -33,6 +33,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
+    # TODO: update branch before merge
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
@@ -43,6 +44,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
+    # TODO: update branch before merge
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
@@ -53,6 +55,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
+    # TODO: update branch before merge
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
@@ -63,6 +66,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
+    # TODO: update branch before merge
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
@@ -73,6 +77,7 @@ jobs:
     if: ${{ github.event.inputs.region != '' }}
     needs:
       - setup-module-cleanup
+    # TODO: update branch before merge
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
