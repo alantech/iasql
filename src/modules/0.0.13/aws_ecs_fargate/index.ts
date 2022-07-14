@@ -827,7 +827,8 @@ export const AwsEcsFargateModule: Module2 = new Module2({
             const fargateResult = result.filter(s => s.launchType === 'FARGATE');
             const out = [];
             for (const s of fargateResult) {
-              out.push(await AwsEcsFargateModule.utils.serviceMapper(s, ctx));
+              const mappedService = await AwsEcsFargateModule.utils.serviceMapper(s, ctx);
+              if (mappedService) out.push(mappedService);
             }
             return out;
           }
