@@ -4,7 +4,9 @@ name: Clean-up AWS accounts on a CRON Schedule
 # events but only for the main branch.
 on:
   push:
-    branches: [clean-test]
+    branches: [main, clean-test]
+  pull_request:
+    branches: [main]
   # schedule:
   #   # Runs "daily at 6am UTC - 11pm PDT - 1am CDT - 8am CEST"
   #   - cron: '0 6 * * *'
