@@ -28,39 +28,26 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
-        with:
-          node-version: 16.x
-
-      - name: Install dependencies
-        run: yarn
-
-      - name: Start local iasql engine
+      - name: Create database
         run: |
-          IASQL_ENV=ci docker-compose up --build --detach
-          while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
-
-      - name: Create iasql database
-        run: |
-          echo "\nCreating an iasql db..."
-          curl http://localhost:8088/v1/db/connect/iasql
+          echo "\nCreating ${DB_NAME} db..."
+          curl http://localhost:8088/v1/db/connect/${DB_NAME}
 
       - name: Set up iasql database
         run: |
           echo "\nInstalling aws_account..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "
+          psql postgres://postgres:test@localhost:5432/${DB_NAME} -c "
             select iasql_install(
               'aws_account'
             );
           ";
           echo "\Attaching credentials..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "
+          psql postgres://postgres:test@localhost:5432/${DB_NAME} -c "
             INSERT INTO aws_account (region, access_key_id, secret_access_key)
             VALUES ('${AWS_REGION}', '${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
           ";
           echo "\Install all modules..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "
+          psql postgres://postgres:test@localhost:5432/${DB_NAME} -c "
             select iasql_module_install(
               array(select module_name from iasql_modules_list() where module_name != 'aws_account' and module_name not like 'iasql_%')
             );
@@ -69,11 +56,14 @@ jobs:
           AWS_REGION: ${{ matrix.region }}
           AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
+          DB_NAME: ${{ join([matrix.module, matrix.region], '_' ) }}
 
       - name: Run cleaning script
         run: |
           echo "\nDelete all records..."
-          psql postgres://postgres:test@localhost:5432/iasql -f test/sql/delete_records.sql -c "select * from iasql_apply();"
+          psql postgres://postgres:test@localhost:5432/${DB_NAME} -f test/sql/delete_records.sql -c "select * from iasql_apply();"
+        env:
+          DB_NAME: ${{ join([matrix.module, matrix.region], '_' ) }}
 
       - name: Local engine logs
         if: always()
