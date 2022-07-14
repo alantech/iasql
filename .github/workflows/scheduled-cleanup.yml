@@ -29,7 +29,7 @@ jobs:
         name: Set modules tests names
         run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
 
-  module-cleanup:
+  module-cleanup-1:
     runs-on: ubuntu-latest
     needs:
       - setup-module-cleanup
@@ -39,69 +39,20 @@ jobs:
       matrix:
         module: ${{ fromJson(needs.setup-module-cleanup.outputs['set-test-module-names']) }}
         region: ["ap-northeast-1"]
-        # , "ap-northeast-2", "ap-northeast-3", "ap-south-1", "ap-southeast-1", "ap-southeast-2", "ca-central-1", "eu-central-1", "eu-north-1", "eu-west-1", "eu-west-2", "eu-west-3", "sa-east-1", "us-east-2", "us-west-1", "us-west-2"]
+        # region: ["ap-northeast-1", "ap-northeast-2", "ap-northeast-3", "ap-south-1", "ap-southeast-1", "ap-southeast-2", "ca-central-1", "eu-central-1"]
+        # , "eu-north-1", "eu-west-1", "eu-west-2", "eu-west-3", "sa-east-1", "us-east-2", "us-west-1", "us-west-2"]
 
     env:
       MATRIX_AWS_ACCESS_KEY_ID: AWS_ACCESS_KEY_ID_${{matrix.module}}
       MATRIX_AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY_${{matrix.module}}
 
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v1
+      - uses: ./.github/workflows/module-cleanup
         with:
-          node-version: 16.x
-
-      - name: Install dependencies
-        run: yarn
-
-      - name: Start local iasql engine
-        run: |
-          IASQL_ENV=ci docker-compose up --build --detach
-          while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
-
-      - name: Create iasql database
-        run: |
-          echo "\nCreating an iasql db..."
-          curl http://localhost:8088/v1/db/connect/iasql
-
-      - name: Set up iasql database
-        run: |
-          echo "\nInstalling aws_account..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "
-            select iasql_install(
-              'aws_account'
-            );
-          ";
-          echo "\Attaching credentials..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "
-            INSERT INTO aws_account (region, access_key_id, secret_access_key)
-            VALUES ('${AWS_REGION}', '${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
-          ";
-          echo "\Install all modules..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "
-            select iasql_module_install(
-              array(select module_name from iasql_modules_list() where module_name != 'aws_account' and module_name not like 'iasql_%')
-            );
-          ";
-        env:
           AWS_REGION: ${{ matrix.region }}
+        secrets:
           AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
-
-      - name: Run cleaning script
-        run: |
-          echo "\nDelete all records..."
-          psql postgres://postgres:test@localhost:5432/iasql -f test/sql/delete_records.sql -c "select * from iasql_apply();"
-
-      - name: Local engine logs
-        if: always()
-        run: docker logs iasql-engine_change_engine_1
-
-      - name: Local psql logs
-        if: always()
-        run: docker logs iasql-engine_postgresql_1
 
       # - name: Run modules tests
       #   run: yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
