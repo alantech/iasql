@@ -3,11 +3,15 @@
 # Be very *vexing* with the output, but good for debugging if something goes wrong
 set -vex
 
+# Make sure we're on main, just in case
+git checkout main
+git pull origin main
+
 # The new version
-VERSION=$1
+VERSION=`ts-node src/scripts/latestVersion.ts`
 
 # The oldest supported version
-LASTVERSION=$2
+LASTVERSION=`ts-node src/scripts/oldestVersion.ts`
 
 echo "Version: ${VERSION} (Last supported: ${LASTVERSION})"
 
