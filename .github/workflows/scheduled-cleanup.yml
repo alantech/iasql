@@ -16,18 +16,18 @@ jobs:
   setup-module-cleanup:
     runs-on: ubuntu-latest
     outputs:
-      test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
+      # test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
       set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
     steps:
       - uses: actions/checkout@v2
       - run: yarn
-      - id: set-test-modules
-        name: Set modules tests
-        run: >
-          echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
+      # - id: set-test-modules
+      #   name: Set modules tests
+      #   run: >
+      #     echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
       - id: set-test-module-names
         name: Set modules tests names
-        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+        run: echo "::set-output name=test-module-names::$(npx jest **/modules/*ec2* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
 
   module-cleanup-1:
     needs:
@@ -36,6 +36,7 @@ jobs:
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['ap-northeast-1']"
+    secrets: inherit
 
       # - name: Run modules tests
       #   run: yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
