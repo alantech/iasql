@@ -47,7 +47,7 @@ jobs:
       MATRIX_AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY_${{matrix.module}}
 
     steps:
-      - uses: ./.github/workflows/module-cleanup
+      - uses: ./.github/workflows/module-cleanup.yml@clean-test
         with:
           AWS_REGION: ${{ matrix.region }}
           AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
