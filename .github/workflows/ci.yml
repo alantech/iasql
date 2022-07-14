@@ -7,7 +7,9 @@ name: CI
 on:
   push:
     branches: [main, rfc-template]
-    paths-ignore: ['*.md', 'rfcs']
+    paths-ignore:
+      - '*.md'
+      - 'rfcs/**'
   pull_request:
     branches: [main]
     paths-ignore: ['*.md', 'rfcs']
