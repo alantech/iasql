@@ -37,7 +37,7 @@ const randIPBlock = Math.floor(Math.random() * 254) + 1; // 0 collides with the 
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
-afterAll(async () => await execComposeDown()));
+afterAll(async () => await execComposeDown());
 
 describe('VPC Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.connect(

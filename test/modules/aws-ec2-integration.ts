@@ -98,7 +98,7 @@ beforeAll(async () => {
   instanceType = instanceTypes.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
   await execComposeUp()
 });
-afterAll(async () => await execComposeDown()));
+afterAll(async () => await execComposeDown());
 
 describe('EC2 Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.connect(

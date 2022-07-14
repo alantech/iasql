@@ -51,7 +51,7 @@ const sg2 = `${prefix}${dbAlias}lbsg2`;
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
-afterAll(async () => await execComposeDown()));
+afterAll(async () => await execComposeDown());
 
 describe('ELB Integration Testing', () => {
   it('creates a new test db elb', (done) => void iasql.connect(

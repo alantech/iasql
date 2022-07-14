@@ -14,7 +14,7 @@ const modules = ['aws_s3'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
-afterAll(async () => await execComposeDown()));
+afterAll(async () => await execComposeDown());
 
 describe('S3 Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.connect(
