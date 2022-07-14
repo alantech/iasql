@@ -221,7 +221,7 @@ export class Mapper2<E> {
         .map(c => c.propertyName)
         .shift() ?? '';
       // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
-      this.entityId = (e: E) => ((e as any)[cloudColumn] ?? (e as any)[primaryColumn]) + '';
+      this.entityId = (e: E) => ((e as any)?.[cloudColumn] ?? (e as any)?.[primaryColumn]) + '';
     }
     this.equals = def.equals;
     this.source = def.source;
