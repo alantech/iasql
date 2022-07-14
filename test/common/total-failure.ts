@@ -8,7 +8,7 @@ const applyModules = ['aws_ec2', 'aws_security_group', 'aws_vpc']
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
-afterAll(async () => await execComposeDown([...applyModules]));
+afterAll(async () => await execComposeDown());
 
 describe('Testing failure path', () => {
   it('creates a new test db', (done) => void iasql.connect(
