@@ -24,20 +24,39 @@ jobs:
         name: Set modules tests names
         run: echo "::set-output name=test-module-names::$(npx jest **/modules/*ec2* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
 
-  cleanup-1:
+  # Job by region since we pass the 256 job limit running them all at once
+  cleanup-ap:
     needs:
       - setup-module-cleanup
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
-      regions: "['ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-south-1', 'ap-southeast-1', 'ap-southeast-2', 'ca-central-1', 'eu-central-1']"
+      regions: "['ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-south-1', 'ap-southeast-1', 'ap-southeast-2']"
     secrets: inherit
 
-  cleanup-2:
+  cleanup-us:
     needs:
       - setup-module-cleanup
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
-      regions: "['eu-north-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'sa-east-1', 'us-east-2', 'us-west-1', 'us-west-2']"
+      regions: "['us-east-2', 'us-west-1', 'us-west-2']"
+    secrets: inherit
+
+  cleanup-sa_ca:
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
+    with:
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
+      regions: "['sa-east-1', 'ca-central-1']"
+    secrets: inherit
+
+  cleanup-eu:
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
+    with:
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
+      regions: "['eu-north-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-central-1']"
     secrets: inherit
