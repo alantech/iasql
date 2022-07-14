@@ -34,7 +34,7 @@ jobs:
       - setup-module-cleanup
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
     with:
-      modules: needs.setup-module-cleanup.outputs['set-test-module-names']
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['ap-northeast-1']"
 
       # - name: Run modules tests
