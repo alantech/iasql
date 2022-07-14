@@ -40,7 +40,7 @@ const ecrRepositoryUri = `iasql-ecs-${appName}-ecr`;
 // TODO: Improve timings for this test
 jest.setTimeout(1800000);  // 30min timeout
 beforeAll(async () => await execComposeUp());
-afterAll(async () => await execComposeDown(modules));
+afterAll(async () => await execComposeDown()));
 
 describe('ECS Simplified Integration Testing', () => {
   it('creates a new test db ECS', (done) => void iasql.connect(

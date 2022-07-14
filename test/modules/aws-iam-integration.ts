@@ -78,7 +78,7 @@ const modules = ['aws_iam'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
-afterAll(async () => await execComposeDown(modules));
+afterAll(async () => await execComposeDown()));
 
 describe('IAM Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.connect(

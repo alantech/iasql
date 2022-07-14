@@ -26,7 +26,7 @@ const modules = ['aws_acm_list', 'aws_acm_import'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
-afterAll(async () => await execComposeDown(modules));
+afterAll(async () => await execComposeDown()));
 
 describe('AwsAcmImport Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.connect(
