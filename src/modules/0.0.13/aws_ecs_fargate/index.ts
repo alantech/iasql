@@ -450,7 +450,7 @@ export const AwsEcsFargateModule: Module2 = new Module2({
         } catch (_) {
           // Ignore if misconfigured
           if (!out.targetGroup) return undefined;
-        } 
+        }
       }
       out.name = s.serviceName;
       if (s.networkConfiguration?.awsvpcConfiguration) {
