@@ -3,14 +3,16 @@ name: Clean-up AWS accounts on a CRON Schedule
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch.
 on:
-  push:
-    branches: [clean-test]
+  # push:
+  #   branches: [clean-test]
   # schedule:
   #   # Runs "daily at 6am UTC - 11pm PDT - 1am CDT - 8am CEST"
   #   - cron: '0 6 * * *'
   # Allows you to run this workflow manually from the Actions tab
-  # TODO: add region input
   workflow_dispatch:
+    inputs:
+      region:
+        description: 'Optional region to delete'
 
 jobs:
   setup-module-cleanup:
@@ -26,6 +28,7 @@ jobs:
 
   # Job by region since we pass the 256 job limit running them all at once
   cleanup-ap:
+    if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
@@ -35,6 +38,7 @@ jobs:
     secrets: inherit
 
   cleanup-us:
+    if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
@@ -44,6 +48,7 @@ jobs:
     secrets: inherit
 
   cleanup-sa_ca:
+    if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
@@ -53,10 +58,21 @@ jobs:
     secrets: inherit
 
   cleanup-eu:
+    if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['eu-north-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-central-1']"
+    secrets: inherit
+
+  cleanup-custom:
+    if: ${{ github.event.inputs.region != '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
+    with:
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
+      regions: ${{ format('[{0}]', github.event.inputs.region) }}
     secrets: inherit
