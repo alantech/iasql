@@ -12,7 +12,7 @@ jobs:
         id: format-version
         run: |
           VERSION="$(echo ${{ github.event.ref }} | sed 's/v//g')"
-          echo ::set-output version=${VERSION}
+          echo ::set-output name=version::${VERSION}
       - name: Emit doc generation
         uses: mvasigh/dispatch-action@main
         with:
