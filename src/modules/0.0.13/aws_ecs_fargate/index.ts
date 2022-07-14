@@ -815,7 +815,7 @@ export const AwsEcsFargateModule: Module2 = new Module2({
             const services = ctx.memo?.cloud?.Service ?
               Object.values(ctx.memo?.cloud?.Service) :
               await AwsEcsFargateModule.mappers.service.cloud.read(ctx);
-            const service = services?.find((s: any) => s.arn === id);
+            const service = services?.find((s: any) => s?.arn === id);
             if (!service) return;
             const rawService = await getService(client.ecsClient, id, service.cluster.clusterArn);
             if (!rawService) return;
