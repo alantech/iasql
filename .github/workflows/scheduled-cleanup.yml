@@ -26,7 +26,7 @@ jobs:
       - run: yarn
       - id: set-test-module-names
         name: Set modules tests names
-        run: echo "::set-output name=test-module-names::$(npx jest **/modules/*ec2* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
 
   # Job by region since we pass the 256 job limit running them all at once
   cleanup-ap:
