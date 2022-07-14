@@ -48,7 +48,7 @@ const modules = ['aws_route53_hosted_zones'];
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
-afterAll(async () => await execComposeDown(modules));
+afterAll(async () => await execComposeDown());
 
 // TODO: test more record types
 describe('Route53 Integration Testing', () => {
