@@ -7,6 +7,8 @@ on:
     # Runs "daily at 6am UTC - 11pm PDT - 1am CDT - 8am CEST"
     # - cron: '0 6 * * *'
     - cron: '25 9 * * *'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   setup-module-cleanup:
