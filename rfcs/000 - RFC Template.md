@@ -46,6 +46,18 @@ Authors should *not* reject alternatives just because they don't "like" them, th
 
 Reviewers should *not* complain about a lack of detail in the alternative descriptions especially if that is their own preferred solution -- they should attempt to positively describe the solution and bring their own arguments and proof for it.
 
+## Expected Semver Impact
+
+A brief description of the expected impact on the Semantic versioning.
+
+Would this be considered a patch (no user-facing changes, but internal architectural changes. Bug fixes, new modules)?
+
+Would this be considered a minor update (new functionality with zero impact on existing functionality. API changes, new iasql functions?)?
+
+Would this be considered a major update (breaking the behavior of existing code)?
+
+RFCs that are a major update are more likely to be rejected or modified to become a minor or patch update, if possible. If not possible, major version RFCs are likely to be delayed and batched together with other major version RFC updates.
+
 ## Affected Components
 
 A brief listing of what part(s) of the engine will be impacted should be written here.
