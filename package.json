@@ -21,7 +21,7 @@
     "docker-compose": "IASQL_ENV=local docker-compose up --build",
     "version": "./.version.sh",
     "drop": "./.drop.sh",
-    "prepare": "./.prepare.sh"
+    "develop": "./.develop.sh"
   },
   "repository": {
     "type": "git",
