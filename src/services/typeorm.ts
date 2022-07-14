@@ -5,7 +5,7 @@ import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConn
 import { PostgresDriver, } from 'typeorm/driver/postgres/PostgresDriver'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import * as AllModules from '../modules'
+import { modules as AllModules, } from '../modules'
 import config from '../config'
 
 export class TypeormWrapper {

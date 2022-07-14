@@ -12,7 +12,7 @@ import { createConnection, } from 'typeorm'
 import { snakeCase, } from 'typeorm/util/StringUtils'
 import { v4 as uuidv4, } from 'uuid'
 
-import * as AllModules from '../modules'
+import { modules as AllModules, latest, } from '../modules'
 import * as dbMan from './db-manager'
 import * as scheduler from './scheduler-api'
 import MetadataRepo from './repositories/metadata'
@@ -1052,7 +1052,7 @@ export async function upgrade(dbId: string, dbUser: string) {
         await OldModules.IasqlFunctions.migrations.remove(qr);
         await OldModules.IasqlPlatform.migrations.remove(qr);
         // 5. Install the new `iasql_*` modules manually
-        const NewModules = AllModules.latest;
+        const NewModules = latest;
         await NewModules.IasqlPlatform.migrations.install(qr);
         await NewModules.IasqlFunctions.migrations.install(qr);
         await conn.query(`

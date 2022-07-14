@@ -1,3 +1,7 @@
+import fs from 'fs'
+
+import * as semver from 'semver'
+
 import config from '../config'
 
 // No good way to re-export a require without this, and no way to determine what to import by the
@@ -5,9 +9,9 @@ import config from '../config'
 // tslint:disable-next-line:no-var-requires
 export const latest = require(`./${config.modules.latestVersion}`);
 
-export * as v0_0_9 from './0.0.9'
-export * as v0_0_10 from './0.0.10'
-export * as v0_0_11 from './0.0.11'
-export * as v0_0_12 from './0.0.12'
-export * as v0_0_13 from './0.0.13'
+export const modules = Object.fromEntries(
+  fs.readdirSync(__dirname, 'utf8').filter(m => semver.valid(m)).map(v => [`v${v.replace(/\./g, '_')}`, require(`./${v}`)])
+);
+modules.latest = latest;
+
 export * from './interfaces'
