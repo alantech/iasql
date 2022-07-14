@@ -444,8 +444,13 @@ export const AwsEcsFargateModule: Module2 = new Module2({
       out.task = taskDefinition;
       const serviceLoadBalancer = s.loadBalancers.pop();
       if (serviceLoadBalancer) {
-        out.targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, serviceLoadBalancer.targetGroupArn) ??
-          await AwsElbModule.mappers.targetGroup.cloud.read(ctx, serviceLoadBalancer.targetGroupArn);
+        try {
+          out.targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, serviceLoadBalancer.targetGroupArn) ??
+            await AwsElbModule.mappers.targetGroup.cloud.read(ctx, serviceLoadBalancer.targetGroupArn);
+        } catch (_) {
+          // Ignore if misconfigured
+          if (!out.targetGroup) return undefined;
+        } 
       }
       out.name = s.serviceName;
       if (s.networkConfiguration?.awsvpcConfiguration) {
