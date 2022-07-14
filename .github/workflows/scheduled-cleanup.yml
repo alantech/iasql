@@ -13,10 +13,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  start-local-engine:
-    runs-on: ubuntu-latest
-    steps:
-
   setup-module-cleanup:
     runs-on: ubuntu-latest
     outputs:
