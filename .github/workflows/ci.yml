@@ -7,12 +7,10 @@ name: CI
 on:
   push:
     branches: [main, rfc-template]
-    paths:
-      - 'src/**'
-      - 'tests/**'
+    paths: ['src/**', 'tests/**']
   pull_request:
     branches: [main]
-    paths-ignore: ['*.md', 'rfcs']
+    paths: ['src/**', 'tests/**']
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
