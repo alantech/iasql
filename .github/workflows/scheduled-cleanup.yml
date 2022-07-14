@@ -68,7 +68,13 @@ jobs:
 
       - name: Set up iasql database
         run: |
-          echo "\nInserting credentials..."
+          echo "\nInstalling aws_account..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "
+            select iasql_install(
+              'aws_account'
+            );
+          ";
+          echo "\Attaching credentials..."
           psql postgres://postgres:test@localhost:5432/iasql -c "
             INSERT INTO aws_account (region, access_key_id, secret_access_key)
             VALUES ('${AWS_REGION}', '${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
