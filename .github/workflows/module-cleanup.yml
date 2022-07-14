@@ -56,14 +56,14 @@ jobs:
           AWS_REGION: ${{ matrix.region }}
           AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
-          DB_NAME: ${{ join([matrix.module, matrix.region], '_' ) }}
+          DB_NAME: ${{ join(fromJSON('[matrix.module, matrix.region]', '_' ) }}
 
       - name: Run cleaning script
         run: |
           echo "\nDelete all records..."
           psql postgres://postgres:test@localhost:5432/${DB_NAME} -f test/sql/delete_records.sql -c "select * from iasql_apply();"
         env:
-          DB_NAME: ${{ join([matrix.module, matrix.region], '_' ) }}
+          DB_NAME: ${{ join(fromJSON('[matrix.module, matrix.region]', '_' ) }}
 
       - name: Local engine logs
         if: always()
