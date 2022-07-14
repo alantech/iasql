@@ -474,7 +474,12 @@ export const AwsRdsModule: Module2 = new Module2({
         delete: async (es: ParameterGroup[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
-            await deleteDBParameterGroup(client.rdsClient, e.name);
+            // Default parameter groups cannot be deleted
+            if (e.name.startsWith('default.')) {
+              await AwsRdsModule.mappers.parameterGroup.db.update(e, ctx);
+            } else {
+              await deleteDBParameterGroup(client.rdsClient, e.name);
+            }
           }
         },
       }),
