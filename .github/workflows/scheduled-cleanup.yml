@@ -16,6 +16,8 @@ jobs:
   start-local-engine:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+
       - name: Use Node.js 16.x
         uses: actions/setup-node@v1
         with:
@@ -43,6 +45,7 @@ jobs:
   # Job by region since we pass the 256 job limit running them all at once
   cleanup-ap:
     needs:
+      - start-local-engine
       - setup-module-cleanup
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
     with:

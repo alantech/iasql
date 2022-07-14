@@ -26,12 +26,12 @@ jobs:
       MATRIX_AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY_${{matrix.module}}
 
     steps:
-      - uses: actions/checkout@v2
-
       - name: Create database
         run: |
           echo "\nCreating ${DB_NAME} db..."
           curl http://localhost:8088/v1/db/connect/${DB_NAME}
+        env:
+          DB_NAME: ${{ format('{{{0}_{1}}}', matrix.module, matrix.region) }}
 
       - name: Set up iasql database
         run: |
