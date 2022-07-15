@@ -2,7 +2,7 @@ import { run } from 'graphile-worker'
 import * as sentry from '@sentry/node';
 import { v4 as uuidv4, } from 'uuid'
 
-import { latest, } from '../modules'
+import { modules, } from '../modules'
 import MetadataRepo from './repositories/metadata'
 import * as iasql from './iasql'
 import * as telemetry from './telemetry'
@@ -10,6 +10,8 @@ import logger, { logErrSentry } from './logger'
 import { TypeormWrapper } from './typeorm'
 import { IasqlDatabase } from '../entity'
 import config from '../config'
+
+const latest = modules[config.modules.latestVersion];
 
 const { IasqlOperationType, } = latest.IasqlFunctions.utils;
 

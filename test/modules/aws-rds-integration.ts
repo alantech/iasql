@@ -17,7 +17,7 @@ const modules = ['aws_security_group', 'aws_rds', 'aws_vpc'];
 
 jest.setTimeout(960000);
 beforeAll(async () => await execComposeUp());
-afterAll(async () => await execComposeDown(modules));
+afterAll(async () => await execComposeDown());
 
 describe('RDS Integration Testing', () => {
   it('creates a new test db elb', (done) => void iasql.connect(

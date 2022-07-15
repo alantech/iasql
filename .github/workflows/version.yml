@@ -1,0 +1,41 @@
+name: Release Newest Version
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release-latest-version:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Set up Node.js
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Release latest version
+        run: yarn run version
+
+      - name: Format Version For Doc Generation
+        id: format-version
+        run: |
+          VERSION="$(./node_modules/.bin/ts-node src/scripts/latestVersion.ts)"
+          echo ::set-output name=version::${VERSION}
+
+      - name: Emit doc generation
+        uses: mvasigh/dispatch-action@main
+        with:
+          token: ${{ secrets.GH_PAT }}
+          repo: docs
+          owner: iasql
+          event_type: release
+          message: |
+            {
+              "version": "${{ steps.format-version.outputs.version }}"
+            }

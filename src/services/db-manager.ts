@@ -4,12 +4,12 @@ import { Connection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
 import config from '../config'
-import * as Modules from '../modules'
+import { modules as Modules, } from '../modules'
 
 export async function migrate(conn: Connection) {
   // Needs to be done this way or a redeploy would accidentally start using the next version even
   // if it is not yet enabled.
-  const ModuleSet = (Modules as any)[`v${config.modules.latestVersion.replace(/\./g, '_')}`]
+  const ModuleSet = (Modules as any)[config.modules.latestVersion]
   const { IasqlPlatform, IasqlFunctions, } = ModuleSet;
   const version = IasqlPlatform.version;
   const qr = conn.createQueryRunner();

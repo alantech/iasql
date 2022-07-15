@@ -5,7 +5,7 @@ import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConn
 import { PostgresDriver, } from 'typeorm/driver/postgres/PostgresDriver'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import * as AllModules from '../modules'
+import { modules as AllModules, } from '../modules'
 import config from '../config'
 
 export class TypeormWrapper {
@@ -41,14 +41,14 @@ export class TypeormWrapper {
     const tempconn = await createConnection(connOpts);
     // If this connection is being used to create a new DB, assume we're creating one with the
     // newest module versions
-    let versionString: string = 'latest';
+    let versionString: string = config.modules.latestVersion;
     try {
       const res = await tempconn.query(`
         SELECT DISTINCT name FROM iasql_module LIMIT 1;
       `);
-      versionString = `v${res[0].name.split('@')[1].replaceAll('.', '_')}`;
+      versionString = res[0].name.split('@')[1];
     } catch (e) {
-      // We're fine with just defaulting to 'latest'. It's what the initial db construction needs
+      // We're fine with just defaulting to the latest version
     }
     await tempconn.close();
     return versionString;
