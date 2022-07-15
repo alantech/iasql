@@ -74,6 +74,21 @@ jobs:
       regions: "['eu-north-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-central-1']"
     secrets: inherit
 
+  cleanup-global:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+      - cleanup-ap
+      - cleanup-us
+      - cleanup-sa_ca
+      - cleanup-eu
+    # TODO: update branch before merge
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
+    with:
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
+      regions: "['us-east-1']"
+    secrets: inherit
+
   cleanup-custom:
     if: ${{ github.event.inputs.region != '' }}
     needs:
@@ -84,3 +99,5 @@ jobs:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: ${{ format('[{0}]', github.event.inputs.region) }}
     secrets: inherit
+
+  # todo: Cleanup custom global?

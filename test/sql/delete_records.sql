@@ -14,14 +14,7 @@ BEGIN
     FOR table_elem IN array_lower(aux_tables_array, 1)..array_upper(aux_tables_array, 1) LOOP
       BEGIN
         raise notice 'logging table %', aux_tables_array[table_elem];
-        -- public_repository and role are special because they are region agnostic so we append a region to their names
-        IF aux_tables_array[table_elem] = 'public_repository' THEN
-          -- raise notice '%', format('DELETE FROM public_repository WHERE repository_name LIKE ''%s''', '%' || aws_region);
-          EXECUTE format('DELETE FROM public_repository WHERE repository_name LIKE ''%s''', '%' || aws_region);
-        ELSIF aux_tables_array[table_elem] = 'role' THEN
-          -- raise notice '%', format('DELETE FROM role WHERE role_name LIKE ''%s''', '%' || aws_region);
-          EXECUTE format('DELETE FROM role WHERE role_name LIKE ''%s''', '%' || aws_region);
-        ELSE
+        IF aux_tables_array[table_elem] != 'public_repository' AND aux_tables_array[table_elem] != 'role' THEN
           EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
         END IF;
         SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;
