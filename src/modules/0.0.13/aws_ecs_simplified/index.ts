@@ -83,69 +83,74 @@ export const AwsEcsSimplifiedModule: Module2 = new Module2({
       return out;
     },
     isValid: async (service: AwsService, ctx: Context) => {
-      // We use the service name as the appName
-      const appName = service.serviceName?.substring(service.serviceName.indexOf(prefix) + prefix.length, service.serviceName.indexOf('-svc')) ?? '';
-      const client = await getAwsClient(ctx) as AWS;
-      // Check if the cluster follow the name pattern
-      const cluster = await client.getCluster(service.clusterArn ?? '');
-      if (!Object.is(cluster?.clusterName, generateResourceName(prefix, appName, 'Cluster'))) return false;
-      // Check if the cluster just have one service
-      const services = await client.getServices([service.clusterArn ?? '']);
-      if (services.length !== 1) return false;
-      // Check load balancer count to be 1
-      if (service.loadBalancers?.length !== 1) return false;
-      // Check security groups count to be 1
-      if (service.networkConfiguration?.awsvpcConfiguration?.securityGroups?.length !== 1) return false;
-      // Check load balancer is valid
-      const serviceLoadBalancerInfo = service.loadBalancers[0];
-      const targetGroup = await client.getTargetGroup(serviceLoadBalancerInfo?.targetGroupArn ?? '');
-      // Check target group name pattern
-      if (!Object.is(targetGroup?.TargetGroupName, generateResourceName(prefix, appName, 'TargetGroup'))) return false;
-      const loadBalancer = await client.getLoadBalancer(targetGroup?.LoadBalancerArns?.[0] ?? '');
-      // Check load balancer name pattern
-      if (!Object.is(loadBalancer?.LoadBalancerName, generateResourceName(prefix, appName, 'LoadBalancer'))) return false;
-      // Check load balancer security group count
-      if (loadBalancer?.SecurityGroups?.length !== 1) return false;
-      const listeners = await client.getListeners([loadBalancer.LoadBalancerArn ?? '']);
-      // Check listeners count
-      if (listeners.Listeners.length !== 1) return false;
-      // Check listener actions count
-      if (listeners.Listeners?.[0]?.DefaultActions?.length !== 1) return false;
-      // Check task definiton
-      const taskDefinition = await client.getTaskDefinition(service.taskDefinition ?? '');
-      // Check task definition pattern name
-      if (!Object.is(taskDefinition?.family, generateResourceName(prefix, appName, 'TaskDefinition'))) return false;
-      // Check container count
-      if (taskDefinition?.containerDefinitions?.length !== 1) return false;
-      const containerDefinition = taskDefinition.containerDefinitions[0];
-      // Check container definition pattern name
-      if (!Object.is(containerDefinition?.name, generateResourceName(prefix, appName, 'ContainerDefinition'))) return false;
-      // Get Security group
-      const securityGroup = await client.getSecurityGroup(service.networkConfiguration?.awsvpcConfiguration?.securityGroups?.[0] ?? '');
-      // Check security group name pattern
-      if (!Object.is(securityGroup.GroupName, generateResourceName(prefix, appName, 'SecurityGroup'))) return false;
-      // Get security group rules
-      const securityGroupRules = await client.getSecurityGroupRulesByGroupId(securityGroup.GroupId ?? '');
-      // Check security group rule count
-      if (securityGroupRules.SecurityGroupRules?.length !== 2) return false;
-      // Get ingress rule port
-      const securityGroupRuleIngress = securityGroupRules.SecurityGroupRules.find(sgr => !sgr.IsEgress);
-      // Grab container port as appPort
-      const appPort = containerDefinition?.portMappings?.[0].containerPort;
-      // Check port configuration
-      if (![targetGroup?.Port, containerDefinition?.portMappings?.[0].hostPort, serviceLoadBalancerInfo?.containerPort, securityGroupRuleIngress?.ToPort, securityGroupRuleIngress?.FromPort]
-        .every(p => Object.is(p, appPort))) return false;
-      // Check if role is valid
-      if (!Object.is(taskDefinition.executionRoleArn, taskDefinition.taskRoleArn)) return false;
-      const role = await client.getRole(generateResourceName(prefix, appName, 'Role'));
-      const roleAttachedPoliciesArns = await client.getRoleAttachedPoliciesArnsV2(role?.RoleName ?? '');
-      if (roleAttachedPoliciesArns?.length !== 1) return false;
-      // Get cloudwatch log group
-      const logGroups = await client.getLogGroups(containerDefinition?.logConfiguration?.options?.["awslogs-group"] ?? '');
-      if (logGroups.length !== 1) return false;
-      // Check log group name pattern
-      if (!Object.is(logGroups[0].logGroupName, generateResourceName(prefix, appName, 'LogGroup'))) return false;
-      return true;
+      try {
+        // We use the service name as the appName
+        const appName = service.serviceName?.substring(service.serviceName.indexOf(prefix) + prefix.length, service.serviceName.indexOf('-svc')) ?? '';
+        const client = await getAwsClient(ctx) as AWS;
+        // Check if the cluster follow the name pattern
+        const cluster = await client.getCluster(service.clusterArn ?? '');
+        if (!Object.is(cluster?.clusterName, generateResourceName(prefix, appName, 'Cluster'))) return false;
+        // Check if the cluster just have one service
+        const services = await client.getServices([service.clusterArn ?? '']);
+        if (services.length !== 1) return false;
+        // Check load balancer count to be 1
+        if (service.loadBalancers?.length !== 1) return false;
+        // Check security groups count to be 1
+        if (service.networkConfiguration?.awsvpcConfiguration?.securityGroups?.length !== 1) return false;
+        // Check load balancer is valid
+        const serviceLoadBalancerInfo = service.loadBalancers[0];
+        const targetGroup = await client.getTargetGroup(serviceLoadBalancerInfo?.targetGroupArn ?? '');
+        // Check target group name pattern
+        if (!Object.is(targetGroup?.TargetGroupName, generateResourceName(prefix, appName, 'TargetGroup'))) return false;
+        const loadBalancer = await client.getLoadBalancer(targetGroup?.LoadBalancerArns?.[0] ?? '');
+        // Check load balancer name pattern
+        if (!Object.is(loadBalancer?.LoadBalancerName, generateResourceName(prefix, appName, 'LoadBalancer'))) return false;
+        // Check load balancer security group count
+        if (loadBalancer?.SecurityGroups?.length !== 1) return false;
+        const listeners = await client.getListeners([loadBalancer.LoadBalancerArn ?? '']);
+        // Check listeners count
+        if (listeners.Listeners.length !== 1) return false;
+        // Check listener actions count
+        if (listeners.Listeners?.[0]?.DefaultActions?.length !== 1) return false;
+        // Check task definiton
+        const taskDefinition = await client.getTaskDefinition(service.taskDefinition ?? '');
+        // Check task definition pattern name
+        if (!Object.is(taskDefinition?.family, generateResourceName(prefix, appName, 'TaskDefinition'))) return false;
+        // Check container count
+        if (taskDefinition?.containerDefinitions?.length !== 1) return false;
+        const containerDefinition = taskDefinition.containerDefinitions[0];
+        // Check container definition pattern name
+        if (!Object.is(containerDefinition?.name, generateResourceName(prefix, appName, 'ContainerDefinition'))) return false;
+        // Get Security group
+        const securityGroup = await client.getSecurityGroup(service.networkConfiguration?.awsvpcConfiguration?.securityGroups?.[0] ?? '');
+        // Check security group name pattern
+        if (!Object.is(securityGroup.GroupName, generateResourceName(prefix, appName, 'SecurityGroup'))) return false;
+        // Get security group rules
+        const securityGroupRules = await client.getSecurityGroupRulesByGroupId(securityGroup.GroupId ?? '');
+        // Check security group rule count
+        if (securityGroupRules.SecurityGroupRules?.length !== 2) return false;
+        // Get ingress rule port
+        const securityGroupRuleIngress = securityGroupRules.SecurityGroupRules.find(sgr => !sgr.IsEgress);
+        // Grab container port as appPort
+        const appPort = containerDefinition?.portMappings?.[0].containerPort;
+        // Check port configuration
+        if (![targetGroup?.Port, containerDefinition?.portMappings?.[0].hostPort, serviceLoadBalancerInfo?.containerPort, securityGroupRuleIngress?.ToPort, securityGroupRuleIngress?.FromPort]
+          .every(p => Object.is(p, appPort))) return false;
+        // Check if role is valid
+        if (!Object.is(taskDefinition.executionRoleArn, taskDefinition.taskRoleArn)) return false;
+        const role = await client.getRole(generateResourceName(prefix, appName, 'Role'));
+        const roleAttachedPoliciesArns = await client.getRoleAttachedPoliciesArnsV2(role?.RoleName ?? '');
+        if (roleAttachedPoliciesArns?.length !== 1) return false;
+        // Get cloudwatch log group
+        const logGroups = await client.getLogGroups(containerDefinition?.logConfiguration?.options?.["awslogs-group"] ?? '');
+        if (logGroups.length !== 1) return false;
+        // Check log group name pattern
+        if (!Object.is(logGroups[0].logGroupName, generateResourceName(prefix, appName, 'LogGroup'))) return false;
+        return true;
+      } catch (_) {
+        // If getting one of the components fails is not valid anymore
+        return false;
+      }
     },
     getSimplifiedObjectMapped: (e: EcsSimplified) => {
       const securityGroup = AwsEcsSimplifiedModule.utils.simplifiedEntityMapper.securityGroup(prefix, e.appName);
