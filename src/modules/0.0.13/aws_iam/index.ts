@@ -251,8 +251,13 @@ export const AwsIamModule: Module2 = new Module2({
               } else {
                 const allowEc2Service = AwsIamModule.utils.allowEc2Service(entity);
                 if (allowEc2Service) {
-                  await detachRoleToInstanceProfile(client.iamClient, entity.roleName);
-                  await deleteInstanceProfile(client.iamClient, entity.roleName);
+                  try {
+                    await detachRoleToInstanceProfile(client.iamClient, entity.roleName);
+                    await deleteInstanceProfile(client.iamClient, entity.roleName);
+                  } catch (e: any) {
+                    // If role not found do nothing.
+                    if (e.Code !== 'NoSuchEntity') throw e;
+                  }
                 }
                 await detachRolePolicies(client.iamClient, entity.roleName, entity.attachedPoliciesArns ?? []);
                 await deleteRole(client.iamClient, entity.roleName);
