@@ -79,7 +79,7 @@ jobs:
           echo "\nDelete all records..."
           psql postgres://postgres:test@localhost:5432/iasql -f test/sql/delete_records.sql -c "select * from iasql_apply();"
 
-      - name: Run cleaning script
+      - name: Run cleaning script global
         if: ${{ inputs.global }}
         run: |
           echo "\nDelete all records..."
