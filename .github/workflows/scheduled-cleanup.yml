@@ -1,4 +1,5 @@
-name: Clean-up AWS accounts on a CRON Schedule
+# Clean-up AWS accounts on a CRON Schedule
+name: Clean AWS accounts
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch.
