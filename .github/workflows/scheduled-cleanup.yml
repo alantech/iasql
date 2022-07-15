@@ -4,13 +4,10 @@ name: Clean AWS accounts
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch.
 on:
-  # TODO: delete this before merge
-  push:
-    branches: [clean-test]
-  # schedule:
-  #   # Runs "daily at 6:15am UTC - 11:15pm PDT - 1:15am CDT - 8:15am CEST"
-  #   # Github Actions have heavy load every start hour, so we wait 15 min to avoid delays in our jobs
-  #   - cron: '15 6 * * *'
+  schedule:
+    # Runs "daily at 6:15am UTC - 11:15pm PDT - 1:15am CDT - 8:15am CEST"
+    # Github Actions have heavy load every start hour, so we wait 15 min to avoid delays in our jobs
+    - cron: '15 6 * * *'
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
@@ -34,8 +31,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    # TODO: update branch before merge
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-south-1', 'ap-southeast-1', 'ap-southeast-2']"
@@ -46,8 +42,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    # TODO: update branch before merge
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['us-east-2', 'us-west-1', 'us-west-2']"
@@ -58,8 +53,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    # TODO: update branch before merge
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['sa-east-1', 'ca-central-1']"
@@ -70,8 +64,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    # TODO: update branch before merge
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['eu-north-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-central-1']"
@@ -86,8 +79,7 @@ jobs:
       - cleanup-us
       - cleanup-sa_ca
       - cleanup-eu
-    # TODO: update branch before merge
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['us-east-1']"
@@ -98,8 +90,7 @@ jobs:
     if: ${{ github.event.inputs.region != '' }}
     needs:
       - setup-module-cleanup
-    # TODO: update branch before merge
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: ${{ format('[{0}]', github.event.inputs.region) }}
@@ -111,8 +102,7 @@ jobs:
     needs:
       - setup-module-cleanup
       - cleanup-custom
-    # TODO: update branch before merge
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: ${{ format('[{0}]', github.event.inputs.region) }}
