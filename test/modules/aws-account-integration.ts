@@ -75,7 +75,7 @@ describe('AwsAccount Integration Testing', () => {
       if (
         results instanceof Array &&
         results[0] instanceof Array &&
-        (results[0][0] as any).region === 'us-east-1'
+        (results[0][0] as any).name.includes('@')
       ) {
         done();
       } else {
