@@ -10,8 +10,6 @@ import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder, } from '
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 
-import logger from '../../../services/logger'
-
 const getRoleAttachedPoliciesArns = crudBuilderFormat<
   IAM,
   'listAttachedRolePolicies',
@@ -261,12 +259,8 @@ export const AwsIamModule: Module2 = new Module2({
                     if (e.Code !== 'NoSuchEntity') throw e;
                   }
                 }
-                try {
-                  await detachRolePolicies(client.iamClient, entity.roleName, entity.attachedPoliciesArns ?? []);
-                  await deleteRole(client.iamClient, entity.roleName);
-                } catch (e) {
-                  logger.warn(`++++ ERROR DELETEING ROLE??? ${JSON.stringify(e)}`)
-                }
+                await detachRolePolicies(client.iamClient, entity.roleName, entity.attachedPoliciesArns ?? []);
+                await deleteRole(client.iamClient, entity.roleName);
               }
             }
           }
