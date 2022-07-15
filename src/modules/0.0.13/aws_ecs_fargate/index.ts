@@ -444,8 +444,13 @@ export const AwsEcsFargateModule: Module2 = new Module2({
       out.task = taskDefinition;
       const serviceLoadBalancer = s.loadBalancers.pop();
       if (serviceLoadBalancer) {
-        out.targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, serviceLoadBalancer.targetGroupArn) ??
-          await AwsElbModule.mappers.targetGroup.cloud.read(ctx, serviceLoadBalancer.targetGroupArn);
+        try {
+          out.targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, serviceLoadBalancer.targetGroupArn) ??
+            await AwsElbModule.mappers.targetGroup.cloud.read(ctx, serviceLoadBalancer.targetGroupArn);
+        } catch (_) {
+          // Ignore if misconfigured
+          if (!out.targetGroup) return undefined;
+        }
       }
       out.name = s.serviceName;
       if (s.networkConfiguration?.awsvpcConfiguration) {
@@ -810,7 +815,7 @@ export const AwsEcsFargateModule: Module2 = new Module2({
             const services = ctx.memo?.cloud?.Service ?
               Object.values(ctx.memo?.cloud?.Service) :
               await AwsEcsFargateModule.mappers.service.cloud.read(ctx);
-            const service = services?.find((s: any) => s.arn === id);
+            const service = services?.find((s: any) => s?.arn === id);
             if (!service) return;
             const rawService = await getService(client.ecsClient, id, service.cluster.clusterArn);
             if (!rawService) return;
@@ -822,7 +827,8 @@ export const AwsEcsFargateModule: Module2 = new Module2({
             const fargateResult = result.filter(s => s.launchType === 'FARGATE');
             const out = [];
             for (const s of fargateResult) {
-              out.push(await AwsEcsFargateModule.utils.serviceMapper(s, ctx));
+              const mappedService = await AwsEcsFargateModule.utils.serviceMapper(s, ctx);
+              if (mappedService) out.push(mappedService);
             }
             return out;
           }
