@@ -195,7 +195,7 @@ export const AwsIamModule: Module2 = new Module2({
             const out = [];
             for (const r of roles) {
               const role = await AwsIamModule.utils.roleMapper(r, ctx);
-              out.push(role);
+              if (role) out.push(role);
             }
             return out;
           }

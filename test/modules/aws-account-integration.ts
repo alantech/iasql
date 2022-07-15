@@ -71,11 +71,11 @@ describe('AwsAccount Integration Testing', () => {
 
   it('runSql segue: confirms multiple sql queries returns an array of arrays of records', (done) => {
     (async () => {
-      const results = await runSql('SELECT * FROM aws_account; SELECT * FROM iasql_help();');
+      const results = await runSql('SELECT * FROM iasql_module; SELECT * FROM iasql_help();');
       if (
         results instanceof Array &&
         results[0] instanceof Array &&
-        (results[0][0] as any).region === 'us-east-1'
+        (results[0][0] as any).name.includes('@')
       ) {
         done();
       } else {

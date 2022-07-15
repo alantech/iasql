@@ -1,0 +1,125 @@
+# Clean-up AWS accounts on a CRON Schedule
+name: Clean AWS accounts
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the main branch.
+on:
+  schedule:
+    # Runs "daily at 6:15am UTC - 11:15pm PDT - 1:15am CDT - 8:15am CEST"
+    # Github Actions have heavy load every start hour, so we wait 15 min to avoid delays in our jobs
+    - cron: '15 6 * * *'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      region:
+        description: 'Optional region to delete'
+
+jobs:
+  setup-module-cleanup:
+    runs-on: ubuntu-latest
+    outputs:
+      set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
+    steps:
+      - uses: actions/checkout@v2
+      - run: yarn
+      - id: set-test-module-names
+        name: Set modules tests names
+        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+
+  # Job by region since we pass the 256 job limit running them all at once
+  cleanup-ap:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
+      regions: "['ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-south-1', 'ap-southeast-1', 'ap-southeast-2']"
+      global: false
+    secrets: inherit
+
+  cleanup-us:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
+      regions: "['us-east-2', 'us-west-1', 'us-west-2']"
+      global: false
+    secrets: inherit
+
+  cleanup-sa_ca:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
+      regions: "['sa-east-1', 'ca-central-1']"
+      global: false
+    secrets: inherit
+
+  cleanup-eu:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
+      regions: "['eu-north-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-central-1']"
+      global: false
+    secrets: inherit
+
+  cleanup-global:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+      - cleanup-ap
+      - cleanup-us
+      - cleanup-sa_ca
+      - cleanup-eu
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
+      regions: "['us-east-1']"
+      global: true
+    secrets: inherit
+
+  cleanup-custom:
+    if: ${{ github.event.inputs.region != '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
+      regions: ${{ format('[{0}]', github.event.inputs.region) }}
+      global: false
+    secrets: inherit
+
+  cleanup-global-custom:
+    if: ${{ github.event.inputs.region != '' }}
+    needs:
+      - setup-module-cleanup
+      - cleanup-custom
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
+      regions: ${{ format('[{0}]', github.event.inputs.region) }}
+      global: true
+    secrets: inherit
+
+  notify:
+      name: Discord Notification
+      runs-on: ubuntu-latest
+      needs: # make sure the notification is sent AFTER the jobs you want included have completed
+        - cleanup-global
+        - cleanup-global-custom
+      if: ${{ always() }} # You always want to be notified: success, failure, or cancelled
+
+      steps:
+        - name: Notify
+          uses: nobrayner/discord-webhook@v1
+          with:
+            github-token: ${{ secrets.github_token }}
+            discord-webhook: ${{ secrets.DISCORD_WEBHOOK }}
