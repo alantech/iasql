@@ -106,4 +106,15 @@ jobs:
       global: false
     secrets: inherit
 
-  # todo: Cleanup custom global?
+  cleanup-global-custom:
+    if: ${{ github.event.inputs.region != '' }}
+    needs:
+      - setup-module-cleanup
+      - cleanup-custom
+    # TODO: update branch before merge
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@clean-test
+    with:
+      modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
+      regions: ${{ format('[{0}]', github.event.inputs.region) }}
+      global: true
+    secrets: inherit
