@@ -116,7 +116,12 @@ export const AwsIamModule: Module2 = new Module2({
       if (!role.RoleName) return undefined;
       out.roleName = role.RoleName;
       out.description = role.Description;
-      out.attachedPoliciesArns = await getRoleAttachedPoliciesArns(client.iamClient, role.RoleName);
+      try {
+        out.attachedPoliciesArns = await getRoleAttachedPoliciesArns(client.iamClient, role.RoleName);
+      } catch (e: any) {
+        // If could not get policies for the role implies a misconfiguration
+        if (e.Code === 'NoSuchEntity') return undefined;
+      }
       if (!role.AssumeRolePolicyDocument) return undefined;
       try {
         out.assumeRolePolicyDocument = JSON.parse(decodeURIComponent(role.AssumeRolePolicyDocument));
