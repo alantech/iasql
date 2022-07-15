@@ -12,7 +12,7 @@ import { createConnection, } from 'typeorm'
 import { snakeCase, } from 'typeorm/util/StringUtils'
 import { v4 as uuidv4, } from 'uuid'
 
-import * as AllModules from '../modules'
+import { modules as AllModules, } from '../modules'
 import * as dbMan from './db-manager'
 import * as scheduler from './scheduler-api'
 import MetadataRepo from './repositories/metadata'
@@ -1015,7 +1015,7 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
 // few different 'groups' by version number instead of being special-cased for each version.
 export async function upgrade(dbId: string, dbUser: string) {
   const versionString = await TypeormWrapper.getVersionString(dbId);
-  if (versionString === `v${config.modules.latestVersion.replace(/\./g, '_')}`) {
+  if (versionString === config.modules.latestVersion) {
     return 'Up to date';
   } else {
     (async () => {
@@ -1052,7 +1052,7 @@ export async function upgrade(dbId: string, dbUser: string) {
         await OldModules.IasqlFunctions.migrations.remove(qr);
         await OldModules.IasqlPlatform.migrations.remove(qr);
         // 5. Install the new `iasql_*` modules manually
-        const NewModules = AllModules.latest;
+        const NewModules = AllModules[config.modules.latestVersion];
         await NewModules.IasqlPlatform.migrations.install(qr);
         await NewModules.IasqlFunctions.migrations.install(qr);
         await conn.query(`

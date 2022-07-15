@@ -168,3 +168,27 @@ Modules tests are inside `test/modules/` directory. Modules tests run in paralle
   - `AWS_SECRET_ACCESS_KEY_<name of the test file in uppercase and replacing - with _>`
 
 - Run the tests. It will parallelize the test file and use the new credentials automatically.
+
+## How to release IaSQL via Github Actions
+
+IaSQL has a rolling release schedule for it's modules. The last 4 versions (1 month's worth) of modules are supported at any point in time, so users have a monthly cadence to upgrade their databases to the latest version. In order to allow for hotfixes to be deployed mid-release, during the development of the next version, it is not yet marked as the actual latest version and is transitioned when ready.
+
+The flow for any given development cycle is as follows:
+
+### 1. Begin development of the next version
+
+Go to the Actions tab and click the "Develop New Version" tab. Next click the "Run Workflow" button. Then type in the new version number for the next release and finally click the green "Run workflow" button.
+
+### 2. Develop!
+
+Write PRs and merge them as you normally would.
+
+### 3. Drop the old version
+
+Go to the Actions tab and click the "Drop Old Version" tab. Then click the "Run Workflow" button to drop the oldest, no-longer-supported version.
+
+### 4. Release the newest version
+
+Go to the Actions tab and click the "Release Newest Version" tab. Then click the "Run Workflow" button to mark the newest version as released.
+
+### 5. GOTO 1.

@@ -3,7 +3,9 @@ import * as sentry from '@sentry/node'
 
 import config, { IASQL_ENV } from '../config'
 import logger from './logger'
-import { latest, } from '../modules'
+import { modules, } from '../modules'
+
+const latest = modules[config.modules.latestVersion];
 
 // Weird little dance to make it a type again.
 // From: https://www.typescriptlang.org/docs/handbook/enums.html#objects-vs-enums
