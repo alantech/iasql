@@ -1,0 +1,24 @@
+name: Drop Old Version
+
+on:
+  workflow_dispatch:
+
+jobs:
+  drop-old-version:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Set up Node.js
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Drop old version
+        run: yarn drop
+  
