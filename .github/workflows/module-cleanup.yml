@@ -10,6 +10,9 @@ on:
       regions:
         required: true
         type: string
+      global:
+        required: true
+        type: boolean
 
 jobs:
   module-cleanup:
@@ -71,9 +74,16 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
 
       - name: Run cleaning script
+        if: ${{ !inputs.global }}
         run: |
           echo "\nDelete all records..."
           psql postgres://postgres:test@localhost:5432/iasql -f test/sql/delete_records.sql -c "select * from iasql_apply();"
+
+      - name: Run cleaning script
+        if: ${{ inputs.global }}
+        run: |
+          echo "\nDelete all records..."
+          psql postgres://postgres:test@localhost:5432/iasql -f test/sql/delete_global_records.sql -c "select * from iasql_apply();"
 
       - name: Local engine logs
         if: always()

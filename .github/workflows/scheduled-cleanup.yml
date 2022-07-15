@@ -39,6 +39,7 @@ jobs:
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-south-1', 'ap-southeast-1', 'ap-southeast-2']"
+      global: false
     secrets: inherit
 
   cleanup-us:
@@ -50,6 +51,7 @@ jobs:
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['us-east-2', 'us-west-1', 'us-west-2']"
+      global: false
     secrets: inherit
 
   cleanup-sa_ca:
@@ -61,6 +63,7 @@ jobs:
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['sa-east-1', 'ca-central-1']"
+      global: false
     secrets: inherit
 
   cleanup-eu:
@@ -72,6 +75,7 @@ jobs:
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['eu-north-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-central-1']"
+      global: false
     secrets: inherit
 
   cleanup-global:
@@ -87,6 +91,7 @@ jobs:
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: "['us-east-1']"
+      global: true
     secrets: inherit
 
   cleanup-custom:
@@ -98,6 +103,7 @@ jobs:
     with:
       modules: ${{ needs.setup-module-cleanup.outputs['set-test-module-names'] }}
       regions: ${{ format('[{0}]', github.event.inputs.region) }}
+      global: false
     secrets: inherit
 
   # todo: Cleanup custom global?
