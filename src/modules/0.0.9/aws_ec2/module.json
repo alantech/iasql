@@ -1,4 +1,0 @@
-{
-  "name": "aws_ec2",
-  "dependencies": ["iasql_platform", "aws_account", "aws_security_group", "aws_elb"]
-}
