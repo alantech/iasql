@@ -314,10 +314,14 @@ export const AwsElbModule: Module2 = new Module2({
       out.unhealthyThresholdCount = tg.UnhealthyThresholdCount;
       out.healthCheckPath = tg.HealthCheckPath;
       out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum;
-      const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, tg.VpcId) ??
-        await AwsVpcModule.mappers.vpc.cloud.read(ctx, tg.VpcId);
-      if (tg.VpcId && !vpc) throw new Error(`Waiting for VPC ${tg.VpcId}`);
-      out.vpc = vpc;
+      try {
+        const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, tg.VpcId) ??
+          await AwsVpcModule.mappers.vpc.cloud.read(ctx, tg.VpcId);
+        if (tg.VpcId && !vpc) return undefined;
+        out.vpc = vpc;
+      } catch (e: any) {
+        if (e.Code === 'InvalidVpcID.NotFound') return undefined;
+      }
       return out;
     },
   },
@@ -639,7 +643,8 @@ export const AwsElbModule: Module2 = new Module2({
             const tgs = await getTargetGroups(client.elbClient);
             const out = [];
             for (const tg of tgs) {
-              out.push(await AwsElbModule.utils.targetGroupMapper(tg, ctx));
+              const tgMapped = await AwsElbModule.utils.targetGroupMapper(tg, ctx);
+              if (tgMapped) out.push(tgMapped);
             }
             return out;
           }
