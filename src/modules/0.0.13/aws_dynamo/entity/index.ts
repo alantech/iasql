@@ -50,6 +50,7 @@ export class DynamoTable {
   // TODO2: How to constrain to just two keys?
   @Column({
     type: 'json',
+    nullable: false,
   })
   primaryKey: { [key: string]: 'B' | 'BOOL' | 'BS' | 'L' | 'M' | 'N' | 'NS' | 'NULL' | 'S' | 'SS', };
 

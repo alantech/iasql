@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsDynamo1657988050211 implements MigrationInterface {
-    name = 'awsDynamo1657988050211'
+export class awsDynamo1658157120785 implements MigrationInterface {
+    name = 'awsDynamo1658157120785'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."dynamo_table_table_class_enum" AS ENUM('STANDARD', 'STANDARD_INFREQUENT_ACCESS')`);
