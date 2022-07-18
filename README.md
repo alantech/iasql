@@ -47,18 +47,23 @@ To contribute, visit [Contributing.md](https://github.com/iasql/iasql-engine/blo
 
 AWS is our main focus at the moment, but we plan to support GCP, Azure and other cloud providers soon. Let us know if you need a specific AWS service and we might be able to prioritize it!
 
-###  Supported AWS services
+### AWS services with significant API coverage
 
-- [x] EC2
-- [x] ECR
-- [x] ECS + Fargate
-- [x] ELB
-- [x] RDS
-- [x] VPC
-- [x] IAM
-- [x] Route53
-- [X] ACM
-- [ ] Dynamo DB
-- [ ] Lambda
-- [X] S3
-- [ ] Secrets Manager
+- [EC2](https://docs.iasql.com/ec2)
+- ECR
+- ECS + Fargate
+- ELB
+- RDS
+- Security Groups
+- CloudWatch
+- IAM
+- VPC
+
+### AWS services with basic API coverage
+
+- Route53
+- ACM
+- Dynamo DB
+- S3
+
+Check out AWS services that are going to be added next [here](https://github.com/iasql/iasql-engine/issues?q=is%3Aissue+is%3Aopen+label%3A%22cloud+coverage%22) and let us know if you would like to see one that is not listed!
