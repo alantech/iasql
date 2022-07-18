@@ -492,17 +492,17 @@
     fast-xml-parser "3.19.0"
     tslib "^2.3.1"
 
-"@aws-sdk/client-rds@^3.128.0":
-  version "3.128.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-rds/-/client-rds-3.128.0.tgz#90b3fa64b27a13ec3f09bf54c8fc8f0b83fcf0cd"
-  integrity sha512-zA0BZi5i4FheDtdsoE+jvoSMlXRFm6Ew1HSGMZJo701yBunZ4p21DbvY06U6L02G2s0a5tAh7YR8sjZAIVX/oQ==
+"@aws-sdk/client-rds@^3.131.0":
+  version "3.131.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-rds/-/client-rds-3.131.0.tgz#18301bdbf8f5772753175162b4ce58e55d05d8ff"
+  integrity sha512-29csaSvhxyfrvL7PgX9UnAdOpGU0BOCi0dvuwyaN6qCyW2VD+3rjyJowkf9vOneIojTYB9rGX0S+DdMCi6xMlg==
   dependencies:
     "@aws-crypto/sha256-browser" "2.0.0"
     "@aws-crypto/sha256-js" "2.0.0"
-    "@aws-sdk/client-sts" "3.128.0"
-    "@aws-sdk/config-resolver" "3.128.0"
-    "@aws-sdk/credential-provider-node" "3.128.0"
-    "@aws-sdk/fetch-http-handler" "3.127.0"
+    "@aws-sdk/client-sts" "3.131.0"
+    "@aws-sdk/config-resolver" "3.130.0"
+    "@aws-sdk/credential-provider-node" "3.131.0"
+    "@aws-sdk/fetch-http-handler" "3.131.0"
     "@aws-sdk/hash-node" "3.127.0"
     "@aws-sdk/invalid-dependency" "3.127.0"
     "@aws-sdk/middleware-content-length" "3.127.0"
@@ -510,9 +510,9 @@
     "@aws-sdk/middleware-logger" "3.127.0"
     "@aws-sdk/middleware-recursion-detection" "3.127.0"
     "@aws-sdk/middleware-retry" "3.127.0"
-    "@aws-sdk/middleware-sdk-rds" "3.128.0"
+    "@aws-sdk/middleware-sdk-rds" "3.130.0"
     "@aws-sdk/middleware-serde" "3.127.0"
-    "@aws-sdk/middleware-signing" "3.128.0"
+    "@aws-sdk/middleware-signing" "3.130.0"
     "@aws-sdk/middleware-stack" "3.127.0"
     "@aws-sdk/middleware-user-agent" "3.127.0"
     "@aws-sdk/node-config-provider" "3.127.0"
@@ -526,7 +526,7 @@
     "@aws-sdk/util-body-length-browser" "3.55.0"
     "@aws-sdk/util-body-length-node" "3.55.0"
     "@aws-sdk/util-defaults-mode-browser" "3.127.0"
-    "@aws-sdk/util-defaults-mode-node" "3.128.0"
+    "@aws-sdk/util-defaults-mode-node" "3.130.0"
     "@aws-sdk/util-user-agent-browser" "3.127.0"
     "@aws-sdk/util-user-agent-node" "3.127.0"
     "@aws-sdk/util-utf8-browser" "3.109.0"
@@ -1446,13 +1446,13 @@
     "@aws-sdk/util-format-url" "3.127.0"
     tslib "^2.3.1"
 
-"@aws-sdk/middleware-sdk-rds@3.128.0":
-  version "3.128.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-rds/-/middleware-sdk-rds-3.128.0.tgz#cec512b7a2856c4d8d378cb554749575814e45b9"
-  integrity sha512-+4M4AniJ4lp0UvdElTzE8W6HSyqgG2gDNAiYdDHluvdcZQmRsfvRpSoRXbta1X0ilUyPV71tga4irKCHpRH9Fg==
+"@aws-sdk/middleware-sdk-rds@3.130.0":
+  version "3.130.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-rds/-/middleware-sdk-rds-3.130.0.tgz#868e5208450b582605e168676e569b29122b1159"
+  integrity sha512-ahd5FMrgptfXAAUpR0HS35tVutCwdVgERpGNE76XACGQuiBxWgqI1WGqUOUg/u1SifM3URwY4ftf+kUkpphBfA==
   dependencies:
     "@aws-sdk/protocol-http" "3.127.0"
-    "@aws-sdk/signature-v4" "3.128.0"
+    "@aws-sdk/signature-v4" "3.130.0"
     "@aws-sdk/types" "3.127.0"
     "@aws-sdk/util-format-url" "3.127.0"
     tslib "^2.3.1"
