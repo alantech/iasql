@@ -24,4 +24,7 @@ jobs:
         run: yarn
 
       - name: Develop new version
-        run: yarn develop ${{ github.event.inputs.next-version }}
+        run: |
+          git config --local user.email "iasql-bot@users.noreply.github.com"
+          git config --local user.name "iasql-bot"
+          yarn develop ${{ github.event.inputs.next-version }}

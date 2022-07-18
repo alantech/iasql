@@ -20,5 +20,8 @@ jobs:
         run: yarn
 
       - name: Drop old version
-        run: yarn drop
+        run: |
+          git config --local user.email "iasql-bot@users.noreply.github.com"
+          git config --local user.name "iasql-bot"
+          yarn drop
   
