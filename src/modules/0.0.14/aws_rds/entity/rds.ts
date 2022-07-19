@@ -33,7 +33,7 @@ export class RDS {
   })
   allocatedStorage: number;
 
-  @ManyToOne(() => AvailabilityZone, { eager: true, })
+  @ManyToOne(() => AvailabilityZone, { eager: true, nullable: false, })
   @JoinColumn({
     name: 'availability_zone',
   })
