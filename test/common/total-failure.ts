@@ -16,11 +16,16 @@ describe('Testing failure path', () => {
     'not-needed', 'not-needed').then(...finish(done)));
 
   // Fail on install
-  it('fails to install fake module', (done) => {
+  it('fails to install fake module',
     query(`
       select * from iasql_install('aws_fake');
-    `)((_e?: any) => done());  // Ignore failure
-  });
+    `, (e: any) => {
+      console.log(e)
+      console.log(JSON.stringify(e))
+      expect(true).toBeFalsy();
+      return;
+    })
+  );
 
   it('check install error', query(`
     SELECT *
