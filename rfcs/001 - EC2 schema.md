@@ -90,11 +90,13 @@ Launch templates, auto-scaling group requests and spot instances requests can be
 
 ### Alternatives Considered
 
-Create different modules for the services that can manage AWS instances.
-Create different tables within the same `aws_ec2` module for the services that can manage AWS instances.
+- Create different modules for the services that can manage AWS instances.
+- Create different tables within the same `aws_ec2` module for the services that can manage AWS instances.
+
 These two were discarded since they will increase the complexity of the model. Users will need to find all the tables that can contain `instance` information.
 
-Add iasql module's capabilities.
+- Let iasql modules dynamically add/remove tables/columns based on module's "capabilities" selected by the user.
+
 This option is not viable since it will be really hard to maintain and make it compatible through versions. It will imply the need for several opinionated decisions in behaviour that could not be expected by the users. Also, new users may not understand what capabilities are and add all of them every time.
 
 ## Expected Semver Impact
@@ -103,7 +105,8 @@ Patch version
 
 ## Affected Components
 
-`aws_ec2` module
+- `aws_ec2` module
+- `aws_vpc` module
 
 ## Expected Timeline
 
