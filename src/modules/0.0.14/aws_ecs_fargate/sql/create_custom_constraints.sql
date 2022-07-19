@@ -1,5 +1,5 @@
 -- Create service subnets constraint
-create or replace function check_service_subnets(_subnets integer[]) returns boolean
+create or replace function check_service_subnets(_subnets text[]) returns boolean
 language plpgsql security definer
 as $$
 declare
@@ -7,7 +7,7 @@ declare
 begin
   select COUNT(*) into _subnets_count
   from subnet
-  where id = any(_subnets);
+  where subnet_id = any(_subnets);
   return _subnets_count = array_length(_subnets, 1);
 end;
 $$;
