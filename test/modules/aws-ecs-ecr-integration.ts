@@ -251,15 +251,14 @@ describe('ECS Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   // Service
-
-  it('fails to apply', (done) => {
+  it('fails adding a service', (done) => {
     query(`
     INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
     VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, '{"fake"}', 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
     `)((e: any) => {
-      expect(e).toBe('');
-      return done();
-    });  // Ignore failure
+      expect(e.pop()?.message).toContain('violates check constraint');
+      return done(e);
+    });
   });
 
   it('adds a new service', query(`
