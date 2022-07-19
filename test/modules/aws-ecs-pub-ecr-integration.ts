@@ -230,7 +230,7 @@ describe('ECS Integration Testing', () => {
   it('adds a new service', query(`
     BEGIN;
       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
-      VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet.id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
+      VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
 
       INSERT INTO service_security_groups (service_name, security_group_id)
       VALUES ('${servicePublicRepositoryName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
