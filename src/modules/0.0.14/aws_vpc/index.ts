@@ -8,6 +8,7 @@ import {
   ModifyVpcEndpointCommandInput,
   NatGateway as AwsNatGateway,
   NatGatewayState as AwsNatGatewayState,
+  VpcState as AwsVpcState,
   RouteTable,
   Subnet as AwsSubnet,
   Tag,
@@ -18,6 +19,8 @@ import {
   paginateDescribeSubnets,
   paginateDescribeVpcEndpoints,
   paginateDescribeVpcs,
+  CreateVpcCommandInput,
+  DescribeVpcsCommandInput,
 } from '@aws-sdk/client-ec2'
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 
@@ -51,7 +54,39 @@ const getSubnet = crudBuilderFormat<EC2, 'describeSubnets', AwsSubnet | undefine
 );
 const getSubnets = paginateBuilder<EC2>(paginateDescribeSubnets, 'Subnets');
 const deleteSubnet = crudBuilder2<EC2, 'deleteSubnet'>('deleteSubnet', (input) => input);
-const createVpc = crudBuilder2<EC2, 'createVpc'>('createVpc', (input) => input);
+
+async function createVpc(client: EC2, input: CreateVpcCommandInput) {
+  const res = await client.createVpc(input);
+  const describeInput: DescribeVpcsCommandInput = {
+    VpcIds: [res.Vpc?.VpcId ?? '']
+  };
+  let out;
+  await createWaiter<EC2, DescribeVpcsCommandInput>(
+    {
+      client,
+      // all in seconds
+      maxWaitTime: 300,
+      minDelay: 1,
+      maxDelay: 4,
+    },
+    describeInput,
+    async (cl, cmd) => {
+      const data = await cl.describeVpcs(cmd);
+      try {
+        out = data.Vpcs?.pop();
+        // If it is not a final state we retry
+        if ([VpcState.PENDING].includes(out?.State as VpcState)) {
+          return { state: WaiterState.RETRY };
+        }
+        return { state: WaiterState.SUCCESS };
+      } catch (e: any) {
+        throw e;
+      }
+    },
+  );
+  return out;
+}
+
 const getVpc = crudBuilderFormat<EC2, 'describeVpcs', AwsVpc | undefined>(
   'describeVpcs',
   (id) => ({ VpcIds: [id], }),
@@ -459,26 +494,31 @@ export const AwsVpcModule: Module2 = new Module2({
     }),
     vpc: new Mapper2<Vpc>({
       entity: Vpc,
-      equals: (a: Vpc, b: Vpc) => Object.is(a.vpcId, b.vpcId), // TODO: Do better
+      equals: (a: Vpc, b: Vpc) => {
+        const result = Object.is(a.cidrBlock, b.cidrBlock) && Object.is(a.state, b.state) && Object.is(a.isDefault, b.isDefault);
+        return result;
+      },
       source: 'db',
       cloud: new Crud2({
         create: async (es: Vpc[], ctx: Context) => {
           // TODO: Add support for creating default VPCs (only one is allowed, also add constraint
           // that a single VPC is set as default)
           const client = await ctx.getAwsClient() as AWS;
+          const out = [];
           for (const e of es) {
-            const res = await createVpc(client.ec2client, {
+            const input: CreateVpcCommandInput = {
               CidrBlock: e.cidrBlock,
-              // TODO: Lots of other VPC specifications to write, but we don't support yet
-            });
-            if (res?.Vpc) {
-              const newVpc = AwsVpcModule.utils.vpcMapper(res.Vpc);
+            };
+            const res: AwsVpc | undefined = await createVpc(client.ec2client, input);
+            if (res) {
+              const newVpc = await AwsVpcModule.utils.vpcMapper(res, ctx);
               newVpc.id = e.id;
-              Object.keys(newVpc).forEach(k => (e as any)[k] = newVpc[k]);
-              await AwsVpcModule.mappers.vpc.db.update(e, ctx);
-              // TODO: What to do if no VPC returned?
+              await AwsVpcModule.mappers.vpc.db.update(newVpc, ctx);
+              out.push(newVpc);
             }
           }
+
+          return out;
         },
         read: async (ctx: Context, id?: string) => {
           const client = await ctx.getAwsClient() as AWS;
