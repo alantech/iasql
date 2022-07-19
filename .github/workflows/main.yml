@@ -3,6 +3,7 @@ name: MAIN
 on:
   push:
     branches: [main]
+    paths: ['src/**', 'test/**', 'package.json', 'yarn.lock']
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
