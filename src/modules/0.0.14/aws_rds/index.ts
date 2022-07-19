@@ -17,7 +17,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin, } from '../../../services/aws_macros'
 import { ParameterGroup, ParameterGroupFamily, RDS, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
-import { AwsSecurityGroupModule } from '..'
+import { AwsSecurityGroupModule, AwsVpcModule, } from '..'
 import * as metadata from './module.json'
 
 interface DBParameterGroupWParameters extends DBParameterGroup {
@@ -203,7 +203,10 @@ export const AwsRdsModule: Module2 = new Module2({
     rdsMapper: async (rds: any, ctx: Context) => {
       const out = new RDS();
       out.allocatedStorage = rds?.AllocatedStorage;
-      out.availabilityZone = rds?.AvailabilityZone;
+      out.availabilityZone = await AwsVpcModule.mappers.availabilityZone.db.read(
+        ctx,
+        rds?.AvailabilityZone
+      );
       out.dbInstanceClass = rds?.DBInstanceClass;
       out.dbInstanceIdentifier = rds?.DBInstanceIdentifier;
       out.endpointAddr = rds?.Endpoint?.Address;
@@ -259,7 +262,7 @@ export const AwsRdsModule: Module2 = new Module2({
       entity: RDS,
       equals: (a: RDS, b: RDS) => Object.is(a.engine, b.engine)
         && Object.is(a.dbInstanceClass, b.dbInstanceClass)
-        && Object.is(a.availabilityZone, b.availabilityZone)
+        && Object.is(a.availabilityZone?.name, b.availabilityZone?.name)
         && Object.is(a.dbInstanceIdentifier, b.dbInstanceIdentifier)
         && Object.is(a.endpointAddr, b.endpointAddr)
         && Object.is(a.endpointHostedZoneId, b.endpointHostedZoneId)
@@ -291,7 +294,7 @@ export const AwsRdsModule: Module2 = new Module2({
               MasterUserPassword: e.masterUserPassword,
               AllocatedStorage: e.allocatedStorage,
               VpcSecurityGroupIds: securityGroupIds,
-              AvailabilityZone: e.availabilityZone,
+              AvailabilityZone: e.availabilityZone.name,
               BackupRetentionPeriod: e.backupRetentionPeriod,
             };
             if (e.parameterGroup) {
