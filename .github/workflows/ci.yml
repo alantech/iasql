@@ -7,7 +7,7 @@ name: CI
 on:
   push:
     branches: [main, subnet-joins]
-    paths: ['src/**', 'test/**', 'package.json', 'yarn.lock']
+    paths: ['src/**', 'test/**', 'package.json', 'yarn.lock', '*.yml']
   pull_request:
     branches: [main]
     paths: ['src/**', 'test/**', 'package.json', 'yarn.lock']
