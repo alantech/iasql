@@ -58,8 +58,8 @@ export class Service {
   })
   desiredCount?: number;
 
-  @Column('int', { array: true, })
-  subnets: number[];
+  @Column('text', { array: true, })
+  subnets: string[];
 
   @ManyToMany(() => SecurityGroup, {
     eager: true,

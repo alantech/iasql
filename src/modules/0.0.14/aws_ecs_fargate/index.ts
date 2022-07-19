@@ -472,12 +472,18 @@ export const AwsEcsFargateModule: Module2 = new Module2({
         }
         if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length) throw new Error('Security groups need to be loaded first')
         out.securityGroups = securityGroups;
-        const subnets = [];
         for (const sn of networkConf.subnets ?? []) {
-          const subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, sn);
-          if (subnet) subnets.push(subnet.id);
+          // Even though we already have the subnet ids, we look for them to avoid having misconfigured resources
+          let subnet: Subnet;
+          try {
+            subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, sn) ??
+              await AwsVpcModule.mappers.subnet.cloud.read(ctx, sn);
+            if (!subnet) return undefined;
+          } catch (e: any) {
+            if (e.Code === 'InvalidSubnetID.NotFound') return undefined;
+          }
         }
-        out.subnets = subnets;
+        out.subnets = networkConf.subnets ?? [];
       }
       out.status = s.status;
       out.forceNewDeployment = false;
@@ -782,13 +788,6 @@ export const AwsEcsFargateModule: Module2 = new Module2({
             if (!e.task?.taskDefinitionArn) {
               throw new Error('task definition need to be created first')
             }
-            const subnets = [];
-            if (e.subnets?.length) {
-              for (const id of e.subnets) {
-                const sn = await AwsVpcModule.mappers.subnet.db.read(ctx, `${id}`);
-                if (sn) subnets.push(sn);
-              }
-            }
             const input: any = {
               serviceName: e.name,
               taskDefinition: e.task?.taskDefinitionArn,
@@ -798,7 +797,7 @@ export const AwsEcsFargateModule: Module2 = new Module2({
               desiredCount: e.desiredCount,
               networkConfiguration: {
                 awsvpcConfiguration: {
-                  subnets: subnets.map((sn: Subnet) => sn.subnetId),
+                  subnets: e.subnets?.length ? e.subnets : [],
                   securityGroups: e.securityGroups.map(sg => sg.groupId!),
                   assignPublicIp: e.assignPublicIp,
                 }
