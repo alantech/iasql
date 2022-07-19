@@ -68,7 +68,7 @@ The direct implication in the `instance` table:
 - Placement groups
 - Network interfaces
 
-No implicaiton in the `instance` table:
+No implication in the `instance` table:
 
 - Instance type - Availability zone relationship
 - AMIs management
