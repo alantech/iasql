@@ -78,7 +78,7 @@ The `Saving plans`, `Reserved instances` or `Scheduled instances` are not includ
 
 Let's start with the features without impact on the `instance` table. These features will be part of the `aws_ec2` module with their mappers. The Instance type table by availability zones will be a table with a composite primary key. It technically has a minimum impact in the `instance` table that will be a special FK to the composite primary key, but no UX model impact.
 
-The features with direct implications in the `instance` table can be divided into two groups. The first group will not only affect the `aws_ec2` module, and the second group will.
+The features with direct implications in the `instance` table can be divided into two groups: one group affects only the `aws_ec2` module, the other impacts more modules.
 
 Let's start with the first group, Placement groups and Network interfaces. These features will be part of their respective modules (probably `aws_vpc`?). Then, they will need to be integrated with the `instance` table in the `aws_ec2` module with an FK nullable column.
 
