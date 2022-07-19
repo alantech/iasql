@@ -193,6 +193,13 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
     // multiple tables -> array of array of objects
     if (typeof out === 'string') {
       return out;
+    } else if (
+      !!out.rows &&
+      out.rows.length === 0 &&
+      out.command !== 'SELECT' &&
+      typeof out.rowCount === 'number'
+    ) {
+      return [{ affected_records: out.rowCount, }];
     } else if (!!out.rows) {
       return out.rows;
     } else if (out instanceof Array) {
