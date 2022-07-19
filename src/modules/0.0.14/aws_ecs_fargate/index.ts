@@ -30,9 +30,17 @@ import {
   TaskDefinition,
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
-import { AwsEcrModule, AwsElbModule, AwsIamModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
+import {
+  AwsEcrModule,
+  AwsElbModule,
+  AwsIamModule,
+  AwsSecurityGroupModule,
+  AwsCloudwatchModule,
+  AwsVpcModule,
+} from '..'
 import * as metadata from './module.json'
 import logger from '../../../services/logger'
+import { Subnet } from '../aws_vpc/entity'
 
 const createCluster = crudBuilderFormat<ECS, 'createCluster', AwsCluster | undefined>(
   'createCluster',
@@ -464,7 +472,12 @@ export const AwsEcsFargateModule: Module2 = new Module2({
         }
         if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length) throw new Error('Security groups need to be loaded first')
         out.securityGroups = securityGroups;
-        out.subnets = networkConf.subnets ?? [];
+        const subnets = [];
+        for (const sn of networkConf.subnets ?? []) {
+          const subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, sn); 
+          if (subnet) subnets.push(subnet.id);
+        }
+        out.subnets = subnets;
       }
       out.status = s.status;
       out.forceNewDeployment = false;
@@ -769,6 +782,13 @@ export const AwsEcsFargateModule: Module2 = new Module2({
             if (!e.task?.taskDefinitionArn) {
               throw new Error('task definition need to be created first')
             }
+            const subnets = [];
+            if (e.subnets?.length) {
+              for (const id of e.subnets) {
+                const sn = await AwsVpcModule.mappers.subnet.db.read(ctx, `${id}`);
+                if (sn) subnets.push(sn);
+              }
+            }
             const input: any = {
               serviceName: e.name,
               taskDefinition: e.task?.taskDefinitionArn,
@@ -778,7 +798,7 @@ export const AwsEcsFargateModule: Module2 = new Module2({
               desiredCount: e.desiredCount,
               networkConfiguration: {
                 awsvpcConfiguration: {
-                  subnets: e.subnets?.length ? e.subnets : [],
+                  subnets: subnets.map((sn: Subnet) => sn.subnetId),
                   securityGroups: e.securityGroups.map(sg => sg.groupId!),
                   assignPublicIp: e.assignPublicIp,
                 }
