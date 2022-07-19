@@ -474,7 +474,7 @@ export const AwsEcsFargateModule: Module2 = new Module2({
         out.securityGroups = securityGroups;
         const subnets = [];
         for (const sn of networkConf.subnets ?? []) {
-          const subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, sn); 
+          const subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, sn);
           if (subnet) subnets.push(subnet.id);
         }
         out.subnets = subnets;
