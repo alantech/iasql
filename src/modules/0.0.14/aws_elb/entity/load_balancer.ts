@@ -12,6 +12,7 @@ import {
 } from 'typeorm'
 
 import { SecurityGroup, } from '../../aws_security_group/entity'
+import { AvailabilityZone, } from '../../aws_vpc/entity'
 import { Vpc, } from '../../aws_vpc/entity'
 import { cloudId, } from '../../../../services/cloud-id'
 
@@ -98,9 +99,19 @@ export class LoadBalancer {
   @Column("varchar", { array: true, nullable: true, })
   subnets?: string[];
 
-  // TODO: Tie this to the AvailabilityZone entity somehow
-  @Column("varchar", { array: true, nullable: true, })
-  availabilityZones?: string[];
+  @ManyToMany(() => AvailabilityZone, { nullable: true, cascade: true, eager: true, })
+  @JoinTable({
+    name: 'load_balancer_availability_zones',
+    joinColumn: {
+      name: 'load_balancer',
+      referencedColumnName: 'loadBalancerName',
+    },
+    inverseJoinColumn: {
+      name: 'availability_zone',
+      referencedColumnName: 'name',
+    },
+  })
+  availabilityZones?: AvailabilityZone[];
 
   @ManyToMany(() => SecurityGroup, { eager: true })
   @JoinTable({

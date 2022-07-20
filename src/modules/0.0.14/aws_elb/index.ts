@@ -34,9 +34,9 @@ import {
   TargetGroupIpAddressTypeEnum,
   TargetTypeEnum,
 } from './entity'
-import { AwsVpcModule, } from '../aws_vpc'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
-import { AwsAcmListModule, AwsSecurityGroupModule } from '..'
+import { AwsAcmListModule, AwsSecurityGroupModule, AwsVpcModule, } from '..'
+import { AvailabilityZone, } from '../aws_vpc/entity'
 import * as metadata from './module.json'
 
 const createListener = crudBuilderFormat<
@@ -292,7 +292,9 @@ export const AwsElbModule: Module2 = new Module2({
       const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, lb.VpcId) ??
         await AwsVpcModule.mappers.vpc.cloud.read(ctx, lb.VpcId);
       out.vpc = vpc;
-      out.availabilityZones = lb.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
+      out.availabilityZones = (await Promise.all(
+        lb.AvailabilityZones?.map(az => AwsVpcModule.mappers.availabilityZone.db.read(ctx, az.ZoneName ?? '')) ?? []
+      )) as AvailabilityZone[];
       out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
       return out;
     },
@@ -441,7 +443,7 @@ export const AwsElbModule: Module2 = new Module2({
     loadBalancer: new Mapper2<LoadBalancer>({
       entity: LoadBalancer,
       equals: (a: LoadBalancer, b: LoadBalancer) => Object.is(a.availabilityZones?.length, b.availabilityZones?.length)
-        && (a.availabilityZones?.filter(aaz => !!aaz).every(aaz => !!b.availabilityZones?.filter(baz => !!baz).find(baz => Object.is(aaz, baz))) ?? false)
+        && (a.availabilityZones?.filter(aaz => !!aaz).every(aaz => !!b.availabilityZones?.filter(baz => !!baz).find(baz => Object.is(aaz.name, baz.name))) ?? false)
         && Object.is(a.canonicalHostedZoneId, b.canonicalHostedZoneId)
         && Object.is(a.createdTime?.getTime(), b.createdTime?.getTime())
         // This property might be comparing null vs undefined

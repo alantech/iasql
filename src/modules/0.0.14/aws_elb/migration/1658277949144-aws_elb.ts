@@ -1,14 +1,14 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsElb1655822977761 implements MigrationInterface {
-    name = 'awsElb1655822977761'
+export class awsElb1658277949144 implements MigrationInterface {
+    name = 'awsElb1658277949144'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."load_balancer_scheme_enum" AS ENUM('internal', 'internet-facing')`);
         await queryRunner.query(`CREATE TYPE "public"."load_balancer_state_enum" AS ENUM('active', 'active_impaired', 'failed', 'provisioning')`);
         await queryRunner.query(`CREATE TYPE "public"."load_balancer_load_balancer_type_enum" AS ENUM('application', 'gateway', 'network')`);
         await queryRunner.query(`CREATE TYPE "public"."load_balancer_ip_address_type_enum" AS ENUM('dualstack', 'ipv4')`);
-        await queryRunner.query(`CREATE TABLE "load_balancer" ("load_balancer_name" character varying NOT NULL, "load_balancer_arn" character varying, "dns_name" character varying, "canonical_hosted_zone_id" character varying, "created_time" TIMESTAMP WITH TIME ZONE, "scheme" "public"."load_balancer_scheme_enum" NOT NULL, "state" "public"."load_balancer_state_enum", "load_balancer_type" "public"."load_balancer_load_balancer_type_enum" NOT NULL, "subnets" character varying array, "availability_zones" character varying array, "ip_address_type" "public"."load_balancer_ip_address_type_enum" NOT NULL, "customer_owned_ipv4_pool" character varying, "vpc" integer, CONSTRAINT "PK_752cf6361c52a07bd00d9b7c4dd" PRIMARY KEY ("load_balancer_name"))`);
+        await queryRunner.query(`CREATE TABLE "load_balancer" ("load_balancer_name" character varying NOT NULL, "load_balancer_arn" character varying, "dns_name" character varying, "canonical_hosted_zone_id" character varying, "created_time" TIMESTAMP WITH TIME ZONE, "scheme" "public"."load_balancer_scheme_enum" NOT NULL, "state" "public"."load_balancer_state_enum", "load_balancer_type" "public"."load_balancer_load_balancer_type_enum" NOT NULL, "subnets" character varying array, "ip_address_type" "public"."load_balancer_ip_address_type_enum" NOT NULL, "customer_owned_ipv4_pool" character varying, "vpc" integer, CONSTRAINT "PK_752cf6361c52a07bd00d9b7c4dd" PRIMARY KEY ("load_balancer_name"))`);
         await queryRunner.query(`CREATE TYPE "public"."target_group_target_type_enum" AS ENUM('alb', 'instance', 'ip', 'lambda')`);
         await queryRunner.query(`CREATE TYPE "public"."target_group_ip_address_type_enum" AS ENUM('ipv4', 'ipv6')`);
         await queryRunner.query(`CREATE TYPE "public"."target_group_protocol_enum" AS ENUM('GENEVE', 'HTTP', 'HTTPS', 'TCP', 'TCP_UDP', 'TLS', 'UDP')`);
@@ -18,6 +18,9 @@ export class awsElb1655822977761 implements MigrationInterface {
         await queryRunner.query(`CREATE TYPE "public"."listener_protocol_enum" AS ENUM('GENEVE', 'HTTP', 'HTTPS', 'TCP', 'TCP_UDP', 'TLS', 'UDP')`);
         await queryRunner.query(`CREATE TYPE "public"."listener_action_type_enum" AS ENUM('forward')`);
         await queryRunner.query(`CREATE TABLE "listener" ("id" SERIAL NOT NULL, "listener_arn" character varying, "port" integer NOT NULL, "protocol" "public"."listener_protocol_enum" NOT NULL, "action_type" "public"."listener_action_type_enum" NOT NULL DEFAULT 'forward', "ssl_policy" character varying, "load_balancer_name" character varying NOT NULL, "target_group_name" character varying NOT NULL, "certificate_id" integer, CONSTRAINT "UQ_load_balancer__port" UNIQUE ("load_balancer_name", "port"), CONSTRAINT "PK_422c9d250eb7b0c0b6c96cdce94" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "load_balancer_availability_zones" ("load_balancer" character varying NOT NULL, "availability_zone" character varying NOT NULL, CONSTRAINT "PK_d9a6b5da70a6bba0ce1cbf8471d" PRIMARY KEY ("load_balancer", "availability_zone"))`);
+        await queryRunner.query(`CREATE INDEX "IDX_4697ad051a2481d1a4a35fcab2" ON "load_balancer_availability_zones" ("load_balancer") `);
+        await queryRunner.query(`CREATE INDEX "IDX_5419833d6f8c97f3809f3ffa94" ON "load_balancer_availability_zones" ("availability_zone") `);
         await queryRunner.query(`CREATE TABLE "load_balancer_security_groups" ("load_balancer_name" character varying NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_c3263aa4b606967900de62e3619" PRIMARY KEY ("load_balancer_name", "security_group_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_e1020e4ee5063ea1f0b20b3c9c" ON "load_balancer_security_groups" ("load_balancer_name") `);
         await queryRunner.query(`CREATE INDEX "IDX_4da7e08287b5693e5b22959ced" ON "load_balancer_security_groups" ("security_group_id") `);
@@ -26,6 +29,8 @@ export class awsElb1655822977761 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "listener" ADD CONSTRAINT "FK_f2eeab1baaafa48081a9d4a1467" FOREIGN KEY ("load_balancer_name") REFERENCES "load_balancer"("load_balancer_name") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "listener" ADD CONSTRAINT "FK_04ac33f934f532bfd0227d49997" FOREIGN KEY ("target_group_name") REFERENCES "target_group"("target_group_name") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "listener" ADD CONSTRAINT "FK_21beaace54890e2a63d2150a56b" FOREIGN KEY ("certificate_id") REFERENCES "certificate"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "load_balancer_availability_zones" ADD CONSTRAINT "FK_4697ad051a2481d1a4a35fcab2b" FOREIGN KEY ("load_balancer") REFERENCES "load_balancer"("load_balancer_name") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(`ALTER TABLE "load_balancer_availability_zones" ADD CONSTRAINT "FK_5419833d6f8c97f3809f3ffa946" FOREIGN KEY ("availability_zone") REFERENCES "availability_zone"("name") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" ADD CONSTRAINT "FK_e1020e4ee5063ea1f0b20b3c9ce" FOREIGN KEY ("load_balancer_name") REFERENCES "load_balancer"("load_balancer_name") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" ADD CONSTRAINT "FK_4da7e08287b5693e5b22959ced4" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
     }
@@ -33,6 +38,8 @@ export class awsElb1655822977761 implements MigrationInterface {
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" DROP CONSTRAINT "FK_4da7e08287b5693e5b22959ced4"`);
         await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" DROP CONSTRAINT "FK_e1020e4ee5063ea1f0b20b3c9ce"`);
+        await queryRunner.query(`ALTER TABLE "load_balancer_availability_zones" DROP CONSTRAINT "FK_5419833d6f8c97f3809f3ffa946"`);
+        await queryRunner.query(`ALTER TABLE "load_balancer_availability_zones" DROP CONSTRAINT "FK_4697ad051a2481d1a4a35fcab2b"`);
         await queryRunner.query(`ALTER TABLE "listener" DROP CONSTRAINT "FK_21beaace54890e2a63d2150a56b"`);
         await queryRunner.query(`ALTER TABLE "listener" DROP CONSTRAINT "FK_04ac33f934f532bfd0227d49997"`);
         await queryRunner.query(`ALTER TABLE "listener" DROP CONSTRAINT "FK_f2eeab1baaafa48081a9d4a1467"`);
@@ -41,6 +48,9 @@ export class awsElb1655822977761 implements MigrationInterface {
         await queryRunner.query(`DROP INDEX "public"."IDX_4da7e08287b5693e5b22959ced"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_e1020e4ee5063ea1f0b20b3c9c"`);
         await queryRunner.query(`DROP TABLE "load_balancer_security_groups"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_5419833d6f8c97f3809f3ffa94"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_4697ad051a2481d1a4a35fcab2"`);
+        await queryRunner.query(`DROP TABLE "load_balancer_availability_zones"`);
         await queryRunner.query(`DROP TABLE "listener"`);
         await queryRunner.query(`DROP TYPE "public"."listener_action_type_enum"`);
         await queryRunner.query(`DROP TYPE "public"."listener_protocol_enum"`);
