@@ -275,6 +275,17 @@ describe('ECS Integration Testing', () => {
     COMMIT;
   `));
 
+  it('fails deleting a subnet in use', (done) => {
+    query(`DELETE FROM subnet;`)((e: any) => {
+        try {
+          expect(e.message).toContain('is being used by service');
+        } catch (err) {
+          return done(err);
+        }
+        return done();
+      });
+  });
+
   it('check service insertion', query(`
     SELECT *
     FROM service
