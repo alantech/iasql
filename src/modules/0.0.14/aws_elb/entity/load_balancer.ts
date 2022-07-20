@@ -99,7 +99,7 @@ export class LoadBalancer {
   @Column("varchar", { array: true, nullable: true, })
   subnets?: string[];
 
-  @ManyToMany(() => AvailabilityZone, { nullable: true, cascade: true, eager: true, })
+  @ManyToMany(() => AvailabilityZone, { nullable: true, cascade: true, })
   @JoinTable({
     name: 'load_balancer_availability_zones',
     joinColumn: {
