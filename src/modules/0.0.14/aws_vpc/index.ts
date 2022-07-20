@@ -532,10 +532,22 @@ export const AwsVpcModule: Module2 = new Module2({
           }
         },
         update: async (es: Vpc[], ctx: Context) => {
-          // There is no update mechanism for a VPC's CIDR block (the only thing we can really
-          // change) so instead we will create a new one and the next loop through should delete
-          // the old one
-          return await AwsVpcModule.mappers.vpc.cloud.create(es, ctx);
+          // if user has modified state, restore it. If not, go with replace path
+          const client = await ctx.getAwsClient() as AWS;
+          const out = [];
+          for (const e of es) {
+            const cloudRecord = ctx?.memo?.cloud?.Vpc?.[e.vpcId ?? ''];
+            if (!Object.is(e.state, cloudRecord.state)) {
+              // Restore record
+              cloudRecord.id = e.id;
+              await AwsVpcModule.mappers.vpc.db.update(cloudRecord, ctx);
+              out.push(cloudRecord);
+            } else {
+              await AwsVpcModule.mappers.vpc.cloud.create(e, ctx);
+              out.push(e);
+            }
+          }
+          return out;
         },
         delete: async (es: Vpc[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;

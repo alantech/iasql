@@ -71,6 +71,14 @@ describe('VPC Integration Testing', () => {
 
   it('applies the vpc change', apply());
 
+  it('check no vpc is pending', query(`
+  SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state!='available';
+`, (res: any) => expect(res.length).toBe(0)));
+
+  it('check vpc is available', query(`
+  SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available';
+` , (res: any) => expect(res.length).toBe(1)));
+
   it('adds a subnet', query(`
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
     SELECT '${availabilityZone}', id, '192.${randIPBlock}.0.0/16'
@@ -80,6 +88,19 @@ describe('VPC Integration Testing', () => {
   `));
 
   it('applies the subnet change', apply());
+
+  it('updates vpc state', query(`
+    UPDATE vpc
+    SET state='pending' WHERE cidr_block='192.${randIPBlock}.0.0/16';
+  `));
+
+  it('applies the state change of the vpc', apply());
+
+  it('checks that state has not been modified', query(`
+    SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16'
+    AND state='pending';
+  `, (res: any) => expect(res.length).toBe(0)));
+
 
   describe('Elastic IP and nat gateway creation', () => {
     it('adds a new elastic ip', query(`
