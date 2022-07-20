@@ -1,5 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
+import * as sql from '../sql';
+
 export class awsEc21657324109020 implements MigrationInterface {
     name = 'awsEc21657324109020'
 
@@ -21,9 +23,11 @@ export class awsEc21657324109020 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "general_purpose_volume" ADD CONSTRAINT "FK_b60cd423a9b292b547913dcc6ac" FOREIGN KEY ("attached_instance_id") REFERENCES "instance"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups" ADD CONSTRAINT "FK_fa3c179d5090cb1309c63b5e20a" FOREIGN KEY ("instance_id") REFERENCES "instance"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups" ADD CONSTRAINT "FK_b3b92934eff56d2eb0477a1d27f" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(sql.createCustomConstraints);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(sql.dropCustomConstraints);
         await queryRunner.query(`ALTER TABLE "instance_security_groups" DROP CONSTRAINT "FK_b3b92934eff56d2eb0477a1d27f"`);
         await queryRunner.query(`ALTER TABLE "instance_security_groups" DROP CONSTRAINT "FK_fa3c179d5090cb1309c63b5e20a"`);
         await queryRunner.query(`ALTER TABLE "general_purpose_volume" DROP CONSTRAINT "FK_b60cd423a9b292b547913dcc6ac"`);
