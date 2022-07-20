@@ -9,6 +9,7 @@ import {
 } from 'typeorm'
 
 import { SecurityGroup, } from '../../aws_security_group/entity'
+import { AvailabilityZone, } from '../../aws_vpc/entity'
 import { cloudId, } from '../../../../services/cloud-id'
 import { ParameterGroup } from './parameter_group';
 
@@ -32,9 +33,11 @@ export class RDS {
   })
   allocatedStorage: number;
 
-  // TODO: Tie this to the AvailabilityZone entity in the future
-  @Column()
-  availabilityZone: string;
+  @ManyToOne(() => AvailabilityZone, { eager: true, nullable: false, })
+  @JoinColumn({
+    name: 'availability_zone',
+  })
+  availabilityZone: AvailabilityZone;
 
   // TODO: make this an entity eventually?
   // @ManyToOne(() => DBInstanceClass, { eager: true, })

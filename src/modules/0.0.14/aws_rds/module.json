@@ -1,4 +1,4 @@
 {
   "name": "aws_rds",
-  "dependencies": ["iasql_platform", "aws_account", "aws_security_group"]
+  "dependencies": ["iasql_platform", "aws_account", "aws_security_group", "aws_vpc"]
 }
