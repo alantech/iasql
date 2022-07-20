@@ -359,6 +359,12 @@ export const AwsVpcModule: Module2 = new Module2({
       out.cidrBlock = vpc.CidrBlock;
       out.state = vpc.State as VpcState;
       out.isDefault = vpc.IsDefault ?? false;
+      const tags: { [key: string]: string } = {};
+      (vpc.Tags || []).filter(t => !!t.Key && !!t.Value).forEach(t => {
+        tags[t.Key as string] = t.Value as string;
+      });
+      out.tags = tags;
+
       return out;
     },
     natGatewayMapper: async (nat: AwsNatGateway, ctx: Context) => {
@@ -495,7 +501,8 @@ export const AwsVpcModule: Module2 = new Module2({
     vpc: new Mapper2<Vpc>({
       entity: Vpc,
       equals: (a: Vpc, b: Vpc) => {
-        const result = Object.is(a.cidrBlock, b.cidrBlock) && Object.is(a.state, b.state) && Object.is(a.isDefault, b.isDefault);
+        const result = Object.is(a.cidrBlock, b.cidrBlock) && Object.is(a.state, b.state) && Object.is(a.isDefault, b.isDefault) &&
+          (AwsVpcModule.utils.eqTags(a.tags, b.tags));
         return result;
       },
       source: 'db',
@@ -506,8 +513,25 @@ export const AwsVpcModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
+            let tgs: Tag[] = [];
+            if (e.tags !== undefined) {
+              const tags: {[key: string]: string} = e.tags;
+              tags.owner = 'iasql-engine';
+              tgs = Object.keys(tags).map(k => {
+                return {
+                  Key: k, Value: tags[k]
+                }
+              });
+            }
+
             const input: CreateVpcCommandInput = {
               CidrBlock: e.cidrBlock,
+              TagSpecifications: [
+                {
+                  ResourceType: 'vpc',
+                  Tags: tgs,
+                },
+              ]
             };
             const res: AwsVpc | undefined = await createVpc(client.ec2client, input);
             if (res) {
@@ -537,13 +561,25 @@ export const AwsVpcModule: Module2 = new Module2({
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.Vpc?.[e.vpcId ?? ''];
+
             if (!Object.is(e.state, cloudRecord.state)) {
               // Restore record
               cloudRecord.id = e.id;
               await AwsVpcModule.mappers.vpc.db.update(cloudRecord, ctx);
               out.push(cloudRecord);
-            } else {
-              await AwsVpcModule.mappers.vpc.cloud.create(e, ctx);
+            } else {  
+              console.log("cloud tags are ");
+              console.log(cloudRecord.tags);
+              console.log("instance tags are");
+              console.log(e.tags);
+              const res = await AwsVpcModule.mappers.vpc.cloud.create(e, ctx);
+              console.log("i recreated vpc");
+              console.log(res);
+              if (!AwsVpcModule.utils.eqTags(e.tags, cloudRecord.tags) && e.vpcId && e.tags) {
+                console.log("i update tags");
+                await updateTags(client.ec2client, res.vpcId, e.tags);
+              }
+
               out.push(e);
             }
           }

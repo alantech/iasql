@@ -65,19 +65,23 @@ describe('VPC Integration Testing', () => {
   it('undo changes', sync());
 
   it('adds a new vpc', query(`  
-    INSERT INTO vpc (cidr_block)
-    VALUES ('192.${randIPBlock}.0.0/16');
+    INSERT INTO vpc (cidr_block, tags)
+    VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}');
   `));
 
   it('applies the vpc change', apply());
 
   it('check no vpc is pending', query(`
   SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state!='available';
-`, (res: any) => expect(res.length).toBe(0)));
+  `, (res: any) => expect(res.length).toBe(0)));
 
   it('check vpc is available', query(`
   SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available';
-` , (res: any) => expect(res.length).toBe(1)));
+  ` , (res: any) => expect(res.length).toBe(1)));
+
+  it('check vpc has tags', query(`
+  SELECT * FROM vpc WHERE tags ->> 'name' = '${prefix}-1';
+  ` , (res: any) => expect(res.length).toBe(1)));
 
   it('adds a subnet', query(`
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
@@ -100,6 +104,16 @@ describe('VPC Integration Testing', () => {
     SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16'
     AND state='pending';
   `, (res: any) => expect(res.length).toBe(0)));
+
+  it('tries to update vpc tags', query(`
+  UPDATE vpc SET tags = '{"name": "${prefix}-2", "updated": true}' WHERE cidr_block='192.${randIPBlock}.0.0/16';
+  `));
+
+  it('applies the vpc tags update', apply());
+
+  it('checks that tags have been modified', query(`
+    SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2';
+  `, (res: any) => expect(res.length).toBe(1)));
 
 
   describe('Elastic IP and nat gateway creation', () => {
@@ -422,7 +436,7 @@ describe('VPC Integration Testing', () => {
     WITH vpc as (
       SELECT id
       FROM vpc
-      WHERE cidr_block = '192.${randIPBlock}.0.0/16'
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
     )
     DELETE FROM security_group
     USING vpc
