@@ -257,7 +257,8 @@ describe('ECS Integration Testing', () => {
     VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, '{"fake"}', 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
     `)((e: any) => {
       try {
-        expect(e.message).toContain('violates check constraint');
+        // expect(e.message).toContain('violates check constraint');
+        expect(e.message).toContain('fake');
       } catch (err) {
         return done(err);
       }
