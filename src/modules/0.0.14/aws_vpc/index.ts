@@ -45,6 +45,7 @@ import {
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
+import isEqual from 'lodash.isequal'
 
 const createSubnet = crudBuilder2<EC2, 'createSubnet'>('createSubnet', (input) => input);
 const getSubnet = crudBuilderFormat<EC2, 'describeSubnets', AwsSubnet | undefined>(
@@ -58,39 +59,39 @@ const deleteSubnet = crudBuilder2<EC2, 'deleteSubnet'>('deleteSubnet', (input) =
 async function createVpc(client: EC2, input: CreateVpcCommandInput) {
   const res = await client.createVpc(input);
   const describeInput: DescribeVpcsCommandInput = {
-    VpcIds: [res.Vpc?.VpcId ?? '']
+    VpcIds: [res.Vpc?.VpcId ?? ''],
   };
   let out;
   await createWaiter<EC2, DescribeVpcsCommandInput>(
-    {
-      client,
-      // all in seconds
-      maxWaitTime: 300,
-      minDelay: 1,
-      maxDelay: 4,
-    },
-    describeInput,
-    async (cl, cmd) => {
-      const data = await cl.describeVpcs(cmd);
-      try {
-        out = data.Vpcs?.pop();
-        // If it is not a final state we retry
-        if ([VpcState.PENDING].includes(out?.State as VpcState)) {
-          return { state: WaiterState.RETRY };
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      describeInput,
+      async (cl, cmd) => {
+        const data = await cl.describeVpcs(cmd);
+        try {
+          out = data.Vpcs?.pop();
+          // If it is not a final state we retry
+          if ([VpcState.PENDING].includes(out?.State as VpcState)) {
+            return {state: WaiterState.RETRY};
+          }
+          return {state: WaiterState.SUCCESS};
+        } catch (e: any) {
+          throw e;
         }
-        return { state: WaiterState.SUCCESS };
-      } catch (e: any) {
-        throw e;
-      }
-    },
+      },
   );
   return out;
 }
 
 const getVpc = crudBuilderFormat<EC2, 'describeVpcs', AwsVpc | undefined>(
-  'describeVpcs',
-  (id) => ({ VpcIds: [id], }),
-  (res) => res?.Vpcs?.[0],
+    'describeVpcs',
+    (id) => ({VpcIds: [id],}),
+    (res) => res?.Vpcs?.[0],
 );
 const getVpcs = paginateBuilder<EC2>(paginateDescribeVpcs, 'Vpcs');
 const deleteVpc = crudBuilder2<EC2, 'deleteVpc'>('deleteVpc', (input) => input);
@@ -292,11 +293,7 @@ async function deleteNatGateway(client: EC2, id: string) {
 async function updateTags(client: EC2, resourceId: string, tags?: { [key: string] : string }) {
   let tgs: Tag[] = [];
   if (tags) {
-    tgs = Object.keys(tags).map(k => {
-      return {
-        Key: k, Value: tags[k]
-      }
-    });
+    tgs = Object.entries(tags).map(([Key, Value]) => ({ Key, Value}));
   }
   // recreate tags
   await client.deleteTags({
@@ -314,11 +311,7 @@ async function createElasticIp(client: EC2, tags?: { [key: string] : string }) {
   };
   if (tags) {
     let tgs: Tag[] = [];
-    tgs = Object.keys(tags).map(k => {
-      return {
-        Key: k, Value: tags[k]
-      }
-    });
+    tgs = Object.entries(tags).map(([Key, Value]) => ({ Key, Value}));
     allocateAddressCommandInput.TagSpecifications = [
       {
         ResourceType: 'elastic-ip',
@@ -359,6 +352,12 @@ export const AwsVpcModule: Module2 = new Module2({
       out.cidrBlock = vpc.CidrBlock;
       out.state = vpc.State as VpcState;
       out.isDefault = vpc.IsDefault ?? false;
+      const tags: { [key: string]: any } = {};
+      (vpc.Tags || []).filter(t => t.hasOwnProperty('Key') && t.hasOwnProperty('Value')).forEach(t => {
+        tags[t.Key as string] = t.Value;
+      });
+      out.tags = tags;
+
       return out;
     },
     natGatewayMapper: async (nat: AwsNatGateway, ctx: Context) => {
@@ -394,7 +393,7 @@ export const AwsVpcModule: Module2 = new Module2({
       out.tags = tags;
       return out;
     },
-    endpointGatewayMapper:  async (eg: AwsVpcEndpoint, ctx: Context) => {
+    endpointGatewayMapper: async (eg: AwsVpcEndpoint, ctx: Context) => {
       const out = new EndpointGateway();
       out.vpcEndpointId = eg.VpcEndpointId;
       if (!out.vpcEndpointId) return undefined;
@@ -419,8 +418,9 @@ export const AwsVpcModule: Module2 = new Module2({
       if (serviceName.includes('s3')) return EndpointGatewayService.S3;
       if (serviceName.includes('dynamodb')) return EndpointGatewayService.DYNAMODB;
     },
-    eqTags: (a: { [key: string]: string }, b: { [key: string]: string }) => Object.is(Object.keys(a ?? {})?.length, Object.keys(b ?? {})?.length) &&
-      Object.keys(a ?? {})?.every(ak => (a ?? {})[ak] === (b ?? {})[ak]),
+    eqTags: (a: { [key: string]: string }, b: { [key: string]: string }) => {
+      return isEqual(a, b);
+    },
   },
   mappers: {
     subnet: new Mapper2<Subnet>({
@@ -495,19 +495,43 @@ export const AwsVpcModule: Module2 = new Module2({
     vpc: new Mapper2<Vpc>({
       entity: Vpc,
       equals: (a: Vpc, b: Vpc) => {
-        const result = Object.is(a.cidrBlock, b.cidrBlock) && Object.is(a.state, b.state) && Object.is(a.isDefault, b.isDefault);
+        const result = Object.is(a.cidrBlock, b.cidrBlock) && Object.is(a.state, b.state) && Object.is(a.isDefault, b.isDefault) &&
+          (AwsVpcModule.utils.eqTags(a.tags, b.tags));
         return result;
       },
       source: 'db',
       cloud: new Crud2({
+        updateOrReplace: (a: Vpc, b: Vpc) => {
+          if (!Object.is(a.cidrBlock, b.cidrBlock) || !Object.is(a.isDefault, b.isDefault)) return "replace";
+          else return "update";
+        },
         create: async (es: Vpc[], ctx: Context) => {
           // TODO: Add support for creating default VPCs (only one is allowed, also add constraint
           // that a single VPC is set as default)
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
+            let tgs: Tag[] = [];
+            if (e.tags !== undefined && e.tags !== null) {
+              const tags: {[key: string]: string} = e.tags;
+              tgs = Object.keys(tags).map(k => {
+                return {
+                  Key: k, Value: tags[k]
+                }
+              });
+            }
+
             const input: CreateVpcCommandInput = {
               CidrBlock: e.cidrBlock,
+            };
+
+            if (tgs.length>0) {
+              input.TagSpecifications=[
+                {
+                  ResourceType: 'vpc',
+                  Tags: tgs,
+                },
+              ]
             };
             const res: AwsVpc | undefined = await createVpc(client.ec2client, input);
             if (res) {
@@ -543,8 +567,17 @@ export const AwsVpcModule: Module2 = new Module2({
               await AwsVpcModule.mappers.vpc.db.update(cloudRecord, ctx);
               out.push(cloudRecord);
             } else {
-              await AwsVpcModule.mappers.vpc.cloud.create(e, ctx);
-              out.push(e);
+              const isUpdate = Object.is(AwsVpcModule.mappers.vpc.cloud.updateOrReplace(cloudRecord, e), 'update');
+              if (!isUpdate) {
+                // if CIDR is different we do the create
+                const newVpc = await AwsVpcModule.mappers.vpc.cloud.create(e, ctx);
+                out.push(newVpc);
+              } else {
+                if (!AwsVpcModule.utils.eqTags(e.tags, cloudRecord.tags) && e.vpcId) {
+                  await updateTags(client.ec2client, e.vpcId, e.tags);
+                }
+                out.push(e);
+              }
             }
           }
           return out;
