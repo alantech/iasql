@@ -3,6 +3,7 @@ import * as metadata from './module.json'
 import {
   AWS,
   createFunction,
+  deleteFunction,
   getFunction,
   getFunctions,
 } from './aws'
@@ -113,8 +114,8 @@ export const AwsLambdaModule: Module2 = new Module2({
         },
         delete: async (es: LambdaFunction[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
-          for (const entity of es) {
-            // todo: implement delete
+          for (const e of es) {
+            await deleteFunction(client.lambdaClient, e.name);
           }
         },
       }),

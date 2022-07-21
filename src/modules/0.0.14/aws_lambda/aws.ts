@@ -24,4 +24,9 @@ export const getFunctions = async (client: Lambda) => {
   return out;
 }
 
+export const deleteFunction = crudBuilder2<Lambda, 'deleteFunction'>(
+  'deleteFunction',
+  (FunctionName) => ({ FunctionName }),
+);
+
 export { AWS }
