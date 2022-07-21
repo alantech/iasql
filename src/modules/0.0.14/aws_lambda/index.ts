@@ -24,7 +24,7 @@ const base64ToUint8Array = (base64: string) => {
 
 const lambdaFunctionMapper = async (fn: GetFunctionResponse, ctx: Context) => {
   const out = new LambdaFunction();
-  out.architectures = fn.Configuration?.Architectures as Architecture[];
+  out.architecture = fn.Configuration?.Architectures?.pop() as Architecture;
   out.description = fn.Configuration?.Description;
   out.environment = fn.Configuration?.Environment?.Variables;
   out.handler = fn.Configuration?.Handler;
