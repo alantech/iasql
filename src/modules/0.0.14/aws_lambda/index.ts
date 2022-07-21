@@ -66,18 +66,28 @@ export const AwsLambdaModule: Module2 = new Module2({
           for (const e of es) {
             const input: CreateFunctionCommandInput = {
               FunctionName: e.name,
+              Description: e.description,
               Code: {
                 ZipFile: base64ToUint8Array(e.zipB64 ?? ''),
               },
               Role: e.role.arn,
               Tags: e.tags,
+              Runtime: e.runtime,
+              Handler: e.handler,
+              PackageType: e.packageType,
+              Architectures: e.architecture ? [e.architecture]: [],
+              MemorySize: e.memorySize,
+              Environment: e.environment ? {
+                Variables: e.environment,
+              } : undefined,
             };
+            // TODO: how to create tags?
             const newFunction = await createFunction(client.lambdaClient, input);
             if (!newFunction?.FunctionArn) { // then who?
               throw new Error('should not be possible');
             }
             const newEntity = await AwsLambdaModule.mappers.lambdaFunction.cloud.read(ctx, newFunction.FunctionName);
-            await AwsLambdaModule.mappers.instance.db.update(newEntity, ctx);
+            await AwsLambdaModule.mappers.lambdaFunction.db.update(newEntity, ctx);
             out.push(newEntity);
           }
           return out;
