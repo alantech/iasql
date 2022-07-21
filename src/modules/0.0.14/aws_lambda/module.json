@@ -1,5 +1,5 @@
 {
-  "name": "aws_ec2",
+  "name": "aws_lambda",
   "dependencies": [
     "iasql_platform",
     "aws_account",
