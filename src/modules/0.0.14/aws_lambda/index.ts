@@ -28,8 +28,9 @@ const lambdaFunctionMapper = async (fn: GetFunctionResponse, ctx: Context) => {
   out.name = fn.Configuration?.FunctionName ?? 'not possible?';
   out.packageType = fn.Configuration?.PackageType as PackageType;
   try {
-    out.role = await AwsIamModule.mappers.role.db.read(ctx, fn.Configuration?.Role) ??
-      await AwsIamModule.mappers.role.cloud.read(ctx, fn.Configuration?.Role);
+    const roleName = AwsIamModule.utils.roleNameFromArn(fn.Configuration?.Role);
+    out.role = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
+      await AwsIamModule.mappers.role.cloud.read(ctx, roleName);
     if (!out.role) return undefined;
   } catch (_e: any) {
     // TODO: look for role not found error Code
