@@ -13,12 +13,8 @@ import { Architecture, CreateFunctionCommandInput, GetFunctionResponse, PackageT
 import { AwsIamModule } from '../aws_iam'
 
 const base64ToUint8Array = (base64: string) => {
-  var binary_string = window.atob(base64);
-  var len = binary_string.length;
-  var bytes = new Uint8Array(len);
-  for (var i = 0; i < len; i++) {
-      bytes[i] = binary_string.charCodeAt(i);
-  }
+  const buf = Buffer.from(base64, 'base64');
+  const bytes = new Uint8Array(buf);
   return bytes;
 }
 
