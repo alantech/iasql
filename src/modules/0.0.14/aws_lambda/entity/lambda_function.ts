@@ -8,14 +8,20 @@ import {
   ManyToOne,
   PrimaryColumn,
 } from 'typeorm';
-import { cloudId } from '../../../../services/cloud-id';
 
+import { cloudId } from '../../../../services/cloud-id';
 import { Role } from '../../aws_iam/entity';
+
+export enum Architecture {
+  arm64 = "arm64",
+  x86_64 = "x86_64"
+}
 
 export enum PackageType {
   Image = "Image",
   Zip = "Zip"
 }
+
 export enum Runtime {
   dotnet6 = "dotnet6",
   dotnetcore10 = "dotnetcore1.0",
@@ -44,11 +50,6 @@ export enum Runtime {
   python39 = "python3.9",
   ruby25 = "ruby2.5",
   ruby27 = "ruby2.7"
-}
-
-export enum Architecture {
-  arm64 = "arm64",
-  x86_64 = "x86_64"
 }
 
 @Entity()
