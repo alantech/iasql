@@ -38,4 +38,11 @@ export class Vpc {
     default: false,
   })
   isDefault: boolean;
+
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  tags?: { [key: string]: string };
+
 }
