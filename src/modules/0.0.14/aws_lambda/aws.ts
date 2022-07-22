@@ -34,4 +34,24 @@ export const addFunctionTags = crudBuilder2<Lambda, 'tagResource'>(
   (Resource, Tags) => ({ Resource, Tags }),
 );
 
+export const updateFunctionConfiguration = crudBuilder2<Lambda, 'updateFunctionConfiguration'>(
+  'updateFunctionConfiguration',
+  (input) => (input),
+);
+
+export const updateFunctionCode = crudBuilder2<Lambda, 'updateFunctionCode'>(
+  'updateFunctionCode',
+  (input) => (input),
+);
+
+export const listFunctionTags = crudBuilder2<Lambda, 'listTags'>(
+  'listTags',
+  (Resource) => ({ Resource }),
+);
+
+export const removeFunctionTags = crudBuilder2<Lambda, 'untagResource'>(
+  'untagResource',
+  (Resource, TagKeys) => ({ Resource, TagKeys }),
+);
+
 export { AWS }

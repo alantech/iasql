@@ -7,11 +7,22 @@ import {
   deleteFunction,
   getFunction,
   getFunctions,
+  removeFunctionTags,
+  updateFunctionCode,
+  updateFunctionConfiguration,
 } from './aws'
 import { LambdaFunction } from './entity'
 import isEqual from 'lodash.isequal'
 import pick from 'lodash.pick'
-import { Architecture, CreateFunctionCommandInput, GetFunctionResponse, PackageType, Runtime } from '@aws-sdk/client-lambda'
+import {
+  Architecture,
+  CreateFunctionCommandInput,
+  GetFunctionResponse,
+  PackageType,
+  Runtime,
+  UpdateFunctionCodeCommandInput,
+  UpdateFunctionConfigurationCommandInput
+} from '@aws-sdk/client-lambda'
 import { AwsIamModule } from '../aws_iam'
 
 const base64ToUint8Array = (base64: string) => {
@@ -45,22 +56,40 @@ const lambdaFunctionMapper = async (fn: GetFunctionResponse, ctx: Context) => {
   return out;
 }
 
+const updateableFunctionFieldsEq = (a: LambdaFunction, b: LambdaFunction) => {
+  return isEqual(
+    pick(a, ['role', 'handler', 'memorySize', 'description', 'environment', 'runtime']),
+    pick(b, ['role', 'handler', 'memorySize', 'description', 'environment', 'runtime']),
+  );
+}
+
+const updateableTagsEq = (a: LambdaFunction, b: LambdaFunction) => {
+  return isEqual(a.tags, b.tags);
+}
+
+const restorableFunctionFieldsEq = (a: LambdaFunction, b: LambdaFunction) => {
+  return isEqual(
+    pick(a, ['arn', 'packageType']),
+    pick(b, ['arn', 'packageType']),
+  );
+}
+
+const updateableCodeFieldsEq = (a: LambdaFunction, b: LambdaFunction) => {
+  return isEqual(
+    pick(a, ['architecture', 'zipB64']),
+    pick(b, ['architecture', 'zipB64']),
+  );
+}
+
 export const AwsLambdaModule: Module2 = new Module2({
   ...metadata,
   mappers: {
     lambdaFunction: new Mapper2<LambdaFunction>({
       entity: LambdaFunction,
-      equals: (a: LambdaFunction, b: LambdaFunction) => {
-        // Handle properly code property
-        return true;
-        const propertiesA = Object.getOwnPropertyNames(a).sort();
-        const propertiesB = Object.getOwnPropertyNames(b).sort();
-        if (propertiesA.length !== propertiesB.length) return false;
-        return isEqual(
-          pick(a, propertiesA),
-          pick(b, propertiesB),
-        );
-      },
+      equals: (a: LambdaFunction, b: LambdaFunction) => updateableFunctionFieldsEq(a, b) &&
+        updateableTagsEq(a, b) &&
+        restorableFunctionFieldsEq(a, b) &&
+        updateableCodeFieldsEq(a, b),
       source: 'db',
       cloud: new Crud2({
         create: async (es: LambdaFunction[], ctx: Context) => {
@@ -112,9 +141,50 @@ export const AwsLambdaModule: Module2 = new Module2({
             return out;
           }
         },
-        updateOrReplace: (_a: LambdaFunction, _b: LambdaFunction) => 'replace',
         update: async (es: LambdaFunction[], ctx: Context) => {
-          // TODO: implement, how versions will work?
+          const client = await ctx.getAwsClient() as AWS;
+          const out = [];
+          for (const e of es) {
+            const cloudRecord = ctx?.memo?.cloud?.LambdaFunction?.[e.name ?? ''];
+            if (!updateableFunctionFieldsEq(cloudRecord, e)) {
+              // Update function configuration
+              const input: UpdateFunctionConfigurationCommandInput = {
+                FunctionName: e.name,
+                Role: e.role.arn,
+                Handler: e.handler,
+                Description: e.description,
+                MemorySize: e.memorySize,
+                Environment: {
+                  Variables: e.environment
+                },
+                Runtime: e.runtime,
+              };
+              await updateFunctionConfiguration(client.lambdaClient, input);
+            }
+            if (!updateableCodeFieldsEq(cloudRecord, e)) {
+              // Update function code
+              const input: UpdateFunctionCodeCommandInput = {
+                FunctionName: e.name,
+              };
+              if (e.architecture) input.Architectures = [e.architecture];
+              if (e.zipB64) input.ZipFile = base64ToUint8Array(e.zipB64);
+              await updateFunctionCode(client.lambdaClient, input);
+            }
+            if (!updateableTagsEq(cloudRecord, e)) {
+              // Update tags
+              await removeFunctionTags(client.lambdaClient, e.arn, Object.keys(cloudRecord.tags ?? {}));
+              if (e.tags) await addFunctionTags(client.lambdaClient, e.arn, e.tags);
+            }
+            const rawUpdatedFunction = await getFunction(client.lambdaClient, e.name);
+            if (rawUpdatedFunction) {
+              const updatedFunction = await lambdaFunctionMapper(rawUpdatedFunction, ctx);
+              if (updatedFunction) {
+                await AwsLambdaModule.mappers.lambdaFunction.db.update(updatedFunction, ctx);
+                out.push(updatedFunction);
+              }
+            }
+          }
+          return out;
         },
         delete: async (es: LambdaFunction[], ctx: Context) => {
           const client = await ctx.getAwsClient() as AWS;
