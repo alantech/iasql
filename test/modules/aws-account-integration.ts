@@ -152,6 +152,7 @@ describe('AwsAccount Integration Testing', () => {
       done(err);
     }
     done();
+    return {};
   }));
 
   it('confirms that you cannot apply in a busted db', (done) => void query(`
@@ -163,6 +164,7 @@ describe('AwsAccount Integration Testing', () => {
       done(err);
     }
     done();
+    return {};
   }));
 
   it('deletes the busted test db', (done) => void iasql
