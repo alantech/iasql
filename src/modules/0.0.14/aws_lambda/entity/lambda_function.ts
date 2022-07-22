@@ -93,6 +93,7 @@ export class LambdaFunction {
   @Column({
     type: 'enum',
     enum: PackageType,
+    default: PackageType.Zip,
   })
   packageType: PackageType;
 
