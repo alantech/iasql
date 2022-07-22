@@ -143,22 +143,22 @@ describe('AwsAccount Integration Testing', () => {
     UPDATE iasql_module SET name = 'iasql_functions@0.0.2' WHERE name = 'iasql_functions@${latestVersion}';
   `));
 
-  it('confirms that you cannot install anything in a busted db', (done) => query(`
+  it('confirms that you cannot install anything in a busted db', (done) => void query(`
     SELECT * FROM iasql_install('aws_security_group');
-  `)((e: any) => { 
+  `)((e?: any) => { 
     try {
-      expect(e.message).toContain('Unsupported version');
+      expect(e?.message).toContain('Unsupported version');
     } catch (err) {
       done(err);
     }
     done();
   }));
 
-  it('confirms that you cannot apply in a busted db', (done) => query(`
+  it('confirms that you cannot apply in a busted db', (done) => void query(`
     SELECT * FROM iasql_apply();
-  `)((e: any) => {
+  `)((e?: any) => {
     try {
-      expect(e.message).toContain('Unsupported version');
+      expect(e?.message).toContain('Unsupported version');
     } catch (err)  {
       done(err);
     }
