@@ -1,6 +1,7 @@
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import {
+  addFunctionTags,
   AWS,
   createFunction,
   deleteFunction,
