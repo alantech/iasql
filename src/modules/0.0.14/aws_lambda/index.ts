@@ -57,10 +57,12 @@ const lambdaFunctionMapper = async (fn: GetFunctionResponse, ctx: Context) => {
 }
 
 const updateableFunctionFieldsEq = (a: LambdaFunction, b: LambdaFunction) => {
-  return isEqual(
-    pick(a, ['role', 'handler', 'memorySize', 'description', 'environment', 'runtime']),
-    pick(b, ['role', 'handler', 'memorySize', 'description', 'environment', 'runtime']),
-  );
+  return Object.is(a.role.roleName, b.role.roleName) &&
+    Object.is(a.handler, b.handler) &&
+    Object.is(a.memorySize, b.memorySize) &&
+    Object.is(a.description, b.description) &&
+    isEqual(a.environment, b.environment) &&
+    Object.is(a.runtime, b.runtime);
 }
 
 const updateableTagsEq = (a: LambdaFunction, b: LambdaFunction) => {
@@ -68,17 +70,11 @@ const updateableTagsEq = (a: LambdaFunction, b: LambdaFunction) => {
 }
 
 const restorableFunctionFieldsEq = (a: LambdaFunction, b: LambdaFunction) => {
-  return isEqual(
-    pick(a, ['arn', 'packageType']),
-    pick(b, ['arn', 'packageType']),
-  );
+  return Object.is(a.arn, b.arn) && Object.is(a.packageType, b.packageType);
 }
 
 const updateableCodeFieldsEq = (a: LambdaFunction, b: LambdaFunction) => {
-  return isEqual(
-    pick(a, ['architecture', 'zipB64']),
-    pick(b, ['architecture', 'zipB64']),
-  );
+  return Object.is(a.architecture, b.architecture) && Object.is(a.zipB64, b.zipB64);
 }
 
 export const AwsLambdaModule: Module2 = new Module2({
