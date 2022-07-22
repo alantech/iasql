@@ -40,6 +40,7 @@ const lambdaFunctionMapper = async (fn: GetFunctionResponse, ctx: Context) => {
   out.runtime = fn.Configuration?.Runtime as Runtime;
   out.tags = fn.Tags;
   out.version = fn.Configuration?.Version;
+  out.arn = fn.Configuration?.FunctionArn;
   return out;
 }
 

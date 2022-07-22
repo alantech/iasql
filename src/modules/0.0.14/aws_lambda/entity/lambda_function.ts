@@ -58,6 +58,9 @@ export class LambdaFunction {
   @cloudId
   name: string;
 
+  @Column({ nullable: true, })
+  arn?: string;
+
   @Column({
     default: '1',
   })
