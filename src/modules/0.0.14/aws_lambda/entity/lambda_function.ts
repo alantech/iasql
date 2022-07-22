@@ -62,7 +62,7 @@ export class LambdaFunction {
   arn?: string;
 
   @Column({
-    default: '1',
+    default: '$LATEST',
   })
   version?: string;
 
