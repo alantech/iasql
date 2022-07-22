@@ -180,8 +180,11 @@ export const AwsLambdaModule: Module2 = new Module2({
             }
             const rawUpdatedFunction = await getFunction(client.lambdaClient, e.name);
             if (rawUpdatedFunction) {
-              const updatedFunction = await lambdaFunctionMapper(rawUpdatedFunction, ctx);
+              const updatedFunction: any = await lambdaFunctionMapper(rawUpdatedFunction, ctx);
               if (updatedFunction) {
+                // Set zipB64 as null to avoid infinite loop trying to update it.
+                // Reminder: zipB64 need to be null since when we read Lambda functions from AWS this property is not retrieved
+                updatedFunction.zipB64 = null;
                 await AwsLambdaModule.mappers.lambdaFunction.db.update(updatedFunction, ctx);
                 out.push(updatedFunction);
               }
