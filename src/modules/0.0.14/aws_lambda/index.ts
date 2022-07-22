@@ -82,10 +82,12 @@ export const AwsLambdaModule: Module2 = new Module2({
                 Variables: e.environment,
               } : undefined,
             };
-            // TODO: how to create tags?
             const newFunction = await createFunction(client.lambdaClient, input);
             if (!newFunction?.FunctionArn) { // then who?
               throw new Error('should not be possible');
+            }
+            if (newFunction.FunctionArn && e.tags) {
+              await addFunctionTags(client.lambdaClient, newFunction.FunctionArn, e.tags);
             }
             const newEntity = await AwsLambdaModule.mappers.lambdaFunction.cloud.read(ctx, newFunction.FunctionName);
             await AwsLambdaModule.mappers.lambdaFunction.db.update(newEntity, ctx);

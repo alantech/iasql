@@ -29,4 +29,9 @@ export const deleteFunction = crudBuilder2<Lambda, 'deleteFunction'>(
   (FunctionName) => ({ FunctionName }),
 );
 
+export const addFunctionTags = crudBuilder2<Lambda, 'tagResource'>(
+  'tagResource',
+  (Resource, Tags) => ({ Resource, Tags }),
+);
+
 export { AWS }
