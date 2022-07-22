@@ -1,3 +1,7 @@
+-- Since Postgres does not allow arrays of foreign keys, but we prefer the syntactic simplicity they
+-- provide. This check function implements half of a foreign key's behavior by making sure on insert
+-- or update of a load balancer that all referenced availability zones actually exist. As AZs really
+-- never change at all, this is considered an acceptable compromise.
 create or replace function check_load_balancer_availability_zones(_load_balancer_name varchar, _availability_zones varchar[]) returns boolean
 language plpgsql security definer
 as $$
