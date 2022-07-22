@@ -1,5 +1,16 @@
-import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
+import {
+  Architecture,
+  CreateFunctionCommandInput,
+  GetFunctionResponse,
+  PackageType,
+  Runtime,
+  UpdateFunctionCodeCommandInput,
+  UpdateFunctionConfigurationCommandInput
+} from '@aws-sdk/client-lambda'
+import isEqual from 'lodash.isequal'
+
 import * as metadata from './module.json'
+import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import {
   addFunctionTags,
   AWS,
@@ -12,17 +23,6 @@ import {
   updateFunctionConfiguration,
 } from './aws'
 import { LambdaFunction } from './entity'
-import isEqual from 'lodash.isequal'
-import pick from 'lodash.pick'
-import {
-  Architecture,
-  CreateFunctionCommandInput,
-  GetFunctionResponse,
-  PackageType,
-  Runtime,
-  UpdateFunctionCodeCommandInput,
-  UpdateFunctionConfigurationCommandInput
-} from '@aws-sdk/client-lambda'
 import { AwsIamModule } from '../aws_iam'
 
 const base64ToUint8Array = (base64: string) => {
@@ -70,11 +70,14 @@ const updateableTagsEq = (a: LambdaFunction, b: LambdaFunction) => {
 }
 
 const restorableFunctionFieldsEq = (a: LambdaFunction, b: LambdaFunction) => {
-  return Object.is(a.arn, b.arn) && Object.is(a.packageType, b.packageType);
+  return Object.is(a.arn, b.arn) &&
+    Object.is(a.packageType, b.packageType) &&
+    Object.is(a.architecture, b.architecture) &&
+    Object.is(a.version, b.version);
 }
 
 const updateableCodeFieldsEq = (a: LambdaFunction, b: LambdaFunction) => {
-  return Object.is(a.architecture, b.architecture) && Object.is(a.zipB64, b.zipB64);
+  return Object.is(a.zipB64, b.zipB64);
 }
 
 export const AwsLambdaModule: Module2 = new Module2({
@@ -171,8 +174,9 @@ export const AwsLambdaModule: Module2 = new Module2({
             }
             if (!updateableTagsEq(cloudRecord, e)) {
               // Update tags
-              await removeFunctionTags(client.lambdaClient, e.arn, Object.keys(cloudRecord.tags ?? {}));
-              if (e.tags) await addFunctionTags(client.lambdaClient, e.arn, e.tags);
+              const tagKeys = Object.keys(cloudRecord.tags ?? {});
+              if (tagKeys && tagKeys.length) await removeFunctionTags(client.lambdaClient, e.arn, tagKeys);
+              if (e.tags && Object.keys(e.tags).length) await addFunctionTags(client.lambdaClient, e.arn, e.tags);
             }
             const rawUpdatedFunction = await getFunction(client.lambdaClient, e.name);
             if (rawUpdatedFunction) {
