@@ -121,6 +121,9 @@ export const AwsLambdaModule: Module2 = new Module2({
               await addFunctionTags(client.lambdaClient, newFunction.FunctionArn, e.tags);
             }
             const newEntity = await AwsLambdaModule.mappers.lambdaFunction.cloud.read(ctx, newFunction.FunctionName);
+            // Set zipB64 as null to avoid infinite loop trying to update it.
+            // Reminder: zipB64 need to be null since when we read Lambda functions from AWS this property is not retrieved
+            newEntity.zipB64 = null;
             await AwsLambdaModule.mappers.lambdaFunction.db.update(newEntity, ctx);
             out.push(newEntity);
           }
