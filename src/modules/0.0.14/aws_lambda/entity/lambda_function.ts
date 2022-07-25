@@ -2,6 +2,7 @@ import {
   AfterInsert,
   AfterLoad,
   AfterUpdate,
+  Check,
   Column,
   Entity,
   JoinColumn,
@@ -18,7 +19,8 @@ export enum Architecture {
 }
 
 export enum PackageType {
-  Image = "Image",
+  // TODO: uncomment this once Image type is supported, meanwhile does not make sense to have it available
+  // Image = "Image",
   Zip = "Zip"
 }
 
@@ -81,11 +83,11 @@ export class LambdaFunction {
   })
   role: Role;
 
-  // Handler is required if the deployment package is a .zip file archive
+  @Check('CHK_lambda_handler__package_type', `("package_type" = 'Zip' AND "handler" IS NOT NULL) OR "package_type" != 'Zip'`)
   @Column({ nullable: true, })
   handler?: string;
 
-  // Runtime is required if the deployment package is a .zip file archive.
+  @Check('CHK_lambda_runtime__package_type', `("package_type" = 'Zip' AND "runtime" IS NOT NULL) OR "package_type" != 'Zip'`)
   @Column({
     type: 'enum',
     enum: Runtime,
@@ -119,7 +121,8 @@ export class LambdaFunction {
   })
   environment?: { [key: string]: string }
 
-  // TODO: add contraint string values only
+  // TODO: find a way to add string values only constraint
+  // TODO: find a way to add at least one key constraint
   @Column({
     type: 'json',
     nullable: true,
