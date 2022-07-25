@@ -18,6 +18,8 @@ import {
   removeFunctionTags,
   updateFunctionCode,
   updateFunctionConfiguration,
+  waitUntilFunctionActive,
+  waitUntilFunctionUpdated,
 } from './aws'
 import { Architecture, LambdaFunction, PackageType, Runtime } from './entity'
 import { AwsIamModule } from '../aws_iam'
@@ -114,6 +116,7 @@ export const AwsLambdaModule: Module2 = new Module2({
               } : undefined,
             };
             const newFunction = await createFunction(client.lambdaClient, input);
+            await waitUntilFunctionActive(client.lambdaClient, newFunction?.FunctionName ?? '');
             if (!newFunction?.FunctionArn) { // then who?
               throw new Error('should not be possible');
             }
@@ -168,6 +171,7 @@ export const AwsLambdaModule: Module2 = new Module2({
                 Runtime: e.runtime,
               };
               await updateFunctionConfiguration(client.lambdaClient, input);
+              await waitUntilFunctionUpdated(client.lambdaClient, e.name);
             }
             if (!updateableCodeFieldsEq(cloudRecord, e)) {
               // Update function code
@@ -177,6 +181,7 @@ export const AwsLambdaModule: Module2 = new Module2({
               if (e.architecture) input.Architectures = [e.architecture];
               if (e.zipB64) input.ZipFile = base64ToUint8Array(e.zipB64);
               await updateFunctionCode(client.lambdaClient, input);
+              await waitUntilFunctionUpdated(client.lambdaClient, e.name);
             }
             if (!updateableTagsEq(cloudRecord, e)) {
               // Update tags

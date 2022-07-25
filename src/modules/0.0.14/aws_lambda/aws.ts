@@ -1,4 +1,4 @@
-import { CreateFunctionCommandInput, FunctionConfiguration, Lambda, paginateListFunctions } from '@aws-sdk/client-lambda';
+import { CreateFunctionCommandInput, FunctionConfiguration, Lambda, paginateListFunctions, waitUntilFunctionActiveV2, waitUntilFunctionExists, waitUntilFunctionUpdatedV2 } from '@aws-sdk/client-lambda';
 
 import { AWS, crudBuilder2, paginateBuilder, } from '../../../services/aws_macros'
 
@@ -9,16 +9,14 @@ const innerCreateFunction = crudBuilder2<Lambda, 'createFunction'>(
 
 export const createFunction = async (client: Lambda, input: CreateFunctionCommandInput) => {
   let counter = 0;
-  let skipCounter = false;
   do {
     try {
       return await innerCreateFunction(client, input);
     } catch (e: any) {
-      if (e.message !== 'The role defined for the function cannot be assumed by Lambda.') skipCounter = true;
+      if (e.message !== 'The role defined for the function cannot be assumed by Lambda.') break;
     }
-    if (!skipCounter) counter++;
-  } while (
-    (skipCounter || counter < 10) &&
+    counter++;
+  } while (counter < 10 &&
     (await new Promise(r => setTimeout(r, 5000)))
   );
 }
@@ -69,5 +67,25 @@ export const removeFunctionTags = crudBuilder2<Lambda, 'untagResource'>(
   'untagResource',
   (Resource, TagKeys) => ({ Resource, TagKeys }),
 );
+
+export const waitUntilFunctionActive = (client: Lambda, FunctionName: string) => {
+  return waitUntilFunctionActiveV2({
+    client,
+    // all in seconds
+    maxWaitTime: 300,
+    minDelay: 1,
+    maxDelay: 4,
+  }, { FunctionName });
+}
+
+export const waitUntilFunctionUpdated = (client: Lambda, FunctionName: string) => {
+  return waitUntilFunctionUpdatedV2({
+    client,
+    // all in seconds
+    maxWaitTime: 300,
+    minDelay: 1,
+    maxDelay: 4,
+  }, { FunctionName });
+}
 
 export { AWS }
