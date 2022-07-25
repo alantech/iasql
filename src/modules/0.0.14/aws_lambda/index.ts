@@ -116,10 +116,10 @@ export const AwsLambdaModule: Module2 = new Module2({
               } : undefined,
             };
             const newFunction = await createFunction(client.lambdaClient, input);
-            await waitUntilFunctionActive(client.lambdaClient, newFunction?.FunctionName ?? '');
             if (!newFunction?.FunctionArn) { // then who?
               throw new Error('should not be possible');
             }
+            await waitUntilFunctionActive(client.lambdaClient, newFunction?.FunctionName ?? '');
             if (newFunction.FunctionArn && e.tags) {
               await addFunctionTags(client.lambdaClient, newFunction.FunctionArn, e.tags);
             }
