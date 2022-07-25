@@ -527,10 +527,10 @@
     fast-xml-parser "3.19.0"
     tslib "^2.3.1"
 
-"@aws-sdk/client-rds@^3.131.0":
-  version "3.131.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-rds/-/client-rds-3.131.0.tgz#18301bdbf8f5772753175162b4ce58e55d05d8ff"
-  integrity sha512-29csaSvhxyfrvL7PgX9UnAdOpGU0BOCi0dvuwyaN6qCyW2VD+3rjyJowkf9vOneIojTYB9rGX0S+DdMCi6xMlg==
+"@aws-sdk/client-rds@^3.136.0":
+  version "3.136.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-rds/-/client-rds-3.136.0.tgz#5feea0a6c7c2461e2766a8ec09fdad886ff3a75f"
+  integrity sha512-oKyhCNBIqCCPrM/47DtWCNwWste1PR9u1WZrbMJ1j1E7xd/R1jwliOQKfCle46rvoQS/gcMWRw4fPzeGrOQ77A==
   dependencies:
     "@aws-crypto/sha256-browser" "2.0.0"
     "@aws-crypto/sha256-js" "2.0.0"
