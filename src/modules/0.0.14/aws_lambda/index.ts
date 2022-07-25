@@ -6,8 +6,6 @@ import {
 } from '@aws-sdk/client-lambda'
 import isEqual from 'lodash.isequal'
 
-import logger from '../../../services/logger'
-
 import * as metadata from './module.json'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import {
@@ -33,9 +31,8 @@ const base64ToUint8Array = (base64: string) => {
 }
 
 const lambdaFunctionMapper = async (fn: GetFunctionResponse, ctx: Context) => {
-  logger.warn(`+++ what am i mapping here??? ${JSON.stringify(fn)}`);
   const out = new LambdaFunction();
-  out.architecture = fn.Configuration?.Architectures?.pop() as Architecture;
+  out.architecture = fn.Configuration?.Architectures?.pop() as Architecture ?? Architecture.x86_64;
   out.description = fn.Configuration?.Description;
   out.environment = fn.Configuration?.Environment?.Variables;
   out.handler = fn.Configuration?.Handler;
