@@ -312,6 +312,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
   logger.info(`Applying ${dbId}`);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
+  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
@@ -529,6 +530,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
   logger.info(`Syncing ${dbId}`);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
+  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
@@ -735,7 +737,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
 export async function modules(all: boolean, installed: boolean, dbId: string) {
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
-  if (!Modules) throw new Error('Unsupported Module Version in Database');
+  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   const allModules = Object.values(Modules)
     .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && !/iasql_.*/.test(m.name))
     .filter((m: any) => process.env.IASQL_ENV !== 'production' || !/aws_ecs_simplified.*/.test(m.name)) // Temporarily disable ecs_simplified in production
@@ -763,6 +765,7 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
 export async function install(moduleList: string[], dbId: string, dbUser: string, allModules = false, ormOpt?: TypeormWrapper) {
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
+  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   // Check to make sure that all specified modules actually exist
   if (allModules) {
     const installedModules = JSON.parse(await modules(false, true, dbId))
@@ -953,6 +956,7 @@ ${Object.keys(tableCollisions)
 export async function uninstall(moduleList: string[], dbId: string, orm?: TypeormWrapper) {
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
+  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   // Check to make sure that all specified modules actually exist
   const version = Modules.IasqlPlatform.version
   moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@${version}`);
