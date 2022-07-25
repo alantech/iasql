@@ -1,12 +1,14 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsEcsFargate1649711302453 implements MigrationInterface {
-    name = 'awsEcsFargate1649711302453'
+import * as sql from '../sql'
+
+export class awsEcsFargate1658248709690 implements MigrationInterface {
+    name = 'awsEcsFargate1658248709690'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`CREATE TABLE "cluster" ("cluster_name" character varying NOT NULL, "cluster_arn" character varying, "cluster_status" character varying, CONSTRAINT "PK_45ffb6495d51fdc55df46102ce7" PRIMARY KEY ("cluster_name"))`);
         await queryRunner.query(`CREATE TYPE "public"."container_definition_protocol_enum" AS ENUM('tcp', 'udp')`);
         await queryRunner.query(`CREATE TABLE "container_definition" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "image" character varying, "tag" character varying, "digest" character varying, "essential" boolean NOT NULL DEFAULT false, "cpu" integer, "memory" integer, "memory_reservation" integer, "host_port" integer, "container_port" integer, "protocol" "public"."container_definition_protocol_enum", "env_variables" text, "task_definition_id" integer, "repository_name" character varying, "public_repository_name" character varying, "log_group_name" character varying, CONSTRAINT "CHK_7c71371f8b24ff4868a039a7a9" CHECK (("tag" is null and "digest" is null) or ("tag" is not null and "digest" is null) or ("tag" is null and "digest" is not null)), CONSTRAINT "CHK_4de2350c230969507b1009bfbc" CHECK (("image" is null and ("repository_name" is not null or "public_repository_name" is not null)) or "image" is not null), CONSTRAINT "PK_79458e199ec6b2264a0735fd99e" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "cluster" ("cluster_name" character varying NOT NULL, "cluster_arn" character varying, "cluster_status" character varying, CONSTRAINT "PK_45ffb6495d51fdc55df46102ce7" PRIMARY KEY ("cluster_name"))`);
         await queryRunner.query(`CREATE TYPE "public"."service_assign_public_ip_enum" AS ENUM('DISABLED', 'ENABLED')`);
         await queryRunner.query(`CREATE TABLE "service" ("name" character varying NOT NULL, "arn" character varying, "status" character varying, "desired_count" integer NOT NULL, "subnets" text array NOT NULL, "assign_public_ip" "public"."service_assign_public_ip_enum" NOT NULL DEFAULT 'DISABLED', "force_new_deployment" boolean NOT NULL DEFAULT false, "cluster_name" character varying, "task_definition_id" integer, "target_group_name" character varying, CONSTRAINT "PK_7806a14d42c3244064b4a1706ca" PRIMARY KEY ("name"))`);
         await queryRunner.query(`CREATE TYPE "public"."task_definition_status_enum" AS ENUM('ACTIVE', 'INACTIVE')`);
@@ -26,9 +28,11 @@ export class awsEcsFargate1649711302453 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "task_definition" ADD CONSTRAINT "FK_dcf86a08d8805551fe92f7cd8f1" FOREIGN KEY ("execution_role_name") REFERENCES "role"("role_name") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "service_security_groups" ADD CONSTRAINT "FK_77d1612919c51ab18afb1be95a2" FOREIGN KEY ("service_name") REFERENCES "service"("name") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "service_security_groups" ADD CONSTRAINT "FK_0407238e46717099da0443dff75" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(sql.createCustomConstraints);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(sql.dropCustomConstraints);
         await queryRunner.query(`ALTER TABLE "service_security_groups" DROP CONSTRAINT "FK_0407238e46717099da0443dff75"`);
         await queryRunner.query(`ALTER TABLE "service_security_groups" DROP CONSTRAINT "FK_77d1612919c51ab18afb1be95a2"`);
         await queryRunner.query(`ALTER TABLE "task_definition" DROP CONSTRAINT "FK_dcf86a08d8805551fe92f7cd8f1"`);
@@ -48,9 +52,9 @@ export class awsEcsFargate1649711302453 implements MigrationInterface {
         await queryRunner.query(`DROP TYPE "public"."task_definition_status_enum"`);
         await queryRunner.query(`DROP TABLE "service"`);
         await queryRunner.query(`DROP TYPE "public"."service_assign_public_ip_enum"`);
-        await queryRunner.query(`DROP TABLE "cluster"`);
         await queryRunner.query(`DROP TABLE "container_definition"`);
         await queryRunner.query(`DROP TYPE "public"."container_definition_protocol_enum"`);
+        await queryRunner.query(`DROP TABLE "cluster"`);
     }
 
 }

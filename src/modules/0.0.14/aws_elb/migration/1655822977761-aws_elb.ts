@@ -1,5 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
+import * as sql from '../sql'
+
 export class awsElb1655822977761 implements MigrationInterface {
     name = 'awsElb1655822977761'
 
@@ -28,9 +30,11 @@ export class awsElb1655822977761 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "listener" ADD CONSTRAINT "FK_21beaace54890e2a63d2150a56b" FOREIGN KEY ("certificate_id") REFERENCES "certificate"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" ADD CONSTRAINT "FK_e1020e4ee5063ea1f0b20b3c9ce" FOREIGN KEY ("load_balancer_name") REFERENCES "load_balancer"("load_balancer_name") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" ADD CONSTRAINT "FK_4da7e08287b5693e5b22959ced4" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
+        await queryRunner.query(sql.createCustomConstraints);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(sql.dropCustomConstraints);
         await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" DROP CONSTRAINT "FK_4da7e08287b5693e5b22959ced4"`);
         await queryRunner.query(`ALTER TABLE "load_balancer_security_groups" DROP CONSTRAINT "FK_e1020e4ee5063ea1f0b20b3c9ce"`);
         await queryRunner.query(`ALTER TABLE "listener" DROP CONSTRAINT "FK_21beaace54890e2a63d2150a56b"`);

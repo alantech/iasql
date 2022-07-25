@@ -30,9 +30,17 @@ import {
   TaskDefinition,
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
-import { AwsEcrModule, AwsElbModule, AwsIamModule, AwsSecurityGroupModule, AwsCloudwatchModule } from '..'
+import {
+  AwsEcrModule,
+  AwsElbModule,
+  AwsIamModule,
+  AwsSecurityGroupModule,
+  AwsCloudwatchModule,
+  AwsVpcModule,
+} from '..'
 import * as metadata from './module.json'
 import logger from '../../../services/logger'
+import { Subnet } from '../aws_vpc/entity'
 
 const createCluster = crudBuilderFormat<ECS, 'createCluster', AwsCluster | undefined>(
   'createCluster',
@@ -464,6 +472,17 @@ export const AwsEcsFargateModule: Module2 = new Module2({
         }
         if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length) throw new Error('Security groups need to be loaded first')
         out.securityGroups = securityGroups;
+        for (const sn of networkConf.subnets ?? []) {
+          // Even though we already have the subnet ids, we look for them to avoid having misconfigured resources
+          let subnet: Subnet;
+          try {
+            subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, sn) ??
+              await AwsVpcModule.mappers.subnet.cloud.read(ctx, sn);
+            if (!subnet) return undefined;
+          } catch (e: any) {
+            if (e.Code === 'InvalidSubnetID.NotFound') return undefined;
+          }
+        }
         out.subnets = networkConf.subnets ?? [];
       }
       out.status = s.status;
