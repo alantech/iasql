@@ -69,6 +69,7 @@ export class LambdaFunction {
   @Column({ nullable: true, })
   description?: string;
 
+  // TODO: Validate string content is a valid b64 encoded zip file
   @Column({ nullable: true, })
   zipB64?: string;
 
