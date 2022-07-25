@@ -60,16 +60,14 @@ describe('Lambda Integration Testing', () => {
 
   it('installs the lambda module', install(modules));
 
-  it('adds a new lambda function role', query(`
-    INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
-  `));
+  it('adds a new lambda function and role', query(`
+    BEGIN;
+      INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+      VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
 
-  it('applies the lambda function role change', apply());
-
-  it('adds a new lambda function', query(`
-    INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
-    VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
+      INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
+      VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
+    COMMIT;
   `));
   
   it('undo changes', sync());
@@ -80,9 +78,14 @@ describe('Lambda Integration Testing', () => {
     WHERE name = '${lambdaFunctionName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('adds a new lambda function', query(`
+  it('adds a new lambda function and role', query(`
+    BEGIN;
+      INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+      VALUES ('${lambdaFunctionRoleName}', '${attachAssumeLambdaPolicy}', array['${lambdaFunctionRoleTaskPolicyArn}']);
+
       INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
       VALUES ('${lambdaFunctionName}', '${lambdaFunctionCode}', '${lambdaFunctionHandler}', '${lambdaFunctionRuntime14}', '${lambdaFunctionRoleName}');
+    COMMIT;
   `));
 
   it('applies the lambda function change', apply());
