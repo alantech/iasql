@@ -58,7 +58,7 @@ describe('Lambda Integration Testing', () => {
     VALUES ('${process.env.AWS_REGION}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `));
 
-  it('installs the lambda module', install(modules));
+  it('installs the lambda module', install(['aws_iam']));
 
   it('adds a new lambda function', query(`
     INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
@@ -66,6 +66,8 @@ describe('Lambda Integration Testing', () => {
   `));
 
   it('applies the lambda function change', apply());
+
+  it('installs the lambda module', install(modules));
 
   it('adds a new lambda function', query(`
     INSERT INTO lambda_function (name, zip_b64, handler, runtime, role_name)
