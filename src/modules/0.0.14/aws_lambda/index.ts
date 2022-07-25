@@ -95,6 +95,8 @@ export const AwsLambdaModule: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
+            // TODO: handle properly once more lambda sources are added (ecr, s3)
+            if (!e.zipB64) throw new Error('Missing base64 encoded zip file');
             const input: CreateFunctionCommandInput = {
               FunctionName: e.name,
               Description: e.description,
