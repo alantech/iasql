@@ -116,7 +116,7 @@ export class LambdaFunction {
     nullable: true,
   })
   environment?: { [key: string]: string }
-  
+
   // TODO: add contraint string values only
   @Column({
     type: 'json',
