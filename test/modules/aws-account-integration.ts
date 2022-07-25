@@ -138,12 +138,38 @@ describe('AwsAccount Integration Testing', () => {
   it('creates another test db', (done) => void iasql
     .connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
-
   it('updates the iasql_* modules to pretend to be an ancient version', query(`
     UPDATE iasql_module SET name = 'iasql_platform@0.0.2' WHERE name = 'iasql_platform@${latestVersion}';
     UPDATE iasql_module SET name = 'iasql_functions@0.0.2' WHERE name = 'iasql_functions@${latestVersion}';
   `));
 
+  it('confirms that you cannot install anything in a busted db', (done) => void query(`
+    SELECT * FROM iasql_install('aws_security_group');
+  `)((e?: any) => { 
+    console.log({ e, });
+    try {
+      expect(e?.detail).toContain('Unsupported version');
+    } catch (err) {
+      done(err);
+      return {};
+    }
+    done();
+    return {};
+  }));
+
+  it('confirms that you cannot apply in a busted db', (done) => void query(`
+    SELECT * FROM iasql_apply();
+  `)((e?: any) => {
+    console.log({ e, });
+    try {
+      expect(e?.detail).toContain('Unsupported version');
+    } catch (err)  {
+      done(err);
+      return {};
+    }
+    done();
+    return {};
+  }));
 
   it('deletes the busted test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
