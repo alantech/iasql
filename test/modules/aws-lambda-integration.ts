@@ -191,23 +191,23 @@ describe('Lambda Integration Testing', () => {
     WHERE name = '${lambdaFunctionName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  // it('deletes the lambda function role', query(`
-  //   DELETE FROM role WHERE role_name = '${lambdaFunctionRoleName}';
-  // `));
+  it('deletes the lambda function role', query(`
+    DELETE FROM role WHERE role_name = '${lambdaFunctionRoleName}';
+  `));
 
-  // it('check lambda function role does not exists', query(`
-  //   SELECT *
-  //   FROM role 
-  //   WHERE role_name = '${lambdaFunctionRoleName}';
-  // `, (res: any[]) => expect(res.length).toBe(0)));
+  it('check lambda function role does not exists', query(`
+    SELECT *
+    FROM role 
+    WHERE role_name = '${lambdaFunctionRoleName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
-  // it('applies the lambda function role removal', apply());
+  it('applies the lambda function role removal', apply());
 
-  // it('check lambda function role does not exist', query(`
-  //   SELECT *
-  //   FROM role 
-  //   WHERE role_name = '${lambdaFunctionRoleName}';
-  // `, (res: any[]) => expect(res.length).toBe(0)));
+  it('check lambda function role does not exist', query(`
+    SELECT *
+    FROM role 
+    WHERE role_name = '${lambdaFunctionRoleName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
