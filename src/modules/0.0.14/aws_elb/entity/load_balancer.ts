@@ -93,12 +93,9 @@ export class LoadBalancer {
   })
   vpc?: Vpc;
 
-  // Not in the mapper since is just needed as input for the creation and retrieve endpoints
-  // do not return any information related to the subnets
   @Column("varchar", { array: true, nullable: true, })
   subnets?: string[];
 
-  // TODO: Tie this to the AvailabilityZone entity somehow
   @Column("varchar", { array: true, nullable: true, })
   availabilityZones?: string[];
 
