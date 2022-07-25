@@ -1,11 +1,27 @@
-import { FunctionConfiguration, Lambda, paginateListFunctions } from '@aws-sdk/client-lambda';
+import { CreateFunctionCommandInput, FunctionConfiguration, Lambda, paginateListFunctions } from '@aws-sdk/client-lambda';
 
 import { AWS, crudBuilder2, paginateBuilder, } from '../../../services/aws_macros'
 
-export const createFunction = crudBuilder2<Lambda, 'createFunction'>(
+const innerCreateFunction = crudBuilder2<Lambda, 'createFunction'>(
   'createFunction',
   (input) => (input),
 );
+
+export const createFunction = async (client: Lambda, input: CreateFunctionCommandInput) => {
+  let counter = 0;
+  let skipCounter = false;
+  do {
+    try {
+      return await innerCreateFunction(client, input);
+    } catch (e: any) {
+      if (e.message !== 'The role defined for the function cannot be assumed by Lambda.') skipCounter = true;
+    }
+    if (!skipCounter) counter++;
+  } while (
+    (skipCounter || counter < 10) &&
+    (await new Promise(r => setTimeout(r, 5000)))
+  );
+}
 
 export const getFunction = crudBuilder2<Lambda, 'getFunction'>(
   'getFunction',
