@@ -1,9 +1,6 @@
 import {
-  Architecture,
   CreateFunctionCommandInput,
   GetFunctionResponse,
-  PackageType,
-  Runtime,
   UpdateFunctionCodeCommandInput,
   UpdateFunctionConfigurationCommandInput
 } from '@aws-sdk/client-lambda'
@@ -22,7 +19,7 @@ import {
   updateFunctionCode,
   updateFunctionConfiguration,
 } from './aws'
-import { LambdaFunction } from './entity'
+import { Architecture, LambdaFunction, PackageType, Runtime } from './entity'
 import { AwsIamModule } from '../aws_iam'
 
 const base64ToUint8Array = (base64: string) => {
@@ -39,6 +36,8 @@ const lambdaFunctionMapper = async (fn: GetFunctionResponse, ctx: Context) => {
   out.handler = fn.Configuration?.Handler;
   out.memorySize = fn.Configuration?.MemorySize;
   out.name = fn.Configuration?.FunctionName ?? 'not possible?';
+  // TODO: once Image package type is avaiable remove this filter
+  if (fn.Configuration?.PackageType !== PackageType.Zip) return undefined;
   out.packageType = fn.Configuration?.PackageType as PackageType;
   try {
     const roleName = AwsIamModule.utils.roleNameFromArn(fn.Configuration?.Role);
