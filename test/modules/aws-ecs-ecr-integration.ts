@@ -278,7 +278,7 @@ describe('ECS Integration Testing', () => {
   it('fails deleting a subnet in use', (done) => {
     query(`DELETE FROM subnet;`)((e: any) => {
         try {
-          expect(e.message).toContain('is being used by service');
+          expect(e.message).toContain('is being used by');
         } catch (err) {
           return done(err);
         }
