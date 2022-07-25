@@ -45,9 +45,9 @@ const lambdaFunctionMapper = async (fn: GetFunctionResponse, ctx: Context) => {
     out.role = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
       await AwsIamModule.mappers.role.cloud.read(ctx, roleName);
     if (!out.role) return undefined;
-  } catch (_e: any) {
-    // TODO: look for role not found error Code
-    return undefined;
+  } catch (e: any) {
+    // Error code picked from https://docs.aws.amazon.com/en_en/IAM/latest/APIReference/API_GetRole.html
+    if (e.Code === 'NoSuchEntity') return undefined;
   }
   out.runtime = fn.Configuration?.Runtime as Runtime;
   out.tags = fn.Tags;
