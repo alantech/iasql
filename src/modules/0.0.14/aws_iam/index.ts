@@ -180,10 +180,6 @@ export const AwsIamModule: Module2 = new Module2({
             const newRole = await AwsIamModule.utils.roleMapper(rawRole, ctx);
             await AwsIamModule.mappers.role.db.update(newRole, ctx);
             out.push(newRole);
-            // TODO: find a way to fix this better?
-            // wait 5 seconds to let aws get the role ready to use :/
-            // https://stackoverflow.com/a/37438525
-            await new Promise(r => setTimeout(r, 5000));
           }
           return out;
         },
