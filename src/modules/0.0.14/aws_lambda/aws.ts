@@ -16,9 +16,8 @@ export const createFunction = async (client: Lambda, input: CreateFunctionComman
       if (e.message !== 'The role defined for the function cannot be assumed by Lambda.') break;
     }
     counter++;
-  } while (counter < 10 &&
-    (await new Promise(r => setTimeout(r, 5000)))
-  );
+    await new Promise(r => setTimeout(r, 5000));
+  } while (counter <= 10);
 }
 
 export const getFunction = crudBuilder2<Lambda, 'getFunction'>(
