@@ -26,5 +26,6 @@ CONFIGTEST="$(cat src/config/test.ts | sed "s/latestVersion:.*/latestVersion: '$
 # Copy the version and push to main
 cp -r src/modules/${LATESTVERSION} src/modules/${VERSION}
 git add src/modules/${VERSION}
+git add src/config/*.ts
 git commit -m "Prepare version ${VERSION} for development"
 git push origin main
