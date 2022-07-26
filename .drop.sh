@@ -22,5 +22,6 @@ CONFIGTEST="$(cat src/config/test.ts | sed "s/latestVersion:.*/latestVersion: '$
 
 # Drop the version and push to main
 git rm -r src/modules/${LASTVERSION}
+git add src/config/*.ts
 git commit -m "Drop version ${LASTVERSION}"
 git push origin main
