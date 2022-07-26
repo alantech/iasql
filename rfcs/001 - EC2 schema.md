@@ -14,6 +14,7 @@ YYYY-MM-DD
 
 - LuisFer De Pombo <luisfer@iasql.com>
 - David Ellis <david@alantechnologies.com>
+- Yolanda Robla <yolanda@iasql.com>
 
 ### Implementation
 
