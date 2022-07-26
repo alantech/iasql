@@ -7,6 +7,7 @@ import { ECRPUBLIC, } from '@aws-sdk/client-ecr-public'
 import { ECS, } from '@aws-sdk/client-ecs'
 import { ElasticLoadBalancingV2, } from '@aws-sdk/client-elastic-load-balancing-v2'
 import { IAM, } from '@aws-sdk/client-iam'
+import { Lambda } from '@aws-sdk/client-lambda'
 import { RDS, } from '@aws-sdk/client-rds'
 import { Route53, } from '@aws-sdk/client-route-53'
 import { S3, } from '@aws-sdk/client-s3'
@@ -49,6 +50,7 @@ export class AWS {
   s3Client: S3
   ssmClient: SSM
   dynamoClient: DynamoDB
+  lambdaClient: Lambda
 
   constructor(config: AWSConfig) {
     this.region = config.region;
@@ -60,6 +62,7 @@ export class AWS {
     this.ecsClient = new ECS(config);
     this.elbClient = new ElasticLoadBalancingV2(config);
     this.iamClient = new IAM(config);
+    this.lambdaClient = new Lambda(config);
     this.rdsClient = new RDS(config);
     this.route53Client = new Route53(config);
     this.ssmClient = new SSM(config);
