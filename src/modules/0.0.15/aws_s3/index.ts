@@ -40,6 +40,36 @@ const updateBucketPolicy = crudBuilder2<S3, 'putBucketPolicy'>(
 
 export const AwsS3Module: Module2 = new Module2({
   ...metadata,
+  utils: {
+    bucketMapper: async (instance: BucketAWS, ctx: Context) => {
+      const b:Bucket = new Bucket();
+      b.name=instance.Name!;
+      b.createdAt=instance.CreationDate;
+      return b
+    },
+    createBucketPolicy: async (client: S3, bucket: Bucket, ctx: Context) => {
+      const input : PutBucketPolicyCommandInput = {
+        Bucket: bucket.name,
+        Policy: JSON.stringify(bucket.policyDocument ?? {}),
+      };
+      await updateBucketPolicy(client, input);
+      await AwsS3Module.mappers.bucket.db.update(bucket, ctx);
+
+      // requery the created policy from AWS
+      const inputGet: GetBucketPolicyCommandInput = {
+        Bucket: bucket.name,
+      };
+      const bucketPolicy = await getBucketPolicy(client, inputGet);
+      if (bucketPolicy && bucketPolicy.Policy) {
+        bucket.policyDocument=JSON.parse(bucketPolicy.Policy);
+      } else {
+        bucket.policyDocument=undefined;
+      }
+      await AwsS3Module.mappers.bucket.db.update(bucket, ctx);
+
+      return bucket.policyDocument;
+    },
+  },
   mappers: {
     bucket: new Mapper2<Bucket>({
       entity: Bucket,
@@ -55,12 +85,8 @@ export const AwsS3Module: Module2 = new Module2({
           const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
-            const bucket: Bucket = new Bucket();
-            bucket.name = e.name;
-            bucket.createdAt = e.createdAt;
             await createBucket(client.s3Client, e.name);
-
-            out.push(bucket);
+            out.push(e);
           }
           return out;
         },
@@ -82,10 +108,7 @@ export const AwsS3Module: Module2 = new Module2({
                 Bucket: bucket.Name,
               };
               const bucketPolicy = await getBucketPolicy(client.s3Client, input);
-
-              const b: Bucket = new Bucket();
-              b.name=bucket.Name!;
-              b.createdAt=bucket.CreationDate;
+              const b:Bucket = await AwsS3Module.utils.bucketMapper(bucket);
 
               if (bucketPolicy && bucketPolicy.Policy) {
                 b.policyDocument=JSON.parse(bucketPolicy.Policy);
@@ -111,25 +134,8 @@ export const AwsS3Module: Module2 = new Module2({
             const cloudRecord = ctx?.memo?.cloud?.Bucket?.[e.name ?? ''];
             const isUpdate = Object.is(AwsS3Module.mappers.bucket.cloud.updateOrReplace(cloudRecord, e), 'update');
             if (isUpdate) {
-              const input : PutBucketPolicyCommandInput = {
-                Bucket: e.name,
-                Policy: JSON.stringify(e.policyDocument ?? {}),
-              };
-              await updateBucketPolicy(client.s3Client, input);
-              await AwsS3Module.mappers.bucket.db.update(e, ctx);
-
-              // requery the created policy from AWS
-              const inputGet: GetBucketPolicyCommandInput = {
-                Bucket: e.name,
-              };
-              const bucketPolicy = await getBucketPolicy(client.s3Client, inputGet);
-              if (bucketPolicy && bucketPolicy.Policy) {
-                e.policyDocument=JSON.parse(bucketPolicy.Policy);
-              } else {
-                e.policyDocument=undefined;
-              }
-              await AwsS3Module.mappers.bucket.db.update(e, ctx);
-
+              e.createdAt=cloudRecord.createdAt;
+              e.policyDocument = await AwsS3Module.utils.createBucketPolicy(client.s3Client, e, ctx);
               out.push(e);
             } else {
               // Replace if name has changed
