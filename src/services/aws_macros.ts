@@ -1,15 +1,17 @@
 import { ACM, } from '@aws-sdk/client-acm'
 import { CloudWatchLogs, } from '@aws-sdk/client-cloudwatch-logs'
+import { DynamoDB, } from '@aws-sdk/client-dynamodb'
 import { EC2, } from '@aws-sdk/client-ec2'
 import { ECR, } from '@aws-sdk/client-ecr'
 import { ECRPUBLIC, } from '@aws-sdk/client-ecr-public'
 import { ECS, } from '@aws-sdk/client-ecs'
 import { ElasticLoadBalancingV2, } from '@aws-sdk/client-elastic-load-balancing-v2'
 import { IAM, } from '@aws-sdk/client-iam'
+import { Lambda } from '@aws-sdk/client-lambda'
 import { RDS, } from '@aws-sdk/client-rds'
 import { Route53, } from '@aws-sdk/client-route-53'
 import { S3, } from '@aws-sdk/client-s3'
-import { SSM } from '@aws-sdk/client-ssm'
+import { SSM, } from '@aws-sdk/client-ssm'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -47,18 +49,22 @@ export class AWS {
   route53Client: Route53
   s3Client: S3
   ssmClient: SSM
+  dynamoClient: DynamoDB
+  lambdaClient: Lambda
 
   constructor(config: AWSConfig) {
     this.region = config.region;
+    this.acmClient = new ACM(config);
+    this.cwClient = new CloudWatchLogs(config);
+    this.dynamoClient = new DynamoDB(config);
     this.ec2client = new EC2(config);
     this.ecrClient = new ECR(config);
-    this.elbClient = new ElasticLoadBalancingV2(config);
     this.ecsClient = new ECS(config);
-    this.rdsClient = new RDS(config);
-    this.cwClient = new CloudWatchLogs(config);
-    this.route53Client = new Route53(config);
+    this.elbClient = new ElasticLoadBalancingV2(config);
     this.iamClient = new IAM(config);
-    this.acmClient = new ACM(config);
+    this.lambdaClient = new Lambda(config);
+    this.rdsClient = new RDS(config);
+    this.route53Client = new Route53(config);
     this.ssmClient = new SSM(config);
     // Technically available in multiple regions but with weird constraints, and the default is us-east-1
     this.s3Client = new S3({ ...config, region: 'us-east-1', });

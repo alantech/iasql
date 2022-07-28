@@ -251,6 +251,20 @@ describe('ECS Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   // Service
+  it('fails adding a service', (done) => {
+    query(`
+    INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
+    VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, '{"fake"}', 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
+    `)((e: any) => {
+      try {
+        expect(e.message).toContain('violates check constraint');
+      } catch (err) {
+        return done(err);
+      }
+      return done();
+    });
+  });
+
   it('adds a new service', query(`
     BEGIN;
       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
@@ -260,6 +274,17 @@ describe('ECS Integration Testing', () => {
       VALUES ('${serviceRepositoryName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
     COMMIT;
   `));
+
+  it('fails deleting a subnet in use', (done) => {
+    query(`DELETE FROM subnet;`)((e: any) => {
+        try {
+          expect(e.message).toContain('is being used by');
+        } catch (err) {
+          return done(err);
+        }
+        return done();
+      });
+  });
 
   it('check service insertion', query(`
     SELECT *

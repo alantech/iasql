@@ -167,7 +167,13 @@ export async function init() {
   // Necessary in the child process
   if (config.sentry) sentry.init(config.sentry);
   if (!MetadataRepo.initialized) await MetadataRepo.init();
-  const dbs: IasqlDatabase[] = await MetadataRepo.getAllDbs();
+  const dbs: IasqlDatabase[] = (await Promise.all(
+    (await MetadataRepo.getAllDbs()).map(async (db) => {
+      const versionString = await TypeormWrapper.getVersionString(db.pgName);
+      const Modules = (modules as any)[versionString];
+      return !!Modules ? db : undefined
+    })
+  )).filter((db: IasqlDatabase | undefined) => db !== undefined) as IasqlDatabase[]; // Typescript should know better
   const inits = await Promise.allSettled(dbs.map(db => start(db.pgName, db.pgUser)));
   for (const [i, bootstrap] of inits.entries()) {
     if (bootstrap.status === 'rejected') {

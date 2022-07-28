@@ -65,11 +65,23 @@ describe('VPC Integration Testing', () => {
   it('undo changes', sync());
 
   it('adds a new vpc', query(`  
-    INSERT INTO vpc (cidr_block)
-    VALUES ('192.${randIPBlock}.0.0/16');
+    INSERT INTO vpc (cidr_block, tags)
+    VALUES ('192.${randIPBlock}.0.0/16', '{"name":"${prefix}-1"}');
   `));
 
   it('applies the vpc change', apply());
+
+  it('check no vpc is pending', query(`
+  SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state!='available';
+  `, (res: any) => expect(res.length).toBe(0)));
+
+  it('check vpc is available', query(`
+  SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND state='available';
+  ` , (res: any) => expect(res.length).toBe(1)));
+
+  it('check vpc has tags', query(`
+  SELECT * FROM vpc WHERE tags ->> 'name' = '${prefix}-1';
+  ` , (res: any) => expect(res.length).toBe(1)));
 
   it('adds a subnet', query(`
     INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
@@ -80,6 +92,38 @@ describe('VPC Integration Testing', () => {
   `));
 
   it('applies the subnet change', apply());
+
+  it('updates vpc state', query(`
+    UPDATE vpc
+    SET state='pending' WHERE cidr_block='192.${randIPBlock}.0.0/16';
+  `));
+
+  it('applies the state change of the vpc', apply());
+
+  it('checks that state has not been modified', query(`
+    SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16'
+    AND state='pending';
+  `, (res: any) => expect(res.length).toBe(0)));
+
+  it('tries to update vpc tags', query(`
+  UPDATE vpc SET tags = '{"name": "${prefix}-2"}' WHERE cidr_block='192.${randIPBlock}.0.0/16';
+  `));
+
+  it('applies the vpc tags update', apply());
+
+  it('checks that tags have been modified', query(`
+    SELECT * FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2';
+  `, (res: any) => expect(res.length).toBe(1)));
+
+  it('tries to update vpc cidr', query(`
+  UPDATE vpc SET cidr_block='191.${randIPBlock}.0.0/16' WHERE cidr_block='192.${randIPBlock}.0.0/16'
+  `));
+
+  it('applies the vpc cidr update', apply());
+
+  it('checks that cidr have been modified', query(`
+  SELECT * FROM vpc WHERE cidr_block='191.${randIPBlock}.0.0/16';
+`, (res: any) => expect(res.length).toBe(1)));
 
   describe('Elastic IP and nat gateway creation', () => {
     it('adds a new elastic ip', query(`
@@ -178,10 +222,6 @@ describe('VPC Integration Testing', () => {
   it('checks public nat gateway with no existing elastic ip count', query(`
     SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
   `, (res: any) => expect(res.length).toBe(1)));
-
-  it('queries the subnets to confirm the record is present', query(`
-    SELECT * FROM subnet WHERE cidr_block = '192.${randIPBlock}.0.0/16'
-  `, (res: any) => expect(res.length).toBeGreaterThan(0)));
 
   it('queries the vpcs to confirm the record is present', query(`
     SELECT * FROM vpc WHERE cidr_block = '192.${randIPBlock}.0.0/16'
@@ -401,14 +441,14 @@ describe('VPC Integration Testing', () => {
     WITH vpc as (
       SELECT id
       FROM vpc
-      WHERE cidr_block = '192.${randIPBlock}.0.0/16'
+      WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-2'
     )
     DELETE FROM security_group
     USING vpc
     WHERE vpc_id = vpc.id;
 
     DELETE FROM vpc
-    WHERE cidr_block = '192.${randIPBlock}.0.0/16';
+    WHERE cidr_block = '191.${randIPBlock}.0.0/16';
   `));
 
   it('applies the vpc removal', apply());

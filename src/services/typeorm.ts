@@ -70,6 +70,7 @@ export class TypeormWrapper {
     };
     const versionString = await TypeormWrapper.getVersionString(database);
     const Modules = (AllModules as any)[versionString];
+    if (!Modules) throw new Error(`Unsupported version ${versionString} in database ${database}`);
     // Grab all of the entities and create the TypeORM connection with it. Theoretically only need
     // the module in question at first, but when we try to use the module to acquire the cloud
     // records, it may use one or more other modules it depends on, so we just load them all into
