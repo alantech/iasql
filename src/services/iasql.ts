@@ -11,6 +11,7 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 import { createConnection, } from 'typeorm'
 import { snakeCase, } from 'typeorm/util/StringUtils'
 import { v4 as uuidv4, } from 'uuid'
+import { parse, deparse, } from 'pgsql-parser'
 
 import { modules as AllModules, } from '../modules'
 import * as dbMan from './db-manager'
@@ -188,23 +189,30 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
       ssl: dbMan.baseConnConfig.extra.ssl,
     });
     await connTemp.connect();
-    const out = await connTemp.query(sql);
+    const stmts = parse(sql);
+    const out = [];
+    for (const stmt of stmts) {
+      out.push(await connTemp.query(deparse(stmt)));
+    }
+    // const out = await connTemp.query(sql);
     // Let's make this a bit easier to parse. Error -> error path, single table -> array of objects,
     // multiple tables -> array of array of objects
-    if (typeof out === 'string') {
-      return out;
-    } else if (
-      !!out.rows &&
-      out.rows.length === 0 &&
-      out.command !== 'SELECT' &&
-      typeof out.rowCount === 'number'
-    ) {
-      return [{ affected_records: out.rowCount, }];
-    } else if (!!out.rows) {
-      return out.rows;
-    } else if (out instanceof Array) {
-      return out.map(t => t.rows);
-    }
+    return out.map(t => {
+      if (
+        !!t.rows &&
+        t.rows.length === 0 &&
+        t.command !== 'SELECT' &&
+        typeof t.rowCount === 'number'
+      ) {
+        return ({ affected_records: t.rowCount, });
+      } else if (typeof t === 'string') {
+        return ({ result: t, });
+      } else if (!!t.rows) {
+        return t.rows;
+      } else {
+        return ({ error: 'unexpected result: ${t}', }); // TODO: Error this out
+      }
+    });
   } catch (e: any) {
     // re-throw
     throw e;

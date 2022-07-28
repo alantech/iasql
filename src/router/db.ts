@@ -133,7 +133,7 @@ db.post('/run/:dbAlias', async (req, res) => {
       email,
       uid
     }, {
-      output,
+      output: JSON.stringify(output),
       sql,
       button
     }, database.pgName);
