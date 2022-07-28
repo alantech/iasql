@@ -61,7 +61,7 @@ describe('AwsAccount Integration Testing', () => {
   it('runSql segue: confirms good sql queries return an array of records', (done) => {
     (async () => {
       const rows = await runSql('SELECT * FROM aws_account');
-      if (rows instanceof Array && rows[0].region === 'us-east-1') {
+      if (rows instanceof Array && rows[0] instanceof Array && rows[0][0].region === 'us-east-1') {
         done();
       } else {
         done(new Error('Unexpected response from normal query'));
