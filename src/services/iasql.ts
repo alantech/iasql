@@ -194,7 +194,6 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
     for (const stmt of stmts) {
       out.push(await connTemp.query(deparse(stmt)));
     }
-    // const out = await connTemp.query(sql);
     // Let's make this a bit easier to parse. Error -> error path, single table -> array of objects,
     // multiple tables -> array of array of objects
     return out.map(t => {
