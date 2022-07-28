@@ -25,6 +25,7 @@ YYYY-MM-DD
 
 - Alejandro Guillen <alejandro@iasql.com>
 
+<!-- TODO: WIP -->
 ## Summary
 
 Adding new features to get closer to the goal of the EC2 module's completeness adds more complexity to the model. This complexity directly affects the user experience, especially for new users, since they can feel overwhelmed if they encounter a complicated model.
@@ -32,6 +33,8 @@ Adding new features to get closer to the goal of the EC2 module's completeness a
 The definition of a solid base now will imply that new features added to this module will not translate into breaking changes to the model.
 
 Taking a look at the AWS EC2 console options, we would still need to add the following to reach EC2 module completeness:
+
+<!-- TODO: IMAGE -->
 
 - Instance type - Availability zone relationship
 - Launch templates
@@ -52,7 +55,45 @@ Almost all the features listed will need a direct integration with the `instance
 
 The current instance module has ten columns. Adding the ones representing integration with other features will almost double its size.
 
+<!-- TODO: add current model -->
+
+<!-- TODO: WIP -->
 ## Proposal
+
+- Creating an intance using the UI/API let you add some advance configuration, that usually is not used, but is there. Shing an screenshot of part of it, but this would mean adding at least 12 columns (instance auto-recovery, shutdown behaviour, stop - hibernate behaviour, termination protection, stop protection, detailed cloudWatch monitoring, elastic GPU, credit specification, tenancy, RAM disk ID, kernel ID or Metadata accessible).
+<!-- TODO: add new columns image -->
+
+- Add `availability_zone` column to `instance` table to be able to have an `instance_type` table by availability zones using composite keys.
+
+- Launch templates will be a new table and need to be an `instance` table input column `launch_template_id`. If we insert other values to the `instance`, these ones will override the launch template. To be able to know if an instance was created using one of them we check the tags and look for the id to link them.
+
+- Spot requests can be created manually, using launch templates or can be created by other entities like ASG. If an instance was created using an spot request should not affect the `instance` table, so the relation between them will be part of the `instance_metadata`. To be able to know if an instance was created by an spot request we check the tags and look for the id to link them.
+
+- Dedicated host. physical servers fully dedicated by instance type and availability zone. The instance table will have a FK to this table.
+
+- Scheduled instances. Another marketplace like serivce. A desired schedule need to be set and then based on that you can se the offering that you can buy.
+
+- Capacity reservations. reservation of an instance type per availability zone. Once defiend could be use by any instance using the fk column, or if the cr is assigned automatically, we need to use the tags in the instance and add the right FK value.
+
+- EBS Snapshots. Can be created from an instance or from a volume. FK to both tables.
+
+- Lifecycles: work with tags. could be related to instance or volumes but are for data retention. It will go to instance metadata.
+
+- Placement groups. Strategies to launch instances
+
+- Key Pairs: Create them, FK column already in instance table
+
+- Network interfaces. Logical network components. A ENI belongs to an instance, but an instance can have multiple ENIs. (similar to ebs)
+
+- Auto Scaling Groups can be created manually, using launch templates (and launch configurations that are like launch templates just for ASG?) or can be created by other entities like EKS. Like spot requests, ASGs should not have direct relation with instances and can be part of the `instance_metadata`. To be able to know if an instance was created by an ASG we check the tags and look for the id to link them.
+
+- AMIs can be own by someone, you can check for yours or others. Private or public. should be their own module.
+
+- Saving plans. Budget solution. Is not related only to EC2, but Fargate and Lambda too. Commitment to a consistent amount of usage (measured in $/hour) for a 1 or 3 year term. The flow is similar to a marketplace. Maybe need its own module? I do not forseen direct relation with any entity of the aws_ec2 module. It appears under ec2 but seems to be part of the AWS Cost management service.
+
+<!-- TODO: INSERT IMAGE HERE -->
+
+- Reserved instances. Budget solution. Supply and demand model. CHnage often. It is like parking space.
 
 The `instance` table is the core of the `aws_ec2` module and is the one that can grow more in complexity. The proposal is to keep adding the necessary columns to the `instance` table. It is better to have a unique table to look for instances than increase the complexity of the model, creating other tables and adding to the users the need to understand our model first. Eventually, we can add an `aws_ec2_simplified` module that can expose the basics to create an instance and leave the `aws_ec2` for advanced users.
 
@@ -87,7 +128,7 @@ The rest of the features will need to be implemented in the `aws_ec2` module and
 
 Spot instances and Auto Scaling Group can be updated at any point in time by the cloud. These will imply the development of the "safer sync faster apply" feature as a pre-requisite for the two.
 
-Launch templates, auto-scaling group requests and spot instances requests can be linked to an instance using the tags AWS assign with a specific pattern. Otherwise will be hard to link all the relationships due to the async nature of ASG and spot instances.
+We will have FK columns for Launch Templates, Spot Requests and Auto Scaling Groups, but the information retrieved from the instance does not provide direct fields to know if it belongs to any of them or how to relate them. One option for Spot fleets or ASGs is that every time we look for instance information, we call ASG or Spot fleet APIs to get the instances and look for the one we are interested in. This solution will lead to bad performance at scale. Alternatively, AWS adds special tags to the instances created using any Launch template, Spot fleet request and/or ASG. We might need to trust these tags and use them to add the correct field in the FK column.
 
 ### Alternatives Considered
 
@@ -102,13 +143,15 @@ This option is not viable since it will be really hard to maintain and make it c
 
 ## Expected Semver Impact
 
+<!-- TODO -->
 Patch version
 
 ## Affected Components
 
 - `aws_ec2` module
+- `aws_ec2_metadata` module
 - `aws_vpc` module
 
 ## Expected Timeline
 
-TBD
+<!-- TODO -->
