@@ -25,10 +25,9 @@ YYYY-MM-DD
 
 - Alejandro Guillen <alejandro@iasql.com>
 
-<!-- TODO: WIP -->
 ## Summary
 
-Adding new features to get closer to the goal of the EC2 module's completeness adds more complexity to the model. The `instance` table is the core of the `aws_ec2` module and is the one that can get affected the most. This complexity have a direct impact on the user experience, especially for new users, since they can feel overwhelmed if they encounter a complicated model.
+Adding new features to get closer to the goal of the EC2 module's completeness adds more complexity to the model. The `instance` table is the core of the `aws_ec2` module and is the one that can get affected the most. This complexity has a direct impact on the user experience, especially for new users, since they can feel overwhelmed if they encounter a complicated model.
 
 The definition of a solid base now will imply that new features added to this module will not translate into breaking changes to the model.
 
@@ -51,7 +50,7 @@ Taking a look at the AWS EC2 console options, we would still need to add the fol
 - Key Pairs
 - Network interfaces
 
-The `instance` table still needs more advance options to be defined. Some of those missing properties are: instance auto-recovery, shutdown behaviour, stop - hibernate behaviour, termination protection, stop protection, detailed cloudWatch monitoring, elastic GPU, credit specification, tenancy, RAM disk ID, kernel ID or Metadata accessible (I might be missing others). Aditionally, some of the features listed above will need to be added to the `instance` table as FKs.
+The `instance` table still needs more advanced options to be defined. Some of those missing properties are: instance auto-recovery, shutdown behaviour, stop - hibernate behaviour, termination protection, stop protection, detailed cloudWatch monitoring, elastic GPU, credit specification, tenancy, RAM disk ID, kernel ID or Metadata accessible (I might be missing others). Additionally, some of the features listed above will need to be added to the `instance` table as FKs.
 
 The current EC2 model looks like this:
 
@@ -60,17 +59,17 @@ Note: Could be also accessed via https://dbdocs.io/alejandro/iasql
 
 ## Proposal
 
-After considering alternatives like splitting everything into more modules, or having different `instance` tables around based on how they were created, the proposal is to keep growing the schema as we have been doing in this same module, but adding the relationships where they belong and rely on the instance metadata for the ones that are not needed for the CRUD of the `instance` table.
+After considering alternatives like splitting everything into more modules or having different `instance` tables around based on what service creates them, the proposal is to keep the schema growing in this same module. The relationships, though, will be added where they belong and rely on the instance metadata for the no needed ones for the CRUD of the `instance` table.
 
-Let's go through all the needed features, see their implications in the model and get a final version of the ECS schema.
+We will review the needed features, see their implications in the model and get a final version of the ECS schema.
 
-- Creating an instance using the UI/API let you add some advanced configuration, that usually is not used but is there. Showing a screenshot of part of it, but this would mean adding at least 12 columns (instance auto-recovery, shutdown behaviour, stop - hibernate behaviour, termination protection, stop protection, detailed cloudWatch monitoring, elastic GPU, credit specification, tenancy, RAM disk ID, kernel ID or Metadata accessible) to the `instance` table.
+- Creating an instance using the UI/API lets you add some advanced configuration that usually is not used but is there. The screenshot below shows part of the extra configuration. At least the following columns will need to be added to the `instance` table: instance auto-recovery, shutdown behaviour, stop - hibernate behaviour, termination protection, stop protection, detailed cloudWatch monitoring, elastic GPU, credit specification, tenancy, RAM disk ID, kernel ID or Metadata accessible.
 
 ![EC2 instance advance properties](./assets/001/ec2_advance_properties.png)
 
-- Instance types depend on availability zones. We need to create a table relating them using a composite key. We also need to add the `availability_zone` column to the `instance` table to be able to the new `instance_type` table using the composite key.
+- Instance types depend on availability zones. We need to create a table relating them using a composite key. We also need to add the `availability_zone` column to the `instance` table to relate with the new `instance_type` table using the composite key.
 
-- Launch templates will be a new table and need to be an `instance` table input column `launch_template_id`. If we insert other values to the `instance`, these will override the launch template ones. To be able to know if an instance was created using one of them we check the tags and look for the id to link the FK.
+- Launch templates will be a new table and need to be an `instance` table input column `launch_template_id`. If we insert other values to the `instance`, these will override the launch template ones. To know if an instance was created using one of them we check the tags and look for the id to link the FK.
 
 - Spot requests can be created manually, using launch templates or can be created by other entities like ASG or the same instance. If an instance was created using a spot request should not affect the `instance` table, so the relationship between them will be part of the `instance_metadata`. To be able to know if an instance was created by a spot request we check the tags and look for the id to link them.
 
@@ -109,6 +108,8 @@ Note 2: Could be also accessed via https://dbdocs.io/alejandro/proposed-iasql?vi
 
 Some of the features exposed do apply changes automatically to the cloud, like spot instances and Auto Scaling Groups. These will imply the development of the "safer sync faster apply" feature as a pre-requisite.
 
+we can start with instance type, launch templates, dedicated hosts, capacity reservation, ebs snapshots, placement groups, key pairs and network interfaces.
+
 ### Alternatives Considered
 
 - Create different modules for the services that can manage AWS instances.
@@ -122,8 +123,7 @@ This option is not viable since it will be really hard to maintain and make it c
 
 ## Expected Semver Impact
 
-<!-- TODO -->
-Patch version
+Patch version for users since we will be adding mostly new features to the same module.
 
 ## Affected Components
 
@@ -133,4 +133,4 @@ Patch version
 
 ## Expected Timeline
 
-<!-- TODO -->
+This will be done in incremental steps during time. Each one of the bullet points will take between 1 and 3 days depending on complexity. Assuming worst case scenario (3 days each) will be 16 * 3 = 48 days
