@@ -56,8 +56,8 @@ The `instance` table still needs more advance options to be defined. Some of tho
 The current EC2 model looks like this:
 
 ![Current EC2 model](./assets/001/current_schema.png)
+Note: Could be also accessed via https://dbdocs.io/alejandro/iasql
 
-<!-- TODO: WIP -->
 ## Proposal
 
 After considering alternatives like splitting everything in more modules, or having different `instance` tables around based on how they were created, the proposal is to keep growing the schema as we have being doing in this same module, but adding the relationships where they belong and rely on the instance metadata for the ones that are not needed for the CRUD of the `instance` table.
@@ -105,6 +105,7 @@ After all these features, the EC2 schema should look something like following:
 ![Proposed schema](./assets/001/proposed_schema.png)
 
 Note: These schema does not have all the possible relationships, but the most important ones with the `instance` table.
+Note 2: Could be also accessed via https://dbdocs.io/alejandro/proposed-iasql?view=relationships
 
 Some of the features exposed does apply changes automatically to the cloud, like spot instances and Auto Scaling Groups. These will imply the development of the "safer sync faster apply" feature as a pre-requisite.
 
