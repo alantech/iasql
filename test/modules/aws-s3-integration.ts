@@ -11,7 +11,8 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_s3'];
-const policyDocument = JSON.stringify({
+
+const policyJSON = {
   Version: '2012-10-17',
   Statement: [
     {
@@ -26,9 +27,12 @@ const policyDocument = JSON.stringify({
       ],
     },
   ],
-});
+};
+const policyDocument = JSON.stringify(policyJSON);
+policyJSON.Statement[0].Sid='UpdatePolicy';
+const newPolicyDocument = JSON.stringify(policyJSON);
 
-const updatedPolicyDocument = JSON.stringify({
+const updatedPolicyJSON = {
   Version: '2012-10-17',
   Statement: [
     {
@@ -39,8 +43,11 @@ const updatedPolicyDocument = JSON.stringify({
       Resource: 'arn:aws:s3:::'+s3Name+'/*',
     },
   ],
-});
+};
 
+const updatedPolicyDocument = JSON.stringify(updatedPolicyJSON);
+updatedPolicyJSON.Statement[0].Sid='UpdatePolicy';
+const updatedNewPolicyDocument = JSON.stringify(updatedPolicyJSON);
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -74,8 +81,8 @@ describe('S3 Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('adds a new s3 bucket', query(`  
-    INSERT INTO bucket (name)
-    VALUES ('${s3Name}');
+    INSERT INTO bucket (name, policy_document)
+    VALUES ('${s3Name}', '${policyDocument}');
   `));
 
   it('applies the s3 bucket change', apply());
@@ -85,6 +92,10 @@ describe('S3 Integration Testing', () => {
     FROM bucket 
     WHERE name = '${s3Name}';
   `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('gets current bucket policy document', query(`
+    SELECT * FROM bucket WHERE name = '${s3Name}';
+    `, (res: any[]) => expect(res[0].policy_document).toStrictEqual(JSON.parse(updatedPolicyDocument))));
 
   it('updates the bucket timestamp', query(`
     UPDATE bucket SET created_at = '1984-01-01T00:00:00' WHERE name = '${s3Name}';
@@ -114,13 +125,13 @@ describe('S3 Integration Testing', () => {
     }));
 
     it('updates the bucket policy', query(`
-    UPDATE bucket SET policy_document='${policyDocument}' WHERE name = '${s3Name}';
+    UPDATE bucket SET policy_document='${newPolicyDocument}' WHERE name = '${s3Name}';
     `));
     it('applies the s3 bucket policy update', apply());
 
     it('gets current bucket policy with updated document', query(`
     SELECT * FROM bucket WHERE name = '${s3Name}';
-    `, (res: any[]) => expect(res[0].policy_document).toStrictEqual(JSON.parse(updatedPolicyDocument))));
+    `, (res: any[]) => expect(res[0].policy_document).toStrictEqual(JSON.parse(updatedNewPolicyDocument))));
   });
 
   it('uninstalls the s3 module', uninstall(modules));

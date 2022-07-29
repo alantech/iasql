@@ -88,6 +88,7 @@
     "lodash.isequal": "^4.5.0",
     "lodash.pick": "^4.4.0",
     "pg": "^8.7.3",
+    "pgsql-parser": "^13.3.11",
     "postgraphile": "^4.12.9",
     "reflect-metadata": "^0.1.13",
     "semver": "^7.3.7",
