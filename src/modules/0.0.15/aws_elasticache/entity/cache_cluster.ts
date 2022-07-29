@@ -3,6 +3,7 @@ import {
     Entity,
     JoinTable,
     ManyToMany,
+    PrimaryColumn,
     PrimaryGeneratedColumn,
   } from 'typeorm'
   
@@ -17,25 +18,17 @@ import {
   
   @Entity()
   export class CacheCluster {
-    @PrimaryGeneratedColumn()
-    id?: number;
-  
-    @Column({
-      nullable: true,
-      comment: 'Unique identifier provided by AWS once the instance is provisioned',
+    @PrimaryColumn({
+      nullable: false,
+      type: 'varchar',
     })
     @cloudId
-    clusterId?: string;
-    
+    clusterId: string;
+      
+    // TODO: convert it to an independent table in the future
     @Column()
     nodeType: string;
     
-    @ManyToMany(() => SecurityGroup, { eager: true, })
-    @JoinTable({
-      name: 'cache_security_groups',
-    })
-    securityGroups: SecurityGroup[];
-
     @Column({
       type: 'enum',
       enum: Engine,
@@ -43,10 +36,8 @@ import {
     })
     engine: Engine;
 
-    @Column()
+    @Column({
+      nullable: true,
+    })
     numNodes?: number;
-
-    @Column()
-    port?: number;
-    
   }

@@ -6,6 +6,7 @@ import { ECR, } from '@aws-sdk/client-ecr'
 import { ECRPUBLIC, } from '@aws-sdk/client-ecr-public'
 import { ECS, } from '@aws-sdk/client-ecs'
 import { ElasticLoadBalancingV2, } from '@aws-sdk/client-elastic-load-balancing-v2'
+import { ElastiCache } from '@aws-sdk/client-elasticache'
 import { IAM, } from '@aws-sdk/client-iam'
 import { Lambda } from '@aws-sdk/client-lambda'
 import { RDS, } from '@aws-sdk/client-rds'
@@ -51,12 +52,14 @@ export class AWS {
   ssmClient: SSM
   dynamoClient: DynamoDB
   lambdaClient: Lambda
+  elasticacheClient: ElastiCache
 
   constructor(config: AWSConfig) {
     this.region = config.region;
     this.acmClient = new ACM(config);
     this.cwClient = new CloudWatchLogs(config);
     this.dynamoClient = new DynamoDB(config);
+    this.elasticacheClient = new ElastiCache(config);
     this.ec2client = new EC2(config);
     this.ecrClient = new ECR(config);
     this.ecsClient = new ECS(config);
