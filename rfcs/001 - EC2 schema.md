@@ -28,15 +28,15 @@ YYYY-MM-DD
 <!-- TODO: WIP -->
 ## Summary
 
-Adding new features to get closer to the goal of the EC2 module's completeness adds more complexity to the model. This complexity directly affects the user experience, especially for new users, since they can feel overwhelmed if they encounter a complicated model.
+Adding new features to get closer to the goal of the EC2 module's completeness adds more complexity to the model. The `instance` table is the core of the `aws_ec2` module and is the one that can get affected the most. This complexity have a direct impact on the user experience, especially for new users, since they can feel overwhelmed if they encounter a complicated model.
 
 The definition of a solid base now will imply that new features added to this module will not translate into breaking changes to the model.
 
 Taking a look at the AWS EC2 console options, we would still need to add the following to reach EC2 module completeness:
 
-<!-- TODO: IMAGE -->
+![AWS Console EC2](./assets/001_aws_console_ec2.png)
 
-- Instance type - Availability zone relationship
+- Instance types with Availability zone relationship
 - Launch templates
 - Spot instances
 - Dedicated hosts
@@ -47,88 +47,66 @@ Taking a look at the AWS EC2 console options, we would still need to add the fol
 - Auto Scaling Groups
 - AMIs management
 - EBS volume snapshots and life cycle
-- Elastic IP integration
 - Placement groups
+- Key Pairs
 - Network interfaces
 
-Almost all the features listed will need a direct integration with the `instance` table, needing to add at least eight more columns to the model. Those columns are only for integration, but the `instance` model still needs more properties to be defined to be complete. Some of those missing properties are: instance auto-recovery, shutdown behaviour, stop - hibernate behaviour, termination protection, stop protection, detailed cloudWatch monitoring, elastic GPU, credit specification, tenancy, RAM disk ID, kernel ID or Metadata accessible (I might be missing others).
+The `instance` table still needs more advance options to be defined. Some of those missing properties are: instance auto-recovery, shutdown behaviour, stop - hibernate behaviour, termination protection, stop protection, detailed cloudWatch monitoring, elastic GPU, credit specification, tenancy, RAM disk ID, kernel ID or Metadata accessible (I might be missing others). Aditionally, some of the features listed above will need to be added to the `instance` table as FKs.
 
-The current instance module has ten columns. Adding the ones representing integration with other features will almost double its size.
+The current EC2 model looks like this:
 
-<!-- TODO: add current model -->
+![Current EC2 model](./assets/001_current_schema.png)
 
 <!-- TODO: WIP -->
 ## Proposal
 
-- Creating an intance using the UI/API let you add some advance configuration, that usually is not used, but is there. Shing an screenshot of part of it, but this would mean adding at least 12 columns (instance auto-recovery, shutdown behaviour, stop - hibernate behaviour, termination protection, stop protection, detailed cloudWatch monitoring, elastic GPU, credit specification, tenancy, RAM disk ID, kernel ID or Metadata accessible).
-<!-- TODO: add new columns image -->
+After considering alternatives like splitting everything in more modules, or having different `instance` tables around based on how they were created, the proposal is to keep growing the schema as we have being doing in this same module, but adding the relationships where they belong and rely on the instance metadata for the ones that are not needed for the CRUD of the `instance` table.
 
-- Add `availability_zone` column to `instance` table to be able to have an `instance_type` table by availability zones using composite keys.
+Let's go through all the needed features, see their implications in the model and get a final version of the ECS schema.
 
-- Launch templates will be a new table and need to be an `instance` table input column `launch_template_id`. If we insert other values to the `instance`, these ones will override the launch template. To be able to know if an instance was created using one of them we check the tags and look for the id to link them.
+- Creating an intance using the UI/API let you add some advance configuration, that usually is not used but is there. Showing an screenshot of part of it, but this would mean adding at least 12 columns (instance auto-recovery, shutdown behaviour, stop - hibernate behaviour, termination protection, stop protection, detailed cloudWatch monitoring, elastic GPU, credit specification, tenancy, RAM disk ID, kernel ID or Metadata accessible) to the `instance` table.
 
-- Spot requests can be created manually, using launch templates or can be created by other entities like ASG. If an instance was created using an spot request should not affect the `instance` table, so the relation between them will be part of the `instance_metadata`. To be able to know if an instance was created by an spot request we check the tags and look for the id to link them.
+![EC2 instance advance properties](./assets/001_ec2_advance_properties.png)
 
-- Dedicated host. physical servers fully dedicated by instance type and availability zone. The instance table will have a FK to this table.
+- Instance types depend on availability zones. We need to create a table relating them using a composite key. We also need to add `availability_zone` column to `instance` table to be able to the new `instance_type` table using the composite key.
 
-- Scheduled instances. Another marketplace like serivce. A desired schedule need to be set and then based on that you can se the offering that you can buy.
+- Launch templates will be a new table and need to be an `instance` table input column `launch_template_id`. If we insert other values to the `instance`, these will override the launch template ones. To be able to know if an instance was created using one of them we check the tags and look for the id to link the FK.
 
-- Capacity reservations. reservation of an instance type per availability zone. Once defiend could be use by any instance using the fk column, or if the cr is assigned automatically, we need to use the tags in the instance and add the right FK value.
+- Spot requests can be created manually, using launch templates or can be created by other entities like ASG or the same instance. If an instance was created using an spot request should not affect the `instance` table, so the relation between them will be part of the `instance_metadata`. To be able to know if an instance was created by an spot request we check the tags and look for the id to link them.
 
-- EBS Snapshots. Can be created from an instance or from a volume. FK to both tables.
+- Dedicated host. These are physical servers fully dedicated by instance type and availability zone. Instances can be assinged to run in a dedicated host. The instance table will have a FK to this table.
 
-- Lifecycles: work with tags. could be related to instance or volumes but are for data retention. It will go to instance metadata.
+- Capacity reservations. Let the users create a reservation of an instance type per availability zone. The implementationn of this one can be tricky since once defined there are some options. An instance  can define what CR use, or assigned automatically if match with a current instance or assigned during the CR creation process if I'm not wrong. We might need to use the tags in the instance to add the right FK value to the CR when reading from cloud.
 
-- Placement groups. Strategies to launch instances
+- EBS Snapshots. They can be created from an existing running instance or from a volume and then used during the EBS volumes creation. This table will have FKs to both `instance`s and `volume`s.
 
-- Key Pairs: Create them, FK column already in instance table
+- Data Lifecycle Manager: Automate the creation, retention, copy and deletion of snapshots and AMIs. Snapshot target types could point instances and volumes. This service target resources by tags. We could be opinionated here and create join tables relating instcnes and volumes with this policies and automatically create the tags for them. The other option is ignore the relationships at DB level and just create the policies alone.
 
-- Network interfaces. Logical network components. A ENI belongs to an instance, but an instance can have multiple ENIs. (similar to ebs)
+- Placement groups. Strategies to launch instances close together, partitioned or spread. Once the startegy is in place, an `instance` can be launch using one of these. This means the instance table will need a new FK to this service.
 
-- Auto Scaling Groups can be created manually, using launch templates (and launch configurations that are like launch templates just for ASG?) or can be created by other entities like EKS. Like spot requests, ASGs should not have direct relation with instances and can be part of the `instance_metadata`. To be able to know if an instance was created by an ASG we check the tags and look for the id to link them.
+- Key Pairs. They can be assigned to an instance on creation time, so another FK column from the `instance` table to the key pair.
 
-- AMIs can be own by someone, you can check for yours or others. Private or public. should be their own module.
+- Network interfaces. Logical network components. A ENI belongs to an instance, but an instance can have multiple ENIs (similar to ebs). So the FK in this case will be in the ENI's side.
 
-- Saving plans. Budget solution. Is not related only to EC2, but Fargate and Lambda too. Commitment to a consistent amount of usage (measured in $/hour) for a 1 or 3 year term. The flow is similar to a marketplace. Maybe need its own module? I do not forseen direct relation with any entity of the aws_ec2 module. It appears under ec2 but seems to be part of the AWS Cost management service.
+- Auto Scaling Groups can be created manually, using launch templates (and launch configurations that are like launch templates just for ASG?) or can be created by other entities like EKS. Like spot requests, ASGs should not have direct relation with `instance`s and can be part of the `instance_metadata`. To be able to know if an instance was created by an ASG we check the tags and look for the id to link them.
 
-<!-- TODO: INSERT IMAGE HERE -->
+- AMI's management: This can be complex, not only in performance how we have experienced it before, but also an AMI can be own by yourself or someone else, you can check for yours or third parties. They can be private or public. I've being thinking that maybe they should be their own module but if we actually implement this it makes sense to stay in the EC2 module since the instance directly relate with the AMI in use.
 
-- Reserved instances. Budget solution. Supply and demand model. CHnage often. It is like parking space.
+- Saving plans. Budget solution. Is not related only to EC2, but Fargate and Lambda too. Commitment to a consistent amount of usage (measured in $/hour) for a 1 or 3 year term. The flow is similar to a marketplace. Maybe need its own module? I do not forseen direct relation with any entity of the aws_ec2 module. In the AWS Console UI it appears under EC2 but seems to be part of the AWS Cost Management service.
 
-The `instance` table is the core of the `aws_ec2` module and is the one that can grow more in complexity. The proposal is to keep adding the necessary columns to the `instance` table. It is better to have a unique table to look for instances than increase the complexity of the model, creating other tables and adding to the users the need to understand our model first. Eventually, we can add an `aws_ec2_simplified` module that can expose the basics to create an instance and leave the `aws_ec2` for advanced users.
+![Saving plans](./assets/001_saving_plan.png)
 
-We can divide the feature list as follow:
+- Scheduled instances. Another marketplace like service. A desired schedule need to be set and then based on that you can see the offering, put it in your cart and then buy them.
 
-The direct implication in the `instance` table:
+- Reserved instances. also a budget solution with supply and demand like model. Yout insert the requirement you want and the yuo can see the offering. Based on that offering you can pick and buy. It is like parking spaces, you have reserved one instance type and then when you create one that match the specifications will be taken into account for the cost.
 
-- Launch templates
-- Spot instances
-- Dedicated hosts
-- Capacity reservations
-- Auto Scaling Groups
-- Elastic IP integration
-- Placement groups
-- Network interfaces
+After all these features, the EC2 schema should look something like following:
 
-No implication in the `instance` table:
+<!-- TODO: INSERT PROPOSED SCHEMA -->
 
-- Instance type - Availability zone relationship
-- AMIs management
-- EBS volume snapshots and life cycle
+Note: These schema does not have all the possible relationships, but the most important ones with the `instance` table.
 
-The `Saving plans`, `Reserved instances` or `Scheduled instances` are not included in the list above since they seem to be budgeting solutions that need interaction with the user rather than infrastructure-related modules' features that could have any implication in the model.
-
-Let's start with the features without impact on the `instance` table. These features will be part of the `aws_ec2` module with their mappers. The Instance type table by availability zones will be a table with a composite primary key. It technically has a minimum impact in the `instance` table that will be a special FK to the composite primary key, but no UX model impact.
-
-The features with direct implications in the `instance` table can be divided into two groups: one group affects only the `aws_ec2` module, the other impacts more modules.
-
-Let's start with the first group, Placement groups and Network interfaces. These features will be part of their respective modules (probably `aws_vpc`?). Then, they will need to be integrated with the `instance` table in the `aws_ec2` module with an FK nullable column.
-
-The rest of the features will need to be implemented in the `aws_ec2` module and integrated with the `instance` table in the `aws_ec2` module with an FK nullable column.
-
-Spot instances and Auto Scaling Group can be updated at any point in time by the cloud. These will imply the development of the "safer sync faster apply" feature as a pre-requisite for the two.
-
-We will have FK columns for Launch Templates, Spot Requests and Auto Scaling Groups, but the information retrieved from the instance does not provide direct fields to know if it belongs to any of them or how to relate them. One option for Spot fleets or ASGs is that every time we look for instance information, we call ASG or Spot fleet APIs to get the instances and look for the one we are interested in. This solution will lead to bad performance at scale. Alternatively, AWS adds special tags to the instances created using any Launch template, Spot fleet request and/or ASG. We might need to trust these tags and use them to add the correct field in the FK column.
+Some of the features exposed does apply changes automatically to the cloud, like spot instances and Auto Scaling Groups. These will imply the development of the "safer sync faster apply" feature as a pre-requisite.
 
 ### Alternatives Considered
 
