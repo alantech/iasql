@@ -34,7 +34,7 @@ The definition of a solid base now will imply that new features added to this mo
 
 Taking a look at the AWS EC2 console options, we would still need to add the following to reach EC2 module completeness:
 
-![AWS Console EC2](./assets/001_aws_console_ec2.png)
+![AWS Console EC2](./assets/001/aws_console_ec2.png)
 
 - Instance types with Availability zone relationship
 - Launch templates
@@ -55,7 +55,7 @@ The `instance` table still needs more advance options to be defined. Some of tho
 
 The current EC2 model looks like this:
 
-![Current EC2 model](./assets/001_current_schema.png)
+![Current EC2 model](./assets/001/current_schema.png)
 
 <!-- TODO: WIP -->
 ## Proposal
@@ -66,7 +66,7 @@ Let's go through all the needed features, see their implications in the model an
 
 - Creating an intance using the UI/API let you add some advance configuration, that usually is not used but is there. Showing an screenshot of part of it, but this would mean adding at least 12 columns (instance auto-recovery, shutdown behaviour, stop - hibernate behaviour, termination protection, stop protection, detailed cloudWatch monitoring, elastic GPU, credit specification, tenancy, RAM disk ID, kernel ID or Metadata accessible) to the `instance` table.
 
-![EC2 instance advance properties](./assets/001_ec2_advance_properties.png)
+![EC2 instance advance properties](./assets/001/ec2_advance_properties.png)
 
 - Instance types depend on availability zones. We need to create a table relating them using a composite key. We also need to add `availability_zone` column to `instance` table to be able to the new `instance_type` table using the composite key.
 
@@ -94,7 +94,7 @@ Let's go through all the needed features, see their implications in the model an
 
 - Saving plans. Budget solution. Is not related only to EC2, but Fargate and Lambda too. Commitment to a consistent amount of usage (measured in $/hour) for a 1 or 3 year term. The flow is similar to a marketplace. Maybe need its own module? I do not forseen direct relation with any entity of the aws_ec2 module. In the AWS Console UI it appears under EC2 but seems to be part of the AWS Cost Management service.
 
-![Saving plans](./assets/001_saving_plan.png)
+![Saving plans](./assets/001/saving_plan.png)
 
 - Scheduled instances. Another marketplace like service. A desired schedule need to be set and then based on that you can see the offering, put it in your cart and then buy them.
 
@@ -102,7 +102,7 @@ Let's go through all the needed features, see their implications in the model an
 
 After all these features, the EC2 schema should look something like following:
 
-<!-- TODO: INSERT PROPOSED SCHEMA -->
+![Proposed schema](./assets/001/proposed_schema.png)
 
 Note: These schema does not have all the possible relationships, but the most important ones with the `instance` table.
 
