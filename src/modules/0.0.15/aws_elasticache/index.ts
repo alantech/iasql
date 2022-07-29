@@ -1,7 +1,5 @@
 import {
-  DescribeCacheClustersCommand,
   CacheCluster as CacheClusterAWS,
-  Tag,
   CreateCacheClusterCommandInput,
   ElastiCache,
   CreateCacheClusterCommandOutput,
@@ -9,7 +7,6 @@ import {
 } from "@aws-sdk/client-elasticache";
 import {
   AWS,
-  crudBuilder,
   crudBuilder2,
   crudBuilderFormat,
   paginateBuilder,
