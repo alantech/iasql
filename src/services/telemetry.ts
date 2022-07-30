@@ -16,7 +16,7 @@ const singleton = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKe
 
 export type DbProps = {
   dbAlias?: string
-  uid?: string
+  dbId?: string
   iasqlEnv?: string
   recordCount?: number
   operationCount?: number
@@ -32,13 +32,13 @@ export type EventProps = {
   button?: boolean
 }
 
-async function logEvent(event: string, dbProps: DbProps, eventProps?: EventProps, dbId?: string, deviceId?: string) {
+async function logEvent(event: string, dbProps: DbProps, eventProps?: EventProps, uid?: string, deviceId?: string) {
   if (!singleton) return;
   try {
     dbProps.iasqlEnv = IASQL_ENV;
     await singleton.logEvent({
       event_type: event,
-      user_id: dbId,
+      user_id: uid,
       user_properties: dbProps,
       event_properties: eventProps,
       device_id: deviceId,
@@ -54,24 +54,24 @@ async function logEvent(event: string, dbProps: DbProps, eventProps?: EventProps
   }
 }
 
-export async function logConnect(dbProps: DbProps, eventProps?: EventProps, dbId?: string, deviceId?: string) {
-  await logEvent('CONNECT', dbProps, eventProps, dbId, deviceId);
+export async function logConnect(dbProps: DbProps, eventProps?: EventProps, uid?: string, deviceId?: string) {
+  await logEvent('CONNECT', dbProps, eventProps, uid, deviceId);
 }
 
-export async function logDisconnect(dbProps: DbProps, eventProps?: EventProps, dbId?: string) {
-  await logEvent('DISCONNECT', dbProps, eventProps, dbId);
+export async function logDisconnect(dbProps: DbProps, eventProps?: EventProps, uid?: string) {
+  await logEvent('DISCONNECT', dbProps, eventProps, uid);
 }
 
-export async function logExport(dbProps: DbProps, eventProps: EventProps, dbId: string, deviceId?: string) {
-  await logEvent('EXPORT', dbProps, eventProps, dbId, deviceId);
+export async function logExport(dbProps: DbProps, eventProps: EventProps, uid: string, deviceId?: string) {
+  await logEvent('EXPORT', dbProps, eventProps, uid, deviceId);
 }
 
-export async function logRunSql(dbProps: DbProps, eventProps: EventProps, dbId?: string, deviceId?: string) {
-  await logEvent('RUNSQL', dbProps, eventProps, dbId, deviceId);
+export async function logRunSql(dbProps: DbProps, eventProps: EventProps, uid?: string, deviceId?: string) {
+  await logEvent('RUNSQL', dbProps, eventProps, uid, deviceId);
 }
 
-export async function logOp(opType: IasqlOperationType, dbProps: DbProps, eventProps: EventProps, dbId: string) {
-  await logEvent(opType, dbProps, eventProps, dbId);
+export async function logOp(opType: IasqlOperationType, dbProps: DbProps, eventProps: EventProps, uid: string) {
+  await logEvent(opType, dbProps, eventProps, uid);
 }
 
 export default singleton;
