@@ -32,7 +32,7 @@ export type EventProps = {
   button?: boolean
 }
 
-async function logEvent(event: string, dbProps: DbProps, eventProps?: EventProps, dbId?: string) {
+async function logEvent(event: string, dbProps: DbProps, eventProps?: EventProps, dbId?: string, deviceId?: string) {
   if (!singleton) return;
   try {
     dbProps.iasqlEnv = IASQL_ENV;
@@ -40,7 +40,8 @@ async function logEvent(event: string, dbProps: DbProps, eventProps?: EventProps
       event_type: event,
       user_id: dbId,
       user_properties: dbProps,
-      event_properties: eventProps
+      event_properties: eventProps,
+      device_id: deviceId,
     });
   } catch(e: any) {
     const message = `failed to log ${event} event`;
@@ -53,20 +54,20 @@ async function logEvent(event: string, dbProps: DbProps, eventProps?: EventProps
   }
 }
 
-export async function logConnect(dbProps: DbProps, eventProps?: EventProps, dbId?: string) {
-  await logEvent('CONNECT', dbProps, eventProps, dbId);
+export async function logConnect(dbProps: DbProps, eventProps?: EventProps, dbId?: string, deviceId?: string) {
+  await logEvent('CONNECT', dbProps, eventProps, dbId, deviceId);
 }
 
 export async function logDisconnect(dbProps: DbProps, eventProps?: EventProps, dbId?: string) {
   await logEvent('DISCONNECT', dbProps, eventProps, dbId);
 }
 
-export async function logExport(dbProps: DbProps, eventProps: EventProps, dbId: string) {
-  await logEvent('EXPORT', dbProps, eventProps, dbId);
+export async function logExport(dbProps: DbProps, eventProps: EventProps, dbId: string, deviceId?: string) {
+  await logEvent('EXPORT', dbProps, eventProps, dbId, deviceId);
 }
 
-export async function logRunSql(dbProps: DbProps, eventProps: EventProps, dbId?: string) {
-  await logEvent('RUNSQL', dbProps, eventProps, dbId);
+export async function logRunSql(dbProps: DbProps, eventProps: EventProps, dbId?: string, deviceId?: string) {
+  await logEvent('RUNSQL', dbProps, eventProps, dbId, deviceId);
 }
 
 export async function logOp(opType: IasqlOperationType, dbProps: DbProps, eventProps: EventProps, dbId: string) {

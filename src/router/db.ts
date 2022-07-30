@@ -32,7 +32,7 @@ async function connectHandler(req: any, res: any) {
       email,
       recordCount: database.recordCount,
       operationCount: database.operationCount
-    }, {}, dbId);
+    }, {}, dbId, req.body.ampDeviceId);
   } catch (e) {
     const error = logErrSentry(e, uid, email, dbAlias);
     res.status(500).end(error);
@@ -64,7 +64,7 @@ db.post('/connect', connectHandler);
 
 db.post('/export', async (req, res) => {
   logger.info('Calling /export');
-  const { dbAlias, dataOnly } = req.body;
+  const { dbAlias, dataOnly, ampDeviceId } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
@@ -77,7 +77,7 @@ db.post('/export', async (req, res) => {
       uid,
       recordCount: database.recordCount,
       operationCount: database.operationCount,
-    }, { dataOnly: !!dataOnly }, database.pgName);
+    }, { dataOnly: !!dataOnly }, database.pgName, ampDeviceId);
   } catch (e) {
     res.status(500).end(logErrSentry(e, uid, email, dbAlias));
   }
@@ -120,7 +120,7 @@ db.post('/run/:dbAlias', async (req, res) => {
   logger.info('Calling /run');
   if (!config.db.sqlViaRest) return res.status(400).end('SQL Querying via REST disabled');
   const { dbAlias, } = req.params;
-  const { sql, button } = req.body;
+  const { sql, button, ampDeviceId } = req.body;
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
   let dbId;
@@ -136,7 +136,7 @@ db.post('/run/:dbAlias', async (req, res) => {
       output: JSON.stringify(output),
       sql,
       button
-    }, database.pgName);
+    }, database.pgName, ampDeviceId);
     res.json(output);
   } catch (e: any) {
     // do not send to sentry
