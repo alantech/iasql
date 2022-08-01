@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsElasticache1659336077810 implements MigrationInterface {
-    name = 'awsElasticache1659336077810'
+export class awsElasticache1659368196911 implements MigrationInterface {
+    name = 'awsElasticache1659368196911'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."cache_cluster_engine_enum" AS ENUM('memcached', 'redis')`);

@@ -1,4 +1,7 @@
 import {
+  AfterInsert,
+  AfterLoad,
+  AfterUpdate,
   Column,
   Entity,
   JoinTable,
@@ -41,4 +44,14 @@ export class CacheCluster {
     nullable: true,
   })
   numNodes?: number;
+
+  @AfterLoad()
+  @AfterInsert()
+  @AfterUpdate()
+  updateNulls() {
+    const that: any = this;
+    Object.keys(this).forEach((k) => {
+      if (that[k] === null) that[k] = undefined;
+    });
+  }
 }

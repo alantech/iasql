@@ -76,7 +76,7 @@ describe("Elasticache Integration Testing", () => {
     )
   );
 
-  it(
+  /*it(
     "tries to update cache_cluster node type",
     query(`
   UPDATE cache_cluster SET node_type='cache.t2.small' WHERE cluster_id='${clusterId}'
@@ -93,12 +93,41 @@ describe("Elasticache Integration Testing", () => {
 `,
       (res: any) => expect(res.length).toBe(1)
     )
+  );*/
+
+  it(
+    "tries to update cache_cluster engine",
+    query(`
+  UPDATE cache_cluster SET engine='memcached' WHERE cluster_id='${clusterId}'
+  `)
+  );
+
+  it("applies the cache_cluster engine update", apply());
+
+  it(
+    "checks that cache_cluster engine has not been modified",
+    query(
+      `
+  SELECT * FROM cache_cluster WHERE cluster_id='${clusterId}' AND engine='redis';
+`,
+      (res: any) => expect(res.length).toBe(1)
+    )
+  );
+
+  it(
+    "checks that cache_cluster with new engine does not exist",
+    query(
+      `
+  SELECT * FROM cache_cluster WHERE cluster_id='${clusterId}' AND engine='memcached';
+`,
+      (res: any) => expect(res.length).toBe(0)
+    )
   );
 
   it(
     "tries to update cache_cluster id",
     query(`
-  UPDATE cache_cluster SET clusterId='${newClusterId}' WHERE cluster_id='${clusterId}'
+  UPDATE cache_cluster SET cluster_id='${newClusterId}' WHERE cluster_id='${clusterId}'
   `)
   );
 
