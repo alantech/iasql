@@ -364,9 +364,13 @@ export const AwsVpcModule: Module2 = new Module2({
       const out = new NatGateway();
       out.connectivityType = nat.ConnectivityType as ConnectivityType;
       const natPublicAddress = nat.NatGatewayAddresses?.filter(n => !!n.AllocationId).pop();
-      if (natPublicAddress) {
-        out.elasticIp = await AwsVpcModule.mappers.elasticIp.db.read(ctx, natPublicAddress.AllocationId) ??
-          await AwsVpcModule.mappers.elasticIp.cloud.read(ctx, natPublicAddress.AllocationId);
+      if (natPublicAddress?.AllocationId) {
+        try {
+          out.elasticIp = await AwsVpcModule.mappers.elasticIp.db.read(ctx, natPublicAddress.AllocationId) ??
+            await AwsVpcModule.mappers.elasticIp.cloud.read(ctx, natPublicAddress.AllocationId);
+        } catch (error: any) {
+          if (error.Code === 'InvalidAllocationID.NotFound') return undefined;
+        }
         if (!out.elasticIp) throw new Error('Not valid elastic ip, yet?');
       }
       out.natGatewayId = nat.NatGatewayId;
