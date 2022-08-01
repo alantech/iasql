@@ -646,6 +646,7 @@ export const AwsVpcModule: Module2 = new Module2({
             }
             if (e.elasticIp) {
               input.AllocationId = e.elasticIp.allocationId;
+              if (!input.AllocationId) throw new Error('Elastic ip need to be created first');
             } else if (!e.elasticIp && e.connectivityType === ConnectivityType.PUBLIC) {
               const elasticIp = new ElasticIp();
               // Attach the same tags in case we want to associate them visualy through the AWS Console
