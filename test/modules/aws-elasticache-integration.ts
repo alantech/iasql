@@ -47,19 +47,9 @@ describe("Elasticache Integration Testing", () => {
   it("installs the elasticache module", install(modules));
 
   it(
-    "confirms there are availability zones present",
-    query(
-      `
-    SELECT * FROM availability_zone;
-  `,
-      (res: any[]) => expect(res.length).toBeGreaterThan(0)
-    )
-  );
-
-  it(
     "adds a new cacheCluster",
     query(`  
-    INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes)
+    INSERT INTO cache_cluster (cluster_id)
     VALUES ('${clusterId}');
   `)
   );

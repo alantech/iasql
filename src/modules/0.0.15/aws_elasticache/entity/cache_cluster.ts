@@ -25,7 +25,9 @@ export class CacheCluster {
   clusterId: string;
 
   // TODO: convert it to an independent table in the future
-  @Column()
+  @Column({
+    nullable: true,
+  })
   nodeType: string;
 
   @Column({
