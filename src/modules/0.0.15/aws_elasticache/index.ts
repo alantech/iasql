@@ -41,7 +41,7 @@ async function waitForClusterState(
       try {
         out = data.CacheClusters?.pop();
         // If it is not a final state we retry
-        if (out?.CacheClusterStatus == status)
+        if (out?.CacheClusterStatus === status)
           return { state: WaiterState.RETRY };
         else return { state: WaiterState.SUCCESS };
       } catch (e: any) {
@@ -171,7 +171,7 @@ export const AwsElastiCacheModule: Module2 = new Module2(
                 client.elasticacheClient,
                 clusterId
               );
-              if (rawCluster?.CacheClusterStatus == "deleting")
+              if (rawCluster?.CacheClusterStatus === "deleting")
                 return undefined;
 
               return AwsElastiCacheModule.utils.cacheClusterMapper(
@@ -183,7 +183,7 @@ export const AwsElastiCacheModule: Module2 = new Module2(
                 (await getCacheClusters(client.elasticacheClient)) ?? [];
               const out = [];
               for (const i of rawClusters) {
-                if (i.CacheClusterStatus == "deleting") continue;
+                if (i.CacheClusterStatus === "deleting") continue;
                 out.push(
                   await AwsElastiCacheModule.utils.cacheClusterMapper(i, ctx)
                 );
@@ -207,7 +207,7 @@ export const AwsElastiCacheModule: Module2 = new Module2(
               );
               if (!isUpdate) {
                 // we cannot modify the engine, restore
-                if (cluster.engine != cloudRecord.engine) {
+                if (cluster.engine !== cloudRecord.engine) {
                   cluster.engine = cloudRecord.engine;
                   await AwsElastiCacheModule.mappers.cacheCluster.db.update(
                     cluster,
