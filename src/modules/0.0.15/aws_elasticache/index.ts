@@ -17,7 +17,6 @@ import { CacheCluster, Engine } from "./entity";
 import { Context, Crud2, Mapper2, Module2 } from "../../interfaces";
 import * as metadata from "./module.json";
 import { createWaiter, WaiterState } from "@aws-sdk/util-waiter";
-import { replace } from "lodash";
 
 async function waitForClusterState(
   client: ElastiCache,
@@ -216,13 +215,39 @@ export const AwsElastiCacheModule: Module2 = new Module2(
                   );
                   out.push(cluster);
                 } else {
-                  // we recreate
-                  const newCluster =
-                    await AwsElastiCacheModule.mappers.cacheCluster.cloud.create(
-                      cluster,
+                  // we recreate, first delete the cluster
+                  await deleteCacheCluster(client.elasticacheClient, {
+                    CacheClusterId: cluster.clusterId,
+                  });
+
+                  // wait for it to be deleted
+                  await waitForClusterState(
+                    client.elasticacheClient,
+                    cluster.clusterId,
+                    "deleting"
+                  );
+
+                  const input: CreateCacheClusterCommandInput = {
+                    CacheClusterId: cluster.clusterId,
+                    Engine: cluster.engine,
+                    CacheNodeType: cluster.nodeType,
+                    NumCacheNodes: cluster.numNodes,
+                  };
+                  const res: CacheClusterAWS | undefined =
+                    await createCacheCluster(client.elasticacheClient, input);
+                  if (res) {
+                    const newCluster: CacheCluster =
+                      await AwsElastiCacheModule.utils.cacheClusterMapper(
+                        res,
+                        ctx
+                      );
+                    newCluster.clusterId = cluster.clusterId;
+                    await AwsElastiCacheModule.mappers.cacheCluster.db.update(
+                      newCluster,
                       ctx
                     );
-                  out.push(newCluster);
+                    out.push(newCluster);
+                  }
                 }
               }
             }

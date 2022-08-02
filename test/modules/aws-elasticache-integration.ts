@@ -24,7 +24,7 @@ const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ["aws_elasticache"];
 
-jest.setTimeout(360000);
+jest.setTimeout(620000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
@@ -76,7 +76,7 @@ describe("Elasticache Integration Testing", () => {
     )
   );
 
-  /*it(
+  it(
     "tries to update cache_cluster node type",
     query(`
   UPDATE cache_cluster SET node_type='cache.t2.small' WHERE cluster_id='${clusterId}'
@@ -93,7 +93,7 @@ describe("Elasticache Integration Testing", () => {
 `,
       (res: any) => expect(res.length).toBe(1)
     )
-  );*/
+  );
 
   it(
     "tries to update cache_cluster engine",
