@@ -17,7 +17,6 @@ import { CacheCluster, Engine } from "./entity";
 import { Context, Crud2, Mapper2, Module2 } from "../../interfaces";
 import * as metadata from "./module.json";
 import { createWaiter, WaiterState } from "@aws-sdk/util-waiter";
-import { CacheCluster } from './entity/cache_cluster';
 
 async function waitForClusterState(
   client: ElastiCache,
