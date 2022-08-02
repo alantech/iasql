@@ -4,6 +4,7 @@ import { Context, Crud2, Mapper2, ModuleBase, } from '../../interfaces'
 import * as metadata from './module.json' // TODO: Eliminate this?
 
 class AwsAccount extends ModuleBase {
+  constructor() { super(); super.init(); }
   dirname = __dirname;
   dependencies = metadata.dependencies;
   context: Context = {

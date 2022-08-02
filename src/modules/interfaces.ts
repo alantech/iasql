@@ -391,8 +391,8 @@ export class ModuleBase {
     remove: (q: QueryRunner) => Promise<void>;
   };
 
-  constructor() {
-    if (!this.dirname) throw new Error('Invalid Module defintion. No `__dirname` property found');
+  init() {
+    if (!this.dirname) throw new Error('Invalid Module defintion. No `dirname` property found');
     // Extract the name and version from `__dirname`
     const pathSegments = this.dirname.split(path.sep);
     const name = pathSegments[pathSegments.length - 1];
@@ -462,7 +462,5 @@ export class ModuleBase {
     }, });
     this.provides.tables = tables;
     this.provides.functions = functions;
-
-    return this;
   }
 }
