@@ -28,15 +28,15 @@ async function connectHandler(req: any, res: any) {
     res.json(database);
     telemetry.logConnect({
       dbAlias,
-      uid,
+      dbId,
       email,
       recordCount: database.recordCount,
       operationCount: database.operationCount
-    }, {}, dbId);
+    }, {}, uid, req.body.ampDeviceId);
   } catch (e) {
     const error = logErrSentry(e, uid, email, dbAlias);
     res.status(500).end(error);
-    telemetry.logConnect({ uid, email }, { error }, dbId);
+    telemetry.logConnect({ dbId, email }, { error }, uid);
   }
 }
 
@@ -64,20 +64,21 @@ db.post('/connect', connectHandler);
 
 db.post('/export', async (req, res) => {
   logger.info('Calling /export');
-  const { dbAlias, dataOnly } = req.body;
+  const { dbAlias, dataOnly, ampDeviceId } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    res.send(await iasql.dump(database.pgName, !!dataOnly));
+    const dbId = database.pgName;
+    res.send(await iasql.dump(dbId, !!dataOnly));
     telemetry.logExport({
       dbAlias,
       email,
-      uid,
+      dbId,
       recordCount: database.recordCount,
       operationCount: database.operationCount,
-    }, { dataOnly: !!dataOnly }, database.pgName);
+    }, { dataOnly: !!dataOnly }, uid, ampDeviceId);
   } catch (e) {
     res.status(500).end(logErrSentry(e, uid, email, dbAlias));
   }
@@ -101,18 +102,19 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
+  let dbId;
   try {
-    const dbId = await iasql.disconnect(dbAlias, uid);
+    dbId = await iasql.disconnect(dbAlias, uid);
     telemetry.logDisconnect({
       dbAlias,
       email,
-      uid
-    }, {}, dbId);
+      dbId
+    }, {}, uid);
     res.json(`disconnected ${dbAlias}`);
   } catch (e) {
     const error = logErrSentry(e, uid, email, dbAlias);
     res.status(500).end(error);
-    telemetry.logDisconnect({ uid, email }, { error });
+    telemetry.logDisconnect({ dbId, email }, { error }, uid);
   }
 });
 
@@ -120,7 +122,7 @@ db.post('/run/:dbAlias', async (req, res) => {
   logger.info('Calling /run');
   if (!config.db.sqlViaRest) return res.status(400).end('SQL Querying via REST disabled');
   const { dbAlias, } = req.params;
-  const { sql, button } = req.body;
+  const { sql, button, ampDeviceId } = req.body;
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
   let dbId;
@@ -131,18 +133,18 @@ db.post('/run/:dbAlias', async (req, res) => {
     telemetry.logRunSql({
       dbAlias,
       email,
-      uid
+      dbId
     }, {
       output: JSON.stringify(output),
       sql,
       button
-    }, database.pgName);
+    }, uid, ampDeviceId);
     res.json(output);
   } catch (e: any) {
     // do not send to sentry
     const error = e?.message ?? '';
-    logger.error(`RunSQL user error: ${error}`, { uid, email, dbAlias})
-    telemetry.logRunSql({ uid, email }, { sql, button, error }, dbId);
+    logger.error(`RunSQL user error: ${error}`, { uid, dbId, email, dbAlias})
+    telemetry.logRunSql({ dbId, email }, { sql, button, error }, uid);
     res.status(500).end(error);
   }
 });
