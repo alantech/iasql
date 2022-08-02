@@ -217,7 +217,7 @@ export const AwsElastiCacheModule: Module2 = new Module2(
                   out.push(cluster);
                 } else {
                   // if the cluster ID is different, no needed to delete it
-                  if (cluster.clusterId==cloudRecord.clusterId) {
+                  if (cluster.clusterId===cloudRecord.clusterId) {
                     // first delete the cluster
                     await deleteCacheCluster(client.elasticacheClient, {
                       CacheClusterId: cluster.clusterId,
