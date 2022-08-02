@@ -26,7 +26,6 @@ import { PublicRepository } from '../aws_ecr/entity'
 import cloudFns from './cloud_fns';
 import simplifiedMappers from './simplified_mappers';
 import { generateResourceName, processImageFromString } from './helpers';
-import { AwsAccount } from '../aws_account'
 
 export type SimplifiedObjectMapped = {
   securityGroup: SecurityGroup;
@@ -46,23 +45,11 @@ export type SimplifiedObjectMapped = {
 
 const prefix = 'iasql-ecs-';
 
-// TODO: remove this once the aws gateway gets disolved
-async function getAwsClient(ctx: Context): Promise<AWS> {
-  const awsCreds = await ctx?.orm?.findOne(AwsAccount.mappers.awsAccount.entity);
-  return new AWS({
-    region: awsCreds.region,
-    credentials: {
-      accessKeyId: awsCreds.accessKeyId,
-      secretAccessKey: awsCreds.secretAccessKey,
-    },
-  });
-}
-
 export const AwsEcsSimplifiedModule: Module2 = new Module2({
   ...metadata,
   utils: {
     ecsSimplifiedMapper: async (e: AwsService, ctx: Context) => {
-      const client = await getAwsClient(ctx) as AWS;
+      const client = await ctx.getAwsClient() as AWS;
       const out = new EcsSimplified();
       out.appName = e.serviceName?.substring(e.serviceName.indexOf(prefix) + prefix.length, e.serviceName.indexOf('-svc')) ?? '';
       out.desiredCount = e.desiredCount ?? 1;
@@ -86,7 +73,7 @@ export const AwsEcsSimplifiedModule: Module2 = new Module2({
       try {
         // We use the service name as the appName
         const appName = service.serviceName?.substring(service.serviceName.indexOf(prefix) + prefix.length, service.serviceName.indexOf('-svc')) ?? '';
-        const client = await getAwsClient(ctx) as AWS;
+        const client = await ctx.getAwsClient() as AWS;
         // Check if the cluster follow the name pattern
         const cluster = await client.getCluster(service.clusterArn ?? '');
         if (!Object.is(cluster?.clusterName, generateResourceName(prefix, appName, 'Cluster'))) return false;
@@ -207,7 +194,7 @@ export const AwsEcsSimplifiedModule: Module2 = new Module2({
       source: 'db',
       cloud: new Crud2({
         create: async (es: EcsSimplified[], ctx: Context) => {
-          const client = await getAwsClient(ctx) as AWS;
+          const client = await ctx.getAwsClient() as AWS;
           const defaultVpc = await AwsEcsSimplifiedModule.utils.cloud.get.defaultVpc(client);
           const defaultSubnets = await AwsEcsSimplifiedModule.utils.cloud.get.defaultSubnets(client, defaultVpc.VpcId);
           const out: any[] = [];
@@ -307,7 +294,7 @@ export const AwsEcsSimplifiedModule: Module2 = new Module2({
           return out;
         },
         read: async (ctx: Context, id?: string) => {
-          const client = await getAwsClient(ctx) as AWS;
+          const client = await ctx.getAwsClient() as AWS;
           // read all clusters and find the ones that match our pattern
           const clusters = await client.getClusters();
           const relevantClusters = clusters?.filter(c => c.clusterName?.includes(prefix)) ?? [];
@@ -338,7 +325,7 @@ export const AwsEcsSimplifiedModule: Module2 = new Module2({
           return 'update';
         },
         update: async (es: EcsSimplified[], ctx: Context) => {
-          const client = await getAwsClient(ctx) as AWS;
+          const client = await ctx.getAwsClient() as AWS;
           const out = [];
           for (const e of es) {
             const cloudRecord = ctx?.memo?.cloud?.EcsSimplified?.[e.appName ?? ''];
@@ -409,7 +396,7 @@ export const AwsEcsSimplifiedModule: Module2 = new Module2({
           return out;
         },
         delete: async (es: EcsSimplified[], ctx: Context) => {
-          const client = await getAwsClient(ctx) as AWS;
+          const client = await ctx.getAwsClient() as AWS;
           for (const e of es) {
             const simplifiedObjectMapped: SimplifiedObjectMapped = AwsEcsSimplifiedModule.utils.getSimplifiedObjectMapped(e);
             const service = await client.getServiceByName(simplifiedObjectMapped.cluster.clusterName, simplifiedObjectMapped.service.name);

@@ -4,7 +4,7 @@ import { Context, Crud2, Mapper2, ModuleBase, } from '../../interfaces'
 import * as metadata from './module.json' // TODO: Eliminate this?
 
 class AwsAccount extends ModuleBase {
-  __dirname = __dirname;
+  dirname = __dirname;
   dependencies = metadata.dependencies;
   context: Context = {
     // This function is `async function () {` instead of `async () => {` because that enables the

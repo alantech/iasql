@@ -374,7 +374,7 @@ export class Module2 {
 }
 
 export class ModuleBase {
-  __dirname: string;
+  dirname: string;
   name: string;
   version: string;
   dependencies: string[];
@@ -392,9 +392,9 @@ export class ModuleBase {
   };
 
   constructor() {
-    if (!this.__dirname) throw new Error('Invalid Module defintion. No `__dirname` property found');
+    if (!this.dirname) throw new Error('Invalid Module defintion. No `__dirname` property found');
     // Extract the name and version from `__dirname`
-    const pathSegments = this.__dirname.split(path.sep);
+    const pathSegments = this.dirname.split(path.sep);
     const name = pathSegments[pathSegments.length - 1];
     const version = pathSegments[pathSegments.length - 2];
     this.name = name;
@@ -406,7 +406,7 @@ export class ModuleBase {
       this.name !== 'iasql_platform' &&
       !this.dependencies.includes(`iasql_platform@${this.version}`)
     ) throw new Error(`${this.name} did not declare an iasql_platform dependency and cannot be loaded.`);
-    const entityDir = `${this.__dirname}/entity`;
+    const entityDir = `${this.dirname}/entity`;
     const entities = require(`${entityDir}/index`);
     this.provides = {
       entities,
@@ -418,7 +418,7 @@ export class ModuleBase {
       Object.entries(this)
         .filter(([_, m]: [string, any]) => m instanceof Mapper2) as [[string, Mapper2<any>]]
     );
-    const migrationDir = `${this.__dirname}/migration`;
+    const migrationDir = `${this.dirname}/migration`;
     const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
     if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
     const migration = require(`${migrationDir}/${files[0]}`);
