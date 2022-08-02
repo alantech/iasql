@@ -215,7 +215,19 @@ export const AwsElastiCacheModule: Module2 = new Module2(
                   );
                   out.push(cluster);
                 } else {
-                  // create the cluster again
+                  // first delete the cluster
+                  await deleteCacheCluster(client.elasticacheClient, {
+                    CacheClusterId: cluster.clusterId,
+                  });
+
+                  // wait for it to be deleted
+                  await waitForClusterState(
+                    client.elasticacheClient,
+                    cluster.clusterId,
+                    "deleting"
+                  );
+                  
+                  // now we can create with new id
                   const input: CreateCacheClusterCommandInput = {
                     CacheClusterId: cluster.clusterId,
                     Engine: cluster.engine,
