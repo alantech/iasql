@@ -226,7 +226,7 @@ export const AwsElastiCacheModule: Module2 = new Module2(
                     cluster.clusterId,
                     "deleting"
                   );
-                  
+
                   // now we can create with new id
                   const input: CreateCacheClusterCommandInput = {
                     CacheClusterId: cluster.clusterId,
