@@ -17,6 +17,7 @@ import { CacheCluster, Engine } from "./entity";
 import { Context, Crud2, Mapper2, Module2 } from "../../interfaces";
 import * as metadata from "./module.json";
 import { createWaiter, WaiterState } from "@aws-sdk/util-waiter";
+import { CacheCluster } from './entity/cache_cluster';
 
 async function waitForClusterState(
   client: ElastiCache,
@@ -215,18 +216,22 @@ export const AwsElastiCacheModule: Module2 = new Module2(
                   );
                   out.push(cluster);
                 } else {
-                  // we recreate, first delete the cluster
-                  await deleteCacheCluster(client.elasticacheClient, {
-                    CacheClusterId: cluster.clusterId,
-                  });
+                  // if the cluster ID is different, no needed to delete it
+                  if (cluster.clusterId==cloudRecord.clusterId) {
+                    // first delete the cluster
+                    await deleteCacheCluster(client.elasticacheClient, {
+                      CacheClusterId: cluster.clusterId,
+                    });
 
-                  // wait for it to be deleted
-                  await waitForClusterState(
-                    client.elasticacheClient,
-                    cluster.clusterId,
-                    "deleting"
-                  );
+                    // wait for it to be deleted
+                    await waitForClusterState(
+                      client.elasticacheClient,
+                      cluster.clusterId,
+                      "deleting"
+                    );
+                  }
 
+                  // now we can create with new id
                   const input: CreateCacheClusterCommandInput = {
                     CacheClusterId: cluster.clusterId,
                     Engine: cluster.engine,
