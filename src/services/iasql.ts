@@ -748,6 +748,7 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
   const allModules = Object.values(Modules)
     .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && !/iasql_.*/.test(m.name))
     .filter((m: any) => process.env.IASQL_ENV !== 'production' || !/aws_ecs_simplified.*/.test(m.name)) // Temporarily disable ecs_simplified in production
+    .filter((m: any) => process.env.IASQL_ENV !== 'production' || !/aws_dynamo.*/.test(m.name)) // Temporarily disable aws_dynamo in production
     .map((m: any) => ({
       moduleName: m.name,
       moduleVersion: m.version,
