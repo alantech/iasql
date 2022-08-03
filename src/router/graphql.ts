@@ -4,6 +4,7 @@ import { postgraphile, } from 'postgraphile'
 import * as dbMan from '../services/db-manager';
 import config from '../config'
 import metadata from '../services/repositories/metadata'
+import logger from '../services/logger'
 
 export const graphql = express.Router();
 
@@ -36,6 +37,10 @@ if (config.graphql) {
             externalUrlBase: `/v1/graphql/${db}`,
             graphiql: withGraphiql,
             watchPg: true,
+            retryOnInitFail: (_error, _attempts) => {
+              postgraphiles[db].graphile.shutdown();
+              return false;
+            },
           }),
       };
     } catch(e) {
@@ -45,6 +50,7 @@ if (config.graphql) {
         lastAccessMs: Date.now(),
         // TODO: Restore, potentially?
         // graphile: (_req: any, _res: any, next: any) => next(new Error(`${db} does not exist`)),
+        // The status code is lying to try to keep Fargate from restarting us. :/
         graphile: (_req: any, res: any, _next: any) => res.status(400).end(`${db} does not exist`),
       };
     }
@@ -57,6 +63,12 @@ if (config.graphql) {
       // This will throw an error if the user is not allowed to access the specified DB
       (await metadata.getDb(dbMan.getUid(req.user), req.params.db)).pgName :
       req.params.db;
-    getPostgraphile(db)(req, res, next);
+    try {
+      getPostgraphile(db)(req, res, next);
+    } catch (e) {
+      // This path is if postgraphile successfully spun up but somehow crapped out anyway
+      logger.error('Postgraphile failure', { e, });
+      res.status(400).end(`${db} does not exist`);
+    }
   });
 }
