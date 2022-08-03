@@ -43,7 +43,9 @@ if (config.graphql) {
       // we pass back an Express middleware that always fails
       postgraphiles[db] = {
         lastAccessMs: Date.now(),
-        graphile: (_req: any, _res: any, next: any) => next(new Error(`${db} does not exist`)),
+        // TODO: Restore, potentially?
+        // graphile: (_req: any, _res: any, next: any) => next(new Error(`${db} does not exist`)),
+        graphile: (_req: any, res: any, _next: any) => res.status(400).end(`${db} does not exist`),
       };
     }
     postgraphiles[db].lastAccessMs = Date.now();
