@@ -16,8 +16,8 @@ class AwsAccount extends ModuleBase {
     // `AwsAccount.provides.context.getAwsClient` would instead use the context *template* that is
     // global to the codebase.
     async getAwsClient() {
-      const orm = this.orm;
       if (this.awsClient) return this.awsClient;
+      const orm = this.orm;
       const awsCreds = await orm.findOne(awsAccount.awsAccount.entity);
       this.awsClient = new AWS({
         region: awsCreds.region,
