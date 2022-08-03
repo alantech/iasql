@@ -59,7 +59,7 @@ Note: Could be also accessed via https://dbdocs.io/alejandro/iasql
 
 ## Proposal
 
-After considering alternatives like splitting everything into more modules or having different `instance` tables around based on what service creates them, the proposal is to keep the schema growing in this same module. The relationships, though, will be added where they belong and rely on the instance metadata for the no needed ones for the CRUD of the `instance` table.
+After considering alternatives like splitting everything into more modules or having different `instance` tables around based on what service creates them, the proposal is to keep the schema growing in this same module. The relationships, though, will be added where they belong and rely on the instance metadata for the optional fields that are unnecessary for the CRUD of the `instance` table.
 
 We will review the needed features, see their implications in the model and get a final version of the ECS schema.
 
