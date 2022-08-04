@@ -12,26 +12,22 @@ import {
 import {
   AWS,
   crudBuilder2,
+  crudBuilderFormat,
   paginateBuilder,
 } from "../../../services/aws_macros";
 import { Context, Crud2, Mapper2, Module2 } from "../../interfaces";
 import * as metadata from "./module.json";
 import { Secret } from "./entity/secret";
 
-async function createSecret(
-  client: SecretsManager,
-  input: CreateSecretCommandInput
-) {
-  const res = await client.createSecret(input);
-  if (res) {
-    const s: SecretListEntry = {
-      Name: res.Name,
-      Description: input.Description,
-    };
-    return s;
-  }
-  return undefined;
-}
+const createSecret = crudBuilderFormat<
+  SecretsManager,
+  "createSecret",
+  string | undefined
+>(
+  "createSecret",
+  (input) => input,
+  (res) => (!!res ? res.Name : undefined)
+);
 
 async function putSecretValue(
   client: SecretsManager,
@@ -112,22 +108,16 @@ export const AwsSecrectsModule: Module2 = new Module2(
                   Description: secret.description,
                   SecretString: secret.value!,
                 };
-                const res: SecretListEntry | undefined = await createSecret(
+                const secretName = await createSecret(
                   client.secretsClient,
                   input
                 );
-                if (res) {
-                  const newSecret: Secret =
-                    await AwsSecrectsModule.utils.secretsMapper(res, ctx);
-                  newSecret.name = secret.name;
-                  // we never store the value
-                  newSecret.value = null;
-
-                  await AwsSecrectsModule.mappers.secret.db.update(
-                    newSecret,
-                    ctx
-                  );
-                  out.push(newSecret);
+                if (secretName) {
+                  secret.name = secretName;
+                  // we never store the secret value
+                  secret.value = null;
+                  await AwsSecrectsModule.mappers.secret.db.update(secret, ctx);
+                  out.push(secret);
                 }
               }
             }

@@ -27,7 +27,7 @@ export class Secret {
     type: String,
     nullable: true,
   })
-  value!: string | null;
+  value?: string | null;
 
   @AfterLoad()
   @AfterInsert()

@@ -1,27 +1,27 @@
-import { ACM } from "@aws-sdk/client-acm";
-import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
-import { DynamoDB } from "@aws-sdk/client-dynamodb";
-import { EC2 } from "@aws-sdk/client-ec2";
-import { ECR } from "@aws-sdk/client-ecr";
-import { ECRPUBLIC } from "@aws-sdk/client-ecr-public";
-import { ECS } from "@aws-sdk/client-ecs";
-import { ElasticLoadBalancingV2 } from "@aws-sdk/client-elastic-load-balancing-v2";
-import { ElastiCache } from "@aws-sdk/client-elasticache";
-import { IAM } from "@aws-sdk/client-iam";
-import { Lambda } from "@aws-sdk/client-lambda";
-import { RDS } from "@aws-sdk/client-rds";
-import { Route53 } from "@aws-sdk/client-route-53";
-import { S3 } from "@aws-sdk/client-s3";
-import { SSM } from "@aws-sdk/client-ssm";
+import { ACM, } from '@aws-sdk/client-acm'
+import { CloudWatchLogs, } from '@aws-sdk/client-cloudwatch-logs'
+import { DynamoDB, } from '@aws-sdk/client-dynamodb'
+import { EC2, } from '@aws-sdk/client-ec2'
+import { ECR, } from '@aws-sdk/client-ecr'
+import { ECRPUBLIC, } from '@aws-sdk/client-ecr-public'
+import { ECS, } from '@aws-sdk/client-ecs'
+import { ElasticLoadBalancingV2, } from '@aws-sdk/client-elastic-load-balancing-v2'
+import { ElastiCache } from '@aws-sdk/client-elasticache'
+import { IAM, } from '@aws-sdk/client-iam'
+import { Lambda } from '@aws-sdk/client-lambda'
+import { RDS, } from '@aws-sdk/client-rds'
+import { Route53, } from '@aws-sdk/client-route-53'
+import { S3, } from '@aws-sdk/client-s3'
 import { SecretsManager } from "@aws-sdk/client-secrets-manager";
+import { SSM, } from '@aws-sdk/client-ssm'
 
 type AWSCreds = {
-  accessKeyId: string;
-  secretAccessKey: string;
+  accessKeyId: string,
+  secretAccessKey: string
 };
 
 type AWSConfig = {
-  credentials: AWSCreds;
+  credentials: AWSCreds,
   region: string;
 };
 
@@ -32,9 +32,7 @@ type AWSConfig = {
 
 // To explain the weird shit, I infer the args and the return type, and then I shove them all into
 // a array of types.
-type ArgumentTypes<F> = F extends (...args: infer A) => infer B
-  ? [...A, B]
-  : never;
+type ArgumentTypes<F> = F extends (...args: infer A) => infer B ? [...A, B] : never;
 // There is no way to access "end of array", though. The numbers are "magic" and I hope they don't
 // break.
 type PromiseReturnType<F> = ArgumentTypes<ArgumentTypes<F>[2]>[1];
@@ -157,8 +155,7 @@ export function crudBuilder<T>(
     return async (client: any, ...args: any[]) =>
       retFormatter(await client[methodName](argMapper(...args)), ...args);
   } else {
-    return async (client: any, ...args: any[]) =>
-      await client[methodName](argMapper(...args));
+    return async (client: any, ...args: any[]) => await client[methodName](argMapper(...args));
   }
 }
 
