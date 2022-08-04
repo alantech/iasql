@@ -69,7 +69,7 @@ async function getSecret(client: SecretsManager, secretId: string) {
   return undefined;
 }
 
-const getAllSecrets = paginateBuilder<SecretsManager | SecretsManagerClient>(
+const getAllSecrets = paginateBuilder<SecretsManager>(
   paginateListSecrets,
   "SecretList"
 );
