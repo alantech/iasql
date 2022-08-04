@@ -78,7 +78,6 @@ export const AwsSecrectsModule: Module2 = new Module2(
     ...metadata,
     utils: {
       secretsMapper: async (secret: SecretListEntry, ctx: Context) => {
-        const client = (await ctx.getAwsClient()) as AWS;
         const out = new Secret();
         if (!secret.Name) return undefined;
         out.name = secret.Name;
