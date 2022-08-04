@@ -2,6 +2,7 @@ import * as Amplitude from '@amplitude/node'
 import * as sentry from '@sentry/node'
 
 import config, { IASQL_ENV } from '../config'
+import { throwError, } from '../config/config'
 import logger from './logger'
 import { modules, } from '../modules'
 
@@ -9,7 +10,7 @@ const latest = modules[config.modules.latestVersion];
 
 // Weird little dance to make it a type again.
 // From: https://www.typescriptlang.org/docs/handbook/enums.html#objects-vs-enums
-const { IasqlOperationType, } = latest.IasqlFunctions.utils;
+const IasqlOperationType = latest?.IasqlFunctions?.utils?.IasqlOperationType ?? latest?.iasqlFunctions.iasqlOperationType ?? throwError('Core IasqlFunctions not found');
 type IasqlOperationType = typeof IasqlOperationType[keyof typeof IasqlOperationType];
 
 const singleton = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;

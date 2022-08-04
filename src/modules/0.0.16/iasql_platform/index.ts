@@ -1,14 +1,14 @@
 /* THIS MODULE IS A SPECIAL SNOWFLAKE. DON'T LOOK AT IT FOR HOW TO WRITE A REAL MODULE */
 
-import { Module2, } from '../../interfaces'
+import { ModuleBase, } from '../../interfaces'
 import * as metadata from './module.json'
 import { IasqlModule, IasqlTables, } from './entity'
 
-export const IasqlPlatform: Module2 = new Module2({
-  ...metadata,
-  utils: {
-    IasqlModule,
-    IasqlTables,
-  },
-  mappers: {},
-}, __dirname);
+class IasqlPlatform extends ModuleBase {
+  constructor() { super(); super.init(); }
+  dirname = __dirname;
+  dependencies = metadata.dependencies;
+  iasqlModule = IasqlModule;
+  iasqlTables = IasqlTables;
+}
+export const iasqlPlatform = new IasqlPlatform();
