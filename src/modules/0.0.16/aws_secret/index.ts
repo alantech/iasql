@@ -199,6 +199,7 @@ export const AwsSecrectsModule: Module2 = new Module2(
               if (secret.name) {
                 await deleteSecret(client.secretsClient, {
                   SecretId: secret.name,
+                  ForceDeleteWithoutRecovery: true,
                 });
               }
             }
