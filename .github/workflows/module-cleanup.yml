@@ -64,8 +64,8 @@ jobs:
           ";
           echo "\Install all modules..."
           psql postgres://postgres:test@localhost:5432/iasql -c "
-            select iasql_module_install(
-              array(select module_name from iasql_modules_list() where module_name != 'aws_account' and module_name not like 'iasql_%')
+            select iasql_install(
+              variadic array(select module_name from iasql_modules_list() where module_name != 'aws_account' and module_name not like 'iasql_%')
             );
           ";
         env:
