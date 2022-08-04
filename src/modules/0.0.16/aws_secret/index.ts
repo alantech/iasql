@@ -165,7 +165,7 @@ export const AwsSecrectsModule: Module2 = new Module2(
                 "update"
               );
               if (isUpdate) {
-                if (secret.description != cloudRecord.description) {
+                if (secret.description !== cloudRecord.description) {
                   // we need to update the secret description
                   const input: UpdateSecretCommandInput = {
                     SecretId: secret.name,
@@ -174,7 +174,7 @@ export const AwsSecrectsModule: Module2 = new Module2(
                   await updateSecret(client.secretsClient, input);
                 }
 
-                if (secret.value != cloudRecord.value) {
+                if (secret.value !== cloudRecord.value) {
                   // we need to update the value
                   if (secret.value) {
                     const input: PutSecretValueCommandInput = {

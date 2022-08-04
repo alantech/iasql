@@ -35,7 +35,7 @@ export class Secret {
   updateNulls() {
     const that: any = this;
     Object.keys(this).forEach((k) => {
-      if (k != "value") {
+      if (k !== "value") {
         if (that[k] === null) that[k] = undefined;
       }
     });
