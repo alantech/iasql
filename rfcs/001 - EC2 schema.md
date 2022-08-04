@@ -61,7 +61,7 @@ Note: Could be also accessed via https://dbdocs.io/alejandro/iasql
 
 After considering alternatives like splitting everything into more modules or having different `instance` tables around based on what service creates them, the proposal is to keep the schema growing in this same module. The relationships, though, will be added where they belong and rely on the instance metadata for the optional fields that are unnecessary for the CRUD of the `instance` table.
 
-We will review the needed features, see their implications in the model and get a final version of the ECS schema.
+We will review the needed features, see their implications in the model and get a final version of the EC2 schema.
 
 - Creating an instance using the UI/API lets you add some advanced configuration that usually is not used but is there. The screenshot below shows part of the extra configuration. At least the following columns will need to be added to the `instance` table: instance auto-recovery, shutdown behaviour, stop - hibernate behaviour, termination protection, stop protection, detailed cloudWatch monitoring, elastic GPU, credit specification, tenancy, RAM disk ID, kernel ID or Metadata accessible.
 
@@ -71,7 +71,7 @@ We will review the needed features, see their implications in the model and get 
 
 - Launch templates will be a new table and need to be an `instance` table input column `launch_template_id`. If we insert other values to the `instance`, these will override the launch template ones. To know if an instance was created using one of them we check the tags and look for the id to link the FK.
 
-- Spot requests can be created manually, using launch templates or can be created by other entities like ASG or the same instance. If an instance was created using a spot request should not affect the `instance` table, so the relationship between them will be part of the `instance_metadata`. To be able to know if an instance was created by a spot request we check the tags and look for the id to link them.
+- Spot requests can be created manually, using launch templates or can be created by other entities like ASG or the same instance. The relationship between the `instance` and the spot request will be part of the `instance_metadata` since the spot request does not affect the `instance` schema in terms of CRUD operations. To be able to know if an instance was created by a spot request we check the tags and look for the id to link them.
 
 - Dedicated host. These are physical servers fully dedicated by instance type and availability zone. Instances can be assigned to run in a dedicated host. The instance table will have an FK to this table.
 
