@@ -36,7 +36,7 @@ import {
   AwsIamModule,
   AwsSecurityGroupModule,
   AwsCloudwatchModule,
-  AwsVpcModule,
+  awsVpcModule,
 } from '..'
 import * as metadata from './module.json'
 import logger from '../../../services/logger'
@@ -476,8 +476,8 @@ export const AwsEcsFargateModule: Module2 = new Module2({
           // Even though we already have the subnet ids, we look for them to avoid having misconfigured resources
           let subnet: Subnet;
           try {
-            subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, sn) ??
-              await AwsVpcModule.mappers.subnet.cloud.read(ctx, sn);
+            subnet = await awsVpcModule.subnet.db.read(ctx, sn) ??
+              await awsVpcModule.subnet.cloud.read(ctx, sn);
             if (!subnet) return undefined;
           } catch (e: any) {
             if (e.Code === 'InvalidSubnetID.NotFound') return undefined;

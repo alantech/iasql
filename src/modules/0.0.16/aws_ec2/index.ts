@@ -14,7 +14,7 @@ import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
 import { AwsIamModule } from '../aws_iam'
-import { AwsVpcModule } from '../aws_vpc'
+import { awsVpcModule } from '../aws_vpc'
 import {
   AWS,
   attachVolume,
@@ -80,8 +80,8 @@ export const AwsEc2Module: Module2 = new Module2({
           }
         } catch (_) { /** Do nothing */ }
       }
-      out.subnet = await AwsVpcModule.mappers.subnet.db.read(ctx, instance.SubnetId) ??
-        await AwsVpcModule.mappers.subnet.cloud.read(ctx, instance.SubnetId);
+      out.subnet = await awsVpcModule.subnet.db.read(ctx, instance.SubnetId) ??
+        await awsVpcModule.subnet.cloud.read(ctx, instance.SubnetId);
       out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
       return out;
     },
@@ -111,8 +111,8 @@ export const AwsEc2Module: Module2 = new Module2({
       if (!vol?.VolumeId) return undefined;
       out.volumeId = vol.VolumeId;
       out.volumeType = vol.VolumeType as GeneralPurposeVolumeType;
-      out.availabilityZone = await AwsVpcModule.mappers.availabilityZone.db.read(ctx, vol.AvailabilityZone) ??
-        await AwsVpcModule.mappers.availabilityZone.cloud.read(ctx, vol.AvailabilityZone);
+      out.availabilityZone = await awsVpcModule.availabilityZone.db.read(ctx, vol.AvailabilityZone) ??
+        await awsVpcModule.availabilityZone.cloud.read(ctx, vol.AvailabilityZone);
       out.size = vol.Size ?? 1;
       out.iops = vol.Iops;
       out.throughput = vol.Throughput;

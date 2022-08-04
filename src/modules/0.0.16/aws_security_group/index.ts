@@ -21,7 +21,7 @@ import {
 import { SecurityGroup, SecurityGroupRule, } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
-import { AwsVpcModule } from '../aws_vpc'
+import { awsVpcModule } from '../aws_vpc'
 import { Vpc } from '../aws_vpc/entity'
 import logger from '../../../services/logger'
 
@@ -110,8 +110,8 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
       out.ownerId = sg.OwnerId;
       out.groupId = sg.GroupId;
       if (sg.VpcId) {
-        out.vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, sg.VpcId) ??
-          await AwsVpcModule.mappers.vpc.cloud.read(ctx, sg.VpcId);
+        out.vpc = await awsVpcModule.vpc.db.read(ctx, sg.VpcId) ??
+          await awsVpcModule.vpc.cloud.read(ctx, sg.VpcId);
         if (!out.vpc) throw new Error(`Waiting for VPC ${sg.VpcId}`);
       };
       return out;
@@ -160,7 +160,7 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
           continue;
         }
         if (!e.vpc) {
-          const vpcs: Vpc[] = await AwsVpcModule.mappers.vpc.cloud.read(ctx);
+          const vpcs: Vpc[] = await awsVpcModule.vpc.cloud.read(ctx);
           if (!vpcs.length) {
             throw new Error('Vpcs need to be loaded first');
           }
@@ -215,11 +215,11 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
             if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
               // There may be a race condition/double write happening here, so check if this thing
               // has been created in the meantime
-              const dbVpc = await AwsVpcModule.mappers.vpc.db.read(ctx, out.vpc.vpcId);
+              const dbVpc = await awsVpcModule.vpc.db.read(ctx, out.vpc.vpcId);
               if (!!dbVpc) {
                 out.vpc = dbVpc;
               } else {
-                await AwsVpcModule.mappers.vpc.db.create(out.vpc, ctx);
+                await awsVpcModule.vpc.db.create(out.vpc, ctx);
               }
             }
           }
@@ -237,7 +237,7 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
           const securityGroups = await ctx.orm.find(SecurityGroup, opts);
           for (const sg of securityGroups) {
             if (!sg.vpc) {
-              const vpcs: Vpc[] = await AwsVpcModule.mappers.vpc.db.read(ctx);
+              const vpcs: Vpc[] = await awsVpcModule.vpc.db.read(ctx);
               if (!vpcs.length) {
                 throw new Error('Vpcs need to be loaded first');
               }
@@ -258,11 +258,11 @@ export const AwsSecurityGroupModule: Module2 = new Module2({
             if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
               // There may be a race condition/double write happening here, so check if this thing
               // has been created in the meantime
-              const dbVpc = await AwsVpcModule.mappers.vpc.db.read(ctx, out.vpc.vpcId);
+              const dbVpc = await awsVpcModule.vpc.db.read(ctx, out.vpc.vpcId);
               if (!!dbVpc) {
                 out.vpc = dbVpc;
               } else {
-                await AwsVpcModule.mappers.vpc.db.create(out.vpc, ctx);
+                await awsVpcModule.vpc.db.create(out.vpc, ctx);
               }
             }
           }

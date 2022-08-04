@@ -34,7 +34,7 @@ import {
   TargetGroupIpAddressTypeEnum,
   TargetTypeEnum,
 } from './entity'
-import { AwsVpcModule, } from '../aws_vpc'
+import { awsVpcModule, } from '../aws_vpc'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import { AwsAcmListModule, AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
@@ -289,8 +289,8 @@ export const AwsElbModule: Module2 = new Module2({
       out.securityGroups = securityGroups.filter(sg => !!sg);
       out.ipAddressType = lb.IpAddressType as IpAddressType;
       out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
-      const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, lb.VpcId) ??
-        await AwsVpcModule.mappers.vpc.cloud.read(ctx, lb.VpcId);
+      const vpc = await awsVpcModule.vpc.db.read(ctx, lb.VpcId) ??
+        await awsVpcModule.vpc.cloud.read(ctx, lb.VpcId);
       out.vpc = vpc;
       out.availabilityZones = lb.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
       out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
@@ -315,8 +315,8 @@ export const AwsElbModule: Module2 = new Module2({
       out.healthCheckPath = tg.HealthCheckPath;
       out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum;
       try {
-        const vpc = await AwsVpcModule.mappers.vpc.db.read(ctx, tg.VpcId) ??
-          await AwsVpcModule.mappers.vpc.cloud.read(ctx, tg.VpcId);
+        const vpc = await awsVpcModule.vpc.db.read(ctx, tg.VpcId) ??
+          await awsVpcModule.vpc.cloud.read(ctx, tg.VpcId);
         if (tg.VpcId && !vpc) return undefined;
         out.vpc = vpc;
       } catch (e: any) {
