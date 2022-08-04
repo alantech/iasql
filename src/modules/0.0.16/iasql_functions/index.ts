@@ -2,14 +2,11 @@
 
 import * as metadata from './module.json'
 import { IasqlOperationType, } from './entity'
-import { Module2, } from '../../interfaces'
+import { ModuleBase, } from '../../interfaces'
 
-export const IasqlFunctions: Module2 = new Module2({
-  ...metadata,
-  utils: {
-    // Since this is a special module, this is provided so the scheduler can always get the 'latest'
-    // operation types to check on. This also means that you can't drop old types willy-nilly
-    IasqlOperationType,
-  },
-  mappers: {},
-}, __dirname);
+class IasqlFunctions extends ModuleBase {
+  constructor() { super(); super.init(); }
+  dependencies = metadata.dependencies;
+  IasqlOperationType = IasqlOperationType;
+}
+export const iasqlFunctions = new IasqlFunctions();

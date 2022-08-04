@@ -18,10 +18,11 @@ import * as dbMan from './db-manager'
 import * as scheduler from './scheduler-api'
 import MetadataRepo from './repositories/metadata'
 import config from '../config'
+import { throwError, } from '../config/config'
 import logger, { debugObj } from './logger'
 import { Context, MapperInterface2, ModuleInterface, } from '../modules'
 import { DepError, lazyLoader, } from './lazy-dep'
-import { IasqlDatabase } from '../entity'
+import { IasqlDatabase, } from '../entity'
 import { TypeormWrapper, } from './typeorm'
 import { findDiff, } from './diff'
 import { sortModules, } from './mod-sort'
@@ -368,7 +369,8 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
-    const moduleNames = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
+    const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.IasqlModule ?? throwError('Core IasqlModule not found');
+    const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
     const context: Context = { orm, memo, }; // Every module gets access to the DB
     for (const name of moduleNames) {
@@ -586,7 +588,8 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
-    const moduleNames = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
+    const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.IasqlModule ?? throwError('Core IasqlModule not found');
+    const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
     const context: Context = { orm, memo, }; // Every module gets access to the DB
     for (const name of moduleNames) {
@@ -800,12 +803,11 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
   if (all) {
     return JSON.stringify(allModules);
   } else if (installed && dbId) {
-    const entities: Function[] = [
-      Modules.IasqlPlatform.utils.IasqlModule,
-      Modules.IasqlPlatform.utils.IasqlTables
-    ];
+    const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.IasqlModule ?? throwError('Core IasqlModule not found');
+    const iasqlTables = Modules?.IasqlPlatform?.utils?.IasqlTables ?? Modules?.iasqlPlatform?.IasqlTables ?? throwError('Core IasqlTables not found');
+    const entities: Function[] = [ iasqlModule, iasqlTables, ];
     const orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
-    const mods = await orm.find(Modules.IasqlPlatform.utils.IasqlModule);
+    const mods = await orm.find(iasqlModule);
     const modsInstalled = mods.map((m: any) => (m.name));
     return JSON.stringify(allModules.filter(m => modsInstalled.includes(`${m.moduleName}@${m.moduleVersion}`)));
   } else {
@@ -828,7 +830,7 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
         'iasql_functions',
       ].includes(m.name)).map((m: ModuleInterface) => `${m.name}@${m.version}`);
   }
-  const version = Modules.IasqlPlatform.version;
+  const version = Modules?.IasqlPlatform?.version ?? Modules?.iasqlPlatform?.version ?? throwError('IasqlPlatform not found');
   moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@${version}`);
   const mods = moduleList.map((n: string) => (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {
@@ -849,7 +851,8 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already installed and prune them from the list
-  const existingModules = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
+  const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.IasqlModule ?? throwError('Core IasqlModule not found');
+  const existingModules = (await orm.find(iasqlModule)).map((m: any) => m.name);
   for (let i = 0; i < mods.length; i++) {
     if (existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
       mods.splice(i, 1);
@@ -924,21 +927,22 @@ ${Object.keys(tableCollisions)
       if (md.migrations?.install) {
         await md.migrations.install(queryRunner);
       }
-      const e = new Modules.IasqlPlatform.utils.IasqlModule();
+      const e = new iasqlModule();
       e.name = `${md.name}@${md.version}`;
       // Promise.all is okay here because it's guaranteed to not hit the cloud services
       e.dependencies = await Promise.all(
-        md.dependencies.map(async (dep) => await orm.findOne(Modules.IasqlPlatform.utils.IasqlModule, { name: dep, }))
+        md.dependencies.map(async (dep) => await orm.findOne(iasqlModule, { name: dep, }))
       );
-      await orm.save(Modules.IasqlPlatform.utils.IasqlModule, e);
+      await orm.save(iasqlModule, e);
 
+      const iasqlTables = Modules?.IasqlPlatform?.utils?.IasqlTables ?? Modules?.iasqlPlatform?.IasqlTables ?? throwError('Core IasqlModule not found');
       const modTables = md?.provides?.tables?.map((t) => {
-        const mt = new Modules.IasqlPlatform.utils.IasqlTables();
+        const mt = new iasqlTables();
         mt.table = t;
         mt.module = e;
         return mt;
       }) ?? [];
-      await orm.save(Modules.IasqlPlatform.utils.IasqlTables, modTables);
+      await orm.save(iasqlTables, modTables);
       // For each table, we need to attach the audit log trigger
       for (const table of md?.provides?.tables ?? []) {
         await queryRunner.query(`
@@ -965,7 +969,7 @@ ${Object.keys(tableCollisions)
   // mapper to make batch create/update/delete more efficient.
 
   // Find all of the installed modules, and create the context object only for these
-  const moduleNames = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
+  const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
   const context: Context = { orm, memo: {}, }; // Every module gets access to the DB
   for (const name of moduleNames) {
     const md = (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as ModuleInterface;
@@ -1009,7 +1013,7 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   const Modules = (AllModules as any)[versionString];
   if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   // Check to make sure that all specified modules actually exist
-  const version = Modules.IasqlPlatform.version
+  const version = Modules?.IasqlPlatform?.version ?? Modules?.iasqlPlatform?.version ?? throwError('Core IasqlPlatform not found');
   moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@${version}`);
   const mods = moduleList.map((n: string) => (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {
@@ -1020,7 +1024,9 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already uninstalled and prune them from the list
-  const existingModules = (await orm.find(Modules.IasqlPlatform.utils.IasqlModule)).map((m: any) => m.name);
+  const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.IasqlModule ?? throwError('Core IasqlModule not found');
+  const iasqlTables = Modules?.IasqlPlatform?.utils?.IasqlTables ?? Modules?.iasqlPlatform?.IasqlTables ?? throwError('Core IasqlTables not found');
+  const existingModules = (await orm.find(iasqlModule)).map((m: any) => m.name);
   for (let i = 0; i < mods.length; i++) {
     if (!existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
       mods.splice(i, 1);
@@ -1053,15 +1059,15 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
       }
     }
     for (const md of rootToLeafOrder) {
-      const e = await orm.findOne(Modules.IasqlPlatform.utils.IasqlModule, { name: `${md.name}@${md.version}`, });
-      const mt = await orm.find(Modules.IasqlPlatform.utils.IasqlTables, {
+      const e = await orm.findOne(iasqlModule, { name: `${md.name}@${md.version}`, });
+      const mt = await orm.find(iasqlTables, {
         where: {
           module: e,
         },
         relations: ['module',]
       }) ?? [];
-      await orm.remove(Modules.IasqlPlatform.utils.IasqlTables, mt);
-      await orm.remove(Modules.IasqlPlatform.utils.IasqlModule, e);
+      await orm.remove(iasqlTables, mt);
+      await orm.remove(iasqlModule, e);
     }
     await queryRunner.commitTransaction();
   } catch (e: any) {
@@ -1111,12 +1117,16 @@ export async function upgrade(dbId: string, dbUser: string) {
         // 4. Uninstall the `iasql_*` modules manually
         const OldModules = (AllModules as any)[versionString];
         const qr = conn.createQueryRunner();
-        await OldModules.IasqlFunctions.migrations.remove(qr);
-        await OldModules.IasqlPlatform.migrations.remove(qr);
+        await OldModules?.IasqlFunctions?.migrations?.remove(qr);
+        await OldModules?.iasqlFunctions?.migrations?.remove(qr);
+        await OldModules?.IasqlPlatform?.migrations?.remove(qr);
+        await OldModules?.iasqlPlatform?.migrations?.remove(qr);
         // 5. Install the new `iasql_*` modules manually
         const NewModules = AllModules[config.modules.latestVersion];
-        await NewModules.IasqlPlatform.migrations.install(qr);
-        await NewModules.IasqlFunctions.migrations.install(qr);
+        await NewModules?.IasqlPlatform?.migrations?.install(qr);
+        await NewModules?.iasqlPlatform?.migrations?.install(qr);
+        await NewModules?.IasqlFunctions?.migrations?.install(qr);
+        await NewModules?.iasqlFunctions?.migrations?.install(qr);
         await conn.query(`
           INSERT INTO iasql_module (name) VALUES ('iasql_platform@${config.modules.latestVersion}'), ('iasql_functions@${config.modules.latestVersion}');
           INSERT INTO iasql_dependencies (module, dependency) VALUES ('iasql_functions@${config.modules.latestVersion}', 'iasql_platform@${config.modules.latestVersion}');

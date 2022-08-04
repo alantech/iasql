@@ -4,19 +4,21 @@ import { Connection, } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
 import config from '../config'
+import { throwError, } from '../config/config'
 import { modules as Modules, } from '../modules'
 
 export async function migrate(conn: Connection) {
   // Needs to be done this way or a redeploy would accidentally start using the next version even
   // if it is not yet enabled.
-  const ModuleSet = (Modules as any)[config.modules.latestVersion]
-  const { IasqlPlatform, IasqlFunctions, } = ModuleSet;
-  const version = IasqlPlatform.version;
+  const ModuleSet = (Modules as any)[config.modules.latestVersion];
+  const iasqlPlatform = ModuleSet?.IasqlPlatform ?? ModuleSet?.iasqlPlatform ?? throwError('Core IasqlPlatform not found');
+  const iasqlFunctions = ModuleSet?.IasqlFunctions ?? ModuleSet?.iasqlFunctions ?? throwError('Core IasqlFunctions not found');
+  const version = iasqlPlatform.version;
   const qr = conn.createQueryRunner();
   await qr.connect();
-  await IasqlPlatform.migrations.install(qr);
+  await iasqlPlatform.migrations.install(qr);
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@${version}')`);
-  await IasqlFunctions.migrations.install(qr);
+  await iasqlFunctions.migrations.install(qr);
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_functions@${version}')`);
   await qr.query(`INSERT INTO iasql_dependencies VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`);
   await qr.release();

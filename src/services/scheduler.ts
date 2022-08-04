@@ -10,10 +10,11 @@ import logger, { logErrSentry } from './logger'
 import { TypeormWrapper } from './typeorm'
 import { IasqlDatabase } from '../entity'
 import config from '../config'
+import { throwError, } from '../config/config'
 
 const latest = modules[config.modules.latestVersion];
 
-const { IasqlOperationType, } = latest.IasqlFunctions.utils;
+const { IasqlOperationType, } = latest?.IasqlFunctions?.utils ?? latest?.iasqlFunctions ?? throwError('Core IasqlFunctions not found');
 
 const workerRunners: { [key: string]: { runner: any, conn: any}, } = {}; // TODO: What is the runner type?
 
