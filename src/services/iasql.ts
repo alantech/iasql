@@ -179,8 +179,32 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
   const database = db.pgName;
   try {
     connMain = await createConnection({ ...dbMan.baseConnConfig, database, name: pass, });
-    await connMain.query(dbMan.newPostgresRoleQuery(user, pass, database));
-    await connMain.query(dbMan.grantPostgresRoleQuery(user));
+    // Apparently GRANT and REVOKE can run into concurrency issues in Postgres. Serializing it would
+    // be best, but https://www.postgresql.org/message-id/3473.1393693757%40sss.pgh.pa.us says that
+    // just retrying ought to work. Doing this in a simple do-while loop with a counter to abort if
+    // too many attempts occur.
+    let maxTries = 10;
+    let success = true;
+    do {
+      try {
+        await connMain.query(dbMan.newPostgresRoleQuery(user, pass, database));
+        success = true;
+      } catch (_) {
+        success = false;
+      }
+      maxTries--;
+    } while (!success && maxTries);
+    maxTries = 10;
+    success = true;
+    do {
+      try {
+        await connMain.query(dbMan.grantPostgresRoleQuery(user));
+        success = true;
+      } catch (_) {
+        success = false;
+      }
+      maxTries--;
+    } while (!success && maxTries);
     connTemp = new pg.Client({
       database,
       user: dbMan.baseConnConfig.username,
@@ -219,8 +243,28 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
     // Put this in a timeout so it doesn't block returning to the user
     setTimeout(async () => {
       await connTemp?.end();
-      await connMain?.query(dbMan.revokePostgresRoleQuery(user, database));
-      await connMain?.query(dbMan.dropPostgresRoleQuery(user));
+      // Same idea as above, but for the credential revocation
+      let maxTries = 10;
+      let success = true;
+      do {
+        try {
+          await connMain?.query(dbMan.revokePostgresRoleQuery(user, database));
+          success = true;
+        } catch (_) {
+          success = false;
+        }
+        maxTries--;
+      } while (!success && maxTries);
+      maxTries = 10;
+      success = true;
+      do {
+        try {
+          await connMain?.query(dbMan.dropPostgresRoleQuery(user));
+        } catch (_) {
+          success = false;
+        }
+        maxTries--;
+      } while (!success && maxTries);
       await connMain?.close();
     }, 1);
   }
