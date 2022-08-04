@@ -1,13 +1,11 @@
 import {
   CreateSecretCommandInput,
   DescribeSecretCommandInput,
-  GetSecretValueCommandInput,
   SecretsManager,
   PutSecretValueCommandInput,
   UpdateSecretCommandInput,
   paginateListSecrets,
   SecretListEntry,
-  SecretsManagerClient,
 } from "@aws-sdk/client-secrets-manager";
 import {
   AWS,
