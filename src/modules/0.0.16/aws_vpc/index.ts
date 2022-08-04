@@ -323,6 +323,7 @@ async function createElasticIp(client: EC2, tags?: { [key: string] : string }) {
 
 class AwsVpcModule extends ModuleBase {
   constructor() { super(); super.init(); }
+  dirname = __dirname;
   dependencies = metadata.dependencies;
 
   async subnetMapper(sn: AwsSubnet, ctx: Context) {
@@ -484,7 +485,7 @@ class AwsVpcModule extends ModuleBase {
         // next loop through should delete the old one
         const out = await awsVpcModule.subnet.cloud.create(es, ctx);
         if (out && !(out instanceof Array)) return [out];
-        return out; 
+        return out;
       },
       delete: async (es: Subnet[], ctx: Context) => {
         const client = await ctx.getAwsClient() as AWS;
