@@ -10,7 +10,7 @@ const latest = modules[config.modules.latestVersion];
 
 // Weird little dance to make it a type again.
 // From: https://www.typescriptlang.org/docs/handbook/enums.html#objects-vs-enums
-const { IasqlOperationType, } = latest?.IasqlFunctions?.utils ?? latest?.iasqlFunctions ?? throwError('Core IasqlFunctions not found');
+const IasqlOperationType = latest?.IasqlFunctions?.utils?.IasqlOperationType ?? latest?.iasqlFunctions.iasqlOperationType ?? throwError('Core IasqlFunctions not found');
 type IasqlOperationType = typeof IasqlOperationType[keyof typeof IasqlOperationType];
 
 const singleton = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;

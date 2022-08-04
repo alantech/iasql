@@ -14,7 +14,7 @@ import { throwError, } from '../config/config'
 
 const latest = modules[config.modules.latestVersion];
 
-const { IasqlOperationType, } = latest?.IasqlFunctions?.utils ?? latest?.iasqlFunctions ?? throwError('Core IasqlFunctions not found');
+const IasqlOperationType = latest?.IasqlFunctions?.utils?.IasqlOperationType ?? latest?.iasqlFunctions?.iasqlOperationType ?? throwError('Core IasqlFunctions not found');
 
 const workerRunners: { [key: string]: { runner: any, conn: any}, } = {}; // TODO: What is the runner type?
 

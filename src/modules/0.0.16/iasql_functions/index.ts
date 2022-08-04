@@ -8,6 +8,6 @@ class IasqlFunctions extends ModuleBase {
   constructor() { super(); super.init(); }
   dirname = __dirname;
   dependencies = metadata.dependencies;
-  IasqlOperationType = IasqlOperationType;
+  iasqlOperationType = IasqlOperationType;
 }
 export const iasqlFunctions = new IasqlFunctions();

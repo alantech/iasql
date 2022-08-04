@@ -369,7 +369,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
-    const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.IasqlModule ?? throwError('Core IasqlModule not found');
+    const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
     const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
     const context: Context = { orm, memo, }; // Every module gets access to the DB
@@ -588,7 +588,7 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
-    const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.IasqlModule ?? throwError('Core IasqlModule not found');
+    const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
     const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
     const context: Context = { orm, memo, }; // Every module gets access to the DB
@@ -803,8 +803,8 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
   if (all) {
     return JSON.stringify(allModules);
   } else if (installed && dbId) {
-    const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.IasqlModule ?? throwError('Core IasqlModule not found');
-    const iasqlTables = Modules?.IasqlPlatform?.utils?.IasqlTables ?? Modules?.iasqlPlatform?.IasqlTables ?? throwError('Core IasqlTables not found');
+    const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
+    const iasqlTables = Modules?.IasqlPlatform?.utils?.IasqlTables ?? Modules?.iasqlPlatform?.iasqlTables ?? throwError('Core IasqlTables not found');
     const entities: Function[] = [ iasqlModule, iasqlTables, ];
     const orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
     const mods = await orm.find(iasqlModule);
@@ -851,7 +851,7 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already installed and prune them from the list
-  const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.IasqlModule ?? throwError('Core IasqlModule not found');
+  const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
   const existingModules = (await orm.find(iasqlModule)).map((m: any) => m.name);
   for (let i = 0; i < mods.length; i++) {
     if (existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
@@ -935,7 +935,7 @@ ${Object.keys(tableCollisions)
       );
       await orm.save(iasqlModule, e);
 
-      const iasqlTables = Modules?.IasqlPlatform?.utils?.IasqlTables ?? Modules?.iasqlPlatform?.IasqlTables ?? throwError('Core IasqlModule not found');
+      const iasqlTables = Modules?.IasqlPlatform?.utils?.IasqlTables ?? Modules?.iasqlPlatform?.iasqlTables ?? throwError('Core IasqlModule not found');
       const modTables = md?.provides?.tables?.map((t) => {
         const mt = new iasqlTables();
         mt.table = t;
@@ -1024,8 +1024,8 @@ export async function uninstall(moduleList: string[], dbId: string, orm?: Typeor
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already uninstalled and prune them from the list
-  const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.IasqlModule ?? throwError('Core IasqlModule not found');
-  const iasqlTables = Modules?.IasqlPlatform?.utils?.IasqlTables ?? Modules?.iasqlPlatform?.IasqlTables ?? throwError('Core IasqlTables not found');
+  const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
+  const iasqlTables = Modules?.IasqlPlatform?.utils?.IasqlTables ?? Modules?.iasqlPlatform?.iasqlTables ?? throwError('Core IasqlTables not found');
   const existingModules = (await orm.find(iasqlModule)).map((m: any) => m.name);
   for (let i = 0; i < mods.length; i++) {
     if (!existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
