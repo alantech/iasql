@@ -41,10 +41,6 @@ export interface ConfigInterface {
     environment: string;
     release: string;
   };
-  // Configuration for graphql access
-  graphql?: { // Not including this sub-object implies it is not enabled
-    withGraphiql: boolean; // Enable web-based GraphiQL UI access
-  };
 };
 
 export const throwError = (message: string): never => { throw new Error(message); };

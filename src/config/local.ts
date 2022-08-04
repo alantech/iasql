@@ -23,9 +23,6 @@ const config: ConfigInterface = {
   cors: {
     origin: 'http://localhost:3000'
   },
-  graphql: {
-    withGraphiql: true,
-  },
   telemetry: {
     amplitudeKey: '8fd6aa1d61c115e59e35b3adfd5dd41a'
   },

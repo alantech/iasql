@@ -41,8 +41,8 @@ export function runInstall(dbAlias: string, mods: string[]) {
 }
 
 export function runInstallAll(dbAlias: string) {
-  return runQuery(dbAlias, `select iasql_module_install(
-    array(select module_name from iasql_modules_list() where module_name != 'aws_account' and module_name not like 'iasql_%')
+  return runQuery(dbAlias, `select iasql_install(
+    variadic array(select module_name from iasql_modules_list() where module_name != 'aws_account' and module_name not like 'iasql_%')
   );`);
 }
 
@@ -51,8 +51,8 @@ export function runUninstall(dbAlias: string, mods: string[]) {
 }
 
 export function runUninstallAll(dbAlias: string) {
-  return runQuery(dbAlias, `select iasql_module_uninstall(
-    array(select module_name from iasql_modules_list() where module_name != 'aws_account' and module_name not like 'iasql_%')
+  return runQuery(dbAlias, `select iasql_uninstall(
+    variadic array(select module_name from iasql_modules_list() where module_name != 'aws_account' and module_name not like 'iasql_%')
   );`);
 }
 

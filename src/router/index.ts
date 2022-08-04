@@ -6,7 +6,6 @@ import config from '../config'
 
 // routes
 import { db, } from './db'
-import { graphql, } from './graphql'
 
 const v1 = express.Router();
 // 10 GB post payload limit for import dumps
@@ -25,7 +24,6 @@ if (config.auth) {
 }
 // TODO secure with scope
 v1.use('/db', db);
-if (config.graphql) v1.use('/graphql', graphql);
 v1.get('/version/latest', (_req, res) => res.send(config.modules.latestVersion));
 v1.get('/version/oldest', (_req, res) => res.send(config.modules.oldestVersion));
 
