@@ -15,6 +15,7 @@ export * from "./aws_lambda";
 export * from "./aws_rds";
 export * from "./aws_route53_hosted_zones";
 export * from "./aws_s3";
+export * from "./aws_secret";
 export * from "./aws_security_group";
 export * from "./aws_vpc";
 export * from "./iasql_functions";

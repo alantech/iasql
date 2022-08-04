@@ -12,6 +12,7 @@ import { Lambda } from '@aws-sdk/client-lambda'
 import { RDS, } from '@aws-sdk/client-rds'
 import { Route53, } from '@aws-sdk/client-route-53'
 import { S3, } from '@aws-sdk/client-s3'
+import { SecretsManager } from '@aws-sdk/client-secrets-manager'
 import { SSM, } from '@aws-sdk/client-ssm'
 
 type AWSCreds = {
@@ -53,6 +54,7 @@ export class AWS {
   dynamoClient: DynamoDB
   lambdaClient: Lambda
   elasticacheClient: ElastiCache
+  secretsClient: SecretsManager
 
   constructor(config: AWSConfig) {
     this.region = config.region;
@@ -68,6 +70,7 @@ export class AWS {
     this.lambdaClient = new Lambda(config);
     this.rdsClient = new RDS(config);
     this.route53Client = new Route53(config);
+    this.secretsClient = new SecretsManager(config);
     this.ssmClient = new SSM(config);
     // Technically available in multiple regions but with weird constraints, and the default is us-east-1
     this.s3Client = new S3({ ...config, region: 'us-east-1', });
