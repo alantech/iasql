@@ -72,6 +72,7 @@ export class AWS {
     this.lambdaClient = new Lambda(config);
     this.rdsClient = new RDS(config);
     this.route53Client = new Route53(config);
+    this.secretsClient = new SecretsManager(config);
     this.ssmClient = new SSM(config);
     // Technically available in multiple regions but with weird constraints, and the default is us-east-1
     this.s3Client = new S3({ ...config, region: "us-east-1" });

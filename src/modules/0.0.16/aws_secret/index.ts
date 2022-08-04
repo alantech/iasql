@@ -7,6 +7,7 @@ import {
   UpdateSecretCommandInput,
   paginateListSecrets,
   SecretListEntry,
+  SecretsManagerClient,
 } from "@aws-sdk/client-secrets-manager";
 import {
   AWS,
@@ -68,7 +69,7 @@ async function getSecret(client: SecretsManager, secretId: string) {
   return undefined;
 }
 
-const getAllSecrets = paginateBuilder<SecretsManager>(
+const getAllSecrets = paginateBuilder<SecretsManager | SecretsManagerClient>(
   paginateListSecrets,
   "SecretList"
 );
