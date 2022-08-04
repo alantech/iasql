@@ -26,7 +26,7 @@ import { PublicRepository } from '../aws_ecr/entity'
 import cloudFns from './cloud_fns';
 import simplifiedMappers from './simplified_mappers';
 import { generateResourceName, processImageFromString } from './helpers';
-import { AwsAccount } from '../aws_account'
+import { awsAccount, } from '../aws_account'
 
 export type SimplifiedObjectMapped = {
   securityGroup: SecurityGroup;
@@ -48,7 +48,7 @@ const prefix = 'iasql-ecs-';
 
 // TODO: remove this once the aws gateway gets disolved
 async function getAwsClient(ctx: Context): Promise<AWS> {
-  const awsCreds = await ctx?.orm?.findOne(AwsAccount.mappers.awsAccount.entity);
+  const awsCreds = await ctx?.orm?.findOne(awsAccount.awsAccount.entity);
   return new AWS({
     region: awsCreds.region,
     credentials: {

@@ -372,3 +372,95 @@ export class Module2 {
     if (!def.provides.functions) this.provides.functions = functions;
   }
 }
+
+export class ModuleBase {
+  dirname: string;
+  name: string;
+  version: string;
+  dependencies: string[];
+  provides: {
+    entities: { [key: string]: any, };
+    tables: string[];
+    functions: string[];
+    context?: Context;
+  };
+  context?: Context;
+  mappers: { [key: string]: Mapper2<any>, };
+  migrations: {
+    install: (q: QueryRunner) => Promise<void>;
+    remove: (q: QueryRunner) => Promise<void>;
+  };
+
+  init() {
+    if (!this.dirname) throw new Error('Invalid Module defintion. No `dirname` property found');
+    // Extract the name and version from `__dirname`
+    const pathSegments = this.dirname.split(path.sep);
+    const name = pathSegments[pathSegments.length - 1];
+    const version = pathSegments[pathSegments.length - 2];
+    this.name = name;
+    this.version = version;
+    // Patch the dependencies list if not explicitly versioned
+    this.dependencies = this.dependencies.map(dep => dep.includes('@') ? dep : `${dep}@${this.version}`);
+    // Make sure every module depends on the `iasql_platform` module (except that module itself)
+    if (
+      this.name !== 'iasql_platform' &&
+      !this.dependencies.includes(`iasql_platform@${this.version}`)
+    ) throw new Error(`${this.name} did not declare an iasql_platform dependency and cannot be loaded.`);
+    const entityDir = `${this.dirname}/entity`;
+    const entities = require(`${entityDir}/index`);
+    this.provides = {
+      entities,
+      tables: [], // These will be populated automatically below
+      functions: [], // TODO: Auto-populate these
+    }
+    if (this.context) this.provides.context = this.context;
+    this.mappers = Object.fromEntries(
+      Object.entries(this)
+        .filter(([_, m]: [string, any]) => m instanceof Mapper2) as [[string, Mapper2<any>]]
+    );
+    const migrationDir = `${this.dirname}/migration`;
+    const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
+    if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
+    const migration = require(`${migrationDir}/${files[0]}`);
+    // Assuming TypeORM migration files
+    const migrationClass = migration[Object.keys(migration)[0]];
+    if (!migrationClass || !migrationClass.prototype.up || !migrationClass.prototype.down) {
+      throw new Error('Presumed migration file is not a TypeORM migration');
+    }
+    this.migrations = {
+      install: migrationClass.prototype.up,
+      remove: migrationClass.prototype.down,
+    };
+    const syncified = new Function(
+      'return ' +
+      migrationClass.prototype.up
+        .toString()
+        .replace(/\basync\b/g, '')
+        .replace(/\bawait\b/g, '')
+        .replace(/^/, 'function')
+        // The following are only for the test suite, but need to be included at all times
+        .replace(/\/* istanbul ignore next *\//g, '')
+        .replace(/cov_.*/g, '')
+        // Drop any lines that don't have backticks because they must be handwritten add-ons
+        // to the migration file (TODO: Avoid this hackery somehow)
+        .split('\n')
+        .filter((l: string) => !/query\(/.test(l) || /`/.test(l))
+        .join('\n')
+    )();
+    const tables: string[] = [];
+    const functions: string[] = [];
+    syncified({ query: (text: string) => {
+      // TODO: Proper parsing (maybe LP?)
+      if (/^create table/i.test(text)) {
+        tables.push((text.match(/^[^"]*"([^"]*)"/) ?? [])[1]);
+      } else if (/^create or replace procedure/i.test(text)) {
+        functions.push((text.match(/^create or replace procedure ([^(]*)/i) ?? [])[0]);
+      } else if (/^create or replace function/i.test(text)) {
+        functions.push((text.match(/^create or replace function ([^(]*)/i) ?? [])[0]);
+      }
+      // Don't do anything for queries that don't match
+    }, });
+    this.provides.tables = tables;
+    this.provides.functions = functions;
+  }
+}
