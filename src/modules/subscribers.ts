@@ -5,7 +5,7 @@ function updateNulls(entity:any) {
     Object.keys(entity).forEach((k) => {
         if (that[k] === null) that[k] = undefined;
     });
-  }    
+}
 
 @EventSubscriber()
 export class NullCheckerSubscriber implements EntitySubscriberInterface {
@@ -14,10 +14,10 @@ export class NullCheckerSubscriber implements EntitySubscriberInterface {
     }
 
     afterInsert(event: InsertEvent<any>) {
-        updateNulls(event.entity);        
+        updateNulls(event.entity);
     }
 
     afterUpdate(event: UpdateEvent<any>) {
         updateNulls(event.entity);
-    }  
+    }
 }
