@@ -141,7 +141,7 @@ export const AwsIamModule: Module2 = new Module2({
     // rolePolicyComparison: (a: any, b: any) => isEqual(a, b),
     rolePolicyComparison: (a: any, b: any) => {
       if (Object.is(a, b)) return true;
-      if (Object.is(a, null) || Object.is(a, null) || !Object.is(typeof a, 'object') || !Object.is(typeof b, 'object')) return false;
+      if (Object.is(a, null) || Object.is(b, null) || !Object.is(typeof a, 'object') || !Object.is(typeof b, 'object')) return false;
       const aKeys = Object.keys(a);
       const bKeys = Object.keys(b);
       if (!Object.is(aKeys.length, bKeys.length)) return false;
