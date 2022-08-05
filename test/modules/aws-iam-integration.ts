@@ -181,17 +181,17 @@ describe('IAM Integration Testing', () => {
     UPDATE role SET arn = 'dummy' WHERE role_name = '${taskRoleName}';
   `));
 
-  it('check update role description', query(`
+  it('check preview', query(`
     SELECT *
     FROM iasql_preview_apply();
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('check update role description', query(`
+  it('check preview', query(`
     SELECT *
     FROM iasql_preview_apply();
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('check update role description', query(`
+  it('check preview', query(`
     SELECT *
     FROM iasql_preview_apply();
   `, (res: any[]) => expect(res.length).toBe(1)));
