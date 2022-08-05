@@ -149,7 +149,7 @@ export const AwsIamModule: Module2 = new Module2({
       entity: Role,
       equals: (a: Role, b: Role) => Object.is(a.roleName, b.roleName) &&
         Object.is(a.arn, b.arn) &&
-        Object.is(a.description, b.description) &&
+        ((!a.description && !b.description) || a.description === b.description) &&
         AwsIamModule.utils.rolePolicyComparison(a.assumeRolePolicyDocument, b.assumeRolePolicyDocument) &&
         Object.is(a.attachedPoliciesArns?.length, b.attachedPoliciesArns?.length) &&
         ((!a.attachedPoliciesArns && !b.attachedPoliciesArns) || !!a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs)))),
