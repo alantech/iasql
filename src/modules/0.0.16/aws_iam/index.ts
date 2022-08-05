@@ -138,7 +138,6 @@ export const AwsIamModule: Module2 = new Module2({
       // EC2 role instance profile ARN example - arn:aws:iam::257682470237:instance-profile/test-role
       return  arn.split('/').pop();
     },
-    // rolePolicyComparison: (a: any, b: any) => isEqual(a, b),
     rolePolicyComparison: (a: any, b: any) => {
       if (Object.is(a, b)) return true;
       if (Object.is(a, null) || Object.is(b, null) || !Object.is(typeof a, 'object') || !Object.is(typeof b, 'object')) return false;
