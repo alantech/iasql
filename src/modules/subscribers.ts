@@ -1,10 +1,12 @@
 import { EntitySubscriberInterface, EventSubscriber, InsertEvent, LoadEvent, UpdateEvent } from "typeorm"
 
 function updateNulls(entity:any) {
-    const that: any = entity;
-    Object.keys(entity).forEach((k) => {
-        if (that[k] === null) that[k] = undefined;
-    });
+    if (entity) {
+        const that: any = entity;
+        Object.keys(entity).forEach((k) => {
+            if (that[k] === null) that[k] = undefined;
+        });
+    }
 }
 
 @EventSubscriber()
