@@ -181,6 +181,7 @@ describe('IAM Integration Testing', () => {
     UPDATE role SET arn = 'dummy' WHERE role_name = '${taskRoleName}';
   `));
 
+  // The next 3 checks are to validate that the deep policy comparison is working properly
   it('check preview', query(`
     SELECT *
     FROM iasql_preview_apply();
