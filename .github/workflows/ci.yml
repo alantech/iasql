@@ -6,8 +6,8 @@ name: CI
 # events but only for the main branch.
 on:
   push:
-    branches: [main, iamtest]
-    paths: ['src/**', 'test/**', 'package.json', 'yarn.lock', '.github/**']
+    branches: [main]
+    paths: ['src/**', 'test/**', 'package.json', 'yarn.lock']
   pull_request:
     branches: [main]
     paths: ['src/**', 'test/**', 'package.json', 'yarn.lock']
