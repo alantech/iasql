@@ -11,7 +11,7 @@ const taskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecuti
 const lambdaRoleName = `${prefix}${dbAlias}lambda-${region}`;
 const ec2RoleName = `${prefix}${dbAlias}ec2-${region}`;
 const anotherRoleName = `${prefix}${dbAlias}another-${region}`;
-const newRoleName = `${prefix}${dbAlias}new-${region}`;
+const principalServArr = `${prefix}${dbAlias}ppalservarr-${region}`;
 const attachAssumeTaskPolicy= JSON.stringify({
   "Version": "2012-10-17",
   "Statement": [
@@ -69,7 +69,7 @@ const attachAnotherPolicy = JSON.stringify({
     }
   ]
 });
-const attachNewPolicy = JSON.stringify({
+const attachPrincipalServArrPolicy = JSON.stringify({
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -141,7 +141,7 @@ describe('IAM Integration Testing', () => {
       VALUES ('${anotherRoleName}', '${attachAnotherPolicy}');
 
       INSERT INTO role (role_name, assume_role_policy_document)
-      VALUES ('${newRoleName}', '${attachNewPolicy}');
+      VALUES ('${principalServArr}', '${attachPrincipalServArrPolicy}');
     COMMIT;
   `));
 
@@ -172,7 +172,7 @@ describe('IAM Integration Testing', () => {
   it('check a new role addition', query(`
     SELECT *
     FROM role
-    WHERE role_name = '${newRoleName}';
+    WHERE role_name = '${principalServArr}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies the role additions', apply());
@@ -254,7 +254,7 @@ describe('IAM Integration Testing', () => {
 
   it('deletes the role', query(`
     DELETE FROM role
-    WHERE role_name = '${newRoleName}';
+    WHERE role_name = '${principalServArr}';
   `));
 
   it('applies the change', apply());
@@ -286,7 +286,7 @@ describe('IAM Integration Testing', () => {
   it('check deletes the role', query(`
     SELECT *
     FROM role
-    WHERE role_name = '${newRoleName}';
+    WHERE role_name = '${principalServArr}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('creates a lot of similar roles to try to hit the rate-limiter', query(`
