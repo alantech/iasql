@@ -28,16 +28,4 @@ export class Secret {
     nullable: true,
   })
   value?: string | null;
-
-  @AfterLoad()
-  @AfterInsert()
-  @AfterUpdate()
-  updateNulls() {
-    const that: any = this;
-    Object.keys(this).forEach((k) => {
-      if (k !== "value") {
-        if (that[k] === null) that[k] = undefined;
-      }
-    });
-  }
 }

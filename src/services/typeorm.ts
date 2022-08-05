@@ -75,16 +75,13 @@ export class TypeormWrapper {
       .flat()
       .filter(e => typeof e === 'function') as Function[];
 
-    // generate subscribers
-    const subscribers:any = entities.map(function(e:any) { return new NullCheckerSubscriber(e); })
-
     // Now that we have the entities for this database, close the temporary connection and create
     // the real connection with the entities present
     const name = uuidv4();
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
       name: dbname,
-      subscribers: subscribers,
+      subscribers: ['src/modules/subscribers.ts'],
       ...connectionConfig as PostgresConnectionOptions,
       database,
     };
