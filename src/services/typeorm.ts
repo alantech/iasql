@@ -5,7 +5,7 @@ import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConn
 import { PostgresDriver, } from 'typeorm/driver/postgres/PostgresDriver'
 import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
-import { modules as AllModules, } from '../modules'
+import { modules as AllModules, NullCheckerSubscriber, } from '../modules'
 import config from '../config'
 
 export class TypeormWrapper {
@@ -62,12 +62,6 @@ export class TypeormWrapper {
     if (connMan.has(dbname)) {
       throw new Error(`Connection ${dbname} already exists`)
     }
-    const connOpts: PostgresConnectionOptions = {
-      ...typeorm.connectionConfig,
-      name: dbname,
-      ...connectionConfig as PostgresConnectionOptions,
-      database,
-    };
     const versionString = await TypeormWrapper.getVersionString(database);
     const Modules = (AllModules as any)[versionString];
     if (!Modules) throw new Error(`Unsupported version ${versionString} in database ${database}`);
@@ -81,9 +75,20 @@ export class TypeormWrapper {
       .flat()
       .filter(e => typeof e === 'function') as Function[];
 
+    // generate subscribers
+    const subscribers:any = entities.map(function(e:any) { return new NullCheckerSubscriber(e); })
+
     // Now that we have the entities for this database, close the temporary connection and create
     // the real connection with the entities present
     const name = uuidv4();
+    const connOpts: PostgresConnectionOptions = {
+      ...typeorm.connectionConfig,
+      name: dbname,
+      subscribers: subscribers,
+      ...connectionConfig as PostgresConnectionOptions,
+      database,
+    };
+
     typeorm.connection = await createConnection({ ...connOpts, entities, name, });
     return typeorm;
   }
