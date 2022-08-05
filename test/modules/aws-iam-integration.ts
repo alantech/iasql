@@ -11,6 +11,7 @@ const taskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecuti
 const lambdaRoleName = `${prefix}${dbAlias}lambda-${region}`;
 const ec2RoleName = `${prefix}${dbAlias}ec2-${region}`;
 const anotherRoleName = `${prefix}${dbAlias}another-${region}`;
+const newRoleName = `${prefix}${dbAlias}new-${region}`;
 const attachAssumeTaskPolicy= JSON.stringify({
   "Version": "2012-10-17",
   "Statement": [
@@ -68,6 +69,22 @@ const attachAnotherPolicy = JSON.stringify({
     }
   ]
 });
+const attachNewPolicy = JSON.stringify({
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": [
+          "airflow.amazonaws.com",
+          "airflow.env.amazonaws.com"
+        ]
+      }
+    }
+  ]
+});
+
 
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
@@ -122,6 +139,9 @@ describe('IAM Integration Testing', () => {
 
       INSERT INTO role (role_name, assume_role_policy_document)
       VALUES ('${anotherRoleName}', '${attachAnotherPolicy}');
+
+      INSERT INTO role (role_name, assume_role_policy_document)
+      VALUES ('${newRoleName}', '${attachNewPolicy}');
     COMMIT;
   `));
 
@@ -147,6 +167,12 @@ describe('IAM Integration Testing', () => {
     SELECT *
     FROM role
     WHERE role_name = '${anotherRoleName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check a new role addition', query(`
+    SELECT *
+    FROM role
+    WHERE role_name = '${newRoleName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies the role additions', apply());
@@ -211,6 +237,11 @@ describe('IAM Integration Testing', () => {
     WHERE role_name = '${anotherRoleName}';
   `));
 
+  it('deletes the role', query(`
+    DELETE FROM role
+    WHERE role_name = '${newRoleName}';
+  `));
+
   it('applies the change', apply());
 
   it('check deletes the role', query(`
@@ -235,6 +266,12 @@ describe('IAM Integration Testing', () => {
     SELECT *
     FROM role
     WHERE role_name = '${anotherRoleName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check deletes the role', query(`
+    SELECT *
+    FROM role
+    WHERE role_name = '${newRoleName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('creates a lot of similar roles to try to hit the rate-limiter', query(`
