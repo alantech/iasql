@@ -145,7 +145,12 @@ export const AwsIamModule: Module2 = new Module2({
       const bKeys = Object.keys(b);
       if (!Object.is(aKeys.length, bKeys.length)) return false;
       if (Array.isArray(a) && Array.isArray(b)) {
-        return a.every(ai => !!b.find(bj => AwsIamModule.utils.rolePolicyComparison(ai, bj)))
+        const aSorted = [...a].sort();
+        const bSorted = [...b].sort();
+        for (let i = 0; i < aSorted.length; i++) {
+          if (!AwsIamModule.utils.rolePolicyComparison(aSorted[i], bSorted[i])) return false;
+        }
+        return true;
       } else {
         for (const ak of aKeys) {
           if (!bKeys.includes(ak)) return false;
