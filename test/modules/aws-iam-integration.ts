@@ -78,7 +78,7 @@ const attachNewPolicy = JSON.stringify({
       "Principal": {
         "Service": [
           "airflow.amazonaws.com",
-          "airflow.env.amazonaws.com"
+          "airflow-env.amazonaws.com"
         ]
       }
     }
