@@ -31,7 +31,7 @@ describe('Basic integration testing', () => {
       curl \
       --request POST \
       --url 'http://localhost:8088/v1/db/connect/' \
-      --show-error --fail \
+      --show-error --silent --fail \
       --header 'content-type: application/json' \
       --data '{
         "dbAlias": "__${sha}__"
