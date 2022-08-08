@@ -59,6 +59,7 @@ async function getSecret(client: SecretsManager, secretId: string) {
       Name: result.Name,
       Description: result.Description,
     };
+    return result;
   }
   return undefined;
 }
@@ -105,11 +106,22 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
                   Description: secret.description,
                   SecretString: secret.value!,
                 };
+
                 const secretName = await createSecret(
                   client.secretsClient,
                   input
                 );
                 if (secretName) {
+                  // retry until we ensure is created
+                  let rawSecret;
+                  do {
+                    await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
+
+                    rawSecret = await getSecret(
+                      client.secretsClient,
+                      secretName
+                    );
+                  } while (!rawSecret);
                   secret.name = secretName;
                   // we never store the secret value
                   secret.value = null;
