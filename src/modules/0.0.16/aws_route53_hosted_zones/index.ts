@@ -118,7 +118,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
       out.parentHostedZone = await AwsRoute53HostedZoneModule.mappers.hostedZone.db.read(ctx, rrs.HostedZoneId) ??
         await AwsRoute53HostedZoneModule.mappers.hostedZone.cloud.read(ctx, rrs.HostedZoneId);
       if (!out.parentHostedZone) throw new Error('Hosted zone need to be loaded.');
-      out.name = rrs.Name;
+      out.name = rrs?.Name ?? undefined;
       out.recordType = rrs.Type as RecordType;
       out.ttl = rrs.TTL;
       // TODO: right now just supporting `ResourceRecords` and `AliasTarget`.

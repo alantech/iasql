@@ -51,15 +51,4 @@ export class EcsSimplified {
 
   @Column({ nullable: true, })
   loadBalancerDns?: string;
-
-  @AfterLoad()
-  @AfterInsert()
-  @AfterUpdate()
-  updateNulls() {
-    const that: any = this;
-    Object.keys(this).forEach(k => {
-      if (that[k] === null) that[k] = undefined;
-    });
-  }
-
 }

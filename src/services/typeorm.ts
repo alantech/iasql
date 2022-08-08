@@ -7,6 +7,7 @@ import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
 import { modules as AllModules, } from '../modules'
 import config from '../config'
+import { NullCheckerSubscriber } from '../modules/subscribers';
 
 export class TypeormWrapper {
   private connection: Connection
@@ -62,12 +63,6 @@ export class TypeormWrapper {
     if (connMan.has(dbname)) {
       throw new Error(`Connection ${dbname} already exists`)
     }
-    const connOpts: PostgresConnectionOptions = {
-      ...typeorm.connectionConfig,
-      name: dbname,
-      ...connectionConfig as PostgresConnectionOptions,
-      database,
-    };
     const versionString = await TypeormWrapper.getVersionString(database);
     const Modules = (AllModules as any)[versionString];
     if (!Modules) throw new Error(`Unsupported version ${versionString} in database ${database}`);
@@ -84,6 +79,14 @@ export class TypeormWrapper {
     // Now that we have the entities for this database, close the temporary connection and create
     // the real connection with the entities present
     const name = uuidv4();
+    const connOpts: PostgresConnectionOptions = {
+      ...typeorm.connectionConfig,
+      name: dbname,
+      subscribers: [NullCheckerSubscriber],
+      ...connectionConfig as PostgresConnectionOptions,
+      database,
+    };
+
     typeorm.connection = await createConnection({ ...connOpts, entities, name, });
     return typeorm;
   }
