@@ -7,4 +7,3 @@ export const modules = Object.fromEntries(
 );
 
 export * from './interfaces'
-export * from './subscribers'

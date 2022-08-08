@@ -101,14 +101,4 @@ export class GeneralPurposeVolume {
     nullable: true,
   })
   tags?: { [key: string]: string };
-
-  @AfterLoad()
-  @AfterInsert()
-  @AfterUpdate()
-  updateNulls() {
-    const that: any = this;
-    Object.keys(this).forEach(k => {
-      if (that[k] === null) that[k] = undefined;
-    });
-  }  
 }
