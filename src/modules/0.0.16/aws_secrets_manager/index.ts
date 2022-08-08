@@ -59,6 +59,7 @@ async function getSecret(client: SecretsManager, secretId: string) {
       Name: result.Name,
       Description: result.Description,
     };
+    return result;
   }
   return undefined;
 }
@@ -73,7 +74,7 @@ const deleteSecret = crudBuilder2<SecretsManager, "deleteSecret">(
   (input) => input
 );
 
-export const AwsSecrectsModule: Module2 = new Module2(
+export const AwsSecretsManagerModule: Module2 = new Module2(
   {
     ...metadata,
     utils: {
@@ -105,15 +106,28 @@ export const AwsSecrectsModule: Module2 = new Module2(
                   Description: secret.description,
                   SecretString: secret.value!,
                 };
+
                 const secretName = await createSecret(
                   client.secretsClient,
                   input
                 );
                 if (secretName) {
+                  // retry until we ensure is created
+                  let rawSecret;
+                  let i = 0;
+                  do {
+                    await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
+
+                    rawSecret = await getSecret(
+                      client.secretsClient,
+                      secretName
+                    );
+                    i++;
+                  } while (!rawSecret && (i<30));
                   secret.name = secretName;
                   // we never store the secret value
                   secret.value = null;
-                  await AwsSecrectsModule.mappers.secret.db.update(secret, ctx);
+                  await AwsSecretsManagerModule.mappers.secret.db.update(secret, ctx);
                   out.push(secret);
                 }
               }
@@ -128,13 +142,13 @@ export const AwsSecrectsModule: Module2 = new Module2(
                 client.secretsClient,
                 secretName
               );
-              const res = AwsSecrectsModule.utils.secretsMapper(rawSecret, ctx);
+              const res = AwsSecretsManagerModule.utils.secretsMapper(rawSecret, ctx);
             } else {
               const rawSecrets =
                 (await getAllSecrets(client.secretsClient)) ?? [];
               const out = [];
               for (const i of rawSecrets) {
-                out.push(await AwsSecrectsModule.utils.secretsMapper(i, ctx));
+                out.push(await AwsSecretsManagerModule.utils.secretsMapper(i, ctx));
               }
               return out;
             }
@@ -145,7 +159,7 @@ export const AwsSecrectsModule: Module2 = new Module2(
             for (const secret of secrets) {
               const cloudRecord = ctx?.memo?.cloud?.Secret?.[secret.name ?? ""];
               const isUpdate = Object.is(
-                AwsSecrectsModule.mappers.secret.cloud.updateOrReplace(
+                AwsSecretsManagerModule.mappers.secret.cloud.updateOrReplace(
                   cloudRecord,
                   secret
                 ),
@@ -174,7 +188,7 @@ export const AwsSecrectsModule: Module2 = new Module2(
 
                 // modify the database, without saving the secret
                 secret.value = null;
-                await AwsSecrectsModule.mappers.secret.db.update(secret, ctx);
+                await AwsSecretsManagerModule.mappers.secret.db.update(secret, ctx);
                 out.push(secret);
               }
             }

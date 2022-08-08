@@ -22,7 +22,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ["aws_secret"];
+const modules = ["aws_secrets_manager"];
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -160,9 +160,9 @@ describe("Secret install/uninstall", () => {
       .install([], dbAlias, config.db.user, true)
       .then(...finish(done)));
 
-  it("uninstalls the secret module", uninstall(["aws_secret"]));
+  it("uninstalls the secret module", uninstall(["aws_secrets_manager"]));
 
-  it("installs the secret module", install(["aws_secret"]));
+  it("installs the secret module", install(["aws_secrets_manager"]));
 
   it("deletes the test db", (done) =>
     void iasql.disconnect(dbAlias, "not-needed").then(...finish(done)));
