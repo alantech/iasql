@@ -81,7 +81,7 @@ export class TypeormWrapper {
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
       name: dbname,
-      subscribers: ['src/modules/subscribers.ts'],
+      //subscribers: ['src/modules/subscribers.ts'],
       ...connectionConfig as PostgresConnectionOptions,
       database,
     };
