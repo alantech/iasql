@@ -114,6 +114,7 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
                 if (secretName) {
                   // retry until we ensure is created
                   let rawSecret;
+                  let i = 0;
                   do {
                     await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
 
@@ -121,7 +122,8 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
                       client.secretsClient,
                       secretName
                     );
-                  } while (!rawSecret);
+                    i++;
+                  } while (!rawSecret && (i<30));
                   secret.name = secretName;
                   // we never store the secret value
                   secret.value = null;
