@@ -7,6 +7,7 @@ import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
 
 import { modules as AllModules, } from '../modules'
 import config from '../config'
+import { NullCheckerSubscriber } from '../modules/subscribers';
 
 export class TypeormWrapper {
   private connection: Connection
@@ -81,7 +82,7 @@ export class TypeormWrapper {
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
       name: dbname,
-      //subscribers: ['src/modules/subscribers.ts'],
+      subscribers: [NullCheckerSubscriber],
       ...connectionConfig as PostgresConnectionOptions,
       database,
     };
