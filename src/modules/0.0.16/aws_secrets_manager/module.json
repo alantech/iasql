@@ -1,5 +1,5 @@
 {
-    "name": "aws_secret",
+    "name": "aws_secrets_manager",
     "dependencies": ["iasql_platform", "aws_account"]
   }
   
