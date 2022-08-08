@@ -4,12 +4,7 @@ function updateNulls(entity:any) {
     if (entity) {
         const that: any = entity;
         Object.keys(entity).forEach((k) => {
-            console.log("i iterate for");
-            console.log(k);
-            console.log(that[k]);
             if (that[k] === null) that[k] = undefined;
-            console.log("after");
-            console.log(that[k]);
         });
     }
 }
