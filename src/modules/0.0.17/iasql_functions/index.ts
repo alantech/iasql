@@ -6,7 +6,6 @@ import { ModuleBase, } from '../../interfaces'
 
 class IasqlFunctions extends ModuleBase {
   constructor() { super(); super.init(); }
-  dirname = __dirname;
   dependencies = metadata.dependencies;
   iasqlOperationType = IasqlOperationType;
 }
