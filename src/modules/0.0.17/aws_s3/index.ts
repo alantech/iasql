@@ -32,7 +32,15 @@ class BucketMapper extends MapperBase<Bucket> {
     'createBucket',
     (b) => ({ Bucket: b, }),
   );
-  getBucketPolicy = crudBuilder2<S3, 'getBucketPolicy'>('getBucketPolicy', (input) => input);
+  async getBucketPolicy(client: S3, input: GetBucketPolicyCommandInput) {
+    try {
+      const res = await client.getBucketPolicy(input);
+      return res;
+    } catch (_) {
+      // policy does not exist, return
+      return null;
+    }
+  }
   updateBucketPolicy = crudBuilder2<S3, 'putBucketPolicy'>(
     'putBucketPolicy',
     (input) => (input),
@@ -66,7 +74,7 @@ class BucketMapper extends MapperBase<Bucket> {
             Bucket: bucket.Name,
           };
           const bucketPolicy = await this.getBucketPolicy(client.s3Client, input);
-          const b:Bucket = this.module.bucket.bucketMapper(bucket);
+          const b: Bucket = this.module.bucket.bucketMapper(bucket);
 
           if (bucketPolicy && bucketPolicy.Policy) {
             b.policyDocument=JSON.parse(bucketPolicy.Policy);
