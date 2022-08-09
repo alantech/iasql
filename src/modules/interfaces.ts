@@ -22,6 +22,7 @@ export interface CrudInterface2<E> {
 }
 
 export class Crud2<E> {
+  module: ModuleInterface;
   createFn: (e: E[], ctx: Context) => Promise<void | E[]>;
   readFn: (ctx: Context, id?: string) => Promise<E[] | E | void>;
   updateFn: (e: E[], ctx: Context) => Promise<void | E[]>;
@@ -189,8 +190,16 @@ export class Crud2<E> {
     return this.updateOrReplaceFn(prev, next);
   }
 }
+export interface MapperInterface<E> {
+  entity: new() => E;
+  entityId: (e: E) => string;
+  equals: (a: E, b: E) => boolean;
+  source: 'db' | 'cloud';
+  db: Crud2<E>;
+  cloud: Crud2<E>;
+}
 
-export interface MapperInterface2<E> {
+export interface Mapper2ObjInterface<E> {
   entity:  new () =>  E;
   entityId?: (e: E) => string;
   equals: (a: E, b: E) => boolean;
@@ -207,7 +216,7 @@ export class Mapper2<E> {
   db: Crud2<E>;
   cloud: Crud2<E>;
 
-  constructor(def: MapperInterface2<E>) {
+  constructor(def: Mapper2ObjInterface<E>) {
     this.entity = def.entity;
     const cloudColumn = getCloudId(def.entity);
     if (def.entityId) {
@@ -257,6 +266,66 @@ export class Mapper2<E> {
   }
 }
 
+export class MapperBase<E> {
+  module: ModuleInterface;
+  entity: new() => E;
+  entityId: (e: E) => string;
+  equals: (a: E, b: E) => boolean;
+  source: 'db' | 'cloud';
+  db: Crud2<E>;
+  cloud: Crud2<E>;
+
+  init() {
+    const cloudColumn = getCloudId(this.entity);
+    if (!this.module) throw new Error('No module link established for this mapper');
+    if (!this.entity) throw new Error('No entity defined for this mapper');
+    if (!this.entityId) {
+      const ormMetadata = getMetadataArgsStorage();
+      const primaryColumn = ormMetadata
+        .columns
+        .filter(c => c.target === this.entity)
+        .filter(c => c.options.primary)
+        .map(c => c.propertyName)
+        .shift() ?? '';
+      // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
+      this.entityId = (e: E) => ((e as any)[cloudColumn] ?? (e as any)[primaryColumn]) + '';
+    }
+    if (!this.equals) throw new Error('No entity equals method defined'); // TODO: Make a default
+    if (!this.source) this.source = 'db';
+    if (this.db) {
+      this.db.entity = this.entity;
+      this.db.entityId = this.entityId;
+      this.db.dest = 'db';
+      this.db.module = this.module;
+    } else if (!!cloudColumn) {
+      this.db = new Crud2<E>({
+        create: (es: E[], ctx: Context) => ctx.orm.save(this.entity, es),
+        update: (es: E[], ctx: Context) => ctx.orm.save(this.entity, es),
+        delete: (es: E[], ctx: Context) => ctx.orm.remove(this.entity, es),
+        read: async (ctx: Context, id?: string) => {
+          const opts = id ? {
+            where: {
+              [cloudColumn]: id,
+            }
+          } : {};
+          return await ctx.orm.find(this.entity, opts);
+        },
+      });
+      this.db.entity = this.entity;
+      this.db.entityId = this.entityId;
+      this.db.dest = 'db';
+      this.db.module = this.module;
+    } else {
+      throw new Error('Cannot automatically build database bindings without @cloudId decorator')
+    }
+    if (!this.cloud) throw new Error('No cloud entity CRUD defined');
+    this.cloud.entity = this.entity;
+    this.cloud.entityId = this.entityId;
+    this.cloud.dest = 'cloud';
+    this.cloud.module = this.module;
+  }
+}
+
 export interface ModuleInterface {
   name: string;
   version?: string;
@@ -272,7 +341,7 @@ export interface ModuleInterface {
     context?: Context;
   };
   utils?: { [key: string]: any, };
-  mappers: { [key: string]: Mapper2<any>, };
+  mappers: { [key: string]: MapperInterface<any>, };
   migrations?: {
     install: (q: QueryRunner) => Promise<void>;
     remove: (q: QueryRunner) => Promise<void>;
@@ -291,7 +360,7 @@ export class Module2 {
     context?: Context;
   };
   utils: { [key: string]: any, };
-  mappers: { [key: string]: Mapper2<any>, };
+  mappers: { [key: string]: MapperInterface<any>, };
   migrations: {
     install: (q: QueryRunner) => Promise<void>;
     remove: (q: QueryRunner) => Promise<void>;
@@ -324,7 +393,7 @@ export class Module2 {
     this.utils = def?.utils ?? {};
     this.mappers = Object.fromEntries(
       Object.entries(def.mappers)
-        .filter(([_, m]: [string, any]) => m instanceof Mapper2) as [[string, Mapper2<any>]]
+        .filter(([_, m]: [string, any]) => m instanceof Mapper2) as [[string, MapperInterface<any>]]
     );
     const migrationDir = `${dirname}/migration`;
     const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
@@ -385,7 +454,7 @@ export class ModuleBase {
     context?: Context;
   };
   context?: Context;
-  mappers: { [key: string]: Mapper2<any>, };
+  mappers: { [key: string]: MapperInterface<any>, };
   migrations: {
     install: (q: QueryRunner) => Promise<void>;
     remove: (q: QueryRunner) => Promise<void>;
@@ -416,7 +485,7 @@ export class ModuleBase {
     if (this.context) this.provides.context = this.context;
     this.mappers = Object.fromEntries(
       Object.entries(this)
-        .filter(([_, m]: [string, any]) => m instanceof Mapper2) as [[string, Mapper2<any>]]
+        .filter(([_, m]: [string, any]) => m instanceof Mapper2) as [[string, MapperInterface<any>]]
     );
     const migrationDir = `${this.dirname}/migration`;
     const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
