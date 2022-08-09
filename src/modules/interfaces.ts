@@ -393,7 +393,8 @@ export class Module2 {
     this.utils = def?.utils ?? {};
     this.mappers = Object.fromEntries(
       Object.entries(def.mappers)
-        .filter(([_, m]: [string, any]) => m instanceof Mapper2) as [[string, MapperInterface<any>]]
+        .filter(([_, m]: [string, any]) => (m instanceof Mapper2 || m instanceof MapperBase)
+      ) as [[string, MapperInterface<any>]]
     );
     const migrationDir = `${dirname}/migration`;
     const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
@@ -485,7 +486,8 @@ export class ModuleBase {
     if (this.context) this.provides.context = this.context;
     this.mappers = Object.fromEntries(
       Object.entries(this)
-        .filter(([_, m]: [string, any]) => m instanceof Mapper2) as [[string, MapperInterface<any>]]
+        .filter(([_, m]: [string, any]) => (m instanceof Mapper2 || m instanceof MapperBase)
+      ) as [[string, MapperInterface<any>]]
     );
     const migrationDir = `${this.dirname}/migration`;
     const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
