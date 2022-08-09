@@ -149,7 +149,7 @@ class BucketMapper extends MapperBase<Bucket> {
     return bucket.policyDocument;
   }
 }
-  
+
 class AwsS3Module extends ModuleBase {
   dirname = __dirname;
   dependencies = metadata.dependencies;
