@@ -6,7 +6,6 @@ import { IasqlModule, IasqlTables, } from './entity'
 
 class IasqlPlatform extends ModuleBase {
   constructor() { super(); super.init(); }
-  dirname = __dirname;
   dependencies = metadata.dependencies;
   iasqlModule = IasqlModule;
   iasqlTables = IasqlTables;

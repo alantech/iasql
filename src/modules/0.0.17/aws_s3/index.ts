@@ -159,7 +159,6 @@ class BucketMapper extends MapperBase<Bucket> {
 }
 
 class AwsS3Module extends ModuleBase {
-  dirname = __dirname;
   dependencies = metadata.dependencies;
   bucket: BucketMapper;
 

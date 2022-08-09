@@ -2,7 +2,9 @@ import fs from 'fs'
 import path from 'path'
 
 import { QueryRunner, getMetadataArgsStorage, } from 'typeorm'
+import callsite from 'callsite'
 
+import { throwError, } from '../config/config'
 import { getCloudId, } from '../services/cloud-id'
 import logger from '../services/logger'
 
@@ -462,7 +464,10 @@ export class ModuleBase {
   };
 
   init() {
-    if (!this.dirname) throw new Error('Invalid Module defintion. No `dirname` property found');
+    if (!this.dirname) {
+      this.dirname = path.dirname(callsite()?.[1]?.getFileName?.()) ??
+        throwError('Invalid module definition. No `dirname` property found');
+    }
     // Extract the name and version from `__dirname`
     const pathSegments = this.dirname.split(path.sep);
     const name = pathSegments[pathSegments.length - 1];

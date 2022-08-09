@@ -26,7 +26,6 @@ class AccountMapper extends MapperBase<AwsAccountEntity> {
 }
 
 class AwsAccount extends ModuleBase {
-  dirname = __dirname;
   dependencies = metadata.dependencies;
   context: Context = {
     // This function is `async function () {` instead of `async () => {` because that enables the
