@@ -208,8 +208,8 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
     } while (!success && maxTries);
     connTemp = new pg.Client({
       database,
-      user: dbMan.baseConnConfig.username,
-      password: dbMan.baseConnConfig.password,
+      user,
+      password: pass,
       host: dbMan.baseConnConfig.host,
       ssl: dbMan.baseConnConfig.extra.ssl,
     });
