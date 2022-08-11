@@ -36,7 +36,7 @@ import {
 } from './entity'
 import { AwsVpcModule, } from '../aws_vpc'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
-import { AwsAcmListModule, AwsSecurityGroupModule } from '..'
+import { awsAcmListModule, AwsSecurityGroupModule } from '..'
 import * as metadata from './module.json'
 
 const createListener = crudBuilderFormat<
@@ -257,8 +257,8 @@ export const AwsElbModule: Module2 = new Module2({
       if (l.SslPolicy && l.Certificates?.length) {
         out.sslPolicy = l.SslPolicy;
         const cloudCertificate = l.Certificates.pop();
-        out.certificate = await AwsAcmListModule.mappers.certificate.db.read(ctx, cloudCertificate?.CertificateArn) ??
-          await AwsAcmListModule.mappers.certificate.cloud.read(ctx, cloudCertificate?.CertificateArn);
+        out.certificate = await awsAcmListModule.mappers.certificate.db.read(ctx, cloudCertificate?.CertificateArn) ??
+          await awsAcmListModule.mappers.certificate.cloud.read(ctx, cloudCertificate?.CertificateArn);
       }
       return out;
     },
