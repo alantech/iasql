@@ -134,6 +134,12 @@ class CertificateMapper extends MapperBase<Certificate> {
       }
     },
   });
+
+  constructor(module: AwsAcmListModule) {
+    super();
+    this.module = module;
+    super.init();
+  }
 }
 
 class AwsAcmListModule extends ModuleBase {
@@ -142,7 +148,7 @@ class AwsAcmListModule extends ModuleBase {
 
   constructor() {
     super();
-    this.certificate = new CertificateMapper();
+    this.certificate = new CertificateMapper(this);
     super.init();
   }
 }

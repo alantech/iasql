@@ -278,9 +278,9 @@ export class MapperBase<E> {
   cloud: Crud2<E>;
 
   init() {
-    const cloudColumn = getCloudId(this.entity);
     if (!this.module) throw new Error('No module link established for this mapper');
     if (!this.entity) throw new Error('No entity defined for this mapper');
+    const cloudColumn = getCloudId(this.entity);
     if (!this.entityId) {
       const ormMetadata = getMetadataArgsStorage();
       const primaryColumn = ormMetadata
