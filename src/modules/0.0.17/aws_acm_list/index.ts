@@ -81,16 +81,16 @@ class CertificateMapper extends MapperBase<Certificate> {
     return out;
   };
   db = new Crud2<Certificate>({
-    create: (es: Certificate[], ctx: Context) => ctx.orm.save(this.entity, es),
-    update: (es: Certificate[], ctx: Context) => ctx.orm.save(this.entity, es),
-    delete: (es: Certificate[], ctx: Context) => ctx.orm.remove(this.entity, es),
+    create: (es: Certificate[], ctx: Context) => ctx.orm.save(Certificate, es),
+    update: (es: Certificate[], ctx: Context) => ctx.orm.save(Certificate, es),
+    delete: (es: Certificate[], ctx: Context) => ctx.orm.remove(Certificate, es),
     read: async (ctx: Context, arn?: string) => {
       const opts = arn ? {
         where: {
           arn,
         }
       } : {};
-      return await ctx.orm.find(this.entity, opts);
+      return await ctx.orm.find(Certificate, opts);
     },
   });
   cloud = new Crud2<Certificate>({

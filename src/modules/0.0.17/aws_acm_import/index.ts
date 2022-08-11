@@ -30,16 +30,16 @@ class CertificateImportMapper extends MapperBase<CertificateImport> {
   }
 
   db = new Crud2<CertificateImport>({
-    create: (es: CertificateImport[], ctx: Context) => ctx.orm.save(this.entity, es),
-    update: (es: CertificateImport[], ctx: Context) => ctx.orm.save(this.entity, es),
-    delete: (es: CertificateImport[], ctx: Context) => ctx.orm.remove(this.entity, es),
+    create: (es: CertificateImport[], ctx: Context) => ctx.orm.save(CertificateImport, es),
+    update: (es: CertificateImport[], ctx: Context) => ctx.orm.save(CertificateImport, es),
+    delete: (es: CertificateImport[], ctx: Context) => ctx.orm.remove(CertificateImport, es),
     read: async (ctx: Context, id?: string) => {
       const opts = id ? {
         where: {
           id,
         }
       } : {};
-      return await ctx.orm.find(this.entity, opts);
+      return await ctx.orm.find(CertificateImport, opts);
     },
   });
   cloud = new Crud2<CertificateImport>({
