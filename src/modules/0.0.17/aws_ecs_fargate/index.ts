@@ -35,7 +35,7 @@ import {
   AwsElbModule,
   AwsIamModule,
   AwsSecurityGroupModule,
-  AwsCloudwatchModule,
+  awsCloudwatchModule,
   AwsVpcModule,
 } from '..'
 import * as metadata from './module.json'
@@ -386,7 +386,7 @@ export const AwsEcsFargateModule: Module2 = new Module2({
       // TODO: eventually handle more log drivers
       if (c.logConfiguration?.logDriver === 'awslogs') {
         const groupName = c.logConfiguration.options['awslogs-group'];
-        const logGroup = await AwsCloudwatchModule.mappers.logGroup.db.read(ctx, groupName) ?? await AwsCloudwatchModule.mappers.logGroup.cloud.read(ctx, groupName);
+        const logGroup = await awsCloudwatchModule.mappers.logGroup.db.read(ctx, groupName) ?? await awsCloudwatchModule.mappers.logGroup.cloud.read(ctx, groupName);
         out.logGroup = logGroup;
       }
       return out;
