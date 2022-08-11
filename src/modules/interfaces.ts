@@ -279,7 +279,6 @@ export class MapperBase<E> {
 
   init() {
     const cloudColumn = getCloudId(this.entity);
-    if ((cloudColumn as any) instanceof Error) throw cloudColumn;
     if (!this.module) throw new Error('No module link established for this mapper');
     if (!this.entity) throw new Error('No entity defined for this mapper');
     if (!this.entityId) {
@@ -300,7 +299,7 @@ export class MapperBase<E> {
       this.db.entityId = this.entityId;
       this.db.dest = 'db';
       this.db.module = this.module;
-    } else if (!!cloudColumn) {
+    } else if (!!cloudColumn && !((cloudColumn as any) instanceof Error)) {
       this.db = new Crud2<E>({
         create: (es: E[], ctx: Context) => ctx.orm.save(this.entity, es),
         update: (es: E[], ctx: Context) => ctx.orm.save(this.entity, es),
