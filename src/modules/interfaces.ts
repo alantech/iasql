@@ -279,6 +279,7 @@ export class MapperBase<E> {
 
   init() {
     const cloudColumn = getCloudId(this.entity);
+    if ((cloudColumn as any) instanceof Error) throw cloudColumn;
     if (!this.module) throw new Error('No module link established for this mapper');
     if (!this.entity) throw new Error('No entity defined for this mapper');
     if (!this.entityId) {
