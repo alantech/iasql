@@ -2,10 +2,8 @@ import {
   CacheCluster as CacheClusterAWS,
   CreateCacheClusterCommandInput,
   ElastiCache,
-  CreateCacheClusterCommandOutput,
   paginateDescribeCacheClusters,
   DescribeCacheClustersCommandInput,
-  ModifyCacheClusterCommandInput,
 } from "@aws-sdk/client-elasticache";
 import {
   AWS,
@@ -68,22 +66,6 @@ async function createCacheCluster(
   return undefined;
 }
 
-async function modifyCacheCluster(
-  client: ElastiCache,
-  input: ModifyCacheClusterCommandInput
-) {
-  const res = await client.modifyCacheCluster(input);
-  if (res) {
-    const out = await waitForClusterState(
-      client,
-      res.CacheCluster?.CacheClusterId!,
-      "modifying"
-    );
-    return out;
-  }
-  return undefined;
-}
-
 const getCacheCluster = crudBuilderFormat<
   ElastiCache,
   "describeCacheClusters",
@@ -106,8 +88,7 @@ export const AwsElastiCacheModule: Module2 = new Module2(
   {
     ...metadata,
     utils: {
-      cacheClusterMapper: async (cluster: CacheClusterAWS, ctx: Context) => {
-        const client = (await ctx.getAwsClient()) as AWS;
+      cacheClusterMapper: (cluster: CacheClusterAWS) => {
         const out = new CacheCluster();
         if (!cluster.CacheClusterId) return undefined;
         out.clusterId = cluster.CacheClusterId;
@@ -130,7 +111,7 @@ export const AwsElastiCacheModule: Module2 = new Module2(
           Object.is(a.numNodes, b.numNodes),
         source: "db",
         cloud: new Crud2({
-          updateOrReplace: (a: CacheCluster, b: CacheCluster) => {
+          updateOrReplace: (_a: CacheCluster, _b: CacheCluster) => {
             // TEMPORARY: we do not update because it is taking long time, it is
             // not sustainable
             /*if (Object.is(a.clusterId, b.clusterId)) return "update";
@@ -153,7 +134,7 @@ export const AwsElastiCacheModule: Module2 = new Module2(
               );
               if (res) {
                 const newCluster: CacheCluster =
-                  await AwsElastiCacheModule.utils.cacheClusterMapper(res, ctx);
+                  AwsElastiCacheModule.utils.cacheClusterMapper(res);
                 newCluster.clusterId = cluster.clusterId;
                 await AwsElastiCacheModule.mappers.cacheCluster.db.update(
                   newCluster,
@@ -174,19 +155,14 @@ export const AwsElastiCacheModule: Module2 = new Module2(
               if (rawCluster?.CacheClusterStatus === "deleting")
                 return undefined;
 
-              return AwsElastiCacheModule.utils.cacheClusterMapper(
-                rawCluster,
-                ctx
-              );
+              return AwsElastiCacheModule.utils.cacheClusterMapper(rawCluster);
             } else {
               const rawClusters =
                 (await getCacheClusters(client.elasticacheClient)) ?? [];
               const out = [];
               for (const i of rawClusters) {
                 if (i.CacheClusterStatus === "deleting") continue;
-                out.push(
-                  await AwsElastiCacheModule.utils.cacheClusterMapper(i, ctx)
-                );
+                out.push(AwsElastiCacheModule.utils.cacheClusterMapper(i));
               }
               return out;
             }
@@ -238,10 +214,7 @@ export const AwsElastiCacheModule: Module2 = new Module2(
                     await createCacheCluster(client.elasticacheClient, input);
                   if (res) {
                     const newCluster: CacheCluster =
-                      await AwsElastiCacheModule.utils.cacheClusterMapper(
-                        res,
-                        ctx
-                      );
+                      AwsElastiCacheModule.utils.cacheClusterMapper(res);
                     newCluster.clusterId = cluster.clusterId;
                     await AwsElastiCacheModule.mappers.cacheCluster.db.update(
                       newCluster,
