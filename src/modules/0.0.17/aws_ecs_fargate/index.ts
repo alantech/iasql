@@ -31,11 +31,11 @@ import {
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import {
-  AwsEcrModule,
   AwsElbModule,
   AwsSecurityGroupModule,
   AwsVpcModule,
   awsCloudwatchModule,
+  awsEcrModule,
   awsIamModule,
 } from '..'
 import * as metadata from './module.json'
@@ -359,8 +359,8 @@ export const AwsEcsFargateModule: Module2 = new Module2({
         const parts = containerImage.split('/');
         const repositoryName = parts[parts.length - 1] ?? null;
         try {
-          const repository = await AwsEcrModule.mappers.repository.db.read(ctx, repositoryName) ??
-            await AwsEcrModule.mappers.repository.cloud.read(ctx, repositoryName);
+          const repository = await awsEcrModule.repository.db.read(ctx, repositoryName) ??
+            await awsEcrModule.repository.cloud.read(ctx, repositoryName);
           out.repository = repository;
         } catch (e) {
           // Repository could have been deleted
@@ -371,8 +371,8 @@ export const AwsEcsFargateModule: Module2 = new Module2({
         const parts = containerImage.split('/');
         const publicRepositoryName = parts[parts.length - 1] ?? null;
         try {
-          const publicRepository = await AwsEcrModule.mappers.publicRepository.db.read(ctx, publicRepositoryName) ??
-            await AwsEcrModule.mappers.publicRepository.cloud.read(ctx, publicRepositoryName);
+          const publicRepository = await awsEcrModule.publicRepository.db.read(ctx, publicRepositoryName) ??
+            await awsEcrModule.publicRepository.cloud.read(ctx, publicRepositoryName);
           out.publicRepository = publicRepository;
         } catch (e) {
           // Repository could have been deleted
