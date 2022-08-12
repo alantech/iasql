@@ -1,7 +1,7 @@
 import { ACM, ImportCertificateCommandInput, paginateListCertificates, } from '@aws-sdk/client-acm'
 import { AWS, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
-import { AwsAcmListModule } from '../aws_acm_list'
+import { awsAcmListModule } from '../aws_acm_list'
 import { CertificateImport } from './entity'
 import * as metadata from './module.json'
 
@@ -29,6 +29,19 @@ class CertificateImportMapper extends MapperBase<CertificateImport> {
     return arn;
   }
 
+  db = new Crud2<CertificateImport>({
+    create: (es: CertificateImport[], ctx: Context) => ctx.orm.save(CertificateImport, es),
+    update: (es: CertificateImport[], ctx: Context) => ctx.orm.save(CertificateImport, es),
+    delete: (es: CertificateImport[], ctx: Context) => ctx.orm.remove(CertificateImport, es),
+    read: async (ctx: Context, id?: string) => {
+      const opts = id ? {
+        where: {
+          id,
+        }
+      } : {};
+      return await ctx.orm.find(CertificateImport, opts);
+    },
+  });
   cloud = new Crud2<CertificateImport>({
     create: async (es: CertificateImport[], ctx: Context) => {
       const client = await ctx.getAwsClient() as AWS;
@@ -43,10 +56,10 @@ class CertificateImportMapper extends MapperBase<CertificateImport> {
         }
         const importedCertArn = await this.importCertificate(client.acmClient, input);
         if (!importedCertArn) throw new Error('Error importing certificate');
-        const importedCert = await AwsAcmListModule.mappers.certificate.cloud.read(ctx, importedCertArn);
+        const importedCert = await awsAcmListModule.certificate.cloud.read(ctx, importedCertArn);
         await this.module.certificateImport.db.delete(e, ctx);
         try {
-          await AwsAcmListModule.mappers.certificate.db.create(importedCert, ctx);
+          await awsAcmListModule.certificate.db.create(importedCert, ctx);
         } catch (e) {
           // Do nothing
           // AwsAcmListModule could not be installed and that's ok since there's no table dependency between them
