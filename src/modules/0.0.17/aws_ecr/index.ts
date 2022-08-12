@@ -309,6 +309,8 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     return out;
   };
   policyComparisonEq(a: any, b: any): boolean {
+    if (a instanceof Array && !(b instanceof Array) && a.length === 1 && this.policyComparisonEq(a[0], b)) return true;
+    if (b instanceof Array && !(a instanceof Array) && b.length === 1 && this.policyComparisonEq(b[0], a)) return true;
     // From https://stackoverflow.com/questions/44792629/how-to-compare-two-objects-with-nested-array-of-object-using-loop
     let same = Object.keys(a).length === Object.keys(b).length;
     if (!same) return same;
