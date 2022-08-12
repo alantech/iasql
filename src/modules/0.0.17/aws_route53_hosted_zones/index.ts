@@ -8,7 +8,7 @@ import {
 } from '@aws-sdk/client-route-53'
 import { AWS, crudBuilderFormat, paginateBuilder, crudBuilder2, } from '../../../services/aws_macros'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
-import { AwsElbModule } from '../aws_elb';
+import { awsElbModule } from '../aws_elb';
 import { AliasTarget, HostedZone } from './entity'
 import { RecordType, ResourceRecordSet } from './entity/resource_records_set';
 import * as metadata from './module.json'
@@ -91,10 +91,10 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2({
         // TODO: improve implementation
         let loadBalancer;
         const cleanAliasDns = at.DNSName[at.DNSName.length - 1] === '.' ? at.DNSName.substring(0, at.DNSName.length - 1) : at.DNSName;
-        const dbLoadBalancers = await AwsElbModule.mappers.loadBalancer.db.read(ctx);
+        const dbLoadBalancers = await awsElbModule.loadBalancer.db.read(ctx);
         loadBalancer = dbLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
         if (!loadBalancer) {
-          const cloudLoadBalancers = await AwsElbModule.mappers.loadBalancer.cloud.read(ctx);
+          const cloudLoadBalancers = await awsElbModule.loadBalancer.cloud.read(ctx);
           loadBalancer = cloudLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
         }
         out.loadBalancer = loadBalancer;

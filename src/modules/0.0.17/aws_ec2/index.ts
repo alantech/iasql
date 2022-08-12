@@ -12,9 +12,9 @@ import { GeneralPurposeVolume, GeneralPurposeVolumeType, Instance, RegisteredIns
 import { AwsSecurityGroupModule, } from '../aws_security_group'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
-import { AwsElbModule } from '../aws_elb'
-import { awsIamModule } from '../aws_iam'
 import { AwsVpcModule } from '../aws_vpc'
+import { awsElbModule } from '../aws_elb'
+import { awsIamModule } from '../aws_iam'
 import {
   AWS,
   attachVolume,
@@ -101,8 +101,8 @@ export const AwsEc2Module: Module2 = new Module2({
       const out = new RegisteredInstance();
       out.instance = await AwsEc2Module.mappers.instance.db.read(ctx, registeredInstance.instanceId) ??
         await AwsEc2Module.mappers.instance.cloud.read(ctx, registeredInstance.instanceId);
-      out.targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, registeredInstance.targetGroupArn) ??
-        await AwsElbModule.mappers.targetGroup.cloud.read(ctx, registeredInstance.targetGroupArn);
+      out.targetGroup = await awsElbModule.targetGroup.db.read(ctx, registeredInstance.targetGroupArn) ??
+        await awsElbModule.targetGroup.cloud.read(ctx, registeredInstance.targetGroupArn);
       out.port = registeredInstance.port ? +registeredInstance.port : undefined;
       return out;
     },

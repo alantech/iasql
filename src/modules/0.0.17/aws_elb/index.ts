@@ -240,7 +240,7 @@ class ListenerMapper extends MapperBase<Listener> {
 class LoadBalancerMapper extends MapperBase<LoadBalancer> {
   module: AwsElbModule;
   entity = LoadBalancer;
-  equals = (a: LoadBalancer, b: LoadBalancer) => 
+  equals = (a: LoadBalancer, b: LoadBalancer) =>
     Object.is(a.availabilityZones?.length, b.availabilityZones?.length)
     && (a.availabilityZones
       ?.filter(aaz => !!aaz)
@@ -612,7 +612,7 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
     }
     return out;
   }
-  
+
   getVpcs = paginateBuilder<EC2>(paginateDescribeVpcs, 'Vpcs');
   createTargetGroup = crudBuilderFormat<
     ElasticLoadBalancingV2,
@@ -726,9 +726,13 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
         const cloudRecord = ctx?.memo?.cloud?.TargetGroup?.[e.targetGroupArn ?? ''] as TargetGroup;
         // Short-circuit if it's just a default VPC vs no-VPC difference
         if (cloudRecord.vpc?.isDefault && !e.vpc) {
-          const out = await this.module.targetGroup.db.update(cloudRecord, ctx);
-          if (out instanceof TargetGroup) return [out];
-          return out;
+          const o = await this.module.targetGroup.db.update(cloudRecord, ctx);
+          if (!o) continue;
+          if (o instanceof TargetGroup) {
+            out.push(o);
+          } else {
+            out.push(...o);
+          }
         }
         const isUpdate = this.module.targetGroup.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {

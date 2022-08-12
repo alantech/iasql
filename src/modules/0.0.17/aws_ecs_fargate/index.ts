@@ -31,11 +31,11 @@ import {
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import {
-  AwsElbModule,
   AwsSecurityGroupModule,
   AwsVpcModule,
   awsCloudwatchModule,
   awsEcrModule,
+  awsElbModule,
   awsIamModule,
 } from '..'
 import * as metadata from './module.json'
@@ -453,8 +453,8 @@ export const AwsEcsFargateModule: Module2 = new Module2({
       const serviceLoadBalancer = s.loadBalancers.pop();
       if (serviceLoadBalancer) {
         try {
-          out.targetGroup = await AwsElbModule.mappers.targetGroup.db.read(ctx, serviceLoadBalancer.targetGroupArn) ??
-            await AwsElbModule.mappers.targetGroup.cloud.read(ctx, serviceLoadBalancer.targetGroupArn);
+          out.targetGroup = await awsElbModule.targetGroup.db.read(ctx, serviceLoadBalancer.targetGroupArn) ??
+            await awsElbModule.targetGroup.cloud.read(ctx, serviceLoadBalancer.targetGroupArn);
         } catch (_) {
           // Ignore if misconfigured
           if (!out.targetGroup) return undefined;
