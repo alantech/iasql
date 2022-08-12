@@ -24,179 +24,6 @@ interface DBParameterGroupWParameters extends DBParameterGroup {
   Parameters:  Parameter[];
 }
 
-const getDBInstance = crudBuilderFormat<AWSRDS, 'describeDBInstances', DBInstance | undefined>(
-  'describeDBInstances',
-  (DBInstanceIdentifier) => ({ DBInstanceIdentifier, }),
-  (res) => (res?.DBInstances ?? [])[0],
-);
-const getAllDBInstances = paginateBuilder<AWSRDS>(paginateDescribeDBInstances, 'DBInstances');
-const getDBInstances = async (client: AWSRDS) => (await getAllDBInstances(client)).flat().filter(
-  dbInstance => dbInstance.DBInstanceStatus === 'available'
-);
-const createDBParameterGroup = crudBuilderFormat<
-  AWSRDS,
-  'createDBParameterGroup',
-  DBParameterGroup | undefined
->(
-  'createDBParameterGroup',
-  (input) => input,
-  (res) => res?.DBParameterGroup,
-);
-const getSimpleDBParameterGroup = crudBuilderFormat<
-  AWSRDS,
-  'describeDBParameterGroups',
-  DBParameterGroup | undefined
->(
-  'describeDBParameterGroups',
-  (DBParameterGroupName) => ({ DBParameterGroupName, }),
-  (res) => (res?.DBParameterGroups ?? []).pop(),
-);
-const getDBParameterGroupParameters = paginateBuilder<AWSRDS>(
-  paginateDescribeDBParameters,
-  'Parameters',
-  undefined,
-  undefined,
-  (DBParameterGroupName) => ({ DBParameterGroupName, }),
-);
-const getDBParameterGroup = async (client: AWSRDS, DBParameterGroupName: string) => {
-  const simpleParameterGroup = await getSimpleDBParameterGroup(client, DBParameterGroupName);
-  const Parameters = await getDBParameterGroupParameters(client, DBParameterGroupName);
-  return { ...simpleParameterGroup, Parameters, };
-};
-const getSimpleDBParameterGroups = paginateBuilder<AWSRDS>(
-  paginateDescribeDBParameterGroups,
-  'DBParameterGroups',
-);
-const getDBParameterGroups = (client: AWSRDS) => mapLin(getSimpleDBParameterGroups(client), async (simpleParameterGroup: DBParameterGroup) => {
-  const Parameters = await getDBParameterGroupParameters(client, simpleParameterGroup.DBParameterGroupName ?? '');
-  return { ...simpleParameterGroup, Parameters, };
-});
-const modifyParameter = crudBuilder2<AWSRDS, 'modifyDBParameterGroup'>(
-  'modifyDBParameterGroup',
-  (DBParameterGroupName, parameter) => ({ DBParameterGroupName, Parameters: [parameter], }),
-);
-const deleteDBParameterGroup = crudBuilder2<AWSRDS, 'deleteDBParameterGroup'>(
-  'deleteDBParameterGroup',
-  (DBParameterGroupName) => ({ DBParameterGroupName, }),
-);
-
-// TODO: Make a waiter macro
-async function createDBInstance(client: AWSRDS, instanceParams: CreateDBInstanceCommandInput) {
-  let newDBInstance = (await client.createDBInstance(instanceParams)).DBInstance;
-  const input: DescribeDBInstancesCommandInput = {
-    DBInstanceIdentifier: instanceParams.DBInstanceIdentifier,
-  };
-  // TODO: should we use the paginator instead?
-  await createWaiter<AWSRDS, DescribeDBInstancesCommandInput>(
-    {
-      client,
-      // all in seconds
-      maxWaitTime: 1200,
-      minDelay: 1,
-      maxDelay: 4,
-    },
-    input,
-    async (cl, cmd) => {
-      try {
-        const data = await cl.describeDBInstances(cmd);
-        for (const dbInstance of data?.DBInstances ?? []) {
-          if (dbInstance.DBInstanceStatus !== 'available')
-            return { state: WaiterState.RETRY };
-          newDBInstance = dbInstance;
-        }
-        return { state: WaiterState.SUCCESS };
-      } catch (e: any) {
-        if (e.Code === 'InvalidInstanceID.NotFound')
-          return { state: WaiterState.RETRY };
-        throw e;
-      }
-    },
-  );
-  return newDBInstance;
-}
-async function updateDBInstance(client: AWSRDS, input: ModifyDBInstanceCommandInput) {
-  let updatedDBInstance = (await client.modifyDBInstance(input))?.DBInstance;
-  const inputCommand: DescribeDBInstancesCommandInput = {
-    DBInstanceIdentifier: input.DBInstanceIdentifier,
-  };
-  await createWaiter<AWSRDS, DescribeDBInstancesCommandInput>(
-    {
-      client,
-      // all in seconds
-      maxWaitTime: 300,
-      minDelay: 1,
-      maxDelay: 4,
-    },
-    inputCommand,
-    async (cl, cmd) => {
-      try {
-        const data = await cl.describeDBInstances(cmd);
-        if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
-        for (const dbInstance of data?.DBInstances ?? []) {
-          if (dbInstance.DBInstanceStatus === 'available')
-            return { state: WaiterState.RETRY };
-        }
-        return { state: WaiterState.SUCCESS };
-      } catch (e: any) {
-        if (e.Code === 'InvalidInstanceID.NotFound')
-          return { state: WaiterState.RETRY };
-        throw e;
-      }
-    },
-  );
-  await createWaiter<AWSRDS, DescribeDBInstancesCommandInput>(
-    {
-      client,
-      // all in seconds
-      maxWaitTime: 1200,
-      minDelay: 1,
-      maxDelay: 4,
-    },
-    inputCommand,
-    async (cl, cmd) => {
-      try {
-        const data = await cl.describeDBInstances(cmd);
-        if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
-        for (const dbInstance of data?.DBInstances ?? []) {
-          if (dbInstance.DBInstanceStatus !== 'available')
-            return { state: WaiterState.RETRY };
-          updatedDBInstance = dbInstance;
-        }
-        return { state: WaiterState.SUCCESS };
-      } catch (e: any) {
-        if (e.Code === 'InvalidInstanceID.NotFound')
-          return { state: WaiterState.RETRY };
-        throw e;
-      }
-    },
-  );
-  return updatedDBInstance;
-}
-async function deleteDBInstance(client: AWSRDS, deleteInput: DeleteDBInstanceMessage) {
-  await client.deleteDBInstance(deleteInput);
-  const cmdInput: DescribeDBInstancesCommandInput = {
-    DBInstanceIdentifier: deleteInput.DBInstanceIdentifier,
-  };
-  await createWaiter<AWSRDS, DescribeDBInstancesCommandInput>(
-    {
-      client,
-      // all in seconds
-      maxWaitTime: 1200,
-      minDelay: 1,
-      maxDelay: 4,
-    },
-    cmdInput,
-    async (cl, input) => {
-      const data = await cl.describeDBInstances(input);
-      for (const dbInstance of data?.DBInstances ?? []) {
-        if (dbInstance.DBInstanceStatus === 'deleting')
-          return { state: WaiterState.RETRY };
-      }
-      return { state: WaiterState.SUCCESS };
-    },
-  );
-}
-
 class RdsMapper extends MapperBase<RDS> {
   module: AwsRdsModule;
   entity = RDS;
@@ -207,10 +34,11 @@ class RdsMapper extends MapperBase<RDS> {
     && Object.is(a.endpointAddr, b.endpointAddr)
     && Object.is(a.endpointHostedZoneId, b.endpointHostedZoneId)
     && Object.is(a.endpointPort, b.endpointPort)
-    && !a.masterUserPassword  // Special case, if master password defined, will update the instance password
+    && !a.masterUserPassword  // Special case, if master password defined, will update the password
     && Object.is(a.masterUsername, b.masterUsername)
     && Object.is(a.vpcSecurityGroups.length, b.vpcSecurityGroups.length)
-    && (a.vpcSecurityGroups?.every(asg => !!b.vpcSecurityGroups.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
+    && (a.vpcSecurityGroups?.every(asg => !!b.vpcSecurityGroups
+      .find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
     && Object.is(a.allocatedStorage, b.allocatedStorage)
     && Object.is(a.backupRetentionPeriod, b.backupRetentionPeriod)
     && Object.is(a.parameterGroup?.arn, b.parameterGroup?.arn);
@@ -229,7 +57,9 @@ class RdsMapper extends MapperBase<RDS> {
     out.endpointPort = rds?.Endpoint?.Port;
     out.engine = `${rds?.Engine}:${rds?.EngineVersion}`;
     out.masterUsername = rds?.MasterUsername;
-    const vpcSecurityGroupIds = rds?.VpcSecurityGroups?.filter((vpcsg: any) => !!vpcsg?.VpcSecurityGroupId).map((vpcsg: any) => vpcsg?.VpcSecurityGroupId);
+    const vpcSecurityGroupIds = rds?.VpcSecurityGroups
+      ?.filter((vpcsg: any) => !!vpcsg?.VpcSecurityGroupId)
+      .map((vpcsg: any) => vpcsg?.VpcSecurityGroupId);
     out.vpcSecurityGroups = [];
     for (const sgId of vpcSecurityGroupIds) {
       const sg = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId) ??
@@ -239,11 +69,138 @@ class RdsMapper extends MapperBase<RDS> {
     out.backupRetentionPeriod = rds?.BackupRetentionPeriod ?? 1;
     if (rds.DBParameterGroups?.length) {
       const parameterGroup = rds.DBParameterGroups[0];
-      out.parameterGroup = await this.module.parameterGroup.db.read(ctx, parameterGroup.DBParameterGroupName) ??
-        await this.module.parameterGroup.cloud.read(ctx, parameterGroup.DBParameterGroupName);
+      out.parameterGroup = await this.module.parameterGroup.db.read(
+        ctx,
+        parameterGroup.DBParameterGroupName
+      ) ?? await this.module.parameterGroup.cloud.read(ctx, parameterGroup.DBParameterGroupName);
     }
     return out;
   };
+  getDBInstance = crudBuilderFormat<AWSRDS, 'describeDBInstances', DBInstance | undefined>(
+    'describeDBInstances',
+    (DBInstanceIdentifier) => ({ DBInstanceIdentifier, }),
+    (res) => (res?.DBInstances ?? [])[0],
+  );
+  getAllDBInstances = paginateBuilder<AWSRDS>(paginateDescribeDBInstances, 'DBInstances');
+  getDBInstances = async (client: AWSRDS) => (await this.getAllDBInstances(client)).flat().filter(
+    dbInstance => dbInstance.DBInstanceStatus === 'available'
+  );
+  // TODO: Make a waiter macro
+  async createDBInstance(client: AWSRDS, instanceParams: CreateDBInstanceCommandInput) {
+    let newDBInstance = (await client.createDBInstance(instanceParams)).DBInstance;
+    const input: DescribeDBInstancesCommandInput = {
+      DBInstanceIdentifier: instanceParams.DBInstanceIdentifier,
+    };
+    // TODO: should we use the paginator instead?
+    await createWaiter<AWSRDS, DescribeDBInstancesCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 1200,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (cl, cmd) => {
+        try {
+          const data = await cl.describeDBInstances(cmd);
+          for (const dbInstance of data?.DBInstances ?? []) {
+            if (dbInstance.DBInstanceStatus !== 'available')
+              return { state: WaiterState.RETRY };
+            newDBInstance = dbInstance;
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
+    );
+    return newDBInstance;
+  }
+  async updateDBInstance(client: AWSRDS, input: ModifyDBInstanceCommandInput) {
+    let updatedDBInstance = (await client.modifyDBInstance(input))?.DBInstance;
+    const inputCommand: DescribeDBInstancesCommandInput = {
+      DBInstanceIdentifier: input.DBInstanceIdentifier,
+    };
+    await createWaiter<AWSRDS, DescribeDBInstancesCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      inputCommand,
+      async (cl, cmd) => {
+        try {
+          const data = await cl.describeDBInstances(cmd);
+          if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
+          for (const dbInstance of data?.DBInstances ?? []) {
+            if (dbInstance.DBInstanceStatus === 'available')
+              return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
+    );
+    await createWaiter<AWSRDS, DescribeDBInstancesCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 1200,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      inputCommand,
+      async (cl, cmd) => {
+        try {
+          const data = await cl.describeDBInstances(cmd);
+          if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
+          for (const dbInstance of data?.DBInstances ?? []) {
+            if (dbInstance.DBInstanceStatus !== 'available')
+              return { state: WaiterState.RETRY };
+            updatedDBInstance = dbInstance;
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.Code === 'InvalidInstanceID.NotFound')
+            return { state: WaiterState.RETRY };
+          throw e;
+        }
+      },
+    );
+    return updatedDBInstance;
+  }
+  async deleteDBInstance(client: AWSRDS, deleteInput: DeleteDBInstanceMessage) {
+    await client.deleteDBInstance(deleteInput);
+    const cmdInput: DescribeDBInstancesCommandInput = {
+      DBInstanceIdentifier: deleteInput.DBInstanceIdentifier,
+    };
+    await createWaiter<AWSRDS, DescribeDBInstancesCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 1200,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      cmdInput,
+      async (cl, input) => {
+        const data = await cl.describeDBInstances(input);
+        for (const dbInstance of data?.DBInstances ?? []) {
+          if (dbInstance.DBInstanceStatus === 'deleting')
+            return { state: WaiterState.RETRY };
+        }
+        return { state: WaiterState.SUCCESS };
+      },
+    );
+  }
 
   cloud = new Crud2({
     create: async (es: RDS[], ctx: Context) => {
@@ -270,17 +227,23 @@ class RdsMapper extends MapperBase<RDS> {
         if (e.parameterGroup) {
           instanceParams.DBParameterGroupName = e.parameterGroup.name;
         }
-        const result = await createDBInstance(client.rdsClient, instanceParams);
+        const result = await this.createDBInstance(client.rdsClient, instanceParams);
         // TODO: Handle if it fails (somehow)
         if (!result?.hasOwnProperty('DBInstanceIdentifier')) { // Failure
           throw new Error('what should we do here?');
         }
         // Re-get the inserted record to get all of the relevant records we care about
-        const newObject = await getDBInstance(client.rdsClient, result.DBInstanceIdentifier ?? '');
+        const newObject = await this.getDBInstance(
+          client.rdsClient,
+          result.DBInstanceIdentifier ?? ''
+        );
         // We need to update the parameter groups if its a default one and it does not exists
         const parameterGroupName = newObject?.DBParameterGroups?.[0].DBParameterGroupName;
         if (!(await this.module.parameterGroup.db.read(ctx, parameterGroupName))) {
-          const cloudParameterGroup = await this.module.parameterGroup.cloud.read(ctx, parameterGroupName);
+          const cloudParameterGroup = await this.module.parameterGroup.cloud.read(
+            ctx,
+            parameterGroupName
+          );
           await this.module.parameterGroup.db.create(cloudParameterGroup, ctx);
         }
         // We map this into the same kind of entity as `obj`
@@ -289,7 +252,8 @@ class RdsMapper extends MapperBase<RDS> {
         // replacing in the database.
         newEntity.id = e.id;
         // Set password as null to avoid infinite loop trying to update the password.
-        // Reminder: Password need to be null since when we read RDS instances from AWS this property is not retrieved
+        // Reminder: Password need to be null since when we read RDS instances from AWS this
+        // property is not retrieved
         newEntity.masterUserPassword = undefined;
         // Save the record back into the database to get the new fields updated
         await this.module.rds.db.update(newEntity, ctx);
@@ -300,11 +264,11 @@ class RdsMapper extends MapperBase<RDS> {
     read: async (ctx: Context, id?: string) => {
       const client = await ctx.getAwsClient() as AWS;
       if (id) {
-        const rawRds = await getDBInstance(client.rdsClient, id);
+        const rawRds = await this.getDBInstance(client.rdsClient, id);
         if (!rawRds) return;
         return await this.rdsMapper(rawRds, ctx);
       } else {
-        const rdses = (await getDBInstances(client.rdsClient));
+        const rdses = (await this.getDBInstances(client.rdsClient));
         const out = [];
         for (const rds of rdses) {
           out.push(await this.rdsMapper(rds, ctx));
@@ -324,7 +288,12 @@ class RdsMapper extends MapperBase<RDS> {
           && Object.is(e.allocatedStorage, cloudRecord.allocatedStorage)
           && !e.masterUserPassword
           && Object.is(e.vpcSecurityGroups.length, cloudRecord.vpcSecurityGroups.length)
-          && (e.vpcSecurityGroups?.every(esg => !!cloudRecord.vpcSecurityGroups.find((csg: any) => Object.is(esg.groupId, csg.groupId))) ?? false))) {
+          && (e.vpcSecurityGroups?.every(
+            esg => !!cloudRecord.vpcSecurityGroups.find((csg: any) => Object.is(
+              esg.groupId,
+              csg.groupId
+            ))
+          ) ?? false))) {
             if (!e.vpcSecurityGroups?.filter(sg => !!sg.groupId).length) {
               throw new Error('Waiting for security groups');
             }
@@ -333,7 +302,9 @@ class RdsMapper extends MapperBase<RDS> {
             EngineVersion: e.engine.split(':')[1],
             DBInstanceIdentifier: e.dbInstanceIdentifier,
             AllocatedStorage: e.allocatedStorage,
-            VpcSecurityGroupIds: e.vpcSecurityGroups?.filter(sg => !!sg.groupId).map(sg => sg.groupId!) ?? [],
+            VpcSecurityGroupIds: e.vpcSecurityGroups
+              ?.filter(sg => !!sg.groupId)
+              .map(sg => sg.groupId!) ?? [],
             BackupRetentionPeriod: e.backupRetentionPeriod,
             ApplyImmediately: true,
           };
@@ -341,14 +312,18 @@ class RdsMapper extends MapperBase<RDS> {
           if (e.masterUserPassword) {
             instanceParams.MasterUserPassword = e.masterUserPassword;
           }
-          const result = await updateDBInstance(client.rdsClient, instanceParams);
-          const dbInstance = await getDBInstance(client.rdsClient, result?.DBInstanceIdentifier ?? '');
+          const result = await this.updateDBInstance(client.rdsClient, instanceParams);
+          const dbInstance = await this.getDBInstance(
+            client.rdsClient,
+            result?.DBInstanceIdentifier ?? ''
+          );
           updatedRecord = await this.rdsMapper(dbInstance, ctx);
         }
         // Restore autogenerated values
         updatedRecord.id = e.id;
         // Set password as null to avoid infinite loop trying to update the password.
-        // Reminder: Password need to be null since when we read RDS instances from AWS this property is not retrieved
+        // Reminder: Password need to be null since when we read RDS instances from AWS this
+        // property is not retrieved
         updatedRecord.masterUserPassword = null;
         await this.module.rds.db.update(updatedRecord, ctx);
         out.push(updatedRecord);
@@ -367,7 +342,7 @@ class RdsMapper extends MapperBase<RDS> {
           // FinalDBSnapshotIdentifier: undefined,
           // DeleteAutomatedBackups: false,
         };
-        await deleteDBInstance(client.rdsClient, input);
+        await this.deleteDBInstance(client.rdsClient, input);
       }
     },
   });
@@ -416,6 +391,58 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
     });
     return parameters;
   };
+  createDBParameterGroup = crudBuilderFormat<
+    AWSRDS,
+    'createDBParameterGroup',
+    DBParameterGroup | undefined
+  >(
+    'createDBParameterGroup',
+    (input) => input,
+    (res) => res?.DBParameterGroup,
+  );
+  getSimpleDBParameterGroup = crudBuilderFormat<
+    AWSRDS,
+    'describeDBParameterGroups',
+    DBParameterGroup | undefined
+  >(
+    'describeDBParameterGroups',
+    (DBParameterGroupName) => ({ DBParameterGroupName, }),
+    (res) => (res?.DBParameterGroups ?? []).pop(),
+  );
+  getDBParameterGroupParameters = paginateBuilder<AWSRDS>(
+    paginateDescribeDBParameters,
+    'Parameters',
+    undefined,
+    undefined,
+    (DBParameterGroupName) => ({ DBParameterGroupName, }),
+  );
+  getDBParameterGroup = async (client: AWSRDS, DBParameterGroupName: string) => {
+    const simpleParameterGroup = await this.getSimpleDBParameterGroup(client, DBParameterGroupName);
+    const Parameters = await this.getDBParameterGroupParameters(client, DBParameterGroupName);
+    return { ...simpleParameterGroup, Parameters, };
+  };
+  getSimpleDBParameterGroups = paginateBuilder<AWSRDS>(
+    paginateDescribeDBParameterGroups,
+    'DBParameterGroups',
+  );
+  getDBParameterGroups = (client: AWSRDS) => mapLin(
+    this.getSimpleDBParameterGroups(client),
+    async (simpleParameterGroup: DBParameterGroup) => {
+      const Parameters = await this.getDBParameterGroupParameters(
+        client,
+        simpleParameterGroup.DBParameterGroupName ?? ''
+      );
+      return { ...simpleParameterGroup, Parameters, };
+    }
+  );
+  modifyParameter = crudBuilder2<AWSRDS, 'modifyDBParameterGroup'>(
+    'modifyDBParameterGroup',
+    (DBParameterGroupName, parameter) => ({ DBParameterGroupName, Parameters: [parameter], }),
+  );
+  deleteDBParameterGroup = crudBuilder2<AWSRDS, 'deleteDBParameterGroup'>(
+    'deleteDBParameterGroup',
+    (DBParameterGroupName) => ({ DBParameterGroupName, }),
+  );
 
   cloud = new Crud2({
     create: async (es: ParameterGroup[], ctx: Context) => {
@@ -427,9 +454,12 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
           DBParameterGroupFamily: e.family,
           Description: e.description,
         };
-        const result = await createDBParameterGroup(client.rdsClient, parameterGroupInput);
+        const result = await this.createDBParameterGroup(client.rdsClient, parameterGroupInput);
         // Re-get the inserted record to get all of the relevant records we care about
-        const newObject = await getDBParameterGroup(client.rdsClient, result?.DBParameterGroupName ?? '');
+        const newObject = await this.getDBParameterGroup(
+          client.rdsClient,
+          result?.DBParameterGroupName ?? ''
+        );
         // We map this into the same kind of entity as `obj`
         const newEntity = this.parameterGroupMapper(newObject);
         // Save the record back into the database to get the new fields updated
@@ -441,11 +471,11 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
     read: async (ctx: Context, id?: string) => {
       const client = await ctx.getAwsClient() as AWS;
       if (id) {
-        const parameterGroup = await getDBParameterGroup(client.rdsClient, id);
+        const parameterGroup = await this.getDBParameterGroup(client.rdsClient, id);
         if (!parameterGroup) return;
         return this.parameterGroupMapper(parameterGroup);
       } else {
-        const parameterGroups = await getDBParameterGroups(client.rdsClient);
+        const parameterGroups = await this.getDBParameterGroups(client.rdsClient);
         const out = [];
         for (const pg of parameterGroups) {
           out.push(this.parameterGroupMapper(pg));
@@ -468,7 +498,7 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
               ParameterValue: p.ParameterValue,
               ApplyMethod: p.ApplyMethod,
             };
-            await modifyParameter(client.rdsClient, e.name, parameterInput);
+            await this.modifyParameter(client.rdsClient, e.name, parameterInput);
             anyUpdate = true;
           }
         }
@@ -489,7 +519,7 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
         if (e.name.startsWith('default.')) {
           await this.module.parameterGroup.db.create(e, ctx);
         } else {
-          await deleteDBParameterGroup(client.rdsClient, e.name);
+          await this.deleteDBParameterGroup(client.rdsClient, e.name);
         }
       }
     },
