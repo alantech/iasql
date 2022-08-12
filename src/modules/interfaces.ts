@@ -474,6 +474,7 @@ export class ModuleBase {
     const version = pathSegments[pathSegments.length - 2];
     this.name = name;
     this.version = version;
+    if (!this.dependencies) this.dependencies = require(`${this.dirname}/module.json`).dependencies;
     // Patch the dependencies list if not explicitly versioned
     this.dependencies = this.dependencies.map(dep => dep.includes('@') ? dep : `${dep}@${this.version}`);
     // Make sure every module depends on the `iasql_platform` module (except that module itself)
