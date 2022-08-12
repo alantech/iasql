@@ -4,7 +4,7 @@
   "description": "Infrastructure as SQL",
   "main": "dist/index.js",
   "scripts": {
-    "build": "yarn clean && tsc && copyfiles -u 1 src/**/*.sql dist/",
+    "build": "yarn clean && tsc && copyfiles -u 1 src/**/*.sql dist/ && copyfiles -u 1 src/**/*.json dist/",
     "clean": "rm -rf dist",
     "lint": "tslint --project .",
     "test": "IASQL_ENV=test jest -i",
