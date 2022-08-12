@@ -21,7 +21,8 @@ import {
   waitUntilFunctionUpdated,
 } from './aws'
 import { Architecture, LambdaFunction, PackageType, Runtime } from './entity'
-import { AwsIamModule } from '../aws_iam'
+import { awsIamModule } from '../aws_iam'
+import { throwError, } from '../../../config/config'
 
 class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
   module: AwsLambdaModule;
@@ -58,9 +59,12 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     if (fn.Configuration?.PackageType !== PackageType.Zip) return undefined;
     out.packageType = fn.Configuration?.PackageType as PackageType;
     try {
-      const roleName = AwsIamModule.utils.roleNameFromArn(fn.Configuration?.Role);
-      out.role = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
-        await AwsIamModule.mappers.role.cloud.read(ctx, roleName);
+      const roleName = awsIamModule.role.roleNameFromArn(
+        fn.Configuration?.Role ?? throwError('No rolename defined'),
+        ctx
+      );
+      out.role = await awsIamModule.role.db.read(ctx, roleName) ??
+        await awsIamModule.role.cloud.read(ctx, roleName);
       if (!out.role) return undefined;
     } catch (e: any) {
       // Error code picked from https://docs.aws.amazon.com/en_en/IAM/latest/APIReference/API_GetRole.html

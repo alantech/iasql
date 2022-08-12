@@ -13,7 +13,7 @@ import { AwsSecurityGroupModule, } from '../aws_security_group'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsElbModule } from '../aws_elb'
-import { AwsIamModule } from '../aws_iam'
+import { awsIamModule } from '../aws_iam'
 import { AwsVpcModule } from '../aws_vpc'
 import {
   AWS,
@@ -71,10 +71,10 @@ export const AwsEc2Module: Module2 = new Module2({
         if (sg) out.securityGroups.push(sg);
       }
       if (instance.IamInstanceProfile?.Arn) {
-        const roleName = AwsIamModule.utils.roleNameFromArn(instance.IamInstanceProfile.Arn);
+        const roleName = awsIamModule.role.roleNameFromArn(instance.IamInstanceProfile.Arn, ctx);
         try {
-          const role = await AwsIamModule.mappers.role.db.read(ctx, roleName) ??
-            await AwsIamModule.mappers.role.cloud.read(ctx, roleName);
+          const role = await awsIamModule.role.db.read(ctx, roleName) ??
+            await awsIamModule.role.cloud.read(ctx, roleName);
           if (role) {
             out.role = role;
           }
