@@ -4,7 +4,7 @@
   "description": "Infrastructure as SQL",
   "main": "dist/index.js",
   "scripts": {
-    "build": "yarn clean && tsc && copyfiles -u 1 src/**/*.sql dist/",
+    "build": "yarn clean && tsc && copyfiles -u 1 src/**/*.sql dist/ && copyfiles -u 1 src/**/*.json dist/",
     "clean": "rm -rf dist",
     "lint": "tslint --project .",
     "test": "IASQL_ENV=test jest -i",
@@ -57,7 +57,7 @@
     "@aws-sdk/client-acm": "^3.128.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.105.0",
     "@aws-sdk/client-dynamodb": "^3.131.0",
-    "@aws-sdk/client-ec2": "^3.128.0",
+    "@aws-sdk/client-ec2": "^3.147.0",
     "@aws-sdk/client-ecr": "^3.131.0",
     "@aws-sdk/client-ecr-public": "^3.100.0",
     "@aws-sdk/client-ecs": "^3.100.0",
