@@ -1,7 +1,4 @@
 import {
-  AfterInsert,
-  AfterLoad,
-  AfterUpdate,
   Column,
   Entity,
   JoinColumn,
@@ -11,7 +8,7 @@ import {
   PrimaryColumn,
 } from 'typeorm'
 
-import { Cluster, TaskDefinition, ContainerDefinition } from '.';
+import { Cluster, TaskDefinition, } from '.';
 import { TargetGroup } from '../../aws_elb/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { cloudId, } from '../../../../services/cloud-id'

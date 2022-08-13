@@ -1,8 +1,5 @@
 import { Parameter } from '@aws-sdk/client-rds';
 import {
-  AfterInsert,
-  AfterLoad,
-  AfterUpdate,
   Column,
   Entity,
   PrimaryColumn,

@@ -1,14 +1,11 @@
 import {
-  AfterLoad,
-  AfterInsert,
-  AfterUpdate,
   Column,
   Entity,
+  JoinColumn,
   JoinTable,
   ManyToMany,
-  PrimaryGeneratedColumn,
   ManyToOne,
-  JoinColumn,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 
 // TODO: Is there a better way to deal with cross-module entities?
