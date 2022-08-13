@@ -2,7 +2,6 @@ import { CloudWatchLogs, paginateDescribeLogGroups, } from '@aws-sdk/client-clou
 import { AWS, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
 import { LogGroup } from './entity'
-import * as metadata from './module.json'
 
 class LogGroupMapper extends MapperBase<LogGroup> {
   module: AwsCloudwatchModule;
@@ -99,7 +98,6 @@ class LogGroupMapper extends MapperBase<LogGroup> {
 }
 
 class AwsCloudwatchModule extends ModuleBase {
-  dependencies = metadata.dependencies;
   logGroup: LogGroupMapper;
 
   constructor() {

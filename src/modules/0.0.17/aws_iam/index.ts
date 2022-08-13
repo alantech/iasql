@@ -8,7 +8,6 @@ import isEqual from 'lodash.isequal'
 import { Role } from './entity'
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
-import * as metadata from './module.json'
 
 class RoleMapper extends MapperBase<Role> {
   module: AwsIamModule;
@@ -315,7 +314,6 @@ class RoleMapper extends MapperBase<Role> {
 
 
 class AwsIamModule extends ModuleBase {
-  dependencies = metadata.dependencies; // TODO: Remove this
   role: RoleMapper;
 
   constructor() {

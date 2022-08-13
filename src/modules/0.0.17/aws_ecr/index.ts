@@ -13,7 +13,6 @@ import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, } from '../../..
 import logger from '../../../services/logger'
 import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability, } from './entity'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
-import * as metadata from './module.json'
 
 class PublicRepositoryMapper extends MapperBase<PublicRepository> {
   module: AwsEcrModule;
@@ -453,7 +452,6 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
 }
 
 class AwsEcrModule extends ModuleBase {
-  dependencies = metadata.dependencies; // TODO: Drop this
   publicRepository: PublicRepositoryMapper;
   repository: RepositoryMapper;
   repositoryPolicy: RepositoryPolicyMapper;

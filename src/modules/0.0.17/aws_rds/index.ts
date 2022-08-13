@@ -18,7 +18,6 @@ import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin, } from '
 import { ParameterGroup, ParameterGroupFamily, RDS, } from './entity'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
 import { AwsSecurityGroupModule, AwsVpcModule, } from '..'
-import * as metadata from './module.json'
 
 interface DBParameterGroupWParameters extends DBParameterGroup {
   Parameters:  Parameter[];
@@ -533,7 +532,6 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
 }
 
 class AwsRdsModule extends ModuleBase {
-  dependencies = metadata.dependencies;
   rds: RdsMapper;
   parameterGroup: ParameterGroupMapper;
 

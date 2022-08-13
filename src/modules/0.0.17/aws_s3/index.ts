@@ -8,7 +8,6 @@ import {
 import { AWS, crudBuilder2, crudBuilderFormat, } from '../../../services/aws_macros'
 import { Bucket, } from './entity'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
-import * as metadata from './module.json'
 import isEqual from 'lodash.isequal'
 
 class BucketMapper extends MapperBase<Bucket> {
@@ -159,7 +158,6 @@ class BucketMapper extends MapperBase<Bucket> {
 }
 
 class AwsS3Module extends ModuleBase {
-  dependencies = metadata.dependencies;
   bucket: BucketMapper;
 
   constructor() {

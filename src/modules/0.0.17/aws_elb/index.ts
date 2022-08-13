@@ -37,7 +37,6 @@ import {
 import { AwsVpcModule, } from '../aws_vpc'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
 import { awsAcmListModule, AwsSecurityGroupModule } from '..'
-import * as metadata from './module.json'
 
 class ListenerMapper extends MapperBase<Listener> {
   module: AwsElbModule;
@@ -781,7 +780,6 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
 }
 
 class AwsElbModule extends ModuleBase {
-  dependencies = metadata.dependencies; // TODO: Delete this
   listener: ListenerMapper;
   loadBalancer: LoadBalancerMapper;
   targetGroup: TargetGroupMapper;

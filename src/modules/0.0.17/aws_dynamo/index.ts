@@ -14,7 +14,6 @@ import pick from 'lodash.pick'
 import { AWS, crudBuilder2, paginateBuilder, } from '../../../services/aws_macros'
 import { DynamoTable, TableClass, } from './entity'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
-import * as metadata from './module.json'
 import { throwError, } from '../../../config/config'
 
 class DynamoTableMapper extends MapperBase<DynamoTable> {
@@ -182,7 +181,6 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
 }
 
 class AwsDynamoModule extends ModuleBase {
-  dependencies = metadata.dependencies;
   dynamoTable: DynamoTableMapper;
 
   constructor() {

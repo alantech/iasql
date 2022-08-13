@@ -3,7 +3,6 @@ import { AWS, paginateBuilder, } from '../../../services/aws_macros'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
 import { awsAcmListModule } from '../aws_acm_list'
 import { CertificateImport } from './entity'
-import * as metadata from './module.json'
 
 class CertificateImportMapper extends MapperBase<CertificateImport> {
   module: AwsAcmImportModule;
@@ -79,7 +78,6 @@ class CertificateImportMapper extends MapperBase<CertificateImport> {
 }
 
 class AwsAcmImportModule extends ModuleBase {
-  dependencies = metadata.dependencies;
   certificateImport: CertificateImportMapper;
 
   constructor() {
