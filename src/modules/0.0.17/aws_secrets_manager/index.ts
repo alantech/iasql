@@ -1,213 +1,212 @@
 import {
   CreateSecretCommandInput,
   DescribeSecretCommandInput,
-  SecretsManager,
   PutSecretValueCommandInput,
+  SecretListEntry,
+  SecretsManager,
   UpdateSecretCommandInput,
   paginateListSecrets,
-  SecretListEntry,
-} from "@aws-sdk/client-secrets-manager";
+} from "@aws-sdk/client-secrets-manager"
 import {
   AWS,
   crudBuilder2,
   crudBuilderFormat,
   paginateBuilder,
-} from "../../../services/aws_macros";
-import { Context, Crud2, Mapper2, Module2 } from "../../interfaces";
-import * as metadata from "./module.json";
-import { Secret } from "./entity/secret";
+} from "../../../services/aws_macros"
+import { Context, Crud2, MapperBase, ModuleBase, } from "../../interfaces"
+import { Secret, } from "./entity/secret"
 
-const createSecret = crudBuilderFormat<
-  SecretsManager,
-  "createSecret",
-  string | undefined
->(
-  "createSecret",
-  (input) => input,
-  (res) => (!!res ? res.Name : undefined)
-);
+class SecretMapper extends MapperBase<Secret> {
+  module: AwsSecretsManagerModule;
+  entity = Secret;
+  equals = (a: Secret, b: Secret) =>
+    Object.is(a.description, b.description) && !a.value; // if password is set we need to update it,
 
-async function putSecretValue(
-  client: SecretsManager,
-  input: PutSecretValueCommandInput
-) {
-  const res = await client.putSecretValue(input);
-  if (res) {
-    return res;
+  secretsMapper(secret: SecretListEntry) {
+    const out = new Secret();
+    if (!secret.Name) return undefined;
+    out.name = secret.Name;
+    if (secret.Description) out.description = secret.Description;
+    return out;
   }
-  return undefined;
-}
 
-async function updateSecret(
-  client: SecretsManager,
-  input: UpdateSecretCommandInput
-) {
-  const res = await client.updateSecret(input);
-  if (res) {
-    return res;
+  createSecret = crudBuilderFormat<
+    SecretsManager,
+    "createSecret",
+    string | undefined
+  >(
+    "createSecret",
+    (input) => input,
+    (res) => (!!res ? res.Name : undefined)
+  );
+
+  async putSecretValue(
+    client: SecretsManager,
+    input: PutSecretValueCommandInput
+  ) {
+    const res = await client.putSecretValue(input);
+    if (res) {
+      return res;
+    }
+    return undefined;
   }
-  return undefined;
-}
 
-async function getSecret(client: SecretsManager, secretId: string) {
-  const input: DescribeSecretCommandInput = {
-    SecretId: secretId,
-  };
-  const result = await client.describeSecret(input);
-  if (result) {
-    const secret: SecretListEntry = {
-      Name: result.Name,
-      Description: result.Description,
+  async updateSecret(
+    client: SecretsManager,
+    input: UpdateSecretCommandInput
+  ) {
+    const res = await client.updateSecret(input);
+    if (res) {
+      return res;
+    }
+    return undefined;
+  }
+
+  async getSecret(client: SecretsManager, secretId: string) {
+    const input: DescribeSecretCommandInput = {
+      SecretId: secretId,
     };
-    return result;
+    const result = await client.describeSecret(input);
+    return result ? result : undefined;
   }
-  return undefined;
-}
 
-const getAllSecrets = paginateBuilder<SecretsManager>(
-  paginateListSecrets,
-  "SecretList"
-);
+  getAllSecrets = paginateBuilder<SecretsManager>(
+    paginateListSecrets,
+    "SecretList"
+  );
 
-const deleteSecret = crudBuilder2<SecretsManager, "deleteSecret">(
-  "deleteSecret",
-  (input) => input
-);
+  deleteSecret = crudBuilder2<SecretsManager, "deleteSecret">(
+    "deleteSecret",
+    (input) => input
+  );
 
-export const AwsSecretsManagerModule: Module2 = new Module2(
-  {
-    ...metadata,
-    utils: {
-      secretsMapper: async (secret: SecretListEntry, ctx: Context) => {
-        const out = new Secret();
-        if (!secret.Name) return undefined;
-        out.name = secret.Name;
-        if (secret.Description) out.description = secret.Description;
-        return out;
-      },
-    },
-    mappers: {
-      secret: new Mapper2<Secret>({
-        entity: Secret,
-        equals: (a: Secret, b: Secret) =>
-          Object.is(a.description, b.description) && !a.value, // if password is set, we need to update it,
-        source: "db",
-        cloud: new Crud2({
-          updateOrReplace: (a: Secret, b: Secret) => {
-            return "update";
-          },
-          create: async (secrets: Secret[], ctx: Context) => {
-            const client = (await ctx.getAwsClient()) as AWS;
-            const out = [];
-            for (const secret of secrets) {
-              if (secret.value) {
-                const input: CreateSecretCommandInput = {
-                  Name: secret.name,
-                  Description: secret.description,
-                  SecretString: secret.value!,
-                };
+  cloud = new Crud2({
+    updateOrReplace: (_a: Secret, _b: Secret) => 'update',
+    create: async (secrets: Secret[], ctx: Context) => {
+      const client = (await ctx.getAwsClient()) as AWS;
+      const out = [];
+      for (const secret of secrets) {
+        if (secret.value) {
+          const input: CreateSecretCommandInput = {
+            Name: secret.name,
+            Description: secret.description,
+            SecretString: secret.value!,
+          };
 
-                const secretName = await createSecret(
-                  client.secretsClient,
-                  input
-                );
-                if (secretName) {
-                  // retry until we ensure is created
-                  let rawSecret;
-                  let i = 0;
-                  do {
-                    await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
+          const secretName = await this.createSecret(
+            client.secretsClient,
+            input
+          );
+          if (secretName) {
+            // retry until we ensure is created
+            let rawSecret;
+            let i = 0;
+            do {
+              await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
 
-                    rawSecret = await getSecret(
-                      client.secretsClient,
-                      secretName
-                    );
-                    i++;
-                  } while (!rawSecret && (i<30));
-                  secret.name = secretName;
-                  // we never store the secret value
-                  secret.value = null;
-                  await AwsSecretsManagerModule.mappers.secret.db.update(secret, ctx);
-                  out.push(secret);
-                }
-              }
-            }
-            return out;
-          },
-
-          read: async (ctx: Context, secretName?: string) => {
-            const client = (await ctx.getAwsClient()) as AWS;
-            if (secretName) {
-              const rawSecret = await getSecret(
+              rawSecret = await this.getSecret(
                 client.secretsClient,
                 secretName
               );
-              const res = AwsSecretsManagerModule.utils.secretsMapper(rawSecret, ctx);
-            } else {
-              const rawSecrets =
-                (await getAllSecrets(client.secretsClient)) ?? [];
-              const out = [];
-              for (const i of rawSecrets) {
-                out.push(await AwsSecretsManagerModule.utils.secretsMapper(i, ctx));
-              }
-              return out;
-            }
-          },
-          update: async (secrets: Secret[], ctx: Context) => {
-            const client = (await ctx.getAwsClient()) as AWS;
-            const out = [];
-            for (const secret of secrets) {
-              const cloudRecord = ctx?.memo?.cloud?.Secret?.[secret.name ?? ""];
-              const isUpdate = Object.is(
-                AwsSecretsManagerModule.mappers.secret.cloud.updateOrReplace(
-                  cloudRecord,
-                  secret
-                ),
-                "update"
-              );
-              if (isUpdate) {
-                if (secret.description !== cloudRecord.description) {
-                  // we need to update the secret description
-                  const input: UpdateSecretCommandInput = {
-                    SecretId: secret.name,
-                    Description: secret.description,
-                  };
-                  await updateSecret(client.secretsClient, input);
-                }
-
-                if (secret.value !== cloudRecord.value) {
-                  // we need to update the value
-                  if (secret.value) {
-                    const input: PutSecretValueCommandInput = {
-                      SecretId: secret.name,
-                      SecretString: secret.value,
-                    };
-                    await putSecretValue(client.secretsClient, input);
-                  }
-                }
-
-                // modify the database, without saving the secret
-                secret.value = null;
-                await AwsSecretsManagerModule.mappers.secret.db.update(secret, ctx);
-                out.push(secret);
-              }
-            }
-            return out;
-          },
-          delete: async (secrets: Secret[], ctx: Context) => {
-            const client = (await ctx.getAwsClient()) as AWS;
-            for (const secret of secrets) {
-              if (secret.name) {
-                await deleteSecret(client.secretsClient, {
-                  SecretId: secret.name,
-                  ForceDeleteWithoutRecovery: true,
-                });
-              }
-            }
-          },
-        }),
-      }),
+              i++;
+            } while (!rawSecret && (i<30));
+            secret.name = secretName;
+            // we never store the secret value
+            secret.value = null;
+            await this.module.secret.db.update(secret, ctx);
+            out.push(secret);
+          }
+        }
+      }
+      return out;
     },
-  },
-  __dirname
-);
+
+    read: async (ctx: Context, secretName?: string) => {
+      const client = (await ctx.getAwsClient()) as AWS;
+      if (secretName) {
+        const rawSecret = await this.getSecret(
+          client.secretsClient,
+          secretName
+        );
+        if (!rawSecret) return;
+        const res = this.secretsMapper(rawSecret);
+        return res;
+      } else {
+        const rawSecrets =
+          (await this.getAllSecrets(client.secretsClient)) ?? [];
+        const out = [];
+        for (const i of rawSecrets) {
+          const sec = this.secretsMapper(i);
+          if (sec) out.push(sec);
+        }
+        return out;
+      }
+    },
+    update: async (secrets: Secret[], ctx: Context) => {
+      const client = (await ctx.getAwsClient()) as AWS;
+      const out = [];
+      for (const secret of secrets) {
+        const cloudRecord = ctx?.memo?.cloud?.Secret?.[secret.name ?? ""];
+        const isUpdate = Object.is(
+          this.module.secret.cloud.updateOrReplace(cloudRecord, secret),
+          'update'
+        );
+        if (isUpdate) {
+          if (secret.description !== cloudRecord.description) {
+            // we need to update the secret description
+            const input: UpdateSecretCommandInput = {
+              SecretId: secret.name,
+              Description: secret.description,
+            };
+            await this.updateSecret(client.secretsClient, input);
+          }
+
+          if (secret.value !== cloudRecord.value) {
+            // we need to update the value
+            if (secret.value) {
+              const input: PutSecretValueCommandInput = {
+                SecretId: secret.name,
+                SecretString: secret.value,
+              };
+              await this.putSecretValue(client.secretsClient, input);
+            }
+          }
+
+          // modify the database, without saving the secret
+          secret.value = null;
+          await this.module.secret.db.update(secret, ctx);
+          out.push(secret);
+        }
+      }
+      return out;
+    },
+    delete: async (secrets: Secret[], ctx: Context) => {
+      const client = (await ctx.getAwsClient()) as AWS;
+      for (const secret of secrets) {
+        if (secret.name) {
+          await this.deleteSecret(client.secretsClient, {
+            SecretId: secret.name,
+            ForceDeleteWithoutRecovery: true,
+          });
+        }
+      }
+    },
+  });
+
+  constructor(module: AwsSecretsManagerModule) {
+    super();
+    this.module = module;
+    super.init();
+  }
+}
+
+class AwsSecretsManagerModule extends ModuleBase {
+  secret: SecretMapper;
+
+  constructor() {
+    super();
+    this.secret = new SecretMapper(this);
+    super.init();
+  }
+}
+export const awsSecretsManagerModule = new AwsSecretsManagerModule();
