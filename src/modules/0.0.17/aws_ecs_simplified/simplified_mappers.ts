@@ -126,7 +126,7 @@ const simplifiedMappers = {
     out.logGroup = lg;
     return out;
   },
-  service: (prefix: string, appName: string, desiredCount: number, assignPublicIp: string, cl: Cluster, td: TaskDefinition, tg: TargetGroup, sg: SecurityGroup) => {
+  service: (prefix: string, appName: string, desiredCount: number, assignPublicIp: boolean, cl: Cluster, td: TaskDefinition, tg: TargetGroup, sg: SecurityGroup) => {
     const out = new Service();
     out.name = generateResourceName(prefix, appName, 'Service');
     out.desiredCount = desiredCount;
