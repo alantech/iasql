@@ -17,7 +17,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin, } from '../../../services/aws_macros'
 import { ParameterGroup, ParameterGroupFamily, RDS, } from './entity'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
-import { AwsSecurityGroupModule, AwsVpcModule, } from '..'
+import { awsSecurityGroupModule, AwsVpcModule, } from '..'
 
 interface DBParameterGroupWParameters extends DBParameterGroup {
   Parameters:  Parameter[];
@@ -61,8 +61,8 @@ class RdsMapper extends MapperBase<RDS> {
       .map((vpcsg: any) => vpcsg?.VpcSecurityGroupId);
     out.vpcSecurityGroups = [];
     for (const sgId of vpcSecurityGroupIds) {
-      const sg = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId) ??
-        await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sgId);
+      const sg = await awsSecurityGroupModule.securityGroup.db.read(ctx, sgId) ??
+        await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sgId);
       if (sg) out.vpcSecurityGroups.push(sg);
     }
     out.backupRetentionPeriod = rds?.BackupRetentionPeriod ?? 1;
