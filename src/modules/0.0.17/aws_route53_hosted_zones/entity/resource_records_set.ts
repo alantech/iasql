@@ -4,9 +4,6 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
-  AfterLoad,
-  AfterInsert,
-  AfterUpdate,
   Unique,
   Check,
 } from 'typeorm'

@@ -1,17 +1,10 @@
 import {
-  AfterInsert,
-  AfterLoad,
-  AfterUpdate,
   Column,
   Entity,
-  JoinTable,
-  ManyToMany,
   PrimaryColumn,
-  PrimaryGeneratedColumn,
 } from "typeorm";
 
 import { cloudId } from "../../../../services/cloud-id";
-import { SecurityGroup } from "../../aws_security_group/entity";
 
 export enum Engine {
   MEMCACHED = "memcached",

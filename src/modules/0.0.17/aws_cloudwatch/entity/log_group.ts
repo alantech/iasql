@@ -1,7 +1,7 @@
 import {
+  Column,
   Entity,
   PrimaryColumn,
-  Column,
 } from 'typeorm'
 
 import { cloudId, } from '../../../../services/cloud-id'

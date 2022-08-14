@@ -1,13 +1,10 @@
 import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  ManyToOne,
-  JoinColumn,
-  AfterLoad,
-  AfterInsert,
-  AfterUpdate,
   Check,
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm'
 

@@ -1,10 +1,7 @@
 import {
-  Entity,
   Column,
+  Entity,
   PrimaryGeneratedColumn,
-  AfterLoad,
-  AfterInsert,
-  AfterUpdate,
 } from 'typeorm'
 
 // TODO: should we add PEM regex constraint?

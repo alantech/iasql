@@ -1,10 +1,7 @@
 import {
-  Entity,
   Column,
+  Entity,
   PrimaryGeneratedColumn,
-  AfterLoad,
-  AfterInsert,
-  AfterUpdate,
 } from 'typeorm'
 
 import { cloudId, } from '../../../../services/cloud-id'

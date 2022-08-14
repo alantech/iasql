@@ -1,7 +1,4 @@
 import {
-  AfterLoad,
-  AfterInsert,
-  AfterUpdate,
   Check,
   Column,
   Entity,
