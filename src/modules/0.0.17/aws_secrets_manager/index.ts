@@ -54,14 +54,7 @@ async function getSecret(client: SecretsManager, secretId: string) {
     SecretId: secretId,
   };
   const result = await client.describeSecret(input);
-  if (result) {
-    const secret: SecretListEntry = {
-      Name: result.Name,
-      Description: result.Description,
-    };
-    return result;
-  }
-  return undefined;
+  return result ? result : undefined;
 }
 
 const getAllSecrets = paginateBuilder<SecretsManager>(
@@ -78,7 +71,7 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
   {
     ...metadata,
     utils: {
-      secretsMapper: async (secret: SecretListEntry, ctx: Context) => {
+      secretsMapper: (secret: SecretListEntry) => {
         const out = new Secret();
         if (!secret.Name) return undefined;
         out.name = secret.Name;
@@ -93,7 +86,7 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
           Object.is(a.description, b.description) && !a.value, // if password is set, we need to update it,
         source: "db",
         cloud: new Crud2({
-          updateOrReplace: (a: Secret, b: Secret) => {
+          updateOrReplace: (_a: Secret, _b: Secret) => {
             return "update";
           },
           create: async (secrets: Secret[], ctx: Context) => {
@@ -143,6 +136,7 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
                 secretName
               );
               const res = AwsSecretsManagerModule.utils.secretsMapper(rawSecret, ctx);
+              return res;
             } else {
               const rawSecrets =
                 (await getAllSecrets(client.secretsClient)) ?? [];
