@@ -31,12 +31,12 @@ import {
 } from './entity'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import {
-  AwsSecurityGroupModule,
   AwsVpcModule,
   awsCloudwatchModule,
   awsEcrModule,
   awsElbModule,
   awsIamModule,
+  awsSecurityGroupModule,
 } from '..'
 import * as metadata from './module.json'
 import logger from '../../../services/logger'
@@ -467,8 +467,8 @@ export const AwsEcsFargateModule: Module2 = new Module2({
         const securityGroups = [];
         const cloudSecurityGroups = networkConf.securityGroups ?? [];
         for (const sg of cloudSecurityGroups) {
-          securityGroups.push(await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg) ??
-            await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg));
+          securityGroups.push(await awsSecurityGroupModule.securityGroup.db.read(ctx, sg) ??
+            await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg));
         }
         if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length) throw new Error('Security groups need to be loaded first')
         out.securityGroups = securityGroups;

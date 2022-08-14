@@ -36,7 +36,7 @@ import {
 } from './entity'
 import { AwsVpcModule, } from '../aws_vpc'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
-import { awsAcmListModule, AwsSecurityGroupModule } from '..'
+import { awsAcmListModule, awsSecurityGroupModule } from '..'
 
 class ListenerMapper extends MapperBase<Listener> {
   module: AwsElbModule;
@@ -281,8 +281,8 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     const cloudSecurityGroups = lb.SecurityGroups ?? [];
     for (const sg of cloudSecurityGroups) {
       try {
-        securityGroups.push(await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg) ??
-          await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg));
+        securityGroups.push(await awsSecurityGroupModule.securityGroup.db.read(ctx, sg) ??
+          await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg));
       } catch (_) {
         // If security groups are misconfigured ignore them
         continue;

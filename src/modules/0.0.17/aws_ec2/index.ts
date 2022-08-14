@@ -9,12 +9,12 @@ import {
 } from '@aws-sdk/client-ec2'
 
 import { GeneralPurposeVolume, GeneralPurposeVolumeType, Instance, RegisteredInstance, State, VolumeState, } from './entity'
-import { AwsSecurityGroupModule, } from '../aws_security_group'
 import { Context, Crud2, Mapper2, Module2, } from '../../interfaces'
 import * as metadata from './module.json'
 import { AwsVpcModule } from '../aws_vpc'
 import { awsElbModule } from '../aws_elb'
 import { awsIamModule } from '../aws_iam'
+import { awsSecurityGroupModule, } from '../aws_security_group'
 import {
   AWS,
   attachVolume,
@@ -67,7 +67,7 @@ export const AwsEc2Module: Module2 = new Module2({
       if (!out.instanceType) return undefined;
       out.securityGroups = [];
       for (const sgId of instance.SecurityGroups?.map(sg => sg.GroupId) ?? []) {
-        const sg = await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sgId);
+        const sg = await awsSecurityGroupModule.securityGroup.db.read(ctx, sgId);
         if (sg) out.securityGroups.push(sg);
       }
       if (instance.IamInstanceProfile?.Arn) {
