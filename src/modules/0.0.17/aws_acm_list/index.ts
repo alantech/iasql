@@ -12,7 +12,6 @@ import {
   certificateStatusEnum,
   certificateTypeEnum,
 } from './entity'
-import * as metadata from './module.json'
 
 class CertificateMapper extends MapperBase<Certificate> {
   module: AwsAcmListModule;
@@ -143,7 +142,6 @@ class CertificateMapper extends MapperBase<Certificate> {
 }
 
 class AwsAcmListModule extends ModuleBase {
-  dependencies = metadata.dependencies;
   certificate: CertificateMapper;
 
   constructor() {

@@ -1,7 +1,6 @@
 import { AWS, } from '../../../services/aws_macros'
 import { AwsAccountEntity, } from './entity'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
-import * as metadata from './module.json' // TODO: Eliminate this?
 
 class AccountMapper extends MapperBase<AwsAccountEntity> {
   module: AwsAccount;
@@ -26,7 +25,6 @@ class AccountMapper extends MapperBase<AwsAccountEntity> {
 }
 
 class AwsAccount extends ModuleBase {
-  dependencies = metadata.dependencies;
   context: Context = {
     // This function is `async function () {` instead of `async () => {` because that enables the
     // `this` keyword within the function based on the objec it is being called from, so the
