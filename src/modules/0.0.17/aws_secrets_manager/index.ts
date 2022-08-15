@@ -1,11 +1,11 @@
 import {
   CreateSecretCommandInput,
   DescribeSecretCommandInput,
-  PutSecretValueCommandInput,
   SecretListEntry,
   SecretsManager,
   UpdateSecretCommandInput,
   paginateListSecrets,
+  CreateSecretCommandOutput,
 } from "@aws-sdk/client-secrets-manager"
 import {
   AWS,
@@ -20,36 +20,36 @@ class SecretMapper extends MapperBase<Secret> {
   module: AwsSecretsManagerModule;
   entity = Secret;
   equals = (a: Secret, b: Secret) =>
-    Object.is(a.description, b.description) && !a.value; // if password is set we need to update it,
+    Object.is(a.description, b.description) && Object.is(a.versionId, b.versionId) && !a.value; // if password is set we need to update it,
 
   secretsMapper(secret: SecretListEntry) {
     const out = new Secret();
     if (!secret.Name) return undefined;
     out.name = secret.Name;
     if (secret.Description) out.description = secret.Description;
+
+    // version id will be the AWSCURRENT one
+    out.versionId=undefined;
+    if (secret.SecretVersionsToStages) {
+      for (const [key, value] of Object.entries(secret.SecretVersionsToStages)) {
+        if (value[0] && value[0] === 'AWSCURRENT') {
+          out.versionId=key;
+          break;
+        }
+      }
+    }
     return out;
   }
 
   createSecret = crudBuilderFormat<
     SecretsManager,
     "createSecret",
-    string | undefined
+    CreateSecretCommandOutput
   >(
     "createSecret",
     (input) => input,
-    (res) => (!!res ? res.Name : undefined)
+    (res) => res!
   );
-
-  async putSecretValue(
-    client: SecretsManager,
-    input: PutSecretValueCommandInput
-  ) {
-    const res = await client.putSecretValue(input);
-    if (res) {
-      return res;
-    }
-    return undefined;
-  }
 
   async updateSecret(
     client: SecretsManager,
@@ -67,7 +67,15 @@ class SecretMapper extends MapperBase<Secret> {
       SecretId: secretId,
     };
     const result = await client.describeSecret(input);
-    return result ? result : undefined;
+    if (result) {
+      const secret: SecretListEntry = {
+        Name: result.Name,
+        Description: result.Description,
+        SecretVersionsToStages: result.VersionIdsToStages,
+      };
+      return secret;
+    }
+    return undefined;
   }
 
   getAllSecrets = paginateBuilder<SecretsManager>(
@@ -93,29 +101,31 @@ class SecretMapper extends MapperBase<Secret> {
             SecretString: secret.value!,
           };
 
-          const secretName = await this.createSecret(
+          const secretAWS = await this.createSecret(
             client.secretsClient,
             input
           );
-          if (secretName) {
-            // retry until we ensure is created
-            let rawSecret;
-            let i = 0;
-            do {
-              await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
-
-              rawSecret = await this.getSecret(
-                client.secretsClient,
-                secretName
-              );
-              i++;
-            } while (!rawSecret && (i<30));
-            secret.name = secretName;
-            // we never store the secret value
-            secret.value = null;
-            await this.module.secret.db.update(secret, ctx);
-            out.push(secret);
+          if (!secretAWS) {
+            throw new Error('Secret not properly created in AWS');
           }
+          // retry until we ensure is created
+          let rawSecret;
+          let i = 0;
+          do {
+            await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
+
+            rawSecret = await this.getSecret(
+              client.secretsClient,
+              secretAWS.Name!
+            );
+            i++;
+          } while (!rawSecret && (i<30));
+          secret.name = secretAWS.Name!;
+          if (secretAWS.VersionId) secret.versionId=secretAWS.VersionId;
+          // we never store the secret value
+          secret.value = null;
+          await this.module.secret.db.update(secret, ctx);
+          out.push(secret);
         }
       }
       return out;
@@ -152,24 +162,46 @@ class SecretMapper extends MapperBase<Secret> {
           'update'
         );
         if (isUpdate) {
-          if (secret.description !== cloudRecord.description) {
-            // we need to update the secret description
-            const input: UpdateSecretCommandInput = {
-              SecretId: secret.name,
-              Description: secret.description,
-            };
-            await this.updateSecret(client.secretsClient, input);
+          const input: UpdateSecretCommandInput = {
+            SecretId: secret.name,
+            Description: secret.description,
+          };
+          if (secret.value) {
+            input.SecretString=secret.value;
+          }
+          const updatedSecret = await this.updateSecret(client.secretsClient, input);
+          if (!updatedSecret) {
+            throw new Error("Secret not properly updated in AWS");
           }
 
-          if (secret.value !== cloudRecord.value) {
-            // we need to update the value
-            if (secret.value) {
-              const input: PutSecretValueCommandInput = {
-                SecretId: secret.name,
-                SecretString: secret.value,
-              };
-              await this.putSecretValue(client.secretsClient, input);
+          let finalSecret:Secret|undefined;
+          let i = 0;
+          do {
+            // retrieve updated secret to avoid race conditions
+            await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
+
+            const rawSecret = await this.getSecret(
+              client.secretsClient,
+              secret.name
+            );
+            finalSecret = await this.secretsMapper(rawSecret!);
+            i++;
+            if (!finalSecret) continue;
+            if (secret.value && finalSecret.versionId!==cloudRecord.versionId) {
+              secret.versionId=finalSecret.versionId;
+              break;
             }
+            if (!secret.value && finalSecret.versionId) {
+              secret.versionId=cloudRecord.versionId;
+              break;
+            }
+          } while (i<30);
+
+          if (!finalSecret) {
+            throw new Error("Secret not properly returned");
+          }
+          if (secret.value && finalSecret.versionId === cloudRecord.versionId) {
+            throw new Error("Secret has not been modified");
           }
 
           // modify the database, without saving the secret

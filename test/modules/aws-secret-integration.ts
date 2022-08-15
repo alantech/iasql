@@ -104,6 +104,25 @@ describe("Secrets Manager Integration Testing", () => {
 
   it("applies the secret value update", apply());
 
+  it(
+    "tries to update version",
+    query(`
+  UPDATE secret SET version_id='fakeVersion' WHERE name='${secretName}'
+  `)
+  );
+
+  it("applies the secret version update", apply());
+
+  it(
+    "checks that version has not been modified",
+    query(
+      `
+  SELECT * FROM secret WHERE version_id='fakeVersion';
+`,
+      (res: any) => expect(res.length).toBe(0)
+    )
+  );
+
   it("uninstalls the secret module", uninstall(modules));
 
   it(

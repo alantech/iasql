@@ -25,4 +25,9 @@ export class Secret {
     nullable: true,
   })
   value?: string | null;
+
+  @Column({
+    nullable: true,
+  })
+  versionId?: string;
 }
