@@ -5,7 +5,7 @@ const config: ConfigInterface = {
     port: 8088,
   },
   modules: {
-    latestVersion: '0.0.16',
+    latestVersion: '0.0.17',
     oldestVersion: '0.0.14'
   },
   db: {
