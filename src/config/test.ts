@@ -6,7 +6,7 @@ const config: ConfigInterface = {
   },
   modules: {
     latestVersion: '0.0.17',
-    oldestVersion: '0.0.13'
+    oldestVersion: '0.0.14'
   },
   db: {
     host: 'localhost',

@@ -1,4 +1,0 @@
-{
-  "name": "aws_ecs_simplified",
-  "dependencies": ["iasql_platform", "aws_account"]
-}
