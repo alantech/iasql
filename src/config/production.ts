@@ -6,7 +6,7 @@ const config: ConfigInterface = {
   },
   modules: {
     latestVersion: '0.0.16',
-    oldestVersion: '0.0.13'
+    oldestVersion: '0.0.14'
   },
   db: {
     host: 'db.iasql.com',
