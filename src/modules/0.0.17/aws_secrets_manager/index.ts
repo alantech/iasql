@@ -20,7 +20,7 @@ class SecretMapper extends MapperBase<Secret> {
   module: AwsSecretsManagerModule;
   entity = Secret;
   equals = (a: Secret, b: Secret) =>
-    Object.is(a.description, b.description) && Object.is(a.versionId,b.versionId) && !a.value; // if password is set we need to update it,
+    Object.is(a.description, b.description) && Object.is(a.versionId, b.versionId) && !a.value; // if password is set we need to update it,
 
   secretsMapper(secret: SecretListEntry) {
     const out = new Secret();
@@ -32,7 +32,7 @@ class SecretMapper extends MapperBase<Secret> {
     out.versionId=undefined;
     if (secret.SecretVersionsToStages) {
       for (const [key, value] of Object.entries(secret.SecretVersionsToStages)) {
-        if (value[0] && value[0]==='AWSCURRENT') {
+        if (value[0] && value[0] === 'AWSCURRENT') {
           out.versionId=key;
           break;
         }
@@ -200,7 +200,7 @@ class SecretMapper extends MapperBase<Secret> {
           if (!finalSecret) {
             throw new Error("Secret not properly returned");
           }
-          if (secret.value && finalSecret.versionId===cloudRecord.versionId) {
+          if (secret.value && finalSecret.versionId === cloudRecord.versionId) {
             throw new Error("Secret has not been modified");
           }
 
