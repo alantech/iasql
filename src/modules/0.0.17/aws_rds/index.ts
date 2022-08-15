@@ -17,7 +17,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin, } from '../../../services/aws_macros'
 import { ParameterGroup, ParameterGroupFamily, RDS, } from './entity'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
-import { awsSecurityGroupModule, AwsVpcModule, } from '..'
+import { awsSecurityGroupModule, awsVpcModule, } from '..'
 
 interface DBParameterGroupWParameters extends DBParameterGroup {
   Parameters:  Parameter[];
@@ -45,7 +45,7 @@ class RdsMapper extends MapperBase<RDS> {
   async rdsMapper(rds: any, ctx: Context) {
     const out = new RDS();
     out.allocatedStorage = rds?.AllocatedStorage;
-    out.availabilityZone = await AwsVpcModule.mappers.availabilityZone.db.read(
+    out.availabilityZone = await awsVpcModule.availabilityZone.db.read(
       ctx,
       rds?.AvailabilityZone
     );
