@@ -44,11 +44,11 @@ class SecretMapper extends MapperBase<Secret> {
   createSecret = crudBuilderFormat<
     SecretsManager,
     "createSecret",
-    CreateSecretCommandOutput | undefined
+    CreateSecretCommandOutput
   >(
     "createSecret",
     (input) => input,
-    (res) => (!!res ? res : undefined)
+    (res) => res!
   );
 
   async updateSecret(
@@ -186,7 +186,7 @@ class SecretMapper extends MapperBase<Secret> {
             );
             finalSecret = await this.secretsMapper(rawSecret!);
             i++;
-            if (!finalSecret) break;
+            if (!finalSecret) continue;
             if (secret.value && finalSecret.versionId!==cloudRecord.versionId) {
               secret.versionId=finalSecret.versionId;
               break;
