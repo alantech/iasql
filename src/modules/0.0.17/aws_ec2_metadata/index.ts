@@ -5,7 +5,7 @@ import {
   paginateDescribeInstances,
 } from '@aws-sdk/client-ec2'
 
-import { AwsEc2Module, } from '../aws_ec2'
+import { awsEc2Module, } from '../aws_ec2'
 import { Architecture, InstanceMetadata, RootDeviceType } from './entity'
 import {
   AWS,
@@ -33,7 +33,7 @@ class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
     if (!instance.InstanceId) return undefined;
     out.instanceId = instance.InstanceId;
     // fill join column which is the id from the `instance` table
-    const ins = await AwsEc2Module.mappers.instance.db.read(
+    const ins = await awsEc2Module.instance.db.read(
       ctx,
       out.instanceId,
     );
