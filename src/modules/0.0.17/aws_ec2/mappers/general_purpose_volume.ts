@@ -19,16 +19,6 @@ import {
   paginateBuilder,
 } from '../../../../services/aws_macros'
 import { awsVpcModule, } from '../..'
-/*import {
-  AWS,
-  attachVolume,
-  createVolume,
-  deleteVolume,
-  detachVolume,
-  getGeneralPurposeVolumes,
-  getVolume,
-  updateVolume,
-} from '../aws'*/
 import { updateTags, eqTags, } from './tags'
 import { AwsEc2Module, } from '..'
 
