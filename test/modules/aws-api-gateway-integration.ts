@@ -102,7 +102,7 @@ describe("API Gateway Integration Testing", () => {
     "checks that API has been been modified",
     query(
       `
-  SELECT * FROM rest_api WHERE description='new description';
+  SELECT * FROM rest_api WHERE description='new description' and name='${apiName}';
 `,
       (res: any) => expect(res.length).toBe(1)
     )
