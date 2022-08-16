@@ -1,4 +1,5 @@
 import { ACM, } from '@aws-sdk/client-acm'
+import { APIGateway } from '@aws-sdk/client-api-gateway'
 import { CloudWatchLogs, } from '@aws-sdk/client-cloudwatch-logs'
 import { DynamoDB, } from '@aws-sdk/client-dynamodb'
 import { EC2, } from '@aws-sdk/client-ec2'
@@ -39,6 +40,7 @@ type PromiseReturnType<F> = ArgumentTypes<ArgumentTypes<F>[2]>[1];
 
 export class AWS {
   acmClient: ACM
+  apiGatewayClient: APIGateway
   cwClient: CloudWatchLogs
   ec2client: EC2
   ecrClient: ECR
@@ -72,6 +74,7 @@ export class AWS {
     this.route53Client = new Route53(config);
     this.secretsClient = new SecretsManager(config);
     this.ssmClient = new SSM(config);
+    this.apiGatewayClient = new APIGateway(config);
     // Technically available in multiple regions but with weird constraints, and the default is us-east-1
     this.s3Client = new S3({ ...config, region: 'us-east-1', });
     // Service endpoint only available in 'us-east-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html

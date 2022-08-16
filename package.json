@@ -55,6 +55,7 @@
   "dependencies": {
     "@amplitude/node": "^1.10.0",
     "@aws-sdk/client-acm": "^3.128.0",
+    "@aws-sdk/client-api-gateway": "^3.145.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.105.0",
     "@aws-sdk/client-dynamodb": "^3.131.0",
     "@aws-sdk/client-ec2": "^3.128.0",
