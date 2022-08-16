@@ -2,18 +2,21 @@ import {
     Column,
     Entity,
     PrimaryColumn,
+    PrimaryGeneratedColumn,
   } from "typeorm";
 
   import { cloudId } from "../../../../services/cloud-id";
 
   @Entity()
   export class RestApi {
-    @PrimaryColumn({
-      nullable: false,
-      type: "varchar",
+    @PrimaryGeneratedColumn()
+    id?: number;
+
+    @Column({
+      nullable: true,
     })
     @cloudId
-    restApiId: string;
+    restApiId?: string;
 
     @Column()
     name: string;

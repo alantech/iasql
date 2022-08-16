@@ -1,12 +1,13 @@
 import {
     APIGateway,
     CreateRestApiCommandInput,
+    paginateGetRestApis,
     PatchOperation,
     RestApi as RestApiAWS,
     UpdateRestApiCommandInput,
   } from '@aws-sdk/client-api-gateway'
 
-  import { AWS, crudBuilder2, crudBuilderFormat, } from '../../../services/aws_macros'
+  import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
   import { RestApi, } from './entity'
   import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
   import isEqual from 'lodash.isequal'
@@ -22,18 +23,19 @@ import {
       isEqual(a.policy, b.policy);
       return res;
     };
-    getRestApis = crudBuilderFormat<APIGateway, 'getRestApis', RestApiAWS[]>(
-      'getRestApis',
-      () => ({}),
-      (res) => res?.items ?? [],
+
+    getRestApi = crudBuilder2<APIGateway, 'getRestApi'>(
+      'getRestApi',
+      (restApiId) => ({ restApiId, }),
+    );
+
+    getRestApis = paginateBuilder<APIGateway>(
+      paginateGetRestApis,
+      "items"
     );
 
     async createRestApi(client: APIGateway, input: CreateRestApiCommandInput) {
-      console.log("in create");
-      console.log(input);
       const newRestApi = await client.createRestApi(input);
-      console.log("output");
-      console.log(newRestApi);
       return newRestApi;
     }
 
@@ -52,33 +54,43 @@ import {
         const client = await ctx.getAwsClient() as AWS;
         const out = [];
         for (const r of rs) {
+          // if we have an id already, check if exists
           const input: CreateRestApiCommandInput = {
             name: r.name,
             description: r.description,
             disableExecuteApiEndpoint: r.disableExecuteApiEndpoint,
-            policy: r.policy,
             version: r.version
           };
           const result = await this.createRestApi(client.apiGatewayClient, input);
           if (result) {
-            console.log("in result");
-            console.log(result);
             const newApi = this.restApiMapper(result);
-            console.log("new");
-            console.log(newApi);
+            // use the same ID as the one inserted
+            newApi.id = r.id;
+            await this.module.restApi.db.update(newApi, ctx);
             out.push(newApi);
           }
         }
         return out;
       },
-      read: async (ctx: Context, id?: string) => {
-        const client = await ctx.getAwsClient() as AWS;
-
-        const allApis = await this.getRestApis(client.apiGatewayClient);
-        const out : RestApi[] = [];
-        const apis : RestApiAWS[] = allApis
-            .filter(r => !id);
-        return out;
+      read: async (ctx: Context, restApiId?: string) => {
+        const client = (await ctx.getAwsClient()) as AWS;
+        if (restApiId) {
+          const rawApi = await this.getRestApi(
+            client.apiGatewayClient,
+            restApiId
+          );
+          if (!rawApi) return undefined;
+          return this.restApiMapper(rawApi);
+        } else {
+          const rawApis =
+            (await this.getRestApis(client.apiGatewayClient)) ?? [];
+          const out = [];
+          for (const i of rawApis) {
+            const outApi = this.restApiMapper(i);
+            if (outApi) out.push(outApi);
+          }
+          return out;
+        }
       },
       updateOrReplace: (a: RestApi, b: RestApi) => 'update',
       update: async (rs: RestApi[], ctx: Context) => {
@@ -88,31 +100,42 @@ import {
           const cloudRecord = ctx?.memo?.cloud?.RestApi?.[r.restApiId ?? ''];
           const isUpdate = Object.is(this.module.restApi.cloud.updateOrReplace(cloudRecord, r), 'update');
           if (isUpdate) {
-            // prepare patch operations
-            const patches : PatchOperation[] = [];
-            const fields = ['description', 'disableExecuteApiEndpoint', 'name', 'policy', 'version'];
-            type ObjectKey = keyof typeof r;
-            fields.forEach(field => {
-                let myVar = field as ObjectKey;
-                if (cloudRecord[field] !== r[myVar]) {
-                    // add a replace operation
-                    patches.push({op: "replace", "path": "/"+field, value: r[myVar]});
-                }
-            });
-
-            const req: UpdateRestApiCommandInput = {
-                restApiId: r.restApiId,
-                patchOperations: patches
-            };
-            const res = await this.updateRestApi(client.apiGatewayClient, req);
-            if (res) {
-                const newApi = this.restApiMapper(res);
-                newApi.restApiId = r.restApiId;
-                // Save the record back into the database to get the new fields updated
-                await this.module.restApi.db.update(newApi, ctx);
-                out.push(newApi);
+            // if restApiId has changed, restore the document
+            if (cloudRecord.id !== r.id || cloudRecord.restApiId !== r.restApiId) {
+                // restore
+                await this.module.restApi.db.update(
+                  cloudRecord,
+                  ctx
+                );
+                out.push(cloudRecord);
             } else {
-                throw new Error("Error updating REST API");
+              // prepare patch operations
+              const patches : PatchOperation[] = [];
+              const fields = ['description', 'disableExecuteApiEndpoint', 'name', 'policy', 'version'];
+              type ObjectKey = keyof typeof r;
+              fields.forEach(field => {
+                  const myVar = field as ObjectKey;
+                  if (cloudRecord[field] !== r[myVar]) {
+                      // add a replace operation
+                      patches.push({op: "replace", "path": "/"+field, value: r[myVar]});
+                  }
+              });
+
+              const req: UpdateRestApiCommandInput = {
+                  restApiId: r.restApiId,
+                  patchOperations: patches
+              };
+              const res = await this.updateRestApi(client.apiGatewayClient, req);
+              if (res) {
+                  const newApi = this.restApiMapper(res);
+                  newApi.restApiId = r.restApiId;
+                  newApi.id = r.id;
+                  // Save the record back into the database to get the new fields updated
+                  await this.module.restApi.db.update(newApi, ctx);
+                  out.push(newApi);
+              } else {
+                  throw new Error("Error updating REST API");
+              }
             }
           }
         }
