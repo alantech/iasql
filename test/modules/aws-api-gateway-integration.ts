@@ -21,37 +21,21 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ["aws_api_gateway"];
-const apiName = "restApi";
+const apiName = "testApi";
 
 const policyJSON = {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": "*",
-            "Action": "execute-api:Invoke",
-            "Resource": [
-                "execute-api:/*"
-            ]
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Effect": "Allow",
+          "Principal": "*",
+          "Action": "execute-api:Invoke",
+          "Resource": "arn:aws:execute-api:*:*:*/*"
+      }
+  ]
 }
-const policyDocument = JSON.stringify(policyJSON);
 
-const updatedPolicyJSON = {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Deny",
-            "Principal": "*",
-            "Action": "execute-api:Invoke",
-            "Resource": [
-                "execute-api:/*"
-            ]
-        }
-    ]
-}
-const updatedPolicyDocument = JSON.stringify(updatedPolicyJSON);
+const policyDocument = JSON.stringify(policyJSON);
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -88,8 +72,8 @@ describe("API Gateway Integration Testing", () => {
   it(
     "adds a new API gateway",
     query(`  
-    INSERT INTO rest_api (name, description, disable_execute_api_endpoint, version, policy)
-    VALUES ('${apiName}', 'description', false, '1.0', '${policyDocument}');
+    INSERT INTO rest_api (name, description, disable_execute_api_endpoint, version)
+    VALUES ('${apiName}', 'description', false, '1.0');
   `)
   );
 
@@ -124,24 +108,14 @@ describe("API Gateway Integration Testing", () => {
     )
   );
 
-  describe('API policy integration testing', () => {
-    it('gets current API policy', query(`
-    SELECT policy FROM rest_api
-    WHERE name = '${apiName}';
-    `, (res: any[]) => {
-      expect(res.length).toBe(1);
-      expect(res[0].policy).toStrictEqual(JSON.parse(policyDocument));
-    }));
+  it('updates the API policy', query(`
+  UPDATE rest_api SET policy='${policyDocument}' WHERE name = '${apiName}';
+  `));
+  it('applies the API policy update', apply());
 
-    it('updates the API policy', query(`
-    UPDATE rest_api SET policy='${updatedPolicyDocument}' WHERE name = '${apiName}';
-    `));
-    it('applies the API policy update', apply());
-
-    it('gets current API policy with updated document', query(`
-    SELECT * FROM rest_api WHERE name = '${apiName}';
-    `, (res: any[]) => expect(res[0].policy).toStrictEqual(JSON.parse(updatedPolicyDocument))));
-  });
+  it('gets current API policy with updated document', query(`
+  SELECT * FROM rest_api WHERE name = '${apiName}';
+  `, (res: any[]) => expect(res[0].policy).toStrictEqual(JSON.parse(policyDocument))));
 
   it("uninstalls the API module", uninstall(modules));
 
@@ -199,9 +173,9 @@ describe("API install/uninstall", () => {
       .install([], dbAlias, config.db.user, true)
       .then(...finish(done)));
 
-  it("uninstalls the API module", uninstall(["aws_rest_api"]));
+  it("uninstalls the API module", uninstall(["aws_api_gateway"]));
 
-  it("installs the API module", install(["aws_rest_api"]));
+  it("installs the API module", install(["aws_api_gateway"]));
 
   it("deletes the test db", (done) =>
     void iasql.disconnect(dbAlias, "not-needed").then(...finish(done)));
