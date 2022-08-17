@@ -54,24 +54,24 @@ If the function call is successful, it will return a virtual table with a record
 ```sql
        module_name        |      created_table_name       | record_count
 --------------------------+-------------------------------+--------------
- aws_cloudwatch@0.0.1     | log_group                     |            0
- aws_iam@0.0.1            | role                          |            0
- aws_ecr@0.0.1            | public_repository             |            0
- aws_ecr@0.0.1            | repository                    |            1
- aws_ecr@0.0.1            | repository_policy             |            0
- aws_security_group@0.0.1 | security_group                |            2
- aws_security_group@0.0.1 | security_group_rule           |            0
- aws_vpc@0.0.1            | vpc                           |            1
- aws_vpc@0.0.1            | subnet                        |            3
- aws_elb@0.0.1            | load_balancer                 |            0
- aws_elb@0.0.1            | target_group                  |            0
- aws_elb@0.0.1            | listener                      |            0
- aws_elb@0.0.1            | load_balancer_security_groups |            0
- aws_ecs_fargate@0.0.1    | cluster                       |            0
- aws_ecs_fargate@0.0.1    | service                       |            0
- aws_ecs_fargate@0.0.1    | task_definition               |            0
- aws_ecs_fargate@0.0.1    | container_definition          |            0
- aws_ecs_fargate@0.0.1    | service_security_groups       |            0
+ aws_cloudwatch           | log_group                     |            0
+ aws_iam                  | role                          |            0
+ aws_ecr                  | public_repository             |            0
+ aws_ecr                  | repository                    |            1
+ aws_ecr                  | repository_policy             |            0
+ aws_security_group       | security_group                |            2
+ aws_security_group       | security_group_rule           |            0
+ aws_vpc                  | vpc                           |            1
+ aws_vpc                  | subnet                        |            3
+ aws_elb                  | load_balancer                 |            0
+ aws_elb                  | target_group                  |            0
+ aws_elb                  | listener                      |            0
+ aws_elb                  | load_balancer_security_groups |            0
+ aws_ecs_fargate          | cluster                       |            0
+ aws_ecs_fargate          | service                       |            0
+ aws_ecs_fargate          | task_definition               |            0
+ aws_ecs_fargate          | container_definition          |            0
+ aws_ecs_fargate          | service_security_groups       |            0
 (17 rows)
 ```
 
