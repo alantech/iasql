@@ -177,6 +177,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
   const user = `_${uuidv4().replace(/-/g, '')}`;
   const pass = `_${uuidv4().replace(/-/g, '')}`;
   const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+  if (db?.upgrading) throw new Error('Currently upgrading, cannot query at this time');
   const database = db.pgName;
   try {
     connMain = await createConnection({ ...dbMan.baseConnConfig, database, name: pass, });
@@ -272,6 +273,8 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
 }
 
 export async function dump(dbId: string, dataOnly: boolean) {
+  const dbMeta = await MetadataRepo.getDbById(dbId);
+  if (dbMeta?.upgrading) throw new Error('Currently upgrading, cannot dump this database');
   const pgUrl = dbMan.ourPgUrl(dbId);
   const excludedDataTables = '--exclude-table-data \'aws_account\' --exclude-table-data \'iasql_*\''
   const { stdout, } = await exec(
@@ -362,6 +365,8 @@ function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
 export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   logger.info(`Applying ${dbId}`);
+  const dbMeta = await MetadataRepo.getDbById(dbId);
+  if (dbMeta?.upgrading) throw new Error('Cannot apply a change while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
   if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
@@ -578,9 +583,11 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
   }
 }
 
-export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapper) {
+export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   logger.info(`Syncing ${dbId}`);
+  const dbMeta = await MetadataRepo.getDbById(dbId);
+  if (!force && dbMeta?.upgrading) throw new Error('Cannot sync with the cloud while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
   if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
@@ -789,6 +796,8 @@ export async function sync(dbId: string, dryRun: boolean, ormOpt?: TypeormWrappe
 }
 
 export async function modules(all: boolean, installed: boolean, dbId: string) {
+  const dbMeta = await MetadataRepo.getDbById(dbId);
+  if (dbMeta?.upgrading) throw new Error('Cannot check modules while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
   if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
@@ -815,7 +824,9 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
   }
 }
 
-export async function install(moduleList: string[], dbId: string, dbUser: string, allModules = false, ormOpt?: TypeormWrapper) {
+export async function install(moduleList: string[], dbId: string, dbUser: string, allModules = false, force = false, ormOpt?: TypeormWrapper) {
+  const dbMeta = await MetadataRepo.getDbById(dbId);
+  if (!force && dbMeta?.upgrading) throw new Error('Cannot install modules while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
   if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
@@ -912,7 +923,7 @@ ${Object.keys(tableCollisions)
   // we first need to sync the existing modules to make sure there are no records the newly-added
   // modules have a dependency on.
   try {
-    await sync(dbId, false, orm);
+    await sync(dbId, false, force, orm);
   } catch (e: any) {
     logger.error('Sync during module install failed', e);
     throw e;
@@ -1008,7 +1019,9 @@ ${Object.keys(tableCollisions)
   }
 }
 
-export async function uninstall(moduleList: string[], dbId: string, orm?: TypeormWrapper) {
+export async function uninstall(moduleList: string[], dbId: string, force = false, orm?: TypeormWrapper) {
+  const dbMeta = await MetadataRepo.getDbById(dbId);
+  if (!force && dbMeta?.upgrading) throw new Error('Cannot uninstall modules while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
   if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
@@ -1086,6 +1099,9 @@ export async function upgrade(dbId: string, dbUser: string) {
   if (versionString === config.modules.latestVersion) {
     return 'Up to date';
   } else {
+    const db = await MetadataRepo.getDbById(dbId);
+    if (!db) return 'Database no found (somehow)';
+    await MetadataRepo.dbUpgrading(db, true);
     (async () => {
       // First, figure out all of the modules installed, and if the `aws_account` module is
       // installed, also grab those credentials (eventually need to make this distinction and need
@@ -1113,7 +1129,7 @@ export async function upgrade(dbId: string, dbUser: string) {
         }
         // 3. Uninstall all of the non-`iasql_*` modules
         const nonIasqlMods = mods.filter(m => !/^iasql/.test(m));
-        await uninstall(nonIasqlMods, dbId);
+        await uninstall(nonIasqlMods, dbId, true);
         // 4. Uninstall the `iasql_*` modules manually
         const OldModules = (AllModules as any)[versionString];
         const qr = conn.createQueryRunner();
@@ -1134,19 +1150,20 @@ export async function upgrade(dbId: string, dbUser: string) {
         // 6. Install the `aws_account` module and then re-insert the creds if present, then add
         //    the rest of the modules back.
         if (!!creds) {
-          await install(['aws_account'], dbId, dbUser);
+          await install(['aws_account'], dbId, dbUser, false, true);
           await conn.query(`
             INSERT INTO aws_account (access_key_id, secret_access_key, region)
             VALUES ('${creds.access_key_id}', '${creds.secret_access_key}', '${creds.region}');
           `);
           await install(mods.filter((m: string) => ![
             'aws_account', 'iasql_platform', 'iasql_functions'
-          ].includes(m)), dbId, dbUser);
+          ].includes(m)), dbId, dbUser, false, true);
         }
       } catch (e) {
         logger.error('Failed to upgrade', { e, });
       } finally {
         conn?.close();
+        await MetadataRepo.dbUpgrading(db, false);
       }
     })();
     return 'Upgrading. Please disconnect and reconnect to the database';

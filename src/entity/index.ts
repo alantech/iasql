@@ -33,6 +33,12 @@ export class IasqlDatabase {
   })
   operationCount: number;
 
+  @Column({
+    type: 'boolean',
+    default: false,
+  })
+  upgrading: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
