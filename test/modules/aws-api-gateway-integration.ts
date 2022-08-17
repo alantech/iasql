@@ -117,6 +117,25 @@ describe("API Gateway Integration Testing", () => {
   SELECT * FROM rest_api WHERE name = '${apiName}';
   `, (res: any[]) => expect(res[0].policy).toStrictEqual(JSON.parse(policyDocument))));
 
+  it(
+    "tries to update API ID",
+    query(`
+  UPDATE rest_api SET rest_api_id='fake' WHERE name='${apiName}'
+  `)
+  );
+
+  it("applies the API ID update", apply());
+
+  it(
+    "checks that API ID has not been been modified",
+    query(
+      `
+  SELECT * FROM rest_api WHERE rest_api_id='fake';
+`,
+      (res: any) => expect(res.length).toBe(0)
+    )
+  );
+
   it("uninstalls the API module", uninstall(modules));
 
   it(
