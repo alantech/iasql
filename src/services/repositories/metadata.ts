@@ -75,6 +75,14 @@ class MetadataRepo {
     return db;
   }
 
+  async getDbById(dbId: string) {
+    return this.dbRepo.findOne({
+      where: {
+        pgName: dbId,
+      },
+    });
+  }
+
   async updateDbCounts(dbId: string, recCount: number, opCount: number) {
     const db = await this.dbRepo.findOne(dbId);
     if (!db) {
@@ -116,6 +124,11 @@ class MetadataRepo {
     return this.dbRepo.find();
   }
 
+  async dbUpgrading(db: IasqlDatabase, upgrading: boolean) {
+    db.upgrading = upgrading;
+    await this.dbRepo.save(db);
+  }
+
   async delDb(a0Id: string, dbAlias: string) {
     const user = await this.userRepo.findOneOrFail(a0Id);
     const dbToDel = user.iasqlDatabases.find(db => db.alias === dbAlias);
@@ -126,6 +139,7 @@ class MetadataRepo {
     // remove entry
     await this.dbRepo.remove(dbToDel);
   }
+
 }
 const singleton = new MetadataRepo();
 export default singleton;
