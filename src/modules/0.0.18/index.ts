@@ -1,6 +1,7 @@
 export * from "./aws_account";
 export * from "./aws_acm_import";
 export * from "./aws_acm_list";
+export * from "./aws_cloudfront";
 export * from "./aws_cloudwatch";
 export * from "./aws_dynamo";
 export * from "./aws_ec2";
