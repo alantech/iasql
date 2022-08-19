@@ -4,11 +4,11 @@ import {
     Distribution as DistributionAWS,
     paginateListDistributions,
     waitUntilDistributionDeployed,
-    Origin,
+    Origin as OriginAWS,
 } from '@aws-sdk/client-cloudfront'
 
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder, } from '../../../services/aws_macros'
-import { Distribution, DistributionMetadata, viewerProtocolPolicyEnum, } from './entity'
+import { Distribution, originProtocolPolicyEnum, viewerProtocolPolicyEnum, } from './entity'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
 import { WaiterOptions } from '@aws-sdk/util-waiter'
 
@@ -77,11 +77,12 @@ class DistributionMapper extends MapperBase<Distribution> {
           out.defaultCacheBehavior = {
             TargetOriginId : cache.TargetOriginId,
             ViewerProtocolPolicy: protocol,
+            CachePolicyId: cache.CachePolicyId,
           }
         }
       }
       if (distribution.DistributionConfig?.Origins) {
-        const origins: { DomainName: string | undefined; Id: string | undefined }[] = [];
+        const origins: any[] = [];
         distribution.DistributionConfig.Origins.Items?.forEach((origin) => {
           origins.push(origin)
         });
@@ -104,6 +105,8 @@ class DistributionMapper extends MapperBase<Distribution> {
             Origins: { Quantity: e.origins.length, Items: e.origins},
             DefaultCacheBehavior: e.defaultCacheBehavior,
           };
+          console.log("that is my config");
+          console.dir(config, { depth: null });
 
           const res = await this.createDistribution(
             client.cloudfrontClient, {

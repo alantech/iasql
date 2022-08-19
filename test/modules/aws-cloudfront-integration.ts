@@ -14,10 +14,11 @@ import {
 
 const prefix = getPrefix();
 const dbAlias = "cloudfront";
-const callerReference = "${prefix}-caller";
-const behavior = { TargetOriginId: 'id', ViewerProtocolPolicy: 'allow-all' };
+const callerReference = `${prefix}-caller`;
+const originId = `${prefix}-origin-id`;
+const behavior = { TargetOriginId: originId, ViewerProtocolPolicy: 'allow-all', CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6" };
 const behaviorString = JSON.stringify(behavior);
-const origins = [{ DomainName : 'fake-domain', Id: '1'}]
+const origins = [{ DomainName : 'www.google.com', Id: originId, CustomOriginConfig: {HTTPPort: 80, HTTPSPort: 443, "OriginProtocolPolicy": "https-only"}}]
 const originsString = JSON.stringify(origins);
 
 const apply = runApply.bind(null, dbAlias);

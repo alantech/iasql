@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsCloudfront1660846433388 implements MigrationInterface {
-    name = 'awsCloudfront1660846433388'
+export class awsCloudfront1660929280238 implements MigrationInterface {
+    name = 'awsCloudfront1660929280238'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "distribution" ("id" SERIAL NOT NULL, "distribution_id" character varying, "caller_reference" character varying, "comment" character varying, "enabled" boolean, "is_ipv6_enabled" boolean, "web_acl_id" character varying, "default_cache_behavior" json NOT NULL, "origins" json NOT NULL, CONSTRAINT "PK_187eaf203ccf9018df51b40108c" PRIMARY KEY ("id"))`);

@@ -1,6 +1,7 @@
 import {
     Column,
     Entity,
+    OneToMany,
     PrimaryGeneratedColumn,
 } from 'typeorm'
 
@@ -9,6 +10,12 @@ import { cloudId, } from '../../../../services/cloud-id' // This is ridiculous. 
 export enum viewerProtocolPolicyEnum {
     ALLOW_ALL = "allow-all",
     REDIRECT_TO_HTTPS = "redirect-to-https",
+    HTTPS_ONLY = "https-only"
+}
+
+export enum originProtocolPolicyEnum {
+    HTTP_ONLY = "http-only",
+    MATCH_VIEWER = "match-viewer",
     HTTPS_ONLY = "https-only"
 }
 
@@ -52,11 +59,18 @@ export class Distribution {
         type: 'json',
         nullable: false,
     })
-    defaultCacheBehavior: { TargetOriginId: string | undefined, ViewerProtocolPolicy: viewerProtocolPolicyEnum };
+    defaultCacheBehavior: { TargetOriginId: string | undefined, ViewerProtocolPolicy: viewerProtocolPolicyEnum, CachePolicyId: string | undefined };
 
     @Column({
         type: 'json',
         nullable: false,
     })
-    origins: { DomainName: string | undefined, Id: string | undefined }[];
+
+    @Column({
+        type: 'json',
+        nullable: false,
+    })
+    origins: { DomainName: string | undefined, Id: string | undefined,
+        CustomOriginConfig: { HTTPPort: number|undefined, HTTPSPort: number|undefined, OriginProtocolPolicy: originProtocolPolicyEnum }
+    }[];
 }
