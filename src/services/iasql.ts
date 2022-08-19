@@ -172,7 +172,7 @@ export async function disconnect(dbAlias: string, uid: string) {
   }
 }
 
-export async function runSql(dbAlias: string, uid: string, sql: string) {
+export async function runSql(dbAlias: string, uid: string, sql: string, byStatement: boolean) {
   let connMain: any, connTemp: any;
   const user = `_${uuidv4().replace(/-/g, '')}`;
   const pass = `_${uuidv4().replace(/-/g, '')}`;
@@ -218,24 +218,48 @@ export async function runSql(dbAlias: string, uid: string, sql: string) {
     const stmts = parse(sql);
     const out = [];
     for (const stmt of stmts) {
-      out.push(await connTemp.query(deparse(stmt)));
+      if (byStatement) {
+        out.push({
+          statement: deparse(stmt),
+          queryRes: await connTemp.query(deparse(stmt))
+        });
+      } else {
+        out.push(await connTemp.query(deparse(stmt)));
+      }
     }
     // Let's make this a bit easier to parse. Error -> error path, single table -> array of objects,
     // multiple tables -> array of array of objects
     return out.map(t => {
-      if (
-        !!t.rows &&
-        t.rows.length === 0 &&
-        t.command !== 'SELECT' &&
-        typeof t.rowCount === 'number'
-      ) {
-        return ({ affected_records: t.rowCount, });
-      } else if (typeof t === 'string') {
-        return ({ result: t, });
-      } else if (!!t.rows) {
-        return t.rows;
+      if (byStatement) {
+        if (
+          !!t.queryRes.rows &&
+          t.queryRes.rows.length === 0 &&
+          t.queryRes.command !== 'SELECT' &&
+          typeof t.queryRes.rowCount === 'number'
+        ) {
+          return ({ statement: t.statement, affected_records: t.queryRes.rowCount, });
+        } else if (typeof t.queryRes === 'string') {
+          return ({ statement: t.statement, result: t.queryRes, });
+        } else if (!!t.queryRes.rows) {
+          return { statement: t.statement, result: t.queryRes.rows };
+        } else {
+          return ({ statement: t.statement, error: `unexpected result: ${t.queryRes}`, }); // TODO: Error this out
+        }
       } else {
-        return ({ error: 'unexpected result: ${t}', }); // TODO: Error this out
+        if (
+          !!t.rows &&
+          t.rows.length === 0 &&
+          t.command !== 'SELECT' &&
+          typeof t.rowCount === 'number'
+        ) {
+          return ({ affected_records: t.rowCount, });
+        } else if (typeof t === 'string') {
+          return ({ result: t, });
+        } else if (!!t.rows) {
+          return t.rows;
+        } else {
+          return ({ error: `unexpected result: ${t}`, }); // TODO: Error this out
+        }
       }
     });
   } catch (e: any) {

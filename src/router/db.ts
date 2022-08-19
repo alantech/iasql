@@ -122,14 +122,14 @@ db.post('/run/:dbAlias', async (req, res) => {
   logger.info('Calling /run');
   if (!config.db.sqlViaRest) return res.status(400).end('SQL Querying via REST disabled');
   const { dbAlias, } = req.params;
-  const { sql, button, ampDeviceId } = req.body;
+  const { sql, button, ampDeviceId, byStatement } = req.body;
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
   let dbId;
   try {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     dbId = database.pgName;
-    const output = await iasql.runSql(dbAlias, uid, sql);
+    const output = await iasql.runSql(dbAlias, uid, sql, byStatement ?? false);
     telemetry.logRunSql({
       dbAlias,
       email,
