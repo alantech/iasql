@@ -19,7 +19,7 @@ const apply = runApply.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
-const runSql = iasql.runSql.bind(null, dbAlias, 'not-needed');
+const runSql = iasql.runSql.bind(null, dbAlias, 'not-needed', false);
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
