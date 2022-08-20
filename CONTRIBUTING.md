@@ -260,7 +260,7 @@ This dance is necessary to give users in IaSQL the ability to migrate from *any*
 
 ## Module Mapper Footguns
 
-This section will change much more frequently compared to the sections above.
+This section will change much more frequently compared to the other sections.
 
 * TypeORM sometimes violates the entity types you have provided, especially around nullable types, where the entity may be something like `foo?: string` which implies `string | undefined` but TypeORM will treat it as `string | null`. This can trip you up in the `equals` function as `Object.is` distinguishes between `undefined` and `null` so you will run into infinite `update` loops where it is detecting a difference but there is no actionable change to be had. [We currently re-adjust TypeORM output after to read or writes to the database to avoid this](https://github.com/iasql/iasql-engine/blob/main/src/modules/0.0.15/aws_security_group/entity/index.ts#L51-L59). (Similarly sometimes arrays are actually unordered sets, so comparing array element-by-element is incorrect and you need to check each element is inside of the other array, regardless of order, and some strings are actually JSON or other human-editable data formats and non-significant-whitespace differences can also cause `update` loops.
 * Deeply-nested entities get translated into many tables in TypeORM, and unique constraints on those tables can cause lots of pain with the entities that were generated from the cloud APIs, as they don't have the the database-only columns that let TypeORM know when the entity already exists in the database. Unfortunately for now you have to manually find these duplicates and then patch your sub-entity with these DB-only fields or the DB CRUD operations will blow up in your face.
