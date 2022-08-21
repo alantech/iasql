@@ -5,9 +5,7 @@ slug: '/aws'
 
 # Manage an AWS Account
 
-IaSQL requires cloud credentials to manage and provision resources which can be provided in one of two ways.
-
-First, make sure you have an [IAM user](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html) in AWS or create one with **Programmatic access** through the [console/UI](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html#id_users_create_console) or [CLI](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html#id_users_create_cliwpsapi). Ensure that the IAM role has sufficient permissions to deploy and manage all your infrastructure resources.
+IaSQL requires AWS credentials to manage the resources within the account. Credentials via an [IAM user](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html) in AWS with **Programmatic Access**. IAM users can be created through the [console/UI](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html#id_users_create_console) or [CLI](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html#id_users_create_cliwpsapi). Ensure that the IAM role has sufficient permissions to deploy and manage the infrastructure resources you are interested in. `AdministratorAccess` provides full access to deploy and manage all types of resources. `ReadOnlyAccess` access provides access to inspect all of the different kinds of existing resources, but not modify them or create new ones. The latter provides full IaSQL `apply` and `sync` support, while the former only provides access to `sync`, and running `apply` will fail. Read more about `apply` and `sync` [here](../concepts/apply-and-sync).
 
 There are two parts to each [access key](https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html#access-keys-and-secret-access-keys), which you’ll see in the IAM console/CLI after you create it, an id and a secret.
 
