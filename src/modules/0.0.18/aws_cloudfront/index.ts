@@ -4,11 +4,11 @@ import {
     Distribution as DistributionAWS,
     paginateListDistributions,
     waitUntilDistributionDeployed,
-    Origin as OriginAWS,
+    DistributionSummary,
 } from '@aws-sdk/client-cloudfront'
 
-import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder, } from '../../../services/aws_macros'
-import { Distribution, originProtocolPolicyEnum, viewerProtocolPolicyEnum, } from './entity'
+import { AWS, crudBuilder2, paginateBuilder, } from '../../../services/aws_macros'
+import { Distribution, viewerProtocolPolicyEnum, } from './entity'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
 import { WaiterOptions } from '@aws-sdk/util-waiter'
 
@@ -24,26 +24,26 @@ class DistributionMapper extends MapperBase<Distribution> {
       (Id) => ({ Id, }),
     );
 
-    getDistributionsList = paginateBuilder<CloudFront>(paginateListDistributions, 'DistributionList', 'Items');
-
     async getDistributions (client: CloudFront) {
-      // iterate over all distributions and extract the config
-      const results = await this.getDistributionsList(client);
-
-      const out : DistributionAWS[] = [];
-      results.forEach((result) => {
-        if (result.Items) {
-          result.Items.forEach(async (item: DistributionAWS) => {
-            // check the distribution ID and get the config
-            if (item.Id) {
-              const config = await this.getDistribution(client, item.Id);
-              if (config && config.Distribution) {
-                out.push(config.Distribution);
-              }
-            }
-          })
+      const results:DistributionSummary[] = [];
+      const paginator = paginateListDistributions({client, pageSize:25}, {});
+      for await (const page of paginator) {
+        if (page.DistributionList) {
+          results.push(...(page.DistributionList.Items ??[]));
         }
-      });
+      }
+
+      // iterate over all distributions and extract the config
+      const out : DistributionAWS[] = [];
+      for await (const item of results) {
+        // check the distribution ID and get the config
+        if (item.Id && item.Status==="Deployed") {
+          const config = await this.getDistribution(client, item.Id);
+          if (config && config.Distribution) {
+            out.push(config.Distribution);
+          }
+        }
+      }
       return out;
     }
 
@@ -61,6 +61,29 @@ class DistributionMapper extends MapperBase<Distribution> {
       'deleteDistribution',
       (Id) => ({ Id, }),
     );
+
+    async updateDistributionAndWait(client:CloudFront, distributionId: string, req:DistributionConfig) {
+
+      const res = await this.updateDistribution(client, {
+        Id: distributionId,
+        DistributionConfig: req,
+      });
+      if (!res?.Distribution) return undefined;
+
+      // wait for distribution to be deployed
+      if (res) {
+        await waitUntilDistributionDeployed({
+          client,
+          // all in seconds
+          maxWaitTime: 300,
+          minDelay: 1,
+          maxDelay: 4,
+        } as WaiterOptions<CloudFront>, { Id: res.Distribution?.Id, });
+
+        return res;
+      }
+
+    }
 
     distributionMapper (distribution: DistributionAWS) {
       const out = new Distribution();
@@ -105,9 +128,6 @@ class DistributionMapper extends MapperBase<Distribution> {
             Origins: { Quantity: e.origins.length, Items: e.origins},
             DefaultCacheBehavior: e.defaultCacheBehavior,
           };
-          console.log("that is my config");
-          console.dir(config, { depth: null });
-
           const res = await this.createDistribution(
             client.cloudfrontClient, {
               DistributionConfig: config
@@ -135,15 +155,21 @@ class DistributionMapper extends MapperBase<Distribution> {
       read: async (ctx: Context, id?: string) => {
         const client = await ctx.getAwsClient() as AWS;
         if (id) {
+          console.log("i am individual");
           const rawDistribution = await this.getDistribution(client.cloudfrontClient, id);
           if (!rawDistribution?.Distribution) return;
-          return this.distributionMapper(rawDistribution.Distribution);
+          const result = this.distributionMapper(rawDistribution.Distribution);
+          console.log("individual result is");
+          console.log(result);
+          return result;
         } else {
           const distributions = await this.getDistributions(client.cloudfrontClient);
           const out = [];
           for (const distribution of distributions) {
             out.push(this.distributionMapper(distribution));
           }
+          console.log("final results are");
+          console.log(out);
           return out;
         }
       },
@@ -172,29 +198,12 @@ class DistributionMapper extends MapperBase<Distribution> {
                 WebACLId: e.webACLId,
                 Origins: { Quantity: e.origins.length, Items: e.origins },
               };
-
-              const res = await this.updateDistribution(client.cloudfrontClient, {
-                Id: e.id,
-                DistributionConfig: req,
-              });
-              if (!res?.Distribution) continue;
-
-              // wait for distribution to be deployed
-              if (res) {
-                await waitUntilDistributionDeployed({
-                  client: client.cloudfrontClient,
-                  // all in seconds
-                  maxWaitTime: 300,
-                  minDelay: 1,
-                  maxDelay: 4,
-                } as WaiterOptions<CloudFront>, { Id: res.Distribution?.Id, });
-
-                if (res && res.Distribution) {
+              const res = await this.updateDistributionAndWait(client.cloudfrontClient, e.distributionId!, req);
+              if (res && res.Distribution) {
                   const newDistribution = this.distributionMapper(res.Distribution);
                   newDistribution.id = e.id;
                   await this.module.distribution.db.update(newDistribution, ctx);
                   out.push(newDistribution);
-                }
               }
             }
           }
@@ -204,6 +213,28 @@ class DistributionMapper extends MapperBase<Distribution> {
       delete: async (es: Distribution[], ctx: Context) => {
         const client = await ctx.getAwsClient() as AWS;
         for (const e of es) {
+          // if state is enabled, need to disable
+          if (e.enabled) {
+            e.enabled = false;
+            const req: DistributionConfig = {
+              CallerReference: e.callerReference,
+              Comment: e.comment,
+              DefaultCacheBehavior: e.defaultCacheBehavior,
+              Enabled: e.enabled,
+              IsIPV6Enabled: e.isIPV6Enabled,
+              WebACLId: e.webACLId,
+              Origins: { Quantity: e.origins.length, Items: e.origins },
+            };
+            const res = await this.updateDistributionAndWait(client.cloudfrontClient, e.distributionId!, req);
+            if (res && res.Distribution) {
+                const newDistribution = this.distributionMapper(res.Distribution);
+                newDistribution.id = e.id;
+                await this.module.distribution.db.update(newDistribution, ctx);
+            }
+
+          }
+
+          // once it is disabled we can delete
           await this.deleteDistribution(client.cloudfrontClient, e.id);
         }
       },
