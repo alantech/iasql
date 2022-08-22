@@ -124,6 +124,18 @@ Coming full circle on this, we can improve on the first option in this list by t
 1. Nulling-out the region column after it has been populated can have unpredictable results, and is easier to accidentally do than the prior option.
 2. Most every entity needs to be altered.
 
+#### Default region column on relevant tables
+
+Minor tweak to the above, instead of the region being nullable, they are not-nullable but have a default value equal to the `default_region` column in the `aws_account`. This can be accomplished with a simple Postgres function that returns the `default_region` value.
+
+##### Pros
+
+1. Same insert benefits as the above, but also there's never weirdness with the region not being defined.
+
+##### Cons
+
+1. There may be an expectation that changing the default region changes the values of records with the same region?
+
 ## Expected Semver Impact
 
 If we were post-1.0.0, this would be a major version change, no matter what option we take.
