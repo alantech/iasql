@@ -359,16 +359,16 @@
     "@aws-sdk/util-utf8-node" "3.109.0"
     tslib "^2.3.1"
 
-"@aws-sdk/client-ecr@^3.131.0":
-  version "3.131.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-ecr/-/client-ecr-3.131.0.tgz#523378f494a289f4b7243d2f1f3e47880b18cf76"
-  integrity sha512-Z8VXsdQ5OKFtkcBQl7qTKCRWzeY7thL4KKrvVfAZsJBiYlQCvZiytaxyuJSj9yflZmqArPzL7USlo8Qy0vhJLA==
+"@aws-sdk/client-ecr@^3.154.0":
+  version "3.154.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-ecr/-/client-ecr-3.154.0.tgz#c04839be098a6580487730baf8c36fe279264c8a"
+  integrity sha512-Pn8CFitR4irHfCJuZSqSWZpsr5NrxxemMblMBNXO4ZCMiaV6tsZDS0C8RM23Nb3b8eci2sS2nKlnwKAlLwfw9Q==
   dependencies:
     "@aws-crypto/sha256-browser" "2.0.0"
     "@aws-crypto/sha256-js" "2.0.0"
-    "@aws-sdk/client-sts" "3.131.0"
+    "@aws-sdk/client-sts" "3.154.0"
     "@aws-sdk/config-resolver" "3.130.0"
-    "@aws-sdk/credential-provider-node" "3.131.0"
+    "@aws-sdk/credential-provider-node" "3.154.0"
     "@aws-sdk/fetch-http-handler" "3.131.0"
     "@aws-sdk/hash-node" "3.127.0"
     "@aws-sdk/invalid-dependency" "3.127.0"
@@ -384,15 +384,15 @@
     "@aws-sdk/node-config-provider" "3.127.0"
     "@aws-sdk/node-http-handler" "3.127.0"
     "@aws-sdk/protocol-http" "3.127.0"
-    "@aws-sdk/smithy-client" "3.127.0"
+    "@aws-sdk/smithy-client" "3.142.0"
     "@aws-sdk/types" "3.127.0"
     "@aws-sdk/url-parser" "3.127.0"
     "@aws-sdk/util-base64-browser" "3.109.0"
     "@aws-sdk/util-base64-node" "3.55.0"
-    "@aws-sdk/util-body-length-browser" "3.55.0"
+    "@aws-sdk/util-body-length-browser" "3.154.0"
     "@aws-sdk/util-body-length-node" "3.55.0"
-    "@aws-sdk/util-defaults-mode-browser" "3.127.0"
-    "@aws-sdk/util-defaults-mode-node" "3.130.0"
+    "@aws-sdk/util-defaults-mode-browser" "3.142.0"
+    "@aws-sdk/util-defaults-mode-node" "3.142.0"
     "@aws-sdk/util-user-agent-browser" "3.127.0"
     "@aws-sdk/util-user-agent-node" "3.127.0"
     "@aws-sdk/util-utf8-browser" "3.109.0"
