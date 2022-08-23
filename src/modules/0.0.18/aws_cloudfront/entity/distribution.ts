@@ -18,6 +18,12 @@ export enum originProtocolPolicyEnum {
     HTTPS_ONLY = "https-only"
 }
 
+export enum priceClassEnum {
+  P100 = "PriceClass_100",
+  P200 = "PriceClass_200",
+  PALL = "PriceClass_All"
+}
+
 @Entity()
 export class Distribution {
     @PrimaryGeneratedColumn()
@@ -82,4 +88,12 @@ export class Distribution {
         nullable: true,
     })
     location?: string;
+
+    @Column({
+        type: 'enum',
+        enum: priceClassEnum,
+        default: priceClassEnum.PALL,
+      })
+      priceClass: priceClassEnum;
+    
 }
