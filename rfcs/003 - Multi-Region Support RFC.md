@@ -31,7 +31,31 @@ Due to the structure of the AWS API, as well as some hesitance to accidentally o
 
 ## Proposal
 
-No explicit proposal yet, just a collection of options to consider from implementation and usability perspectives. The resulting schema needs to be intuitive for users as the highest priority, but as this migration will likely take time, the ability to get from here to there without a "break the world" parallel branch is also desired, if possible.
+After going through several options in many directions, we've chosen adding a `region` column to all relevant tables, but with a `default` value provided in the schema so users can normally ignore that column if they deploy primarily to just one region.
+
+In order to keep the current flexibility, there would be a Postgres function provided by the `aws_account` module to return the default region they have selected. This could simply be a rename of the current `region` column on the `aws_account` table to `default_region`, but we also want to improve on the current state of things when moving to multi-region modules.
+
+The first thing that we desire is that the default region be guaranteed to be an actual region that the user is able to access. That depends on their credentials, so we should have an `aws_regions` table contains the list of all regions that we acquire via the API, and then joined in on the `default_region` column.
+
+The second thing that is necessary with this approach is that the default region function output needs to always return a region.
+
+These two are not compatible with each other, and here's why:
+
+If we put a foreign key join on the `aws_account` table to the `aws_regions` table, then when we first attempt to insert the credentials to make it available to the Mapper in charge of the `aws_regions` table, we would have to have the `default_region` be set to `NULL` to not fall afoul of the foreign key constraints. But if it is `NULL` then the default value function would need to have some other value it always spits out to users which we don't *know* for sure could be something like `us-east-1` because it depends on the response for the regions available to the credentials in question.
+
+There's also a third desire for this refactoring: we want to go multi-region, but we also want to allow users to disable regions that they do not use (or do not want to manage with IaSQL) to improve the performance of `apply` and `sync` operations.
+
+I bring this up because it suggests a solution for both problems.
+
+We split the `aws_account` into two tables, `aws_credentials` and `aws_regions`. The credentials table *only* has the credentials for the AWS account, while the `aws_regions` table has three columns, the `region`, `is_default`, and `is_enabled`, with the last two being boolean columns and the `is_default` column having a constraint that only one row has a default value.
+
+When first populating the `aws_regions` table, all regions returned that the user has access to should be enabled by default, and the first one is set as the default. We can then overload the `aws_default_region` function we intend to use for reading the default region to also perform the necessary operations to alter the default region (this requires temporarily disabling the constraint on the table only allowing one `is_default == true` row, making the current default `false`, then setting the new default to `true` and re-enabling the constraint within a transaction).
+
+Within the `AwsAccount` object in the engine itself, it currently attaches a `getAwsClient` method to the context object that the other modules use. This should continue to maintain the current behavior it has when no arguments are passed to it, returning a client tied to the default region, which will allow existing modules to be converted to region-aware over time.
+
+There should also be a new function to `getEnabledAwsRegions` and `getAwsClient` should be overloaded to accept a region argument to override the default.
+
+The cloud read functions would need to be updated to first `getEnabledAwsRegions` and then loop their current logic per region received. Cloud create/update/delete would use their own entity's `region` column to determine the value to pass to the `getAwsClient` function.
 
 ### Alternatives Considered
 
@@ -123,18 +147,6 @@ Coming full circle on this, we can improve on the first option in this list by t
 
 1. Nulling-out the region column after it has been populated can have unpredictable results, and is easier to accidentally do than the prior option.
 2. Most every entity needs to be altered.
-
-#### Default region column on relevant tables
-
-Minor tweak to the above, instead of the region being nullable, they are not-nullable but have a default value equal to the `default_region` column in the `aws_account`. This can be accomplished with a simple Postgres function that returns the `default_region` value.
-
-##### Pros
-
-1. Same insert benefits as the above, but also there's never weirdness with the region not being defined.
-
-##### Cons
-
-1. There may be an expectation that changing the default region changes the values of records with the same region?
 
 ## Expected Semver Impact
 
