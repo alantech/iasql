@@ -400,16 +400,16 @@
     "@aws-sdk/util-waiter" "3.127.0"
     tslib "^2.3.1"
 
-"@aws-sdk/client-ecs@^3.100.0":
-  version "3.131.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-ecs/-/client-ecs-3.131.0.tgz#a87134171c6ca2193a4a738111c9b537b981b8b8"
-  integrity sha512-sJ+P3bDhaCsdjbXH+mGcv5wCRPDw/+MAidfQ1h+CWJMfkcjxJwUgCIG4fj5uWs/1JZ0lSVbHEeKvSTHyNflSFw==
+"@aws-sdk/client-ecs@^3.154.0":
+  version "3.154.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-ecs/-/client-ecs-3.154.0.tgz#5d00967e02ca21634e72276831c10e0d5160a7c6"
+  integrity sha512-c47VQCmIxAjPFXGMnu+pEzF0/aKFD45GAyqK6BVVQz+qQ/oCjXH6OxXPja3+4nenXAsXHDzoxOUyKfiaNRN6jw==
   dependencies:
     "@aws-crypto/sha256-browser" "2.0.0"
     "@aws-crypto/sha256-js" "2.0.0"
-    "@aws-sdk/client-sts" "3.131.0"
+    "@aws-sdk/client-sts" "3.154.0"
     "@aws-sdk/config-resolver" "3.130.0"
-    "@aws-sdk/credential-provider-node" "3.131.0"
+    "@aws-sdk/credential-provider-node" "3.154.0"
     "@aws-sdk/fetch-http-handler" "3.131.0"
     "@aws-sdk/hash-node" "3.127.0"
     "@aws-sdk/invalid-dependency" "3.127.0"
@@ -425,15 +425,15 @@
     "@aws-sdk/node-config-provider" "3.127.0"
     "@aws-sdk/node-http-handler" "3.127.0"
     "@aws-sdk/protocol-http" "3.127.0"
-    "@aws-sdk/smithy-client" "3.127.0"
+    "@aws-sdk/smithy-client" "3.142.0"
     "@aws-sdk/types" "3.127.0"
     "@aws-sdk/url-parser" "3.127.0"
     "@aws-sdk/util-base64-browser" "3.109.0"
     "@aws-sdk/util-base64-node" "3.55.0"
-    "@aws-sdk/util-body-length-browser" "3.55.0"
+    "@aws-sdk/util-body-length-browser" "3.154.0"
     "@aws-sdk/util-body-length-node" "3.55.0"
-    "@aws-sdk/util-defaults-mode-browser" "3.127.0"
-    "@aws-sdk/util-defaults-mode-node" "3.130.0"
+    "@aws-sdk/util-defaults-mode-browser" "3.142.0"
+    "@aws-sdk/util-defaults-mode-node" "3.142.0"
     "@aws-sdk/util-user-agent-browser" "3.127.0"
     "@aws-sdk/util-user-agent-node" "3.127.0"
     "@aws-sdk/util-utf8-browser" "3.109.0"
@@ -3007,15 +3007,10 @@
   resolved "https://registry.yarnpkg.com/@types/ms/-/ms-0.7.31.tgz#31b7ca6407128a3d2bbc27fe2d21b345397f6197"
   integrity sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==
 
-"@types/node@*":
-  version "18.6.1"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.6.1.tgz#828e4785ccca13f44e2fb6852ae0ef11e3e20ba5"
-  integrity sha512-z+2vB6yDt1fNwKOeGbckpmirO+VBDuQqecXkgeIqDlaOtmKn6hPR/viQ8cxCfqLU4fTlvM3+YjM367TukWdxpg==
-
-"@types/node@^16.11.28":
-  version "16.11.45"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.11.45.tgz#155b13a33c665ef2b136f7f245fa525da419e810"
-  integrity sha512-3rKg/L5x0rofKuuUt5zlXzOnKyIHXmIu5R8A0TuNDMF2062/AOIDBciFIjToLEJ/9F9DzkHNot+BpNsMI1OLdQ==
+"@types/node@*", "@types/node@^18.7.11":
+  version "18.7.11"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.7.11.tgz#486e72cfccde88da24e1f23ff1b7d8bfb64e6250"
+  integrity sha512-KZhFpSLlmK/sdocfSAjqPETTMd0ug6HIMIAwkwUpU79olnZdQtMxpQP+G1wDzCH7na+FltSIhbaZuKdwZ8RDrw==
 
 "@types/parse-json@^4.0.0":
   version "4.0.0"
