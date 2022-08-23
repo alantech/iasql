@@ -64,7 +64,7 @@ class DistributionMapper extends MapperBase<Distribution> {
 
     deleteDistribution = crudBuilder2<CloudFront, 'deleteDistribution'>(
       'deleteDistribution',
-      (Id) => ({ Id, }),
+      (Id, IfMatch) => ({ Id, IfMatch}),
     );
 
     async updateDistributionAndWait(client:CloudFront, distributionId: string, req:DistributionConfig, etag:string) {
@@ -252,10 +252,9 @@ class DistributionMapper extends MapperBase<Distribution> {
           if (!distributionConfig) throw new Error("Cannot update a distribution without config");
 
           // if state is enabled, need to disable
-          if (e.enabled) {
+          if (e.enabled && e.eTag) {
             e.enabled = false;
             const req = await this.getDistributionConfigForUpdate(client.cloudfrontClient, e);
-            if (!e.eTag) throw new Error("Cannot delete a distribution without an etag");  // we cannot update without etag
 
             const res = await this.updateDistributionAndWait(client.cloudfrontClient, e.distributionId!, req, e.eTag);
             if (res && res.Distribution) {
@@ -266,8 +265,10 @@ class DistributionMapper extends MapperBase<Distribution> {
             }
           }
 
-          // once it is disabled we can delete
-          await this.deleteDistribution(client.cloudfrontClient, e.id);
+          if (e.eTag) {
+            // once it is disabled we can delete
+            await this.deleteDistribution(client.cloudfrontClient, e.distributionId, e.eTag);
+          }
         }
       },
     });
