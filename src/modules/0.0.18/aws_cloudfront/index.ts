@@ -88,6 +88,40 @@ class DistributionMapper extends MapperBase<Distribution> {
 
         return res;
       }
+    }
+
+    async getDistributionConfigForUpdate(client:CloudFront, e:Distribution) {
+      // retrieve current distribution config
+      const distributionConfig = await this.getDistributionConfig(client, e.distributionId);
+      if (!distributionConfig) throw new Error("Cannot update a distribution without config");
+
+      // merge default cache behaviour settings
+      const finalCacheBehavior = distributionConfig.DistributionConfig?.DefaultCacheBehavior!;
+      finalCacheBehavior.CachePolicyId=e.defaultCacheBehavior.CachePolicyId;
+      finalCacheBehavior.TargetOriginId=e.defaultCacheBehavior.TargetOriginId;
+      finalCacheBehavior.ViewerProtocolPolicy=e.defaultCacheBehavior.ViewerProtocolPolicy;
+
+      const req: DistributionConfig = {
+        CallerReference: e.callerReference,
+        Comment: e.comment,
+        DefaultCacheBehavior: finalCacheBehavior,
+        Enabled: e.enabled,
+        IsIPV6Enabled: e.isIPV6Enabled,
+        WebACLId: e.webACLId,
+        Origins: { Quantity: e.origins.length, Items: e.origins },
+        PriceClass: e.priceClass,
+        Aliases: distributionConfig.DistributionConfig!.Aliases,
+        Logging: distributionConfig.DistributionConfig!.Logging,
+        CacheBehaviors: distributionConfig.DistributionConfig!.CacheBehaviors,
+        CustomErrorResponses: distributionConfig.DistributionConfig!.CustomErrorResponses,
+        DefaultRootObject: distributionConfig.DistributionConfig!.DefaultRootObject,
+        HttpVersion: distributionConfig.DistributionConfig!.HttpVersion,
+        OriginGroups: distributionConfig.DistributionConfig!.OriginGroups,
+        Restrictions: distributionConfig.DistributionConfig!.Restrictions,
+        ViewerCertificate: distributionConfig.DistributionConfig!.ViewerCertificate,
+      };
+
+      return req;
 
     }
 
@@ -130,8 +164,6 @@ class DistributionMapper extends MapperBase<Distribution> {
         const out = [];
         for (const e of es) {
           if (e.distributionId) continue; // cannot create a distribution with an already created id
-          console.log("i want to create");
-          console.log(e.callerReference);
           const config:DistributionConfig = {
             CallerReference: e.callerReference,
             Comment: e.comment,
@@ -171,7 +203,7 @@ class DistributionMapper extends MapperBase<Distribution> {
         const client = await ctx.getAwsClient() as AWS;
         if (id) {
           const rawDistribution = await this.getDistribution(client.cloudfrontClient, id);
-          if (!rawDistribution?.Distribution) return undefined;
+          if (!rawDistribution?.Distribution || rawDistribution.Distribution.Status!=="Deployed") return undefined;
 
           const result = this.distributionMapper(rawDistribution.Distribution);
           return result;
@@ -179,7 +211,7 @@ class DistributionMapper extends MapperBase<Distribution> {
           const distributions = await this.getDistributions(client.cloudfrontClient);
           const out = [];
           for (const distribution of distributions) {
-            out.push(this.distributionMapper(distribution));
+            if (distribution.Status==="Deployed") out.push(this.distributionMapper(distribution));
           }
           return out;
         }
@@ -196,30 +228,8 @@ class DistributionMapper extends MapperBase<Distribution> {
           );
           if (isUpdate) {
             if (!e.eTag) throw new Error("Cannot update a distribution without an etag");  // cannot update without etag
+            const req = await this.getDistributionConfigForUpdate(client.cloudfrontClient, e);
 
-            // retrieve current distribution config
-            const distributionConfig = await this.getDistributionConfig(client.cloudfrontClient, e.distributionId);
-            if (!distributionConfig) throw new Error("Cannot update a distribution without config");
-
-            const req: DistributionConfig = {
-              CallerReference: e.callerReference,
-              Comment: e.comment,
-              DefaultCacheBehavior: e.defaultCacheBehavior,
-              Enabled: e.enabled,
-              IsIPV6Enabled: e.isIPV6Enabled,
-              WebACLId: e.webACLId,
-              Origins: { Quantity: e.origins.length, Items: e.origins },
-              PriceClass: e.priceClass,
-              Aliases: distributionConfig.DistributionConfig!.Aliases,
-              Logging: distributionConfig.DistributionConfig!.Logging,
-              CacheBehaviors: distributionConfig.DistributionConfig!.CacheBehaviors,
-              CustomErrorResponses: distributionConfig.DistributionConfig!.CustomErrorResponses,
-              DefaultRootObject: distributionConfig.DistributionConfig!.DefaultRootObject,
-              HttpVersion: distributionConfig.DistributionConfig!.HttpVersion,
-              OriginGroups: distributionConfig.DistributionConfig!.OriginGroups,
-              Restrictions: distributionConfig.DistributionConfig!.Restrictions,
-              ViewerCertificate: distributionConfig.DistributionConfig!.ViewerCertificate,
-            };
             if (e.eTag) {
               const res = await this.updateDistributionAndWait(client.cloudfrontClient, e.distributionId!, req, e.eTag);
               if (res && res.Distribution) {
@@ -244,25 +254,7 @@ class DistributionMapper extends MapperBase<Distribution> {
           // if state is enabled, need to disable
           if (e.enabled) {
             e.enabled = false;
-            const req: DistributionConfig = {
-              CallerReference: e.callerReference,
-              Comment: e.comment,
-              DefaultCacheBehavior: e.defaultCacheBehavior,
-              Enabled: e.enabled,
-              IsIPV6Enabled: e.isIPV6Enabled,
-              WebACLId: e.webACLId,
-              Origins: { Quantity: e.origins.length, Items: e.origins },
-              PriceClass: e.priceClass,
-              Aliases: distributionConfig.DistributionConfig!.Aliases,
-              Logging: distributionConfig.DistributionConfig!.Logging,
-              CacheBehaviors: distributionConfig.DistributionConfig!.CacheBehaviors,
-              CustomErrorResponses: distributionConfig.DistributionConfig!.CustomErrorResponses,
-              DefaultRootObject: distributionConfig.DistributionConfig!.DefaultRootObject,
-              HttpVersion: distributionConfig.DistributionConfig!.HttpVersion,
-              OriginGroups: distributionConfig.DistributionConfig!.OriginGroups,
-              Restrictions: distributionConfig.DistributionConfig!.Restrictions,
-              ViewerCertificate: distributionConfig.DistributionConfig!.ViewerCertificate,              
-            };
+            const req = await this.getDistributionConfigForUpdate(client.cloudfrontClient, e);
             if (!e.eTag) throw new Error("Cannot delete a distribution without an etag");  // we cannot update without etag
 
             const res = await this.updateDistributionAndWait(client.cloudfrontClient, e.distributionId!, req, e.eTag);
@@ -272,7 +264,6 @@ class DistributionMapper extends MapperBase<Distribution> {
                 newDistribution.eTag = res.ETag;
                 await this.module.distribution.db.update(newDistribution, ctx);
             }
-
           }
 
           // once it is disabled we can delete

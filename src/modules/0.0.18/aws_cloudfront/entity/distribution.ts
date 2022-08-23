@@ -95,5 +95,4 @@ export class Distribution {
         default: priceClassEnum.PALL,
       })
       priceClass: priceClassEnum;
-    
 }
