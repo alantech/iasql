@@ -99,7 +99,7 @@ describe("Cloudfront Integration Testing", () => {
     )
   );
 
-  it(
+  /*it(
     "tries to update distribution id",
     query(`
   UPDATE distribution SET distribution_id='fake' WHERE caller_reference='${callerReference}';
@@ -116,7 +116,7 @@ describe("Cloudfront Integration Testing", () => {
 `,
       (res: any) => expect(res.length).toBe(0)
     )
-  );
+  );*/
 
   it("uninstalls the cloudfront module", uninstall(modules));
 
