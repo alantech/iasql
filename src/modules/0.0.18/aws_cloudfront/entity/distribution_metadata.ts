@@ -6,7 +6,7 @@ export enum distributionStatusEnum {
     IN_PROGRESS = "InProgress",
     DEPLOYED = "Deployed",
 }
-    
+
 @Entity()
 export class DistributionMetadata {
   @PrimaryGeneratedColumn()

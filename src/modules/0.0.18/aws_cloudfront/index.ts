@@ -37,7 +37,7 @@ class DistributionMapper extends MapperBase<Distribution> {
       const out : DistributionAWS[] = [];
       for await (const item of results) {
         // check the distribution ID and get the config
-        if (item.Id && item.Status==="Deployed") {
+        if (item.Id) {
           const config = await this.getDistribution(client, item.Id);
           if (config && config.Distribution) {
             out.push(config.Distribution);
@@ -62,11 +62,12 @@ class DistributionMapper extends MapperBase<Distribution> {
       (Id) => ({ Id, }),
     );
 
-    async updateDistributionAndWait(client:CloudFront, distributionId: string, req:DistributionConfig) {
+    async updateDistributionAndWait(client:CloudFront, distributionId: string, req:DistributionConfig, etag:string) {
 
       const res = await this.updateDistribution(client, {
         Id: distributionId,
         DistributionConfig: req,
+        IfMatch: etag
       });
       if (!res?.Distribution) return undefined;
 
@@ -119,6 +120,7 @@ class DistributionMapper extends MapperBase<Distribution> {
         const client = await ctx.getAwsClient() as AWS;
         const out = [];
         for (const e of es) {
+          if (e.distributionId) continue; // cannot create a distribution with an already created id
           const config:DistributionConfig = {
             CallerReference: e.callerReference,
             Comment: e.comment,
@@ -145,22 +147,21 @@ class DistributionMapper extends MapperBase<Distribution> {
 
             if (res && res.Distribution) {
               const newDistribution = this.distributionMapper(res.Distribution);
+              newDistribution.id = e.id;
+              newDistribution.eTag = res.ETag;
+              newDistribution.location = res.Location;
               await this.module.distribution.db.update(newDistribution, ctx);
-              out.push(newDistribution);
             }
           }
         }
-        return out;
       },
       read: async (ctx: Context, id?: string) => {
         const client = await ctx.getAwsClient() as AWS;
         if (id) {
-          console.log("i am individual");
           const rawDistribution = await this.getDistribution(client.cloudfrontClient, id);
-          if (!rawDistribution?.Distribution) return;
+          if (!rawDistribution?.Distribution) return undefined;
+
           const result = this.distributionMapper(rawDistribution.Distribution);
-          console.log("individual result is");
-          console.log(result);
           return result;
         } else {
           const distributions = await this.getDistributions(client.cloudfrontClient);
@@ -168,8 +169,6 @@ class DistributionMapper extends MapperBase<Distribution> {
           for (const distribution of distributions) {
             out.push(this.distributionMapper(distribution));
           }
-          console.log("final results are");
-          console.log(out);
           return out;
         }
       },
@@ -198,12 +197,15 @@ class DistributionMapper extends MapperBase<Distribution> {
                 WebACLId: e.webACLId,
                 Origins: { Quantity: e.origins.length, Items: e.origins },
               };
-              const res = await this.updateDistributionAndWait(client.cloudfrontClient, e.distributionId!, req);
-              if (res && res.Distribution) {
-                  const newDistribution = this.distributionMapper(res.Distribution);
-                  newDistribution.id = e.id;
-                  await this.module.distribution.db.update(newDistribution, ctx);
-                  out.push(newDistribution);
+              if (e.eTag) {
+                const res = await this.updateDistributionAndWait(client.cloudfrontClient, e.distributionId!, req, e.eTag);
+                if (res && res.Distribution) {
+                    const newDistribution = this.distributionMapper(res.Distribution);
+                    newDistribution.id = e.id;
+                    newDistribution.eTag = res.ETag;
+                    await this.module.distribution.db.update(newDistribution, ctx);
+                    out.push(newDistribution);
+                }
               }
             }
           }
@@ -225,10 +227,13 @@ class DistributionMapper extends MapperBase<Distribution> {
               WebACLId: e.webACLId,
               Origins: { Quantity: e.origins.length, Items: e.origins },
             };
-            const res = await this.updateDistributionAndWait(client.cloudfrontClient, e.distributionId!, req);
+            if (!e.eTag) continue;  // we cannot update without etag
+
+            const res = await this.updateDistributionAndWait(client.cloudfrontClient, e.distributionId!, req, e.eTag);
             if (res && res.Distribution) {
                 const newDistribution = this.distributionMapper(res.Distribution);
                 newDistribution.id = e.id;
+                newDistribution.eTag = res.ETag;
                 await this.module.distribution.db.update(newDistribution, ctx);
             }
 

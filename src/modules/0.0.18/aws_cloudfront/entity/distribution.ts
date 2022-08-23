@@ -1,7 +1,6 @@
 import {
     Column,
     Entity,
-    OneToMany,
     PrimaryGeneratedColumn,
 } from 'typeorm'
 
@@ -73,4 +72,14 @@ export class Distribution {
     origins: { DomainName: string | undefined, Id: string | undefined,
         CustomOriginConfig: { HTTPPort: number|undefined, HTTPSPort: number|undefined, OriginProtocolPolicy: originProtocolPolicyEnum }
     }[];
+
+    @Column({
+        nullable: true,
+    })
+    eTag?: string;
+
+    @Column({
+        nullable: true,
+    })
+    location?: string;
 }
