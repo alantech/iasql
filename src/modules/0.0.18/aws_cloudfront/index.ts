@@ -5,10 +5,11 @@ import {
     paginateListDistributions,
     waitUntilDistributionDeployed,
     DistributionSummary,
+    GetDistributionCommandOutput,
 } from '@aws-sdk/client-cloudfront'
 
-import { AWS, crudBuilder2, paginateBuilder, } from '../../../services/aws_macros'
-import { Distribution, priceClassEnum, viewerProtocolPolicyEnum, } from './entity'
+import { AWS, crudBuilder2, } from '../../../services/aws_macros'
+import { Distribution, viewerProtocolPolicyEnum, } from './entity'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
 import { WaiterOptions } from '@aws-sdk/util-waiter'
 
@@ -39,14 +40,12 @@ class DistributionMapper extends MapperBase<Distribution> {
       }
 
       // iterate over all distributions and extract the config
-      const out : DistributionAWS[] = [];
+      const out : GetDistributionCommandOutput[] = [];
       for await (const item of results) {
         // check the distribution ID and get the config
         if (item.Id) {
           const config = await this.getDistribution(client, item.Id);
-          if (config && config.Distribution) {
-            out.push(config.Distribution);
-          }
+          if (config) out.push(config);
         }
       }
       return out;
@@ -109,36 +108,33 @@ class DistributionMapper extends MapperBase<Distribution> {
         IsIPV6Enabled: e.isIPV6Enabled,
         WebACLId: e.webACLId,
         Origins: { Quantity: e.origins.length, Items: e.origins },
-        PriceClass: e.priceClass,
-        Aliases: distributionConfig.DistributionConfig!.Aliases,
-        Logging: distributionConfig.DistributionConfig!.Logging,
-        CacheBehaviors: distributionConfig.DistributionConfig!.CacheBehaviors,
-        CustomErrorResponses: distributionConfig.DistributionConfig!.CustomErrorResponses,
-        DefaultRootObject: distributionConfig.DistributionConfig!.DefaultRootObject,
-        HttpVersion: distributionConfig.DistributionConfig!.HttpVersion,
-        OriginGroups: distributionConfig.DistributionConfig!.OriginGroups,
-        Restrictions: distributionConfig.DistributionConfig!.Restrictions,
-        ViewerCertificate: distributionConfig.DistributionConfig!.ViewerCertificate,
+        PriceClass: distributionConfig.DistributionConfig?.PriceClass,
+        Aliases: distributionConfig.DistributionConfig?.Aliases,
+        Logging: distributionConfig.DistributionConfig?.Logging,
+        CacheBehaviors: distributionConfig.DistributionConfig?.CacheBehaviors,
+        CustomErrorResponses: distributionConfig.DistributionConfig?.CustomErrorResponses,
+        DefaultRootObject: distributionConfig.DistributionConfig?.DefaultRootObject,
+        HttpVersion: distributionConfig.DistributionConfig?.HttpVersion,
+        OriginGroups: distributionConfig.DistributionConfig?.OriginGroups,
+        Restrictions: distributionConfig.DistributionConfig?.Restrictions,
+        ViewerCertificate: distributionConfig.DistributionConfig?.ViewerCertificate,
       };
 
       return req;
 
     }
 
-    distributionMapper (distribution: DistributionAWS, eTag?: string) {
+    distributionMapper (distribution: GetDistributionCommandOutput) {
       const out = new Distribution();
-      out.callerReference = distribution.DistributionConfig?.CallerReference;
-      out.comment = distribution.DistributionConfig?.Comment;
-      out.distributionId = distribution.Id;
-      out.enabled = distribution.DistributionConfig?.Enabled;
-      out.isIPV6Enabled = distribution.DistributionConfig?.IsIPV6Enabled;
-      out.webACLId = distribution.DistributionConfig?.WebACLId;
+      out.callerReference = distribution.Distribution!.DistributionConfig?.CallerReference;
+      out.comment = distribution.Distribution!.DistributionConfig?.Comment;
+      out.distributionId = distribution.Distribution!.Id;
+      out.enabled = distribution.Distribution!.DistributionConfig?.Enabled;
+      out.isIPV6Enabled = distribution.Distribution!.DistributionConfig?.IsIPV6Enabled;
+      out.webACLId = distribution.Distribution!.DistributionConfig?.WebACLId;
 
-      const typedPriceClass = distribution.DistributionConfig?.PriceClass as keyof typeof priceClassEnum;
-      if (distribution.DistributionConfig?.PriceClass) out.priceClass = priceClassEnum[typedPriceClass];
-      else out.priceClass = priceClassEnum.PALL;
-      if (distribution.DistributionConfig?.DefaultCacheBehavior) {
-        const cache = distribution.DistributionConfig.DefaultCacheBehavior;
+      if (distribution.Distribution!.DistributionConfig?.DefaultCacheBehavior) {
+        const cache = distribution.Distribution!.DistributionConfig.DefaultCacheBehavior;
         if (cache.TargetOriginId && cache.ViewerProtocolPolicy) {
           const protocol: viewerProtocolPolicyEnum = cache.ViewerProtocolPolicy as viewerProtocolPolicyEnum;
           out.defaultCacheBehavior = {
@@ -148,14 +144,14 @@ class DistributionMapper extends MapperBase<Distribution> {
           }
         }
       }
-      if (distribution.DistributionConfig?.Origins) {
+      if (distribution.Distribution!.DistributionConfig?.Origins) {
         const origins: any[] = [];
-        distribution.DistributionConfig.Origins.Items?.forEach((origin) => {
+        distribution.Distribution!.DistributionConfig.Origins.Items?.forEach((origin) => {
           origins.push(origin)
         });
         out.origins = origins;
       }
-      out.eTag = eTag;
+      out.eTag = distribution.ETag;
       return out;
     };
 
@@ -173,7 +169,6 @@ class DistributionMapper extends MapperBase<Distribution> {
             WebACLId: e.webACLId,
             Origins: { Quantity: e.origins.length, Items: e.origins},
             DefaultCacheBehavior: e.defaultCacheBehavior,
-            PriceClass: e.priceClass,
           };
           const res = await this.createDistribution(
             client.cloudfrontClient, {
@@ -191,7 +186,7 @@ class DistributionMapper extends MapperBase<Distribution> {
             } as WaiterOptions<CloudFront>, { Id: res.Distribution?.Id, });
 
             if (res && res.Distribution) {
-              const newDistribution = this.distributionMapper(res.Distribution, res.ETag);
+              const newDistribution = this.distributionMapper(res);
               newDistribution.id = e.id;
               newDistribution.location = res.Location;
               await this.module.distribution.db.update(newDistribution, ctx);
@@ -205,13 +200,13 @@ class DistributionMapper extends MapperBase<Distribution> {
           const rawDistribution = await this.getDistribution(client.cloudfrontClient, id);
           if (!rawDistribution?.Distribution || rawDistribution.Distribution.Status!=="Deployed") return undefined;
 
-          const result = this.distributionMapper(rawDistribution.Distribution, rawDistribution.ETag);          
+          const result = this.distributionMapper(rawDistribution);          
           return result;
         } else {
           const distributions = await this.getDistributions(client.cloudfrontClient);
           const out = [];
           for (const distribution of distributions) {
-            if (distribution.Status==="Deployed") out.push(this.distributionMapper(distribution));
+            if (distribution.Distribution!.Status==="Deployed") out.push(this.distributionMapper(distribution));
           }
           return out;
         }
@@ -231,9 +226,8 @@ class DistributionMapper extends MapperBase<Distribution> {
 
             const res = await this.updateDistributionAndWait(client.cloudfrontClient, e.distributionId!, req, e.eTag);
             if (res && res.Distribution) {
-                const newDistribution = this.distributionMapper(res.Distribution);
+                const newDistribution = this.distributionMapper(res);
                 newDistribution.id = e.id;
-                newDistribution.eTag = res.ETag;
                 await this.module.distribution.db.update(newDistribution, ctx);
                 out.push(newDistribution);
             }
@@ -255,9 +249,8 @@ class DistributionMapper extends MapperBase<Distribution> {
 
             const res = await this.updateDistributionAndWait(client.cloudfrontClient, e.distributionId!, req, e.eTag);
             if (res && res.Distribution) {
-                const newDistribution = this.distributionMapper(res.Distribution);
+                const newDistribution = this.distributionMapper(res);
                 newDistribution.id = e.id;
-                newDistribution.eTag = res.ETag;
                 await this.module.distribution.db.update(newDistribution, ctx);
             }
           }
