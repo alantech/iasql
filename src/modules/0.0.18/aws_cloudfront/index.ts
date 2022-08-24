@@ -75,18 +75,16 @@ class DistributionMapper extends MapperBase<Distribution> {
       });
       if (!res?.Distribution) return undefined;
 
-      // wait for distribution to be deployed
-      if (res) {
-        await waitUntilDistributionDeployed({
-          client,
-          // all in seconds
-          maxWaitTime: 300,
-          minDelay: 1,
-          maxDelay: 4,
-        } as WaiterOptions<CloudFront>, { Id: res.Distribution?.Id, });
+      // regularly check for distribution status until is deployed
+      let i = 0;
+      let rawDistribution:any;
+      do {
+        await new Promise(r => setTimeout(r, 30000)); // sleep for 30s
 
-        return res;
-      }
+        rawDistribution = await this.getDistribution(client, distributionId);
+        i++;
+      } while (rawDistribution.Distribution.Status!=="Deployed" && (i<30));
+      return res;
     }
 
     async getDistributionConfigForUpdate(client:CloudFront, e:Distribution) {
@@ -161,9 +159,7 @@ class DistributionMapper extends MapperBase<Distribution> {
         const client = await ctx.getAwsClient() as AWS;
         const out = [];
         for (const e of es) {
-          console.log("i create");
           if (e.distributionId || e.status) continue; // cannot create a distribution with an already created id, or predefined status
-          console.log(e.callerReference);
           const config:DistributionConfig = {
             CallerReference: e.callerReference,
             Comment: e.comment,
@@ -178,51 +174,42 @@ class DistributionMapper extends MapperBase<Distribution> {
               DistributionConfig: config
             }
           );
-          console.log("after i have created");
 
           if (res) {
-            console.log("i wait");
             await waitUntilDistributionDeployed({
               client: client.cloudfrontClient,
               // all in seconds
-              maxWaitTime: 300,
+              maxWaitTime: 900,
               minDelay: 1,
               maxDelay: 4,
             } as WaiterOptions<CloudFront>, { Id: res.Distribution?.Id, });
-            console.log("after waiting");
 
             if (res && res.Distribution) {
-              console.log("i updated db");
               const newDistribution = this.distributionMapper(res);
-              console.log("distribution id is ");
-              console.log(newDistribution.distributionId);
               newDistribution.id = e.id;
               newDistribution.location = res.Location;
+              newDistribution.status = "Deployed";
               await this.module.distribution.db.update(newDistribution, ctx);
+              out.push(newDistribution);
             }
           }
         }
+        return out;
       },
       read: async (ctx: Context, id?: string) => {
         const client = await ctx.getAwsClient() as AWS;
         if (id) {
-          console.log("i read individual");
           const rawDistribution = await this.getDistribution(client.cloudfrontClient, id);
           if (rawDistribution) {
             const result = this.distributionMapper(rawDistribution);
-            console.log("result is");
-            console.log(result);
             return result;
           }
         } else {
-          console.log("i read all");
           const distributions = await this.getDistributions(client.cloudfrontClient);
           const out = [];
           for (const distribution of distributions) {
             out.push(this.distributionMapper(distribution));
           }
-          console.log("results are");
-          console.log(out);
           return out;
         }
       },
@@ -231,7 +218,7 @@ class DistributionMapper extends MapperBase<Distribution> {
         const client = (await ctx.getAwsClient()) as AWS;
         const out = [];
         for (const e of es) {
-          if (e.status!="Deployed") continue; // do not modify until it is deployed
+          if (e.status!=="Deployed") continue; // do not modify until it is deployed
           const cloudRecord = ctx?.memo?.cloud?.Distribution?.[e.distributionId ?? ""];
           const isUpdate = Object.is(
             this.module.distribution.cloud.updateOrReplace(cloudRecord, e),
@@ -246,6 +233,7 @@ class DistributionMapper extends MapperBase<Distribution> {
               if (res && res.Distribution) {
                   const newDistribution = this.distributionMapper(res);
                   newDistribution.id = e.id;
+                  newDistribution.status = "Deployed";
                   await this.module.distribution.db.update(newDistribution, ctx);
                   out.push(newDistribution);
               }
@@ -258,17 +246,12 @@ class DistributionMapper extends MapperBase<Distribution> {
         const client = await ctx.getAwsClient() as AWS;
         for (const e of es) {
           if (e.status!=="Deployed") continue; // do not modify until it is deployed
-          console.log("i try to delete");
-          console.log(e.distributionId);
-          console.log("with caller");
-          console.log(e.callerReference);
           // retrieve current distribution config
           const distributionConfig = await this.getDistributionConfig(client.cloudfrontClient, e.distributionId);
           if (!distributionConfig) throw new Error("Cannot update a distribution without config");
 
           // if state is enabled, need to disable
           if (e.enabled && e.eTag) {
-            console.log("i am enabled and i have etag");
             e.enabled = false;
             const req = await this.getDistributionConfigForUpdate(client.cloudfrontClient, e);
 
@@ -276,13 +259,13 @@ class DistributionMapper extends MapperBase<Distribution> {
             if (res && res.Distribution) {
                 const newDistribution = this.distributionMapper(res);
                 newDistribution.id = e.id;
+                newDistribution.status = "Deployed";
                 e.eTag = newDistribution.eTag;
                 await this.module.distribution.db.update(newDistribution, ctx);
             }
           }
 
           if (e.eTag) {
-            console.log("i am disabled and i have etag");
             // once it is disabled we can delete
             await this.deleteDistribution(client.cloudfrontClient, e.distributionId, e.eTag);
           }
