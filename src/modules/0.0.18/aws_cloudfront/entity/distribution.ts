@@ -82,4 +82,9 @@ export class Distribution {
         nullable: true,
     })
     location?: string;
+
+    @Column({
+        nullable: true,
+    })
+    status?: string;
 }
