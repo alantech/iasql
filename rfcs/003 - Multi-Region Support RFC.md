@@ -154,8 +154,8 @@ If we were post-1.0.0, this would be a major version change, no matter what opti
 
 ## Affected Components
 
-The modules, potentially the iasql functions that manipulate those modules, and in a couple even how we work with TypeORM entities.
+All of the current `aws_*` modules, but that should be it, no significant architectural changes outside of them.
 
 ## Expected Timeline
 
-No idea, yet!
+The changes to `aws_account` should take a day or two, and then the rest of the modules can be ported over from single-region to multi-region over time with no backwards compatibility problems. Once that's done, multi-region features can begin development, so likely just a week or two to finish this RFC.
