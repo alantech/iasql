@@ -57,6 +57,8 @@ There should also be a new function to `getEnabledAwsRegions` and `getAwsClient`
 
 The cloud read functions would need to be updated to first `getEnabledAwsRegions` and then loop their current logic per region received. Cloud create/update/delete would use their own entity's `region` column to determine the value to pass to the `getAwsClient` function.
 
+Depending on how the AWS API rate limiting works, we will either need to execute the cloud reads sequentially across all enabled regions, or we could potentially fire them off in parallel and negate most of the expected performance impact of going multi-region. Because this approach has region logic fully contained within the tables/entities, we can use either solution without altering the schema exposed to the end user, so we can experiment with parallelization without an issue; otherwise minimizing performance degradation would be handled via `getEnabledAwsRegions` and the user eliminating all regions they do not wish to manage.
+
 ### Alternatives Considered
 
 #### `region` columns on all relevant tables
