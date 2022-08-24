@@ -1,7 +1,6 @@
 import {
     CloudFront,
     DistributionConfig,
-    Distribution as DistributionAWS,
     paginateListDistributions,
     waitUntilDistributionDeployed,
     DistributionSummary,
@@ -12,7 +11,6 @@ import { AWS, crudBuilder2, paginateBuilder, } from '../../../services/aws_macro
 import { Distribution, viewerProtocolPolicyEnum, } from './entity'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
 import { WaiterOptions } from '@aws-sdk/util-waiter'
-import { ConnectionIsNotSetError } from 'typeorm'
 
 class DistributionMapper extends MapperBase<Distribution> {
     module: AwsCloudfrontModule;
