@@ -53,7 +53,7 @@ export class MemoryDBCluster {
   })
   securityGroups?: SecurityGroup[];
   
-  @Column({ array: true, nullable: true, })
+  @Column("varchar", { array: true, nullable: true, })
   subnets?: string[];
 
   @Column({ nullable: true, })
