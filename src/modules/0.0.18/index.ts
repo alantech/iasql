@@ -12,6 +12,7 @@ export * from "./aws_elasticache";
 export * from "./aws_elb";
 export * from "./aws_iam";
 export * from "./aws_lambda";
+export * from "./aws_memory_db";
 export * from "./aws_rds";
 export * from "./aws_route53_hosted_zones";
 export * from "./aws_s3";
