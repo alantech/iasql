@@ -17,7 +17,8 @@ class DistributionMapper extends MapperBase<Distribution> {
     entity = Distribution;
     equals = (a: Distribution, b: Distribution) =>
         Object.is(a.callerReference, b.callerReference) && Object.is(a.comment, b.comment) && Object.is(a.enabled, b.enabled) &&
-            Object.is(a.isIPV6Enabled, b.isIPV6Enabled) && Object.is(a.webACLId, b.webACLId);
+            Object.is(a.isIPV6Enabled, b.isIPV6Enabled) && Object.is(a.webACLId, b.webACLId) && Object.is(a.defaultCacheBehavior, b.defaultCacheBehavior)
+            && Object.is(a.origins, b.origins) && Object.is(a.eTag, b.eTag) && Object.is(a.location, b.location) && Object.is(a.status, b.status);
 
     getDistribution = crudBuilder2<CloudFront, 'getDistribution'>(
       'getDistribution',
@@ -215,17 +216,22 @@ class DistributionMapper extends MapperBase<Distribution> {
         const client = (await ctx.getAwsClient()) as AWS;
         const out = [];
         for (const e of es) {
-          if (e.status!=="Deployed") continue; // do not modify until it is deployed
           const cloudRecord = ctx?.memo?.cloud?.Distribution?.[e.distributionId ?? ""];
           const isUpdate = Object.is(
             this.module.distribution.cloud.updateOrReplace(cloudRecord, e),
             'update'
           );
           if (isUpdate) {
-            if (!e.eTag) throw new Error("Cannot update a distribution without an etag");  // cannot update without etag
-            const req = await this.getDistributionConfigForUpdate(client.cloudfrontClient, e);
+            // in the case of objects being modified, restore them
+            if ((!Object.is(e.eTag, cloudRecord.eTag)) || (!Object.is(e.status, cloudRecord.status)) || (!Object.is(e.location, cloudRecord.location))) {
+              // Restore record
+              cloudRecord.id = e.id;
+              await this.module.distribution.db.update(cloudRecord, ctx);
+              out.push(cloudRecord);
+            } else {
+              if (!e.eTag) throw new Error("Cannot update a distribution without an etag");  // cannot update without etag
+              const req = await this.getDistributionConfigForUpdate(client.cloudfrontClient, e);
 
-            if (e.eTag) {
               const res = await this.updateDistributionAndWait(client.cloudfrontClient, e.distributionId!, req, e.eTag);
               if (res && res.Distribution) {
                   const newDistribution = this.distributionMapper(res);

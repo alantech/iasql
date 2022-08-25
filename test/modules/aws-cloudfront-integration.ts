@@ -118,6 +118,25 @@ describe("Cloudfront Integration Testing", () => {
     )
   );
 
+  it(
+    "tries to update location",
+    query(`
+  UPDATE distribution SET location='fake' WHERE caller_reference='${callerReference}';
+  `)
+  );
+
+  it("applies the distribution id update", apply());
+
+  it(
+    "checks that location has not been modified",
+    query(
+      `
+  SELECT * FROM distribution WHERE caller_reference='${callerReference}' AND location='fake';
+`,
+      (res: any) => expect(res.length).toBe(0)
+    )
+  );
+
   it("uninstalls the cloudfront module", uninstall(modules));
 
   it(
