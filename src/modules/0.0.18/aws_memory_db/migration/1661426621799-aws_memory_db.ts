@@ -2,8 +2,8 @@ import {MigrationInterface, QueryRunner} from "typeorm";
 
 import * as sql from '../sql';
 
-export class awsMemoryDb1661426293864 implements MigrationInterface {
-    name = 'awsMemoryDb1661426293864'
+export class awsMemoryDb1661426621799 implements MigrationInterface {
+    name = 'awsMemoryDb1661426621799'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."memory_db_cluster_node_type_enum" AS ENUM('db.t4g.small', 'db.t4g.medium', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarg')`);

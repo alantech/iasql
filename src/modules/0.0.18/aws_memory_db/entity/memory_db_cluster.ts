@@ -28,7 +28,7 @@ export class MemoryDBCluster {
 
   @Column({ unique: true, })
   @cloudId
-  cluster_name: string;
+  clusterName: string;
 
   @Column({ nullable: true, })
   description?: string;
