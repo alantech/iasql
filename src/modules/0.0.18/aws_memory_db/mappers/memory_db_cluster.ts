@@ -1,13 +1,11 @@
 import {
   Cluster as AWSCluster,
   CreateClusterCommandInput,
+  DescribeClustersCommandInput,
   MemoryDB,
-  Tag as AWSTag,
   UpdateClusterCommandInput,
-  UpdateSubnetGroupCommandInput
 } from '@aws-sdk/client-memorydb';
-
-import isEqual from 'lodash.isequal';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsMemoryDBModule } from '..';
 import { MemoryDBCluster, NodeTypeEnum, } from '../entity'
@@ -49,17 +47,15 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     out.description = cloudE.Description;
     out.nodeType = cloudE.NodeType as NodeTypeEnum;
     out.port = cloudE.ClusterEndpoint?.Port ?? 6379;
-    if (cloudE.SecurityGroups?.length) {
-      const securityGroups = [];
-      for (const sgm of cloudE.SecurityGroups) {
-        try {
-          const sg = await awsSecurityGroupModule.securityGroup.db.read(ctx, sgm.SecurityGroupId) ??
-            await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sgm.SecurityGroupId);
-          if (sg) securityGroups.push(sg);
-        } catch (_) {/*Ignore misconfigured security groups*/}
-      }
-      out.securityGroups = securityGroups;
+    const securityGroups = [];
+    for (const sgm of cloudE.SecurityGroups ?? []) {
+      try {
+        const sg = await awsSecurityGroupModule.securityGroup.db.read(ctx, sgm.SecurityGroupId) ??
+          await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sgm.SecurityGroupId);
+        if (sg) securityGroups.push(sg);
+      } catch (_) {/*Ignore misconfigured security groups*/}
     }
+    out.securityGroups = securityGroups;
     out.status = cloudE.Status;
     if (cloudE.SubnetGroupName) {
       const client = await ctx.getAwsClient() as AWS;
@@ -157,6 +153,35 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     }
   }
 
+  waitClusterUntil = async(client: MemoryDB, ClusterName: string, readyStatus: string) => {
+    await createWaiter<MemoryDB, DescribeClustersCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 900,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      { ClusterName },
+      async (clnt, cmdInput) => {
+        try {
+          const data = await clnt.describeClusters(cmdInput);
+          for (const cluster of data?.Clusters ?? []) {
+            if (cluster.Status !== readyStatus) {
+              return { state: WaiterState.RETRY };
+            }
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          if (e.name === 'ClusterNotFoundFault') {
+            return { state: WaiterState.SUCCESS };
+          }
+          throw e;
+        }
+      },
+    );
+  }
+
   cloud: Crud2<MemoryDBCluster> = new Crud2({
     create: async (es: MemoryDBCluster[], ctx: Context) => {
       const client = await ctx.getAwsClient() as AWS;
@@ -183,6 +208,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
         };
         // todo: add tags
         const newClusterName = await this.createCluster(client.memoryDBClient, input);
+        await this.waitClusterUntil(client.memoryDBClient, newClusterName ?? '', 'available');
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getCluster(client.memoryDBClient, newClusterName);
         if (!newObject) continue;
@@ -223,6 +249,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
         const cloudRecord = ctx?.memo?.cloud?.MemoryDBCluster?.[e.clusterName ?? ''];
         const isUpdate = this.module.memoryDBCluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
+          // todo: add waiters
           let update = false;
           if (!Object.is(cloudRecord.subnets?.length, e.subnets?.length)
             && !(cloudRecord.subnets?.every((asn: string[]) => !!e.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)) {
@@ -302,6 +329,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
       const client = await ctx.getAwsClient() as AWS;
       for (const e of es) {
         await this.deleteCluster(client.memoryDBClient, e.clusterName ?? '');
+        await this.waitClusterUntil(client.memoryDBClient, e.clusterName, 'deleted');
       }
     },
   });
