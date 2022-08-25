@@ -2,12 +2,12 @@ import {MigrationInterface, QueryRunner} from "typeorm";
 
 import * as sql from '../sql';
 
-export class awsMemoryDb1661426621799 implements MigrationInterface {
-    name = 'awsMemoryDb1661426621799'
+export class awsMemoryDb1661452511102 implements MigrationInterface {
+    name = 'awsMemoryDb1661452511102'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."memory_db_cluster_node_type_enum" AS ENUM('db.t4g.small', 'db.t4g.medium', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarg')`);
-        await queryRunner.query(`CREATE TABLE "memory_db_cluster" ("id" SERIAL NOT NULL, "cluster_name" character varying NOT NULL, "description" character varying, "address" character varying, "port" integer NOT NULL DEFAULT '6379', "node_type" "public"."memory_db_cluster_node_type_enum" NOT NULL DEFAULT 'db.r6g.12xlarge', "subnets" character varying array, "arn" character varying, "status" character varying, "tags" json, CONSTRAINT "UQ_9b58d9ed9d73bbf926f0250eedf" UNIQUE ("cluster_name"), CONSTRAINT "PK_b7461d91a0f9b5cda3a86a7da24" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "memory_db_cluster" ("id" SERIAL NOT NULL, "cluster_name" character varying NOT NULL, "description" character varying, "address" character varying, "port" integer NOT NULL DEFAULT '6379', "node_type" "public"."memory_db_cluster_node_type_enum" NOT NULL DEFAULT 'db.r6g.large', "subnets" character varying array, "arn" character varying, "status" character varying, "tags" json, CONSTRAINT "UQ_9b58d9ed9d73bbf926f0250eedf" UNIQUE ("cluster_name"), CONSTRAINT "PK_b7461d91a0f9b5cda3a86a7da24" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "memory_db_cluster_security_groups" ("memory_db_cluster_id" integer NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_7e87bbcf6a72ca299ad58fb8915" PRIMARY KEY ("memory_db_cluster_id", "security_group_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_f8d300474415c8556e3d7fd7fa" ON "memory_db_cluster_security_groups" ("memory_db_cluster_id") `);
         await queryRunner.query(`CREATE INDEX "IDX_934dbce49712bcc04e479d551c" ON "memory_db_cluster_security_groups" ("security_group_id") `);

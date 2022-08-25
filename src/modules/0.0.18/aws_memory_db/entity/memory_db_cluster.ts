@@ -43,7 +43,7 @@ export class MemoryDBCluster {
   @Column({
     type: 'enum',
     enum: NodeTypeEnum,
-    default: NodeTypeEnum.db_r6g_12xlarge,
+    default: NodeTypeEnum.db_r6g_large,
   })
   nodeType: NodeTypeEnum;
   
