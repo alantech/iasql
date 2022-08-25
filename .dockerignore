@@ -1,3 +1,4 @@
 .env
 .deploy-env
 iasql-on-iasql.out.sql
+node_modules
