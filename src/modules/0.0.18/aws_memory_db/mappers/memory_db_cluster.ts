@@ -1,4 +1,4 @@
-import { Cluster as AWSCluster, DescribeSubnetGroupsCommandInput, DescribeSubnetGroupsCommandOutput, MemoryDB, Tag as AWSTag } from '@aws-sdk/client-memorydb';
+import { Cluster as AWSCluster, CreateClusterCommandInput, DescribeSubnetGroupsCommandInput, DescribeSubnetGroupsCommandOutput, MemoryDB, Tag as AWSTag } from '@aws-sdk/client-memorydb';
 
 import isEqual from 'lodash.isequal';
 
@@ -9,9 +9,10 @@ import {
   AWS,
   crudBuilder2,
   crudBuilderFormat,
-  paginateBuilder,
 } from '../../../../services/aws_macros'
 import { awsSecurityGroupModule } from '../../aws_security_group';
+import { awsVpcModule } from '../../aws_vpc';
+import { Subnet, Vpc } from '../../aws_vpc/entity';
 
 export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
   module: AwsMemoryDBModule;
@@ -36,7 +37,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     if (!cloudE?.ARN || !cloudE?.Name || !cloudE?.NodeType) return undefined;
     out.address = cloudE.ClusterEndpoint?.Address;
     out.arn = cloudE.ARN;
-    out.cluster_name = cloudE.Name;
+    out.clusterName = cloudE.Name;
     out.description = cloudE.Description;
     out.nodeType = cloudE.NodeType as NodeTypeEnum;
     out.port = cloudE.ClusterEndpoint?.Port ?? 6379;
@@ -67,48 +68,71 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     (res) => res?.SubnetGroups?.pop()?.Subnets?.map(sn => sn.Identifier ?? '')
   );
 
+  createSubnetGroup = crudBuilder2<MemoryDB, 'createSubnetGroup'>(
+    'createSubnetGroup',
+    (SubnetGroupName: string, SubnetIds: string[]) => ({SubnetGroupName, SubnetIds})
+  );
+
+  createCluster = crudBuilderFormat<MemoryDB, 'createCluster', string | undefined>(
+    'createCluster',
+    (input) => input,
+    (res) => res?.Cluster?.Name
+  );
+
+  getCluster = crudBuilderFormat<MemoryDB, 'describeClusters', AWSCluster | undefined>(
+    'describeClusters',
+    (ClusterName: string) => ({ ClusterName, }),
+    (res) => res?.Clusters?.pop()
+  );
+
+  // todo: eventually add manual pagination
+  getClusters = crudBuilderFormat<MemoryDB, 'describeClusters', AWSCluster[] | undefined>(
+    'describeClusters',
+    () => ({}),
+    (res) => res?.Clusters
+  );
+
+  deleteCluster = crudBuilder2<MemoryDB, 'deleteCluster'>(
+    'deleteCluster',
+    (ClusterName: string) => ({ ClusterName, })
+  );
+
   cloud: Crud2<MemoryDBCluster> = new Crud2({
-    create: async (es: GeneralPurposeVolume[], ctx: Context) => {
+    create: async (es: MemoryDBCluster[], ctx: Context) => {
       const client = await ctx.getAwsClient() as AWS;
       const out = []
       for (const e of es) {
-        if (e.attachedInstance && !e.attachedInstance.instanceId) {
-          throw new Error('Want to attach volume to an instance not created yet');
+        // todo: create subnet group first
+        let subnetIds: string[] = [];
+        if (!e.subnets?.length) {
+          const defaultVpc: Vpc = (await awsVpcModule.vpc.db.read(ctx)).filter((vpc: Vpc) => vpc.isDefault).pop();
+          const subnets: Subnet[] = await awsVpcModule.subnet.db.read(ctx);
+          const defaultSubnets = subnets.filter(sn => sn.vpc.id === defaultVpc.id);
+          subnetIds = defaultSubnets.map(sn => sn.subnetId ?? '');
+        } else {
+          subnetIds = e.subnets;
         }
-        const input: CreateVolumeCommandInput = {
-          AvailabilityZone: e.availabilityZone.name,
-          VolumeType: e.volumeType,
-          Size: e.size,
-          Iops: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.iops : undefined,
-          Throughput:  e.volumeType === GeneralPurposeVolumeType.GP3 ? e.throughput : undefined,
-          SnapshotId: e.snapshotId,
+        await this.createSubnetGroup(client.memoryDBClient, e.clusterName, subnetIds);
+        const input: CreateClusterCommandInput = {
+          ACLName: 'open-access',
+          ClusterName: e.clusterName,
+          NodeType: e.nodeType,
+          Description: e.description,
+          Port: e.port,
+          SecurityGroupIds: e.securityGroups?.map(sg => sg.groupId ?? '') ?? [],
+          SubnetGroupName: e.clusterName,
         };
-        if (e.tags && Object.keys(e.tags).length) {
-          const tags: AWSTag[] = Object.keys(e.tags).map((k: string) => {
-            return {
-              Key: k, Value: e.tags![k],
-            }
-          });
-          input.TagSpecifications = [
-            {
-              ResourceType: 'volume',
-              Tags: tags,
-            },
-          ]
-        }
-        const newVolumeId = await this.createVolume(client.ec2client, input);
-        if (newVolumeId && e.attachedInstance?.instanceId && e.instanceDeviceName) {
-          await this.attachVolume(client.ec2client, newVolumeId, e.attachedInstance.instanceId, e.instanceDeviceName);
-        }
+        // todo: add tags
+        const newClusterName = await this.createCluster(client.memoryDBClient, input);
         // Re-get the inserted record to get all of the relevant records we care about
-        const newObject = await this.getVolume(client.ec2client, newVolumeId);
+        const newObject = await this.getCluster(client.memoryDBClient, newClusterName);
         if (!newObject) continue;
         // We map this into the same kind of entity as `obj`
-        const newEntity = await this.generalPurposeVolumeMapper(newObject, ctx);
+        const newEntity = await this.memoryDBClusterMapper(newObject, ctx);
         if (!newEntity) continue;
         // Save the record back into the database to get the new fields updated
         newEntity.id = e.id;
-        await this.module.generalPurposeVolume.db.update(newEntity, ctx);
+        await this.module.memoryDBCluster.db.update(newEntity, ctx);
         out.push(newEntity);
       }
       return out;
@@ -116,96 +140,94 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     read: async (ctx: Context, id?: string) => {
       const client = await ctx.getAwsClient() as AWS;
       if (id) {
-        const rawVolume = await this.getVolume(client.ec2client, id);
-        if (!rawVolume) return;
-        return this.generalPurposeVolumeMapper(rawVolume, ctx);
+        const rawCluster = await this.getCluster(client.memoryDBClient, id);
+        if (!rawCluster) return;
+        return this.memoryDBClusterMapper(rawCluster, ctx);
       } else {
-        const rawVolumes = (await this.getGeneralPurposeVolumes(client.ec2client)) ?? [];
+        const rawClusters = (await this.getClusters(client.memoryDBClient)) ?? [];
         const out = [];
-        for (const vol of rawVolumes) {
-          const outVol = await this.generalPurposeVolumeMapper(vol, ctx);
-          if (outVol) out.push(outVol);
+        for (const cl of rawClusters) {
+          const outCl = await this.memoryDBClusterMapper(cl, ctx);
+          if (outCl) out.push(outCl);
         }
         return out;
       }
     },
-    updateOrReplace: (prev: GeneralPurposeVolume, next: GeneralPurposeVolume) => {
-      if (!Object.is(prev?.availabilityZone?.name, next?.availabilityZone?.name) || !Object.is(prev.snapshotId, next.snapshotId)) return 'replace';
-      return 'update';
+    // todo: updateOrReplace: (prev: GeneralPurposeVolume, next: GeneralPurposeVolume) => {
+    //   if (!Object.is(prev?.availabilityZone?.name, next?.availabilityZone?.name) || !Object.is(prev.snapshotId, next.snapshotId)) return 'replace';
+    //   return 'update';
+    // },
+    update: async (es: MemoryDBCluster[], ctx: Context) => {
+      return es;
+      // const client = await ctx.getAwsClient() as AWS;
+      // const out = [];
+      // for (const e of es) {
+      //   const cloudRecord = ctx?.memo?.cloud?.GeneralPurposeVolume?.[e.volumeId ?? ''];
+      //   const isUpdate = this.module.generalPurposeVolume.cloud.updateOrReplace(cloudRecord, e) === 'update';
+      //   if (isUpdate) {
+      //     let update = false;
+      //     // Update volume
+      //     if (!(Object.is(cloudRecord.iops, e.iops) && Object.is(cloudRecord.size, e.size)
+      //       && Object.is(cloudRecord.throughput, e.throughput) && Object.is(cloudRecord.volumeType, e.volumeType))) {
+      //       if (e.volumeType === GeneralPurposeVolumeType.GP2) {
+      //         e.throughput = undefined;
+      //         e.iops = undefined;
+      //       }
+      //       const input: ModifyVolumeCommandInput = {
+      //         VolumeId: e.volumeId,
+      //         Size: e.size,
+      //         Throughput: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.throughput : undefined,
+      //         Iops: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.iops : undefined,
+      //         VolumeType: e.volumeType,
+      //       };
+      //       await this.updateVolume(client.ec2client, input)
+      //       update = true;
+      //     }
+      //     // Update tags
+      //     if (!eqTags(cloudRecord.tags, e.tags)) {
+      //       await updateTags(client.ec2client, e.volumeId ?? '', e.tags);
+      //       update = true;
+      //     }
+      //     // Attach/detach instance
+      //     if (!(Object.is(cloudRecord.attachedInstance?.instanceId, e.attachedInstance?.instanceId)
+      //       && Object.is(cloudRecord.instanceDeviceName, e.instanceDeviceName))) {
+      //       if (!cloudRecord.attachedInstance?.instanceId && e.attachedInstance?.instanceId) {
+      //         await this.attachVolume(client.ec2client, e.volumeId ?? '', e.attachedInstance.instanceId, e.instanceDeviceName ?? '');
+      //       } else if (cloudRecord.attachedInstance?.instanceId && !e.attachedInstance?.instanceId) {
+      //         await this.detachVolume(client.ec2client, e.volumeId ?? '');
+      //       } else {
+      //         await this.detachVolume(client.ec2client, e.volumeId ?? '');
+      //         await this.attachVolume(client.ec2client, e.volumeId ?? '', e.attachedInstance?.instanceId ?? '', e.instanceDeviceName ?? '');
+      //       }
+      //       update = true;
+      //     }
+      //     if (update) {
+      //       const rawVolume = await this.getVolume(client.ec2client, e.volumeId);
+      //       if (!rawVolume) continue;
+      //       const updatedVolume = await this.generalPurposeVolumeMapper(rawVolume, ctx);
+      //       if (!updatedVolume) continue;
+      //       updatedVolume.id = e.id;
+      //       await this.module.generalPurposeVolume.db.update(updatedVolume, ctx);
+      //       out.push(updatedVolume);
+      //     } else {
+      //       // Restore
+      //       cloudRecord.id = e.id;
+      //       await this.module.generalPurposeVolume.db.update(cloudRecord, ctx);
+      //       out.push(cloudRecord);
+      //     }
+      //   } else {
+      //     // Replace
+      //     const newVolume = await this.module.generalPurposeVolume.cloud.create(e, ctx);
+      //     await this.module.generalPurposeVolume.cloud.delete(cloudRecord, ctx);
+      //     out.push(newVolume);
+      //   }
+      // }
+      // return out;
     },
-    update: async (es: GeneralPurposeVolume[], ctx: Context) => {
+    delete: async (es: MemoryDBCluster[], ctx: Context) => {
       const client = await ctx.getAwsClient() as AWS;
-      const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.GeneralPurposeVolume?.[e.volumeId ?? ''];
-        const isUpdate = this.module.generalPurposeVolume.cloud.updateOrReplace(cloudRecord, e) === 'update';
-        if (isUpdate) {
-          let update = false;
-          // Update volume
-          if (!(Object.is(cloudRecord.iops, e.iops) && Object.is(cloudRecord.size, e.size)
-            && Object.is(cloudRecord.throughput, e.throughput) && Object.is(cloudRecord.volumeType, e.volumeType))) {
-            if (e.volumeType === GeneralPurposeVolumeType.GP2) {
-              e.throughput = undefined;
-              e.iops = undefined;
-            }
-            const input: ModifyVolumeCommandInput = {
-              VolumeId: e.volumeId,
-              Size: e.size,
-              Throughput: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.throughput : undefined,
-              Iops: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.iops : undefined,
-              VolumeType: e.volumeType,
-            };
-            await this.updateVolume(client.ec2client, input)
-            update = true;
-          }
-          // Update tags
-          if (!eqTags(cloudRecord.tags, e.tags)) {
-            await updateTags(client.ec2client, e.volumeId ?? '', e.tags);
-            update = true;
-          }
-          // Attach/detach instance
-          if (!(Object.is(cloudRecord.attachedInstance?.instanceId, e.attachedInstance?.instanceId)
-            && Object.is(cloudRecord.instanceDeviceName, e.instanceDeviceName))) {
-            if (!cloudRecord.attachedInstance?.instanceId && e.attachedInstance?.instanceId) {
-              await this.attachVolume(client.ec2client, e.volumeId ?? '', e.attachedInstance.instanceId, e.instanceDeviceName ?? '');
-            } else if (cloudRecord.attachedInstance?.instanceId && !e.attachedInstance?.instanceId) {
-              await this.detachVolume(client.ec2client, e.volumeId ?? '');
-            } else {
-              await this.detachVolume(client.ec2client, e.volumeId ?? '');
-              await this.attachVolume(client.ec2client, e.volumeId ?? '', e.attachedInstance?.instanceId ?? '', e.instanceDeviceName ?? '');
-            }
-            update = true;
-          }
-          if (update) {
-            const rawVolume = await this.getVolume(client.ec2client, e.volumeId);
-            if (!rawVolume) continue;
-            const updatedVolume = await this.generalPurposeVolumeMapper(rawVolume, ctx);
-            if (!updatedVolume) continue;
-            updatedVolume.id = e.id;
-            await this.module.generalPurposeVolume.db.update(updatedVolume, ctx);
-            out.push(updatedVolume);
-          } else {
-            // Restore
-            cloudRecord.id = e.id;
-            await this.module.generalPurposeVolume.db.update(cloudRecord, ctx);
-            out.push(cloudRecord);
-          }
-        } else {
-          // Replace
-          const newVolume = await this.module.generalPurposeVolume.cloud.create(e, ctx);
-          await this.module.generalPurposeVolume.cloud.delete(cloudRecord, ctx);
-          out.push(newVolume);
-        }
-      }
-      return out;
-    },
-    delete: async (vol: GeneralPurposeVolume[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
-      for (const e of vol) {
-        if (e.attachedInstance) {
-          await this.detachVolume(client.ec2client, e.volumeId ?? '');
-        }
-        await this.deleteVolume(client.ec2client, e.volumeId ?? '');
+        await this.deleteCluster(client.memoryDBClient, e.clusterName ?? '');
       }
     },
   });
