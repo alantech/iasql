@@ -157,7 +157,6 @@ class DistributionMapper extends MapperBase<Distribution> {
         const client = await ctx.getAwsClient() as AWS;
         const out = [];
         for (const e of es) {
-          if (e.distributionId || e.status) continue; // cannot create a distribution with an already created id, or predefined status
           const config:DistributionConfig = {
             CallerReference: e.callerReference,
             Comment: e.comment,
