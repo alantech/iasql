@@ -259,7 +259,6 @@ class DistributionMapper extends MapperBase<Distribution> {
                 newDistribution.id = e.id;
                 newDistribution.status = "Deployed";
                 e.eTag = newDistribution.eTag;
-                await this.module.distribution.db.update(newDistribution, ctx);
             }
           }
 
