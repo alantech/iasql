@@ -1,4 +1,11 @@
-import { Cluster as AWSCluster, CreateClusterCommandInput, DescribeSubnetGroupsCommandInput, DescribeSubnetGroupsCommandOutput, MemoryDB, Tag as AWSTag } from '@aws-sdk/client-memorydb';
+import {
+  Cluster as AWSCluster,
+  CreateClusterCommandInput,
+  MemoryDB,
+  Tag as AWSTag,
+  UpdateClusterCommandInput,
+  UpdateSubnetGroupCommandInput
+} from '@aws-sdk/client-memorydb';
 
 import isEqual from 'lodash.isequal';
 
@@ -13,24 +20,25 @@ import {
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { awsVpcModule } from '../../aws_vpc';
 import { Subnet, Vpc } from '../../aws_vpc/entity';
+import { SecurityGroup } from '../../aws_security_group/entity';
 
 export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
   module: AwsMemoryDBModule;
   entity = MemoryDBCluster;
   equals = (a: MemoryDBCluster, b: MemoryDBCluster) =>
-    Object.is(a.address, b.address)
-    && Object.is(a.arn, b.arn)
-    && Object.is(a.description, b.description)
-    && Object.is(a.nodeType, b.nodeType)
-    && Object.is(a.port, b.port)
-    && Object.is(a.securityGroups?.length, b.securityGroups?.length)
+    Object.is(a.address, b.address) // restore
+    && Object.is(a.arn, b.arn) // restore
+    && Object.is(a.description, b.description) // update
+    && Object.is(a.nodeType, b.nodeType) // update
+    && Object.is(a.port, b.port) // replace
+    && Object.is(a.securityGroups?.length, b.securityGroups?.length)  // update
     && (a.securityGroups
       ?.every(asg => !!b.securityGroups
         ?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
-    && Object.is(a.status, b.status)
-    && Object.is(a.subnets?.length, b.subnets?.length)
+    && Object.is(a.status, b.status)  // restore
+    && Object.is(a.subnets?.length, b.subnets?.length)  // update
     && (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false);
-    // todo: && isEqual(a.tags, b.tags);
+    // todo: && isEqual(a.tags, b.tags);  // update
 
   async memoryDBClusterMapper(cloudE: AWSCluster, ctx: Context) {
     const out = new MemoryDBCluster();
@@ -97,22 +105,42 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     (ClusterName: string) => ({ ClusterName, })
   );
 
+  getDefaultSubnets = async (ctx: Context): Promise<Subnet[]> => {
+    const defaultVpc: Vpc = (await awsVpcModule.vpc.db.read(ctx)).filter((vpc: Vpc) => vpc.isDefault).pop();
+    const subnets: Subnet[] = await awsVpcModule.subnet.db.read(ctx);
+    return subnets.filter(sn => sn.vpc.id === defaultVpc.id);
+  };
+
+  updateSubnetGroup = crudBuilder2<MemoryDB, 'updateSubnetGroup'>(
+    'updateSubnetGroup',
+    (input) => input,
+  );
+
+  updateCluster = crudBuilder2<MemoryDB, 'updateCluster'>(
+    'updateCluster',
+    (input) => input
+  );
+
+  listAllowedNodeTypeUpdates = crudBuilder2<MemoryDB, 'listAllowedNodeTypeUpdates'>(
+    'listAllowedNodeTypeUpdates',
+    (ClusterName: string) => ({ ClusterName })
+  );
+
   cloud: Crud2<MemoryDBCluster> = new Crud2({
     create: async (es: MemoryDBCluster[], ctx: Context) => {
       const client = await ctx.getAwsClient() as AWS;
       const out = []
       for (const e of es) {
-        // todo: create subnet group first
+        // Create subnet group first
         let subnetIds: string[] = [];
         if (!e.subnets?.length) {
-          const defaultVpc: Vpc = (await awsVpcModule.vpc.db.read(ctx)).filter((vpc: Vpc) => vpc.isDefault).pop();
-          const subnets: Subnet[] = await awsVpcModule.subnet.db.read(ctx);
-          const defaultSubnets = subnets.filter(sn => sn.vpc.id === defaultVpc.id);
+          const defaultSubnets = await this.getDefaultSubnets(ctx);
           subnetIds = defaultSubnets.map(sn => sn.subnetId ?? '');
         } else {
           subnetIds = e.subnets;
         }
         await this.createSubnetGroup(client.memoryDBClient, e.clusterName, subnetIds);
+        // Now create the cluster
         const input: CreateClusterCommandInput = {
           ACLName: 'open-access',
           ClusterName: e.clusterName,
@@ -153,76 +181,95 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
         return out;
       }
     },
-    // todo: updateOrReplace: (prev: GeneralPurposeVolume, next: GeneralPurposeVolume) => {
-    //   if (!Object.is(prev?.availabilityZone?.name, next?.availabilityZone?.name) || !Object.is(prev.snapshotId, next.snapshotId)) return 'replace';
-    //   return 'update';
-    // },
+    updateOrReplace: (prev: MemoryDBCluster, next: MemoryDBCluster) => {
+      if (!Object.is(prev?.port, next?.port)) return 'replace';
+      return 'update';
+    },
     update: async (es: MemoryDBCluster[], ctx: Context) => {
-      return es;
-      // const client = await ctx.getAwsClient() as AWS;
-      // const out = [];
-      // for (const e of es) {
-      //   const cloudRecord = ctx?.memo?.cloud?.GeneralPurposeVolume?.[e.volumeId ?? ''];
-      //   const isUpdate = this.module.generalPurposeVolume.cloud.updateOrReplace(cloudRecord, e) === 'update';
-      //   if (isUpdate) {
-      //     let update = false;
-      //     // Update volume
-      //     if (!(Object.is(cloudRecord.iops, e.iops) && Object.is(cloudRecord.size, e.size)
-      //       && Object.is(cloudRecord.throughput, e.throughput) && Object.is(cloudRecord.volumeType, e.volumeType))) {
-      //       if (e.volumeType === GeneralPurposeVolumeType.GP2) {
-      //         e.throughput = undefined;
-      //         e.iops = undefined;
-      //       }
-      //       const input: ModifyVolumeCommandInput = {
-      //         VolumeId: e.volumeId,
-      //         Size: e.size,
-      //         Throughput: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.throughput : undefined,
-      //         Iops: e.volumeType === GeneralPurposeVolumeType.GP3 ? e.iops : undefined,
-      //         VolumeType: e.volumeType,
-      //       };
-      //       await this.updateVolume(client.ec2client, input)
-      //       update = true;
-      //     }
-      //     // Update tags
-      //     if (!eqTags(cloudRecord.tags, e.tags)) {
-      //       await updateTags(client.ec2client, e.volumeId ?? '', e.tags);
-      //       update = true;
-      //     }
-      //     // Attach/detach instance
-      //     if (!(Object.is(cloudRecord.attachedInstance?.instanceId, e.attachedInstance?.instanceId)
-      //       && Object.is(cloudRecord.instanceDeviceName, e.instanceDeviceName))) {
-      //       if (!cloudRecord.attachedInstance?.instanceId && e.attachedInstance?.instanceId) {
-      //         await this.attachVolume(client.ec2client, e.volumeId ?? '', e.attachedInstance.instanceId, e.instanceDeviceName ?? '');
-      //       } else if (cloudRecord.attachedInstance?.instanceId && !e.attachedInstance?.instanceId) {
-      //         await this.detachVolume(client.ec2client, e.volumeId ?? '');
-      //       } else {
-      //         await this.detachVolume(client.ec2client, e.volumeId ?? '');
-      //         await this.attachVolume(client.ec2client, e.volumeId ?? '', e.attachedInstance?.instanceId ?? '', e.instanceDeviceName ?? '');
-      //       }
-      //       update = true;
-      //     }
-      //     if (update) {
-      //       const rawVolume = await this.getVolume(client.ec2client, e.volumeId);
-      //       if (!rawVolume) continue;
-      //       const updatedVolume = await this.generalPurposeVolumeMapper(rawVolume, ctx);
-      //       if (!updatedVolume) continue;
-      //       updatedVolume.id = e.id;
-      //       await this.module.generalPurposeVolume.db.update(updatedVolume, ctx);
-      //       out.push(updatedVolume);
-      //     } else {
-      //       // Restore
-      //       cloudRecord.id = e.id;
-      //       await this.module.generalPurposeVolume.db.update(cloudRecord, ctx);
-      //       out.push(cloudRecord);
-      //     }
-      //   } else {
-      //     // Replace
-      //     const newVolume = await this.module.generalPurposeVolume.cloud.create(e, ctx);
-      //     await this.module.generalPurposeVolume.cloud.delete(cloudRecord, ctx);
-      //     out.push(newVolume);
-      //   }
-      // }
-      // return out;
+      const client = await ctx.getAwsClient() as AWS;
+      const out = [];
+      for (const e of es) {
+        const cloudRecord = ctx?.memo?.cloud?.MemoryDBCluster?.[e.clusterName ?? ''];
+        const isUpdate = this.module.memoryDBCluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
+        if (isUpdate) {
+          let update = false;
+          if (!Object.is(cloudRecord.subnets?.length, e.subnets?.length)
+            && !(cloudRecord.subnets?.every((asn: string[]) => !!e.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)) {
+            // Subnet group needs to be updated
+            let subnetIds: string[] = [];
+            if (!e.subnets?.length) {
+              const defaultSubnets = await this.getDefaultSubnets(ctx);
+              subnetIds = defaultSubnets.map(sn => sn.subnetId ?? '');
+            } else {
+              subnetIds = e.subnets;
+            }
+            const input: UpdateSubnetGroupCommandInput = {
+              SubnetGroupName: e.clusterName,
+              SubnetIds: subnetIds,
+            };
+            await this.updateSubnetGroup(client.memoryDBClient, input);
+            update = true;
+          }
+          if (!Object.is(cloudRecord.nodeType, e.nodeType)) {
+            // Node type update
+            // Get allowed list and if valid upgrade, otherwise do not call API and
+            // restore record when invalid node type. Eventually would be nice
+            // to let user know he has an invalid node type as input
+            const allowedNodeTypes = await this.listAllowedNodeTypeUpdates(client.memoryDBClient, e.clusterName);
+            if (allowedNodeTypes?.ScaleDownNodeTypes?.includes(e.nodeType)
+              || allowedNodeTypes?.ScaleUpNodeTypes?.includes(e.nodeType)) {
+              const input: UpdateClusterCommandInput = {
+                ClusterName: e.clusterName,
+                NodeType: e.nodeType,
+              };
+              await this.updateCluster(client.memoryDBClient, input);
+              update = true;
+            }
+          }
+          if (!(Object.is(cloudRecord.securityGroups?.length, e.securityGroups?.length)
+              && !!cloudRecord.securityGroups
+                ?.every((crsg: SecurityGroup) => !!e.securityGroups?.find(esg => Object.is(crsg.groupId, esg.groupId)))
+              && Object.is(cloudRecord.description, e.description))) {
+            // Description and/or security group update
+            const input: UpdateClusterCommandInput = {
+              ClusterName: e.clusterName,
+              Description: e.description,
+              SecurityGroupIds: e.securityGroups?.map(sg => sg.groupId ?? '') ?? []
+            };
+            await this.updateCluster(client.memoryDBClient, input);
+            update = true;
+          }
+          // todo: tags
+          // if (!eqTags(cloudRecord.tags, e.tags)) {
+          //   // Tags update
+          //   await updateTags(client.ec2client, e.vpcEndpointId ?? '', e.tags);
+          //   update = true;
+          // }
+          if (update) {
+            const rawCluster = await this.getCluster(
+              client.memoryDBClient,
+              e.clusterName ?? ''
+            );
+            if (!rawCluster) continue;
+            const newCluster = await this.memoryDBClusterMapper(rawCluster, ctx);
+            if (!newCluster) continue;
+            newCluster.id = e.id;
+            await this.module.memoryDBCluster.db.update(newCluster, ctx);
+            out.push(newCluster);
+          } else {
+            // Restore record
+            cloudRecord.id = e.id;
+            await this.module.memoryDBCluster.db.update(cloudRecord, ctx);
+            out.push(cloudRecord);
+          }
+        } else {
+          // Replace record
+          const newCluster = await this.module.memoryDBCluster.cloud.create(e, ctx);
+          await this.module.memoryDBCluster.cloud.delete(cloudRecord, ctx);
+          out.push(newCluster);
+        }
+      }
+      return out;
     },
     delete: async (es: MemoryDBCluster[], ctx: Context) => {
       const client = await ctx.getAwsClient() as AWS;
