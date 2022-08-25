@@ -64,11 +64,6 @@ export class Distribution {
     type: 'json',
     nullable: false,
   })
-
-  @Column({
-    type: 'json',
-    nullable: false,
-  })
   origins: { DomainName: string | undefined, Id: string | undefined,
     CustomOriginConfig: { HTTPPort: number|undefined, HTTPSPort: number|undefined, OriginProtocolPolicy: originProtocolPolicyEnum }
   }[];
