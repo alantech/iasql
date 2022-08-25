@@ -113,7 +113,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
 
   updateSubnetGroup = crudBuilder2<MemoryDB, 'updateSubnetGroup'>(
     'updateSubnetGroup',
-    (input) => input,
+    (SubnetGroupName: string, SubnetIds: string[]) => ({SubnetGroupName, SubnetIds})
   );
 
   updateCluster = crudBuilder2<MemoryDB, 'updateCluster'>(
@@ -125,6 +125,37 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     'listAllowedNodeTypeUpdates',
     (ClusterName: string) => ({ ClusterName })
   );
+
+  handleSubnetGroupCreateOrUpdate = async (
+    action: 'create' | 'update',
+    client: MemoryDB,
+    clusterName: string,
+    subnetIds: string[],
+    ctx: Context,
+    retry=0
+  ) => {
+    try {
+      if (action === 'create') await this.createSubnetGroup(client, clusterName, subnetIds);
+      if (action === 'update') await this.updateSubnetGroup(client, clusterName, subnetIds);
+    } catch (e: any) {
+      // This definetely depends too much on AWS and if they change the string any time this would not work,
+      // but aws does not provide a way to know this info, and we should try to not throw the error when possible
+      const relevantSubstring = 'Supported availability zones are [';
+      if (retry < 3 && (e.message as string).lastIndexOf(relevantSubstring) !== -1) {
+        const lastIndex = (e.message as string).length - 1;
+        const azIndex = (e.message as string).lastIndexOf(relevantSubstring) + relevantSubstring.length;
+        const allowedAzString = (e.message as string).substring(azIndex, lastIndex - 1);
+        const allowedAz = allowedAzString.split(', ');
+        const defaultSubnets = await this.getDefaultSubnets(ctx);
+        const subnetIds = defaultSubnets
+          .filter(sn => allowedAz.includes(sn.availabilityZone.name))
+          .map(sn => sn.subnetId ?? '');
+        await this.handleSubnetGroupCreateOrUpdate(action, client, clusterName, subnetIds, ctx, retry + 1)
+      } else {
+        throw e;
+      }
+    }
+  }
 
   cloud: Crud2<MemoryDBCluster> = new Crud2({
     create: async (es: MemoryDBCluster[], ctx: Context) => {
@@ -139,7 +170,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
         } else {
           subnetIds = e.subnets;
         }
-        await this.createSubnetGroup(client.memoryDBClient, e.clusterName, subnetIds);
+        await this.handleSubnetGroupCreateOrUpdate('create', client.memoryDBClient, e.clusterName, subnetIds, ctx);
         // Now create the cluster
         const input: CreateClusterCommandInput = {
           ACLName: 'open-access',
@@ -203,11 +234,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
             } else {
               subnetIds = e.subnets;
             }
-            const input: UpdateSubnetGroupCommandInput = {
-              SubnetGroupName: e.clusterName,
-              SubnetIds: subnetIds,
-            };
-            await this.updateSubnetGroup(client.memoryDBClient, input);
+            await this.handleSubnetGroupCreateOrUpdate('update', client.memoryDBClient, e.clusterName, subnetIds, ctx);
             update = true;
           }
           if (!Object.is(cloudRecord.nodeType, e.nodeType)) {
