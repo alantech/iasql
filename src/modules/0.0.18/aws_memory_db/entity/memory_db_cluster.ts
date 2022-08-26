@@ -49,13 +49,13 @@ export class MemoryDBCluster {
     default: NodeTypeEnum.db_r6g_large,
   })
   nodeType: NodeTypeEnum;
-  
+
   @ManyToMany(() => SecurityGroup, { eager: true, })
   @JoinTable({
     name: 'memory_db_cluster_security_groups',
   })
   securityGroups?: SecurityGroup[];
-  
+
   @ManyToOne(() => SubnetGroup, subnetGroup => subnetGroup.subnetGroupName, {
     nullable: false,
     eager: true,

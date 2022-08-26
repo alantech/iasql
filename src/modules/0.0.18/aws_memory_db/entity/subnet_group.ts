@@ -21,7 +21,7 @@ export class SubnetGroup {
 
   @Column({ nullable: true, })
   arn?: string;
-  
+
   @Column("varchar", { array: true, nullable: true, })
   subnets?: string[];
 }

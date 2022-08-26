@@ -103,10 +103,10 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
         const allowedAzString = (e.message as string).substring(azIndex, lastIndex - 1);
         const allowedAz = allowedAzString.split(', ');
         const defaultSubnets = await this.getDefaultSubnets(ctx);
-        const subnetIds = defaultSubnets
+        const defaultSubnetsIds = defaultSubnets
           .filter(sn => allowedAz.includes(sn.availabilityZone.name))
           .map(sn => sn.subnetId ?? '');
-        await this.handleSubnetGroupCreateOrUpdate(action, client, ctx, subnetGroupName, subnetIds, description, retry + 1)
+        await this.handleSubnetGroupCreateOrUpdate(action, client, ctx, subnetGroupName, defaultSubnetsIds, description, retry + 1)
       } else {
         throw e;
       }
@@ -196,7 +196,6 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
           await this.module.subnetGroup.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
         }
-        
       }
       return out;
     },

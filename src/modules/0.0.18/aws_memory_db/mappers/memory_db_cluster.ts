@@ -56,7 +56,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     out.status = cloudE.Status;
     out.subnetGroup = await awsMemoryDBModule.subnetGroup.db.read(ctx, cloudE.SubnetGroupName) ??
       await awsMemoryDBModule.subnetGroup.cloud.read(ctx, cloudE.SubnetGroupName);
-    // todo: out.tags = 
+    // todo: out.tags =
     return out;
   }
 
