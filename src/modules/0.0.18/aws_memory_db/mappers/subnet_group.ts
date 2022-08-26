@@ -57,7 +57,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
 
   createSubnetGroup = crudBuilder2<MemoryDB, 'createSubnetGroup'>(
     'createSubnetGroup',
-    (SubnetGroupName: string, SubnetIds: string[]) => ({SubnetGroupName, SubnetIds})
+    (input) => input
   );
 
   getDefaultSubnets = async (ctx: Context): Promise<Subnet[]> => {
@@ -68,7 +68,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
 
   updateSubnetGroup = crudBuilder2<MemoryDB, 'updateSubnetGroup'>(
     'updateSubnetGroup',
-    (SubnetGroupName: string, SubnetIds: string[]) => ({SubnetGroupName, SubnetIds})
+    (input) => input
   );
 
   deleteSubnetGroup = crudBuilder2<MemoryDB, 'deleteSubnetGroup'>(
@@ -79,14 +79,20 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
   handleSubnetGroupCreateOrUpdate = async (
     action: 'create' | 'update',
     client: MemoryDB,
+    ctx: Context,
     subnetGroupName: string,
     subnetIds: string[],
-    ctx: Context,
+    description?: string,
     retry=0
   ) => {
     try {
-      if (action === 'create') await this.createSubnetGroup(client, subnetGroupName, subnetIds);
-      if (action === 'update') await this.updateSubnetGroup(client, subnetGroupName, subnetIds);
+      const input = {
+        SubnetGroupName: subnetGroupName,
+        SubnetIds: subnetIds,
+        Description: description,
+      };
+      if (action === 'create') await this.createSubnetGroup(client, input);
+      if (action === 'update') await this.updateSubnetGroup(client, input);
     } catch (e: any) {
       // This definetely depends too much on AWS and if they change the string any time this would not work,
       // but aws does not provide a way to know this info, and we should try to not throw the error when possible
@@ -100,7 +106,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
         const subnetIds = defaultSubnets
           .filter(sn => allowedAz.includes(sn.availabilityZone.name))
           .map(sn => sn.subnetId ?? '');
-        await this.handleSubnetGroupCreateOrUpdate(action, client, subnetGroupName, subnetIds, ctx, retry + 1)
+        await this.handleSubnetGroupCreateOrUpdate(action, client, ctx, subnetGroupName, subnetIds, description, retry + 1)
       } else {
         throw e;
       }
@@ -120,7 +126,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
         } else {
           subnetIds = e.subnets;
         }
-        await this.handleSubnetGroupCreateOrUpdate('create', client.memoryDBClient, e.subnetGroupName, subnetIds, ctx);
+        await this.handleSubnetGroupCreateOrUpdate('create', client.memoryDBClient, ctx, e.subnetGroupName, subnetIds, e.description ?? undefined);
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getSubnetGroup(client.memoryDBClient, e.subnetGroupName);
         if (!newObject) continue;
@@ -166,16 +172,11 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
           } else {
             subnetIds = e.subnets;
           }
-          await this.handleSubnetGroupCreateOrUpdate('update', client.memoryDBClient, e.subnetGroupName, subnetIds, ctx);
+          await this.handleSubnetGroupCreateOrUpdate('update', client.memoryDBClient, ctx, e.subnetGroupName, subnetIds, e.description);
           update = true;
         }
         if (!Object.is(cloudRecord.description, e.description)) {
-          // Description and/or security group update
-          const input: UpdateSubnetGroupCommandInput = {
-            SubnetGroupName: e.subnetGroupName,
-            Description: e.description,
-          };
-          await this.updateSubnetGroup(client.memoryDBClient, input);
+          await this.handleSubnetGroupCreateOrUpdate('update', client.memoryDBClient, ctx, e.subnetGroupName, e.subnets ?? [], e.description);
           update = true;
         }
         if (update) {
