@@ -19,8 +19,8 @@ class DistributionMapper extends MapperBase<Distribution> {
     entity = Distribution;
     equals = (a: Distribution, b: Distribution) => {
       // specific origins comparison
-      const originsA = a.origins.map(({Id, DomainName}) => ({Id, DomainName}));
-      const originsB = b.origins.map(({Id, DomainName}) => ({Id, DomainName}));
+      const originsA = Object.fromEntries(a.origins.map(({Id, DomainName}) => ([Id, DomainName])));
+      const originsB = Object.fromEntries(b.origins.map(({Id, DomainName}) => ([Id, DomainName])));
 
       return Object.is(a.callerReference, b.callerReference) && Object.is(a.comment, b.comment) && Object.is(a.enabled, b.enabled) &&
             Object.is(a.isIPV6Enabled, b.isIPV6Enabled) && Object.is(a.webACLId, b.webACLId) && isEqual(a.defaultCacheBehavior, b.defaultCacheBehavior)

@@ -58,14 +58,25 @@ export class Distribution {
     type: 'json',
     nullable: false,
   })
-  defaultCacheBehavior: { TargetOriginId: string | undefined, ViewerProtocolPolicy: viewerProtocolPolicyEnum, CachePolicyId: string | undefined };
+  defaultCacheBehavior: {
+    TargetOriginId: string | undefined,
+    ViewerProtocolPolicy: viewerProtocolPolicyEnum,
+    CachePolicyId: string | undefined
+  };
 
   @Column({
     type: 'json',
     nullable: false,
   })
-  origins: { DomainName: string | undefined, Id: string | undefined, OriginShield: any,
-    CustomOriginConfig: { HTTPPort: number|undefined, HTTPSPort: number|undefined, OriginProtocolPolicy: originProtocolPolicyEnum }
+  origins: {
+    DomainName: string | undefined,
+    Id: string | undefined,
+    OriginShield: any,
+    CustomOriginConfig: {
+      HTTPPort: number|undefined,
+      HTTPSPort: number|undefined,
+      OriginProtocolPolicy: originProtocolPolicyEnum
+    }
   }[];
 
   @Column({
