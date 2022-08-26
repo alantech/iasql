@@ -76,10 +76,5 @@ export class Distribution {
   @Column({
     nullable: true,
   })
-  location?: string;
-
-  @Column({
-    nullable: true,
-  })
   status?: string;
 }

@@ -18,7 +18,7 @@ class DistributionMapper extends MapperBase<Distribution> {
     equals = (a: Distribution, b: Distribution) =>
         Object.is(a.callerReference, b.callerReference) && Object.is(a.comment, b.comment) && Object.is(a.enabled, b.enabled) &&
             Object.is(a.isIPV6Enabled, b.isIPV6Enabled) && Object.is(a.webACLId, b.webACLId) && Object.is(a.defaultCacheBehavior, b.defaultCacheBehavior)
-            && Object.is(a.origins, b.origins) && Object.is(a.eTag, b.eTag) && Object.is(a.location, b.location) && Object.is(a.status, b.status);
+            && Object.is(a.origins, b.origins) && Object.is(a.eTag, b.eTag) && Object.is(a.status, b.status);
 
     getDistribution = crudBuilder2<CloudFront, 'getDistribution'>(
       'getDistribution',
@@ -193,7 +193,6 @@ class DistributionMapper extends MapperBase<Distribution> {
             if (res && res.Distribution) {
               const newDistribution = this.distributionMapper(res);
               newDistribution.id = e.id;
-              newDistribution.location = res.Location;
               newDistribution.status = "Deployed";
 
               // overwrite json fields as they can change
@@ -239,8 +238,7 @@ class DistributionMapper extends MapperBase<Distribution> {
           );
           if (isUpdate) {
             // in the case of objects being modified, restore them
-            if ((!Object.is(e.eTag, cloudRecord.eTag)) || (!Object.is(e.status, cloudRecord.status)) || (!Object.is(e.location, cloudRecord.location))) {
-              // Restore record
+            if ((!Object.is(e.eTag, cloudRecord.eTag)) || (!Object.is(e.status, cloudRecord.status))) {
               cloudRecord.id = e.id;
               await this.module.distribution.db.update(cloudRecord, ctx);
               out.push(cloudRecord);
