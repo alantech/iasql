@@ -17,7 +17,7 @@ import _, { forEach } from 'lodash'
 class DistributionMapper extends MapperBase<Distribution> {
     module: AwsCloudfrontModule;
     entity = Distribution;
-    equals = (a: Distribution, b: Distribution) => {      
+    equals = (a: Distribution, b: Distribution) => {
       // specific origins comparison
       const originsA = a.origins.map(({Id, DomainName}) => ({Id, DomainName}));
       const originsB = b.origins.map(({Id, DomainName}) => ({Id, DomainName}));
