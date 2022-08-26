@@ -53,13 +53,13 @@ describe('MemoryDB Integration Testing', () => {
 
   it('applies the change', apply());
 
-  it('checks the table was added', query(`
+  it('checks the subnet group was added', query(`
     SELECT *
     FROM subnet_group
     WHERE subnet_group_name = '${subnetGroupName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('changes the column definition', query(`
+  it('changes the subnet group description', query(`
     UPDATE subnet_group
     SET description = 'Short desc'
     WHERE subnet_group_name = '${subnetGroupName}';
@@ -87,13 +87,13 @@ describe('MemoryDB Integration Testing', () => {
 
   it('applies the change', apply());
 
-  it('checks the table was added', query(`
+  it('checks the memory db cluster was added', query(`
     SELECT *
     FROM memory_db_cluster
     WHERE cluster_name = '${clusterName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('changes the column definition', query(`
+  it('changes the cluster description', query(`
     UPDATE memory_db_cluster
     SET description = 'Short desc'
     WHERE cluster_name = '${clusterName}';
@@ -101,7 +101,7 @@ describe('MemoryDB Integration Testing', () => {
 
   it('applies the change', apply());
 
-  it('changes the column definition', query(`
+  it('changes the cluster arn', query(`
     UPDATE memory_db_cluster
     SET arn = 'fake-arn'
     WHERE cluster_name = '${clusterName}';
@@ -109,7 +109,7 @@ describe('MemoryDB Integration Testing', () => {
 
   it('applies the change', apply());
 
-  it('changes the column definition', query(`
+  it('changes the cluster node type', query(`
     UPDATE memory_db_cluster
     SET node_type = 'db.r6g.xlarge'
     WHERE cluster_name = '${clusterName}';
@@ -121,18 +121,18 @@ describe('MemoryDB Integration Testing', () => {
 
   it('installs the module', install(modules));
 
-  it('check table count after uninstall', query(`
+  it('check memory db cluster count after uninstall', query(`
     SELECT *
     FROM memory_db_cluster
     WHERE cluster_name = '${clusterName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('removes the dynamo table', query(`
+  it('removes the memory db cluster', query(`
     DELETE FROM memory_db_cluster
     WHERE cluster_name = '${clusterName}';
   `));
 
-  it('checks the remaining table count', query(`
+  it('checks the remaining memory db cluster count', query(`
     SELECT *
     FROM memory_db_cluster
     WHERE cluster_name = '${clusterName}';
@@ -140,24 +140,24 @@ describe('MemoryDB Integration Testing', () => {
 
   it('applies the change', apply());
 
-  it('checks the remaining table count again', query(`
+  it('checks the remaining memory db cluster count again', query(`
     SELECT *
     FROM memory_db_cluster
     WHERE cluster_name = '${clusterName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('check table count after uninstall', query(`
+  it('check subnet group count after uninstall', query(`
     SELECT *
     FROM subnet_group
     WHERE subnet_group_name = '${subnetGroupName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('removes the dynamo table', query(`
+  it('removes the subnet group', query(`
     DELETE FROM subnet_group
     WHERE subnet_group_name = '${subnetGroupName}';
   `));
 
-  it('checks the remaining table count', query(`
+  it('checks the remaining subnet group count', query(`
     SELECT *
     FROM subnet_group
     WHERE subnet_group_name = '${subnetGroupName}';
@@ -165,7 +165,7 @@ describe('MemoryDB Integration Testing', () => {
 
   it('applies the change', apply());
 
-  it('checks the remaining table count again', query(`
+  it('checks the remaining subnet group count again', query(`
     SELECT *
     FROM subnet_group
     WHERE subnet_group_name = '${subnetGroupName}';
@@ -198,9 +198,9 @@ describe('MemoryDB install/uninstall', () => {
     config.db.user,
     true).then(...finish(done)));
 
-  it('uninstalls the Dynamo module', uninstall(modules));
+  it('uninstalls the module', uninstall(modules));
 
-  it('installs the Dynamo module', install(modules));
+  it('installs the module', install(modules));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
