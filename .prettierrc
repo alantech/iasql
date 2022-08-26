@@ -8,7 +8,7 @@
   "bracketSpacing": true,
   "arrowParens": "avoid",
   "endOfLine": "lf",
-  "importOrderParserPlugins" : ["typescript", "classProperties", "decorators-legacy"],
+  "importOrderParserPlugins" : ["typescript", "decorators-legacy"],
   "importOrder": ["<THIRD_PARTY_MODULES>", "^@aws-sdk/(.*)$", "^[./]"],
 	"importOrderSeparation": true
 }
