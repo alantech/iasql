@@ -7,7 +7,7 @@ import {
 } from '@aws-sdk/client-memorydb';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
-import { AwsMemoryDBModule } from '..';
+import { awsMemoryDBModule, AwsMemoryDBModule } from '..';
 import { MemoryDBCluster, NodeTypeEnum, } from '../entity'
 import { Context, Crud2, MapperBase, } from '../../../interfaces'
 import {
@@ -16,31 +16,28 @@ import {
   crudBuilderFormat,
 } from '../../../../services/aws_macros'
 import { awsSecurityGroupModule } from '../../aws_security_group';
-import { awsVpcModule } from '../../aws_vpc';
-import { Subnet, Vpc } from '../../aws_vpc/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
 
 export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
   module: AwsMemoryDBModule;
   entity = MemoryDBCluster;
   equals = (a: MemoryDBCluster, b: MemoryDBCluster) =>
-    Object.is(a.address, b.address) // restore
-    && Object.is(a.arn, b.arn) // restore
-    && Object.is(a.description, b.description) // update
-    && Object.is(a.nodeType, b.nodeType) // update
-    && Object.is(a.port, b.port) // replace
-    && Object.is(a.securityGroups?.length, b.securityGroups?.length)  // update
+    Object.is(a.address, b.address)
+    && Object.is(a.arn, b.arn)
+    && Object.is(a.description, b.description)
+    && Object.is(a.nodeType, b.nodeType)
+    && Object.is(a.port, b.port)
+    && Object.is(a.securityGroups?.length, b.securityGroups?.length)
     && (a.securityGroups
       ?.every(asg => !!b.securityGroups
         ?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
-    && Object.is(a.status, b.status)  // restore
-    && Object.is(a.subnets?.length, b.subnets?.length)  // update
-    && (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false);
+    && Object.is(a.status, b.status)
+    && Object.is(a.subnetGroup?.subnetGroupName, b.subnetGroup?.subnetGroupName);
     // todo: && isEqual(a.tags, b.tags);  // update
 
   async memoryDBClusterMapper(cloudE: AWSCluster, ctx: Context) {
     const out = new MemoryDBCluster();
-    if (!cloudE?.ARN || !cloudE?.Name || !cloudE?.NodeType) return undefined;
+    if (!cloudE?.ARN || !cloudE?.Name || !cloudE?.NodeType || !cloudE.SubnetGroupName) return undefined;
     out.address = cloudE.ClusterEndpoint?.Address;
     out.arn = cloudE.ARN;
     out.clusterName = cloudE.Name;
@@ -57,25 +54,11 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     }
     out.securityGroups = securityGroups;
     out.status = cloudE.Status;
-    if (cloudE.SubnetGroupName) {
-      const client = await ctx.getAwsClient() as AWS;
-      const subnetGroupSubnets = await this.getSubnetGroupSubnets(client.memoryDBClient, cloudE.SubnetGroupName);
-      out.subnets = subnetGroupSubnets;
-    }
+    out.subnetGroup = await awsMemoryDBModule.subnetGroup.db.read(ctx, cloudE.SubnetGroupName) ??
+      await awsMemoryDBModule.subnetGroup.cloud.read(ctx, cloudE.SubnetGroupName);
     // todo: out.tags = 
     return out;
   }
-
-  getSubnetGroupSubnets = crudBuilderFormat<MemoryDB, 'describeSubnetGroups', string[] | undefined>(
-    'describeSubnetGroups',
-    (SubnetGroupName: string) => ({ SubnetGroupName }),
-    (res) => res?.SubnetGroups?.pop()?.Subnets?.map(sn => sn.Identifier ?? '')
-  );
-
-  createSubnetGroup = crudBuilder2<MemoryDB, 'createSubnetGroup'>(
-    'createSubnetGroup',
-    (SubnetGroupName: string, SubnetIds: string[]) => ({SubnetGroupName, SubnetIds})
-  );
 
   createCluster = crudBuilderFormat<MemoryDB, 'createCluster', string | undefined>(
     'createCluster',
@@ -101,17 +84,6 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     (ClusterName: string) => ({ ClusterName, })
   );
 
-  getDefaultSubnets = async (ctx: Context): Promise<Subnet[]> => {
-    const defaultVpc: Vpc = (await awsVpcModule.vpc.db.read(ctx)).filter((vpc: Vpc) => vpc.isDefault).pop();
-    const subnets: Subnet[] = await awsVpcModule.subnet.db.read(ctx);
-    return subnets.filter(sn => sn.vpc.id === defaultVpc.id);
-  };
-
-  updateSubnetGroup = crudBuilder2<MemoryDB, 'updateSubnetGroup'>(
-    'updateSubnetGroup',
-    (SubnetGroupName: string, SubnetIds: string[]) => ({SubnetGroupName, SubnetIds})
-  );
-
   updateCluster = crudBuilder2<MemoryDB, 'updateCluster'>(
     'updateCluster',
     (input) => input
@@ -121,37 +93,6 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     'listAllowedNodeTypeUpdates',
     (ClusterName: string) => ({ ClusterName })
   );
-
-  handleSubnetGroupCreateOrUpdate = async (
-    action: 'create' | 'update',
-    client: MemoryDB,
-    clusterName: string,
-    subnetIds: string[],
-    ctx: Context,
-    retry=0
-  ) => {
-    try {
-      if (action === 'create') await this.createSubnetGroup(client, clusterName, subnetIds);
-      if (action === 'update') await this.updateSubnetGroup(client, clusterName, subnetIds);
-    } catch (e: any) {
-      // This definetely depends too much on AWS and if they change the string any time this would not work,
-      // but aws does not provide a way to know this info, and we should try to not throw the error when possible
-      const relevantSubstring = 'Supported availability zones are [';
-      if (retry < 3 && (e.message as string).lastIndexOf(relevantSubstring) !== -1) {
-        const lastIndex = (e.message as string).length - 1;
-        const azIndex = (e.message as string).lastIndexOf(relevantSubstring) + relevantSubstring.length;
-        const allowedAzString = (e.message as string).substring(azIndex, lastIndex - 1);
-        const allowedAz = allowedAzString.split(', ');
-        const defaultSubnets = await this.getDefaultSubnets(ctx);
-        const subnetIds = defaultSubnets
-          .filter(sn => allowedAz.includes(sn.availabilityZone.name))
-          .map(sn => sn.subnetId ?? '');
-        await this.handleSubnetGroupCreateOrUpdate(action, client, clusterName, subnetIds, ctx, retry + 1)
-      } else {
-        throw e;
-      }
-    }
-  }
 
   waitClusterUntil = async(client: MemoryDB, ClusterName: string, readyStatus: string) => {
     await createWaiter<MemoryDB, DescribeClustersCommandInput>(
@@ -187,15 +128,8 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
       const client = await ctx.getAwsClient() as AWS;
       const out = []
       for (const e of es) {
-        // Create subnet group first
-        let subnetIds: string[] = [];
-        if (!e.subnets?.length) {
-          const defaultSubnets = await this.getDefaultSubnets(ctx);
-          subnetIds = defaultSubnets.map(sn => sn.subnetId ?? '');
-        } else {
-          subnetIds = e.subnets;
-        }
-        await this.handleSubnetGroupCreateOrUpdate('create', client.memoryDBClient, e.clusterName, subnetIds, ctx);
+        // Check if subnet group already exists
+        if (!e.subnetGroup.arn) throw new Error('Subnet group need to be created first');
         // Now create the cluster
         const input: CreateClusterCommandInput = {
           ACLName: 'open-access',
@@ -204,7 +138,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
           Description: e.description,
           Port: e.port,
           SecurityGroupIds: e.securityGroups?.map(sg => sg.groupId ?? '') ?? [],
-          SubnetGroupName: e.clusterName,
+          SubnetGroupName: e.subnetGroup.subnetGroupName,
         };
         // todo: add tags
         const newClusterName = await this.createCluster(client.memoryDBClient, input);
@@ -239,7 +173,8 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
       }
     },
     updateOrReplace: (prev: MemoryDBCluster, next: MemoryDBCluster) => {
-      if (!Object.is(prev?.port, next?.port)) return 'replace';
+      if (!Object.is(prev?.port, next?.port)
+        || !Object.is(prev?.subnetGroup?.subnetGroupName, next?.subnetGroup?.subnetGroupName)) return 'replace';
       return 'update';
     },
     update: async (es: MemoryDBCluster[], ctx: Context) => {
@@ -251,19 +186,6 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
         if (isUpdate) {
           // todo: add waiters
           let update = false;
-          if (!Object.is(cloudRecord.subnets?.length, e.subnets?.length)
-            && !(cloudRecord.subnets?.every((asn: string[]) => !!e.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)) {
-            // Subnet group needs to be updated
-            let subnetIds: string[] = [];
-            if (!e.subnets?.length) {
-              const defaultSubnets = await this.getDefaultSubnets(ctx);
-              subnetIds = defaultSubnets.map(sn => sn.subnetId ?? '');
-            } else {
-              subnetIds = e.subnets;
-            }
-            await this.handleSubnetGroupCreateOrUpdate('update', client.memoryDBClient, e.clusterName, subnetIds, ctx);
-            update = true;
-          }
           if (!Object.is(cloudRecord.nodeType, e.nodeType)) {
             // Node type update
             // Get allowed list and if valid upgrade, otherwise do not call API and
@@ -277,6 +199,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
                 NodeType: e.nodeType,
               };
               await this.updateCluster(client.memoryDBClient, input);
+              await this.waitClusterUntil(client.memoryDBClient, e.clusterName, 'available');
               update = true;
             }
           }
@@ -294,11 +217,6 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
             update = true;
           }
           // todo: tags
-          // if (!eqTags(cloudRecord.tags, e.tags)) {
-          //   // Tags update
-          //   await updateTags(client.ec2client, e.vpcEndpointId ?? '', e.tags);
-          //   update = true;
-          // }
           if (update) {
             const rawCluster = await this.getCluster(
               client.memoryDBClient,

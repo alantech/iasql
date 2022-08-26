@@ -1,13 +1,16 @@
 import {
   Column,
   Entity,
+  JoinColumn,
   JoinTable,
   ManyToMany,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm'
 
 import { cloudId, } from '../../../../services/cloud-id'
 import { SecurityGroup } from '../../aws_security_group/entity';
+import { SubnetGroup } from './subnet_group';
 
 export enum NodeTypeEnum {
   db_t4g_small = 'db.t4g.small',
@@ -53,8 +56,11 @@ export class MemoryDBCluster {
   })
   securityGroups?: SecurityGroup[];
   
-  @Column("varchar", { array: true, nullable: true, })
-  subnets?: string[];
+  @ManyToOne(() => SubnetGroup, { nullable: false, eager: true, })
+  @JoinColumn({
+    name: 'subnet_group',
+  })
+  subnetGroup: SubnetGroup;
 
   @Column({ nullable: true, })
   arn?: string;
