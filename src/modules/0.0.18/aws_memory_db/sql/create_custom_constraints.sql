@@ -40,3 +40,17 @@ CREATE TRIGGER check_subnets_by_subnet_group
 BEFORE DELETE OR UPDATE ON subnet
 FOR EACH ROW
 EXECUTE FUNCTION check_subnets_by_subnet_group();
+
+create or replace function check_subnet_group_subnets_same_vpc(_subnets text[]) returns boolean
+language plpgsql security definer
+as $$
+declare
+  _vpc_count integer;
+begin
+  select COUNT(distinct vpc_id) into _vpc_count
+  from subnet
+  where subnet_id = any(_subnets);
+  return _vpc_count < 2;
+end;
+$$;
+ALTER TABLE subnet_group ADD CONSTRAINT check_subnet_group_subnets_same_vpc CHECK (check_subnet_group_subnets_same_vpc(subnets));
