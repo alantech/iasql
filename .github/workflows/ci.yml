@@ -119,10 +119,6 @@ jobs:
       matrix:
         module: ${{ fromJson(needs.setup-module-test.outputs['set-test-module-names']) }}
 
-    env:
-      MATRIX_AWS_ACCESS_KEY_ID: AWS_ACCESS_KEY_ID_${{matrix.module}}
-      MATRIX_AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY_${{matrix.module}}
-
     steps:
       - uses: actions/checkout@v2
 
@@ -145,8 +141,8 @@ jobs:
       - name: Run modules tests
         timeout-minutes: 40
         run: |
-          AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
           yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
         env:
           IASQL_ENV: test
