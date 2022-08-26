@@ -67,9 +67,84 @@ describe('MemoryDB Integration Testing', () => {
 
   it('applies the change', apply());
 
+  it ('creates a memory db cluster', query(`
+    INSERT INTO memory_db_cluster (cluster_name, subnet_group)
+    VALUES ('${clusterName}', '${subnetGroupName}');
+  `));
+
+  it('undo changes', sync());
+
+  it('checks it has been removed', query(`
+    SELECT *
+    FROM memory_db_cluster
+    WHERE cluster_name = '${clusterName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it ('creates a memory db cluster', query(`
+    INSERT INTO memory_db_cluster (cluster_name, subnet_group)
+    VALUES ('${clusterName}', '${subnetGroupName}');
+  `));
+
+  it('applies the change', apply());
+
+  it('checks the table was added', query(`
+    SELECT *
+    FROM memory_db_cluster
+    WHERE cluster_name = '${clusterName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('changes the column definition', query(`
+    UPDATE memory_db_cluster
+    SET description = 'Short desc'
+    WHERE cluster_name = '${clusterName}';
+  `));
+
+  it('applies the change', apply());
+
+  it('changes the column definition', query(`
+    UPDATE memory_db_cluster
+    SET arn = 'fake-arn'
+    WHERE cluster_name = '${clusterName}';
+  `));
+
+  it('applies the change', apply());
+
+  it('changes the column definition', query(`
+    UPDATE memory_db_cluster
+    SET node_type = 'db.r6g.xlarge'
+    WHERE cluster_name = '${clusterName}';
+  `));
+
+  it('applies the change', apply());
+
   it('uninstalls the module', uninstall(modules));
 
   it('installs the module', install(modules));
+
+  it('check table count after uninstall', query(`
+    SELECT *
+    FROM memory_db_cluster
+    WHERE cluster_name = '${clusterName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('removes the dynamo table', query(`
+    DELETE FROM memory_db_cluster
+    WHERE cluster_name = '${clusterName}';
+  `));
+
+  it('checks the remaining table count', query(`
+    SELECT *
+    FROM memory_db_cluster
+    WHERE cluster_name = '${clusterName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('applies the change', apply());
+
+  it('checks the remaining table count again', query(`
+    SELECT *
+    FROM memory_db_cluster
+    WHERE cluster_name = '${clusterName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('check table count after uninstall', query(`
     SELECT *
