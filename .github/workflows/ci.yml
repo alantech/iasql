@@ -138,24 +138,22 @@ jobs:
         id: determine-test-account
         env:
           SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
-          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
-          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
         run: |
           ACCOUNT_INDEX=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null | jq '.[0]')
-          echo "::set-output:name=account_index::$(echo ${ACCOUNT_INDEX})"
-          ACCESS_KEY_ID=$(echo ${ACCESS_KEY_IDS} | jq -r .[${ACCOUNT_INDEX}])
-          echo "::set-output:name=access_key_id::$(echo ${ACCESS_KEY_ID})"
-          SECRET_ACCESS_KEY=$(echo ${SECRET_ACCESS_KEYS} | jq -r .[${ACCOUNT_INDEX}])
-          echo "::set-output:name=secret_access_key::$(echo ${SECRET_ACCESS_KEY})"
+          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
 
       - name: Run modules tests
         timeout-minutes: 40
-        run: yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
+        run: |
+          AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
         env:
           IASQL_ENV: test
           MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
-          AWS_ACCESS_KEY_ID: ${{ steps['determine-test-account'].outputs['access_key_id'] }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps['determine-test-acount'].outputs['secret_access_key'] }}
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           AWS_REGION: ${{ needs.setup-module-test.outputs['region'] }}
 
       - name: Return test account
