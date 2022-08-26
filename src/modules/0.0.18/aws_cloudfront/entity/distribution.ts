@@ -1,21 +1,19 @@
-import {
-  Column,
-  Entity,
-  PrimaryGeneratedColumn,
-} from 'typeorm'
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id' // This is ridiculous. Can we fix this?
+import { cloudId } from '../../../../services/cloud-id';
+
+// This is ridiculous. Can we fix this?
 
 export enum viewerProtocolPolicyEnum {
-  ALLOW_ALL = "allow-all",
-  REDIRECT_TO_HTTPS = "redirect-to-https",
-  HTTPS_ONLY = "https-only"
+  ALLOW_ALL = 'allow-all',
+  REDIRECT_TO_HTTPS = 'redirect-to-https',
+  HTTPS_ONLY = 'https-only',
 }
 
 export enum originProtocolPolicyEnum {
-  HTTP_ONLY = "http-only",
-  MATCH_VIEWER = "match-viewer",
-  HTTPS_ONLY = "https-only"
+  HTTP_ONLY = 'http-only',
+  MATCH_VIEWER = 'match-viewer',
+  HTTPS_ONLY = 'https-only',
 }
 
 @Entity()
@@ -59,9 +57,9 @@ export class Distribution {
     nullable: false,
   })
   defaultCacheBehavior: {
-    TargetOriginId: string | undefined,
-    ViewerProtocolPolicy: viewerProtocolPolicyEnum,
-    CachePolicyId: string | undefined
+    TargetOriginId: string | undefined;
+    ViewerProtocolPolicy: viewerProtocolPolicyEnum;
+    CachePolicyId: string | undefined;
   };
 
   @Column({
@@ -69,14 +67,14 @@ export class Distribution {
     nullable: false,
   })
   origins: {
-    DomainName: string | undefined,
-    Id: string | undefined,
-    OriginShield: any,
+    DomainName: string | undefined;
+    Id: string | undefined;
+    OriginShield: any;
     CustomOriginConfig: {
-      HTTPPort: number|undefined,
-      HTTPSPort: number|undefined,
-      OriginProtocolPolicy: originProtocolPolicyEnum
-    }
+      HTTPPort: number | undefined;
+      HTTPSPort: number | undefined;
+      OriginProtocolPolicy: originProtocolPolicyEnum;
+    };
   }[];
 
   @Column({
