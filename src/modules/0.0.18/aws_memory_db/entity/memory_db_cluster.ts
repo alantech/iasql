@@ -56,7 +56,10 @@ export class MemoryDBCluster {
   })
   securityGroups?: SecurityGroup[];
   
-  @ManyToOne(() => SubnetGroup, { nullable: false, eager: true, })
+  @ManyToOne(() => SubnetGroup, subnetGroup => subnetGroup.subnetGroupName, {
+    nullable: false,
+    eager: true,
+  })
   @JoinColumn({
     name: 'subnet_group',
   })

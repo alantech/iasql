@@ -1,17 +1,18 @@
 import {
   Column,
   Entity,
-  PrimaryGeneratedColumn,
+  Generated,
 } from 'typeorm'
 
 import { cloudId, } from '../../../../services/cloud-id';
 
 @Entity()
 export class SubnetGroup {
-  @PrimaryGeneratedColumn()
+  @Column()
+  @Generated('increment')
   id: number;
 
-  @Column({ unique: true, })
+  @Column({ unique: true, primary: true, })
   @cloudId
   subnetGroupName: string;
 
