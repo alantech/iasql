@@ -42,26 +42,26 @@ import * as metadata from './module.json';
 const createListener = crudBuilderFormat<ElasticLoadBalancingV2, 'createListener', ListenerAws | undefined>(
   'createListener',
   input => input,
-  res => res?.Listeners?.pop(),
+  res => res?.Listeners?.pop()
 );
 const getListener = crudBuilderFormat<ElasticLoadBalancingV2, 'describeListeners', ListenerAws | undefined>(
   'describeListeners',
   arn => ({ ListenerArns: [arn] }),
-  res => res?.Listeners?.[0],
+  res => res?.Listeners?.[0]
 );
 const getListenersForArn = paginateBuilder<ElasticLoadBalancingV2>(
   paginateDescribeListeners,
   'Listeners',
   undefined,
   undefined,
-  LoadBalancerArn => ({ LoadBalancerArn }),
+  LoadBalancerArn => ({ LoadBalancerArn })
 );
 const getListeners = async (client: ElasticLoadBalancingV2, loadBalancerArns: string[]) =>
   (await mapLin(loadBalancerArns, getListenersForArn.bind(null, client))).flat();
 const updateListener = crudBuilderFormat<ElasticLoadBalancingV2, 'modifyListener', ListenerAws | undefined>(
   'modifyListener',
   input => input,
-  res => res?.Listeners?.pop(),
+  res => res?.Listeners?.pop()
 );
 const deleteListener = crudBuilder2<ElasticLoadBalancingV2, 'deleteListener'>('deleteListener', ListenerArn => ({
   ListenerArn,
@@ -70,38 +70,38 @@ const getSubnets = paginateBuilder<EC2>(paginateDescribeSubnets, 'Subnets');
 const getLoadBalancer = crudBuilderFormat<ElasticLoadBalancingV2, 'describeLoadBalancers', LoadBalancerAws | undefined>(
   'describeLoadBalancers',
   arn => ({ LoadBalancerArns: [arn] }),
-  res => res?.LoadBalancers?.[0],
+  res => res?.LoadBalancers?.[0]
 );
 const getLoadBalancers = paginateBuilder<ElasticLoadBalancingV2>(paginateDescribeLoadBalancers, 'LoadBalancers');
 const updateLoadBalancerIpAddressType = crudBuilder2<ElasticLoadBalancingV2, 'setIpAddressType'>(
   'setIpAddressType',
-  input => input,
+  input => input
 );
 const updateLoadBalancerSubnets = crudBuilder2<ElasticLoadBalancingV2, 'setSubnets'>('setSubnets', input => input);
 const updateLoadBalancerSecurityGroups = crudBuilder2<ElasticLoadBalancingV2, 'setSecurityGroups'>(
   'setSecurityGroups',
-  input => input,
+  input => input
 );
 const getVpcs = paginateBuilder<EC2>(paginateDescribeVpcs, 'Vpcs');
 const createTargetGroup = crudBuilderFormat<ElasticLoadBalancingV2, 'createTargetGroup', TargetGroupAws | undefined>(
   'createTargetGroup',
   input => input,
-  res => res?.TargetGroups?.pop(),
+  res => res?.TargetGroups?.pop()
 );
 const getTargetGroup = crudBuilderFormat<ElasticLoadBalancingV2, 'describeTargetGroups', TargetGroupAws | undefined>(
   'describeTargetGroups',
   arn => ({ TargetGroupArns: [arn] }),
-  res => res?.TargetGroups?.[0],
+  res => res?.TargetGroups?.[0]
 );
 const getTargetGroups = paginateBuilder<ElasticLoadBalancingV2>(paginateDescribeTargetGroups, 'TargetGroups');
 const updateTargetGroup = crudBuilderFormat<ElasticLoadBalancingV2, 'modifyTargetGroup', TargetGroupAws | undefined>(
   'modifyTargetGroup',
   input => input,
-  res => res?.TargetGroups?.pop(),
+  res => res?.TargetGroups?.pop()
 );
 const deleteTargetGroup = crudBuilder2<ElasticLoadBalancingV2, 'deleteTargetGroup'>(
   'deleteTargetGroup',
-  TargetGroupArn => ({ TargetGroupArn }),
+  TargetGroupArn => ({ TargetGroupArn })
 );
 
 // TODO: Create a waiter macro function
@@ -133,7 +133,7 @@ async function createLoadBalancer(client: ElasticLoadBalancingV2, input: CreateL
       } catch (e: any) {
         return { state: WaiterState.RETRY };
       }
-    },
+    }
   );
   return loadBalancer;
 }
@@ -158,7 +158,7 @@ async function deleteLoadBalancer(client: { elbClient: ElasticLoadBalancingV2; e
       } catch (_) {
         return { state: WaiterState.SUCCESS };
       }
-    },
+    }
   );
   // Now we need wait the load balancer to be fully deattached from any network interface
   const loadBalancerName = arn.split(':loadbalancer/')?.[1] ?? '';
@@ -189,7 +189,7 @@ async function deleteLoadBalancer(client: { elbClient: ElasticLoadBalancingV2; e
       } catch (e) {
         return { state: WaiterState.RETRY };
       }
-    },
+    }
   );
 }
 
@@ -243,7 +243,7 @@ export const AwsElbModule: Module2 = new Module2(
           try {
             securityGroups.push(
               (await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg)) ??
-                (await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg)),
+                (await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg))
             );
           } catch (_) {
             // If security groups are misconfigured ignore them
@@ -537,7 +537,7 @@ export const AwsElbModule: Module2 = new Module2(
                   !(
                     Object.is(cloudRecord.securityGroups?.length, e.securityGroups?.length) &&
                     (cloudRecord.securityGroups?.every(
-                      (csg: any) => !!e.securityGroups?.find(esg => Object.is(csg.groupId, esg.groupId)),
+                      (csg: any) => !!e.securityGroups?.find(esg => Object.is(csg.groupId, esg.groupId))
                     ) ??
                       false)
                   )
@@ -703,5 +703,5 @@ export const AwsElbModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

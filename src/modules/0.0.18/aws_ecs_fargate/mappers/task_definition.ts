@@ -28,8 +28,8 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       Object.keys(a.envVariables ?? {}).every(
         (aevk: string) =>
           !!Object.keys(b.envVariables ?? {}).find(
-            (bevk: string) => Object.is(aevk, bevk) && Object.is(a.envVariables[aevk], b.envVariables[bevk]),
-          ),
+            (bevk: string) => Object.is(aevk, bevk) && Object.is(a.envVariables[aevk], b.envVariables[bevk])
+          )
       ) &&
       Object.is(a.essential, b.essential) &&
       Object.is(a.logGroup?.logGroupArn, b.logGroup?.logGroupArn) &&
@@ -50,12 +50,12 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
   createTaskDefinition = crudBuilderFormat<ECS, 'registerTaskDefinition', AwsTaskDefinition | undefined>(
     'registerTaskDefinition',
     input => input,
-    res => res?.taskDefinition,
+    res => res?.taskDefinition
   );
   getTaskDefinition = crudBuilderFormat<ECS, 'describeTaskDefinition', AwsTaskDefinition | undefined>(
     'describeTaskDefinition',
     taskDefinition => ({ taskDefinition }),
-    res => res?.taskDefinition,
+    res => res?.taskDefinition
   );
   deleteTaskDefinition = crudBuilder2<ECS, 'deregisterTaskDefinition'>('deregisterTaskDefinition', taskDefinition => ({
     taskDefinition,
@@ -71,7 +71,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       {
         status: 'ACTIVE',
         maxResults: 100,
-      },
+      }
     );
     for await (const page of activePaginator) {
       activeTaskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
@@ -81,7 +81,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
     const services =
       (await this.module.service.getServices(
         client,
-        clusters.map(c => c.clusterArn!),
+        clusters.map(c => c.clusterArn!)
       )) ?? [];
     const servicesTasks = services.map(s => s.taskDefinition!) ?? [];
     for (const st of servicesTasks) {
@@ -280,7 +280,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
           }) ?? [];
         if (!containerDefinitions.length)
           throw new Error(
-            `Task definition ${e.family}${e.revision ? `:${e.revision}` : ''} does not have any container associated.`,
+            `Task definition ${e.family}${e.revision ? `:${e.revision}` : ''} does not have any container associated.`
           );
         const input: any = {
           family: e.family,
@@ -335,7 +335,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
         return await this.taskDefinitionMapper(rawTaskDef, ctx);
       } else {
         const taskDefs = ((await this.getTaskDefinitions(client.ecsClient)).taskDefinitions ?? []).filter(td =>
-          td.compatibilities.includes('FARGATE'),
+          td.compatibilities.includes('FARGATE')
         );
         const tds = [];
         for (const td of taskDefs) {

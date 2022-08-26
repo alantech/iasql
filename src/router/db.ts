@@ -33,7 +33,7 @@ async function connectHandler(req: any, res: any) {
       },
       {},
       uid,
-      req.body.ampDeviceId,
+      req.body.ampDeviceId
     );
   } catch (e) {
     const error = logErrSentry(e, uid, email, dbAlias);
@@ -84,7 +84,7 @@ db.post('/export', async (req, res) => {
       },
       { dataOnly: !!dataOnly },
       uid,
-      ampDeviceId,
+      ampDeviceId
     );
   } catch (e) {
     res.status(500).end(logErrSentry(e, uid, email, dbAlias));
@@ -119,7 +119,7 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
         dbId,
       },
       {},
-      uid,
+      uid
     );
     res.json(`disconnected ${dbAlias}`);
   } catch (e) {
@@ -153,7 +153,7 @@ db.post('/run/:dbAlias', async (req, res) => {
         button,
       },
       uid,
-      ampDeviceId,
+      ampDeviceId
     );
     res.json(output);
   } catch (e: any) {

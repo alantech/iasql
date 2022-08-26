@@ -9,7 +9,7 @@ import * as metadata from './module.json';
 const getInstanceType = crudBuilderFormat<EC2, 'describeInstanceTypes', InstanceTypeInfo | undefined>(
   'describeInstanceTypes',
   instanceType => ({ InstanceTypes: [instanceType] }),
-  res => res?.InstanceTypes?.[0],
+  res => res?.InstanceTypes?.[0]
 );
 const describeInstances = crudBuilder2<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({ InstanceIds }));
 const getInstance = async (client: EC2, id: string) => {
@@ -85,5 +85,5 @@ export const AwsEc2MetadataModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

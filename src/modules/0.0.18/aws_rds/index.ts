@@ -55,7 +55,7 @@ class RdsMapper extends MapperBase<RDS> {
     out.engine = `${rds?.Engine}:${rds?.EngineVersion}`;
     out.masterUsername = rds?.MasterUsername;
     const vpcSecurityGroupIds = rds?.VpcSecurityGroups?.filter((vpcsg: any) => !!vpcsg?.VpcSecurityGroupId).map(
-      (vpcsg: any) => vpcsg?.VpcSecurityGroupId,
+      (vpcsg: any) => vpcsg?.VpcSecurityGroupId
     );
     out.vpcSecurityGroups = [];
     for (const sgId of vpcSecurityGroupIds) {
@@ -76,7 +76,7 @@ class RdsMapper extends MapperBase<RDS> {
   getDBInstance = crudBuilderFormat<AWSRDS, 'describeDBInstances', DBInstance | undefined>(
     'describeDBInstances',
     DBInstanceIdentifier => ({ DBInstanceIdentifier }),
-    res => (res?.DBInstances ?? [])[0],
+    res => (res?.DBInstances ?? [])[0]
   );
   getAllDBInstances = paginateBuilder<AWSRDS>(paginateDescribeDBInstances, 'DBInstances');
   getDBInstances = async (client: AWSRDS) =>
@@ -109,7 +109,7 @@ class RdsMapper extends MapperBase<RDS> {
           if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
-      },
+      }
     );
     return newDBInstance;
   }
@@ -139,7 +139,7 @@ class RdsMapper extends MapperBase<RDS> {
           if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
-      },
+      }
     );
     await createWaiter<AWSRDS, DescribeDBInstancesCommandInput>(
       {
@@ -163,7 +163,7 @@ class RdsMapper extends MapperBase<RDS> {
           if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
-      },
+      }
     );
     return updatedDBInstance;
   }
@@ -187,7 +187,7 @@ class RdsMapper extends MapperBase<RDS> {
           if (dbInstance.DBInstanceStatus === 'deleting') return { state: WaiterState.RETRY };
         }
         return { state: WaiterState.SUCCESS };
-      },
+      }
     );
   }
 
@@ -276,7 +276,7 @@ class RdsMapper extends MapperBase<RDS> {
             !e.masterUserPassword &&
             Object.is(e.vpcSecurityGroups.length, cloudRecord.vpcSecurityGroups.length) &&
             (e.vpcSecurityGroups?.every(
-              esg => !!cloudRecord.vpcSecurityGroups.find((csg: any) => Object.is(esg.groupId, csg.groupId)),
+              esg => !!cloudRecord.vpcSecurityGroups.find((csg: any) => Object.is(esg.groupId, csg.groupId))
             ) ??
               false)
           )
@@ -382,19 +382,19 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
   createDBParameterGroup = crudBuilderFormat<AWSRDS, 'createDBParameterGroup', DBParameterGroup | undefined>(
     'createDBParameterGroup',
     input => input,
-    res => res?.DBParameterGroup,
+    res => res?.DBParameterGroup
   );
   getSimpleDBParameterGroup = crudBuilderFormat<AWSRDS, 'describeDBParameterGroups', DBParameterGroup | undefined>(
     'describeDBParameterGroups',
     DBParameterGroupName => ({ DBParameterGroupName }),
-    res => (res?.DBParameterGroups ?? []).pop(),
+    res => (res?.DBParameterGroups ?? []).pop()
   );
   getDBParameterGroupParameters = paginateBuilder<AWSRDS>(
     paginateDescribeDBParameters,
     'Parameters',
     undefined,
     undefined,
-    DBParameterGroupName => ({ DBParameterGroupName }),
+    DBParameterGroupName => ({ DBParameterGroupName })
   );
   getDBParameterGroup = async (client: AWSRDS, DBParameterGroupName: string) => {
     const simpleParameterGroup = await this.getSimpleDBParameterGroup(client, DBParameterGroupName);
@@ -406,17 +406,17 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
     mapLin(this.getSimpleDBParameterGroups(client), async (simpleParameterGroup: DBParameterGroup) => {
       const Parameters = await this.getDBParameterGroupParameters(
         client,
-        simpleParameterGroup.DBParameterGroupName ?? '',
+        simpleParameterGroup.DBParameterGroupName ?? ''
       );
       return { ...simpleParameterGroup, Parameters };
     });
   modifyParameter = crudBuilder2<AWSRDS, 'modifyDBParameterGroup'>(
     'modifyDBParameterGroup',
-    (DBParameterGroupName, parameter) => ({ DBParameterGroupName, Parameters: [parameter] }),
+    (DBParameterGroupName, parameter) => ({ DBParameterGroupName, Parameters: [parameter] })
   );
   deleteDBParameterGroup = crudBuilder2<AWSRDS, 'deleteDBParameterGroup'>(
     'deleteDBParameterGroup',
-    DBParameterGroupName => ({ DBParameterGroupName }),
+    DBParameterGroupName => ({ DBParameterGroupName })
   );
 
   cloud = new Crud2({

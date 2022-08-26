@@ -14,34 +14,34 @@ import * as metadata from './module.json';
 const createECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'createRepository', RepositoryAws | undefined>(
   'createRepository',
   input => input,
-  res => res?.repository,
+  res => res?.repository
 );
 const getECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'describeRepositories', RepositoryAws | undefined>(
   'describeRepositories',
   name => ({ repositoryNames: [name] }),
-  res => (res?.repositories ?? [])[0],
+  res => (res?.repositories ?? [])[0]
 );
 const getECRPubRepositories = paginateBuilder<ECRPUBLIC>(paginateDescribePubRepositories, 'repositories');
 const deleteECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'deleteRepository', undefined>(
   'deleteRepository',
   repositoryName => ({ repositoryName }),
-  _res => undefined,
+  _res => undefined
 );
 const createECRRepository = crudBuilderFormat<ECR, 'createRepository', RepositoryAws | undefined>(
   'createRepository',
   input => input,
-  res => res?.repository,
+  res => res?.repository
 );
 const getECRRepository = crudBuilderFormat<ECR, 'describeRepositories', RepositoryAws | undefined>(
   'describeRepositories',
   name => ({ repositoryNames: [name] }),
-  res => (res?.repositories ?? [])[0],
+  res => (res?.repositories ?? [])[0]
 );
 const getECRRepositories = paginateBuilder<ECR>(paginateDescribeRepositories, 'repositories');
 const updateECRRepositoryImageTagMutability = crudBuilderFormat<ECR, 'putImageTagMutability', undefined>(
   'putImageTagMutability',
   (repositoryName, imageTagMutability) => ({ repositoryName, imageTagMutability }),
-  _res => undefined,
+  _res => undefined
 );
 const updateECRRepositoryImageScanningConfiguration = crudBuilderFormat<
   ECR,
@@ -53,12 +53,12 @@ const updateECRRepositoryImageScanningConfiguration = crudBuilderFormat<
     repositoryName,
     imageScanningConfiguration: { scanOnPush },
   }),
-  _res => undefined,
+  _res => undefined
 );
 const deleteECRRepository = crudBuilderFormat<ECR, 'deleteRepository', undefined>(
   'deleteRepository',
   repositoryName => ({ repositoryName }),
-  _res => undefined,
+  _res => undefined
 );
 const setECRRepositoryPolicy = crudBuilder2<ECR, 'setRepositoryPolicy'>('setRepositoryPolicy', input => input);
 const getECRRepositoryPolicy = crudBuilder2<ECR, 'getRepositoryPolicy'>('getRepositoryPolicy', repositoryName => ({
@@ -66,7 +66,7 @@ const getECRRepositoryPolicy = crudBuilder2<ECR, 'getRepositoryPolicy'>('getRepo
 }));
 const deleteECRRepositoryPolicy = crudBuilder2<ECR, 'deleteRepositoryPolicy'>(
   'deleteRepositoryPolicy',
-  repositoryName => ({ repositoryName }),
+  repositoryName => ({ repositoryName })
 );
 
 export const AwsEcrModule: Module2 = new Module2(
@@ -373,5 +373,5 @@ export const AwsEcrModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

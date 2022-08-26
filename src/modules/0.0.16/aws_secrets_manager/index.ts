@@ -15,7 +15,7 @@ import { Secret } from './entity/secret';
 const createSecret = crudBuilderFormat<SecretsManager, 'createSecret', string | undefined>(
   'createSecret',
   input => input,
-  res => (!!res ? res.Name : undefined),
+  res => (!!res ? res.Name : undefined)
 );
 
 async function putSecretValue(client: SecretsManager, input: PutSecretValueCommandInput) {
@@ -128,7 +128,7 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
               const cloudRecord = ctx?.memo?.cloud?.Secret?.[secret.name ?? ''];
               const isUpdate = Object.is(
                 AwsSecretsManagerModule.mappers.secret.cloud.updateOrReplace(cloudRecord, secret),
-                'update',
+                'update'
               );
               if (isUpdate) {
                 if (secret.description !== cloudRecord.description) {
@@ -174,5 +174,5 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

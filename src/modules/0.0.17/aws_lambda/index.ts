@@ -64,7 +64,7 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     try {
       const roleName = awsIamModule.role.roleNameFromArn(
         fn.Configuration?.Role ?? throwError('No rolename defined'),
-        ctx,
+        ctx
       );
       out.role =
         (await awsIamModule.role.db.read(ctx, roleName)) ?? (await awsIamModule.role.cloud.read(ctx, roleName));

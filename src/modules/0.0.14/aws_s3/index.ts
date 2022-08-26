@@ -17,7 +17,7 @@ import isEqual from 'lodash.isequal';
 const getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
   'listBuckets',
   () => ({}),
-  res => res?.Buckets ?? [],
+  res => res?.Buckets ?? []
 );
 
 const deleteBucket = crudBuilder2<S3, 'deleteBucket'>('deleteBucket', b => ({ Bucket: b }));
@@ -149,5 +149,5 @@ export const AwsS3Module: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

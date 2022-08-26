@@ -20,13 +20,13 @@ class RoleMapper extends MapperBase<Role> {
   getRoleAttachedPoliciesArns = crudBuilderFormat<IAM, 'listAttachedRolePolicies', string[] | undefined>(
     'listAttachedRolePolicies',
     RoleName => ({ RoleName }),
-    res => (res?.AttachedPolicies?.length ? res.AttachedPolicies.map(p => p.PolicyArn ?? '') : undefined),
+    res => (res?.AttachedPolicies?.length ? res.AttachedPolicies.map(p => p.PolicyArn ?? '') : undefined)
   );
 
   createNewRole = crudBuilderFormat<IAM, 'createRole', string>(
     'createRole',
     input => input,
-    res => res?.Role?.Arn ?? '',
+    res => res?.Role?.Arn ?? ''
   );
 
   attachRolePolicy = crudBuilder2<IAM, 'attachRolePolicy'>('attachRolePolicy', (RoleName, PolicyArn) => ({
@@ -55,13 +55,13 @@ class RoleMapper extends MapperBase<Role> {
     RoleName => ({
       InstanceProfileName: RoleName,
       RoleName,
-    }),
+    })
   );
 
   getRole = crudBuilderFormat<IAM, 'getRole', AWSRole | undefined>(
     'getRole',
     RoleName => ({ RoleName }),
-    res => res?.Role,
+    res => res?.Role
   );
 
   getAllRoles = paginateBuilder<IAM>(paginateListRoles, 'Roles');
@@ -71,7 +71,7 @@ class RoleMapper extends MapperBase<Role> {
     (RoleName, PolicyDocument) => ({
       RoleName,
       PolicyDocument,
-    }),
+    })
   );
 
   updateRoleDescription = crudBuilder2<IAM, 'updateRole'>('updateRole', (RoleName, Description?) => ({
@@ -144,7 +144,7 @@ class RoleMapper extends MapperBase<Role> {
   }
   allowEc2Service(a: Role) {
     return a.assumeRolePolicyDocument?.Statement?.find(
-      (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com',
+      (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com'
     );
   }
 

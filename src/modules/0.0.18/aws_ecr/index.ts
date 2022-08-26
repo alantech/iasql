@@ -34,18 +34,18 @@ class PublicRepositoryMapper extends MapperBase<PublicRepository> {
   createECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'createRepository', RepositoryAws | undefined>(
     'createRepository',
     input => input,
-    res => res?.repository,
+    res => res?.repository
   );
   getECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'describeRepositories', RepositoryAws | undefined>(
     'describeRepositories',
     name => ({ repositoryNames: [name] }),
-    res => (res?.repositories ?? [])[0],
+    res => (res?.repositories ?? [])[0]
   );
   getECRPubRepositories = paginateBuilder<ECRPUBLIC>(paginateDescribePubRepositories, 'repositories');
   deleteECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'deleteRepository', undefined>(
     'deleteRepository',
     repositoryName => ({ repositoryName }),
-    _res => undefined,
+    _res => undefined
   );
 
   cloud = new Crud2({
@@ -144,18 +144,18 @@ class RepositoryMapper extends MapperBase<Repository> {
   createECRRepository = crudBuilderFormat<ECR, 'createRepository', RepositoryAws | undefined>(
     'createRepository',
     input => input,
-    res => res?.repository,
+    res => res?.repository
   );
   getECRRepository = crudBuilderFormat<ECR, 'describeRepositories', RepositoryAws | undefined>(
     'describeRepositories',
     name => ({ repositoryNames: [name] }),
-    res => (res?.repositories ?? [])[0],
+    res => (res?.repositories ?? [])[0]
   );
   getECRRepositories = paginateBuilder<ECR>(paginateDescribeRepositories, 'repositories');
   updateECRRepositoryImageTagMutability = crudBuilderFormat<ECR, 'putImageTagMutability', undefined>(
     'putImageTagMutability',
     (repositoryName, imageTagMutability) => ({ repositoryName, imageTagMutability }),
-    _res => undefined,
+    _res => undefined
   );
   updateECRRepositoryImageScanningConfiguration = crudBuilderFormat<ECR, 'putImageScanningConfiguration', undefined>(
     'putImageScanningConfiguration',
@@ -163,12 +163,12 @@ class RepositoryMapper extends MapperBase<Repository> {
       repositoryName,
       imageScanningConfiguration: { scanOnPush },
     }),
-    _res => undefined,
+    _res => undefined
   );
   deleteECRRepository = crudBuilderFormat<ECR, 'deleteRepository', undefined>(
     'deleteRepository',
     repositoryName => ({ repositoryName }),
-    _res => undefined,
+    _res => undefined
   );
 
   cloud = new Crud2({

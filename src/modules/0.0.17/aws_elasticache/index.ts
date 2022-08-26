@@ -53,7 +53,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
         } catch (e: any) {
           throw e;
         }
-      },
+      }
     );
     return out;
   }
@@ -70,7 +70,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
   getCacheCluster = crudBuilderFormat<ElastiCache, 'describeCacheClusters', CacheClusterAWS | undefined>(
     'describeCacheClusters',
     id => ({ CacheClusterId: id }),
-    res => res?.CacheClusters?.[0],
+    res => res?.CacheClusters?.[0]
   );
   getCacheClusters = paginateBuilder<ElastiCache>(paginateDescribeCacheClusters, 'CacheClusters');
   deleteCacheCluster = crudBuilder2<ElastiCache, 'deleteCacheCluster'>('deleteCacheCluster', input => input);

@@ -39,7 +39,7 @@ const dynamoMapper = (dynamo: TableDescription) => {
   out.primaryKey = Object.fromEntries(
     dynamo.KeySchema?.sort((a, _b) => (a.KeyType === 'HASH' ? -1 : 1))
       .filter(ks => !!ks.AttributeName)
-      .map(ks => [ks.AttributeName, types[ks.AttributeName as string]]) ?? [],
+      .map(ks => [ks.AttributeName, types[ks.AttributeName as string]]) ?? []
   );
   out.createdAt = dynamo.CreationDateTime;
   return out;
@@ -54,7 +54,7 @@ export const AwsDynamoModule: Module2 = new Module2(
         equals: (a: DynamoTable, b: DynamoTable) =>
           isequal(
             pick(a, ['tableName', 'tableClass', 'throughput', 'tableId', 'primaryKey', 'createdAt']),
-            pick(b, ['tableName', 'tableClass', 'throughput', 'tableId', 'primaryKey', 'createdAt']),
+            pick(b, ['tableName', 'tableClass', 'throughput', 'tableId', 'primaryKey', 'createdAt'])
           ),
         source: 'db',
         cloud: new Crud2({
@@ -90,7 +90,7 @@ export const AwsDynamoModule: Module2 = new Module2(
                   minDelay: 1,
                   maxDelay: 4,
                 } as WaiterOptions<DynamoDB>,
-                { TableName: e.tableName },
+                { TableName: e.tableName }
               );
               const newTable = dynamoMapper(res.TableDescription);
               // We attach the original object's ID to this new one, indicating the exact record it is
@@ -145,7 +145,7 @@ export const AwsDynamoModule: Module2 = new Module2(
                   minDelay: 1,
                   maxDelay: 4,
                 } as WaiterOptions<DynamoDB>,
-                { TableName: e.tableName },
+                { TableName: e.tableName }
               );
               const newTable = dynamoMapper(res.TableDescription);
               // We attach the original object's ID to this new one, indicating the exact record it is
@@ -169,7 +169,7 @@ export const AwsDynamoModule: Module2 = new Module2(
                   minDelay: 1,
                   maxDelay: 4,
                 } as WaiterOptions<DynamoDB>,
-                { TableName: e.tableName },
+                { TableName: e.tableName }
               );
             }
           },
@@ -177,5 +177,5 @@ export const AwsDynamoModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

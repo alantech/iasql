@@ -39,7 +39,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
         Targets: [target],
       };
     },
-    _res => undefined,
+    _res => undefined
   );
 
   getRegisteredInstance = crudBuilderFormat<
@@ -63,7 +63,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
           instanceId: thd.Target?.Id,
           port: thd.Target?.Port?.toString(),
         })) ?? []),
-      ].pop(),
+      ].pop()
   );
 
   getTargetGroups = paginateBuilder<ElasticLoadBalancingV2>(paginateDescribeTargetGroups, 'TargetGroups');
@@ -82,7 +82,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
           targetGroupArn: tg.TargetGroupArn,
           instanceId: thd.Target?.Id,
           port: thd.Target?.Port?.toString(),
-        })) ?? []),
+        })) ?? [])
       );
     }
     return out;
@@ -100,7 +100,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
         Targets: [target],
       };
     },
-    _res => undefined,
+    _res => undefined
   );
 
   db = new Crud2<RegisteredInstance>({
@@ -138,7 +138,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
         await this.registerInstance(client.elbClient, e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
         const registeredInstance = await this.module.registeredInstance.cloud.read(
           ctx,
-          this.module.registeredInstance.entityId(e),
+          this.module.registeredInstance.entityId(e)
         );
         await this.module.registeredInstance.db.update(registeredInstance, ctx);
         out.push(registeredInstance);
@@ -178,11 +178,11 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
           client.elbClient,
           cloudRecord.instance.instanceId,
           cloudRecord.targetGroup.targetGroupArn,
-          cloudRecord.port,
+          cloudRecord.port
         );
         const registeredInstance = await this.module.registeredInstance.cloud.read(
           ctx,
-          this.module.registeredInstance.entityId(e),
+          this.module.registeredInstance.entityId(e)
         );
         await this.module.registeredInstance.db.update(registeredInstance, ctx);
         out.push(registeredInstance);

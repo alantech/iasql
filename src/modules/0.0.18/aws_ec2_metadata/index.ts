@@ -44,7 +44,7 @@ class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
   getInstanceType = crudBuilderFormat<EC2, 'describeInstanceTypes', InstanceTypeInfo | undefined>(
     'describeInstanceTypes',
     instanceType => ({ InstanceTypes: [instanceType] }),
-    res => res?.InstanceTypes?.[0],
+    res => res?.InstanceTypes?.[0]
   );
   describeInstances = crudBuilder2<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({ InstanceIds }));
   getInstance = async (client: EC2, id: string) => {

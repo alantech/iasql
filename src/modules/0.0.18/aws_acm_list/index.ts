@@ -19,7 +19,7 @@ class CertificateMapper extends MapperBase<Certificate> {
   getCertificate = crudBuilderFormat<ACM, 'describeCertificate', CertificateDetail | undefined>(
     'describeCertificate',
     CertificateArn => ({ CertificateArn }),
-    res => res?.Certificate,
+    res => res?.Certificate
   );
   getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
   getCertificates(client: ACM) {

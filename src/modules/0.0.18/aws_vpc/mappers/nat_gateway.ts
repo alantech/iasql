@@ -65,7 +65,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
         },
       ],
     }),
-    res => res?.NatGateways?.pop(),
+    res => res?.NatGateways?.pop()
   );
   getNatGateways = paginateBuilder<EC2>(paginateDescribeNatGateways, 'NatGateways', undefined, undefined, () => ({
     Filter: [
@@ -105,7 +105,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
         } catch (e: any) {
           throw e;
         }
-      },
+      }
     );
     return out;
   }
@@ -137,7 +137,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
         } catch (e: any) {
           throw e;
         }
-      },
+      }
     );
   }
 

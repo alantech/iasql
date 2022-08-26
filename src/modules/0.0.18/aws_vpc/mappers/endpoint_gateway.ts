@@ -67,7 +67,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
         },
       ],
     }),
-    (res, service: string) => res?.ServiceNames?.find(sn => sn.includes(service)),
+    (res, service: string) => res?.ServiceNames?.find(sn => sn.includes(service))
   );
   getVpcRouteTables = crudBuilderFormat<EC2, 'describeRouteTables', RouteTable[] | undefined>(
     'describeRouteTables',
@@ -79,17 +79,17 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
         },
       ],
     }),
-    res => res?.RouteTables,
+    res => res?.RouteTables
   );
   createVpcEndpointGateway = crudBuilderFormat<EC2, 'createVpcEndpoint', AwsVpcEndpoint | undefined>(
     'createVpcEndpoint',
     input => input,
-    res => res?.VpcEndpoint,
+    res => res?.VpcEndpoint
   );
   getVpcEndpointGateway = crudBuilderFormat<EC2, 'describeVpcEndpoints', AwsVpcEndpoint | undefined>(
     'describeVpcEndpoints',
     endpointId => ({ VpcEndpointIds: [endpointId] }),
-    res => res?.VpcEndpoints?.pop(),
+    res => res?.VpcEndpoints?.pop()
   );
   getVpcEndpointGateways = paginateBuilder<EC2>(
     paginateDescribeVpcEndpoints,
@@ -109,17 +109,17 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
           Values: ['available', 'rejected', 'failed'],
         },
       ],
-    }),
+    })
   );
   modifyVpcEndpointGateway = crudBuilderFormat<EC2, 'modifyVpcEndpoint', boolean | undefined>(
     'modifyVpcEndpoint',
     input => input,
-    res => res?.Return,
+    res => res?.Return
   );
   deleteVpcEndpointGateway = crudBuilderFormat<EC2, 'deleteVpcEndpoints', UnsuccessfulItem[] | undefined>(
     'deleteVpcEndpoints',
     endpointId => ({ VpcEndpointIds: [endpointId] }),
-    res => res?.Unsuccessful,
+    res => res?.Unsuccessful
   );
 
   cloud: Crud2<EndpointGateway> = new Crud2({

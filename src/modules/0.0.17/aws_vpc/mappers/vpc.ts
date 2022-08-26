@@ -71,7 +71,7 @@ export class VpcMapper extends MapperBase<Vpc> {
         } catch (e: any) {
           throw e;
         }
-      },
+      }
     );
     return out;
   }
@@ -79,7 +79,7 @@ export class VpcMapper extends MapperBase<Vpc> {
   getVpc = crudBuilderFormat<EC2, 'describeVpcs', AwsVpc | undefined>(
     'describeVpcs',
     id => ({ VpcIds: [id] }),
-    res => res?.Vpcs?.[0],
+    res => res?.Vpcs?.[0]
   );
   getVpcs = paginateBuilder<EC2>(paginateDescribeVpcs, 'Vpcs');
   deleteVpc = crudBuilder2<EC2, 'deleteVpc'>('deleteVpc', input => input);

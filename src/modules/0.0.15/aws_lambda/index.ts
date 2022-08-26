@@ -223,5 +223,5 @@ export const AwsLambdaModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

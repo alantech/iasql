@@ -8,7 +8,7 @@ import * as metadata from './module.json';
 const getCertificate = crudBuilderFormat<ACM, 'describeCertificate', CertificateDetail | undefined>(
   'describeCertificate',
   CertificateArn => ({ CertificateArn }),
-  res => res?.Certificate,
+  res => res?.Certificate
 );
 const getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
 const getCertificates = (client: ACM) =>
@@ -112,5 +112,5 @@ export const AwsAcmListModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

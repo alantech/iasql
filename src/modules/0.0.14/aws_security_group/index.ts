@@ -23,7 +23,7 @@ const createSecurityGroup = crudBuilder2<EC2, 'createSecurityGroup'>('createSecu
 const getSecurityGroup = crudBuilderFormat<EC2, 'describeSecurityGroups', AwsSecurityGroup | undefined>(
   'describeSecurityGroups',
   id => ({ GroupIds: [id] }),
-  res => res?.SecurityGroups?.[0],
+  res => res?.SecurityGroups?.[0]
 );
 const getSecurityGroups = paginateBuilder<EC2>(paginateDescribeSecurityGroups, 'SecurityGroups');
 const createSecurityGroupEgressRules = async (client: EC2, rules: AuthorizeSecurityGroupEgressCommandInput[]) =>
@@ -33,7 +33,7 @@ const createSecurityGroupIngressRules = async (client: EC2, rules: AuthorizeSecu
 const getSecurityGroupRule = crudBuilderFormat<EC2, 'describeSecurityGroupRules', AwsSecurityGroupRule | undefined>(
   'describeSecurityGroupRules',
   id => ({ SecurityGroupRuleIds: [id] }),
-  res => res?.SecurityGroupRules?.[0],
+  res => res?.SecurityGroupRules?.[0]
 );
 const getSecurityGroupRules = paginateBuilder<EC2>(paginateDescribeSecurityGroupRules, 'SecurityGroupRules');
 const deleteSecurityGroupEgressRules = async (client: EC2, rules: RevokeSecurityGroupEgressCommandInput[]) =>
@@ -120,7 +120,7 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
             // The security group rules associated with the user's created "default" group are
             // still fine to actually set in AWS, so we leave that alone.
             const actualEntity = Object.values(ctx?.memo?.cloud?.SecurityGroup ?? {}).find(
-              (a: any) => a.groupName === 'default' && a.vpc?.vpcId === e.vpc?.vpcId, // TODO: Fix typing here
+              (a: any) => a.groupName === 'default' && a.vpc?.vpcId === e.vpc?.vpcId // TODO: Fix typing here
             ) as SecurityGroup;
             e.description = actualEntity.description;
             e.groupId = actualEntity.groupId;
@@ -324,7 +324,7 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
                 // are still hitting the 'delete' path, that's a race condition and we should just do
                 // nothing here.
                 const dbRecord = Object.values(ctx?.memo?.db?.SecurityGroup ?? {}).find(
-                  (a: any) => a.groupName === 'default' && a.vpc?.vpcId === e.vpc?.vpcId,
+                  (a: any) => a.groupName === 'default' && a.vpc?.vpcId === e.vpc?.vpcId
                 );
                 if (!!dbRecord) return;
                 // For delete, we have un-memoed the record, but the record passed in *is* the one
@@ -349,13 +349,13 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
                 // Let's clear the record from the caches here, too?
                 ctx.memo.cloud.SecurityGroup = Object.fromEntries(
                   Object.entries(ctx.memo.cloud.SecurityGroup).filter(
-                    ([_, v]) => e.groupId !== (v as SecurityGroup).groupId,
-                  ),
+                    ([_, v]) => e.groupId !== (v as SecurityGroup).groupId
+                  )
                 );
                 ctx.memo.db.SecurityGroup = Object.fromEntries(
                   Object.entries(ctx.memo.db.SecurityGroup).filter(
-                    ([_, v]) => e.groupId !== (v as SecurityGroup).groupId,
-                  ),
+                    ([_, v]) => e.groupId !== (v as SecurityGroup).groupId
+                  )
                 );
               }
             }
@@ -532,16 +532,16 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
               ? Object.fromEntries(
                   Object.entries(ctx.memo.cloud.SecurityGroupRule).filter(
                     ([_, v]) =>
-                      !es.map(e => e.securityGroupRuleId).includes((v as SecurityGroupRule).securityGroupRuleId),
-                  ),
+                      !es.map(e => e.securityGroupRuleId).includes((v as SecurityGroupRule).securityGroupRuleId)
+                  )
                 )
               : {};
             ctx.memo.db.SecurityGroupRule = ctx?.memo?.db?.SecurityGroupRule
               ? Object.fromEntries(
                   Object.entries(ctx.memo.db.SecurityGroupRule).filter(
                     ([_, v]) =>
-                      !es.map(e => e.securityGroupRuleId).includes((v as SecurityGroupRule).securityGroupRuleId),
-                  ),
+                      !es.map(e => e.securityGroupRuleId).includes((v as SecurityGroupRule).securityGroupRuleId)
+                  )
                 )
               : {};
           },
@@ -549,5 +549,5 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );
