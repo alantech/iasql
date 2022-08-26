@@ -1,1 +1,1 @@
-export * from './ecs_simplified'
+export * from './ecs_simplified';

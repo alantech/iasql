@@ -1,4 +1,4 @@
-import { ConfigInterface, } from './config';
+import { ConfigInterface } from './config';
 
 const config: ConfigInterface = {
   http: {
@@ -6,7 +6,7 @@ const config: ConfigInterface = {
   },
   modules: {
     latestVersion: '0.0.18',
-    oldestVersion: '0.0.14'
+    oldestVersion: '0.0.14',
   },
   db: {
     host: 'postgresql',
@@ -21,7 +21,7 @@ const config: ConfigInterface = {
     test: false,
   },
   cors: {
-    origin: 'http://localhost:3000'
+    origin: 'http://localhost:3000',
   },
 };
 

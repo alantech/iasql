@@ -1,28 +1,24 @@
-import {
-  ECR,
-  Repository as RepositoryAws,
-  paginateDescribeRepositories,
-} from '@aws-sdk/client-ecr'
+import { ECR, Repository as RepositoryAws, paginateDescribeRepositories } from '@aws-sdk/client-ecr';
 import {
   ECRPUBLIC,
   Repository as PublicRepositoryAws,
   paginateDescribeRepositories as paginateDescribePubRepositories,
-} from '@aws-sdk/client-ecr-public'
+} from '@aws-sdk/client-ecr-public';
 
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
-import logger from '../../../services/logger'
-import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability, } from './entity'
-import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import logger from '../../../services/logger';
+import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability } from './entity';
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 
 class PublicRepositoryMapper extends MapperBase<PublicRepository> {
   module: AwsEcrModule;
   entity = PublicRepository;
   equals = (a: PublicRepository, b: PublicRepository) =>
-    Object.is(a.repositoryName, b.repositoryName)
-    && Object.is(a.repositoryArn, b.repositoryArn)
-    && Object.is(a.registryId, b.registryId)
-    && Object.is(a.repositoryUri, b.repositoryUri)
-    && Object.is(a.createdAt?.getTime(), b.createdAt?.getTime());
+    Object.is(a.repositoryName, b.repositoryName) &&
+    Object.is(a.repositoryArn, b.repositoryArn) &&
+    Object.is(a.registryId, b.registryId) &&
+    Object.is(a.repositoryUri, b.repositoryUri) &&
+    Object.is(a.createdAt?.getTime(), b.createdAt?.getTime());
 
   publicRepositoryMapper(r: PublicRepositoryAws) {
     const out = new PublicRepository();
@@ -37,41 +33,36 @@ class PublicRepositoryMapper extends MapperBase<PublicRepository> {
 
   createECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'createRepository', RepositoryAws | undefined>(
     'createRepository',
-    (input) => input,
-    (res) => res?.repository,
+    input => input,
+    res => res?.repository,
   );
   getECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'describeRepositories', RepositoryAws | undefined>(
     'describeRepositories',
-    (name) => ({ repositoryNames: [name], }),
-    (res) => (res?.repositories ?? [])[0],
+    name => ({ repositoryNames: [name] }),
+    res => (res?.repositories ?? [])[0],
   );
-  getECRPubRepositories = paginateBuilder<ECRPUBLIC>(
-    paginateDescribePubRepositories,
-    'repositories',
-  );
+  getECRPubRepositories = paginateBuilder<ECRPUBLIC>(paginateDescribePubRepositories, 'repositories');
   deleteECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'deleteRepository', undefined>(
     'deleteRepository',
-    (repositoryName) => ({ repositoryName, }),
-    (_res) => undefined,
+    repositoryName => ({ repositoryName }),
+    _res => undefined,
   );
 
   cloud = new Crud2({
     create: async (es: PublicRepository[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         const result = await this.createECRPubRepository(client.ecrPubClient, {
           repositoryName: e.repositoryName,
         });
         // TODO: Handle if it fails (somehow)
-        if (!result?.hasOwnProperty('repositoryArn')) { // Failure
+        if (!result?.hasOwnProperty('repositoryArn')) {
+          // Failure
           throw new Error('what should we do here?');
         }
         // Re-get the inserted record to get all of the relevant records we care about
-        const newObject = await this.getECRPubRepository(
-          client.ecrPubClient,
-          result.repositoryName ?? ''
-        );
+        const newObject = await this.getECRPubRepository(client.ecrPubClient, result.repositoryName ?? '');
         if (!newObject) continue;
         // We map this into the same kind of entity as `obj`
         const newEntity = this.publicRepositoryMapper(newObject);
@@ -83,7 +74,7 @@ class PublicRepositoryMapper extends MapperBase<PublicRepository> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
         const rawEcr = await this.getECRPubRepository(client.ecrPubClient, id);
         if (!rawEcr) return;
@@ -111,7 +102,7 @@ class PublicRepositoryMapper extends MapperBase<PublicRepository> {
       return out;
     },
     delete: async (es: PublicRepository[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         await this.deleteECRPubRepository(client.ecrPubClient, e.repositoryName!);
       }
@@ -128,13 +119,14 @@ class PublicRepositoryMapper extends MapperBase<PublicRepository> {
 class RepositoryMapper extends MapperBase<Repository> {
   module: AwsEcrModule;
   entity = Repository;
-  equals = (a: Repository, b: Repository) => Object.is(a.repositoryName, b.repositoryName)
-    && Object.is(a.repositoryArn, b.repositoryArn)
-    && Object.is(a.registryId, b.registryId)
-    && Object.is(a.repositoryUri, b.repositoryUri)
-    && Object.is(a.createdAt?.getTime(), b.createdAt?.getTime())
-    && Object.is(a.imageTagMutability, b.imageTagMutability)
-    && Object.is(a.scanOnPush, b.scanOnPush);
+  equals = (a: Repository, b: Repository) =>
+    Object.is(a.repositoryName, b.repositoryName) &&
+    Object.is(a.repositoryArn, b.repositoryArn) &&
+    Object.is(a.registryId, b.registryId) &&
+    Object.is(a.repositoryUri, b.repositoryUri) &&
+    Object.is(a.createdAt?.getTime(), b.createdAt?.getTime()) &&
+    Object.is(a.imageTagMutability, b.imageTagMutability) &&
+    Object.is(a.scanOnPush, b.scanOnPush);
 
   repositoryMapper(r: RepositoryAws) {
     const out = new Repository();
@@ -151,48 +143,37 @@ class RepositoryMapper extends MapperBase<Repository> {
 
   createECRRepository = crudBuilderFormat<ECR, 'createRepository', RepositoryAws | undefined>(
     'createRepository',
-    (input) => input,
-    (res) => res?.repository,
+    input => input,
+    res => res?.repository,
   );
   getECRRepository = crudBuilderFormat<ECR, 'describeRepositories', RepositoryAws | undefined>(
     'describeRepositories',
-    (name) => ({ repositoryNames: [name], }),
-    (res) => (res?.repositories ?? [])[0],
+    name => ({ repositoryNames: [name] }),
+    res => (res?.repositories ?? [])[0],
   );
-  getECRRepositories = paginateBuilder<ECR>(
-    paginateDescribeRepositories,
-    'repositories',
-  );
-  updateECRRepositoryImageTagMutability = crudBuilderFormat<
-    ECR,
+  getECRRepositories = paginateBuilder<ECR>(paginateDescribeRepositories, 'repositories');
+  updateECRRepositoryImageTagMutability = crudBuilderFormat<ECR, 'putImageTagMutability', undefined>(
     'putImageTagMutability',
-    undefined
-  >(
-    'putImageTagMutability',
-    (repositoryName, imageTagMutability) => ({ repositoryName, imageTagMutability, }),
-    (_res) => undefined,
+    (repositoryName, imageTagMutability) => ({ repositoryName, imageTagMutability }),
+    _res => undefined,
   );
-  updateECRRepositoryImageScanningConfiguration = crudBuilderFormat<
-    ECR,
-    'putImageScanningConfiguration',
-    undefined
-  >(
+  updateECRRepositoryImageScanningConfiguration = crudBuilderFormat<ECR, 'putImageScanningConfiguration', undefined>(
     'putImageScanningConfiguration',
     (repositoryName, scanOnPush) => ({
       repositoryName,
-      imageScanningConfiguration: { scanOnPush, },
+      imageScanningConfiguration: { scanOnPush },
     }),
-    (_res) => undefined,
+    _res => undefined,
   );
   deleteECRRepository = crudBuilderFormat<ECR, 'deleteRepository', undefined>(
     'deleteRepository',
-    (repositoryName) => ({ repositoryName, }),
-    (_res) => undefined,
+    repositoryName => ({ repositoryName }),
+    _res => undefined,
   );
 
   cloud = new Crud2({
     create: async (es: Repository[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         const result = await this.createECRRepository(client.ecrClient, {
@@ -203,7 +184,8 @@ class RepositoryMapper extends MapperBase<Repository> {
           },
         });
         // TODO: Handle if it fails (somehow)
-        if (!result?.hasOwnProperty('repositoryArn')) { // Failure
+        if (!result?.hasOwnProperty('repositoryArn')) {
+          // Failure
           throw new Error('what should we do here?');
         }
         // Re-get the inserted record to get all of the relevant records we care about
@@ -219,7 +201,7 @@ class RepositoryMapper extends MapperBase<Repository> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
         const rawEcr = await this.getECRRepository(client.ecrClient, id);
         if (!rawEcr) return;
@@ -236,27 +218,19 @@ class RepositoryMapper extends MapperBase<Repository> {
     },
     updateOrReplace: () => 'update',
     update: async (es: Repository[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.Repository?.[e.repositoryName ?? ''];
         let updatedRecord = { ...cloudRecord };
         if (cloudRecord?.imageTagMutability !== e.imageTagMutability) {
-          await this.updateECRRepositoryImageTagMutability(
-            client.ecrClient,
-            e.repositoryName,
-            e.imageTagMutability
-          );
+          await this.updateECRRepositoryImageTagMutability(client.ecrClient, e.repositoryName, e.imageTagMutability);
           const updatedRepository = await this.getECRRepository(client.ecrClient, e.repositoryName);
           if (!updatedRepository) continue;
           updatedRecord = this.repositoryMapper(updatedRepository);
         }
         if (cloudRecord?.scanOnPush !== e.scanOnPush) {
-          await this.updateECRRepositoryImageScanningConfiguration(
-            client.ecrClient,
-            e.repositoryName,
-            e.scanOnPush
-          );
+          await this.updateECRRepositoryImageScanningConfiguration(client.ecrClient, e.repositoryName, e.scanOnPush);
           const updatedRepository = await this.getECRRepository(client.ecrClient, e.repositoryName);
           if (!updatedRepository) continue;
           updatedRecord = this.repositoryMapper(updatedRepository);
@@ -267,7 +241,7 @@ class RepositoryMapper extends MapperBase<Repository> {
       return out;
     },
     delete: async (es: Repository[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         await this.deleteECRRepository(client.ecrClient, e.repositoryName!);
         // Also need to delete the repository policy associated with this repository,
@@ -291,9 +265,11 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
   entityId = (e: RepositoryPolicy) => e.repository?.repositoryName + '' ?? e.id.toString();
   equals = (a: RepositoryPolicy, b: RepositoryPolicy) => {
     try {
-      return Object.is(a.registryId, b.registryId)
-        && Object.is(a.repository.repositoryName, b.repository.repositoryName)
-        && this.policyComparisonEq(JSON.parse(a.policyText!), JSON.parse(b.policyText!));
+      return (
+        Object.is(a.registryId, b.registryId) &&
+        Object.is(a.repository.repositoryName, b.repository.repositoryName) &&
+        this.policyComparisonEq(JSON.parse(a.policyText!), JSON.parse(b.policyText!))
+      );
     } catch (e) {
       return false;
     }
@@ -302,11 +278,12 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
   async repositoryPolicyMapper(rp: any, ctx: Context) {
     const out = new RepositoryPolicy();
     out.registryId = rp?.registryId;
-    out.repository = ctx.memo?.cloud?.Repository?.[rp.repositoryName] ??
-      await this.module.repository.cloud.read(ctx, rp?.repositoryName);
+    out.repository =
+      ctx.memo?.cloud?.Repository?.[rp.repositoryName] ??
+      (await this.module.repository.cloud.read(ctx, rp?.repositoryName));
     out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
     return out;
-  };
+  }
   policyComparisonEq(a: any, b: any): boolean {
     if (a instanceof Array && !(b instanceof Array) && a.length === 1 && this.policyComparisonEq(a[0], b)) return true;
     if (b instanceof Array && !(a instanceof Array) && b.length === 1 && this.policyComparisonEq(b[0], a)) return true;
@@ -320,42 +297,39 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
         if (a[key] !== b[key]) {
           same = false;
           break;
-        };
+        }
       }
     }
     return same;
   }
 
-  setECRRepositoryPolicy = crudBuilder2<ECR, 'setRepositoryPolicy'>(
-    'setRepositoryPolicy',
-    (input) => input,
-  );
-  getECRRepositoryPolicy = crudBuilder2<ECR, 'getRepositoryPolicy'>(
-    'getRepositoryPolicy',
-    (repositoryName) => ({ repositoryName, }),
-  );
-  deleteECRRepositoryPolicy = crudBuilder2<ECR, 'deleteRepositoryPolicy'>(
-    'deleteRepositoryPolicy',
-    (repositoryName) => ({ repositoryName, }),
-  );
+  setECRRepositoryPolicy = crudBuilder2<ECR, 'setRepositoryPolicy'>('setRepositoryPolicy', input => input);
+  getECRRepositoryPolicy = crudBuilder2<ECR, 'getRepositoryPolicy'>('getRepositoryPolicy', repositoryName => ({
+    repositoryName,
+  }));
+  deleteECRRepositoryPolicy = crudBuilder2<ECR, 'deleteRepositoryPolicy'>('deleteRepositoryPolicy', repositoryName => ({
+    repositoryName,
+  }));
 
   db = new Crud2<RepositoryPolicy>({
     create: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.save(RepositoryPolicy, es),
     update: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.save(RepositoryPolicy, es),
     delete: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.remove(RepositoryPolicy, es),
     read: async (ctx: Context, repositoryName?: string) => {
-      const opts = repositoryName ? {
-        where: {
-          repositoryName,
-        }
-      } : {};
+      const opts = repositoryName
+        ? {
+            where: {
+              repositoryName,
+            },
+          }
+        : {};
       return await ctx.orm.find(RepositoryPolicy, opts);
     },
   });
 
   cloud: Crud2<RepositoryPolicy> = new Crud2({
     create: async (es: RepositoryPolicy[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         const result = await this.setECRRepositoryPolicy(client.ecrClient, {
@@ -363,7 +337,8 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
           policyText: e.policyText,
         });
         // TODO: Handle if it fails (somehow)
-        if (!result?.hasOwnProperty('repositoryName')) { // Failure
+        if (!result?.hasOwnProperty('repositoryName')) {
+          // Failure
           throw new Error('what should we do here?');
         }
         // Re-get the inserted record to get all of the relevant records we care about
@@ -381,14 +356,14 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     },
     read: async (ctx: Context, id?: string) => {
       // TODO: Can this function be refactored to be simpler?
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
         const rawRepositoryPolicy = await this.getECRRepositoryPolicy(client.ecrClient, id);
         return await this.repositoryPolicyMapper(rawRepositoryPolicy, ctx);
       } else {
-        const repositories = ctx.memo?.cloud?.Repository ?
-          Object.values(ctx.memo?.cloud?.Repository) :
-          await this.module.repository.cloud.read(ctx);
+        const repositories = ctx.memo?.cloud?.Repository
+          ? Object.values(ctx.memo?.cloud?.Repository)
+          : await this.module.repository.cloud.read(ctx);
         const policies: any = [];
         for (const r of repositories) {
           try {
@@ -431,7 +406,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
       return out;
     },
     delete: async (es: RepositoryPolicy[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         try {
           await this.deleteECRRepositoryPolicy(client.ecrClient, e.repository.repositoryName!);

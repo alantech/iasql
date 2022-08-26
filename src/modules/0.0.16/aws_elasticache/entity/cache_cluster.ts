@@ -8,21 +8,21 @@ import {
   ManyToMany,
   PrimaryColumn,
   PrimaryGeneratedColumn,
-} from "typeorm";
+} from 'typeorm';
 
-import { cloudId } from "../../../../services/cloud-id";
-import { SecurityGroup } from "../../aws_security_group/entity";
+import { cloudId } from '../../../../services/cloud-id';
+import { SecurityGroup } from '../../aws_security_group/entity';
 
 export enum Engine {
-  MEMCACHED = "memcached",
-  REDIS = "redis",
+  MEMCACHED = 'memcached',
+  REDIS = 'redis',
 }
 
 @Entity()
 export class CacheCluster {
   @PrimaryColumn({
     nullable: false,
-    type: "varchar",
+    type: 'varchar',
   })
   @cloudId
   clusterId: string;
@@ -34,7 +34,7 @@ export class CacheCluster {
   nodeType: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: Engine,
     default: Engine.REDIS,
   })

@@ -2,11 +2,11 @@ import {
   CreateFunctionCommandInput,
   GetFunctionResponse,
   UpdateFunctionCodeCommandInput,
-  UpdateFunctionConfigurationCommandInput
-} from '@aws-sdk/client-lambda'
-import isEqual from 'lodash.isequal'
+  UpdateFunctionConfigurationCommandInput,
+} from '@aws-sdk/client-lambda';
+import isEqual from 'lodash.isequal';
 
-import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import {
   addFunctionTags,
   AWS,
@@ -19,27 +19,30 @@ import {
   updateFunctionConfiguration,
   waitUntilFunctionActive,
   waitUntilFunctionUpdated,
-} from './aws'
-import { Architecture, LambdaFunction, PackageType, Runtime } from './entity'
-import { awsIamModule } from '../aws_iam'
-import { throwError, } from '../../../config/config'
+} from './aws';
+import { Architecture, LambdaFunction, PackageType, Runtime } from './entity';
+import { awsIamModule } from '../aws_iam';
+import { throwError } from '../../../config/config';
 
 class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
   module: AwsLambdaModule;
   entity = LambdaFunction;
-  equals = (a: LambdaFunction, b: LambdaFunction) => this.updateableFunctionFieldsEq(a, b) &&
+  equals = (a: LambdaFunction, b: LambdaFunction) =>
+    this.updateableFunctionFieldsEq(a, b) &&
     this.updateableTagsEq(a, b) &&
     this.restorableFunctionFieldsEq(a, b) &&
     this.updateableCodeFieldsEq(a, b);
 
   updateableFunctionFieldsEq(a: LambdaFunction, b: LambdaFunction) {
-    return Object.is(a.role.roleName, b.role.roleName) &&
+    return (
+      Object.is(a.role.roleName, b.role.roleName) &&
       Object.is(a.handler, b.handler) &&
       Object.is(a.memorySize, b.memorySize) &&
       Object.is(a.description, b.description) &&
       isEqual(a.environment, b.environment) &&
-      Object.is(a.runtime, b.runtime);
-  };
+      Object.is(a.runtime, b.runtime)
+    );
+  }
 
   base64ToUint8Array(base64: string) {
     const buf = Buffer.from(base64, 'base64');
@@ -47,9 +50,9 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     return bytes;
   }
 
-  async lambdaFunctionMapper (fn: GetFunctionResponse, ctx: Context) {
+  async lambdaFunctionMapper(fn: GetFunctionResponse, ctx: Context) {
     const out = new LambdaFunction();
-    out.architecture = fn.Configuration?.Architectures?.pop() as Architecture ?? Architecture.x86_64;
+    out.architecture = (fn.Configuration?.Architectures?.pop() as Architecture) ?? Architecture.x86_64;
     out.description = fn.Configuration?.Description;
     out.environment = fn.Configuration?.Environment?.Variables;
     out.handler = fn.Configuration?.Handler;
@@ -61,10 +64,10 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     try {
       const roleName = awsIamModule.role.roleNameFromArn(
         fn.Configuration?.Role ?? throwError('No rolename defined'),
-        ctx
+        ctx,
       );
-      out.role = await awsIamModule.role.db.read(ctx, roleName) ??
-        await awsIamModule.role.cloud.read(ctx, roleName);
+      out.role =
+        (await awsIamModule.role.db.read(ctx, roleName)) ?? (await awsIamModule.role.cloud.read(ctx, roleName));
       if (!out.role) return undefined;
     } catch (e: any) {
       // Error code picked from https://docs.aws.amazon.com/en_en/IAM/latest/APIReference/API_GetRole.html
@@ -82,10 +85,12 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
   }
 
   restorableFunctionFieldsEq(a: LambdaFunction, b: LambdaFunction) {
-    return Object.is(a.arn, b.arn) &&
+    return (
+      Object.is(a.arn, b.arn) &&
       Object.is(a.packageType, b.packageType) &&
       Object.is(a.architecture, b.architecture) &&
-      Object.is(a.version, b.version);
+      Object.is(a.version, b.version)
+    );
   }
 
   updateableCodeFieldsEq(a: LambdaFunction, b: LambdaFunction) {
@@ -94,7 +99,7 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
 
   cloud = new Crud2({
     create: async (es: LambdaFunction[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         // TODO: handle properly once more lambda sources are added (ecr, s3)
@@ -110,14 +115,17 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
           Runtime: e.runtime,
           Handler: e.handler,
           PackageType: e.packageType,
-          Architectures: e.architecture ? [e.architecture]: [],
+          Architectures: e.architecture ? [e.architecture] : [],
           MemorySize: e.memorySize,
-          Environment: e.environment ? {
-            Variables: e.environment,
-          } : undefined,
+          Environment: e.environment
+            ? {
+                Variables: e.environment,
+              }
+            : undefined,
         };
         const newFunction = await createFunction(client.lambdaClient, input);
-        if (!newFunction?.FunctionArn) { // then who?
+        if (!newFunction?.FunctionArn) {
+          // then who?
           throw new Error('should not be possible');
         }
         await waitUntilFunctionActive(client.lambdaClient, newFunction?.FunctionName ?? '');
@@ -139,7 +147,7 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
         const rawFn = await getFunction(client.lambdaClient, id);
         return rawFn ? await this.lambdaFunctionMapper(rawFn, ctx) : undefined;
@@ -154,7 +162,7 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
       }
     },
     update: async (es: LambdaFunction[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.LambdaFunction?.[e.name ?? ''];
@@ -167,7 +175,7 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
             Description: e.description,
             MemorySize: e.memorySize,
             Environment: {
-              Variables: e.environment
+              Variables: e.environment,
             },
             Runtime: e.runtime,
           };
@@ -205,7 +213,7 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
       return out;
     },
     delete: async (es: LambdaFunction[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         await deleteFunction(client.lambdaClient, e.name);
       }

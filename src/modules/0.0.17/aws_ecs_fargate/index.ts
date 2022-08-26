@@ -1,9 +1,5 @@
-import {
-  ClusterMapper,
-  ServiceMapper,
-  TaskDefinitionMapper,
-} from './mappers'
-import { ModuleBase, } from '../../interfaces'
+import { ClusterMapper, ServiceMapper, TaskDefinitionMapper } from './mappers';
+import { ModuleBase } from '../../interfaces';
 
 export class AwsEcsFargateModule extends ModuleBase {
   cluster: ClusterMapper;

@@ -5,8 +5,8 @@ import {
   NatGatewayMapper,
   SubnetMapper,
   VpcMapper,
-} from './mappers'
-import { ModuleBase, } from '../../interfaces'
+} from './mappers';
+import { ModuleBase } from '../../interfaces';
 
 export class AwsVpcModule extends ModuleBase {
   subnet: SubnetMapper;

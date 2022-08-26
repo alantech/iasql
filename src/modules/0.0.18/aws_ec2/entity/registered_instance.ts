@@ -1,9 +1,4 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
 import { Instance } from '.';
 import { TargetGroup } from '../../aws_elb/entity';
@@ -16,7 +11,7 @@ export class RegisteredInstance {
     eager: true,
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'instance', })
+  @JoinColumn({ name: 'instance' })
   instance: Instance;
 
   @ManyToOne(() => TargetGroup, targetGroup => targetGroup.targetGroupName, {
@@ -24,7 +19,7 @@ export class RegisteredInstance {
     eager: true,
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'target_group', })
+  @JoinColumn({ name: 'target_group' })
   targetGroup: TargetGroup;
 
   @Column({

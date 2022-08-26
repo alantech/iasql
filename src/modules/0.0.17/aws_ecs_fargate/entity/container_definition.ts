@@ -1,25 +1,22 @@
-import {
-  Check,
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm'
-import { TaskDefinition } from '.'
+import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { TaskDefinition } from '.';
 
-import { LogGroup } from '../../aws_cloudwatch/entity'
-import { PublicRepository, Repository } from '../../aws_ecr/entity'
+import { LogGroup } from '../../aws_cloudwatch/entity';
+import { PublicRepository, Repository } from '../../aws_ecr/entity';
 
 export enum TransportProtocol {
-  TCP = "tcp",
-  UDP = "udp"
+  TCP = 'tcp',
+  UDP = 'udp',
 }
 
 // `image` > `repository` > `publicRepository`
 // `digest` > `tag` > null
-@Check(`("image" is null and ("repository_name" is not null or "public_repository_name" is not null)) or "image" is not null`)
-@Check(`("tag" is null and "digest" is null) or ("tag" is not null and "digest" is null) or ("tag" is null and "digest" is not null)`)
+@Check(
+  `("image" is null and ("repository_name" is not null or "public_repository_name" is not null)) or "image" is not null`,
+)
+@Check(
+  `("tag" is null and "digest" is null) or ("tag" is not null and "digest" is null) or ("tag" is null and "digest" is not null)`,
+)
 @Entity()
 export class ContainerDefinition {
   @PrimaryGeneratedColumn()
@@ -39,13 +36,13 @@ export class ContainerDefinition {
   taskDefinition: TaskDefinition;
 
   // TODO: add constraint  Up to 255 letters (uppercase and lowercase), numbers, hyphens, underscores, colons, periods, forward slashes, and number signs are allowed.
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   image?: string;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   tag?: string;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   digest?: string;
 
   @ManyToOne(() => Repository, {
@@ -53,7 +50,7 @@ export class ContainerDefinition {
     eager: true,
   })
   @JoinColumn({
-    name: 'repository_name'
+    name: 'repository_name',
   })
   repository?: Repository;
 
@@ -62,7 +59,7 @@ export class ContainerDefinition {
     eager: true,
   })
   @JoinColumn({
-    name: 'public_repository_name'
+    name: 'public_repository_name',
   })
   publicRepository?: PublicRepository;
 

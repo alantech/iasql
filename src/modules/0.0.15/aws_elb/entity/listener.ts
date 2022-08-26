@@ -8,18 +8,18 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
-} from 'typeorm'
+} from 'typeorm';
 
-import { LoadBalancer, } from './load_balancer'
-import { TargetGroup, ProtocolEnum, } from './target_group'
-import { cloudId, } from '../../../../services/cloud-id'
+import { LoadBalancer } from './load_balancer';
+import { TargetGroup, ProtocolEnum } from './target_group';
+import { cloudId } from '../../../../services/cloud-id';
 import { Certificate } from '../../aws_acm_list/entity';
 
 export enum ActionTypeEnum {
   // AUTHENTICATE_COGNITO = "authenticate-cognito",
   // AUTHENTICATE_OIDC = "authenticate-oidc",
   // FIXED_RESPONSE = "fixed-response",
-  FORWARD = "forward",
+  FORWARD = 'forward',
   // REDIRECT = "redirect"
 }
 
@@ -29,7 +29,7 @@ export class Listener {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   @cloudId
   listenerArn?: string;
 
@@ -42,7 +42,7 @@ export class Listener {
   })
   loadBalancer: LoadBalancer;
 
-  @Column({ type: 'integer', })
+  @Column({ type: 'integer' })
   port: number;
 
   @Column({
@@ -59,8 +59,8 @@ export class Listener {
   actionType: ActionTypeEnum;
 
   @ManyToOne(() => TargetGroup, {
-    nullable:false,
-    eager: true
+    nullable: false,
+    eager: true,
   })
   @JoinColumn({
     name: 'target_group_name',

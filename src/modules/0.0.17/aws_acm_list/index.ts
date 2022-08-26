@@ -1,23 +1,15 @@
-import {
-  ACM,
-  CertificateDetail,
-  paginateListCertificates,
-} from '@aws-sdk/client-acm'
+import { ACM, CertificateDetail, paginateListCertificates } from '@aws-sdk/client-acm';
 
-import { AWS, crudBuilderFormat, paginateBuilder, mapLin, } from '../../../services/aws_macros'
-import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
-import {
-  Certificate,
-  certificateRenewalEligibilityEnum,
-  certificateStatusEnum,
-  certificateTypeEnum,
-} from './entity'
+import { AWS, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { Certificate, certificateRenewalEligibilityEnum, certificateStatusEnum, certificateTypeEnum } from './entity';
 
 class CertificateMapper extends MapperBase<Certificate> {
   module: AwsAcmListModule;
   entity = Certificate;
   entityId = (e: Certificate) => e.arn ?? e.id.toString();
-  equals = (a: Certificate, b: Certificate) => Object.is(a.certificateId, b.certificateId) &&
+  equals = (a: Certificate, b: Certificate) =>
+    Object.is(a.certificateId, b.certificateId) &&
     Object.is(a.certificateType, b.certificateType) &&
     Object.is(a.domainName, b.domainName) &&
     Object.is(a.inUse, b.inUse) &&
@@ -26,15 +18,12 @@ class CertificateMapper extends MapperBase<Certificate> {
 
   getCertificate = crudBuilderFormat<ACM, 'describeCertificate', CertificateDetail | undefined>(
     'describeCertificate',
-    (CertificateArn) => ({ CertificateArn, }),
-    (res) => res?.Certificate
+    CertificateArn => ({ CertificateArn }),
+    res => res?.Certificate,
   );
   getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
-  getCertificates (client: ACM) {
-    return mapLin(
-      this.getCertificatesSummary(client),
-      (cert: any) => this.getCertificate(client, cert.CertificateArn)
-    );
+  getCertificates(client: ACM) {
+    return mapLin(this.getCertificatesSummary(client), (cert: any) => this.getCertificate(client, cert.CertificateArn));
   }
   // TODO: How to macro-ify this function, or should the waiting bit be another macro function and
   // we compose two macro functions together?
@@ -42,11 +31,10 @@ class CertificateMapper extends MapperBase<Certificate> {
     await client.deleteCertificate({ CertificateArn: arn });
     let certificates: string[] = [];
     let i = 0;
-     // Wait for ~1min until imported cert is available
+    // Wait for ~1min until imported cert is available
     do {
       await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
-      certificates = (await this.getCertificatesSummary(client))
-        ?.map(c => c.CertificateArn ?? '') ?? [];
+      certificates = (await this.getCertificatesSummary(client))?.map(c => c.CertificateArn ?? '') ?? [];
       i++;
     } while (!certificates.includes(arn) && i < 30);
   }
@@ -78,17 +66,19 @@ class CertificateMapper extends MapperBase<Certificate> {
     if (this.isRenewalEligibility(e.RenewalEligibility)) out.renewalEligibility = e.RenewalEligibility;
     if (this.isStatusType(e.Status)) out.status = e.Status;
     return out;
-  };
+  }
   db = new Crud2<Certificate>({
     create: (es: Certificate[], ctx: Context) => ctx.orm.save(Certificate, es),
     update: (es: Certificate[], ctx: Context) => ctx.orm.save(Certificate, es),
     delete: (es: Certificate[], ctx: Context) => ctx.orm.remove(Certificate, es),
     read: async (ctx: Context, arn?: string) => {
-      const opts = arn ? {
-        where: {
-          arn,
-        }
-      } : {};
+      const opts = arn
+        ? {
+            where: {
+              arn,
+            },
+          }
+        : {};
       return await ctx.orm.find(Certificate, opts);
     },
   });
@@ -98,7 +88,7 @@ class CertificateMapper extends MapperBase<Certificate> {
       await this.module.certificate.db.delete(es, ctx);
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
         const rawCert = await this.getCertificate(client.acmClient, id);
         if (!rawCert) return;
@@ -127,7 +117,7 @@ class CertificateMapper extends MapperBase<Certificate> {
       return out;
     },
     delete: async (es: Certificate[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         await this.deleteCertificate(client.acmClient, e.arn ?? '');
       }

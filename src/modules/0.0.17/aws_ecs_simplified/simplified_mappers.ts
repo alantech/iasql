@@ -4,9 +4,10 @@ import {
   AssignPublicIp,
   Cluster,
   ContainerDefinition,
-  CpuMemCombination, Service,
+  CpuMemCombination,
+  Service,
   TaskDefinition,
-  TransportProtocol
+  TransportProtocol,
 } from '../aws_ecs_fargate/entity';
 import {
   ActionTypeEnum,
@@ -17,7 +18,7 @@ import {
   LoadBalancerTypeEnum,
   ProtocolEnum,
   TargetGroup,
-  TargetTypeEnum
+  TargetTypeEnum,
 } from '../aws_elb/entity';
 import { Role } from '../aws_iam/entity';
 import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity';
@@ -84,17 +85,17 @@ const simplifiedMappers = {
     const out = new Role();
     out.roleName = generateResourceName(prefix, appName, 'Role');
     out.assumeRolePolicyDocument = {
-      "Version": "2012-10-17",
-      "Statement": [
+      Version: '2012-10-17',
+      Statement: [
         {
-          "Sid": "",
-          "Effect": "Allow",
-          "Principal": {
-            "Service": "ecs-tasks.amazonaws.com"
+          Sid: '',
+          Effect: 'Allow',
+          Principal: {
+            Service: 'ecs-tasks.amazonaws.com',
           },
-          "Action": "sts:AssumeRole"
-        }
-      ]
+          Action: 'sts:AssumeRole',
+        },
+      ],
     };
     out.attachedPoliciesArns = ['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'];
     return out;
@@ -109,10 +110,19 @@ const simplifiedMappers = {
     out.family = generateResourceName(prefix, appName, 'TaskDefinition');
     out.taskRole = rl;
     out.executionRole = rl;
-    out.cpuMemory = cpuMem as CpuMemCombination ?? null;
+    out.cpuMemory = (cpuMem as CpuMemCombination) ?? null;
     return out;
   },
-  containerDefinition: (prefix: string, appName: string, appPort: number, cpuMem: string, td: TaskDefinition, lg: LogGroup, imageTag?: string, imageDigest?: string) => {
+  containerDefinition: (
+    prefix: string,
+    appName: string,
+    appPort: number,
+    cpuMem: string,
+    td: TaskDefinition,
+    lg: LogGroup,
+    imageTag?: string,
+    imageDigest?: string,
+  ) => {
     const out = new ContainerDefinition();
     out.name = generateResourceName(prefix, appName, 'ContainerDefinition');
     out.essential = true;
@@ -126,7 +136,16 @@ const simplifiedMappers = {
     out.logGroup = lg;
     return out;
   },
-  service: (prefix: string, appName: string, desiredCount: number, assignPublicIp: boolean, cl: Cluster, td: TaskDefinition, tg: TargetGroup, sg: SecurityGroup) => {
+  service: (
+    prefix: string,
+    appName: string,
+    desiredCount: number,
+    assignPublicIp: boolean,
+    cl: Cluster,
+    td: TaskDefinition,
+    tg: TargetGroup,
+    sg: SecurityGroup,
+  ) => {
     const out = new Service();
     out.name = generateResourceName(prefix, appName, 'Service');
     out.desiredCount = desiredCount;

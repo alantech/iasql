@@ -1,14 +1,11 @@
-import {
-  Check,
-  Column,
-  Entity,
-} from 'typeorm'
+import { Check, Column, Entity } from 'typeorm';
 import { CpuMemCombination } from '../../aws_ecs_fargate/entity';
 
-@Check(`("image_tag" is null and "image_digest" is null) or ("image_tag" is not null and "image_digest" is null) or ("image_tag" is null and "image_digest" is not null)`)
+@Check(
+  `("image_tag" is null and "image_digest" is null) or ("image_tag" is not null and "image_digest" is null) or ("image_tag" is null and "image_digest" is not null)`,
+)
 @Entity()
 export class EcsSimplified {
-
   @Column({
     primary: true,
     unique: true,
@@ -23,7 +20,7 @@ export class EcsSimplified {
   })
   desiredCount: number;
 
-  @Column({ type: 'int', })
+  @Column({ type: 'int' })
   appPort: number;
 
   @Column({
@@ -33,18 +30,18 @@ export class EcsSimplified {
   })
   cpuMem: CpuMemCombination;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   repositoryUri?: string;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   imageTag?: string;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   imageDigest?: string;
 
-  @Column({ default: false, })
+  @Column({ default: false })
   publicIp?: boolean;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   loadBalancerDns?: string;
 }

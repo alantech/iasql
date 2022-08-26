@@ -1,64 +1,47 @@
-import {
-  DescribeServicesCommandInput,
-  ECS,
-  Service as AwsService,
-  paginateListServices,
-} from '@aws-sdk/client-ecs'
-import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
-import {
-  EC2,
-  DescribeNetworkInterfacesCommandInput,
-} from '@aws-sdk/client-ec2'
+import { DescribeServicesCommandInput, ECS, Service as AwsService, paginateListServices } from '@aws-sdk/client-ecs';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
+import { EC2, DescribeNetworkInterfacesCommandInput } from '@aws-sdk/client-ec2';
 
-import logger from '../../../../services/logger'
-import { Subnet } from '../../aws_vpc/entity'
-import {
-  AWS,
-  crudBuilderFormat,
-} from '../../../../services/aws_macros'
-import {
-  Service,
-} from '../entity'
-import { Context, Crud2, MapperBase, } from '../../../interfaces'
-import {
-  awsElbModule,
-  awsSecurityGroupModule,
-  awsVpcModule,
-} from '../..'
-import { AwsEcsFargateModule, } from '..'
+import logger from '../../../../services/logger';
+import { Subnet } from '../../aws_vpc/entity';
+import { AWS, crudBuilderFormat } from '../../../../services/aws_macros';
+import { Service } from '../entity';
+import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { awsElbModule, awsSecurityGroupModule, awsVpcModule } from '../..';
+import { AwsEcsFargateModule } from '..';
 
 export class ServiceMapper extends MapperBase<Service> {
   module: AwsEcsFargateModule;
   entity = Service;
-  equals = (a: Service, b: Service) => Object.is(a.desiredCount, b.desiredCount)
-    && Object.is(a.task?.taskDefinitionArn, b.task?.taskDefinitionArn)
-    && Object.is(a.cluster?.clusterName, b.cluster?.clusterName)
-    && Object.is(a.arn, b.arn)
-    && Object.is(a.targetGroup?.targetGroupArn, b.targetGroup?.targetGroupArn)
-    && Object.is(a.name, b.name)
-    && Object.is(a.status, b.status)
-    && Object.is(a?.assignPublicIp, b?.assignPublicIp)
-    && Object.is(a?.securityGroups?.length, b?.securityGroups?.length)
-    && (a?.securityGroups?.every(asg => !!b?.securityGroups
-      ?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
-    && Object.is(a?.subnets?.length, b?.subnets?.length)
-    && (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
-    && Object.is(a.forceNewDeployment, b.forceNewDeployment);
+  equals = (a: Service, b: Service) =>
+    Object.is(a.desiredCount, b.desiredCount) &&
+    Object.is(a.task?.taskDefinitionArn, b.task?.taskDefinitionArn) &&
+    Object.is(a.cluster?.clusterName, b.cluster?.clusterName) &&
+    Object.is(a.arn, b.arn) &&
+    Object.is(a.targetGroup?.targetGroupArn, b.targetGroup?.targetGroupArn) &&
+    Object.is(a.name, b.name) &&
+    Object.is(a.status, b.status) &&
+    Object.is(a?.assignPublicIp, b?.assignPublicIp) &&
+    Object.is(a?.securityGroups?.length, b?.securityGroups?.length) &&
+    (a?.securityGroups?.every(asg => !!b?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false) &&
+    Object.is(a?.subnets?.length, b?.subnets?.length) &&
+    (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false) &&
+    Object.is(a.forceNewDeployment, b.forceNewDeployment);
 
   updateService = crudBuilderFormat<ECS, 'updateService', AwsService | undefined>(
     'updateService',
-    (input) => input,
-    (res) => res?.service,
+    input => input,
+    res => res?.service,
   );
   createService = crudBuilderFormat<ECS, 'createService', AwsService | undefined>(
     'createService',
-    (input) => input,
-    (res) => res?.service,
+    input => input,
+    res => res?.service,
   );
   getService = crudBuilderFormat<ECS, 'describeServices', AwsService | undefined>(
     'describeServices',
-    (id, cluster) => ({ services: [id], cluster, }),
-    (res) => res?.services?.[0],
+    (id, cluster) => ({ services: [id], cluster }),
+    res => res?.services?.[0],
   );
 
   // TODO: This a whole lot of tangled business logic baked into these functions. It may make sense
@@ -67,12 +50,15 @@ export class ServiceMapper extends MapperBase<Service> {
     const services = [];
     for (const id of clusterIds) {
       const serviceArns: string[] = [];
-      const paginator = paginateListServices({
-        client,
-      }, {
-        cluster: id,
-        maxResults: 100,
-      });
+      const paginator = paginateListServices(
+        {
+          client,
+        },
+        {
+          cluster: id,
+          maxResults: 100,
+        },
+      );
       for await (const page of paginator) {
         serviceArns.push(...(page.serviceArns ?? []));
       }
@@ -83,14 +69,14 @@ export class ServiceMapper extends MapperBase<Service> {
             const batch = serviceArns.slice(i, i + batchSize);
             const result = await client.describeServices({
               cluster: id,
-              services: batch
+              services: batch,
             });
             services.push(...(result.services ?? []));
           }
         } else {
           const result = await client.describeServices({
             cluster: id,
-            services: serviceArns
+            services: serviceArns,
           });
           services.push(...(result.services ?? []));
         }
@@ -98,12 +84,7 @@ export class ServiceMapper extends MapperBase<Service> {
     }
     return services;
   }
-  async deleteService(
-    client: { ecsClient: ECS, ec2client: EC2, },
-    name: string,
-    cluster: string,
-    tasksArns: string[]
-  ) {
+  async deleteService(client: { ecsClient: ECS; ec2client: EC2 }, name: string, cluster: string, tasksArns: string[]) {
     await client.ecsClient.deleteService({
       service: name,
       cluster,
@@ -132,16 +113,16 @@ export class ServiceMapper extends MapperBase<Service> {
       },
     );
     try {
-      const tasks = await client.ecsClient.describeTasks({tasks: tasksArns, cluster});
-      const taskAttachmentIds = tasks.tasks?.map(t => t.attachments?.map(a => a.id)).flat()
+      const tasks = await client.ecsClient.describeTasks({ tasks: tasksArns, cluster });
+      const taskAttachmentIds = tasks.tasks?.map(t => t.attachments?.map(a => a.id)).flat();
       if (taskAttachmentIds?.length) {
         const describeEniCommand: DescribeNetworkInterfacesCommandInput = {
           Filters: [
             {
               Name: 'description',
-              Values: taskAttachmentIds?.map(id => `*${id}`)
-            }
-          ]
+              Values: taskAttachmentIds?.map(id => `*${id}`),
+            },
+          ],
         };
         await createWaiter<EC2, DescribeNetworkInterfacesCommandInput>(
           {
@@ -170,7 +151,7 @@ export class ServiceMapper extends MapperBase<Service> {
     } catch (_) {
       // We should not throw here.
       // This is an extra validation to ensure that the service is fully deleted
-      logger.info('Error getting network interfaces for tasks')
+      logger.info('Error getting network interfaces for tasks');
     }
   }
   async deleteServiceOnly(client: ECS, name: string, cluster: string) {
@@ -207,21 +188,22 @@ export class ServiceMapper extends MapperBase<Service> {
     const out = new Service();
     out.arn = s.serviceArn;
     if (s.clusterArn) {
-      out.cluster = await this.module.cluster.db.read(ctx, s.clusterArn) ??
-        await this.module.cluster.cloud.read(ctx, s.clusterArn);
+      out.cluster =
+        (await this.module.cluster.db.read(ctx, s.clusterArn)) ??
+        (await this.module.cluster.cloud.read(ctx, s.clusterArn));
     }
     out.desiredCount = s.desiredCount;
-    const taskDefinition = await this.module.taskDefinition.db.read(ctx, s.taskDefinition) ??
-    await this.module.taskDefinition.cloud.read(ctx, s.taskDefinition);
+    const taskDefinition =
+      (await this.module.taskDefinition.db.read(ctx, s.taskDefinition)) ??
+      (await this.module.taskDefinition.cloud.read(ctx, s.taskDefinition));
     if (!taskDefinition) throw new Error('Task definitions need to be loaded first');
     out.task = taskDefinition;
     const serviceLoadBalancer = s.loadBalancers.pop();
     if (serviceLoadBalancer) {
       try {
-        out.targetGroup = await awsElbModule.targetGroup.db.read(
-          ctx,
-          serviceLoadBalancer.targetGroupArn
-        ) ?? await awsElbModule.targetGroup.cloud.read(ctx, serviceLoadBalancer.targetGroupArn);
+        out.targetGroup =
+          (await awsElbModule.targetGroup.db.read(ctx, serviceLoadBalancer.targetGroupArn)) ??
+          (await awsElbModule.targetGroup.cloud.read(ctx, serviceLoadBalancer.targetGroupArn));
       } catch (_) {
         // Ignore if misconfigured
         if (!out.targetGroup) return undefined;
@@ -234,20 +216,20 @@ export class ServiceMapper extends MapperBase<Service> {
       const securityGroups = [];
       const cloudSecurityGroups = networkConf.securityGroups ?? [];
       for (const sg of cloudSecurityGroups) {
-        securityGroups.push(await awsSecurityGroupModule.securityGroup.db.read(ctx, sg) ??
-          await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg));
+        securityGroups.push(
+          (await awsSecurityGroupModule.securityGroup.db.read(ctx, sg)) ??
+            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg)),
+        );
       }
-      if (
-        securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length
-      ) throw new Error('Security groups need to be loaded first');
+      if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length)
+        throw new Error('Security groups need to be loaded first');
       out.securityGroups = securityGroups;
       for (const sn of networkConf.subnets ?? []) {
         // Even though we already have the subnet ids, we look for them to avoid having
         // misconfigured resources
         let subnet: Subnet;
         try {
-          subnet = await awsVpcModule.subnet.db.read(ctx, sn) ??
-            await awsVpcModule.subnet.cloud.read(ctx, sn);
+          subnet = (await awsVpcModule.subnet.db.read(ctx, sn)) ?? (await awsVpcModule.subnet.cloud.read(ctx, sn));
           if (!subnet) return undefined;
         } catch (e: any) {
           if (e.Code === 'InvalidSubnetID.NotFound') return undefined;
@@ -262,11 +244,11 @@ export class ServiceMapper extends MapperBase<Service> {
 
   cloud: Crud2<Service> = new Crud2({
     create: async (es: Service[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const res = [];
       for (const e of es) {
         if (!e.task?.taskDefinitionArn) {
-          throw new Error('task definition need to be created first')
+          throw new Error('task definition need to be created first');
         }
         const input: any = {
           serviceName: e.name,
@@ -280,18 +262,20 @@ export class ServiceMapper extends MapperBase<Service> {
               subnets: e.subnets?.length ? e.subnets : [],
               securityGroups: e.securityGroups.map(sg => sg.groupId!),
               assignPublicIp: e.assignPublicIp,
-            }
+            },
           },
         };
         // Add load balancer to the first essential container. Theres always one essential
         // container definition.
         const essentialContainer = e.task.containerDefinitions.find(cd => cd.essential);
         if (e.targetGroup && essentialContainer?.containerPort) {
-          input.loadBalancers = [{
-            targetGroupArn: e.targetGroup?.targetGroupArn,
-            containerName: essentialContainer?.name,
-            containerPort: essentialContainer?.containerPort,
-          }];
+          input.loadBalancers = [
+            {
+              targetGroupArn: e.targetGroup?.targetGroupArn,
+              containerName: essentialContainer?.name,
+              containerPort: essentialContainer?.containerPort,
+            },
+          ];
         }
         const result = await this.createService(client.ecsClient, input);
         // TODO: Handle if it fails (somehow)
@@ -300,10 +284,7 @@ export class ServiceMapper extends MapperBase<Service> {
           throw new Error('what should we do here?');
         }
         // Re-get the inserted record to get all of the relevant records we care about
-        const newObject = await this.getService(
-          client.ecsClient,
-          result.serviceName!, result.clusterArn!
-        );
+        const newObject = await this.getService(client.ecsClient, result.serviceName!, result.clusterArn!);
         // We map this into the same kind of entity as `obj`
         const newEntity = await this.serviceMapper(newObject, ctx);
         if (!newEntity) continue;
@@ -314,20 +295,20 @@ export class ServiceMapper extends MapperBase<Service> {
       return res;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
-        const services = ctx.memo?.cloud?.Service ?
-          Object.values(ctx.memo?.cloud?.Service) :
-          await this.module.service.cloud.read(ctx);
+        const services = ctx.memo?.cloud?.Service
+          ? Object.values(ctx.memo?.cloud?.Service)
+          : await this.module.service.cloud.read(ctx);
         const service = services?.find((s: any) => s?.arn === id);
         if (!service) return;
         const rawService = await this.getService(client.ecsClient, id, service.cluster.clusterArn);
         if (!rawService) return;
         return await this.serviceMapper(rawService, ctx);
       } else {
-        const clusters = ctx.memo?.cloud?.Cluster ?
-          Object.values(ctx.memo?.cloud?.Cluster) :
-          await this.module.cluster.cloud.read(ctx);
+        const clusters = ctx.memo?.cloud?.Cluster
+          ? Object.values(ctx.memo?.cloud?.Cluster)
+          : await this.module.cluster.cloud.read(ctx);
         const result = await this.getServices(client.ecsClient, clusters?.map((c: any) => c.clusterArn) ?? []);
         // Make sure we just handle FARGATE services
         const fargateResult = result.filter(s => s.launchType === 'FARGATE');
@@ -340,30 +321,40 @@ export class ServiceMapper extends MapperBase<Service> {
       }
     },
     updateOrReplace: (prev: Service, next: Service) => {
-      if (!(Object.is(prev.name, next.name)
-        && Object.is(prev.cluster?.clusterArn, next.cluster?.clusterArn)
-        && Object.is(prev?.assignPublicIp, next?.assignPublicIp)
-        && Object.is(prev?.securityGroups?.length, next?.securityGroups?.length)
-        && (prev?.securityGroups?.every(asg => !!next?.securityGroups
-          ?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false)
-        && Object.is(prev?.subnets?.length, next?.subnets?.length)
-        && (prev?.subnets?.every(asn => !!next?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)
-        && Object.is(prev.targetGroup?.targetGroupArn, next.targetGroup?.targetGroupArn))) {
+      if (
+        !(
+          Object.is(prev.name, next.name) &&
+          Object.is(prev.cluster?.clusterArn, next.cluster?.clusterArn) &&
+          Object.is(prev?.assignPublicIp, next?.assignPublicIp) &&
+          Object.is(prev?.securityGroups?.length, next?.securityGroups?.length) &&
+          (prev?.securityGroups?.every(
+            asg => !!next?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId)),
+          ) ??
+            false) &&
+          Object.is(prev?.subnets?.length, next?.subnets?.length) &&
+          (prev?.subnets?.every(asn => !!next?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false) &&
+          Object.is(prev.targetGroup?.targetGroupArn, next.targetGroup?.targetGroupArn)
+        )
+      ) {
         return 'replace';
       }
       return 'update';
     },
     update: async (es: Service[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const res = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.Service?.[e.arn ?? ''];
         const isUpdate = this.module.service.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           // Desired count or task definition
-          if (!(Object.is(e.desiredCount, cloudRecord.desiredCount) &&
-            Object.is(e.task?.taskDefinitionArn, cloudRecord.task?.taskDefinitionArn) &&
-            Object.is(e.forceNewDeployment, cloudRecord.forceNewDeployment))) {
+          if (
+            !(
+              Object.is(e.desiredCount, cloudRecord.desiredCount) &&
+              Object.is(e.task?.taskDefinitionArn, cloudRecord.task?.taskDefinitionArn) &&
+              Object.is(e.forceNewDeployment, cloudRecord.forceNewDeployment)
+            )
+          ) {
             const updatedService = await this.updateService(client.ecsClient, {
               service: e.name,
               cluster: e.cluster?.clusterName,
@@ -392,7 +383,7 @@ export class ServiceMapper extends MapperBase<Service> {
       return res;
     },
     delete: async (es: Service[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const t0 = Date.now();
       for (const e of es) {
         const t1 = Date.now();

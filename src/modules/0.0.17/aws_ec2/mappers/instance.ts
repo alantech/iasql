@@ -5,67 +5,54 @@ import {
   paginateDescribeInstances,
   Volume as AWSVolume,
   DescribeVolumesCommandInput,
-} from '@aws-sdk/client-ec2'
+} from '@aws-sdk/client-ec2';
 import { SSM } from '@aws-sdk/client-ssm';
-import {
-  Instance as AWSInstance,
-  InstanceLifecycle,
-  Tag as AWSTag,
-} from '@aws-sdk/client-ec2'
+import { Instance as AWSInstance, InstanceLifecycle, Tag as AWSTag } from '@aws-sdk/client-ec2';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
-import {
-  AWS,
-  crudBuilder2,
-  crudBuilderFormat,
-  paginateBuilder,
-} from '../../../../services/aws_macros'
-import { GeneralPurposeVolume, Instance, State, VolumeState, } from '../entity'
-import { Context, Crud2, MapperBase, } from '../../../interfaces'
-import {
-  awsIamModule,
-  awsSecurityGroupModule,
-  awsVpcModule,
-} from '../..'
-import { updateTags, eqTags, } from './tags'
-import { AwsEc2Module, } from '..'
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
+import { GeneralPurposeVolume, Instance, State, VolumeState } from '../entity';
+import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { awsIamModule, awsSecurityGroupModule, awsVpcModule } from '../..';
+import { updateTags, eqTags } from './tags';
+import { AwsEc2Module } from '..';
 
 export class InstanceMapper extends MapperBase<Instance> {
   module: AwsEc2Module;
   entity = Instance;
-  equals = (a: Instance, b: Instance) => Object.is(a.state, b.state) &&
-    this.instanceEqReplaceableFields(a, b) &&
-    eqTags(a.tags, b.tags);
+  equals = (a: Instance, b: Instance) =>
+    Object.is(a.state, b.state) && this.instanceEqReplaceableFields(a, b) && eqTags(a.tags, b.tags);
 
   instanceEqReplaceableFields(a: Instance, b: Instance) {
-    return Object.is(a.instanceId, b.instanceId) &&
+    return (
+      Object.is(a.instanceId, b.instanceId) &&
       Object.is(a.ami, b.ami) &&
       Object.is(a.instanceType, b.instanceType) &&
       Object.is(a.userData, b.userData) &&
       Object.is(a.keyPairName, b.keyPairName) &&
       Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
-      a.securityGroups?.every(as => !!b.securityGroups
-        ?.find(bs => Object.is(as.groupId, bs.groupId))) &&
+      a.securityGroups?.every(as => !!b.securityGroups?.find(bs => Object.is(as.groupId, bs.groupId))) &&
       Object.is(a.role?.arn, b.role?.arn) &&
       Object.is(a.subnet?.subnetId, b.subnet?.subnetId) &&
-      Object.is(a.hibernationEnabled, b.hibernationEnabled);
+      Object.is(a.hibernationEnabled, b.hibernationEnabled)
+    );
   }
 
   async instanceMapper(instance: AWSInstance, ctx: Context) {
-    const client = await ctx.getAwsClient() as AWS;
+    const client = (await ctx.getAwsClient()) as AWS;
     const out = new Instance();
     if (!instance.InstanceId) return undefined;
     out.instanceId = instance.InstanceId;
     const tags: { [key: string]: string } = {};
-    (instance.Tags || []).filter(t => !!t.Key && !!t.Value).forEach(t => {
-      tags[t.Key as string] = t.Value as string;
-    });
+    (instance.Tags || [])
+      .filter(t => !!t.Key && !!t.Value)
+      .forEach(t => {
+        tags[t.Key as string] = t.Value as string;
+      });
     out.tags = tags;
     const userDataBase64 = await this.getInstanceUserData(client.ec2client, out.instanceId);
-    out.userData = userDataBase64 ?
-      Buffer.from(userDataBase64, 'base64').toString('ascii') :
-      undefined;
-    if (instance.State?.Name === State.STOPPED) out.state = State.STOPPED
+    out.userData = userDataBase64 ? Buffer.from(userDataBase64, 'base64').toString('ascii') : undefined;
+    if (instance.State?.Name === State.STOPPED) out.state = State.STOPPED;
     // map interim states to running
     else out.state = State.RUNNING;
     out.ami = instance.ImageId ?? '';
@@ -80,50 +67,48 @@ export class InstanceMapper extends MapperBase<Instance> {
     if (instance.IamInstanceProfile?.Arn) {
       const roleName = awsIamModule.role.roleNameFromArn(instance.IamInstanceProfile.Arn, ctx);
       try {
-        const role = await awsIamModule.role.db.read(ctx, roleName) ??
-          await awsIamModule.role.cloud.read(ctx, roleName);
+        const role =
+          (await awsIamModule.role.db.read(ctx, roleName)) ?? (await awsIamModule.role.cloud.read(ctx, roleName));
         if (role) {
           out.role = role;
         }
-      } catch (_) { /** Do nothing */ }
+      } catch (_) {
+        /** Do nothing */
+      }
     }
-    out.subnet = await awsVpcModule.subnet.db.read(ctx, instance.SubnetId) ??
-      await awsVpcModule.subnet.cloud.read(ctx, instance.SubnetId);
+    out.subnet =
+      (await awsVpcModule.subnet.db.read(ctx, instance.SubnetId)) ??
+      (await awsVpcModule.subnet.cloud.read(ctx, instance.SubnetId));
     out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
     return out;
   }
 
   getInstanceUserData = crudBuilderFormat<EC2, 'describeInstanceAttribute', string | undefined>(
     'describeInstanceAttribute',
-    (InstanceId) => ({ Attribute: 'userData', InstanceId, }),
-    (res) => res?.UserData?.Value,
+    InstanceId => ({ Attribute: 'userData', InstanceId }),
+    res => res?.UserData?.Value,
   );
 
   getVolumesByInstanceId = crudBuilderFormat<EC2, 'describeVolumes', AWSVolume[] | undefined>(
     'describeVolumes',
-    (instanceId) => ({ Filters: [{
-      Name: 'attachment.instance-id',
-      Values: [instanceId],
-    }] }),
-    (res) => res?.Volumes
+    instanceId => ({
+      Filters: [
+        {
+          Name: 'attachment.instance-id',
+          Values: [instanceId],
+        },
+      ],
+    }),
+    res => res?.Volumes,
   );
 
-  getParameter = crudBuilder2<SSM, 'getParameter'>(
-    'getParameter',
-    (Name) => ({ Name })
-  );
+  getParameter = crudBuilder2<SSM, 'getParameter'>('getParameter', Name => ({ Name }));
 
-  describeImages = crudBuilder2<EC2, 'describeImages'>(
-    'describeImages',
-    (ImageIds) => ({
-      ImageIds,
-    })
-  );
+  describeImages = crudBuilder2<EC2, 'describeImages'>('describeImages', ImageIds => ({
+    ImageIds,
+  }));
 
-  describeInstances = crudBuilder2<EC2, 'describeInstances'>(
-    'describeInstances',
-    (InstanceIds) => ({ InstanceIds, }),
-  );
+  describeInstances = crudBuilder2<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({ InstanceIds }));
 
   async getInstance(client: EC2, id: string) {
     const reservations = await this.describeInstances(client, [id]);
@@ -133,9 +118,9 @@ export class InstanceMapper extends MapperBase<Instance> {
   getInstances = paginateBuilder<EC2>(paginateDescribeInstances, 'Instances', 'Reservations');
 
   // TODO: Macro-ify the waiter usage
-  async newInstance(client: EC2, newInstancesInput: RunInstancesCommandInput): Promise<string>  {
+  async newInstance(client: EC2, newInstancesInput: RunInstancesCommandInput): Promise<string> {
     const create = await client.runInstances(newInstancesInput);
-    const instanceIds: string[] | undefined = create.Instances?.map((i) => i?.InstanceId ?? '');
+    const instanceIds: string[] | undefined = create.Instances?.map(i => i?.InstanceId ?? '');
     const input: DescribeInstancesCommandInput = {
       InstanceIds: instanceIds,
     };
@@ -160,8 +145,7 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.RETRY };
+          if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
       },
@@ -173,7 +157,7 @@ export class InstanceMapper extends MapperBase<Instance> {
   async volumeWaiter(
     client: EC2,
     volumeId: string,
-    handleState: (vol: AWSVolume | undefined) => ({ state: WaiterState })
+    handleState: (vol: AWSVolume | undefined) => { state: WaiterState },
   ) {
     return createWaiter<EC2, DescribeVolumesCommandInput>(
       {
@@ -240,14 +224,12 @@ export class InstanceMapper extends MapperBase<Instance> {
           const data = await cl.describeInstances(cmd);
           for (const reservation of data?.Reservations ?? []) {
             for (const instance of reservation?.Instances ?? []) {
-              if (instance.State?.Name !== 'running')
-                return { state: WaiterState.RETRY };
+              if (instance.State?.Name !== 'running') return { state: WaiterState.RETRY };
             }
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.SUCCESS };
+          if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.SUCCESS };
           throw e;
         }
       },
@@ -277,14 +259,12 @@ export class InstanceMapper extends MapperBase<Instance> {
           const data = await cl.describeInstances(cmd);
           for (const reservation of data?.Reservations ?? []) {
             for (const instance of reservation?.Instances ?? []) {
-              if (instance.State?.Name !== 'stopped')
-                return { state: WaiterState.RETRY };
+              if (instance.State?.Name !== 'stopped') return { state: WaiterState.RETRY };
             }
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.SUCCESS };
+          if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.SUCCESS };
           throw e;
         }
       },
@@ -293,35 +273,33 @@ export class InstanceMapper extends MapperBase<Instance> {
 
   terminateInstance = crudBuilderFormat<EC2, 'terminateInstances', undefined>(
     'terminateInstances',
-    (id) => ({ InstanceIds: [id], }),
-    (_res) => undefined,
+    id => ({ InstanceIds: [id] }),
+    _res => undefined,
   );
 
   cloud: Crud2<Instance> = new Crud2({
     create: async (es: Instance[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const instance of es) {
         const previousInstanceId = instance.instanceId;
         if (instance.ami) {
           let tgs: AWSTag[] = [];
           if (instance.tags !== undefined) {
-            const tags: {[key: string]: string} = instance.tags;
+            const tags: { [key: string]: string } = instance.tags;
             tags.owner = 'iasql-engine';
             tgs = Object.keys(tags).map(k => {
               return {
-                Key: k, Value: tags[k]
-              }
+                Key: k,
+                Value: tags[k],
+              };
             });
           }
-          const sgIds = instance.securityGroups
-            .map(sg => sg.groupId).filter(id => !!id) as string[];
-          const userData = instance.userData ?
-            Buffer.from(instance.userData).toString('base64') :
-            undefined;
-          const iamInstanceProfile = instance.role?.arn ?
-            { Arn: instance.role.arn.replace(':role/', ':instance-profile/') } :
-            undefined;
+          const sgIds = instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[];
+          const userData = instance.userData ? Buffer.from(instance.userData).toString('base64') : undefined;
+          const iamInstanceProfile = instance.role?.arn
+            ? { Arn: instance.role.arn.replace(':role/', ':instance-profile/') }
+            : undefined;
           if (instance.subnet && !instance.subnet.subnetId) {
             throw new Error('Subnet assigned but not created yet in AWS');
           }
@@ -356,17 +334,20 @@ export class InstanceMapper extends MapperBase<Instance> {
             const amiImage = (await this.describeImages(client.ec2client, [amiId]))?.Images?.pop();
             // Update input object
             instanceParams.HibernationOptions = {
-              Configured: true
+              Configured: true,
             };
-            instanceParams.BlockDeviceMappings = [{
-              DeviceName: amiImage?.RootDeviceName,
-              Ebs: {
-                Encrypted: true,
-              }
-            }];
+            instanceParams.BlockDeviceMappings = [
+              {
+                DeviceName: amiImage?.RootDeviceName,
+                Ebs: {
+                  Encrypted: true,
+                },
+              },
+            ];
           }
           const instanceId = await this.newInstance(client.ec2client, instanceParams);
-          if (!instanceId) { // then who?
+          if (!instanceId) {
+            // then who?
             throw new Error('should not be possible');
           }
           const newEntity = await this.module.instance.cloud.read(ctx, instanceId);
@@ -374,36 +355,29 @@ export class InstanceMapper extends MapperBase<Instance> {
           await this.module.instance.db.update(newEntity, ctx);
           out.push(newEntity);
           // Attach volume
-          const rawAttachedVolume = (
-            await this.getVolumesByInstanceId(client.ec2client, instanceId)
-          )?.pop();
+          const rawAttachedVolume = (await this.getVolumesByInstanceId(client.ec2client, instanceId))?.pop();
           await this.waitUntilInUse(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
           delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
-          const attachedVolume: GeneralPurposeVolume =
-            await this.module.generalPurposeVolume.cloud.read(
-              ctx,
-              rawAttachedVolume?.VolumeId ?? ''
-            );
+          const attachedVolume: GeneralPurposeVolume = await this.module.generalPurposeVolume.cloud.read(
+            ctx,
+            rawAttachedVolume?.VolumeId ?? '',
+          );
           if (attachedVolume && !Array.isArray(attachedVolume)) {
             attachedVolume.attachedInstance = newEntity;
             // If this is a replace path, there could be already a root volume in db, we need to
             // find it and delete it before creating the new one.
             if (previousInstanceId) {
-              const rawPreviousInstance: AWSInstance =
-                await this.getInstance(client.ec2client, previousInstanceId);
+              const rawPreviousInstance: AWSInstance = await this.getInstance(client.ec2client, previousInstanceId);
               const dbAttachedVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
                 where: {
                   attachedInstance: {
-                    id: newEntity.id
+                    id: newEntity.id,
                   },
                   instanceDeviceName: rawPreviousInstance.RootDeviceName,
                 },
                 relations: ['attachedInstance'],
               });
-              if (dbAttachedVolume) await this.module.generalPurposeVolume.db.delete(
-                dbAttachedVolume,
-                ctx,
-              );
+              if (dbAttachedVolume) await this.module.generalPurposeVolume.db.delete(dbAttachedVolume, ctx);
             }
             await this.module.generalPurposeVolume.db.create(attachedVolume, ctx);
           }
@@ -412,15 +386,12 @@ export class InstanceMapper extends MapperBase<Instance> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
         const rawInstance = await this.getInstance(client.ec2client, id);
         // exclude spot instances
         if (!rawInstance || rawInstance.InstanceLifecycle === InstanceLifecycle.SPOT) return;
-        if (
-          rawInstance.State?.Name === 'terminated' ||
-          rawInstance.State?.Name === 'shutting-down'
-        ) return;
+        if (rawInstance.State?.Name === 'terminated' || rawInstance.State?.Name === 'shutting-down') return;
         return this.instanceMapper(rawInstance, ctx);
       } else {
         const rawInstances = (await this.getInstances(client.ec2client)) ?? [];
@@ -435,7 +406,7 @@ export class InstanceMapper extends MapperBase<Instance> {
     },
     updateOrReplace: (_a: Instance, _b: Instance) => 'replace',
     update: async (es: Instance[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? ''];
@@ -455,7 +426,9 @@ export class InstanceMapper extends MapperBase<Instance> {
               await this.module.instance.db.update(e, ctx);
             } else {
               // TODO: This throw will interrupt the other EC2 updates. Is that alright?
-              throw new Error(`Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`);
+              throw new Error(
+                `Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`,
+              );
             }
           }
           out.push(e);
@@ -472,24 +445,17 @@ export class InstanceMapper extends MapperBase<Instance> {
       return out;
     },
     delete: async (es: Instance[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const entity of es) {
         // Remove attached volume
-        const rawAttachedVolume = (
-          await this.getVolumesByInstanceId(client.ec2client, entity.instanceId ?? '')
-        )?.pop();
+        const rawAttachedVolume = (await this.getVolumesByInstanceId(client.ec2client, entity.instanceId ?? ''))?.pop();
         if (entity.instanceId) await this.terminateInstance(client.ec2client, entity.instanceId);
         await this.waitUntilDeleted(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
         delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
         delete ctx?.memo?.db?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
-        const attachedVolume = await this.module.generalPurposeVolume.db.read(
-          ctx,
-          rawAttachedVolume?.VolumeId ?? '',
-        );
-        if (
-          attachedVolume &&
-          !Array.isArray(attachedVolume)
-        ) await this.module.generalPurposeVolume.db.delete(attachedVolume, ctx);
+        const attachedVolume = await this.module.generalPurposeVolume.db.read(ctx, rawAttachedVolume?.VolumeId ?? '');
+        if (attachedVolume && !Array.isArray(attachedVolume))
+          await this.module.generalPurposeVolume.db.delete(attachedVolume, ctx);
       }
     },
   });

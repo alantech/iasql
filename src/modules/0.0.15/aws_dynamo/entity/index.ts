@@ -1,11 +1,6 @@
-import {
-  Column,
-  Entity,
-  PrimaryGeneratedColumn,
-} from 'typeorm'
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 
 export enum TableClass {
   Standard = 'STANDARD',
@@ -36,7 +31,7 @@ export class DynamoTable {
     type: 'json',
     nullable: false,
   })
-  throughput: 'PAY_PER_REQUEST' | { ReadCapacityUnits: number, WriteCapacityUnits: number, };
+  throughput: 'PAY_PER_REQUEST' | { ReadCapacityUnits: number; WriteCapacityUnits: number };
 
   @Column({
     /* unique: true, */ // Waiting on Postgres 15 to revive this
@@ -52,7 +47,7 @@ export class DynamoTable {
     type: 'json',
     nullable: false,
   })
-  primaryKey: { [key: string]: 'B' | 'BOOL' | 'BS' | 'L' | 'M' | 'N' | 'NS' | 'NULL' | 'S' | 'SS', };
+  primaryKey: { [key: string]: 'B' | 'BOOL' | 'BS' | 'L' | 'M' | 'N' | 'NS' | 'NULL' | 'S' | 'SS' };
 
   @Column({
     type: 'timestamp without time zone',

@@ -1,11 +1,11 @@
-import * as express from 'express'
-import jwt from 'express-jwt'
-import jwksRsa from 'jwks-rsa'
+import * as express from 'express';
+import jwt from 'express-jwt';
+import jwksRsa from 'jwks-rsa';
 
-import config from '../config'
+import config from '../config';
 
 // routes
-import { db, } from './db'
+import { db } from './db';
 
 const v1 = express.Router();
 // 10 GB post payload limit for import dumps

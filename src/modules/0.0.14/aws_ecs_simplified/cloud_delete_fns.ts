@@ -7,22 +7,27 @@ import { Role } from '../aws_iam/entity';
 import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity';
 
 const cloudDeleteFns = {
-  securityGroup: (client: AWS, e: SecurityGroup) => client.deleteSecurityGroup({
-    GroupId: e.groupId,
-  }),
+  securityGroup: (client: AWS, e: SecurityGroup) =>
+    client.deleteSecurityGroup({
+      GroupId: e.groupId,
+    }),
   securityGroupRules: async (client: AWS, es: SecurityGroupRule[]) => {
     for (const e of es) {
       const GroupId = e?.securityGroup?.groupId;
       if (e.isEgress) {
-        await client.deleteSecurityGroupEgressRules([{
-          GroupId,
-          SecurityGroupRuleIds: [e?.securityGroupRuleId ?? ''],
-        }]);
+        await client.deleteSecurityGroupEgressRules([
+          {
+            GroupId,
+            SecurityGroupRuleIds: [e?.securityGroupRuleId ?? ''],
+          },
+        ]);
       } else {
-        await client.deleteSecurityGroupIngressRules([{
-          GroupId,
-          SecurityGroupRuleIds: [e?.securityGroupRuleId ?? ''],
-        }])
+        await client.deleteSecurityGroupIngressRules([
+          {
+            GroupId,
+            SecurityGroupRuleIds: [e?.securityGroupRuleId ?? ''],
+          },
+        ]);
       }
     }
   },

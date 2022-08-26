@@ -1,10 +1,10 @@
-import { Entity, PrimaryColumn, Column, } from 'typeorm'
+import { Entity, PrimaryColumn, Column } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 
 export enum ImageTagMutability {
-  IMMUTABLE = "IMMUTABLE",
-  MUTABLE = "MUTABLE",
+  IMMUTABLE = 'IMMUTABLE',
+  MUTABLE = 'MUTABLE',
 }
 
 @Entity()

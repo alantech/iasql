@@ -1,10 +1,6 @@
-import {
-  Column,
-  Entity,
-  PrimaryColumn,
-} from 'typeorm'
+import { Column, Entity, PrimaryColumn } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 
 @Entity()
 export class LogGroup {
@@ -22,5 +18,4 @@ export class LogGroup {
     type: 'timestamp with time zone',
   })
   creationTime?: Date;
-
 }

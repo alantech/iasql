@@ -1,11 +1,7 @@
 import { Parameter } from '@aws-sdk/client-rds';
-import {
-  Column,
-  Entity,
-  PrimaryColumn,
-} from 'typeorm'
+import { Column, Entity, PrimaryColumn } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 
 // Enum generated executing the command
 // aws rds describe-db-engine-versions --query "DBEngineVersions[].DBParameterGroupFamily"
@@ -57,12 +53,11 @@ export enum ParameterGroupFamily {
   SQLSERVER_WEB_12_0 = 'sqlserver-web-12.0',
   SQLSERVER_WEB_13_0 = 'sqlserver-web-13.0',
   SQLSERVER_WEB_14_0 = 'sqlserver-web-14.0',
-  SQLSERVER_WEB_15_0 = 'sqlserver-web-15.0'
+  SQLSERVER_WEB_15_0 = 'sqlserver-web-15.0',
 }
 
 @Entity()
 export class ParameterGroup {
-
   @PrimaryColumn()
   @cloudId
   name: string;

@@ -6,23 +6,24 @@ import {
   NatGatewayState as AwsNatGatewayState,
   Tag,
   paginateDescribeNatGateways,
-} from '@aws-sdk/client-ec2'
-import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
+} from '@aws-sdk/client-ec2';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
-import { AWS, crudBuilderFormat, paginateBuilder, } from '../../../../services/aws_macros'
-import { Context, Crud2, MapperBase, } from '../../../interfaces'
-import { ElasticIp, NatGateway, NatGatewayState, ConnectivityType, } from '../entity'
-import { AwsVpcModule, } from '..'
-import { eqTags, updateTags, } from './tags'
+import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
+import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { ElasticIp, NatGateway, NatGatewayState, ConnectivityType } from '../entity';
+import { AwsVpcModule } from '..';
+import { eqTags, updateTags } from './tags';
 
 export class NatGatewayMapper extends MapperBase<NatGateway> {
   module: AwsVpcModule;
   entity = NatGateway;
-  equals = (a: NatGateway, b: NatGateway) => Object.is(a.connectivityType, b.connectivityType)
-    && Object.is(a.elasticIp?.allocationId, b.elasticIp?.allocationId)
-    && Object.is(a.state, b.state)
-    && Object.is(a.subnet?.subnetArn, b.subnet?.subnetArn)
-    && eqTags(a.tags, b.tags);
+  equals = (a: NatGateway, b: NatGateway) =>
+    Object.is(a.connectivityType, b.connectivityType) &&
+    Object.is(a.elasticIp?.allocationId, b.elasticIp?.allocationId) &&
+    Object.is(a.state, b.state) &&
+    Object.is(a.subnet?.subnetArn, b.subnet?.subnetArn) &&
+    eqTags(a.tags, b.tags);
 
   async natGatewayMapper(nat: AwsNatGateway, ctx: Context) {
     const out = new NatGateway();
@@ -30,8 +31,9 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
     const natPublicAddress = nat.NatGatewayAddresses?.filter(n => !!n.AllocationId).pop();
     if (natPublicAddress?.AllocationId) {
       try {
-        out.elasticIp = await this.module.elasticIp.db.read(ctx, natPublicAddress.AllocationId) ??
-          await this.module.elasticIp.cloud.read(ctx, natPublicAddress.AllocationId);
+        out.elasticIp =
+          (await this.module.elasticIp.db.read(ctx, natPublicAddress.AllocationId)) ??
+          (await this.module.elasticIp.cloud.read(ctx, natPublicAddress.AllocationId));
       } catch (error: any) {
         if (error.Code === 'InvalidAllocationID.NotFound') return undefined;
       }
@@ -39,44 +41,40 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
     }
     out.natGatewayId = nat.NatGatewayId;
     out.state = nat.State as NatGatewayState;
-    out.subnet = await this.module.subnet.db.read(ctx, nat.SubnetId) ??
-      await this.module.subnet.cloud.read(ctx, nat.SubnetId);
+    out.subnet =
+      (await this.module.subnet.db.read(ctx, nat.SubnetId)) ?? (await this.module.subnet.cloud.read(ctx, nat.SubnetId));
     if (nat.SubnetId && !out.subnet) return undefined;
     const tags: { [key: string]: string } = {};
-    (nat.Tags || []).filter(t => !!t.Key && !!t.Value).forEach(t => {
-      tags[t.Key as string] = t.Value as string;
-    });
+    (nat.Tags || [])
+      .filter(t => !!t.Key && !!t.Value)
+      .forEach(t => {
+        tags[t.Key as string] = t.Value as string;
+      });
     out.tags = tags;
     return out;
   }
 
   getNatGateway = crudBuilderFormat<EC2, 'describeNatGateways', AwsNatGateway | undefined>(
     'describeNatGateways',
-    (id) => ({
+    id => ({
       NatGatewayIds: [id],
       Filter: [
         {
           Name: 'state',
-          Values: [AwsNatGatewayState.AVAILABLE, AwsNatGatewayState.FAILED]
+          Values: [AwsNatGatewayState.AVAILABLE, AwsNatGatewayState.FAILED],
         },
       ],
     }),
-    (res) => res?.NatGateways?.pop(),
+    res => res?.NatGateways?.pop(),
   );
-  getNatGateways = paginateBuilder<EC2>(
-    paginateDescribeNatGateways,
-    'NatGateways',
-    undefined,
-    undefined,
-    () => ({
-      Filter: [
-        {
-          Name: 'state',
-          Values: [AwsNatGatewayState.AVAILABLE, AwsNatGatewayState.FAILED]
-        },
-      ],
-    }),
-  );
+  getNatGateways = paginateBuilder<EC2>(paginateDescribeNatGateways, 'NatGateways', undefined, undefined, () => ({
+    Filter: [
+      {
+        Name: 'state',
+        Values: [AwsNatGatewayState.AVAILABLE, AwsNatGatewayState.FAILED],
+      },
+    ],
+  }));
 
   // TODO: Add a waiter macro
   async createNatGateway(client: EC2, input: CreateNatGatewayCommandInput) {
@@ -84,7 +82,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
     const res = await client.createNatGateway(input);
     out = res.NatGateway;
     const describeInput: DescribeNatGatewaysCommandInput = {
-      NatGatewayIds: [res.NatGateway?.NatGatewayId ?? '']
+      NatGatewayIds: [res.NatGateway?.NatGatewayId ?? ''],
     };
     await createWaiter<EC2, DescribeNatGatewaysCommandInput>(
       {
@@ -116,7 +114,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
       NatGatewayId: id,
     });
     const describeInput: DescribeNatGatewaysCommandInput = {
-      NatGatewayIds: [id ?? '']
+      NatGatewayIds: [id ?? ''],
     };
     await createWaiter<EC2, DescribeNatGatewaysCommandInput>(
       {
@@ -146,7 +144,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
   cloud: Crud2<NatGateway> = new Crud2({
     create: async (es: NatGateway[], ctx: Context) => {
       const out = [];
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         const input: CreateNatGatewayCommandInput = {
           SubnetId: e.subnet?.subnetId,
@@ -155,15 +153,16 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
         if (e.tags && Object.keys(e.tags).length) {
           const tags: Tag[] = Object.keys(e.tags).map((k: string) => {
             return {
-              Key: k, Value: e.tags![k],
-            }
+              Key: k,
+              Value: e.tags![k],
+            };
           });
           input.TagSpecifications = [
             {
               ResourceType: 'natgateway',
               Tags: tags,
             },
-          ]
+          ];
         }
         if (e.elasticIp) {
           input.AllocationId = e.elasticIp.allocationId;
@@ -188,14 +187,14 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (!!id) {
         const rawNatGateway = await this.getNatGateway(client.ec2client, id);
         if (!rawNatGateway) return;
         return await this.natGatewayMapper(rawNatGateway, ctx);
       } else {
         const out = [];
-        for (const ng of (await this.getNatGateways(client.ec2client))) {
+        for (const ng of await this.getNatGateways(client.ec2client)) {
           const outNg = await this.natGatewayMapper(ng, ctx);
           if (outNg) out.push(outNg);
         }
@@ -203,14 +202,17 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
       }
     },
     updateOrReplace: (a: NatGateway, b: NatGateway) => {
-      if (!(Object.is(a.state, b.state) && eqTags(a.tags, b.tags))
-        && Object.is(a.connectivityType, b.connectivityType)
-        && Object.is(a.elasticIp?.allocationId, b.elasticIp?.allocationId)
-        && Object.is(a.subnet?.subnetId, b.subnet?.subnetId)) return 'update';
+      if (
+        !(Object.is(a.state, b.state) && eqTags(a.tags, b.tags)) &&
+        Object.is(a.connectivityType, b.connectivityType) &&
+        Object.is(a.elasticIp?.allocationId, b.elasticIp?.allocationId) &&
+        Object.is(a.subnet?.subnetId, b.subnet?.subnetId)
+      )
+        return 'update';
       return 'replace';
     },
     update: async (es: NatGateway[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.NatGateway?.[e.natGatewayId ?? ''];
@@ -242,7 +244,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
       return out;
     },
     delete: async (es: NatGateway[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         await this.deleteNatGateway(client.ec2client, e.natGatewayId ?? '');
       }

@@ -1,10 +1,6 @@
-import {
-  Column,
-  Entity,
-  PrimaryGeneratedColumn,
-} from 'typeorm'
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id' // This is ridiculous. Can we fix this?
+import { cloudId } from '../../../../services/cloud-id'; // This is ridiculous. Can we fix this?
 
 @Entity({
   name: 'aws_account',

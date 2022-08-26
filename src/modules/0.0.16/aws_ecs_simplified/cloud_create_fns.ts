@@ -1,4 +1,4 @@
-import { Subnet as AwsSubnet, Vpc as AwsVpc } from '@aws-sdk/client-ec2'
+import { Subnet as AwsSubnet, Vpc as AwsVpc } from '@aws-sdk/client-ec2';
 import { CreateLoadBalancerCommandInput } from '@aws-sdk/client-elastic-load-balancing-v2';
 
 import { AWS } from './aws';
@@ -19,13 +19,13 @@ const cloudCreateFns = {
     e.groupId = res.GroupId;
     return res;
   },
-  securityGroupRules: async (client: AWS, es: SecurityGroupRule[],) => {
+  securityGroupRules: async (client: AWS, es: SecurityGroupRule[]) => {
     const out = [];
     for (const e of es) {
       const GroupId = e?.securityGroup?.groupId;
       const newRule: any = {};
-      if (e.cidrIpv4) newRule.IpRanges = [{ CidrIp: e.cidrIpv4, }];
-      if (e.cidrIpv6) newRule.Ipv6Ranges = [{ CidrIpv6: e.cidrIpv6, }];
+      if (e.cidrIpv4) newRule.IpRanges = [{ CidrIp: e.cidrIpv4 }];
+      if (e.cidrIpv6) newRule.Ipv6Ranges = [{ CidrIpv6: e.cidrIpv6 }];
       if (e.description) {
         if (e.cidrIpv4) newRule.IpRanges[0].Description = e.description;
         if (e.cidrIpv6) newRule.Ipv6Ranges[0].Description = e.description;
@@ -37,22 +37,37 @@ const cloudCreateFns = {
       let res;
       if (e.isEgress) {
         // By default there is an egress rule, lets delete it and create the new one to be able to identify it with our description
-        const securityGroupRules = await (await client.getSecurityGroupRules()).SecurityGroupRules ?? [];
-        const securityGroupRule = securityGroupRules.find(sgr => Object.is(sgr.GroupId, e.securityGroup.groupId)
-          && Object.is(sgr.CidrIpv4, e.cidrIpv4) && Object.is(sgr.FromPort, e.fromPort) && Object.is(sgr.ToPort, e.toPort));
-        await client.deleteSecurityGroupEgressRules([{
-          GroupId,
-          SecurityGroupRuleIds: [securityGroupRule?.SecurityGroupRuleId ?? ''],
-        }]);
-        res = (await client.createSecurityGroupEgressRules([{
-          GroupId,
-          IpPermissions: [newRule],
-        }]))[0];
+        const securityGroupRules = (await (await client.getSecurityGroupRules()).SecurityGroupRules) ?? [];
+        const securityGroupRule = securityGroupRules.find(
+          sgr =>
+            Object.is(sgr.GroupId, e.securityGroup.groupId) &&
+            Object.is(sgr.CidrIpv4, e.cidrIpv4) &&
+            Object.is(sgr.FromPort, e.fromPort) &&
+            Object.is(sgr.ToPort, e.toPort),
+        );
+        await client.deleteSecurityGroupEgressRules([
+          {
+            GroupId,
+            SecurityGroupRuleIds: [securityGroupRule?.SecurityGroupRuleId ?? ''],
+          },
+        ]);
+        res = (
+          await client.createSecurityGroupEgressRules([
+            {
+              GroupId,
+              IpPermissions: [newRule],
+            },
+          ])
+        )[0];
       } else {
-        res = (await client.createSecurityGroupIngressRules([{
-          GroupId,
-          IpPermissions: [newRule],
-        }]))[0];
+        res = (
+          await client.createSecurityGroupIngressRules([
+            {
+              GroupId,
+              IpPermissions: [newRule],
+            },
+          ])
+        )[0];
       }
       e.securityGroupRuleId = res.SecurityGroupRules?.[0].SecurityGroupRuleId;
       out.push(res);
@@ -123,7 +138,7 @@ const cloudCreateFns = {
       e.roleName,
       JSON.stringify(e.assumeRolePolicyDocument),
       e.attachedPoliciesArns ?? [],
-      e.description ?? ''
+      e.description ?? '',
     );
     e.arn = res;
     return res;
@@ -149,23 +164,25 @@ const cloudCreateFns = {
       container.logConfiguration = {
         logDriver: 'awslogs',
         options: {
-          "awslogs-group": container.logGroup.logGroupName,
-          "awslogs-region": client.region,
-          "awslogs-stream-prefix": `awslogs-${cd.name}`
-        }
+          'awslogs-group': container.logGroup.logGroupName,
+          'awslogs-region': client.region,
+          'awslogs-stream-prefix': `awslogs-${cd.name}`,
+        },
       };
     }
     if (container.containerPort && container.hostPort && container.protocol) {
-      container.portMappings = [{
-        containerPort: container.containerPort,
-        hostPort: container.hostPort,
-        protocol: container.protocol,
-      }];
+      container.portMappings = [
+        {
+          containerPort: container.containerPort,
+          hostPort: container.hostPort,
+          protocol: container.protocol,
+        },
+      ];
     }
     const input: any = {
       family: td.family,
       containerDefinitions: [container],
-      requiresCompatibilities: ['FARGATE',],
+      requiresCompatibilities: ['FARGATE'],
       networkMode: 'awsvpc',
       taskRoleArn: td.taskRole?.arn,
       executionRoleArn: td.executionRole?.arn,
@@ -194,13 +211,15 @@ const cloudCreateFns = {
           subnets: defaultSubnets.map(sn => sn.SubnetId),
           securityGroups: e.securityGroups.map(sg => sg.groupId),
           assignPublicIp: e.assignPublicIp,
-        }
+        },
       },
-      loadBalancers: [{
-        targetGroupArn: e.targetGroup?.targetGroupArn,
-        containerName: cd.name,
-        containerPort: cd.containerPort,
-      }],
+      loadBalancers: [
+        {
+          targetGroupArn: e.targetGroup?.targetGroupArn,
+          containerName: cd.name,
+          containerPort: cd.containerPort,
+        },
+      ],
     };
     const res = await client.createService(input);
     e.arn = res?.serviceArn;

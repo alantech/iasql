@@ -1,11 +1,6 @@
-import {
-  Column,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-} from 'typeorm'
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 
 export enum VpcState {
   AVAILABLE = 'available',
@@ -20,7 +15,7 @@ export class Vpc {
   @Column({
     nullable: true,
   })
-  @Index({ unique: true, where: "vpc_id IS NOT NULL" })
+  @Index({ unique: true, where: 'vpc_id IS NOT NULL' })
   @cloudId
   vpcId?: string;
 
@@ -44,5 +39,4 @@ export class Vpc {
     nullable: true,
   })
   tags?: { [key: string]: string };
-
 }

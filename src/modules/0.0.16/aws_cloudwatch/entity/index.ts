@@ -1,1 +1,1 @@
-export * from './log_group'
+export * from './log_group';
