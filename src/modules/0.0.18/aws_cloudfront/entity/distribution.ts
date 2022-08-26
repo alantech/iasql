@@ -64,7 +64,7 @@ export class Distribution {
     type: 'json',
     nullable: false,
   })
-  origins: { DomainName: string | undefined, Id: string | undefined,
+  origins: { DomainName: string | undefined, Id: string | undefined, OriginShield: any,
     CustomOriginConfig: { HTTPPort: number|undefined, HTTPSPort: number|undefined, OriginProtocolPolicy: originProtocolPolicyEnum }
   }[];
 
