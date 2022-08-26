@@ -48,7 +48,7 @@ class DistributionMapper extends MapperBase<Distribution> {
 
       // iterate over all distributions and extract the config
       const out : GetDistributionCommandOutput[] = [];
-      for await (const item of results) {
+      for (const item of results) {
         // check the distribution ID and get the config
         if (item.Id) {
           const config = await this.getDistribution(client, item.Id);
@@ -315,9 +315,9 @@ class AwsCloudfrontModule extends ModuleBase {
     distribution: DistributionMapper;
 
     constructor() {
-    super();
-    this.distribution = new DistributionMapper(this);
-    super.init();
+      super();
+      this.distribution = new DistributionMapper(this);
+      super.init();
     }
 }
 export const awsCloudfrontModule = new AwsCloudfrontModule();
