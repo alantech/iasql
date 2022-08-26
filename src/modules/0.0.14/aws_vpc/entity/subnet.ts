@@ -1,8 +1,8 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
-import { Vpc } from './vpc';
 import { AvailabilityZone } from './availability_zone';
+import { Vpc } from './vpc';
 
 export enum SubnetState {
   AVAILABLE = 'available',

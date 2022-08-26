@@ -1,9 +1,9 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
-import { LoadBalancer } from './load_balancer';
-import { TargetGroup, ProtocolEnum } from './target_group';
 import { cloudId } from '../../../../services/cloud-id';
 import { Certificate } from '../../aws_acm_list/entity';
+import { LoadBalancer } from './load_balancer';
+import { TargetGroup, ProtocolEnum } from './target_group';
 
 export enum ActionTypeEnum {
   // AUTHENTICATE_COGNITO = "authenticate-cognito",

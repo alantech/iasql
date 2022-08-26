@@ -1,13 +1,13 @@
 import { Subnet as AwsSubnet, Vpc as AwsVpc } from '@aws-sdk/client-ec2';
 import { CreateLoadBalancerCommandInput } from '@aws-sdk/client-elastic-load-balancing-v2';
 
-import { AWS } from './aws';
 import { LogGroup } from '../aws_cloudwatch/entity';
 import { Repository } from '../aws_ecr/entity';
 import { Cluster, ContainerDefinition, Service, TaskDefinition } from '../aws_ecs_fargate/entity';
 import { Listener, LoadBalancer, TargetGroup } from '../aws_elb/entity';
 import { Role } from '../aws_iam/entity';
 import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity';
+import { AWS } from './aws';
 
 const cloudCreateFns = {
   securityGroup: async (client: AWS, e: SecurityGroup, defaultVpc: AwsVpc) => {

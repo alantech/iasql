@@ -1,9 +1,8 @@
 /* tslint:disable no-console */
-import * as util from 'util';
-
+import { createLogger } from '@logdna/logger';
 import * as sentry from '@sentry/node';
 import { Logger, LogFunctionFactory } from 'graphile-worker';
-import { createLogger } from '@logdna/logger';
+import * as util from 'util';
 
 import config from '../config';
 import { DepError } from './lazy-dep';

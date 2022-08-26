@@ -11,10 +11,10 @@ import {
   JoinColumn,
 } from 'typeorm';
 
-// TODO: Is there a better way to deal with cross-module entities?
-import { SecurityGroup } from '../../aws_security_group/entity';
 import { cloudId } from '../../../../services/cloud-id';
 import { Role } from '../../aws_iam/entity';
+// TODO: Is there a better way to deal with cross-module entities?
+import { SecurityGroup } from '../../aws_security_group/entity';
 import { Subnet } from '../../aws_vpc/entity';
 
 // "terminated" is ommittted because that is achieved by deleting the row

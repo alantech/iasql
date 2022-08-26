@@ -1,4 +1,5 @@
 import { Entity, Column, AfterLoad, AfterInsert, AfterUpdate, PrimaryColumn, Check } from 'typeorm';
+
 import { CpuMemCombination } from '../../aws_ecs_fargate/entity';
 
 @Check(

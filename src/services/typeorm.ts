@@ -1,12 +1,12 @@
-import { v4 as uuidv4 } from 'uuid';
 import { Pool } from 'pg';
 import { Connection, createConnection, EntityTarget, getConnectionManager } from 'typeorm';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { PostgresDriver } from 'typeorm/driver/postgres/PostgresDriver';
-import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
+import { v4 as uuidv4 } from 'uuid';
 
-import { modules as AllModules } from '../modules';
 import config from '../config';
+import { modules as AllModules } from '../modules';
 import { NullCheckerSubscriber } from '../modules/subscribers';
 
 export class TypeormWrapper {

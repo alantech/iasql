@@ -8,9 +8,9 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
+import { cloudId } from '../../../../services/cloud-id';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { AvailabilityZone } from '../../aws_vpc/entity';
-import { cloudId } from '../../../../services/cloud-id';
 import { ParameterGroup } from './parameter_group';
 
 @Entity()

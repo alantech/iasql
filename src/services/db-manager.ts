@@ -1,5 +1,4 @@
 import { randomBytes } from 'crypto';
-
 import { Connection } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 

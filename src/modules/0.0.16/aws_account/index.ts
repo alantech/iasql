@@ -1,7 +1,9 @@
 import { AWS } from '../../../services/aws_macros';
-import { AwsAccountEntity } from './entity';
 import { Context, Crud2, Mapper2, ModuleBase } from '../../interfaces';
-import * as metadata from './module.json'; // TODO: Eliminate this?
+import { AwsAccountEntity } from './entity';
+import * as metadata from './module.json';
+
+// TODO: Eliminate this?
 
 class AwsAccount extends ModuleBase {
   constructor() {

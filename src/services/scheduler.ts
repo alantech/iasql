@@ -1,16 +1,16 @@
-import { run } from 'graphile-worker';
 import * as sentry from '@sentry/node';
+import { run } from 'graphile-worker';
 import { v4 as uuidv4 } from 'uuid';
 
-import { modules } from '../modules';
-import MetadataRepo from './repositories/metadata';
-import * as iasql from './iasql';
-import * as telemetry from './telemetry';
-import logger, { logErrSentry } from './logger';
-import { TypeormWrapper } from './typeorm';
-import { IasqlDatabase } from '../entity';
 import config from '../config';
 import { throwError } from '../config/config';
+import { IasqlDatabase } from '../entity';
+import { modules } from '../modules';
+import * as iasql from './iasql';
+import logger, { logErrSentry } from './logger';
+import MetadataRepo from './repositories/metadata';
+import * as telemetry from './telemetry';
+import { TypeormWrapper } from './typeorm';
 
 const latest = modules[config.modules.latestVersion];
 

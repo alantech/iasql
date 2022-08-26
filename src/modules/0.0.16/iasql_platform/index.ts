@@ -1,8 +1,7 @@
 /* THIS MODULE IS A SPECIAL SNOWFLAKE. DON'T LOOK AT IT FOR HOW TO WRITE A REAL MODULE */
-
 import { ModuleBase } from '../../interfaces';
-import * as metadata from './module.json';
 import { IasqlModule, IasqlTables } from './entity';
+import * as metadata from './module.json';
 
 class IasqlPlatform extends ModuleBase {
   constructor() {

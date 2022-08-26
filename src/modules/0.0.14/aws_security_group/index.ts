@@ -12,12 +12,12 @@ import {
 } from '@aws-sdk/client-ec2';
 
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
-import { SecurityGroup, SecurityGroupRule } from './entity';
+import logger from '../../../services/logger';
 import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
-import * as metadata from './module.json';
 import { AwsVpcModule } from '../aws_vpc';
 import { Vpc } from '../aws_vpc/entity';
-import logger from '../../../services/logger';
+import { SecurityGroup, SecurityGroupRule } from './entity';
+import * as metadata from './module.json';
 
 const createSecurityGroup = crudBuilder2<EC2, 'createSecurityGroup'>('createSecurityGroup', input => input);
 const getSecurityGroup = crudBuilderFormat<EC2, 'describeSecurityGroups', AwsSecurityGroup | undefined>(

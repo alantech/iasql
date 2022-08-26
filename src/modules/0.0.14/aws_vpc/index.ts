@@ -1,3 +1,5 @@
+import isEqual from 'lodash.isequal';
+
 import {
   Address,
   AllocateAddressCommandInput,
@@ -25,6 +27,7 @@ import {
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
 import {
   AvailabilityZone,
   ConnectivityType,
@@ -38,9 +41,7 @@ import {
   Vpc,
   VpcState,
 } from './entity';
-import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
 import * as metadata from './module.json';
-import isEqual from 'lodash.isequal';
 
 const createSubnet = crudBuilder2<EC2, 'createSubnet'>('createSubnet', input => input);
 const getSubnet = crudBuilderFormat<EC2, 'describeSubnets', AwsSubnet | undefined>(

@@ -1,9 +1,10 @@
-import { IAM, paginateListRoles, Role as AWSRole } from '@aws-sdk/client-iam';
 import isEqual from 'lodash.isequal';
 
-import { Role } from './entity';
+import { IAM, paginateListRoles, Role as AWSRole } from '@aws-sdk/client-iam';
+
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
+import { Role } from './entity';
 import * as metadata from './module.json';
 
 const getRoleAttachedPoliciesArns = crudBuilderFormat<IAM, 'listAttachedRolePolicies', string[] | undefined>(

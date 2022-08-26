@@ -1,10 +1,10 @@
-import { AWS } from './aws';
 import { LogGroup } from '../aws_cloudwatch/entity';
 import { Repository } from '../aws_ecr/entity';
 import { Cluster, Service, TaskDefinition } from '../aws_ecs_fargate/entity';
 import { Listener, LoadBalancer, TargetGroup } from '../aws_elb/entity';
 import { Role } from '../aws_iam/entity';
 import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity';
+import { AWS } from './aws';
 
 const cloudDeleteFns = {
   securityGroup: (client: AWS, e: SecurityGroup) =>

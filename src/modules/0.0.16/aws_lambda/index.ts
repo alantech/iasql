@@ -1,13 +1,14 @@
+import isEqual from 'lodash.isequal';
+
 import {
   CreateFunctionCommandInput,
   GetFunctionResponse,
   UpdateFunctionCodeCommandInput,
   UpdateFunctionConfigurationCommandInput,
 } from '@aws-sdk/client-lambda';
-import isEqual from 'lodash.isequal';
 
-import * as metadata from './module.json';
 import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
+import { AwsIamModule } from '../aws_iam';
 import {
   addFunctionTags,
   AWS,
@@ -22,7 +23,7 @@ import {
   waitUntilFunctionUpdated,
 } from './aws';
 import { Architecture, LambdaFunction, PackageType, Runtime } from './entity';
-import { AwsIamModule } from '../aws_iam';
+import * as metadata from './module.json';
 
 const base64ToUint8Array = (base64: string) => {
   const buf = Buffer.from(base64, 'base64');

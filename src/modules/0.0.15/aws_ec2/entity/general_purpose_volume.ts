@@ -12,8 +12,8 @@ import {
 } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
-import { Instance } from '../entity';
 import { AvailabilityZone } from '../../aws_vpc/entity';
+import { Instance } from '../entity';
 
 export enum GeneralPurposeVolumeType {
   GP2 = 'gp2',

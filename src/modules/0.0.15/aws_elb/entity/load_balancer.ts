@@ -11,9 +11,9 @@ import {
   PrimaryColumn,
 } from 'typeorm';
 
+import { cloudId } from '../../../../services/cloud-id';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { Vpc } from '../../aws_vpc/entity';
-import { cloudId } from '../../../../services/cloud-id';
 
 export enum LoadBalancerSchemeEnum {
   INTERNAL = 'internal',

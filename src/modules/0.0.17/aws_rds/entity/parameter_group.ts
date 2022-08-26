@@ -1,5 +1,6 @@
-import { Parameter } from '@aws-sdk/client-rds';
 import { Column, Entity, PrimaryColumn } from 'typeorm';
+
+import { Parameter } from '@aws-sdk/client-rds';
 
 import { cloudId } from '../../../../services/cloud-id';
 

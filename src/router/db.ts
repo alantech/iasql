@@ -1,12 +1,12 @@
 import * as express from 'express';
-import { IasqlDatabase } from '../entity';
 
+import config from '../config';
+import { IasqlDatabase } from '../entity';
 import * as dbMan from '../services/db-manager';
 import * as iasql from '../services/iasql';
+import logger, { logErrSentry } from '../services/logger';
 import MetadataRepo from '../services/repositories/metadata';
 import * as telemetry from '../services/telemetry';
-import logger, { logErrSentry } from '../services/logger';
-import config from '../config';
 
 export const db = express.Router();
 

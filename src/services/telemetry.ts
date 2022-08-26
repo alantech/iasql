@@ -3,8 +3,8 @@ import * as sentry from '@sentry/node';
 
 import config, { IASQL_ENV } from '../config';
 import { throwError } from '../config/config';
-import logger from './logger';
 import { modules } from '../modules';
+import logger from './logger';
 
 const latest = modules[config.modules.latestVersion];
 

@@ -1,9 +1,9 @@
 import { EC2 } from '@aws-sdk/client-ec2';
 
+import { AwsVpcModule } from '..';
 import { AWS, crudBuilder2 } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { AvailabilityZone } from '../entity';
-import { AwsVpcModule } from '..';
 
 export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
   module: AwsVpcModule;

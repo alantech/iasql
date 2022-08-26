@@ -1,3 +1,5 @@
+import isEqual from 'lodash.isequal';
+
 import {
   S3,
   Bucket as BucketAWS,
@@ -6,9 +8,8 @@ import {
 } from '@aws-sdk/client-s3';
 
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
-import { Bucket } from './entity';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
-import isEqual from 'lodash.isequal';
+import { Bucket } from './entity';
 
 class BucketMapper extends MapperBase<Bucket> {
   module: AwsS3Module;

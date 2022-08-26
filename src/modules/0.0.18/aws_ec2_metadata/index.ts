@@ -5,10 +5,10 @@ import {
   paginateDescribeInstances,
 } from '@aws-sdk/client-ec2';
 
-import { awsEc2Module } from '../aws_ec2';
-import { Architecture, InstanceMetadata, RootDeviceType } from './entity';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { awsEc2Module } from '../aws_ec2';
+import { Architecture, InstanceMetadata, RootDeviceType } from './entity';
 
 class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
   module: AwsEc2MetadataModule;

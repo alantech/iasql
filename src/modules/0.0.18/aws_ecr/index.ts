@@ -7,8 +7,8 @@ import {
 
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import logger from '../../../services/logger';
-import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability } from './entity';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability } from './entity';
 
 class PublicRepositoryMapper extends MapperBase<PublicRepository> {
   module: AwsEcrModule;

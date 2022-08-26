@@ -7,8 +7,8 @@ import {
 
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import logger from '../../../services/logger';
-import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability } from './entity';
 import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
+import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability } from './entity';
 import * as metadata from './module.json';
 
 const createECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'createRepository', RepositoryAws | undefined>(

@@ -5,10 +5,10 @@ import {
   InstanceTypeInfo,
 } from '@aws-sdk/client-ec2';
 
-import { AwsEc2Module } from '../aws_ec2';
-import { Architecture, InstanceMetadata, RootDeviceType } from './entity';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
+import { AwsEc2Module } from '../aws_ec2';
+import { Architecture, InstanceMetadata, RootDeviceType } from './entity';
 import * as metadata from './module.json';
 
 const getInstanceType = crudBuilderFormat<EC2, 'describeInstanceTypes', InstanceTypeInfo | undefined>(

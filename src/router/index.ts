@@ -3,7 +3,6 @@ import jwt from 'express-jwt';
 import jwksRsa from 'jwks-rsa';
 
 import config from '../config';
-
 // routes
 import { db } from './db';
 

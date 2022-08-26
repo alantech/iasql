@@ -9,8 +9,8 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { TaskDefinition } from '.';
 
+import { TaskDefinition } from '.';
 import { LogGroup } from '../../aws_cloudwatch/entity';
 import { PublicRepository, Repository } from '../../aws_ecr/entity';
 

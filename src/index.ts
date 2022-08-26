@@ -1,14 +1,14 @@
-import 'reflect-metadata';
 import * as sentry from '@sentry/node';
 import cors from 'cors';
 import express from 'express';
+import 'reflect-metadata';
 import { inspect } from 'util';
 
-import * as scheduler from './services/scheduler-api';
-import MetadataRepo from './services/repositories/metadata';
 import config from './config';
-import logger from './services/logger';
 import { v1 } from './router';
+import logger from './services/logger';
+import MetadataRepo from './services/repositories/metadata';
+import * as scheduler from './services/scheduler-api';
 
 const port = config.http.port;
 const app = express();

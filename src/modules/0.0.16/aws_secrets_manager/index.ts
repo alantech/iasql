@@ -7,10 +7,11 @@ import {
   paginateListSecrets,
   SecretListEntry,
 } from '@aws-sdk/client-secrets-manager';
+
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
-import * as metadata from './module.json';
 import { Secret } from './entity/secret';
+import * as metadata from './module.json';
 
 const createSecret = crudBuilderFormat<SecretsManager, 'createSecret', string | undefined>(
   'createSecret',

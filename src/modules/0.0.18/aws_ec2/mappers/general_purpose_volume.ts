@@ -10,12 +10,12 @@ import {
 } from '@aws-sdk/client-ec2';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
-import { GeneralPurposeVolume, GeneralPurposeVolumeType, VolumeState } from '../entity';
-import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
-import { awsVpcModule } from '../..';
-import { updateTags, eqTags } from './tags';
 import { AwsEc2Module } from '..';
+import { awsVpcModule } from '../..';
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
+import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { GeneralPurposeVolume, GeneralPurposeVolumeType, VolumeState } from '../entity';
+import { updateTags, eqTags } from './tags';
 
 export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume> {
   module: AwsEc2Module;

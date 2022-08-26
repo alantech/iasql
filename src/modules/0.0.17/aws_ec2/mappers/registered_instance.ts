@@ -3,11 +3,12 @@ import {
   paginateDescribeTargetGroups,
   TargetTypeEnum,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { RegisteredInstance } from '../entity';
-import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
-import { awsElbModule } from '../../aws_elb';
+
 import { AwsEc2Module } from '..';
+import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
+import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { awsElbModule } from '../../aws_elb';
+import { RegisteredInstance } from '../entity';
 
 export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
   module: AwsEc2Module;

@@ -1,5 +1,6 @@
-import { EC2, Tag } from '@aws-sdk/client-ec2';
 import isEqual from 'lodash.isequal';
+
+import { EC2, Tag } from '@aws-sdk/client-ec2';
 
 export function eqTags(a: { [key: string]: string } | undefined, b: { [key: string]: string } | undefined) {
   return isEqual(a, b);

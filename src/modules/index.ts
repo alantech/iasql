@@ -1,5 +1,4 @@
 import fs from 'fs';
-
 import * as semver from 'semver';
 
 export const modules = Object.fromEntries(

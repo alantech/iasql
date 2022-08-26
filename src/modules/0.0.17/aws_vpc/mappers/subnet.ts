@@ -1,9 +1,9 @@
 import { EC2, Subnet as AwsSubnet, paginateDescribeSubnets } from '@aws-sdk/client-ec2';
 
+import { AwsVpcModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { Subnet, SubnetState } from '../entity';
-import { AwsVpcModule } from '..';
 
 export class SubnetMapper extends MapperBase<Subnet> {
   module: AwsVpcModule;

@@ -1,11 +1,11 @@
 import { ECS, TaskDefinition as AwsTaskDefinition, paginateListTaskDefinitions } from '@aws-sdk/client-ecs';
 
-import logger from '../../../../services/logger';
-import { AWS, crudBuilder2, crudBuilderFormat } from '../../../../services/aws_macros';
-import { ContainerDefinition, CpuMemCombination, TaskDefinition } from '../entity';
-import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { awsCloudwatchModule, awsEcrModule, awsIamModule } from '../..';
 import { AwsEcsFargateModule } from '..';
+import { awsCloudwatchModule, awsEcrModule, awsIamModule } from '../..';
+import { AWS, crudBuilder2, crudBuilderFormat } from '../../../../services/aws_macros';
+import logger from '../../../../services/logger';
+import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { ContainerDefinition, CpuMemCombination, TaskDefinition } from '../entity';
 
 export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
   module: AwsEcsFargateModule;

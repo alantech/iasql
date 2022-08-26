@@ -7,6 +7,7 @@ import {
   paginateListSecrets,
   CreateSecretCommandOutput,
 } from '@aws-sdk/client-secrets-manager';
+
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { Secret } from './entity/secret';

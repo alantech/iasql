@@ -1,3 +1,4 @@
+import { EC2 } from '@aws-sdk/client-ec2';
 import {
   Cluster as AwsCluster,
   ECS,
@@ -5,12 +6,11 @@ import {
   paginateListTasks,
   waitUntilTasksStopped,
 } from '@aws-sdk/client-ecs';
-import { EC2 } from '@aws-sdk/client-ec2';
 
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
-import { Cluster } from '../entity';
-import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { AwsEcsFargateModule } from '..';
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
+import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { Cluster } from '../entity';
 
 export class ClusterMapper extends MapperBase<Cluster> {
   module: AwsEcsFargateModule;

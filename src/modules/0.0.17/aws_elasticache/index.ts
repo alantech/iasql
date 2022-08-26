@@ -5,10 +5,11 @@ import {
   ElastiCache,
   paginateDescribeCacheClusters,
 } from '@aws-sdk/client-elasticache';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { CacheCluster, Engine } from './entity';
-import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
+
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { CacheCluster, Engine } from './entity';
 
 class CacheClusterMapper extends MapperBase<CacheCluster> {
   module: AwsElastiCacheModule;

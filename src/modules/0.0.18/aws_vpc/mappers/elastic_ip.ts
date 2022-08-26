@@ -1,9 +1,9 @@
 import { Address, AllocateAddressCommandInput, EC2, Tag } from '@aws-sdk/client-ec2';
 
+import { AwsVpcModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { ElasticIp } from '../entity';
-import { AwsVpcModule } from '..';
 import { eqTags, updateTags } from './tags';
 
 export class ElasticIpMapper extends MapperBase<ElasticIp> {

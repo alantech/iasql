@@ -9,10 +9,10 @@ import {
   paginateDescribeVpcEndpoints,
 } from '@aws-sdk/client-ec2';
 
+import { AwsVpcModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { EndpointGateway, EndpointGatewayService } from '../entity';
-import { AwsVpcModule } from '..';
 import { eqTags, updateTags } from './tags';
 
 export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {

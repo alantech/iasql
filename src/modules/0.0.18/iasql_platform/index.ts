@@ -1,5 +1,4 @@
 /* THIS MODULE IS A SPECIAL SNOWFLAKE. DON'T LOOK AT IT FOR HOW TO WRITE A REAL MODULE */
-
 import { ModuleBase } from '../../interfaces';
 import { IasqlModule, IasqlTables } from './entity';
 

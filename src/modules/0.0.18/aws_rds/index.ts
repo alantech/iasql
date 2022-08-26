@@ -14,10 +14,10 @@ import {
 } from '@aws-sdk/client-rds';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
-import { ParameterGroup, ParameterGroupFamily, RDS } from './entity';
-import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { awsSecurityGroupModule, awsVpcModule } from '..';
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { ParameterGroup, ParameterGroupFamily, RDS } from './entity';
 
 interface DBParameterGroupWParameters extends DBParameterGroup {
   Parameters: Parameter[];

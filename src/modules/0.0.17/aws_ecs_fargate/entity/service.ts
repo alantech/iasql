@@ -1,9 +1,9 @@
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryColumn } from 'typeorm';
 
 import { Cluster, TaskDefinition } from '.';
+import { cloudId } from '../../../../services/cloud-id';
 import { TargetGroup } from '../../aws_elb/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
-import { cloudId } from '../../../../services/cloud-id';
 
 export enum AssignPublicIp {
   DISABLED = 'DISABLED',

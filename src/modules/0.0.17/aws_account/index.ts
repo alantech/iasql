@@ -1,6 +1,6 @@
 import { AWS } from '../../../services/aws_macros';
-import { AwsAccountEntity } from './entity';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { AwsAccountEntity } from './entity';
 
 class AccountMapper extends MapperBase<AwsAccountEntity> {
   module: AwsAccount;

@@ -1,14 +1,11 @@
 import { Service as AwsService } from '@aws-sdk/client-ecs';
 
-import { AWS } from './aws';
 import logger from '../../../services/logger';
-import { EcsSimplified } from './entity';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
-import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity';
-import { Listener, LoadBalancer, TargetGroup } from '../aws_elb/entity';
+import { awsAccount } from '../aws_account';
 import { LogGroup } from '../aws_cloudwatch/entity';
 import { Repository } from '../aws_ecr/entity';
-import { Role } from '../aws_iam/entity';
+import { PublicRepository } from '../aws_ecr/entity';
 import {
   AssignPublicIp,
   Cluster,
@@ -17,11 +14,14 @@ import {
   Service,
   TaskDefinition,
 } from '../aws_ecs_fargate/entity';
-import { PublicRepository } from '../aws_ecr/entity';
+import { Listener, LoadBalancer, TargetGroup } from '../aws_elb/entity';
+import { Role } from '../aws_iam/entity';
+import { SecurityGroup, SecurityGroupRule } from '../aws_security_group/entity';
+import { AWS } from './aws';
 import cloudFns from './cloud_fns';
-import simplifiedMappers from './simplified_mappers';
+import { EcsSimplified } from './entity';
 import { generateResourceName, processImageFromString } from './helpers';
-import { awsAccount } from '../aws_account';
+import simplifiedMappers from './simplified_mappers';
 
 export type SimplifiedObjectMapped = {
   securityGroup: SecurityGroup;

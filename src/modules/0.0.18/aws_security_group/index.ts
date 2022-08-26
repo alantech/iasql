@@ -12,11 +12,11 @@ import {
 } from '@aws-sdk/client-ec2';
 
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
-import { SecurityGroup, SecurityGroupRule } from './entity';
+import logger from '../../../services/logger';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { awsVpcModule } from '../aws_vpc';
 import { Vpc } from '../aws_vpc/entity';
-import logger from '../../../services/logger';
+import { SecurityGroup, SecurityGroupRule } from './entity';
 
 class SecurityGroupMapper extends MapperBase<SecurityGroup> {
   module: AwsSecurityGroupModule;

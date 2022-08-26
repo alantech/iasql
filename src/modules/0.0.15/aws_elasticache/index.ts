@@ -7,11 +7,12 @@ import {
   DescribeCacheClustersCommandInput,
   ModifyCacheClusterCommandInput,
 } from '@aws-sdk/client-elasticache';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { CacheCluster, Engine } from './entity';
-import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
-import * as metadata from './module.json';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
+
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
+import { CacheCluster, Engine } from './entity';
+import * as metadata from './module.json';
 
 async function waitForClusterState(client: ElastiCache, clusterId: string, status: string) {
   const describeInput: DescribeCacheClustersCommandInput = {

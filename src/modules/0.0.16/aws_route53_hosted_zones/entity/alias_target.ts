@@ -1,4 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+
 import { LoadBalancer } from '../../aws_elb/entity';
 
 @Entity()

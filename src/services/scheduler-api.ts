@@ -1,10 +1,9 @@
 import childProcess from 'child_process';
 import { readdirSync } from 'fs';
-
 import { v4 as uuidv4 } from 'uuid';
 
-import * as scheduler from './scheduler';
 import logger from './logger';
+import * as scheduler from './scheduler';
 
 // We have to test the current directory if it's Typescript or Javascript. When running in `ts-node`
 // mode I do not expect childProcess to actually work, but also in that situation we don't need to

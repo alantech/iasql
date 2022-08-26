@@ -2,30 +2,30 @@
 // sense there. Need to think a bit more on that, but module manipulation that way could allow for
 // meta operations within the module code itself, if desirable.
 import { exec as execNode } from 'child_process';
-import { promisify } from 'util';
-import pg from 'pg';
-const exec = promisify(execNode);
-
 import * as levenshtein from 'fastest-levenshtein';
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
-import { createConnection } from 'typeorm';
-import { snakeCase } from 'typeorm/util/StringUtils';
-import { v4 as uuidv4 } from 'uuid';
+import pg from 'pg';
 import { parse, deparse } from 'pgsql-parser';
+import { createConnection } from 'typeorm';
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { snakeCase } from 'typeorm/util/StringUtils';
+import { promisify } from 'util';
+import { v4 as uuidv4 } from 'uuid';
 
-import { modules as AllModules } from '../modules';
-import * as dbMan from './db-manager';
-import * as scheduler from './scheduler-api';
-import MetadataRepo from './repositories/metadata';
 import config from '../config';
 import { throwError } from '../config/config';
-import logger, { debugObj } from './logger';
-import { Context, MapperInterface, ModuleInterface } from '../modules';
-import { DepError, lazyLoader } from './lazy-dep';
 import { IasqlDatabase } from '../entity';
-import { TypeormWrapper } from './typeorm';
+import { modules as AllModules } from '../modules';
+import { Context, MapperInterface, ModuleInterface } from '../modules';
+import * as dbMan from './db-manager';
 import { findDiff } from './diff';
+import { DepError, lazyLoader } from './lazy-dep';
+import logger, { debugObj } from './logger';
 import { sortModules } from './mod-sort';
+import MetadataRepo from './repositories/metadata';
+import * as scheduler from './scheduler-api';
+import { TypeormWrapper } from './typeorm';
+
+const exec = promisify(execNode);
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };

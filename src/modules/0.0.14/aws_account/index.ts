@@ -1,6 +1,6 @@
 import { AWS } from '../../../services/aws_macros';
-import { AwsAccountEntity } from './entity';
 import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
+import { AwsAccountEntity } from './entity';
 import * as metadata from './module.json';
 
 export const AwsAccount: Module2 = new Module2(

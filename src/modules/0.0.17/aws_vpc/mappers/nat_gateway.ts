@@ -9,10 +9,10 @@ import {
 } from '@aws-sdk/client-ec2';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
+import { AwsVpcModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { ElasticIp, NatGateway, NatGatewayState, ConnectivityType } from '../entity';
-import { AwsVpcModule } from '..';
 import { eqTags, updateTags } from './tags';
 
 export class NatGatewayMapper extends MapperBase<NatGateway> {

@@ -1,4 +1,5 @@
 import { Check, Column, Entity } from 'typeorm';
+
 import { CpuMemCombination } from '../../aws_ecs_fargate/entity';
 
 @Check(

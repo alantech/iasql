@@ -1,3 +1,4 @@
+import { EC2, DescribeNetworkInterfacesCommandInput } from '@aws-sdk/client-ec2';
 import {
   DescribeServicesCommandInput,
   ECS,
@@ -5,15 +6,14 @@ import {
   paginateListServices,
 } from '@aws-sdk/client-ecs';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
-import { EC2, DescribeNetworkInterfacesCommandInput } from '@aws-sdk/client-ec2';
 
-import logger from '../../../../services/logger';
-import { Subnet } from '../../aws_vpc/entity';
-import { AWS, crudBuilderFormat } from '../../../../services/aws_macros';
-import { Service } from '../entity';
-import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { awsElbModule, awsSecurityGroupModule, awsVpcModule } from '../..';
 import { AwsEcsFargateModule } from '..';
+import { awsElbModule, awsSecurityGroupModule, awsVpcModule } from '../..';
+import { AWS, crudBuilderFormat } from '../../../../services/aws_macros';
+import logger from '../../../../services/logger';
+import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { Subnet } from '../../aws_vpc/entity';
+import { Service } from '../entity';
 
 export class ServiceMapper extends MapperBase<Service> {
   module: AwsEcsFargateModule;

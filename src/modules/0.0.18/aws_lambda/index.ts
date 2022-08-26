@@ -1,12 +1,15 @@
+import isEqual from 'lodash.isequal';
+
 import {
   CreateFunctionCommandInput,
   GetFunctionResponse,
   UpdateFunctionCodeCommandInput,
   UpdateFunctionConfigurationCommandInput,
 } from '@aws-sdk/client-lambda';
-import isEqual from 'lodash.isequal';
 
+import { throwError } from '../../../config/config';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { awsIamModule } from '../aws_iam';
 import {
   addFunctionTags,
   AWS,
@@ -21,8 +24,6 @@ import {
   waitUntilFunctionUpdated,
 } from './aws';
 import { Architecture, LambdaFunction, PackageType, Runtime } from './entity';
-import { awsIamModule } from '../aws_iam';
-import { throwError } from '../../../config/config';
 
 class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
   module: AwsLambdaModule;

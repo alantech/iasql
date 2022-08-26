@@ -8,19 +8,10 @@ import {
   ModifyVolumeCommandInput,
 } from '@aws-sdk/client-ec2';
 
-import {
-  GeneralPurposeVolume,
-  GeneralPurposeVolumeType,
-  Instance,
-  RegisteredInstance,
-  State,
-  VolumeState,
-} from './entity';
-import { AwsSecurityGroupModule } from '../aws_security_group';
 import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
-import * as metadata from './module.json';
 import { AwsElbModule } from '../aws_elb';
 import { AwsIamModule } from '../aws_iam';
+import { AwsSecurityGroupModule } from '../aws_security_group';
 import { AwsVpcModule } from '../aws_vpc';
 import {
   AWS,
@@ -49,6 +40,15 @@ import {
   describeImages,
   getParameter,
 } from './aws';
+import {
+  GeneralPurposeVolume,
+  GeneralPurposeVolumeType,
+  Instance,
+  RegisteredInstance,
+  State,
+  VolumeState,
+} from './entity';
+import * as metadata from './module.json';
 
 export const AwsEc2Module: Module2 = new Module2(
   {

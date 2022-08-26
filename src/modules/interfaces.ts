@@ -1,8 +1,7 @@
+import callsite from 'callsite';
 import fs from 'fs';
 import path from 'path';
-
 import { QueryRunner, getMetadataArgsStorage } from 'typeorm';
-import callsite from 'callsite';
 
 import { throwError } from '../config/config';
 import { getCloudId } from '../services/cloud-id';

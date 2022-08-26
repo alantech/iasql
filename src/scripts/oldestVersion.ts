@@ -1,5 +1,4 @@
 import fs from 'fs';
-
 import * as semver from 'semver';
 
 /* tslint:disable no-console */

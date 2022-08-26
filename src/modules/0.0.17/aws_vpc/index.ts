@@ -1,3 +1,4 @@
+import { ModuleBase } from '../../interfaces';
 import {
   AvailabilityZoneMapper,
   ElasticIpMapper,
@@ -6,7 +7,6 @@ import {
   SubnetMapper,
   VpcMapper,
 } from './mappers';
-import { ModuleBase } from '../../interfaces';
 
 export class AwsVpcModule extends ModuleBase {
   subnet: SubnetMapper;

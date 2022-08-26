@@ -8,10 +8,10 @@ import {
 } from '@aws-sdk/client-ec2';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
+import { AwsVpcModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { Vpc, VpcState, Subnet } from '../entity';
-import { AwsVpcModule } from '..';
 import { eqTags, updateTags } from './tags';
 
 export class VpcMapper extends MapperBase<Vpc> {

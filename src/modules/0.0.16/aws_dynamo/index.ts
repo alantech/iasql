@@ -1,3 +1,6 @@
+import isequal from 'lodash.isequal';
+import pick from 'lodash.pick';
+
 import {
   CreateTableCommandInput,
   DynamoDB,
@@ -8,14 +11,12 @@ import {
   waitUntilTableNotExists,
 } from '@aws-sdk/client-dynamodb';
 import { WaiterOptions } from '@aws-sdk/util-waiter';
-import isequal from 'lodash.isequal';
-import pick from 'lodash.pick';
 
-import { AWS, crudBuilder2, paginateBuilder } from '../../../services/aws_macros';
-import { DynamoTable, TableClass } from './entity';
-import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
-import * as metadata from './module.json';
 import { throwError } from '../../../config/config';
+import { AWS, crudBuilder2, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
+import { DynamoTable, TableClass } from './entity';
+import * as metadata from './module.json';
 
 const getTable = crudBuilder2<DynamoDB, 'describeTable'>('describeTable', TableName => ({ TableName }));
 const listTables = paginateBuilder<DynamoDB>(paginateListTables, 'TableNames');

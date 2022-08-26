@@ -1,3 +1,4 @@
+import { EC2, DescribeNetworkInterfacesCommandInput } from '@aws-sdk/client-ec2';
 import {
   Cluster as AwsCluster,
   DescribeServicesCommandInput,
@@ -11,11 +12,7 @@ import {
   waitUntilTasksStopped,
 } from '@aws-sdk/client-ecs';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
-import { EC2, DescribeNetworkInterfacesCommandInput } from '@aws-sdk/client-ec2';
 
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
-import { Cluster, ContainerDefinition, CpuMemCombination, Service, TaskDefinition } from './entity';
-import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
 import {
   AwsEcrModule,
   AwsElbModule,
@@ -24,9 +21,12 @@ import {
   AwsCloudwatchModule,
   AwsVpcModule,
 } from '..';
-import * as metadata from './module.json';
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import logger from '../../../services/logger';
+import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
 import { Subnet } from '../aws_vpc/entity';
+import { Cluster, ContainerDefinition, CpuMemCombination, Service, TaskDefinition } from './entity';
+import * as metadata from './module.json';
 
 const createCluster = crudBuilderFormat<ECS, 'createCluster', AwsCluster | undefined>(
   'createCluster',

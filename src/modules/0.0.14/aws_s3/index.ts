@@ -1,3 +1,5 @@
+import isEqual from 'lodash.isequal';
+
 import {
   S3,
   Bucket as BucketAWS,
@@ -9,10 +11,9 @@ import {
 } from '@aws-sdk/client-s3';
 
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
-import { Bucket } from './entity';
 import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
+import { Bucket } from './entity';
 import * as metadata from './module.json';
-import isEqual from 'lodash.isequal';
 
 const getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
   'listBuckets',
