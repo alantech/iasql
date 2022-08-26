@@ -119,19 +119,19 @@ describe("Cloudfront Integration Testing", () => {
   );
 
   it(
-    "tries to update location",
+    "tries to update status",
     query(`
-  UPDATE distribution SET location='fake' WHERE caller_reference='${callerReference}';
+  UPDATE distribution SET status='fake' WHERE caller_reference='${callerReference}';
   `)
   );
 
-  it("applies the distribution id update", apply());
+  it("applies the status update", apply());
 
   it(
-    "checks that location has not been modified",
+    "checks that status has not been modified",
     query(
       `
-  SELECT * FROM distribution WHERE caller_reference='${callerReference}' AND location='fake';
+  SELECT * FROM distribution WHERE caller_reference='${callerReference}' AND status='fake';
 `,
       (res: any) => expect(res.length).toBe(0)
     )

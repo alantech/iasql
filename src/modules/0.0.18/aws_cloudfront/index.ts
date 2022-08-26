@@ -11,14 +11,15 @@ import { AWS, crudBuilder2, paginateBuilder, } from '../../../services/aws_macro
 import { Distribution, viewerProtocolPolicyEnum, } from './entity'
 import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
 import { WaiterOptions } from '@aws-sdk/util-waiter'
+import isEqual from 'lodash.isequal'
 
 class DistributionMapper extends MapperBase<Distribution> {
     module: AwsCloudfrontModule;
     entity = Distribution;
     equals = (a: Distribution, b: Distribution) =>
         Object.is(a.callerReference, b.callerReference) && Object.is(a.comment, b.comment) && Object.is(a.enabled, b.enabled) &&
-            Object.is(a.isIPV6Enabled, b.isIPV6Enabled) && Object.is(a.webACLId, b.webACLId) && Object.is(a.defaultCacheBehavior, b.defaultCacheBehavior)
-            && Object.is(a.origins, b.origins) && Object.is(a.eTag, b.eTag) && Object.is(a.status, b.status);
+            Object.is(a.isIPV6Enabled, b.isIPV6Enabled) && Object.is(a.webACLId, b.webACLId) && isEqual(a.defaultCacheBehavior, b.defaultCacheBehavior)
+            && isEqual(a.origins, b.origins) && Object.is(a.eTag, b.eTag) && Object.is(a.status, b.status);
 
     getDistribution = crudBuilder2<CloudFront, 'getDistribution'>(
       'getDistribution',
@@ -239,12 +240,24 @@ class DistributionMapper extends MapperBase<Distribution> {
           if (isUpdate) {
             // in the case of objects being modified, restore them
             if ((!Object.is(e.eTag, cloudRecord.eTag)) || (!Object.is(e.status, cloudRecord.status))) {
-              console.log("i am different on etag or status");
               cloudRecord.id = e.id;
               await this.module.distribution.db.update(cloudRecord, ctx);
               out.push(cloudRecord);
             } else {
-              console.log("i am different on other fields");
+              console.log("differences");
+              console.log("caller"+Object.is(cloudRecord.callerReference, e.callerReference));
+              console.log("comment"+Object.is(cloudRecord.comment, e.comment));
+              console.log("enabled"+Object.is(cloudRecord.enabled, e.enabled));
+              console.log("ipv6"+Object.is(cloudRecord.isIPV6Enabled, e.isIPV6Enabled));
+              console.log("acl"+Object.is(cloudRecord.webACLId, e.webACLId));
+              console.log("cache"+isEqual(cloudRecord.defaultCacheBehavior, e.defaultCacheBehavior));
+              console.log("origins"+isEqual(cloudRecord.origins, e.origins));
+              console.log("status"+Object.is(cloudRecord.status, e.status));
+
+              console.log("cache difference is");
+              console.log(cloudRecord.defaultCacheBehavior);
+              console.log(e.defaultCacheBehavior);
+
               if (!e.eTag) throw new Error("Cannot update a distribution without an etag");  // cannot update without etag
               const req = await this.getDistributionConfigForUpdate(client.cloudfrontClient, e);
 
