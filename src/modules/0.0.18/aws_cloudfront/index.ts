@@ -118,7 +118,27 @@ class DistributionMapper extends MapperBase<Distribution> {
       };
 
       return req;
+    }
 
+    transformDefaultCacheBehavior(cache:any) {
+      if (cache.TargetOriginId && cache.ViewerProtocolPolicy) {
+        const protocol: viewerProtocolPolicyEnum = cache.ViewerProtocolPolicy as viewerProtocolPolicyEnum;
+        const defaultCacheBehavior = {
+          TargetOriginId : cache.TargetOriginId,
+          ViewerProtocolPolicy: protocol,
+          CachePolicyId: cache.CachePolicyId,
+        }
+        return defaultCacheBehavior;
+      }
+      return undefined;
+    }
+
+    transformOrigins(origins:any[]) {
+      const finalOrigins: any[] = [];
+      origins?.forEach((origin) => {
+        finalOrigins.push(origin)
+      });
+      return finalOrigins;
     }
 
     distributionMapper (distribution: GetDistributionCommandOutput) {
@@ -133,22 +153,10 @@ class DistributionMapper extends MapperBase<Distribution> {
       out.status = distribution.Distribution?.Status;
 
       if (distribution.Distribution?.DistributionConfig?.DefaultCacheBehavior) {
-        const cache = distribution.Distribution?.DistributionConfig.DefaultCacheBehavior;
-        if (cache.TargetOriginId && cache.ViewerProtocolPolicy) {
-          const protocol: viewerProtocolPolicyEnum = cache.ViewerProtocolPolicy as viewerProtocolPolicyEnum;
-          out.defaultCacheBehavior = {
-            TargetOriginId : cache.TargetOriginId,
-            ViewerProtocolPolicy: protocol,
-            CachePolicyId: cache.CachePolicyId,
-          }
-        }
+        out.defaultCacheBehavior = this.transformDefaultCacheBehavior(distribution.Distribution.DistributionConfig.DefaultCacheBehavior)!;
       }
-      if (distribution.Distribution?.DistributionConfig?.Origins) {
-        const origins: any[] = [];
-        distribution.Distribution?.DistributionConfig.Origins.Items?.forEach((origin) => {
-          origins.push(origin)
-        });
-        out.origins = origins;
+      if (distribution.Distribution?.DistributionConfig?.Origins?.Items) {
+        out.origins = this.transformOrigins(distribution.Distribution.DistributionConfig.Origins.Items)!;
       }
       return out;
     };
@@ -187,6 +195,14 @@ class DistributionMapper extends MapperBase<Distribution> {
               newDistribution.id = e.id;
               newDistribution.location = res.Location;
               newDistribution.status = "Deployed";
+
+              // overwrite json fields as they can change
+              if (res.Distribution?.DistributionConfig?.DefaultCacheBehavior) {
+                newDistribution.defaultCacheBehavior = this.transformDefaultCacheBehavior(res.Distribution.DistributionConfig.DefaultCacheBehavior)!;
+              }
+              if (res.Distribution?.DistributionConfig?.Origins?.Items) {
+                newDistribution.origins = this.transformOrigins(res.Distribution.DistributionConfig.Origins.Items)!;
+              }
               await this.module.distribution.db.update(newDistribution, ctx);
               out.push(newDistribution);
             }
@@ -237,6 +253,15 @@ class DistributionMapper extends MapperBase<Distribution> {
                   const newDistribution = this.distributionMapper(res);
                   newDistribution.id = e.id;
                   newDistribution.status = "Deployed";
+
+                  // overwrite json fields as they can change
+                  if (res.Distribution?.DistributionConfig?.DefaultCacheBehavior) {
+                    newDistribution.defaultCacheBehavior = this.transformDefaultCacheBehavior(res.Distribution.DistributionConfig.DefaultCacheBehavior)!;
+                  }
+                  if (res.Distribution?.DistributionConfig?.Origins?.Items) {
+                    newDistribution.origins = this.transformOrigins(res.Distribution.DistributionConfig.Origins.Items)!;
+                  }
+
                   await this.module.distribution.db.update(newDistribution, ctx);
                   out.push(newDistribution);
               }
