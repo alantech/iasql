@@ -2,7 +2,7 @@ export function findDiff(
   dbEntities: any[],
   cloudEntities: any[],
   idGen: (e: any) => string,
-  comparator: (a: any, b: any) => boolean,
+  comparator: (a: any, b: any) => boolean
 ) {
   const entitiesInDbOnly: any[] = [];
   const entitiesInAwsOnly: any[] = [];

@@ -42,32 +42,32 @@ import * as metadata from './module.json';
 const createListener = crudBuilderFormat<ElasticLoadBalancingV2, 'createListener', ListenerAws | undefined>(
   'createListener',
   input => input,
-  res => res?.Listeners?.pop(),
+  res => res?.Listeners?.pop()
 );
 const getListener = crudBuilderFormat<ElasticLoadBalancingV2, 'describeListeners', ListenerAws | undefined>(
   'describeListeners',
   arn => ({ ListenerArns: [arn] }),
-  res => res?.Listeners?.[0],
+  res => res?.Listeners?.[0]
 );
 const getListenersForArn = paginateBuilder<ElasticLoadBalancingV2>(
   paginateDescribeListeners,
   'Listeners',
   undefined,
   undefined,
-  LoadBalancerArn => ({ LoadBalancerArn }),
+  LoadBalancerArn => ({ LoadBalancerArn })
 );
 const getListeners = async (client: ElasticLoadBalancingV2, loadBalancerArns: string[]) =>
   (await mapLin(loadBalancerArns, getListenersForArn.bind(null, client))).flat();
 const updateListener = crudBuilderFormat<ElasticLoadBalancingV2, 'modifyListener', ListenerAws | undefined>(
   'modifyListener',
   input => input,
-  res => res?.Listeners?.pop(),
+  res => res?.Listeners?.pop()
 );
 const deleteListener = crudBuilder2<ElasticLoadBalancingV2, 'deleteListener'>(
   'deleteListener',
   ListenerArn => ({
     ListenerArn,
-  }),
+  })
 );
 const getSubnets = paginateBuilder<EC2>(paginateDescribeSubnets, 'Subnets');
 const getLoadBalancer = crudBuilderFormat<
@@ -77,23 +77,23 @@ const getLoadBalancer = crudBuilderFormat<
 >(
   'describeLoadBalancers',
   arn => ({ LoadBalancerArns: [arn] }),
-  res => res?.LoadBalancers?.[0],
+  res => res?.LoadBalancers?.[0]
 );
 const getLoadBalancers = paginateBuilder<ElasticLoadBalancingV2>(
   paginateDescribeLoadBalancers,
-  'LoadBalancers',
+  'LoadBalancers'
 );
 const updateLoadBalancerIpAddressType = crudBuilder2<ElasticLoadBalancingV2, 'setIpAddressType'>(
   'setIpAddressType',
-  input => input,
+  input => input
 );
 const updateLoadBalancerSubnets = crudBuilder2<ElasticLoadBalancingV2, 'setSubnets'>(
   'setSubnets',
-  input => input,
+  input => input
 );
 const updateLoadBalancerSecurityGroups = crudBuilder2<ElasticLoadBalancingV2, 'setSecurityGroups'>(
   'setSecurityGroups',
-  input => input,
+  input => input
 );
 const getVpcs = paginateBuilder<EC2>(paginateDescribeVpcs, 'Vpcs');
 const createTargetGroup = crudBuilderFormat<
@@ -103,7 +103,7 @@ const createTargetGroup = crudBuilderFormat<
 >(
   'createTargetGroup',
   input => input,
-  res => res?.TargetGroups?.pop(),
+  res => res?.TargetGroups?.pop()
 );
 const getTargetGroup = crudBuilderFormat<
   ElasticLoadBalancingV2,
@@ -112,7 +112,7 @@ const getTargetGroup = crudBuilderFormat<
 >(
   'describeTargetGroups',
   arn => ({ TargetGroupArns: [arn] }),
-  res => res?.TargetGroups?.[0],
+  res => res?.TargetGroups?.[0]
 );
 const getTargetGroups = paginateBuilder<ElasticLoadBalancingV2>(paginateDescribeTargetGroups, 'TargetGroups');
 const updateTargetGroup = crudBuilderFormat<
@@ -122,11 +122,11 @@ const updateTargetGroup = crudBuilderFormat<
 >(
   'modifyTargetGroup',
   input => input,
-  res => res?.TargetGroups?.pop(),
+  res => res?.TargetGroups?.pop()
 );
 const deleteTargetGroup = crudBuilder2<ElasticLoadBalancingV2, 'deleteTargetGroup'>(
   'deleteTargetGroup',
-  TargetGroupArn => ({ TargetGroupArn }),
+  TargetGroupArn => ({ TargetGroupArn })
 );
 
 // TODO: Create a waiter macro function
@@ -158,14 +158,14 @@ async function createLoadBalancer(client: ElasticLoadBalancingV2, input: CreateL
       } catch (e: any) {
         return { state: WaiterState.RETRY };
       }
-    },
+    }
   );
   return loadBalancer;
 }
 // TODO: Really refactor the client access in this thing later
 async function deleteLoadBalancer(
   client: { elbClient: ElasticLoadBalancingV2; ec2client: EC2 },
-  arn: string,
+  arn: string
 ) {
   await client.elbClient.deleteLoadBalancer({ LoadBalancerArn: arn });
   // We wait it is completely deleted to avoid issues deleting dependent resources.
@@ -186,7 +186,7 @@ async function deleteLoadBalancer(
       } catch (_) {
         return { state: WaiterState.SUCCESS };
       }
-    },
+    }
   );
   // Now we need wait the load balancer to be fully deattached from any network interface
   const loadBalancerName = arn.split(':loadbalancer/')?.[1] ?? '';
@@ -217,7 +217,7 @@ async function deleteLoadBalancer(
       } catch (e) {
         return { state: WaiterState.RETRY };
       }
-    },
+    }
   );
 }
 
@@ -271,7 +271,7 @@ export const AwsElbModule: Module2 = new Module2(
           try {
             securityGroups.push(
               (await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg)) ??
-                (await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg)),
+                (await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg))
             );
           } catch (_) {
             // If security groups are misconfigured ignore them
@@ -459,7 +459,7 @@ export const AwsElbModule: Module2 = new Module2(
           Object.is(a.scheme, b.scheme) &&
           Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
           (a.securityGroups?.every(
-            asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId)),
+            asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))
           ) ??
             false) &&
           Object.is(a.state, b.state) &&
@@ -549,7 +549,7 @@ export const AwsElbModule: Module2 = new Module2(
                   });
                   const updatedLoadBalancer = await getLoadBalancer(
                     client.elbClient,
-                    e.loadBalancerArn ?? '',
+                    e.loadBalancerArn ?? ''
                   );
                   updatedRecord = AwsElbModule.utils.loadBalancerMapper(updatedLoadBalancer, ctx);
                 }
@@ -558,7 +558,7 @@ export const AwsElbModule: Module2 = new Module2(
                   !(
                     Object.is(cloudRecord.subnets?.length, e.subnets?.length) &&
                     (cloudRecord.subnets?.every(
-                      (csn: any) => !!e.subnets?.find(esn => Object.is(csn, esn)),
+                      (csn: any) => !!e.subnets?.find(esn => Object.is(csn, esn))
                     ) ??
                       false)
                   )
@@ -569,7 +569,7 @@ export const AwsElbModule: Module2 = new Module2(
                   });
                   const updatedLoadBalancer = await getLoadBalancer(
                     client.elbClient,
-                    e.loadBalancerArn ?? '',
+                    e.loadBalancerArn ?? ''
                   );
                   updatedRecord = AwsElbModule.utils.loadBalancerMapper(updatedLoadBalancer, ctx);
                 }
@@ -578,7 +578,7 @@ export const AwsElbModule: Module2 = new Module2(
                   !(
                     Object.is(cloudRecord.securityGroups?.length, e.securityGroups?.length) &&
                     (cloudRecord.securityGroups?.every(
-                      (csg: any) => !!e.securityGroups?.find(esg => Object.is(csg.groupId, esg.groupId)),
+                      (csg: any) => !!e.securityGroups?.find(esg => Object.is(csg.groupId, esg.groupId))
                     ) ??
                       false)
                   )
@@ -589,7 +589,7 @@ export const AwsElbModule: Module2 = new Module2(
                   });
                   const updatedLoadBalancer = await getLoadBalancer(
                     client.elbClient,
-                    e.loadBalancerArn ?? '',
+                    e.loadBalancerArn ?? ''
                   );
                   updatedRecord = AwsElbModule.utils.loadBalancerMapper(updatedLoadBalancer, ctx);
                 }
@@ -748,5 +748,5 @@ export const AwsElbModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

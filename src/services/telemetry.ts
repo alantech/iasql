@@ -41,7 +41,7 @@ async function logEvent(
   dbProps: DbProps,
   eventProps?: EventProps,
   uid?: string,
-  deviceId?: string,
+  deviceId?: string
 ) {
   if (!singleton) return;
   try {
@@ -84,7 +84,7 @@ export async function logOp(
   opType: IasqlOperationType,
   dbProps: DbProps,
   eventProps: EventProps,
-  uid: string,
+  uid: string
 ) {
   await logEvent(opType, dbProps, eventProps, uid);
 }

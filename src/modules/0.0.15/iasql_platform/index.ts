@@ -12,5 +12,5 @@ export const IasqlPlatform: Module2 = new Module2(
     },
     mappers: {},
   },
-  __dirname,
+  __dirname
 );

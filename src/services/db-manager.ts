@@ -22,7 +22,7 @@ export async function migrate(conn: Connection) {
   await iasqlFunctions.migrations.install(qr);
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_functions@${version}')`);
   await qr.query(
-    `INSERT INTO iasql_dependencies VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`,
+    `INSERT INTO iasql_dependencies VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`
   );
   await qr.release();
 }

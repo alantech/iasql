@@ -24,12 +24,12 @@ class CertificateMapper extends MapperBase<Certificate> {
   getCertificate = crudBuilderFormat<ACM, 'describeCertificate', CertificateDetail | undefined>(
     'describeCertificate',
     CertificateArn => ({ CertificateArn }),
-    res => res?.Certificate,
+    res => res?.Certificate
   );
   getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
   getCertificates(client: ACM) {
     return mapLin(this.getCertificatesSummary(client), (cert: any) =>
-      this.getCertificate(client, cert.CertificateArn),
+      this.getCertificate(client, cert.CertificateArn)
     );
   }
   // TODO: How to macro-ify this function, or should the waiting bit be another macro function and

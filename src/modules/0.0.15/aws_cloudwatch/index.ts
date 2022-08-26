@@ -8,7 +8,7 @@ import * as metadata from './module.json';
 const createLogGroup = crudBuilderFormat<CloudWatchLogs, 'createLogGroup', undefined>(
   'createLogGroup',
   logGroupName => ({ logGroupName }),
-  _lg => undefined,
+  _lg => undefined
 );
 const getLogGroups = paginateBuilder<CloudWatchLogs>(paginateDescribeLogGroups, 'logGroups');
 const getLogGroup = async (client: CloudWatchLogs, groupName: string) =>
@@ -16,7 +16,7 @@ const getLogGroup = async (client: CloudWatchLogs, groupName: string) =>
 const deleteLogGroup = crudBuilderFormat<CloudWatchLogs, 'deleteLogGroup', undefined>(
   'deleteLogGroup',
   logGroupName => ({ logGroupName }),
-  _lg => undefined,
+  _lg => undefined
 );
 
 export const AwsCloudwatchModule: Module2 = new Module2(
@@ -89,5 +89,5 @@ export const AwsCloudwatchModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

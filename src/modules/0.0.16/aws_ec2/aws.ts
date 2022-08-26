@@ -25,13 +25,13 @@ import { VolumeState } from './entity';
 export const getInstanceUserData = crudBuilderFormat<EC2, 'describeInstanceAttribute', string | undefined>(
   'describeInstanceAttribute',
   InstanceId => ({ Attribute: 'userData', InstanceId }),
-  res => res?.UserData?.Value,
+  res => res?.UserData?.Value
 );
 
 // TODO: Macro-ify the waiter usage
 export const newInstance = async (
   client: EC2,
-  newInstancesInput: RunInstancesCommandInput,
+  newInstancesInput: RunInstancesCommandInput
 ): Promise<string> => {
   const create = await client.runInstances(newInstancesInput);
   const instanceIds: string[] | undefined = create.Instances?.map(i => i?.InstanceId ?? '');
@@ -62,7 +62,7 @@ export const newInstance = async (
         if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
         throw e;
       }
-    },
+    }
   );
   return instanceIds?.pop() ?? '';
 };
@@ -128,7 +128,7 @@ export const startInstance = async (client: EC2, instanceId: string) => {
         if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.SUCCESS };
         throw e;
       }
-    },
+    }
   );
 };
 
@@ -163,14 +163,14 @@ export const stopInstance = async (client: EC2, instanceId: string, hibernate = 
         if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.SUCCESS };
         throw e;
       }
-    },
+    }
   );
 };
 
 export const terminateInstance = crudBuilderFormat<EC2, 'terminateInstances', undefined>(
   'terminateInstances',
   id => ({ InstanceIds: [id] }),
-  _res => undefined,
+  _res => undefined
 );
 
 export const registerInstance = crudBuilderFormat<ElasticLoadBalancingV2, 'registerTargets', undefined>(
@@ -185,12 +185,12 @@ export const registerInstance = crudBuilderFormat<ElasticLoadBalancingV2, 'regis
       Targets: [target],
     };
   },
-  _res => undefined,
+  _res => undefined
 );
 
 export const getTargetGroups = paginateBuilder<ElasticLoadBalancingV2>(
   paginateDescribeTargetGroups,
-  'TargetGroups',
+  'TargetGroups'
 );
 
 // TODO: Macro-ify this
@@ -208,7 +208,7 @@ export const getRegisteredInstances = async (client: ElasticLoadBalancingV2) => 
         targetGroupArn: tg.TargetGroupArn,
         instanceId: thd.Target?.Id,
         port: thd.Target?.Port,
-      })) ?? []),
+      })) ?? [])
     );
   }
   return out;
@@ -235,7 +235,7 @@ export const getRegisteredInstance = crudBuilderFormat<
         instanceId: thd.Target?.Id,
         port: thd.Target?.Port,
       })) ?? []),
-    ].pop(),
+    ].pop()
 );
 
 export const deregisterInstance = crudBuilderFormat<ElasticLoadBalancingV2, 'deregisterTargets', undefined>(
@@ -250,13 +250,13 @@ export const deregisterInstance = crudBuilderFormat<ElasticLoadBalancingV2, 'der
       Targets: [target],
     };
   },
-  _res => undefined,
+  _res => undefined
 );
 
 const createVolumeInternal = crudBuilderFormat<EC2, 'createVolume', string | undefined>(
   'createVolume',
   input => input,
-  res => res?.VolumeId,
+  res => res?.VolumeId
 );
 
 export const createVolume = async (client: EC2, input: CreateVolumeCommandInput) => {
@@ -287,13 +287,13 @@ export const getGeneralPurposeVolumes = paginateBuilder<EC2>(
         Values: ['available', 'in-use', 'error'],
       },
     ],
-  }),
+  })
 );
 
 export const getVolume = crudBuilderFormat<EC2, 'describeVolumes', AWSVolume | undefined>(
   'describeVolumes',
   VolumeId => ({ VolumeIds: [VolumeId] }),
-  res => res?.Volumes?.pop(),
+  res => res?.Volumes?.pop()
 );
 
 const getVolumesByInstanceIdInternal = crudBuilderFormat<EC2, 'describeVolumes', AWSVolume[] | undefined>(
@@ -306,7 +306,7 @@ const getVolumesByInstanceIdInternal = crudBuilderFormat<EC2, 'describeVolumes',
       },
     ],
   }),
-  res => res?.Volumes,
+  res => res?.Volumes
 );
 
 export const getVolumesByInstanceId = (client: EC2, instanceId: string) => {
@@ -332,7 +332,7 @@ const attachVolumeInternal = crudBuilder2<EC2, 'attachVolume'>(
     VolumeId,
     InstanceId,
     Device,
-  }),
+  })
 );
 
 export const attachVolume = async (client: EC2, VolumeId: string, InstanceId: string, Device: string) => {
@@ -351,7 +351,7 @@ export const detachVolume = async (client: EC2, VolumeId: string) => {
 const volumeWaiter = async (
   client: EC2,
   volumeId: string,
-  handleState: (vol: AWSVolume | undefined) => { state: WaiterState },
+  handleState: (vol: AWSVolume | undefined) => { state: WaiterState }
 ) => {
   return createWaiter<EC2, DescribeVolumesCommandInput>(
     {
@@ -372,7 +372,7 @@ const volumeWaiter = async (
       } catch (e: any) {
         throw e;
       }
-    },
+    }
   );
 };
 
@@ -433,7 +433,7 @@ export const waitUntilModificationsComplete = (client: EC2, volumeId: string) =>
       } catch (e: any) {
         throw e;
       }
-    },
+    }
   );
 };
 

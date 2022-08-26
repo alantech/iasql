@@ -5,7 +5,7 @@ export class awsAcmImport1652205924219 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "certificate_import" ("id" SERIAL NOT NULL, "certificate" character varying NOT NULL, "private_key" character varying NOT NULL, "chain" character varying, CONSTRAINT "PK_8cbbdc4878246d11a36a5639a04" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "certificate_import" ("id" SERIAL NOT NULL, "certificate" character varying NOT NULL, "private_key" character varying NOT NULL, "chain" character varying, CONSTRAINT "PK_8cbbdc4878246d11a36a5639a04" PRIMARY KEY ("id"))`
     );
   }
 

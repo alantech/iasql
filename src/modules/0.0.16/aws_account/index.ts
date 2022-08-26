@@ -52,7 +52,7 @@ class AwsAccount extends ModuleBase {
                   id,
                 },
               }
-            : undefined,
+            : undefined
         ),
       update: async (_e: AwsAccountEntity[], _ctx: Context) => {
         /* Do nothing */

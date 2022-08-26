@@ -48,7 +48,7 @@ export const AwsAcmImportModule: Module2 = new Module2(
               if (!importedCertArn) throw new Error('Error importing certificate');
               const importedCert = await AwsAcmListModule.mappers.certificate.cloud.read(
                 ctx,
-                importedCertArn,
+                importedCertArn
               );
               await AwsAcmImportModule.mappers.certificateImport.db.delete(e, ctx);
               try {
@@ -72,5 +72,5 @@ export const AwsAcmImportModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

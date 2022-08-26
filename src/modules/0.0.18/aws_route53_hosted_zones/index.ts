@@ -17,18 +17,18 @@ import { RecordType, ResourceRecordSet } from './entity/resource_records_set';
 const createHostedZone = crudBuilderFormat<Route53, 'createHostedZone', AwsHostedZone | undefined>(
   'createHostedZone',
   (Name, region) => ({ Name, CallerReference: `${region}-${Date.now()}` }),
-  res => res?.HostedZone,
+  res => res?.HostedZone
 );
 const getHostedZone = crudBuilderFormat<Route53, 'getHostedZone', AwsHostedZone | undefined>(
   'getHostedZone',
   Id => ({ Id }),
-  res => res?.HostedZone,
+  res => res?.HostedZone
 );
 const getHostedZones = paginateBuilder<Route53>(paginateListHostedZones, 'HostedZones');
 const deleteHostedZone = crudBuilderFormat<Route53, 'deleteHostedZone', ChangeInfo | undefined>(
   'deleteHostedZone',
   Id => ({ Id }),
-  res => res?.ChangeInfo,
+  res => res?.ChangeInfo
 );
 const createResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'>(
   'changeResourceRecordSets',
@@ -42,7 +42,7 @@ const createResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'
         },
       ],
     },
-  }),
+  })
 );
 const deleteResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'>(
   'changeResourceRecordSets',
@@ -56,7 +56,7 @@ const deleteResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'
         },
       ],
     },
-  }),
+  })
 );
 
 // TODO: Convert this to a paginate form once AWS supports pagination on this one (seriously!?)
@@ -144,14 +144,14 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
         // Attach new default record sets (NS and SOA) and delete old ones from db
         const dbRecords: ResourceRecordSet[] = await this.module.resourceRecordSet.db.read(ctx);
         const relevantDbRecords = dbRecords.filter(
-          rrs => rrs.parentHostedZone.id === cloudRecord.id && ['NS', 'SOA'].includes(rrs.recordType),
+          rrs => rrs.parentHostedZone.id === cloudRecord.id && ['NS', 'SOA'].includes(rrs.recordType)
         );
         await this.module.resourceRecordSet.db.delete(relevantDbRecords, ctx);
         const cloudRecords: ResourceRecordSet[] = await this.module.resourceRecordSet.cloud.read(ctx);
         const relevantCloudRecords = cloudRecords.filter(
           rrs =>
             rrs.parentHostedZone.hostedZoneId === newEntity.hostedZoneId &&
-            ['NS', 'SOA'].includes(rrs.recordType),
+            ['NS', 'SOA'].includes(rrs.recordType)
         );
         await this.module.resourceRecordSet.db.create(relevantCloudRecords, ctx);
         out.push(newEntity);
@@ -287,14 +287,14 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
         await createResourceRecordSet(
           client.route53Client,
           e.parentHostedZone.hostedZoneId,
-          resourceRecordSet,
+          resourceRecordSet
         );
         // Re-get the inserted record to get all of the relevant records we care about
         const newResourceRecordSet = await getRecord(
           client.route53Client,
           e.parentHostedZone.hostedZoneId,
           e.name,
-          e.recordType,
+          e.recordType
         );
         if (!newResourceRecordSet) continue;
         // We map this into the same kind of entity as `obj`
@@ -328,7 +328,7 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
       if (id) {
         const [recordType, recordName] = id.split('|');
         const record = resourceRecordSet.find(
-          (rrs: any) => Object.is(rrs.Name, recordName) && Object.is(rrs.Type, recordType),
+          (rrs: any) => Object.is(rrs.Name, recordName) && Object.is(rrs.Type, recordType)
         );
         if (record) return record;
       } else {
@@ -373,20 +373,20 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
         const dbHostedZone = await this.module.hostedZone.db.read(ctx, e.parentHostedZone.hostedZoneId);
         if (!!dbHostedZone && (Object.is(e.recordType, 'SOA') || Object.is(e.recordType, 'NS'))) {
           const recordsSet: ResourceRecordSet[] | undefined = await this.module.resourceRecordSet.db.read(
-            ctx,
+            ctx
           );
           let hasRecord;
           if (Object.is(e.recordType, 'SOA'))
             hasRecord = recordsSet?.some(
               r =>
                 Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId) &&
-                Object.is(r.recordType, 'SOA'),
+                Object.is(r.recordType, 'SOA')
             );
           if (Object.is(e.recordType, 'NS'))
             hasRecord = recordsSet?.some(
               r =>
                 Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId) &&
-                Object.is(r.recordType, 'NS'),
+                Object.is(r.recordType, 'NS')
             );
           // If theres no record we have to created it in database instead of delete it from cloud
           if (!hasRecord) {
@@ -414,7 +414,7 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
         await deleteResourceRecordSet(
           client.route53Client,
           e.parentHostedZone.hostedZoneId,
-          resourceRecordSet,
+          resourceRecordSet
         );
       }
     },

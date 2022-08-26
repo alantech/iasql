@@ -49,7 +49,7 @@ export const AwsAccount: Module2 = new Module2(
                       id,
                     },
                   }
-                : undefined,
+                : undefined
             ),
           update: async (_e: AwsAccountEntity[], _ctx: Context) => {
             /* Do nothing */
@@ -61,5 +61,5 @@ export const AwsAccount: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

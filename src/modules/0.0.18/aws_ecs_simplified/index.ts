@@ -73,7 +73,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
     out.appName =
       e.serviceName?.substring(
         e.serviceName.indexOf(prefix) + prefix.length,
-        e.serviceName.indexOf('-svc'),
+        e.serviceName.indexOf('-svc')
       ) ?? '';
     out.desiredCount = e.desiredCount ?? 1;
     const serviceLoadBalancer = e.loadBalancers?.pop() ?? {};
@@ -100,7 +100,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
       const appName =
         service.serviceName?.substring(
           service.serviceName.indexOf(prefix) + prefix.length,
-          service.serviceName.indexOf('-svc'),
+          service.serviceName.indexOf('-svc')
         ) ?? '';
       const client = (await getAwsClient(ctx)) as AWS;
       // Check if the cluster follow the name pattern
@@ -143,7 +143,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
         return false;
       // Get Security group
       const securityGroup = await client.getSecurityGroup(
-        service.networkConfiguration?.awsvpcConfiguration?.securityGroups?.[0] ?? '',
+        service.networkConfiguration?.awsvpcConfiguration?.securityGroups?.[0] ?? ''
       );
       // Check security group name pattern
       if (!Object.is(securityGroup.GroupName, generateResourceName(prefix, appName, 'SecurityGroup')))
@@ -174,7 +174,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
       if (roleAttachedPoliciesArns?.length !== 1) return false;
       // Get cloudwatch log group
       const logGroups = await client.getLogGroups(
-        containerDefinition?.logConfiguration?.options?.['awslogs-group'] ?? '',
+        containerDefinition?.logConfiguration?.options?.['awslogs-group'] ?? ''
       );
       if (logGroups.length !== 1) return false;
       // Check log group name pattern
@@ -209,7 +209,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
       taskDefinition,
       logGroup,
       e.imageTag,
-      e.imageDigest,
+      e.imageDigest
     );
     const service = this.simplifiedEntityMapper.service(
       prefix,
@@ -219,7 +219,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
       cluster,
       taskDefinition,
       targetGroup,
-      securityGroup,
+      securityGroup
     );
     const ecsSimplified: SimplifiedObjectMapped = {
       securityGroup,
@@ -299,7 +299,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
           await this.cloudFns.create.loadBalancer(
             client,
             simplifiedObjectMapped.loadBalancer,
-            defaultSubnets,
+            defaultSubnets
           );
           step = 'createLoadBalancer';
           // listener
@@ -319,7 +319,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
             client,
             simplifiedObjectMapped.taskDefinition,
             simplifiedObjectMapped.containerDefinition,
-            simplifiedObjectMapped.repository,
+            simplifiedObjectMapped.repository
           );
           step = 'createTaskDefinition';
           // service and serv sg
@@ -327,7 +327,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
             client,
             simplifiedObjectMapped.service,
             simplifiedObjectMapped.containerDefinition,
-            defaultSubnets,
+            defaultSubnets
           );
           step = 'createService';
           // Update ecs simplified record in database with the new load balancer dns
@@ -340,7 +340,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
           out.push(e);
         } catch (err: any) {
           logger.warn(
-            `Error creating ecs simplified resources. Rolling back on step ${step} with error: ${err.message}`,
+            `Error creating ecs simplified resources. Rolling back on step ${step} with error: ${err.message}`
           );
           // Rollback
           try {
@@ -364,7 +364,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
               case 'createSecurityGroupRules':
                 await this.cloudFns.delete.securityGroupRules(
                   client,
-                  simplifiedObjectMapped.securityGroupRules,
+                  simplifiedObjectMapped.securityGroupRules
                 );
               case 'createSecurityGroup':
                 await this.cloudFns.delete.securityGroup(client, simplifiedObjectMapped.securityGroup);
@@ -443,7 +443,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
             // We first check if a repositroy with the expected name exists.
             try {
               const repository = await client.getECRRepository(
-                simplifiedObjectMapped.repository?.repositoryName ?? '',
+                simplifiedObjectMapped.repository?.repositoryName ?? ''
               );
               if (!!repository) {
                 simplifiedObjectMapped.repository!.repositoryArn = repository.repositoryArn;
@@ -466,7 +466,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
             // Get current task definition from service
             const service = await client.getServiceByName(
               simplifiedObjectMapped.cluster.clusterName,
-              simplifiedObjectMapped.service.name,
+              simplifiedObjectMapped.service.name
             );
             const taskDefinition = await client.getTaskDefinition(service?.taskDefinition ?? '');
             simplifiedObjectMapped.taskDefinition.taskRole!.arn = taskDefinition?.taskRoleArn;
@@ -476,7 +476,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
               simplifiedObjectMapped.containerDefinition.image = e.repositoryUri;
             }
             const logGroup = await client.getLogGroups(
-              taskDefinition?.containerDefinitions?.[0]?.logConfiguration?.options?.['awslogs-group'],
+              taskDefinition?.containerDefinitions?.[0]?.logConfiguration?.options?.['awslogs-group']
             );
             simplifiedObjectMapped.logGroup.logGroupArn = logGroup[0].arn;
             // Create new task definition
@@ -484,7 +484,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
               client,
               simplifiedObjectMapped.taskDefinition,
               simplifiedObjectMapped.containerDefinition,
-              simplifiedObjectMapped.repository,
+              simplifiedObjectMapped.repository
             );
             if (!newTaskDefinition) continue;
             // Set new task definition ARN to service input object
@@ -513,7 +513,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
         const simplifiedObjectMapped: SimplifiedObjectMapped = this.getSimplifiedObjectMapped(e);
         const service = await client.getServiceByName(
           simplifiedObjectMapped.cluster.clusterName,
-          simplifiedObjectMapped.service.name,
+          simplifiedObjectMapped.service.name
         );
         simplifiedObjectMapped.cluster.clusterArn = service?.clusterArn;
         simplifiedObjectMapped.securityGroup.groupId =
@@ -523,7 +523,7 @@ class EcsSimplifiedMapper extends MapperBase<EcsSimplified> {
         // Find load balancer
         simplifiedObjectMapped.targetGroup.targetGroupArn = serviceLoadBalancer?.targetGroupArn;
         const targetGroup = await client.getTargetGroup(
-          simplifiedObjectMapped.targetGroup.targetGroupArn ?? '',
+          simplifiedObjectMapped.targetGroup.targetGroupArn ?? ''
         );
         simplifiedObjectMapped.loadBalancer.loadBalancerArn = targetGroup?.LoadBalancerArns?.pop();
         await this.cloudFns.delete.service(client, simplifiedObjectMapped.service);

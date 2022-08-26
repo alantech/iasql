@@ -32,18 +32,18 @@ export class ClusterMapper extends MapperBase<Cluster> {
   createCluster = crudBuilderFormat<ECS, 'createCluster', AwsCluster | undefined>(
     'createCluster',
     input => input,
-    res => res?.cluster,
+    res => res?.cluster
   );
   getCluster = crudBuilderFormat<ECS, 'describeClusters', AwsCluster | undefined>(
     'describeClusters',
     id => ({ clusters: [id] }),
-    res => res?.clusters?.[0],
+    res => res?.clusters?.[0]
   );
   getClusterArns = paginateBuilder<ECS>(paginateListClusters, 'clusterArns');
   getClustersCore = crudBuilderFormat<ECS, 'describeClusters', AwsCluster[]>(
     'describeClusters',
     input => input,
-    res => res?.clusters ?? [],
+    res => res?.clusters ?? []
   );
   getClusters = async (client: ECS) =>
     this.getClustersCore(client, { clusters: await this.getClusterArns(client) });
@@ -62,7 +62,7 @@ export class ClusterMapper extends MapperBase<Cluster> {
         client,
         pageSize: 25,
       },
-      input,
+      input
     );
     for await (const page of paginator) {
       tasksArns.push(...(page.taskArns ?? []));
@@ -98,7 +98,7 @@ export class ClusterMapper extends MapperBase<Cluster> {
         {
           cluster: id,
           tasks,
-        },
+        }
       );
     }
     await this.deleteClusterCore(client.ecsClient, {

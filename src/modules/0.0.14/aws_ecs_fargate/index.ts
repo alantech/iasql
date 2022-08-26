@@ -31,18 +31,18 @@ import * as metadata from './module.json';
 const createCluster = crudBuilderFormat<ECS, 'createCluster', AwsCluster | undefined>(
   'createCluster',
   input => input,
-  res => res?.cluster,
+  res => res?.cluster
 );
 const getCluster = crudBuilderFormat<ECS, 'describeClusters', AwsCluster | undefined>(
   'describeClusters',
   id => ({ clusters: [id] }),
-  res => res?.clusters?.[0],
+  res => res?.clusters?.[0]
 );
 const getClusterArns = paginateBuilder<ECS>(paginateListClusters, 'clusterArns');
 const getClustersCore = crudBuilderFormat<ECS, 'describeClusters', AwsCluster[]>(
   'describeClusters',
   input => input,
-  res => res?.clusters ?? [],
+  res => res?.clusters ?? []
 );
 const getClusters = async (client: ECS) =>
   getClustersCore(client, { clusters: await getClusterArns(client) });
@@ -50,31 +50,31 @@ const deleteClusterCore = crudBuilder2<ECS, 'deleteCluster'>('deleteCluster', in
 const updateService = crudBuilderFormat<ECS, 'updateService', AwsService | undefined>(
   'updateService',
   input => input,
-  res => res?.service,
+  res => res?.service
 );
 const createTaskDefinition = crudBuilderFormat<ECS, 'registerTaskDefinition', AwsTaskDefinition | undefined>(
   'registerTaskDefinition',
   input => input,
-  res => res?.taskDefinition,
+  res => res?.taskDefinition
 );
 const getTaskDefinition = crudBuilderFormat<ECS, 'describeTaskDefinition', AwsTaskDefinition | undefined>(
   'describeTaskDefinition',
   taskDefinition => ({ taskDefinition }),
-  res => res?.taskDefinition,
+  res => res?.taskDefinition
 );
 const deleteTaskDefinition = crudBuilder2<ECS, 'deregisterTaskDefinition'>(
   'deregisterTaskDefinition',
-  taskDefinition => ({ taskDefinition }),
+  taskDefinition => ({ taskDefinition })
 );
 const createService = crudBuilderFormat<ECS, 'createService', AwsService | undefined>(
   'createService',
   input => input,
-  res => res?.service,
+  res => res?.service
 );
 const getService = crudBuilderFormat<ECS, 'describeServices', AwsService | undefined>(
   'describeServices',
   (id, cluster) => ({ services: [id], cluster }),
-  res => res?.services?.[0],
+  res => res?.services?.[0]
 );
 
 // TODO: This a whole lot of tangled business logic baked into these functions. It may make sense to
@@ -90,7 +90,7 @@ async function getServices(client: ECS, clusterIds: string[]) {
       {
         cluster: id,
         maxResults: 100,
-      },
+      }
     );
     for await (const page of paginator) {
       serviceArns.push(...(page.serviceArns ?? []));
@@ -130,7 +130,7 @@ async function getTasksArns(client: ECS, cluster: string, serviceName?: string) 
       client,
       pageSize: 25,
     },
-    input,
+    input
   );
   for await (const page of paginator) {
     tasksArns.push(...(page.taskArns ?? []));
@@ -141,7 +141,7 @@ async function deleteService(
   client: { ecsClient: ECS; ec2client: EC2 },
   name: string,
   cluster: string,
-  tasksArns: string[],
+  tasksArns: string[]
 ) {
   await client.ecsClient.deleteService({
     service: name,
@@ -168,7 +168,7 @@ async function deleteService(
       } else {
         return { state: WaiterState.SUCCESS };
       }
-    },
+    }
   );
   try {
     const tasks = await client.ecsClient.describeTasks({ tasks: tasksArns, cluster });
@@ -202,7 +202,7 @@ async function deleteService(
           } catch (e) {
             return { state: WaiterState.RETRY };
           }
-        },
+        }
       );
     }
   } catch (_) {
@@ -239,7 +239,7 @@ async function deleteCluster(client: { ecsClient: ECS; ec2client: EC2 }, id: str
       {
         cluster: id,
         tasks,
-      },
+      }
     );
   }
   await deleteClusterCore(client.ecsClient, {
@@ -256,7 +256,7 @@ async function getTaskDefinitions(client: ECS) {
     {
       status: 'ACTIVE',
       maxResults: 100,
-    },
+    }
   );
   for await (const page of activePaginator) {
     activeTaskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
@@ -266,7 +266,7 @@ async function getTaskDefinitions(client: ECS) {
   const services =
     (await getServices(
       client,
-      clusters.map(c => c.clusterArn!),
+      clusters.map(c => c.clusterArn!)
     )) ?? [];
   const servicesTasks = services.map(s => s.taskDefinition!) ?? [];
   for (const st of servicesTasks) {
@@ -308,7 +308,7 @@ async function deleteServiceOnly(client: ECS, name: string, cluster: string) {
       } else {
         return { state: WaiterState.SUCCESS };
       }
-    },
+    }
   );
 }
 
@@ -483,7 +483,7 @@ export const AwsEcsFargateModule: Module2 = new Module2(
           for (const sg of cloudSecurityGroups) {
             securityGroups.push(
               (await AwsSecurityGroupModule.mappers.securityGroup.db.read(ctx, sg)) ??
-                (await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg)),
+                (await AwsSecurityGroupModule.mappers.securityGroup.cloud.read(ctx, sg))
             );
           }
           if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length)
@@ -513,9 +513,8 @@ export const AwsEcsFargateModule: Module2 = new Module2(
         Object.keys(a.envVariables ?? {}).every(
           (aevk: string) =>
             !!Object.keys(b.envVariables ?? {}).find(
-              (bevk: string) =>
-                Object.is(aevk, bevk) && Object.is(a.envVariables[aevk], b.envVariables[bevk]),
-            ),
+              (bevk: string) => Object.is(aevk, bevk) && Object.is(a.envVariables[aevk], b.envVariables[bevk])
+            )
         ) &&
         Object.is(a.essential, b.essential) &&
         Object.is(a.logGroup?.logGroupArn, b.logGroup?.logGroupArn) &&
@@ -624,7 +623,7 @@ export const AwsEcsFargateModule: Module2 = new Module2(
           Object.is(a.taskRole?.arn, b.taskRole?.arn) &&
           Object.is(a.containerDefinitions.length, b.containerDefinitions.length) &&
           a.containerDefinitions.every(
-            ac => !!b.containerDefinitions.find(bc => AwsEcsFargateModule.utils.containersEq(ac, bc)),
+            ac => !!b.containerDefinitions.find(bc => AwsEcsFargateModule.utils.containersEq(ac, bc))
           ),
         source: 'db',
         cloud: new Crud2({
@@ -690,7 +689,7 @@ export const AwsEcsFargateModule: Module2 = new Module2(
                 throw new Error(
                   `Task definition ${e.family}${
                     e.revision ? `:${e.revision}` : ''
-                  } does not have any container associated.`,
+                  } does not have any container associated.`
                 );
               const input: any = {
                 family: e.family,
@@ -745,7 +744,7 @@ export const AwsEcsFargateModule: Module2 = new Module2(
               return await AwsEcsFargateModule.utils.taskDefinitionMapper(rawTaskDef, ctx);
             } else {
               const taskDefs = ((await getTaskDefinitions(client.ecsClient)).taskDefinitions ?? []).filter(
-                td => td.compatibilities.includes('FARGATE'),
+                td => td.compatibilities.includes('FARGATE')
               );
               const tds = [];
               for (const td of taskDefs) {
@@ -795,7 +794,7 @@ export const AwsEcsFargateModule: Module2 = new Module2(
                 if (e.status === 'INACTIVE') {
                   const dbTd = await AwsEcsFargateModule.mappers.taskDefinition.db.read(
                     ctx,
-                    e.taskDefinitionArn,
+                    e.taskDefinitionArn
                   );
                   // Temporarily create again the task definition inactive if deleted from DB to avoid infinite loops.
                   // ? Eventually, forbid task definitons to be deleted from database.
@@ -829,7 +828,7 @@ export const AwsEcsFargateModule: Module2 = new Module2(
           Object.is(a?.assignPublicIp, b?.assignPublicIp) &&
           Object.is(a?.securityGroups?.length, b?.securityGroups?.length) &&
           (a?.securityGroups?.every(
-            asg => !!b?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId)),
+            asg => !!b?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))
           ) ??
             false) &&
           Object.is(a?.subnets?.length, b?.subnets?.length) &&
@@ -904,7 +903,7 @@ export const AwsEcsFargateModule: Module2 = new Module2(
                 : await AwsEcsFargateModule.mappers.cluster.cloud.read(ctx);
               const result = await getServices(
                 client.ecsClient,
-                clusters?.map((c: any) => c.clusterArn) ?? [],
+                clusters?.map((c: any) => c.clusterArn) ?? []
               );
               // Make sure we just handle FARGATE services
               const fargateResult = result.filter(s => s.launchType === 'FARGATE');
@@ -924,7 +923,7 @@ export const AwsEcsFargateModule: Module2 = new Module2(
                 Object.is(prev?.assignPublicIp, next?.assignPublicIp) &&
                 Object.is(prev?.securityGroups?.length, next?.securityGroups?.length) &&
                 (prev?.securityGroups?.every(
-                  asg => !!next?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId)),
+                  asg => !!next?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))
                 ) ??
                   false) &&
                 Object.is(prev?.subnets?.length, next?.subnets?.length) &&
@@ -1002,5 +1001,5 @@ export const AwsEcsFargateModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname,
+  __dirname
 );

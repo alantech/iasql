@@ -21,13 +21,13 @@ class RoleMapper extends MapperBase<Role> {
   getRoleAttachedPoliciesArns = crudBuilderFormat<IAM, 'listAttachedRolePolicies', string[] | undefined>(
     'listAttachedRolePolicies',
     RoleName => ({ RoleName }),
-    res => (res?.AttachedPolicies?.length ? res.AttachedPolicies.map(p => p.PolicyArn ?? '') : undefined),
+    res => (res?.AttachedPolicies?.length ? res.AttachedPolicies.map(p => p.PolicyArn ?? '') : undefined)
   );
 
   createNewRole = crudBuilderFormat<IAM, 'createRole', string>(
     'createRole',
     input => input,
-    res => res?.Role?.Arn ?? '',
+    res => res?.Role?.Arn ?? ''
   );
 
   attachRolePolicy = crudBuilder2<IAM, 'attachRolePolicy'>('attachRolePolicy', (RoleName, PolicyArn) => ({
@@ -42,7 +42,7 @@ class RoleMapper extends MapperBase<Role> {
     'createInstanceProfile',
     InstanceProfileName => ({
       InstanceProfileName,
-    }),
+    })
   );
 
   attachRoleToInstanceProfile = crudBuilder2<IAM, 'addRoleToInstanceProfile'>(
@@ -50,14 +50,14 @@ class RoleMapper extends MapperBase<Role> {
     RoleName => ({
       InstanceProfileName: RoleName,
       RoleName,
-    }),
+    })
   );
 
   deleteInstanceProfile = crudBuilder2<IAM, 'deleteInstanceProfile'>(
     'deleteInstanceProfile',
     InstanceProfileName => ({
       InstanceProfileName,
-    }),
+    })
   );
 
   detachRoleToInstanceProfile = crudBuilder2<IAM, 'removeRoleFromInstanceProfile'>(
@@ -65,13 +65,13 @@ class RoleMapper extends MapperBase<Role> {
     RoleName => ({
       InstanceProfileName: RoleName,
       RoleName,
-    }),
+    })
   );
 
   getRole = crudBuilderFormat<IAM, 'getRole', AWSRole | undefined>(
     'getRole',
     RoleName => ({ RoleName }),
-    res => res?.Role,
+    res => res?.Role
   );
 
   getAllRoles = paginateBuilder<IAM>(paginateListRoles, 'Roles');
@@ -81,7 +81,7 @@ class RoleMapper extends MapperBase<Role> {
     (RoleName, PolicyDocument) => ({
       RoleName,
       PolicyDocument,
-    }),
+    })
   );
 
   updateRoleDescription = crudBuilder2<IAM, 'updateRole'>('updateRole', (RoleName, Description?) => ({
@@ -159,7 +159,7 @@ class RoleMapper extends MapperBase<Role> {
   }
   allowEc2Service(a: Role) {
     return a.assumeRolePolicyDocument?.Statement?.find(
-      (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com',
+      (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com'
     );
   }
 
@@ -228,7 +228,7 @@ class RoleMapper extends MapperBase<Role> {
           await this.updateRoleAssumePolicy(
             client.iamClient,
             e.roleName,
-            JSON.stringify(e.assumeRolePolicyDocument),
+            JSON.stringify(e.assumeRolePolicyDocument)
           );
           const eAllowEc2Service = this.allowEc2Service(e);
           const cloudRecordAllowEc2Service = this.allowEc2Service(cloudRecord);
@@ -276,7 +276,7 @@ class RoleMapper extends MapperBase<Role> {
             await this.detachRolePolicies(
               client.iamClient,
               entity.roleName,
-              entity.attachedPoliciesArns ?? [],
+              entity.attachedPoliciesArns ?? []
             );
             await this.deleteRole(client.iamClient, entity.roleName);
           }

@@ -19,7 +19,7 @@ export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
           Values: [region],
         },
       ],
-    }),
+    })
   );
 
   cloud = new Crud2({

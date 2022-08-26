@@ -54,7 +54,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
         } catch (e: any) {
           throw e;
         }
-      },
+      }
     );
     return out;
   }
@@ -71,7 +71,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
   getCacheCluster = crudBuilderFormat<ElastiCache, 'describeCacheClusters', CacheClusterAWS | undefined>(
     'describeCacheClusters',
     id => ({ CacheClusterId: id }),
-    res => res?.CacheClusters?.[0],
+    res => res?.CacheClusters?.[0]
   );
   getCacheClusters = paginateBuilder<ElastiCache>(paginateDescribeCacheClusters, 'CacheClusters');
   deleteCacheCluster = crudBuilder2<ElastiCache, 'deleteCacheCluster'>('deleteCacheCluster', input => input);
@@ -96,7 +96,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
         };
         const res: CacheClusterAWS | undefined = await this.createCacheCluster(
           client.elasticacheClient,
-          input,
+          input
         );
         if (res) {
           const newCluster = this.cacheClusterMapper(res);
@@ -135,7 +135,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
         const cloudRecord = ctx?.memo?.cloud?.CacheCluster?.[cluster.clusterId ?? ''];
         const isUpdate = Object.is(
           this.module.cacheCluster.cloud.updateOrReplace(cloudRecord, cluster),
-          'update',
+          'update'
         );
         if (!isUpdate) {
           // we cannot modify the engine, restore
@@ -161,7 +161,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
             };
             const res: CacheClusterAWS | undefined = await this.createCacheCluster(
               client.elasticacheClient,
-              input,
+              input
             );
             if (res) {
               const newCluster = this.cacheClusterMapper(res);

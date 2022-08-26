@@ -32,7 +32,7 @@ export enum NatGatewayState {
 
 @Check(
   'Check_elastic_ip_when_public',
-  `("elastic_ip_id" is not null AND "connectivity_type" = 'public') OR "elastic_ip_id" is null`,
+  `("elastic_ip_id" is not null AND "connectivity_type" = 'public') OR "elastic_ip_id" is null`
 )
 @Entity()
 export class NatGateway {
