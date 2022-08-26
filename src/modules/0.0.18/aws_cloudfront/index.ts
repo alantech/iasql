@@ -239,10 +239,12 @@ class DistributionMapper extends MapperBase<Distribution> {
           if (isUpdate) {
             // in the case of objects being modified, restore them
             if ((!Object.is(e.eTag, cloudRecord.eTag)) || (!Object.is(e.status, cloudRecord.status))) {
+              console.log("i am different on etag or status");
               cloudRecord.id = e.id;
               await this.module.distribution.db.update(cloudRecord, ctx);
               out.push(cloudRecord);
             } else {
+              console.log("i am different on other fields");
               if (!e.eTag) throw new Error("Cannot update a distribution without an etag");  // cannot update without etag
               const req = await this.getDistributionConfigForUpdate(client.cloudfrontClient, e);
 
