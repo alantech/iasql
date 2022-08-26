@@ -1,4 +1,5 @@
 import { ACM, } from '@aws-sdk/client-acm'
+import { CloudFront } from '@aws-sdk/client-cloudfront'
 import { CloudWatchLogs, } from '@aws-sdk/client-cloudwatch-logs'
 import { DynamoDB, } from '@aws-sdk/client-dynamodb'
 import { EC2, } from '@aws-sdk/client-ec2'
@@ -56,11 +57,13 @@ export class AWS {
   lambdaClient: Lambda
   elasticacheClient: ElastiCache
   secretsClient: SecretsManager
+  cloudfrontClient: CloudFront
   memoryDBClient: MemoryDB
 
   constructor(config: AWSConfig) {
     this.region = config.region;
     this.acmClient = new ACM(config);
+    this.cloudfrontClient = new CloudFront(config);
     this.cwClient = new CloudWatchLogs(config);
     this.dynamoClient = new DynamoDB(config);
     this.elasticacheClient = new ElastiCache(config);
