@@ -16,18 +16,18 @@ import * as metadata from './module.json';
 const createHostedZone = crudBuilderFormat<Route53, 'createHostedZone', AwsHostedZone | undefined>(
   'createHostedZone',
   (Name, region) => ({ Name, CallerReference: `${region}-${Date.now()}` }),
-  res => res?.HostedZone
+  res => res?.HostedZone,
 );
 const getHostedZone = crudBuilderFormat<Route53, 'getHostedZone', AwsHostedZone | undefined>(
   'getHostedZone',
   Id => ({ Id }),
-  res => res?.HostedZone
+  res => res?.HostedZone,
 );
 const getHostedZones = paginateBuilder<Route53>(paginateListHostedZones, 'HostedZones');
 const deleteHostedZone = crudBuilderFormat<Route53, 'deleteHostedZone', ChangeInfo | undefined>(
   'deleteHostedZone',
   Id => ({ Id }),
-  res => res?.ChangeInfo
+  res => res?.ChangeInfo,
 );
 const createResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'>(
   'changeResourceRecordSets',
@@ -41,7 +41,7 @@ const createResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'
         },
       ],
     },
-  })
+  }),
 );
 const deleteResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'>(
   'changeResourceRecordSets',
@@ -55,7 +55,7 @@ const deleteResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'
         },
       ],
     },
-  })
+  }),
 );
 
 // TODO: Convert this to a paginate form once AWS supports pagination on this one (seriously!?)
@@ -90,7 +90,9 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2(
           // TODO: improve implementation
           let loadBalancer;
           const cleanAliasDns =
-            at.DNSName[at.DNSName.length - 1] === '.' ? at.DNSName.substring(0, at.DNSName.length - 1) : at.DNSName;
+            at.DNSName[at.DNSName.length - 1] === '.'
+              ? at.DNSName.substring(0, at.DNSName.length - 1)
+              : at.DNSName;
           const dbLoadBalancers = await AwsElbModule.mappers.loadBalancer.db.read(ctx);
           loadBalancer = dbLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
           if (!loadBalancer) {
@@ -193,18 +195,18 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2(
               newEntity.id = cloudRecord.id;
               await AwsRoute53HostedZoneModule.mappers.hostedZone.db.update(newEntity, ctx);
               // Attach new default record sets (NS and SOA) and delete old ones from db
-              const dbRecords: ResourceRecordSet[] = await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.read(
-                ctx
-              );
+              const dbRecords: ResourceRecordSet[] =
+                await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.read(ctx);
               const relevantDbRecords = dbRecords.filter(
-                rrs => rrs.parentHostedZone.id === cloudRecord.id && ['NS', 'SOA'].includes(rrs.recordType)
+                rrs => rrs.parentHostedZone.id === cloudRecord.id && ['NS', 'SOA'].includes(rrs.recordType),
               );
               await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.delete(relevantDbRecords, ctx);
               const cloudRecords: ResourceRecordSet[] =
                 await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.cloud.read(ctx);
               const relevantCloudRecords = cloudRecords.filter(
                 rrs =>
-                  rrs.parentHostedZone.hostedZoneId === newEntity.hostedZoneId && ['NS', 'SOA'].includes(rrs.recordType)
+                  rrs.parentHostedZone.hostedZoneId === newEntity.hostedZoneId &&
+                  ['NS', 'SOA'].includes(rrs.recordType),
               );
               await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.db.create(relevantCloudRecords, ctx);
               out.push(newEntity);
@@ -227,7 +229,10 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2(
           Object.is(a.recordType, b.recordType) &&
           Object.is(a.ttl, b.ttl) &&
           Object.is(a.record, b.record) &&
-          Object.is(a.aliasTarget?.loadBalancer?.loadBalancerArn, b.aliasTarget?.loadBalancer?.loadBalancerArn) &&
+          Object.is(
+            a.aliasTarget?.loadBalancer?.loadBalancerArn,
+            b.aliasTarget?.loadBalancer?.loadBalancerArn,
+          ) &&
           Object.is(a.aliasTarget?.evaluateTargetHealth, b.aliasTarget?.evaluateTargetHealth),
         source: 'db',
         cloud: new Crud2({
@@ -249,17 +254,24 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2(
                   DNSName: e.aliasTarget.loadBalancer?.dnsName,
                 };
               }
-              await createResourceRecordSet(client.route53Client, e.parentHostedZone.hostedZoneId, resourceRecordSet);
+              await createResourceRecordSet(
+                client.route53Client,
+                e.parentHostedZone.hostedZoneId,
+                resourceRecordSet,
+              );
               // Re-get the inserted record to get all of the relevant records we care about
               const newResourceRecordSet = await getRecord(
                 client.route53Client,
                 e.parentHostedZone.hostedZoneId,
                 e.name,
-                e.recordType
+                e.recordType,
               );
               // We map this into the same kind of entity as `obj`
               const newObject = { ...newResourceRecordSet, HostedZoneId: e.parentHostedZone.hostedZoneId };
-              const newEntity = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(newObject, ctx);
+              const newEntity = await AwsRoute53HostedZoneModule.utils.resourceRecordSetMapper(
+                newObject,
+                ctx,
+              );
               if (!newEntity) return;
               // We attach the original object's ID to this new one, indicating the exact record it is
               // replacing in the database.
@@ -288,7 +300,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2(
             if (id) {
               const [recordType, recordName] = id.split('|');
               const record = resourceRecordSet.find(
-                (rrs: any) => Object.is(rrs.Name, recordName) && Object.is(rrs.Type, recordType)
+                (rrs: any) => Object.is(rrs.Name, recordName) && Object.is(rrs.Type, recordType),
               );
               if (record) return record;
             } else {
@@ -305,13 +317,15 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2(
             const out = [];
             for (const e of es) {
               const cloudRecord =
-                ctx?.memo?.cloud?.ResourceRecordSet[AwsRoute53HostedZoneModule.mappers.resourceRecordSet.entityId(e)];
+                ctx?.memo?.cloud?.ResourceRecordSet[
+                  AwsRoute53HostedZoneModule.mappers.resourceRecordSet.entityId(e)
+                ];
               // First check if theres a new hosted zone, the name need to change since it is based on the domain name
               if (e.parentHostedZone.hostedZoneId !== cloudRecord.parentHostedZone.hostedZoneId) {
                 // Extract previous record name without the old domain
                 const name = AwsRoute53HostedZoneModule.utils.getNameFromDomain(
                   e.name,
-                  cloudRecord.parentHostedZone.domainName
+                  cloudRecord.parentHostedZone.domainName,
                 );
                 if (name) {
                   // Attach the new domain
@@ -321,7 +335,10 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2(
                   e.name = e.parentHostedZone.domainName;
                 }
               }
-              const newEntity = await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.cloud.create(e, ctx);
+              const newEntity = await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.cloud.create(
+                e,
+                ctx,
+              );
               await AwsRoute53HostedZoneModule.mappers.resourceRecordSet.cloud.delete(cloudRecord, ctx);
               out.push(newEntity);
             }
@@ -335,7 +352,7 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2(
               // So we have to check if at least one of each in database before trying to delete.
               const dbHostedZone = await AwsRoute53HostedZoneModule.mappers.hostedZone.db.read(
                 ctx,
-                e.parentHostedZone.hostedZoneId
+                e.parentHostedZone.hostedZoneId,
               );
               if (!!dbHostedZone && (Object.is(e.recordType, 'SOA') || Object.is(e.recordType, 'NS'))) {
                 const recordsSet: ResourceRecordSet[] | undefined =
@@ -345,13 +362,13 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2(
                   hasRecord = recordsSet?.some(
                     r =>
                       Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId) &&
-                      Object.is(r.recordType, 'SOA')
+                      Object.is(r.recordType, 'SOA'),
                   );
                 if (Object.is(e.recordType, 'NS'))
                   hasRecord = recordsSet?.some(
                     r =>
                       Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId) &&
-                      Object.is(r.recordType, 'NS')
+                      Object.is(r.recordType, 'NS'),
                   );
                 // If theres no record we have to created it in database instead of delete it from cloud
                 if (!hasRecord) {
@@ -376,12 +393,16 @@ export const AwsRoute53HostedZoneModule: Module2 = new Module2(
                   DNSName: e.aliasTarget.loadBalancer?.dnsName,
                 };
               }
-              await deleteResourceRecordSet(client.route53Client, e.parentHostedZone.hostedZoneId, resourceRecordSet);
+              await deleteResourceRecordSet(
+                client.route53Client,
+                e.parentHostedZone.hostedZoneId,
+                resourceRecordSet,
+              );
             }
           },
         }),
       }),
     },
   },
-  __dirname
+  __dirname,
 );

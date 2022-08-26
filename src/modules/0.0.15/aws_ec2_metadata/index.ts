@@ -1,4 +1,9 @@
-import { EC2, Instance as AWSInstance, paginateDescribeInstances, InstanceTypeInfo } from '@aws-sdk/client-ec2';
+import {
+  EC2,
+  Instance as AWSInstance,
+  paginateDescribeInstances,
+  InstanceTypeInfo,
+} from '@aws-sdk/client-ec2';
 
 import { AwsEc2Module } from '../aws_ec2';
 import { Architecture, InstanceMetadata, RootDeviceType } from './entity';
@@ -9,9 +14,11 @@ import * as metadata from './module.json';
 const getInstanceType = crudBuilderFormat<EC2, 'describeInstanceTypes', InstanceTypeInfo | undefined>(
   'describeInstanceTypes',
   instanceType => ({ InstanceTypes: [instanceType] }),
-  res => res?.InstanceTypes?.[0]
+  res => res?.InstanceTypes?.[0],
 );
-const describeInstances = crudBuilder2<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({ InstanceIds }));
+const describeInstances = crudBuilder2<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({
+  InstanceIds,
+}));
 const getInstance = async (client: EC2, id: string) => {
   const reservations = await describeInstances(client, [id]);
   return (reservations?.Reservations?.map((r: any) => r.Instances) ?? []).pop()?.pop();
@@ -65,7 +72,8 @@ export const AwsEc2MetadataModule: Module2 = new Module2(
             if (id) {
               const rawInstance = await getInstance(client.ec2client, id);
               if (!rawInstance) return;
-              if (rawInstance.State?.Name === 'terminated' || rawInstance.State?.Name === 'shutting-down') return;
+              if (rawInstance.State?.Name === 'terminated' || rawInstance.State?.Name === 'shutting-down')
+                return;
               return AwsEc2MetadataModule.utils.instanceMetadataMapper(rawInstance, ctx);
             } else {
               const rawInstances = (await getInstances(client.ec2client)) ?? [];
@@ -85,5 +93,5 @@ export const AwsEc2MetadataModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname
+  __dirname,
 );

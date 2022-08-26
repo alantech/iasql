@@ -33,11 +33,11 @@ export enum RecordType {
 @Unique('UQ_name__record_type', ['name', 'recordType'])
 @Check(
   'Check_record__alias_target',
-  '("record" is null and "alias_target_id" is not null) or ("record" is not null and "alias_target_id" is null)'
+  '("record" is null and "alias_target_id" is not null) or ("record" is not null and "alias_target_id" is null)',
 )
 @Check(
   'Check_record__ttl',
-  '("record" is null and "ttl" is null and "alias_target_id" is not null) or ("record" is not null and "ttl" is not null and "alias_target_id" is null)'
+  '("record" is null and "ttl" is null and "alias_target_id" is not null) or ("record" is not null and "ttl" is not null and "alias_target_id" is null)',
 )
 @Entity()
 export class ResourceRecordSet {

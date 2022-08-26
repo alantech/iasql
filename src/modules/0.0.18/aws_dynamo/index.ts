@@ -22,7 +22,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
   equals = (a: DynamoTable, b: DynamoTable) =>
     isequal(
       pick(a, ['tableName', 'tableClass', 'throughput', 'tableId', 'primaryKey', 'createdAt']),
-      pick(b, ['tableName', 'tableClass', 'throughput', 'tableId', 'primaryKey', 'createdAt'])
+      pick(b, ['tableName', 'tableClass', 'throughput', 'tableId', 'primaryKey', 'createdAt']),
     );
 
   getTable = crudBuilder2<DynamoDB, 'describeTable'>('describeTable', TableName => ({ TableName }));
@@ -44,12 +44,12 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
           };
     out.tableId = dynamo.TableId;
     const types = Object.fromEntries(
-      dynamo.AttributeDefinitions?.map(ad => [ad.AttributeName, ad.AttributeType]) ?? []
+      dynamo.AttributeDefinitions?.map(ad => [ad.AttributeName, ad.AttributeType]) ?? [],
     );
     out.primaryKey = Object.fromEntries(
       dynamo.KeySchema?.sort((a, _b) => (a.KeyType === 'HASH' ? -1 : 1))
         .filter(ks => !!ks.AttributeName)
-        .map(ks => [ks.AttributeName, types[ks.AttributeName as string]]) ?? []
+        .map(ks => [ks.AttributeName, types[ks.AttributeName as string]]) ?? [],
     );
     out.createdAt = dynamo.CreationDateTime;
     return out;
@@ -88,7 +88,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
             minDelay: 1,
             maxDelay: 4,
           } as WaiterOptions<DynamoDB>,
-          { TableName: e.tableName }
+          { TableName: e.tableName },
         );
         const newTable = this.dynamoMapper(res.TableDescription);
         // We attach the original object's ID to this new one, indicating the exact record it is
@@ -143,7 +143,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
             minDelay: 1,
             maxDelay: 4,
           } as WaiterOptions<DynamoDB>,
-          { TableName: e.tableName }
+          { TableName: e.tableName },
         );
         const newTable = this.dynamoMapper(res.TableDescription);
         // We attach the original object's ID to this new one, indicating the exact record it is
@@ -167,7 +167,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
             minDelay: 1,
             maxDelay: 4,
           } as WaiterOptions<DynamoDB>,
-          { TableName: e.tableName }
+          { TableName: e.tableName },
         );
       }
     },

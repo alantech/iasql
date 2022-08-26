@@ -12,7 +12,8 @@ import { AwsEc2Module } from '..';
 export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
   module: AwsEc2Module;
   entity = RegisteredInstance;
-  entityId = (e: RegisteredInstance) => `${e.instance.instanceId}|${e.targetGroup.targetGroupArn}|${e.port}` ?? '';
+  entityId = (e: RegisteredInstance) =>
+    `${e.instance.instanceId}|${e.targetGroup.targetGroupArn}|${e.port}` ?? '';
   equals = (a: RegisteredInstance, b: RegisteredInstance) => Object.is(a.port, b.port);
 
   async registeredInstanceMapper(registeredInstance: { [key: string]: string | undefined }, ctx: Context) {
@@ -39,7 +40,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
         Targets: [target],
       };
     },
-    _res => undefined
+    _res => undefined,
   );
 
   getRegisteredInstance = crudBuilderFormat<
@@ -63,7 +64,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
           instanceId: thd.Target?.Id,
           port: thd.Target?.Port?.toString(),
         })) ?? []),
-      ].pop()
+      ].pop(),
   );
 
   getTargetGroups = paginateBuilder<ElasticLoadBalancingV2>(paginateDescribeTargetGroups, 'TargetGroups');
@@ -71,7 +72,8 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
   // TODO: Macro-ify this
   async getRegisteredInstances(client: ElasticLoadBalancingV2) {
     const targetGroups = await this.getTargetGroups(client);
-    const instanceTargetGroups = targetGroups.filter(tg => Object.is(tg.TargetType, TargetTypeEnum.INSTANCE)) ?? [];
+    const instanceTargetGroups =
+      targetGroups.filter(tg => Object.is(tg.TargetType, TargetTypeEnum.INSTANCE)) ?? [];
     const out = [];
     for (const tg of instanceTargetGroups) {
       const res = await client.describeTargetHealth({
@@ -82,7 +84,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
           targetGroupArn: tg.TargetGroupArn,
           instanceId: thd.Target?.Id,
           port: thd.Target?.Port?.toString(),
-        })) ?? [])
+        })) ?? []),
       );
     }
     return out;
@@ -100,7 +102,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
         Targets: [target],
       };
     },
-    _res => undefined
+    _res => undefined,
   );
 
   db = new Crud2<RegisteredInstance>({
@@ -135,10 +137,15 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
         if (!e.port) {
           e.port = e.targetGroup.port;
         }
-        await this.registerInstance(client.elbClient, e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
+        await this.registerInstance(
+          client.elbClient,
+          e.instance.instanceId,
+          e.targetGroup.targetGroupArn,
+          e.port,
+        );
         const registeredInstance = await this.module.registeredInstance.cloud.read(
           ctx,
-          this.module.registeredInstance.entityId(e)
+          this.module.registeredInstance.entityId(e),
         );
         await this.module.registeredInstance.db.update(registeredInstance, ctx);
         out.push(registeredInstance);
@@ -150,7 +157,12 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
       if (id) {
         const [instanceId, targetGroupArn, port] = id.split('|');
         if (!instanceId || !targetGroupArn) return undefined;
-        const registeredInstance = await this.getRegisteredInstance(client.elbClient, instanceId, targetGroupArn, port);
+        const registeredInstance = await this.getRegisteredInstance(
+          client.elbClient,
+          instanceId,
+          targetGroupArn,
+          port,
+        );
         if (!registeredInstance) return undefined;
         return await this.registeredInstanceMapper(registeredInstance, ctx);
       }
@@ -167,22 +179,28 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.RegisteredInstance?.[this.module.registeredInstance.entityId(e)];
+        const cloudRecord =
+          ctx?.memo?.cloud?.RegisteredInstance?.[this.module.registeredInstance.entityId(e)];
         if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn)
           throw new Error('Valid targetGroup and instance needed.');
         if (!cloudRecord.instance?.instanceId || !cloudRecord.targetGroup?.targetGroupArn)
           throw new Error('Valid targetGroup and instance needed.');
         if (!e.port) e.port = e.targetGroup.port;
-        await this.registerInstance(client.elbClient, e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
+        await this.registerInstance(
+          client.elbClient,
+          e.instance.instanceId,
+          e.targetGroup.targetGroupArn,
+          e.port,
+        );
         await this.deregisterInstance(
           client.elbClient,
           cloudRecord.instance.instanceId,
           cloudRecord.targetGroup.targetGroupArn,
-          cloudRecord.port
+          cloudRecord.port,
         );
         const registeredInstance = await this.module.registeredInstance.cloud.read(
           ctx,
-          this.module.registeredInstance.entityId(e)
+          this.module.registeredInstance.entityId(e),
         );
         await this.module.registeredInstance.db.update(registeredInstance, ctx);
         out.push(registeredInstance);
@@ -194,7 +212,12 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
       for (const e of es) {
         if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn)
           throw new Error('Valid targetGroup and instance needed.');
-        await this.deregisterInstance(client.elbClient, e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
+        await this.deregisterInstance(
+          client.elbClient,
+          e.instance.instanceId,
+          e.targetGroup.targetGroupArn,
+          e.port,
+        );
       }
     },
   });

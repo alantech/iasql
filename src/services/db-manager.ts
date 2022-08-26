@@ -22,7 +22,9 @@ export async function migrate(conn: Connection) {
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@${version}')`);
   await iasqlFunctions.migrations.install(qr);
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_functions@${version}')`);
-  await qr.query(`INSERT INTO iasql_dependencies VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`);
+  await qr.query(
+    `INSERT INTO iasql_dependencies VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`,
+  );
   await qr.release();
 }
 
@@ -41,7 +43,9 @@ export const baseConnConfig: PostgresConnectionOptions = {
   password: config.db.password,
   host: config.db.host,
   database: 'postgres',
-  extra: { ssl: ['postgresql', 'localhost'].includes(config.db.host) ? false : { rejectUnauthorized: false } }, // TODO: remove once DB instance with custom ssl cert is in place
+  extra: {
+    ssl: ['postgresql', 'localhost'].includes(config.db.host) ? false : { rejectUnauthorized: false },
+  }, // TODO: remove once DB instance with custom ssl cert is in place
 };
 
 // TODO: The permissions below work just fine, but prevent the users from creating their own

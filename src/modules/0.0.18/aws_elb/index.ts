@@ -82,26 +82,26 @@ class ListenerMapper extends MapperBase<Listener> {
   createListener = crudBuilderFormat<ElasticLoadBalancingV2, 'createListener', ListenerAws | undefined>(
     'createListener',
     input => input,
-    res => res?.Listeners?.pop()
+    res => res?.Listeners?.pop(),
   );
   getListener = crudBuilderFormat<ElasticLoadBalancingV2, 'describeListeners', ListenerAws | undefined>(
     'describeListeners',
     arn => ({ ListenerArns: [arn] }),
-    res => res?.Listeners?.[0]
+    res => res?.Listeners?.[0],
   );
   getListenersForArn = paginateBuilder<ElasticLoadBalancingV2>(
     paginateDescribeListeners,
     'Listeners',
     undefined,
     undefined,
-    LoadBalancerArn => ({ LoadBalancerArn })
+    LoadBalancerArn => ({ LoadBalancerArn }),
   );
   getListeners = async (client: ElasticLoadBalancingV2, loadBalancerArns: string[]) =>
     (await mapLin(loadBalancerArns, this.getListenersForArn.bind(null, client))).flat();
   updateListener = crudBuilderFormat<ElasticLoadBalancingV2, 'modifyListener', ListenerAws | undefined>(
     'modifyListener',
     input => input,
-    res => res?.Listeners?.pop()
+    res => res?.Listeners?.pop(),
   );
   deleteListener = crudBuilder2<ElasticLoadBalancingV2, 'deleteListener'>('deleteListener', ListenerArn => ({
     ListenerArn,
@@ -251,7 +251,8 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     Object.is(a.loadBalancerType, b.loadBalancerType) &&
     Object.is(a.scheme, b.scheme) &&
     Object.is(a.securityGroups?.length, b.securityGroups?.length) &&
-    (a.securityGroups?.every(asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false) &&
+    (a.securityGroups?.every(asg => !!b.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ??
+      false) &&
     Object.is(a.state, b.state) &&
     Object.is(a.subnets?.length, b.subnets?.length) &&
     (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false) &&
@@ -276,7 +277,7 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
       try {
         securityGroups.push(
           (await awsSecurityGroupModule.securityGroup.db.read(ctx, sg)) ??
-            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg))
+            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg)),
         );
       } catch (_) {
         // If security groups are misconfigured ignore them
@@ -286,7 +287,8 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     out.securityGroups = securityGroups.filter(sg => !!sg);
     out.ipAddressType = lb.IpAddressType as IpAddressType;
     out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
-    const vpc = (await awsVpcModule.vpc.db.read(ctx, lb.VpcId)) ?? (await awsVpcModule.vpc.cloud.read(ctx, lb.VpcId));
+    const vpc =
+      (await awsVpcModule.vpc.db.read(ctx, lb.VpcId)) ?? (await awsVpcModule.vpc.cloud.read(ctx, lb.VpcId));
     out.vpc = vpc;
     out.availabilityZones = lb.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
     out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
@@ -294,20 +296,27 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
   }
 
   getSubnets = paginateBuilder<EC2>(paginateDescribeSubnets, 'Subnets');
-  getLoadBalancer = crudBuilderFormat<ElasticLoadBalancingV2, 'describeLoadBalancers', LoadBalancerAws | undefined>(
+  getLoadBalancer = crudBuilderFormat<
+    ElasticLoadBalancingV2,
+    'describeLoadBalancers',
+    LoadBalancerAws | undefined
+  >(
     'describeLoadBalancers',
     arn => ({ LoadBalancerArns: [arn] }),
-    res => res?.LoadBalancers?.[0]
+    res => res?.LoadBalancers?.[0],
   );
   getLoadBalancers = paginateBuilder<ElasticLoadBalancingV2>(paginateDescribeLoadBalancers, 'LoadBalancers');
   updateLoadBalancerIpAddressType = crudBuilder2<ElasticLoadBalancingV2, 'setIpAddressType'>(
     'setIpAddressType',
-    input => input
+    input => input,
   );
-  updateLoadBalancerSubnets = crudBuilder2<ElasticLoadBalancingV2, 'setSubnets'>('setSubnets', input => input);
+  updateLoadBalancerSubnets = crudBuilder2<ElasticLoadBalancingV2, 'setSubnets'>(
+    'setSubnets',
+    input => input,
+  );
   updateLoadBalancerSecurityGroups = crudBuilder2<ElasticLoadBalancingV2, 'setSecurityGroups'>(
     'setSecurityGroups',
-    input => input
+    input => input,
   );
 
   // TODO: Create a waiter macro function
@@ -339,7 +348,7 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
         } catch (e: any) {
           return { state: WaiterState.RETRY };
         }
-      }
+      },
     );
     return loadBalancer;
   }
@@ -364,7 +373,7 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
         } catch (_) {
           return { state: WaiterState.SUCCESS };
         }
-      }
+      },
     );
     // Now we need wait the load balancer to be fully deattached from any network interface
     const loadBalancerName = arn.split(':loadbalancer/')?.[1] ?? '';
@@ -395,7 +404,7 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
         } catch (e) {
           return { state: WaiterState.RETRY };
         }
-      }
+      },
     );
   }
 
@@ -489,7 +498,8 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
           if (
             !(
               Object.is(cloudRecord.subnets?.length, e.subnets?.length) &&
-              (cloudRecord.subnets?.every((csn: any) => !!e.subnets?.find(esn => Object.is(csn, esn))) ?? false)
+              (cloudRecord.subnets?.every((csn: any) => !!e.subnets?.find(esn => Object.is(csn, esn))) ??
+                false)
             )
           ) {
             await this.updateLoadBalancerSubnets(client.elbClient, {
@@ -505,7 +515,7 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
             !(
               Object.is(cloudRecord.securityGroups?.length, e.securityGroups?.length) &&
               (cloudRecord.securityGroups?.every(
-                (csg: any) => !!e.securityGroups?.find(esg => Object.is(csg.groupId, esg.groupId))
+                (csg: any) => !!e.securityGroups?.find(esg => Object.is(csg.groupId, esg.groupId)),
               ) ??
                 false)
             )
@@ -584,7 +594,8 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
     out.healthCheckPath = tg.HealthCheckPath;
     out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum;
     try {
-      const vpc = (await awsVpcModule.vpc.db.read(ctx, tg.VpcId)) ?? (await awsVpcModule.vpc.cloud.read(ctx, tg.VpcId));
+      const vpc =
+        (await awsVpcModule.vpc.db.read(ctx, tg.VpcId)) ?? (await awsVpcModule.vpc.cloud.read(ctx, tg.VpcId));
       if (tg.VpcId && !vpc) return undefined;
       out.vpc = vpc;
     } catch (e: any) {
@@ -594,25 +605,37 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
   }
 
   getVpcs = paginateBuilder<EC2>(paginateDescribeVpcs, 'Vpcs');
-  createTargetGroup = crudBuilderFormat<ElasticLoadBalancingV2, 'createTargetGroup', TargetGroupAws | undefined>(
+  createTargetGroup = crudBuilderFormat<
+    ElasticLoadBalancingV2,
+    'createTargetGroup',
+    TargetGroupAws | undefined
+  >(
     'createTargetGroup',
     input => input,
-    res => res?.TargetGroups?.pop()
+    res => res?.TargetGroups?.pop(),
   );
-  getTargetGroup = crudBuilderFormat<ElasticLoadBalancingV2, 'describeTargetGroups', TargetGroupAws | undefined>(
+  getTargetGroup = crudBuilderFormat<
+    ElasticLoadBalancingV2,
+    'describeTargetGroups',
+    TargetGroupAws | undefined
+  >(
     'describeTargetGroups',
     arn => ({ TargetGroupArns: [arn] }),
-    res => res?.TargetGroups?.[0]
+    res => res?.TargetGroups?.[0],
   );
   getTargetGroups = paginateBuilder<ElasticLoadBalancingV2>(paginateDescribeTargetGroups, 'TargetGroups');
-  updateTargetGroup = crudBuilderFormat<ElasticLoadBalancingV2, 'modifyTargetGroup', TargetGroupAws | undefined>(
+  updateTargetGroup = crudBuilderFormat<
+    ElasticLoadBalancingV2,
+    'modifyTargetGroup',
+    TargetGroupAws | undefined
+  >(
     'modifyTargetGroup',
     input => input,
-    res => res?.TargetGroups?.pop()
+    res => res?.TargetGroups?.pop(),
   );
   deleteTargetGroup = crudBuilder2<ElasticLoadBalancingV2, 'deleteTargetGroup'>(
     'deleteTargetGroup',
-    TargetGroupArn => ({ TargetGroupArn })
+    TargetGroupArn => ({ TargetGroupArn }),
   );
 
   cloud: Crud2<TargetGroup> = new Crud2({

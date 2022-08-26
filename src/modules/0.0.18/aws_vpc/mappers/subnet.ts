@@ -19,7 +19,8 @@ export class SubnetMapper extends MapperBase<Subnet> {
     out.availabilityZone =
       (await this.module.availabilityZone.db.read(ctx, sn.AvailabilityZone)) ??
       (await this.module.availabilityZone.cloud.read(ctx, sn.AvailabilityZone));
-    out.vpc = (await this.module.vpc.db.read(ctx, sn.VpcId)) ?? (await this.module.vpc.cloud.read(ctx, sn.VpcId));
+    out.vpc =
+      (await this.module.vpc.db.read(ctx, sn.VpcId)) ?? (await this.module.vpc.cloud.read(ctx, sn.VpcId));
     if (sn.VpcId && !out.vpc) throw new Error(`Waiting for VPC ${sn.VpcId}`);
     if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
       await this.module.vpc.db.create(out.vpc, ctx);
@@ -36,7 +37,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
   getSubnet = crudBuilderFormat<EC2, 'describeSubnets', AwsSubnet | undefined>(
     'describeSubnets',
     id => ({ SubnetIds: [id] }),
-    res => res?.Subnets?.[0]
+    res => res?.Subnets?.[0],
   );
   getSubnets = paginateBuilder<EC2>(paginateDescribeSubnets, 'Subnets');
   deleteSubnet = crudBuilder2<EC2, 'deleteSubnet'>('deleteSubnet', input => input);

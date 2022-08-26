@@ -197,7 +197,8 @@ export const AwsLambdaModule: Module2 = new Module2(
                 // Update tags
                 const tagKeys = Object.keys(cloudRecord.tags ?? {});
                 if (tagKeys && tagKeys.length) await removeFunctionTags(client.lambdaClient, e.arn, tagKeys);
-                if (e.tags && Object.keys(e.tags).length) await addFunctionTags(client.lambdaClient, e.arn, e.tags);
+                if (e.tags && Object.keys(e.tags).length)
+                  await addFunctionTags(client.lambdaClient, e.arn, e.tags);
               }
               const rawUpdatedFunction = await getFunction(client.lambdaClient, e.name);
               if (rawUpdatedFunction) {
@@ -223,5 +224,5 @@ export const AwsLambdaModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname
+  __dirname,
 );

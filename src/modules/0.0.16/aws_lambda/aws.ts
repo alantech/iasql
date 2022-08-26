@@ -25,7 +25,9 @@ export const createFunction = async (client: Lambda, input: CreateFunctionComman
   } while (counter <= 10);
 };
 
-export const getFunction = crudBuilder2<Lambda, 'getFunction'>('getFunction', FunctionName => ({ FunctionName }));
+export const getFunction = crudBuilder2<Lambda, 'getFunction'>('getFunction', FunctionName => ({
+  FunctionName,
+}));
 
 export const listFunctions = paginateBuilder<Lambda>(paginateListFunctions, 'Functions');
 
@@ -50,17 +52,23 @@ export const addFunctionTags = crudBuilder2<Lambda, 'tagResource'>('tagResource'
 
 export const updateFunctionConfiguration = crudBuilder2<Lambda, 'updateFunctionConfiguration'>(
   'updateFunctionConfiguration',
-  input => input
+  input => input,
 );
 
-export const updateFunctionCode = crudBuilder2<Lambda, 'updateFunctionCode'>('updateFunctionCode', input => input);
+export const updateFunctionCode = crudBuilder2<Lambda, 'updateFunctionCode'>(
+  'updateFunctionCode',
+  input => input,
+);
 
 export const listFunctionTags = crudBuilder2<Lambda, 'listTags'>('listTags', Resource => ({ Resource }));
 
-export const removeFunctionTags = crudBuilder2<Lambda, 'untagResource'>('untagResource', (Resource, TagKeys) => ({
-  Resource,
-  TagKeys,
-}));
+export const removeFunctionTags = crudBuilder2<Lambda, 'untagResource'>(
+  'untagResource',
+  (Resource, TagKeys) => ({
+    Resource,
+    TagKeys,
+  }),
+);
 
 export const waitUntilFunctionActive = (client: Lambda, FunctionName: string) => {
   return waitUntilFunctionActiveV2(
@@ -71,7 +79,7 @@ export const waitUntilFunctionActive = (client: Lambda, FunctionName: string) =>
       minDelay: 1,
       maxDelay: 4,
     },
-    { FunctionName }
+    { FunctionName },
   );
 };
 
@@ -84,7 +92,7 @@ export const waitUntilFunctionUpdated = (client: Lambda, FunctionName: string) =
       minDelay: 1,
       maxDelay: 4,
     },
-    { FunctionName }
+    { FunctionName },
   );
 };
 

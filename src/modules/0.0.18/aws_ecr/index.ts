@@ -34,18 +34,18 @@ class PublicRepositoryMapper extends MapperBase<PublicRepository> {
   createECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'createRepository', RepositoryAws | undefined>(
     'createRepository',
     input => input,
-    res => res?.repository
+    res => res?.repository,
   );
   getECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'describeRepositories', RepositoryAws | undefined>(
     'describeRepositories',
     name => ({ repositoryNames: [name] }),
-    res => (res?.repositories ?? [])[0]
+    res => (res?.repositories ?? [])[0],
   );
   getECRPubRepositories = paginateBuilder<ECRPUBLIC>(paginateDescribePubRepositories, 'repositories');
   deleteECRPubRepository = crudBuilderFormat<ECRPUBLIC, 'deleteRepository', undefined>(
     'deleteRepository',
     repositoryName => ({ repositoryName }),
-    _res => undefined
+    _res => undefined,
   );
 
   cloud = new Crud2({
@@ -144,31 +144,35 @@ class RepositoryMapper extends MapperBase<Repository> {
   createECRRepository = crudBuilderFormat<ECR, 'createRepository', RepositoryAws | undefined>(
     'createRepository',
     input => input,
-    res => res?.repository
+    res => res?.repository,
   );
   getECRRepository = crudBuilderFormat<ECR, 'describeRepositories', RepositoryAws | undefined>(
     'describeRepositories',
     name => ({ repositoryNames: [name] }),
-    res => (res?.repositories ?? [])[0]
+    res => (res?.repositories ?? [])[0],
   );
   getECRRepositories = paginateBuilder<ECR>(paginateDescribeRepositories, 'repositories');
   updateECRRepositoryImageTagMutability = crudBuilderFormat<ECR, 'putImageTagMutability', undefined>(
     'putImageTagMutability',
     (repositoryName, imageTagMutability) => ({ repositoryName, imageTagMutability }),
-    _res => undefined
+    _res => undefined,
   );
-  updateECRRepositoryImageScanningConfiguration = crudBuilderFormat<ECR, 'putImageScanningConfiguration', undefined>(
+  updateECRRepositoryImageScanningConfiguration = crudBuilderFormat<
+    ECR,
+    'putImageScanningConfiguration',
+    undefined
+  >(
     'putImageScanningConfiguration',
     (repositoryName, scanOnPush) => ({
       repositoryName,
       imageScanningConfiguration: { scanOnPush },
     }),
-    _res => undefined
+    _res => undefined,
   );
   deleteECRRepository = crudBuilderFormat<ECR, 'deleteRepository', undefined>(
     'deleteRepository',
     repositoryName => ({ repositoryName }),
-    _res => undefined
+    _res => undefined,
   );
 
   cloud = new Crud2({
@@ -224,13 +228,21 @@ class RepositoryMapper extends MapperBase<Repository> {
         const cloudRecord = ctx?.memo?.cloud?.Repository?.[e.repositoryName ?? ''];
         let updatedRecord = { ...cloudRecord };
         if (cloudRecord?.imageTagMutability !== e.imageTagMutability) {
-          await this.updateECRRepositoryImageTagMutability(client.ecrClient, e.repositoryName, e.imageTagMutability);
+          await this.updateECRRepositoryImageTagMutability(
+            client.ecrClient,
+            e.repositoryName,
+            e.imageTagMutability,
+          );
           const updatedRepository = await this.getECRRepository(client.ecrClient, e.repositoryName);
           if (!updatedRepository) continue;
           updatedRecord = this.repositoryMapper(updatedRepository);
         }
         if (cloudRecord?.scanOnPush !== e.scanOnPush) {
-          await this.updateECRRepositoryImageScanningConfiguration(client.ecrClient, e.repositoryName, e.scanOnPush);
+          await this.updateECRRepositoryImageScanningConfiguration(
+            client.ecrClient,
+            e.repositoryName,
+            e.scanOnPush,
+          );
           const updatedRepository = await this.getECRRepository(client.ecrClient, e.repositoryName);
           if (!updatedRepository) continue;
           updatedRecord = this.repositoryMapper(updatedRepository);
@@ -285,8 +297,10 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     return out;
   }
   policyComparisonEq(a: any, b: any): boolean {
-    if (a instanceof Array && !(b instanceof Array) && a.length === 1 && this.policyComparisonEq(a[0], b)) return true;
-    if (b instanceof Array && !(a instanceof Array) && b.length === 1 && this.policyComparisonEq(b[0], a)) return true;
+    if (a instanceof Array && !(b instanceof Array) && a.length === 1 && this.policyComparisonEq(a[0], b))
+      return true;
+    if (b instanceof Array && !(a instanceof Array) && b.length === 1 && this.policyComparisonEq(b[0], a))
+      return true;
     // From https://stackoverflow.com/questions/44792629/how-to-compare-two-objects-with-nested-array-of-object-using-loop
     let same = Object.keys(a).length === Object.keys(b).length;
     if (!same) return same;
@@ -304,12 +318,18 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
   }
 
   setECRRepositoryPolicy = crudBuilder2<ECR, 'setRepositoryPolicy'>('setRepositoryPolicy', input => input);
-  getECRRepositoryPolicy = crudBuilder2<ECR, 'getRepositoryPolicy'>('getRepositoryPolicy', repositoryName => ({
-    repositoryName,
-  }));
-  deleteECRRepositoryPolicy = crudBuilder2<ECR, 'deleteRepositoryPolicy'>('deleteRepositoryPolicy', repositoryName => ({
-    repositoryName,
-  }));
+  getECRRepositoryPolicy = crudBuilder2<ECR, 'getRepositoryPolicy'>(
+    'getRepositoryPolicy',
+    repositoryName => ({
+      repositoryName,
+    }),
+  );
+  deleteECRRepositoryPolicy = crudBuilder2<ECR, 'deleteRepositoryPolicy'>(
+    'deleteRepositoryPolicy',
+    repositoryName => ({
+      repositoryName,
+    }),
+  );
 
   db = new Crud2<RepositoryPolicy>({
     create: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.save(RepositoryPolicy, es),
@@ -385,7 +405,9 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     update: async (es: RepositoryPolicy[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[e.repository.repositoryName ?? ''] as RepositoryPolicy;
+        const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[
+          e.repository.repositoryName ?? ''
+        ] as RepositoryPolicy;
         try {
           if (!this.policyComparisonEq(JSON.parse(cloudRecord.policyText!), JSON.parse(e.policyText!))) {
             const outPolicy = this.module.repositoryPolicy.cloud.create(e, ctx);

@@ -181,7 +181,9 @@ export const AwsEc2Module: Module2 = new Module2(
                   });
                 }
                 const sgIds = instance.securityGroups.map(sg => sg.groupId).filter(id => !!id) as string[];
-                const userData = instance.userData ? Buffer.from(instance.userData).toString('base64') : undefined;
+                const userData = instance.userData
+                  ? Buffer.from(instance.userData).toString('base64')
+                  : undefined;
                 const iamInstanceProfile = instance.role?.arn
                   ? { Arn: instance.role.arn.replace(':role/', ':instance-profile/') }
                   : undefined;
@@ -243,16 +245,20 @@ export const AwsEc2Module: Module2 = new Module2(
                 const rawAttachedVolume = (await getVolumesByInstanceId(client.ec2client, instanceId))?.pop();
                 await waitUntilInUse(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
                 delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
-                const attachedVolume: GeneralPurposeVolume = await AwsEc2Module.mappers.generalPurposeVolume.cloud.read(
-                  ctx,
-                  rawAttachedVolume?.VolumeId ?? ''
-                );
+                const attachedVolume: GeneralPurposeVolume =
+                  await AwsEc2Module.mappers.generalPurposeVolume.cloud.read(
+                    ctx,
+                    rawAttachedVolume?.VolumeId ?? '',
+                  );
                 if (attachedVolume && !Array.isArray(attachedVolume)) {
                   attachedVolume.attachedInstance = newEntity;
                   // If this is a replace path, there could be already a root volume in db, we need to find it and delete it
                   // before creating the new one.
                   if (previousInstanceId) {
-                    const rawPreviousInstance: AWSInstance = await getInstance(client.ec2client, previousInstanceId);
+                    const rawPreviousInstance: AWSInstance = await getInstance(
+                      client.ec2client,
+                      previousInstanceId,
+                    );
                     const dbAttachedVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
                       where: {
                         attachedInstance: {
@@ -277,7 +283,8 @@ export const AwsEc2Module: Module2 = new Module2(
               const rawInstance = await getInstance(client.ec2client, id);
               // exclude spot instances
               if (!rawInstance || rawInstance.InstanceLifecycle === InstanceLifecycle.SPOT) return;
-              if (rawInstance.State?.Name === 'terminated' || rawInstance.State?.Name === 'shutting-down') return;
+              if (rawInstance.State?.Name === 'terminated' || rawInstance.State?.Name === 'shutting-down')
+                return;
               return AwsEc2Module.utils.instanceMapper(rawInstance, ctx);
             } else {
               const rawInstances = (await getInstances(client.ec2client)) ?? [];
@@ -311,7 +318,7 @@ export const AwsEc2Module: Module2 = new Module2(
                     await AwsEc2Module.mappers.instance.db.update(e, ctx);
                   } else {
                     throw new Error(
-                      `Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`
+                      `Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`,
                     );
                   }
                 }
@@ -337,7 +344,7 @@ export const AwsEc2Module: Module2 = new Module2(
               delete ctx?.memo?.db?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
               const attachedVolume = await AwsEc2Module.mappers.generalPurposeVolume.db.read(
                 ctx,
-                rawAttachedVolume?.VolumeId ?? ''
+                rawAttachedVolume?.VolumeId ?? '',
               );
               if (attachedVolume && !Array.isArray(attachedVolume))
                 await AwsEc2Module.mappers.generalPurposeVolume.db.delete(attachedVolume, ctx);
@@ -347,7 +354,8 @@ export const AwsEc2Module: Module2 = new Module2(
       }),
       registeredInstance: new Mapper2<RegisteredInstance>({
         entity: RegisteredInstance,
-        entityId: (e: RegisteredInstance) => `${e.instance.instanceId}|${e.targetGroup.targetGroupArn}|${e.port}` ?? '',
+        entityId: (e: RegisteredInstance) =>
+          `${e.instance.instanceId}|${e.targetGroup.targetGroupArn}|${e.port}` ?? '',
         equals: (a: RegisteredInstance, b: RegisteredInstance) => Object.is(a.port, b.port),
         source: 'db',
         cloud: new Crud2({
@@ -360,10 +368,15 @@ export const AwsEc2Module: Module2 = new Module2(
               if (!e.port) {
                 e.port = e.targetGroup.port;
               }
-              await registerInstance(client.elbClient, e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
+              await registerInstance(
+                client.elbClient,
+                e.instance.instanceId,
+                e.targetGroup.targetGroupArn,
+                e.port,
+              );
               const registeredInstance = await AwsEc2Module.mappers.registeredInstance.cloud.read(
                 ctx,
-                AwsEc2Module.mappers.registeredInstance.entityId(e)
+                AwsEc2Module.mappers.registeredInstance.entityId(e),
               );
               await AwsEc2Module.mappers.registeredInstance.db.update(registeredInstance, ctx);
               out.push(registeredInstance);
@@ -379,7 +392,7 @@ export const AwsEc2Module: Module2 = new Module2(
                 client.elbClient,
                 instanceId,
                 targetGroupArn,
-                port
+                port,
               );
               return await AwsEc2Module.utils.registeredInstanceMapper(registeredInstance, ctx);
             }
@@ -404,16 +417,21 @@ export const AwsEc2Module: Module2 = new Module2(
               if (!e.port) {
                 e.port = e.targetGroup.port;
               }
-              await registerInstance(client.elbClient, e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
+              await registerInstance(
+                client.elbClient,
+                e.instance.instanceId,
+                e.targetGroup.targetGroupArn,
+                e.port,
+              );
               await deregisterInstance(
                 client.elbClient,
                 cloudRecord.instance.instanceId,
                 cloudRecord.targetGroup.targetGroupArn,
-                cloudRecord.port
+                cloudRecord.port,
               );
               const registeredInstance = await AwsEc2Module.mappers.registeredInstance.cloud.read(
                 ctx,
-                AwsEc2Module.mappers.registeredInstance.entityId(e)
+                AwsEc2Module.mappers.registeredInstance.entityId(e),
               );
               await AwsEc2Module.mappers.registeredInstance.db.update(registeredInstance, ctx);
               out.push(registeredInstance);
@@ -425,7 +443,12 @@ export const AwsEc2Module: Module2 = new Module2(
             for (const e of es) {
               if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn)
                 throw new Error('Valid targetGroup and instance needed.');
-              await deregisterInstance(client.elbClient, e.instance.instanceId, e.targetGroup.targetGroupArn, e.port);
+              await deregisterInstance(
+                client.elbClient,
+                e.instance.instanceId,
+                e.targetGroup.targetGroupArn,
+                e.port,
+              );
             }
           },
         }),
@@ -476,7 +499,12 @@ export const AwsEc2Module: Module2 = new Module2(
               }
               const newVolumeId = await createVolume(client.ec2client, input);
               if (newVolumeId && e.attachedInstance?.instanceId && e.instanceDeviceName) {
-                await attachVolume(client.ec2client, newVolumeId, e.attachedInstance.instanceId, e.instanceDeviceName);
+                await attachVolume(
+                  client.ec2client,
+                  newVolumeId,
+                  e.attachedInstance.instanceId,
+                  e.instanceDeviceName,
+                );
               }
               // Re-get the inserted record to get all of the relevant records we care about
               const newObject = await getVolume(client.ec2client, newVolumeId);
@@ -561,7 +589,7 @@ export const AwsEc2Module: Module2 = new Module2(
                       client.ec2client,
                       e.volumeId ?? '',
                       e.attachedInstance.instanceId,
-                      e.instanceDeviceName ?? ''
+                      e.instanceDeviceName ?? '',
                     );
                   } else if (cloudRecord.attachedInstance?.instanceId && !e.attachedInstance?.instanceId) {
                     await detachVolume(client.ec2client, e.volumeId ?? '');
@@ -571,7 +599,7 @@ export const AwsEc2Module: Module2 = new Module2(
                       client.ec2client,
                       e.volumeId ?? '',
                       e.attachedInstance?.instanceId ?? '',
-                      e.instanceDeviceName ?? ''
+                      e.instanceDeviceName ?? '',
                     );
                   }
                   update = true;
@@ -610,5 +638,5 @@ export const AwsEc2Module: Module2 = new Module2(
       }),
     },
   },
-  __dirname
+  __dirname,
 );

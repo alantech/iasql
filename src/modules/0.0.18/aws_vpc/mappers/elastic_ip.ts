@@ -29,10 +29,11 @@ export class ElasticIpMapper extends MapperBase<ElasticIp> {
   getElasticIp = crudBuilderFormat<EC2, 'describeAddresses', Address | undefined>(
     'describeAddresses',
     allocationId => ({ AllocationIds: [allocationId] }),
-    res => res?.Addresses?.pop()
+    res => res?.Addresses?.pop(),
   );
   getAllIps = crudBuilder2<EC2, 'describeAddresses'>('describeAddresses', () => ({}));
-  getElasticIps = async (client: EC2) => (await this.getAllIps(client))?.Addresses?.filter(a => !!a.AllocationId) ?? [];
+  getElasticIps = async (client: EC2) =>
+    (await this.getAllIps(client))?.Addresses?.filter(a => !!a.AllocationId) ?? [];
   deleteElasticIp = crudBuilder2<EC2, 'releaseAddress'>('releaseAddress', AllocationId => ({ AllocationId }));
 
   // TODO: Why does this have tags baked in automatically?

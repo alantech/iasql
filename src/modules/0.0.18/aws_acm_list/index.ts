@@ -2,7 +2,12 @@ import { ACM, CertificateDetail, paginateListCertificates } from '@aws-sdk/clien
 
 import { AWS, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
-import { Certificate, certificateRenewalEligibilityEnum, certificateStatusEnum, certificateTypeEnum } from './entity';
+import {
+  Certificate,
+  certificateRenewalEligibilityEnum,
+  certificateStatusEnum,
+  certificateTypeEnum,
+} from './entity';
 
 class CertificateMapper extends MapperBase<Certificate> {
   module: AwsAcmListModule;
@@ -19,11 +24,13 @@ class CertificateMapper extends MapperBase<Certificate> {
   getCertificate = crudBuilderFormat<ACM, 'describeCertificate', CertificateDetail | undefined>(
     'describeCertificate',
     CertificateArn => ({ CertificateArn }),
-    res => res?.Certificate
+    res => res?.Certificate,
   );
   getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
   getCertificates(client: ACM) {
-    return mapLin(this.getCertificatesSummary(client), (cert: any) => this.getCertificate(client, cert.CertificateArn));
+    return mapLin(this.getCertificatesSummary(client), (cert: any) =>
+      this.getCertificate(client, cert.CertificateArn),
+    );
   }
   // TODO: How to macro-ify this function, or should the waiting bit be another macro function and
   // we compose two macro functions together?

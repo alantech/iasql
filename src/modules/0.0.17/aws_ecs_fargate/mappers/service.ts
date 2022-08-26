@@ -1,4 +1,9 @@
-import { DescribeServicesCommandInput, ECS, Service as AwsService, paginateListServices } from '@aws-sdk/client-ecs';
+import {
+  DescribeServicesCommandInput,
+  ECS,
+  Service as AwsService,
+  paginateListServices,
+} from '@aws-sdk/client-ecs';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { EC2, DescribeNetworkInterfacesCommandInput } from '@aws-sdk/client-ec2';
 
@@ -23,7 +28,8 @@ export class ServiceMapper extends MapperBase<Service> {
     Object.is(a.status, b.status) &&
     Object.is(a?.assignPublicIp, b?.assignPublicIp) &&
     Object.is(a?.securityGroups?.length, b?.securityGroups?.length) &&
-    (a?.securityGroups?.every(asg => !!b?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ?? false) &&
+    (a?.securityGroups?.every(asg => !!b?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))) ??
+      false) &&
     Object.is(a?.subnets?.length, b?.subnets?.length) &&
     (a?.subnets?.every(asn => !!b?.subnets?.find(bsn => Object.is(asn, bsn))) ?? false) &&
     Object.is(a.forceNewDeployment, b.forceNewDeployment);
@@ -31,17 +37,17 @@ export class ServiceMapper extends MapperBase<Service> {
   updateService = crudBuilderFormat<ECS, 'updateService', AwsService | undefined>(
     'updateService',
     input => input,
-    res => res?.service
+    res => res?.service,
   );
   createService = crudBuilderFormat<ECS, 'createService', AwsService | undefined>(
     'createService',
     input => input,
-    res => res?.service
+    res => res?.service,
   );
   getService = crudBuilderFormat<ECS, 'describeServices', AwsService | undefined>(
     'describeServices',
     (id, cluster) => ({ services: [id], cluster }),
-    res => res?.services?.[0]
+    res => res?.services?.[0],
   );
 
   // TODO: This a whole lot of tangled business logic baked into these functions. It may make sense
@@ -57,7 +63,7 @@ export class ServiceMapper extends MapperBase<Service> {
         {
           cluster: id,
           maxResults: 100,
-        }
+        },
       );
       for await (const page of paginator) {
         serviceArns.push(...(page.serviceArns ?? []));
@@ -84,7 +90,12 @@ export class ServiceMapper extends MapperBase<Service> {
     }
     return services;
   }
-  async deleteService(client: { ecsClient: ECS; ec2client: EC2 }, name: string, cluster: string, tasksArns: string[]) {
+  async deleteService(
+    client: { ecsClient: ECS; ec2client: EC2 },
+    name: string,
+    cluster: string,
+    tasksArns: string[],
+  ) {
     await client.ecsClient.deleteService({
       service: name,
       cluster,
@@ -110,7 +121,7 @@ export class ServiceMapper extends MapperBase<Service> {
         } else {
           return { state: WaiterState.SUCCESS };
         }
-      }
+      },
     );
     try {
       const tasks = await client.ecsClient.describeTasks({ tasks: tasksArns, cluster });
@@ -145,7 +156,7 @@ export class ServiceMapper extends MapperBase<Service> {
             } catch (e) {
               return { state: WaiterState.RETRY };
             }
-          }
+          },
         );
       }
     } catch (_) {
@@ -180,7 +191,7 @@ export class ServiceMapper extends MapperBase<Service> {
         } else {
           return { state: WaiterState.SUCCESS };
         }
-      }
+      },
     );
   }
 
@@ -218,7 +229,7 @@ export class ServiceMapper extends MapperBase<Service> {
       for (const sg of cloudSecurityGroups) {
         securityGroups.push(
           (await awsSecurityGroupModule.securityGroup.db.read(ctx, sg)) ??
-            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg))
+            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg)),
         );
       }
       if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length)
@@ -229,7 +240,8 @@ export class ServiceMapper extends MapperBase<Service> {
         // misconfigured resources
         let subnet: Subnet;
         try {
-          subnet = (await awsVpcModule.subnet.db.read(ctx, sn)) ?? (await awsVpcModule.subnet.cloud.read(ctx, sn));
+          subnet =
+            (await awsVpcModule.subnet.db.read(ctx, sn)) ?? (await awsVpcModule.subnet.cloud.read(ctx, sn));
           if (!subnet) return undefined;
         } catch (e: any) {
           if (e.Code === 'InvalidSubnetID.NotFound') return undefined;
@@ -309,7 +321,10 @@ export class ServiceMapper extends MapperBase<Service> {
         const clusters = ctx.memo?.cloud?.Cluster
           ? Object.values(ctx.memo?.cloud?.Cluster)
           : await this.module.cluster.cloud.read(ctx);
-        const result = await this.getServices(client.ecsClient, clusters?.map((c: any) => c.clusterArn) ?? []);
+        const result = await this.getServices(
+          client.ecsClient,
+          clusters?.map((c: any) => c.clusterArn) ?? [],
+        );
         // Make sure we just handle FARGATE services
         const fargateResult = result.filter(s => s.launchType === 'FARGATE');
         const out = [];
@@ -328,7 +343,7 @@ export class ServiceMapper extends MapperBase<Service> {
           Object.is(prev?.assignPublicIp, next?.assignPublicIp) &&
           Object.is(prev?.securityGroups?.length, next?.securityGroups?.length) &&
           (prev?.securityGroups?.every(
-            asg => !!next?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))
+            asg => !!next?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId)),
           ) ??
             false) &&
           Object.is(prev?.subnets?.length, next?.subnets?.length) &&

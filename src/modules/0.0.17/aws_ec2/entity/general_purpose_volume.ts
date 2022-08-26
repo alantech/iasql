@@ -64,7 +64,7 @@ export class GeneralPurposeVolume {
 
   @Check(
     'Check_gp_volume_instance_device',
-    `("instance_device_name" IS NULL AND "attached_instance_id" IS NULL) OR ("instance_device_name" IS NOT NULL AND "attached_instance_id" IS NOT NULL)`
+    `("instance_device_name" IS NULL AND "attached_instance_id" IS NULL) OR ("instance_device_name" IS NOT NULL AND "attached_instance_id" IS NOT NULL)`,
   )
   @Column({
     nullable: true,
@@ -73,7 +73,7 @@ export class GeneralPurposeVolume {
 
   @Check(
     'Check_gp_volume_iops',
-    `"iops" is NULL OR ("iops" is NOT NULL AND (("volume_type" = 'gp3' AND "iops" <= 16000 AND "iops" >= 3000) OR ("volume_type" = 'gp2' AND "iops" > 0)))`
+    `"iops" is NULL OR ("iops" is NOT NULL AND (("volume_type" = 'gp3' AND "iops" <= 16000 AND "iops" >= 3000) OR ("volume_type" = 'gp2' AND "iops" > 0)))`,
   )
   @Column({
     nullable: true,
@@ -83,7 +83,7 @@ export class GeneralPurposeVolume {
 
   @Check(
     'Check_gp_volume_throughput',
-    `"throughput" IS NULL OR ("throughput" IS NOT NULL AND "volume_type" = 'gp3' AND "throughput" >= 125 AND "throughput" <= 1000)`
+    `"throughput" IS NULL OR ("throughput" IS NOT NULL AND "volume_type" = 'gp3' AND "throughput" >= 125 AND "throughput" <= 1000)`,
   )
   @Column({
     nullable: true,

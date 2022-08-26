@@ -37,7 +37,8 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
     const service = this.getServiceFromServiceName(eg.ServiceName);
     if (!service) return undefined;
     out.service = service;
-    out.vpc = (await this.module.vpc.db.read(ctx, eg.VpcId)) ?? (await this.module.vpc.cloud.read(ctx, eg.VpcId));
+    out.vpc =
+      (await this.module.vpc.db.read(ctx, eg.VpcId)) ?? (await this.module.vpc.cloud.read(ctx, eg.VpcId));
     if (!out.vpc) return undefined;
     out.policyDocument = eg.PolicyDocument;
     out.state = eg.State;
@@ -57,7 +58,11 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
     if (serviceName.includes('dynamodb')) return EndpointGatewayService.DYNAMODB;
   }
 
-  getVpcEndpointGatewayServiceName = crudBuilderFormat<EC2, 'describeVpcEndpointServices', string | undefined>(
+  getVpcEndpointGatewayServiceName = crudBuilderFormat<
+    EC2,
+    'describeVpcEndpointServices',
+    string | undefined
+  >(
     'describeVpcEndpointServices',
     (_service: string) => ({
       Filters: [
@@ -67,7 +72,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
         },
       ],
     }),
-    (res, service: string) => res?.ServiceNames?.find(sn => sn.includes(service))
+    (res, service: string) => res?.ServiceNames?.find(sn => sn.includes(service)),
   );
   getVpcRouteTables = crudBuilderFormat<EC2, 'describeRouteTables', RouteTable[] | undefined>(
     'describeRouteTables',
@@ -79,17 +84,17 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
         },
       ],
     }),
-    res => res?.RouteTables
+    res => res?.RouteTables,
   );
   createVpcEndpointGateway = crudBuilderFormat<EC2, 'createVpcEndpoint', AwsVpcEndpoint | undefined>(
     'createVpcEndpoint',
     input => input,
-    res => res?.VpcEndpoint
+    res => res?.VpcEndpoint,
   );
   getVpcEndpointGateway = crudBuilderFormat<EC2, 'describeVpcEndpoints', AwsVpcEndpoint | undefined>(
     'describeVpcEndpoints',
     endpointId => ({ VpcEndpointIds: [endpointId] }),
-    res => res?.VpcEndpoints?.pop()
+    res => res?.VpcEndpoints?.pop(),
   );
   getVpcEndpointGateways = paginateBuilder<EC2>(
     paginateDescribeVpcEndpoints,
@@ -109,17 +114,17 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
           Values: ['available', 'rejected', 'failed'],
         },
       ],
-    })
+    }),
   );
   modifyVpcEndpointGateway = crudBuilderFormat<EC2, 'modifyVpcEndpoint', boolean | undefined>(
     'modifyVpcEndpoint',
     input => input,
-    res => res?.Return
+    res => res?.Return,
   );
   deleteVpcEndpointGateway = crudBuilderFormat<EC2, 'deleteVpcEndpoints', UnsuccessfulItem[] | undefined>(
     'deleteVpcEndpoints',
     endpointId => ({ VpcEndpointIds: [endpointId] }),
-    res => res?.Unsuccessful
+    res => res?.Unsuccessful,
   );
 
   cloud: Crud2<EndpointGateway> = new Crud2({
@@ -156,7 +161,10 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
           ];
         }
         const res = await this.createVpcEndpointGateway(client.ec2client, input);
-        const rawEndpointGateway = await this.getVpcEndpointGateway(client.ec2client, res?.VpcEndpointId ?? '');
+        const rawEndpointGateway = await this.getVpcEndpointGateway(
+          client.ec2client,
+          res?.VpcEndpointId ?? '',
+        );
         if (!rawEndpointGateway) continue;
         const newEndpointGateway = await this.endpointGatewayMapper(rawEndpointGateway, ctx);
         if (!newEndpointGateway) continue;
@@ -206,7 +214,9 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
           if (
             !(
               Object.is(cloudRecord.routeTableIds?.length, e.routeTableIds?.length) &&
-              !!cloudRecord.routeTableIds?.every((crrt: any) => !!e.routeTableIds?.find(ert => Object.is(crrt, ert)))
+              !!cloudRecord.routeTableIds?.every(
+                (crrt: any) => !!e.routeTableIds?.find(ert => Object.is(crrt, ert)),
+              )
             )
           ) {
             // VPC endpoint route tables update
@@ -224,7 +234,10 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
             update = true;
           }
           if (update) {
-            const rawEndpointGateway = await this.getVpcEndpointGateway(client.ec2client, e.vpcEndpointId ?? '');
+            const rawEndpointGateway = await this.getVpcEndpointGateway(
+              client.ec2client,
+              e.vpcEndpointId ?? '',
+            );
             if (!rawEndpointGateway) continue;
             const newEndpointGateway = await this.endpointGatewayMapper(rawEndpointGateway, ctx);
             if (!newEndpointGateway) continue;

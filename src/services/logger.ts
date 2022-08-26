@@ -28,7 +28,9 @@ const logFactory: LogFunctionFactory = scope => {
     };
   } else if (config.logger.debug && config.logger.test) {
     return (level, message, meta) => {
-      const str = `${level}: ${message} ${util.inspect(scope)}${meta ? ` ${util.inspect(meta, { depth: 6 })}` : ''}\n`;
+      const str = `${level}: ${message} ${util.inspect(scope)}${
+        meta ? ` ${util.inspect(meta, { depth: 6 })}` : ''
+      }\n`;
       switch (level) {
         case 'error':
           process.stderr.write(str);
@@ -53,7 +55,9 @@ const logFactory: LogFunctionFactory = scope => {
     };
   } else if (config.logger.test) {
     return (level, message, meta) => {
-      const str = `${level}: ${message} ${util.inspect(scope)}${meta ? ` ${util.inspect(meta, { depth: 6 })}` : ''}\n`;
+      const str = `${level}: ${message} ${util.inspect(scope)}${
+        meta ? ` ${util.inspect(meta, { depth: 6 })}` : ''
+      }\n`;
       switch (level) {
         case 'error':
           process.stderr.write(str);
@@ -104,18 +108,20 @@ export function logErrSentry(e: any, uid?: string, email?: string, dbAlias?: str
   }
   if (config.sentry) {
     // TODO figure out how to use the stacktrace for the last error
-    message += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureEvent({
-      message,
-      // https://docs.sentry.io/platforms/node/guides/express/enriching-events/identify-user/
-      user: {
-        id: uid,
-        email,
+    message += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureEvent(
+      {
+        message,
+        // https://docs.sentry.io/platforms/node/guides/express/enriching-events/identify-user/
+        user: {
+          id: uid,
+          email,
+        },
+        extra: {
+          dbAlias,
+          metadata,
+        },
       },
-      extra: {
-        dbAlias,
-        metadata,
-      },
-    })}`;
+    )}`;
   }
   singleton.error(message, e instanceof DepError ? e.metadata : err);
   return message;

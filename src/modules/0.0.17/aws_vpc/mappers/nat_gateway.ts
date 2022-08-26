@@ -42,7 +42,8 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
     out.natGatewayId = nat.NatGatewayId;
     out.state = nat.State as NatGatewayState;
     out.subnet =
-      (await this.module.subnet.db.read(ctx, nat.SubnetId)) ?? (await this.module.subnet.cloud.read(ctx, nat.SubnetId));
+      (await this.module.subnet.db.read(ctx, nat.SubnetId)) ??
+      (await this.module.subnet.cloud.read(ctx, nat.SubnetId));
     if (nat.SubnetId && !out.subnet) return undefined;
     const tags: { [key: string]: string } = {};
     (nat.Tags || [])
@@ -65,16 +66,22 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
         },
       ],
     }),
-    res => res?.NatGateways?.pop()
+    res => res?.NatGateways?.pop(),
   );
-  getNatGateways = paginateBuilder<EC2>(paginateDescribeNatGateways, 'NatGateways', undefined, undefined, () => ({
-    Filter: [
-      {
-        Name: 'state',
-        Values: [AwsNatGatewayState.AVAILABLE, AwsNatGatewayState.FAILED],
-      },
-    ],
-  }));
+  getNatGateways = paginateBuilder<EC2>(
+    paginateDescribeNatGateways,
+    'NatGateways',
+    undefined,
+    undefined,
+    () => ({
+      Filter: [
+        {
+          Name: 'state',
+          Values: [AwsNatGatewayState.AVAILABLE, AwsNatGatewayState.FAILED],
+        },
+      ],
+    }),
+  );
 
   // TODO: Add a waiter macro
   async createNatGateway(client: EC2, input: CreateNatGatewayCommandInput) {
@@ -98,14 +105,18 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
         try {
           out = data.NatGateways?.pop();
           // If it is not a final state we retry
-          if ([AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(out?.State as AwsNatGatewayState)) {
+          if (
+            [AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(
+              out?.State as AwsNatGatewayState,
+            )
+          ) {
             return { state: WaiterState.RETRY };
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
           throw e;
         }
-      }
+      },
     );
     return out;
   }
@@ -130,14 +141,18 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
         try {
           const nat = data.NatGateways?.pop();
           // If it is not a final state we retry
-          if ([AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(nat?.State as AwsNatGatewayState)) {
+          if (
+            [AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(
+              nat?.State as AwsNatGatewayState,
+            )
+          ) {
             return { state: WaiterState.RETRY };
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
           throw e;
         }
-      }
+      },
     );
   }
 

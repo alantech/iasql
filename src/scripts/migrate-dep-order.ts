@@ -14,7 +14,9 @@ if (moduleName !== 'iasql_platform') {
   sortedDeps = sortedDeps.filter(d => d.name !== 'iasql_platform');
 }
 
-const entities = sortedDeps.map(d => `${__dirname}/../modules/${moduleVersion}/${d.name}/entity/*.ts`) as any[];
+const entities = sortedDeps.map(
+  d => `${__dirname}/../modules/${moduleVersion}/${d.name}/entity/*.ts`,
+) as any[];
 
 (async () => {
   const conn = await createConnection({

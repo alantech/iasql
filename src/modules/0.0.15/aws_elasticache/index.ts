@@ -37,7 +37,7 @@ async function waitForClusterState(client: ElastiCache, clusterId: string, statu
       } catch (e: any) {
         throw e;
       }
-    }
+    },
   );
   return out;
 }
@@ -63,10 +63,13 @@ async function modifyCacheCluster(client: ElastiCache, input: ModifyCacheCluster
 const getCacheCluster = crudBuilderFormat<ElastiCache, 'describeCacheClusters', CacheClusterAWS | undefined>(
   'describeCacheClusters',
   id => ({ CacheClusterId: id }),
-  res => res?.CacheClusters?.[0]
+  res => res?.CacheClusters?.[0],
 );
 const getCacheClusters = paginateBuilder<ElastiCache>(paginateDescribeCacheClusters, 'CacheClusters');
-const deleteCacheCluster = crudBuilder2<ElastiCache, 'deleteCacheCluster'>('deleteCacheCluster', input => input);
+const deleteCacheCluster = crudBuilder2<ElastiCache, 'deleteCacheCluster'>(
+  'deleteCacheCluster',
+  input => input,
+);
 
 export const AwsElastiCacheModule: Module2 = new Module2(
   {
@@ -90,7 +93,9 @@ export const AwsElastiCacheModule: Module2 = new Module2(
       cacheCluster: new Mapper2<CacheCluster>({
         entity: CacheCluster,
         equals: (a: CacheCluster, b: CacheCluster) =>
-          Object.is(a.engine, b.engine) && Object.is(a.nodeType, b.nodeType) && Object.is(a.numNodes, b.numNodes),
+          Object.is(a.engine, b.engine) &&
+          Object.is(a.nodeType, b.nodeType) &&
+          Object.is(a.numNodes, b.numNodes),
         source: 'db',
         cloud: new Crud2({
           updateOrReplace: (a: CacheCluster, b: CacheCluster) => {
@@ -110,9 +115,15 @@ export const AwsElastiCacheModule: Module2 = new Module2(
                 CacheNodeType: cluster.nodeType,
                 NumCacheNodes: cluster.numNodes,
               };
-              const res: CacheClusterAWS | undefined = await createCacheCluster(client.elasticacheClient, input);
+              const res: CacheClusterAWS | undefined = await createCacheCluster(
+                client.elasticacheClient,
+                input,
+              );
               if (res) {
-                const newCluster: CacheCluster = await AwsElastiCacheModule.utils.cacheClusterMapper(res, ctx);
+                const newCluster: CacheCluster = await AwsElastiCacheModule.utils.cacheClusterMapper(
+                  res,
+                  ctx,
+                );
                 newCluster.clusterId = cluster.clusterId;
                 await AwsElastiCacheModule.mappers.cacheCluster.db.update(newCluster, ctx);
                 out.push(newCluster);
@@ -145,7 +156,7 @@ export const AwsElastiCacheModule: Module2 = new Module2(
               const cloudRecord = ctx?.memo?.cloud?.CacheCluster?.[cluster.clusterId ?? ''];
               const isUpdate = Object.is(
                 AwsElastiCacheModule.mappers.cacheCluster.cloud.updateOrReplace(cloudRecord, cluster),
-                'update'
+                'update',
               );
               if (!isUpdate) {
                 // we cannot modify the engine, restore
@@ -169,9 +180,15 @@ export const AwsElastiCacheModule: Module2 = new Module2(
                     CacheNodeType: cluster.nodeType,
                     NumCacheNodes: cluster.numNodes,
                   };
-                  const res: CacheClusterAWS | undefined = await createCacheCluster(client.elasticacheClient, input);
+                  const res: CacheClusterAWS | undefined = await createCacheCluster(
+                    client.elasticacheClient,
+                    input,
+                  );
                   if (res) {
-                    const newCluster: CacheCluster = await AwsElastiCacheModule.utils.cacheClusterMapper(res, ctx);
+                    const newCluster: CacheCluster = await AwsElastiCacheModule.utils.cacheClusterMapper(
+                      res,
+                      ctx,
+                    );
                     newCluster.clusterId = cluster.clusterId;
                     await AwsElastiCacheModule.mappers.cacheCluster.db.update(newCluster, ctx);
                     out.push(newCluster);
@@ -195,5 +212,5 @@ export const AwsElastiCacheModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname
+  __dirname,
 );

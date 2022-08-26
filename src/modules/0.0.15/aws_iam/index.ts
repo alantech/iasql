@@ -9,13 +9,13 @@ import * as metadata from './module.json';
 const getRoleAttachedPoliciesArns = crudBuilderFormat<IAM, 'listAttachedRolePolicies', string[] | undefined>(
   'listAttachedRolePolicies',
   RoleName => ({ RoleName }),
-  res => (res?.AttachedPolicies?.length ? res.AttachedPolicies.map(p => p.PolicyArn ?? '') : undefined)
+  res => (res?.AttachedPolicies?.length ? res.AttachedPolicies.map(p => p.PolicyArn ?? '') : undefined),
 );
 
 const createNewRole = crudBuilderFormat<IAM, 'createRole', string>(
   'createRole',
   input => input,
-  res => res?.Role?.Arn ?? ''
+  res => res?.Role?.Arn ?? '',
 );
 
 const attachRolePolicy = crudBuilder2<IAM, 'attachRolePolicy'>('attachRolePolicy', (RoleName, PolicyArn) => ({
@@ -28,7 +28,7 @@ const attachRolePolicies = (client: IAM, roleName: string, policyArns: string[])
 
 const createInstanceProfile = crudBuilder2<IAM, 'createInstanceProfile'>(
   'createInstanceProfile',
-  InstanceProfileName => ({ InstanceProfileName })
+  InstanceProfileName => ({ InstanceProfileName }),
 );
 
 const attachRoleToInstanceProfile = crudBuilder2<IAM, 'addRoleToInstanceProfile'>(
@@ -36,12 +36,12 @@ const attachRoleToInstanceProfile = crudBuilder2<IAM, 'addRoleToInstanceProfile'
   RoleName => ({
     InstanceProfileName: RoleName,
     RoleName,
-  })
+  }),
 );
 
 const deleteInstanceProfile = crudBuilder2<IAM, 'deleteInstanceProfile'>(
   'deleteInstanceProfile',
-  InstanceProfileName => ({ InstanceProfileName })
+  InstanceProfileName => ({ InstanceProfileName }),
 );
 
 const detachRoleToInstanceProfile = crudBuilder2<IAM, 'removeRoleFromInstanceProfile'>(
@@ -49,13 +49,13 @@ const detachRoleToInstanceProfile = crudBuilder2<IAM, 'removeRoleFromInstancePro
   RoleName => ({
     InstanceProfileName: RoleName,
     RoleName,
-  })
+  }),
 );
 
 const getRole = crudBuilderFormat<IAM, 'getRole', AWSRole | undefined>(
   'getRole',
   RoleName => ({ RoleName }),
-  res => res?.Role
+  res => res?.Role,
 );
 
 const getAllRoles = paginateBuilder<IAM>(paginateListRoles, 'Roles');
@@ -65,7 +65,7 @@ const updateRoleAssumePolicy = crudBuilder2<IAM, 'updateAssumeRolePolicy'>(
   (RoleName, PolicyDocument) => ({
     RoleName,
     PolicyDocument,
-  })
+  }),
 );
 
 const updateRoleDescription = crudBuilder2<IAM, 'updateRole'>('updateRole', (RoleName, Description?) => ({
@@ -119,7 +119,7 @@ export const AwsIamModule: Module2 = new Module2(
       rolePolicyComparison: (a: any, b: any) => isEqual(a, b),
       allowEc2Service: (a: Role) => {
         return a.assumeRolePolicyDocument?.Statement?.find(
-          (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com'
+          (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com',
         );
       },
     },
@@ -194,8 +194,17 @@ export const AwsIamModule: Module2 = new Module2(
               const b = cloudRecord;
               let update = false;
               let updatedRecord = { ...cloudRecord };
-              if (!AwsIamModule.utils.rolePolicyComparison(e.assumeRolePolicyDocument, b.assumeRolePolicyDocument)) {
-                await updateRoleAssumePolicy(client.iamClient, e.roleName, JSON.stringify(e.assumeRolePolicyDocument));
+              if (
+                !AwsIamModule.utils.rolePolicyComparison(
+                  e.assumeRolePolicyDocument,
+                  b.assumeRolePolicyDocument,
+                )
+              ) {
+                await updateRoleAssumePolicy(
+                  client.iamClient,
+                  e.roleName,
+                  JSON.stringify(e.assumeRolePolicyDocument),
+                );
                 const eAllowEc2Service = AwsIamModule.utils.allowEc2Service(e);
                 const cloudRecordAllowEc2Service = AwsIamModule.utils.allowEc2Service(cloudRecord);
                 if (eAllowEc2Service && !cloudRecordAllowEc2Service) {
@@ -238,7 +247,11 @@ export const AwsIamModule: Module2 = new Module2(
                       if (e.Code !== 'NoSuchEntity') throw e;
                     }
                   }
-                  await detachRolePolicies(client.iamClient, entity.roleName, entity.attachedPoliciesArns ?? []);
+                  await detachRolePolicies(
+                    client.iamClient,
+                    entity.roleName,
+                    entity.attachedPoliciesArns ?? [],
+                  );
                   await deleteRole(client.iamClient, entity.roleName);
                 }
               }
@@ -248,5 +261,5 @@ export const AwsIamModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname
+  __dirname,
 );

@@ -1,4 +1,9 @@
-import { S3, Bucket as BucketAWS, GetBucketPolicyCommandInput, PutBucketPolicyCommandInput } from '@aws-sdk/client-s3';
+import {
+  S3,
+  Bucket as BucketAWS,
+  GetBucketPolicyCommandInput,
+  PutBucketPolicyCommandInput,
+} from '@aws-sdk/client-s3';
 
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
 import { Bucket } from './entity';
@@ -18,7 +23,7 @@ class BucketMapper extends MapperBase<Bucket> {
   getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
     'listBuckets',
     () => ({}),
-    res => res?.Buckets ?? []
+    res => res?.Buckets ?? [],
   );
   deleteBucket = crudBuilder2<S3, 'deleteBucket'>('deleteBucket', b => ({ Bucket: b }));
   createBucket = crudBuilder2<S3, 'createBucket'>('createBucket', b => ({ Bucket: b }));

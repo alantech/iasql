@@ -17,7 +17,7 @@ import isEqual from 'lodash.isequal';
 const getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
   'listBuckets',
   () => ({}),
-  res => res?.Buckets ?? []
+  res => res?.Buckets ?? [],
 );
 
 const deleteBucket = crudBuilder2<S3, 'deleteBucket'>('deleteBucket', b => ({ Bucket: b }));
@@ -131,7 +131,10 @@ export const AwsS3Module: Module2 = new Module2(
             const out = [];
             for (const e of es) {
               const cloudRecord = ctx?.memo?.cloud?.Bucket?.[e.name ?? ''];
-              const isUpdate = Object.is(AwsS3Module.mappers.bucket.cloud.updateOrReplace(cloudRecord, e), 'update');
+              const isUpdate = Object.is(
+                AwsS3Module.mappers.bucket.cloud.updateOrReplace(cloudRecord, e),
+                'update',
+              );
               if (isUpdate) {
                 e.createdAt = cloudRecord.createdAt;
                 e.policyDocument = await AwsS3Module.utils.createBucketPolicy(client.s3Client, e, ctx);
@@ -155,5 +158,5 @@ export const AwsS3Module: Module2 = new Module2(
       }),
     },
   },
-  __dirname
+  __dirname,
 );

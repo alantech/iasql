@@ -65,7 +65,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
   createVolumeInternal = crudBuilderFormat<EC2, 'createVolume', string | undefined>(
     'createVolume',
     input => input,
-    res => res?.VolumeId
+    res => res?.VolumeId,
   );
 
   createVolume = async (client: EC2, input: CreateVolumeCommandInput) => {
@@ -80,23 +80,29 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     return volumeId;
   };
 
-  getGeneralPurposeVolumes = paginateBuilder<EC2>(paginateDescribeVolumes, 'Volumes', undefined, undefined, () => ({
-    Filters: [
-      {
-        Name: 'volume-type',
-        Values: ['gp2', 'gp3'],
-      },
-      {
-        Name: 'status',
-        Values: ['available', 'in-use', 'error'],
-      },
-    ],
-  }));
+  getGeneralPurposeVolumes = paginateBuilder<EC2>(
+    paginateDescribeVolumes,
+    'Volumes',
+    undefined,
+    undefined,
+    () => ({
+      Filters: [
+        {
+          Name: 'volume-type',
+          Values: ['gp2', 'gp3'],
+        },
+        {
+          Name: 'status',
+          Values: ['available', 'in-use', 'error'],
+        },
+      ],
+    }),
+  );
 
   getVolume = crudBuilderFormat<EC2, 'describeVolumes', AWSVolume | undefined>(
     'describeVolumes',
     VolumeId => ({ VolumeIds: [VolumeId] }),
-    res => res?.Volumes?.pop()
+    res => res?.Volumes?.pop(),
   );
 
   deleteVolumeInternal = crudBuilder2<EC2, 'deleteVolume'>('deleteVolume', VolumeId => ({ VolumeId }));
@@ -112,11 +118,14 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     await this.waitUntilModificationsComplete(client, input.VolumeId ?? '');
   };
 
-  attachVolumeInternal = crudBuilder2<EC2, 'attachVolume'>('attachVolume', (VolumeId, InstanceId, Device) => ({
-    VolumeId,
-    InstanceId,
-    Device,
-  }));
+  attachVolumeInternal = crudBuilder2<EC2, 'attachVolume'>(
+    'attachVolume',
+    (VolumeId, InstanceId, Device) => ({
+      VolumeId,
+      InstanceId,
+      Device,
+    }),
+  );
 
   attachVolume = async (client: EC2, VolumeId: string, InstanceId: string, Device: string) => {
     await this.attachVolumeInternal(client, VolumeId, InstanceId, Device);
@@ -134,7 +143,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
   async volumeWaiter(
     client: EC2,
     volumeId: string,
-    handleState: (vol: AWSVolume | undefined) => { state: WaiterState }
+    handleState: (vol: AWSVolume | undefined) => { state: WaiterState },
   ) {
     return createWaiter<EC2, DescribeVolumesCommandInput>(
       {
@@ -155,7 +164,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
         } catch (e: any) {
           throw e;
         }
-      }
+      },
     );
   }
 
@@ -216,7 +225,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
         } catch (e: any) {
           throw e;
         }
-      }
+      },
     );
   }
 
@@ -252,7 +261,12 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
         }
         const newVolumeId = await this.createVolume(client.ec2client, input);
         if (newVolumeId && e.attachedInstance?.instanceId && e.instanceDeviceName) {
-          await this.attachVolume(client.ec2client, newVolumeId, e.attachedInstance.instanceId, e.instanceDeviceName);
+          await this.attachVolume(
+            client.ec2client,
+            newVolumeId,
+            e.attachedInstance.instanceId,
+            e.instanceDeviceName,
+          );
         }
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getVolume(client.ec2client, newVolumeId);
@@ -339,7 +353,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
                 client.ec2client,
                 e.volumeId ?? '',
                 e.attachedInstance.instanceId,
-                e.instanceDeviceName ?? ''
+                e.instanceDeviceName ?? '',
               );
             } else if (cloudRecord.attachedInstance?.instanceId && !e.attachedInstance?.instanceId) {
               await this.detachVolume(client.ec2client, e.volumeId ?? '');
@@ -349,7 +363,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
                 client.ec2client,
                 e.volumeId ?? '',
                 e.attachedInstance?.instanceId ?? '',
-                e.instanceDeviceName ?? ''
+                e.instanceDeviceName ?? '',
               );
             }
             update = true;

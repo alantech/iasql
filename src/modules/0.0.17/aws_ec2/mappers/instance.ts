@@ -68,7 +68,8 @@ export class InstanceMapper extends MapperBase<Instance> {
       const roleName = awsIamModule.role.roleNameFromArn(instance.IamInstanceProfile.Arn, ctx);
       try {
         const role =
-          (await awsIamModule.role.db.read(ctx, roleName)) ?? (await awsIamModule.role.cloud.read(ctx, roleName));
+          (await awsIamModule.role.db.read(ctx, roleName)) ??
+          (await awsIamModule.role.cloud.read(ctx, roleName));
         if (role) {
           out.role = role;
         }
@@ -86,7 +87,7 @@ export class InstanceMapper extends MapperBase<Instance> {
   getInstanceUserData = crudBuilderFormat<EC2, 'describeInstanceAttribute', string | undefined>(
     'describeInstanceAttribute',
     InstanceId => ({ Attribute: 'userData', InstanceId }),
-    res => res?.UserData?.Value
+    res => res?.UserData?.Value,
   );
 
   getVolumesByInstanceId = crudBuilderFormat<EC2, 'describeVolumes', AWSVolume[] | undefined>(
@@ -99,7 +100,7 @@ export class InstanceMapper extends MapperBase<Instance> {
         },
       ],
     }),
-    res => res?.Volumes
+    res => res?.Volumes,
   );
 
   getParameter = crudBuilder2<SSM, 'getParameter'>('getParameter', Name => ({ Name }));
@@ -108,7 +109,9 @@ export class InstanceMapper extends MapperBase<Instance> {
     ImageIds,
   }));
 
-  describeInstances = crudBuilder2<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({ InstanceIds }));
+  describeInstances = crudBuilder2<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({
+    InstanceIds,
+  }));
 
   async getInstance(client: EC2, id: string) {
     const reservations = await this.describeInstances(client, [id]);
@@ -148,7 +151,7 @@ export class InstanceMapper extends MapperBase<Instance> {
           if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
-      }
+      },
     );
     return instanceIds?.pop() ?? '';
   }
@@ -157,7 +160,7 @@ export class InstanceMapper extends MapperBase<Instance> {
   async volumeWaiter(
     client: EC2,
     volumeId: string,
-    handleState: (vol: AWSVolume | undefined) => { state: WaiterState }
+    handleState: (vol: AWSVolume | undefined) => { state: WaiterState },
   ) {
     return createWaiter<EC2, DescribeVolumesCommandInput>(
       {
@@ -178,7 +181,7 @@ export class InstanceMapper extends MapperBase<Instance> {
         } catch (e: any) {
           throw e;
         }
-      }
+      },
     );
   }
 
@@ -232,7 +235,7 @@ export class InstanceMapper extends MapperBase<Instance> {
           if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.SUCCESS };
           throw e;
         }
-      }
+      },
     );
   }
 
@@ -267,14 +270,14 @@ export class InstanceMapper extends MapperBase<Instance> {
           if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.SUCCESS };
           throw e;
         }
-      }
+      },
     );
   }
 
   terminateInstance = crudBuilderFormat<EC2, 'terminateInstances', undefined>(
     'terminateInstances',
     id => ({ InstanceIds: [id] }),
-    _res => undefined
+    _res => undefined,
   );
 
   cloud: Crud2<Instance> = new Crud2({
@@ -360,14 +363,17 @@ export class InstanceMapper extends MapperBase<Instance> {
           delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
           const attachedVolume: GeneralPurposeVolume = await this.module.generalPurposeVolume.cloud.read(
             ctx,
-            rawAttachedVolume?.VolumeId ?? ''
+            rawAttachedVolume?.VolumeId ?? '',
           );
           if (attachedVolume && !Array.isArray(attachedVolume)) {
             attachedVolume.attachedInstance = newEntity;
             // If this is a replace path, there could be already a root volume in db, we need to
             // find it and delete it before creating the new one.
             if (previousInstanceId) {
-              const rawPreviousInstance: AWSInstance = await this.getInstance(client.ec2client, previousInstanceId);
+              const rawPreviousInstance: AWSInstance = await this.getInstance(
+                client.ec2client,
+                previousInstanceId,
+              );
               const dbAttachedVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
                 where: {
                   attachedInstance: {
@@ -427,7 +433,7 @@ export class InstanceMapper extends MapperBase<Instance> {
             } else {
               // TODO: This throw will interrupt the other EC2 updates. Is that alright?
               throw new Error(
-                `Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`
+                `Invalid instance state transition. From CLOUD state ${cloudRecord.state} to DB state ${e.state}`,
               );
             }
           }
@@ -448,12 +454,17 @@ export class InstanceMapper extends MapperBase<Instance> {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const entity of es) {
         // Remove attached volume
-        const rawAttachedVolume = (await this.getVolumesByInstanceId(client.ec2client, entity.instanceId ?? ''))?.pop();
+        const rawAttachedVolume = (
+          await this.getVolumesByInstanceId(client.ec2client, entity.instanceId ?? '')
+        )?.pop();
         if (entity.instanceId) await this.terminateInstance(client.ec2client, entity.instanceId);
         await this.waitUntilDeleted(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
         delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
         delete ctx?.memo?.db?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
-        const attachedVolume = await this.module.generalPurposeVolume.db.read(ctx, rawAttachedVolume?.VolumeId ?? '');
+        const attachedVolume = await this.module.generalPurposeVolume.db.read(
+          ctx,
+          rawAttachedVolume?.VolumeId ?? '',
+        );
         if (attachedVolume && !Array.isArray(attachedVolume))
           await this.module.generalPurposeVolume.db.delete(attachedVolume, ctx);
       }

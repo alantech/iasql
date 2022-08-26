@@ -19,7 +19,7 @@ class AccountMapper extends MapperBase<AwsAccountEntity> {
                 id,
               },
             }
-          : undefined
+          : undefined,
       ),
     update: async (_e: AwsAccountEntity[], _ctx: Context) => {
       /* Do nothing */

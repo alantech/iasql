@@ -23,23 +23,33 @@ const createSecurityGroup = crudBuilder2<EC2, 'createSecurityGroup'>('createSecu
 const getSecurityGroup = crudBuilderFormat<EC2, 'describeSecurityGroups', AwsSecurityGroup | undefined>(
   'describeSecurityGroups',
   id => ({ GroupIds: [id] }),
-  res => res?.SecurityGroups?.[0]
+  res => res?.SecurityGroups?.[0],
 );
 const getSecurityGroups = paginateBuilder<EC2>(paginateDescribeSecurityGroups, 'SecurityGroups');
-const createSecurityGroupEgressRules = async (client: EC2, rules: AuthorizeSecurityGroupEgressCommandInput[]) =>
-  mapLin(rules, client.authorizeSecurityGroupEgress.bind(client));
-const createSecurityGroupIngressRules = async (client: EC2, rules: AuthorizeSecurityGroupIngressCommandInput[]) =>
-  mapLin(rules, client.authorizeSecurityGroupIngress.bind(client));
-const getSecurityGroupRule = crudBuilderFormat<EC2, 'describeSecurityGroupRules', AwsSecurityGroupRule | undefined>(
+const createSecurityGroupEgressRules = async (
+  client: EC2,
+  rules: AuthorizeSecurityGroupEgressCommandInput[],
+) => mapLin(rules, client.authorizeSecurityGroupEgress.bind(client));
+const createSecurityGroupIngressRules = async (
+  client: EC2,
+  rules: AuthorizeSecurityGroupIngressCommandInput[],
+) => mapLin(rules, client.authorizeSecurityGroupIngress.bind(client));
+const getSecurityGroupRule = crudBuilderFormat<
+  EC2,
+  'describeSecurityGroupRules',
+  AwsSecurityGroupRule | undefined
+>(
   'describeSecurityGroupRules',
   id => ({ SecurityGroupRuleIds: [id] }),
-  res => res?.SecurityGroupRules?.[0]
+  res => res?.SecurityGroupRules?.[0],
 );
 const getSecurityGroupRules = paginateBuilder<EC2>(paginateDescribeSecurityGroupRules, 'SecurityGroupRules');
 const deleteSecurityGroupEgressRules = async (client: EC2, rules: RevokeSecurityGroupEgressCommandInput[]) =>
   mapLin(rules, client.revokeSecurityGroupEgress.bind(client));
-const deleteSecurityGroupIngressRules = async (client: EC2, rules: RevokeSecurityGroupIngressCommandInput[]) =>
-  mapLin(rules, client.revokeSecurityGroupIngress.bind(client));
+const deleteSecurityGroupIngressRules = async (
+  client: EC2,
+  rules: RevokeSecurityGroupIngressCommandInput[],
+) => mapLin(rules, client.revokeSecurityGroupIngress.bind(client));
 
 // TODO: Would it ever be possible to macro this?
 async function deleteSecurityGroup(client: EC2, instanceParams: DeleteSecurityGroupRequest) {
@@ -120,7 +130,7 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
             // The security group rules associated with the user's created "default" group are
             // still fine to actually set in AWS, so we leave that alone.
             const actualEntity = Object.values(ctx?.memo?.cloud?.SecurityGroup ?? {}).find(
-              (a: any) => a.groupName === 'default' && a.vpc?.vpcId === e.vpc?.vpcId // TODO: Fix typing here
+              (a: any) => a.groupName === 'default' && a.vpc?.vpcId === e.vpc?.vpcId, // TODO: Fix typing here
             ) as SecurityGroup;
             e.description = actualEntity.description;
             e.groupId = actualEntity.groupId;
@@ -251,7 +261,8 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
           delete: (e: SecurityGroup[], ctx: Context) => ctx.orm.remove(SecurityGroup, e),
         }),
         cloud: new Crud2({
-          create: (es: SecurityGroup[], ctx: Context) => AwsSecurityGroupModule.utils.sgCloudCreate(es, ctx, false),
+          create: (es: SecurityGroup[], ctx: Context) =>
+            AwsSecurityGroupModule.utils.sgCloudCreate(es, ctx, false),
           read: async (ctx: Context, id?: string) => {
             const client = (await ctx.getAwsClient()) as AWS;
             if (id) {
@@ -318,13 +329,15 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
               // You can mess with its rules, but not this record itself, so any attempt to update it
               // is instead turned into *restoring* the value in the database to match the cloud value
               // Check if there is a VPC for this security group in the database
-              const vpcDbRecord = Object.values(ctx?.memo?.db?.Vpc ?? {}).find((a: any) => a.vpcId === e.vpc?.vpcId);
+              const vpcDbRecord = Object.values(ctx?.memo?.db?.Vpc ?? {}).find(
+                (a: any) => a.vpcId === e.vpc?.vpcId,
+              );
               if (e.groupName === 'default' && !!vpcDbRecord) {
                 // If there is a security group in the database with the 'default' groupName but we
                 // are still hitting the 'delete' path, that's a race condition and we should just do
                 // nothing here.
                 const dbRecord = Object.values(ctx?.memo?.db?.SecurityGroup ?? {}).find(
-                  (a: any) => a.groupName === 'default' && a.vpc?.vpcId === e.vpc?.vpcId
+                  (a: any) => a.groupName === 'default' && a.vpc?.vpcId === e.vpc?.vpcId,
                 );
                 if (!!dbRecord) return;
                 // For delete, we have un-memoed the record, but the record passed in *is* the one
@@ -333,7 +346,9 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
                 // Make absolutely sure it shows up in the memo
                 ctx.memo.db.SecurityGroup[e.groupId ?? ''] = e;
                 const rules = ctx?.memo?.cloud?.SecurityGroupRule ?? [];
-                const relevantRules = rules.filter((r: SecurityGroupRule) => r.securityGroup.groupId === e.groupId);
+                const relevantRules = rules.filter(
+                  (r: SecurityGroupRule) => r.securityGroup.groupId === e.groupId,
+                );
                 if (relevantRules.length > 0) {
                   await AwsSecurityGroupModule.mappers.securityGroupRule.db.update(relevantRules, ctx);
                 }
@@ -344,18 +359,20 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
                 // Also need to delete the security group rules associated with this security group,
                 // if any
                 const rules = await AwsSecurityGroupModule.mappers.securityGroupRule.db.read(ctx);
-                const relevantRules = rules.filter((r: SecurityGroupRule) => r.securityGroup.groupId === e.groupId);
+                const relevantRules = rules.filter(
+                  (r: SecurityGroupRule) => r.securityGroup.groupId === e.groupId,
+                );
                 await AwsSecurityGroupModule.mappers.securityGroupRule.db.delete(relevantRules, ctx);
                 // Let's clear the record from the caches here, too?
                 ctx.memo.cloud.SecurityGroup = Object.fromEntries(
                   Object.entries(ctx.memo.cloud.SecurityGroup).filter(
-                    ([_, v]) => e.groupId !== (v as SecurityGroup).groupId
-                  )
+                    ([_, v]) => e.groupId !== (v as SecurityGroup).groupId,
+                  ),
                 );
                 ctx.memo.db.SecurityGroup = Object.fromEntries(
                   Object.entries(ctx.memo.db.SecurityGroup).filter(
-                    ([_, v]) => e.groupId !== (v as SecurityGroup).groupId
-                  )
+                    ([_, v]) => e.groupId !== (v as SecurityGroup).groupId,
+                  ),
                 );
               }
             }
@@ -402,7 +419,9 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
             for (const en of es) {
               const GroupId = en?.securityGroup?.groupId;
               if (!GroupId)
-                throw new Error('Cannot create a security group rule for a security group that does not yet exist');
+                throw new Error(
+                  'Cannot create a security group rule for a security group that does not yet exist',
+                );
               const newRule: any = {};
               // The rest of these should be defined if present
               if (en.cidrIpv4) newRule.IpRanges = [{ CidrIp: en.cidrIpv4 }];
@@ -475,7 +494,9 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
             for (const en of es) {
               const GroupId = en?.securityGroup?.groupId;
               if (!GroupId)
-                throw new Error('Cannot create a security group rule for a security group that does not yet exist');
+                throw new Error(
+                  'Cannot create a security group rule for a security group that does not yet exist',
+                );
               if (en.isEgress) {
                 egressDeletesToRun[GroupId] = egressDeletesToRun[GroupId] ?? [];
                 egressDeletesToRun[GroupId].push(en.securityGroupRuleId);
@@ -532,16 +553,20 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
               ? Object.fromEntries(
                   Object.entries(ctx.memo.cloud.SecurityGroupRule).filter(
                     ([_, v]) =>
-                      !es.map(e => e.securityGroupRuleId).includes((v as SecurityGroupRule).securityGroupRuleId)
-                  )
+                      !es
+                        .map(e => e.securityGroupRuleId)
+                        .includes((v as SecurityGroupRule).securityGroupRuleId),
+                  ),
                 )
               : {};
             ctx.memo.db.SecurityGroupRule = ctx?.memo?.db?.SecurityGroupRule
               ? Object.fromEntries(
                   Object.entries(ctx.memo.db.SecurityGroupRule).filter(
                     ([_, v]) =>
-                      !es.map(e => e.securityGroupRuleId).includes((v as SecurityGroupRule).securityGroupRuleId)
-                  )
+                      !es
+                        .map(e => e.securityGroupRuleId)
+                        .includes((v as SecurityGroupRule).securityGroupRuleId),
+                  ),
                 )
               : {};
           },
@@ -549,5 +574,5 @@ export const AwsSecurityGroupModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname
+  __dirname,
 );

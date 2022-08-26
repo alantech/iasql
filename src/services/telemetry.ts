@@ -36,7 +36,13 @@ export type EventProps = {
   button?: boolean;
 };
 
-async function logEvent(event: string, dbProps: DbProps, eventProps?: EventProps, uid?: string, deviceId?: string) {
+async function logEvent(
+  event: string,
+  dbProps: DbProps,
+  eventProps?: EventProps,
+  uid?: string,
+  deviceId?: string,
+) {
   if (!singleton) return;
   try {
     dbProps.iasqlEnv = IASQL_ENV;
@@ -74,7 +80,12 @@ export async function logRunSql(dbProps: DbProps, eventProps: EventProps, uid?: 
   await logEvent('RUNSQL', dbProps, eventProps, uid, deviceId);
 }
 
-export async function logOp(opType: IasqlOperationType, dbProps: DbProps, eventProps: EventProps, uid: string) {
+export async function logOp(
+  opType: IasqlOperationType,
+  dbProps: DbProps,
+  eventProps: EventProps,
+  uid: string,
+) {
   await logEvent(opType, dbProps, eventProps, uid);
 }
 

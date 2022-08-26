@@ -1,4 +1,9 @@
-import { EC2, Instance as AWSInstance, InstanceTypeInfo, paginateDescribeInstances } from '@aws-sdk/client-ec2';
+import {
+  EC2,
+  Instance as AWSInstance,
+  InstanceTypeInfo,
+  paginateDescribeInstances,
+} from '@aws-sdk/client-ec2';
 
 import { awsEc2Module } from '../aws_ec2';
 import { Architecture, InstanceMetadata, RootDeviceType } from './entity';
@@ -44,9 +49,11 @@ class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
   getInstanceType = crudBuilderFormat<EC2, 'describeInstanceTypes', InstanceTypeInfo | undefined>(
     'describeInstanceTypes',
     instanceType => ({ InstanceTypes: [instanceType] }),
-    res => res?.InstanceTypes?.[0]
+    res => res?.InstanceTypes?.[0],
   );
-  describeInstances = crudBuilder2<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({ InstanceIds }));
+  describeInstances = crudBuilder2<EC2, 'describeInstances'>('describeInstances', InstanceIds => ({
+    InstanceIds,
+  }));
   getInstance = async (client: EC2, id: string) => {
     const reservations = await this.describeInstances(client, [id]);
     return (reservations?.Reservations?.map((r: any) => r.Instances) ?? []).pop()?.pop();

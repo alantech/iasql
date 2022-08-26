@@ -46,7 +46,7 @@ const createSubnet = crudBuilder2<EC2, 'createSubnet'>('createSubnet', input => 
 const getSubnet = crudBuilderFormat<EC2, 'describeSubnets', AwsSubnet | undefined>(
   'describeSubnets',
   id => ({ SubnetIds: [id] }),
-  res => res?.Subnets?.[0]
+  res => res?.Subnets?.[0],
 );
 const getSubnets = paginateBuilder<EC2>(paginateDescribeSubnets, 'Subnets');
 const deleteSubnet = crudBuilder2<EC2, 'deleteSubnet'>('deleteSubnet', input => input);
@@ -78,7 +78,7 @@ async function createVpc(client: EC2, input: CreateVpcCommandInput) {
       } catch (e: any) {
         throw e;
       }
-    }
+    },
   );
   return out;
 }
@@ -86,7 +86,7 @@ async function createVpc(client: EC2, input: CreateVpcCommandInput) {
 const getVpc = crudBuilderFormat<EC2, 'describeVpcs', AwsVpc | undefined>(
   'describeVpcs',
   id => ({ VpcIds: [id] }),
-  res => res?.Vpcs?.[0]
+  res => res?.Vpcs?.[0],
 );
 const getVpcs = paginateBuilder<EC2>(paginateDescribeVpcs, 'Vpcs');
 const deleteVpc = crudBuilder2<EC2, 'deleteVpc'>('deleteVpc', input => input);
@@ -101,25 +101,38 @@ const getNatGateway = crudBuilderFormat<EC2, 'describeNatGateways', AwsNatGatewa
       },
     ],
   }),
-  res => res?.NatGateways?.pop()
+  res => res?.NatGateways?.pop(),
 );
-const getNatGateways = paginateBuilder<EC2>(paginateDescribeNatGateways, 'NatGateways', undefined, undefined, () => ({
-  Filter: [
-    {
-      Name: 'state',
-      Values: [AwsNatGatewayState.AVAILABLE, AwsNatGatewayState.FAILED],
-    },
-  ],
-}));
+const getNatGateways = paginateBuilder<EC2>(
+  paginateDescribeNatGateways,
+  'NatGateways',
+  undefined,
+  undefined,
+  () => ({
+    Filter: [
+      {
+        Name: 'state',
+        Values: [AwsNatGatewayState.AVAILABLE, AwsNatGatewayState.FAILED],
+      },
+    ],
+  }),
+);
 const getElasticIp = crudBuilderFormat<EC2, 'describeAddresses', Address | undefined>(
   'describeAddresses',
   allocationId => ({ AllocationIds: [allocationId] }),
-  res => res?.Addresses?.pop()
+  res => res?.Addresses?.pop(),
 );
 const getAllIps = crudBuilder2<EC2, 'describeAddresses'>('describeAddresses', () => ({}));
-const getElasticIps = async (client: EC2) => (await getAllIps(client))?.Addresses?.filter(a => !!a.AllocationId) ?? [];
-const deleteElasticIp = crudBuilder2<EC2, 'releaseAddress'>('releaseAddress', AllocationId => ({ AllocationId }));
-const getVpcEndpointGatewayServiceName = crudBuilderFormat<EC2, 'describeVpcEndpointServices', string | undefined>(
+const getElasticIps = async (client: EC2) =>
+  (await getAllIps(client))?.Addresses?.filter(a => !!a.AllocationId) ?? [];
+const deleteElasticIp = crudBuilder2<EC2, 'releaseAddress'>('releaseAddress', AllocationId => ({
+  AllocationId,
+}));
+const getVpcEndpointGatewayServiceName = crudBuilderFormat<
+  EC2,
+  'describeVpcEndpointServices',
+  string | undefined
+>(
   'describeVpcEndpointServices',
   (_service: string) => ({
     Filters: [
@@ -129,7 +142,7 @@ const getVpcEndpointGatewayServiceName = crudBuilderFormat<EC2, 'describeVpcEndp
       },
     ],
   }),
-  (res, service: string) => res?.ServiceNames?.find(sn => sn.includes(service))
+  (res, service: string) => res?.ServiceNames?.find(sn => sn.includes(service)),
 );
 const getVpcRouteTables = crudBuilderFormat<EC2, 'describeRouteTables', RouteTable[] | undefined>(
   'describeRouteTables',
@@ -141,17 +154,17 @@ const getVpcRouteTables = crudBuilderFormat<EC2, 'describeRouteTables', RouteTab
       },
     ],
   }),
-  res => res?.RouteTables
+  res => res?.RouteTables,
 );
 const createVpcEndpointGateway = crudBuilderFormat<EC2, 'createVpcEndpoint', AwsVpcEndpoint | undefined>(
   'createVpcEndpoint',
   input => input,
-  res => res?.VpcEndpoint
+  res => res?.VpcEndpoint,
 );
 const getVpcEndpointGateway = crudBuilderFormat<EC2, 'describeVpcEndpoints', AwsVpcEndpoint | undefined>(
   'describeVpcEndpoints',
   endpointId => ({ VpcEndpointIds: [endpointId] }),
-  res => res?.VpcEndpoints?.pop()
+  res => res?.VpcEndpoints?.pop(),
 );
 const getVpcEndpointGateways = paginateBuilder<EC2>(
   paginateDescribeVpcEndpoints,
@@ -171,26 +184,29 @@ const getVpcEndpointGateways = paginateBuilder<EC2>(
         Values: ['available', 'rejected', 'failed'],
       },
     ],
-  })
+  }),
 );
 const modifyVpcEndpointGateway = crudBuilderFormat<EC2, 'modifyVpcEndpoint', boolean | undefined>(
   'modifyVpcEndpoint',
   input => input,
-  res => res?.Return
+  res => res?.Return,
 );
 const deleteVpcEndpointGateway = crudBuilderFormat<EC2, 'deleteVpcEndpoints', UnsuccessfulItem[] | undefined>(
   'deleteVpcEndpoints',
   endpointId => ({ VpcEndpointIds: [endpointId] }),
-  res => res?.Unsuccessful
+  res => res?.Unsuccessful,
 );
-const getAvailabilityZones = crudBuilder2<EC2, 'describeAvailabilityZones'>('describeAvailabilityZones', region => ({
-  Filters: [
-    {
-      Name: 'region-name',
-      Values: [region],
-    },
-  ],
-}));
+const getAvailabilityZones = crudBuilder2<EC2, 'describeAvailabilityZones'>(
+  'describeAvailabilityZones',
+  region => ({
+    Filters: [
+      {
+        Name: 'region-name',
+        Values: [region],
+      },
+    ],
+  }),
+);
 
 // TODO: Add a waiter macro
 async function createNatGateway(client: EC2, input: CreateNatGatewayCommandInput) {
@@ -214,14 +230,16 @@ async function createNatGateway(client: EC2, input: CreateNatGatewayCommandInput
       try {
         out = data.NatGateways?.pop();
         // If it is not a final state we retry
-        if ([AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(out?.State as AwsNatGatewayState)) {
+        if (
+          [AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(out?.State as AwsNatGatewayState)
+        ) {
           return { state: WaiterState.RETRY };
         }
         return { state: WaiterState.SUCCESS };
       } catch (e: any) {
         throw e;
       }
-    }
+    },
   );
   return out;
 }
@@ -246,14 +264,16 @@ async function deleteNatGateway(client: EC2, id: string) {
       try {
         const nat = data.NatGateways?.pop();
         // If it is not a final state we retry
-        if ([AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(nat?.State as AwsNatGatewayState)) {
+        if (
+          [AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(nat?.State as AwsNatGatewayState)
+        ) {
           return { state: WaiterState.RETRY };
         }
         return { state: WaiterState.SUCCESS };
       } catch (e: any) {
         throw e;
       }
-    }
+    },
   );
 }
 // TODO: Figure out if/how to macro-ify this thing
@@ -409,7 +429,8 @@ export const AwsVpcModule: Module2 = new Module2(
       subnet: new Mapper2<Subnet>({
         entity: Subnet,
         equals: (a: Subnet, b: Subnet) =>
-          Object.is(a.subnetId, b.subnetId) && Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name), // TODO: Do better
+          Object.is(a.subnetId, b.subnetId) &&
+          Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name), // TODO: Do better
         source: 'db',
         cloud: new Crud2({
           create: async (es: Subnet[], ctx: Context) => {
@@ -488,7 +509,8 @@ export const AwsVpcModule: Module2 = new Module2(
         source: 'db',
         cloud: new Crud2({
           updateOrReplace: (a: Vpc, b: Vpc) => {
-            if (!Object.is(a.cidrBlock, b.cidrBlock) || !Object.is(a.isDefault, b.isDefault)) return 'replace';
+            if (!Object.is(a.cidrBlock, b.cidrBlock) || !Object.is(a.isDefault, b.isDefault))
+              return 'replace';
             else return 'update';
           },
           create: async (es: Vpc[], ctx: Context) => {
@@ -553,7 +575,10 @@ export const AwsVpcModule: Module2 = new Module2(
                 await AwsVpcModule.mappers.vpc.db.update(cloudRecord, ctx);
                 out.push(cloudRecord);
               } else {
-                const isUpdate = Object.is(AwsVpcModule.mappers.vpc.cloud.updateOrReplace(cloudRecord, e), 'update');
+                const isUpdate = Object.is(
+                  AwsVpcModule.mappers.vpc.cloud.updateOrReplace(cloudRecord, e),
+                  'update',
+                );
                 if (!isUpdate) {
                   // if CIDR is different we do the create
                   const newVpc = await AwsVpcModule.mappers.vpc.cloud.create(e, ctx);
@@ -678,7 +703,7 @@ export const AwsVpcModule: Module2 = new Module2(
               // `isUpdate` means only `tags` and/or `state` have changed
               const isUpdate = Object.is(
                 AwsVpcModule.mappers.natGateway.cloud.updateOrReplace(cloudRecord, e),
-                'update'
+                'update',
               );
               if (isUpdate && !AwsVpcModule.utils.eqTags(cloudRecord.tags, e.tags)) {
                 // If `tags` have changed, no matter if `state` changed or not, we update the tags, call AWS and update the DB
@@ -805,7 +830,8 @@ export const AwsVpcModule: Module2 = new Module2(
                 input.RouteTableIds = e.routeTableIds;
               } else {
                 const vpcRouteTables = await getVpcRouteTables(client.ec2client, e.vpc?.vpcId ?? '');
-                input.RouteTableIds = vpcRouteTables?.map(rt => rt.RouteTableId ?? '')?.filter(id => !!id) ?? [];
+                input.RouteTableIds =
+                  vpcRouteTables?.map(rt => rt.RouteTableId ?? '')?.filter(id => !!id) ?? [];
               }
               if (e.tags && Object.keys(e.tags).length) {
                 const tags: Tag[] = Object.keys(e.tags).map((k: string) => {
@@ -822,8 +848,14 @@ export const AwsVpcModule: Module2 = new Module2(
                 ];
               }
               const res = await createVpcEndpointGateway(client.ec2client, input);
-              const rawEndpointGateway = await getVpcEndpointGateway(client.ec2client, res?.VpcEndpointId ?? '');
-              const newEndpointGateway = await AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway, ctx);
+              const rawEndpointGateway = await getVpcEndpointGateway(
+                client.ec2client,
+                res?.VpcEndpointId ?? '',
+              );
+              const newEndpointGateway = await AwsVpcModule.utils.endpointGatewayMapper(
+                rawEndpointGateway,
+                ctx,
+              );
               newEndpointGateway.id = e.id;
               await AwsVpcModule.mappers.endpointGateway.db.update(newEndpointGateway, ctx);
               out.push(newEndpointGateway);
@@ -853,7 +885,8 @@ export const AwsVpcModule: Module2 = new Module2(
             const out = [];
             for (const e of es) {
               const cloudRecord = ctx?.memo?.cloud?.EndpointGateway?.[e.vpcEndpointId ?? ''];
-              const isUpdate = AwsVpcModule.mappers.endpointGateway.cloud.updateOrReplace(cloudRecord, e) === 'update';
+              const isUpdate =
+                AwsVpcModule.mappers.endpointGateway.cloud.updateOrReplace(cloudRecord, e) === 'update';
               if (isUpdate) {
                 let update = false;
                 if (!Object.is(cloudRecord.policyDocument, e.policyDocument)) {
@@ -870,7 +903,7 @@ export const AwsVpcModule: Module2 = new Module2(
                   !(
                     Object.is(cloudRecord.routeTableIds?.length, e.routeTableIds?.length) &&
                     !!cloudRecord.routeTableIds?.every(
-                      (crrt: any) => !!e.routeTableIds?.find(ert => Object.is(crrt, ert))
+                      (crrt: any) => !!e.routeTableIds?.find(ert => Object.is(crrt, ert)),
                     )
                   )
                 ) {
@@ -889,8 +922,14 @@ export const AwsVpcModule: Module2 = new Module2(
                   update = true;
                 }
                 if (update) {
-                  const rawEndpointGateway = await getVpcEndpointGateway(client.ec2client, e.vpcEndpointId ?? '');
-                  const newEndpointGateway = await AwsVpcModule.utils.endpointGatewayMapper(rawEndpointGateway, ctx);
+                  const rawEndpointGateway = await getVpcEndpointGateway(
+                    client.ec2client,
+                    e.vpcEndpointId ?? '',
+                  );
+                  const newEndpointGateway = await AwsVpcModule.utils.endpointGatewayMapper(
+                    rawEndpointGateway,
+                    ctx,
+                  );
                   newEndpointGateway.id = e.id;
                   await AwsVpcModule.mappers.endpointGateway.db.update(newEndpointGateway, ctx);
                   out.push(newEndpointGateway);
@@ -946,5 +985,5 @@ export const AwsVpcModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname
+  __dirname,
 );

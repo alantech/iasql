@@ -28,8 +28,8 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       Object.keys(a.envVariables ?? {}).every(
         (aevk: string) =>
           !!Object.keys(b.envVariables ?? {}).find(
-            (bevk: string) => Object.is(aevk, bevk) && Object.is(a.envVariables[aevk], b.envVariables[bevk])
-          )
+            (bevk: string) => Object.is(aevk, bevk) && Object.is(a.envVariables[aevk], b.envVariables[bevk]),
+          ),
       ) &&
       Object.is(a.essential, b.essential) &&
       Object.is(a.logGroup?.logGroupArn, b.logGroup?.logGroupArn) &&
@@ -50,16 +50,19 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
   createTaskDefinition = crudBuilderFormat<ECS, 'registerTaskDefinition', AwsTaskDefinition | undefined>(
     'registerTaskDefinition',
     input => input,
-    res => res?.taskDefinition
+    res => res?.taskDefinition,
   );
   getTaskDefinition = crudBuilderFormat<ECS, 'describeTaskDefinition', AwsTaskDefinition | undefined>(
     'describeTaskDefinition',
     taskDefinition => ({ taskDefinition }),
-    res => res?.taskDefinition
+    res => res?.taskDefinition,
   );
-  deleteTaskDefinition = crudBuilder2<ECS, 'deregisterTaskDefinition'>('deregisterTaskDefinition', taskDefinition => ({
-    taskDefinition,
-  }));
+  deleteTaskDefinition = crudBuilder2<ECS, 'deregisterTaskDefinition'>(
+    'deregisterTaskDefinition',
+    taskDefinition => ({
+      taskDefinition,
+    }),
+  );
 
   async getTaskDefinitions(client: ECS) {
     const taskDefinitions: any[] = [];
@@ -71,7 +74,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       {
         status: 'ACTIVE',
         maxResults: 100,
-      }
+      },
     );
     for await (const page of activePaginator) {
       activeTaskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
@@ -81,7 +84,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
     const services =
       (await this.module.service.getServices(
         client,
-        clusters.map(c => c.clusterArn!)
+        clusters.map(c => c.clusterArn!),
       )) ?? [];
     const servicesTasks = services.map(s => s.taskDefinition!) ?? [];
     for (const st of servicesTasks) {
@@ -185,7 +188,8 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       if (!Object.values(ctx.memo?.cloud?.Role ?? {}).length) {
         try {
           out.executionRole =
-            (await awsIamModule.role.db.read(ctx, roleName)) ?? (await awsIamModule.role.cloud.read(ctx, roleName));
+            (await awsIamModule.role.db.read(ctx, roleName)) ??
+            (await awsIamModule.role.cloud.read(ctx, roleName));
         } catch (e) {
           // Role could have been deleted
           logger.error('Role not found', e as any);
@@ -206,14 +210,16 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       if (!Object.values(ctx.memo?.cloud?.Role ?? {}).length) {
         try {
           out.taskRole =
-            (await awsIamModule.role.db.read(ctx, roleName)) ?? (await awsIamModule.role.cloud.read(ctx, roleName));
+            (await awsIamModule.role.db.read(ctx, roleName)) ??
+            (await awsIamModule.role.cloud.read(ctx, roleName));
         } catch (e) {
           // Role could have been deleted
           logger.error('Role not found', e as any);
           out.taskRole = undefined;
         }
       } else {
-        out.taskRole = (await awsIamModule.role.db.read(ctx, roleName)) ?? ctx?.memo?.cloud?.Role?.[roleName ?? ''];
+        out.taskRole =
+          (await awsIamModule.role.db.read(ctx, roleName)) ?? ctx?.memo?.cloud?.Role?.[roleName ?? ''];
       }
     }
     return out;
@@ -280,7 +286,9 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
           }) ?? [];
         if (!containerDefinitions.length)
           throw new Error(
-            `Task definition ${e.family}${e.revision ? `:${e.revision}` : ''} does not have any container associated.`
+            `Task definition ${e.family}${
+              e.revision ? `:${e.revision}` : ''
+            } does not have any container associated.`,
           );
         const input: any = {
           family: e.family,
@@ -334,8 +342,8 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
         if (!rawTaskDef.compatibilities?.includes('FARGATE')) return;
         return await this.taskDefinitionMapper(rawTaskDef, ctx);
       } else {
-        const taskDefs = ((await this.getTaskDefinitions(client.ecsClient)).taskDefinitions ?? []).filter(td =>
-          td.compatibilities.includes('FARGATE')
+        const taskDefs = ((await this.getTaskDefinitions(client.ecsClient)).taskDefinitions ?? []).filter(
+          td => td.compatibilities.includes('FARGATE'),
         );
         const tds = [];
         for (const td of taskDefs) {

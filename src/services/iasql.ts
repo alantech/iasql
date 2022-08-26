@@ -291,7 +291,7 @@ export async function dump(dbId: string, dataOnly: boolean) {
         ? `--data-only --no-privileges --column-inserts --rows-per-insert=50 --on-conflict-do-nothing ${excludedDataTables}`
         : ''
     } --inserts --exclude-schema=graphile_worker -x ${pgUrl}`,
-    { shell: '/bin/bash' }
+    { shell: '/bin/bash' },
   );
   return stdout;
 }
@@ -377,7 +377,8 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
   if (dbMeta?.upgrading) throw new Error('Cannot apply a change while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
-  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
@@ -391,7 +392,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
     const context: Context = { orm, memo }; // Every module gets access to the DB
     for (const name of moduleNames) {
       const mod = (Object.values(Modules) as ModuleInterface[]).find(
-        m => `${m.name}@${m.version}` === name
+        m => `${m.name}@${m.version}` === name,
       ) as ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod?.provides?.context ?? {};
@@ -399,7 +400,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
     }
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
     const moduleList = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
-      moduleNames.includes(`${mod.name}@${mod.version}`)
+      moduleNames.includes(`${mod.name}@${mod.version}`),
     );
     const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as ModuleInterface[])
@@ -426,7 +427,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
       await lazyLoader(
         mappers.map(mapper => async () => {
           await mapper.db.read(context);
-        })
+        }),
       );
       const comparators = mappers.map(mapper => mapper.equals);
       const idGens = mappers.map(mapper => mapper.entityId);
@@ -438,7 +439,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
         await lazyLoader(
           mappers.map(mapper => async () => {
             await mapper.cloud.read(context);
-          })
+          }),
         );
         const t3 = Date.now();
         logger.info(`Record acquisition time: ${t3 - t2}ms`);
@@ -466,7 +467,11 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
             description: mapper.entityId(e),
           }));
           rs.forEach(r => {
-            if (!crupde[entityName].some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description)))
+            if (
+              !crupde[entityName].some(
+                r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description),
+              )
+            )
               crupde[entityName].push(r);
           });
         };
@@ -531,7 +536,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
                       Object.keys(e2).forEach(k => (e[k] = e2[k]));
                     });
                   }
-                })
+                }),
               );
             }
             if (r.diff.entitiesChanged.length > 0) {
@@ -547,7 +552,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
                       Object.keys(e2).forEach(k => (ec.db[k] = e2[k]));
                     });
                   }
-                })
+                }),
               );
             }
             return outArr;
@@ -564,7 +569,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
               outArr.push(
                 r.diff.entitiesInAwsOnly.map((e: any) => async () => {
                   await r.mapper.cloud.delete(e, context);
-                })
+                }),
               );
             }
             return outArr;
@@ -605,7 +610,8 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
   if (!force && dbMeta?.upgrading) throw new Error('Cannot sync with the cloud while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
-  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
@@ -619,7 +625,7 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
     const context: Context = { orm, memo }; // Every module gets access to the DB
     for (const name of moduleNames) {
       const mod = (Object.values(Modules) as ModuleInterface[]).find(
-        m => `${m.name}@${m.version}` === name
+        m => `${m.name}@${m.version}` === name,
       ) as ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod?.provides?.context ?? {};
@@ -627,7 +633,7 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
     }
     // Get the mappers, regardless of source-of-truth
     const moduleList = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
-      moduleNames.includes(`${mod.name}@${mod.version}`)
+      moduleNames.includes(`${mod.name}@${mod.version}`),
     );
     const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as ModuleInterface[])
@@ -652,7 +658,7 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
       await lazyLoader(
         mappers.map(mapper => async () => {
           await mapper.cloud.read(context);
-        })
+        }),
       );
       const comparators = mappers.map(mapper => mapper.equals);
       const idGens = mappers.map(mapper => mapper.entityId);
@@ -663,7 +669,7 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
         await lazyLoader(
           mappers.map(mapper => async () => {
             await mapper.db.read(context);
-          })
+          }),
         );
         const t3 = Date.now();
         logger.info(`Record acquisition time: ${t3 - t2}ms`);
@@ -691,7 +697,11 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
             description: mapper.entityId(e),
           }));
           rs.forEach(r => {
-            if (!crupde[entityName].some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description)))
+            if (
+              !crupde[entityName].some(
+                r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description),
+              )
+            )
               crupde[entityName].push(r);
           });
         };
@@ -749,7 +759,7 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
                       Object.keys(e2).forEach(k => (e[k] = e2[k]));
                     });
                   }
-                })
+                }),
               );
             }
             if (r.diff.entitiesChanged.length > 0) {
@@ -766,7 +776,7 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
                       Object.keys(e2).forEach(k => (ec.cloud[k] = e2[k]));
                     });
                   }
-                })
+                }),
               );
             }
             return outArr;
@@ -783,7 +793,7 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
               outArr.push(
                 r.diff.entitiesInDbOnly.map((e: any) => async () => {
                   await r.mapper.db.delete(e, context);
-                })
+                }),
               );
             }
             return outArr;
@@ -822,7 +832,8 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
   if (dbMeta?.upgrading) throw new Error('Cannot check modules while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
-  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   const allModules = Object.values(Modules)
     .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && !/iasql_.*/.test(m.name))
     .filter((m: any) => process.env.IASQL_ENV !== 'production' || !/aws_ecs_simplified.*/.test(m.name)) // Temporarily disable ecs_simplified in production
@@ -846,7 +857,9 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
     const orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
     const mods = await orm.find(iasqlModule);
     const modsInstalled = mods.map((m: any) => m.name);
-    return JSON.stringify(allModules.filter(m => modsInstalled.includes(`${m.moduleName}@${m.moduleVersion}`)));
+    return JSON.stringify(
+      allModules.filter(m => modsInstalled.includes(`${m.moduleName}@${m.moduleVersion}`)),
+    );
   } else {
     throw new Error('Invalid request parameters');
   }
@@ -858,37 +871,47 @@ export async function install(
   dbUser: string,
   allModules = false,
   force = false,
-  ormOpt?: TypeormWrapper
+  ormOpt?: TypeormWrapper,
 ) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
   if (!force && dbMeta?.upgrading) throw new Error('Cannot install modules while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
-  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   // Check to make sure that all specified modules actually exist
   if (allModules) {
     const installedModules = JSON.parse(await modules(false, true, dbId)).map((r: any) => r.moduleName);
     moduleList = (Object.values(Modules) as ModuleInterface[])
       .filter((m: ModuleInterface) => !installedModules.includes(m.name))
-      .filter((m: ModuleInterface) => m.name && m.version && !['iasql_platform', 'iasql_functions'].includes(m.name))
+      .filter(
+        (m: ModuleInterface) =>
+          m.name && m.version && !['iasql_platform', 'iasql_functions'].includes(m.name),
+      )
       .map((m: ModuleInterface) => `${m.name}@${m.version}`);
   }
   const version =
-    Modules?.IasqlPlatform?.version ?? Modules?.iasqlPlatform?.version ?? throwError('IasqlPlatform not found');
+    Modules?.IasqlPlatform?.version ??
+    Modules?.iasqlPlatform?.version ??
+    throwError('IasqlPlatform not found');
   moduleList = moduleList.map((m: string) => (/@/.test(m) ? m : `${m}@${version}`));
   const mods = moduleList.map((n: string) =>
-    (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)
+    (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
   ) as ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {
     const modNames = (Object.values(Modules) as ModuleInterface[])
       .filter(m => m.hasOwnProperty('name') && m.hasOwnProperty('version'))
       .map(m => `${m.name}@${m.version}`);
     const missingModules = moduleList.filter(
-      (n: string) => !(Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)
+      (n: string) => !(Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
     );
-    const missingSuggestions = [...new Set(missingModules.map(m => levenshtein.closest(m, modNames))).values()];
+    const missingSuggestions = [
+      ...new Set(missingModules.map(m => levenshtein.closest(m, modNames))).values(),
+    ];
     throw new Error(
-      `The following modules do not exist: ${missingModules.join(', ')}. Did you mean: ${missingSuggestions.join(', ')}`
+      `The following modules do not exist: ${missingModules.join(
+        ', ',
+      )}. Did you mean: ${missingSuggestions.join(', ')}`,
     );
   }
   const orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
@@ -913,17 +936,21 @@ export async function install(
       ...new Set(
         mods
           .flatMap((m: ModuleInterface) =>
-            m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d))
+            m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)),
           )
           .filter(
-            (m: any) => ![`iasql_platform@${version}`, `iasql_functions@${version}`].includes(m) && m !== undefined
-          )
+            (m: any) =>
+              ![`iasql_platform@${version}`, `iasql_functions@${version}`].includes(m) && m !== undefined,
+          ),
       ),
     ];
     if (missingDeps.length > 0) {
-      logger.warn('Automatically attaching missing dependencies to this install', { moduleList, missingDeps });
+      logger.warn('Automatically attaching missing dependencies to this install', {
+        moduleList,
+        missingDeps,
+      });
       const extraMods = missingDeps.map((n: string) =>
-        (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)
+        (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
       ) as ModuleInterface[];
       mods.push(...extraMods);
       moduleList.push(...extraMods.map(mod => `${mod.name}@${mod.version}`));
@@ -986,7 +1013,7 @@ ${Object.keys(tableCollisions)
       e.name = `${md.name}@${md.version}`;
       // Promise.all is okay here because it's guaranteed to not hit the cloud services
       e.dependencies = await Promise.all(
-        md.dependencies.map(async dep => await orm.findOne(iasqlModule, { name: dep }))
+        md.dependencies.map(async dep => await orm.findOne(iasqlModule, { name: dep })),
       );
       await orm.save(iasqlModule, e);
 
@@ -1032,7 +1059,7 @@ ${Object.keys(tableCollisions)
   const context: Context = { orm, memo: {} }; // Every module gets access to the DB
   for (const name of moduleNames) {
     const md = (Object.values(Modules) as ModuleInterface[]).find(
-      m => `${m.name}@${m.version}` === name
+      m => `${m.name}@${m.version}` === name,
     ) as ModuleInterface;
     if (!md) throw new Error(`This should be impossible. Cannot find module ${name}`);
     const moduleContext = md?.provides?.context ?? {};
@@ -1062,7 +1089,7 @@ ${Object.keys(tableCollisions)
               throw err;
             }
           }
-        })
+        }),
       );
     }
     return 'Done!';
@@ -1076,19 +1103,25 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   if (!force && dbMeta?.upgrading) throw new Error('Cannot uninstall modules while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
-  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   // Check to make sure that all specified modules actually exist
   const version =
-    Modules?.IasqlPlatform?.version ?? Modules?.iasqlPlatform?.version ?? throwError('Core IasqlPlatform not found');
+    Modules?.IasqlPlatform?.version ??
+    Modules?.iasqlPlatform?.version ??
+    throwError('Core IasqlPlatform not found');
   moduleList = moduleList.map((m: string) => (/@/.test(m) ? m : `${m}@${version}`));
   const mods = moduleList.map((n: string) =>
-    (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)
+    (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
   ) as ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {
     throw new Error(
       `The following modules do not exist: ${moduleList
-        .filter((n: string) => !(Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n))
-        .join(', ')}`
+        .filter(
+          (n: string) =>
+            !(Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
+        )
+        .join(', ')}`,
     );
   }
   orm = !orm ? await TypeormWrapper.createConn(dbId) : orm;
@@ -1115,7 +1148,9 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
     logger.warn('All modules already uninstalled', { moduleList });
     return 'Done!';
   }
-  const remainingModules = existingModules.filter((m: string) => !mods.some(m2 => `${m2.name}@${m2.version}` === m));
+  const remainingModules = existingModules.filter(
+    (m: string) => !mods.some(m2 => `${m2.name}@${m2.version}` === m),
+  );
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(mods, remainingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
@@ -1229,7 +1264,7 @@ export async function upgrade(dbId: string, dbUser: string) {
             dbId,
             dbUser,
             false,
-            true
+            true,
           );
         }
       } catch (e) {

@@ -10,14 +10,17 @@ export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
   entity = AvailabilityZone;
   equals = (a: AvailabilityZone, b: AvailabilityZone) => a.name === b.name;
 
-  getAvailabilityZones = crudBuilder2<EC2, 'describeAvailabilityZones'>('describeAvailabilityZones', region => ({
-    Filters: [
-      {
-        Name: 'region-name',
-        Values: [region],
-      },
-    ],
-  }));
+  getAvailabilityZones = crudBuilder2<EC2, 'describeAvailabilityZones'>(
+    'describeAvailabilityZones',
+    region => ({
+      Filters: [
+        {
+          Name: 'region-name',
+          Values: [region],
+        },
+      ],
+    }),
+  );
 
   cloud = new Crud2({
     create: async (e: AvailabilityZone[], ctx: Context) => {
