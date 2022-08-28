@@ -135,7 +135,9 @@ jobs:
         env:
           SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
         run: |
-          ACCOUNT_INDEX=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null | jq '.[0]' || exit 1)
+          RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
+          echo $RESPONSE
+          ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
           echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
 
       - name: Run modules tests
