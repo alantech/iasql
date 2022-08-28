@@ -250,6 +250,6 @@ if (require.main === module) {
   })
 
   app.listen(port, () => {
-    console.log(`Scheduler running on port ${port}`)
+    logger.info(`Scheduler running on port ${port}`)
   })
 }

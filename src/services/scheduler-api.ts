@@ -1,14 +1,14 @@
-const fetch = require("node-fetch");
+import fetch from 'node-fetch';
 import logger from '../services/logger';
 
 const schedulerAddress = 'http://localhost:14527';
 
 async function fetchOrRaise(url: string) {
-  let response = await fetch(url);
+  const response = await fetch(url);
   if (response.ok) {
     return
   }
-  let error = await response.text();
+  const error = await response.text();
   logger.error(`Error received from Scheduler: ${error}`);
   throw new Error(error);
 }
