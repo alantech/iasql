@@ -203,30 +203,53 @@ export async function init() {
   }
 }
 
-// Primitive RPC between parent and child process. Requires the parent to produce a unique ID per
-// request to pair up to the correct response. May replace with a revived multitransport-jsonrpc?
-process.on('message', (m: string[]) => {
-  const [fn, ...args] = m;
-  switch (fn) {
-    case 'init':
-      init()
-        .then(() => process.send?.(['initComplete', ...args, undefined]))
-        .catch(e => process.send?.(['initComplete', ...args, e.message]));
-      break;
-    case 'start':
-      start(args[0], args[1])
-        .then(() => process.send?.(['startComplete', ...args, undefined]))
-        .catch(e => process.send?.(['startComplete', ...args, e.message]));
-      break;
-    case 'stop':
-      stop(args[0])
-        .then(() => process.send?.(['stopComplete', ...args, undefined]))
-        .catch(e => process.send?.(['stopComplete', ...args, e.message]));
-      break;
-    case 'stopAll':
-      stopAll()
-        .then(() => process.send?.(['stopAllComplete', ...args, undefined]))
-        .catch(e => process.send?.(['stopAllComplete', ...args, e.message]));
-      break;
+if (require.main === module) {
+  const express = require('express')
+  const app = express()
+  const port = 14527
+
+  function respondErrorAndDie(res: any, err: any) {
+    res.status(500).send(err);
+    logger.error(`Scheduler exited with error: ${err}`);
+    process.exit(13);
   }
-});
+
+  app.use((req: any, res: any, next: any) => {
+    logger.info(`Scheduler called on ${req.url}`)
+    next()
+  })
+
+  app.get('/init/', async (req: any, res: any) => {
+    init()
+      .then(() => res.sendStatus(200))
+      .catch((e) => respondErrorAndDie(res, e.message));
+  })
+
+  app.get('/start/:dbId/:dbUser/', async (req: any, res: any) => {
+    const { dbId, dbUser } = req.params;
+    start(dbId, dbUser)
+      .then(() => res.sendStatus(200))
+      .catch((e) => respondErrorAndDie(res, e.message));
+  })
+
+  app.get('/stop/:dbId/', async (req: any, res: any) => {
+    const { dbId } = req.params;
+    stop(dbId)
+      .then(() => res.sendStatus(200))
+      .catch((e) => respondErrorAndDie(res, e.message));
+  })
+
+  app.get('/stopAll/', async (req: any, res: any) => {
+    stopAll()
+      .then(() => res.sendStatus(200))
+      .catch((e) => respondErrorAndDie(res, e.message));
+  })
+
+  app.head('/health/', async (req: any, res: any) => {
+    res.sendStatus(200);
+  })
+
+  app.listen(port, () => {
+    console.log(`Scheduler running on port ${port}`)
+  })
+}

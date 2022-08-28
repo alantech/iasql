@@ -89,16 +89,19 @@
     "express": "^4.18.1",
     "express-jwt": "^6.1.0",
     "fastest-levenshtein": "^1.0.14",
+    "forever": "^4.0.3",
     "graphile-worker": "^0.13.0",
     "jwks-rsa": "^2.1.4",
     "lodash.isequal": "^4.5.0",
     "lodash.pick": "^4.4.0",
+    "node-fetch": "^2.6.7",
     "pg": "^8.8.0",
     "pgsql-parser": "^13.3.12",
     "reflect-metadata": "^0.1.13",
     "semver": "^7.3.7",
     "typeorm": "^0.2.37",
     "typeorm-naming-strategies": "^4.1.0",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "wait-on": "^6.0.1"
   }
 }
