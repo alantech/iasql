@@ -1,8 +1,8 @@
 /* tslint:disable no-console */
-import { createConnection, } from 'typeorm'
+import { createConnection } from 'typeorm';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
-import { sortMods, getModMigration, } from './module-json-utils'
+import { sortMods, getModMigration } from './module-json-utils';
 
 const moduleName = process.argv[process.argv.length - 2];
 const moduleVersion = process.argv[process.argv.length - 1];
@@ -14,7 +14,9 @@ if (moduleName !== 'iasql_platform') {
   sortedDeps = sortedDeps.filter(d => d.name !== 'iasql_platform');
 }
 
-const entities = sortedDeps.map(d => `${__dirname}/../modules/${moduleVersion}/${d.name}/entity/*.ts`) as any[]
+const entities = sortedDeps.map(
+  d => `${__dirname}/../modules/${moduleVersion}/${d.name}/entity/*.ts`,
+) as any[];
 
 (async () => {
   const conn = await createConnection({

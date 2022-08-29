@@ -1,24 +1,18 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  OneToOne,
-  PrimaryColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, OneToOne, PrimaryColumn } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
-import { Instance, } from '../../aws_ec2/entity';
+import { cloudId } from '../../../../services/cloud-id';
+import { Instance } from '../../aws_ec2/entity';
 
 export enum Architecture {
-  ARM64 = "arm64",
-  I386 = "i386",
-  X86_64 = "x86_64",
-  X86_64_MAC = "x86_64_mac",
+  ARM64 = 'arm64',
+  I386 = 'i386',
+  X86_64 = 'x86_64',
+  X86_64_MAC = 'x86_64_mac',
 }
 
 export enum RootDeviceType {
-  EBS = "ebs",
-  INSTANCE_STORE = "instance-store",
+  EBS = 'ebs',
+  INSTANCE_STORE = 'instance-store',
 }
 
 @Entity()
@@ -30,7 +24,7 @@ export class InstanceMetadata {
     onDelete: 'CASCADE',
   })
   @JoinColumn({
-    name: 'id'
+    name: 'id',
   })
   id?: number;
 

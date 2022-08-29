@@ -5,8 +5,8 @@ import {
   ManyToMany,
   PrimaryColumn,
   CreateDateColumn,
-  UpdateDateColumn
-} from 'typeorm'
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity()
 export class IasqlDatabase {

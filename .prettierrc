@@ -1,0 +1,14 @@
+{
+  "semi": true,
+  "trailingComma": "all",
+  "singleQuote": true,
+  "printWidth": 110,
+  "useTabs": false,
+  "tabWidth": 2,
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "endOfLine": "lf",
+  "importOrderParserPlugins" : ["typescript", "decorators-legacy"],
+  "importOrder": ["<THIRD_PARTY_MODULES>", "^@aws-sdk/(.*)$", "^[./]"],
+	"importOrderSeparation": true
+}

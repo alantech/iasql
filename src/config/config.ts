@@ -21,9 +21,10 @@ export interface ConfigInterface {
     debug: boolean; // Whether or not debug logging is enabled (does `logger.debug` do anything)
     test: boolean; // Whether or not a special test logger is enabled (bypass weirdness with Jest)
     logDnaKey?: string; // Indicates that logdna should be used if present
-  }
+  };
   // Configuration for auth0 access control
-  auth?: { // Not including this sub-object implies it is not enabled
+  auth?: {
+    // Not including this sub-object implies it is not enabled
     domain: string;
     audience: string;
   };
@@ -32,15 +33,19 @@ export interface ConfigInterface {
     origin: string;
   };
   // Configuration for amplitude telemetry
-  telemetry?: { // Not including this sub-object implies it is not enabled
+  telemetry?: {
+    // Not including this sub-object implies it is not enabled
     amplitudeKey: string;
   };
   // Configuration for sentry error reporting
-  sentry?: { // Not including this sub-object implies it is not enabled
+  sentry?: {
+    // Not including this sub-object implies it is not enabled
     dsn: string;
     environment: string;
     release: string;
   };
-};
+}
 
-export const throwError = (message: string): never => { throw new Error(message); };
+export const throwError = (message: string): never => {
+  throw new Error(message);
+};

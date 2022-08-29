@@ -1,9 +1,9 @@
-import { createConnection, Connection, Repository } from 'typeorm'
-import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
+import { createConnection, Connection, Repository } from 'typeorm';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
-import { IasqlDatabase, IasqlUser } from '../../entity/index'
-import * as dbMan from '../db-manager'
-import logger from '../logger'
+import { IasqlDatabase, IasqlUser } from '../../entity/index';
+import * as dbMan from '../db-manager';
+import logger from '../logger';
 
 class MetadataRepo {
   private database = 'iasql_metadata';
@@ -17,7 +17,7 @@ class MetadataRepo {
     const conn = await createConnection(dbMan.baseConnConfig);
     try {
       await conn.query(`CREATE DATABASE ${this.database};`);
-    } catch(e) {
+    } catch (e) {
       // CREATE DATABASE cannot be executed from a function and
       // postgres doesn't support IF NOT EXISTS for db creation so just ignore the error
     } finally {
@@ -38,9 +38,11 @@ class MetadataRepo {
     // In case of partially-failed disconnects, we delete all IasqlDatabase records that don't
     // actually have a database on startup.
     const expectedDbs = await this.dbRepo.find();
-    const actualDbs = (await this.conn.query(`
+    const actualDbs = (
+      await this.conn.query(`
       SELECT datname FROM pg_database;
-    `)).map((r: any) => r.datname);
+    `)
+    ).map((r: any) => r.datname);
     for (const expectedDb of expectedDbs) {
       if (actualDbs.includes(expectedDb.pgName)) continue;
       await this.dbRepo.remove(expectedDb);
@@ -58,7 +60,7 @@ class MetadataRepo {
     } else {
       // check alias is unique for existing user
       if (user.iasqlDatabases.some(d => d.alias === db.alias)) {
-        throw new Error(`User with ID ${a0Id} already has an IaSQL database with alias ${db.alias}`)
+        throw new Error(`User with ID ${a0Id} already has an IaSQL database with alias ${db.alias}`);
       }
       user.iasqlDatabases.push(db);
     }
@@ -88,7 +90,7 @@ class MetadataRepo {
     if (!db) {
       logger.warn(`No db with id ${dbId} found`);
       return;
-    };
+    }
     db.recordCount = recCount;
     db.operationCount = opCount;
     await this.dbRepo.save(db);
@@ -96,12 +98,12 @@ class MetadataRepo {
 
   async getUserFromDbId(dbId: string): Promise<IasqlUser | undefined> {
     const db = await this.dbRepo.findOne(dbId, {
-      relations: ['iasqlUsers']
+      relations: ['iasqlUsers'],
     });
     if (!db) {
       logger.warn(`No db with id ${dbId} found`);
       return;
-    };
+    }
     // TODO change when dbs have more than one user
     return db.iasqlUsers[0];
   }
@@ -116,7 +118,7 @@ class MetadataRepo {
       newUser.iasqlDatabases = [];
       await this.userRepo.save(newUser);
       return [];
-    };
+    }
     return user.iasqlDatabases;
   }
 
@@ -139,7 +141,6 @@ class MetadataRepo {
     // remove entry
     await this.dbRepo.remove(dbToDel);
   }
-
 }
 const singleton = new MetadataRepo();
 export default singleton;

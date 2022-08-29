@@ -9,38 +9,41 @@ import {
   ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
-} from 'typeorm'
+} from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 import { ElasticIp } from './elastic_ip';
 import { Subnet } from './subnet';
 
 // TODO: implement public ip path
 
 export enum ConnectivityType {
-  PRIVATE = "private",
-  PUBLIC = "public",
+  PRIVATE = 'private',
+  PUBLIC = 'public',
 }
 
 export enum NatGatewayState {
-  AVAILABLE = "available",
-  DELETED = "deleted",
-  DELETING = "deleting",
-  FAILED = "failed",
-  PENDING = "pending"
+  AVAILABLE = 'available',
+  DELETED = 'deleted',
+  DELETING = 'deleting',
+  FAILED = 'failed',
+  PENDING = 'pending',
 }
 
-@Check('Check_elastic_ip_when_public', `("elastic_ip_id" is not null AND "connectivity_type" = 'public') OR "elastic_ip_id" is null`)
+@Check(
+  'Check_elastic_ip_when_public',
+  `("elastic_ip_id" is not null AND "connectivity_type" = 'public') OR "elastic_ip_id" is null`,
+)
 @Entity()
 export class NatGateway {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   @cloudId
   natGatewayId?: string;
 
-  @ManyToOne(() => Subnet, { nullable: false, eager: true, })
+  @ManyToOne(() => Subnet, { nullable: false, eager: true })
   @JoinColumn({
     name: 'subnet_id',
   })
@@ -57,7 +60,7 @@ export class NatGateway {
     eager: true,
   })
   @JoinColumn({
-    name: 'elastic_ip_id'
+    name: 'elastic_ip_id',
   })
   elasticIp?: ElasticIp;
 

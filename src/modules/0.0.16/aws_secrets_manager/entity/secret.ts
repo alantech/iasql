@@ -1,19 +1,12 @@
-import {
-  AfterInsert,
-  AfterLoad,
-  AfterUpdate,
-  Column,
-  Entity,
-  PrimaryColumn,
-} from "typeorm";
+import { AfterInsert, AfterLoad, AfterUpdate, Column, Entity, PrimaryColumn } from 'typeorm';
 
-import { cloudId } from "../../../../services/cloud-id";
+import { cloudId } from '../../../../services/cloud-id';
 
 @Entity()
 export class Secret {
   @PrimaryColumn({
     nullable: false,
-    type: "varchar",
+    type: 'varchar',
   })
   @cloudId
   name: string;

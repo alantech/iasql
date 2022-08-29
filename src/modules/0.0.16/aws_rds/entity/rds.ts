@@ -6,11 +6,11 @@ import {
   ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
-} from 'typeorm'
+} from 'typeorm';
 
-import { SecurityGroup, } from '../../aws_security_group/entity'
-import { AvailabilityZone, } from '../../aws_vpc/entity'
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
+import { SecurityGroup } from '../../aws_security_group/entity';
+import { AvailabilityZone } from '../../aws_vpc/entity';
 import { ParameterGroup } from './parameter_group';
 
 @Entity()
@@ -33,7 +33,7 @@ export class RDS {
   })
   allocatedStorage: number;
 
-  @ManyToOne(() => AvailabilityZone, { eager: true, nullable: false, })
+  @ManyToOne(() => AvailabilityZone, { eager: true, nullable: false })
   @JoinColumn({
     name: 'availability_zone',
   })

@@ -8,18 +8,18 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-// TODO: Is there a better way to deal with cross-module entities?
-import { SecurityGroup, } from '../../aws_security_group/entity';
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 import { Role } from '../../aws_iam/entity';
+// TODO: Is there a better way to deal with cross-module entities?
+import { SecurityGroup } from '../../aws_security_group/entity';
 import { Subnet } from '../../aws_vpc/entity';
 
 // "terminated" is ommittted because that is achieved by deleting the row
- // "pending", "shutting-down", "stopping" are ommitted because they are interim states
- export enum State {
-  RUNNING = "running",
-  STOPPED = "stopped",
-  HIBERNATE = "hibernate",
+// "pending", "shutting-down", "stopping" are ommitted because they are interim states
+export enum State {
+  RUNNING = 'running',
+  STOPPED = 'stopped',
+  HIBERNATE = 'hibernate',
 }
 
 @Entity()
@@ -48,7 +48,7 @@ export class Instance {
   @Column({
     type: 'enum',
     enum: State,
-    default: State.RUNNING
+    default: State.RUNNING,
   })
   state: State;
 
@@ -64,7 +64,7 @@ export class Instance {
   })
   tags?: { [key: string]: string };
 
-  @ManyToMany(() => SecurityGroup, { eager: true, })
+  @ManyToMany(() => SecurityGroup, { eager: true })
   @JoinTable({
     name: 'instance_security_groups',
   })

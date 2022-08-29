@@ -1,14 +1,7 @@
 import { json } from 'stream/consumers';
-import {
-  Column,
-  Entity,
-  PrimaryColumn,
-  AfterLoad,
-  AfterInsert,
-  AfterUpdate,
-} from 'typeorm'
+import { Column, Entity, PrimaryColumn, AfterLoad, AfterInsert, AfterUpdate } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 
 @Entity()
 export class Bucket {
@@ -23,7 +16,7 @@ export class Bucket {
     type: 'json',
     nullable: true,
   })
-  policyDocument? : any;
+  policyDocument?: any;
 
   @Column({
     nullable: true,
@@ -31,4 +24,3 @@ export class Bucket {
   })
   createdAt?: Date;
 }
-

@@ -1,10 +1,6 @@
-import {
-  Column,
-  Entity,
-  PrimaryColumn,
-} from 'typeorm'
+import { Column, Entity, PrimaryColumn } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 
 @Entity()
 export class Cluster {
@@ -21,5 +17,4 @@ export class Cluster {
     nullable: true,
   })
   clusterStatus?: string;
-
 }

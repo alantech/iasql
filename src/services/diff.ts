@@ -30,6 +30,5 @@ export function findDiff(
     entitiesInDbOnly,
     entitiesInAwsOnly,
     entitiesChanged,
-  }
+  };
 }
-

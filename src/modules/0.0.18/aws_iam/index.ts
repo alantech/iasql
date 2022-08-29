@@ -1,62 +1,53 @@
-import {
-  IAM,
-  paginateListRoles,
-  Role as AWSRole
-} from '@aws-sdk/client-iam'
-import isEqual from 'lodash.isequal'
+import isEqual from 'lodash.isequal';
 
-import { Role } from './entity'
-import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder, } from '../../../services/aws_macros'
-import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
+import { IAM, paginateListRoles, Role as AWSRole } from '@aws-sdk/client-iam';
+
+import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { Role } from './entity';
 
 class RoleMapper extends MapperBase<Role> {
   module: AwsIamModule;
   entity = Role;
-  equals = (a: Role, b: Role) => Object.is(a.roleName, b.roleName) &&
+  equals = (a: Role, b: Role) =>
+    Object.is(a.roleName, b.roleName) &&
     Object.is(a.arn, b.arn) &&
     Object.is(a.description, b.description) &&
     this.rolePolicyComparison(a.assumeRolePolicyDocument, b.assumeRolePolicyDocument) &&
     Object.is(a.attachedPoliciesArns?.length, b.attachedPoliciesArns?.length) &&
-    (
-      (!a.attachedPoliciesArns && !b.attachedPoliciesArns) ||
-      !!a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns
-        ?.find(bs => Object.is(as, bs))));
+    ((!a.attachedPoliciesArns && !b.attachedPoliciesArns) ||
+      !!a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs))));
 
-  getRoleAttachedPoliciesArns = crudBuilderFormat<
-    IAM,
+  getRoleAttachedPoliciesArns = crudBuilderFormat<IAM, 'listAttachedRolePolicies', string[] | undefined>(
     'listAttachedRolePolicies',
-    string[] | undefined
-  >(
-    'listAttachedRolePolicies',
-    (RoleName) => ({ RoleName, }),
-    (res) => res?.AttachedPolicies?.length ? res.AttachedPolicies.map(p => p.PolicyArn ?? '') : undefined,
+    RoleName => ({ RoleName }),
+    res => (res?.AttachedPolicies?.length ? res.AttachedPolicies.map(p => p.PolicyArn ?? '') : undefined),
   );
 
   createNewRole = crudBuilderFormat<IAM, 'createRole', string>(
     'createRole',
-    (input) => input,
-    (res) => res?.Role?.Arn ?? '',
+    input => input,
+    res => res?.Role?.Arn ?? '',
   );
 
-  attachRolePolicy = crudBuilder2<IAM, 'attachRolePolicy'>(
-    'attachRolePolicy',
-    (RoleName, PolicyArn) => ({ RoleName, PolicyArn, }),
-  );
+  attachRolePolicy = crudBuilder2<IAM, 'attachRolePolicy'>('attachRolePolicy', (RoleName, PolicyArn) => ({
+    RoleName,
+    PolicyArn,
+  }));
 
-  attachRolePolicies = (client: IAM, roleName: string, policyArns: string[]) => mapLin(
-    policyArns,
-    (policyArn) => this.attachRolePolicy(client, roleName, policyArn)
-  );
-
+  attachRolePolicies = (client: IAM, roleName: string, policyArns: string[]) =>
+    mapLin(policyArns, policyArn => this.attachRolePolicy(client, roleName, policyArn));
 
   createInstanceProfile = crudBuilder2<IAM, 'createInstanceProfile'>(
     'createInstanceProfile',
-    (InstanceProfileName) => ({ InstanceProfileName, }),
+    InstanceProfileName => ({
+      InstanceProfileName,
+    }),
   );
 
   attachRoleToInstanceProfile = crudBuilder2<IAM, 'addRoleToInstanceProfile'>(
     'addRoleToInstanceProfile',
-    (RoleName) => ({
+    RoleName => ({
       InstanceProfileName: RoleName,
       RoleName,
     }),
@@ -64,12 +55,14 @@ class RoleMapper extends MapperBase<Role> {
 
   deleteInstanceProfile = crudBuilder2<IAM, 'deleteInstanceProfile'>(
     'deleteInstanceProfile',
-    (InstanceProfileName) => ({ InstanceProfileName, }),
+    InstanceProfileName => ({
+      InstanceProfileName,
+    }),
   );
 
   detachRoleToInstanceProfile = crudBuilder2<IAM, 'removeRoleFromInstanceProfile'>(
     'removeRoleFromInstanceProfile',
-    (RoleName) => ({
+    RoleName => ({
       InstanceProfileName: RoleName,
       RoleName,
     }),
@@ -77,15 +70,11 @@ class RoleMapper extends MapperBase<Role> {
 
   getRole = crudBuilderFormat<IAM, 'getRole', AWSRole | undefined>(
     'getRole',
-    (RoleName) => ({ RoleName, }),
-    (res) => res?.Role,
+    RoleName => ({ RoleName }),
+    res => res?.Role,
   );
 
-  getAllRoles = paginateBuilder<IAM>(
-    paginateListRoles,
-    'Roles',
-  );
-
+  getAllRoles = paginateBuilder<IAM>(paginateListRoles, 'Roles');
 
   updateRoleAssumePolicy = crudBuilder2<IAM, 'updateAssumeRolePolicy'>(
     'updateAssumeRolePolicy',
@@ -95,41 +84,30 @@ class RoleMapper extends MapperBase<Role> {
     }),
   );
 
-  updateRoleDescription = crudBuilder2<IAM, 'updateRole'>(
-    'updateRole',
-    (RoleName, Description?) => ({
-      RoleName,
-      Description,
-    }),
-  );
+  updateRoleDescription = crudBuilder2<IAM, 'updateRole'>('updateRole', (RoleName, Description?) => ({
+    RoleName,
+    Description,
+  }));
 
-  detachRolePolicy = crudBuilder2<IAM, 'detachRolePolicy'>(
-    'detachRolePolicy',
-    (RoleName, PolicyArn) => ({ RoleName, PolicyArn, }),
-  );
+  detachRolePolicy = crudBuilder2<IAM, 'detachRolePolicy'>('detachRolePolicy', (RoleName, PolicyArn) => ({
+    RoleName,
+    PolicyArn,
+  }));
 
-  detachRolePolicies = (client: IAM, roleName: string, policyArns: string[]) => mapLin(
-    policyArns,
-    (policyArn: string) => this.detachRolePolicy(client, roleName, policyArn)
-  );
+  detachRolePolicies = (client: IAM, roleName: string, policyArns: string[]) =>
+    mapLin(policyArns, (policyArn: string) => this.detachRolePolicy(client, roleName, policyArn));
 
-  deleteRole = crudBuilder2<IAM, 'deleteRole'>(
-    'deleteRole',
-    (RoleName) => ({ RoleName, }),
-  );
+  deleteRole = crudBuilder2<IAM, 'deleteRole'>('deleteRole', RoleName => ({ RoleName }));
 
   async roleMapper(role: AWSRole, ctx: Context) {
-    const client = await ctx.getAwsClient() as AWS;
+    const client = (await ctx.getAwsClient()) as AWS;
     const out = new Role();
     out.arn = role.Arn;
     if (!role.RoleName) return undefined;
     out.roleName = role.RoleName;
     out.description = role.Description;
     try {
-      out.attachedPoliciesArns = await this.getRoleAttachedPoliciesArns(
-        client.iamClient,
-        role.RoleName
-      );
+      out.attachedPoliciesArns = await this.getRoleAttachedPoliciesArns(client.iamClient, role.RoleName);
     } catch (e: any) {
       // If could not get policies for the role implies a misconfiguration
       if (e.Code === 'NoSuchEntity') return undefined;
@@ -143,13 +121,16 @@ class RoleMapper extends MapperBase<Role> {
     }
     return out;
   }
-  rolePolicyComparison(a: any, b: any) { // TODO: Better typing here
+  rolePolicyComparison(a: any, b: any) {
+    // TODO: Better typing here
     if (isEqual(a, b)) return true;
     if (
       Object.is(a, null) ||
       Object.is(b, null) ||
-      !Object.is(typeof a, 'object') || !Object.is(typeof b, 'object')
-    ) return false;
+      !Object.is(typeof a, 'object') ||
+      !Object.is(typeof b, 'object')
+    )
+      return false;
     const aKeys = Object.keys(a);
     const bKeys = Object.keys(b);
     if (!Object.is(aKeys.length, bKeys.length)) return false;
@@ -174,27 +155,26 @@ class RoleMapper extends MapperBase<Role> {
     // AWS service role example -
     //   arn:aws:iam::547931376551:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS
     // EC2 role instance profile ARN example - arn:aws:iam::257682470237:instance-profile/test-role
-    return  arn.split('/').pop();
+    return arn.split('/').pop();
   }
   allowEc2Service(a: Role) {
     return a.assumeRolePolicyDocument?.Statement?.find(
-      (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com');
+      (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com',
+    );
   }
 
   cloud = new Crud2({
     create: async (es: Role[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const role of es) {
-        const roleArn = await this.createNewRole(
-          client.iamClient,
-          {
-            RoleName: role.roleName,
-            AssumeRolePolicyDocument: JSON.stringify(role.assumeRolePolicyDocument),
-            Description: role.description,
-          },
-        );
-        if (!roleArn) { // then who?
+        const roleArn = await this.createNewRole(client.iamClient, {
+          RoleName: role.roleName,
+          AssumeRolePolicyDocument: JSON.stringify(role.assumeRolePolicyDocument),
+          Description: role.description,
+        });
+        if (!roleArn) {
+          // then who?
           throw new Error('should not be possible');
         }
         await this.attachRolePolicies(client.iamClient, role.roleName, role.attachedPoliciesArns ?? []);
@@ -213,7 +193,7 @@ class RoleMapper extends MapperBase<Role> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
         const rawRole = await this.getRole(client.iamClient, id);
         if (!rawRole) return;
@@ -231,7 +211,7 @@ class RoleMapper extends MapperBase<Role> {
     },
     updateOrReplace: () => 'update',
     update: async (es: Role[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.Role?.[e.roleName ?? ''];
@@ -248,7 +228,7 @@ class RoleMapper extends MapperBase<Role> {
           await this.updateRoleAssumePolicy(
             client.iamClient,
             e.roleName,
-            JSON.stringify(e.assumeRolePolicyDocument)
+            JSON.stringify(e.assumeRolePolicyDocument),
           );
           const eAllowEc2Service = this.allowEc2Service(e);
           const cloudRecordAllowEc2Service = this.allowEc2Service(cloudRecord);
@@ -276,7 +256,7 @@ class RoleMapper extends MapperBase<Role> {
       return out;
     },
     delete: async (es: Role[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const entity of es) {
         if (entity.arn) {
           // aws-service-roles cannot be deleted so restore it in the db
@@ -296,7 +276,7 @@ class RoleMapper extends MapperBase<Role> {
             await this.detachRolePolicies(
               client.iamClient,
               entity.roleName,
-              entity.attachedPoliciesArns ?? []
+              entity.attachedPoliciesArns ?? [],
             );
             await this.deleteRole(client.iamClient, entity.roleName);
           }
@@ -311,7 +291,6 @@ class RoleMapper extends MapperBase<Role> {
     super.init();
   }
 }
-
 
 class AwsIamModule extends ModuleBase {
   role: RoleMapper;

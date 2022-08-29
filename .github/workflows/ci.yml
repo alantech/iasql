@@ -35,6 +35,27 @@ jobs:
       - name: Run linter check
         run: yarn lint
 
+  style:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Set up Node.js
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Run code style check
+        run: yarn style
+
   common-test:
     runs-on: ubuntu-latest
     name: common tests

@@ -1,15 +1,14 @@
 /* tslint:disable no-console */
-import { getModJsons, ModJson, } from './module-json-utils'
+import { getModJsons, ModJson } from './module-json-utils';
 
 const moduleName = process.argv[process.argv.length - 2];
 const moduleVersion = process.argv[process.argv.length - 1];
 
 const modJsons = getModJsons(moduleVersion);
 
-const depModules: { [key: string]: ModJson, } = {};
+const depModules: { [key: string]: ModJson } = {};
 
-const getModule = (name: string) => (Object.values(modJsons) as ModJson[])
-  .find(m => name === m.name);
+const getModule = (name: string) => (Object.values(modJsons) as ModJson[]).find(m => name === m.name);
 
 const processDep = (dep: string) => {
   const depMod = getModule(dep);

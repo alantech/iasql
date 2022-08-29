@@ -1,11 +1,6 @@
-import {
-  Column,
-  Entity,
-  PrimaryColumn,
-} from 'typeorm'
+import { Column, Entity, PrimaryColumn } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
-
+import { cloudId } from '../../../../services/cloud-id';
 
 // TODO complete schema
 @Entity()

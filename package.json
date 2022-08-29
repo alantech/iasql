@@ -21,7 +21,9 @@
     "docker-compose": "IASQL_ENV=local docker-compose up --build",
     "version": "./.version.sh",
     "drop": "./.drop.sh",
-    "develop": "./.develop.sh"
+    "develop": "./.develop.sh",
+    "style": "npx prettier --config .prettierrc 'src/**/*.ts' --check",
+    "format": "npx prettier --config .prettierrc 'src/**/*.ts' --write"
   },
   "repository": {
     "type": "git",
@@ -38,6 +40,7 @@
   },
   "homepage": "https://iasql.com",
   "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^3.3.0",
     "@types/callsite": "^1.0.31",
     "@types/cors": "^2.8.12",
     "@types/jest": "^27.5.0",
@@ -47,6 +50,7 @@
     "copyfiles": "^2.4.1",
     "jest": "^27.5.1",
     "nodemon": "^2.0.13",
+    "prettier": "^2.7.1",
     "ts-jest": "^27.1.3",
     "ts-node-dev": "^2.0.0",
     "tslint": "^6.1.3",

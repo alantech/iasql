@@ -1,10 +1,15 @@
-import { AWS, } from '../../../services/aws_macros'
-import { AwsAccountEntity, } from './entity'
-import { Context, Crud2, Mapper2, ModuleBase, } from '../../interfaces'
-import * as metadata from './module.json' // TODO: Eliminate this?
+import { AWS } from '../../../services/aws_macros';
+import { Context, Crud2, Mapper2, ModuleBase } from '../../interfaces';
+import { AwsAccountEntity } from './entity';
+import * as metadata from './module.json';
+
+// TODO: Eliminate this?
 
 class AwsAccount extends ModuleBase {
-  constructor() { super(); super.init(); }
+  constructor() {
+    super();
+    super.init();
+  }
   dirname = __dirname;
   dependencies = metadata.dependencies;
   context: Context = {
@@ -35,14 +40,26 @@ class AwsAccount extends ModuleBase {
     equals: (_a: AwsAccountEntity, _b: AwsAccountEntity) => true,
     source: 'db',
     cloud: new Crud2({
-      create: async (_e: AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
-      read: (ctx: Context, id?: string) => ctx.orm.find(AwsAccountEntity, id ? {
-        where: {
-          id,
-        },
-      } : undefined),
-      update: async (_e: AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
-      delete: async (_e: AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
+      create: async (_e: AwsAccountEntity[], _ctx: Context) => {
+        /* Do nothing */
+      },
+      read: (ctx: Context, id?: string) =>
+        ctx.orm.find(
+          AwsAccountEntity,
+          id
+            ? {
+                where: {
+                  id,
+                },
+              }
+            : undefined,
+        ),
+      update: async (_e: AwsAccountEntity[], _ctx: Context) => {
+        /* Do nothing */
+      },
+      delete: async (_e: AwsAccountEntity[], _ctx: Context) => {
+        /* Do nothing */
+      },
     }),
   });
 }

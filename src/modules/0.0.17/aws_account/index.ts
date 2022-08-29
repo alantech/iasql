@@ -1,20 +1,32 @@
-import { AWS, } from '../../../services/aws_macros'
-import { AwsAccountEntity, } from './entity'
-import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
+import { AWS } from '../../../services/aws_macros';
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { AwsAccountEntity } from './entity';
 
 class AccountMapper extends MapperBase<AwsAccountEntity> {
   module: AwsAccount;
   entity = AwsAccountEntity;
   equals = (_a: AwsAccountEntity, _b: AwsAccountEntity) => true;
-  cloud =  new Crud2<AwsAccountEntity>({
-    create: async (_e: AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
-    read: (ctx: Context, id?: string) => ctx.orm.find(AwsAccountEntity, id ? {
-      where: {
-        id,
-      },
-    } : undefined),
-    update: async (_e: AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
-    delete: async (_e: AwsAccountEntity[], _ctx: Context) => { /* Do nothing */ },
+  cloud = new Crud2<AwsAccountEntity>({
+    create: async (_e: AwsAccountEntity[], _ctx: Context) => {
+      /* Do nothing */
+    },
+    read: (ctx: Context, id?: string) =>
+      ctx.orm.find(
+        AwsAccountEntity,
+        id
+          ? {
+              where: {
+                id,
+              },
+            }
+          : undefined,
+      ),
+    update: async (_e: AwsAccountEntity[], _ctx: Context) => {
+      /* Do nothing */
+    },
+    delete: async (_e: AwsAccountEntity[], _ctx: Context) => {
+      /* Do nothing */
+    },
   });
 
   constructor(module: AwsAccount) {

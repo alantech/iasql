@@ -1,18 +1,19 @@
-import { randomBytes } from 'crypto'
+import { randomBytes } from 'crypto';
+import { Connection } from 'typeorm';
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
-import { Connection, } from 'typeorm'
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
-
-import config from '../config'
-import { throwError, } from '../config/config'
-import { modules as Modules, } from '../modules'
+import config from '../config';
+import { throwError } from '../config/config';
+import { modules as Modules } from '../modules';
 
 export async function migrate(conn: Connection) {
   // Needs to be done this way or a redeploy would accidentally start using the next version even
   // if it is not yet enabled.
   const ModuleSet = (Modules as any)[config.modules.latestVersion];
-  const iasqlPlatform = ModuleSet?.IasqlPlatform ?? ModuleSet?.iasqlPlatform ?? throwError('Core IasqlPlatform not found');
-  const iasqlFunctions = ModuleSet?.IasqlFunctions ?? ModuleSet?.iasqlFunctions ?? throwError('Core IasqlFunctions not found');
+  const iasqlPlatform =
+    ModuleSet?.IasqlPlatform ?? ModuleSet?.iasqlPlatform ?? throwError('Core IasqlPlatform not found');
+  const iasqlFunctions =
+    ModuleSet?.IasqlFunctions ?? ModuleSet?.iasqlFunctions ?? throwError('Core IasqlFunctions not found');
   const version = iasqlPlatform.version;
   const qr = conn.createQueryRunner();
   await qr.connect();
@@ -20,14 +21,14 @@ export async function migrate(conn: Connection) {
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@${version}')`);
   await iasqlFunctions.migrations.install(qr);
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_functions@${version}')`);
-  await qr.query(`INSERT INTO iasql_dependencies VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`);
+  await qr.query(
+    `INSERT INTO iasql_dependencies VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`,
+  );
   await qr.release();
 }
 
 function randomHexValue() {
-  return randomBytes(8)
-    .toString('hex')
-    .toLowerCase()
+  return randomBytes(8).toString('hex').toLowerCase();
 }
 
 export function genDbId(dbAlias: string) {
@@ -41,7 +42,9 @@ export const baseConnConfig: PostgresConnectionOptions = {
   password: config.db.password,
   host: config.db.host,
   database: 'postgres',
-  extra: { ssl: ['postgresql', 'localhost'].includes(config.db.host) ? false : { rejectUnauthorized: false } },  // TODO: remove once DB instance with custom ssl cert is in place
+  extra: {
+    ssl: ['postgresql', 'localhost'].includes(config.db.host) ? false : { rejectUnauthorized: false },
+  }, // TODO: remove once DB instance with custom ssl cert is in place
 };
 
 // TODO: The permissions below work just fine, but prevent the users from creating their own
@@ -92,32 +95,45 @@ export function dropPostgresRoleQuery(user: string) {
 // Create a randomly generated username and password, an 8 char username [a-z][a-z0-9]{7} and a
 // 16 char password [a-zA-Z0-9!@$%^*]{16}
 export function genUserAndPass(): [string, string] {
-    const userFirstCharCharset = [
-      Array(26).fill('a').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-    ].flat();
-    const userRestCharCharset = [
-      ...userFirstCharCharset,
-      Array(10).fill('0').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-    ].flat();
-    const passwordCharset = [
-      ...userRestCharCharset,
-      Array(26).fill('A').map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
-      '$.^*'.split(''),
-    ].flat();
-    const randChar = (a: string[]): string => a[Math.floor(Math.random() * a.length)];
-    const user = [
-      randChar(userFirstCharCharset),
-      Array(7).fill('').map(() => randChar(userRestCharCharset)),
-    ].flat().join('');
-    const pass = Array(16).fill('').map(() => randChar(passwordCharset)).join('');
-    return [user, pass];
+  const userFirstCharCharset = [
+    Array(26)
+      .fill('a')
+      .map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+  ].flat();
+  const userRestCharCharset = [
+    ...userFirstCharCharset,
+    Array(10)
+      .fill('0')
+      .map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+  ].flat();
+  const passwordCharset = [
+    ...userRestCharCharset,
+    Array(26)
+      .fill('A')
+      .map((c, i) => String.fromCharCode(c.charCodeAt() + i)),
+    '$.^*'.split(''),
+  ].flat();
+  const randChar = (a: string[]): string => a[Math.floor(Math.random() * a.length)];
+  const user = [
+    randChar(userFirstCharCharset),
+    Array(7)
+      .fill('')
+      .map(() => randChar(userRestCharCharset)),
+  ]
+    .flat()
+    .join('');
+  const pass = Array(16)
+    .fill('')
+    .map(() => randChar(passwordCharset))
+    .join('');
+  return [user, pass];
 }
 
 export function ourPgUrl(dbId: string): string {
   // Using the main user and password, not the users' own account here
-  return `postgres://${encodeURIComponent(config.db.user)}:${encodeURIComponent(
-    config.db.password
-  )}@${config.db.host}/${dbId}`;
+  return `postgres://${encodeURIComponent(config.db.user)}:${encodeURIComponent(config.db.password)}@${
+    config.db.host
+  }/${dbId}`;
 }
 
 export function getEmail(user: any): string {

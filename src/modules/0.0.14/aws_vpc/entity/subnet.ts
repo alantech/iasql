@@ -1,14 +1,8 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm'
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
-import { Vpc, } from './vpc';
-import { AvailabilityZone, } from './availability_zone'
+import { cloudId } from '../../../../services/cloud-id';
+import { AvailabilityZone } from './availability_zone';
+import { Vpc } from './vpc';
 
 export enum SubnetState {
   AVAILABLE = 'available',
@@ -20,7 +14,7 @@ export class Subnet {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => AvailabilityZone, { nullable: false, eager: true, })
+  @ManyToOne(() => AvailabilityZone, { nullable: false, eager: true })
   @JoinColumn({
     name: 'availability_zone',
   })
@@ -33,7 +27,7 @@ export class Subnet {
   })
   state?: SubnetState;
 
-  @ManyToOne(() => Vpc, { nullable: false, eager: true, })
+  @ManyToOne(() => Vpc, { nullable: false, eager: true })
   @JoinColumn({
     name: 'vpc_id',
   })

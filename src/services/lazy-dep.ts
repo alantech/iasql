@@ -1,8 +1,8 @@
 import logger from './logger';
 
 export class DepError {
-  message: string
-  metadata?: any
+  message: string;
+  metadata?: any;
 
   constructor(message: string, metadata?: any) {
     this.message = message;

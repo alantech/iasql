@@ -1,4 +1,4 @@
-import { ConfigInterface, throwError, } from './config';
+import { ConfigInterface, throwError } from './config';
 
 const config: ConfigInterface = {
   http: {
@@ -6,7 +6,7 @@ const config: ConfigInterface = {
   },
   modules: {
     latestVersion: '0.0.17',
-    oldestVersion: '0.0.14'
+    oldestVersion: '0.0.14',
   },
   db: {
     host: 'db.iasql.com',
@@ -27,7 +27,7 @@ const config: ConfigInterface = {
     audience: 'https://api.iasql.com', // id of this api in auth0
   },
   cors: {
-    origin: 'https://app.iasql.com'
+    origin: 'https://app.iasql.com',
   },
   sentry: {
     dsn: 'https://e257e8d6646e4657b4f556efc1de31e8@o1090662.ingest.sentry.io/6106929',
@@ -35,7 +35,7 @@ const config: ConfigInterface = {
     release: process.env.SENTRY_RELEASE ?? throwError('No Sentry Release defined'),
   },
   telemetry: {
-    amplitudeKey: 'c9d876059e7c9a83e44dcef855e77f48'
+    amplitudeKey: 'c9d876059e7c9a83e44dcef855e77f48',
   },
 };
 

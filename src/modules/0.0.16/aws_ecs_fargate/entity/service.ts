@@ -9,16 +9,16 @@ import {
   ManyToMany,
   ManyToOne,
   PrimaryColumn,
-} from 'typeorm'
+} from 'typeorm';
 
 import { Cluster, TaskDefinition, ContainerDefinition } from '.';
+import { cloudId } from '../../../../services/cloud-id';
 import { TargetGroup } from '../../aws_elb/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
-import { cloudId, } from '../../../../services/cloud-id'
 
 export enum AssignPublicIp {
-  DISABLED = "DISABLED",
-  ENABLED = "ENABLED"
+  DISABLED = 'DISABLED',
+  ENABLED = 'ENABLED',
 }
 
 @Entity()
@@ -58,26 +58,26 @@ export class Service {
   })
   desiredCount?: number;
 
-  @Column('text', { array: true, })
+  @Column('text', { array: true })
   subnets: string[];
 
   @ManyToMany(() => SecurityGroup, {
     eager: true,
   })
   @JoinTable({
-    name: 'service_security_groups'
+    name: 'service_security_groups',
   })
   securityGroups: SecurityGroup[];
 
   @Column({
     type: 'enum',
     enum: AssignPublicIp,
-    default: AssignPublicIp.DISABLED
+    default: AssignPublicIp.DISABLED,
   })
   assignPublicIp: AssignPublicIp;
 
   @ManyToOne(() => TargetGroup, {
-    eager: true
+    eager: true,
   })
   @JoinColumn({
     name: 'target_group_name',
