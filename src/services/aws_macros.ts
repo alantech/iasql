@@ -10,6 +10,7 @@ import { ElasticLoadBalancingV2 } from '@aws-sdk/client-elastic-load-balancing-v
 import { ElastiCache } from '@aws-sdk/client-elasticache';
 import { IAM } from '@aws-sdk/client-iam';
 import { Lambda } from '@aws-sdk/client-lambda';
+import { MemoryDB } from '@aws-sdk/client-memorydb';
 import { RDS } from '@aws-sdk/client-rds';
 import { Route53 } from '@aws-sdk/client-route-53';
 import { S3 } from '@aws-sdk/client-s3';
@@ -57,6 +58,7 @@ export class AWS {
   elasticacheClient: ElastiCache;
   secretsClient: SecretsManager;
   cloudfrontClient: CloudFront;
+  memoryDBClient: MemoryDB;
 
   constructor(config: AWSConfig) {
     this.region = config.region;
@@ -75,6 +77,7 @@ export class AWS {
     this.route53Client = new Route53(config);
     this.secretsClient = new SecretsManager(config);
     this.ssmClient = new SSM(config);
+    this.memoryDBClient = new MemoryDB(config);
     // Technically available in multiple regions but with weird constraints, and the default is us-east-1
     this.s3Client = new S3({ ...config, region: 'us-east-1' });
     // Service endpoint only available in 'us-east-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
