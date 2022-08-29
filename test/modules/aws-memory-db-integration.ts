@@ -15,7 +15,7 @@ const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_memory_db'];
 
-jest.setTimeout(960000);
+jest.setTimeout(1800000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
