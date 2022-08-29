@@ -7,7 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-} from 'typeorm'
+} from 'typeorm';
 
 @Entity()
 export class IasqlModule {
@@ -17,7 +17,7 @@ export class IasqlModule {
   })
   name: string;
 
-  @ManyToMany(() => IasqlModule, (m) => m.name, {
+  @ManyToMany(() => IasqlModule, m => m.name, {
     createForeignKeyConstraints: true,
     nullable: true,
   })
@@ -40,11 +40,11 @@ export class IasqlModule {
 
 @Entity()
 export class IasqlTables {
-  @ManyToOne(() => IasqlModule, (m) => m.name, { primary: true, })
+  @ManyToOne(() => IasqlModule, m => m.name, { primary: true })
   @JoinColumn({ name: 'module' })
   module: IasqlModule;
 
-  @Column({ nullable: false, primary: true, })
+  @Column({ nullable: false, primary: true })
   table: string;
 }
 
@@ -83,5 +83,5 @@ export class IasqlAuditLog {
   @Column({
     type: 'json',
   })
-  change: { original?: any, change?: any, };
+  change: { original?: any; change?: any };
 }

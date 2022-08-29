@@ -1,4 +1,4 @@
-import { ConfigInterface, throwError, } from './config';
+import { ConfigInterface, throwError } from './config';
 
 const config: ConfigInterface = {
   http: {
@@ -6,7 +6,7 @@ const config: ConfigInterface = {
   },
   modules: {
     latestVersion: '0.0.18',
-    oldestVersion: '0.0.14'
+    oldestVersion: '0.0.14',
   },
   db: {
     host: 'db-staging.iasql.com',
@@ -35,7 +35,7 @@ const config: ConfigInterface = {
     release: process.env.SENTRY_RELEASE ?? throwError('No Sentry Release defined'),
   },
   telemetry: {
-    amplitudeKey: '1f380d1286396641d1e9a56f15e80e65'
+    amplitudeKey: '1f380d1286396641d1e9a56f15e80e65',
   },
 };
 

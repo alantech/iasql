@@ -5,26 +5,24 @@ import {
   paginateDescribeVpcs,
   CreateVpcCommandInput,
   DescribeVpcsCommandInput,
-} from '@aws-sdk/client-ec2'
-import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
+} from '@aws-sdk/client-ec2';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
-import {
-  AWS,
-  crudBuilder2,
-  crudBuilderFormat,
-  paginateBuilder,
-} from '../../../../services/aws_macros'
-import { Context, Crud2, MapperBase, } from '../../../interfaces'
-import { Vpc, VpcState, Subnet } from '../entity'
-import { AwsVpcModule, } from '..'
-import { eqTags, updateTags, } from './tags'
+import { AwsVpcModule } from '..';
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
+import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { Vpc, VpcState, Subnet } from '../entity';
+import { eqTags, updateTags } from './tags';
 
 export class VpcMapper extends MapperBase<Vpc> {
   module: AwsVpcModule;
   entity = Vpc;
   equals = (a: Vpc, b: Vpc) => {
-    const result = Object.is(a.cidrBlock, b.cidrBlock) && Object.is(a.state, b.state) && Object.is(a.isDefault, b.isDefault) &&
-      (eqTags(a.tags, b.tags));
+    const result =
+      Object.is(a.cidrBlock, b.cidrBlock) &&
+      Object.is(a.state, b.state) &&
+      Object.is(a.isDefault, b.isDefault) &&
+      eqTags(a.tags, b.tags);
     return result;
   };
 
@@ -36,9 +34,11 @@ export class VpcMapper extends MapperBase<Vpc> {
     out.state = vpc.State as VpcState;
     out.isDefault = vpc.IsDefault ?? false;
     const tags: { [key: string]: any } = {};
-    (vpc.Tags || []).filter(t => t.hasOwnProperty('Key') && t.hasOwnProperty('Value')).forEach(t => {
-      tags[t.Key as string] = t.Value;
-    });
+    (vpc.Tags || [])
+      .filter(t => t.hasOwnProperty('Key') && t.hasOwnProperty('Value'))
+      .forEach(t => {
+        tags[t.Key as string] = t.Value;
+      });
     out.tags = tags;
 
     return out;
@@ -51,57 +51,58 @@ export class VpcMapper extends MapperBase<Vpc> {
     };
     let out: AwsVpc | undefined;
     await createWaiter<EC2, DescribeVpcsCommandInput>(
-        {
-          client,
-          // all in seconds
-          maxWaitTime: 300,
-          minDelay: 1,
-          maxDelay: 4,
-        },
-        describeInput,
-        async (cl, cmd) => {
-          const data = await cl.describeVpcs(cmd);
-          try {
-            out = data.Vpcs?.pop();
-            // If it is not a final state we retry
-            if ([VpcState.PENDING].includes(out?.State as VpcState)) {
-              return {state: WaiterState.RETRY};
-            }
-            return {state: WaiterState.SUCCESS};
-          } catch (e: any) {
-            throw e;
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 300,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      describeInput,
+      async (cl, cmd) => {
+        const data = await cl.describeVpcs(cmd);
+        try {
+          out = data.Vpcs?.pop();
+          // If it is not a final state we retry
+          if ([VpcState.PENDING].includes(out?.State as VpcState)) {
+            return { state: WaiterState.RETRY };
           }
-        },
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          throw e;
+        }
+      },
     );
     return out;
   }
 
   getVpc = crudBuilderFormat<EC2, 'describeVpcs', AwsVpc | undefined>(
-      'describeVpcs',
-      (id) => ({VpcIds: [id],}),
-      (res) => res?.Vpcs?.[0],
+    'describeVpcs',
+    id => ({ VpcIds: [id] }),
+    res => res?.Vpcs?.[0],
   );
   getVpcs = paginateBuilder<EC2>(paginateDescribeVpcs, 'Vpcs');
-  deleteVpc = crudBuilder2<EC2, 'deleteVpc'>('deleteVpc', (input) => input);
+  deleteVpc = crudBuilder2<EC2, 'deleteVpc'>('deleteVpc', input => input);
 
   cloud: Crud2<Vpc> = new Crud2({
     updateOrReplace: (a: Vpc, b: Vpc) => {
-      if (!Object.is(a.cidrBlock, b.cidrBlock) || !Object.is(a.isDefault, b.isDefault)) return "replace";
-      else return "update";
+      if (!Object.is(a.cidrBlock, b.cidrBlock) || !Object.is(a.isDefault, b.isDefault)) return 'replace';
+      else return 'update';
     },
     create: async (es: Vpc[], ctx: Context) => {
       // TODO: Add support for creating default VPCs (only one is allowed, also add constraint
       // that a single VPC is set as default)
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         let tgs: Tag[] = [];
         if (e.tags !== undefined && e.tags !== null) {
-          const tags: {[key: string]: string} = e.tags;
+          const tags: { [key: string]: string } = e.tags;
           tgs = Object.keys(tags).map(k => {
             return {
-              Key: k, Value: tags[k]
-            }
+              Key: k,
+              Value: tags[k],
+            };
           });
         }
 
@@ -109,14 +110,14 @@ export class VpcMapper extends MapperBase<Vpc> {
           CidrBlock: e.cidrBlock,
         };
 
-        if (tgs.length>0) {
-          input.TagSpecifications=[
+        if (tgs.length > 0) {
+          input.TagSpecifications = [
             {
               ResourceType: 'vpc',
               Tags: tgs,
             },
-          ]
-        };
+          ];
+        }
         const res: AwsVpc | undefined = await this.createVpc(client.ec2client, input);
         if (res) {
           const newVpc = this.vpcMapper(res);
@@ -130,7 +131,7 @@ export class VpcMapper extends MapperBase<Vpc> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (!!id) {
         const rawVpc = await this.getVpc(client.ec2client, id);
         if (!rawVpc) return;
@@ -146,7 +147,7 @@ export class VpcMapper extends MapperBase<Vpc> {
     },
     update: async (es: Vpc[], ctx: Context) => {
       // if user has modified state, restore it. If not, go with replace path
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.Vpc?.[e.vpcId ?? ''];
@@ -172,7 +173,7 @@ export class VpcMapper extends MapperBase<Vpc> {
       return out;
     },
     delete: async (es: Vpc[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         // Special behavior here. You're not allowed to mess with the "default" VPC.
         // Any attempt to update it is instead turned into *restoring* the value in
@@ -184,9 +185,7 @@ export class VpcMapper extends MapperBase<Vpc> {
           // Make absolutely sure it shows up in the memo
           ctx.memo.db.Vpc[e.vpcId ?? ''] = e;
           const subnets = ctx?.memo?.cloud?.Subnet ?? [];
-          const relevantSubnets = subnets.filter(
-            (s: Subnet) => s.vpc.vpcId === e.vpcId
-          );
+          const relevantSubnets = subnets.filter((s: Subnet) => s.vpc.vpcId === e.vpcId);
           if (relevantSubnets.length > 0) {
             await this.module.subnet.db.update(relevantSubnets, ctx);
           }

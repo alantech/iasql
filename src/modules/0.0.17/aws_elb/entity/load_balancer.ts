@@ -1,38 +1,30 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  JoinTable,
-  ManyToMany,
-  ManyToOne,
-  PrimaryColumn,
-} from 'typeorm'
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryColumn } from 'typeorm';
 
-import { SecurityGroup, } from '../../aws_security_group/entity'
-import { Vpc, } from '../../aws_vpc/entity'
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
+import { SecurityGroup } from '../../aws_security_group/entity';
+import { Vpc } from '../../aws_vpc/entity';
 
 export enum LoadBalancerSchemeEnum {
-  INTERNAL = "internal",
-  INTERNET_FACING = "internet-facing"
+  INTERNAL = 'internal',
+  INTERNET_FACING = 'internet-facing',
 }
 
 export enum LoadBalancerStateEnum {
-  ACTIVE = "active",
-  ACTIVE_IMPAIRED = "active_impaired",
-  FAILED = "failed",
-  PROVISIONING = "provisioning"
+  ACTIVE = 'active',
+  ACTIVE_IMPAIRED = 'active_impaired',
+  FAILED = 'failed',
+  PROVISIONING = 'provisioning',
 }
 
 export enum LoadBalancerTypeEnum {
-  APPLICATION = "application",
-  GATEWAY = "gateway",
-  NETWORK = "network"
+  APPLICATION = 'application',
+  GATEWAY = 'gateway',
+  NETWORK = 'network',
 }
 
 export enum IpAddressType {
-  DUALSTACK = "dualstack",
-  IPV4 = "ipv4"
+  DUALSTACK = 'dualstack',
+  IPV4 = 'ipv4',
 }
 
 @Entity()
@@ -58,7 +50,7 @@ export class LoadBalancer {
 
   @Column({
     nullable: true,
-    type: 'timestamp with time zone'
+    type: 'timestamp with time zone',
   })
   createdTime?: Date;
 
@@ -90,10 +82,10 @@ export class LoadBalancer {
   })
   vpc?: Vpc;
 
-  @Column("varchar", { array: true, nullable: true, })
+  @Column('varchar', { array: true, nullable: true })
   subnets?: string[];
 
-  @Column("varchar", { array: true, nullable: true, })
+  @Column('varchar', { array: true, nullable: true })
   availabilityZones?: string[];
 
   @ManyToMany(() => SecurityGroup, { eager: true })

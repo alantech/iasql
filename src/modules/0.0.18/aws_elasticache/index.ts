@@ -4,32 +4,25 @@ import {
   DescribeCacheClustersCommandInput,
   ElastiCache,
   paginateDescribeCacheClusters,
-} from "@aws-sdk/client-elasticache"
-import {
-  AWS,
-  crudBuilder2,
-  crudBuilderFormat,
-  paginateBuilder,
-} from "../../../services/aws_macros"
-import { CacheCluster, Engine } from "./entity"
-import { Context, Crud2, MapperBase, ModuleBase, } from "../../interfaces"
-import { createWaiter, WaiterState } from "@aws-sdk/util-waiter"
+} from '@aws-sdk/client-elasticache';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
+
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { CacheCluster, Engine } from './entity';
 
 class CacheClusterMapper extends MapperBase<CacheCluster> {
   module: AwsElastiCacheModule;
   entity = CacheCluster;
   equals = (a: CacheCluster, b: CacheCluster) =>
-    Object.is(a.engine, b.engine) &&
-    Object.is(a.nodeType, b.nodeType) &&
-    Object.is(a.numNodes, b.numNodes);
+    Object.is(a.engine, b.engine) && Object.is(a.nodeType, b.nodeType) && Object.is(a.numNodes, b.numNodes);
 
   cacheClusterMapper(cluster: CacheClusterAWS) {
     const out = new CacheCluster();
     if (!cluster.CacheClusterId) return undefined;
     out.clusterId = cluster.CacheClusterId;
     if (cluster.Engine) {
-      if (cluster.Engine === Engine.MEMCACHED)
-        out.engine = Engine.MEMCACHED;
+      if (cluster.Engine === Engine.MEMCACHED) out.engine = Engine.MEMCACHED;
       else out.engine = Engine.REDIS;
     }
     if (cluster.CacheNodeType) out.nodeType = cluster.CacheNodeType!;
@@ -37,11 +30,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
     return out;
   }
 
-  async waitForClusterState(
-    client: ElastiCache,
-    clusterId: string,
-    status: string
-  ) {
+  async waitForClusterState(client: ElastiCache, clusterId: string, status: string) {
     const describeInput: DescribeCacheClustersCommandInput = {
       CacheClusterId: clusterId,
     };
@@ -60,50 +49,32 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
         try {
           out = data.CacheClusters?.pop();
           // If it is not a final state we retry
-          if (out?.CacheClusterStatus === status)
-            return { state: WaiterState.RETRY };
+          if (out?.CacheClusterStatus === status) return { state: WaiterState.RETRY };
           else return { state: WaiterState.SUCCESS };
         } catch (e: any) {
           throw e;
         }
-      }
+      },
     );
     return out;
   }
 
-  async createCacheCluster(
-    client: ElastiCache,
-    input: CreateCacheClusterCommandInput
-  ) {
+  async createCacheCluster(client: ElastiCache, input: CreateCacheClusterCommandInput) {
     const res = await client.createCacheCluster(input);
     if (res) {
-      const out = await this.waitForClusterState(
-        client,
-        res.CacheCluster?.CacheClusterId!,
-        "creating"
-      );
+      const out = await this.waitForClusterState(client, res.CacheCluster?.CacheClusterId!, 'creating');
       return out;
     }
     return undefined;
   }
 
-  getCacheCluster = crudBuilderFormat<
-    ElastiCache,
-    "describeCacheClusters",
-    CacheClusterAWS | undefined
-  >(
-    "describeCacheClusters",
-    (id) => ({ CacheClusterId: id }),
-    (res) => res?.CacheClusters?.[0]
+  getCacheCluster = crudBuilderFormat<ElastiCache, 'describeCacheClusters', CacheClusterAWS | undefined>(
+    'describeCacheClusters',
+    id => ({ CacheClusterId: id }),
+    res => res?.CacheClusters?.[0],
   );
-  getCacheClusters = paginateBuilder<ElastiCache>(
-    paginateDescribeCacheClusters,
-    "CacheClusters"
-  );
-  deleteCacheCluster = crudBuilder2<ElastiCache, "deleteCacheCluster">(
-    "deleteCacheCluster",
-    (input) => input
-  );
+  getCacheClusters = paginateBuilder<ElastiCache>(paginateDescribeCacheClusters, 'CacheClusters');
+  deleteCacheCluster = crudBuilder2<ElastiCache, 'deleteCacheCluster'>('deleteCacheCluster', input => input);
 
   cloud = new Crud2({
     updateOrReplace: (_a: CacheCluster, _b: CacheCluster) => {
@@ -111,7 +82,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
       // not sustainable
       /*if (Object.is(a.clusterId, b.clusterId)) return "update";
       else return "replace";*/
-      return "replace";
+      return 'replace';
     },
     create: async (clusters: CacheCluster[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
@@ -125,16 +96,13 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
         };
         const res: CacheClusterAWS | undefined = await this.createCacheCluster(
           client.elasticacheClient,
-          input
+          input,
         );
         if (res) {
           const newCluster = this.cacheClusterMapper(res);
           if (!newCluster) continue;
           newCluster.clusterId = cluster.clusterId;
-          await this.module.cacheCluster.db.update(
-            newCluster,
-            ctx
-          );
+          await this.module.cacheCluster.db.update(newCluster, ctx);
           out.push(newCluster);
         }
       }
@@ -143,21 +111,16 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
     read: async (ctx: Context, clusterId?: string) => {
       const client = (await ctx.getAwsClient()) as AWS;
       if (clusterId) {
-        const rawCluster = await this.getCacheCluster(
-          client.elasticacheClient,
-          clusterId
-        );
+        const rawCluster = await this.getCacheCluster(client.elasticacheClient, clusterId);
         if (!rawCluster) return undefined;
-        if (rawCluster?.CacheClusterStatus === "deleting")
-          return undefined;
+        if (rawCluster?.CacheClusterStatus === 'deleting') return undefined;
 
         return this.cacheClusterMapper(rawCluster);
       } else {
-        const rawClusters =
-          (await this.getCacheClusters(client.elasticacheClient)) ?? [];
+        const rawClusters = (await this.getCacheClusters(client.elasticacheClient)) ?? [];
         const out = [];
         for (const i of rawClusters) {
-          if (i.CacheClusterStatus === "deleting") continue;
+          if (i.CacheClusterStatus === 'deleting') continue;
           const outCacheCluster = this.cacheClusterMapper(i);
           if (outCacheCluster) out.push(outCacheCluster);
         }
@@ -169,20 +132,16 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const cluster of clusters) {
-        const cloudRecord =
-          ctx?.memo?.cloud?.CacheCluster?.[cluster.clusterId ?? ""];
+        const cloudRecord = ctx?.memo?.cloud?.CacheCluster?.[cluster.clusterId ?? ''];
         const isUpdate = Object.is(
           this.module.cacheCluster.cloud.updateOrReplace(cloudRecord, cluster),
-          'update'
+          'update',
         );
         if (!isUpdate) {
           // we cannot modify the engine, restore
           if (cluster.engine !== cloudRecord.engine) {
             cluster.engine = cloudRecord.engine;
-            await this.module.cacheCluster.db.update(
-              cluster,
-              ctx
-            );
+            await this.module.cacheCluster.db.update(cluster, ctx);
             out.push(cluster);
           } else {
             // first delete the cluster
@@ -191,11 +150,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
             });
 
             // wait for it to be deleted
-            await this.waitForClusterState(
-              client.elasticacheClient,
-              cluster.clusterId,
-              "deleting"
-            );
+            await this.waitForClusterState(client.elasticacheClient, cluster.clusterId, 'deleting');
 
             // now we can create with new id
             const input: CreateCacheClusterCommandInput = {
@@ -204,8 +159,10 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
               CacheNodeType: cluster.nodeType,
               NumCacheNodes: cluster.numNodes,
             };
-            const res: CacheClusterAWS | undefined =
-              await this.createCacheCluster(client.elasticacheClient, input);
+            const res: CacheClusterAWS | undefined = await this.createCacheCluster(
+              client.elasticacheClient,
+              input,
+            );
             if (res) {
               const newCluster = this.cacheClusterMapper(res);
               if (!newCluster) continue;

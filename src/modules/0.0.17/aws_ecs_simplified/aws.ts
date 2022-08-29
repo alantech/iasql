@@ -1,3 +1,5 @@
+import { ACM, ImportCertificateCommandInput, paginateListCertificates } from '@aws-sdk/client-acm';
+import { CloudWatchLogs, paginateDescribeLogGroups } from '@aws-sdk/client-cloudwatch-logs';
 import {
   // DescribeInstanceTypesRequest,
   // TerminateInstancesRequest,
@@ -29,14 +31,31 @@ import {
   CreateVpcEndpointCommandInput,
   paginateDescribeVpcEndpoints,
   ModifyVpcEndpointCommandInput,
-} from '@aws-sdk/client-ec2'
-import { createWaiter, WaiterState } from '@aws-sdk/util-waiter'
+} from '@aws-sdk/client-ec2';
 import {
   CreateRepositoryCommandInput,
   ECR,
   paginateDescribeRepositories,
-  SetRepositoryPolicyCommandInput
-} from '@aws-sdk/client-ecr'
+  SetRepositoryPolicyCommandInput,
+} from '@aws-sdk/client-ecr';
+import {
+  CreateRepositoryCommandInput as CreatePubRepositoryCommandInput,
+  ECRPUBLIC,
+  paginateDescribeRepositories as paginateDescribePubRepositories,
+} from '@aws-sdk/client-ecr-public';
+import {
+  CreateClusterCommandInput,
+  CreateServiceCommandInput,
+  DescribeServicesCommandInput,
+  ECS,
+  paginateListClusters,
+  paginateListServices,
+  paginateListTaskDefinitions,
+  paginateListTasks,
+  RegisterTaskDefinitionCommandInput,
+  UpdateServiceCommandInput,
+  waitUntilTasksStopped,
+} from '@aws-sdk/client-ecs';
 import {
   CreateListenerCommandInput,
   CreateLoadBalancerCommandInput,
@@ -52,21 +71,8 @@ import {
   SetSecurityGroupsCommandInput,
   SetSubnetsCommandInput,
   TargetTypeEnum,
-} from '@aws-sdk/client-elastic-load-balancing-v2'
-import {
-  CreateClusterCommandInput,
-  CreateServiceCommandInput,
-  DescribeServicesCommandInput,
-  ECS,
-  paginateListClusters,
-  paginateListServices,
-  paginateListTaskDefinitions,
-  paginateListTasks,
-  RegisterTaskDefinitionCommandInput,
-  UpdateServiceCommandInput,
-  waitUntilTasksStopped,
-} from '@aws-sdk/client-ecs'
-
+} from '@aws-sdk/client-elastic-load-balancing-v2';
+import { IAM, paginateListRoles } from '@aws-sdk/client-iam';
 import {
   CreateDBInstanceCommandInput,
   DeleteDBInstanceMessage,
@@ -78,16 +84,7 @@ import {
   Parameter,
   RDS,
   DescribeDBInstancesCommandInput,
-} from '@aws-sdk/client-rds'
-import {
-  CloudWatchLogs,
-  paginateDescribeLogGroups,
-} from '@aws-sdk/client-cloudwatch-logs'
-import {
-  CreateRepositoryCommandInput as CreatePubRepositoryCommandInput,
-  ECRPUBLIC,
-  paginateDescribeRepositories as paginateDescribePubRepositories,
-} from '@aws-sdk/client-ecr-public'
+} from '@aws-sdk/client-rds';
 import {
   ChangeAction,
   ChangeResourceRecordSetsCommandInput,
@@ -96,42 +93,35 @@ import {
   paginateListHostedZones,
   ResourceRecordSet,
   Route53,
-} from '@aws-sdk/client-route-53'
-import { IAM, paginateListRoles, } from '@aws-sdk/client-iam'
-import {
-  ACM,
-  ImportCertificateCommandInput,
-  paginateListCertificates
-} from '@aws-sdk/client-acm'
-import {
-  S3,
-} from '@aws-sdk/client-s3'
+} from '@aws-sdk/client-route-53';
+import { S3 } from '@aws-sdk/client-s3';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
-import logger from '../../../services/logger'
+import logger from '../../../services/logger';
 
 type AWSCreds = {
-  accessKeyId: string,
-  secretAccessKey: string
-}
+  accessKeyId: string;
+  secretAccessKey: string;
+};
 
 type AWSConfig = {
-  credentials: AWSCreds,
-  region: string
-}
+  credentials: AWSCreds;
+  region: string;
+};
 
 export class AWS {
-  private ec2client: EC2
-  private ecrClient: ECR
-  private elbClient: ElasticLoadBalancingV2
-  private ecsClient: ECS
-  private rdsClient: RDS
-  private cwClient: CloudWatchLogs
-  private ecrPubClient: ECRPUBLIC
-  private route53Client: Route53
+  private ec2client: EC2;
+  private ecrClient: ECR;
+  private elbClient: ElasticLoadBalancingV2;
+  private ecsClient: ECS;
+  private rdsClient: RDS;
+  private cwClient: CloudWatchLogs;
+  private ecrPubClient: ECRPUBLIC;
+  private route53Client: Route53;
   private iamClient: IAM;
-  private acmClient: ACM
-  private s3Client: S3
-  public region: string
+  private acmClient: ACM;
+  private s3Client: S3;
+  public region: string;
 
   constructor(config: AWSConfig) {
     this.region = config.region;
@@ -145,16 +135,16 @@ export class AWS {
     this.iamClient = new IAM(config);
     this.acmClient = new ACM(config);
     // Technically available in multiple regions but with weird constraints, and the default is us-east-1
-    this.s3Client = new S3({ ...config, region: 'us-east-1', });
+    this.s3Client = new S3({ ...config, region: 'us-east-1' });
     // Service endpoint only available in 'us-east-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
-    this.ecrPubClient = new ECRPUBLIC({credentials: config.credentials, region: 'us-east-1'});
+    this.ecrPubClient = new ECRPUBLIC({ credentials: config.credentials, region: 'us-east-1' });
   }
 
   async newRoleLin(
     name: string,
     assumeRolePolicyDocument: string,
     attachedPolicyArns: string[],
-    description?: string
+    description?: string,
   ): Promise<string> {
     const role = await this.iamClient.createRole({
       RoleName: name,
@@ -162,7 +152,7 @@ export class AWS {
       Description: description,
     });
     for (const arn of attachedPolicyArns) {
-      await this.iamClient.attachRolePolicy({PolicyArn: arn, RoleName: name});
+      await this.iamClient.attachRolePolicy({ PolicyArn: arn, RoleName: name });
     }
     return role.Role?.Arn ?? '';
   }
@@ -170,7 +160,7 @@ export class AWS {
   async updateRoleDescription(name: string, description?: string) {
     await this.iamClient.updateRole({
       RoleName: name,
-      Description: description
+      Description: description,
     });
   }
 
@@ -182,15 +172,18 @@ export class AWS {
   }
 
   async getRole(name: string) {
-    return (await this.iamClient.getRole({RoleName: name})).Role;
+    return (await this.iamClient.getRole({ RoleName: name })).Role;
   }
 
   async getAllRoles() {
     const roles = [];
-    const paginator = paginateListRoles({
-      client: this.iamClient,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateListRoles(
+      {
+        client: this.iamClient,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       for (const r of page.Roles ?? []) {
         roles.push(r);
@@ -200,25 +193,27 @@ export class AWS {
   }
 
   async getRoleAttachedPoliciesArns(name: string) {
-    const rolePolicies = (await this.iamClient.listAttachedRolePolicies({RoleName: name})).AttachedPolicies ?? [];
+    const rolePolicies =
+      (await this.iamClient.listAttachedRolePolicies({ RoleName: name })).AttachedPolicies ?? [];
     return rolePolicies.map(p => p.PolicyArn ?? '');
   }
 
   async getRoleAttachedPoliciesArnsV2(name: string) {
-    const rolePolicies = (await this.iamClient.listAttachedRolePolicies({RoleName: name})).AttachedPolicies ?? [];
+    const rolePolicies =
+      (await this.iamClient.listAttachedRolePolicies({ RoleName: name })).AttachedPolicies ?? [];
     return rolePolicies.length ? rolePolicies.map(p => p.PolicyArn ?? '') : undefined;
   }
 
   async deleteRoleLin(name: string, policyArns: string[]) {
     for (const arn of policyArns) {
-      await this.iamClient.detachRolePolicy({RoleName: name, PolicyArn: arn});
+      await this.iamClient.detachRolePolicy({ RoleName: name, PolicyArn: arn });
     }
-    await this.iamClient.deleteRole({RoleName: name});
+    await this.iamClient.deleteRole({ RoleName: name });
   }
 
   async newInstance(newInstancesInput: RunInstancesCommandInput): Promise<string> {
     const create = await this.ec2client.runInstances(newInstancesInput);
-    const instanceIds: string[] | undefined = create.Instances?.map((i) => i?.InstanceId ?? '');
+    const instanceIds: string[] | undefined = create.Instances?.map(i => i?.InstanceId ?? '');
     const input: DescribeInstancesCommandInput = {
       InstanceIds: instanceIds,
     };
@@ -243,13 +238,12 @@ export class AWS {
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.RETRY };
+          if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
       },
     );
-    return instanceIds?.pop() ?? ''
+    return instanceIds?.pop() ?? '';
   }
 
   async startInstance(instanceId: string) {
@@ -273,14 +267,12 @@ export class AWS {
           const data = await client.describeInstances(cmd);
           for (const reservation of data?.Reservations ?? []) {
             for (const instance of reservation?.Instances ?? []) {
-              if (instance.State?.Name !== 'running')
-                return { state: WaiterState.RETRY };
+              if (instance.State?.Name !== 'running') return { state: WaiterState.RETRY };
             }
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.SUCCESS };
+          if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.SUCCESS };
           throw e;
         }
       },
@@ -309,27 +301,26 @@ export class AWS {
           const data = await client.describeInstances(cmd);
           for (const reservation of data?.Reservations ?? []) {
             for (const instance of reservation?.Instances ?? []) {
-              if (instance.State?.Name !== 'stopped')
-                return { state: WaiterState.RETRY };
+              if (instance.State?.Name !== 'stopped') return { state: WaiterState.RETRY };
             }
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.SUCCESS };
+          if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.SUCCESS };
           throw e;
         }
       },
     );
   }
 
-  async updateTags(resourceId: string, tags?: { [key: string] : string }) {
+  async updateTags(resourceId: string, tags?: { [key: string]: string }) {
     let tgs: Tag[] = [];
     if (tags) {
       tgs = Object.keys(tags).map(k => {
         return {
-          Key: k, Value: tags[k]
-        }
+          Key: k,
+          Value: tags[k],
+        };
       });
     }
     // recreate tags
@@ -339,15 +330,18 @@ export class AWS {
     await this.ec2client.createTags({
       Resources: [resourceId],
       Tags: tgs,
-    })
+    });
   }
 
   async getInstances() {
     const instances = [];
-    const paginator = paginateDescribeInstances({
-      client: this.ec2client,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateDescribeInstances(
+      {
+        client: this.ec2client,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       for (const r of page.Reservations ?? []) {
         instances.push(...(r.Instances ?? []));
@@ -360,34 +354,39 @@ export class AWS {
 
   async getInstanceUserData(id: string): Promise<string | undefined> {
     const attr = await this.ec2client.describeInstanceAttribute({
-      Attribute: "userData",
-      InstanceId: id
+      Attribute: 'userData',
+      InstanceId: id,
     });
-    return attr.UserData?.Value
+    return attr.UserData?.Value;
   }
 
   async getInstance(id: string) {
-    const reservations = await this.ec2client.describeInstances({ InstanceIds: [id], });
+    const reservations = await this.ec2client.describeInstances({ InstanceIds: [id] });
     return (reservations?.Reservations?.map(r => r.Instances?.map(i => i)) ?? []).pop()?.pop();
   }
 
   async terminateInstance(id: string) {
-    const response = await this.ec2client.terminateInstances({ InstanceIds: [id], });
+    const response = await this.ec2client.terminateInstances({ InstanceIds: [id] });
     return (response?.TerminatingInstances ?? []).pop();
   }
 
   async getInstanceType(instanceType: string) {
-    return (await this.ec2client.describeInstanceTypes({
-      InstanceTypes: [instanceType,],
-    }))?.InstanceTypes?.[0];
+    return (
+      await this.ec2client.describeInstanceTypes({
+        InstanceTypes: [instanceType],
+      })
+    )?.InstanceTypes?.[0];
   }
 
   async getSecurityGroups() {
     const securityGroups = [];
-    const paginator = paginateDescribeSecurityGroups({
-      client: this.ec2client,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateDescribeSecurityGroups(
+      {
+        client: this.ec2client,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       securityGroups.push(...(page.SecurityGroups ?? []));
     }
@@ -397,7 +396,7 @@ export class AWS {
   }
 
   async getSecurityGroup(id: string) {
-    const group = await this.ec2client.describeSecurityGroups({ GroupIds: [id], });
+    const group = await this.ec2client.describeSecurityGroups({ GroupIds: [id] });
     return (group?.SecurityGroups ?? [])[0];
   }
 
@@ -408,7 +407,7 @@ export class AWS {
   async deleteSecurityGroup(instanceParams: DeleteSecurityGroupRequest) {
     try {
       return await this.ec2client.deleteSecurityGroup(instanceParams);
-    } catch(e: any) {
+    } catch (e: any) {
       if (e.Code === 'DependencyViolation') {
         // Just wait for 5 min on every dependency violation and retry
         await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
@@ -421,11 +420,13 @@ export class AWS {
               Filters: [
                 {
                   Name: 'group-id',
-                  Values: [`${instanceParams.GroupId}`]
-                }
-              ]
+                  Values: [`${instanceParams.GroupId}`],
+                },
+              ],
             });
-            const eniMessage = `Network interfaces associated with security group ${instanceParams.GroupId}: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
+            const eniMessage = `Network interfaces associated with security group ${
+              instanceParams.GroupId
+            }: ${JSON.stringify(sgEniInfo.NetworkInterfaces)}`;
             e2.message = `${e2.message} | ${eniMessage}`;
           }
           throw e2;
@@ -437,10 +438,13 @@ export class AWS {
 
   async getSecurityGroupRules() {
     const securityGroupRules = [];
-    const paginator = paginateDescribeSecurityGroupRules({
-      client: this.ec2client,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateDescribeSecurityGroupRules(
+      {
+        client: this.ec2client,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       securityGroupRules.push(...(page.SecurityGroupRules ?? []));
     }
@@ -451,17 +455,20 @@ export class AWS {
 
   async getSecurityGroupRulesByGroupId(groupId: string) {
     const securityGroupRules = [];
-    const paginator = paginateDescribeSecurityGroupRules({
-      client: this.ec2client,
-      pageSize: 25,
-    }, {
-      Filters: [
-        {
-          Name: 'group-id',
-          Values: [groupId],
-        }
-      ]
-    });
+    const paginator = paginateDescribeSecurityGroupRules(
+      {
+        client: this.ec2client,
+        pageSize: 25,
+      },
+      {
+        Filters: [
+          {
+            Name: 'group-id',
+            Values: [groupId],
+          },
+        ],
+      },
+    );
     for await (const page of paginator) {
       securityGroupRules.push(...(page.SecurityGroupRules ?? []));
     }
@@ -471,7 +478,7 @@ export class AWS {
   }
 
   async getSecurityGroupRule(id: string) {
-    const rule = await this.ec2client.describeSecurityGroupRules({ SecurityGroupRuleIds: [id], });
+    const rule = await this.ec2client.describeSecurityGroupRules({ SecurityGroupRuleIds: [id] });
     return (rule?.SecurityGroupRules ?? [])[0];
   }
 
@@ -519,7 +526,7 @@ export class AWS {
   async updateECRRepositoryImageScanningConfiguration(repositoryName: string, scanOnPush: boolean) {
     await this.ecrClient.putImageScanningConfiguration({
       repositoryName,
-      imageScanningConfiguration: { scanOnPush }
+      imageScanningConfiguration: { scanOnPush },
     });
     return this.getECRRepository(repositoryName);
   }
@@ -534,10 +541,13 @@ export class AWS {
 
   async getECRRepositories() {
     const repositories = [];
-    const paginator = paginateDescribeRepositories({
-      client: this.ecrClient,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateDescribeRepositories(
+      {
+        client: this.ecrClient,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       repositories.push(...(page.repositories ?? []));
     }
@@ -588,12 +598,15 @@ export class AWS {
   async getListeners(loadBalancerArns: string[]) {
     const listeners = [];
     for (const arn of loadBalancerArns) {
-      const paginator = paginateDescribeListeners({
-        client: this.elbClient,
-        pageSize: 25,
-      }, {
-        LoadBalancerArn: arn,
-      });
+      const paginator = paginateDescribeListeners(
+        {
+          client: this.elbClient,
+          pageSize: 25,
+        },
+        {
+          LoadBalancerArn: arn,
+        },
+      );
       for await (const page of paginator) {
         listeners.push(...(page.Listeners ?? []));
       }
@@ -604,12 +617,12 @@ export class AWS {
   }
 
   async getListener(arn: string) {
-    const result = await this.elbClient.describeListeners({ ListenerArns: [arn], });
+    const result = await this.elbClient.describeListeners({ ListenerArns: [arn] });
     return result?.Listeners?.[0];
   }
 
   async deleteListener(arn: string) {
-    await this.elbClient.deleteListener({ ListenerArn: arn, });
+    await this.elbClient.deleteListener({ ListenerArn: arn });
   }
 
   async createLoadBalancer(input: CreateLoadBalancerCommandInput) {
@@ -633,8 +646,7 @@ export class AWS {
         try {
           const data = await client.describeLoadBalancers(cmd);
           for (const lb of data?.LoadBalancers ?? []) {
-            if (lb.State?.Code !== 'active')
-              return { state: WaiterState.RETRY };
+            if (lb.State?.Code !== 'active') return { state: WaiterState.RETRY };
             loadBalancer = lb;
           }
           return { state: WaiterState.SUCCESS };
@@ -663,10 +675,13 @@ export class AWS {
 
   async getLoadBalancers() {
     const loadBalancers = [];
-    const paginator = paginateDescribeLoadBalancers({
-      client: this.elbClient,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateDescribeLoadBalancers(
+      {
+        client: this.elbClient,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       loadBalancers.push(...(page.LoadBalancers ?? []));
     }
@@ -676,14 +691,14 @@ export class AWS {
   }
 
   async getLoadBalancer(arn: string) {
-    const result = await this.elbClient.describeLoadBalancers({ LoadBalancerArns: [arn], });
+    const result = await this.elbClient.describeLoadBalancers({ LoadBalancerArns: [arn] });
     return result?.LoadBalancers?.[0];
   }
 
   async deleteLoadBalancer(arn: string) {
-    await this.elbClient.deleteLoadBalancer({ LoadBalancerArn: arn, });
+    await this.elbClient.deleteLoadBalancer({ LoadBalancerArn: arn });
     // We wait it is completely deleted to avoid issues deleting dependent resources.
-    const input: DescribeLoadBalancersCommandInput = { LoadBalancerArns: [arn], };
+    const input: DescribeLoadBalancersCommandInput = { LoadBalancerArns: [arn] };
     await createWaiter<ElasticLoadBalancingV2, DescribeLoadBalancersCommandInput>(
       {
         client: this.elbClient,
@@ -708,9 +723,9 @@ export class AWS {
       Filters: [
         {
           Name: 'description',
-          Values: [`*${loadBalancerName}`]
-        }
-      ]
+          Values: [`*${loadBalancerName}`],
+        },
+      ],
     };
     await createWaiter<EC2, DescribeNetworkInterfacesCommandInput>(
       {
@@ -747,10 +762,13 @@ export class AWS {
 
   async getTargetGroups() {
     const targetGroups = [];
-    const paginator = paginateDescribeTargetGroups({
-      client: this.elbClient,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateDescribeTargetGroups(
+      {
+        client: this.elbClient,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       targetGroups.push(...(page.TargetGroups ?? []));
     }
@@ -760,20 +778,23 @@ export class AWS {
   }
 
   async getTargetGroup(arn: string) {
-    const result = await this.elbClient.describeTargetGroups({ TargetGroupArns: [arn], });
+    const result = await this.elbClient.describeTargetGroups({ TargetGroupArns: [arn] });
     return result?.TargetGroups?.[0];
   }
 
   async deleteTargetGroup(arn: string) {
-    await this.elbClient.deleteTargetGroup({ TargetGroupArn: arn, });
+    await this.elbClient.deleteTargetGroup({ TargetGroupArn: arn });
   }
 
   async getVpcs() {
     const vpcs = [];
-    const paginator = paginateDescribeVpcs({
-      client: this.ec2client,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateDescribeVpcs(
+      {
+        client: this.ec2client,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       vpcs.push(...(page.Vpcs ?? []));
     }
@@ -783,7 +804,7 @@ export class AWS {
   }
 
   async getVpc(id: string) {
-    const vpcs = await this.ec2client.describeVpcs({ VpcIds: [id], });
+    const vpcs = await this.ec2client.describeVpcs({ VpcIds: [id] });
     return vpcs?.Vpcs?.[0];
   }
 
@@ -797,10 +818,13 @@ export class AWS {
 
   async getSubnets() {
     const subnets = [];
-    const paginator = paginateDescribeSubnets({
-      client: this.ec2client,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateDescribeSubnets(
+      {
+        client: this.ec2client,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       subnets.push(...(page.Subnets ?? []));
     }
@@ -811,17 +835,20 @@ export class AWS {
 
   async getSubnetsByVpcId(vpcId: string) {
     const subnets = [];
-    const paginator = paginateDescribeSubnets({
-      client: this.ec2client,
-      pageSize: 25,
-    }, {
-      Filters: [
-        {
-          Name: 'vpc-id',
-          Values: [vpcId]
-        }
-      ],
-    });
+    const paginator = paginateDescribeSubnets(
+      {
+        client: this.ec2client,
+        pageSize: 25,
+      },
+      {
+        Filters: [
+          {
+            Name: 'vpc-id',
+            Values: [vpcId],
+          },
+        ],
+      },
+    );
     for await (const page of paginator) {
       subnets.push(...(page.Subnets ?? []));
     }
@@ -831,7 +858,7 @@ export class AWS {
   }
 
   async getSubnet(id: string) {
-    const subnets = await this.ec2client.describeSubnets({ SubnetIds: [id], });
+    const subnets = await this.ec2client.describeSubnets({ SubnetIds: [id] });
     return subnets?.Subnets?.[0];
   }
 
@@ -850,22 +877,25 @@ export class AWS {
 
   async getClusters() {
     const clusterArns: string[] = [];
-    const paginator = paginateListClusters({
-      client: this.ecsClient,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateListClusters(
+      {
+        client: this.ecsClient,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       clusterArns.push(...(page.clusterArns ?? []));
     }
     const result = await this.ecsClient.describeClusters({
-      clusters: clusterArns
+      clusters: clusterArns,
     });
     return result.clusters;
   }
 
   async getCluster(id: string) {
     const cluster = await this.ecsClient.describeClusters({
-      clusters: [id]
+      clusters: [id],
     });
     return cluster.clusters?.[0];
   }
@@ -873,15 +903,18 @@ export class AWS {
   async getTasksArns(cluster: string, serviceName?: string) {
     const tasksArns: string[] = [];
     let input: any = {
-      cluster
+      cluster,
     };
     if (serviceName) {
-      input = { ...input, serviceName }
+      input = { ...input, serviceName };
     }
-    const paginator = paginateListTasks({
-      client: this.ecsClient,
-      pageSize: 25,
-    }, input);
+    const paginator = paginateListTasks(
+      {
+        client: this.ecsClient,
+        pageSize: 25,
+      },
+      input,
+    );
     for await (const page of paginator) {
       tasksArns.push(...(page.taskArns ?? []));
     }
@@ -891,29 +924,36 @@ export class AWS {
   async deleteCluster(id: string) {
     const clusterServices = await this.getServices([id]);
     if (clusterServices.length) {
-      await Promise.all(clusterServices.filter(s => !!s.serviceName).map(async s => {
-        const serviceTasksArns = await this.getTasksArns(id, s.serviceName);
-        s.desiredCount = 0;
-        await this.updateService({
-          service: s.serviceName,
-          cluster: id,
-          desiredCount: s.desiredCount,
-        });
-        return this.deleteService(s.serviceName!, id, serviceTasksArns);
-      }));
+      await Promise.all(
+        clusterServices
+          .filter(s => !!s.serviceName)
+          .map(async s => {
+            const serviceTasksArns = await this.getTasksArns(id, s.serviceName);
+            s.desiredCount = 0;
+            await this.updateService({
+              service: s.serviceName,
+              cluster: id,
+              desiredCount: s.desiredCount,
+            });
+            return this.deleteService(s.serviceName!, id, serviceTasksArns);
+          }),
+      );
     }
     const tasks = await this.getTasksArns(id);
     if (tasks.length) {
-      await waitUntilTasksStopped({
-        client: this.ecsClient,
-        // all in seconds
-        maxWaitTime: 300,
-        minDelay: 1,
-        maxDelay: 4,
-      }, {
-        cluster: id,
-        tasks,
-      });
+      await waitUntilTasksStopped(
+        {
+          client: this.ecsClient,
+          // all in seconds
+          maxWaitTime: 300,
+          minDelay: 1,
+          maxDelay: 4,
+        },
+        {
+          cluster: id,
+          tasks,
+        },
+      );
     }
     await this.ecsClient.deleteCluster({
       cluster: id,
@@ -937,16 +977,19 @@ export class AWS {
     }
     const tasks = await this.getTasksArns(id);
     if (tasks.length) {
-      await waitUntilTasksStopped({
-        client: this.ecsClient,
-        // all in seconds
-        maxWaitTime: 300,
-        minDelay: 1,
-        maxDelay: 4,
-      }, {
-        cluster: id,
-        tasks,
-      });
+      await waitUntilTasksStopped(
+        {
+          client: this.ecsClient,
+          // all in seconds
+          maxWaitTime: 300,
+          minDelay: 1,
+          maxDelay: 4,
+        },
+        {
+          cluster: id,
+          tasks,
+        },
+      );
     }
     await this.ecsClient.deleteCluster({
       cluster: id,
@@ -961,18 +1004,21 @@ export class AWS {
   async getTaskDefinitions() {
     const taskDefinitions: any[] = [];
     const activeTaskDefinitionArns: string[] = [];
-    const activePaginator = paginateListTaskDefinitions({
-      client: this.ecsClient,
-    }, {
-      status: 'ACTIVE',
-      maxResults: 100,
-    });
+    const activePaginator = paginateListTaskDefinitions(
+      {
+        client: this.ecsClient,
+      },
+      {
+        status: 'ACTIVE',
+        maxResults: 100,
+      },
+    );
     for await (const page of activePaginator) {
       activeTaskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
     }
     // Look for INACTIVE task definitons being used
-    const clusters = await this.getClusters() ?? [];
-    const services = await this.getServices(clusters.map(c => c.clusterArn!)) ?? [];
+    const clusters = (await this.getClusters()) ?? [];
+    const services = (await this.getServices(clusters.map(c => c.clusterArn!))) ?? [];
     const servicesTasks = services.map(s => s.taskDefinition!) ?? [];
     for (const st of servicesTasks) {
       if (!activeTaskDefinitionArns.includes(st)) {
@@ -991,14 +1037,14 @@ export class AWS {
   // :id could be `family:revision` or ARN
   async getTaskDefinition(id: string) {
     const taskDefinition = await this.ecsClient.describeTaskDefinition({
-      taskDefinition: id
+      taskDefinition: id,
     });
     return taskDefinition.taskDefinition;
   }
 
   async deleteTaskDefinition(name: string) {
     await this.ecsClient.deregisterTaskDefinition({
-      taskDefinition: name
+      taskDefinition: name,
     });
   }
 
@@ -1016,12 +1062,15 @@ export class AWS {
     const services = [];
     for (const id of clusterIds) {
       const serviceArns: string[] = [];
-      const paginator = paginateListServices({
-        client: this.ecsClient,
-      }, {
-        cluster: id,
-        maxResults: 100,
-      });
+      const paginator = paginateListServices(
+        {
+          client: this.ecsClient,
+        },
+        {
+          cluster: id,
+          maxResults: 100,
+        },
+      );
       for await (const page of paginator) {
         serviceArns.push(...(page.serviceArns ?? []));
       }
@@ -1032,14 +1081,14 @@ export class AWS {
             const batch = serviceArns.slice(i, i + batchSize);
             const result = await this.ecsClient.describeServices({
               cluster: id,
-              services: batch
+              services: batch,
             });
             services.push(...(result.services ?? []));
           }
         } else {
           const result = await this.ecsClient.describeServices({
             cluster: id,
-            services: serviceArns
+            services: serviceArns,
           });
           services.push(...(result.services ?? []));
         }
@@ -1059,12 +1108,15 @@ export class AWS {
   async getServiceByName(cluster: string, name: string) {
     const services = [];
     const serviceArns: string[] = [];
-    const paginator = paginateListServices({
-      client: this.ecsClient,
-    }, {
-      cluster,
-      maxResults: 100,
-    });
+    const paginator = paginateListServices(
+      {
+        client: this.ecsClient,
+      },
+      {
+        cluster,
+        maxResults: 100,
+      },
+    );
     for await (const page of paginator) {
       serviceArns.push(...(page.serviceArns ?? []));
     }
@@ -1075,14 +1127,14 @@ export class AWS {
           const batch = serviceArns.slice(i, i + batchSize);
           const result = await this.ecsClient.describeServices({
             cluster,
-            services: batch
+            services: batch,
           });
           services.push(...(result.services ?? []));
         }
       } else {
         const result = await this.ecsClient.describeServices({
           cluster,
-          services: serviceArns
+          services: serviceArns,
         });
         services.push(...(result.services ?? []));
       }
@@ -1119,16 +1171,16 @@ export class AWS {
       },
     );
     try {
-      const tasks = await this.ecsClient.describeTasks({tasks: tasksArns, cluster});
-      const taskAttachmentIds = tasks.tasks?.map(t => t.attachments?.map(a => a.id)).flat()
+      const tasks = await this.ecsClient.describeTasks({ tasks: tasksArns, cluster });
+      const taskAttachmentIds = tasks.tasks?.map(t => t.attachments?.map(a => a.id)).flat();
       if (taskAttachmentIds?.length) {
         const describeEniCommand: DescribeNetworkInterfacesCommandInput = {
           Filters: [
             {
               Name: 'description',
-              Values: taskAttachmentIds?.map(id => `*${id}`)
-            }
-          ]
+              Values: taskAttachmentIds?.map(id => `*${id}`),
+            },
+          ],
         };
         await createWaiter<EC2, DescribeNetworkInterfacesCommandInput>(
           {
@@ -1156,7 +1208,7 @@ export class AWS {
     } catch (_) {
       // We should not throw here.
       // This is an extra validation to ensure that the service is fully deleted
-      logger.info('Error getting network interfaces for tasks')
+      logger.info('Error getting network interfaces for tasks');
     }
   }
 
@@ -1209,14 +1261,12 @@ export class AWS {
         try {
           const data = await client.describeDBInstances(cmd);
           for (const dbInstance of data?.DBInstances ?? []) {
-            if (dbInstance.DBInstanceStatus !== 'available')
-              return { state: WaiterState.RETRY };
+            if (dbInstance.DBInstanceStatus !== 'available') return { state: WaiterState.RETRY };
             newDBInstance = dbInstance;
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.RETRY };
+          if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
       },
@@ -1225,18 +1275,23 @@ export class AWS {
   }
 
   async getDBInstance(id: string) {
-    const dbInstance = await this.rdsClient.describeDBInstances({ DBInstanceIdentifier: id, });
+    const dbInstance = await this.rdsClient.describeDBInstances({ DBInstanceIdentifier: id });
     return (dbInstance?.DBInstances ?? [])[0];
   }
 
   async getDBInstances() {
     const dbInstances = [];
-    const paginator = paginateDescribeDBInstances({
-      client: this.rdsClient,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateDescribeDBInstances(
+      {
+        client: this.rdsClient,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
-      dbInstances.push(...(page.DBInstances?.filter(dbInstance => dbInstance.DBInstanceStatus === 'available') ?? []));
+      dbInstances.push(
+        ...(page.DBInstances?.filter(dbInstance => dbInstance.DBInstanceStatus === 'available') ?? []),
+      );
     }
     return {
       DBInstances: dbInstances, // Make it "look like" the regular query again
@@ -1260,8 +1315,7 @@ export class AWS {
       async (client, input) => {
         const data = await client.describeDBInstances(input);
         for (const dbInstance of data?.DBInstances ?? []) {
-          if (dbInstance.DBInstanceStatus === 'deleting')
-            return { state: WaiterState.RETRY };
+          if (dbInstance.DBInstanceStatus === 'deleting') return { state: WaiterState.RETRY };
         }
         return { state: WaiterState.SUCCESS };
       },
@@ -1287,13 +1341,11 @@ export class AWS {
           const data = await client.describeDBInstances(cmd);
           if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
           for (const dbInstance of data?.DBInstances ?? []) {
-            if (dbInstance.DBInstanceStatus === 'available')
-              return { state: WaiterState.RETRY };
+            if (dbInstance.DBInstanceStatus === 'available') return { state: WaiterState.RETRY };
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.RETRY };
+          if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
       },
@@ -1312,14 +1364,12 @@ export class AWS {
           const data = await client.describeDBInstances(cmd);
           if (!data || !data.DBInstances?.length) return { state: WaiterState.RETRY };
           for (const dbInstance of data?.DBInstances ?? []) {
-            if (dbInstance.DBInstanceStatus !== 'available')
-              return { state: WaiterState.RETRY };
+            if (dbInstance.DBInstanceStatus !== 'available') return { state: WaiterState.RETRY };
             updatedDBInstance = dbInstance;
           }
           return { state: WaiterState.SUCCESS };
         } catch (e: any) {
-          if (e.Code === 'InvalidInstanceID.NotFound')
-            return { state: WaiterState.RETRY };
+          if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
       },
@@ -1335,12 +1385,15 @@ export class AWS {
 
   async getLogGroups(groupName?: string) {
     const logGroups = [];
-    const paginator = paginateDescribeLogGroups({
-      client: this.cwClient,
-      pageSize: 25,
-    }, {
-      logGroupNamePrefix: groupName,
-    });
+    const paginator = paginateDescribeLogGroups(
+      {
+        client: this.cwClient,
+        pageSize: 25,
+      },
+      {
+        logGroupNamePrefix: groupName,
+      },
+    );
     for await (const page of paginator) {
       logGroups.push(...(page.logGroups ?? []));
     }
@@ -1360,10 +1413,13 @@ export class AWS {
 
   async getECRPubRepositories() {
     const repositories = [];
-    const paginator = paginateDescribePubRepositories({
-      client: this.ecrPubClient,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateDescribePubRepositories(
+      {
+        client: this.ecrPubClient,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       repositories.push(...(page.repositories ?? []));
     }
@@ -1389,17 +1445,20 @@ export class AWS {
     const input: CreateHostedZoneCommandInput = {
       Name: domainName,
       CallerReference: `${this.region}-${Date.now()}`,
-    }
+    };
     const res = await this.route53Client.createHostedZone(input);
     return res.HostedZone;
   }
 
   async getHostedZones() {
     const hostedZones = [];
-    const paginator = paginateListHostedZones({
-      client: this.route53Client,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateListHostedZones(
+      {
+        client: this.route53Client,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       hostedZones.push(...(page.HostedZones ?? []));
     }
@@ -1420,21 +1479,27 @@ export class AWS {
     return res.ChangeInfo;
   }
 
-  newChangeResourceRecordSetsCommand(hostedZoneId: string, record: ResourceRecordSet, action: ChangeAction): ChangeResourceRecordSetsCommandInput {
+  newChangeResourceRecordSetsCommand(
+    hostedZoneId: string,
+    record: ResourceRecordSet,
+    action: ChangeAction,
+  ): ChangeResourceRecordSetsCommandInput {
     return {
       HostedZoneId: hostedZoneId,
       ChangeBatch: {
-        Changes: [{
-          Action: action,
-          ResourceRecordSet: record
-        }]
-      }
-    }
+        Changes: [
+          {
+            Action: action,
+            ResourceRecordSet: record,
+          },
+        ],
+      },
+    };
   }
 
   async createResourceRecordSet(hostedZoneId: string, record: ResourceRecordSet) {
     const res = await this.route53Client.changeResourceRecordSets(
-      this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'CREATE')
+      this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'CREATE'),
     );
     return res;
   }
@@ -1462,17 +1527,20 @@ export class AWS {
 
   async deleteResourceRecordSet(hostedZoneId: string, record: ResourceRecordSet) {
     const res = await this.route53Client.changeResourceRecordSets(
-      this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'DELETE')
+      this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'DELETE'),
     );
     return res;
   }
 
   async getCertificatesSummary() {
     const certificatesSummary = [];
-    const paginator = paginateListCertificates({
-      client: this.acmClient,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateListCertificates(
+      {
+        client: this.acmClient,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       certificatesSummary.push(...(page.CertificateSummaryList ?? []));
     }
@@ -1498,7 +1566,7 @@ export class AWS {
     await this.acmClient.deleteCertificate({ CertificateArn: arn });
     let certificates: string[] = [];
     let i = 0;
-     // Wait for ~1min until imported cert is available
+    // Wait for ~1min until imported cert is available
     do {
       await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
       certificates = (await this.getCertificatesSummary())?.map(c => c.CertificateArn ?? '') ?? [];
@@ -1511,7 +1579,7 @@ export class AWS {
     const arn = res.CertificateArn ?? '';
     let certificates: string[] = [];
     let i = 0;
-     // Wait for ~1min until imported cert is available
+    // Wait for ~1min until imported cert is available
     do {
       await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
       certificates = (await this.getCertificatesSummary())?.map(c => c.CertificateArn ?? '') ?? [];
@@ -1546,33 +1614,34 @@ export class AWS {
     }
     const res = await this.elbClient.describeTargetHealth({
       TargetGroupArn: targetGroupArn,
-      Targets: [target]
+      Targets: [target],
     });
-    const out = [...(res.TargetHealthDescriptions?.map(thd => (
-      {
+    const out = [
+      ...(res.TargetHealthDescriptions?.map(thd => ({
         targetGroupArn,
         instanceId: thd.Target?.Id,
         port: thd.Target?.Port,
-      }
-    )) ?? [])];
+      })) ?? []),
+    ];
     return out.pop();
   }
 
   async getRegisteredInstances() {
     const targetGroups = await this.getTargetGroups();
-    const instanceTargetGroups = targetGroups?.TargetGroups?.filter(tg => Object.is(tg.TargetType, TargetTypeEnum.INSTANCE)) ?? [];
+    const instanceTargetGroups =
+      targetGroups?.TargetGroups?.filter(tg => Object.is(tg.TargetType, TargetTypeEnum.INSTANCE)) ?? [];
     const out = [];
     for (const tg of instanceTargetGroups) {
       const res = await this.elbClient.describeTargetHealth({
         TargetGroupArn: tg.TargetGroupArn,
       });
-      out.push(...(res.TargetHealthDescriptions?.map(thd => (
-        {
+      out.push(
+        ...(res.TargetHealthDescriptions?.map(thd => ({
           targetGroupArn: tg.TargetGroupArn,
           instanceId: thd.Target?.Id,
           port: thd.Target?.Port,
-        }
-      )) ?? []));
+        })) ?? []),
+      );
     }
     return out;
   }
@@ -1608,7 +1677,7 @@ export class AWS {
     const res = await this.ec2client.createNatGateway(input);
     out = res.NatGateway;
     const describeInput: DescribeNatGatewaysCommandInput = {
-      NatGatewayIds: [res.NatGateway?.NatGatewayId ?? '']
+      NatGatewayIds: [res.NatGateway?.NatGatewayId ?? ''],
     };
     await createWaiter<EC2, DescribeNatGatewaysCommandInput>(
       {
@@ -1642,26 +1711,29 @@ export class AWS {
       Filter: [
         {
           Name: 'state',
-          Values: [NatGatewayState.AVAILABLE, NatGatewayState.FAILED]
-        }
-      ]
+          Values: [NatGatewayState.AVAILABLE, NatGatewayState.FAILED],
+        },
+      ],
     });
     return res.NatGateways?.pop();
   }
 
   async getNatGateways() {
     const natGateways = [];
-    const paginator = paginateDescribeNatGateways({
-      client: this.ec2client,
-      pageSize: 25,
-    }, {
-      Filter: [
-        {
-          Name: 'state',
-          Values: [NatGatewayState.AVAILABLE, NatGatewayState.FAILED]
-        }
-      ]
-    });
+    const paginator = paginateDescribeNatGateways(
+      {
+        client: this.ec2client,
+        pageSize: 25,
+      },
+      {
+        Filter: [
+          {
+            Name: 'state',
+            Values: [NatGatewayState.AVAILABLE, NatGatewayState.FAILED],
+          },
+        ],
+      },
+    );
     for await (const page of paginator) {
       natGateways.push(...(page.NatGateways ?? []));
     }
@@ -1673,7 +1745,7 @@ export class AWS {
       NatGatewayId: id,
     });
     const describeInput: DescribeNatGatewaysCommandInput = {
-      NatGatewayIds: [id ?? '']
+      NatGatewayIds: [id ?? ''],
     };
     await createWaiter<EC2, DescribeNatGatewaysCommandInput>(
       {
@@ -1707,7 +1779,7 @@ export class AWS {
 
   async getDBParameterGroup(name: string) {
     const res = await this.rdsClient.describeDBParameterGroups({
-      DBParameterGroupName: name
+      DBParameterGroupName: name,
     });
     const parameters = await this.getDBParameterGroupParameters(name);
     return { ...res.DBParameterGroups?.pop(), Parameters: parameters };
@@ -1715,14 +1787,17 @@ export class AWS {
 
   async getDBParameterGroups() {
     const out = [];
-    const paginator = paginateDescribeDBParameterGroups({
-      client: this.rdsClient,
-      pageSize: 25,
-    }, {});
+    const paginator = paginateDescribeDBParameterGroups(
+      {
+        client: this.rdsClient,
+        pageSize: 25,
+      },
+      {},
+    );
     for await (const page of paginator) {
       for (const pg of page.DBParameterGroups ?? []) {
         const parameters = await this.getDBParameterGroupParameters(pg.DBParameterGroupName ?? '');
-        out.push({...pg, Parameters: parameters });
+        out.push({ ...pg, Parameters: parameters });
       }
     }
     return out;
@@ -1730,22 +1805,25 @@ export class AWS {
 
   async deleteDBParameterGroup(name: string) {
     return this.rdsClient.deleteDBParameterGroup({
-      DBParameterGroupName: name
+      DBParameterGroupName: name,
     });
   }
 
   async getDBParameterGroupParameters(parameterGroupName: string) {
     const out = [];
-    const paginator = paginateDescribeDBParameters({
-      client: this.rdsClient,
-      pageSize: 25,
-    }, {
-      DBParameterGroupName: parameterGroupName,
-    });
+    const paginator = paginateDescribeDBParameters(
+      {
+        client: this.rdsClient,
+        pageSize: 25,
+      },
+      {
+        DBParameterGroupName: parameterGroupName,
+      },
+    );
     for await (const page of paginator) {
       out.push(...(page.Parameters ?? []));
     }
-    return out.map(o => ({ ...o, DBParameterGroupName: parameterGroupName, }));
+    return out.map(o => ({ ...o, DBParameterGroupName: parameterGroupName }));
   }
 
   async modifyParameter(parameterGroupName: string, parameter: Parameter) {
@@ -1755,7 +1833,7 @@ export class AWS {
     });
   }
 
-  async createElasticIp(tags?: { [key: string] : string }) {
+  async createElasticIp(tags?: { [key: string]: string }) {
     const allocateAddressCommandInput: AllocateAddressCommandInput = {
       Domain: 'vpc',
     };
@@ -1763,8 +1841,9 @@ export class AWS {
       let tgs: Tag[] = [];
       tgs = Object.keys(tags).map(k => {
         return {
-          Key: k, Value: tags[k]
-        }
+          Key: k,
+          Value: tags[k],
+        };
       });
       allocateAddressCommandInput.TagSpecifications = [
         {
@@ -1810,23 +1889,26 @@ export class AWS {
 
   async getVpcEndpointGateways() {
     const vpcEndpoints = [];
-    const paginator = paginateDescribeVpcEndpoints({
-      client: this.ec2client,
-      pageSize: 25,
-    }, {
-      Filters: [
-        {
-          Name: 'vpc-endpoint-type',
-          Values: ['Gateway']
-        },
-        // vpc-endpoint-state - The state of the endpoint:
-        // pendingAcceptance | pending | available | deleting | deleted | rejected | failed
-        {
-          Name: 'vpc-endpoint-state',
-          Values: ['available', 'rejected', 'failed']
-        }
-      ]
-    });
+    const paginator = paginateDescribeVpcEndpoints(
+      {
+        client: this.ec2client,
+        pageSize: 25,
+      },
+      {
+        Filters: [
+          {
+            Name: 'vpc-endpoint-type',
+            Values: ['Gateway'],
+          },
+          // vpc-endpoint-state - The state of the endpoint:
+          // pendingAcceptance | pending | available | deleting | deleted | rejected | failed
+          {
+            Name: 'vpc-endpoint-state',
+            Values: ['available', 'rejected', 'failed'],
+          },
+        ],
+      },
+    );
     for await (const page of paginator) {
       vpcEndpoints.push(...(page.VpcEndpoints ?? []));
     }
@@ -1850,9 +1932,9 @@ export class AWS {
       Filters: [
         {
           Name: 'service-type',
-          Values: ['Gateway']
-        }
-      ]
+          Values: ['Gateway'],
+        },
+      ],
     });
     return res.ServiceNames?.find(sn => sn.includes(service));
   }
@@ -1862,9 +1944,9 @@ export class AWS {
       Filters: [
         {
           Name: 'vpc-id',
-          Values: [vpcId]
-        }
-      ]
+          Values: [vpcId],
+        },
+      ],
     });
     return res.RouteTables;
   }

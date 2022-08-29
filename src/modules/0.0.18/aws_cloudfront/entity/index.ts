@@ -1,1 +1,1 @@
-export * from './distribution'
+export * from './distribution';

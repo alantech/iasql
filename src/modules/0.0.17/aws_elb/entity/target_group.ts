@@ -1,40 +1,34 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryColumn,
-} from 'typeorm'
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
-import { Vpc, } from '../../aws_vpc/entity'
+import { cloudId } from '../../../../services/cloud-id';
+import { Vpc } from '../../aws_vpc/entity';
 
 export enum TargetTypeEnum {
-  ALB = "alb",
-  INSTANCE = "instance",
-  IP = "ip",
-  LAMBDA = "lambda"
+  ALB = 'alb',
+  INSTANCE = 'instance',
+  IP = 'ip',
+  LAMBDA = 'lambda',
 }
 
 export enum TargetGroupIpAddressTypeEnum {
-  IPV4 = "ipv4",
-  IPV6 = "ipv6"
+  IPV4 = 'ipv4',
+  IPV6 = 'ipv6',
 }
 
 export enum ProtocolEnum {
-  GENEVE = "GENEVE",
-  HTTP = "HTTP",
-  HTTPS = "HTTPS",
-  TCP = "TCP",
-  TCP_UDP = "TCP_UDP",
-  TLS = "TLS",
-  UDP = "UDP"
+  GENEVE = 'GENEVE',
+  HTTP = 'HTTP',
+  HTTPS = 'HTTPS',
+  TCP = 'TCP',
+  TCP_UDP = 'TCP_UDP',
+  TLS = 'TLS',
+  UDP = 'UDP',
 }
 
 export enum ProtocolVersionEnum {
-  GRPC = "GRPC",
-  HTTP1 = "HTTP1",
-  HTTP2 = "HTTP2"
+  GRPC = 'GRPC',
+  HTTP1 = 'HTTP1',
+  HTTP2 = 'HTTP2',
 }
 
 @Entity()

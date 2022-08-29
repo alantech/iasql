@@ -6,31 +6,20 @@ import {
   UpdateSecretCommandInput,
   paginateListSecrets,
   SecretListEntry,
-} from "@aws-sdk/client-secrets-manager";
-import {
-  AWS,
-  crudBuilder2,
-  crudBuilderFormat,
-  paginateBuilder,
-} from "../../../services/aws_macros";
-import { Context, Crud2, Mapper2, Module2 } from "../../interfaces";
-import * as metadata from "./module.json";
-import { Secret } from "./entity/secret";
+} from '@aws-sdk/client-secrets-manager';
 
-const createSecret = crudBuilderFormat<
-  SecretsManager,
-  "createSecret",
-  string | undefined
->(
-  "createSecret",
-  (input) => input,
-  (res) => (!!res ? res.Name : undefined)
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud2, Mapper2, Module2 } from '../../interfaces';
+import { Secret } from './entity/secret';
+import * as metadata from './module.json';
+
+const createSecret = crudBuilderFormat<SecretsManager, 'createSecret', string | undefined>(
+  'createSecret',
+  input => input,
+  res => (!!res ? res.Name : undefined),
 );
 
-async function putSecretValue(
-  client: SecretsManager,
-  input: PutSecretValueCommandInput
-) {
+async function putSecretValue(client: SecretsManager, input: PutSecretValueCommandInput) {
   const res = await client.putSecretValue(input);
   if (res) {
     return res;
@@ -38,10 +27,7 @@ async function putSecretValue(
   return undefined;
 }
 
-async function updateSecret(
-  client: SecretsManager,
-  input: UpdateSecretCommandInput
-) {
+async function updateSecret(client: SecretsManager, input: UpdateSecretCommandInput) {
   const res = await client.updateSecret(input);
   if (res) {
     return res;
@@ -64,15 +50,9 @@ async function getSecret(client: SecretsManager, secretId: string) {
   return undefined;
 }
 
-const getAllSecrets = paginateBuilder<SecretsManager>(
-  paginateListSecrets,
-  "SecretList"
-);
+const getAllSecrets = paginateBuilder<SecretsManager>(paginateListSecrets, 'SecretList');
 
-const deleteSecret = crudBuilder2<SecretsManager, "deleteSecret">(
-  "deleteSecret",
-  (input) => input
-);
+const deleteSecret = crudBuilder2<SecretsManager, 'deleteSecret'>('deleteSecret', input => input);
 
 export const AwsSecretsManagerModule: Module2 = new Module2(
   {
@@ -89,12 +69,11 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
     mappers: {
       secret: new Mapper2<Secret>({
         entity: Secret,
-        equals: (a: Secret, b: Secret) =>
-          Object.is(a.description, b.description) && !a.value, // if password is set, we need to update it,
-        source: "db",
+        equals: (a: Secret, b: Secret) => Object.is(a.description, b.description) && !a.value, // if password is set, we need to update it,
+        source: 'db',
         cloud: new Crud2({
           updateOrReplace: (a: Secret, b: Secret) => {
-            return "update";
+            return 'update';
           },
           create: async (secrets: Secret[], ctx: Context) => {
             const client = (await ctx.getAwsClient()) as AWS;
@@ -107,10 +86,7 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
                   SecretString: secret.value!,
                 };
 
-                const secretName = await createSecret(
-                  client.secretsClient,
-                  input
-                );
+                const secretName = await createSecret(client.secretsClient, input);
                 if (secretName) {
                   // retry until we ensure is created
                   let rawSecret;
@@ -118,12 +94,9 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
                   do {
                     await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
 
-                    rawSecret = await getSecret(
-                      client.secretsClient,
-                      secretName
-                    );
+                    rawSecret = await getSecret(client.secretsClient, secretName);
                     i++;
-                  } while (!rawSecret && (i<30));
+                  } while (!rawSecret && i < 30);
                   secret.name = secretName;
                   // we never store the secret value
                   secret.value = null;
@@ -138,14 +111,10 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
           read: async (ctx: Context, secretName?: string) => {
             const client = (await ctx.getAwsClient()) as AWS;
             if (secretName) {
-              const rawSecret = await getSecret(
-                client.secretsClient,
-                secretName
-              );
+              const rawSecret = await getSecret(client.secretsClient, secretName);
               const res = AwsSecretsManagerModule.utils.secretsMapper(rawSecret, ctx);
             } else {
-              const rawSecrets =
-                (await getAllSecrets(client.secretsClient)) ?? [];
+              const rawSecrets = (await getAllSecrets(client.secretsClient)) ?? [];
               const out = [];
               for (const i of rawSecrets) {
                 out.push(await AwsSecretsManagerModule.utils.secretsMapper(i, ctx));
@@ -157,13 +126,10 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
             const client = (await ctx.getAwsClient()) as AWS;
             const out = [];
             for (const secret of secrets) {
-              const cloudRecord = ctx?.memo?.cloud?.Secret?.[secret.name ?? ""];
+              const cloudRecord = ctx?.memo?.cloud?.Secret?.[secret.name ?? ''];
               const isUpdate = Object.is(
-                AwsSecretsManagerModule.mappers.secret.cloud.updateOrReplace(
-                  cloudRecord,
-                  secret
-                ),
-                "update"
+                AwsSecretsManagerModule.mappers.secret.cloud.updateOrReplace(cloudRecord, secret),
+                'update',
               );
               if (isUpdate) {
                 if (secret.description !== cloudRecord.description) {
@@ -209,5 +175,5 @@ export const AwsSecretsManagerModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname
+  __dirname,
 );

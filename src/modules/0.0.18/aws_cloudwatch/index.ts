@@ -1,32 +1,30 @@
-import { CloudWatchLogs, paginateDescribeLogGroups, } from '@aws-sdk/client-cloudwatch-logs'
-import { AWS, crudBuilderFormat, paginateBuilder, } from '../../../services/aws_macros'
-import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
-import { LogGroup } from './entity'
+import { CloudWatchLogs, paginateDescribeLogGroups } from '@aws-sdk/client-cloudwatch-logs';
+
+import { AWS, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { LogGroup } from './entity';
 
 class LogGroupMapper extends MapperBase<LogGroup> {
   module: AwsCloudwatchModule;
   entity = LogGroup;
-  equals = (a: LogGroup, b: LogGroup) => Object.is(a.logGroupName, b.logGroupName)
-    && Object.is(a.logGroupArn, b.logGroupArn)
-    && Object.is(a.creationTime?.getTime(), b.creationTime?.getTime());
+  equals = (a: LogGroup, b: LogGroup) =>
+    Object.is(a.logGroupName, b.logGroupName) &&
+    Object.is(a.logGroupArn, b.logGroupArn) &&
+    Object.is(a.creationTime?.getTime(), b.creationTime?.getTime());
 
   createLogGroup = crudBuilderFormat<CloudWatchLogs, 'createLogGroup', undefined>(
     'createLogGroup',
-    (logGroupName) => ({ logGroupName, }),
-    (_lg) => undefined,
+    logGroupName => ({ logGroupName }),
+    _lg => undefined,
   );
-  getLogGroups = paginateBuilder<CloudWatchLogs>(
-    paginateDescribeLogGroups,
-    'logGroups',
-  );
+  getLogGroups = paginateBuilder<CloudWatchLogs>(paginateDescribeLogGroups, 'logGroups');
   async getLogGroup(client: CloudWatchLogs, groupName: string) {
-    return (await this.getLogGroups(client))
-      .find(lg => lg.logGroupName === groupName);
+    return (await this.getLogGroups(client)).find(lg => lg.logGroupName === groupName);
   }
   deleteLogGroup = crudBuilderFormat<CloudWatchLogs, 'deleteLogGroup', undefined>(
     'deleteLogGroup',
-    (logGroupName) => ({ logGroupName, }),
-    (_lg) => undefined,
+    logGroupName => ({ logGroupName }),
+    _lg => undefined,
   );
   logGroupMapper(lg: any) {
     const out = new LogGroup();
@@ -35,12 +33,12 @@ class LogGroupMapper extends MapperBase<LogGroup> {
     out.logGroupArn = lg.arn;
     out.creationTime = lg.creationTime ? new Date(lg.creationTime) : lg.creationTime;
     return out;
-  };
+  }
 
   cloud = new Crud2<LogGroup>({
     create: async (lg: LogGroup[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
-      const out = []
+      const client = (await ctx.getAwsClient()) as AWS;
+      const out = [];
       for (const e of lg) {
         await this.createLogGroup(client.cwClient, e.logGroupName);
         // Re-get the inserted record to get all of the relevant records we care about
@@ -55,7 +53,7 @@ class LogGroupMapper extends MapperBase<LogGroup> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
         const rawLogGroup = await this.getLogGroup(client.cwClient, id);
         if (!rawLogGroup) return;
@@ -83,7 +81,7 @@ class LogGroupMapper extends MapperBase<LogGroup> {
       return out;
     },
     delete: async (lg: LogGroup[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of lg) {
         await this.deleteLogGroup(client.cwClient, e.logGroupName);
       }

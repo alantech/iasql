@@ -1,36 +1,33 @@
+import isEqual from 'lodash.isequal';
+
 import {
   S3,
   Bucket as BucketAWS,
   GetBucketPolicyCommandInput,
   PutBucketPolicyCommandInput,
-} from '@aws-sdk/client-s3'
+} from '@aws-sdk/client-s3';
 
-import { AWS, crudBuilder2, crudBuilderFormat, } from '../../../services/aws_macros'
-import { Bucket, } from './entity'
-import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
-import isEqual from 'lodash.isequal'
+import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { Bucket } from './entity';
 
 class BucketMapper extends MapperBase<Bucket> {
   module: AwsS3Module;
   entity = Bucket;
   equals = (a: Bucket, b: Bucket) => {
-    const res = Object.is(a.name, b.name) &&
-    Object.is(a.createdAt?.toISOString(), b.createdAt?.toISOString()) && isEqual(a.policyDocument, b.policyDocument);
+    const res =
+      Object.is(a.name, b.name) &&
+      Object.is(a.createdAt?.toISOString(), b.createdAt?.toISOString()) &&
+      isEqual(a.policyDocument, b.policyDocument);
     return res;
   };
   getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
     'listBuckets',
     () => ({}),
-    (res) => res?.Buckets ?? [],
+    res => res?.Buckets ?? [],
   );
-  deleteBucket = crudBuilder2<S3, 'deleteBucket'>(
-    'deleteBucket',
-    (b) => ({ Bucket: b, }),
-  );
-  createBucket = crudBuilder2<S3, 'createBucket'>(
-    'createBucket',
-    (b) => ({ Bucket: b, }),
-  );
+  deleteBucket = crudBuilder2<S3, 'deleteBucket'>('deleteBucket', b => ({ Bucket: b }));
+  createBucket = crudBuilder2<S3, 'createBucket'>('createBucket', b => ({ Bucket: b }));
   async getBucketPolicy(client: S3, input: GetBucketPolicyCommandInput) {
     try {
       const res = await client.getBucketPolicy(input);
@@ -40,14 +37,11 @@ class BucketMapper extends MapperBase<Bucket> {
       return null;
     }
   }
-  updateBucketPolicy = crudBuilder2<S3, 'putBucketPolicy'>(
-    'putBucketPolicy',
-    (input) => (input),
-  );
+  updateBucketPolicy = crudBuilder2<S3, 'putBucketPolicy'>('putBucketPolicy', input => input);
   cloud = new Crud2<Bucket>({
     // TODO: There are lots of useful permission controls on create to be added to this model
     create: async (es: Bucket[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         await this.createBucket(client.s3Client, e.name);
@@ -56,15 +50,13 @@ class BucketMapper extends MapperBase<Bucket> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
 
       const allBuckets = await this.getBuckets(client.s3Client);
-      const out : Bucket[] = [];
-      const buckets : BucketAWS[] = allBuckets
-          .filter(b => !id || b.Name === id)
-          .filter(b => !!b.Name);
+      const out: Bucket[] = [];
+      const buckets: BucketAWS[] = allBuckets.filter(b => !id || b.Name === id).filter(b => !!b.Name);
 
-      for (const index in buckets ) {
+      for (const index in buckets) {
         if (buckets.hasOwnProperty(index)) {
           const bucket = buckets[index];
 
@@ -76,9 +68,9 @@ class BucketMapper extends MapperBase<Bucket> {
           const b: Bucket = this.module.bucket.bucketMapper(bucket);
 
           if (bucketPolicy && bucketPolicy.Policy) {
-            b.policyDocument=JSON.parse(bucketPolicy.Policy);
+            b.policyDocument = JSON.parse(bucketPolicy.Policy);
           } else {
-            b.policyDocument=undefined;
+            b.policyDocument = undefined;
           }
           out.push(b);
         }
@@ -93,13 +85,13 @@ class BucketMapper extends MapperBase<Bucket> {
     // as the user can't change the create timestamp themselves, so just restore the record from
     // the cloud cache and force it into the DB cache
     update: async (es: Bucket[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.Bucket?.[e.name ?? ''];
         const isUpdate = Object.is(this.module.bucket.cloud.updateOrReplace(cloudRecord, e), 'update');
         if (isUpdate) {
-          e.createdAt=cloudRecord.createdAt;
+          e.createdAt = cloudRecord.createdAt;
           e.policyDocument = await this.module.bucket.createBucketPolicy(client.s3Client, e, ctx);
           out.push(e);
         } else {
@@ -112,7 +104,7 @@ class BucketMapper extends MapperBase<Bucket> {
       return out;
     },
     delete: async (es: Bucket[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         await this.deleteBucket(client.s3Client, e.name);
       }
@@ -134,7 +126,7 @@ class BucketMapper extends MapperBase<Bucket> {
   }
 
   async createBucketPolicy(client: S3, bucket: Bucket, ctx: Context) {
-    const input : PutBucketPolicyCommandInput = {
+    const input: PutBucketPolicyCommandInput = {
       Bucket: bucket.name,
       Policy: JSON.stringify(bucket.policyDocument ?? {}),
     };
@@ -147,9 +139,9 @@ class BucketMapper extends MapperBase<Bucket> {
     };
     const bucketPolicy = await this.getBucketPolicy(client, inputGet);
     if (bucketPolicy && bucketPolicy.Policy) {
-      bucket.policyDocument=JSON.parse(bucketPolicy.Policy);
+      bucket.policyDocument = JSON.parse(bucketPolicy.Policy);
     } else {
-      bucket.policyDocument=undefined;
+      bucket.policyDocument = undefined;
     }
     await this.module.bucket.db.update(bucket, ctx);
 

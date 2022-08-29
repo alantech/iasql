@@ -1,31 +1,27 @@
-import {
-  Column,
-  Entity,
-  PrimaryGeneratedColumn,
-} from 'typeorm'
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 
 export enum certificateStatusEnum {
-  EXPIRED = "EXPIRED",
-  FAILED = "FAILED",
-  INACTIVE = "INACTIVE",
-  ISSUED = "ISSUED",
-  PENDING_VALIDATION = "PENDING_VALIDATION",
-  REVOKED = "REVOKED",
-  VALIDATION_TIMED_OUT = "VALIDATION_TIMED_OUT",
+  EXPIRED = 'EXPIRED',
+  FAILED = 'FAILED',
+  INACTIVE = 'INACTIVE',
+  ISSUED = 'ISSUED',
+  PENDING_VALIDATION = 'PENDING_VALIDATION',
+  REVOKED = 'REVOKED',
+  VALIDATION_TIMED_OUT = 'VALIDATION_TIMED_OUT',
 }
 
 export enum certificateTypeEnum {
-  AMAZON_ISSUED = "AMAZON_ISSUED",
-  IMPORTED = "IMPORTED",
+  AMAZON_ISSUED = 'AMAZON_ISSUED',
+  IMPORTED = 'IMPORTED',
   // TODO: add private certs support
   // PRIVATE = "PRIVATE",
 }
 
 export enum certificateRenewalEligibilityEnum {
-  ELIGIBLE = "ELIGIBLE",
-  INELIGIBLE = "INELIGIBLE",
+  ELIGIBLE = 'ELIGIBLE',
+  INELIGIBLE = 'INELIGIBLE',
 }
 
 @Entity()

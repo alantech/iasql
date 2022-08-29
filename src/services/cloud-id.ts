@@ -1,4 +1,4 @@
-const cloudIdTable: { [key: string]: string, } = {};
+const cloudIdTable: { [key: string]: string } = {};
 
 export function cloudId(Class: any, name: string, descriptor?: any) {
   cloudIdTable[Class.constructor.name] = name;

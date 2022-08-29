@@ -6,38 +6,41 @@ import {
   ResourceRecordSet as AwsResourceRecordSet,
   Route53,
   paginateListHostedZones,
-} from '@aws-sdk/client-route-53'
-import { AWS, crudBuilderFormat, paginateBuilder, crudBuilder2, } from '../../../services/aws_macros'
-import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces'
+} from '@aws-sdk/client-route-53';
+
+import { AWS, crudBuilderFormat, paginateBuilder, crudBuilder2 } from '../../../services/aws_macros';
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { awsElbModule } from '../aws_elb';
-import { AliasTarget, HostedZone } from './entity'
+import { AliasTarget, HostedZone } from './entity';
 import { RecordType, ResourceRecordSet } from './entity/resource_records_set';
 
 const createHostedZone = crudBuilderFormat<Route53, 'createHostedZone', AwsHostedZone | undefined>(
   'createHostedZone',
-  (Name, region) => ({ Name, CallerReference: `${region}-${Date.now()}`, }),
-  (res) => res?.HostedZone,
+  (Name, region) => ({ Name, CallerReference: `${region}-${Date.now()}` }),
+  res => res?.HostedZone,
 );
 const getHostedZone = crudBuilderFormat<Route53, 'getHostedZone', AwsHostedZone | undefined>(
   'getHostedZone',
-  (Id) => ({ Id, }),
-  (res) => res?.HostedZone,
+  Id => ({ Id }),
+  res => res?.HostedZone,
 );
 const getHostedZones = paginateBuilder<Route53>(paginateListHostedZones, 'HostedZones');
 const deleteHostedZone = crudBuilderFormat<Route53, 'deleteHostedZone', ChangeInfo | undefined>(
   'deleteHostedZone',
-  (Id) => ({ Id, }),
-  (res) => res?.ChangeInfo,
+  Id => ({ Id }),
+  res => res?.ChangeInfo,
 );
 const createResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'>(
   'changeResourceRecordSets',
   (HostedZoneId, record) => ({
     HostedZoneId,
     ChangeBatch: {
-      Changes: [{
-        Action: 'CREATE',
-        ResourceRecordSet: record,
-      }],
+      Changes: [
+        {
+          Action: 'CREATE',
+          ResourceRecordSet: record,
+        },
+      ],
     },
   }),
 );
@@ -46,10 +49,12 @@ const deleteResourceRecordSet = crudBuilder2<Route53, 'changeResourceRecordSets'
   (HostedZoneId, record) => ({
     HostedZoneId,
     ChangeBatch: {
-      Changes: [{
-        Action: 'DELETE',
-        ResourceRecordSet: record,
-      }],
+      Changes: [
+        {
+          Action: 'DELETE',
+          ResourceRecordSet: record,
+        },
+      ],
     },
   }),
 );
@@ -70,15 +75,10 @@ async function getRecords(client: Route53, hostedZoneId: string) {
   } while (res?.IsTruncated);
   return records;
 }
-const getRecord = async (
-  client: Route53,
-  hostedZoneId: string,
-  recordName: string,
-  recordType: string,
-) => {
+const getRecord = async (client: Route53, hostedZoneId: string, recordName: string, recordType: string) => {
   const records = await getRecords(client, hostedZoneId);
   return records.find(r => Object.is(r.Type, recordType) && Object.is(r.Name, recordName));
-}
+};
 
 class HostedZoneMapper extends MapperBase<HostedZone> {
   module: AwsRoute53HostedZoneModule;
@@ -96,11 +96,11 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
 
   cloud: Crud2<HostedZone> = new Crud2({
     create: async (hz: HostedZone[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of hz) {
         const createdHz = await createHostedZone(client.route53Client, e.domainName, client.region);
-        if (!createdHz?.Id) throw new Error('How this happen!?')
+        if (!createdHz?.Id) throw new Error('How this happen!?');
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await getHostedZone(client.route53Client, createdHz?.Id);
         if (!newObject) continue;
@@ -117,7 +117,7 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
         const rawHostedZone = await getHostedZone(client.route53Client, id);
         if (!rawHostedZone) return;
@@ -143,17 +143,23 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
         await this.module.hostedZone.db.update(newEntity, ctx);
         // Attach new default record sets (NS and SOA) and delete old ones from db
         const dbRecords: ResourceRecordSet[] = await this.module.resourceRecordSet.db.read(ctx);
-        const relevantDbRecords = dbRecords.filter(rrs => rrs.parentHostedZone.id === cloudRecord.id && ['NS', 'SOA'].includes(rrs.recordType));
+        const relevantDbRecords = dbRecords.filter(
+          rrs => rrs.parentHostedZone.id === cloudRecord.id && ['NS', 'SOA'].includes(rrs.recordType),
+        );
         await this.module.resourceRecordSet.db.delete(relevantDbRecords, ctx);
         const cloudRecords: ResourceRecordSet[] = await this.module.resourceRecordSet.cloud.read(ctx);
-        const relevantCloudRecords = cloudRecords.filter(rrs => rrs.parentHostedZone.hostedZoneId === newEntity.hostedZoneId && ['NS', 'SOA'].includes(rrs.recordType));
+        const relevantCloudRecords = cloudRecords.filter(
+          rrs =>
+            rrs.parentHostedZone.hostedZoneId === newEntity.hostedZoneId &&
+            ['NS', 'SOA'].includes(rrs.recordType),
+        );
         await this.module.resourceRecordSet.db.create(relevantCloudRecords, ctx);
         out.push(newEntity);
       }
       return out;
     },
     delete: async (hz: HostedZone[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of hz) {
         await deleteHostedZone(client.route53Client, e.hostedZoneId);
       }
@@ -172,20 +178,19 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
   entity = ResourceRecordSet;
   entityId = (e: ResourceRecordSet) => `${e.recordType}|${e.name}`;
   equals = (a: ResourceRecordSet, b: ResourceRecordSet) =>
-    Object.is(a.parentHostedZone?.hostedZoneId, b.parentHostedZone?.hostedZoneId)
-    && Object.is(a.recordType, b.recordType)
-    && Object.is(a.ttl, b.ttl)
-    && Object.is(a.record, b.record)
-    && Object.is(
-      a.aliasTarget?.loadBalancer?.loadBalancerArn,
-      b.aliasTarget?.loadBalancer?.loadBalancerArn)
-    && Object.is(a.aliasTarget?.evaluateTargetHealth, b.aliasTarget?.evaluateTargetHealth);
+    Object.is(a.parentHostedZone?.hostedZoneId, b.parentHostedZone?.hostedZoneId) &&
+    Object.is(a.recordType, b.recordType) &&
+    Object.is(a.ttl, b.ttl) &&
+    Object.is(a.record, b.record) &&
+    Object.is(a.aliasTarget?.loadBalancer?.loadBalancerArn, b.aliasTarget?.loadBalancer?.loadBalancerArn) &&
+    Object.is(a.aliasTarget?.evaluateTargetHealth, b.aliasTarget?.evaluateTargetHealth);
 
-  async resourceRecordSetMapper(rrs: AwsResourceRecordSet & { HostedZoneId: string, }, ctx: Context) {
+  async resourceRecordSetMapper(rrs: AwsResourceRecordSet & { HostedZoneId: string }, ctx: Context) {
     const out = new ResourceRecordSet();
     if (!(rrs.Name && rrs.Type)) return undefined;
-    out.parentHostedZone = await this.module.hostedZone.db.read(ctx, rrs.HostedZoneId) ??
-      await this.module.hostedZone.cloud.read(ctx, rrs.HostedZoneId);
+    out.parentHostedZone =
+      (await this.module.hostedZone.db.read(ctx, rrs.HostedZoneId)) ??
+      (await this.module.hostedZone.cloud.read(ctx, rrs.HostedZoneId));
     if (!out.parentHostedZone) throw new Error('Hosted zone need to be loaded.');
     out.name = rrs?.Name ?? undefined;
     out.recordType = rrs.Type as RecordType;
@@ -208,9 +213,10 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     if (at.DNSName.includes('.elb.')) {
       // TODO: improve implementation
       let loadBalancer;
-      const cleanAliasDns = at.DNSName[at.DNSName.length - 1] === '.' ?
-        at.DNSName.substring(0, at.DNSName.length - 1) :
-        at.DNSName;
+      const cleanAliasDns =
+        at.DNSName[at.DNSName.length - 1] === '.'
+          ? at.DNSName.substring(0, at.DNSName.length - 1)
+          : at.DNSName;
       const dbLoadBalancers = await awsElbModule.loadBalancer.db.read(ctx);
       loadBalancer = dbLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
       if (!loadBalancer) {
@@ -227,7 +233,12 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
   }
 
   resourceRecordSetName(rrs: ResourceRecordSet) {
-    const name = rrs.name && rrs.name[rrs.name.length - 1] ? (rrs.name[rrs.name.length - 1] === '.' ? rrs.name : `${rrs.name}.`) : '';
+    const name =
+      rrs.name && rrs.name[rrs.name.length - 1]
+        ? rrs.name[rrs.name.length - 1] === '.'
+          ? rrs.name
+          : `${rrs.name}.`
+        : '';
     const domainName = rrs.parentHostedZone.domainName;
     return `${name}${domainName}`;
   }
@@ -242,26 +253,28 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     update: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),
     delete: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.remove(ResourceRecordSet, es),
     read: async (ctx: Context, recordTypeAndName?: string) => {
-      const opts = recordTypeAndName ? {
-        where: {
-          recordType: recordTypeAndName.split('|')[0],
-          name: recordTypeAndName.split('|')[1],
-        }
-      } : {};
+      const opts = recordTypeAndName
+        ? {
+            where: {
+              recordType: recordTypeAndName.split('|')[0],
+              name: recordTypeAndName.split('|')[1],
+            },
+          }
+        : {};
       return await ctx.orm.find(ResourceRecordSet, opts);
     },
   });
 
   cloud: Crud2<ResourceRecordSet> = new Crud2({
     create: async (rrs: ResourceRecordSet[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of rrs) {
         const resourceRecordSet: AwsResourceRecordSet = {
           Name: e.name,
           Type: e.recordType,
           TTL: e.ttl,
-        }
+        };
         if (e.record) {
           resourceRecordSet.ResourceRecords = e.record.split('\n').map(r => ({ Value: r }));
         } else if (e.aliasTarget) {
@@ -271,7 +284,11 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
             DNSName: e.aliasTarget.loadBalancer?.dnsName,
           };
         }
-        await createResourceRecordSet(client.route53Client, e.parentHostedZone.hostedZoneId, resourceRecordSet);
+        await createResourceRecordSet(
+          client.route53Client,
+          e.parentHostedZone.hostedZoneId,
+          resourceRecordSet,
+        );
         // Re-get the inserted record to get all of the relevant records we care about
         const newResourceRecordSet = await getRecord(
           client.route53Client,
@@ -294,10 +311,10 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
-      const hostedZones = ctx.memo?.cloud?.HostedZone ?
-        Object.values(ctx.memo?.cloud?.HostedZone) :
-        await this.module.hostedZone.cloud.read(ctx);
+      const client = (await ctx.getAwsClient()) as AWS;
+      const hostedZones = ctx.memo?.cloud?.HostedZone
+        ? Object.values(ctx.memo?.cloud?.HostedZone)
+        : await this.module.hostedZone.cloud.read(ctx);
       const resourceRecordSet: any = [];
       for (const hz of hostedZones) {
         try {
@@ -310,7 +327,9 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
       }
       if (id) {
         const [recordType, recordName] = id.split('|');
-        const record = resourceRecordSet.find((rrs: any) => Object.is(rrs.Name, recordName) && Object.is(rrs.Type, recordType));
+        const record = resourceRecordSet.find(
+          (rrs: any) => Object.is(rrs.Name, recordName) && Object.is(rrs.Type, recordType),
+        );
         if (record) return record;
       } else {
         const out = [];
@@ -346,19 +365,29 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
       return out;
     },
     delete: async (rrs: ResourceRecordSet[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of rrs) {
         // AWS required to have at least one NS and one SOA record.
         // On a new hosted zone creation it creates them automatically if not defined
         // So we have to check if at least one of each in database before trying to delete.
         const dbHostedZone = await this.module.hostedZone.db.read(ctx, e.parentHostedZone.hostedZoneId);
         if (!!dbHostedZone && (Object.is(e.recordType, 'SOA') || Object.is(e.recordType, 'NS'))) {
-          const recordsSet: ResourceRecordSet[] | undefined = await this.module.resourceRecordSet.db.read(ctx);
+          const recordsSet: ResourceRecordSet[] | undefined = await this.module.resourceRecordSet.db.read(
+            ctx,
+          );
           let hasRecord;
-          if (Object.is(e.recordType, 'SOA')) hasRecord = recordsSet?.some(r => Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId)
-            && Object.is(r.recordType, 'SOA'));
-          if (Object.is(e.recordType, 'NS')) hasRecord = recordsSet?.some(r => Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId)
-            && Object.is(r.recordType, 'NS'));
+          if (Object.is(e.recordType, 'SOA'))
+            hasRecord = recordsSet?.some(
+              r =>
+                Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId) &&
+                Object.is(r.recordType, 'SOA'),
+            );
+          if (Object.is(e.recordType, 'NS'))
+            hasRecord = recordsSet?.some(
+              r =>
+                Object.is(r.parentHostedZone.hostedZoneId, e.parentHostedZone.hostedZoneId) &&
+                Object.is(r.recordType, 'NS'),
+            );
           // If theres no record we have to created it in database instead of delete it from cloud
           if (!hasRecord) {
             await this.module.resourceRecordSet.db.create(e, ctx);
@@ -372,7 +401,7 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
           Name: e.name,
           Type: e.recordType,
           TTL: e.ttl,
-        }
+        };
         if (e.record) {
           resourceRecordSet.ResourceRecords = e.record.split('\n').map(r => ({ Value: r }));
         } else if (e.aliasTarget) {
@@ -382,7 +411,11 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
             DNSName: e.aliasTarget.loadBalancer?.dnsName,
           };
         }
-        await deleteResourceRecordSet(client.route53Client, e.parentHostedZone.hostedZoneId, resourceRecordSet);
+        await deleteResourceRecordSet(
+          client.route53Client,
+          e.parentHostedZone.hostedZoneId,
+          resourceRecordSet,
+        );
       }
     },
   });

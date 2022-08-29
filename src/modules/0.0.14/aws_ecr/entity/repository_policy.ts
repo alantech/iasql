@@ -1,6 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToOne, } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToOne } from 'typeorm';
 
-import { Repository, } from '.'
+import { Repository } from '.';
 
 @Entity()
 export class RepositoryPolicy {

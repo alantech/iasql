@@ -1,68 +1,64 @@
 // TODO: It seems like a lot of this logic could be migrated into the iasql_platform module and make
 // sense there. Need to think a bit more on that, but module manipulation that way could allow for
 // meta operations within the module code itself, if desirable.
-import { exec as execNode, } from 'child_process'
-import { promisify, } from 'util'
-import pg from 'pg'
+import { exec as execNode } from 'child_process';
+import * as levenshtein from 'fastest-levenshtein';
+import pg from 'pg';
+import { parse, deparse } from 'pgsql-parser';
+import { createConnection } from 'typeorm';
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { snakeCase } from 'typeorm/util/StringUtils';
+import { promisify } from 'util';
+import { v4 as uuidv4 } from 'uuid';
+
+import config from '../config';
+import { throwError } from '../config/config';
+import { IasqlDatabase } from '../entity';
+import { modules as AllModules } from '../modules';
+import { Context, MapperInterface, ModuleInterface } from '../modules';
+import * as dbMan from './db-manager';
+import { findDiff } from './diff';
+import { DepError, lazyLoader } from './lazy-dep';
+import logger, { debugObj } from './logger';
+import { sortModules } from './mod-sort';
+import MetadataRepo from './repositories/metadata';
+import * as scheduler from './scheduler-api';
+import { TypeormWrapper } from './typeorm';
+
 const exec = promisify(execNode);
 
-import * as levenshtein from 'fastest-levenshtein'
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
-import { createConnection, } from 'typeorm'
-import { snakeCase, } from 'typeorm/util/StringUtils'
-import { v4 as uuidv4, } from 'uuid'
-import { parse, deparse, } from 'pgsql-parser'
-
-import { modules as AllModules, } from '../modules'
-import * as dbMan from './db-manager'
-import * as scheduler from './scheduler-api'
-import MetadataRepo from './repositories/metadata'
-import config from '../config'
-import { throwError, } from '../config/config'
-import logger, { debugObj } from './logger'
-import { Context, MapperInterface, ModuleInterface, } from '../modules'
-import { DepError, lazyLoader, } from './lazy-dep'
-import { IasqlDatabase, } from '../entity'
-import { TypeormWrapper, } from './typeorm'
-import { findDiff, } from './diff'
-import { sortModules, } from './mod-sort'
-
 // Crupde = CR-UP-DE, Create/Update/Delete
-type Crupde = { [key: string]: { id: string, description: string, }[], };
-export function recordCount(records: { [key: string]: any, }[]): [number, number, number] {
+type Crupde = { [key: string]: { id: string; description: string }[] };
+export function recordCount(records: { [key: string]: any }[]): [number, number, number] {
   const dbCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInDbOnly.length, 0);
   const cloudCount = records.reduce((cumu, r) => cumu + r.diff.entitiesInAwsOnly.length, 0);
   const bothCount = records.reduce((cumu, r) => cumu + r.diff.entitiesChanged.length, 0);
-  return [dbCount, cloudCount, bothCount,];
+  return [dbCount, cloudCount, bothCount];
 }
-const iasqlPlanV3 = (
-  toCreate: Crupde,
-  toUpdate: Crupde,
-  toReplace: Crupde,
-  toDelete: Crupde,
-) => JSON.stringify({
-  iasqlPlanVersion: 3,
-  rows: (() => {
-    const out: any[] = [];
-    Object.keys(toCreate).forEach(tbl => {
-      const recs = toCreate[tbl];
-      recs.forEach(rec => out.push({ action: 'create', tableName: snakeCase(tbl), ...rec, }));
-    });
-    Object.keys(toUpdate).forEach(tbl => {
-      const recs = toUpdate[tbl];
-      recs.forEach(rec => out.push({ action: 'update', tableName: snakeCase(tbl), ...rec, }));
-    });
-    Object.keys(toReplace).forEach(tbl => {
-      const recs = toReplace[tbl];
-      recs.forEach(rec => out.push({ action: 'replace', tableName: snakeCase(tbl), ...rec, }));
-    });
-    Object.keys(toDelete).forEach(tbl => {
-      const recs = toDelete[tbl];
-      recs.forEach(rec => out.push({ action: 'delete', tableName: snakeCase(tbl), ...rec, }));
-    });
-    return out;
-  })(),
-});
+const iasqlPlanV3 = (toCreate: Crupde, toUpdate: Crupde, toReplace: Crupde, toDelete: Crupde) =>
+  JSON.stringify({
+    iasqlPlanVersion: 3,
+    rows: (() => {
+      const out: any[] = [];
+      Object.keys(toCreate).forEach(tbl => {
+        const recs = toCreate[tbl];
+        recs.forEach(rec => out.push({ action: 'create', tableName: snakeCase(tbl), ...rec }));
+      });
+      Object.keys(toUpdate).forEach(tbl => {
+        const recs = toUpdate[tbl];
+        recs.forEach(rec => out.push({ action: 'update', tableName: snakeCase(tbl), ...rec }));
+      });
+      Object.keys(toReplace).forEach(tbl => {
+        const recs = toReplace[tbl];
+        recs.forEach(rec => out.push({ action: 'replace', tableName: snakeCase(tbl), ...rec }));
+      });
+      Object.keys(toDelete).forEach(tbl => {
+        const recs = toDelete[tbl];
+        recs.forEach(rec => out.push({ action: 'delete', tableName: snakeCase(tbl), ...rec }));
+      });
+      return out;
+    })(),
+  });
 
 export async function getDbRecCount(conn: TypeormWrapper): Promise<number> {
   // only looks at the public schema
@@ -84,14 +80,11 @@ export async function getOpCount(conn: TypeormWrapper): Promise<number> {
   return parseInt(res[0].count ?? '0', 10);
 }
 
-export async function connect(
-  dbAlias: string,
-  uid: string,
-  email: string,
-  dbId = dbMan.genDbId(dbAlias),
-) {
+export async function connect(dbAlias: string, uid: string, email: string, dbId = dbMan.genDbId(dbAlias)) {
   let conn1: any, conn2: any, dbUser: any;
-  let dbSaved, schedulerStarted, roleGranted = false;
+  let dbSaved,
+    schedulerStarted,
+    roleGranted = false;
   try {
     logger.info('Creating account for user...');
     const dbGen = dbMan.genUserAndPass();
@@ -123,11 +116,7 @@ export async function connect(
     roleGranted = true;
     const recCount = await getDbRecCount(conn2);
     const opCount = await getOpCount(conn2);
-    await MetadataRepo.updateDbCounts(
-      dbId,
-      recCount,
-      opCount,
-    );
+    await MetadataRepo.updateDbCounts(dbId, recCount, opCount);
     logger.info('Done!');
     // Return custom IasqlDatabase object since we need to return the password
     return {
@@ -180,7 +169,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
   if (db?.upgrading) throw new Error('Currently upgrading, cannot query at this time');
   const database = db.pgName;
   try {
-    connMain = await createConnection({ ...dbMan.baseConnConfig, database, name: pass, });
+    connMain = await createConnection({ ...dbMan.baseConnConfig, database, name: pass });
     // Apparently GRANT and REVOKE can run into concurrency issues in Postgres. Serializing it would
     // be best, but https://www.postgresql.org/message-id/3473.1393693757%40sss.pgh.pa.us says that
     // just retrying ought to work. Doing this in a simple do-while loop with a counter to abort if
@@ -221,7 +210,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
       if (byStatement) {
         out.push({
           statement: deparse(stmt),
-          queryRes: await connTemp.query(deparse(stmt))
+          queryRes: await connTemp.query(deparse(stmt)),
         });
       } else {
         out.push(await connTemp.query(deparse(stmt)));
@@ -237,28 +226,23 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
           t.queryRes.command !== 'SELECT' &&
           typeof t.queryRes.rowCount === 'number'
         ) {
-          return ({ statement: t.statement, affected_records: t.queryRes.rowCount, });
+          return { statement: t.statement, affected_records: t.queryRes.rowCount };
         } else if (typeof t.queryRes === 'string') {
-          return ({ statement: t.statement, result: t.queryRes, });
+          return { statement: t.statement, result: t.queryRes };
         } else if (!!t.queryRes.rows) {
           return { statement: t.statement, result: t.queryRes.rows };
         } else {
-          return ({ statement: t.statement, error: `unexpected result: ${t.queryRes}`, }); // TODO: Error this out
+          return { statement: t.statement, error: `unexpected result: ${t.queryRes}` }; // TODO: Error this out
         }
       } else {
-        if (
-          !!t.rows &&
-          t.rows.length === 0 &&
-          t.command !== 'SELECT' &&
-          typeof t.rowCount === 'number'
-        ) {
-          return ({ affected_records: t.rowCount, });
+        if (!!t.rows && t.rows.length === 0 && t.command !== 'SELECT' && typeof t.rowCount === 'number') {
+          return { affected_records: t.rowCount };
         } else if (typeof t === 'string') {
-          return ({ result: t, });
+          return { result: t };
         } else if (!!t.rows) {
           return t.rows;
         } else {
-          return ({ error: `unexpected result: ${t}`, }); // TODO: Error this out
+          return { error: `unexpected result: ${t}` }; // TODO: Error this out
         }
       }
     });
@@ -300,14 +284,14 @@ export async function dump(dbId: string, dataOnly: boolean) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
   if (dbMeta?.upgrading) throw new Error('Currently upgrading, cannot dump this database');
   const pgUrl = dbMan.ourPgUrl(dbId);
-  const excludedDataTables = '--exclude-table-data \'aws_account\' --exclude-table-data \'iasql_*\''
-  const { stdout, } = await exec(
-    `pg_dump ${dataOnly ?
-      `--data-only --no-privileges --column-inserts --rows-per-insert=50 --on-conflict-do-nothing ${excludedDataTables}`
-      :
-      ''
+  const excludedDataTables = "--exclude-table-data 'aws_account' --exclude-table-data 'iasql_*'";
+  const { stdout } = await exec(
+    `pg_dump ${
+      dataOnly
+        ? `--data-only --no-privileges --column-inserts --rows-per-insert=50 --on-conflict-do-nothing ${excludedDataTables}`
+        : ''
     } --inserts --exclude-schema=graphile_worker -x ${pgUrl}`,
-    { shell: '/bin/bash', }
+    { shell: '/bin/bash' },
   );
   return stdout;
 }
@@ -372,12 +356,12 @@ export async function dump(dbId: string, dataOnly: boolean) {
   }
 }*/
 
-function colToRow(cols: { [key: string]: any[], }): { [key: string]: any, }[] {
+function colToRow(cols: { [key: string]: any[] }): { [key: string]: any }[] {
   // Assumes equal length for all arrays
   const keys = Object.keys(cols);
-  const out: { [key: string]: any, }[] = [];
+  const out: { [key: string]: any }[] = [];
   for (let i = 0; i < cols[keys[0]].length; i++) {
-    const row: { [key: string]: any, } = {};
+    const row: { [key: string]: any } = {};
     for (const key of keys) {
       row[key] = cols[key][i];
     }
@@ -393,24 +377,31 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
   if (dbMeta?.upgrading) throw new Error('Cannot apply a change while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
-  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
-    const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
+    const iasqlModule =
+      Modules?.IasqlPlatform?.utils?.IasqlModule ??
+      Modules?.iasqlPlatform?.iasqlModule ??
+      throwError('Core IasqlModule not found');
     const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
-    const context: Context = { orm, memo, }; // Every module gets access to the DB
+    const context: Context = { orm, memo }; // Every module gets access to the DB
     for (const name of moduleNames) {
-      const mod = (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as ModuleInterface;
+      const mod = (Object.values(Modules) as ModuleInterface[]).find(
+        m => `${m.name}@${m.version}` === name,
+      ) as ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod?.provides?.context ?? {};
-      Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
+      Object.keys(moduleContext).forEach(k => (context[k] = moduleContext[k]));
     }
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
-    const moduleList = (Object.values(Modules) as ModuleInterface[])
-      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`));
+    const moduleList = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
+      moduleNames.includes(`${mod.name}@${mod.version}`),
+    );
     const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as ModuleInterface[])
       .map(mod => Object.values((mod as ModuleInterface).mappers))
@@ -433,9 +424,11 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
       memo.db = {}; // Flush the DB entities on the outer loop to restore the actual intended state
-      await lazyLoader(mappers.map(mapper => async () => {
-        await mapper.db.read(context);
-      }));
+      await lazyLoader(
+        mappers.map(mapper => async () => {
+          await mapper.db.read(context);
+        }),
+      );
       const comparators = mappers.map(mapper => mapper.equals);
       const idGens = mappers.map(mapper => mapper.entityId);
       let ranUpdate = false;
@@ -443,44 +436,45 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
         logger.info('Starting inner loop');
         ranUpdate = false;
         memo.cloud = {}; // Flush the Cloud entities on the inner loop to track changes to the state
-        await lazyLoader(mappers.map(mapper => async () => {
-          await mapper.cloud.read(context);
-        }));
+        await lazyLoader(
+          mappers.map(mapper => async () => {
+            await mapper.cloud.read(context);
+          }),
+        );
         const t3 = Date.now();
         logger.info(`Record acquisition time: ${t3 - t2}ms`);
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: tables.map(t => memo.db[t] ? Object.values(memo.db[t]) : []),
-          cloudEntity: tables.map(t => memo.cloud[t] ? Object.values(memo.cloud[t]) : []),
+          dbEntity: tables.map(t => (memo.db[t] ? Object.values(memo.db[t]) : [])),
+          cloudEntity: tables.map(t => (memo.cloud[t] ? Object.values(memo.cloud[t]) : [])),
           comparator: comparators,
           idGen: idGens,
         });
         const t4 = Date.now();
         logger.info(`AWS Mapping time: ${t4 - t3}ms`);
-        if (!records.length) { // Only possible on just-created databases
+        if (!records.length) {
+          // Only possible on just-created databases
           return JSON.stringify({
             iasqlPlanVersion: 3,
             rows: [],
           });
         }
-        const updatePlan = (
-          crupde: Crupde,
-          entityName: string,
-          mapper: MapperInterface<any>,
-          es: any[]
-        ) => {
+        const updatePlan = (crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) => {
           crupde[entityName] = crupde[entityName] ?? [];
           const rs = es.map((e: any) => ({
             id: e?.id?.toString() ?? '',
             description: mapper.entityId(e),
           }));
           rs.forEach(r => {
-            if (!crupde[entityName]
-              .some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description))
-            ) crupde[entityName].push(r);
+            if (
+              !crupde[entityName].some(
+                r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description),
+              )
+            )
+              crupde[entityName].push(r);
           });
-        }
+        };
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
           if (r.diff.entitiesInDbOnly.length > 0) {
@@ -505,12 +499,8 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
           }
         });
         if (dryRun) return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
-        const [nextDbCount, nextCloudCount, nextBothCount,] = recordCount(records);
-        if (
-          dbCount === nextDbCount &&
-          cloudCount === nextCloudCount &&
-          bothCount === nextBothCount
-        ) {
+        const [nextDbCount, nextCloudCount, nextBothCount] = recordCount(records);
+        if (dbCount === nextDbCount && cloudCount === nextCloudCount && bothCount === nextBothCount) {
           spinCount++;
         } else {
           dbCount = nextDbCount;
@@ -534,32 +524,36 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
             logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInDbOnly.length > 0) {
-              logger.info(`${name} has records to create`, { records: r.diff.entitiesInDbOnly, });
-              outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
-                const out = await r.mapper.cloud.create(e, context);
-                if (out) {
-                  const es = Array.isArray(out) ? out : [out];
-                  es.forEach(e2 => {
-                    // Mutate the original entity with the returned entity's properties so the actual
-                    // record created is what is compared the next loop through
-                    Object.keys(e2).forEach(k => e[k] = e2[k]);
-                  });
-                }
-              }));
+              logger.info(`${name} has records to create`, { records: r.diff.entitiesInDbOnly });
+              outArr.push(
+                r.diff.entitiesInDbOnly.map((e: any) => async () => {
+                  const out = await r.mapper.cloud.create(e, context);
+                  if (out) {
+                    const es = Array.isArray(out) ? out : [out];
+                    es.forEach(e2 => {
+                      // Mutate the original entity with the returned entity's properties so the actual
+                      // record created is what is compared the next loop through
+                      Object.keys(e2).forEach(k => (e[k] = e2[k]));
+                    });
+                  }
+                }),
+              );
             }
             if (r.diff.entitiesChanged.length > 0) {
-              logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged, });
-              outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
-                const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
-                if (out) {
-                  const es = Array.isArray(out) ? out : [out];
-                  es.forEach(e2 => {
-                    // Mutate the original entity with the returned entity's properties so the actual
-                    // record created is what is compared the next loop through
-                    Object.keys(e2).forEach(k => ec.db[k] = e2[k]);
-                  });
-                }
-              }));
+              logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+              outArr.push(
+                r.diff.entitiesChanged.map((ec: any) => async () => {
+                  const out = await r.mapper.cloud.update(ec.db, context); // Assuming SoT is the DB
+                  if (out) {
+                    const es = Array.isArray(out) ? out : [out];
+                    es.forEach(e2 => {
+                      // Mutate the original entity with the returned entity's properties so the actual
+                      // record created is what is compared the next loop through
+                      Object.keys(e2).forEach(k => (ec.db[k] = e2[k]));
+                    });
+                  }
+                }),
+              );
             }
             return outArr;
           })
@@ -571,10 +565,12 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
             logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInAwsOnly.length > 0) {
-              logger.info(`${name} has records to delete`, { records: r.diff.entitiesInAwsOnly, });
-              outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
-                await r.mapper.cloud.delete(e, context);
-              }));
+              logger.info(`${name} has records to delete`, { records: r.diff.entitiesInAwsOnly });
+              outArr.push(
+                r.diff.entitiesInAwsOnly.map((e: any) => async () => {
+                  await r.mapper.cloud.delete(e, context);
+                }),
+              );
             }
             return outArr;
           })
@@ -614,24 +610,31 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
   if (!force && dbMeta?.upgrading) throw new Error('Cannot sync with the cloud while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
-  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
     // Find all of the installed modules, and create the context object only for these
-    const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
+    const iasqlModule =
+      Modules?.IasqlPlatform?.utils?.IasqlModule ??
+      Modules?.iasqlPlatform?.iasqlModule ??
+      throwError('Core IasqlModule not found');
     const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
     const memo: any = {}; // TODO: Stronger typing here
-    const context: Context = { orm, memo, }; // Every module gets access to the DB
+    const context: Context = { orm, memo }; // Every module gets access to the DB
     for (const name of moduleNames) {
-      const mod = (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as ModuleInterface;
+      const mod = (Object.values(Modules) as ModuleInterface[]).find(
+        m => `${m.name}@${m.version}` === name,
+      ) as ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod?.provides?.context ?? {};
-      Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
+      Object.keys(moduleContext).forEach(k => (context[k] = moduleContext[k]));
     }
     // Get the mappers, regardless of source-of-truth
-    const moduleList = (Object.values(Modules) as ModuleInterface[])
-      .filter(mod => moduleNames.includes(`${mod.name}@${mod.version}`));
+    const moduleList = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
+      moduleNames.includes(`${mod.name}@${mod.version}`),
+    );
     const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as ModuleInterface[])
       .map(mod => Object.values((mod as ModuleInterface).mappers))
@@ -652,53 +655,56 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
       memo.cloud = {}; // Flush the cloud entities on the outer loop to restore the actual intended state
-      await lazyLoader(mappers.map(mapper => async () => {
-        await mapper.cloud.read(context);
-      }));
+      await lazyLoader(
+        mappers.map(mapper => async () => {
+          await mapper.cloud.read(context);
+        }),
+      );
       const comparators = mappers.map(mapper => mapper.equals);
       const idGens = mappers.map(mapper => mapper.entityId);
       let ranUpdate = false;
       do {
         ranUpdate = false;
         memo.db = {}; // Flush the DB entities on the inner loop to track changes to the state
-        await lazyLoader(mappers.map(mapper => async () => {
-          await mapper.db.read(context);
-        }));
+        await lazyLoader(
+          mappers.map(mapper => async () => {
+            await mapper.db.read(context);
+          }),
+        );
         const t3 = Date.now();
         logger.info(`Record acquisition time: ${t3 - t2}ms`);
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: tables.map(t => memo.db[t] ? Object.values(memo.db[t]) : []),
-          cloudEntity: tables.map(t => memo.cloud[t] ? Object.values(memo.cloud[t]) : []),
+          dbEntity: tables.map(t => (memo.db[t] ? Object.values(memo.db[t]) : [])),
+          cloudEntity: tables.map(t => (memo.cloud[t] ? Object.values(memo.cloud[t]) : [])),
           comparator: comparators,
           idGen: idGens,
         });
         const t4 = Date.now();
         logger.info(`AWS Mapping time: ${t4 - t3}ms`);
-        if (!records.length) { // Only possible on just-created databases
+        if (!records.length) {
+          // Only possible on just-created databases
           return JSON.stringify({
             iasqlPlanVersion: 3,
             rows: [],
           });
         }
-        const updatePlan = (
-          crupde: Crupde,
-          entityName: string,
-          mapper: MapperInterface<any>,
-          es: any[]
-        ) => {
+        const updatePlan = (crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) => {
           crupde[entityName] = crupde[entityName] ?? [];
           const rs = es.map((e: any) => ({
             id: e?.id?.toString() ?? '',
             description: mapper.entityId(e),
           }));
           rs.forEach(r => {
-            if (!crupde[entityName]
-              .some(r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description))
-            ) crupde[entityName].push(r);
+            if (
+              !crupde[entityName].some(
+                r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description),
+              )
+            )
+              crupde[entityName].push(r);
           });
-        }
+        };
         records.forEach(r => {
           r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
           if (r.diff.entitiesInDbOnly.length > 0) {
@@ -716,12 +722,8 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
           }
         });
         if (dryRun) return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
-        const [nextDbCount, nextCloudCount, nextBothCount,] = recordCount(records);
-        if (
-          dbCount === nextDbCount &&
-          cloudCount === nextCloudCount &&
-          bothCount === nextBothCount
-        ) {
+        const [nextDbCount, nextCloudCount, nextBothCount] = recordCount(records);
+        if (dbCount === nextDbCount && cloudCount === nextCloudCount && bothCount === nextBothCount) {
           spinCount++;
         } else {
           dbCount = nextDbCount;
@@ -745,33 +747,37 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
             logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInAwsOnly.length > 0) {
-              logger.info(`${name} has records to create`, { records: r.diff.entitiesInAwsOnly, });
-              outArr.push(r.diff.entitiesInAwsOnly.map((e: any) => async () => {
-                const out = await r.mapper.db.create(e, context);
-                if (out) {
-                  const es = Array.isArray(out) ? out : [out];
-                  es.forEach(e2 => {
-                    // Mutate the original entity with the returned entity's properties so the actual
-                    // record created is what is compared the next loop through
-                    Object.keys(e2).forEach(k => e[k] = e2[k]);
-                  });
-                }
-              }));
+              logger.info(`${name} has records to create`, { records: r.diff.entitiesInAwsOnly });
+              outArr.push(
+                r.diff.entitiesInAwsOnly.map((e: any) => async () => {
+                  const out = await r.mapper.db.create(e, context);
+                  if (out) {
+                    const es = Array.isArray(out) ? out : [out];
+                    es.forEach(e2 => {
+                      // Mutate the original entity with the returned entity's properties so the actual
+                      // record created is what is compared the next loop through
+                      Object.keys(e2).forEach(k => (e[k] = e2[k]));
+                    });
+                  }
+                }),
+              );
             }
             if (r.diff.entitiesChanged.length > 0) {
-              logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged, });
-              outArr.push(r.diff.entitiesChanged.map((ec: any) => async () => {
-                if (ec.db.id) ec.cloud.id = ec.db.id;
-                const out = await r.mapper.db.update(ec.cloud, context); // When `sync`ing we assume SoT is the Cloud
-                if (out) {
-                  const es = Array.isArray(out) ? out : [out];
-                  es.forEach(e2 => {
-                    // Mutate the original entity with the returned entity's properties so the actual
-                    // record created is what is compared the next loop through
-                    Object.keys(e2).forEach(k => ec.cloud[k] = e2[k]);
-                  });
-                }
-              }));
+              logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+              outArr.push(
+                r.diff.entitiesChanged.map((ec: any) => async () => {
+                  if (ec.db.id) ec.cloud.id = ec.db.id;
+                  const out = await r.mapper.db.update(ec.cloud, context); // When `sync`ing we assume SoT is the Cloud
+                  if (out) {
+                    const es = Array.isArray(out) ? out : [out];
+                    es.forEach(e2 => {
+                      // Mutate the original entity with the returned entity's properties so the actual
+                      // record created is what is compared the next loop through
+                      Object.keys(e2).forEach(k => (ec.cloud[k] = e2[k]));
+                    });
+                  }
+                }),
+              );
             }
             return outArr;
           })
@@ -783,10 +789,12 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
             logger.info(`Checking ${name}`);
             const outArr = [];
             if (r.diff.entitiesInDbOnly.length > 0) {
-              logger.info(`${name} has records to delete`, { records: r.diff.entitiesInDbOnly, });
-              outArr.push(r.diff.entitiesInDbOnly.map((e: any) => async () => {
-                await r.mapper.db.delete(e, context);
-              }));
+              logger.info(`${name} has records to delete`, { records: r.diff.entitiesInDbOnly });
+              outArr.push(
+                r.diff.entitiesInDbOnly.map((e: any) => async () => {
+                  await r.mapper.db.delete(e, context);
+                }),
+              );
             }
             return outArr;
           })
@@ -824,7 +832,8 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
   if (dbMeta?.upgrading) throw new Error('Cannot check modules while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
-  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   const allModules = Object.values(Modules)
     .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && !/iasql_.*/.test(m.name))
     .filter((m: any) => process.env.IASQL_ENV !== 'production' || !/aws_ecs_simplified.*/.test(m.name)) // Temporarily disable ecs_simplified in production
@@ -836,57 +845,83 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
   if (all) {
     return JSON.stringify(allModules);
   } else if (installed && dbId) {
-    const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
-    const iasqlTables = Modules?.IasqlPlatform?.utils?.IasqlTables ?? Modules?.iasqlPlatform?.iasqlTables ?? throwError('Core IasqlTables not found');
-    const entities: Function[] = [ iasqlModule, iasqlTables, ];
+    const iasqlModule =
+      Modules?.IasqlPlatform?.utils?.IasqlModule ??
+      Modules?.iasqlPlatform?.iasqlModule ??
+      throwError('Core IasqlModule not found');
+    const iasqlTables =
+      Modules?.IasqlPlatform?.utils?.IasqlTables ??
+      Modules?.iasqlPlatform?.iasqlTables ??
+      throwError('Core IasqlTables not found');
+    const entities: Function[] = [iasqlModule, iasqlTables];
     const orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
     const mods = await orm.find(iasqlModule);
-    const modsInstalled = mods.map((m: any) => (m.name));
-    return JSON.stringify(allModules.filter(m => modsInstalled.includes(`${m.moduleName}@${m.moduleVersion}`)));
+    const modsInstalled = mods.map((m: any) => m.name);
+    return JSON.stringify(
+      allModules.filter(m => modsInstalled.includes(`${m.moduleName}@${m.moduleVersion}`)),
+    );
   } else {
     throw new Error('Invalid request parameters');
   }
 }
 
-export async function install(moduleList: string[], dbId: string, dbUser: string, allModules = false, force = false, ormOpt?: TypeormWrapper) {
+export async function install(
+  moduleList: string[],
+  dbId: string,
+  dbUser: string,
+  allModules = false,
+  force = false,
+  ormOpt?: TypeormWrapper,
+) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
   if (!force && dbMeta?.upgrading) throw new Error('Cannot install modules while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
-  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   // Check to make sure that all specified modules actually exist
   if (allModules) {
-    const installedModules = JSON.parse(await modules(false, true, dbId))
-      .map((r: any) => r.moduleName);
+    const installedModules = JSON.parse(await modules(false, true, dbId)).map((r: any) => r.moduleName);
     moduleList = (Object.values(Modules) as ModuleInterface[])
       .filter((m: ModuleInterface) => !installedModules.includes(m.name))
-      .filter((m: ModuleInterface) => m.name && m.version && ![
-        'iasql_platform',
-        'iasql_functions',
-      ].includes(m.name)).map((m: ModuleInterface) => `${m.name}@${m.version}`);
+      .filter(
+        (m: ModuleInterface) =>
+          m.name && m.version && !['iasql_platform', 'iasql_functions'].includes(m.name),
+      )
+      .map((m: ModuleInterface) => `${m.name}@${m.version}`);
   }
-  const version = Modules?.IasqlPlatform?.version ?? Modules?.iasqlPlatform?.version ?? throwError('IasqlPlatform not found');
-  moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@${version}`);
-  const mods = moduleList.map((n: string) => (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as ModuleInterface[];
+  const version =
+    Modules?.IasqlPlatform?.version ??
+    Modules?.iasqlPlatform?.version ??
+    throwError('IasqlPlatform not found');
+  moduleList = moduleList.map((m: string) => (/@/.test(m) ? m : `${m}@${version}`));
+  const mods = moduleList.map((n: string) =>
+    (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
+  ) as ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {
     const modNames = (Object.values(Modules) as ModuleInterface[])
       .filter(m => m.hasOwnProperty('name') && m.hasOwnProperty('version'))
       .map(m => `${m.name}@${m.version}`);
-    const missingModules = moduleList
-      .filter((n: string) => !(Object.values(Modules) as ModuleInterface[])
-        .find(m => `${m.name}@${m.version}` === n));
+    const missingModules = moduleList.filter(
+      (n: string) => !(Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
+    );
     const missingSuggestions = [
       ...new Set(missingModules.map(m => levenshtein.closest(m, modNames))).values(),
     ];
-    throw new Error(`The following modules do not exist: ${
-      missingModules.join(', ')
-    }. Did you mean: ${missingSuggestions.join(', ')}`);
+    throw new Error(
+      `The following modules do not exist: ${missingModules.join(
+        ', ',
+      )}. Did you mean: ${missingSuggestions.join(', ')}`,
+    );
   }
   const orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already installed and prune them from the list
-  const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
+  const iasqlModule =
+    Modules?.IasqlPlatform?.utils?.IasqlModule ??
+    Modules?.iasqlPlatform?.iasqlModule ??
+    throwError('Core IasqlModule not found');
   const existingModules = (await orm.find(iasqlModule)).map((m: any) => m.name);
   for (let i = 0; i < mods.length; i++) {
     if (existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
@@ -897,32 +932,45 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   // Check to make sure that all dependent modules are in the list
   let missingDeps: string[] = [];
   do {
-    missingDeps = [...new Set(mods
-      .flatMap((m: ModuleInterface) => m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)))
-      .filter((m: any) => ![
-        `iasql_platform@${version}`,
-        `iasql_functions@${version}`,
-      ].includes(m) && m !== undefined))];
+    missingDeps = [
+      ...new Set(
+        mods
+          .flatMap((m: ModuleInterface) =>
+            m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)),
+          )
+          .filter(
+            (m: any) =>
+              ![`iasql_platform@${version}`, `iasql_functions@${version}`].includes(m) && m !== undefined,
+          ),
+      ),
+    ];
     if (missingDeps.length > 0) {
-      logger.warn('Automatically attaching missing dependencies to this install', { moduleList, missingDeps, });
-      const extraMods = missingDeps.map((n: string) => (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as ModuleInterface[];
+      logger.warn('Automatically attaching missing dependencies to this install', {
+        moduleList,
+        missingDeps,
+      });
+      const extraMods = missingDeps.map((n: string) =>
+        (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
+      ) as ModuleInterface[];
       mods.push(...extraMods);
       moduleList.push(...extraMods.map(mod => `${mod.name}@${mod.version}`));
       continue;
     }
-  } while (missingDeps.length > 0)
+  } while (missingDeps.length > 0);
   // See if we need to abort because now there's nothing to do
   if (mods.length === 0) {
-    logger.warn('All modules already installed', { moduleList, });
-    return "Done!";
+    logger.warn('All modules already installed', { moduleList });
+    return 'Done!';
   }
   // Scan the database and see if there are any collisions
-  const tables = (await queryRunner.query(`
+  const tables = (
+    await queryRunner.query(`
     SELECT table_name
     FROM information_schema.tables
     WHERE table_schema='public' AND table_type='BASE TABLE'
-  `)).map((t: any) => t.table_name);
-  const tableCollisions: { [key: string]: string[], } = {};
+  `)
+  ).map((t: any) => t.table_name);
+  const tableCollisions: { [key: string]: string[] } = {};
   let hasCollision = false;
   for (const md of mods) {
     tableCollisions[md.name] = [];
@@ -938,10 +986,9 @@ export async function install(moduleList: string[], dbId: string, dbUser: string
   if (hasCollision) {
     throw new Error(`Collision with existing tables detected.
 ${Object.keys(tableCollisions)
-        .filter(m => tableCollisions[m].length > 0)
-        .map(m => `Module ${m} collides with tables: ${tableCollisions[m].join(', ')}`)
-        .join('\n')
-      }`);
+  .filter(m => tableCollisions[m].length > 0)
+  .map(m => `Module ${m} collides with tables: ${tableCollisions[m].join(', ')}`)
+  .join('\n')}`);
   }
   // We're now good to go with installing the requested modules. To make sure they install correctly
   // we first need to sync the existing modules to make sure there are no records the newly-added
@@ -966,17 +1013,21 @@ ${Object.keys(tableCollisions)
       e.name = `${md.name}@${md.version}`;
       // Promise.all is okay here because it's guaranteed to not hit the cloud services
       e.dependencies = await Promise.all(
-        md.dependencies.map(async (dep) => await orm.findOne(iasqlModule, { name: dep, }))
+        md.dependencies.map(async dep => await orm.findOne(iasqlModule, { name: dep })),
       );
       await orm.save(iasqlModule, e);
 
-      const iasqlTables = Modules?.IasqlPlatform?.utils?.IasqlTables ?? Modules?.iasqlPlatform?.iasqlTables ?? throwError('Core IasqlModule not found');
-      const modTables = md?.provides?.tables?.map((t) => {
-        const mt = new iasqlTables();
-        mt.table = t;
-        mt.module = e;
-        return mt;
-      }) ?? [];
+      const iasqlTables =
+        Modules?.IasqlPlatform?.utils?.IasqlTables ??
+        Modules?.iasqlPlatform?.iasqlTables ??
+        throwError('Core IasqlModule not found');
+      const modTables =
+        md?.provides?.tables?.map(t => {
+          const mt = new iasqlTables();
+          mt.table = t;
+          mt.module = e;
+          return mt;
+        }) ?? [];
       await orm.save(iasqlTables, modTables);
       // For each table, we need to attach the audit log trigger
       for (const table of md?.provides?.tables ?? []) {
@@ -1005,39 +1056,43 @@ ${Object.keys(tableCollisions)
 
   // Find all of the installed modules, and create the context object only for these
   const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
-  const context: Context = { orm, memo: {}, }; // Every module gets access to the DB
+  const context: Context = { orm, memo: {} }; // Every module gets access to the DB
   for (const name of moduleNames) {
-    const md = (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === name) as ModuleInterface;
+    const md = (Object.values(Modules) as ModuleInterface[]).find(
+      m => `${m.name}@${m.version}` === name,
+    ) as ModuleInterface;
     if (!md) throw new Error(`This should be impossible. Cannot find module ${name}`);
     const moduleContext = md?.provides?.context ?? {};
-    Object.keys(moduleContext).forEach(k => context[k] = moduleContext[k]);
+    Object.keys(moduleContext).forEach(k => (context[k] = moduleContext[k]));
   }
 
   try {
     for (const md of rootToLeafOrder) {
       // Get the relevant mappers, which are the ones where the DB is the source-of-truth
       const mappers = Object.values(md.mappers);
-      await lazyLoader(mappers.map(mapper => async () => {
-        let e;
-        try {
-          e = await mapper.cloud.read(context);
-        } catch (err: any) {
-          logger.error(`Error reading from cloud entity ${mapper.entity.name}`, err);
-          throw err;
-        }
-        if (!e || (Array.isArray(e) && !e.length)) {
-          logger.warn('No cloud entity records');
-        } else {
+      await lazyLoader(
+        mappers.map(mapper => async () => {
+          let e;
           try {
-            await mapper.db.create(e, context);
+            e = await mapper.cloud.read(context);
           } catch (err: any) {
-            logger.error(`Error reading from cloud entity ${mapper.entity.name}`, { e, err, });
+            logger.error(`Error reading from cloud entity ${mapper.entity.name}`, err);
             throw err;
           }
-        }
-      }));
+          if (!e || (Array.isArray(e) && !e.length)) {
+            logger.warn('No cloud entity records');
+          } else {
+            try {
+              await mapper.db.create(e, context);
+            } catch (err: any) {
+              logger.error(`Error reading from cloud entity ${mapper.entity.name}`, { e, err });
+              throw err;
+            }
+          }
+        }),
+      );
     }
-    return "Done!";
+    return 'Done!';
   } catch (e: any) {
     throw e;
   }
@@ -1048,21 +1103,39 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   if (!force && dbMeta?.upgrading) throw new Error('Cannot uninstall modules while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
   const Modules = (AllModules as any)[versionString];
-  if (!Modules) throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   // Check to make sure that all specified modules actually exist
-  const version = Modules?.IasqlPlatform?.version ?? Modules?.iasqlPlatform?.version ?? throwError('Core IasqlPlatform not found');
-  moduleList = moduleList.map((m: string) => /@/.test(m) ? m : `${m}@${version}`);
-  const mods = moduleList.map((n: string) => (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)) as ModuleInterface[];
+  const version =
+    Modules?.IasqlPlatform?.version ??
+    Modules?.iasqlPlatform?.version ??
+    throwError('Core IasqlPlatform not found');
+  moduleList = moduleList.map((m: string) => (/@/.test(m) ? m : `${m}@${version}`));
+  const mods = moduleList.map((n: string) =>
+    (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
+  ) as ModuleInterface[];
   if (mods.some((m: any) => m === undefined)) {
-    throw new Error(`The following modules do not exist: ${moduleList.filter((n: string) => !(Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n)).join(', ')
-      }`);
+    throw new Error(
+      `The following modules do not exist: ${moduleList
+        .filter(
+          (n: string) =>
+            !(Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
+        )
+        .join(', ')}`,
+    );
   }
   orm = !orm ? await TypeormWrapper.createConn(dbId) : orm;
   const queryRunner = orm.createQueryRunner();
   await queryRunner.connect();
   // See what modules are already uninstalled and prune them from the list
-  const iasqlModule = Modules?.IasqlPlatform?.utils?.IasqlModule ?? Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
-  const iasqlTables = Modules?.IasqlPlatform?.utils?.IasqlTables ?? Modules?.iasqlPlatform?.iasqlTables ?? throwError('Core IasqlTables not found');
+  const iasqlModule =
+    Modules?.IasqlPlatform?.utils?.IasqlModule ??
+    Modules?.iasqlPlatform?.iasqlModule ??
+    throwError('Core IasqlModule not found');
+  const iasqlTables =
+    Modules?.IasqlPlatform?.utils?.IasqlTables ??
+    Modules?.iasqlPlatform?.iasqlTables ??
+    throwError('Core IasqlTables not found');
   const existingModules = (await orm.find(iasqlModule)).map((m: any) => m.name);
   for (let i = 0; i < mods.length; i++) {
     if (!existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
@@ -1072,10 +1145,12 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   }
   // See if we need to abort because now there's nothing to do
   if (mods.length === 0) {
-    logger.warn('All modules already uninstalled', { moduleList, });
-    return "Done!";
+    logger.warn('All modules already uninstalled', { moduleList });
+    return 'Done!';
   }
-  const remainingModules = existingModules.filter((m: string) => !mods.some(m2 => `${m2.name}@${m2.version}` === m));
+  const remainingModules = existingModules.filter(
+    (m: string) => !mods.some(m2 => `${m2.name}@${m2.version}` === m),
+  );
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(mods, remainingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
@@ -1096,13 +1171,14 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
       }
     }
     for (const md of rootToLeafOrder) {
-      const e = await orm.findOne(iasqlModule, { name: `${md.name}@${md.version}`, });
-      const mt = await orm.find(iasqlTables, {
-        where: {
-          module: e,
-        },
-        relations: ['module',]
-      }) ?? [];
+      const e = await orm.findOne(iasqlModule, { name: `${md.name}@${md.version}` });
+      const mt =
+        (await orm.find(iasqlTables, {
+          where: {
+            module: e,
+          },
+          relations: ['module'],
+        })) ?? [];
       await orm.remove(iasqlTables, mt);
       await orm.remove(iasqlModule, e);
     }
@@ -1113,7 +1189,7 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   } finally {
     await queryRunner.release();
   }
-  return "Done!";
+  return 'Done!';
 }
 
 // This function is always going to have special-cased logic for it, but hopefully it ends up in a
@@ -1141,15 +1217,19 @@ export async function upgrade(dbId: string, dbUser: string) {
           database: dbId,
         });
         // 1. Read the `iasql_module` table to get all currently installed modules.
-        const mods: string[] = (await conn.query(`
+        const mods: string[] = (
+          await conn.query(`
           SELECT name FROM iasql_module;
-        `)).map((r: any) => r.name.split('@')[0]);
+        `)
+        ).map((r: any) => r.name.split('@')[0]);
         // 2. Read the `aws_account` table to get the credentials (if any).
         let creds: any;
         if (mods.includes('aws_account')) {
-          creds = (await conn.query(`
+          creds = (
+            await conn.query(`
             SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;
-          `))[0];
+          `)
+          )[0];
         }
         // 3. Uninstall all of the non-`iasql_*` modules
         const nonIasqlMods = mods.filter(m => !/^iasql/.test(m));
@@ -1179,12 +1259,16 @@ export async function upgrade(dbId: string, dbUser: string) {
             INSERT INTO aws_account (access_key_id, secret_access_key, region)
             VALUES ('${creds.access_key_id}', '${creds.secret_access_key}', '${creds.region}');
           `);
-          await install(mods.filter((m: string) => ![
-            'aws_account', 'iasql_platform', 'iasql_functions'
-          ].includes(m)), dbId, dbUser, false, true);
+          await install(
+            mods.filter((m: string) => !['aws_account', 'iasql_platform', 'iasql_functions'].includes(m)),
+            dbId,
+            dbUser,
+            false,
+            true,
+          );
         }
       } catch (e) {
-        logger.error('Failed to upgrade', { e, });
+        logger.error('Failed to upgrade', { e });
       } finally {
         conn?.close();
         await MetadataRepo.dbUpgrading(db, false);

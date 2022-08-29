@@ -1,14 +1,6 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  Unique,
-} from 'typeorm'
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 import { Vpc } from '../../aws_vpc/entity';
 
 @Unique('UQ_groupNameByVpc', ['groupName', 'vpc'])
@@ -38,7 +30,7 @@ export class SecurityGroup {
 
   @ManyToOne(() => Vpc, { nullable: true, eager: true })
   @JoinColumn({
-    name: 'vpc_id'
+    name: 'vpc_id',
   })
   vpc?: Vpc;
 
