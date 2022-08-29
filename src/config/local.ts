@@ -6,7 +6,7 @@ const config: ConfigInterface = {
   },
   modules: {
     latestVersion: '0.0.18',
-    oldestVersion: '0.0.14',
+    oldestVersion: '0.0.15'
   },
   db: {
     host: 'postgresql',
