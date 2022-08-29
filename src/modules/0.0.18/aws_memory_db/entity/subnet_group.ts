@@ -1,10 +1,6 @@
-import {
-  Column,
-  Entity,
-  Generated,
-} from 'typeorm'
+import { Column, Entity, Generated } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id';
+import { cloudId } from '../../../../services/cloud-id';
 
 @Entity()
 export class SubnetGroup {
@@ -12,16 +8,16 @@ export class SubnetGroup {
   @Generated('increment')
   id: number;
 
-  @Column({ unique: true, primary: true, })
+  @Column({ unique: true, primary: true })
   @cloudId
   subnetGroupName: string;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   description?: string;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   arn?: string;
 
-  @Column("varchar", { array: true, nullable: true, })
+  @Column('varchar', { array: true, nullable: true })
   subnets?: string[];
 }

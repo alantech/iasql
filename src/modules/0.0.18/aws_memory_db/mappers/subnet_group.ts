@@ -5,23 +5,19 @@ import {
 } from '@aws-sdk/client-memorydb';
 
 import { AwsMemoryDBModule } from '..';
-import { SubnetGroup, } from '../entity'
-import { Context, Crud2, MapperBase, } from '../../../interfaces'
-import {
-  AWS,
-  crudBuilder2,
-  crudBuilderFormat,
-} from '../../../../services/aws_macros'
+import { AWS, crudBuilder2, crudBuilderFormat } from '../../../../services/aws_macros';
+import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { awsVpcModule } from '../../aws_vpc';
 import { Subnet, Vpc } from '../../aws_vpc/entity';
+import { SubnetGroup } from '../entity';
 
 export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
   module: AwsMemoryDBModule;
   entity = SubnetGroup;
   equals = (a: SubnetGroup, b: SubnetGroup) =>
-    Object.is(a.description, b.description)
-    && Object.is(a.subnets?.length, b.subnets?.length)
-    && (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false);
+    Object.is(a.description, b.description) &&
+    Object.is(a.subnets?.length, b.subnets?.length) &&
+    (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false);
 
   async subnetGroupMapper(cloudE: AWSSubnetGroup, ctx: Context) {
     const out = new SubnetGroup();
@@ -40,25 +36,22 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
   getSubnetGroupSubnets = crudBuilderFormat<MemoryDB, 'describeSubnetGroups', string[] | undefined>(
     'describeSubnetGroups',
     (SubnetGroupName: string) => ({ SubnetGroupName }),
-    (res) => res?.SubnetGroups?.pop()?.Subnets?.map(sn => sn.Identifier ?? '')
+    res => res?.SubnetGroups?.pop()?.Subnets?.map(sn => sn.Identifier ?? ''),
   );
 
   getSubnetGroup = crudBuilderFormat<MemoryDB, 'describeSubnetGroups', AWSSubnetGroup | undefined>(
     'describeSubnetGroups',
     (SubnetGroupName: string) => ({ SubnetGroupName }),
-    (res) => res?.SubnetGroups?.pop()
+    res => res?.SubnetGroups?.pop(),
   );
 
   getSubnetGroups = crudBuilderFormat<MemoryDB, 'describeSubnetGroups', AWSSubnetGroup[] | undefined>(
     'describeSubnetGroups',
     () => ({}),
-    (res) => res?.SubnetGroups
+    res => res?.SubnetGroups,
   );
 
-  createSubnetGroup = crudBuilder2<MemoryDB, 'createSubnetGroup'>(
-    'createSubnetGroup',
-    (input) => input
-  );
+  createSubnetGroup = crudBuilder2<MemoryDB, 'createSubnetGroup'>('createSubnetGroup', input => input);
 
   getDefaultSubnets = async (ctx: Context): Promise<Subnet[]> => {
     const defaultVpc: Vpc = (await awsVpcModule.vpc.db.read(ctx)).filter((vpc: Vpc) => vpc.isDefault).pop();
@@ -66,14 +59,11 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
     return subnets.filter(sn => sn.vpc.id === defaultVpc.id);
   };
 
-  updateSubnetGroup = crudBuilder2<MemoryDB, 'updateSubnetGroup'>(
-    'updateSubnetGroup',
-    (input) => input
-  );
+  updateSubnetGroup = crudBuilder2<MemoryDB, 'updateSubnetGroup'>('updateSubnetGroup', input => input);
 
   deleteSubnetGroup = crudBuilder2<MemoryDB, 'deleteSubnetGroup'>(
     'deleteSubnetGroup',
-    (SubnetGroupName: string) => ({SubnetGroupName})
+    (SubnetGroupName: string) => ({ SubnetGroupName }),
   );
 
   handleSubnetGroupCreateOrUpdate = async (
@@ -83,7 +73,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
     subnetGroupName: string,
     subnetIds: string[],
     description?: string,
-    retry=0
+    retry = 0,
   ) => {
     try {
       const input = {
@@ -106,17 +96,25 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
         const defaultSubnetsIds = defaultSubnets
           .filter(sn => allowedAz.includes(sn.availabilityZone.name))
           .map(sn => sn.subnetId ?? '');
-        await this.handleSubnetGroupCreateOrUpdate(action, client, ctx, subnetGroupName, defaultSubnetsIds, description, retry + 1)
+        await this.handleSubnetGroupCreateOrUpdate(
+          action,
+          client,
+          ctx,
+          subnetGroupName,
+          defaultSubnetsIds,
+          description,
+          retry + 1,
+        );
       } else {
         throw e;
       }
     }
-  }
+  };
 
   cloud: Crud2<SubnetGroup> = new Crud2({
     create: async (es: SubnetGroup[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
-      const out = []
+      const client = (await ctx.getAwsClient()) as AWS;
+      const out = [];
       for (const e of es) {
         // Create subnet group first
         let subnetIds: string[] = [];
@@ -126,7 +124,14 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
         } else {
           subnetIds = e.subnets;
         }
-        await this.handleSubnetGroupCreateOrUpdate('create', client.memoryDBClient, ctx, e.subnetGroupName, subnetIds, e.description ?? undefined);
+        await this.handleSubnetGroupCreateOrUpdate(
+          'create',
+          client.memoryDBClient,
+          ctx,
+          e.subnetGroupName,
+          subnetIds,
+          e.description ?? undefined,
+        );
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getSubnetGroup(client.memoryDBClient, e.subnetGroupName);
         if (!newObject) continue;
@@ -141,7 +146,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
         const rawObj = await this.getSubnetGroup(client.memoryDBClient, id);
         if (!rawObj) return;
@@ -157,13 +162,18 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
       }
     },
     update: async (es: SubnetGroup[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
         const cloudRecord: SubnetGroup = ctx?.memo?.cloud?.SubnetGroup?.[e.subnetGroupName ?? ''];
         let update = false;
-        if (!Object.is(cloudRecord.subnets?.length, e.subnets?.length)
-          && !(cloudRecord.subnets?.every((asn: string) => !!e.subnets?.find(bsn => Object.is(asn, bsn))) ?? false)) {
+        if (
+          !Object.is(cloudRecord.subnets?.length, e.subnets?.length) &&
+          !(
+            cloudRecord.subnets?.every((asn: string) => !!e.subnets?.find(bsn => Object.is(asn, bsn))) ??
+            false
+          )
+        ) {
           // Subnet group needs to be updated
           let subnetIds: string[] = [];
           if (!e.subnets?.length) {
@@ -172,18 +182,29 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
           } else {
             subnetIds = e.subnets;
           }
-          await this.handleSubnetGroupCreateOrUpdate('update', client.memoryDBClient, ctx, e.subnetGroupName, subnetIds, e.description);
+          await this.handleSubnetGroupCreateOrUpdate(
+            'update',
+            client.memoryDBClient,
+            ctx,
+            e.subnetGroupName,
+            subnetIds,
+            e.description,
+          );
           update = true;
         }
         if (!Object.is(cloudRecord.description, e.description)) {
-          await this.handleSubnetGroupCreateOrUpdate('update', client.memoryDBClient, ctx, e.subnetGroupName, e.subnets ?? [], e.description);
+          await this.handleSubnetGroupCreateOrUpdate(
+            'update',
+            client.memoryDBClient,
+            ctx,
+            e.subnetGroupName,
+            e.subnets ?? [],
+            e.description,
+          );
           update = true;
         }
         if (update) {
-          const rawObj = await this.getSubnetGroup(
-            client.memoryDBClient,
-            e.subnetGroupName ?? ''
-          );
+          const rawObj = await this.getSubnetGroup(client.memoryDBClient, e.subnetGroupName ?? '');
           if (!rawObj) continue;
           const newObj = await this.subnetGroupMapper(rawObj, ctx);
           if (!newObj) continue;
@@ -200,7 +221,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
       return out;
     },
     delete: async (es: SubnetGroup[], ctx: Context) => {
-      const client = await ctx.getAwsClient() as AWS;
+      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         await this.deleteSubnetGroup(client.memoryDBClient, e.subnetGroupName ?? '');
       }

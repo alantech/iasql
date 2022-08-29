@@ -6,9 +6,9 @@ import {
   ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
-} from 'typeorm'
+} from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { SubnetGroup } from './subnet_group';
 
@@ -29,14 +29,14 @@ export class MemoryDBCluster {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true, })
+  @Column({ unique: true })
   @cloudId
   clusterName: string;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   description?: string;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   address?: string;
 
   @Column({ type: 'int', default: 6379 })
@@ -50,7 +50,7 @@ export class MemoryDBCluster {
   })
   nodeType: NodeTypeEnum;
 
-  @ManyToMany(() => SecurityGroup, { eager: true, })
+  @ManyToMany(() => SecurityGroup, { eager: true })
   @JoinTable({
     name: 'memory_db_cluster_security_groups',
   })
@@ -65,11 +65,11 @@ export class MemoryDBCluster {
   })
   subnetGroup: SubnetGroup;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   arn?: string;
 
   // todo: enum?
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   status?: string;
 
   @Column({

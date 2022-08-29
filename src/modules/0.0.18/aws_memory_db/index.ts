@@ -1,5 +1,5 @@
-import { ModuleBase, } from '../../interfaces'
-import { MemoryDBClusterMapper, SubnetGroupMapper, } from './mappers'
+import { ModuleBase } from '../../interfaces';
+import { MemoryDBClusterMapper, SubnetGroupMapper } from './mappers';
 
 export class AwsMemoryDBModule extends ModuleBase {
   memoryDBCluster: MemoryDBClusterMapper;
