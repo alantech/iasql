@@ -9,6 +9,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { awsMemoryDBModule, AwsMemoryDBModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../../services/aws_macros';
+import logger from '../../../../services/logger';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { SecurityGroup } from '../../aws_security_group/entity';
@@ -46,8 +47,11 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
           (await awsSecurityGroupModule.securityGroup.db.read(ctx, sgm.SecurityGroupId)) ??
           (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sgm.SecurityGroupId));
         if (sg) securityGroups.push(sg);
-      } catch (_) {
+      } catch (e: any) {
         /*Ignore misconfigured security groups*/
+        logger.warn(
+          `Error retrieving security group ${sgm?.SecurityGroupId} mapping memory db cluster: ${e.message}`,
+        );
       }
     }
     out.securityGroups = securityGroups;
@@ -171,8 +175,9 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
       if (
         !Object.is(prev?.port, next?.port) ||
         !Object.is(prev?.subnetGroup?.subnetGroupName, next?.subnetGroup?.subnetGroupName)
-      )
+      ) {
         return 'replace';
+      }
       return 'update';
     },
     update: async (es: MemoryDBCluster[], ctx: Context) => {
