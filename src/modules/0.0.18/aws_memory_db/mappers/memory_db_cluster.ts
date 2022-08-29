@@ -99,7 +99,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
       {
         client,
         // all in seconds
-        maxWaitTime: 900,
+        maxWaitTime: 1200,
         minDelay: 1,
         maxDelay: 4,
       },
