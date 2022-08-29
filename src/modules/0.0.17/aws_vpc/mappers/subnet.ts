@@ -37,7 +37,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
   getSubnet = crudBuilderFormat<EC2, 'describeSubnets', AwsSubnet | undefined>(
     'describeSubnets',
     id => ({ SubnetIds: [id] }),
-    res => res?.Subnets?.[0]
+    res => res?.Subnets?.[0],
   );
   getSubnets = paginateBuilder<EC2>(paginateDescribeSubnets, 'Subnets');
   deleteSubnet = crudBuilder2<EC2, 'deleteSubnet'>('deleteSubnet', input => input);

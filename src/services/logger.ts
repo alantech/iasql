@@ -119,7 +119,7 @@ export function logErrSentry(e: any, uid?: string, email?: string, dbAlias?: str
           dbAlias,
           metadata,
         },
-      }
+      },
     )}`;
   }
   singleton.error(message, e instanceof DepError ? e.metadata : err);

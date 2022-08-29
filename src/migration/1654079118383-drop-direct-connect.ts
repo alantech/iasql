@@ -9,7 +9,7 @@ export class dropDirectConnect1654079118383 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "iasql_database" ADD "direct_connect" boolean NOT NULL DEFAULT false`
+      `ALTER TABLE "iasql_database" ADD "direct_connect" boolean NOT NULL DEFAULT false`,
     );
   }
 }

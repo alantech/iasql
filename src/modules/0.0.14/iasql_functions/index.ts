@@ -13,5 +13,5 @@ export const IasqlFunctions: Module2 = new Module2(
     },
     mappers: {},
   },
-  __dirname
+  __dirname,
 );

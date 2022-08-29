@@ -40,7 +40,7 @@ class SecretMapper extends MapperBase<Secret> {
   createSecret = crudBuilderFormat<SecretsManager, 'createSecret', CreateSecretCommandOutput>(
     'createSecret',
     input => input,
-    res => res!
+    res => res!,
   );
 
   async updateSecret(client: SecretsManager, input: UpdateSecretCommandInput) {

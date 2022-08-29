@@ -29,7 +29,7 @@ export class ElasticIpMapper extends MapperBase<ElasticIp> {
   getElasticIp = crudBuilderFormat<EC2, 'describeAddresses', Address | undefined>(
     'describeAddresses',
     allocationId => ({ AllocationIds: [allocationId] }),
-    res => res?.Addresses?.pop()
+    res => res?.Addresses?.pop(),
   );
   getAllIps = crudBuilder2<EC2, 'describeAddresses'>('describeAddresses', () => ({}));
   getElasticIps = async (client: EC2) =>

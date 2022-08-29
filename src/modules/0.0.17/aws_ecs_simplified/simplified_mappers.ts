@@ -121,7 +121,7 @@ const simplifiedMappers = {
     td: TaskDefinition,
     lg: LogGroup,
     imageTag?: string,
-    imageDigest?: string
+    imageDigest?: string,
   ) => {
     const out = new ContainerDefinition();
     out.name = generateResourceName(prefix, appName, 'ContainerDefinition');
@@ -144,7 +144,7 @@ const simplifiedMappers = {
     cl: Cluster,
     td: TaskDefinition,
     tg: TargetGroup,
-    sg: SecurityGroup
+    sg: SecurityGroup,
   ) => {
     const out = new Service();
     out.name = generateResourceName(prefix, appName, 'Service');

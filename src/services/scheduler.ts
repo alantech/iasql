@@ -31,10 +31,10 @@ export async function start(dbId: string, dbUser: string) {
   // https://aws.amazon.com/blogs/database/migrating-oracle-autonomous-transactions-to-postgresql/
   await conn.query(`CREATE EXTENSION IF NOT EXISTS dblink;`);
   await conn.query(
-    `CREATE SERVER IF NOT EXISTS loopback_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname '${dbId}', port '${config.db.port}');`
+    `CREATE SERVER IF NOT EXISTS loopback_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname '${dbId}', port '${config.db.port}');`,
   );
   await conn.query(
-    `CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.db.user}', password '${config.db.password}')`
+    `CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.db.user}', password '${config.db.password}')`,
   );
   const runner = await run({
     pgPool: conn.getMasterConnection(),
@@ -137,7 +137,7 @@ export async function start(dbId: string, dbUser: string) {
                   output,
                   error,
                 },
-                uid
+                uid,
               );
           } catch (e: any) {
             logger.error('could not log op event', e);
@@ -157,7 +157,7 @@ export async function stop(dbId: string) {
     } catch (e) {
       logger.warn(
         `Graphile workers for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`,
-        { e }
+        { e },
       );
     }
     await conn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
@@ -188,7 +188,7 @@ export async function init() {
         const versionString = await TypeormWrapper.getVersionString(db.pgName);
         const Modules = (modules as any)[versionString];
         return !!Modules ? db : undefined;
-      })
+      }),
     )
   ).filter((db: IasqlDatabase | undefined) => db !== undefined) as IasqlDatabase[]; // Typescript should know better
   const inits = await Promise.allSettled(dbs.map(db => start(db.pgName, db.pgUser)));

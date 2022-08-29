@@ -15,7 +15,7 @@ if (moduleName !== 'iasql_platform') {
 }
 
 const entities = sortedDeps.map(
-  d => `${__dirname}/../modules/${moduleVersion}/${d.name}/entity/*.ts`
+  d => `${__dirname}/../modules/${moduleVersion}/${d.name}/entity/*.ts`,
 ) as any[];
 
 (async () => {

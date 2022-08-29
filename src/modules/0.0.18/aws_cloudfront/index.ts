@@ -69,14 +69,14 @@ class DistributionMapper extends MapperBase<Distribution> {
 
   deleteDistribution = crudBuilder2<CloudFront, 'deleteDistribution'>(
     'deleteDistribution',
-    (Id, IfMatch) => ({ Id, IfMatch })
+    (Id, IfMatch) => ({ Id, IfMatch }),
   );
 
   async updateDistributionAndWait(
     client: CloudFront,
     distributionId: string,
     req: DistributionConfig,
-    etag: string
+    etag: string,
   ) {
     const res = await this.updateDistribution(client, {
       Id: distributionId,
@@ -165,7 +165,7 @@ class DistributionMapper extends MapperBase<Distribution> {
 
     if (distribution.Distribution?.DistributionConfig?.DefaultCacheBehavior) {
       out.defaultCacheBehavior = this.transformDefaultCacheBehavior(
-        distribution.Distribution.DistributionConfig.DefaultCacheBehavior
+        distribution.Distribution.DistributionConfig.DefaultCacheBehavior,
       )!;
     }
     if (distribution.Distribution?.DistributionConfig?.Origins?.Items) {
@@ -201,7 +201,7 @@ class DistributionMapper extends MapperBase<Distribution> {
               minDelay: 1,
               maxDelay: 4,
             } as WaiterOptions<CloudFront>,
-            { Id: res.Distribution?.Id }
+            { Id: res.Distribution?.Id },
           );
 
           if (res && res.Distribution) {
@@ -212,12 +212,12 @@ class DistributionMapper extends MapperBase<Distribution> {
             // overwrite json fields as they can change
             if (res.Distribution?.DistributionConfig?.DefaultCacheBehavior) {
               newDistribution.defaultCacheBehavior = this.transformDefaultCacheBehavior(
-                res.Distribution.DistributionConfig.DefaultCacheBehavior
+                res.Distribution.DistributionConfig.DefaultCacheBehavior,
               )!;
             }
             if (res.Distribution?.DistributionConfig?.Origins?.Items) {
               newDistribution.origins = this.transformOrigins(
-                res.Distribution.DistributionConfig.Origins.Items
+                res.Distribution.DistributionConfig.Origins.Items,
               )!;
             }
             await this.module.distribution.db.update(newDistribution, ctx);
@@ -264,7 +264,7 @@ class DistributionMapper extends MapperBase<Distribution> {
               client.cloudfrontClient,
               e.distributionId!,
               req,
-              e.eTag
+              e.eTag,
             );
             if (res && res.Distribution) {
               const newDistribution = this.distributionMapper(res);
@@ -274,12 +274,12 @@ class DistributionMapper extends MapperBase<Distribution> {
               // overwrite json fields as they can change
               if (res.Distribution?.DistributionConfig?.DefaultCacheBehavior) {
                 newDistribution.defaultCacheBehavior = this.transformDefaultCacheBehavior(
-                  res.Distribution.DistributionConfig.DefaultCacheBehavior
+                  res.Distribution.DistributionConfig.DefaultCacheBehavior,
                 )!;
               }
               if (res.Distribution?.DistributionConfig?.Origins?.Items) {
                 newDistribution.origins = this.transformOrigins(
-                  res.Distribution.DistributionConfig.Origins.Items
+                  res.Distribution.DistributionConfig.Origins.Items,
                 )!;
               }
 
@@ -298,7 +298,7 @@ class DistributionMapper extends MapperBase<Distribution> {
         // retrieve current distribution config
         const distributionConfig = await this.getDistributionConfig(
           client.cloudfrontClient,
-          e.distributionId
+          e.distributionId,
         );
         if (!distributionConfig) throw new Error('Cannot update a distribution without config');
 
@@ -311,7 +311,7 @@ class DistributionMapper extends MapperBase<Distribution> {
             client.cloudfrontClient,
             e.distributionId!,
             req,
-            e.eTag
+            e.eTag,
           );
           if (res && res.Distribution) {
             const newDistribution = this.distributionMapper(res);

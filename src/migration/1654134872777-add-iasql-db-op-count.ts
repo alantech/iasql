@@ -5,7 +5,7 @@ export class addIasqlDbOpCount1654134872777 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "iasql_database" ADD "operation_count" integer NOT NULL DEFAULT '0'`
+      `ALTER TABLE "iasql_database" ADD "operation_count" integer NOT NULL DEFAULT '0'`,
     );
   }
 

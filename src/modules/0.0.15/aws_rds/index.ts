@@ -27,7 +27,7 @@ interface DBParameterGroupWParameters extends DBParameterGroup {
 const getDBInstance = crudBuilderFormat<AWSRDS, 'describeDBInstances', DBInstance | undefined>(
   'describeDBInstances',
   DBInstanceIdentifier => ({ DBInstanceIdentifier }),
-  res => (res?.DBInstances ?? [])[0]
+  res => (res?.DBInstances ?? [])[0],
 );
 const getAllDBInstances = paginateBuilder<AWSRDS>(paginateDescribeDBInstances, 'DBInstances');
 const getDBInstances = async (client: AWSRDS) =>
@@ -39,7 +39,7 @@ const createDBParameterGroup = crudBuilderFormat<
 >(
   'createDBParameterGroup',
   input => input,
-  res => res?.DBParameterGroup
+  res => res?.DBParameterGroup,
 );
 const getSimpleDBParameterGroup = crudBuilderFormat<
   AWSRDS,
@@ -48,14 +48,14 @@ const getSimpleDBParameterGroup = crudBuilderFormat<
 >(
   'describeDBParameterGroups',
   DBParameterGroupName => ({ DBParameterGroupName }),
-  res => (res?.DBParameterGroups ?? []).pop()
+  res => (res?.DBParameterGroups ?? []).pop(),
 );
 const getDBParameterGroupParameters = paginateBuilder<AWSRDS>(
   paginateDescribeDBParameters,
   'Parameters',
   undefined,
   undefined,
-  DBParameterGroupName => ({ DBParameterGroupName })
+  DBParameterGroupName => ({ DBParameterGroupName }),
 );
 const getDBParameterGroup = async (client: AWSRDS, DBParameterGroupName: string) => {
   const simpleParameterGroup = await getSimpleDBParameterGroup(client, DBParameterGroupName);
@@ -64,23 +64,23 @@ const getDBParameterGroup = async (client: AWSRDS, DBParameterGroupName: string)
 };
 const getSimpleDBParameterGroups = paginateBuilder<AWSRDS>(
   paginateDescribeDBParameterGroups,
-  'DBParameterGroups'
+  'DBParameterGroups',
 );
 const getDBParameterGroups = (client: AWSRDS) =>
   mapLin(getSimpleDBParameterGroups(client), async (simpleParameterGroup: DBParameterGroup) => {
     const Parameters = await getDBParameterGroupParameters(
       client,
-      simpleParameterGroup.DBParameterGroupName ?? ''
+      simpleParameterGroup.DBParameterGroupName ?? '',
     );
     return { ...simpleParameterGroup, Parameters };
   });
 const modifyParameter = crudBuilder2<AWSRDS, 'modifyDBParameterGroup'>(
   'modifyDBParameterGroup',
-  (DBParameterGroupName, parameter) => ({ DBParameterGroupName, Parameters: [parameter] })
+  (DBParameterGroupName, parameter) => ({ DBParameterGroupName, Parameters: [parameter] }),
 );
 const deleteDBParameterGroup = crudBuilder2<AWSRDS, 'deleteDBParameterGroup'>(
   'deleteDBParameterGroup',
-  DBParameterGroupName => ({ DBParameterGroupName })
+  DBParameterGroupName => ({ DBParameterGroupName }),
 );
 
 // TODO: Make a waiter macro
@@ -111,7 +111,7 @@ async function createDBInstance(client: AWSRDS, instanceParams: CreateDBInstance
         if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
         throw e;
       }
-    }
+    },
   );
   return newDBInstance;
 }
@@ -141,7 +141,7 @@ async function updateDBInstance(client: AWSRDS, input: ModifyDBInstanceCommandIn
         if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
         throw e;
       }
-    }
+    },
   );
   await createWaiter<AWSRDS, DescribeDBInstancesCommandInput>(
     {
@@ -165,7 +165,7 @@ async function updateDBInstance(client: AWSRDS, input: ModifyDBInstanceCommandIn
         if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
         throw e;
       }
-    }
+    },
   );
   return updatedDBInstance;
 }
@@ -189,7 +189,7 @@ async function deleteDBInstance(client: AWSRDS, deleteInput: DeleteDBInstanceMes
         if (dbInstance.DBInstanceStatus === 'deleting') return { state: WaiterState.RETRY };
       }
       return { state: WaiterState.SUCCESS };
-    }
+    },
   );
 }
 
@@ -202,7 +202,7 @@ export const AwsRdsModule: Module2 = new Module2(
         out.allocatedStorage = rds?.AllocatedStorage;
         out.availabilityZone = await AwsVpcModule.mappers.availabilityZone.db.read(
           ctx,
-          rds?.AvailabilityZone
+          rds?.AvailabilityZone,
         );
         out.dbInstanceClass = rds?.DBInstanceClass;
         out.dbInstanceIdentifier = rds?.DBInstanceIdentifier;
@@ -212,7 +212,7 @@ export const AwsRdsModule: Module2 = new Module2(
         out.engine = `${rds?.Engine}:${rds?.EngineVersion}`;
         out.masterUsername = rds?.MasterUsername;
         const vpcSecurityGroupIds = rds?.VpcSecurityGroups?.filter(
-          (vpcsg: any) => !!vpcsg?.VpcSecurityGroupId
+          (vpcsg: any) => !!vpcsg?.VpcSecurityGroupId,
         ).map((vpcsg: any) => vpcsg?.VpcSecurityGroupId);
         out.vpcSecurityGroups = [];
         for (const sgId of vpcSecurityGroupIds) {
@@ -278,7 +278,7 @@ export const AwsRdsModule: Module2 = new Module2(
           Object.is(a.masterUsername, b.masterUsername) &&
           Object.is(a.vpcSecurityGroups.length, b.vpcSecurityGroups.length) &&
           (a.vpcSecurityGroups?.every(
-            asg => !!b.vpcSecurityGroups.find(bsg => Object.is(asg.groupId, bsg.groupId))
+            asg => !!b.vpcSecurityGroups.find(bsg => Object.is(asg.groupId, bsg.groupId)),
           ) ??
             false) &&
           Object.is(a.allocatedStorage, b.allocatedStorage) &&
@@ -324,7 +324,7 @@ export const AwsRdsModule: Module2 = new Module2(
               if (!(await AwsRdsModule.mappers.parameterGroup.db.read(ctx, parameterGroupName))) {
                 const cloudParameterGroup = await AwsRdsModule.mappers.parameterGroup.cloud.read(
                   ctx,
-                  parameterGroupName
+                  parameterGroupName,
                 );
                 await AwsRdsModule.mappers.parameterGroup.db.create(cloudParameterGroup, ctx);
               }
@@ -373,7 +373,7 @@ export const AwsRdsModule: Module2 = new Module2(
                   Object.is(e.vpcSecurityGroups.length, cloudRecord.vpcSecurityGroups.length) &&
                   (e.vpcSecurityGroups?.every(
                     esg =>
-                      !!cloudRecord.vpcSecurityGroups.find((csg: any) => Object.is(esg.groupId, csg.groupId))
+                      !!cloudRecord.vpcSecurityGroups.find((csg: any) => Object.is(esg.groupId, csg.groupId)),
                   ) ??
                     false)
                 )
@@ -448,7 +448,7 @@ export const AwsRdsModule: Module2 = new Module2(
               // Re-get the inserted record to get all of the relevant records we care about
               const newObject = await getDBParameterGroup(
                 client.rdsClient,
-                result?.DBParameterGroupName ?? ''
+                result?.DBParameterGroupName ?? '',
               );
               // We map this into the same kind of entity as `obj`
               const newEntity = AwsRdsModule.utils.parameterGroupMapper(newObject, ctx);
@@ -481,7 +481,7 @@ export const AwsRdsModule: Module2 = new Module2(
               let updatedRecord = { ...cloudRecord };
               const parametersNotEqual = AwsRdsModule.utils.getParametersNotEqual(
                 e.parameters,
-                cloudRecord.parameters
+                cloudRecord.parameters,
               );
               let anyUpdate = false;
               for (const p of parametersNotEqual ?? []) {
@@ -520,5 +520,5 @@ export const AwsRdsModule: Module2 = new Module2(
       }),
     },
   },
-  __dirname
+  __dirname,
 );

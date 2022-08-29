@@ -15,7 +15,7 @@ class LogGroupMapper extends MapperBase<LogGroup> {
   createLogGroup = crudBuilderFormat<CloudWatchLogs, 'createLogGroup', undefined>(
     'createLogGroup',
     logGroupName => ({ logGroupName }),
-    _lg => undefined
+    _lg => undefined,
   );
   getLogGroups = paginateBuilder<CloudWatchLogs>(paginateDescribeLogGroups, 'logGroups');
   async getLogGroup(client: CloudWatchLogs, groupName: string) {
@@ -24,7 +24,7 @@ class LogGroupMapper extends MapperBase<LogGroup> {
   deleteLogGroup = crudBuilderFormat<CloudWatchLogs, 'deleteLogGroup', undefined>(
     'deleteLogGroup',
     logGroupName => ({ logGroupName }),
-    _lg => undefined
+    _lg => undefined,
   );
   logGroupMapper(lg: any) {
     const out = new LogGroup();

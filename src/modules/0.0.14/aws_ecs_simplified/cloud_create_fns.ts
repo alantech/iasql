@@ -43,7 +43,7 @@ const cloudCreateFns = {
             Object.is(sgr.GroupId, e.securityGroup.groupId) &&
             Object.is(sgr.CidrIpv4, e.cidrIpv4) &&
             Object.is(sgr.FromPort, e.fromPort) &&
-            Object.is(sgr.ToPort, e.toPort)
+            Object.is(sgr.ToPort, e.toPort),
         );
         await client.deleteSecurityGroupEgressRules([
           {
@@ -138,7 +138,7 @@ const cloudCreateFns = {
       e.roleName,
       JSON.stringify(e.assumeRolePolicyDocument),
       e.attachedPoliciesArns ?? [],
-      e.description ?? ''
+      e.description ?? '',
     );
     e.arn = res;
     return res;
@@ -154,7 +154,7 @@ const cloudCreateFns = {
     client: AWS,
     td: TaskDefinition,
     cd: ContainerDefinition,
-    repository?: Repository
+    repository?: Repository,
   ) => {
     const container: any = { ...cd };
     const imageName = !!repository ? repository.repositoryUri : cd.image;

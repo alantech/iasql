@@ -87,7 +87,7 @@ export function paginateBuilder<T>(
   propName: string,
   pageName?: string,
   pageSize = 25,
-  argMapper?: (...args: any[]) => Object
+  argMapper?: (...args: any[]) => Object,
 ): (client: T, ...args: any[]) => Promise<any[]> {
   if (pageName) {
     return async (client: any, ...args: any[]) => {
@@ -97,7 +97,7 @@ export function paginateBuilder<T>(
           client,
           pageSize,
         },
-        argMapper?.(...args) ?? {}
+        argMapper?.(...args) ?? {},
       );
       for await (const page of paginator) {
         for (const r of page[pageName] ?? []) {
@@ -114,7 +114,7 @@ export function paginateBuilder<T>(
           client,
           pageSize,
         },
-        argMapper?.(...args) ?? {}
+        argMapper?.(...args) ?? {},
       );
       for await (const page of paginator) {
         vals.push(...(page[propName] ?? []));
@@ -127,20 +127,20 @@ export function paginateBuilder<T>(
 export function crudBuilderFormat<T, U extends keyof T, V>(
   methodName: U,
   argMapper: (...args: any[]) => ArgumentTypes<T[U]>[0],
-  retFormatter: (arg0: PromiseReturnType<T[U]>, ...args: any[]) => V
+  retFormatter: (arg0: PromiseReturnType<T[U]>, ...args: any[]) => V,
 ) {
   return async (client: T, ...args: any[]): Promise<V> =>
     retFormatter(
       (await (client[methodName] as T[U] extends Function ? T[U] : any)(
-        argMapper(...args)
+        argMapper(...args),
       )) as PromiseReturnType<T[U]>,
-      ...args
+      ...args,
     );
 }
 
 export function crudBuilder2<T, U extends keyof T>(
   methodName: U,
-  argMapper: (...args: any[]) => ArgumentTypes<T[U]>[0]
+  argMapper: (...args: any[]) => ArgumentTypes<T[U]>[0],
 ) {
   return async (client: T, ...args: any[]): Promise<PromiseReturnType<T[U]>> =>
     await (client[methodName] as any)(argMapper(...args));
@@ -149,7 +149,7 @@ export function crudBuilder2<T, U extends keyof T>(
 export function crudBuilder<T>(
   methodName: keyof T,
   argMapper: (...args: any[]) => any,
-  retFormatter?: (arg0: any, ...args: any[]) => any
+  retFormatter?: (arg0: any, ...args: any[]) => any,
 ): (client: T, ...args: any[]) => Promise<any> {
   if (retFormatter) {
     return async (client: any, ...args: any[]) =>
@@ -161,7 +161,7 @@ export function crudBuilder<T>(
 
 export async function mapLin(
   arrProm: any[] | Promise<any[] | undefined>,
-  mapper: (arg: any) => Promise<any>
+  mapper: (arg: any) => Promise<any>,
 ): Promise<any[]> {
   const out = [];
   const inp = await arrProm;

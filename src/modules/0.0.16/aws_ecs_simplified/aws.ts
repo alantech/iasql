@@ -144,7 +144,7 @@ export class AWS {
     name: string,
     assumeRolePolicyDocument: string,
     attachedPolicyArns: string[],
-    description?: string
+    description?: string,
   ): Promise<string> {
     const role = await this.iamClient.createRole({
       RoleName: name,
@@ -182,7 +182,7 @@ export class AWS {
         client: this.iamClient,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       for (const r of page.Roles ?? []) {
@@ -241,7 +241,7 @@ export class AWS {
           if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
-      }
+      },
     );
     return instanceIds?.pop() ?? '';
   }
@@ -275,7 +275,7 @@ export class AWS {
           if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.SUCCESS };
           throw e;
         }
-      }
+      },
     );
   }
 
@@ -309,7 +309,7 @@ export class AWS {
           if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.SUCCESS };
           throw e;
         }
-      }
+      },
     );
   }
 
@@ -340,7 +340,7 @@ export class AWS {
         client: this.ec2client,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       for (const r of page.Reservations ?? []) {
@@ -385,7 +385,7 @@ export class AWS {
         client: this.ec2client,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       securityGroups.push(...(page.SecurityGroups ?? []));
@@ -443,7 +443,7 @@ export class AWS {
         client: this.ec2client,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       securityGroupRules.push(...(page.SecurityGroupRules ?? []));
@@ -467,7 +467,7 @@ export class AWS {
             Values: [groupId],
           },
         ],
-      }
+      },
     );
     for await (const page of paginator) {
       securityGroupRules.push(...(page.SecurityGroupRules ?? []));
@@ -546,7 +546,7 @@ export class AWS {
         client: this.ecrClient,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       repositories.push(...(page.repositories ?? []));
@@ -605,7 +605,7 @@ export class AWS {
         },
         {
           LoadBalancerArn: arn,
-        }
+        },
       );
       for await (const page of paginator) {
         listeners.push(...(page.Listeners ?? []));
@@ -653,7 +653,7 @@ export class AWS {
         } catch (e: any) {
           return { state: WaiterState.RETRY };
         }
-      }
+      },
     );
     return loadBalancer;
   }
@@ -680,7 +680,7 @@ export class AWS {
         client: this.elbClient,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       loadBalancers.push(...(page.LoadBalancers ?? []));
@@ -715,7 +715,7 @@ export class AWS {
         } catch (_) {
           return { state: WaiterState.SUCCESS };
         }
-      }
+      },
     );
     // Now we need wait the load balancer to be fully deattached from any network interface
     const loadBalancerName = arn.split(':loadbalancer/')?.[1] ?? '';
@@ -746,7 +746,7 @@ export class AWS {
         } catch (e) {
           return { state: WaiterState.RETRY };
         }
-      }
+      },
     );
   }
 
@@ -767,7 +767,7 @@ export class AWS {
         client: this.elbClient,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       targetGroups.push(...(page.TargetGroups ?? []));
@@ -793,7 +793,7 @@ export class AWS {
         client: this.ec2client,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       vpcs.push(...(page.Vpcs ?? []));
@@ -823,7 +823,7 @@ export class AWS {
         client: this.ec2client,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       subnets.push(...(page.Subnets ?? []));
@@ -847,7 +847,7 @@ export class AWS {
             Values: [vpcId],
           },
         ],
-      }
+      },
     );
     for await (const page of paginator) {
       subnets.push(...(page.Subnets ?? []));
@@ -882,7 +882,7 @@ export class AWS {
         client: this.ecsClient,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       clusterArns.push(...(page.clusterArns ?? []));
@@ -913,7 +913,7 @@ export class AWS {
         client: this.ecsClient,
         pageSize: 25,
       },
-      input
+      input,
     );
     for await (const page of paginator) {
       tasksArns.push(...(page.taskArns ?? []));
@@ -936,7 +936,7 @@ export class AWS {
               desiredCount: s.desiredCount,
             });
             return this.deleteService(s.serviceName!, id, serviceTasksArns);
-          })
+          }),
       );
     }
     const tasks = await this.getTasksArns(id);
@@ -952,7 +952,7 @@ export class AWS {
         {
           cluster: id,
           tasks,
-        }
+        },
       );
     }
     await this.ecsClient.deleteCluster({
@@ -988,7 +988,7 @@ export class AWS {
         {
           cluster: id,
           tasks,
-        }
+        },
       );
     }
     await this.ecsClient.deleteCluster({
@@ -1011,7 +1011,7 @@ export class AWS {
       {
         status: 'ACTIVE',
         maxResults: 100,
-      }
+      },
     );
     for await (const page of activePaginator) {
       activeTaskDefinitionArns.push(...(page.taskDefinitionArns ?? []));
@@ -1069,7 +1069,7 @@ export class AWS {
         {
           cluster: id,
           maxResults: 100,
-        }
+        },
       );
       for await (const page of paginator) {
         serviceArns.push(...(page.serviceArns ?? []));
@@ -1115,7 +1115,7 @@ export class AWS {
       {
         cluster,
         maxResults: 100,
-      }
+      },
     );
     for await (const page of paginator) {
       serviceArns.push(...(page.serviceArns ?? []));
@@ -1168,7 +1168,7 @@ export class AWS {
         } else {
           return { state: WaiterState.SUCCESS };
         }
-      }
+      },
     );
     try {
       const tasks = await this.ecsClient.describeTasks({ tasks: tasksArns, cluster });
@@ -1202,7 +1202,7 @@ export class AWS {
             } catch (e) {
               return { state: WaiterState.RETRY };
             }
-          }
+          },
         );
       }
     } catch (_) {
@@ -1238,7 +1238,7 @@ export class AWS {
         } else {
           return { state: WaiterState.SUCCESS };
         }
-      }
+      },
     );
   }
 
@@ -1269,7 +1269,7 @@ export class AWS {
           if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
-      }
+      },
     );
     return newDBInstance;
   }
@@ -1286,11 +1286,11 @@ export class AWS {
         client: this.rdsClient,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       dbInstances.push(
-        ...(page.DBInstances?.filter(dbInstance => dbInstance.DBInstanceStatus === 'available') ?? [])
+        ...(page.DBInstances?.filter(dbInstance => dbInstance.DBInstanceStatus === 'available') ?? []),
       );
     }
     return {
@@ -1318,7 +1318,7 @@ export class AWS {
           if (dbInstance.DBInstanceStatus === 'deleting') return { state: WaiterState.RETRY };
         }
         return { state: WaiterState.SUCCESS };
-      }
+      },
     );
   }
 
@@ -1348,7 +1348,7 @@ export class AWS {
           if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
-      }
+      },
     );
     await createWaiter<RDS, DescribeDBInstancesCommandInput>(
       {
@@ -1372,7 +1372,7 @@ export class AWS {
           if (e.Code === 'InvalidInstanceID.NotFound') return { state: WaiterState.RETRY };
           throw e;
         }
-      }
+      },
     );
     return updatedDBInstance;
   }
@@ -1392,7 +1392,7 @@ export class AWS {
       },
       {
         logGroupNamePrefix: groupName,
-      }
+      },
     );
     for await (const page of paginator) {
       logGroups.push(...(page.logGroups ?? []));
@@ -1418,7 +1418,7 @@ export class AWS {
         client: this.ecrPubClient,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       repositories.push(...(page.repositories ?? []));
@@ -1457,7 +1457,7 @@ export class AWS {
         client: this.route53Client,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       hostedZones.push(...(page.HostedZones ?? []));
@@ -1482,7 +1482,7 @@ export class AWS {
   newChangeResourceRecordSetsCommand(
     hostedZoneId: string,
     record: ResourceRecordSet,
-    action: ChangeAction
+    action: ChangeAction,
   ): ChangeResourceRecordSetsCommandInput {
     return {
       HostedZoneId: hostedZoneId,
@@ -1499,7 +1499,7 @@ export class AWS {
 
   async createResourceRecordSet(hostedZoneId: string, record: ResourceRecordSet) {
     const res = await this.route53Client.changeResourceRecordSets(
-      this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'CREATE')
+      this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'CREATE'),
     );
     return res;
   }
@@ -1527,7 +1527,7 @@ export class AWS {
 
   async deleteResourceRecordSet(hostedZoneId: string, record: ResourceRecordSet) {
     const res = await this.route53Client.changeResourceRecordSets(
-      this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'DELETE')
+      this.newChangeResourceRecordSetsCommand(hostedZoneId, record, 'DELETE'),
     );
     return res;
   }
@@ -1539,7 +1539,7 @@ export class AWS {
         client: this.acmClient,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       certificatesSummary.push(...(page.CertificateSummaryList ?? []));
@@ -1640,7 +1640,7 @@ export class AWS {
           targetGroupArn: tg.TargetGroupArn,
           instanceId: thd.Target?.Id,
           port: thd.Target?.Port,
-        })) ?? [])
+        })) ?? []),
       );
     }
     return out;
@@ -1700,7 +1700,7 @@ export class AWS {
         } catch (e: any) {
           throw e;
         }
-      }
+      },
     );
     return out;
   }
@@ -1732,7 +1732,7 @@ export class AWS {
             Values: [NatGatewayState.AVAILABLE, NatGatewayState.FAILED],
           },
         ],
-      }
+      },
     );
     for await (const page of paginator) {
       natGateways.push(...(page.NatGateways ?? []));
@@ -1768,7 +1768,7 @@ export class AWS {
         } catch (e: any) {
           throw e;
         }
-      }
+      },
     );
   }
 
@@ -1792,7 +1792,7 @@ export class AWS {
         client: this.rdsClient,
         pageSize: 25,
       },
-      {}
+      {},
     );
     for await (const page of paginator) {
       for (const pg of page.DBParameterGroups ?? []) {
@@ -1818,7 +1818,7 @@ export class AWS {
       },
       {
         DBParameterGroupName: parameterGroupName,
-      }
+      },
     );
     for await (const page of paginator) {
       out.push(...(page.Parameters ?? []));
@@ -1907,7 +1907,7 @@ export class AWS {
             Values: ['available', 'rejected', 'failed'],
           },
         ],
-      }
+      },
     );
     for await (const page of paginator) {
       vpcEndpoints.push(...(page.VpcEndpoints ?? []));

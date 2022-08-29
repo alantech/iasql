@@ -85,14 +85,14 @@ export class LambdaFunction {
 
   @Check(
     'CHK_lambda_handler__package_type',
-    `("package_type" = 'Zip' AND "handler" IS NOT NULL) OR "package_type" != 'Zip'`
+    `("package_type" = 'Zip' AND "handler" IS NOT NULL) OR "package_type" != 'Zip'`,
   )
   @Column({ nullable: true })
   handler?: string;
 
   @Check(
     'CHK_lambda_runtime__package_type',
-    `("package_type" = 'Zip' AND "runtime" IS NOT NULL) OR "package_type" != 'Zip'`
+    `("package_type" = 'Zip' AND "runtime" IS NOT NULL) OR "package_type" != 'Zip'`,
   )
   @Column({
     type: 'enum',

@@ -18,7 +18,7 @@ import * as metadata from './module.json';
 const getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
   'listBuckets',
   () => ({}),
-  res => res?.Buckets ?? []
+  res => res?.Buckets ?? [],
 );
 
 const deleteBucket = crudBuilder2<S3, 'deleteBucket'>('deleteBucket', b => ({ Bucket: b }));
@@ -111,7 +111,7 @@ export const AwsS3Module: Module2 = new Module2(
               const cloudRecord = ctx?.memo?.cloud?.Bucket?.[e.name ?? ''];
               const isUpdate = Object.is(
                 AwsS3Module.mappers.bucket.cloud.updateOrReplace(cloudRecord, e),
-                'update'
+                'update',
               );
               if (isUpdate) {
                 const input: PutBucketPolicyCommandInput = {
@@ -153,5 +153,5 @@ export const AwsS3Module: Module2 = new Module2(
       }),
     },
   },
-  __dirname
+  __dirname,
 );

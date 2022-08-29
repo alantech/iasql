@@ -66,7 +66,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
         },
       ],
     }),
-    res => res?.NatGateways?.pop()
+    res => res?.NatGateways?.pop(),
   );
   getNatGateways = paginateBuilder<EC2>(
     paginateDescribeNatGateways,
@@ -80,7 +80,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
           Values: [AwsNatGatewayState.AVAILABLE, AwsNatGatewayState.FAILED],
         },
       ],
-    })
+    }),
   );
 
   // TODO: Add a waiter macro
@@ -107,7 +107,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
           // If it is not a final state we retry
           if (
             [AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(
-              out?.State as AwsNatGatewayState
+              out?.State as AwsNatGatewayState,
             )
           ) {
             return { state: WaiterState.RETRY };
@@ -116,7 +116,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
         } catch (e: any) {
           throw e;
         }
-      }
+      },
     );
     return out;
   }
@@ -143,7 +143,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
           // If it is not a final state we retry
           if (
             [AwsNatGatewayState.DELETING, AwsNatGatewayState.PENDING].includes(
-              nat?.State as AwsNatGatewayState
+              nat?.State as AwsNatGatewayState,
             )
           ) {
             return { state: WaiterState.RETRY };
@@ -152,7 +152,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
         } catch (e: any) {
           throw e;
         }
-      }
+      },
     );
   }
 

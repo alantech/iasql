@@ -17,7 +17,7 @@ if (config.cors) {
   app.use(
     cors({
       origin: config.cors.origin,
-    })
+    }),
   );
 }
 if (config.sentry) {
@@ -40,7 +40,7 @@ if (config.sentry) {
         if ((error?.status ?? 500) >= 400) return true;
         return false;
       },
-    })
+    }),
   );
 }
 

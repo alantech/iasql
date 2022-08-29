@@ -37,17 +37,17 @@ export class ServiceMapper extends MapperBase<Service> {
   updateService = crudBuilderFormat<ECS, 'updateService', AwsService | undefined>(
     'updateService',
     input => input,
-    res => res?.service
+    res => res?.service,
   );
   createService = crudBuilderFormat<ECS, 'createService', AwsService | undefined>(
     'createService',
     input => input,
-    res => res?.service
+    res => res?.service,
   );
   getService = crudBuilderFormat<ECS, 'describeServices', AwsService | undefined>(
     'describeServices',
     (id, cluster) => ({ services: [id], cluster }),
-    res => res?.services?.[0]
+    res => res?.services?.[0],
   );
 
   // TODO: This a whole lot of tangled business logic baked into these functions. It may make sense
@@ -63,7 +63,7 @@ export class ServiceMapper extends MapperBase<Service> {
         {
           cluster: id,
           maxResults: 100,
-        }
+        },
       );
       for await (const page of paginator) {
         serviceArns.push(...(page.serviceArns ?? []));
@@ -94,7 +94,7 @@ export class ServiceMapper extends MapperBase<Service> {
     client: { ecsClient: ECS; ec2client: EC2 },
     name: string,
     cluster: string,
-    tasksArns: string[]
+    tasksArns: string[],
   ) {
     await client.ecsClient.deleteService({
       service: name,
@@ -121,7 +121,7 @@ export class ServiceMapper extends MapperBase<Service> {
         } else {
           return { state: WaiterState.SUCCESS };
         }
-      }
+      },
     );
     try {
       const tasks = await client.ecsClient.describeTasks({ tasks: tasksArns, cluster });
@@ -156,7 +156,7 @@ export class ServiceMapper extends MapperBase<Service> {
             } catch (e) {
               return { state: WaiterState.RETRY };
             }
-          }
+          },
         );
       }
     } catch (_) {
@@ -191,7 +191,7 @@ export class ServiceMapper extends MapperBase<Service> {
         } else {
           return { state: WaiterState.SUCCESS };
         }
-      }
+      },
     );
   }
 
@@ -229,7 +229,7 @@ export class ServiceMapper extends MapperBase<Service> {
       for (const sg of cloudSecurityGroups) {
         securityGroups.push(
           (await awsSecurityGroupModule.securityGroup.db.read(ctx, sg)) ??
-            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg))
+            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg)),
         );
       }
       if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length)
@@ -323,7 +323,7 @@ export class ServiceMapper extends MapperBase<Service> {
           : await this.module.cluster.cloud.read(ctx);
         const result = await this.getServices(
           client.ecsClient,
-          clusters?.map((c: any) => c.clusterArn) ?? []
+          clusters?.map((c: any) => c.clusterArn) ?? [],
         );
         // Make sure we just handle FARGATE services
         const fargateResult = result.filter(s => s.launchType === 'FARGATE');
@@ -343,7 +343,7 @@ export class ServiceMapper extends MapperBase<Service> {
           Object.is(prev?.assignPublicIp, next?.assignPublicIp) &&
           Object.is(prev?.securityGroups?.length, next?.securityGroups?.length) &&
           (prev?.securityGroups?.every(
-            asg => !!next?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId))
+            asg => !!next?.securityGroups?.find(bsg => Object.is(asg.groupId, bsg.groupId)),
           ) ??
             false) &&
           Object.is(prev?.subnets?.length, next?.subnets?.length) &&
