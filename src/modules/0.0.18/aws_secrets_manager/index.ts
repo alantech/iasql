@@ -183,11 +183,21 @@ class SecretMapper extends MapperBase<Secret> {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const secret of secrets) {
         if (secret.name) {
-          await this.deleteSecret(client.secretsClient, {
+          const result = await this.deleteSecret(client.secretsClient, {
             SecretId: secret.name,
             ForceDeleteWithoutRecovery: true,
           });
         }
+
+        // wait until the secret is not present
+        let rawSecret;
+        let i = 0;
+        do {
+          await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
+
+          rawSecret = await this.getSecret(client.secretsClient, secret.name);
+          i++;
+        } while (rawSecret && i < 30);
       }
     },
   });
