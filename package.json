@@ -93,7 +93,7 @@
     "jwks-rsa": "^2.1.4",
     "lodash.isequal": "^4.5.0",
     "lodash.pick": "^4.4.0",
-    "pg": "^8.7.3",
+    "pg": "^8.8.0",
     "pgsql-parser": "^13.3.12",
     "reflect-metadata": "^0.1.13",
     "semver": "^7.3.7",
