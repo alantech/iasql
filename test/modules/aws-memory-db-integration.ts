@@ -109,14 +109,6 @@ describe('MemoryDB Integration Testing', () => {
 
   it('applies the change', apply());
 
-  it('changes the cluster node type', query(`
-    UPDATE memory_db_cluster
-    SET node_type = 'db.r6g.xlarge'
-    WHERE cluster_name = '${clusterName}';
-  `));
-
-  it('applies the change', apply());
-
   it('uninstalls the module', uninstall(modules));
 
   it('installs the module', install(modules));
