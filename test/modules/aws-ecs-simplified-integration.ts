@@ -35,7 +35,7 @@ const updateCpuMem = CpuMemCombination['vCPU1-3GB'];
 const imageTag = 'latest';
 const updateImageTag = '0.1';
 const publicIp = false;
-const ecrRepositoryUri = `iasql-ecs-${appName}-ecr`;
+const envVariables = '{ "test": 2}';
 
 // TODO: Improve timings for this test
 jest.setTimeout(1800000);  // 30min timeout
@@ -61,9 +61,21 @@ describe('ECS Simplified Integration Testing', () => {
     VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', ${publicIp});
   `));
 
+  it('check service row', query(`
+    SELECT *
+    FROM service
+    WHERE name = '${appName}-service';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
   it('undo changes', sync());
 
-  it('check row insertion', query(`
+  it('check service row', query(`
+    SELECT *
+    FROM service
+    WHERE name = '${appName}-service';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check ecs_simplified row', query(`
     SELECT *
     FROM ecs_simplified
     WHERE app_name = '${appName}';
@@ -71,29 +83,90 @@ describe('ECS Simplified Integration Testing', () => {
 
   it('adds a new row', query(`
     INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip)
-    VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', false);
+    VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', ${publicIp});
   `));
+
+  it('updates a row', query(`
+    UPDATE ecs_simplified
+    SET app_port = ${appPort + 1}
+    WHERE app_name = '${appName}';
+  `));
+
+  it('check target_group row was replaced', query(`
+    SELECT *
+    FROM target_group
+    WHERE target_group_name = '${appName}-target';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0]['port']).toBe(appPort + 1);
+  }));
+
+  it('deletes the app', query(`
+    delete from ecs_simplified
+    where app_name = '${appName}';
+  `));
+
+  it('check target_group row was deleted', query(`
+    SELECT *
+    FROM target_group
+    WHERE target_group_name = '${appName}-target';
+  `, (res: any[]) => {
+    expect(res.length).toBe(0);
+  }));
+
+  it('check service row was deleted', query(`
+    SELECT *
+    FROM service
+    WHERE name = '${appName}-service';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('adds a new row', query(`
+    INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip)
+    VALUES ('${appName}', ${desiredCount}, ${appPort}, '${cpuMem}', '${imageTag}', ${publicIp});
+  `));
+
+  it('check service row', query(`
+    SELECT *
+    FROM service
+    WHERE name = '${appName}-service';
+  `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies adds a new row', apply());
 
-  it('check row insertion', query(`
+  it('check service row', query(`
+    SELECT *
+    FROM service
+    WHERE name = '${appName}-service';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check ecs_simplified row insertion', query(`
     SELECT *
     FROM ecs_simplified
     WHERE app_name = '${appName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0]['load_balancer_dns']).toBeDefined();
+    expect(res[0]['repository_uri'].includes(appName)).toBeTruthy();
+  }));
 
   it('uninstalls the ECS Simplified module', uninstall(modules));
 
   it('installs the ECS Simplified module', install(modules));
 
-  it('check row was imported after uninstall/install', query(`
+  it('check service row', query(`
+    SELECT *
+    FROM service
+    WHERE name = '${appName}-service';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('check ecs_simplified row insertion', query(`
     SELECT *
     FROM ecs_simplified
     WHERE app_name = '${appName}';
   `, (res: any[]) => {
-    expect(res[0]['repository_uri'].includes(ecrRepositoryUri)).toBeTruthy();
+    expect(res.length).toBe(1);
     expect(res[0]['load_balancer_dns']).toBeDefined();
-    return expect(res.length).toBe(1);
+    expect(res[0]['repository_uri'].includes(appName)).toBeTruthy();
   }));
 
   it('updates a row', query(`
@@ -119,6 +192,15 @@ describe('ECS Simplified Integration Testing', () => {
     WHERE app_name = '${appName}';
   `));
 
+  it('check target_group row was replaced', query(`
+    SELECT *
+    FROM target_group
+    WHERE target_group_name = '${appName}-target';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0]['port']).toBe(appPort + 1);
+  }));
+
   it('applies row update and should replace', apply());
 
   it('check row was replaced', query(`
@@ -126,9 +208,9 @@ describe('ECS Simplified Integration Testing', () => {
     FROM ecs_simplified
     WHERE app_name = '${appName}';
   `, (res: any[]) => {
-    expect(res[0]['repository_uri'].includes(ecrRepositoryUri)).toBeTruthy();
+    expect(res.length).toBe(1);
+    expect(res[0]['repository_uri'].includes(appName)).toBeTruthy();
     expect(res[0]['app_port']).toBe(appPort + 1);
-    return expect(res.length).toBe(1);
   }));
 
   it('updates a row', query(`
@@ -144,8 +226,8 @@ describe('ECS Simplified Integration Testing', () => {
     FROM ecs_simplified
     WHERE app_name = '${appName}';
   `, (res: any[]) => {
-    expect(res[0]['repository_uri'].includes(ecrRepositoryUri)).toBeTruthy();
-    return expect(res.length).toBe(1);
+    expect(res.length).toBe(1);
+    expect(res[0]['repository_uri'].includes(appName)).toBeTruthy();
   }));
 
   it('updates a row', query(`
@@ -161,9 +243,61 @@ describe('ECS Simplified Integration Testing', () => {
     FROM ecs_simplified
     WHERE app_name = '${appName}';
   `, (res: any[]) => {
+    expect(res.length).toBe(1);
     expect(res[0]['cpu_mem']).toBe(updateCpuMem);
     expect(res[0]['image_tag']).toBe(updateImageTag);
-    return expect(res.length).toBe(1);
+  }));
+
+  it('tries to force update ecs_simplified', query(`
+    UPDATE ecs_simplified SET force_new_deployment = true, env_variables = '${envVariables}' WHERE app_name = '${appName}';
+  `));
+
+  it('check service force update', query(`
+    SELECT *
+    FROM service
+    WHERE name = '${appName}-service';
+  `, (res: any[]) => {
+      expect(res.length).toBe(1);
+      expect(res[0]['force_new_deployment']).toBe(true);
+  }));
+
+  it('check container_definition env variables', query(`
+    SELECT *
+    FROM container_definition
+    WHERE name = '${appName}-container';
+  `, (res: any[]) => {
+      expect(res.length).toBe(1);
+      expect(res[0]['env_variables']).toBeDefined();
+  }));
+
+  it('applies app update', apply());
+
+  it('check service force update', query(`
+    SELECT *
+    FROM ecs_simplified
+    WHERE app_name = '${appName}';
+  `, (res: any[]) => {
+      expect(res.length).toBe(1);
+      expect(res[0]['force_new_deployment']).toBe(false);
+      expect(res[0]['env_variables']).toBeDefined();
+  }));
+
+  it('check container_definition env variables', query(`
+    SELECT *
+    FROM container_definition
+    WHERE name = '${appName}-container';
+  `, (res: any[]) => {
+      expect(res.length).toBe(1);
+      expect(res[0]['env_variables']).toBeDefined();
+  }));
+
+  it('check service force update', query(`
+    SELECT *
+    FROM service
+    WHERE name = '${appName}-service';
+  `, (res: any[]) => {
+      expect(res.length).toBe(1);
+      expect(res[0]['force_new_deployment']).toBe(false);
   }));
 
   it('deletes the app', query(`
