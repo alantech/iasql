@@ -80,8 +80,16 @@ VALUES ('quickstart', 8088, true, 'latest');
 SELECT * from iasql_apply();
 ```
 
+<!--- https://www.urlencoder.org/ -->
+<button
+  className={"button button--primary button--lg margin-bottom--lg"}
+  onClick={() => window.open('https://app.iasql.com/#/button/INSERT%20INTO%20ecs_simplified%20%28app_name%2C%20app_port%2C%20public_ip%2C%20image_tag%29%0AVALUES%20%28%27quickstart%27%2C%208088%2C%20true%2C%20%27latest%27%29%3B%0A%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B', '_blank')}
+>
+Run SQL
+</button>
+
 If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted, or updated.
-Login, build, and push your code to the container registry
+Login, build and push your code to the container registry
 
 1. Grab your new `ECR URI` from the hosted DB
 
@@ -90,6 +98,14 @@ SELECT repository_uri
 FROM ecs_simplified
 WHERE app_name = 'quickstart';
 ```
+
+<!--- https://www.urlencoder.org/ -->
+<button
+  className={"button button--primary button--lg margin-bottom--lg"}
+  onClick={() => window.open('https://app.iasql.com/#/button/SELECT%20repository_uri%0AFROM%20ecs_simplified%0AWHERE%20app_name%20%3D%20%27quickstart%27%3B', '_blank')}
+>
+Run SQL
+</button>
 
 2. Login to AWS ECR using the AWS CLI. Run the following command and use the correct `<ECR-URI>` and AWS `<profile>`
 
@@ -129,9 +145,17 @@ FROM ecs_simplified
 WHERE app_name = 'quickstart';
 ```
 
+<!--- https://www.urlencoder.org/ -->
+<button
+  className={"button button--primary button--lg margin-bottom--lg"}
+  onClick={() => window.open('https://app.iasql.com/#/button/SELECT%20load_balancer_dns%0AFROM%20ecs_simplified%0AWHERE%20app_name%20%3D%20%27quickstart%27%3B', '_blank')}
+>
+Run SQL
+</button>
+
 7. Connect to your service!
 
-```
+```bash
 curl ${QUICKSTART_LB_DNS}:8088/health
 ```
 
@@ -159,17 +183,20 @@ Make sure the [CLI is configured with the same credentials](https://docs.aws.ama
 
 :::
 
-2. Delete all IaSQL records invoking the void `delete_all_records` function:
+2. Delete all IaSQL records invoking the void `delete_all_records` function and apply the changes described in the hosted db to your cloud account
 
 ```sql
 SELECT delete_all_records();
-```
-
-3. Apply the changes described in the hosted db to your cloud account
-
-```sql
 SELECT * from iasql_apply();
 ```
+
+<!--- https://www.urlencoder.org/ -->
+<button
+  className={"button button--primary button--lg margin-bottom--lg"}
+  onClick={() => window.open('https://app.iasql.com/#/button/SELECT%20delete_all_records%28%29%3B%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B', '_blank')}
+>
+Run SQL
+</button>
 
 If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
 
