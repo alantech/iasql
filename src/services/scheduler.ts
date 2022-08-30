@@ -1,4 +1,5 @@
 import * as sentry from '@sentry/node';
+import express from 'express';
 import { run } from 'graphile-worker';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -11,7 +12,6 @@ import logger, { logErrSentry } from './logger';
 import MetadataRepo from './repositories/metadata';
 import * as telemetry from './telemetry';
 import { TypeormWrapper } from './typeorm';
-import express from 'express';
 
 const latest = modules[config.modules.latestVersion];
 
@@ -205,8 +205,8 @@ export async function init() {
 }
 
 if (require.main === module) {
-  const app = express()
-  const port = 14527
+  const app = express();
+  const port = 14527;
 
   function respondErrorAndDie(res: any, err: any) {
     res.status(500).send(err);
@@ -215,41 +215,41 @@ if (require.main === module) {
   }
 
   app.use((req: any, res: any, next: any) => {
-    logger.info(`Scheduler called on ${req.url}`)
-    next()
-  })
+    logger.info(`Scheduler called on ${req.url}`);
+    next();
+  });
 
   app.get('/init/', async (req: any, res: any) => {
     init()
       .then(() => res.sendStatus(200))
-      .catch((e) => respondErrorAndDie(res, e.message));
-  })
+      .catch(e => respondErrorAndDie(res, e.message));
+  });
 
   app.get('/start/:dbId/:dbUser/', async (req: any, res: any) => {
     const { dbId, dbUser } = req.params;
     start(dbId, dbUser)
       .then(() => res.sendStatus(200))
-      .catch((e) => respondErrorAndDie(res, e.message));
-  })
+      .catch(e => respondErrorAndDie(res, e.message));
+  });
 
   app.get('/stop/:dbId/', async (req: any, res: any) => {
     const { dbId } = req.params;
     stop(dbId)
       .then(() => res.sendStatus(200))
-      .catch((e) => respondErrorAndDie(res, e.message));
-  })
+      .catch(e => respondErrorAndDie(res, e.message));
+  });
 
   app.get('/stopAll/', async (req: any, res: any) => {
     stopAll()
       .then(() => res.sendStatus(200))
-      .catch((e) => respondErrorAndDie(res, e.message));
-  })
+      .catch(e => respondErrorAndDie(res, e.message));
+  });
 
   app.head('/health/', async (req: any, res: any) => {
     res.sendStatus(200);
-  })
+  });
 
   app.listen(port, () => {
-    logger.info(`Scheduler running on port ${port}`)
-  })
+    logger.info(`Scheduler running on port ${port}`);
+  });
 }
