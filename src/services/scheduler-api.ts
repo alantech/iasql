@@ -6,7 +6,7 @@ const schedulerAddress = 'http://localhost:14527';
 async function fetchOrRaise(url: string) {
   const response = await fetch(url);
   if (response.ok) {
-    return
+    return response;
   }
   const error = await response.text();
   logger.error(`Error received from Scheduler: ${error}`);
