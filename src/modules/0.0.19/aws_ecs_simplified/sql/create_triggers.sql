@@ -314,6 +314,56 @@ AFTER INSERT OR DELETE OR UPDATE ON service
 FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
 EXECUTE FUNCTION sync_ecs_simplified();
 
+CREATE TRIGGER ecs_simplified_repo_trigger
+AFTER INSERT OR DELETE OR UPDATE ON repository
+FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION sync_ecs_simplified();
+
+CREATE TRIGGER ecs_simplified_td_trigger
+AFTER INSERT OR DELETE OR UPDATE ON task_definition
+FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION sync_ecs_simplified();
+
+CREATE TRIGGER ecs_simplified_cd_trigger
+AFTER INSERT OR DELETE OR UPDATE ON container_definition
+FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION sync_ecs_simplified();
+
+CREATE TRIGGER ecs_simplified_tg_trigger
+AFTER INSERT OR DELETE OR UPDATE ON target_group
+FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION sync_ecs_simplified();
+
+CREATE TRIGGER ecs_simplified_lb_trigger
+AFTER INSERT OR DELETE OR UPDATE ON load_balancer
+FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION sync_ecs_simplified();
+
+CREATE TRIGGER ecs_simplified_listener_trigger
+AFTER INSERT OR DELETE OR UPDATE ON listener
+FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION sync_ecs_simplified();
+
+CREATE TRIGGER ecs_simplified_sg_trigger
+AFTER INSERT OR DELETE OR UPDATE ON security_group
+FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION sync_ecs_simplified();
+
+CREATE TRIGGER ecs_simplified_sg_rule_trigger
+AFTER INSERT OR DELETE OR UPDATE ON security_group_rule
+FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION sync_ecs_simplified();
+
+CREATE TRIGGER ecs_simplified_service_sg_trigger
+AFTER INSERT OR DELETE OR UPDATE ON service_security_groups
+FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION sync_ecs_simplified();
+
+CREATE TRIGGER ecs_simplified_lb_sg_trigger
+AFTER INSERT OR DELETE OR UPDATE ON load_balancer_security_groups
+FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION sync_ecs_simplified();
+
 -- This file runs after low-level/required ECS tables have been populated on install so to
 -- properly import ecs_simplified on install we need trigger ecs_simplified_service_trigger with
 -- a no-op update. This works since the trigger is `FOR EACH STATEMENT` and not `FOR EACH ROW`.
