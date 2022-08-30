@@ -1,21 +1,17 @@
-import {
-  Column,
-  Entity,
-  PrimaryColumn,
-} from "typeorm";
+import { Column, Entity, PrimaryColumn } from 'typeorm';
 
-import { cloudId } from "../../../../services/cloud-id";
+import { cloudId } from '../../../../services/cloud-id';
 
 export enum Engine {
-  MEMCACHED = "memcached",
-  REDIS = "redis",
+  MEMCACHED = 'memcached',
+  REDIS = 'redis',
 }
 
 @Entity()
 export class CacheCluster {
   @PrimaryColumn({
     nullable: false,
-    type: "varchar",
+    type: 'varchar',
   })
   @cloudId
   clusterId: string;
@@ -27,7 +23,7 @@ export class CacheCluster {
   nodeType: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: Engine,
     default: Engine.REDIS,
   })

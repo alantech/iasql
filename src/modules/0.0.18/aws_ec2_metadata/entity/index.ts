@@ -1,1 +1,1 @@
-export * from './instance_metadata'
+export * from './instance_metadata';

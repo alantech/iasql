@@ -1,5 +1,5 @@
-import { ModuleBase, } from '../../interfaces'
-import { GeneralPurposeVolumeMapper, InstanceMapper, RegisteredInstanceMapper, } from './mappers'
+import { ModuleBase } from '../../interfaces';
+import { GeneralPurposeVolumeMapper, InstanceMapper, RegisteredInstanceMapper } from './mappers';
 
 export class AwsEc2Module extends ModuleBase {
   instance: InstanceMapper;

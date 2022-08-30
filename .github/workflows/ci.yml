@@ -35,6 +35,27 @@ jobs:
       - name: Run linter check
         run: yarn lint
 
+  style:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Set up Node.js
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Run code style check
+        run: yarn style
+
   common-test:
     runs-on: ubuntu-latest
     name: common tests
@@ -100,6 +121,7 @@ jobs:
       - id: set-region
         name: Set region
         # All regions except us-east-1 to not collide with common tests
+        # TODO: Eliminate region selection once we are fully multi-region
         run: |
           regions=("ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "sa-east-1" "us-east-2" "us-west-1" "us-west-2")
           regionslen=${#regions[@]}
@@ -118,10 +140,6 @@ jobs:
       matrix:
         module: ${{ fromJson(needs.setup-module-test.outputs['set-test-module-names']) }}
 
-    env:
-      MATRIX_AWS_ACCESS_KEY_ID: AWS_ACCESS_KEY_ID_${{matrix.module}}
-      MATRIX_AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY_${{matrix.module}}
-
     steps:
       - uses: actions/checkout@v2
 
@@ -133,11 +151,34 @@ jobs:
       - name: Install dependencies
         run: yarn
 
+      - name: Determine Test Account To Use
+        id: determine-test-account
+        env:
+          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+        run: |
+          RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
+          echo $RESPONSE
+          ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
+          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
+
       - name: Run modules tests
-        run: yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
+        timeout-minutes: 40
+        run: |
+          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
         env:
           IASQL_ENV: test
           MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
-          AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           AWS_REGION: ${{ needs.setup-module-test.outputs['region'] }}
+
+      - name: Return test account
+        if: always()
+        env:
+          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+        run: |
+          curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/

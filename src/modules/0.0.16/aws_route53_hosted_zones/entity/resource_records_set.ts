@@ -9,30 +9,36 @@ import {
   AfterUpdate,
   Unique,
   Check,
-} from 'typeorm'
+} from 'typeorm';
 
 import { AliasTarget } from './alias_target';
 import { HostedZone } from './hosted_zone';
 
 export enum RecordType {
-  A = "A",
-  AAAA = "AAAA",
-  CAA = "CAA",
-  CNAME = "CNAME",
-  DS = "DS",
-  MX = "MX",
-  NAPTR = "NAPTR",
-  NS = "NS",
-  PTR = "PTR",
-  SOA = "SOA",
-  SPF = "SPF",
-  SRV = "SRV",
-  TXT = "TXT",
+  A = 'A',
+  AAAA = 'AAAA',
+  CAA = 'CAA',
+  CNAME = 'CNAME',
+  DS = 'DS',
+  MX = 'MX',
+  NAPTR = 'NAPTR',
+  NS = 'NS',
+  PTR = 'PTR',
+  SOA = 'SOA',
+  SPF = 'SPF',
+  SRV = 'SRV',
+  TXT = 'TXT',
 }
 
 @Unique('UQ_name__record_type', ['name', 'recordType'])
-@Check('Check_record__alias_target', '("record" is null and "alias_target_id" is not null) or ("record" is not null and "alias_target_id" is null)')
-@Check('Check_record__ttl', '("record" is null and "ttl" is null and "alias_target_id" is not null) or ("record" is not null and "ttl" is not null and "alias_target_id" is null)')
+@Check(
+  'Check_record__alias_target',
+  '("record" is null and "alias_target_id" is not null) or ("record" is not null and "alias_target_id" is null)',
+)
+@Check(
+  'Check_record__ttl',
+  '("record" is null and "ttl" is null and "alias_target_id" is not null) or ("record" is not null and "ttl" is not null and "alias_target_id" is null)',
+)
 @Entity()
 export class ResourceRecordSet {
   @PrimaryGeneratedColumn()
@@ -47,7 +53,7 @@ export class ResourceRecordSet {
   })
   recordType: RecordType;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   record?: string;
 
   @Column({
@@ -56,7 +62,7 @@ export class ResourceRecordSet {
   })
   ttl?: number;
 
-  @ManyToOne(() => HostedZone, { eager: true, })
+  @ManyToOne(() => HostedZone, { eager: true })
   @JoinColumn({
     name: 'parent_hosted_zone_id',
   })

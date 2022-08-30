@@ -1,16 +1,16 @@
-import { v4 as uuidv4, } from 'uuid'
-import { Pool } from 'pg'
-import { Connection, createConnection, EntityTarget, getConnectionManager, } from 'typeorm'
-import { PostgresConnectionOptions, } from 'typeorm/driver/postgres/PostgresConnectionOptions'
-import { PostgresDriver, } from 'typeorm/driver/postgres/PostgresDriver'
-import { SnakeNamingStrategy, } from 'typeorm-naming-strategies'
+import { Pool } from 'pg';
+import { Connection, createConnection, EntityTarget, getConnectionManager } from 'typeorm';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { PostgresDriver } from 'typeorm/driver/postgres/PostgresDriver';
+import { v4 as uuidv4 } from 'uuid';
 
-import { modules as AllModules, } from '../modules'
-import config from '../config'
+import config from '../config';
+import { modules as AllModules } from '../modules';
 import { NullCheckerSubscriber } from '../modules/subscribers';
 
 export class TypeormWrapper {
-  private connection: Connection
+  private connection: Connection;
   private connectionConfig: PostgresConnectionOptions = {
     type: 'postgres',
     username: config.db.user,
@@ -18,11 +18,13 @@ export class TypeormWrapper {
     host: config.db.host,
     namingStrategy: new SnakeNamingStrategy(), // TODO: Do we allow modules to change this?
     extra: {
-      ssl: ['postgresql', 'localhost'].includes(config.db.host) ? false : {
-        rejectUnauthorized: false,
-      }
-    },  // TODO: remove once DB instance with custom ssl cert is in place
-  }
+      ssl: ['postgresql', 'localhost'].includes(config.db.host)
+        ? false
+        : {
+            rejectUnauthorized: false,
+          },
+    }, // TODO: remove once DB instance with custom ssl cert is in place
+  };
 
   static async getVersionString(database: string) {
     // Pulled this out as a function so it can be re-used in the iasql service. This should probably
@@ -31,7 +33,7 @@ export class TypeormWrapper {
     const connMan = getConnectionManager();
     const dbname = uuidv4();
     if (connMan.has(dbname)) {
-      throw new Error(`Connection ${dbname} already exists`)
+      throw new Error(`Connection ${dbname} already exists`);
     }
     const typeorm = new TypeormWrapper();
     const connOpts: PostgresConnectionOptions = {
@@ -61,7 +63,7 @@ export class TypeormWrapper {
     const connMan = getConnectionManager();
     const dbname = uuidv4();
     if (connMan.has(dbname)) {
-      throw new Error(`Connection ${dbname} already exists`)
+      throw new Error(`Connection ${dbname} already exists`);
     }
     const versionString = await TypeormWrapper.getVersionString(database);
     const Modules = (AllModules as any)[versionString];
@@ -83,11 +85,11 @@ export class TypeormWrapper {
       ...typeorm.connectionConfig,
       name: dbname,
       subscribers: [NullCheckerSubscriber],
-      ...connectionConfig as PostgresConnectionOptions,
+      ...(connectionConfig as PostgresConnectionOptions),
       database,
     };
 
-    typeorm.connection = await createConnection({ ...connOpts, entities, name, });
+    typeorm.connection = await createConnection({ ...connOpts, entities, name });
     return typeorm;
   }
 

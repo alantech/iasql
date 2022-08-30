@@ -1,1 +1,1 @@
-export * from './lambda_function'
+export * from './lambda_function';

@@ -1,12 +1,12 @@
-import { ConfigInterface, } from './config';
+import { ConfigInterface } from './config';
 
 const config: ConfigInterface = {
   http: {
     port: 8088,
   },
   modules: {
-    latestVersion: '0.0.18',
-    oldestVersion: '0.0.14'
+    latestVersion: '0.0.19',
+    oldestVersion: '0.0.15',
   },
   db: {
     host: 'localhost',

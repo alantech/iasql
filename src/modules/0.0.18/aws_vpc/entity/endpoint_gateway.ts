@@ -1,17 +1,11 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm'
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { Vpc } from '.';
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 
 export enum EndpointGatewayService {
-  DYNAMODB = "dynamodb",
-  S3 = "s3",
+  DYNAMODB = 'dynamodb',
+  S3 = 's3',
 }
 
 @Entity()
@@ -19,7 +13,7 @@ export class EndpointGateway {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   @cloudId
   vpcEndpointId?: string;
 
@@ -30,20 +24,20 @@ export class EndpointGateway {
   })
   service: EndpointGatewayService;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   policyDocument?: string;
 
-  @ManyToOne(() => Vpc, { nullable: false, eager: true, })
+  @ManyToOne(() => Vpc, { nullable: false, eager: true })
   @JoinColumn({
     name: 'vpc_id',
   })
   vpc?: Vpc;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   state?: string;
 
   // TODO: update to be a reference to a RouteTable entity
-  @Column("text", { nullable: true, array: true, })
+  @Column('text', { nullable: true, array: true })
   routeTableIds?: string[];
 
   @Column({

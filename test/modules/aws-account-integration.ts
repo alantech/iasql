@@ -50,7 +50,18 @@ describe('AwsAccount Integration Testing', () => {
   it('runSql segue: confirms bad sql queries return an error string', (done) => {
     (async () => {
       try {
-        await runSql('SELECT * FROM foo');
+        await runSql('SELECT * FROM foo', false);
+        done(new Error('This line should not be reached'));
+      } catch (_) {
+        done();
+      }
+    })();
+  });
+
+  it('runSql segue by statement: confirms bad sql queries return an error string', (done) => {
+    (async () => {
+      try {
+        await runSql('SELECT * FROM foo', true);
         done(new Error('This line should not be reached'));
       } catch (_) {
         done();
@@ -60,8 +71,19 @@ describe('AwsAccount Integration Testing', () => {
 
   it('runSql segue: confirms good sql queries return an array of records', (done) => {
     (async () => {
-      const rows = await runSql('SELECT * FROM aws_account');
+      const rows = await runSql('SELECT * FROM aws_account', false);
       if (rows instanceof Array && rows[0] instanceof Array && rows[0][0].region === 'us-east-1') {
+        done();
+      } else {
+        done(new Error('Unexpected response from normal query'));
+      }
+    })();
+  });
+
+  it('runSql segue by statement: confirms good sql queries return an array of records', (done) => {
+    (async () => {
+      const rows = await runSql('SELECT * FROM aws_account', true);
+      if (rows instanceof Array && rows[0]['result'] instanceof Array && rows[0]['result'][0].region === 'us-east-1') {
         done();
       } else {
         done(new Error('Unexpected response from normal query'));
@@ -71,11 +93,26 @@ describe('AwsAccount Integration Testing', () => {
 
   it('runSql segue: confirms multiple sql queries returns an array of arrays of records', (done) => {
     (async () => {
-      const results = await runSql('SELECT * FROM iasql_module; SELECT * FROM iasql_help();');
+      const results = await runSql('SELECT * FROM iasql_module; SELECT * FROM iasql_help();', false);
       if (
         results instanceof Array &&
         results[0] instanceof Array &&
         (results[0][0] as any).name.includes('@')
+      ) {
+        done();
+      } else {
+        done(new Error('Unexpected response from batch query'));
+      }
+    })();
+  });
+
+  it('runSql segue by statements: confirms multiple sql queries returns an array of arrays of records', (done) => {
+    (async () => {
+      const results = await runSql('SELECT * FROM iasql_module; SELECT * FROM iasql_help();', true);
+      if (
+        results instanceof Array &&
+        results[0]['result'] instanceof Array &&
+        (results[0]['result'][0] as any).name.includes('@')
       ) {
         done();
       } else {

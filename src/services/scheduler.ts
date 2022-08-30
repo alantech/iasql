@@ -1,34 +1,42 @@
-import { run } from 'graphile-worker'
 import * as sentry from '@sentry/node';
-import { v4 as uuidv4, } from 'uuid'
+import express from 'express';
+import { run } from 'graphile-worker';
+import { v4 as uuidv4 } from 'uuid';
 
-import { modules, } from '../modules'
-import MetadataRepo from './repositories/metadata'
-import * as iasql from './iasql'
-import * as telemetry from './telemetry'
-import logger, { logErrSentry } from './logger'
-import { TypeormWrapper } from './typeorm'
-import { IasqlDatabase } from '../entity'
-import config from '../config'
-import { throwError, } from '../config/config'
+import config from '../config';
+import { throwError } from '../config/config';
+import { IasqlDatabase } from '../entity';
+import { modules } from '../modules';
+import * as iasql from './iasql';
+import logger, { logErrSentry } from './logger';
+import MetadataRepo from './repositories/metadata';
+import * as telemetry from './telemetry';
+import { TypeormWrapper } from './typeorm';
 
 const latest = modules[config.modules.latestVersion];
 
-const IasqlOperationType = latest?.IasqlFunctions?.utils?.IasqlOperationType ?? latest?.iasqlFunctions?.iasqlOperationType ?? throwError('Core IasqlFunctions not found');
+const IasqlOperationType =
+  latest?.IasqlFunctions?.utils?.IasqlOperationType ??
+  latest?.iasqlFunctions?.iasqlOperationType ??
+  throwError('Core IasqlFunctions not found');
 
-const workerRunners: { [key: string]: { runner: any, conn: any}, } = {}; // TODO: What is the runner type?
+const workerRunners: { [key: string]: { runner: any; conn: any } } = {}; // TODO: What is the runner type?
 
 // graphile-worker here functions as a library, not a child process.
 // It manages its own database schema
 // (graphile_worker) and migrations in each uid db using our credentials
-export async function start(dbId: string, dbUser:string) {
+export async function start(dbId: string, dbUser: string) {
   // use the same connection for the scheduler and its operations
-  const conn = await TypeormWrapper.createConn(dbId, { name: uuidv4(), });
+  const conn = await TypeormWrapper.createConn(dbId, { name: uuidv4() });
   // create a dblink server per db to reduce connections when calling dblink in iasql op SP
   // https://aws.amazon.com/blogs/database/migrating-oracle-autonomous-transactions-to-postgresql/
   await conn.query(`CREATE EXTENSION IF NOT EXISTS dblink;`);
-  await conn.query(`CREATE SERVER IF NOT EXISTS loopback_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname '${dbId}', port '${config.db.port}');`);
-  await conn.query(`CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.db.user}', password '${config.db.password}')`);
+  await conn.query(
+    `CREATE SERVER IF NOT EXISTS loopback_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname '${dbId}', port '${config.db.port}');`,
+  );
+  await conn.query(
+    `CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.db.user}', password '${config.db.password}')`,
+  );
   const runner = await run({
     pgPool: conn.getMasterConnection(),
     concurrency: 1,
@@ -40,7 +48,7 @@ export async function start(dbId: string, dbUser:string) {
       operation: async (payload: any) => {
         const { params, opid, optype } = payload;
         let promise;
-        switch(optype) {
+        switch (optype) {
           case IasqlOperationType.APPLY: {
             promise = iasql.apply(dbId, false);
             break;
@@ -102,12 +110,12 @@ export async function start(dbId: string, dbUser:string) {
           // error must be valid JSON as a string
           const errorStringify = JSON.stringify({ message: errorMessage });
           // replace single quotes to make it valid
-          error = errorStringify.replace(/[\']/g, "\\\"");
+          error = errorStringify.replace(/[\']/g, '\\"');
           const query = `
             update iasql_operation
             set end_date = now(), err = '${error}'
             where opid = uuid('${opid}');
-          `
+          `;
           await conn.query(query);
         } finally {
           try {
@@ -115,39 +123,43 @@ export async function start(dbId: string, dbUser:string) {
             const operationCount = await iasql.getOpCount(conn);
             await MetadataRepo.updateDbCounts(dbId, recordCount, operationCount);
             // list is called by us and has no dbAlias so ignore
-            if (uid && optype !== IasqlOperationType.LIST) telemetry.logOp(
-              optype,
-              {
-                dbId,
-                email,
-                dbAlias,
-                recordCount,
-                operationCount,
-              },
-              {
-                params,
-                output,
-                error,
-              },
-              uid,
-            );
-          } catch(e: any) {
+            if (uid && optype !== IasqlOperationType.LIST)
+              telemetry.logOp(
+                optype,
+                {
+                  dbId,
+                  email,
+                  dbAlias,
+                  recordCount,
+                  operationCount,
+                },
+                {
+                  params,
+                  output,
+                  error,
+                },
+                uid,
+              );
+          } catch (e: any) {
             logger.error('could not log op event', e);
           }
         }
       },
     },
   });
-  workerRunners[dbId] = { runner, conn, };
+  workerRunners[dbId] = { runner, conn };
 }
 
 export async function stop(dbId: string) {
-  const { runner, conn, } = workerRunners[dbId] ?? { runner: undefined, conn: undefined, };
+  const { runner, conn } = workerRunners[dbId] ?? { runner: undefined, conn: undefined };
   if (runner && conn) {
     try {
       await runner.stop();
     } catch (e) {
-      logger.warn(`Graphile workers for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`, { e, });
+      logger.warn(
+        `Graphile workers for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`,
+        { e },
+      );
     }
     await conn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
     await conn.dropConn();
@@ -169,13 +181,17 @@ export async function init() {
   // Necessary in the child process
   if (config.sentry) sentry.init(config.sentry);
   if (!MetadataRepo.initialized) await MetadataRepo.init();
-  const dbs: IasqlDatabase[] = (await Promise.all(
-    (await MetadataRepo.getAllDbs()).map(async (db) => {
-      const versionString = await TypeormWrapper.getVersionString(db.pgName);
-      const Modules = (modules as any)[versionString];
-      return !!Modules ? db : undefined
-    })
-  )).filter((db: IasqlDatabase | undefined) => db !== undefined) as IasqlDatabase[]; // Typescript should know better
+  const dbs: IasqlDatabase[] = (
+    await Promise.all(
+      (
+        await MetadataRepo.getAllDbs()
+      ).map(async db => {
+        const versionString = await TypeormWrapper.getVersionString(db.pgName);
+        const Modules = (modules as any)[versionString];
+        return !!Modules ? db : undefined;
+      }),
+    )
+  ).filter((db: IasqlDatabase | undefined) => db !== undefined) as IasqlDatabase[]; // Typescript should know better
   const inits = await Promise.allSettled(dbs.map(db => start(db.pgName, db.pgUser)));
   for (const [i, bootstrap] of inits.entries()) {
     if (bootstrap.status === 'rejected') {
@@ -188,30 +204,52 @@ export async function init() {
   }
 }
 
-// Primitive RPC between parent and child process. Requires the parent to produce a unique ID per
-// request to pair up to the correct response. May replace with a revived multitransport-jsonrpc?
-process.on('message', (m: string[]) => {
-  const [fn, ...args] = m;
-  switch (fn) {
-    case 'init':
-      init()
-        .then(() => process.send?.(['initComplete', ...args, undefined]))
-        .catch((e) => process.send?.(['initComplete', ...args, e.message]));
-      break;
-    case 'start':
-      start(args[0], args[1])
-        .then(() => process.send?.(['startComplete', ...args, undefined]))
-        .catch((e) => process.send?.(['startComplete', ...args, e.message]));
-      break;
-    case 'stop':
-      stop(args[0])
-        .then(() => process.send?.(['stopComplete', ...args, undefined]))
-        .catch((e) => process.send?.(['stopComplete', ...args, e.message]));
-      break;
-    case 'stopAll':
-      stopAll()
-        .then(() => process.send?.(['stopAllComplete', ...args, undefined]))
-        .catch((e) => process.send?.(['stopAllComplete', ...args, e.message]));
-      break;
+if (require.main === module) {
+  const app = express();
+  const port = 14527;
+
+  function respondErrorAndDie(res: any, err: any) {
+    res.status(500).send(err);
+    logger.error(`Scheduler exited with error: ${err}`);
+    process.exit(13);
   }
-});
+
+  app.use((req: any, res: any, next: any) => {
+    logger.info(`Scheduler called on ${req.url}`);
+    next();
+  });
+
+  app.get('/init/', (req: any, res: any) => {
+    init()
+      .then(() => res.sendStatus(200))
+      .catch(e => respondErrorAndDie(res, e.message));
+  });
+
+  app.get('/start/:dbId/:dbUser/', (req: any, res: any) => {
+    const { dbId, dbUser } = req.params;
+    start(dbId, dbUser)
+      .then(() => res.sendStatus(200))
+      .catch(e => respondErrorAndDie(res, e.message));
+  });
+
+  app.get('/stop/:dbId/', (req: any, res: any) => {
+    const { dbId } = req.params;
+    stop(dbId)
+      .then(() => res.sendStatus(200))
+      .catch(e => respondErrorAndDie(res, e.message));
+  });
+
+  app.get('/stopAll/', (req: any, res: any) => {
+    stopAll()
+      .then(() => res.sendStatus(200))
+      .catch(e => respondErrorAndDie(res, e.message));
+  });
+
+  app.head('/health/', (req: any, res: any) => {
+    res.sendStatus(200);
+  });
+
+  app.listen(port, () => {
+    logger.info(`Scheduler running on port ${port}`);
+  });
+}

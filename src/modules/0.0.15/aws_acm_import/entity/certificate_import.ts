@@ -1,11 +1,4 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  AfterLoad,
-  AfterInsert,
-  AfterUpdate,
-} from 'typeorm'
+import { Entity, Column, PrimaryGeneratedColumn, AfterLoad, AfterInsert, AfterUpdate } from 'typeorm';
 
 // TODO: should we add PEM regex constraint?
 @Entity()
@@ -19,7 +12,7 @@ export class CertificateImport {
   @Column()
   privateKey: string;
 
-  @Column({ nullable: true, })
+  @Column({ nullable: true })
   chain?: string;
 
   @AfterLoad()
@@ -31,5 +24,4 @@ export class CertificateImport {
       if (that[k] === null) that[k] = undefined;
     });
   }
-
 }

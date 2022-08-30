@@ -5,8 +5,8 @@ import {
   ManyToMany,
   PrimaryColumn,
   CreateDateColumn,
-  UpdateDateColumn
-} from 'typeorm'
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity()
 export class IasqlDatabase {
@@ -32,6 +32,12 @@ export class IasqlDatabase {
     default: 0,
   })
   operationCount: number;
+
+  @Column({
+    type: 'boolean',
+    default: false,
+  })
+  upgrading: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

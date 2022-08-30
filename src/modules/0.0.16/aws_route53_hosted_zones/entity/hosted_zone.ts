@@ -1,10 +1,6 @@
-import {
-  Column,
-  Entity,
-  PrimaryGeneratedColumn,
-} from 'typeorm'
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-import { cloudId, } from '../../../../services/cloud-id'
+import { cloudId } from '../../../../services/cloud-id';
 
 @Entity()
 export class HostedZone {
@@ -20,5 +16,4 @@ export class HostedZone {
 
   @Column()
   domainName: string;
-
 }

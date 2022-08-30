@@ -1,14 +1,13 @@
 /* tslint:disable no-console */
-import * as util from 'util'
+import { createLogger } from '@logdna/logger';
+import * as sentry from '@sentry/node';
+import { Logger, LogFunctionFactory } from 'graphile-worker';
+import * as util from 'util';
 
-import * as sentry from '@sentry/node'
-import { Logger, LogFunctionFactory } from 'graphile-worker'
-import { createLogger, } from '@logdna/logger'
+import config from '../config';
+import { DepError } from './lazy-dep';
 
-import config from '../config'
-import { DepError } from './lazy-dep'
-
-const logFactory: LogFunctionFactory = (scope) => {
+const logFactory: LogFunctionFactory = scope => {
   // Better to check the config once in the factory and return fixed functions instead of checking
   // on each log output
   if (config.logger.logDnaKey) {
@@ -25,10 +24,12 @@ const logFactory: LogFunctionFactory = (scope) => {
         app: 'iasql-engine',
         env: process.env.IASQL_ENV,
       });
-    }
+    };
   } else if (config.logger.debug && config.logger.test) {
     return (level, message, meta) => {
-      const str = `${level}: ${message} ${util.inspect(scope)}${meta ? ` ${util.inspect(meta, { depth: 6, })}` : ''}\n`;
+      const str = `${level}: ${message} ${util.inspect(scope)}${
+        meta ? ` ${util.inspect(meta, { depth: 6 })}` : ''
+      }\n`;
       switch (level) {
         case 'error':
           process.stderr.write(str);
@@ -53,13 +54,15 @@ const logFactory: LogFunctionFactory = (scope) => {
     };
   } else if (config.logger.test) {
     return (level, message, meta) => {
-      const str = `${level}: ${message} ${util.inspect(scope)}${meta ? ` ${util.inspect(meta, { depth: 6, })}` : ''}\n`;
+      const str = `${level}: ${message} ${util.inspect(scope)}${
+        meta ? ` ${util.inspect(meta, { depth: 6 })}` : ''
+      }\n`;
       switch (level) {
         case 'error':
           process.stderr.write(str);
           break;
         case 'debug':
-          break
+          break;
         default:
           process.stdout.write(str);
           break;
@@ -72,14 +75,14 @@ const logFactory: LogFunctionFactory = (scope) => {
           console.error(level, message, scope, meta);
           break;
         case 'debug':
-          break
+          break;
         default:
           console.log(level, message, scope, meta);
           break;
       }
     };
   }
-}
+};
 const singleton = new Logger(logFactory);
 
 export function debugObj(e: any) {
@@ -92,7 +95,7 @@ export function debugObj(e: any) {
 // returns the sentry error id
 export function logErrSentry(e: any, uid?: string, email?: string, dbAlias?: string): string {
   if (!(e instanceof DepError) && !(e instanceof Error)) {
-    singleton.error(`Invalid error type ${typeof e} when logging to sentry. e = ${JSON.stringify(e)}`)
+    singleton.error(`Invalid error type ${typeof e} when logging to sentry. e = ${JSON.stringify(e)}`);
   }
   let message = e?.message ?? '';
   let err = e;
@@ -104,20 +107,22 @@ export function logErrSentry(e: any, uid?: string, email?: string, dbAlias?: str
   }
   if (config.sentry) {
     // TODO figure out how to use the stacktrace for the last error
-    message += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureEvent({
-      message,
-      // https://docs.sentry.io/platforms/node/guides/express/enriching-events/identify-user/
-      user: {
-        id: uid,
-        email,
+    message += `\nPlease provide the following error ID if reporting it to the IaSQL team: ${sentry.captureEvent(
+      {
+        message,
+        // https://docs.sentry.io/platforms/node/guides/express/enriching-events/identify-user/
+        user: {
+          id: uid,
+          email,
+        },
+        extra: {
+          dbAlias,
+          metadata,
+        },
       },
-      extra: {
-        dbAlias,
-        metadata
-      }
-    })}`;
+    )}`;
   }
-  singleton.error(message, e instanceof DepError ? e.metadata: err);
+  singleton.error(message, e instanceof DepError ? e.metadata : err);
   return message;
 }
 

@@ -37,8 +37,6 @@ jobs:
         uses: mvasigh/dispatch-action@main
         with:
           token: ${{ secrets.GH_PAT }}
-          repo: docs
-          owner: iasql
           event_type: release
           message: |
             {
