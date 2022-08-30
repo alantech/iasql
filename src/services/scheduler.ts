@@ -11,6 +11,7 @@ import logger, { logErrSentry } from './logger';
 import MetadataRepo from './repositories/metadata';
 import * as telemetry from './telemetry';
 import { TypeormWrapper } from './typeorm';
+import express from 'express';
 
 const latest = modules[config.modules.latestVersion];
 
@@ -204,7 +205,6 @@ export async function init() {
 }
 
 if (require.main === module) {
-  const express = require('express')
   const app = express()
   const port = 14527
 
