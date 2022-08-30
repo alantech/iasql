@@ -23,20 +23,6 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ["aws_api_gateway"];
 const apiName = `${prefix}testApi`;
 
-const policyJSON = {
-  "Version": "2012-10-17",
-  "Statement": [
-      {
-          "Effect": "Allow",
-          "Principal": "*",
-          "Action": "execute-api:Invoke",
-          "Resource": "arn:aws:execute-api:*:*:*/*"
-      }
-  ]
-}
-
-const policyDocument = JSON.stringify(policyJSON);
-
 jest.setTimeout(3600000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
@@ -62,7 +48,7 @@ describe("API Gateway Integration Testing", () => {
   it(
     "adds a new API gateway",
     query(`  
-    INSERT INTO rest_api (name, description)
+    INSERT INTO api (name, description)
     VALUES ('${apiName}', 'description');
   `)
   );
@@ -72,7 +58,7 @@ describe("API Gateway Integration Testing", () => {
   it(
     "adds a new API gateway",
     query(`  
-    INSERT INTO rest_api (name, description, disable_execute_api_endpoint, version)
+    INSERT INTO api (name, description, disable_execute_api_endpoint, version)
     VALUES ('${apiName}', 'description', false, '1.0');
   `)
   );
@@ -83,7 +69,7 @@ describe("API Gateway Integration Testing", () => {
     "check API gateway is available",
     query(
       `
-  SELECT * FROM rest_api WHERE name='${apiName}';
+  SELECT * FROM api WHERE name='${apiName}';
   `,
       (res: any) => expect(res.length).toBe(1)
     )
@@ -92,7 +78,7 @@ describe("API Gateway Integration Testing", () => {
   it(
     "tries to update API description",
     query(`
-  UPDATE rest_api SET description='new description' WHERE name='${apiName}'
+  UPDATE api SET description='new description' WHERE name='${apiName}'
   `)
   );
 
@@ -102,25 +88,16 @@ describe("API Gateway Integration Testing", () => {
     "checks that API has been been modified",
     query(
       `
-  SELECT * FROM rest_api WHERE description='new description' and name='${apiName}';
+  SELECT * FROM api WHERE description='new description' and name='${apiName}';
 `,
       (res: any) => expect(res.length).toBe(1)
     )
   );
 
-  it('updates the API policy', query(`
-  UPDATE rest_api SET policy='${policyDocument}' WHERE name = '${apiName}';
-  `));
-  it('applies the API policy update', apply());
-
-  it('gets current API policy with updated document', query(`
-  SELECT * FROM rest_api WHERE name = '${apiName}';
-  `, (res: any[]) => expect(res[0].policy).toStrictEqual(JSON.parse(policyDocument))));
-
   it(
     "tries to update API ID",
     query(`
-  UPDATE rest_api SET rest_api_id='fake' WHERE name='${apiName}'
+  UPDATE api SET api_id='fake' WHERE name='${apiName}'
   `)
   );
 
@@ -130,7 +107,35 @@ describe("API Gateway Integration Testing", () => {
     "checks that API ID has not been been modified",
     query(
       `
-  SELECT * FROM rest_api WHERE rest_api_id='fake' AND name='${apiName}';
+  SELECT * FROM api WHERE api_id='fake' AND name='${apiName}';
+`,
+      (res: any) => expect(res.length).toBe(0)
+    )
+  );
+
+  it(
+    "tries to update the API protocol",
+    query(`
+  UPDATE api SET protocol_type='WEBSOCKET' WHERE name='${apiName}'
+  `)
+  );
+
+  it("applies the API protocol update", apply());
+
+  it(
+    "checks that API protocol has not been been modified",
+    query(
+      `
+  SELECT * FROM api WHERE protocol_type='HTTP' AND name='${apiName}';
+`,
+      (res: any) => expect(res.length).toBe(1)
+    )
+  );
+  it(
+    "checks that API protocol has not been been modified",
+    query(
+      `
+  SELECT * FROM api WHERE protocol_type='WEBSOCKET' AND name='${apiName}';
 `,
       (res: any) => expect(res.length).toBe(0)
     )
@@ -147,7 +152,7 @@ describe("API Gateway Integration Testing", () => {
     "checks API count",
     query(
       `
-    SELECT * FROM rest_api WHERE name='${apiName}';
+    SELECT * FROM api WHERE name='${apiName}';
   `,
       (res: any) => expect(res.length).toBe(1)
     )
@@ -156,7 +161,7 @@ describe("API Gateway Integration Testing", () => {
   it(
     "deletes the API",
     query(`
-    DELETE FROM rest_api
+    DELETE FROM api
     WHERE name = '${apiName}';
   `)
   );
