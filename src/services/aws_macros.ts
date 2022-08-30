@@ -1,5 +1,5 @@
 import { ACM } from '@aws-sdk/client-acm';
-import { ApiGatewayV2 } from '@aws-sdk/client-apigatewayv2'
+import { ApiGatewayV2 } from '@aws-sdk/client-apigatewayv2';
 import { CloudFront } from '@aws-sdk/client-cloudfront';
 import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
@@ -42,7 +42,7 @@ type PromiseReturnType<F> = ArgumentTypes<ArgumentTypes<F>[2]>[1];
 
 export class AWS {
   acmClient: ACM;
-  apiGatewayClient: ApiGatewayV2
+  apiGatewayClient: ApiGatewayV2;
   cwClient: CloudWatchLogs;
   ec2client: EC2;
   ecrClient: ECR;
@@ -64,7 +64,11 @@ export class AWS {
 
   constructor(config: AWSConfig) {
     this.region = config.region;
-    this.apiGatewayClient = new ApiGatewayV2({credentials: config.credentials, region: config.region, maxAttempts: 30 });
+    this.apiGatewayClient = new ApiGatewayV2({
+      credentials: config.credentials,
+      region: config.region,
+      maxAttempts: 30,
+    });
     this.acmClient = new ACM(config);
     this.cloudfrontClient = new CloudFront(config);
     this.cwClient = new CloudWatchLogs(config);
