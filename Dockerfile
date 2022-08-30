@@ -16,4 +16,4 @@ ARG IASQL_ENV
 ENV IASQL_ENV=$IASQL_ENV
 RUN ["yarn", "build"]
 EXPOSE 8088
-CMD yarn start
+ENTRYPOINT ["/engine/docker-entrypoint.sh"]
