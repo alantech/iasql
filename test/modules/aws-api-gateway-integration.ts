@@ -13,7 +13,7 @@ import {
 } from "../helpers";
 
 const prefix = getPrefix();
-const dbAlias = "apigatewaytest";
+const dbAlias = `${prefix}apigatewaytest`;
 
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
@@ -21,7 +21,7 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ["aws_api_gateway"];
-const apiName = "testApi";
+const apiName = `${prefix}testApi`;
 
 const policyJSON = {
   "Version": "2012-10-17",
@@ -37,7 +37,7 @@ const policyJSON = {
 
 const policyDocument = JSON.stringify(policyJSON);
 
-jest.setTimeout(360000);
+jest.setTimeout(3600000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
@@ -130,7 +130,7 @@ describe("API Gateway Integration Testing", () => {
     "checks that API ID has not been been modified",
     query(
       `
-  SELECT * FROM rest_api WHERE rest_api_id='fake';
+  SELECT * FROM rest_api WHERE rest_api_id='fake' AND name='${apiName}';
 `,
       (res: any) => expect(res.length).toBe(0)
     )

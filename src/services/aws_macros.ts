@@ -15,6 +15,8 @@ import { Route53, } from '@aws-sdk/client-route-53'
 import { S3, } from '@aws-sdk/client-s3'
 import { SecretsManager } from '@aws-sdk/client-secrets-manager'
 import { SSM, } from '@aws-sdk/client-ssm'
+import { StandardRetryStrategy } from '@aws-sdk/middleware-retry'
+import { Provider } from '@aws-sdk/types'
 
 type AWSCreds = {
   accessKeyId: string,
@@ -60,6 +62,7 @@ export class AWS {
 
   constructor(config: AWSConfig) {
     this.region = config.region;
+    this.apiGatewayClient = new APIGateway({credentials: config.credentials, region: config.region, maxAttempts: 30 });
     this.acmClient = new ACM(config);
     this.cwClient = new CloudWatchLogs(config);
     this.dynamoClient = new DynamoDB(config);
@@ -74,7 +77,6 @@ export class AWS {
     this.route53Client = new Route53(config);
     this.secretsClient = new SecretsManager(config);
     this.ssmClient = new SSM(config);
-    this.apiGatewayClient = new APIGateway(config);
     // Technically available in multiple regions but with weird constraints, and the default is us-east-1
     this.s3Client = new S3({ ...config, region: 'us-east-1', });
     // Service endpoint only available in 'us-east-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
