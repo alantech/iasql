@@ -219,33 +219,33 @@ if (require.main === module) {
     next();
   });
 
-  app.get('/init/', async (req: any, res: any) => {
+  app.get('/init/', (req: any, res: any) => {
     init()
       .then(() => res.sendStatus(200))
       .catch(e => respondErrorAndDie(res, e.message));
   });
 
-  app.get('/start/:dbId/:dbUser/', async (req: any, res: any) => {
+  app.get('/start/:dbId/:dbUser/', (req: any, res: any) => {
     const { dbId, dbUser } = req.params;
     start(dbId, dbUser)
       .then(() => res.sendStatus(200))
       .catch(e => respondErrorAndDie(res, e.message));
   });
 
-  app.get('/stop/:dbId/', async (req: any, res: any) => {
+  app.get('/stop/:dbId/', (req: any, res: any) => {
     const { dbId } = req.params;
     stop(dbId)
       .then(() => res.sendStatus(200))
       .catch(e => respondErrorAndDie(res, e.message));
   });
 
-  app.get('/stopAll/', async (req: any, res: any) => {
+  app.get('/stopAll/', (req: any, res: any) => {
     stopAll()
       .then(() => res.sendStatus(200))
       .catch(e => respondErrorAndDie(res, e.message));
   });
 
-  app.head('/health/', async (req: any, res: any) => {
+  app.head('/health/', (req: any, res: any) => {
     res.sendStatus(200);
   });
 
