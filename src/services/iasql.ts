@@ -103,7 +103,7 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     `);
     // wait for the scheduler to start and register its migrations before ours so that the stored procedures
     // that use the scheduler's schema succeed
-    await scheduler.start(dbId, dbUser);
+    await scheduler.start(dbId);
     schedulerStarted = true;
     conn2 = await createConnection({
       ...dbMan.baseConnConfig,
