@@ -104,7 +104,7 @@ describe('ECS Simplified Integration Testing', () => {
   it('update target group directly', query(`
     UPDATE target_group
     SET health_check_path = '/'
-    WHERE app_name = '${appName}-target';
+    WHERE target_group_name = '${appName}-target';
   `));
 
   it('check ecs_simplified row is gone', query(`
@@ -113,10 +113,10 @@ describe('ECS Simplified Integration Testing', () => {
     WHERE app_name = '${appName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('update target group directly to correct value', query(`
+  it('update target_group directly to correct value', query(`
     UPDATE target_group
     SET health_check_path = '/health'
-    WHERE app_name = '${appName}-target';
+    WHERE target_group_name = '${appName}-target';
   `));
 
   it('check ecs_simplified row is gone', query(`
