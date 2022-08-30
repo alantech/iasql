@@ -101,6 +101,30 @@ describe('ECS Simplified Integration Testing', () => {
     expect(res[0]['port']).toBe(appPort + 1);
   }));
 
+  it('update target group directly', query(`
+    UPDATE target_group
+    SET health_check_path = '/'
+    WHERE app_name = '${appName}-target';
+  `));
+
+  it('check ecs_simplified row is gone', query(`
+    SELECT *
+    FROM ecs_simplified
+    WHERE app_name = '${appName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('update target group directly to correct value', query(`
+    UPDATE target_group
+    SET health_check_path = '/health'
+    WHERE app_name = '${appName}-target';
+  `));
+
+  it('check ecs_simplified row is gone', query(`
+    SELECT *
+    FROM ecs_simplified
+    WHERE app_name = '${appName}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
   it('deletes the app', query(`
     delete from ecs_simplified
     where app_name = '${appName}';
