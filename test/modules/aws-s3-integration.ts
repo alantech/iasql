@@ -63,7 +63,7 @@ describe('S3 Integration Testing', () => {
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_REGION}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `));
+  `, undefined, false));
 
   it('installs the s3 module', install(modules));
 
@@ -165,7 +165,7 @@ describe('S3 install/uninstall', () => {
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `));
+  `, undefined, false));
 
   it('installs the S3 module and confirms one table is created', query(`
     select * from iasql_install('aws_s3');

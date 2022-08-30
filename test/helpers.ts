@@ -56,9 +56,9 @@ export function runUninstallAll(dbAlias: string) {
   );`);
 }
 
-export function runQuery(databaseName: string, queryString: string, assertFn?: (res: any[]) => void) {
+export function runQuery(databaseName: string, queryString: string, assertFn?: (res: any[]) => void, log = true) {
   return function (done: (e?: any) => {}) {
-    logger.info(queryString);
+    if (log) logger.info(queryString);
     createConnection({
       name: uuidv4(),
       type: 'postgres',

@@ -111,7 +111,7 @@ describe('EC2 Integration Testing', () => {
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('${region}', '${accessKeyId}', '${secretAccessKey}')
-  `));
+  `, undefined, false));
 
   it('creates a new test db to test sync', (done) => void iasql.connect(
     `${dbAlias}_sync`,
@@ -122,7 +122,7 @@ describe('EC2 Integration Testing', () => {
   it('inserts aws credentials', querySync(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('us-east-1', '${accessKeyId}', '${secretAccessKey}')
-  `));
+  `, undefined, false));
 
   it('installs the ec2 module', install(modules));
 
@@ -659,7 +659,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_REGION}', '${accessKeyId}', '${secretAccessKey}')
-  `));
+  `, undefined, false));
 
   it('installs the module', install(modules));
 
@@ -811,7 +811,7 @@ describe('EC2 install/uninstall', () => {
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('us-east-1', '${accessKeyId}', '${secretAccessKey}')
-  `));
+  `, undefined, false));
 
   // Install can automatically pull in all dependencies, so we only need to specify ec2 here
   it('installs the ec2 module', install(['aws_ec2']));

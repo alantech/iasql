@@ -76,7 +76,7 @@ describe('Testing metadata repo', () => {
   it('inserts aws credentials', dbQuery(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `));
+  `, undefined, false));
 
   it('apply updates db counts', apply());
 

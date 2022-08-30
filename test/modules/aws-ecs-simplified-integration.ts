@@ -52,7 +52,7 @@ describe('ECS Simplified Integration Testing', () => {
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `));
+  `, undefined, false));
 
   it('installs the ecs simplified module and its dependencies', install(modules));
 
@@ -194,7 +194,7 @@ describe('ECS Simplified install/uninstall', () => {
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `));
+  `, undefined, false));
 
   it('installs the ECS Simplified module', install(modules));
 

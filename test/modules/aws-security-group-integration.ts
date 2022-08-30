@@ -28,7 +28,7 @@ describe('Security Group Integration Testing', () => {
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_REGION}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `));
+  `, undefined, false));
 
   it('installs the security group module', install(
     modules));
@@ -283,7 +283,7 @@ describe('Security Group install/uninstall', () => {
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `));
+  `, undefined, false));
 
   it('installs the Security Group module and confirms two tables are created', query(`
     select * from iasql_install('aws_security_group', 'aws_vpc');
