@@ -291,8 +291,6 @@ BEGIN
     FROM listener
     WHERE port = _app_port AND target_group_name = _target_group_name;
 
-    is_valid = is_valid AND _repository_name IS NOT NULL AND _cpu_mem IS NOT NULL AND _load_balancer_name IS NOT NULL;
-
     is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM load_balancer WHERE load_balancer_name = _load_balancer_name AND scheme = 'internet-facing' AND load_balancer_type = 'application' AND ip_address_type = 'ipv4');
 
     is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM load_balancer_security_groups WHERE load_balancer_name = _load_balancer_name AND security_group_id = _security_group_id);
