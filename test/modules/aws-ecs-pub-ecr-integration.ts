@@ -74,7 +74,7 @@ describe('ECS Integration Testing', () => {
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `));
+  `, undefined, false));
 
   it('creates a new sidecar test db ECS', (done) => void iasql.connect(
     dbAliasSidecar,
@@ -85,7 +85,7 @@ describe('ECS Integration Testing', () => {
   it('inserts aws credentials', querySync(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
     VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `));
+  `, undefined, false));
 
   it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 
