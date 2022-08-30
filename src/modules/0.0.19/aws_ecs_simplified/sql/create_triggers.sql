@@ -19,7 +19,7 @@ DECLARE
   _mem DECIMAL;
 BEGIN
   _cpu = ROUND(GREATEST(COALESCE(cpu, 256), 256) / 1024.0, 2);
-  _mem = ROUND(GREATEST(COALESCE(mem, 512), 256) / 1024.0, 2);
+  _mem = ROUND(GREATEST(COALESCE(mem, 512), 512) / 1024.0, 2);
   RETURN 'vCPU' || RTRIM(_cpu::TEXT, '0') || '-' || RTRIM(_mem::TEXT, '0') || 'GB';
 END
 $$;
@@ -290,6 +290,8 @@ BEGIN
     SELECT load_balancer_name INTO _load_balancer_name
     FROM listener
     WHERE port = _app_port AND target_group_name = _target_group_name;
+
+    is_valid = is_valid AND _repository_name IS NOT NULL AND _cpu_mem IS NOT NULL AND _load_balancer_name IS NOT NULL;
 
     is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM load_balancer WHERE load_balancer_name = _load_balancer_name AND scheme = 'internet-facing' AND load_balancer_type = 'application' AND ip_address_type = 'ipv4');
 
