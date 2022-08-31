@@ -1158,7 +1158,7 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   // manually. We can do that because we can use the module's dependencies to figure out what they
   // should be
   for (const mod of leftoverModules) {
-    const Module = Modules.find((m: any) => `${m.name}@${m.version}` === mod.name);
+    const Module: any = Object.values(Modules).find((m: any) => `${m.name}@${m.version}` === mod.name);
     if (!Module) throw new Error(`Somehow ${mod.name} does not have a corresponding module defined`);
     mod.dependencies = [];
     for (const depName of Module.dependencies) {
