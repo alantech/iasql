@@ -41,14 +41,20 @@ const elasticacheclient = new ElastiCache({
 
 const getNodeTypes = async () => {
   const reservations = await elasticacheclient.describeReservedCacheNodesOfferings({});
+  console.log("in node types");
   if (reservations && reservations.ReservedCacheNodesOfferings) {
     const items: string[] = [];
+    console.log("i pick nodes for ");
+    console.log(nodeType);
     // iterate over list and get the ones matching the product description
     reservations.ReservedCacheNodesOfferings.forEach(function (node) {
       if (node.ProductDescription == cacheType) {
+        console.log("i get node");
         if (node.CacheNodeType) items.push(node.CacheNodeType);
       }
     });
+    console.log("items are");
+    console.log(items);
     return items;
   } else return undefined;
 };
