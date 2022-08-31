@@ -1,4 +1,5 @@
 import { ACM } from '@aws-sdk/client-acm';
+import { ApiGatewayV2 } from '@aws-sdk/client-apigatewayv2';
 import { CloudFront } from '@aws-sdk/client-cloudfront';
 import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
@@ -16,6 +17,7 @@ import { Route53 } from '@aws-sdk/client-route-53';
 import { S3 } from '@aws-sdk/client-s3';
 import { SecretsManager } from '@aws-sdk/client-secrets-manager';
 import { SSM } from '@aws-sdk/client-ssm';
+import { StandardRetryStrategy } from '@aws-sdk/middleware-retry';
 
 type AWSCreds = {
   accessKeyId: string;
@@ -39,8 +41,14 @@ type ArgumentTypes<F> = F extends (...args: infer A) => infer B ? [...A, B] : ne
 // break.
 type PromiseReturnType<F> = ArgumentTypes<ArgumentTypes<F>[2]>[1];
 
+// defaults for slow retries
+const SLOW_STRATEGY_RETRIES = 10; // retry a max of 10 times, it will allow to bypass quotas
+const SLOW_STRATEGY_BASE_DELAY = 1000; // wait 1 second - as only delete api has a 5 second quota
+const SLOW_STRATEGY_MAXIMUM_RETRY_DELAY = 20 * 5000;
+
 export class AWS {
   acmClient: ACM;
+  apiGatewayClient: ApiGatewayV2;
   cwClient: CloudWatchLogs;
   ec2client: EC2;
   ecrClient: ECR;
@@ -59,9 +67,26 @@ export class AWS {
   secretsClient: SecretsManager;
   cloudfrontClient: CloudFront;
   memoryDBClient: MemoryDB;
+  slowRetryStrategy: StandardRetryStrategy;
 
   constructor(config: AWSConfig) {
+    // declare an specific slow retry strategy, to reuse in slow apis
+    this.slowRetryStrategy = new StandardRetryStrategy(async () => SLOW_STRATEGY_RETRIES, {
+      delayDecider: (_, attempts) =>
+        Math.floor(
+          Math.min(
+            SLOW_STRATEGY_MAXIMUM_RETRY_DELAY,
+            Math.random() * 2 ** attempts * SLOW_STRATEGY_BASE_DELAY,
+          ),
+        ),
+    });
+
     this.region = config.region;
+    this.apiGatewayClient = new ApiGatewayV2({
+      credentials: config.credentials,
+      region: config.region,
+      retryStrategy: this.slowRetryStrategy,
+    });
     this.acmClient = new ACM(config);
     this.cloudfrontClient = new CloudFront(config);
     this.cwClient = new CloudWatchLogs(config);
