@@ -4,7 +4,7 @@ name: Clean-up AWS accounts
 on:
   workflow_call:
     inputs:
-      modules:
+      account_ids:
         required: true
         type: string
       regions:
@@ -18,16 +18,12 @@ jobs:
   module-cleanup:
     timeout-minutes: 30
     runs-on: ubuntu-latest
-    name: ${{ matrix.module }} ${{ matrix.region }}
+    name: ${{ matrix.region }} Account ${{ matrix.account }}
     strategy:
       fail-fast: false
       matrix:
-        module: ${{ fromJson(inputs.modules) }}
+        account: ${{ fromJson(inputs.account_ids) }}
         region: ${{ fromJson(inputs.regions) }}
-
-    env:
-      MATRIX_AWS_ACCESS_KEY_ID: AWS_ACCESS_KEY_ID_${{matrix.module}}
-      MATRIX_AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY_${{matrix.module}}
 
     steps:
       - uses: actions/checkout@v2
@@ -52,6 +48,8 @@ jobs:
 
       - name: Set up iasql database
         run: |
+          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
           echo "\nInstalling aws_account..."
           psql postgres://postgres:test@localhost:5432/iasql -c "
             select iasql_install(
@@ -70,9 +68,10 @@ jobs:
             );
           ";
         env:
+          ACCOUNT_INDEX: ${{ matrix.account }}
           AWS_REGION: ${{ matrix.region }}
-          AWS_ACCESS_KEY_ID: ${{ secrets[env.MATRIX_AWS_ACCESS_KEY_ID] }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets[env.MATRIX_AWS_SECRET_ACCESS_KEY] }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
 
       - name: Run cleaning script
         if: ${{ !inputs.global }}
