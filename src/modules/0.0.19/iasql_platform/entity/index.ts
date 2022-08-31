@@ -20,7 +20,6 @@ export class IasqlModule {
   @ManyToMany(() => IasqlModule, m => m.name, {
     createForeignKeyConstraints: true,
     nullable: true,
-    eager: true,
   })
   @JoinTable({
     name: 'iasql_dependencies',
