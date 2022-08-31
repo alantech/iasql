@@ -25,7 +25,7 @@ jobs:
       - run: yarn
       - id: set-test-account-ids
         name: Set modules tests names
-        run: echo "::set-output name=test-account-ids::$(node -e "console.log(JSON.stringify([...Array(100)].map((_, i) => i.toString())))")
+        run: echo "::set-output name=test-account-ids::$(node -e "console.log(JSON.stringify([...Array(100)].map((_, i) => i.toString())))")"
 
   # Job by region since we pass the 256 job limit running them all at once
   cleanup-ap-northeast-1:
