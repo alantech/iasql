@@ -1,4 +1,8 @@
-import { isObject, isString, isStringArray } from './common';
+import { isObject, isString } from './common';
+
+function isStringArray(obj: unknown): obj is string[] {
+  return Array.isArray(obj) && obj.every(isString);
+}
 
 enum IAM_KEY {
   Version = 'Version',

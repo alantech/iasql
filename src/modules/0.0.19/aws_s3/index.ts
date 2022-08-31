@@ -6,9 +6,9 @@ import {
 } from '@aws-sdk/client-s3';
 
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
+import policiesAreSame from '../../../services/policy-diff';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { Bucket } from './entity';
-import policiesAreSame from '../../../util/policy-diff';
 
 class BucketMapper extends MapperBase<Bucket> {
   module: AwsS3Module;

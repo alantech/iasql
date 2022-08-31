@@ -11,11 +11,11 @@ import {
 
 import { AwsVpcModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
+import { isString } from '../../../../services/common';
+import policiesAreSame from '../../../../services/policy-diff';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { EndpointGateway, EndpointGatewayService } from '../entity';
 import { eqTags, updateTags } from './tags';
-import policiesAreSame from '../../../../util/policy-diff';
-import { isString } from '../../../../util/common';
 
 export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
   module: AwsVpcModule;
