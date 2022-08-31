@@ -3,7 +3,7 @@ import { IAM, paginateListRoles, Role as AWSRole } from '@aws-sdk/client-iam';
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { Role } from './entity';
-import policiesAreSame from "../../../util/policy-diff";
+import policiesAreSame from '../../../util/policy-diff';
 
 class RoleMapper extends MapperBase<Role> {
   module: AwsIamModule;
