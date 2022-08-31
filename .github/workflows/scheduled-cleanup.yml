@@ -32,7 +32,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: ap-northeast-1
@@ -43,7 +43,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: ap-northeast-2
@@ -54,7 +54,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: ap-northeast-3
@@ -65,7 +65,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: ap-south-1
@@ -76,7 +76,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: ap-southeast-1
@@ -87,7 +87,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: ap-southeast-2
@@ -98,7 +98,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: us-east-2
@@ -109,7 +109,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: us-west-1
@@ -120,7 +120,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: us-west-2
@@ -131,7 +131,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: sa-east-1
@@ -142,7 +142,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: ca-central-1
@@ -153,7 +153,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: eu-north-1
@@ -164,7 +164,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: eu-west-1
@@ -175,7 +175,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: eu-west-2
@@ -186,7 +186,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: eu-west-3
@@ -197,7 +197,7 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: eu-central-1
@@ -224,7 +224,7 @@ jobs:
       - cleanup-eu-west-2
       - cleanup-eu-west-3
       - cleanup-eu-central-1
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: us-east-1
@@ -235,7 +235,7 @@ jobs:
     if: ${{ github.event.inputs.region != '' }}
     needs:
       - setup-module-cleanup
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: ${{ github.event.inputs.region }}
@@ -247,7 +247,7 @@ jobs:
     needs:
       - setup-module-cleanup
       - cleanup-custom
-    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@rework-cleanup-logic
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
       region: ${{ github.event.inputs.region }}
