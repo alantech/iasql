@@ -1153,7 +1153,7 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
     (m: string) => !mods.some(m2 => `${m2.name}@${m2.version}` === m),
   );
   // See if any modules not being uninstalled depend on any of the modules to be uninstalled
-  const leftoverModules = allInstalledModules.filter((m: any) => !mods.includes(m.name));
+  const leftoverModules = allInstalledModules.filter((m: any) => !mods.map(n => `${n.name}@${n.version}`).includes(m.name));
   // Because of TypeORM weirdness with self-referential tables, construct the dependencies array
   // manually. We can do that because we can use the module's dependencies to figure out what they
   // should be
@@ -1168,9 +1168,9 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
     }
   }
   for (const mod of leftoverModules) {
-    if (mod.dependencies.filter((m: any) => mods.includes(m.name)).length > 0) {
+    if (mod.dependencies.filter((m: any) => mods.map(n => `${n.name}@${n.version}`).includes(m.name)).length > 0) {
       throw new Error(
-        `Cannot uninstall ${mods.join(', ')} as ${mod.name} still depends on one or more of them`,
+        `Cannot uninstall ${moduleList.join(', ')} as ${mod.name} still depends on one or more of them`,
       );
     }
   }
