@@ -31,10 +31,7 @@ class ApiMapper extends MapperBase<Api> {
     res => res?.Items,
   );
 
-  async createApi(client: ApiGatewayV2, input: CreateApiCommandInput) {
-    const newRestApi = await client.createApi(input);
-    return newRestApi;
-  }
+  createApi = crudBuilder2<ApiGatewayV2, 'createApi'>('createApi', input => input);
 
   deleteApi = crudBuilder2<ApiGatewayV2, 'deleteApi'>('deleteApi', ApiId => ({ ApiId }));
 
@@ -56,14 +53,16 @@ class ApiMapper extends MapperBase<Api> {
           ProtocolType: r.protocolType.toString(),
           Version: r.version,
         };
-        const result: CreateApiCommandOutput = await this.createApi(client.apiGatewayClient, input);
+        const result = await this.createApi(client.apiGatewayClient, input);
         if (result) {
           const newApi = this.apiMapper(result);
           // use the same ID as the one inserted, and set the name as is optionally returned
-          newApi.id = r.id;
-          newApi.name = r.name;
-          await this.module.api.db.update(newApi, ctx);
-          out.push(newApi);
+          if (newApi) {
+            newApi.id = r.id;
+            newApi.name = r.name;
+            await this.module.api.db.update(newApi, ctx);
+            out.push(newApi);
+          }
         }
       }
       return out;
@@ -109,11 +108,13 @@ class ApiMapper extends MapperBase<Api> {
             const res = await this.updateApi(client.apiGatewayClient, input);
             if (res) {
               const newApi = this.apiMapper(res);
-              newApi.name = r.name;
-              newApi.id = r.id;
-              // Save the record back into the database to get the new fields updated
-              await this.module.api.db.update(newApi, ctx);
-              out.push(newApi);
+              if (newApi) {
+                newApi.name = r.name;
+                newApi.id = r.id;
+                // Save the record back into the database to get the new fields updated
+                await this.module.api.db.update(newApi, ctx);
+                out.push(newApi);
+              }
             } else {
               throw new Error('Error updating API');
             }
@@ -138,8 +139,7 @@ class ApiMapper extends MapperBase<Api> {
 
   apiMapper(instance: any) {
     const r: Api = new Api();
-    if (!instance.ApiId) throw new Error('Received an API without a id');
-    if (!instance.Name) throw new Error('Received an API without a name');
+    if (!instance.ApiId || !instance.Name) return undefined;
     r.description = instance.Description;
     r.disableExecuteApiEndpoint = instance.DisableExecuteApiEndpoint;
     r.name = instance.Name;
