@@ -7,7 +7,7 @@ on:
       account_ids:
         required: true
         type: string
-      regions:
+      region:
         required: true
         type: string
       global:
@@ -18,12 +18,11 @@ jobs:
   module-cleanup:
     timeout-minutes: 30
     runs-on: ubuntu-latest
-    name: ${{ matrix.region }} Account ${{ matrix.account }}
+    name: ${{ inputs.region }} Account ${{ matrix.account }}
     strategy:
       fail-fast: false
       matrix:
         account: ${{ fromJson(inputs.account_ids) }}
-        region: ${{ fromJson(inputs.regions) }}
 
     steps:
       - uses: actions/checkout@v2
@@ -69,7 +68,7 @@ jobs:
           ";
         env:
           ACCOUNT_INDEX: ${{ matrix.account }}
-          AWS_REGION: ${{ matrix.region }}
+          AWS_REGION: ${{ inputs.region }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
 

@@ -13,6 +13,7 @@ on:
     inputs:
       region:
         description: 'Optional region to delete'
+        required: false
 
 jobs:
   setup-module-cleanup:
@@ -27,47 +28,179 @@ jobs:
         run: echo "::set-output name=test-account-ids::$(node -e "console.log(JSON.stringify([...Array(100)].map((_, i) => i.toString())))")
 
   # Job by region since we pass the 256 job limit running them all at once
-  cleanup-ap:
+  cleanup-ap-northeast-1:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
-      regions: "['ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-south-1', 'ap-southeast-1', 'ap-southeast-2']"
+      region: ap-northeast-1
       global: false
     secrets: inherit
 
-  cleanup-us:
+  cleanup-ap-northeast-2:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
-      regions: "['us-east-2', 'us-west-1', 'us-west-2']"
+      region: ap-northeast-2
       global: false
     secrets: inherit
 
-  cleanup-sa_ca:
+  cleanup-ap-northeast-3:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
-      regions: "['sa-east-1', 'ca-central-1']"
+      region: ap-northeast-3
       global: false
     secrets: inherit
 
-  cleanup-eu:
+  cleanup-ap-south-1:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
-      regions: "['eu-north-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-central-1']"
+      region: ap-south-1
+      global: false
+    secrets: inherit
+
+  cleanup-ap-southeast-1:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
+      region: ap-southeast-1
+      global: false
+    secrets: inherit
+
+  cleanup-ap-southeast-2:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
+      region: ap-southeast-2
+      global: false
+    secrets: inherit
+
+  cleanup-us-east-2:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
+      region: us-east-2
+      global: false
+    secrets: inherit
+
+  cleanup-us-west-1:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
+      region: us-west-1
+      global: false
+    secrets: inherit
+
+  cleanup-us-west-2:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
+      region: us-west-2
+      global: false
+    secrets: inherit
+
+  cleanup-sa_east-1:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
+      region: sa-east-1
+      global: false
+    secrets: inherit
+
+  cleanup-ca-central-1:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
+      region: ca-central-1
+      global: false
+    secrets: inherit
+
+  cleanup-eu-north-1:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
+      region: eu-north-1
+      global: false
+    secrets: inherit
+
+  cleanup-eu-west-1:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
+      region: eu-west-1
+      global: false
+    secrets: inherit
+
+  cleanup-eu-west-2:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
+      region: eu-west-2
+      global: false
+    secrets: inherit
+
+  cleanup-eu-west-3:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
+      region: eu-west-3
+      global: false
+    secrets: inherit
+
+  cleanup-eu-central-1:
+    if: ${{ github.event.inputs.region == '' }}
+    needs:
+      - setup-module-cleanup
+    uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
+    with:
+      account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
+      region: eu-central-1
       global: false
     secrets: inherit
 
@@ -75,14 +208,26 @@ jobs:
     if: ${{ github.event.inputs.region == '' }}
     needs:
       - setup-module-cleanup
-      - cleanup-ap
-      - cleanup-us
-      - cleanup-sa_ca
-      - cleanup-eu
+      - cleanup-ap-northeast-1
+      - cleanup-ap-northeast-2
+      - cleanup-ap-northeast-3
+      - cleanup-ap-south-1
+      - cleanup-ap-southeast-1
+      - cleanup-ap-southeast-2
+      - cleanup-us-east-2
+      - cleanup-us-west-1
+      - cleanup-us-west-2
+      - cleanup-sa_east-1
+      - cleanup-ca-central-1
+      - cleanup-eu-north-1
+      - cleanup-eu-west-1
+      - cleanup-eu-west-2
+      - cleanup-eu-west-3
+      - cleanup-eu-central-1
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
-      regions: "['us-east-1']"
+      region: us-east-1
       global: true
     secrets: inherit
 
@@ -93,7 +238,7 @@ jobs:
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
-      regions: ${{ format('[{0}]', github.event.inputs.region) }}
+      region: ${{ github.event.inputs.region }}
       global: false
     secrets: inherit
 
@@ -105,7 +250,7 @@ jobs:
     uses: iasql/iasql-engine/.github/workflows/module-cleanup.yml@main
     with:
       account_ids: ${{ needs.setup-module-cleanup.outputs['set-test-account-ids'] }}
-      regions: ${{ format('[{0}]', github.event.inputs.region) }}
+      region: ${{ github.event.inputs.region }}
       global: true
     secrets: inherit
 
