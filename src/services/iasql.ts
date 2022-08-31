@@ -1169,8 +1169,6 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
       if (md.migrations?.remove) {
         await md.migrations.remove(queryRunner);
       }
-    }
-    for (const md of rootToLeafOrder) {
       const e = await orm.findOne(iasqlModule, { name: `${md.name}@${md.version}` });
       const mt =
         (await orm.find(iasqlTables, {
