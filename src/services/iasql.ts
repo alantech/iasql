@@ -1136,7 +1136,8 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
     Modules?.IasqlPlatform?.utils?.IasqlTables ??
     Modules?.iasqlPlatform?.iasqlTables ??
     throwError('Core IasqlTables not found');
-  const existingModules = (await orm.find(iasqlModule)).map((m: any) => m.name);
+  const allInstalledModules = await orm.find(iasqlModule);
+  const existingModules = allInstalledModules.map((m: any) => m.name);
   for (let i = 0; i < mods.length; i++) {
     if (!existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
       mods.splice(i, 1);
@@ -1151,6 +1152,13 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   const remainingModules = existingModules.filter(
     (m: string) => !mods.some(m2 => `${m2.name}@${m2.version}` === m),
   );
+  // See if any modules not being uninstalled depend on any of the modules to be uninstalled
+  const leftoverModules = allInstalledModules.filter((m: any) => !remainingModules.includes(m.name));
+  for (const mod of leftoverModules) {
+    if (mod.dependencies.filter((m: any) => remainingModules.includes(m.name)).length > 0) {
+      throw new Error(`Cannot uninstall ${remainingModules.join(', ')} as ${mod.name} still depends on one or more of them`);
+    }
+  }
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(mods, remainingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
