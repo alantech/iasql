@@ -1155,8 +1155,13 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   // See if any modules not being uninstalled depend on any of the modules to be uninstalled
   const leftoverModules = allInstalledModules.filter((m: any) => !remainingModules.includes(m.name));
   for (const mod of leftoverModules) {
-    if (mod.dependencies.filter((m: any) => remainingModules.includes(m.name)).length > 0) {
-      throw new Error(`Cannot uninstall ${remainingModules.join(', ')} as ${mod.name} still depends on one or more of them`);
+    console.log({
+      mod,
+    });
+    if (mod?.dependencies?.filter((m: any) => remainingModules.includes(m.name)).length > 0) {
+      throw new Error(
+        `Cannot uninstall ${remainingModules.join(', ')} as ${mod.name} still depends on one or more of them`,
+      );
     }
   }
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
