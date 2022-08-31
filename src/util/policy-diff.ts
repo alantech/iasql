@@ -1,3 +1,5 @@
+import { isObject, isString, isStringArray } from './common';
+
 enum IAM_KEY {
   Version = 'Version',
   Statement = 'Statement',
@@ -7,18 +9,6 @@ enum IAM_KEY {
   Resource = 'Resource',
   Sid = 'Sid',
   Condition = 'Condition',
-}
-
-function isStringArray(obj: unknown): obj is string[] {
-  return Array.isArray(obj) && obj.every(isString);
-}
-
-function isString(obj: unknown): obj is string {
-  return typeof obj === 'string';
-}
-
-function isObject(obj: unknown): obj is object {
-  return typeof obj === 'object';
 }
 
 function objectsAreSame(obj1: any = {}, obj2: any = {}): boolean {
