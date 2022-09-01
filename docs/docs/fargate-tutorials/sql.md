@@ -29,7 +29,7 @@ You will be able to see your PostgreSQL connection information when you press Co
 
 <img width={440} src={require('@site/static/screenshots/credentials.png').default} />
 
-If you want to [connect](../how-to/connect.md) to the PostgreSQL database outside of the IaSQL [dashboard])(https://app.iasql.com) SQL editor, make sure to copy the PostgreSQL connection string as you will not see it again.
+If you want to [connect](../how-to/connect.md) to the PostgreSQL database outside of the IaSQL [dashboard](https://app.iasql.com) SQL editor, make sure to copy the PostgreSQL connection string as you will not see it again.
 
 ## Add the necessary cloud services to the hosted database
 
