@@ -1,0 +1,4 @@
+{
+  "name": "aws_acm_request",
+  "dependencies": ["iasql_platform", "aws_account"]
+}
