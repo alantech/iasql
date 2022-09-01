@@ -1136,7 +1136,8 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
     Modules?.IasqlPlatform?.utils?.IasqlTables ??
     Modules?.iasqlPlatform?.iasqlTables ??
     throwError('Core IasqlTables not found');
-  const existingModules = (await orm.find(iasqlModule)).map((m: any) => m.name);
+  const allInstalledModules = await orm.find(iasqlModule);
+  const existingModules = allInstalledModules.map((m: any) => m.name);
   for (let i = 0; i < mods.length; i++) {
     if (!existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
       mods.splice(i, 1);
@@ -1151,6 +1152,29 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   const remainingModules = existingModules.filter(
     (m: string) => !mods.some(m2 => `${m2.name}@${m2.version}` === m),
   );
+  // See if any modules not being uninstalled depend on any of the modules to be uninstalled
+  const toUninstall = mods.map(m => `${m.name}@${m.version}`);
+  const leftoverModules = allInstalledModules.filter((m: any) => !toUninstall.includes(m.name));
+  // Because of TypeORM weirdness with self-referential tables, construct the dependencies array
+  // manually. We can do that because we can use the module's dependencies to figure out what they
+  // should be
+  for (const mod of leftoverModules) {
+    const Module: any = Object.values(Modules).find((m: any) => `${m.name}@${m.version}` === mod.name);
+    if (!Module) throw new Error(`Somehow ${mod.name} does not have a corresponding module defined`);
+    mod.dependencies = [];
+    for (const depName of Module.dependencies) {
+      const dep = allInstalledModules.find((m: any) => m.name === depName);
+      if (!dep) throw new Error(`Somehow ${depName} does not have a corresponding module defined`);
+      mod.dependencies.push(dep);
+    }
+  }
+  for (const mod of leftoverModules) {
+    if (mod.dependencies.filter((m: any) => toUninstall.includes(m.name)).length > 0) {
+      throw new Error(
+        `Cannot uninstall ${moduleList.join(', ')} as ${mod.name} still depends on one or more of them`,
+      );
+    }
+  }
   // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
   const rootToLeafOrder = sortModules(mods, remainingModules);
   const leafToRootOrder = [...rootToLeafOrder].reverse();
@@ -1169,8 +1193,6 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
       if (md.migrations?.remove) {
         await md.migrations.remove(queryRunner);
       }
-    }
-    for (const md of rootToLeafOrder) {
       const e = await orm.findOne(iasqlModule, { name: `${md.name}@${md.version}` });
       const mt =
         (await orm.find(iasqlTables, {
