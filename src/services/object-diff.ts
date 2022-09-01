@@ -15,7 +15,8 @@ enum IAM_KEY {
   Condition = 'Condition',
 }
 
-function objectsAreSame(obj1: any = {}, obj2: any = {}): boolean {
+// Returns true if the objects are the same, and false if they aren't
+export function objectsAreSame(obj1: any = {}, obj2: any = {}): boolean {
   // One is array of a single string and the other is string
   if (isStringArray(obj1) && obj1.length === 1 && isString(obj2)) return obj1[0] === obj2;
   if (isStringArray(obj2) && obj2.length === 1 && isString(obj1)) return obj2[0] === obj1;
@@ -38,15 +39,16 @@ function objectsAreSame(obj1: any = {}, obj2: any = {}): boolean {
     } else {
       if (obj1[key] !== obj2[key]) {
         same = false;
-        break;
       }
     }
+
+    if (!same) break;
   }
   return same;
 }
 
-// Returns true if the policies are structurally equal, and false if they aren't
-export default function policiesAreSame(obj1: any, obj2: any): boolean {
+// Returns true if the policies mean the same thing (regardless of structure), and false if they aren't
+export function policiesAreSame(obj1: any, obj2: any): boolean {
   if (Array.isArray(obj1) && obj1.length === 1) return policiesAreSame(obj1[0], obj2);
   if (Array.isArray(obj2) && obj2.length === 1) return policiesAreSame(obj1, obj2[0]);
 

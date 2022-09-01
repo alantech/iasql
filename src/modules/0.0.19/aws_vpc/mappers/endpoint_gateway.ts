@@ -12,7 +12,7 @@ import {
 import { AwsVpcModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { isString } from '../../../../services/common';
-import policiesAreSame from '../../../../services/policy-diff';
+import { policiesAreSame } from '../../../../services/object-diff';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { EndpointGateway, EndpointGatewayService } from '../entity';
 import { eqTags, updateTags } from './tags';
