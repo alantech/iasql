@@ -294,4 +294,72 @@ describe("objectsAreSame", () => {
             expect(result).toBe(false);
         });
     })
+
+    describe("when it compares the same array of objects", () => {
+        describe("when some objects contain '[key] : undefined' and others don't contain [key] at all", () => {
+            it('should return true', () => {
+                const arr1 = [{
+                    "Source": "engine-default",
+                    "DataType": "boolean",
+                    "ApplyType": "static",
+                    "ApplyMethod": "pending-reboot",
+                    "Description": "Controls whether user-defined functions that have only an xxx symbol for the main function can be loaded",
+                    "IsModifiable": false,
+                    "AllowedValues": "0,1",
+                    "ParameterName": undefined // <-- undefined
+                }];
+
+                const arr2 = [{
+                    "Source": "engine-default",
+                    "DataType": "boolean",
+                    "ApplyType": "static",
+                    "ApplyMethod": "pending-reboot",
+                    "Description": "Controls whether user-defined functions that have only an xxx symbol for the main function can be loaded",
+                    "IsModifiable": false,
+                    "AllowedValues": "0,1",
+                    // No ParameterName key
+                }]
+
+                // Act
+                const result = objectsAreSame(arr1, arr2);
+
+                // Assert
+                expect(result).toBe(true);
+            });
+        });
+    })
+
+    describe("when it compares two same JSON objects", () => {
+        describe("when one object contains '[key] : undefined' and the other doesn't contain [key] at all", () => {
+            it('should return true', () => {
+                const obj1 = {
+                    "Source": "engine-default",
+                    "DataType": "boolean",
+                    "ApplyType": "static",
+                    "ApplyMethod": "pending-reboot",
+                    "Description": "Controls whether user-defined functions that have only an xxx symbol for the main function can be loaded",
+                    "IsModifiable": false,
+                    "AllowedValues": "0,1",
+                    "ParameterName": undefined // <-- undefined
+                };
+
+                const obj2 = {
+                    "Source": "engine-default",
+                    "DataType": "boolean",
+                    "ApplyType": "static",
+                    "ApplyMethod": "pending-reboot",
+                    "Description": "Controls whether user-defined functions that have only an xxx symbol for the main function can be loaded",
+                    "IsModifiable": false,
+                    "AllowedValues": "0,1",
+                    // No ParameterName key
+                }
+
+                // Act
+                const result = objectsAreSame(obj1, obj2);
+
+                // Assert
+                expect(result).toBe(true);
+            });
+        });
+    })
 })

@@ -34,7 +34,9 @@ export function objectsAreSame(obj1: any = {}, obj2: any = {}): boolean {
   }
 
   // From https://stackoverflow.com/questions/44792629/how-to-compare-two-objects-with-nested-array-of-object-using-loop
-  let same = Object.keys(obj1).length === Object.keys(obj2).length;
+  let same =
+    Object.keys(obj1).filter(key => obj1[key] !== undefined).length ===
+    Object.keys(obj2).filter(key => obj2[key] !== undefined).length;
   if (!same) return same;
 
   for (const key of Object.keys(obj1)) {
