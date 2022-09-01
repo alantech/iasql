@@ -163,7 +163,7 @@ AWS_SECRET_ACCESS_KEY=
 AWS_REGION=
 ```
 
-Run `yarn coverage:local` which will set the `IASQL_ENV` to `test` for you. To run a specific test file only, simply pass it as a parameter `yarn coverage:local test/modules/aws-cloudwatch-integration.ts`
+Run `yarn test:local` which will set the `IASQL_ENV` to `test` for you. To run a specific test file only, simply pass it as a parameter `yarn test:local test/modules/aws-cloudwatch-integration.ts`
 
 ## How to test IaSQL via CI
 

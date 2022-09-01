@@ -58,9 +58,19 @@ describe('Testing failure path', () => {
     VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  // Fail on apply
   it('installs the ec2 module (and others needed)', install(applyModules));
 
+  // Fails on attempted uninstall of the 'aws_account'
+  it('fails to uninstall `aws_account`', (done) => {
+    query(`
+      SELECT * FROM iasql_uninstall('aws_account');
+    `)((e: any) => {
+      if (!e) return done(new Error('Somehow did not fail to uninstall `aws_account`'));
+      return done();
+    });
+  });
+
+  // Fail on apply
   it('insert a new instance with wrong values', query(`
     BEGIN;
       INSERT INTO instance (ami, instance_type, tags)

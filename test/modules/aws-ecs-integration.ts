@@ -528,7 +528,7 @@ describe('ECS install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the ECS module', uninstall(
-    ['aws_ecs_fargate']));
+    ['aws_ecs_fargate', 'aws_ecs_simplified']));
 
   it('installs the ECS module', install(
     ['aws_ecs_fargate']));
