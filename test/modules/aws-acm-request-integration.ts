@@ -90,7 +90,7 @@ describe('AwsAcmRequest Integration Testing', () => {
     FROM certificate_request;
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  /*it('deletes a certificate requested', query(`
+  it('deletes a certificate requested', query(`
     DELETE FROM certificate
     WHERE domain_name = '${domainName}';
   `));
@@ -101,7 +101,7 @@ describe('AwsAcmRequest Integration Testing', () => {
     SELECT *
     FROM certificate
     WHERE domain_name = '${domainName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));*/
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

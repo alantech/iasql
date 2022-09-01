@@ -1,4 +1,4 @@
 {
   "name": "aws_acm_request",
-  "dependencies": ["iasql_platform", "aws_account"]
+  "dependencies": ["iasql_platform", "aws_account", "aws_acm_list", "aws_route53_hosted_zones"]
 }
