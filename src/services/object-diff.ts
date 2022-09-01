@@ -1,7 +1,11 @@
-import { isObject, isString } from './common';
+import { isString } from './common';
 
 function isStringArray(obj: unknown): obj is string[] {
   return Array.isArray(obj) && obj.every(isString);
+}
+
+function isObject(obj: unknown): obj is object {
+  return typeof obj === 'object';
 }
 
 enum IAM_KEY {

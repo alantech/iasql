@@ -7,6 +7,7 @@ import config from '../config';
 import { throwError } from '../config/config';
 import { IasqlDatabase } from '../entity';
 import { modules } from '../modules';
+import { isString } from './common';
 import * as iasql from './iasql';
 import logger, { logErrSentry } from './logger';
 import MetadataRepo from './repositories/metadata';
@@ -101,7 +102,7 @@ export async function start(dbId: string, dbUser: string) {
             where opid = uuid('${opid}');
           `;
           logger.debug(query);
-          output = typeof output === 'string' ? output : JSON.stringify(output);
+          output = isString(output) ? output : JSON.stringify(output);
           await conn.query(query);
         } catch (e) {
           let errorMessage: string | string[] = logErrSentry(e, uid, email, dbAlias);
