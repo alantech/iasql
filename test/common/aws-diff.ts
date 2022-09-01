@@ -1,4 +1,4 @@
-import {objectsAreSame, policiesAreSame} from "../../src/services/object-diff";
+import {objectsAreSame, policiesAreSame} from "../../src/services/aws-diff";
 
 jest.setTimeout(30000);
 

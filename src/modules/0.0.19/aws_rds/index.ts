@@ -15,8 +15,8 @@ import {
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { awsSecurityGroupModule, awsVpcModule } from '..';
+import { objectsAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
-import { objectsAreSame } from '../../../services/object-diff';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { ParameterGroup, ParameterGroupFamily, RDS } from './entity';
 

@@ -10,9 +10,9 @@ import {
 } from '@aws-sdk/client-ec2';
 
 import { AwsVpcModule } from '..';
+import { policiesAreSame } from '../../../../services/aws-diff';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { isString } from '../../../../services/common';
-import { policiesAreSame } from '../../../../services/object-diff';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { EndpointGateway, EndpointGatewayService } from '../entity';
 import { eqTags, updateTags } from './tags';

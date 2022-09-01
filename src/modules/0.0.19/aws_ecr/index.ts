@@ -5,9 +5,9 @@ import {
   paginateDescribeRepositories as paginateDescribePubRepositories,
 } from '@aws-sdk/client-ecr-public';
 
+import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import logger from '../../../services/logger';
-import { policiesAreSame } from '../../../services/object-diff';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { PublicRepository, Repository, RepositoryPolicy, ImageTagMutability } from './entity';
 

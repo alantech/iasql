@@ -1,7 +1,7 @@
 import { IAM, paginateListRoles, Role as AWSRole } from '@aws-sdk/client-iam';
 
+import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
-import { policiesAreSame } from '../../../services/object-diff';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { Role } from './entity';
 

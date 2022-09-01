@@ -5,8 +5,8 @@ import {
   PutBucketPolicyCommandInput,
 } from '@aws-sdk/client-s3';
 
+import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
-import { policiesAreSame } from '../../../services/object-diff';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { Bucket } from './entity';
 
