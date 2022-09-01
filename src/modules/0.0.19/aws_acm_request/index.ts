@@ -1,15 +1,12 @@
 import {
   ACM,
   DescribeCertificateCommandInput,
-  ImportCertificateCommandInput,
   paginateListCertificates,
   RecordType,
   RequestCertificateCommandInput,
 } from '@aws-sdk/client-acm';
 
 import { AWS, paginateBuilder } from '../../../services/aws_macros';
-import { AwsAcmListModule } from '../../0.0.15';
-import { AwsRoute53HostedZoneModule } from '../../0.0.16';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { awsAcmListModule } from '../aws_acm_list';
 import { awsRoute53HostedZoneModule } from '../aws_route53_hosted_zones';
@@ -76,24 +73,31 @@ class CertificateRequestMapper extends MapperBase<CertificateRequest> {
         const cloudCert = await awsAcmListModule.certificate.db.create(requestedCert, ctx);
 
         // query the details of the certificate, to get the domain validation options
-        if (e.validationMethod==ValidationMethod.DNS) {
-          const input:DescribeCertificateCommandInput = {
-            CertificateArn: requestedCertArn
+        if (e.validationMethod == ValidationMethod.DNS) {
+          const input: DescribeCertificateCommandInput = {
+            CertificateArn: requestedCertArn,
           };
           const describedCert = await this.describeCertificate(client.acmClient, input);
-          if (describedCert && describedCert.Certificate && describedCert.Certificate.DomainValidationOptions) {
+          if (
+            describedCert &&
+            describedCert.Certificate &&
+            describedCert.Certificate.DomainValidationOptions
+          ) {
             // we can proceed with validation
-            for (const domainOption of describedCert.Certificate.DomainValidationOptions) {              
+            for (const domainOption of describedCert.Certificate.DomainValidationOptions) {
               if (domainOption.DomainName && domainOption.ValidationDomain) {
                 // check for the id of the hosted zone
-                const zoneId = await awsRoute53HostedZoneModule.resourceRecordSet.cloud.read(ctx, domainOption.DomainName);
+                const zoneId = await awsRoute53HostedZoneModule.resourceRecordSet.cloud.read(
+                  ctx,
+                  domainOption.DomainName,
+                );
                 if (zoneId) {
                   // we need to create that in route 53
-                  const record:ResourceRecordSet = {
+                  const record: ResourceRecordSet = {
                     name: domainOption.ValidationDomain,
                     parentHostedZone: zoneId,
-                    recordType: RecordType.CNAME
-                  }
+                    recordType: RecordType.CNAME,
+                  };
                   const result = await awsRoute53HostedZoneModule.resourceRecordSet.cloud.create(record, ctx);
 
                   // now wait until the certificate has been validated
@@ -101,12 +105,12 @@ class CertificateRequestMapper extends MapperBase<CertificateRequest> {
                   do {
                     await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
                     const describedCert = await this.describeCertificate(client.acmClient, input);
-                    if (describedCert.Certificate?.Status == 'VALIDATED') {
+                    if (describedCert.Certificate?.Status == 'ISSUED') {
                       validated = true;
+                      break;
                     }
                     i++;
                   } while (i < 30);
-        
                 }
               }
             }
@@ -118,10 +122,9 @@ class CertificateRequestMapper extends MapperBase<CertificateRequest> {
               await awsAcmListModule.certificate.cloud.delete(cloudCert, ctx);
               await awsAcmListModule.certificate.db.delete(cloudCert, ctx);
             }
-            throw new Error("Certificate could not be validated");
+            throw new Error('Certificate could not be validated');
           }
         }
-
       }
     },
     read: async () => {

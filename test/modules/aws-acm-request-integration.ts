@@ -20,7 +20,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_acm_list', 'aws_acm_request'];
+const modules = ['aws_acm_request', 'aws_route53_hosted_zones', 'aws_acm_list'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -51,6 +51,18 @@ describe('AwsAcmRequest Integration Testing', () => {
     SELECT *
     FROM certificate_request;
   `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('adds a new certificate to request with incorrect domain', query(`
+    INSERT INTO certificate_request (domain_name)
+    VALUES ('fakeDomain.com');
+  `));
+  it('applies the new certificate request', apply());
+
+  it('check new certificate was not created', query(`
+    SELECT *
+    FROM certificate
+    WHERE domain_name = 'fakeDomain.com';
+  `, (res: any[]) => expect(res.length).toBe(0)));
     
   it('adds a new certificate to request', query(`
     INSERT INTO certificate_request (domain_name)
@@ -69,10 +81,10 @@ describe('AwsAcmRequest Integration Testing', () => {
     FROM certificate_request;
   `, (res: any[]) => expect(res.length).toBe(0)));
 
-  it('check new certificate added', query(`
+  it('check new certificate added and validated', query(`
     SELECT *
     FROM certificate
-    WHERE domain_name = '${domainName}';
+    WHERE domain_name = '${domainName}' AND status='ISSUED';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('uninstalls modules', uninstall(modules));
@@ -100,7 +112,7 @@ describe('AwsAcmRequest Integration Testing', () => {
   it('check certificate count after delete', query(`
     SELECT *
     FROM certificate
-    WHERE domain_name = '${domainName}';
+    WHERE domain_name = '${domainName}' AND status='ISSUED';
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('deletes the test db', (done) => void iasql
