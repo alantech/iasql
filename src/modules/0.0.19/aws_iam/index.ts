@@ -1,7 +1,6 @@
-import isEqual from 'lodash.isequal';
-
 import { IAM, paginateListRoles, Role as AWSRole } from '@aws-sdk/client-iam';
 
+import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { Role } from './entity';
@@ -13,7 +12,7 @@ class RoleMapper extends MapperBase<Role> {
     Object.is(a.roleName, b.roleName) &&
     Object.is(a.arn, b.arn) &&
     Object.is(a.description, b.description) &&
-    this.rolePolicyComparison(a.assumeRolePolicyDocument, b.assumeRolePolicyDocument) &&
+    policiesAreSame(a.assumeRolePolicyDocument, b.assumeRolePolicyDocument) &&
     Object.is(a.attachedPoliciesArns?.length, b.attachedPoliciesArns?.length) &&
     ((!a.attachedPoliciesArns && !b.attachedPoliciesArns) ||
       !!a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs))));
@@ -121,34 +120,6 @@ class RoleMapper extends MapperBase<Role> {
     }
     return out;
   }
-  rolePolicyComparison(a: any, b: any) {
-    // TODO: Better typing here
-    if (isEqual(a, b)) return true;
-    if (
-      Object.is(a, null) ||
-      Object.is(b, null) ||
-      !Object.is(typeof a, 'object') ||
-      !Object.is(typeof b, 'object')
-    )
-      return false;
-    const aKeys = Object.keys(a);
-    const bKeys = Object.keys(b);
-    if (!Object.is(aKeys.length, bKeys.length)) return false;
-    if (Array.isArray(a) && Array.isArray(b)) {
-      const aSorted = [...a].sort();
-      const bSorted = [...b].sort();
-      for (let i = 0; i < aSorted.length; i++) {
-        if (!this.rolePolicyComparison(aSorted[i], bSorted[i])) return false;
-      }
-      return true;
-    } else {
-      for (const ak of aKeys) {
-        if (!bKeys.includes(ak)) return false;
-        if (!this.rolePolicyComparison(a[ak], b[ak])) return false;
-      }
-    }
-    return true;
-  }
   roleNameFromArn(arn: string, _ctx: Context) {
     // Role name is always the last element
     // Regular role example - arn:aws:iam::547931376551:role/AWSECSTaskExecution
@@ -224,7 +195,7 @@ class RoleMapper extends MapperBase<Role> {
         const b = cloudRecord;
         let update = false;
         let updatedRecord = { ...cloudRecord };
-        if (!this.rolePolicyComparison(e.assumeRolePolicyDocument, b.assumeRolePolicyDocument)) {
+        if (!policiesAreSame(e.assumeRolePolicyDocument, b.assumeRolePolicyDocument)) {
           await this.updateRoleAssumePolicy(
             client.iamClient,
             e.roleName,

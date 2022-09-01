@@ -15,6 +15,7 @@ import {
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { awsSecurityGroupModule, awsVpcModule } from '..';
+import { objectsAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { ParameterGroup, ParameterGroupFamily, RDS } from './entity';
@@ -358,26 +359,13 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
     out.parameters = pg.Parameters;
     return out;
   }
-  getParametersNotEqual(a: Parameter[] | undefined, b: Parameter[] | undefined) {
+  getParametersNotEqual(a: Parameter[] | undefined, b: Parameter[] | undefined): Parameter[] {
     if (!a && !b) return [];
     if (!a || !b) return [{} as Parameter];
     const parameters: Parameter[] = [];
     a?.forEach(ap => {
       const bParam = b?.find(bp => Object.is(ap.ParameterName, bp.ParameterName));
-      if (
-        !bParam ||
-        !(
-          Object.is(ap.AllowedValues, bParam.AllowedValues) &&
-          Object.is(ap.ApplyMethod, bParam.ApplyMethod) &&
-          Object.is(ap.ApplyType, bParam.ApplyType) &&
-          Object.is(ap.DataType, bParam.DataType) &&
-          Object.is(ap.Description, bParam.Description) &&
-          Object.is(ap.IsModifiable, bParam.IsModifiable) &&
-          Object.is(ap.MinimumEngineVersion, bParam.MinimumEngineVersion) &&
-          Object.is(ap.ParameterValue, bParam.ParameterValue) &&
-          Object.is(ap.Source, bParam.Source)
-        )
-      ) {
+      if (!bParam || !objectsAreSame(ap, bParam)) {
         parameters.push(ap);
       }
     });

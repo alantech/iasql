@@ -1,5 +1,3 @@
-import isEqual from 'lodash.isequal';
-
 import {
   S3,
   Bucket as BucketAWS,
@@ -7,6 +5,7 @@ import {
   PutBucketPolicyCommandInput,
 } from '@aws-sdk/client-s3';
 
+import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { Bucket } from './entity';
@@ -18,7 +17,7 @@ class BucketMapper extends MapperBase<Bucket> {
     const res =
       Object.is(a.name, b.name) &&
       Object.is(a.createdAt?.toISOString(), b.createdAt?.toISOString()) &&
-      isEqual(a.policyDocument, b.policyDocument);
+      policiesAreSame(a.policyDocument, b.policyDocument);
     return res;
   };
   getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
