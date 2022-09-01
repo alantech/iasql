@@ -483,7 +483,7 @@ describe('VPC install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the VPC module', uninstall(
-    ['aws_vpc', 'aws_ecs_fargate', 'aws_security_group', 'aws_rds', 'aws_elb', 'aws_ec2', 'aws_ec2_metadata', 'aws_route53_hosted_zones', 'aws_memory_db']));
+    ['aws_vpc', 'aws_ecs_fargate', 'aws_ecs_simplified', 'aws_security_group', 'aws_rds', 'aws_elb', 'aws_ec2', 'aws_ec2_metadata', 'aws_route53_hosted_zones', 'aws_memory_db']));
 
   it('installs the VPC module', install(
     ['aws_vpc',]));
