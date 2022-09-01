@@ -229,7 +229,7 @@ describe('ECR install/uninstall', () => {
     config.db.user,
     true).then(...finish(done)));
 
-  it('uninstalls the ECR module', uninstall(['aws_ecr', 'aws_ecs_fargate']));
+  it('uninstalls the ECR module', uninstall(['aws_ecr', 'aws_ecs_fargate', 'aws_ecs_simplified']));
 
   it('installs the ECR module', install(modules));
 
