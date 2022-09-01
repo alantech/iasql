@@ -45,4 +45,15 @@ export class EcsSimplified {
 
   @Column({ nullable: true })
   loadBalancerDns?: string;
+
+  @Column({
+    default: false,
+  })
+  forceNewDeployment: boolean;
+
+  @Column({
+    type: 'simple-json',
+    nullable: true,
+  })
+  envVariables: { [key: string]: string };
 }
