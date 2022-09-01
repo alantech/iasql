@@ -25,7 +25,6 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const cacheType = 'redis';
-let nodeType: string;
 const modules = ['aws_elasticache'];
 
 const region = process.env.AWS_REGION ?? '';
@@ -39,33 +38,28 @@ const elasticacheclient = new ElastiCache({
   region,
 });
 
-const getNodeTypes = async () => {
+const getAvailableNodeType = async () => {
   const reservations = await elasticacheclient.describeReservedCacheNodesOfferings({});
-  console.log("in node types");
   if (reservations && reservations.ReservedCacheNodesOfferings) {
     const items: string[] = [];
-    console.log("i pick nodes for ");
-    console.log(nodeType);
     // iterate over list and get the ones matching the product description
     reservations.ReservedCacheNodesOfferings.forEach(function (node) {
       if (node.ProductDescription == cacheType) {
-        console.log("i get node");
         if (node.CacheNodeType) items.push(node.CacheNodeType);
       }
     });
-    console.log("items are");
-    console.log(items);
-    return items;
-  } else return undefined;
+    return items.pop() ?? '';
+  }
+  return '';
 };
+let nodeType: string;
 
 jest.setTimeout(620000);
 beforeAll(async () => {
-  const nodes = (await getNodeTypes()) ?? [];
-  nodeType = nodes.pop() ?? '';
-
+  // just sleep
+  nodeType = await getAvailableNodeType();
   await execComposeUp();
-});
+}, 60000);
 afterAll(async () => await execComposeDown());
 
 describe('Elasticache Integration Testing', () => {
@@ -98,13 +92,15 @@ describe('Elasticache Integration Testing', () => {
 
   it('undo changes', sync());
 
-  it(
-    'adds a new cacheCluster',
+  it('adds a new cacheCluster', done => {
     query(`  
-    INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes)
-    VALUES ('${clusterId}', '${nodeType}', '${cacheType}', 1);
-  `),
-  );
+      INSERT INTO cache_cluster (cluster_id, node_type, engine, num_nodes)
+      VALUES ('${clusterId}', '${nodeType}', '${cacheType}', 1);
+    `)((e?: any) => {
+      if (!!e) return done(e);
+      done();
+    });
+  });
 
   it('applies the cache_cluster change', apply());
 
