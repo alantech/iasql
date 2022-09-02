@@ -177,7 +177,7 @@ db.post('/event', async (req, res) => {
     const dbId = database.pgName;
     telemetry.logEvent(eventName.toUpperCase(), { dbAlias, dbId, email }, {}, uid)
   } else {
-    telemetry.logEvent(eventName.toUpperCase(), {}, {}, uid)
+    telemetry.logEvent(eventName.toUpperCase(), { email }, {}, uid)
   }
   res.json(`event registered`);
 });
