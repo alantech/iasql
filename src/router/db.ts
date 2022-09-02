@@ -175,9 +175,9 @@ db.post('/event', async (req, res) => {
   if (dbAlias) {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     const dbId = database.pgName;
-    telemetry.logEvent(eventName.toUpperCase(), { dbAlias, dbId, email }, {}, uid)
+    telemetry.logEvent(eventName.toUpperCase(), { dbAlias, dbId, email }, {}, uid);
   } else {
-    telemetry.logEvent(eventName.toUpperCase(), { email }, {}, uid)
+    telemetry.logEvent(eventName.toUpperCase(), { email }, {}, uid);
   }
   res.json(`event registered`);
 });
