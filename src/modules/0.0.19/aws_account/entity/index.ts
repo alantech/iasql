@@ -2,12 +2,8 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 
-// This is ridiculous. Can we fix this?
-
-@Entity({
-  name: 'aws_account',
-})
-export class AwsAccountEntity {
+@Entity()
+export class AwsCredentials {
   @PrimaryGeneratedColumn()
   @cloudId
   id: number;
@@ -17,7 +13,28 @@ export class AwsAccountEntity {
 
   @Column()
   secretAccessKey: string;
+}
+
+@Entity()
+export class AwsRegions {
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column()
+  @cloudId
   region: string;
+
+  @Column({
+    type: 'boolean',
+    nullable: false,
+    default: false,
+  }) // TODO: Constrain so exactly one record has true set
+  isDefault: boolean;
+
+  @Column({
+    type: 'boolean',
+    nullable: false,
+    default: true,
+  })
+  isEnabled: boolean;
 }
