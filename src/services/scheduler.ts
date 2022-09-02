@@ -220,8 +220,7 @@ if (require.main === module) {
     } else {
       errorResponse = logErrSentry(err);
     }
-
-    res.status(500).send(errorResponse);
+    if (res) res.status(500).send(errorResponse);
     logger.error(`Scheduler exited with error: ${err}`);
     process.exit(13);
   }
@@ -229,12 +228,6 @@ if (require.main === module) {
   app.use((req: any, res: any, next: any) => {
     logger.info(`Scheduler called on ${req.url}`);
     next();
-  });
-
-  app.get('/init/', (req: any, res: any) => {
-    init()
-      .then(() => res.sendStatus(200))
-      .catch(e => respondErrorAndDie(res, e));
   });
 
   app.get('/start/:dbId/', async (req: any, res: any) => {
@@ -269,5 +262,7 @@ if (require.main === module) {
 
   app.listen(port, () => {
     logger.info(`Scheduler running on port ${port}`);
+
+    init().catch(e => respondErrorAndDie(undefined, e));
   });
 }

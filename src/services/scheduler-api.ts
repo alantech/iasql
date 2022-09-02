@@ -23,7 +23,7 @@ async function fetchOrRaise(url: string) {
   throw new Error(error);
 }
 
-export const init = () => (shouldRpc ? fetchOrRaise(`${schedulerAddress}/init/`) : scheduler.init());
+export const init = () => (shouldRpc ? Promise.resolve() : scheduler.init()); // no-op when not on test
 export const start = async (dbId: string) => {
   if (shouldRpc) return fetchOrRaise(`${schedulerAddress}/start/${dbId}/`);
   const db = (await MetadataRepo.getDbById(dbId)) as IasqlDatabase;
