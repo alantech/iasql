@@ -13,14 +13,14 @@ import {
 
 const prefix = getPrefix();
 const dbAlias = 'acmrequesttest';
-const domainName = `${prefix}${dbAlias}.com`;
+const domainName = `${prefix}.skybase.dev`;
 
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_acm_request', 'aws_route53_hosted_zones', 'aws_acm_list'];
+const modules = ['aws_acm_request', 'aws_route53_hosted_zones', 'aws_elb', 'aws_acm_list'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -35,9 +35,9 @@ describe('AwsAcmRequest Integration Testing', () => {
 
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_REGION}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    VALUES ('${process.env.AWS_REGION}', '${process.env.STAGING_ACCESS_KEY_ID}', '${process.env.STAGING_SECRET_ACCESS_KEY}')
   `, undefined, false));
-
+  
   it('installs the acm_request module', install(modules));
 
   it('adds a new certificate to request', query(`
@@ -129,7 +129,7 @@ describe('AwsAcmRequest install/uninstall', () => {
 
   it('inserts aws credentials', query(`
     INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    VALUES ('us-east-1', '${process.env.STAGING_ACCESS_KEY_ID}', '${process.env.STAGING_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
   it('installs the modules', install(modules));
