@@ -169,13 +169,13 @@ db.post('/run/:dbAlias', async (req, res) => {
 
 db.post('/event', async (req, res) => {
   logger.info('Calling /event');
-  const { dbAlias, eventName } = req.body;
+  const { dbAlias, eventName, ampDeviceId } = req.body;
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
   if (dbAlias) {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     const dbId = database.pgName;
-    telemetry.logEvent(eventName.toUpperCase(), { dbAlias, dbId, email }, {}, uid);
+    telemetry.logEvent(eventName.toUpperCase(), { dbAlias, dbId, email }, {}, uid, ampDeviceId);
   } else {
     telemetry.logEvent(eventName.toUpperCase(), { email }, {}, uid);
   }
