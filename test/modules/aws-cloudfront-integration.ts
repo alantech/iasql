@@ -75,20 +75,19 @@ describe('Cloudfront Integration Testing', () => {
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the aws_account module', install(['aws_account']));
+  
+  it('inserts aws credentials', query(`
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `, undefined, false));
 
-  it(
-    'inserts aws credentials',
-    query(
-      `
-    INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_REGION}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `,
-      undefined,
-      false,
-    ),
-  );
+  it('syncs the regions', sync());
 
-  it('installs the cloudfront module', install(modules));
+  it('sets the default region', query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+  `));
+
+  it("installs the cloudfront module", install(modules));
 
   it(
     'creates a dummy s3 resource',
@@ -248,19 +247,18 @@ describe('Cloudfront install/uninstall', () => {
 
   it('installs the aws_account module', install(['aws_account']));
 
-  it(
-    'inserts aws credentials',
-    query(
-      `
-    INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `,
-      undefined,
-      false,
-    ),
-  );
+  it('inserts aws credentials', query(`
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `, undefined, false));
 
-  it('installs the Cloudfront module', install(modules));
+  it('syncs the regions', sync());
+
+  it('sets the default region', query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
+  `));
+
+  it("installs the Cloudfront module", install(modules));
 
   it('uninstalls the Cloudfront module', uninstall(modules));
 
