@@ -67,11 +67,11 @@ class RegionsMapper extends MapperBase<AwsRegions> {
         return awsRegion;
       }
       return (await this.getRegions(client.ec2client)).map(r => {
-        const region = new AwsRegions();
-        region.isDefault = false;
-        region.isEnabled = true;
-        region.region = r;
-        return region;
+        const awsRegion = new AwsRegions();
+        awsRegion.isDefault = false;
+        awsRegion.isEnabled = true;
+        awsRegion.region = r;
+        return awsRegion;
       });
     },
     update: async (_e: AwsRegions[], _ctx: Context) => {
@@ -113,6 +113,7 @@ class AwsAccount extends ModuleBase {
         'us-east-1'; // TODO: Eliminate this last fallback
       if (this.awsClient[region]) return this.awsClient[region];
       const awsCreds = await orm.findOne(AwsCredentials);
+      if (!awsCreds) throw new Error('No credentials found');
       this.awsClient[region] = new AWS({
         region,
         credentials: {
