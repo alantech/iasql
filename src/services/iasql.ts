@@ -287,7 +287,8 @@ export async function dump(dbId: string, dataOnly: boolean) {
   const pgUrl = dbMan.ourPgUrl(dbId);
   // TODO: Drop the old 'aws_account' when v0.0.19 is the oldest version.
   // Also TODO: Automatically figure out which tables to exclude here.
-  const excludedDataTables = "--exclude-table-data 'aws_account' --exclude-table-data 'aws_credentials' --exclude-table-data 'iasql_*'";
+  const excludedDataTables =
+    "--exclude-table-data 'aws_account' --exclude-table-data 'aws_credentials' --exclude-table-data 'iasql_*'";
   const { stdout } = await exec(
     `pg_dump ${
       dataOnly
@@ -1251,10 +1252,10 @@ export async function upgrade(dbId: string, dbUser: string) {
         const OldModules = (AllModules as any)[versionString];
         let creds: any;
         // TODO: Drop this old path once v0.0.19 is the oldest version
-        if (mods.includes('aws_account') && (
-          OldModules?.AwsAccount?.mappers?.awsAccount ||
-          OldModules?.awsAccount?.awsAccount
-        )) {
+        if (
+          mods.includes('aws_account') &&
+          (OldModules?.AwsAccount?.mappers?.awsAccount || OldModules?.awsAccount?.awsAccount)
+        ) {
           creds = (
             await conn.query(`
               SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;

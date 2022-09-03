@@ -1,8 +1,8 @@
-import { EC2, } from '@aws-sdk/client-ec2';
+import { EC2 } from '@aws-sdk/client-ec2';
 
-import { AWS, crudBuilderFormat, } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase, } from '../../interfaces';
-import { AwsCredentials, AwsRegions, } from './entity';
+import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { AwsCredentials, AwsRegions } from './entity';
 
 class CredentialsMapper extends MapperBase<AwsCredentials> {
   module: AwsAccount;
@@ -41,14 +41,13 @@ class CredentialsMapper extends MapperBase<AwsCredentials> {
 class RegionsMapper extends MapperBase<AwsRegions> {
   module: AwsAccount;
   entity = AwsRegions;
-  equals = (a: AwsRegions, b: AwsRegions) => a.region === b.region &&
-    a.isDefault === b.isDefault &&
-    a.isEnabled === b.isEnabled;
+  equals = (a: AwsRegions, b: AwsRegions) =>
+    a.region === b.region && a.isDefault === b.isDefault && a.isEnabled === b.isEnabled;
 
   getRegions = crudBuilderFormat<EC2, 'describeRegions', string[]>(
     'describeRegions',
     () => ({}),
-    (res) => res?.Regions?.map(r => r.RegionName ?? '').filter(r => r !== '') ?? [],
+    res => res?.Regions?.map(r => r.RegionName ?? '').filter(r => r !== '') ?? [],
   );
 
   cloud = new Crud2<AwsRegions>({
@@ -67,7 +66,7 @@ class RegionsMapper extends MapperBase<AwsRegions> {
         awsRegion.region = region;
         return awsRegion;
       }
-      return (await this.getRegions(client.ec2Client)).map(r => {
+      return (await this.getRegions(client.ec2client)).map(r => {
         const region = new AwsRegions();
         region.isDefault = false;
         region.isEnabled = true;
@@ -104,11 +103,14 @@ class AwsAccount extends ModuleBase {
     // and it assumes that the credentials do not change mid-operation.
     async getAwsClient(selectedRegion?: string) {
       const orm = this.orm;
-      const region = selectedRegion ?? await orm.findOne(AwsRegions, {
-        where: {
-          isDefault: true,
-        },
-      }) ?? 'us-east-1'; // TODO: Eliminate this last fallback
+      const region =
+        selectedRegion ??
+        (await orm.findOne(AwsRegions, {
+          where: {
+            isDefault: true,
+          },
+        })) ??
+        'us-east-1'; // TODO: Eliminate this last fallback
       if (this.awsClient[region]) return this.awsClient[region];
       const awsCreds = await orm.findOne(AwsCredentials);
       this.awsClient[region] = new AWS({
@@ -121,7 +123,7 @@ class AwsAccount extends ModuleBase {
       return this.awsClient[region];
     },
     awsClient: {}, // Initializing this cache with no clients. The cache doesn't expire explicitly
-                   // as we simply drop the context at the end of the execution.
+    // as we simply drop the context at the end of the execution.
     // This function returns the list of regions that are currently enabled, allowing multi-region
     // aware modules to request which regions they should operate on beyond the default region. The
     // full AwsRegions entities may be optionally returned if there is some special logic involving
