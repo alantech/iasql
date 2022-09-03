@@ -56,6 +56,7 @@ const query = runQuery.bind(null, dbAlias);
 const querySync = runQuery.bind(null, `${dbAlias}_sync`);
 const install = runInstall.bind(null, dbAlias);
 const installSync = runInstall.bind(null, `${dbAlias}_sync`);
+const syncSync = runSync.bind(null, `${dbAlias}_sync`);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
 
@@ -125,14 +126,14 @@ describe('EC2 Integration Testing', () => {
 
   it('installs the aws_account module', installSync(['aws_account']));
 
-  it('inserts aws credentials', query(`
+  it('inserts aws credentials', querySync(`
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
-  it('syncs the regions', sync());
+  it('syncs the regions', syncSync());
 
-  it('sets the default region', query(`
+  it('sets the default region', querySync(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `));
 
