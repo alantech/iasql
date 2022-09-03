@@ -42,7 +42,7 @@ class RegionsMapper extends MapperBase<AwsRegions> {
   module: AwsAccount;
   entity = AwsRegions;
   equals = (a: AwsRegions, b: AwsRegions) =>
-    a.region === b.region && a.isDefault === b.isDefault && a.isEnabled === b.isEnabled;
+    a.region === b.region; // Checking only the region eliminates db/cloud `update` calls
 
   getRegions = crudBuilderFormat<EC2, 'describeRegions', string[]>(
     'describeRegions',
