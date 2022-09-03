@@ -116,7 +116,7 @@ class AwsAccount extends ModuleBase {
           where: {
             isDefault: true,
           },
-        })) ??
+        }))?.region ??
         'us-east-1'; // TODO: Eliminate this last fallback
       if (this.awsClient[region]) return this.awsClient[region];
       const awsCreds = await orm.findOne(AwsCredentials);
