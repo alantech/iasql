@@ -58,7 +58,14 @@ class RegionsMapper extends MapperBase<AwsRegions> {
       return [out];
     },
     read: async (ctx: Context, region?: string) => {
-      const client = await ctx.getAwsClient();
+      let client;
+      try {
+        client = await ctx.getAwsClient();
+      } catch (_) {
+        // The initial install of the module will fail to generate a valid client, so just
+        // catch this and pretend nothing bad happened.
+        return [];
+      }
       if (region) {
         const awsRegion = new AwsRegions();
         awsRegion.isDefault = false;
