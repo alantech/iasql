@@ -90,7 +90,7 @@ describe('Testing metadata repo', () => {
     SELECT record_count
     FROM iasql_database
     WHERE pg_name = '${dbAlias}';
-  `, (row: any[]) => expect(row[0].record_count).toBe(1)));
+  `, (row: any[]) => expect(row[0].record_count).toBeGreaterThan(1))); // The regions table should be filled during the `apply`
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, uid)
