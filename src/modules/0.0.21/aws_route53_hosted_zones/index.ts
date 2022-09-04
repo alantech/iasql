@@ -176,7 +176,7 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
 class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
   module: AwsRoute53HostedZoneModule;
   entity = ResourceRecordSet;
-  entityId = (e: ResourceRecordSet) => `${e.recordType}|${e.name}`;
+  entityId = (e: ResourceRecordSet) => `${e.parentHostedZone.hostedZoneId}|${e.name}|${e.recordType}`;
   equals = (a: ResourceRecordSet, b: ResourceRecordSet) =>
     Object.is(a.parentHostedZone?.hostedZoneId, b.parentHostedZone?.hostedZoneId) &&
     Object.is(a.recordType, b.recordType) &&
@@ -252,12 +252,16 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     create: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),
     update: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),
     delete: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.remove(ResourceRecordSet, es),
-    read: async (ctx: Context, recordTypeAndName?: string) => {
-      const opts = recordTypeAndName
+    read: async (ctx: Context, zoneIdNameAndRecordType?: string) => {
+      // refer to entityId for the second input
+      const opts = zoneIdNameAndRecordType
         ? {
             where: {
-              recordType: recordTypeAndName.split('|')[0],
-              name: recordTypeAndName.split('|')[1],
+              parentHostedZone: {
+                hostedZoneId: zoneIdNameAndRecordType.split('|')[0],
+              },
+              name: zoneIdNameAndRecordType.split('|')[1],
+              recordType: zoneIdNameAndRecordType.split('|')[2],
             },
           }
         : {};
