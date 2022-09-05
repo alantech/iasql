@@ -260,9 +260,11 @@ if (require.main === module) {
     res.sendStatus(200);
   });
 
-  app.listen(port, () => {
-    logger.info(`Scheduler running on port ${port}`);
-
-    init().catch(e => respondErrorAndDie(undefined, e));
-  });
+  init()
+    .then(() => {
+      app.listen(port, () => {
+        logger.info(`Scheduler running on port ${port}`);
+      });
+    })
+    .catch(e => respondErrorAndDie(undefined, e));
 }
