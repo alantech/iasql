@@ -12,9 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Emit repository_dispatch
-        uses: mvasigh/dispatch-action@main
+        uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.GH_PAT }}
-          repo: iasql-on-iasql
-          owner: iasql
-          event_type: code_change
+          repository: iasql-on-iasql
+          event-type: code_change
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
