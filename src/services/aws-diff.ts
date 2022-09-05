@@ -55,7 +55,7 @@ export function objectsAreSame(obj1: any = {}, obj2: any = {}): boolean {
 
 // Returns true if the policies mean the same thing (regardless of structure), and false if they aren't
 export function policiesAreSame(obj1: any, obj2: any): boolean {
-  // comparison for the key of one or both values are undefined
+  // comparison for when one or both values are undefined
   if (!obj1 || !obj2) return obj1 === obj2;
 
   if (Array.isArray(obj1) && obj1.length === 1) return policiesAreSame(obj1[0], obj2);

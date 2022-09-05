@@ -202,6 +202,45 @@ describe("policiesAreSame", () => {
             expect(result).toBe(false);
         });
     })
+
+    describe("when one policy is undefined", () => {
+        it('should return false', () => {
+            const dbPolicy = undefined
+
+            const cloudPolicy = {
+                Version: "2012-10-17",
+                Statement: [
+                    {
+                        Effect: "Allow",
+                        Action: "s3:GetObject",
+                        Resource: "arn:aws:s3:::mybucket/*",
+                    }
+                ],
+                Principal: {
+                    Canonical: "arn:aws:iam::123456789012:root" // <-- different
+                }
+            }
+
+            // Act
+            const result = policiesAreSame(dbPolicy, cloudPolicy);
+
+            // Assert
+            expect(result).toBe(false);
+        });
+    })
+
+    describe("when both policies are undefined", () => {
+        it('should return true', () => {
+            const dbPolicy = undefined
+            const cloudPolicy = undefined
+
+            // Act
+            const result = policiesAreSame(dbPolicy, cloudPolicy);
+
+            // Assert
+            expect(result).toBe(true);
+        });
+    })
 })
 
 describe("objectsAreSame", () => {
@@ -363,3 +402,5 @@ describe("objectsAreSame", () => {
         });
     })
 })
+
+

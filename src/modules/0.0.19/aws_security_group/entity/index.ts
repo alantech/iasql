@@ -9,9 +9,7 @@ export class SecurityGroup {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @Column({
-    nullable: true,
-  })
+  @Column()
   description?: string;
 
   @Column()
