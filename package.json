@@ -79,7 +79,7 @@
     "@aws-sdk/client-secrets-manager": "^3.159.0",
     "@aws-sdk/client-ssm": "^3.128.0",
     "@aws-sdk/middleware-retry": "^3.160.0",
-    "@aws-sdk/util-waiter": "^3.78.0",
+    "@aws-sdk/util-waiter": "^3.162.0",
     "@logdna/logger": "^2.6.6",
     "@sentry/node": "^7.11.1",
     "@types/express": "^4.17.13",
