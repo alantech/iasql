@@ -38,7 +38,7 @@ const elasticacheclient = new ElastiCache({
   region,
 });
 
-const getAvailableNodeType = async () => {
+const getAvailableNodeTypes = async () => {
   const reservations = await elasticacheclient.describeReservedCacheNodesOfferings({});
   if (reservations && reservations.ReservedCacheNodesOfferings) {
     const items: string[] = [];
@@ -48,16 +48,18 @@ const getAvailableNodeType = async () => {
         if (node.CacheNodeType) items.push(node.CacheNodeType);
       }
     });
-    return items.pop() ?? '';
+    return items ?? [];
   }
-  return '';
+  return [];
 };
-let nodeType: string;
+let nodeType: string, updatedNodeType: string;
 
 jest.setTimeout(620000);
 beforeAll(async () => {
   // just sleep
-  nodeType = await getAvailableNodeType();
+  const nodes = await getAvailableNodeTypes();
+  nodeType = nodes.pop() ?? '';
+  updatedNodeType = nodes.pop() ?? '';
   await execComposeUp();
 }, 60000);
 afterAll(async () => await execComposeDown());
@@ -114,12 +116,14 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
-  it(
-    'tries to update cache_cluster node type',
-    query(`
-  UPDATE cache_cluster SET node_type='cache.t2.small' WHERE cluster_id='${clusterId}'
-  `),
-  );
+  it('tries to update cache_cluster node type', done => {
+    query(`  
+    UPDATE cache_cluster SET node_type='${updatedNodeType}' WHERE cluster_id='${clusterId}';
+    `)((e?: any) => {
+      if (!!e) return done(e);
+      done();
+    });
+  });
 
   it('applies the cache_cluster node_type update', apply());
 
@@ -127,7 +131,7 @@ describe('Elasticache Integration Testing', () => {
     'checks that cache_cluster have been modified',
     query(
       `
-  SELECT * FROM cache_cluster WHERE node_type='cache.t2.small';
+  SELECT * FROM cache_cluster WHERE node_type='${updatedNodeType}';
 `,
       (res: any) => expect(res.length).toBe(1),
     ),
