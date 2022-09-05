@@ -32,6 +32,6 @@ BEGIN
 END
 $$;
 
-CREATE OR REPLACE CONSTRAINT TRIGGER there_can_be_only_one_aws_default_region
+CREATE CONSTRAINT TRIGGER there_can_be_only_one_aws_default_region
 BEFORE INSERT OR UPDATE INITIALLY DEFERRED ON aws_regions
 FOR EACH ROW EXECUTE there_can_be_only_one_aws_default_region_trigger();
