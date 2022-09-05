@@ -197,17 +197,15 @@ class CertificateRequestMapper extends MapperBase<CertificateRequest> {
         await awsAcmListModule.certificate.db.create(requestedCert, ctx);
 
         // query the details of the certificate, to get the domain validation options
-        if (e.validationMethod == ValidationMethod.DNS) {
-          await this.validateCertificate(client.acmClient, ctx, requestedCertArn);
-
+        if (e.validationMethod === ValidationMethod.DNS) {
+          const result = await this.validateCertificate(client.acmClient, ctx, requestedCertArn);
           // check if certificate has been validated
-          const requestedCert: Certificate = await awsAcmListModule.certificate.cloud.read(
-            ctx,
-            requestedCertArn,
-          );
-          if (!requestedCert || requestedCert.status != 'ISSUED') {
-            console.log('cert has not been validated, i remove');
-
+          const certInput: DescribeCertificateCommandInput = {
+            CertificateArn: requestedCertArn,
+          };
+          const describedCert = await this.describeCertificate(client.acmClient, certInput);
+          if (!(describedCert.Certificate?.Status === CertificateStatus.ISSUED)) {
+            // not validated, need to remove it
             const cloudCert = await awsAcmListModule.certificate.cloud.read(ctx, requestedCertArn);
             if (cloudCert) {
               await awsAcmListModule.certificate.cloud.delete(cloudCert, ctx);
