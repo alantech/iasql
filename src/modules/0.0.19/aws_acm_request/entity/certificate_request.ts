@@ -32,7 +32,7 @@ export class CertificateRequest {
     type: 'enum',
     nullable: false,
     enum: ValidationMethod,
-    default: ValidationMethod.DNS
+    default: ValidationMethod.DNS,
   })
   validationMethod: ValidationMethod;
 }
