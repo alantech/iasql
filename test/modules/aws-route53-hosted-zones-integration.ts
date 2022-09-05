@@ -44,7 +44,7 @@ const sync = runSync.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
-const modules = ['aws_route53_hosted_zones'];
+const modules = ['aws_route53_hosted_zones', 'aws_acm_request'];
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -345,7 +345,7 @@ describe('Route53 install/uninstall', () => {
     config.db.user,
     true).then(...finish(done)));
 
-  it('uninstalls the route53 module', uninstall(modules));
+  it('uninstalls the route53 module', uninstall(modules));  
 
   it('installs the route53 module', install(modules));
 

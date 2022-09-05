@@ -33,7 +33,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_security_group', 'aws_elb', 'aws_vpc', 'aws_acm_list', 'aws_acm_import'];
+const modules = ['aws_security_group', 'aws_elb', 'aws_vpc', 'aws_acm_list', 'aws_acm_import', 'aws_acm_request'];
 
 // Test constants
 const tgName = `${prefix}${dbAlias}tg`;
