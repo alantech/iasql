@@ -135,7 +135,8 @@ db.post('/run/:dbAlias', async (req, res) => {
   logger.info('Calling /run');
   if (!config.db.sqlViaRest) return res.status(400).end('SQL Querying via REST disabled');
   const { dbAlias } = req.params;
-  const { sql, button, ampDeviceId, byStatement } = req.body;
+  if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
+  const { sql, ampDeviceId, byStatement } = req.body;
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
   let dbId;
@@ -152,7 +153,6 @@ db.post('/run/:dbAlias', async (req, res) => {
       {
         output: JSON.stringify(output),
         sql,
-        button,
       },
       uid,
       ampDeviceId,
@@ -162,7 +162,22 @@ db.post('/run/:dbAlias', async (req, res) => {
     // do not send to sentry
     const error = e?.message ?? '';
     logger.error(`RunSQL user error: ${error}`, { uid, dbId, email, dbAlias });
-    telemetry.logRunSql({ dbId, email }, { sql, button, error }, uid);
+    telemetry.logRunSql({ dbId, email }, { sql, error }, uid);
     res.status(500).end(error);
   }
+});
+
+db.post('/event', async (req, res) => {
+  logger.info('Calling /event');
+  const { dbAlias, eventName, ampDeviceId } = req.body;
+  const uid = dbMan.getUid(req.user);
+  const email = dbMan.getEmail(req.user);
+  if (dbAlias) {
+    const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
+    const dbId = database.pgName;
+    telemetry.logEvent(eventName.toUpperCase(), { dbAlias, dbId, email }, {}, uid, ampDeviceId);
+  } else {
+    telemetry.logEvent(eventName.toUpperCase(), { email }, {}, uid, ampDeviceId);
+  }
+  res.json(`event registered`);
 });
