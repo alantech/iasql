@@ -10,7 +10,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_acm_list', 'aws_elb'];
+const modules = ['aws_acm_list'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
@@ -99,7 +99,7 @@ describe('AwsAcmList install/uninstall', () => {
     'postgres',
     true).then(...finish(done)));
 
-  it('uninstalls the module', uninstall(['aws_acm_list', 'aws_elb', 'aws_ecs_fargate', 'aws_ecs_simplified', 'aws_ec2', 'aws_ec2_metadata', 'aws_route53_hosted_zones']));
+  it('uninstalls the module', uninstall(['aws_acm_list', 'aws_acm_request', 'aws_elb', 'aws_ecs_fargate', 'aws_ecs_simplified', 'aws_ec2', 'aws_ec2_metadata', 'aws_route53_hosted_zones']));
 
   it('installs the module', install(modules));
 
