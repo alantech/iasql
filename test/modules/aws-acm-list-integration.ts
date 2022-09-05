@@ -10,7 +10,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_acm_list'];
+const modules = ['aws_acm_list', 'aws_elb'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
