@@ -239,7 +239,7 @@ describe('ELB Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('uninstalls the elb module', uninstall(
-    ['aws_route53_hosted_zones', 'aws_elb']));
+    ['aws_acm_request', 'aws_route53_hosted_zones', 'aws_elb']));
 
   it('installs the elb module', install(
     ['aws_elb']));
