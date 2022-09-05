@@ -10,7 +10,9 @@ import {
 } from '@aws-sdk/client-ec2';
 
 import { AwsVpcModule } from '..';
+import { policiesAreSame } from '../../../../services/aws-diff';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
+import { isString } from '../../../../services/common';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { EndpointGateway, EndpointGatewayService } from '../entity';
 import { eqTags, updateTags } from './tags';
@@ -22,7 +24,10 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
     Object.is(a.service, b.service) &&
     // the policy document is stringified json
     // we are trusting aws won't change it from under us
-    Object.is(a.policyDocument, b.policyDocument) &&
+    policiesAreSame(
+      isString(a.policyDocument) ? JSON.parse(a.policyDocument) : a.policyDocument,
+      isString(b.policyDocument) ? JSON.parse(b.policyDocument) : b.policyDocument,
+    ) &&
     Object.is(a.state, b.state) &&
     Object.is(a.vpc?.vpcId, b.vpc?.vpcId) &&
     Object.is(a.routeTableIds?.length, b.routeTableIds?.length) &&

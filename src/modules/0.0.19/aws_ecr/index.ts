@@ -5,6 +5,7 @@ import {
   paginateDescribeRepositories as paginateDescribePubRepositories,
 } from '@aws-sdk/client-ecr-public';
 
+import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import logger from '../../../services/logger';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
@@ -280,7 +281,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
       return (
         Object.is(a.registryId, b.registryId) &&
         Object.is(a.repository.repositoryName, b.repository.repositoryName) &&
-        this.policyComparisonEq(JSON.parse(a.policyText!), JSON.parse(b.policyText!))
+        policiesAreSame(JSON.parse(a.policyText!), JSON.parse(b.policyText!))
       );
     } catch (e) {
       return false;
@@ -296,27 +297,6 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
     return out;
   }
-  policyComparisonEq(a: any, b: any): boolean {
-    if (a instanceof Array && !(b instanceof Array) && a.length === 1 && this.policyComparisonEq(a[0], b))
-      return true;
-    if (b instanceof Array && !(a instanceof Array) && b.length === 1 && this.policyComparisonEq(b[0], a))
-      return true;
-    // From https://stackoverflow.com/questions/44792629/how-to-compare-two-objects-with-nested-array-of-object-using-loop
-    let same = Object.keys(a).length === Object.keys(b).length;
-    if (!same) return same;
-    for (const [key, value] of Object.entries(a)) {
-      if (typeof value === 'object') {
-        same = this.policyComparisonEq(a[key], b[key]);
-      } else {
-        if (a[key] !== b[key]) {
-          same = false;
-          break;
-        }
-      }
-    }
-    return same;
-  }
-
   setECRRepositoryPolicy = crudBuilder2<ECR, 'setRepositoryPolicy'>('setRepositoryPolicy', input => input);
   getECRRepositoryPolicy = crudBuilder2<ECR, 'getRepositoryPolicy'>(
     'getRepositoryPolicy',
@@ -409,7 +389,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
           e.repository.repositoryName ?? ''
         ] as RepositoryPolicy;
         try {
-          if (!this.policyComparisonEq(JSON.parse(cloudRecord.policyText!), JSON.parse(e.policyText!))) {
+          if (!policiesAreSame(JSON.parse(cloudRecord.policyText!), JSON.parse(e.policyText!))) {
             const outPolicy = this.module.repositoryPolicy.cloud.create(e, ctx);
             if (outPolicy instanceof RepositoryPolicy) out.push(outPolicy);
             if (outPolicy instanceof Array) {

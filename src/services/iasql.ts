@@ -16,6 +16,7 @@ import { throwError } from '../config/config';
 import { IasqlDatabase } from '../entity';
 import { modules as AllModules } from '../modules';
 import { Context, MapperInterface, ModuleInterface } from '../modules';
+import { isString } from './common';
 import * as dbMan from './db-manager';
 import { findDiff } from './diff';
 import { DepError, lazyLoader } from './lazy-dep';
@@ -227,7 +228,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
           typeof t.queryRes.rowCount === 'number'
         ) {
           return { statement: t.statement, affected_records: t.queryRes.rowCount };
-        } else if (typeof t.queryRes === 'string') {
+        } else if (isString(t.queryRes)) {
           return { statement: t.statement, result: t.queryRes };
         } else if (!!t.queryRes.rows) {
           return { statement: t.statement, result: t.queryRes.rows };
@@ -237,7 +238,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
       } else {
         if (!!t.rows && t.rows.length === 0 && t.command !== 'SELECT' && typeof t.rowCount === 'number') {
           return { affected_records: t.rowCount };
-        } else if (typeof t === 'string') {
+        } else if (isString(t)) {
           return { result: t };
         } else if (!!t.rows) {
           return t.rows;
