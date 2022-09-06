@@ -143,9 +143,18 @@ describe('AwsAccount Integration Testing', () => {
     SELECT * FROM aws_regions WHERE is_default = TRUE;
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('tries to set a second default region', query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `));
+  it('tries to set a second default region', (done) => {
+    (async () => {
+      try {
+        await runSql(`
+          UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
+        `, false);
+      } catch (_) {
+        return done(); // This is the expected path
+      }
+      return done(new Error('Did not get the expected error'));
+    })();
+  });
 
   it('confirms that the default region was not changed', query(`
     SELECT * FROM aws_regions WHERE is_default = TRUE;
