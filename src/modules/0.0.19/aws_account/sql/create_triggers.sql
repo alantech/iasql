@@ -3,7 +3,7 @@ RETURNS TEXT LANGUAGE plpgsql AS $$
 DECLARE
   r TEXT;
 BEGIN
-  SELECT CASE WHEN region is NULL THEN 'us_east_1' ELSE region END INTO r
+  SELECT CASE WHEN region is NULL THEN 'us-east-1' ELSE region END INTO r
   FROM aws_regions WHERE is_default = TRUE;
   RETURN r;
 END
