@@ -39,7 +39,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
       {
         client,
         // all in seconds
-        maxWaitTime: 300,
+        maxWaitTime: 1200,
         minDelay: 1,
         maxDelay: 4,
       },
