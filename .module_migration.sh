@@ -16,7 +16,7 @@ docker volume prune -f
 docker image prune -f
 
 # Start a postgres container
-docker container run -p 5432:5432 -e POSTGRES_PASSWORD=test --name migrate-postgres -d postgres:13.4
+docker container run -p 5432:5432 -e POSTGRES_PASSWORD=test --name migrate-postgres -d postgres:14.4
 
 sleep 5 # Just in case
 psql postgresql://postgres:test@localhost:5432/postgres -c "CREATE DATABASE __example__"
