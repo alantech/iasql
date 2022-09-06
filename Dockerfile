@@ -7,7 +7,7 @@ RUN ["yarn", "install"]
 
 RUN ["apt", "update"]
 RUN ["apt", "upgrade", "-y"]
-RUN ["apt", "install", "postgresql-client-13", "-y"]
+RUN ["apt", "install", "postgresql-client-14", "-y"]
 
 COPY . /engine/
 ARG SENTRY_RELEASE
