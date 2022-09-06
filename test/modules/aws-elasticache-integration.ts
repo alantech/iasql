@@ -39,7 +39,9 @@ const elasticacheclient = new ElastiCache({
 });
 
 const getAvailableNodeTypes = async () => {
-  const reservations = await elasticacheclient.describeReservedCacheNodesOfferings({});
+  const reservations = await elasticacheclient.describeReservedCacheNodesOfferings({
+    OfferingType: 'Light Utilization',
+  });
   if (reservations && reservations.ReservedCacheNodesOfferings) {
     const items: string[] = [];
     // iterate over list and get the ones matching the product description
