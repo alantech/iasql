@@ -1,4 +1,5 @@
 import { execSync } from 'child_process';
+import fs from 'fs';
 import { createConnection } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -130,8 +131,6 @@ export function getKeyCertPair(domainName: string): string[] {
   );
   const certBeginTag = '-----BEGIN CERTIFICATE-----';
   const certEndTag = '-----END CERTIFICATE-----';
-  console.log('certificate output is');
-  console.log(stdoutCert);
   const cert = stdoutCert.substring(
     stdoutCert.indexOf(certBeginTag),
     stdoutCert.lastIndexOf(certEndTag) + certEndTag.length,
@@ -139,8 +138,9 @@ export function getKeyCertPair(domainName: string): string[] {
 
   // check if we have a valid content on stdout, or fallback to a file
   let stdoutKey;
-  if (stdoutCert && stdoutCert.includes('BEGIN PRIVATE KEY')) stdoutKey = stdoutCert;
-  else stdoutKey = execSync(`cat privkey.pem`, { shell: '/bin/bash', encoding: 'utf-8' });
+  if (fs.existsSync('privkey.pem'))
+    stdoutKey = execSync(`cat privkey.pem`, { shell: '/bin/bash', encoding: 'utf-8' });
+  else stdoutKey = stdoutCert;
 
   const keyBeginTag = '-----BEGIN PRIVATE KEY-----';
   const keyEndTag = '-----END PRIVATE KEY-----';
