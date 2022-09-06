@@ -44,7 +44,10 @@ const getAvailableNodeTypes = async () => {
     const items: string[] = [];
     // iterate over list and get the ones matching the product description, and small size
     reservations.ReservedCacheNodesOfferings.forEach(function (node) {
-      if (node.ProductDescription == cacheType && node.CacheNodeType?.includes('small')) {
+      if (
+        node.ProductDescription == cacheType &&
+        (node.CacheNodeType?.includes('small') || node.CacheNodeType?.includes('micro'))
+      ) {
         if (node.CacheNodeType) items.push(node.CacheNodeType);
       }
     });
@@ -127,15 +130,18 @@ describe('Elasticache Integration Testing', () => {
 
   it('applies the cache_cluster node_type update', apply());
 
-  it(
-    'checks that cache_cluster have been modified',
+  it('checks that cache_cluster have been modified', done => {
     query(
       `
   SELECT * FROM cache_cluster WHERE cluster_id='${clusterId}' AND node_type='${updatedNodeType}';
 `,
       (res: any) => expect(res.length).toBe(1),
     ),
-  );
+      (e?: any) => {
+        if (!!e) return done(e);
+        done();
+      };
+  });
 
   it(
     'tries to update cache_cluster engine',
@@ -146,18 +152,15 @@ describe('Elasticache Integration Testing', () => {
 
   it('applies the cache_cluster engine update', apply());
 
-  it('checks that cache_cluster engine has not been modified', done => {
+  it(
+    'checks that cache_cluster engine has not been modified',
     query(
       `
-  SELECT * FROM cache_cluster WHERE cluster_id='${clusterId}' AND engine='${cacheType}';
+  SELECT * FROM cache_cluster WHERE cluster_id='${clusterId}' AND engine='${cacheType}'
 `,
       (res: any) => expect(res.length).toBe(1),
     ),
-      (e?: any) => {
-        if (!!e) return done(e);
-        done();
-      };
-  });
+  );
 
   it(
     'checks that cache_cluster with new engine does not exist',
