@@ -16,9 +16,9 @@ The most basic architectural diagram is simply your IaSQL database and your clou
   \______/                       \__/ \_/
 ```
 
-## `apply`
+## `apply` and `preview_apply`
 
-When you `apply` you take any changes from the database, feed them into the engine, and then it creates the necessary API calls on the cloud to make those changes to the cloud.
+When you `apply` you take any changes from the database, feed them into the engine, and then it creates the necessary API calls on the cloud to make those changes to the cloud. `preview_apply` is a dry-run of `apply` that shows you what would happen if you ran `apply`.
 
 ```
    ______
@@ -29,9 +29,9 @@ When you `apply` you take any changes from the database, feed them into the engi
   \______/                       \__/ \_/
 ```
 
-## `sync`
+## `sync` and `preview_sync`
 
-When you `sync` you take any changes from the cloud, convert them into database records, and update the database with the new information.
+When you `sync` you take any changes from the cloud, convert them into database records, and update the database with the new information. `preview_sync` is a dry-run of `sync` that shows you what would happen if you ran `sync`.
 
 ```
    ______
