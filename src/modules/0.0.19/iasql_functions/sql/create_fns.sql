@@ -17,6 +17,61 @@ begin
 end;
 $$;
 
+create or replace function until_iasql_rpc(_module_name text, _method_name text, _params text[]) returns uuid
+language plpgsql security definer
+as $$
+declare
+    _opid uuid;
+    _counter integer := 0;
+    _output text;
+    _err text;
+    _dblink_sql text;
+    _db_id text;
+    _dblink_conn_count int;
+begin
+    select md5(random()::text || clock_timestamp()::text)::uuid into _opid;
+    select current_database() into _db_id;
+    -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
+    -- dblink connection closes automatically at the end of a session
+    SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
+        WHERE dblink_get_connections@>'{iasqlopconn}';
+    IF _dblink_conn_count = 0 THEN
+        PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
+    END IF;
+    -- schedule job via dblink
+    _dblink_sql := format('insert into iasql_rpc (opid, module_name, method_name, params) values (%L, %L, %L, array[''%s'']::text[]);', _opid, _module_name, _method_name, array_to_string(_params, ''','''));
+    -- raise exception '%', _dblink_sql;
+    PERFORM dblink_exec('iasqlopconn', _dblink_sql);
+    _dblink_sql := format('select graphile_worker.add_job(%L, json_build_object(%L, %L, %L, %L, %L, %L, %L, array[''%s'']::text[]));', 'rpc', 'opid', _opid, 'module_name', _module_name, 'method_name', _method_name, 'params', array_to_string(_params, ''','''));
+    -- raise exception '%', _dblink_sql;
+    -- allow statement that returns results in dblink https://stackoverflow.com/a/28299993
+    PERFORM * FROM dblink('iasqlopconn', _dblink_sql) alias(col text);
+    -- times out after 45 minutes = 60 * 45 = 2700 seconds
+    -- currently the longest is RDS where the unit test has a timeout of 16m
+    while _counter < 2700 loop
+        if (select end_date from iasql_rpc where opid = _opid) is not null then
+            select output into _output from iasql_rpc where opid = _opid;
+            select err into _err from iasql_rpc where opid = _opid;
+            -- done!
+            if _output is not null and _err is null then
+                return _opid;
+            end if;
+            if _err is not null then
+                raise exception '% % error: %', _module_name, _method_name, _err::json->'message'
+                using detail = _err;
+            end if;
+            -- exit sp
+            return _opid;
+        end if;
+        perform pg_sleep(1);
+        _counter := _counter + 1;
+    end loop;
+    -- timed out
+    raise warning 'Done waiting for % %.', _module_name, _method_name
+    using hint = 'The operation will show up in the iasql_rpc table when it completes under this opid: ' || _opid;
+end;
+$$;
+
 create or replace function until_iasql_operation(_optype iasql_operation_optype_enum, _params text[]) returns uuid
 language plpgsql security definer
 as $$
