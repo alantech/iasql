@@ -46,7 +46,7 @@ const getAvailableNodeTypes = async () => {
     reservations.ReservedCacheNodesOfferings.forEach(function (node) {
       if (
         node.ProductDescription == cacheType &&
-        (node.CacheNodeType?.includes('small') || node.CacheNodeType?.includes('micro'))
+        (node.CacheNodeType?.includes('small') || node.CacheNodeType?.includes('medium'))
       ) {
         if (node.CacheNodeType) items.push(node.CacheNodeType);
       }
@@ -57,14 +57,13 @@ const getAvailableNodeTypes = async () => {
 };
 let nodeType: string, updatedNodeType: string;
 
-jest.setTimeout(620000);
+jest.setTimeout(1240000);
 beforeAll(async () => {
-  // just sleep
   const nodes = await getAvailableNodeTypes();
   nodeType = nodes.pop() ?? '';
   updatedNodeType = nodes.pop() ?? '';
   await execComposeUp();
-}, 60000);
+});
 afterAll(async () => await execComposeDown());
 
 describe('Elasticache Integration Testing', () => {
