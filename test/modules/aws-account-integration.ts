@@ -135,6 +135,32 @@ describe('AwsAccount Integration Testing', () => {
 
   it('does absolutely nothing when you apply this', apply());
 
+  it('selects a default region', query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+  `));
+
+  it('confirms that the default region was set', query(`
+    SELECT * FROM aws_regions WHERE is_default = TRUE;
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('tries to set a second default region', query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = 'us_east_1';
+  `));
+
+  it('confirms that the default region was not changed', query(`
+    SELECT * FROM aws_regions WHERE is_default = TRUE;
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].region).toBe(process.env.AWS_REGION);
+  }));
+
+  it('updates the default region with the handy `default_aws_region` function', query(`
+    SELECT * FROM default_aws_region('us_east_1');
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].default_aws_region).toBe('us_east_1');
+  }));
+
   // tests that on startup subsequent iasql ops for existing dbs succeed
   it('stops the worker for all dbs', (done) => void scheduler
     .stopAll()
