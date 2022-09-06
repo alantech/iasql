@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, PrimaryColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 
@@ -17,10 +17,7 @@ export class AwsCredentials {
 
 @Entity()
 export class AwsRegions {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @Column()
+  @PrimaryColumn()
   @cloudId
   region: string;
 
