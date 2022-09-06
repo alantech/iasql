@@ -107,7 +107,6 @@ jobs:
     outputs:
       test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
       set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
-      region: ${{ steps['set-region'].outputs['region'] }}
     steps:
       - uses: actions/checkout@v2
       - run: yarn
@@ -118,17 +117,6 @@ jobs:
       - id: set-test-module-names
         name: Set modules tests names
         run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
-      - id: set-region
-        name: Set region
-        # All regions except us-east-1 to not collide with common tests
-        # TODO: Eliminate region selection once we are fully multi-region
-        run: |
-          regions=("ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "sa-east-1" "us-east-2" "us-west-1" "us-west-2")
-          regionslen=${#regions[@]}
-          index=$(($RANDOM % $regionslen))
-          region=${regions[$index]}
-          echo $region
-          echo "::set-output name=region::$(echo $region)"
 
   module-test:
     runs-on: ubuntu-latest
@@ -164,6 +152,12 @@ jobs:
       - name: Run modules tests
         timeout-minutes: 40
         run: |
+          regions=("ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "sa-east-1" "us-east-2" "us-west-1" "us-west-2")
+          regionslen=${#regions[@]}
+          index=$(($RANDOM % $regionslen))
+          region=${regions[$index]}
+          export AWS_REGION=$region
+          echo $AWS_REGION
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
           yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
@@ -173,7 +167,6 @@ jobs:
           ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
           ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-          AWS_REGION: ${{ needs.setup-module-test.outputs['region'] }}
           STAGING_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}
           STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
 
