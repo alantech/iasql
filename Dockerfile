@@ -6,8 +6,9 @@ COPY yarn.lock /engine/yarn.lock
 RUN ["yarn", "install"]
 
 RUN ["apt", "update"]
-RUN ["apt", "install", "curl", "ca-certificates", "gnupg"]
-RUN ["echo", "'deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main' > /etc/apt/sources.list.d/postgresql.list"]
+RUN ["apt", "install", "curl", "ca-certificates", "gnupg", "-y"]
+RUN ["bash", "-c", "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | tee /etc/apt/trusted.gpg.d/apt.postgresql.org.gpg >/dev/null"]
+RUN ["bash", "-c", "echo 'deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main' > /etc/apt/sources.list.d/postgresql.list"]
 RUN ["apt", "update"]
 RUN ["apt", "upgrade", "-y"]
 RUN ["apt", "install", "postgresql-client-14", "-y"]
