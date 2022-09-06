@@ -130,7 +130,7 @@ export function getKeyCertPair(domainName: string): string[] {
   );
   const certBeginTag = '-----BEGIN CERTIFICATE-----';
   const certEndTag = '-----END CERTIFICATE-----';
-  console.log("certificate output is");
+  console.log('certificate output is');
   console.log(stdoutCert);
   const cert = stdoutCert.substring(
     stdoutCert.indexOf(certBeginTag),
@@ -139,7 +139,7 @@ export function getKeyCertPair(domainName: string): string[] {
 
   // check if we have a valid content on stdout, or fallback to a file
   let stdoutKey;
-  if (stdoutCert) stdoutKey = stdoutCert;
+  if (stdoutCert && stdoutCert.includes('BEGIN PRIVATE KEY')) stdoutKey = stdoutCert;
   else stdoutKey = execSync(`cat privkey.pem`, { shell: '/bin/bash', encoding: 'utf-8' });
 
   const keyBeginTag = '-----BEGIN PRIVATE KEY-----';
@@ -148,9 +148,5 @@ export function getKeyCertPair(domainName: string): string[] {
     stdoutKey.indexOf(keyBeginTag),
     stdoutKey.lastIndexOf(keyEndTag) + keyEndTag.length,
   );
-  console.log("key is");
-  console.log(key);
-  console.log("cert is");
-  console.log(cert);
   return [key, cert];
 }
