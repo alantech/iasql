@@ -1,5 +1,6 @@
 import { CreateDateColumn, Column, Entity, PrimaryColumn } from 'typeorm';
 
+// TODO: DROP
 export enum IasqlOperationType {
   APPLY = 'APPLY',
   SYNC = 'SYNC',
@@ -11,6 +12,7 @@ export enum IasqlOperationType {
   UPGRADE = 'UPGRADE',
 }
 
+// TODO: DROP
 @Entity()
 export class IasqlOperation {
   @PrimaryColumn({
@@ -34,6 +36,49 @@ export class IasqlOperation {
     enum: IasqlOperationType,
   })
   optype: IasqlOperationType;
+
+  @Column({
+    type: 'text',
+    array: true,
+  })
+  params: string[];
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  output: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  err: string;
+}
+
+@Entity()
+export class IasqlRpc {
+  @PrimaryColumn({
+    type: 'uuid',
+  })
+  opid: string;
+
+  @CreateDateColumn({
+    type: 'timestamptz',
+  })
+  startDate: Date;
+
+  @Column({
+    type: 'timestamptz',
+    nullable: true,
+  })
+  endDate: Date;
+
+  @Column()
+  moduleName: string;
+
+  @Column()
+  methodName: string;
 
   @Column({
     type: 'text',
