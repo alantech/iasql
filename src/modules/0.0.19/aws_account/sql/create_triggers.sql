@@ -18,20 +18,20 @@ BEGIN
 END
 $$;
 
-CREATE OR REPLACE FUNCTION there_can_be_only_one_aws_default_region_trigger()
-RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION aws_default_region_trigger()
+RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
   default_count INTEGER;
 BEGIN
   SELECT count(*) INTO default_count FROM aws_regions WHERE is_default = TRUE;
-  IF default_count > 0 && NEW.is_default = TRUE THEN
-    RAISE EXCEPTION 'there can be only one';
+  IF default_count > 0 AND NEW.is_default = TRUE THEN
+    RAISE EXCEPTION 'Only one AWS region may be the default';
   ELSE
-    RETURN trigger;
-  END;
+    RETURN NEW;
+  END IF;
 END
 $$;
 
-CREATE CONSTRAINT TRIGGER there_can_be_only_one_aws_default_region
-BEFORE INSERT OR UPDATE INITIALLY DEFERRED ON aws_regions
-FOR EACH ROW EXECUTE there_can_be_only_one_aws_default_region_trigger();
+CREATE TRIGGER aws_default_region BEFORE INSERT OR UPDATE
+ON aws_regions
+FOR EACH ROW EXECUTE FUNCTION aws_default_region_trigger();
