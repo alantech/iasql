@@ -39,14 +39,12 @@ const elasticacheclient = new ElastiCache({
 });
 
 const getAvailableNodeTypes = async () => {
-  const reservations = await elasticacheclient.describeReservedCacheNodesOfferings({
-    OfferingType: 'Light Utilization',
-  });
+  const reservations = await elasticacheclient.describeReservedCacheNodesOfferings({});
   if (reservations && reservations.ReservedCacheNodesOfferings) {
     const items: string[] = [];
-    // iterate over list and get the ones matching the product description
+    // iterate over list and get the ones matching the product description, and small size
     reservations.ReservedCacheNodesOfferings.forEach(function (node) {
-      if (node.ProductDescription == cacheType) {
+      if (node.ProductDescription == cacheType && node.CacheNodeType?.includes('small')) {
         if (node.CacheNodeType) items.push(node.CacheNodeType);
       }
     });
