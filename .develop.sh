@@ -22,6 +22,7 @@ CONFIGLOCAL="$(cat src/config/local.ts | sed "s/latestVersion:.*/latestVersion: 
 CONFIGPRODUCTION="$(cat src/config/production.ts | sed "s/latestVersion:.*/latestVersion: '${LATESTVERSION}',/;s/oldestVersion:.*/oldestVersion: '${LASTVERSION}'/")" && echo "${CONFIGPRODUCTION}" > src/config/production.ts
 CONFIGSTAGING="$(cat src/config/staging.ts | sed "s/latestVersion:.*/latestVersion: '${VERSION}',/;s/oldestVersion:.*/oldestVersion: '${LASTVERSION}'/")" && echo "${CONFIGSTAGING}" > src/config/staging.ts
 CONFIGTEST="$(cat src/config/test.ts | sed "s/latestVersion:.*/latestVersion: '${VERSION}',/;s/oldestVersion:.*/oldestVersion: '${LASTVERSION}'/")" && echo "${CONFIGTEST}" > src/config/test.ts
+CONFIGBOOTSTRAP="$(cat src/config/bootstrap.ts | sed "s/latestVersion:.*/latestVersion: '${LATESTVERSION}',/;s/oldestVersion:.*/oldestVersion: '${LASTVERSION}'/")" && echo "${CONFIGBOOTSTRAP}" > src/config/bootstrap.ts
 
 # Copy the version and push to main
 cp -r src/modules/${LATESTVERSION} src/modules/${VERSION}
