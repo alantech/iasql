@@ -130,6 +130,8 @@ export function getKeyCertPair(domainName: string): string[] {
   );
   const certBeginTag = '-----BEGIN CERTIFICATE-----';
   const certEndTag = '-----END CERTIFICATE-----';
+  console.log("certificate output is");
+  console.log(stdoutCert);
   const cert = stdoutCert.substring(
     stdoutCert.indexOf(certBeginTag),
     stdoutCert.lastIndexOf(certEndTag) + certEndTag.length,
@@ -146,5 +148,9 @@ export function getKeyCertPair(domainName: string): string[] {
     stdoutKey.indexOf(keyBeginTag),
     stdoutKey.lastIndexOf(keyEndTag) + keyEndTag.length,
   );
+  console.log("key is");
+  console.log(key);
+  console.log("cert is");
+  console.log(cert);
   return [key, cert];
 }
