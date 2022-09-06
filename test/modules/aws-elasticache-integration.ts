@@ -136,11 +136,10 @@ describe('Elasticache Integration Testing', () => {
   SELECT * FROM cache_cluster WHERE cluster_id='${clusterId}' AND node_type='${updatedNodeType}';
 `,
       (res: any) => expect(res.length).toBe(1),
-    ),
-      (e?: any) => {
-        if (!!e) return done(e);
-        done();
-      };
+    )((e?: any) => {
+      if (!!e) return done(e);
+      done();
+    });
   });
 
   it(
