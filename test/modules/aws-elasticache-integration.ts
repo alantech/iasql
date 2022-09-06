@@ -131,7 +131,7 @@ describe('Elasticache Integration Testing', () => {
     'checks that cache_cluster have been modified',
     query(
       `
-  SELECT * FROM cache_cluster WHERE node_type='${updatedNodeType}';
+  SELECT * FROM cache_cluster WHERE cluster_id='${clusterId}' AND node_type='${updatedNodeType}';
 `,
       (res: any) => expect(res.length).toBe(1),
     ),
@@ -146,15 +146,18 @@ describe('Elasticache Integration Testing', () => {
 
   it('applies the cache_cluster engine update', apply());
 
-  it(
-    'checks that cache_cluster engine has not been modified',
+  it('checks that cache_cluster engine has not been modified', done => {
     query(
       `
   SELECT * FROM cache_cluster WHERE cluster_id='${clusterId}' AND engine='${cacheType}';
 `,
       (res: any) => expect(res.length).toBe(1),
     ),
-  );
+      (e?: any) => {
+        if (!!e) return done(e);
+        done();
+      };
+  });
 
   it(
     'checks that cache_cluster with new engine does not exist',
