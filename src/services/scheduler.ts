@@ -147,6 +147,71 @@ export async function start(db: IasqlDatabase) {
           }
         }
       },
+      rpc: async (payload: any) => {
+        const { params, opid, moduleName, methodName } = payload;
+        let promise;
+        // TODO: look for the method x in module y
+        let output;
+        let error;
+        const user = db?.iasqlUsers?.[0];
+        const uid = user?.id;
+        const email = user?.email;
+        const dbAlias = db?.alias;
+        try {
+          output = await promise;
+          // once the rpc completes updating the `end_date`
+          // will complete the polling
+          const query = `
+            update iasql_rpc
+            set end_date = now(), output = '${output}'
+            where opid = uuid('${opid}');
+          `;
+          logger.debug(query);
+          output = isString(output) ? output : JSON.stringify(output);
+          await conn.query(query);
+        } catch (e) {
+          let errorMessage: string | string[] = logErrSentry(e, uid, email, dbAlias);
+          // split message if multiple lines in it
+          if (errorMessage.includes('\n')) errorMessage = errorMessage.split('\n');
+          // error must be valid JSON as a string
+          const errorStringify = JSON.stringify({ message: errorMessage });
+          // replace single quotes to make it valid
+          error = errorStringify.replace(/[\']/g, '\\"');
+          const query = `
+            update iasql_rpc
+            set end_date = now(), err = '${error}'
+            where opid = uuid('${opid}');
+          `;
+          await conn.query(query);
+        } finally {
+          try {
+            const recordCount = await iasql.getDbRecCount(conn);
+            const operationCount = await iasql.getOpCount(conn);
+            await MetadataRepo.updateDbCounts(dbId, recordCount, operationCount);
+            // todo: refactor this properly
+            // list is called by us and has no dbAlias so ignore
+            // if (uid && optype !== IasqlOperationType.LIST)
+            //   telemetry.logOp(
+            //     optype,
+            //     {
+            //       dbId,
+            //       email,
+            //       dbAlias,
+            //       recordCount,
+            //       operationCount,
+            //     },
+            //     {
+            //       params,
+            //       output,
+            //       error,
+            //     },
+            //     uid,
+            //   );
+          } catch (e: any) {
+            logger.error('could not log op event', e);
+          }
+        }
+      }
     },
   });
   workerRunners[dbId] = { runner, conn };
