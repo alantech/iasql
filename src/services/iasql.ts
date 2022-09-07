@@ -285,7 +285,10 @@ export async function dump(dbId: string, dataOnly: boolean) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
   if (dbMeta?.upgrading) throw new Error('Currently upgrading, cannot dump this database');
   const pgUrl = dbMan.ourPgUrl(dbId);
-  const excludedDataTables = "--exclude-table-data 'aws_account' --exclude-table-data 'iasql_*'";
+  // TODO: Drop the old 'aws_account' when v0.0.19 is the oldest version.
+  // Also TODO: Automatically figure out which tables to exclude here.
+  const excludedDataTables =
+    "--exclude-table-data 'aws_account' --exclude-table-data 'aws_credentials' --exclude-table-data 'iasql_*'";
   const { stdout } = await exec(
     `pg_dump ${
       dataOnly
@@ -1246,19 +1249,32 @@ export async function upgrade(dbId: string, dbUser: string) {
         `)
         ).map((r: any) => r.name.split('@')[0]);
         // 2. Read the `aws_account` table to get the credentials (if any).
+        const OldModules = (AllModules as any)[versionString];
         let creds: any;
-        if (mods.includes('aws_account')) {
+        // TODO: Drop this old path once v0.0.19 is the oldest version
+        if (
+          mods.includes('aws_account') &&
+          (OldModules?.AwsAccount?.mappers?.awsAccount || OldModules?.awsAccount?.awsAccount)
+        ) {
           creds = (
             await conn.query(`
-            SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;
+              SELECT access_key_id, secret_access_key, region FROM aws_account LIMIT 1;
           `)
+          )[0];
+        } else if (mods.includes('aws_account') && OldModules?.awsAccount?.awsRegions) {
+          creds = (
+            await conn.query(`
+              SELECT access_key_id, secret_access_key, region
+              FROM aws_credentials c
+              INNER JOIN aws_regions r on 1 = 1
+              WHERE r.is_default = true;
+            `)
           )[0];
         }
         // 3. Uninstall all of the non-`iasql_*` modules
         const nonIasqlMods = mods.filter(m => !/^iasql/.test(m));
         await uninstall(nonIasqlMods, dbId, true);
         // 4. Uninstall the `iasql_*` modules manually
-        const OldModules = (AllModules as any)[versionString];
         const qr = conn.createQueryRunner();
         await OldModules?.IasqlFunctions?.migrations?.remove(qr);
         await OldModules?.iasqlFunctions?.migrations?.remove(qr);
@@ -1279,9 +1295,15 @@ export async function upgrade(dbId: string, dbUser: string) {
         if (!!creds) {
           await install(['aws_account'], dbId, dbUser, false, true);
           await conn.query(`
-            INSERT INTO aws_account (access_key_id, secret_access_key, region)
-            VALUES ('${creds.access_key_id}', '${creds.secret_access_key}', '${creds.region}');
+            INSERT INTO aws_credentials (access_key_id, secret_access_key)
+            VALUES ('${creds.access_key_id}', '${creds.secret_access_key}');
           `);
+          await sync(dbId, false);
+          if (creds.region) {
+            await conn.query(`
+              UPDATE aws_regions SET is_default = true WHERE region = '${creds.region}';
+            `);
+          }
           await install(
             mods.filter((m: string) => !['aws_account', 'iasql_platform', 'iasql_functions'].includes(m)),
             dbId,

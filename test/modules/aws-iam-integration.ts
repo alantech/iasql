@@ -105,9 +105,15 @@ describe('IAM Integration Testing', () => {
   it('installs the aws_account module', install(['aws_account']));
 
   it('inserts aws credentials', query(`
-    INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
+
+  it('syncs the regions', sync());
+
+  it('sets the default region', query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
+  `));
 
   it('installs the iam module', install(modules));
 
@@ -365,9 +371,15 @@ describe('IAM install/uninstall', () => {
   it('installs the aws_account module', install(['aws_account']));
 
   it('inserts aws credentials', query(`
-    INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
+
+  it('syncs the regions', sync());
+
+  it('sets the default region', query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
+  `));
 
   it('installs the IAM module', install(modules));
 

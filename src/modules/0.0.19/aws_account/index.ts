@@ -1,18 +1,20 @@
-import { AWS } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
-import { AwsAccountEntity } from './entity';
+import { EC2 } from '@aws-sdk/client-ec2';
 
-class AccountMapper extends MapperBase<AwsAccountEntity> {
+import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
+import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { AwsCredentials, AwsRegions } from './entity';
+
+class CredentialsMapper extends MapperBase<AwsCredentials> {
   module: AwsAccount;
-  entity = AwsAccountEntity;
-  equals = (_a: AwsAccountEntity, _b: AwsAccountEntity) => true;
-  cloud = new Crud2<AwsAccountEntity>({
-    create: async (_e: AwsAccountEntity[], _ctx: Context) => {
+  entity = AwsCredentials;
+  equals = (_a: AwsCredentials, _b: AwsCredentials) => true;
+  cloud = new Crud2<AwsCredentials>({
+    create: async (_e: AwsCredentials[], _ctx: Context) => {
       /* Do nothing */
     },
     read: (ctx: Context, id?: string) =>
       ctx.orm.find(
-        AwsAccountEntity,
+        AwsCredentials,
         id
           ? {
               where: {
@@ -21,11 +23,72 @@ class AccountMapper extends MapperBase<AwsAccountEntity> {
             }
           : undefined,
       ),
-    update: async (_e: AwsAccountEntity[], _ctx: Context) => {
+    update: async (_e: AwsCredentials[], _ctx: Context) => {
       /* Do nothing */
     },
-    delete: async (_e: AwsAccountEntity[], _ctx: Context) => {
+    delete: async (_e: AwsCredentials[], _ctx: Context) => {
       /* Do nothing */
+    },
+  });
+
+  constructor(module: AwsAccount) {
+    super();
+    this.module = module;
+    super.init();
+  }
+}
+
+class RegionsMapper extends MapperBase<AwsRegions> {
+  module: AwsAccount;
+  entity = AwsRegions;
+  equals = (a: AwsRegions, b: AwsRegions) => a.region === b.region; // Checking only the region eliminates db/cloud `update` calls
+
+  getRegions = crudBuilderFormat<EC2, 'describeRegions', string[]>(
+    'describeRegions',
+    () => ({}),
+    res => res?.Regions?.map(r => r.RegionName ?? '').filter(r => r !== '') ?? [],
+  );
+
+  cloud = new Crud2<AwsRegions>({
+    create: async (e: AwsRegions[], ctx: Context) => {
+      // Just immediately revert, we can't create regions in the cloud
+      const out = await this.module.awsRegions.db.delete(e, ctx);
+      if (!out || out instanceof Array) return out;
+      return [out];
+    },
+    read: async (ctx: Context, region?: string) => {
+      let client;
+      try {
+        client = await ctx.getAwsClient();
+      } catch (_) {
+        // The initial install of the module will fail to generate a valid client, so just
+        // catch this and pretend nothing bad happened.
+        return [];
+      }
+      if (region) {
+        const awsRegion = new AwsRegions();
+        awsRegion.isDefault = false;
+        awsRegion.isEnabled = true;
+        awsRegion.region = region;
+        return awsRegion;
+      }
+      return (await this.getRegions(client.ec2client)).map(r => {
+        const awsRegion = new AwsRegions();
+        awsRegion.isDefault = false;
+        awsRegion.isEnabled = true;
+        awsRegion.region = r;
+        return awsRegion;
+      });
+    },
+    update: async (_e: AwsRegions[], _ctx: Context) => {
+      // The only controllable fields here have nothing to do with AWS itself, but for how IaSQL works
+      // with multiple regions, so we can literally no-op this one.
+    },
+    delete: async (e: AwsRegions[], ctx: Context) => {
+      // You can't delete regions, just restore them back
+      const out = await this.module.awsRegions.db.create(e, ctx);
+      if (!out || out instanceof Array) return out;
+      return [out];
     },
   });
 
@@ -39,32 +102,58 @@ class AccountMapper extends MapperBase<AwsAccountEntity> {
 class AwsAccount extends ModuleBase {
   context: Context = {
     // This function is `async function () {` instead of `async () => {` because that enables the
-    // `this` keyword within the function based on the objec it is being called from, so the
+    // `this` keyword within the function based on the object it is being called from, so the
     // `getAwsClient` function can access the correct `orm` object with the appropriate creds and
     // read out the right AWS creds and create an AWS client also attached to the current context,
-    // which will be different for different users. WARNING: Explicitly trying to access via
-    // `AwsAccount.provides.context.getAwsClient` would instead use the context *template* that is
-    // global to the codebase.
-    async getAwsClient() {
-      if (this.awsClient) return this.awsClient;
+    // which will be different for different users. The client cache is based on the region chosen,
+    // and it assumes that the credentials do not change mid-operation.
+    async getAwsClient(selectedRegion?: string) {
       const orm = this.orm;
-      const awsCreds = await orm.findOne(awsAccount.awsAccount.entity);
-      this.awsClient = new AWS({
-        region: awsCreds.region,
+      const region =
+        selectedRegion ??
+        (
+          await orm.findOne(AwsRegions, {
+            where: {
+              isDefault: true,
+            },
+          })
+        )?.region ??
+        'us-east-1'; // TODO: Eliminate this last fallback
+      if (this.awsClient[region]) return this.awsClient[region];
+      const awsCreds = await orm.findOne(AwsCredentials);
+      if (!awsCreds) throw new Error('No credentials found');
+      this.awsClient[region] = new AWS({
+        region,
         credentials: {
           accessKeyId: awsCreds.accessKeyId,
           secretAccessKey: awsCreds.secretAccessKey,
         },
       });
-      return this.awsClient;
+      return this.awsClient[region];
     },
-    awsClient: null, // Just reserving this name to guard against collisions between modules.
+    awsClient: {}, // Initializing this cache with no clients. The cache doesn't expire explicitly
+    // as we simply drop the context at the end of the execution.
+    // This function returns the list of regions that are currently enabled, allowing multi-region
+    // aware modules to request which regions they should operate on beyond the default region. The
+    // full AwsRegions entities may be optionally returned if there is some special logic involving
+    // the default region, perhaps, that is desired.
+    async getEnabledAwsRegions(fullEntities = false) {
+      const orm = this.orm;
+      const awsRegions = await orm.find(AwsRegions, {
+        where: {
+          isEnabled: true,
+        },
+      });
+      return fullEntities ? awsRegions : awsRegions.map((r: AwsRegions) => r.region);
+    },
   };
-  awsAccount: AccountMapper;
+  awsCredentials: CredentialsMapper;
+  awsRegions: RegionsMapper;
 
   constructor() {
     super();
-    this.awsAccount = new AccountMapper(this);
+    this.awsCredentials = new CredentialsMapper(this);
+    this.awsRegions = new RegionsMapper(this);
     super.init();
   }
 }
