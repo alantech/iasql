@@ -158,7 +158,9 @@ export async function start(dbId: string, dbUser: string) {
           const versionString = await TypeormWrapper.getVersionString(dbId);
           const Modules = (modules as any)[versionString];
           if (!Modules[modulename]) throw new Error(`Module ${modulename} not found`);
-          if (!Modules[modulename][methodname]) throw new Error(`Method ${methodname} in module ${modulename} not found`);
+          if (!Modules[modulename][methodname]) {
+            throw new Error(`Method ${methodname} in module ${modulename} not found`);
+          }
           output = await Modules[modulename][methodname](params);
           // once the rpc completes updating the `end_date`
           // will complete the polling
@@ -213,7 +215,7 @@ export async function start(dbId: string, dbUser: string) {
             logger.error('could not log op event', e);
           }
         }
-      }
+      },
     },
   });
   workerRunners[dbId] = { runner, conn };
