@@ -12,5 +12,7 @@ DROP FUNCTION "iasql_apply";
 DROP FUNCTION "iasql_preview_apply";
 DROP FUNCTION "iasql_cloud_manipulation";
 DROP FUNCTION "until_iasql_operation";
+DROP FUNCTION "iasql_custom_call";
+DROP FUNCTION "iasql_rpc_default_call";
 DROP FUNCTION "until_iasql_rpc";
 DROP FUNCTION "iasql_audit" CASCADE;

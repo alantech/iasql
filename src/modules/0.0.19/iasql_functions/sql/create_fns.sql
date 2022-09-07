@@ -42,7 +42,7 @@ begin
     _dblink_sql := format('insert into iasql_rpc (opid, module_name, method_name, params) values (%L, %L, %L, array[''%s'']::text[]);', _opid, _module_name, _method_name, array_to_string(_params, ''','''));
     -- raise exception '%', _dblink_sql;
     PERFORM dblink_exec('iasqlopconn', _dblink_sql);
-    _dblink_sql := format('select graphile_worker.add_job(%L, json_build_object(%L, %L, %L, %L, %L, %L, %L, array[''%s'']::text[]));', 'rpc', 'opid', _opid, 'module_name', _module_name, 'method_name', _method_name, 'params', array_to_string(_params, ''','''));
+    _dblink_sql := format('select graphile_worker.add_job(%L, json_build_object(%L, %L, %L, %L, %L, %L, %L, array[''%s'']::text[]));', 'rpc', 'opid', _opid, 'modulename', _module_name, 'methodname', _method_name, 'params', array_to_string(_params, ''','''));
     -- raise exception '%', _dblink_sql;
     -- allow statement that returns results in dblink https://stackoverflow.com/a/28299993
     PERFORM * FROM dblink('iasqlopconn', _dblink_sql) alias(col text);
@@ -69,6 +69,34 @@ begin
     -- timed out
     raise warning 'Done waiting for % %.', _module_name, _method_name
     using hint = 'The operation will show up in the iasql_rpc table when it completes under this opid: ' || _opid;
+end;
+$$;
+
+create or replace function iasql_rpc_default_call(_module_name text, _method_name text, _params text[]) returns table (
+  result text
+)
+language plpgsql security definer
+as $$
+declare
+  _opid uuid;
+begin
+  _opid := until_iasql_rpc(_module_name, _method_name, _params);
+  return query select
+    j.s->>'result' as result
+  from (
+    select json_array_elements(output::json) as s from iasql_rpc where opid = _opid
+  ) as j;
+end;
+$$;
+
+-- TODO: here for testing purpose. To be delete it
+create or replace function iasql_custom_call() returns table (
+  result text
+)
+language plpgsql security definer
+as $$
+begin
+  return query select * from iasql_rpc_default_call('iasqlFunctions', 'customCall', array[]::text[]);
 end;
 $$;
 
