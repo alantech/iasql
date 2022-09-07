@@ -81,6 +81,14 @@ export async function getOpCount(conn: TypeormWrapper): Promise<number> {
   return parseInt(res[0].count ?? '0', 10);
 }
 
+export async function getRpcCount(conn: TypeormWrapper): Promise<number> {
+  const res = await conn.query(`
+    SELECT COUNT(*)
+    FROM iasql_rpc
+  `);
+  return parseInt(res[0].count ?? '0', 10);
+}
+
 export async function connect(dbAlias: string, uid: string, email: string, dbId = dbMan.genDbId(dbAlias)) {
   let conn1: any, conn2: any, dbUser: any;
   let dbSaved,
