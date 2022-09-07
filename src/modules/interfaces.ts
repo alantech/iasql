@@ -476,8 +476,8 @@ export class ModuleBase {
   context?: Context;
   mappers: { [key: string]: MapperInterface<any> };
   sql?: {
-    afterInstall?: string,
-    beforeUninstall?: string
+    afterInstall?: string;
+    beforeUninstall?: string;
   };
   migrations: {
     install: (q: QueryRunner) => Promise<void>;
@@ -534,13 +534,13 @@ export class ModuleBase {
       const sql = this.sql.afterInstall;
       this.migrations.afterInstall = async (q: QueryRunner) => {
         await q.query(sql);
-      }
+      };
     }
     if (this.sql?.beforeUninstall) {
       const sql = this.sql.beforeUninstall;
       this.migrations.beforeRemove = async (q: QueryRunner) => {
         await q.query(sql);
-      }
+      };
     }
     const syncified = new Function(
       'return ' +
