@@ -30,7 +30,7 @@ A VPC spans all of the Availability Zones in an AWS Region. After you create a V
 
 ```sql
 INSERT INTO subnet (availability_zone, vpc_id, cidr_block)
-SELECT (select * from availability_zone limit 1), id, '192.168.0.0/16'
+SELECT (SELECT * FROM availability_zone LIMIT 1), id, '192.168.0.0/16'
 FROM vpc
 WHERE is_default = false
 AND cidr_block = '192.168.0.0/16';

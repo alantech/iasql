@@ -38,28 +38,32 @@ const elasticacheclient = new ElastiCache({
   region,
 });
 
-const getAvailableNodeType = async () => {
+const getAvailableNodeTypes = async () => {
   const reservations = await elasticacheclient.describeReservedCacheNodesOfferings({});
   if (reservations && reservations.ReservedCacheNodesOfferings) {
     const items: string[] = [];
-    // iterate over list and get the ones matching the product description
+    // iterate over list and get the ones matching the product description, and small size
     reservations.ReservedCacheNodesOfferings.forEach(function (node) {
-      if (node.ProductDescription == cacheType) {
+      if (
+        node.ProductDescription == cacheType &&
+        (node.CacheNodeType?.includes('small') || node.CacheNodeType?.includes('medium'))
+      ) {
         if (node.CacheNodeType) items.push(node.CacheNodeType);
       }
     });
-    return items.pop() ?? '';
+    return items ?? [];
   }
-  return '';
+  return [];
 };
-let nodeType: string;
+let nodeType: string, updatedNodeType: string;
 
-jest.setTimeout(620000);
+jest.setTimeout(1240000);
 beforeAll(async () => {
-  // just sleep
-  nodeType = await getAvailableNodeType();
+  const nodes = await getAvailableNodeTypes();
+  nodeType = nodes.pop() ?? '';
+  updatedNodeType = nodes.pop() ?? '';
   await execComposeUp();
-}, 60000);
+});
 afterAll(async () => await execComposeDown());
 
 describe('Elasticache Integration Testing', () => {
@@ -114,24 +118,28 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
-  it(
-    'tries to update cache_cluster node type',
-    query(`
-  UPDATE cache_cluster SET node_type='cache.t2.small' WHERE cluster_id='${clusterId}'
-  `),
-  );
+  it('tries to update cache_cluster node type', done => {
+    query(`  
+    UPDATE cache_cluster SET node_type='${updatedNodeType}' WHERE cluster_id='${clusterId}';
+    `)((e?: any) => {
+      if (!!e) return done(e);
+      done();
+    });
+  });
 
   it('applies the cache_cluster node_type update', apply());
 
-  it(
-    'checks that cache_cluster have been modified',
+  it('checks that cache_cluster have been modified', done => {
     query(
       `
-  SELECT * FROM cache_cluster WHERE node_type='cache.t2.small';
+  SELECT * FROM cache_cluster WHERE cluster_id='${clusterId}' AND node_type='${updatedNodeType}';
 `,
       (res: any) => expect(res.length).toBe(1),
-    ),
-  );
+    )((e?: any) => {
+      if (!!e) return done(e);
+      done();
+    });
+  });
 
   it(
     'tries to update cache_cluster engine',
@@ -146,7 +154,7 @@ describe('Elasticache Integration Testing', () => {
     'checks that cache_cluster engine has not been modified',
     query(
       `
-  SELECT * FROM cache_cluster WHERE cluster_id='${clusterId}' AND engine='${cacheType}';
+  SELECT * FROM cache_cluster WHERE cluster_id='${clusterId}' AND engine='${cacheType}'
 `,
       (res: any) => expect(res.length).toBe(1),
     ),

@@ -26,8 +26,7 @@ const workerRunners: { [key: string]: { runner: any; conn: any } } = {}; // TODO
 // graphile-worker here functions as a library, not a child process.
 // It manages its own database schema
 // (graphile_worker) and migrations in each uid db using our credentials
-export async function start(db: IasqlDatabase) {
-  const { pgName: dbId, pgUser: dbUser } = db;
+export async function start(dbId: string, dbUser: string) {
   // use the same connection for the scheduler and its operations
   const conn = await TypeormWrapper.createConn(dbId, { name: uuidv4() });
   // create a dblink server per db to reduce connections when calling dblink in iasql op SP
@@ -89,10 +88,10 @@ export async function start(db: IasqlDatabase) {
         }
         let output;
         let error;
-        const user = db?.iasqlUsers?.[0];
+        const user = await MetadataRepo.getUserFromDbId(dbId);
         const uid = user?.id;
         const email = user?.email;
-        const dbAlias = db?.alias;
+        const dbAlias = user?.iasqlDatabases?.[0]?.alias;
         try {
           output = await promise;
           // once the operation completes updating the `end_date`
@@ -217,15 +216,12 @@ export async function start(db: IasqlDatabase) {
   workerRunners[dbId] = { runner, conn };
 }
 
-export async function stop(db: IasqlDatabase) {
-  const dbId = db.pgName;
+export async function stop(dbId: string) {
   const { runner, conn } = workerRunners[dbId] ?? { runner: undefined, conn: undefined };
   if (runner && conn) {
     try {
       await runner.stop();
     } catch (e) {
-      const user = db.iasqlUsers?.[0];
-      logErrSentry(e, user?.id, user?.email, db.alias);
       logger.warn(
         `Graphile workers for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`,
         { e },
@@ -242,7 +238,7 @@ export async function stop(db: IasqlDatabase) {
 export async function stopAll() {
   const dbs: IasqlDatabase[] = await MetadataRepo.getAllDbs();
   for (const db of dbs) {
-    await stop(db);
+    await stop(db.pgName);
   }
 }
 
@@ -262,7 +258,7 @@ export async function init() {
       }),
     )
   ).filter((db: IasqlDatabase | undefined) => db !== undefined) as IasqlDatabase[]; // Typescript should know better
-  const inits = await Promise.allSettled(dbs.map(db => start(db)));
+  const inits = await Promise.allSettled(dbs.map(db => start(db.pgName, db.pgUser)));
   for (const [i, bootstrap] of inits.entries()) {
     if (bootstrap.status === 'rejected') {
       const db = dbs[i];
@@ -278,15 +274,8 @@ if (require.main === module) {
   const app = express();
   const port = 14527;
 
-  function respondErrorAndDie(res: any, err: any, db?: IasqlDatabase) {
-    let errorResponse;
-    if (db) {
-      const user = db.iasqlUsers?.[0];
-      errorResponse = logErrSentry(err, user?.id, user?.email, db.alias);
-    } else {
-      errorResponse = logErrSentry(err);
-    }
-    if (res) res.status(500).send(errorResponse);
+  function respondErrorAndDie(res: any, err: any) {
+    res.status(500).send(err);
     logger.error(`Scheduler exited with error: ${err}`);
     process.exit(13);
   }
@@ -296,41 +285,37 @@ if (require.main === module) {
     next();
   });
 
-  app.get('/start/:dbId/', async (req: any, res: any) => {
-    const { dbId } = req.params;
-    const db = await MetadataRepo.getDbById(dbId);
-    if (!db) return respondErrorAndDie(res, new Error('dbId not found!'));
-
-    start(db)
+  app.get('/init/', (req: any, res: any) => {
+    init()
       .then(() => res.sendStatus(200))
-      .catch(e => respondErrorAndDie(res, e, db));
+      .catch(e => respondErrorAndDie(res, e.message));
   });
 
-  app.get('/stop/:dbId/', async (req: any, res: any) => {
-    const { dbId } = req.params;
-    const db = await MetadataRepo.getDbById(dbId);
-    if (!db) return respondErrorAndDie(res, new Error('dbId not found!'));
-
-    stop(db)
+  app.get('/start/:dbId/:dbUser/', (req: any, res: any) => {
+    const { dbId, dbUser } = req.params;
+    start(dbId, dbUser)
       .then(() => res.sendStatus(200))
-      .catch(e => respondErrorAndDie(res, e, db));
+      .catch(e => respondErrorAndDie(res, e.message));
+  });
+
+  app.get('/stop/:dbId/', (req: any, res: any) => {
+    const { dbId } = req.params;
+    stop(dbId)
+      .then(() => res.sendStatus(200))
+      .catch(e => respondErrorAndDie(res, e.message));
   });
 
   app.get('/stopAll/', (req: any, res: any) => {
     stopAll()
       .then(() => res.sendStatus(200))
-      .catch(e => respondErrorAndDie(res, e));
+      .catch(e => respondErrorAndDie(res, e.message));
   });
 
   app.head('/health/', (req: any, res: any) => {
     res.sendStatus(200);
   });
 
-  init()
-    .then(() => {
-      app.listen(port, () => {
-        logger.info(`Scheduler running on port ${port}`);
-      });
-    })
-    .catch(e => respondErrorAndDie(undefined, e));
+  app.listen(port, () => {
+    logger.info(`Scheduler running on port ${port}`);
+  });
 }
