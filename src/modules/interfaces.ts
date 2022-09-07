@@ -361,6 +361,8 @@ export interface ModuleInterface {
   mappers: { [key: string]: MapperInterface<any> };
   migrations?: {
     install: (q: QueryRunner) => Promise<void>;
+    afterInstall?: (q: QueryRunner) => Promise<void>;
+    beforeRemove?: (q: QueryRunner) => Promise<void>;
     remove: (q: QueryRunner) => Promise<void>;
   };
 }
@@ -473,8 +475,14 @@ export class ModuleBase {
   };
   context?: Context;
   mappers: { [key: string]: MapperInterface<any> };
+  sql?: {
+    afterInstall?: string,
+    beforeUninstall?: string
+  };
   migrations: {
     install: (q: QueryRunner) => Promise<void>;
+    afterInstall?: (q: QueryRunner) => Promise<void>;
+    beforeRemove?: (q: QueryRunner) => Promise<void>;
     remove: (q: QueryRunner) => Promise<void>;
   };
 
@@ -522,6 +530,18 @@ export class ModuleBase {
       install: migrationClass.prototype.up,
       remove: migrationClass.prototype.down,
     };
+    if (this.sql?.afterInstall) {
+      const sql = this.sql.afterInstall;
+      this.migrations.afterInstall = async (q: QueryRunner) => {
+        await q.query(sql);
+      }
+    }
+    if (this.sql?.beforeUninstall) {
+      const sql = this.sql.beforeUninstall;
+      this.migrations.beforeRemove = async (q: QueryRunner) => {
+        await q.query(sql);
+      }
+    }
     const syncified = new Function(
       'return ' +
         migrationClass.prototype.up

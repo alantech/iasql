@@ -18,8 +18,14 @@ export async function migrate(conn: Connection) {
   const qr = conn.createQueryRunner();
   await qr.connect();
   await iasqlPlatform.migrations.install(qr);
+  if (iasqlPlatform.migrations.afterInstall) {
+    await iasqlPlatform.migrations.afterInstall(qr);
+  }
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@${version}')`);
   await iasqlFunctions.migrations.install(qr);
+  if (iasqlFunctions.migrations.afterInstall) {
+    await iasqlFunctions.migrations.afterInstall(qr);
+  }
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_functions@${version}')`);
   await qr.query(
     `INSERT INTO iasql_dependencies VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`,
