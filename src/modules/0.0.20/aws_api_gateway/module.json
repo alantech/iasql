@@ -1,0 +1,5 @@
+{
+    "name": "aws_api_gateway",
+    "dependencies": ["iasql_platform", "aws_account"]
+  }
+  
