@@ -17,7 +17,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'cloudfront';
 const callerReference = `${prefix}-caller`;
-const s3CallerReference = `${prefix}-caller`;
+const s3CallerReference = `s3-${prefix}-caller`;
 const originId = `${prefix}-origin-id`;
 const s3OriginId = `${prefix}-s3-origin-id`;
 const bucket = `${prefix}-bucket`;
