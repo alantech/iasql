@@ -34,6 +34,12 @@ export class IasqlDatabase {
   operationCount: number;
 
   @Column({
+    type: 'int',
+    default: 0,
+  })
+  rpcCount: number;
+
+  @Column({
     type: 'boolean',
     default: false,
   })
