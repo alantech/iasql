@@ -70,11 +70,18 @@ export class Distribution {
     DomainName: string | undefined;
     Id: string | undefined;
     OriginShield: any;
-    CustomOriginConfig: {
-      HTTPPort: number | undefined;
-      HTTPSPort: number | undefined;
-      OriginProtocolPolicy: originProtocolPolicyEnum;
-    };
+    CustomOriginConfig:
+      | {
+          HTTPPort: number | undefined;
+          HTTPSPort: number | undefined;
+          OriginProtocolPolicy: originProtocolPolicyEnum;
+        }
+      | undefined;
+    S3OriginConfig:
+      | {
+          OriginAccessIdentity: string | undefined;
+        }
+      | undefined;
   }[];
 
   @Column({
