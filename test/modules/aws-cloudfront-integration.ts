@@ -1,5 +1,3 @@
-import { CreateBucketCommandOutput, S3 } from '@aws-sdk/client-s3';
-
 import config from '../../src/config';
 import * as iasql from '../../src/services/iasql';
 import {
@@ -35,6 +33,16 @@ const origins = [
     CustomOriginConfig: { HTTPPort: 80, HTTPSPort: 443, OriginProtocolPolicy: 'https-only' },
   },
 ];
+
+const s3Origins = [
+  {
+    DomainName: `${bucket}.s3.amazonaws.com`,
+    Id: s3OriginId,
+    S3OriginConfig: { OriginAccessIdentity: '' },
+  },
+];
+const s3OriginsString = JSON.stringify(s3Origins);
+
 const originsString = JSON.stringify(origins);
 const s3behavior = {
   TargetOriginId: s3OriginId,
@@ -48,47 +56,17 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_cloudfront'];
-
-const region = process.env.AWS_REGION ?? '';
-const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
-const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
-const s3Client = new S3({ credentials: { accessKeyId, secretAccessKey }, region });
+const modules = ['aws_cloudfront', 'aws_s3'];
 
 jest.setTimeout(620000);
 
-const createS3Bucket = async () => {
-  const result = await s3Client.createBucket({
-    Bucket: bucket,
-  });
-  return result.Location ?? '';
-};
-
-const deleteS3Bucket = async () => {
-  await s3Client.deleteBucket({ Bucket: bucket });
-};
-
-let s3OriginsString: string;
-
 beforeAll(async () => {
   // create a test s3 bucket
-  const s3bucket = await createS3Bucket();
-  if (s3bucket) {
-    const s3Origins = [
-      {
-        DomainName: `${bucket}.s3.amazonaws.com`,
-        Id: s3OriginId,
-        S3OriginConfig: { OriginAccessIdentity: '' },
-      },
-    ];
-    s3OriginsString = JSON.stringify(s3Origins);
-  }
   await execComposeUp();
 });
 
 afterAll(async () => {
   // need to remove the bucket
-  await deleteS3Bucket();
   await execComposeDown();
 });
 
@@ -111,6 +89,13 @@ describe('Cloudfront Integration Testing', () => {
   );
 
   it('installs the cloudfront module', install(modules));
+
+  it(
+    'creates a dummy s3 resource',
+    query(`
+    INSERT INTO bucket (name) VALUES ('${bucket}')`),
+  );
+  it('applies the s3 creation', apply());
 
   it(
     'adds a new distribution',
@@ -244,6 +229,15 @@ describe('Cloudfront Integration Testing', () => {
   );
 
   it('applies the distribution removal', apply());
+
+  it(
+    'deletes the s3 bucket',
+    query(`
+    DELETE FROM bucket WHERE name = '${bucket}';
+  `),
+  );
+
+  it('applies the s3 removal', apply());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
