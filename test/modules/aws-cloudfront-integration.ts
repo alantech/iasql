@@ -64,6 +64,10 @@ const createS3Bucket = async () => {
   return result.Location ?? '';
 };
 
+const deleteS3Bucket = async () => {
+  await s3Client.deleteBucket({ Bucket: bucket });
+};
+
 let s3OriginsString: string;
 
 beforeAll(async () => {
@@ -82,7 +86,11 @@ beforeAll(async () => {
   await execComposeUp();
 });
 
-afterAll(async () => await execComposeDown());
+afterAll(async () => {
+  // need to remove the bucket
+  await deleteS3Bucket();
+  await execComposeDown();
+});
 
 describe('Cloudfront Integration Testing', () => {
   it('creates a new test db', done =>
