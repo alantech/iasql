@@ -8,5 +8,9 @@ class IasqlFunctions extends ModuleBase {
     super.init();
   }
   iasqlOperationType = IasqlOperationType;
+  // TODO: here for testing purpose. To be delete it
+  customCall = async () => {
+    return JSON.stringify([{ result: "I have been called!" }]);
+  };
 }
 export const iasqlFunctions = new IasqlFunctions();
