@@ -14,6 +14,9 @@ LATESTVERSION=`./node_modules/.bin/ts-node src/scripts/latestVersion.ts`
 OLDESTVERSION=`./node_modules/.bin/ts-node src/scripts/oldestVersion.ts`
 CURRENTGITSHA=`git rev-parse HEAD`
 
+# Github Actions apparently doesn't pull down the tags by default?
+git pull origin --tags
+
 # Check out the older version of the codebase and launch the engine with a local postgres
 git checkout v${OLDESTVERSION}
 yarn docker-compose
