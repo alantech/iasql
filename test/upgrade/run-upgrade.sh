@@ -10,8 +10,8 @@ if [ ! -f "${PWD}/docker-compose.yml" ]; then
 fi
 
 # Get metadata on the current branch to use during the test
-LATESTVERSION=`yarn ts-node src/scripts/latestVersion.ts`
-OLDESTVERSION=`yarn ts-node src/scripts/oldestVersion.ts`
+LATESTVERSION=`./node_modules/.bin/ts-node src/scripts/latestVersion.ts`
+OLDESTVERSION=`./node_modules/.bin/ts-node src/scripts/oldestVersion.ts`
 CURRENTGITSHA=`git rev-parse HEAD`
 
 # Check out the older version of the codebase and launch the engine with a local postgres
