@@ -56,6 +56,7 @@ const query = runQuery.bind(null, dbAlias);
 const querySync = runQuery.bind(null, `${dbAlias}_sync`);
 const install = runInstall.bind(null, dbAlias);
 const installSync = runInstall.bind(null, `${dbAlias}_sync`);
+const syncSync = runSync.bind(null, `${dbAlias}_sync`);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_ec2', 'aws_ec2_metadata', 'aws_security_group', 'aws_vpc', 'aws_elb', 'aws_iam'];
 
@@ -109,9 +110,15 @@ describe('EC2 Integration Testing', () => {
   it('installs the aws_account module', install(['aws_account']));
 
   it('inserts aws credentials', query(`
-    INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('${region}', '${accessKeyId}', '${secretAccessKey}')
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
+
+  it('syncs the regions', sync());
+
+  it('sets the default region', query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+  `));
 
   it('creates a new test db to test sync', (done) => void iasql.connect(
     `${dbAlias}_sync`,
@@ -120,9 +127,15 @@ describe('EC2 Integration Testing', () => {
   it('installs the aws_account module', installSync(['aws_account']));
 
   it('inserts aws credentials', querySync(`
-    INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('us-east-1', '${accessKeyId}', '${secretAccessKey}')
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
+
+  it('syncs the regions', syncSync());
+
+  it('sets the default region', querySync(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
+  `));
 
   it('installs the ec2 module', install(modules));
 
@@ -657,9 +670,15 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
   it('installs the aws_account module', install(['aws_account']));
 
   it('inserts aws credentials', query(`
-    INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_REGION}', '${accessKeyId}', '${secretAccessKey}')
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
+
+  it('syncs the regions', sync());
+
+  it('sets the default region', query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+  `));
 
   it('installs the module', install(modules));
 
@@ -809,9 +828,15 @@ describe('EC2 install/uninstall', () => {
   it('installs the aws_account module', install(['aws_account']));
 
   it('inserts aws credentials', query(`
-    INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('us-east-1', '${accessKeyId}', '${secretAccessKey}')
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
+
+  it('syncs the regions', sync());
+
+  it('sets the default region', query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
+  `));
 
   // Install can automatically pull in all dependencies, so we only need to specify ec2 here
   it('installs the ec2 module', install(['aws_ec2']));

@@ -28,6 +28,7 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const querySync = runQuery.bind(null, dbAliasSidecar);
 const installSync = runInstall.bind(null, dbAliasSidecar);
+const syncSync = runSync.bind(null, dbAliasSidecar);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = [
   'aws_ecr',
@@ -88,9 +89,15 @@ describe('ECS Integration Testing', () => {
   it('installs the aws_account module', install(['aws_account']));
 
   it('inserts aws credentials', query(`
-    INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
+
+  it('syncs the regions', sync());
+
+  it('sets the default region', query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
+  `));
 
   it('creates a new sidecar test db ECS', (done) => void iasql.connect(
     dbAliasSidecar,
@@ -99,9 +106,15 @@ describe('ECS Integration Testing', () => {
   it('installs the aws_account module', installSync(['aws_account']));
 
   it('inserts aws credentials', querySync(`
-    INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('${region}', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
+
+  it('syncs the regions', syncSync());
+
+  it('sets the default region', querySync(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
+  `));
 
   it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 

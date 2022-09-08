@@ -43,8 +43,8 @@ describe('AwsAccount Integration Testing', () => {
   it('installs the aws_account module', install(['aws_account']));
 
   it('inserts aws credentials', query(`
-    INSERT INTO aws_account (region, access_key_id, secret_access_key)
-    VALUES ('us-east-1', '${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
   `, undefined, false));
 
   it('runSql segue: confirms bad sql queries return an error string', (done) => {
@@ -71,8 +71,12 @@ describe('AwsAccount Integration Testing', () => {
 
   it('runSql segue: confirms good sql queries return an array of records', (done) => {
     (async () => {
-      const rows = await runSql('SELECT * FROM aws_account', false);
-      if (rows instanceof Array && rows[0] instanceof Array && rows[0][0].region === 'us-east-1') {
+      const rows = await runSql('SELECT * FROM aws_credentials', false);
+      if (
+        rows instanceof Array &&
+        rows[0] instanceof Array &&
+        rows[0][0].access_key_id === process.env.AWS_ACCESS_KEY_ID
+      ) {
         done();
       } else {
         done(new Error('Unexpected response from normal query'));
@@ -82,8 +86,12 @@ describe('AwsAccount Integration Testing', () => {
 
   it('runSql segue by statement: confirms good sql queries return an array of records', (done) => {
     (async () => {
-      const rows = await runSql('SELECT * FROM aws_account', true);
-      if (rows instanceof Array && rows[0]['result'] instanceof Array && rows[0]['result'][0].region === 'us-east-1') {
+      const rows = await runSql('SELECT * FROM aws_credentials', true);
+      if (
+        rows instanceof Array &&
+        rows[0]['result'] instanceof Array &&
+        rows[0]['result'][0].access_key_id === process.env.AWS_ACCESS_KEY_ID
+      ) {
         done();
       } else {
         done(new Error('Unexpected response from normal query'));
@@ -121,12 +129,46 @@ describe('AwsAccount Integration Testing', () => {
     })();
   });
 
-  it('inserts a second, useless row into the aws_account table', query(`
-    INSERT INTO aws_account (access_key_id, secret_access_key, region)
-    VALUES ('fake', 'creds', 'us-west-2')
+  it('inserts a second, useless row into the aws_credentials table', query(`
+    INSERT INTO aws_credentials (access_key_id, secret_access_key) VALUES ('fake', 'creds')
   `));
 
   it('does absolutely nothing when you apply this', apply());
+
+  it('selects a default region', query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+  `));
+
+  it('confirms that the default region was set', query(`
+    SELECT * FROM aws_regions WHERE is_default = TRUE;
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('tries to set a second default region', (done) => {
+    (async () => {
+      try {
+        await runSql(`
+          UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
+        `, false);
+      } catch (_) {
+        return done(); // This is the expected path
+      }
+      return done(new Error('Did not get the expected error'));
+    })();
+  });
+
+  it('confirms that the default region was not changed', query(`
+    SELECT * FROM aws_regions WHERE is_default = TRUE;
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].region).toBe(process.env.AWS_REGION);
+  }));
+
+  it('updates the default region with the handy `default_aws_region` function', query(`
+    SELECT * FROM default_aws_region('us-east-1');
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].default_aws_region).toBe('us-east-1');
+  }));
 
   // tests that on startup subsequent iasql ops for existing dbs succeed
   it('stops the worker for all dbs', (done) => void scheduler
@@ -143,7 +185,7 @@ describe('AwsAccount Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('removes the useless row', query(`
-    DELETE FROM aws_account WHERE access_key_id = 'fake'
+    DELETE FROM aws_credentials WHERE access_key_id = 'fake'
   `));
 
   it('returns records when calling iasql_help', query(`
