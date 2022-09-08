@@ -12,10 +12,8 @@ export class RepositoryImage {
   @cloudId
   imageDigest: string;
 
-  @Column({
-    nullable: true,
-  })
-  imageTag?: string;
+  @Column('text', { array: true })
+  imageTags: string[];
 
   @Column({
     nullable: true,
