@@ -546,8 +546,8 @@ export class ModuleBase {
         this.migrations.afterInstall = async (q: QueryRunner) => {
           await q.query(sql);
         };
-      } catch (e) {
-        logger.warn(`Unable to read default file ${this.dirname}/sql/after_install.sql`);
+      } catch (_) {
+        /** Don't do anything if the default file is not there */
       }
     }
     if (this.sql?.beforeUninstallSqlPath) {
@@ -566,8 +566,8 @@ export class ModuleBase {
         this.migrations.beforeRemove = async (q: QueryRunner) => {
           await q.query(sql);
         };
-      } catch (e) {
-        logger.warn(`Unable to read default file ${this.dirname}/sql/before_uninstall.sql`);
+      } catch (_) {
+        /** Don't do anything if the default file is not there */
       }
     }
     const syncified = new Function(
