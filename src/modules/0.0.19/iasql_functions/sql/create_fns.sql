@@ -72,34 +72,6 @@ begin
 end;
 $$;
 
-create or replace function iasql_rpc_default_call(_module_name text, _method_name text, _params text[]) returns table (
-  result text
-)
-language plpgsql security definer
-as $$
-declare
-  _opid uuid;
-begin
-  _opid := until_iasql_rpc(_module_name, _method_name, _params);
-  return query select
-    j.s->>'result' as result
-  from (
-    select json_array_elements(output::json) as s from iasql_rpc where opid = _opid
-  ) as j;
-end;
-$$;
-
--- TODO: here for testing purpose. To be delete it
-create or replace function iasql_custom_call(variadic _args text[]) returns table (
-  result text
-)
-language plpgsql security definer
-as $$
-begin
-  return query select * from iasql_rpc_default_call('iasqlFunctions', 'customCall', _args);
-end;
-$$;
-
 create or replace function until_iasql_operation(_optype iasql_operation_optype_enum, _params text[]) returns uuid
 language plpgsql security definer
 as $$

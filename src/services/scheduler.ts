@@ -165,7 +165,7 @@ export async function start(dbId: string, dbUser: string) {
             throwError(`Method ${methodname} in module ${modulename} not found`);
           }
           const context = await getContext(conn, Modules);
-          output = await Modules[modulename][methodname](context, ...params);
+          output = await (Modules[modulename] as ModuleInterface)?.rpc?.[methodname].call(context, ...params);
           // once the rpc completes updating the `end_date`
           // will complete the polling
           const query = `

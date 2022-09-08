@@ -212,6 +212,12 @@ export interface MapperInterface<E> {
   cloud: Crud2<E>;
 }
 
+export interface RpcInterface {
+  module: ModuleInterface;
+  name: string;
+  call: (ctx: Context, ...args: string[]) => Promise<string>;
+}
+
 export interface Mapper2ObjInterface<E> {
   entity: new () => E;
   entityId?: (e: E) => string;
@@ -343,6 +349,16 @@ export class MapperBase<E> {
   }
 }
 
+export class RpcBase {
+  module: ModuleInterface;
+  name: string;
+  call: (ctx: Context, ...args: string[]) => Promise<string>;
+
+  init() {
+    if (!this.module) throw new Error('No module link established for this mapper');
+  }
+}
+
 export interface ModuleInterface {
   name: string;
   version?: string;
@@ -359,6 +375,7 @@ export interface ModuleInterface {
   };
   utils?: { [key: string]: any };
   mappers: { [key: string]: MapperInterface<any> };
+  rpc?: { [key: string]: RpcInterface };
   migrations?: {
     install: (q: QueryRunner) => Promise<void>;
     remove: (q: QueryRunner) => Promise<void>;
@@ -473,6 +490,7 @@ export class ModuleBase {
   };
   context?: Context;
   mappers: { [key: string]: MapperInterface<any> };
+  rpc?: { [key: string]: RpcInterface };
   migrations: {
     install: (q: QueryRunner) => Promise<void>;
     remove: (q: QueryRunner) => Promise<void>;
@@ -509,6 +527,43 @@ export class ModuleBase {
         ([_, m]: [string, any]) => m instanceof Mapper2 || m instanceof MapperBase,
       ) as [[string, MapperInterface<any>]],
     );
+    try {
+      this.rpc = Object.fromEntries(
+        Object.entries(this).filter(([_, m]: [string, any]) => m instanceof RpcBase) as [
+          [string, RpcInterface],
+        ],
+      );
+      let rpcAfterInstall = '';
+      let rpcBeforeUninstall = '';
+      for (const [key, rpc] of Object.entries(this.rpc)) {
+        rpcAfterInstall += `
+          create or replace function ${rpc.name}(variadic _args text[]) returns table (
+            module_name text,
+            method_name text,
+            output text
+          )
+          language plpgsql security definer
+          as $$
+          declare
+            _opid uuid;
+          begin
+            _opid := until_iasql_rpc(${rpc.module.name}, ${key}, _args);
+            return query select
+              module_name,
+              method_name,
+              output
+            from iasql_rpc
+            where opid = _opid;
+          end;
+          $$;
+        `;
+        rpcBeforeUninstall += `
+          DROP FUNCTION "${rpc.name}";
+        `;
+      }
+      console.log(rpcAfterInstall);
+    } catch(e) { console.log(e) }
+    // TODO: insert generated queries in afterinstall/beforeuninstall scripts.
     const migrationDir = `${this.dirname}/migration`;
     const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
     if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
