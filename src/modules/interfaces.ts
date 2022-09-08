@@ -539,6 +539,16 @@ export class ModuleBase {
       } catch (e) {
         logger.warn(`Unable to read file ${this.dirname}/${this.sql.afterInstallSqlPath}`);
       }
+    } else {
+      // If no path specified, try to get the default
+      try {
+        const sql = fs.readFileSync(`${this.dirname}/sql/after_install.sql`, 'utf8');
+        this.migrations.afterInstall = async (q: QueryRunner) => {
+          await q.query(sql);
+        };
+      } catch (e) {
+        logger.warn(`Unable to read default file ${this.dirname}/sql/after_install.sql`);
+      }
     }
     if (this.sql?.beforeUninstallSqlPath) {
       try {
@@ -548,6 +558,16 @@ export class ModuleBase {
         };
       } catch (e) {
         logger.warn(`Unable to read file ${this.dirname}/${this.sql.beforeUninstallSqlPath}`);
+      }
+    } else {
+      // If no path specified, try to get the default
+      try {
+        const sql = fs.readFileSync(`${this.dirname}/sql/before_uninstall.sql`, 'utf8');
+        this.migrations.beforeRemove = async (q: QueryRunner) => {
+          await q.query(sql);
+        };
+      } catch (e) {
+        logger.warn(`Unable to read default file ${this.dirname}/sql/before_uninstall.sql`);
       }
     }
     const syncified = new Function(
