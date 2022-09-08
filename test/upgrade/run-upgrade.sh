@@ -56,10 +56,13 @@ while [ ${UPGRADECHECKCOUNT} -gt 0 ]; do
   AWSACCOUNTMODULE=`psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -AXqtc "
     SELECT name FROM iasql_module WHERE name like 'aws_account*'
   "`
+  echo ${AWSACCOUNTMODULE}; # For debugging purposes
   if [ "${AWSACCOUNTMODULE}" == "aws_account@${LATESTVERSION}" ]; then
     ISUPGRADED=true
     UPGRADECHECKCOUNT=0
   fi
+  sleep 1;
+  UPGRADECHECKCOUNT=$((${UPGRADECHECKCOUNT}-1))
 done
 
 # The actual check!
