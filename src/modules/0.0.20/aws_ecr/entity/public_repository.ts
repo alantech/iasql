@@ -1,6 +1,7 @@
-import { Entity, PrimaryColumn, Column } from 'typeorm';
+import { Entity, PrimaryColumn, Column, OneToMany } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { RepositoryImage } from './repository_image';
 
 @Entity()
 export class PublicRepository {
@@ -29,4 +30,7 @@ export class PublicRepository {
     type: 'timestamp with time zone',
   })
   createdAt?: Date;
+
+  @OneToMany(() => RepositoryImage, images => images.publicRepository)
+  images: RepositoryImage[];
 }
