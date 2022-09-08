@@ -9,6 +9,9 @@ if [ ! -f "${PWD}/docker-compose.yml" ]; then
   exit 1;
 fi
 
+# Install the node deps so the following scripts will run
+yarn
+
 # Get metadata on the current branch to use during the test
 LATESTVERSION=`ts-node src/scripts/latestVersion.ts`
 OLDESTVERSION=`ts-node src/scripts/oldestVersion.ts`
