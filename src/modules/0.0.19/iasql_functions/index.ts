@@ -11,7 +11,7 @@ class IasqlFunctions extends ModuleBase {
   // TODO: here for testing purpose. To be delete it
   // TODO: this also will be refactored using an rpc subtype in ModuleBase
   async customCall(ctx: Context, arg1: string, arg2: string) {
-    return JSON.stringify([{ result: 'I have been called!', arg1, arg2, ctx }]);
+    return JSON.stringify([{ result: 'I have been called!', arg1, arg2, memo: ctx.memo }]);
   }
 }
 export const iasqlFunctions = new IasqlFunctions();
