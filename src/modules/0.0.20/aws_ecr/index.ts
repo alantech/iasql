@@ -123,7 +123,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         for (const r of repositories) {
           try {
             const ri = await this.getRepositoryImages(client.ecrClient, r.repositoryName);
-            images.push(ri);
+            if (ri?.imageDetails) for (const image of ri?.imageDetails) images.push(image);
           } catch (_) {
             // We try to retrieve the policy for the repository, but if none it is not an error
             continue;
@@ -132,12 +132,12 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
 
         // then public
         const publicRepositories = ctx.memo?.cloud?.PublicRepository
-          ? Object.values(ctx.memo?.cloud?.Repository)
+          ? Object.values(ctx.memo?.cloud?.PublicRepository)
           : await this.module.repository.cloud.read(ctx);
         for (const r of publicRepositories) {
           try {
             const ri = await this.getRepositoryImages(client.ecrClient, r.repositoryName);
-            images.push(ri);
+            if (ri?.imageDetails) for (const image of ri.imageDetails) images.push(image);
           } catch (_) {
             // We try to retrieve the policy for the repository, but if none it is not an error
             continue;
@@ -159,7 +159,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         if (e.privateRepository) await this.deleteRepositoryImage(client.ecrClient, e.privateRepository);
-        else await this.deleteRepositoryImage(client.ecrClient, e.publicRepository);
+        else if (e.publicRepository) await this.deleteRepositoryImage(client.ecrClient, e.publicRepository);
       }
     },
   });
@@ -266,6 +266,10 @@ class PublicRepositoryMapper extends MapperBase<PublicRepository> {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         await this.deleteECRPubRepository(client.ecrPubClient, e.repositoryName!);
+
+        // need to delete images associated with this repository
+        const images = await this.module.repositoryImages.db.read(ctx, e.repositoryName);
+        await this.module.repositoryImages.db.delete(images, ctx);
       }
     },
   });
@@ -421,6 +425,10 @@ class RepositoryMapper extends MapperBase<Repository> {
         // if any
         const policy = await this.module.repositoryPolicy.db.read(ctx, e.repositoryName);
         await this.module.repositoryPolicy.db.delete(policy, ctx);
+
+        // need to delete images associated with this repository
+        const images = await this.module.repositoryImages.db.read(ctx, e.repositoryName);
+        await this.module.repositoryImages.db.delete(images, ctx);
       }
     },
   });
