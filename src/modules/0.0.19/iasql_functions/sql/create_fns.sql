@@ -90,13 +90,13 @@ end;
 $$;
 
 -- TODO: here for testing purpose. To be delete it
-create or replace function iasql_custom_call() returns table (
+create or replace function iasql_custom_call(variadic _args text[]) returns table (
   result text
 )
 language plpgsql security definer
 as $$
 begin
-  return query select * from iasql_rpc_default_call('iasqlFunctions', 'customCall', array[]::text[]);
+  return query select * from iasql_rpc_default_call('iasqlFunctions', 'customCall', _args);
 end;
 $$;
 

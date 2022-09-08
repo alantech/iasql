@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import config from '../config';
 import { throwError } from '../config/config';
 import { IasqlDatabase } from '../entity';
-import { modules } from '../modules';
+import { ModuleInterface, modules } from '../modules';
 import { isString } from './common';
 import * as iasql from './iasql';
 import logger, { logErrSentry } from './logger';
@@ -161,7 +161,8 @@ export async function start(dbId: string, dbUser: string) {
           if (!Modules[modulename][methodname]) {
             throw new Error(`Method ${methodname} in module ${modulename} not found`);
           }
-          output = await Modules[modulename][methodname](params);
+          const moduleCtx = (Modules[modulename] as ModuleInterface).provides?.context;
+          output = await Modules[modulename][methodname](moduleCtx, ...params);
           // once the rpc completes updating the `end_date`
           // will complete the polling
           const query = `
@@ -169,7 +170,6 @@ export async function start(dbId: string, dbUser: string) {
             set end_date = now(), output = '${output}'
             where opid = uuid('${opid}');
           `;
-          logger.debug(query);
           output = isString(output) ? output : JSON.stringify(output);
           await conn.query(query);
         } catch (e) {
