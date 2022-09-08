@@ -19,7 +19,7 @@ git pull origin --tags ${CURRENTGITSHA}
 
 # Check out the older version of the codebase and launch the engine with a local postgres
 git checkout v${OLDESTVERSION}
-yarn docker-compose
+yarn docker-compose &
 yarn wait-on http://localhost:8088/health/
 
 # Create a new database connected to a test account
@@ -44,7 +44,7 @@ psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
 docker container stop $(basename ${PWD})_change_engine_1
 docker container stop $(basename ${PWD})_postgresql_1
 git checkout ${CURRENTGITSHA}
-yarn docker-compose
+yarn docker-compose &
 
 # Actually trigger the upgrade and loop until upgraded (or fail)
 psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
