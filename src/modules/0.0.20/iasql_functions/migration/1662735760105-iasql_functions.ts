@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class iasqlFunctions1662734586765 implements MigrationInterface {
-  name = 'iasqlFunctions1662734586765';
+export class iasqlFunctions1662735760105 implements MigrationInterface {
+  name = 'iasqlFunctions1662735760105';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
