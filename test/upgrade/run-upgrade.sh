@@ -32,7 +32,7 @@ psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
 
 # Determine which kind of 'aws_account' module this is (TODO: Remove this branch once v0.0.19 is oldest)
 AWSACCOUNTTABLE=`psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -AXqtc "
-  SELECT table FROM iasql_tables WHERE table = 'aws_account';
+  SELECT "table" FROM iasql_tables WHERE "table" = 'aws_account';
 "`
 if [ "${AWSACCOUNTTABLE}" == "aws_account" ]; then # It's the old style
   psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
