@@ -22,8 +22,12 @@ export async function migrate(conn: Connection) {
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@${version}')`);
   await ModuleSet?.IasqlFunctions?.migrations?.install(qr);
   await ModuleSet?.iasqlFunctions?.migrations?.install(qr);
-  await ModuleSet?.IasqlFunctions?.migrations?.afterInstall(qr);
-  await ModuleSet?.iasqlFunctions?.migrations?.afterInstall(qr);
+  if (ModuleSet?.IasqlFunctions?.migrations?.afterInstall) {
+    await ModuleSet?.IasqlFunctions?.migrations?.afterInstall(qr);
+  }
+  if (ModuleSet?.iasqlFunctions?.migrations?.afterInstall) {
+    await ModuleSet?.iasqlFunctions?.migrations?.afterInstall(qr);
+  }
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_functions@${version}')`);
   await qr.query(
     `INSERT INTO iasql_dependencies VALUES ('iasql_functions@${version}', 'iasql_platform@${version}')`,
