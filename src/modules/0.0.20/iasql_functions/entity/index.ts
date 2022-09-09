@@ -1,6 +1,6 @@
 import { CreateDateColumn, Column, Entity, PrimaryColumn } from 'typeorm';
 
-// TODO: DROP
+// TODO: Drop once `operation` job is not necessary anymore
 export enum IasqlOperationType {
   APPLY = 'APPLY',
   SYNC = 'SYNC',
@@ -12,7 +12,7 @@ export enum IasqlOperationType {
   UPGRADE = 'UPGRADE',
 }
 
-// TODO: DROP
+// TODO: Drop once `operation` job is not necessary anymore
 @Entity()
 export class IasqlOperation {
   @PrimaryColumn({
