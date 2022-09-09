@@ -1,5 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
+import * as sql from '../sql';
+
 export class awsMemoryDb1661522276500 implements MigrationInterface {
   name = 'awsMemoryDb1661522276500';
 
@@ -31,9 +33,11 @@ export class awsMemoryDb1661522276500 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "memory_db_cluster_security_groups" ADD CONSTRAINT "FK_934dbce49712bcc04e479d551cf" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
     );
+    await queryRunner.query(sql.createCustomConstraints);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(sql.dropCustomConstraints);
     await queryRunner.query(
       `ALTER TABLE "memory_db_cluster_security_groups" DROP CONSTRAINT "FK_934dbce49712bcc04e479d551cf"`,
     );
