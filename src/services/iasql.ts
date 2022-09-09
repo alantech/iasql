@@ -1020,6 +1020,9 @@ ${Object.keys(tableCollisions)
       if (md.migrations?.install) {
         await md.migrations.install(queryRunner);
       }
+      if (md.migrations?.afterInstall) {
+        await md.migrations.afterInstall(queryRunner);
+      }
       const e = new iasqlModule();
       e.name = `${md.name}@${md.version}`;
       // Promise.all is okay here because it's guaranteed to not hit the cloud services
@@ -1200,6 +1203,9 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
         await queryRunner.query(`
           DROP TRIGGER IF EXISTS ${table}_audit ON ${table};
         `);
+      }
+      if (md.migrations?.beforeRemove) {
+        await md.migrations.beforeRemove(queryRunner);
       }
       if (md.migrations?.remove) {
         await md.migrations.remove(queryRunner);
