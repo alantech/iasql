@@ -57,6 +57,7 @@ docker container stop $(basename ${PWD})_change_engine_1
 docker container stop $(basename ${PWD})_postgresql_1
 git checkout ${CURRENTGITSHA}
 yarn docker-compose &
+yarn wait-on http://localhost:8088/health/
 
 # Actually trigger the upgrade and loop until upgraded (or fail)
 psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
