@@ -149,7 +149,7 @@ export async function start(dbId: string, dbUser: string) {
       },
       rpc: async (payload: any) => {
         const { params, opid, modulename, methodname } = payload;
-        let output;
+        let output: string | undefined;
         let error;
         const user = await MetadataRepo.getUserFromDbId(dbId);
         const uid = user?.id;
@@ -168,7 +168,11 @@ export async function start(dbId: string, dbUser: string) {
           const moduleName = Object.keys(Modules ?? {}).find(k => k === camelCase(modulename)) ?? 'unknown';
           if (!Modules[moduleName]) throwError(`Module ${modulename} not found`);
           const context = await getContext(conn, Modules);
-          output = await (Modules[moduleName] as ModuleInterface)?.rpc?.[methodname].call(context, ...params);
+          // TODO: add stronger type here
+          const rpcRes: any[] | undefined = await (Modules[moduleName] as ModuleInterface)?.rpc?.[
+            methodname
+          ].call(context, ...params);
+          output = JSON.stringify(rpcRes);
           // once the rpc completes updating the `end_date`
           // will complete the polling
           const query = `
@@ -176,7 +180,6 @@ export async function start(dbId: string, dbUser: string) {
             set end_date = now(), output = '${output}'
             where opid = uuid('${opid}');
           `;
-          output = isString(output) ? output : JSON.stringify(output);
           await conn.query(query);
         } catch (e) {
           let errorMessage: string | string[] = logErrSentry(e, uid, email, dbAlias);

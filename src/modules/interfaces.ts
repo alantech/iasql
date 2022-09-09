@@ -215,7 +215,7 @@ export interface MapperInterface<E> {
 export interface RpcInterface {
   module: ModuleInterface;
   name: string;
-  call: (ctx: Context, ...args: string[]) => Promise<string>;
+  call: (ctx: Context, ...args: string[]) => Promise<any[]>;
 }
 
 export interface Mapper2ObjInterface<E> {
@@ -352,7 +352,7 @@ export class MapperBase<E> {
 export class RpcBase {
   module: ModuleInterface;
   name: string;
-  call: (ctx: Context, ...args: string[]) => Promise<string>;
+  call: (ctx: Context, ...args: string[]) => Promise<any[]>;
 
   init() {
     if (!this.module) throw new Error('No module link established for this mapper');
