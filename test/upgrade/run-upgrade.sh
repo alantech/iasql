@@ -29,16 +29,28 @@ psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
     'aws_account'
   );
 ";
-psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
-  INSERT INTO aws_credentials (access_key_id, secret_access_key)
-  VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
-";
-psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
-  SELECT * FROM iasql_sync();
-";
-psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
-  SELECT * FROM default_aws_region('us-east-1');
-";
+
+# Determine which kind of 'aws_account' module this is (TODO: Remove this branch once v0.0.19 is oldest)
+AWSACCOUNTTABLE=`psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -AXqtc "
+  SELECT table FROM iasql_tables WHERE table = 'aws_account';
+"`
+if [ "${AWSACCOUNTTABLE}" == "aws_account" ]; then # It's the old style
+  psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+    INSERT INTO aws_account (access_key_id, secret_access_key, region)
+    VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}', 'us-east-1');
+  ";
+else
+  psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
+  ";
+  psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+    SELECT * FROM iasql_sync();
+  ";
+  psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+    SELECT * FROM default_aws_region('us-east-1');
+  ";
+fi
 
 # Shut down the database and engine, switch back to the current commit, and fire up a new engine
 docker container stop $(basename ${PWD})_change_engine_1
