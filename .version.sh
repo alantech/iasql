@@ -34,6 +34,9 @@ CONFIGBOOTSTRAP="$(cat src/config/bootstrap.ts | sed "s/latestVersion:.*/latestV
 # Make sure the lockfiles are updated, too
 yarn
 
+# Make sure it's all formatted the way we want it
+yarn format
+
 # Commit and tag the update
 git add package.json yarn.lock src/config/*.ts
 git commit -m "v${VERSION}"
