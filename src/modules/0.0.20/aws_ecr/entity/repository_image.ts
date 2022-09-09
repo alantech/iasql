@@ -24,11 +24,11 @@ export class RepositoryImage {
   @JoinColumn({
     name: 'private_repository',
   })
-  privateRepository: Repository;
+  privateRepository?: Repository;
 
   @ManyToOne(() => PublicRepository, { nullable: true, eager: true })
   @JoinColumn({
     name: 'public_repository',
   })
-  publicRepository: PublicRepository;
+  publicRepository?: PublicRepository;
 }
