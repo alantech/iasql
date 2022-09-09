@@ -1,6 +1,7 @@
 import * as sentry from '@sentry/node';
 import express from 'express';
 import { run } from 'graphile-worker';
+import { camelCase } from 'typeorm/util/StringUtils';
 import { v4 as uuidv4 } from 'uuid';
 
 import config from '../config';
@@ -160,12 +161,14 @@ export async function start(dbId: string, dbUser: string) {
           if (!Modules) {
             throwError(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
           }
-          if (!Modules[modulename]) throwError(`Module ${modulename} not found`);
-          if (!Modules[modulename][methodname]) {
-            throwError(`Method ${methodname} in module ${modulename} not found`);
-          }
+          // `Modules` is an object where the keys are all the exported elements from the modules dir
+          // Classes are exported with PascalCase
+          // Instantiated objects are exported with camelCase. We are interested in this objects.
+          // `modulename` is arriving with snake_case since is how the module defines it based on the dirname
+          const moduleName = Object.keys(Modules ?? {}).find(k => k === camelCase(modulename)) ?? 'unknown';
+          if (!Modules[moduleName]) throwError(`Module ${modulename} not found`);
           const context = await getContext(conn, Modules);
-          output = await (Modules[modulename] as ModuleInterface)?.rpc?.[methodname].call(context, ...params);
+          output = await (Modules[moduleName] as ModuleInterface)?.rpc?.[methodname].call(context, ...params);
           // once the rpc completes updating the `end_date`
           // will complete the polling
           const query = `
