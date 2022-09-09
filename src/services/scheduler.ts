@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import config from '../config';
 import { throwError } from '../config/config';
 import { IasqlDatabase } from '../entity';
-import { modules } from '../modules';
+import { Context, ModuleInterface, modules } from '../modules';
 import { isString } from './common';
 import * as iasql from './iasql';
 import logger, { logErrSentry } from './logger';
@@ -146,9 +146,102 @@ export async function start(dbId: string, dbUser: string) {
           }
         }
       },
+      rpc: async (payload: any) => {
+        const { params, opid, modulename, methodname } = payload;
+        let output;
+        let error;
+        const user = await MetadataRepo.getUserFromDbId(dbId);
+        const uid = user?.id;
+        const email = user?.email;
+        const dbAlias = user?.iasqlDatabases?.[0]?.alias;
+        try {
+          const versionString = await TypeormWrapper.getVersionString(dbId);
+          const Modules = (modules as any)[versionString];
+          if (!Modules) {
+            throwError(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+          }
+          if (!Modules[modulename]) throwError(`Module ${modulename} not found`);
+          if (!Modules[modulename][methodname]) {
+            throwError(`Method ${methodname} in module ${modulename} not found`);
+          }
+          const context = await getContext(conn, Modules);
+          output = await Modules[modulename][methodname](context, ...params);
+          // once the rpc completes updating the `end_date`
+          // will complete the polling
+          const query = `
+            update iasql_rpc
+            set end_date = now(), output = '${output}'
+            where opid = uuid('${opid}');
+          `;
+          output = isString(output) ? output : JSON.stringify(output);
+          await conn.query(query);
+        } catch (e) {
+          let errorMessage: string | string[] = logErrSentry(e, uid, email, dbAlias);
+          // split message if multiple lines in it
+          if (errorMessage.includes('\n')) errorMessage = errorMessage.split('\n');
+          // error must be valid JSON as a string
+          const errorStringify = JSON.stringify({ message: errorMessage });
+          // replace single quotes to make it valid
+          error = errorStringify.replace(/[\']/g, '\\"');
+          const query = `
+            update iasql_rpc
+            set end_date = now(), err = '${error}'
+            where opid = uuid('${opid}');
+          `;
+          await conn.query(query);
+        } finally {
+          try {
+            const recordCount = await iasql.getDbRecCount(conn);
+            const rpcCount = await iasql.getRpcCount(conn);
+            await MetadataRepo.updateDbCounts(dbId, recordCount, rpcCount);
+            // list is called by us and has no dbAlias so ignore
+            // TODO: refactor properly this condition if (uid && modulename !== 'iasqlFunctions' && methodname !== 'modulesList')
+            if (uid)
+              telemetry.logRpc(
+                modulename,
+                methodname,
+                {
+                  dbId,
+                  email,
+                  dbAlias,
+                  recordCount,
+                  rpcCount,
+                },
+                {
+                  params,
+                  output,
+                  error,
+                },
+                uid,
+              );
+          } catch (e: any) {
+            logger.error('could not log op event', e);
+          }
+        }
+      },
     },
   });
   workerRunners[dbId] = { runner, conn };
+}
+
+async function getContext(conn: TypeormWrapper, Modules: any): Promise<Context> {
+  // Find all of the installed modules, and create the context object only for these
+  const iasqlModule =
+    Modules?.IasqlPlatform?.utils?.IasqlModule ??
+    Modules?.iasqlPlatform?.iasqlModule ??
+    throwError('Core IasqlModule not found');
+  const moduleNames = (await conn.find(iasqlModule)).map((m: any) => m.name);
+  const memo: any = {};
+  const context: Context = { orm: conn, memo };
+  for (const name of moduleNames) {
+    const mod = (Object.values(Modules) as ModuleInterface[]).find(
+      m => `${m.name}@${m.version}` === name,
+    ) as ModuleInterface;
+    if (!mod) throwError(`This should be impossible. Cannot find module ${name}`);
+    const moduleContext = mod?.provides?.context ?? {};
+    Object.keys(moduleContext).forEach(k => (context[k] = moduleContext[k]));
+  }
+  return context;
 }
 
 export async function stop(dbId: string) {
