@@ -102,6 +102,29 @@ jobs:
           A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
           AWS_REGION: us-east-1
 
+  upgrade-test:
+    runs-on: ubuntu-latest
+    name: iasql_upgrade test
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Run common tests
+        run: ./test/upgrade/run-upgrade.sh
+        env:
+          IASQL_ENV: test
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_TESTING }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_TESTING }}
+          A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
+          AWS_REGION: us-east-1
+
   setup-module-test:
     runs-on: ubuntu-latest
     outputs:

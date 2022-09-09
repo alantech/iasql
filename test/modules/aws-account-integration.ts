@@ -170,6 +170,24 @@ describe('AwsAccount Integration Testing', () => {
     expect(res[0].default_aws_region).toBe('us-east-1');
   }));
 
+  it('clears out the default region', query(`
+    UPDATE aws_regions SET is_default = false;
+  `));
+
+  it('confirms the `default_aws_region` still returns a default region', query(`
+    SELECT * FROM default_aws_region();
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].default_aws_region).toBe('us-east-1');
+  }));
+
+  it('updates the default region again', query(`
+    SELECT * FROM default_aws_region('us-east-1');
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].default_aws_region).toBe('us-east-1');
+  }));
+
   // tests that on startup subsequent iasql ops for existing dbs succeed
   it('stops the worker for all dbs', (done) => void scheduler
     .stopAll()

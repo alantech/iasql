@@ -24,6 +24,9 @@ CONFIGSTAGING="$(cat src/config/staging.ts | sed "s/latestVersion:.*/latestVersi
 CONFIGTEST="$(cat src/config/test.ts | sed "s/latestVersion:.*/latestVersion: '${VERSION}',/;s/oldestVersion:.*/oldestVersion: '${LASTVERSION}'/")" && echo "${CONFIGTEST}" > src/config/test.ts
 CONFIGBOOTSTRAP="$(cat src/config/bootstrap.ts | sed "s/latestVersion:.*/latestVersion: '${LATESTVERSION}',/;s/oldestVersion:.*/oldestVersion: '${LASTVERSION}'/")" && echo "${CONFIGBOOTSTRAP}" > src/config/bootstrap.ts
 
+# Make sure it's all formatted the way we want it
+yarn format
+
 # Copy the version and push to main
 cp -r src/modules/${LATESTVERSION} src/modules/${VERSION}
 git add src/modules/${VERSION}
