@@ -27,6 +27,9 @@ CONFIGSTAGING="$(cat src/config/staging.ts | sed "s/latestVersion:.*/latestVersi
 CONFIGTEST="$(cat src/config/test.ts | sed "s/latestVersion:.*/latestVersion: '${VERSION}',/;s/oldestVersion:.*/oldestVersion: '${LASTVERSION}'/")" && echo "${CONFIGTEST}" > src/config/test.ts
 CONFIGBOOTSTRAP="$(cat src/config/bootstrap.ts | sed "s/oldestVersion:.*/oldestVersion: '${LASTVERSION}'/")" && echo "${CONFIGBOOTSTRAP}" > src/config/bootstrap.ts # Bootstrap doesn't get the latest version edited
 
+# Make sure it's all formatted the way we want it
+yarn format
+
 # Drop the version and push to main
 git add src/config/*.ts
 git commit -m "Drop version ${OLDESTVERSION}"
