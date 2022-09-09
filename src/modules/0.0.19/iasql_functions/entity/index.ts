@@ -74,10 +74,10 @@ export class IasqlRpc {
   })
   endDate: Date;
 
-  @Column()
+  @Column({ type: 'text' })
   moduleName: string;
 
-  @Column()
+  @Column({ type: 'text' })
   methodName: string;
 
   @Column({
