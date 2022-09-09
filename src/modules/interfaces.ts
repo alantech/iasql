@@ -504,6 +504,59 @@ export class ModuleBase {
     remove: (q: QueryRunner) => Promise<void>;
   };
 
+  private getRpcSql(): [string, string] {
+    let afterInstallSql = '';
+    let beforeUninstallSql = '';
+    for (const [key, rpc] of Object.entries(this.rpc ?? {})) {
+      afterInstallSql += `
+        create or replace function ${rpc.name}(variadic _args text[]) returns table (
+          module text,
+          method text,
+          result text
+        )
+        language plpgsql security definer
+        as $$
+        declare
+          _opid uuid;
+        begin
+          _opid := until_iasql_rpc('${this.name}', '${key}', _args);
+          return query select
+            module_name as module,
+            method_name as method,
+            output as result
+          from iasql_rpc
+          where opid = _opid;
+        end;
+        $$;
+      `;
+      beforeUninstallSql =
+        `
+        DROP FUNCTION "${rpc.name}";
+      ` + beforeUninstallSql;
+    }
+    return [afterInstallSql, beforeUninstallSql];
+  }
+
+  private getCustomSql(): [string, string] {
+    const afterInstallSql = this.readSqlDir(this.sql?.afterInstallSqlPath, true) ?? '';
+    const beforeUninstallSql = this.readSqlDir(this.sql?.beforeUninstallSqlPath, false) ?? '';
+    return [afterInstallSql, beforeUninstallSql];
+  }
+
+  private readSqlDir(customDir: string | undefined, afterInstall: boolean) {
+    try {
+      // If no customDir specified, try to get the default
+      return fs.readFileSync(
+        `${this.dirname}/${
+          customDir ?? `sql/${afterInstall ? 'after_install.sql' : 'before_uninstall.sql'}`
+        }`,
+        'utf8',
+      );
+    } catch (_) {
+      /** Don't do anything if the default file is not there */
+    }
+  }
+
   init() {
     if (!this.dirname) {
       this.dirname =
@@ -540,64 +593,8 @@ export class ModuleBase {
         [string, RpcInterface],
       ],
     );
-    let rpcAfterInstall = '';
-    let rpcBeforeUninstall = '';
-    for (const [key, rpc] of Object.entries(this.rpc)) {
-      rpcAfterInstall += `
-        create or replace function ${rpc.name}(variadic _args text[]) returns table (
-          module text,
-          method text,
-          result text
-        )
-        language plpgsql security definer
-        as $$
-        declare
-          _opid uuid;
-        begin
-          _opid := until_iasql_rpc('${this.name}', '${key}', _args);
-          return query select
-            module_name as module,
-            method_name as method,
-            output as result
-          from iasql_rpc
-          where opid = _opid;
-        end;
-        $$;
-      `;
-      rpcBeforeUninstall += `
-        DROP FUNCTION "${rpc.name}";
-      `;
-    }
-    let afterInstallSql = '';
-    let beforeUninstallSql = '';
-    if (this.sql?.afterInstallSqlPath) {
-      try {
-        afterInstallSql = fs.readFileSync(`${this.dirname}/${this.sql.afterInstallSqlPath}`, 'utf8');
-      } catch (e) {
-        logger.warn(`Unable to read file ${this.dirname}/${this.sql.afterInstallSqlPath}`);
-      }
-    } else {
-      // If no path specified, try to get the default
-      try {
-        afterInstallSql = fs.readFileSync(`${this.dirname}/sql/after_install.sql`, 'utf8');
-      } catch (_) {
-        /** Don't do anything if the default file is not there */
-      }
-    }
-    if (this.sql?.beforeUninstallSqlPath) {
-      try {
-        beforeUninstallSql = fs.readFileSync(`${this.dirname}/${this.sql.beforeUninstallSqlPath}`, 'utf8');
-      } catch (e) {
-        logger.warn(`Unable to read file ${this.dirname}/${this.sql.beforeUninstallSqlPath}`);
-      }
-    } else {
-      // If no path specified, try to get the default
-      try {
-        beforeUninstallSql = fs.readFileSync(`${this.dirname}/sql/before_uninstall.sql`, 'utf8');
-      } catch (_) {
-        /** Don't do anything if the default file is not there */
-      }
-    }
+    const [customAfterInstallSql, customBeforeUninstallSql] = this.getCustomSql();
+    const [rpcAfterInstallSql, rpcBeforeUninstallSql] = this.getRpcSql();
     const migrationDir = `${this.dirname}/migration`;
     const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
     if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
@@ -611,8 +608,8 @@ export class ModuleBase {
       install: migrationClass.prototype.up,
       remove: migrationClass.prototype.down,
     };
-    const afterInstallMigration = afterInstallSql + rpcAfterInstall;
-    const beforeUninstallMigration = beforeUninstallSql + rpcBeforeUninstall;
+    const afterInstallMigration = customAfterInstallSql + rpcAfterInstallSql;
+    const beforeUninstallMigration = rpcBeforeUninstallSql + customBeforeUninstallSql;
     if (afterInstallMigration) {
       this.migrations.afterInstall = async (q: QueryRunner) => {
         await q.query(afterInstallMigration);
