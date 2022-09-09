@@ -1289,16 +1289,40 @@ export async function upgrade(dbId: string, dbUser: string) {
         await uninstall(nonIasqlMods, dbId, true);
         // 4. Uninstall the `iasql_*` modules manually
         const qr = conn.createQueryRunner();
+        if (OldModules?.IasqlFunctions?.migrations?.beforeRemove) {
+          await OldModules?.IasqlFunctions?.migrations?.beforeRemove(qr);
+        }
         await OldModules?.IasqlFunctions?.migrations?.remove(qr);
+        if (OldModules?.iasqlFunctions?.migrations?.beforeRemove) {
+          await OldModules?.iasqlFunctions?.migrations?.beforeRemove(qr);
+        }
         await OldModules?.iasqlFunctions?.migrations?.remove(qr);
+        if (OldModules?.IasqlPlatform?.migrations?.beforeRemove) {
+          await OldModules?.IasqlPlatform?.migrations?.beforeRemove(qr);
+        }
         await OldModules?.IasqlPlatform?.migrations?.remove(qr);
+        if (OldModules?.iasqlPlatform?.migrations?.beforeRemove) {
+          await OldModules?.iasqlPlatform?.migrations?.beforeRemove(qr);
+        }
         await OldModules?.iasqlPlatform?.migrations?.remove(qr);
         // 5. Install the new `iasql_*` modules manually
         const NewModules = AllModules[config.modules.latestVersion];
         await NewModules?.IasqlPlatform?.migrations?.install(qr);
+        if (NewModules?.IasqlPlatform?.migrations?.afterInstall) {
+          await NewModules?.IasqlPlatform?.migrations?.afterInstall(qr);
+        }
         await NewModules?.iasqlPlatform?.migrations?.install(qr);
+        if (NewModules?.iasqlPlatform?.migrations?.afterInstall) {
+          await NewModules?.iasqlPlatform?.migrations?.afterInstall(qr);
+        }
         await NewModules?.IasqlFunctions?.migrations?.install(qr);
+        if (NewModules?.IasqlFunctions?.migrations?.afterInstall) {
+          await NewModules?.IasqlFunctions?.migrations?.afterInstall(qr);
+        }
         await NewModules?.iasqlFunctions?.migrations?.install(qr);
+        if (NewModules?.iasqlFunctions?.migrations?.afterInstall) {
+          await NewModules?.iasqlFunctions?.migrations?.afterInstall(qr);
+        }
         await conn.query(`
           INSERT INTO iasql_module (name) VALUES ('iasql_platform@${config.modules.latestVersion}'), ('iasql_functions@${config.modules.latestVersion}');
           INSERT INTO iasql_dependencies (module, dependency) VALUES ('iasql_functions@${config.modules.latestVersion}', 'iasql_platform@${config.modules.latestVersion}');
