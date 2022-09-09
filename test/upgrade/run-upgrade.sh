@@ -52,6 +52,11 @@ else
   ";
 fi
 
+# Add one module that we can use to verify that everything actually comes back up
+psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+  SELECT * FROM iasql_install('aws_ec2');
+";
+
 # Shut down the database and engine, switch back to the current commit, and fire up a new engine
 docker container stop $(basename ${PWD})_change_engine_1
 docker container stop $(basename ${PWD})_postgresql_1
@@ -69,7 +74,6 @@ while [ ${UPGRADECHECKCOUNT} -gt 0 ]; do
   AWSACCOUNTMODULE=`psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -AXqtc "
     SELECT name FROM iasql_module WHERE name like 'aws_account%'
   "`
-  echo ${AWSACCOUNTMODULE}; # For debugging purposes
   if [ "${AWSACCOUNTMODULE}" == "aws_account@${LATESTVERSION}" ]; then
     ISUPGRADED=true
     UPGRADECHECKCOUNT=0
@@ -78,10 +82,31 @@ while [ ${UPGRADECHECKCOUNT} -gt 0 ]; do
   UPGRADECHECKCOUNT=$((${UPGRADECHECKCOUNT}-1))
 done
 
-# The actual check!
+# The check that the upgrade successfully loads up the new version for the account
 if [ "${ISUPGRADED}" == "false" ]; then
   echo "Did not successfully upgrade!";
   exit 2;
-else
-  echo "Successfully upgraded!";
 fi
+
+# Another loop to wait for the `aws_ec2` module to load
+EC2CHECKCOUNT=30
+EC2UPGRADED=false
+while [ ${EC2CHECKCOUNT} -gt 0 ]; do
+  AWSEC2MODULE=`psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -AXqtc "
+    SELECT name FROM iasql_module WHERE name like 'aws_ec2%'
+  "`
+  if [ "${AWSEC2MODULE}" == "aws_ec2@${LATESTVERSION}" ]; then
+    EC2UPGRADED=true
+    EC2CHECKCOUNT=0
+  fi
+  sleep 1;
+  EC2CHECKCOUNT=$((${EC2CHECKCOUNT}-1))
+done
+
+# The check that the upgrade successfully loads up the new version for the `aws_ec2` module
+if [ "${EC2UPGRADED}" == "false" ]; then
+  echo "Did not successfully upgrade!";
+  exit 3;
+fi
+
+echo "Successfully upgraded!";
