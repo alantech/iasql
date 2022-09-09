@@ -5,6 +5,10 @@ import { IasqlOperationType } from './entity';
 class IasqlFunctions extends ModuleBase {
   constructor() {
     super();
+    this.sql = {
+      afterInstallSqlPath: 'sql/create_fns.sql',
+      beforeUninstallSqlPath: 'sql/drop_fns.sql',
+    };
     super.init();
   }
   iasqlOperationType = IasqlOperationType;
