@@ -30,28 +30,28 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     return Object.is(a.registryId, b.registryId);
   };
 
-  async repositoryImageMapper(image: ImageAws, ctx: Context) {
+  async repositoryImageMapper(image: ImageAws, ctx: Context, type: string) {
     const out = new RepositoryImage();
 
     // id is generated with imageDigest + tag
-    if (!image.imageId || !image.imageId.imageDigest || !image.imageId.imageTag) return out;
+    if (!image.imageId || !image.imageId.imageDigest || !image.imageId.imageTag) {
+      throw new Error('Invalid repository image');
+    }
     out.imageDigest = image.imageId.imageDigest;
     out.imageTag = image.imageId.imageTag;
 
-    // check if the repo is public or private
-    if (image.repositoryName) {
-      if (ctx.memo.cloud.Repository[image.repositoryName]) {
-        out.privateRepository = ctx.memo.cloud.Repository[image.repositoryName];
-        out.publicRepository = undefined;
-        out.imageId =
-          image.imageId.imageDigest + '|' + image.imageId.imageTag + '|private|' + image.repositoryName;
-      } else if (ctx.memo.cloud.PublicRepository[image.repositoryName]) {
-        out.publicRepository = ctx.memo.cloud.PublicRepository[image.repositoryName];
-        out.privateRepository = undefined;
-        out.imageId =
-          image.imageId.imageDigest + '|' + image.imageId.imageTag + '|private|' + image.repositoryName;
-      }
+    (out.privateRepository = undefined), (out.publicRepository = undefined);
+    if (type == 'private') {
+      // retrieve repository details
+      const repo = await this.module.repository.cloud.read(ctx, image.repositoryName);
+      if (repo) out.privateRepository = repo;
+    } else {
+      const repo = await this.module.publicRepository.cloud.read(ctx, image.repositoryName);
+      if (repo) out.publicRepository = repo;
     }
+
+    out.imageId =
+      image.imageId.imageDigest + '|' + image.imageId.imageTag + '|' + type + '|' + image.repositoryName;
     out.registryId = image.registryId;
     return out;
   }
@@ -59,13 +59,18 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     imageIds,
     repositoryName,
   }));
-  listRepositoryImages = crudBuilder2<ECR, 'listImages'>('listImages', (repositoryName, registryId) => ({
-    repositoryName,
-    registryId,
-  }));
+  listRepositoryImages = crudBuilder2<ECR, 'listImages'>(
+    'listImages',
+    (imageIds, repositoryName, registryId) => ({
+      imageIds,
+      repositoryName,
+      registryId,
+    }),
+  );
   listPublicRepositoryImages = crudBuilder2<ECRPUBLIC, 'describeImages'>(
     'describeImages',
-    (repositoryName, registryId) => ({
+    (imageIds, repositoryName, registryId) => ({
+      imageIds,
       repositoryName,
       registryId,
     }),
@@ -80,12 +85,36 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     }),
   );
 
-  async deleteRepositoryImages(client: ECR | ECRPUBLIC, repository: Repository | PublicRepository) {
-    // need to find images from the repository
-    if (repository.images) {
-      for (const image of repository.images) {
-        const imageId = { imageDigest: image.imageDigest, imageTag: image.imageTag };
-        await this.deleteRepositoryImage(client, [imageId], repository.repositoryName, repository.registryId);
+  async deleteRepositoryImages(client: ECR, repository: Repository) {
+    const images = await this.listRepositoryImages(
+      client,
+      undefined,
+      repository.repositoryName,
+      repository.registryId,
+    );
+    if (images && images.imageIds && images.imageIds.length > 0) {
+      await this.deleteRepositoryImage(
+        client,
+        images.imageIds,
+        repository.repositoryName,
+        repository.registryId,
+      );
+    }
+  }
+
+  async deletePublicRepositoryImages(client: ECRPUBLIC, repository: PublicRepository) {
+    const images = await this.listPublicRepositoryImages(
+      client,
+      undefined,
+      repository.repositoryName,
+      repository.registryId,
+    );
+    if (images && images.imageDetails) {
+      for (const image of images.imageDetails) {
+        if (image.imageDigest && image.imageTags && image.imageTags.length > 0) {
+          const imageId = { imageDigest: image.imageDigest, imageTag: image.imageTags[0] };
+          await this.deleteRepositoryImage(client, [imageId], repository.repositoryName, image.registryId);
+        }
       }
     }
   }
@@ -105,7 +134,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         if (type == 'private') {
           const rawImage = await this.getRepositoryImage(client.ecrClient, [imageId], decoded[3]);
           if (rawImage?.images && rawImage.images[0]) {
-            return await this.repositoryImageMapper(rawImage.images[0], ctx);
+            return await this.repositoryImageMapper(rawImage.images[0], ctx, type);
           } else return undefined;
         } else {
           // public, we need to use different api
@@ -120,7 +149,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
                 registryId: imageDetail.registryId,
                 repositoryName: imageDetail.repositoryName,
               };
-              return await this.repositoryImageMapper(image, ctx);
+              return await this.repositoryImageMapper(image, ctx, type);
             }
           }
           return undefined;
@@ -134,7 +163,12 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         for (const r of repositories) {
           try {
             // first retrieve the list of images associated to the repo, then retrieve the details
-            const ri = await this.listRepositoryImages(client.ecrClient, r.repositoryName, r.registryId);
+            const ri = await this.listRepositoryImages(
+              client.ecrClient,
+              undefined,
+              r.repositoryName,
+              r.registryId,
+            );
             if (ri?.imageIds) {
               const imageDetails = await this.getRepositoryImage(
                 client.ecrClient,
@@ -151,6 +185,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
           }
         }
         // then public
+        const publicImages = [];
         const publicRepositories: PublicRepository[] = ctx.memo?.cloud?.PublicRepository
           ? Object.values(ctx.memo?.cloud?.PublicRepository)
           : [];
@@ -158,12 +193,18 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
           // first retrieve the list of images associated to the repo, then retrieve the details
           const ri = await this.listPublicRepositoryImages(
             client.ecrPubClient,
+            undefined,
             rp.repositoryName,
             rp.registryId,
           );
           if (ri?.imageDetails) {
             for (const imageDetail of ri.imageDetails) {
-              if (imageDetail.imageDigest && imageDetail.imageTags && imageDetail.imageTags.length > 0) {
+              if (
+                imageDetail.imageDigest &&
+                imageDetail.imageTags &&
+                imageDetail.imageTags.length > 0 &&
+                imageDetail.repositoryName
+              ) {
                 const image: ImageAws = {
                   imageId: { imageDigest: imageDetail.imageDigest, imageTag: imageDetail.imageTags[0] },
                   imageManifest: undefined,
@@ -171,14 +212,17 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
                   registryId: imageDetail.registryId,
                   repositoryName: imageDetail.repositoryName,
                 };
-                images.push(image);
+                publicImages.push(image);
               }
             }
           }
         }
         const out = [];
         for (const ri of images) {
-          if (ri && ri.imageId) out.push(await this.repositoryImageMapper(ri, ctx));
+          if (ri && ri.imageId) out.push(await this.repositoryImageMapper(ri, ctx, 'private'));
+        }
+        for (const ri of publicImages) {
+          if (ri && ri.imageId) out.push(await this.repositoryImageMapper(ri, ctx, 'public'));
         }
         return out;
       }
@@ -303,7 +347,7 @@ class PublicRepositoryMapper extends MapperBase<PublicRepository> {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         // need to delete images associated with this repository
-        await this.module.repositoryImages.deleteRepositoryImages(client.ecrPubClient, e);
+        await this.module.repositoryImages.deletePublicRepositoryImages(client.ecrPubClient, e);
         await this.deleteECRPubRepository(client.ecrPubClient, e.repositoryName!);
       }
     },

@@ -373,7 +373,7 @@ describe('ECR Integration Testing', () => {
         `
       SELECT *
       FROM repository_image
-      WHERE public_repository = '${repositoryName}';
+      WHERE public_repository = '${pubRepositoryName}';
     `,
         (res: any[]) => {
           expect(res.length).toBe(1);
