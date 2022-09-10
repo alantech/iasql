@@ -25,7 +25,7 @@ updates:
     directory: "/examples/ecs-fargate/prisma/app" # Location of package manifests
     schedule:
       interval: "weekly"
-  - package-ecosystem: "docker" # See documentation for possible values
+  - package-ecosystem: "npm" # See documentation for possible values
       directory: "/examples/ecs-fargate/prisma/infra" # Location of package manifests
       schedule:
         interval: "weekly"
