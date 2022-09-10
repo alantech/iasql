@@ -39,10 +39,10 @@ We believe we can collect some inputs from IaSQL customers and offer then some f
          [ -- Statement 1
              "Sid", -- nullable
              "<resource>",
-             "principals", -- nullable, array of 2-element arrays of strings varchar[2][] e.g. [["AWS", "12345678899], ["CanonicalUser", "123445567889"],...]
+             "principals", -- nullable, array of string tuples varchar[2][] e.g. [["AWS", "12345678899], ["CanonicalUser", "123445567889"],...]
              "<action1>, <action2>", -- comma separated list of actions. varchar
              "<effect>", -- allow/deny. ENUM
-             "conditions" -- nullable. varchar[3][] -- array of arrays of 3 string elements e.g [["aws:CurrentTime", "DateGreaterThan", "2021-01-01"], [...]]
+             "conditions" -- nullable. varchar[3][] -- array of string triples e.g [["aws:CurrentTime", "DateGreaterThan", "2021-01-01"], [...]]
          ],
          [...], -- Statement 2
          [...] -- Statement 3
@@ -72,10 +72,10 @@ insert into bucket (
                   [ -- Statement 1
                       "Sid", -- nullable
                       "<resource>",
-                      "principals", -- nullable, varchar[2][] -- array of 2-string arrays [["AWS", "12345678899], ["CanonicalUser", "123445567889"],...]
+                      "principals", -- nullable, varchar[2][] -- array of string tuples [["AWS", "12345678899], ["CanonicalUser", "123445567889"],...]
                       "<action1>, <action2>", -- comma separated list of actions. varchar
                       "<effect>", -- allow/deny. ENUM
-                      "conditions" -- nullable. varchar[3][] -- array of arrays of 3 string elements e.g [["aws:CurrentTime", "DateGreaterThan", "2021-01-01"], [...]]
+                      "conditions" -- nullable. varchar[3][] -- array of string triples e.g [["aws:CurrentTime", "DateGreaterThan", "2021-01-01"], [...]]
                   ],
                   [...], -- Statement 2
                   [...] -- Statement N
@@ -135,7 +135,7 @@ iasql_create_policy_statement(
         'allow',
         'aws:arn:123456789012:bucket-resource',
         's3:GetObjects', -- comma separated list of actions
-        '123456789012' -- comma separated list of principals
+        '{{"AWS", "123456789012"}}' -- array of string tuples
     );
 
 -- User creates bucket with the policy
@@ -164,7 +164,7 @@ insert into bucket (
                             'allow',
                             'aws:arn:123456789012:bucket-resource',
                             's3:GetObjects', -- comma separated list of actions
-                            '123456789012' -- comma separated list of principals
+                            '{{"AWS", "122345667443"}, {...}}' -- array of string tuples
                             ), -- Statement 1
                           iasql_create_policy_statement(...), -- Statement 2
                           ...
