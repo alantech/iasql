@@ -1,12 +1,8 @@
-import isEqual from 'lodash.isequal';
-
 import {
   ECR,
   Repository as RepositoryAws,
   paginateDescribeRepositories,
-  ImageDetail,
-  DescribeImagesCommandOutput,
-  ListImagesCommandOutput,
+  Image as ImageAws,
 } from '@aws-sdk/client-ecr';
 import {
   ECRPUBLIC,
@@ -30,47 +26,39 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
   module: AwsEcrModule;
   entity = RepositoryImage;
   equals = (a: RepositoryImage, b: RepositoryImage) => {
-    try {
-      return (
-        isEqual(a.imageTags, b.imageTags) &&
-        isEqual(a.privateRepository, b.privateRepository) &&
-        isEqual(a.publicRepository, b.publicRepository) &&
-        Object.is(a.registryId, b.registryId)
-      );
-    } catch (e) {
-      return false;
-    }
+    // the id already contains image digest , tag and repo, so no need to compare it here
+    return Object.is(a.registryId, b.registryId);
   };
 
-  async repositoryImageMapper(image: ImageDetail, ctx: Context) {
+  async repositoryImageMapper(image: ImageAws, ctx: Context) {
     const out = new RepositoryImage();
-    if (image.imageDigest) out.imageDigest = image.imageDigest;
-    if (image.imageTags) out.imageTags = image.imageTags;
+
+    // id is generated with imageDigest + tag
+    if (!image.imageId || !image.imageId.imageDigest || !image.imageId.imageTag) return out;
+    out.imageDigest = image.imageId.imageDigest;
+    out.imageTag = image.imageId.imageTag;
 
     // check if the repo is public or private
     if (image.repositoryName) {
       if (ctx.memo.cloud.Repository[image.repositoryName]) {
         out.privateRepository = ctx.memo.cloud.Repository[image.repositoryName];
         out.publicRepository = undefined;
+        out.imageId =
+          image.imageId.imageDigest + '|' + image.imageId.imageTag + '|private|' + image.repositoryName;
       } else if (ctx.memo.cloud.PublicRepository[image.repositoryName]) {
         out.publicRepository = ctx.memo.cloud.PublicRepository[image.repositoryName];
         out.privateRepository = undefined;
+        out.imageId =
+          image.imageId.imageDigest + '|' + image.imageId.imageTag + '|private|' + image.repositoryName;
       }
     }
     out.registryId = image.registryId;
     return out;
   }
-  getRepositoryImage = crudBuilder2<ECR, 'describeImages'>('describeImages', (imageIds, repositoryName) => ({
+  getRepositoryImage = crudBuilder2<ECR, 'batchGetImage'>('batchGetImage', (imageIds, repositoryName) => ({
     imageIds,
     repositoryName,
   }));
-  getRepositoryImages = crudBuilder2<ECR, 'describeImages'>(
-    'describeImages',
-    (repositoryName, registryId) => ({
-      repositoryName,
-      registryId,
-    }),
-  );
   listRepositoryImages = crudBuilder2<ECR, 'listImages'>('listImages', (repositoryName, registryId) => ({
     repositoryName,
     registryId,
@@ -85,32 +73,21 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
 
   async deleteRepositoryImages(client: ECR, repositoryName: string, registryId?: string | undefined) {
     try {
+      console.log('i try to delete images from repo');
+      console.log(repositoryName);
+      console.log(registryId);
       // first retrieve all images from this repository
       const images = await this.listRepositoryImages(client, repositoryName, registryId);
-      if (images && images.imageIds) {
-        // remove all images from repo
+      console.log('images are');
+      console.log(images);
+      if (images && images.imageIds && images.imageIds.length > 0)
         await this.deleteRepositoryImage(client, images.imageIds, repositoryName);
-      }
-    } catch (_) {
+    } catch (e: any) {
+      console.log(e);
       // it may error if no images have been created, do nothing
+      if (e.name !== 'RepositoryNotFoundException') throw e;
     }
   }
-
-  db = new Crud2<RepositoryImage>({
-    create: (es: RepositoryImage[], ctx: Context) => ctx.orm.save(RepositoryImage, es),
-    update: (es: RepositoryImage[], ctx: Context) => ctx.orm.save(RepositoryImage, es),
-    delete: (es: RepositoryImage[], ctx: Context) => ctx.orm.remove(RepositoryImage, es),
-    read: async (ctx: Context, repositoryName?: string) => {
-      const opts = repositoryName
-        ? {
-            where: {
-              repositoryName,
-            },
-          }
-        : {};
-      return await ctx.orm.find(RepositoryImage, opts);
-    },
-  });
 
   cloud: Crud2<RepositoryImage> = new Crud2({
     create: async (es: RepositoryImage[], ctx: Context) => {
@@ -119,58 +96,65 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     read: async (ctx: Context, id?: string) => {
       const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
-        // first need to know the repository name
-        const imageData: RepositoryImage = ctx.memo.db.RepositoryImage[id];
-        let rawImage: DescribeImagesCommandOutput | undefined;
-        if (imageData.privateRepository)
-          rawImage = await this.getRepositoryImage(
-            client.ecrClient,
-            [id],
-            imageData.privateRepository.repositoryName,
-          );
-        else if (imageData.publicRepository)
-          rawImage = await this.getRepositoryImage(
-            client.ecrClient,
-            [id],
-            imageData.publicRepository.repositoryName,
-          );
+        // we need to decompose image id: digest|tag|repo type|repo name
+        const decoded: string[] = id.split('|');
+        const imageId = [{ imageDigest: decoded[0], imageTag: decoded[1] }];
 
-        if (rawImage?.imageDetails && rawImage.imageDetails[0]) {
-          return await this.repositoryImageMapper(rawImage.imageDetails[0], ctx);
-        }
+        const rawImage = await this.getRepositoryImage(client.ecrClient, [imageId], decoded[3]);
+        if (rawImage?.images && rawImage.images[0]) {
+          return await this.repositoryImageMapper(rawImage.images[0], ctx);
+        } else return undefined;
       } else {
         // first private
-        const repositories = ctx.memo?.cloud?.Repository
+        const repositories: Repository[] = ctx.memo?.cloud?.Repository
           ? Object.values(ctx.memo?.cloud?.Repository)
-          : await this.module.repository.cloud.read(ctx);
-        const images: any = [];
+          : [];
+        const images = [];
         for (const r of repositories) {
           try {
-            const ri = await this.getRepositoryImages(client.ecrClient, r.repositoryName, r.registryId);
-            if (ri?.imageDetails) for (const image of ri?.imageDetails) images.push(image);
+            // first retrieve the list of images associated to the repo, then retrieve the details
+            const ri = await this.listRepositoryImages(client.ecrClient, r.repositoryName, r.registryId);
+            if (ri?.imageIds) {
+              const imageDetails = await this.getRepositoryImage(
+                client.ecrClient,
+                ri.imageIds,
+                r.repositoryName,
+              );
+              if (imageDetails && imageDetails.images) {
+                for (const image of imageDetails.images) images.push(image);
+              }
+            }
           } catch (_) {
             // We try to retrieve the policy for the repository, but if none it is not an error
             continue;
           }
         }
-
         // then public
-        const publicRepositories = ctx.memo?.cloud?.PublicRepository
+        const publicRepositories: PublicRepository[] = ctx.memo?.cloud?.PublicRepository
           ? Object.values(ctx.memo?.cloud?.PublicRepository)
-          : await this.module.repository.cloud.read(ctx);
-        for (const r of publicRepositories) {
+          : [];
+        for (const rp of publicRepositories) {
           try {
-            const ri = await this.getRepositoryImages(client.ecrClient, r.repositoryName, r.registryId);
-            if (ri?.imageDetails) for (const image of ri.imageDetails) images.push(image);
+            // first retrieve the list of images associated to the repo, then retrieve the details
+            const ri = await this.listRepositoryImages(client.ecrClient, rp.repositoryName, rp.registryId);
+            if (ri?.imageIds) {
+              const imageDetails = await this.getRepositoryImage(
+                client.ecrClient,
+                ri.imageIds,
+                rp.repositoryName,
+              );
+              if (imageDetails && imageDetails.images) {
+                for (const image of imageDetails.images) images.push(image);
+              }
+            }
           } catch (_) {
             // We try to retrieve the policy for the repository, but if none it is not an error
             continue;
           }
         }
-
         const out = [];
         for (const ri of images) {
-          out.push(await this.repositoryImageMapper(ri, ctx));
+          if (ri && ri.imageId) out.push(await this.repositoryImageMapper(ri, ctx));
         }
         return out;
       }
@@ -182,8 +166,13 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     delete: async (es: RepositoryImage[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
-        if (e.privateRepository) await this.deleteRepositoryImage(client.ecrClient, e.privateRepository);
-        else if (e.publicRepository) await this.deleteRepositoryImage(client.ecrClient, e.publicRepository);
+        const imageId = { imageDigest: e.imageDigest, imageTag: e.imageTag };
+
+        if (e.privateRepository) {
+          await this.deleteRepositoryImage(client.ecrClient, [imageId], e.privateRepository.repositoryName);
+        } else if (e.publicRepository) {
+          await this.deleteRepositoryImage(client.ecrClient, [imageId], e.publicRepository.repositoryName);
+        }
       }
     },
   });
