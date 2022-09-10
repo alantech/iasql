@@ -7,8 +7,6 @@ slug: '/sql'
 
 In this tutorial, we will run SQL queries on an IaSQL [database](../concepts/db.md) to deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, IAM, ECR, and ELB. The container image will be hosted as a private repository in ECR and deployed to ECS using Fargate.
 
-The code for this tutorial lives in this part of the [repository](https://github.com/iasql/ecs-fargate-examples/blob/main/flyway/migrations/V2__init.sql)
-
 ## Start managing an AWS account with a hosted IaSQL db
 
 First, make sure you have an [IAM user](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html) in AWS or create one with **Programmatic access** through the [console/UI](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html#id_users_create_console) or [CLI](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html#id_users_create_cliwpsapi). Ensure that the IAM role has sufficient permissions to deploy and manage all your infrastructure resources.
