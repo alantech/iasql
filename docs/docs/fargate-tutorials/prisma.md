@@ -5,9 +5,9 @@ slug: '/prisma'
 
 # IaSQL on Prisma (Javascript)
 
-In this tutorial we will use a script that uses [Prisma](https://www.prisma.io) to introspect the schema of an IaSQL database and deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, IAM, ECR and ELB. The container image will be hosted as a private repository in ECR and deployed to ECS using Fargate.
+In this tutorial, we will use a script that uses [Prisma](https://www.prisma.io) to introspect the schema of an IaSQL database and deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, IAM, ECR and ELB. The container image will be hosted as a private repository in ECR and deployed to ECS using Fargate.
 
-The code for this tutorial lives in this part of the [repository](https://github.com/iasql/ecs-fargate-examples/blob/main/prisma/infra/index.js)
+The code for this tutorial lives in this part of the [repository](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma/infra/index.js)
 
 ## Start managing an AWS account with a hosted IaSQL db
 
@@ -70,15 +70,9 @@ If the function call is successful, it will return a virtual table with a record
 
 ## Connect to the hosted db and provision cloud resources in your AWS account
 
-1. Get a local copy of the [ECS Fargate examples repository](https://github.com/iasql/ecs-fargate-examples)
+1. Get a local copy of the [ECS Fargate examples code](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma)
 
-```bash
-git clone git@github.com:iasql/ecs-fargate-examples.git my_project
-cd my_project
-git filter-branch --subdirectory-filter prisma
-```
-
-2. Install the Node.js project dependencies under the `my_project/infra` folder
+2. Install the Node.js project dependencies under the `prisma/infra` folder
 
 ```bash
 cd infra
@@ -87,7 +81,7 @@ npm i
 
 3. Modify the [`.env file`](https://www.prisma.io/docs/guides/development-environment/environment-variables) that Prisma expects with the connection parameters provided on db creation. In this case:
 
-```bash title="my_project/infra/.env"
+```bash title="prisma/infra/.env"
 DATABASE_URL="postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4"
 ```
 
@@ -101,7 +95,7 @@ The `project-name` can only contain alphanumeric characters and hyphens(-) becau
 
 5. Per the [Prisma quickstart to add an existing project](https://www.prisma.io/docs/getting-started/setup-prisma/add-to-existing-project/relational-databases/connect-your-database-node-postgres), create a basic `schema.prisma` file.
 
-```json title="my_project/infra/prisma/schema.prisma"
+```json title="prisma/infra/prisma/schema.prisma"
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -112,13 +106,13 @@ generator client {
 }
 ```
 
-6. Pull, or introspect, the schema from your database which will auto populate the rest of the `schema.prisma` file
+6. Pull, or introspect, the schema from your database which will auto-populate the rest of the `schema.prisma` file
 
 ```
 npx prisma db pull
 ```
 
-7. Now install and generate the Prisma client in accordance with the introspected `schema.prisma`
+7. Now install and generate the Prisma client by the introspected `schema.prisma`
 
 ```
 npx prisma generate
@@ -137,7 +131,7 @@ introspect the correct schema once again.
 node index.js
 ```
 
-This will run the following [code](https://github.com/iasql/ecs-fargate-examples/blob/main/prisma/infra/index.js)
+This will run the following [code](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/prisma/infra/index.js)
 
 ```js title="my_project/migrations/index.js"
 const { PrismaClient, load_balancer_scheme_enum, task_definition_cpu_memory_enum } = require('@prisma/client')
