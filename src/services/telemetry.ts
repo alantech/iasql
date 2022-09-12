@@ -24,6 +24,7 @@ export type DbProps = {
   iasqlEnv?: string;
   recordCount?: number;
   operationCount?: number;
+  rpcCount?: number;
   email?: string;
 };
 
@@ -33,10 +34,9 @@ export type EventProps = {
   dataOnly?: boolean;
   params?: string[];
   sql?: string;
-  button?: boolean;
 };
 
-async function logEvent(
+export async function logEvent(
   event: string,
   dbProps: DbProps,
   eventProps?: EventProps,
@@ -87,6 +87,16 @@ export async function logOp(
   uid: string,
 ) {
   await logEvent(opType, dbProps, eventProps, uid);
+}
+
+export async function logRpc(
+  moduleName: string,
+  methodName: string,
+  dbProps: DbProps,
+  eventProps: EventProps,
+  uid: string,
+) {
+  await logEvent(`${moduleName}:${methodName}`, dbProps, eventProps, uid);
 }
 
 export default singleton;

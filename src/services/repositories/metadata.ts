@@ -85,14 +85,15 @@ class MetadataRepo {
     });
   }
 
-  async updateDbCounts(dbId: string, recCount: number, opCount: number) {
+  async updateDbCounts(dbId: string, recCount: number, opCount?: number, rpcCount?: number) {
     const db = await this.dbRepo.findOne(dbId);
     if (!db) {
       logger.warn(`No db with id ${dbId} found`);
       return;
     }
     db.recordCount = recCount;
-    db.operationCount = opCount;
+    if (opCount) db.operationCount = opCount;
+    if (rpcCount) db.rpcCount = rpcCount;
     await this.dbRepo.save(db);
   }
 

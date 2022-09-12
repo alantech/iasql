@@ -5,9 +5,9 @@ slug: '/django'
 
 # IaSQL on Django (Python)
 
-In this tutorial we will run [Django SQL migrations](https://docs.djangoproject.com/en/4.0/topics/migrations/) on top of IaSQL to deploy a HTTP server within a docker container on your AWS account using ECS, ECR and ELB. The container image will be hosted as a public repository in ECR and deployed to ECS using Fargate.
+In this tutorial, we will run [Django SQL migrations](https://docs.djangoproject.com/en/4.0/topics/migrations/) on top of IaSQL to deploy an HTTP server within a docker container on your AWS account using ECS, ECR and ELB. The container image will be hosted as a public repository in ECR and deployed to ECS using Fargate.
 
-The code for this tutorial lives in this part of the [repository](https://github.com/iasql/ecs-fargate-examples/blob/main/django/app/infra/migrations/0003_initial.py)
+The code for this tutorial lives in this part of the [repository](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/django/app/infra/migrations/0003_initial.py)
 
 ## Start managing an AWS account with a hosted IaSQL db
 
@@ -75,14 +75,7 @@ If the function call is successful, it will return a virtual table with a record
 
 ## Connect to the hosted db and provision cloud resources in your AWS account
 
-1. Get a local copy of the [ECS Fargate examples repository](https://github.com/iasql/ecs-fargate-examples)
-
-    ```bash
-    git clone git@github.com:iasql/ecs-fargate-examples.git my_project
-    cd my_project
-    git filter-branch --subdirectory-filter django
-    cd app
-    ```
+1. Get a local copy of the [ECS Fargate examples](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate)
 
 2. (Optional) Create and activate a virtual environment to install python dependencies
 
@@ -91,7 +84,7 @@ If the function call is successful, it will return a virtual table with a record
     source <env-name>/bin/activate
     ```
 
-3. Install the project dependencies under the `my_project/app` folder
+3. Install the project dependencies under the `django/app` folder
 
     ```bash
     pip install -r requirements.txt
@@ -99,7 +92,7 @@ If the function call is successful, it will return a virtual table with a record
 
 4. Create a `.env` file with the connection parameters provided on db creation. In this case:
 
-    ``` title="my_project/app/.env"
+    ``` title="django/app/.env"
     AWS_REGION=eu-west-2
     DB_NAME=_3ba201e349a11daf
     DB_USER=qpp3pzqb
@@ -116,7 +109,7 @@ If the function call is successful, it will return a virtual table with a record
 
 6. Per the [Djando database documentation](https://docs.djangoproject.com/en/4.0/ref/databases/#postgresql-connection-settings-1), to connect to a new database you have to update the `DATABASES` in the `my_project/app/app/settings.py` file. This is already configure in the example project.
 
-    ```python title="my_project/app/app/settings.py"
+    ```python title="django/app/app/settings.py"
     DATABASES = {
         ...
         'infra': {
