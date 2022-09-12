@@ -127,7 +127,7 @@ describe('ECR Integration Testing', () => {
           const repositoryUri = res[0]['repository_uri'];
           execSync(`docker tag ${dockerImage} ${repositoryUri}`);
           execSync(
-            `aws ecr get-login-password --region ${process.env.AWS_REGION} | docker login --username AWS --password-stdin ${repositoryUri}`,
+            `docker login --username AWS -p $(aws ecr get-login-password --region ${process.env.AWS_REGION}) ${repositoryUri}`,
           );
 
           execSync(`docker push ${repositoryUri}`);
@@ -357,7 +357,7 @@ describe('ECR Integration Testing', () => {
           const repositoryUri = res[0]['repository_uri'];
           execSync(`docker tag ${dockerImage} ${repositoryUri}`);
           execSync(
-            `aws ecr-public get-login-password --region ${process.env.AWS_REGION} | docker login --username AWS --password-stdin ${repositoryUri}`,
+            `docker login --username AWS -p $(aws ecr-public get-login-password --region ${process.env.AWS_REGION}) ${repositoryUri}`,
           );
 
           execSync(`docker push ${repositoryUri}`);
