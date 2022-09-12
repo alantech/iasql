@@ -41,7 +41,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     out.imageTag = image.imageId.imageTag;
 
     (out.privateRepository = undefined), (out.publicRepository = undefined);
-    if (type == 'private') {
+    if (type === 'private') {
       // retrieve repository details
       const repo = await this.module.repository.cloud.read(ctx, image.repositoryName);
       if (repo) out.privateRepository = repo;
@@ -131,7 +131,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         const imageId = [{ imageDigest: decoded[0], imageTag: decoded[1] }];
         const type = decoded[2];
 
-        if (type == 'private') {
+        if (type === 'private') {
           const rawImage = await this.getRepositoryImage(client.ecrClient, [imageId], decoded[3]);
           if (rawImage?.images && rawImage.images[0]) {
             return await this.repositoryImageMapper(rawImage.images[0], ctx, type);
