@@ -1,6 +1,5 @@
 import {
   ACM,
-  ACMClient,
   CertificateDetail,
   CertificateStatus,
   DescribeCertificateCommandInput,
@@ -8,14 +7,12 @@ import {
   paginateListCertificates,
   RecordType,
   RequestCertificateCommandInput,
-  waitUntilCertificateValidated,
 } from '@aws-sdk/client-acm';
-import { createWaiter, WaiterOptions, WaiterState } from '@aws-sdk/util-waiter';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AWS, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { awsAcmListModule } from '../aws_acm_list';
-import { Certificate } from '../aws_acm_list/entity/certificate';
 import { awsRoute53HostedZoneModule } from '../aws_route53_hosted_zones';
 import { HostedZone, ResourceRecordSet } from '../aws_route53_hosted_zones/entity';
 import { CertificateRequest, ValidationMethod } from './entity';
