@@ -17,6 +17,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'ecrtest';
 const repositoryName = prefix + dbAlias;
+const region = 'us-east-1';
 const pubRepositoryName = `pub${prefix}${dbAlias}-${process.env.AWS_REGION ?? 'barf'}`;
 const policyMock =
   '{ "Version": "2012-10-17", "Statement": [ { "Sid": "DenyPull", "Effect": "Deny", "Principal": "*", "Action": [ "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer" ] } ]}';
@@ -357,7 +358,7 @@ describe('ECR Integration Testing', () => {
           const repositoryUri = res[0]['repository_uri'];
           execSync(`docker tag ${dockerImage} ${repositoryUri}`);
           execSync(
-            `docker login --username AWS -p $(aws ecr-public get-login-password --region ${process.env.AWS_REGION}) ${repositoryUri}`,
+            `docker login --username AWS -p $(aws ecr-public get-login-password --region us-east-1) ${repositoryUri}`,
           );
 
           execSync(`docker push ${repositoryUri}`);
