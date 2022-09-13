@@ -119,11 +119,11 @@ class AwsAccount extends ModuleBase {
           })
         )?.region ??
         'us-east-1'; // TODO: Eliminate this last fallback
-      console.log({
+      console.dir({
         selectedRegion,
         region,
         maybeClient: this.awsClient[region],
-      });
+      }, { depth: 4, });
       if (this.awsClient[region]) return this.awsClient[region];
       const awsCreds = await orm.findOne(AwsCredentials);
       if (!awsCreds) throw new Error('No credentials found');
