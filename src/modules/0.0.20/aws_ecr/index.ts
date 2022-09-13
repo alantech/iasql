@@ -346,8 +346,6 @@ class PublicRepositoryMapper extends MapperBase<PublicRepository> {
     delete: async (es: PublicRepository[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
-        // need to delete images associated with this repository
-        await this.module.repositoryImages.deletePublicRepositoryImages(client.ecrPubClient, e);
         await this.deleteECRPubRepository(client.ecrPubClient, e.repositoryName!);
       }
     },
@@ -499,9 +497,6 @@ class RepositoryMapper extends MapperBase<Repository> {
     delete: async (es: Repository[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
-        // need to delete images associated with this repository
-        await this.module.repositoryImages.deleteRepositoryImages(client.ecrClient, e);
-
         await this.deleteECRRepository(client.ecrClient, e.repositoryName!);
         // Also need to delete the repository policy associated with this repository,
         // if any
