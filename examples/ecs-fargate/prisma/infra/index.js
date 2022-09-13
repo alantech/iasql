@@ -35,25 +35,25 @@ async function main() {
   console.log('Docker login...')
   execSync(
     `aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${repoUri}`,
-    { stdio: [0, 'pipe', 'pipe'], }, // Output stdout/err through the parent process
+    { stdio: 'pipe', }, // Output stdout/err through the parent process
   )
 
   console.log('Building image...')
   execSync(
     `docker build -t ${APP_NAME}-repository ${__dirname}/../app`,
-    { stdio: [0, 'pipe', 'pipe'], },
+    { stdio: 'pipe', },
   );
 
   console.log('Tagging image...')
   execSync(
     `docker tag ${APP_NAME}-repository:latest ${repoUri}:latest`,
-    { stdio: [0, 'pipe', 'pipe'], },
+    { stdio: 'pipe', },
   );
 
   console.log('Pushing image...')
   execSync(
     `docker push ${repoUri}:latest`,
-    { stdio: [0, 'pipe', 'pipe'], },
+    { stdio: 'pipe', },
   );
 }
 
