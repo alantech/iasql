@@ -122,7 +122,7 @@ class AwsAccount extends ModuleBase {
       console.dir({
         selectedRegion,
         region,
-        maybeClient: this.awsClient[region],
+        maybeClientRegion: this.awsClient[region]?.ec2Client?.region?.(),
       }, { depth: 4, });
       if (this.awsClient[region]) return this.awsClient[region];
       const awsCreds = await orm.findOne(AwsCredentials);
