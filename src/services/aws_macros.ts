@@ -3,6 +3,7 @@ import { ApiGatewayV2 } from '@aws-sdk/client-apigatewayv2';
 import { AppSync } from '@aws-sdk/client-appsync';
 import { CloudFront } from '@aws-sdk/client-cloudfront';
 import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
+import { CodeBuild } from '@aws-sdk/client-codebuild';
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
 import { EC2 } from '@aws-sdk/client-ec2';
 import { ECR } from '@aws-sdk/client-ecr';
@@ -51,6 +52,7 @@ export class AWS {
   acmClient: ACM;
   apiGatewayClient: ApiGatewayV2;
   appSyncClient: AppSync;
+  cbClient: CodeBuild;
   cwClient: CloudWatchLogs;
   ec2client: EC2;
   ecrClient: ECR;
@@ -92,6 +94,7 @@ export class AWS {
     this.acmClient = new ACM(config);
     this.appSyncClient = new AppSync(config);
     this.cloudfrontClient = new CloudFront(config);
+    this.cbClient = new CodeBuild(config);
     this.cwClient = new CloudWatchLogs(config);
     this.dynamoClient = new DynamoDB(config);
     this.elasticacheClient = new ElastiCache(config);
