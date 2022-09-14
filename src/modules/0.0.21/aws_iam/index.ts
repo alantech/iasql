@@ -8,7 +8,7 @@ import {
   User as AWSUser,
 } from '@aws-sdk/client-iam';
 
-import { policiesAreSame } from '../../../services/aws-diff';
+import { policiesAreSame, objectsAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { Role, IamUser } from './entity';
@@ -143,9 +143,7 @@ class RoleMapper extends MapperBase<Role> {
     Object.is(a.arn, b.arn) &&
     Object.is(a.description, b.description) &&
     policiesAreSame(a.assumeRolePolicyDocument, b.assumeRolePolicyDocument) &&
-    Object.is(a.attachedPoliciesArns?.length, b.attachedPoliciesArns?.length) &&
-    ((!a.attachedPoliciesArns && !b.attachedPoliciesArns) ||
-      !!a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs))));
+    objectsAreSame(a.attachedPoliciesArns, b.attachedPoliciesArns);
 
   getRoleAttachedPoliciesArns = crudBuilderFormat<IAM, 'listAttachedRolePolicies', string[] | undefined>(
     'listAttachedRolePolicies',
@@ -340,6 +338,19 @@ class RoleMapper extends MapperBase<Role> {
             await this.detachRoleToInstanceProfile(client.iamClient, e.roleName);
             await this.deleteInstanceProfile(client.iamClient, e.roleName);
           }
+          update = true;
+        }
+        if (!objectsAreSame(e.attachedPoliciesArns, b.attachedPoliciesArns)) {
+          await this.detachRolePolicies(
+            client.iamClient,
+            e.roleName,
+            b.attachedPoliciesArns ?? [],
+          );
+          await this.attachRolePolicies(
+            client.iamClient,
+            e.roleName,
+            e.attachedPoliciesArns ?? [],
+          );
           update = true;
         }
         if (!Object.is(e.description, b.description)) {
