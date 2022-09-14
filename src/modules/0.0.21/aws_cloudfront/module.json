@@ -1,0 +1,4 @@
+{
+    "name": "aws_cloudfront",
+    "dependencies": ["iasql_platform", "aws_account"]
+  }
