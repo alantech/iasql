@@ -37,7 +37,7 @@ This was not detected by the test suite because we had no upgrade test, and it w
 
 Our production and staging IaSQL databases do not use `us-east-1` and have more than just the `aws_account` installed, so they did run into this issue when the deploy logic upgraded them to the latest version of the engine.
 
-## Remedy
+## Prevention
 
 The mitigation for this exact issue has already been performed to get `v0.0.20` released, and an explicit test to confirm the full flow of an `iasql_upgrade` call works has been written.
 

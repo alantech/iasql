@@ -28,7 +28,7 @@ Describe in a paragraph or two what was done to resolve the issue.
 
 Try to describe a root cause for the issue in a paragraph.
 
-## Remedy
+## Prevention
 
 Proposed changes to code and/or company process to avoid this in the future *or* a detailed explanation on why the cure would be worse than the disease.
 
