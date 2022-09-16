@@ -1,5 +1,4 @@
 export * from './aws_account';
-export * from './aws_acm_request';
 export * from './aws_acm_import';
 export * from './aws_acm_list';
 export * from './aws_api_gateway';
