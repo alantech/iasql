@@ -35,7 +35,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
 
     // id is generated with imageDigest + tag
     if (!image.imageId || !image.imageId.imageDigest || !image.imageId.imageTag) {
-      logger.warn('Invalid repository image', { image, });
+      logger.warn('Invalid repository image', { image });
       return undefined;
     }
     out.imageDigest = image.imageId.imageDigest;

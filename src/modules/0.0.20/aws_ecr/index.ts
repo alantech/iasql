@@ -35,7 +35,8 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
 
     // id is generated with imageDigest + tag
     if (!image.imageId || !image.imageId.imageDigest || !image.imageId.imageTag) {
-      throw new Error('Invalid repository image');
+      logger.warn('Invalid repository image', { image });
+      return undefined;
     }
     out.imageDigest = image.imageId.imageDigest;
     out.imageTag = image.imageId.imageTag;
@@ -120,7 +121,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
   }
 
   cloud: Crud2<RepositoryImage> = new Crud2({
-    create: async (es: RepositoryImage[], ctx: Context) => {
+    create: async (_es: RepositoryImage[], _ctx: Context) => {
       return [];
     },
     read: async (ctx: Context, id?: string) => {
@@ -219,16 +220,22 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         }
         const out = [];
         for (const ri of images) {
-          if (ri && ri.imageId) out.push(await this.repositoryImageMapper(ri, ctx, 'private'));
+          if (ri && ri.imageId) {
+            const image = await this.repositoryImageMapper(ri, ctx, 'private');
+            if (image) out.push(image);
+          }
         }
         for (const ri of publicImages) {
-          if (ri && ri.imageId) out.push(await this.repositoryImageMapper(ri, ctx, 'public'));
+          if (ri && ri.imageId) {
+            const image = await this.repositoryImageMapper(ri, ctx, 'public');
+            if (image) out.push(image);
+          }
         }
         return out;
       }
     },
     updateOrReplace: () => 'update',
-    update: async (es: RepositoryImage[], ctx: Context) => {
+    update: async (_es: RepositoryImage[], _ctx: Context) => {
       return [];
     },
     delete: async (es: RepositoryImage[], ctx: Context) => {
@@ -239,7 +246,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         if (e.privateRepository) {
           await this.deleteRepositoryImage(client.ecrClient, [imageId], e.privateRepository.repositoryName);
         } else if (e.publicRepository) {
-          await this.deleteRepositoryImage(client.ecrClient, [imageId], e.publicRepository.repositoryName);
+          await this.deleteRepositoryImage(client.ecrPubClient, [imageId], e.publicRepository.repositoryName);
         }
       }
     },
