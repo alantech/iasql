@@ -361,6 +361,8 @@ export interface ModuleInterface {
   mappers: { [key: string]: MapperInterface<any> };
   migrations?: {
     install: (q: QueryRunner) => Promise<void>;
+    afterInstall?: (q: QueryRunner) => Promise<void>;
+    beforeRemove?: (q: QueryRunner) => Promise<void>;
     remove: (q: QueryRunner) => Promise<void>;
   };
 }
@@ -473,8 +475,14 @@ export class ModuleBase {
   };
   context?: Context;
   mappers: { [key: string]: MapperInterface<any> };
+  sql?: {
+    afterInstallSqlPath?: string;
+    beforeUninstallSqlPath?: string;
+  };
   migrations: {
     install: (q: QueryRunner) => Promise<void>;
+    afterInstall?: (q: QueryRunner) => Promise<void>;
+    beforeRemove?: (q: QueryRunner) => Promise<void>;
     remove: (q: QueryRunner) => Promise<void>;
   };
 
@@ -522,6 +530,46 @@ export class ModuleBase {
       install: migrationClass.prototype.up,
       remove: migrationClass.prototype.down,
     };
+    if (this.sql?.afterInstallSqlPath) {
+      try {
+        const sql = fs.readFileSync(`${this.dirname}/${this.sql.afterInstallSqlPath}`, 'utf8');
+        this.migrations.afterInstall = async (q: QueryRunner) => {
+          await q.query(sql);
+        };
+      } catch (e) {
+        logger.warn(`Unable to read file ${this.dirname}/${this.sql.afterInstallSqlPath}`);
+      }
+    } else {
+      // If no path specified, try to get the default
+      try {
+        const sql = fs.readFileSync(`${this.dirname}/sql/after_install.sql`, 'utf8');
+        this.migrations.afterInstall = async (q: QueryRunner) => {
+          await q.query(sql);
+        };
+      } catch (_) {
+        /** Don't do anything if the default file is not there */
+      }
+    }
+    if (this.sql?.beforeUninstallSqlPath) {
+      try {
+        const sql = fs.readFileSync(`${this.dirname}/${this.sql.beforeUninstallSqlPath}`, 'utf8');
+        this.migrations.beforeRemove = async (q: QueryRunner) => {
+          await q.query(sql);
+        };
+      } catch (e) {
+        logger.warn(`Unable to read file ${this.dirname}/${this.sql.beforeUninstallSqlPath}`);
+      }
+    } else {
+      // If no path specified, try to get the default
+      try {
+        const sql = fs.readFileSync(`${this.dirname}/sql/before_uninstall.sql`, 'utf8');
+        this.migrations.beforeRemove = async (q: QueryRunner) => {
+          await q.query(sql);
+        };
+      } catch (_) {
+        /** Don't do anything if the default file is not there */
+      }
+    }
     const syncified = new Function(
       'return ' +
         migrationClass.prototype.up

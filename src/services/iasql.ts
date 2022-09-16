@@ -81,6 +81,14 @@ export async function getOpCount(conn: TypeormWrapper): Promise<number> {
   return parseInt(res[0].count ?? '0', 10);
 }
 
+export async function getRpcCount(conn: TypeormWrapper): Promise<number> {
+  const res = await conn.query(`
+    SELECT COUNT(*)
+    FROM iasql_rpc
+  `);
+  return parseInt(res[0].count ?? '0', 10);
+}
+
 export async function connect(dbAlias: string, uid: string, email: string, dbId = dbMan.genDbId(dbAlias)) {
   let conn1: any, conn2: any, dbUser: any;
   let dbSaved,
@@ -285,7 +293,7 @@ export async function dump(dbId: string, dataOnly: boolean) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
   if (dbMeta?.upgrading) throw new Error('Currently upgrading, cannot dump this database');
   const pgUrl = dbMan.ourPgUrl(dbId);
-  // TODO: Drop the old 'aws_account' when v0.0.19 is the oldest version.
+  // TODO: Drop the old 'aws_account' when v0.0.20 is the oldest version.
   // Also TODO: Automatically figure out which tables to exclude here.
   const excludedDataTables =
     "--exclude-table-data 'aws_account' --exclude-table-data 'aws_credentials' --exclude-table-data 'iasql_*'";
@@ -1012,6 +1020,9 @@ ${Object.keys(tableCollisions)
       if (md.migrations?.install) {
         await md.migrations.install(queryRunner);
       }
+      if (md.migrations?.afterInstall) {
+        await md.migrations.afterInstall(queryRunner);
+      }
       const e = new iasqlModule();
       e.name = `${md.name}@${md.version}`;
       // Promise.all is okay here because it's guaranteed to not hit the cloud services
@@ -1193,6 +1204,9 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
           DROP TRIGGER IF EXISTS ${table}_audit ON ${table};
         `);
       }
+      if (md.migrations?.beforeRemove) {
+        await md.migrations.beforeRemove(queryRunner);
+      }
       if (md.migrations?.remove) {
         await md.migrations.remove(queryRunner);
       }
@@ -1250,7 +1264,7 @@ export async function upgrade(dbId: string, dbUser: string) {
         // 2. Read the `aws_account` table to get the credentials (if any).
         const OldModules = (AllModules as any)[versionString];
         let creds: any;
-        // TODO: Drop this old path once v0.0.19 is the oldest version
+        // TODO: Drop this old path once v0.0.20 is the oldest version
         if (
           mods.includes('aws_account') &&
           (OldModules?.AwsAccount?.mappers?.awsAccount || OldModules?.awsAccount?.awsAccount)
@@ -1275,16 +1289,40 @@ export async function upgrade(dbId: string, dbUser: string) {
         await uninstall(nonIasqlMods, dbId, true);
         // 4. Uninstall the `iasql_*` modules manually
         const qr = conn.createQueryRunner();
+        if (OldModules?.IasqlFunctions?.migrations?.beforeRemove) {
+          await OldModules?.IasqlFunctions?.migrations?.beforeRemove(qr);
+        }
         await OldModules?.IasqlFunctions?.migrations?.remove(qr);
+        if (OldModules?.iasqlFunctions?.migrations?.beforeRemove) {
+          await OldModules?.iasqlFunctions?.migrations?.beforeRemove(qr);
+        }
         await OldModules?.iasqlFunctions?.migrations?.remove(qr);
+        if (OldModules?.IasqlPlatform?.migrations?.beforeRemove) {
+          await OldModules?.IasqlPlatform?.migrations?.beforeRemove(qr);
+        }
         await OldModules?.IasqlPlatform?.migrations?.remove(qr);
+        if (OldModules?.iasqlPlatform?.migrations?.beforeRemove) {
+          await OldModules?.iasqlPlatform?.migrations?.beforeRemove(qr);
+        }
         await OldModules?.iasqlPlatform?.migrations?.remove(qr);
         // 5. Install the new `iasql_*` modules manually
         const NewModules = AllModules[config.modules.latestVersion];
         await NewModules?.IasqlPlatform?.migrations?.install(qr);
+        if (NewModules?.IasqlPlatform?.migrations?.afterInstall) {
+          await NewModules?.IasqlPlatform?.migrations?.afterInstall(qr);
+        }
         await NewModules?.iasqlPlatform?.migrations?.install(qr);
+        if (NewModules?.iasqlPlatform?.migrations?.afterInstall) {
+          await NewModules?.iasqlPlatform?.migrations?.afterInstall(qr);
+        }
         await NewModules?.IasqlFunctions?.migrations?.install(qr);
+        if (NewModules?.IasqlFunctions?.migrations?.afterInstall) {
+          await NewModules?.IasqlFunctions?.migrations?.afterInstall(qr);
+        }
         await NewModules?.iasqlFunctions?.migrations?.install(qr);
+        if (NewModules?.iasqlFunctions?.migrations?.afterInstall) {
+          await NewModules?.iasqlFunctions?.migrations?.afterInstall(qr);
+        }
         await conn.query(`
           INSERT INTO iasql_module (name) VALUES ('iasql_platform@${config.modules.latestVersion}'), ('iasql_functions@${config.modules.latestVersion}');
           INSERT INTO iasql_dependencies (module, dependency) VALUES ('iasql_functions@${config.modules.latestVersion}', 'iasql_platform@${config.modules.latestVersion}');
@@ -1297,7 +1335,7 @@ export async function upgrade(dbId: string, dbUser: string) {
             INSERT INTO aws_credentials (access_key_id, secret_access_key)
             VALUES ('${creds.access_key_id}', '${creds.secret_access_key}');
           `);
-          await sync(dbId, false);
+          await sync(dbId, false, true);
           if (creds.region) {
             await conn.query(`
               UPDATE aws_regions SET is_default = true WHERE region = '${creds.region}';

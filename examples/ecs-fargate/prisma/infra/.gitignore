@@ -1,0 +1,5 @@
+node_modules
+# Keep environment variables out of version control
+.env
+# DB schema is managed by the IaSQL modules so no need to version control it
+schema.prisma
