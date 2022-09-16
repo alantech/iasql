@@ -290,7 +290,6 @@ describe('ECR Integration Testing', () => {
     DELETE FROM repository_image WHERE private_repository= '${repositoryName}';
   `),
     );
-    it('applies deletes the repository image', apply());
 
     it(
       'deletes the repository',
@@ -424,7 +423,6 @@ describe('ECR Integration Testing', () => {
     DELETE FROM repository_image WHERE public_repository= '${pubRepositoryName}';
   `),
     );
-    it('applies deletes the public repository image', apply());
 
     it(
       'deletes the public repository',
