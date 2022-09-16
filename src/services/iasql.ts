@@ -293,7 +293,7 @@ export async function dump(dbId: string, dataOnly: boolean) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
   if (dbMeta?.upgrading) throw new Error('Currently upgrading, cannot dump this database');
   const pgUrl = dbMan.ourPgUrl(dbId);
-  // TODO: Drop the old 'aws_account' when v0.0.19 is the oldest version.
+  // TODO: Drop the old 'aws_account' when v0.0.20 is the oldest version.
   // Also TODO: Automatically figure out which tables to exclude here.
   const excludedDataTables =
     "--exclude-table-data 'aws_account' --exclude-table-data 'aws_credentials' --exclude-table-data 'iasql_*'";
@@ -1264,7 +1264,7 @@ export async function upgrade(dbId: string, dbUser: string) {
         // 2. Read the `aws_account` table to get the credentials (if any).
         const OldModules = (AllModules as any)[versionString];
         let creds: any;
-        // TODO: Drop this old path once v0.0.19 is the oldest version
+        // TODO: Drop this old path once v0.0.20 is the oldest version
         if (
           mods.includes('aws_account') &&
           (OldModules?.AwsAccount?.mappers?.awsAccount || OldModules?.awsAccount?.awsAccount)
