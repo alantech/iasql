@@ -247,13 +247,13 @@ If you did not create a new account this section will delete **all** records man
 
 :::
 
-1. Delete all iasql records invoking the void `delete_all_records` function:
+Delete all iasql records invoking the void `delete_all_records` function:
 
     ```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
     SELECT delete_all_records();
     ```
 
-2. Apply the changes described in the hosted db to your cloud account
+Apply the changes described in the hosted db to your cloud account
 
     ```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
     SELECT * from iasql_apply();

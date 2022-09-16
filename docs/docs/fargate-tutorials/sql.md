@@ -165,7 +165,7 @@ If you did not create a new account this section will delete **all** records man
 
 :::
 
-1. Delete all IaSQL records invoking the void `delete_all_records` function and apply the changes described in the hosted db to your cloud account
+Delete all IaSQL records invoking the void `delete_all_records` function and apply the changes described in the hosted db to your cloud account
 
 ```sql
 SELECT delete_all_records();
