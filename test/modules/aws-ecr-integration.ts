@@ -36,7 +36,7 @@ jest.setTimeout(240000);
 beforeAll(async () => {
   // pull sample image
   execSync(
-    `docker login --username AWS -p $(aws ecr-public get-login-password --region ${process.env.AWS_REGION}) public.ecr.aws`,
+    `docker login --username AWS -p $(aws ecr-public get-login-password --region ${region}) public.ecr.aws`,
   );
   execSync(`docker pull ${dockerImage}`);
 
@@ -369,7 +369,7 @@ describe('ECR Integration Testing', () => {
           const repositoryUri = res[0]['repository_uri'];
           execSync(`docker tag ${dockerImage} ${repositoryUri}`);
           execSync(
-            `docker login --username AWS -p $(aws ecr-public get-login-password --region us-east-1) ${repositoryUri}`,
+            `docker login --username AWS -p $(aws ecr-public get-login-password --region ${region}) ${repositoryUri}`,
           );
 
           execSync(`docker push ${repositoryUri}`);
