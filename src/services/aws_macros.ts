@@ -170,9 +170,8 @@ export function crudBuilder2<T, U extends keyof T>(
   methodName: U,
   argMapper: (...args: any[]) => ArgumentTypes<T[U]>[0],
 ) {
-  return async (client: T, ...args: any[]): Promise<PromiseReturnType<T[U]>> => {
-    return await (client[methodName] as any)(argMapper(...args));
-  };
+  return async (client: T, ...args: any[]): Promise<PromiseReturnType<T[U]>> =>
+    await (client[methodName] as any)(argMapper(...args));
 }
 
 export function crudBuilder<T>(
