@@ -35,6 +35,9 @@ const repositoryTag = 'v1';
 jest.setTimeout(240000);
 beforeAll(async () => {
   // pull sample image
+  execSync(
+    `docker login --username AWS -p $(aws ecr-public get-login-password --region ${process.env.AWS_REGION}) public.ecr.aws`,
+  );
   execSync(`docker pull ${dockerImage}`);
 
   await execComposeUp();
@@ -282,6 +285,14 @@ describe('ECR Integration Testing', () => {
     it('installs the ecr module', install(modules));
 
     it(
+      'deletes the repository images',
+      query(`
+    DELETE FROM repository_image WHERE private_repository= '${repositoryName}';
+  `),
+    );
+    it('applies deletes the repository image', apply());
+
+    it(
       'deletes the repository',
       query(`
       DELETE FROM repository
@@ -406,6 +417,14 @@ describe('ECR Integration Testing', () => {
     it('uninstalls the ecr module', uninstall(modules));
 
     it('installs the ecr module', install(modules));
+
+    it(
+      'deletes the repository images',
+      query(`
+    DELETE FROM repository_image WHERE public_repository= '${pubRepositoryName}';
+  `),
+    );
+    it('applies deletes the public repository image', apply());
 
     it(
       'deletes the public repository',
