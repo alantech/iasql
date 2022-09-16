@@ -1,7 +1,6 @@
-import { Entity, PrimaryColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryColumn, Column } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
-import { RepositoryImage } from './repository_image';
 
 export enum ImageTagMutability {
   IMMUTABLE = 'IMMUTABLE',
@@ -47,9 +46,6 @@ export class Repository {
     default: false,
   })
   scanOnPush: boolean;
-
-  @OneToMany(() => RepositoryImage, images => images.privateRepository)
-  images: RepositoryImage[];
 
   // TODO: add encriptation configuration entity.
   // @Column({
