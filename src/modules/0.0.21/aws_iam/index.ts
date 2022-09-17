@@ -2,16 +2,20 @@ import isEqual from 'lodash.isequal';
 
 import {
   IAM,
+  ListAttachedRolePoliciesCommandInput,
   paginateListRoles,
   paginateListUsers,
   Role as AWSRole,
   User as AWSUser,
+  waitUntilRoleExists
 } from '@aws-sdk/client-iam';
 
 import { policiesAreSame, objectsAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+
 import { Role, IamUser } from './entity';
+import { createWaiter, WaiterState, WaiterOptions } from '@aws-sdk/util-waiter';
 
 class UserMapper extends MapperBase<IamUser> {
   module: AwsIamModule;
@@ -226,6 +230,35 @@ class RoleMapper extends MapperBase<Role> {
 
   deleteRole = crudBuilder2<IAM, 'deleteRole'>('deleteRole', RoleName => ({ RoleName }));
 
+  async waitForAttachedRolePolicies(client: IAM, roleName: string, policyArns: string[]) {
+    // wait for policies to be attached
+    const input: ListAttachedRolePoliciesCommandInput = {
+      RoleName: roleName,
+    }
+    await createWaiter<IAM, ListAttachedRolePoliciesCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 900,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (cl, cmd) => {
+        try {
+          const data = await cl.listAttachedRolePolicies(cmd);
+          const arns = data?.AttachedPolicies?.map(ap => ap.PolicyArn);
+          if (!objectsAreSame(arns, policyArns)) {
+            return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
+  }
+
   async roleMapper(role: AWSRole, ctx: Context) {
     const client = (await ctx.getAwsClient()) as AWS;
     const out = new Role();
@@ -271,12 +304,24 @@ class RoleMapper extends MapperBase<Role> {
           RoleName: role.roleName,
           AssumeRolePolicyDocument: JSON.stringify(role.assumeRolePolicyDocument),
           Description: role.description,
+          
         });
         if (!roleArn) {
           // then who?
           throw new Error('should not be possible');
         }
+        await waitUntilRoleExists(
+          {
+            client: client.iamClient,
+            // all in seconds
+            maxWaitTime: 900,
+            minDelay: 1,
+            maxDelay: 4,
+          } as WaiterOptions<IAM>,
+          { RoleName: role.roleName },
+        );
         await this.attachRolePolicies(client.iamClient, role.roleName, role.attachedPoliciesArns ?? []);
+        await this.waitForAttachedRolePolicies(client.iamClient, role.roleName, role.attachedPoliciesArns ?? []);
         const allowEc2Service = this.allowEc2Service(role);
         if (allowEc2Service) {
           await this.createInstanceProfile(client.iamClient, role.roleName);
@@ -351,6 +396,7 @@ class RoleMapper extends MapperBase<Role> {
             e.roleName,
             e.attachedPoliciesArns ?? [],
           );
+          await this.waitForAttachedRolePolicies(client.iamClient, e.roleName, e.attachedPoliciesArns ?? []);
           update = true;
         }
         if (!Object.is(e.description, b.description)) {

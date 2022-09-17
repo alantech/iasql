@@ -12,7 +12,7 @@ export async function execComposeUp() {
 }
 
 export async function execComposeDown() {
-  execSync('cd test && docker-compose down');
+  //execSync('cd test && docker-compose down');
 }
 
 export function getPrefix() {
