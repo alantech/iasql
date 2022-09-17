@@ -19,7 +19,7 @@ export enum RecordType {
   TXT = 'TXT',
 }
 
-@Unique('UQ_name__record_type', ['parentHostedZone', 'name', 'recordType'])
+@Unique('UQ_name__record_type', ['name', 'recordType'])
 @Check(
   'Check_record__alias_target',
   '("record" is null and "alias_target_id" is not null) or ("record" is not null and "alias_target_id" is null)',
