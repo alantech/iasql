@@ -1,6 +1,6 @@
 # 000 - Postmortem for [descriptive name here]
 
-## Level: [Internal, Outage, Corruption]
+## Level: [Internal, Outage, Corruption, Breach]
 
 ## Author(s)
 
@@ -10,7 +10,7 @@
 
 This is a postmortem template for outages. In this section you should put a short summary of what happened and how it was resolved. Only one or two paragraphs at most.
 
-Also, to explain the levels. An "Internal" outage is when our internal dev processes are broken and negatively impact the team. An "Outage" level is when service is interrupted for users, but zero impact on customer cloud accounts occurred. A "Corruption" level we hope to never see, which would imply accidental destruction of cloud resources in a customer account caused by us.
+Also, to explain the levels. An "Internal" outage is when our internal dev processes are broken and negatively impact the team. An "Outage" level is when service is interrupted for users, but zero impact on customer cloud accounts occurred. A "Corruption" level we hope to never see, which would imply accidental destruction of cloud resources in a customer account caused by us. Similarly "Breach" is a security breach which is similarly very harmful for users.
 
 ## Timeline
 
