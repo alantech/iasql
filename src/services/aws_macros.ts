@@ -1,5 +1,6 @@
 import { ACM } from '@aws-sdk/client-acm';
 import { ApiGatewayV2 } from '@aws-sdk/client-apigatewayv2';
+import { AppSync } from '@aws-sdk/client-appsync';
 import { CloudFront } from '@aws-sdk/client-cloudfront';
 import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
@@ -49,6 +50,7 @@ const SLOW_STRATEGY_MAXIMUM_RETRY_DELAY = 20 * 5000;
 export class AWS {
   acmClient: ACM;
   apiGatewayClient: ApiGatewayV2;
+  appSyncClient: AppSync;
   cwClient: CloudWatchLogs;
   ec2client: EC2;
   ecrClient: ECR;
@@ -88,6 +90,7 @@ export class AWS {
       retryStrategy: this.slowRetryStrategy,
     });
     this.acmClient = new ACM(config);
+    this.appSyncClient = new AppSync(config);
     this.cloudfrontClient = new CloudFront(config);
     this.cwClient = new CloudWatchLogs(config);
     this.dynamoClient = new DynamoDB(config);
