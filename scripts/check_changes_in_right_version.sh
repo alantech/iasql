@@ -12,8 +12,9 @@ echo "Modified files are"
 echo $MODIFIED_FILES
 
 for FILE in "${MODIFIED_FILES[@]}"; do
+  echo "I pick $FILE"
   # if file has the pattern src/modules/ check that is just for CURRENT_VERSION
-  if  [[ $FILE == src/modules* ]]; then
+  if  [[ $FILE == src/modules* ]]; then    
     # need to check the version
     VERSION=$(echo $FILE|cut -d '/' -f 3)
     if [ "$VERSION" != "$CURRENT_VERSION" ]; then
@@ -24,4 +25,4 @@ for FILE in "${MODIFIED_FILES[@]}"; do
   fi
 done
 
-exit 1
+exit 0
