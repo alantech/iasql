@@ -10,7 +10,8 @@ echo "Current version is $CURRENT_VERSION"
 git fetch --all --depth=1
 
 # check if there have been modifications on previous code
-MODIFIED_FILES=($(git diff-tree --no-commit-id --name-only -r $(git merge-base --fork-point origin/main)))
+
+MODIFIED_FILES=($(git diff --no-commit-id --name-only -r  origin/main...))
 for FILE in "${MODIFIED_FILES[@]}"; do
   # if file has the pattern src/modules/ check that is just for CURRENT_VERSION
   if  [[ $FILE == src/modules* ]]; then
