@@ -1,7 +1,7 @@
 import callsite from 'callsite';
 import fs from 'fs';
 import path from 'path';
-import { QueryRunner, getMetadataArgsStorage } from 'typeorm';
+import { QueryRunner, getMetadataArgsStorage, ColumnType } from 'typeorm';
 
 import { throwError } from '../config/config';
 import { getCloudId } from '../services/cloud-id';
@@ -13,6 +13,11 @@ import logger from '../services/logger';
 // them.
 
 export type Context = { [key: string]: any };
+
+// TODO: use something better than ColumnType for possible postgres colum types
+export type RpcOutput = { [key: string]: ColumnType };
+
+export type RpcResponseObject<T> = { [Properties in keyof T]: any };
 
 export interface CrudInterface2<E> {
   create: (e: E[], ctx: Context) => Promise<void | E[]>;
@@ -215,7 +220,8 @@ export interface MapperInterface<E> {
 export interface RpcInterface {
   module: ModuleInterface;
   name: string;
-  call: (ctx: Context, ...args: string[]) => Promise<any[]>;
+  output?: RpcOutput;
+  call: (ctx: Context, ...args: string[]) => Promise<RpcResponseObject<RpcOutput>[]>;
 }
 
 export interface Mapper2ObjInterface<E> {
@@ -352,10 +358,13 @@ export class MapperBase<E> {
 export class RpcBase {
   module: ModuleInterface;
   name: string;
-  call: (ctx: Context, ...args: string[]) => Promise<any[]>;
+  output?: RpcOutput;
+  call: (ctx: Context, ...args: string[]) => Promise<RpcResponseObject<RpcOutput>[]>;
 
   init() {
-    if (!this.module) throw new Error('No module link established for this mapper');
+    if (!this.module) throw new Error('No module established for this RPC');
+    if (!this.name) throw new Error('No name established for this RPC');
+    if (!this.call) throw new Error('No call established for this RPC');
   }
 }
 
@@ -508,11 +517,15 @@ export class ModuleBase {
     let afterInstallSql = '';
     let beforeUninstallSql = '';
     for (const [key, rpc] of Object.entries(this.rpc ?? {})) {
+      const rpcOutputEntries = Object.entries(rpc.output ?? {});
+      const rpcOutputTable = rpcOutputEntries
+        .map(([columnName, columnType]) => `${columnName} ${columnType}`)
+        .join(', ');
       afterInstallSql += `
         create or replace function ${rpc.name}(variadic _args text[]) returns table (
           module text,
-          method text,
-          result text
+          method text
+          ${rpcOutputTable ? `, ${rpcOutputTable}` : ''}
         )
         language plpgsql security definer
         as $$
@@ -521,11 +534,18 @@ export class ModuleBase {
         begin
           _opid := until_iasql_rpc('${this.name}', '${key}', _args);
           return query select
-            module_name as module,
-            method_name as method,
-            output as result
-          from iasql_rpc
-          where opid = _opid;
+            j.module_name as module,
+            j.method_name as method
+            ${
+              rpcOutputEntries.length
+                ? `, ${rpcOutputEntries
+                    .map(([col, typ]) => `try_cast(j.s->>'${col}', NULL::${typ}) as ${col}`)
+                    .join(', ')}`
+                : ''
+            }
+          from (
+            select module_name, method_name, json_array_elements(output::json) as s from iasql_rpc where opid = _opid
+          ) as j;
         end;
         $$;
       `;

@@ -168,7 +168,6 @@ export async function start(dbId: string, dbUser: string) {
           const moduleName = Object.keys(Modules ?? {}).find(k => k === camelCase(modulename)) ?? 'unknown';
           if (!Modules[moduleName]) throwError(`Module ${modulename} not found`);
           const context = await getContext(conn, Modules);
-          // TODO: add stronger type here
           const rpcRes: any[] | undefined = await (Modules[moduleName] as ModuleInterface)?.rpc?.[
             methodname
           ].call(context, ...params);

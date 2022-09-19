@@ -1,11 +1,18 @@
 import { IasqlFunctions } from '..';
-import { Context, RpcBase } from '../../../interfaces';
+import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
 
 export class CustomCallRpc extends RpcBase {
   module: IasqlFunctions;
   name = 'custom_call';
-  call = async (ctx: Context, arg1: string, arg2: string) => {
-    return [{ result: 'I have been called!', arg1, arg2, memo: ctx.memo }];
+  output = {
+    response: 'varchar',
+    args: 'json',
+  } as const;
+  call = async (
+    ctx: Context,
+    arg1: string,
+  ): Promise<RpcResponseObject<typeof this.output>[]> => {
+    return [{ response: 'I have been called!', args: `{ "arg1": "${arg1}" }` }];
   };
 
   constructor(module: IasqlFunctions) {
