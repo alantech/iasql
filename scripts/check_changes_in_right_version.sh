@@ -3,13 +3,12 @@
 echo "Checking that changes are in the right version"
 
 # get the current development version
-CURRENT_VERSION=$(grep 'latestVersion' src/config/ci.ts | cut -d ':' -f 2 | sed "s/'//g" | sed "s/,//g")
+CURRENT_VERSION=$(npx ts-node src/scripts/latestVersion.ts)
 echo "Current version is $CURRENT_VERSION"
-echo "Current commit is $GITHUB_SHA"
+echo "Current branch is $GITHUB_BASE_REF"
 
 # check if there have been modifications on previous code
-GITHUB_COMMIT_REF=$(cat $GITHUB_EVENT_PATH | jq -r .pull_request.head.sha)
-MODIFIED_FILES=($(git diff-tree --no-commit-id --name-only -r $GITHUB_COMMIT_REF))
+MODIFIED_FILES=($(git diff-tree --no-commit-id --name-only -r $GITHUB_BASE_REF))
 for FILE in "${MODIFIED_FILES[@]}"; do
   # if file has the pattern src/modules/ check that is just for CURRENT_VERSION
   if  [[ $FILE == src/modules* ]]; then
