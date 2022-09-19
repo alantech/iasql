@@ -521,6 +521,7 @@ export class ModuleBase {
       const rpcOutputTable = rpcOutputEntries
         .map(([columnName, columnType]) => `${columnName} ${columnType}`)
         .join(', ');
+      // todo: overload function for the case when no param is required
       afterInstallSql += `
         create or replace function ${rpc.name}(variadic _args text[]) returns table (
           module text,
