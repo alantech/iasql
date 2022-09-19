@@ -8,6 +8,9 @@ echo "Current version is $CURRENT_VERSION"
 
 # check if there have been modifications on previous code
 MODIFIED_FILES=($(git diff --no-commit-id --name-only -r  origin/main...))
+echo "modified files are"
+echo $MODIFIED_FILES
+
 for FILE in "${MODIFIED_FILES[@]}"; do
   # if file has the pattern src/modules/ check that is just for CURRENT_VERSION
   if  [[ $FILE == src/modules* ]]; then
