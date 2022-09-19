@@ -55,9 +55,9 @@ export class GraphqlApi {
     nullable: true,
   })
   openIDConnectConfig?: {
-    authTTL: number | undefined;
+    authTtl: number | undefined;
     clientId: string | undefined;
-    iaTTL: number | undefined;
+    iaTtl: number | undefined;
     issuer: string | undefined;
   };
 

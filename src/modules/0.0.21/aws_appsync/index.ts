@@ -66,9 +66,6 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
   deleteGraphqlApi = crudBuilder2<AppSync, 'deleteGraphqlApi'>('deleteGraphqlApi', input => input);
 
   cloud = new Crud2({
-    updateOrReplace: (_a: GraphqlApi, _b: GraphqlApi) => {
-      return 'update';
-    },
     create: async (apis: GraphqlApi[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
