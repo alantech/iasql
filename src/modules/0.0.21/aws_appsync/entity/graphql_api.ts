@@ -44,7 +44,7 @@ export class GraphqlApi {
     type: 'json',
     nullable: true,
   })
-  lambdaAuthorizerConfig: {
+  lambdaAuthorizerConfig?: {
     authorizerResultTtlInSeconds: number | undefined;
     authorizerUri: string | undefined;
     identityValidationExpression: string | undefined;
@@ -54,7 +54,7 @@ export class GraphqlApi {
     type: 'json',
     nullable: true,
   })
-  openIDConnectConfig: {
+  openIDConnectConfig?: {
     authTTL: number | undefined;
     clientId: string | undefined;
     iaTTL: number | undefined;
@@ -65,7 +65,7 @@ export class GraphqlApi {
     type: 'json',
     nullable: true,
   })
-  userPoolConfig: {
+  userPoolConfig?: {
     appIdClientRegex: string | undefined;
     awsRegion: string | undefined;
     defaultAction: DefaultAction | undefined;

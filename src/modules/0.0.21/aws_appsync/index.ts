@@ -34,24 +34,20 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
     }
     if (api.lambdaAuthorizerConfig) {
       out.lambdaAuthorizerConfig = api.lambdaAuthorizerConfig as GraphqlApi['lambdaAuthorizerConfig'];
-    }
+    } else out.lambdaAuthorizerConfig = undefined;
 
     if (api.openIDConnectConfig) {
       out.openIDConnectConfig = api.openIDConnectConfig as GraphqlApi['openIDConnectConfig'];
-    }
+    } else out.openIDConnectConfig = undefined;
 
     if (api.userPoolConfig) {
       out.userPoolConfig = api.userPoolConfig as GraphqlApi['userPoolConfig'];
-    }
+    } else out.userPoolConfig = undefined;
 
     return out;
   }
 
-  async createGraphqlApi(client: AppSync, input: CreateGraphqlApiCommandInput) {
-    const res = await client.createGraphqlApi(input);
-    if (res && res.graphqlApi) return res.graphqlApi;
-    else return undefined;
-  }
+  createGraphqlApi = crudBuilder2<AppSync, 'createGraphqlApi'>('createGraphqlApi', input => input);
 
   getGraphqlApi = crudBuilderFormat<AppSync, 'getGraphqlApi', GraphqlApiAWS | undefined>(
     'getGraphqlApi',
@@ -84,9 +80,10 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
           openIDConnectConfig: api.openIDConnectConfig,
           userPoolConfig: api.userPoolConfig,
         };
-        const res: GraphqlApiAWS | undefined = await this.createGraphqlApi(client.appSyncClient, input);
-        if (res) {
-          const newApi = this.graphqlApiMapper(res);
+
+        const res = await this.createGraphqlApi(client.appSyncClient, input);
+        if (res && res.graphqlApi) {
+          const newApi = this.graphqlApiMapper(res.graphqlApi);
           if (!newApi) continue;
           await this.module.graphqlApi.db.update(newApi, ctx);
           out.push(newApi);
@@ -119,12 +116,16 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
         const isUpdate = Object.is(this.module.graphqlApi.cloud.updateOrReplace(cloudRecord, api), 'update');
         if (isUpdate) {
           // in case of key fields being modified, restore them
-          if (api.apiId !== cloudRecord.apiId || api.arn !== cloudRecord.arn) {
-            api.apiId = cloudRecord.apiId;
-            api.arn = cloudRecord.arn;
-            await this.module.graphqlApi.db.update(api, ctx);
-            out.push(api);
-          } else {
+          if (api.apiId !== cloudRecord.apiId) api.apiId = cloudRecord.apiId;
+          if (api.arn !== cloudRecord.arn) api.arn = cloudRecord.arn;
+
+          // need to continue updating
+          if (
+            api.authenticationType !== cloudRecord.authenticationType ||
+            !isEqual(api.lambdaAuthorizerConfig, cloudRecord.lambdaAuthorizerConfig) ||
+            !isEqual(api.openIDConnectConfig, cloudRecord.openIDConnectConfig) ||
+            !isEqual(api.userPoolConfig, cloudRecord.userPoolConfig)
+          ) {
             const input: UpdateGraphqlApiCommandInput = {
               apiId: api.apiId,
               name: api.name,
@@ -145,6 +146,10 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
             } else {
               throw new Error('Error updating Graphql API');
             }
+          } else {
+            // we just need simple update
+            await this.module.graphqlApi.db.update(api, ctx);
+            out.push(api);
           }
         }
       }
