@@ -8,10 +8,7 @@ export class CustomCallRpc extends RpcBase {
     response: 'varchar',
     args: 'json',
   } as const;
-  call = async (
-    ctx: Context,
-    arg1: string,
-  ): Promise<RpcResponseObject<typeof this.output>[]> => {
+  call = async (ctx: Context, arg1: string): Promise<RpcResponseObject<typeof this.output>[]> => {
     return [{ response: 'I have been called!', args: `{ "arg1": "${arg1}" }` }];
   };
 
