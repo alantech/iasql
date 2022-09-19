@@ -107,7 +107,7 @@ class AwsAccount extends ModuleBase {
     // read out the right AWS creds and create an AWS client also attached to the current context,
     // which will be different for different users. The client cache is based on the region chosen,
     // and it assumes that the credentials do not change mid-operation.
-    async getAwsClient(selectedRegion?: string) {
+    getAwsClient: async function (selectedRegion?: string) {
       const orm = this.orm;
       const region =
         selectedRegion ??
