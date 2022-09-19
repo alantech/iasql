@@ -8,7 +8,8 @@ echo "Current version is $CURRENT_VERSION"
 echo "Current commit is $GITHUB_SHA"
 
 # check if there have been modifications on previous code
-MODIFIED_FILES=($(git diff-tree --no-commit-id --name-only -r $GITHUB_SHA))
+GITHUB_COMMIT_REF=$(cat $GITHUB_EVENT_PATH | jq -r .pull_request.head.sha)
+MODIFIED_FILES=($(git diff-tree --no-commit-id --name-only -r $GITHUB_COMMIT_REF))
 for FILE in "${MODIFIED_FILES[@]}"; do
   # if file has the pattern src/modules/ check that is just for CURRENT_VERSION
   if  [[ $FILE == src/modules* ]]; then
