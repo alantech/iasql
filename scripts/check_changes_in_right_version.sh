@@ -7,10 +7,10 @@ CURRENT_VERSION=$(npx ts-node src/scripts/latestVersion.ts)
 echo "Current version is $CURRENT_VERSION"
 
 # fetch all branches
-git fetch --all
+git fetch --all --depth=1
 
 # check if there have been modifications on previous code
-MODIFIED_FILES=($(git diff-tree --no-commit-id --name-only -r $(git merge-base --fork-point main)))
+MODIFIED_FILES=($(git diff-tree --no-commit-id --name-only -r $(git merge-base --fork-point origin/main)))
 for FILE in "${MODIFIED_FILES[@]}"; do
   # if file has the pattern src/modules/ check that is just for CURRENT_VERSION
   if  [[ $FILE == src/modules* ]]; then
