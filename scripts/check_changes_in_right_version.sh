@@ -6,6 +6,9 @@ echo "Checking that changes are in the right version"
 CURRENT_VERSION=$(npx ts-node src/scripts/latestVersion.ts)
 echo "Current version is $CURRENT_VERSION"
 
+# fetch all branches
+git fetch --all
+
 # check if there have been modifications on previous code
 MODIFIED_FILES=($(git diff-tree --no-commit-id --name-only -r $(git merge-base --fork-point main)))
 for FILE in "${MODIFIED_FILES[@]}"; do
