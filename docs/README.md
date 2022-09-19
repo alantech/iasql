@@ -34,4 +34,4 @@ This command generates a copy of the latest docs under `versioned_docs` with the
 
 ### Deployment
 
-Use the github actions `deploy` job
+Use the github actions `docs-deploy` job
