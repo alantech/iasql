@@ -17,6 +17,18 @@ begin
 end;
 $$;
 
+-- picked from https://dba.stackexchange.com/questions/203934/postgresql-alternative-to-sql-server-s-try-cast-function
+create or replace function try_cast(_in text, INOUT _out ANYELEMENT)
+language plpgsql security definer
+as $$
+begin
+    execute format('SELECT %L::%s', $1, pg_typeof(_out))
+    into  _out;
+exception when others then
+    -- do nothing: _out already carries default
+end;
+$$;
+
 create or replace function until_iasql_rpc(_module_name text, _method_name text, _params text[]) returns uuid
 language plpgsql security definer
 as $$
