@@ -41,7 +41,7 @@ All modules excepting `iasql_platform` *must* depend on `iasql_platform`, and it
 
 `iasql_functions` provides the Postgresql functions for manipulating the data in the `iasql_platform` and performing database-wide operations, such as `iasql_apply`, `iasql_sync`, and `iasql_upgrade`. No other modules should need to depend on this module, but the user cannot do anything meaningful to an IaSQL database without it.
 
-`aws_account` is the only module where records deleted from it can be fully restored via an `iasql_sync` call, as it contains user-provided information on the configuration and access of their AWS account. All of the various AWS modules depend on this module, as it provides them with the `getAwsClient` context method to actually perform AWS operations with, utilizing the data housed in its tables.
+`aws_account` is the only module where records deleted from it can't be fully restored via an `iasql_sync` call, as it contains user-provided information on the configuration and access of their AWS account. All of the various AWS modules depend on this module, as it provides them with the `getAwsClient` context method to actually perform AWS operations with, utilizing the data housed in its tables.
 
 Nothing can be done about the "special-ness" of the `iasql_*` modules, but the `aws_account` specialness needs to be addressed to allow us to add similar such modules like `azure_account`, `heroku_account`, etc.
 
