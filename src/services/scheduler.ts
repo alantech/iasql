@@ -172,7 +172,7 @@ export async function start(dbId: string, dbUser: string) {
           const rpcRes: any[] | undefined = await (Modules[moduleName] as ModuleInterface)?.rpc?.[
             methodname
           ].call(context, ...params);
-          output = JSON.stringify(rpcRes);
+          if (rpcRes) output = JSON.stringify(rpcRes);
           // once the rpc completes updating the `end_date`
           // will complete the polling
           const query = `
