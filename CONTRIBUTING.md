@@ -176,19 +176,7 @@ Common tests are inside `test/common/` directory. This tests run sequentially an
 Modules tests are inside `test/modules/` directory. Currently, every module has a dedicated test account with credentials given via Github Actions secrets and every test run picks an AWS regions within that test account via the [CI setup](https://github.com/iasql/iasql-engine/blob/main/.github/workflows/ci.yml#L84). Modules tests run in parallel with each other but sequentially within each module file and each use a specific account per module to avoid rate limits per account. To add a new test:
 
 - Create the test file inside `test/modules`. The current pattern to name the file is `aws-<aws-service>-integration`.
-- Create a new AWS account under the `iasql` organization:
-  
-  - Add account following the same pattern for the name `aws-<aws-service>-integration` and the email `dev+aws-<aws-service>-integration`.
-  - Move the account to the Integration testing organization Unit. This way all the resources created by these accounts will be isolated and unrrelated to the other environments.
-  - Reset password for the account
-  - Generate account credentials
-
-- Save account credentials as Github actions secret. The name of the secrets should follow the pattern:
-  
-  - `AWS_ACCESS_KEY_ID_<name of the test file in uppercase and replacing - with _>`
-  - `AWS_SECRET_ACCESS_KEY_<name of the test file in uppercase and replacing - with _>`
-
-- Run the tests. It will parallelize the test file and use the new credentials automatically.
+- Run the tests. It will parallelize the test runs by file.
 
 ## How to release IaSQL via CI
 
