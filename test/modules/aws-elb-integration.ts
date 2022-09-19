@@ -33,7 +33,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_security_group', 'aws_elb', 'aws_vpc', 'aws_acm_list', 'aws_acm_import'];
+const modules = ['aws_security_group', 'aws_elb', 'aws_vpc', 'aws_acm_list', 'aws_acm_import', 'aws_route53_hosted_zones', 'aws_acm_request'];
 
 // Test constants
 const tgName = `${prefix}${dbAlias}tg`;
@@ -245,7 +245,7 @@ describe('ELB Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(2)));
 
   it('uninstalls the elb module', uninstall(
-    ['aws_elb']));
+    ['aws_acm_request', 'aws_route53_hosted_zones', 'aws_elb']));
 
   it('installs the elb module', install(
     ['aws_elb']));
@@ -349,10 +349,10 @@ describe('ELB install/uninstall', () => {
     true).then(...finish(done)));
 
   it('uninstalls the ELB module and its dependent ones', uninstall(
-    ['aws_elb', 'aws_ecs_fargate', 'aws_ecs_simplified', 'aws_ec2', 'aws_ec2_metadata', 'aws_route53_hosted_zones']));
+    ['aws_ecs_fargate', 'aws_ecs_simplified', 'aws_ec2', 'aws_ec2_metadata', 'aws_route53_hosted_zones', 'aws_vpc', 'aws_acm_list', 'aws_acm_import', 'aws_acm_request', 'aws_security_group', 'aws_memory_db', 'aws_rds', 'aws_elb']));
 
   it('installs the ELB module', install(
-    ['aws_elb',]));
+    ['aws_elb']));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
