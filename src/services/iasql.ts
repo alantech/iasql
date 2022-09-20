@@ -3,6 +3,7 @@
 // meta operations within the module code itself, if desirable.
 import { exec as execNode } from 'child_process';
 import * as levenshtein from 'fastest-levenshtein';
+import { default as cloneDeep } from 'lodash.clonedeep';
 import pg from 'pg';
 import { parse, deparse } from 'pgsql-parser';
 import { createConnection } from 'typeorm';
@@ -408,7 +409,13 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
       ) as ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod?.provides?.context ?? {};
-      Object.keys(moduleContext).forEach(k => (context[k] = moduleContext[k]));
+      Object.keys(moduleContext).forEach(k => {
+        if (typeof moduleContext[k] === 'function') {
+          context[k] = moduleContext[k];
+        } else {
+          context[k] = cloneDeep(moduleContext[k]);
+        }
+      });
     }
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
     const moduleList = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
@@ -641,7 +648,13 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
       ) as ModuleInterface;
       if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
       const moduleContext = mod?.provides?.context ?? {};
-      Object.keys(moduleContext).forEach(k => (context[k] = moduleContext[k]));
+      Object.keys(moduleContext).forEach(k => {
+        if (typeof moduleContext[k] === 'function') {
+          context[k] = moduleContext[k];
+        } else {
+          context[k] = cloneDeep(moduleContext[k]);
+        }
+      });
     }
     // Get the mappers, regardless of source-of-truth
     const moduleList = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
@@ -1077,7 +1090,13 @@ ${Object.keys(tableCollisions)
     ) as ModuleInterface;
     if (!md) throw new Error(`This should be impossible. Cannot find module ${name}`);
     const moduleContext = md?.provides?.context ?? {};
-    Object.keys(moduleContext).forEach(k => (context[k] = moduleContext[k]));
+    Object.keys(moduleContext).forEach(k => {
+      if (typeof moduleContext[k] === 'function') {
+        context[k] = moduleContext[k];
+      } else {
+        context[k] = cloneDeep(moduleContext[k]);
+      }
+    });
   }
 
   try {

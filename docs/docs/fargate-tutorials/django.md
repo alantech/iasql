@@ -247,29 +247,13 @@ If you did not create a new account this section will delete **all** records man
 
 :::
 
-1. Delete all the docker images in the repository
-
-    ```bash
-    aws ecr batch-delete-image \
-        --repository-name <project-name>-repository \
-        --profile <profile> \
-        --region ${AWS_REGION} \
-        --image-ids imageTag=latest
-    ```
-
-    :::caution
-
-    Make sure the [CLI is configured with the same credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html), via environment variables or `~/.aws/credentials`, as the ones provided to IaSQL or this will fail.
-
-    :::
-
-2. Delete all iasql records invoking the void `delete_all_records` function:
+Delete all iasql records invoking the void `delete_all_records` function:
 
     ```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
     SELECT delete_all_records();
     ```
 
-3. Apply the changes described in the hosted db to your cloud account
+Apply the changes described in the hosted db to your cloud account
 
     ```sql title="psql postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c"
     SELECT * from iasql_apply();

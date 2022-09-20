@@ -44,6 +44,10 @@ const sync = runSync.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
+const syncStaging = runSync.bind(null, dbAlias + 'staging');
+const installStaging = runInstall.bind(null, dbAlias + 'staging');
+const uninstallStaging = runUninstall.bind(null, dbAlias + 'staging');
+const queryStaging = runQuery.bind(null, dbAlias + 'staging');
 const modules = ['aws_route53_hosted_zones', 'aws_acm_request'];
 
 jest.setTimeout(360000);
@@ -115,6 +119,39 @@ describe('Route53 Integration Testing', () => {
     INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id
     WHERE domain_name = '${domainName}';
   `, (res: any[]) => expect(res.length).toBe(2)));
+
+  /* Confim no cross-contamination between accounts occurs */
+  it('creates a second test db', (done) => void iasql.connect(
+    dbAlias + 'staging',
+    'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the aws_account module', installStaging(['aws_account']));
+
+  it('inserts aws credentials', queryStaging(`
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.STAGING_ACCESS_KEY_ID}', '${process.env.STAGING_SECRET_ACCESS_KEY}')
+  `, undefined, false));
+
+  it('syncs the regions', syncStaging());
+
+  it('sets the default region', queryStaging(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+  `));
+
+  it('installs module', installStaging(modules));
+
+  it('check the hosted zone from other account does not exist', queryStaging(`
+    SELECT *
+    FROM hosted_zone
+    WHERE domain_name = '${domainName}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('uninstalls the route53 module', uninstallStaging(modules));
+
+  it('deletes the test db', (done) => void iasql
+    .disconnect(dbAlias + 'staging', 'not-needed')
+    .then(...finish(done)));
+  /* Completion of cross-contamination check */
 
   it('uninstalls the route53 module', uninstall(modules));
 
