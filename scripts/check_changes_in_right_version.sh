@@ -15,7 +15,7 @@ for FILE in "${MODIFIED_FILES[@]}"; do
   if  [[ "$FILE" == src/modules/* ]]; then
     # need to check the version
     VERSION=$(echo $FILE|cut -d '/' -f 3)
-    if [[ "$VERSION" =~ ^[0-9]+(\.[0-9]+){2,3}$ ]]; then
+    if [[ "$VERSION" =~ ^[0-9]+(\.[0-9]+){2}$ ]]; then
       if [ "$VERSION" != "$CURRENT_VERSION" ]; then
         # incorrect version
         echo "Error, out of version modifications found in file $FILE"
