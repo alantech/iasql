@@ -220,7 +220,7 @@ export interface MapperInterface<E> {
 export interface RpcInterface {
   module: ModuleInterface;
   name: string;
-  output?: RpcOutput;
+  output: RpcOutput;
   call: (
     dbId: string,
     dbUser: string,
@@ -363,7 +363,7 @@ export class MapperBase<E> {
 export class RpcBase {
   module: ModuleInterface;
   name: string;
-  output?: RpcOutput;
+  output: RpcOutput;
   call: (
     dbId: string,
     dbUser: string,
@@ -375,6 +375,7 @@ export class RpcBase {
     if (!this.module) throw new Error('No module established for this RPC');
     if (!this.name) throw new Error('No name established for this RPC');
     if (!this.call) throw new Error('No call established for this RPC');
+    if (!this.output) throw new Error('No output established for this RPC');
   }
 }
 
@@ -534,9 +535,7 @@ export class ModuleBase {
       // todo: overload function for the case when no param is required
       afterInstallSql += `
         create or replace function ${rpc.name}(variadic _args text[] default array[]::text[]) returns table (
-          module text,
-          method text
-          ${rpcOutputTable ? `, ${rpcOutputTable}` : ''}
+          ${rpcOutputTable}
         )
         language plpgsql security definer
         as $$
@@ -545,17 +544,15 @@ export class ModuleBase {
         begin
           _opid := until_iasql_rpc('${this.name}', '${key}', _args);
           return query select
-            j.module_name as module,
-            j.method_name as method
             ${
               rpcOutputEntries.length
-                ? `, ${rpcOutputEntries
+                ? `${rpcOutputEntries
                     .map(([col, typ]) => `try_cast(j.s->>'${col}', NULL::${typ}) as ${col}`)
                     .join(', ')}`
                 : ''
             }
           from (
-            select module_name, method_name, json_array_elements(output::json) as s from iasql_rpc where opid = _opid
+            select json_array_elements(output::json) as s from iasql_rpc where opid = _opid
           ) as j;
         end;
         $$;
