@@ -16,9 +16,9 @@ export class IasqlPreviewApply extends RpcBase {
   call = async (
     dbId: string,
     _dbUser: string,
-    _ctx: Context,
+    ctx: Context,
   ): Promise<RpcResponseObject<typeof this.output>[]> => {
-    const applyRes = (await iasql.apply(dbId, true)).rows;
+    const applyRes = (await iasql.apply(dbId, true, ctx)).rows;
     const formattedRes = applyRes.map(rec =>
       Object.keys(rec).reduce((acc, key) => {
         acc[snakeCase(key)] = rec[key];

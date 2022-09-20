@@ -58,7 +58,7 @@ function colToRow(cols: { [key: string]: any[] }): { [key: string]: any }[] {
   return out;
 }
 
-export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapper) {
+export async function apply(dbId: string, dryRun: boolean, context: Context, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   logger.info(`Applying ${dbId}`);
   const dbMeta = await MetadataRepo.getDbById(dbId);
@@ -70,28 +70,12 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
-    // Find all of the installed modules, and create the context object only for these
+    // Find all of the installed modules
     const iasqlModule =
       Modules?.IasqlPlatform?.utils?.IasqlModule ??
       Modules?.iasqlPlatform?.iasqlModule ??
       throwError('Core IasqlModule not found');
     const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
-    const memo: any = {}; // TODO: Stronger typing here
-    const context: Context = { orm, memo }; // Every module gets access to the DB
-    for (const name of moduleNames) {
-      const mod = (Object.values(Modules) as ModuleInterface[]).find(
-        m => `${m.name}@${m.version}` === name,
-      ) as ModuleInterface;
-      if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
-      const moduleContext = mod?.provides?.context ?? {};
-      Object.keys(moduleContext).forEach(k => {
-        if (typeof moduleContext[k] === 'function') {
-          context[k] = moduleContext[k];
-        } else {
-          context[k] = cloneDeep(moduleContext[k]);
-        }
-      });
-    }
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
     const moduleList = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
       moduleNames.includes(`${mod.name}@${mod.version}`),
@@ -117,7 +101,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
       logger.info('Starting outer loop');
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
-      memo.db = {}; // Flush the DB entities on the outer loop to restore the actual intended state
+      context.memo.db = {}; // Flush the DB entities on the outer loop to restore the actual intended state
       await lazyLoader(
         mappers.map(mapper => async () => {
           await mapper.db.read(context);
@@ -129,7 +113,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
       do {
         logger.info('Starting inner loop');
         ranUpdate = false;
-        memo.cloud = {}; // Flush the Cloud entities on the inner loop to track changes to the state
+        context.memo.cloud = {}; // Flush the Cloud entities on the inner loop to track changes to the state
         await lazyLoader(
           mappers.map(mapper => async () => {
             await mapper.cloud.read(context);
@@ -140,8 +124,8 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: tables.map(t => (memo.db[t] ? Object.values(memo.db[t]) : [])),
-          cloudEntity: tables.map(t => (memo.cloud[t] ? Object.values(memo.cloud[t]) : [])),
+          dbEntity: tables.map(t => (context.memo.db[t] ? Object.values(context.memo.db[t]) : [])),
+          cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
           comparator: comparators,
           idGen: idGens,
         });
