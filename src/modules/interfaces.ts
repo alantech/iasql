@@ -605,3 +605,4 @@ export class ModuleBase {
     this.provides.functions = functions;
   }
 }
+aaaa;
