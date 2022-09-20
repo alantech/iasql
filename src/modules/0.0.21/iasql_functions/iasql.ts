@@ -1,4 +1,3 @@
-import { default as cloneDeep } from 'lodash.clonedeep';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
 import { throwError } from '../../../config/config';
@@ -271,6 +270,226 @@ export async function apply(dbId: string, dryRun: boolean, context: Context, orm
     } while (ranFullUpdate);
     const t7 = Date.now();
     logger.info(`${dbId} applied and synced, total time: ${t7 - t1}ms`);
+    return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+  } catch (e: any) {
+    debugObj(e);
+    throw e;
+  } finally {
+    // do not drop the conn if it was provided
+    if (orm !== ormOpt) orm?.dropConn();
+  }
+}
+
+export async function sync(
+  dbId: string,
+  dryRun: boolean,
+  force = false,
+  context: Context,
+  ormOpt?: TypeormWrapper,
+) {
+  const t1 = Date.now();
+  logger.info(`Syncing ${dbId}`);
+  const dbMeta = await MetadataRepo.getDbById(dbId);
+  if (!force && dbMeta?.upgrading) throw new Error('Cannot sync with the cloud while upgrading');
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const Modules = (AllModules as any)[versionString];
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  let orm: TypeormWrapper | null = null;
+  try {
+    orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
+    // Find all of the installed modules
+    const iasqlModule =
+      Modules?.IasqlPlatform?.utils?.IasqlModule ??
+      Modules?.iasqlPlatform?.iasqlModule ??
+      throwError('Core IasqlModule not found');
+    const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
+    // Get the mappers, regardless of source-of-truth
+    const moduleList = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
+      moduleNames.includes(`${mod.name}@${mod.version}`),
+    );
+    const rootToLeafOrder = sortModules(moduleList, []);
+    const mappers = (rootToLeafOrder as ModuleInterface[])
+      .map(mod => Object.values((mod as ModuleInterface).mappers))
+      .flat();
+    const t2 = Date.now();
+    logger.info(`Setup took ${t2 - t1}ms`);
+    let ranFullUpdate = false;
+    let failureCount = -1;
+    const toCreate: Crupde = {};
+    const toUpdate: Crupde = {};
+    const toReplace: Crupde = {}; // Not actually used in sync mode, at least right now
+    const toDelete: Crupde = {};
+    let dbCount = -1;
+    let cloudCount = -1;
+    let bothCount = -1;
+    let spinCount = 0;
+    do {
+      ranFullUpdate = false;
+      const tables = mappers.map(mapper => mapper.entity.name);
+      context.memo.cloud = {}; // Flush the cloud entities on the outer loop to restore the actual intended state
+      await lazyLoader(
+        mappers.map(mapper => async () => {
+          await mapper.cloud.read(context);
+        }),
+      );
+      const comparators = mappers.map(mapper => mapper.equals);
+      const idGens = mappers.map(mapper => mapper.entityId);
+      let ranUpdate = false;
+      do {
+        ranUpdate = false;
+        context.memo.db = {}; // Flush the DB entities on the inner loop to track changes to the state
+        await lazyLoader(
+          mappers.map(mapper => async () => {
+            await mapper.db.read(context);
+          }),
+        );
+        const t3 = Date.now();
+        logger.info(`Record acquisition time: ${t3 - t2}ms`);
+        const records = colToRow({
+          table: tables,
+          mapper: mappers,
+          dbEntity: tables.map(t => (context.memo.db[t] ? Object.values(context.memo.db[t]) : [])),
+          cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
+          comparator: comparators,
+          idGen: idGens,
+        });
+        const t4 = Date.now();
+        logger.info(`AWS Mapping time: ${t4 - t3}ms`);
+        if (!records.length) {
+          // Only possible on just-created databases
+          return {
+            iasqlPlanVersion: 3,
+            rows: [],
+          };
+        }
+        const updatePlan = (crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) => {
+          crupde[entityName] = crupde[entityName] ?? [];
+          const rs = es.map((e: any) => ({
+            id: e?.id?.toString() ?? '',
+            description: mapper.entityId(e),
+          }));
+          rs.forEach(r => {
+            if (
+              !crupde[entityName].some(
+                r2 => Object.is(r2.id, r.id) && Object.is(r2.description, r.description),
+              )
+            )
+              crupde[entityName].push(r);
+          });
+        };
+        records.forEach(r => {
+          r.diff = findDiff(r.dbEntity, r.cloudEntity, r.idGen, r.comparator);
+          if (r.diff.entitiesInDbOnly.length > 0) {
+            updatePlan(toDelete, r.table, r.mapper, r.diff.entitiesInDbOnly);
+          }
+          if (r.diff.entitiesInAwsOnly.length > 0) {
+            updatePlan(toCreate, r.table, r.mapper, r.diff.entitiesInAwsOnly);
+          }
+          if (r.diff.entitiesChanged.length > 0) {
+            const updates: any[] = [];
+            r.diff.entitiesChanged.forEach((e: any) => {
+              updates.push(e.cloud);
+            });
+            if (updates.length > 0) updatePlan(toUpdate, r.table, r.mapper, updates);
+          }
+        });
+        if (dryRun) return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
+        const [nextDbCount, nextCloudCount, nextBothCount] = recordCount(records);
+        if (dbCount === nextDbCount && cloudCount === nextCloudCount && bothCount === nextBothCount) {
+          spinCount++;
+        } else {
+          dbCount = nextDbCount;
+          cloudCount = nextCloudCount;
+          bothCount = nextBothCount;
+          spinCount = 0;
+        }
+        if (spinCount === 4) {
+          throw new DepError('Forward progress halted. All remaining Cloud changes failing to apply.', {
+            toCreate,
+            toUpdate,
+            toReplace,
+            toDelete,
+          });
+        }
+        const t5 = Date.now();
+        logger.info(`Diff time: ${t5 - t4}ms`);
+        const promiseGenerators = records
+          .map(r => {
+            const name = r.table;
+            logger.info(`Checking ${name}`);
+            const outArr = [];
+            if (r.diff.entitiesInAwsOnly.length > 0) {
+              logger.info(`${name} has records to create`, { records: r.diff.entitiesInAwsOnly });
+              outArr.push(
+                r.diff.entitiesInAwsOnly.map((e: any) => async () => {
+                  const out = await r.mapper.db.create(e, context);
+                  if (out) {
+                    const es = Array.isArray(out) ? out : [out];
+                    es.forEach(e2 => {
+                      // Mutate the original entity with the returned entity's properties so the actual
+                      // record created is what is compared the next loop through
+                      Object.keys(e2).forEach(k => (e[k] = e2[k]));
+                    });
+                  }
+                }),
+              );
+            }
+            if (r.diff.entitiesChanged.length > 0) {
+              logger.info(`${name} has records to update`, { records: r.diff.entitiesChanged });
+              outArr.push(
+                r.diff.entitiesChanged.map((ec: any) => async () => {
+                  if (ec.db.id) ec.cloud.id = ec.db.id;
+                  const out = await r.mapper.db.update(ec.cloud, context); // When `sync`ing we assume SoT is the Cloud
+                  if (out) {
+                    const es = Array.isArray(out) ? out : [out];
+                    es.forEach(e2 => {
+                      // Mutate the original entity with the returned entity's properties so the actual
+                      // record created is what is compared the next loop through
+                      Object.keys(e2).forEach(k => (ec.cloud[k] = e2[k]));
+                    });
+                  }
+                }),
+              );
+            }
+            return outArr;
+          })
+          .flat(9001);
+        const reversePromiseGenerators = records
+          .reverse()
+          .map(r => {
+            const name = r.table;
+            logger.info(`Checking ${name}`);
+            const outArr = [];
+            if (r.diff.entitiesInDbOnly.length > 0) {
+              logger.info(`${name} has records to delete`, { records: r.diff.entitiesInDbOnly });
+              outArr.push(
+                r.diff.entitiesInDbOnly.map((e: any) => async () => {
+                  await r.mapper.db.delete(e, context);
+                }),
+              );
+            }
+            return outArr;
+          })
+          .flat(9001);
+        const generators = [...promiseGenerators, ...reversePromiseGenerators];
+        if (generators.length > 0) {
+          ranUpdate = true;
+          ranFullUpdate = true;
+          try {
+            await lazyLoader(generators);
+          } catch (e: any) {
+            if (failureCount === e.metadata?.generatorsToRun?.length) throw e;
+            failureCount = e.metadata?.generatorsToRun?.length;
+            ranUpdate = false;
+          }
+          const t6 = Date.now();
+          logger.info(`AWS update time: ${t6 - t5}ms`);
+        }
+      } while (ranUpdate);
+    } while (ranFullUpdate);
+    const t7 = Date.now();
+    logger.info(`${dbId} synced, total time: ${t7 - t1}ms`);
     return iasqlPlanV3(toCreate, toUpdate, toReplace, toDelete);
   } catch (e: any) {
     debugObj(e);

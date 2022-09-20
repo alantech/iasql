@@ -2,7 +2,7 @@ import { IasqlFunctions } from '..';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
 import * as iasql from '../iasql';
 
-export class IasqlApply extends RpcBase {
+export class IasqlSync extends RpcBase {
   module: IasqlFunctions;
   outputTable = {
     action: 'varchar',
@@ -15,10 +15,8 @@ export class IasqlApply extends RpcBase {
     _dbUser: string,
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const applyRes = (await iasql.apply(dbId, false, ctx)).rows;
-    return applyRes.map(
-      rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>,
-    );
+    const res = (await iasql.sync(dbId, false, false, ctx)).rows;
+    return res.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>);
   };
 
   constructor(module: IasqlFunctions) {

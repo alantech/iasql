@@ -16,7 +16,9 @@ export class IasqlPreviewApply extends RpcBase {
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const applyRes = (await iasql.apply(dbId, true, ctx)).rows;
-    return applyRes.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>);
+    return applyRes.map(
+      rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>,
+    );
   };
 
   constructor(module: IasqlFunctions) {

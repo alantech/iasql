@@ -162,32 +162,6 @@ begin
 end;
 $$;
 
-create or replace function iasql_sync() returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
-begin
-  return query select * from iasql_cloud_manipulation('SYNC');
-end;
-$$;
-
-create or replace function iasql_preview_sync() returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
-begin
-  return query select * from iasql_cloud_manipulation('PLAN_SYNC');
-end;
-$$;
-
 create or replace function iasql_install(variadic _mods text[]) returns table (
     module_name character varying,
     created_table_name character varying,
