@@ -4,7 +4,6 @@ import * as iasql from '../iasql';
 
 export class IasqlPreviewApply extends RpcBase {
   module: IasqlFunctions;
-  name = 'iasql_preview_apply';
   output = {
     action: 'varchar',
     table_name: 'varchar',

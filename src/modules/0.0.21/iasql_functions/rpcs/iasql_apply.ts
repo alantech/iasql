@@ -4,7 +4,6 @@ import * as iasql from '../iasql';
 
 export class IasqlApply extends RpcBase {
   module: IasqlFunctions;
-  name = 'iasql_apply';
   output = {
     action: 'varchar',
     table_name: 'varchar',
