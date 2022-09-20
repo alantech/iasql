@@ -4,6 +4,8 @@ import { AWS, crudBuilderFormat } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { AwsCredentials, AwsRegions } from './entity';
 
+// TODO: Delete this comment, a trick to get the full test suite to run
+
 class CredentialsMapper extends MapperBase<AwsCredentials> {
   module: AwsAccount;
   entity = AwsCredentials;
