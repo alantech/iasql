@@ -75,7 +75,7 @@ describe('Aws read only Integration Testing', () => {
   `, (row: any[]) => {
     expect(row.length).toBe(1);
     expect(row[0].module_name).toBe('iasql_functions');
-    expect(row[0].method_name).toBe('iasql_apply');
+    expect(row[0].method_name).toBe('iasqlApply');
     expect(JSON.parse(row[0].err)).toHaveProperty('message')
   }));
 
