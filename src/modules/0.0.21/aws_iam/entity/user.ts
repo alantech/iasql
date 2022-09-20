@@ -21,6 +21,8 @@ export class IamUser {
   })
   createDate: Date;
 
+  // must start and end with /
+  // only can contain alphanumeric characters
   @Column({ nullable: true })
   path?: string;
 

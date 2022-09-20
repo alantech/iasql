@@ -1,3 +1,5 @@
+import isEqual from 'lodash.isequal';
+
 import {
   IAM,
   paginateListRoles,
@@ -14,12 +16,14 @@ import { Role, IamUser } from './entity';
 class UserMapper extends MapperBase<IamUser> {
   module: AwsIamModule;
   entity = IamUser;
-  equals = (a: IamUser, b: IamUser) =>
-    Object.is(a.userName, b.userName) &&
-    Object.is(a.arn, b.arn) &&
-    Object.is(a.userId, b.userId) &&
-    Object.is(a.createDate, b.createDate) &&
-    Object.is(a.path, b.path);
+  equals = (a: IamUser, b: IamUser) => {
+    return (
+      Object.is(a.arn, b.arn) &&
+      Object.is(a.userId, b.userId) &&
+      isEqual(a.createDate, b.createDate) &&
+      Object.is(a.path, b.path)
+    );
+  };
 
   createNewUser = crudBuilderFormat<IAM, 'createUser', AWSUser | undefined>(
     'createUser',
@@ -95,7 +99,7 @@ class UserMapper extends MapperBase<IamUser> {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.User?.[e.userName ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.IamUser?.[e.userName ?? ''];
         const isUpdate = this.module.user.cloud.updateOrReplace(cloudRecord, e) === 'update';
 
         if (isUpdate) {
@@ -105,13 +109,11 @@ class UserMapper extends MapperBase<IamUser> {
           if (e.createDate !== cloudRecord.createDate) e.createDate = cloudRecord.createDate;
 
           // if we have modified path, update in cloud
-          if (e.path !== cloudRecord.path) {
-            const result = await this.updateUserPath(client.iamClient, e.userName, e.path);
-            if (result) {
-              await this.module.user.db.update(e, ctx);
-              out.push(e);
-            }
-          }
+          if (e.path !== cloudRecord.path) await this.updateUserPath(client.iamClient, e.userName, e.path);
+
+          const result = await this.module.user.db.update(e, ctx);
+          if (!result) continue;
+          out.push(e);
         }
       }
       return out;

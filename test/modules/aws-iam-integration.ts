@@ -90,8 +90,8 @@ const attachPrincipalServArrPolicy = JSON.stringify({
 });
 
 const userName = `${prefix}${dbAlias}username`;
-const userPath = `/${prefix}${dbAlias}username`;
-const userNewPath = `/${prefix}${dbAlias}username1`;
+const userPath = `/username/`;
+const userNewPath = `/username1/`;
 
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
@@ -104,7 +104,7 @@ jest.setTimeout(480000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
-describe('IAM Integration Testing', () => {
+describe('IAM Role Integration Testing', () => {
   it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -542,10 +542,42 @@ describe('IAM Integration Testing', () => {
     );
   });
 
+  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
+});
+
+describe('IAM User Integration Testing', () => {
+  it('creates a new test db', done =>
+    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the aws_account module', install(['aws_account']));
+
+  it(
+    'inserts aws credentials',
+    query(
+      `
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `,
+      undefined,
+      false,
+    ),
+  );
+
+  it('syncs the regions', sync());
+
+  it(
+    'sets the default region',
+    query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
+  `),
+  );
+
+  it('installs the iam module', install(modules));
+
   it(
     'adds a new user',
     query(`
-    INSERT INTO user (user_name, path)
+    INSERT INTO iam_user (user_name, path)
     VALUES ('${userName}', '${userPath}');
   `),
   );
@@ -553,53 +585,99 @@ describe('IAM Integration Testing', () => {
   it('undo changes', sync());
 
   it(
-    'check undo a new role addition',
+    'check undo a new user addition',
     query(
       `
     SELECT *
-    FROM role
-    WHERE role_name = '${lambdaRoleName}';
+    FROM iam_user
+    WHERE user_name = '${userName}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
 
   it(
-    'adds a new role',
+    'adds a new user',
     query(`
-    INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${taskRoleName}', '${attachAssumeTaskPolicy}', array['${taskPolicyArn}']);
+    INSERT INTO iam_user (user_name, path)
+    VALUES ('${userName}', '${userPath}');
   `),
   );
 
-  it(
-    'adds a new role',
-    query(`
-    BEGIN;
-      INSERT INTO role (role_name, assume_role_policy_document)
-      VALUES ('${lambdaRoleName}', '${attachAssumeLambdaPolicy}');
-
-      INSERT INTO role (role_name, assume_role_policy_document)
-      VALUES ('${ec2RoleName}', '${attachAssumeEc2Policy}');
-
-      INSERT INTO role (role_name, assume_role_policy_document)
-      VALUES ('${anotherRoleName}', '${attachAnotherPolicy}');
-
-      INSERT INTO role (role_name, assume_role_policy_document)
-      VALUES ('${principalServArr}', '${attachPrincipalServArrPolicy}');
-    COMMIT;
-  `),
-  );
+  it('applies change', apply());
 
   it(
-    'check a new role addition',
+    'check a new user addition',
     query(
       `
     SELECT *
-    FROM role
-    WHERE role_name = '${taskRoleName}';
+    FROM iam_user
+    WHERE user_name = '${userName}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'updates user arn',
+    query(`
+    UPDATE iam_user SET arn = 'arn' WHERE user_name = '${userName}';
+  `),
+  );
+
+  it('applies change', apply());
+
+  it(
+    'check that arn has not been modified',
+    query(
+      `
+    SELECT *
+    FROM iam_user
+    WHERE user_name = '${userName}' AND arn='arn';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'updates user path',
+    query(`
+    UPDATE iam_user SET path = '${userNewPath}' WHERE user_name = '${userName}';
+  `),
+  );
+
+  it('applies change', apply());
+
+  it(
+    'check that path has been modified',
+    query(
+      `
+    SELECT *
+    FROM iam_user
+    WHERE user_name = '${userName}' AND path = '${userNewPath}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'tries to delete an aws user',
+    query(`
+    DELETE FROM iam_user WHERE user_name = '${userName}';
+  `),
+  );
+
+  it('applies change', apply());
+
+  it(
+    'check delete aws user',
+    query(
+      `
+    SELECT *
+    FROM iam_user
+    WHERE user_name = '${userName}';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
     ),
   );
 
