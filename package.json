@@ -7,7 +7,7 @@
     "build": "yarn clean && tsc && copyfiles -u 1 src/**/*.sql dist/ && copyfiles -u 1 src/**/*.json dist/",
     "clean": "rm -rf dist",
     "lint": "tslint --project .",
-    "changes-in-version": "IASQL_ENV=ci ./scripts/check_changes_in_right_version.sh",
+    "changes-in-version": "IASQL_ENV=ci ./src/scripts/check_changes_in_right_version.sh",
     "test": "IASQL_ENV=test jest -i",
     "test:local": "IASQL_ENV=test export $(cat .env | xargs) && yarn test",
     "coverage": "IASQL_ENV=test jest -i --coverage --forceExit",
