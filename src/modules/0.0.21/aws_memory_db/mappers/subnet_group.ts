@@ -10,6 +10,7 @@ import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { awsVpcModule } from '../../aws_vpc';
 import { Subnet, Vpc } from '../../aws_vpc/entity';
 import { SubnetGroup } from '../entity';
+import supportedRegions from './supported_regions';
 
 export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
   module: AwsMemoryDBModule;
@@ -147,6 +148,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
     },
     read: async (ctx: Context, id?: string) => {
       const client = (await ctx.getAwsClient()) as AWS;
+      if (!supportedRegions.includes(client.region)) return;
       if (id) {
         const rawObj = await this.getSubnetGroup(client.memoryDBClient, id);
         if (!rawObj) return;

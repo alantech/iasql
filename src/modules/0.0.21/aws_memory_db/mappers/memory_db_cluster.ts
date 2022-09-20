@@ -14,6 +14,7 @@ import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { awsSecurityGroupModule } from '../../aws_security_group';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { MemoryDBCluster, NodeTypeEnum } from '../entity';
+import supportedRegions from './supported_regions';
 
 export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
   module: AwsMemoryDBModule;
@@ -157,6 +158,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     },
     read: async (ctx: Context, id?: string) => {
       const client = (await ctx.getAwsClient()) as AWS;
+      if (!supportedRegions.includes(client.region)) return;
       if (id) {
         const rawCluster = await this.getCluster(client.memoryDBClient, id);
         if (!rawCluster) return;
