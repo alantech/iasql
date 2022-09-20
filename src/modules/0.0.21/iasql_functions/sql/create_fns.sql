@@ -162,19 +162,6 @@ begin
 end;
 $$;
 
-create or replace function iasql_apply() returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
-begin
-  return query select * from iasql_cloud_manipulation('APPLY');
-end;
-$$;
-
 create or replace function iasql_sync() returns table (
   action text,
   table_name text,

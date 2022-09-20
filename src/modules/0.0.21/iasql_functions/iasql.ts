@@ -22,30 +22,30 @@ export function recordCount(records: { [key: string]: any }[]): [number, number,
   const bothCount = records.reduce((cumu, r) => cumu + r.diff.entitiesChanged.length, 0);
   return [dbCount, cloudCount, bothCount];
 }
-const iasqlPlanV3 = (toCreate: Crupde, toUpdate: Crupde, toReplace: Crupde, toDelete: Crupde) =>
-  JSON.stringify({
-    iasqlPlanVersion: 3,
-    rows: (() => {
-      const out: any[] = [];
-      Object.keys(toCreate).forEach(tbl => {
-        const recs = toCreate[tbl];
-        recs.forEach(rec => out.push({ action: 'create', tableName: snakeCase(tbl), ...rec }));
-      });
-      Object.keys(toUpdate).forEach(tbl => {
-        const recs = toUpdate[tbl];
-        recs.forEach(rec => out.push({ action: 'update', tableName: snakeCase(tbl), ...rec }));
-      });
-      Object.keys(toReplace).forEach(tbl => {
-        const recs = toReplace[tbl];
-        recs.forEach(rec => out.push({ action: 'replace', tableName: snakeCase(tbl), ...rec }));
-      });
-      Object.keys(toDelete).forEach(tbl => {
-        const recs = toDelete[tbl];
-        recs.forEach(rec => out.push({ action: 'delete', tableName: snakeCase(tbl), ...rec }));
-      });
-      return out;
-    })(),
-  });
+
+const iasqlPlanV3 = (toCreate: Crupde, toUpdate: Crupde, toReplace: Crupde, toDelete: Crupde) => ({
+  iasqlPlanVersion: 3,
+  rows: (() => {
+    const out: any[] = [];
+    Object.keys(toCreate).forEach(tbl => {
+      const recs = toCreate[tbl];
+      recs.forEach(rec => out.push({ action: 'create', tableName: snakeCase(tbl), ...rec }));
+    });
+    Object.keys(toUpdate).forEach(tbl => {
+      const recs = toUpdate[tbl];
+      recs.forEach(rec => out.push({ action: 'update', tableName: snakeCase(tbl), ...rec }));
+    });
+    Object.keys(toReplace).forEach(tbl => {
+      const recs = toReplace[tbl];
+      recs.forEach(rec => out.push({ action: 'replace', tableName: snakeCase(tbl), ...rec }));
+    });
+    Object.keys(toDelete).forEach(tbl => {
+      const recs = toDelete[tbl];
+      recs.forEach(rec => out.push({ action: 'delete', tableName: snakeCase(tbl), ...rec }));
+    });
+    return out;
+  })(),
+});
 
 function colToRow(cols: { [key: string]: any[] }): { [key: string]: any }[] {
   // Assumes equal length for all arrays
@@ -152,10 +152,10 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
         logger.info(`AWS Mapping time: ${t4 - t3}ms`);
         if (!records.length) {
           // Only possible on just-created databases
-          return JSON.stringify({
+          return {
             iasqlPlanVersion: 3,
             rows: [],
-          });
+          };
         }
         const updatePlan = (crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) => {
           crupde[entityName] = crupde[entityName] ?? [];
