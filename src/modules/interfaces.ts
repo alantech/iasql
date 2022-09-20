@@ -533,7 +533,7 @@ export class ModuleBase {
         .join(', ');
       // todo: overload function for the case when no param is required
       afterInstallSql += `
-        create or replace function ${rpc.name}(variadic _args text[]) returns table (
+        create or replace function ${rpc.name}(variadic _args text[] default array[]::text[]) returns table (
           module text,
           method text
           ${rpcOutputTable ? `, ${rpcOutputTable}` : ''}
