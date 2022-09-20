@@ -63,7 +63,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
     create: async (es: DynamoTable[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const client = (await ctx.getAwsClient(e.region.region)) as AWS;
         const req: CreateTableCommandInput = {
           TableName: e.tableName,
           TableClass: e.tableClass,
@@ -133,7 +133,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
     update: async (es: DynamoTable[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const client = (await ctx.getAwsClient(e.region.region)) as AWS;
         const req: UpdateTableCommandInput = {
           TableName: e.tableName,
           /* TableClass: e.tableClass, */ // Can only be updated on its own, apparently?
@@ -170,7 +170,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
     },
     delete: async (es: DynamoTable[], ctx: Context) => {
       for (const e of es) {
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const client = (await ctx.getAwsClient(e.region.region)) as AWS;
         await this.deleteTable(client.dynamoClient, e.tableName);
         await waitUntilTableNotExists(
           {
