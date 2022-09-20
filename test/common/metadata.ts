@@ -84,7 +84,13 @@ describe('Testing metadata repo', () => {
     SELECT operation_count
     FROM iasql_database
     WHERE pg_name = '${dbAlias}';
-  `, (row: any[]) => expect(row[0].operation_count).toBe(2)));
+  `, (row: any[]) => expect(row[0].operation_count).toBe(1)));
+
+  it('check rpc db count', metadataQuery(`
+    SELECT rpc_count
+    FROM iasql_database
+    WHERE pg_name = '${dbAlias}';
+  `, (row: any[]) => expect(row[0].rpc_count).toBe(1)));
 
   it('check rec db count', metadataQuery(`
     SELECT record_count
