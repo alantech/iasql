@@ -220,7 +220,6 @@ export interface MapperInterface<E> {
 
 export interface RpcInterface {
   module: ModuleInterface;
-  name: string;
   output: RpcOutput;
   call: (
     dbId: string,
@@ -363,7 +362,6 @@ export class MapperBase<E> {
 
 export class RpcBase {
   module: ModuleInterface;
-  name: string;
   output: RpcOutput;
   call: (
     dbId: string,
@@ -537,7 +535,9 @@ export class ModuleBase {
         .map(([columnName, columnType]) => `${columnName} ${columnType}`)
         .join(', ');
       afterInstallSql += `
-        create or replace function ${rpc.name}(variadic _args text[] default array[]::text[]) returns table (
+        create or replace function ${snakeCase(
+          key,
+        )}(variadic _args text[] default array[]::text[]) returns table (
           ${rpcOutputTable}
         )
         language plpgsql security definer
@@ -562,7 +562,7 @@ export class ModuleBase {
       `;
       beforeUninstallSql =
         `
-        DROP FUNCTION "${rpc.name}";
+        DROP FUNCTION "${snakeCase(key)}";
       ` + beforeUninstallSql;
     }
     return [afterInstallSql, beforeUninstallSql];
