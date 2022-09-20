@@ -2,6 +2,7 @@ import callsite from 'callsite';
 import fs from 'fs';
 import path from 'path';
 import { QueryRunner, getMetadataArgsStorage, ColumnType } from 'typeorm';
+import { snakeCase } from 'typeorm/util/StringUtils';
 
 import { throwError } from '../config/config';
 import { getCloudId } from '../services/cloud-id';
@@ -373,9 +374,12 @@ export class RpcBase {
 
   init() {
     if (!this.module) throw new Error('No module established for this RPC');
-    if (!this.name) throw new Error('No name established for this RPC');
     if (!this.call) throw new Error('No call established for this RPC');
     if (!this.output) throw new Error('No output established for this RPC');
+  }
+
+  formatObjKeysToSnakeCase(obj: any) {
+    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [snakeCase(k), v]));
   }
 }
 

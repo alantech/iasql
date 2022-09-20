@@ -1,5 +1,3 @@
-import { snakeCase } from 'typeorm/util/StringUtils';
-
 import { IasqlFunctions } from '..';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
 import * as iasql from '../iasql';
@@ -19,13 +17,7 @@ export class IasqlPreviewApply extends RpcBase {
     ctx: Context,
   ): Promise<RpcResponseObject<typeof this.output>[]> => {
     const applyRes = (await iasql.apply(dbId, true, ctx)).rows;
-    const formattedRes = applyRes.map(rec =>
-      Object.keys(rec).reduce((acc, key) => {
-        acc[snakeCase(key)] = rec[key];
-        return acc;
-      }, {} as any),
-    );
-    return formattedRes;
+    return applyRes.map(rec => <RpcResponseObject<typeof this.output>>super.formatObjKeysToSnakeCase(rec));
   };
 
   constructor(module: IasqlFunctions) {
