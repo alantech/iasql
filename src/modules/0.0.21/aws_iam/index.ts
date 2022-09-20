@@ -1,9 +1,139 @@
-import { IAM, paginateListRoles, Role as AWSRole } from '@aws-sdk/client-iam';
+import isEqual from 'lodash.isequal';
+
+import {
+  IAM,
+  paginateListRoles,
+  paginateListUsers,
+  Role as AWSRole,
+  User as AWSUser,
+} from '@aws-sdk/client-iam';
 
 import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
-import { Role } from './entity';
+import { Role, User } from './entity';
+
+class UserMapper extends MapperBase<User> {
+  module: AwsIamModule;
+  entity = User;
+  equals = (a: User, b: User) =>
+    Object.is(a.userName, b.userName) &&
+    Object.is(a.arn, b.arn) &&
+    Object.is(a.userId, b.userId) &&
+    Object.is(a.createDate, b.createDate) &&
+    Object.is(a.path, b.path);
+
+  createNewUser = crudBuilderFormat<IAM, 'createUser', AWSUser | undefined>(
+    'createUser',
+    input => input,
+    res => res?.User,
+  );
+
+  getUser = crudBuilderFormat<IAM, 'getUser', AWSUser | undefined>(
+    'getUser',
+    UserName => ({ UserName }),
+    res => res?.User,
+  );
+
+  getAllUsers = paginateBuilder<IAM>(paginateListUsers, 'Users');
+
+  updateUserPath = crudBuilder2<IAM, 'updateUser'>('updateUser', (UserName, NewPath) => ({
+    UserName,
+    NewPath,
+  }));
+
+  deleteUser = crudBuilder2<IAM, 'deleteUser'>('deleteUser', UserName => ({ UserName }));
+
+  async userMapper(user: AWSUser, ctx: Context) {
+    if (!user.UserName) return undefined;
+
+    const out = new User();
+    out.arn = user.Arn;
+    out.userName = user.UserName;
+    out.userId = user.UserId;
+    out.path = user.Path;
+    if (user.CreateDate) out.createDate = user.CreateDate;
+    return out;
+  }
+
+  cloud = new Crud2({
+    create: async (es: User[], ctx: Context) => {
+      const client = (await ctx.getAwsClient()) as AWS;
+      const out = [];
+      for (const user of es) {
+        const rawUser = await this.createNewUser(client.iamClient, {
+          UserName: user.userName,
+          Path: user.path,
+        });
+        if (rawUser) {
+          const newUser = await this.userMapper(rawUser, ctx);
+          if (newUser) {
+            await this.module.user.db.update(newUser, ctx);
+            out.push(newUser);
+          }
+        }
+      }
+      return out;
+    },
+    read: async (ctx: Context, userName?: string) => {
+      const client = (await ctx.getAwsClient()) as AWS;
+      if (userName) {
+        const rawUser = await this.getUser(client.iamClient, userName);
+        if (!rawUser) return;
+
+        const newUser = await this.userMapper(rawUser, ctx);
+        return newUser;
+      } else {
+        const users = (await this.getAllUsers(client.iamClient)) ?? [];
+        const out = [];
+        for (const u of users) {
+          const user = await this.userMapper(u, ctx);
+          if (user) out.push(user);
+        }
+        return out;
+      }
+    },
+    update: async (es: User[], ctx: Context) => {
+      const client = (await ctx.getAwsClient()) as AWS;
+      let out = [];
+      for (const e of es) {
+        const cloudRecord = ctx?.memo?.cloud?.User?.[e.userName ?? ''];
+        const isUpdate = this.module.user.cloud.updateOrReplace(cloudRecord, e) === 'update';
+
+        if (isUpdate) {
+          // if we have modified userId or arn or creation date, restore them
+          if (e.arn != cloudRecord.arn) e.arn = cloudRecord.arn;
+          if (e.userId != cloudRecord.userId) e.userId = cloudRecord.userId;
+          if (e.createDate != cloudRecord.createDate) e.createDate = cloudRecord.createDate;
+
+          // if we have modified path, update in cloud
+          if (e.path != cloudRecord.path) {
+            const result = await this.updateUserPath(client.iamClient, e.userName, e.path);
+            if (result) {
+              await this.module.user.db.update(e, ctx);
+              out.push(e);
+            }
+          }
+        }
+      }
+      return out;
+    },
+    delete: async (es: User[], ctx: Context) => {
+      const client = (await ctx.getAwsClient()) as AWS;
+      for (const e of es) {
+        if (e.userName) {
+          await this.deleteUser(client.iamClient, e.userName);
+        }
+      }
+    },
+  });
+
+  constructor(module: AwsIamModule) {
+    super();
+    this.module = module;
+    super.init();
+  }
+}
 
 class RoleMapper extends MapperBase<Role> {
   module: AwsIamModule;
@@ -265,10 +395,12 @@ class RoleMapper extends MapperBase<Role> {
 
 class AwsIamModule extends ModuleBase {
   role: RoleMapper;
+  user: UserMapper;
 
   constructor() {
     super();
     this.role = new RoleMapper(this);
+    this.user = new UserMapper(this);
     super.init();
   }
 }
