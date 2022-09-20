@@ -221,7 +221,12 @@ export interface RpcInterface {
   module: ModuleInterface;
   name: string;
   output?: RpcOutput;
-  call: (ctx: Context, ...args: string[]) => Promise<RpcResponseObject<RpcOutput>[]>;
+  call: (
+    dbId: string,
+    dbUser: string,
+    ctx: Context,
+    ...args: string[]
+  ) => Promise<RpcResponseObject<RpcOutput>[]>;
 }
 
 export interface Mapper2ObjInterface<E> {
@@ -359,7 +364,12 @@ export class RpcBase {
   module: ModuleInterface;
   name: string;
   output?: RpcOutput;
-  call: (ctx: Context, ...args: string[]) => Promise<RpcResponseObject<RpcOutput>[]>;
+  call: (
+    dbId: string,
+    dbUser: string,
+    ctx: Context,
+    ...args: string[]
+  ) => Promise<RpcResponseObject<RpcOutput>[]>;
 
   init() {
     if (!this.module) throw new Error('No module established for this RPC');
