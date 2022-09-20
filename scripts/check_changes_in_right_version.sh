@@ -12,15 +12,17 @@ IFS=$'\n' MODIFIED_FILES=($(git diff --no-commit-id --name-only -r  origin/main.
 for FILE in "${MODIFIED_FILES[@]}"; do
   echo "file is $FILE"
   # if file has the pattern src/modules/ check that is just for CURRENT_VERSION
-  if  [[ "$FILE" == src/modules* ]]; then
+  if  [[ "$FILE" == src/modules/* ]]; then
     echo "check version"
     # need to check the version
     VERSION=$(echo $FILE|cut -d '/' -f 3)
-    echo "version is $VERSION"
-    if [ "$VERSION" != "$CURRENT_VERSION" ]; then
-      # incorrect version
-      echo "Error, out of version modifications found in file $FILE"
-      exit 1
+    if [[ $version =~ ^[0-9]+(\.[0-9]+){2,3}$ ]]; then
+      echo "version is $VERSION"
+      if [ "$VERSION" != "$CURRENT_VERSION" ]; then
+        # incorrect version
+        echo "Error, out of version modifications found in file $FILE"
+        exit 1
+      fi
     fi
   fi
 done
