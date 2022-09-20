@@ -1,6 +1,7 @@
 import * as sentry from '@sentry/node';
 import express from 'express';
 import { run } from 'graphile-worker';
+import { default as cloneDeep } from 'lodash.clonedeep';
 import { camelCase } from 'typeorm/util/StringUtils';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -244,7 +245,13 @@ async function getContext(conn: TypeormWrapper, Modules: any): Promise<Context> 
     ) as ModuleInterface;
     if (!mod) throwError(`This should be impossible. Cannot find module ${name}`);
     const moduleContext = mod?.provides?.context ?? {};
-    Object.keys(moduleContext).forEach(k => (context[k] = moduleContext[k]));
+    Object.keys(moduleContext).forEach(k => {
+      if (typeof moduleContext[k] === 'function') {
+        context[k] = moduleContext[k];
+      } else {
+        context[k] = cloneDeep(moduleContext[k]);
+      }
+    });
   }
   return context;
 }
