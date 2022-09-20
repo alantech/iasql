@@ -1,6 +1,3 @@
-// TODO: It seems like a lot of this logic could be migrated into the iasql_platform module and make
-// sense there. Need to think a bit more on that, but module manipulation that way could allow for
-// meta operations within the module code itself, if desirable.
 import { default as cloneDeep } from 'lodash.clonedeep';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
