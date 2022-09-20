@@ -1,6 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 
 export enum TableClass {
   Standard = 'STANDARD',
@@ -54,6 +55,20 @@ export class DynamoTable {
     nullable: true,
   })
   createdAt?: Date;
+
+  @ManyToOne(() => AwsRegions, region => region.region, {
+    nullable: false,
+  })
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @JoinColumn({
+    name: 'region',
+    referencedColumnName: 'region',
+  })
+  region: AwsRegions;
 
   // TODO: Add encryption support, local secondary keys, stream support, global support,
   //       global secondary indexes, and tags

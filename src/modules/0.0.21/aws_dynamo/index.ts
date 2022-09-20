@@ -22,8 +22,8 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
   entity = DynamoTable;
   equals = (a: DynamoTable, b: DynamoTable) =>
     isequal(
-      pick(a, ['tableName', 'tableClass', 'throughput', 'tableId', 'primaryKey', 'createdAt']),
-      pick(b, ['tableName', 'tableClass', 'throughput', 'tableId', 'primaryKey', 'createdAt']),
+      pick(a, ['tableName', 'tableClass', 'throughput', 'tableId', 'primaryKey', 'createdAt', 'region']),
+      pick(b, ['tableName', 'tableClass', 'throughput', 'tableId', 'primaryKey', 'createdAt', 'region']),
     );
 
   getTable = crudBuilder2<DynamoDB, 'describeTable'>('describeTable', TableName => ({ TableName }));
@@ -58,9 +58,9 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
 
   cloud = new Crud2<DynamoTable>({
     create: async (es: DynamoTable[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const req: CreateTableCommandInput = {
           TableName: e.tableName,
           TableClass: e.tableClass,
@@ -102,27 +102,32 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        const rawTable = await this.getTable(client.dynamoClient, id);
-        if (!rawTable?.Table) return;
-        return this.dynamoMapper(rawTable.Table);
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawTable = await this.getTable(client.dynamoClient, id);
+          if (!rawTable?.Table) continue;
+          return this.dynamoMapper(rawTable.Table);
+        }
       } else {
-        const tableNames = await this.listTables(client.dynamoClient);
         const out = [];
-        for (const tableName of tableNames) {
-          const rawTable = await this.getTable(client.dynamoClient, tableName);
-          if (!rawTable?.Table) return;
-          out.push(this.dynamoMapper(rawTable.Table));
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const tableNames = await this.listTables(client.dynamoClient);
+          for (const tableName of tableNames) {
+            const rawTable = await this.getTable(client.dynamoClient, tableName);
+            if (!rawTable?.Table) return;
+            out.push(this.dynamoMapper(rawTable.Table));
+          }
         }
         return out;
       }
     },
-    updateOrReplace: () => 'update',
     update: async (es: DynamoTable[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const req: UpdateTableCommandInput = {
           TableName: e.tableName,
           /* TableClass: e.tableClass, */ // Can only be updated on its own, apparently?
@@ -157,8 +162,8 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
       return out;
     },
     delete: async (es: DynamoTable[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteTable(client.dynamoClient, e.tableName);
         await waitUntilTableNotExists(
           {
