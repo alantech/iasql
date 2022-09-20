@@ -18,6 +18,8 @@ The `v0.0.19` release could not be deployed despite the test suite succeeding. A
 - **2022-09-12**: Release day for `v0.0.20`, but being extra cautious and it was also put on hold because of an error in the Prisma Example end-to-end test, and investigation into this occurs.
 - **2022-09-13**: [Improved logging in the Prisma example deployment](https://github.com/iasql/iasql-engine/pull/1270), but cause of this issue not found.
 - **2022-09-14**: [Root cause of Prisma end-to-end test found](https://github.com/iasql/iasql-engine/pull/1272): The test account was not properly cleaned. Adding a pre-clean script however, also broke things, and an issue in the `delete_all_records` postgres function was discovered. Adding `aws_regions` to a blacklist to that function resolved that issue. Deployment of `v0.0.20` successfully occurred after that and the Prisma end-to-end test fix was not truly necessary as `delete_all_records` is not meant for general consumption (yet).
+- **2022-09-16**: A strange behavior was detected in the production instance. `main` was not clean at that point and it was assumed it was related to that, so the code was cleaned and an out-of-band production deploy was done, and the problem was apparently resolved.
+- **2022-09-19**: An investigation determined that was not the root cause, [the issue was reproduced and then fixed](https://github.com/iasql/iasql-engine/pull/1297) and a second out-of-band deploy occurred, resolving the outage completely.
 
 ## Detection
 
@@ -37,6 +39,8 @@ This was not detected by the test suite because we had no upgrade test, and it w
 
 Our production and staging IaSQL databases do not use `us-east-1` and have more than just the `aws_account` installed, so they did run into this issue when the deploy logic upgraded them to the latest version of the engine.
 
+After that, an issue with the `Context` object within the engine was discovered due to a new usage of it inside of the refactored `aws_account`. The issue was with the caching of the context object not being completely eliminated between requests due to shallow copies being made. This was also not discovered in the test suite because we have not tested concurrent, separate tests in the exact same running engine.
+
 ## Prevention
 
 The mitigation for this exact issue has already been performed to get `v0.0.20` released, and an explicit test to confirm the full flow of an `iasql_upgrade` call works has been written.
@@ -46,6 +50,7 @@ All of the errors were due to missing test cases to prevent regression of functi
 - `iasql_upgrade` didn't have a formal test case at all.
 - The new `default_aws_region` only had partial coverage of its use-cases.
 - `delete_all_records` never had a test that utilized an IaSQL database *after* it was run on it.
+- The `Context` construction had never been tested with multiple different databases being manipulated in the same test suite before.
 
 Some of these were obvious, such as not having test coverage for a user-accessible feature at all and relying on manual testing, but some are not obvious due to the inherent complexities that arise from Turing-complete syntaxes and unexpected starting states for the code to execute on. We therefore cannot expect all of these cases to be caught ahead of time, but we can minimize the impact by following a few extra rules with feature development:
 
