@@ -45,7 +45,7 @@ describe('RDS Integration Testing', () => {
         VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', '${availabilityZone}', 'postgres:13.4', 0);
       INSERT INTO rds_security_groups (rds_id, security_group_id) SELECT
         (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test'),
-        (SELECT id FROM security_group WHERE group_name='default' LIMIT 1);
+        (SELECT id FROM security_group WHERE group_name='default');
     COMMIT;
   `));
 
@@ -70,7 +70,7 @@ describe('RDS Integration Testing', () => {
         VALUES ('${prefix}test', 20, 'db.t3.micro', 'test', 'testpass', '${availabilityZone}', 'postgres:13.4', 0);
       INSERT INTO rds_security_groups (rds_id, security_group_id) SELECT
         (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test'),
-        (SELECT id FROM security_group WHERE group_name='default' LIMIT 1);
+        (SELECT id FROM security_group WHERE group_name='default');
     COMMIT;
   `));
 
