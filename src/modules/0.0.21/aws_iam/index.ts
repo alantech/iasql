@@ -1,5 +1,3 @@
-import isEqual from 'lodash.isequal';
-
 import {
   IAM,
   paginateListRoles,
@@ -11,12 +9,12 @@ import {
 import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
-import { Role, User } from './entity';
+import { Role, IamUser } from './entity';
 
-class UserMapper extends MapperBase<User> {
+class UserMapper extends MapperBase<IamUser> {
   module: AwsIamModule;
-  entity = User;
-  equals = (a: User, b: User) =>
+  entity = IamUser;
+  equals = (a: IamUser, b: IamUser) =>
     Object.is(a.userName, b.userName) &&
     Object.is(a.arn, b.arn) &&
     Object.is(a.userId, b.userId) &&
@@ -47,7 +45,7 @@ class UserMapper extends MapperBase<User> {
   async userMapper(user: AWSUser, ctx: Context) {
     if (!user.UserName) return undefined;
 
-    const out = new User();
+    const out = new IamUser();
     out.arn = user.Arn;
     out.userName = user.UserName;
     out.userId = user.UserId;
@@ -57,7 +55,7 @@ class UserMapper extends MapperBase<User> {
   }
 
   cloud = new Crud2({
-    create: async (es: User[], ctx: Context) => {
+    create: async (es: IamUser[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const user of es) {
@@ -93,21 +91,21 @@ class UserMapper extends MapperBase<User> {
         return out;
       }
     },
-    update: async (es: User[], ctx: Context) => {
+    update: async (es: IamUser[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
-      let out = [];
+      const out = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.User?.[e.userName ?? ''];
         const isUpdate = this.module.user.cloud.updateOrReplace(cloudRecord, e) === 'update';
 
         if (isUpdate) {
           // if we have modified userId or arn or creation date, restore them
-          if (e.arn != cloudRecord.arn) e.arn = cloudRecord.arn;
-          if (e.userId != cloudRecord.userId) e.userId = cloudRecord.userId;
-          if (e.createDate != cloudRecord.createDate) e.createDate = cloudRecord.createDate;
+          if (e.arn !== cloudRecord.arn) e.arn = cloudRecord.arn;
+          if (e.userId !== cloudRecord.userId) e.userId = cloudRecord.userId;
+          if (e.createDate !== cloudRecord.createDate) e.createDate = cloudRecord.createDate;
 
           // if we have modified path, update in cloud
-          if (e.path != cloudRecord.path) {
+          if (e.path !== cloudRecord.path) {
             const result = await this.updateUserPath(client.iamClient, e.userName, e.path);
             if (result) {
               await this.module.user.db.update(e, ctx);
@@ -118,7 +116,7 @@ class UserMapper extends MapperBase<User> {
       }
       return out;
     },
-    delete: async (es: User[], ctx: Context) => {
+    delete: async (es: IamUser[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         if (e.userName) {
