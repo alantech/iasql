@@ -15,9 +15,9 @@ import { WaiterOptions } from '@aws-sdk/util-waiter';
 import { throwError } from '../../../config/config';
 import { AWS, crudBuilder2, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { awsAccount } from '../aws_account';
+import { AwsRegions } from '../aws_account/entity';
 import { DynamoTable, TableClass } from './entity';
-import { AwsRegions, } from '../aws_account/entity';
-import { awsAccount, } from '../aws_account'
 
 class DynamoTableMapper extends MapperBase<DynamoTable> {
   module: AwsDynamoModule;
