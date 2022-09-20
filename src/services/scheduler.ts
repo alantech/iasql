@@ -199,7 +199,7 @@ export async function start(dbId: string, dbUser: string) {
           try {
             const recordCount = await iasql.getDbRecCount(conn);
             const rpcCount = await iasql.getRpcCount(conn);
-            await MetadataRepo.updateDbCounts(dbId, recordCount, rpcCount);
+            await MetadataRepo.updateDbCounts(dbId, recordCount, undefined, rpcCount);
             // list is called by us and has no dbAlias so ignore
             // TODO: refactor properly this condition if (uid && modulename !== 'iasqlFunctions' && methodname !== 'modulesList')
             if (uid)
