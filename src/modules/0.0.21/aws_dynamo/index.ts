@@ -16,6 +16,8 @@ import { throwError } from '../../../config/config';
 import { AWS, crudBuilder2, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { DynamoTable, TableClass } from './entity';
+import { AwsRegions, } from '../aws_account/entity';
+import { awsAccount, } from '../aws_account'
 
 class DynamoTableMapper extends MapperBase<DynamoTable> {
   module: AwsDynamoModule;
@@ -32,7 +34,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
   updateTable = crudBuilder2<DynamoDB, 'updateTable'>('updateTable', input => input);
   deleteTable = crudBuilder2<DynamoDB, 'deleteTable'>('deleteTable', TableName => ({ TableName }));
 
-  dynamoMapper(dynamo: TableDescription) {
+  dynamoMapper(dynamo: TableDescription, region: AwsRegions) {
     const out = new DynamoTable();
     out.tableName = dynamo.TableName ?? throwError('Did not get a table name from AWS');
     out.tableClass = (dynamo.TableClassSummary?.TableClass as TableClass) ?? 'STANDARD';
@@ -53,6 +55,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
         .map(ks => [ks.AttributeName, types[ks.AttributeName as string]]) ?? [],
     );
     out.createdAt = dynamo.CreationDateTime;
+    out.region = region;
     return out;
   }
 
@@ -91,7 +94,8 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
           } as WaiterOptions<DynamoDB>,
           { TableName: e.tableName },
         );
-        const newTable = this.dynamoMapper(res.TableDescription);
+        const awsRegion = await awsAccount.awsRegions.db.read(ctx, e.region.region);
+        const newTable = this.dynamoMapper(res.TableDescription, awsRegion);
         // We attach the original object's ID to this new one, indicating the exact record it is
         // replacing in the database.
         newTable.id = e.id;
@@ -108,7 +112,8 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawTable = await this.getTable(client.dynamoClient, id);
           if (!rawTable?.Table) continue;
-          return this.dynamoMapper(rawTable.Table);
+          const awsRegion = await awsAccount.awsRegions.db.read(ctx, region);
+          return this.dynamoMapper(rawTable.Table, awsRegion);
         }
       } else {
         const out = [];
@@ -118,7 +123,8 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
           for (const tableName of tableNames) {
             const rawTable = await this.getTable(client.dynamoClient, tableName);
             if (!rawTable?.Table) return;
-            out.push(this.dynamoMapper(rawTable.Table));
+            const awsRegion = await awsAccount.awsRegions.db.read(ctx, region);
+            out.push(this.dynamoMapper(rawTable.Table, awsRegion));
           }
         }
         return out;
@@ -151,7 +157,8 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
           } as WaiterOptions<DynamoDB>,
           { TableName: e.tableName },
         );
-        const newTable = this.dynamoMapper(res.TableDescription);
+        const awsRegion = await awsAccount.awsRegions.db.read(ctx, e.region.region);
+        const newTable = this.dynamoMapper(res.TableDescription, awsRegion);
         // We attach the original object's ID to this new one, indicating the exact record it is
         // replacing in the database.
         newTable.id = e.id;
