@@ -4,7 +4,7 @@ import * as iasql from '../iasql';
 
 export class IasqlPreviewApply extends RpcBase {
   module: IasqlFunctions;
-  output = {
+  outputTable = {
     action: 'varchar',
     table_name: 'varchar',
     id: 'varchar',
@@ -14,9 +14,9 @@ export class IasqlPreviewApply extends RpcBase {
     dbId: string,
     _dbUser: string,
     ctx: Context,
-  ): Promise<RpcResponseObject<typeof this.output>[]> => {
+  ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     const applyRes = (await iasql.apply(dbId, true, ctx)).rows;
-    return applyRes.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.output>);
+    return applyRes.map(rec => super.formatObjKeysToSnakeCase(rec) as RpcResponseObject<typeof this.outputTable>);
   };
 
   constructor(module: IasqlFunctions) {

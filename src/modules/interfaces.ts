@@ -220,7 +220,7 @@ export interface MapperInterface<E> {
 
 export interface RpcInterface {
   module: ModuleInterface;
-  output: RpcOutput;
+  outputTable: RpcOutput;
   call: (
     dbId: string,
     dbUser: string,
@@ -362,7 +362,7 @@ export class MapperBase<E> {
 
 export class RpcBase {
   module: ModuleInterface;
-  output: RpcOutput;
+  outputTable: RpcOutput;
   call: (
     dbId: string,
     dbUser: string,
@@ -373,7 +373,7 @@ export class RpcBase {
   init() {
     if (!this.module) throw new Error('No module established for this RPC');
     if (!this.call) throw new Error('No call established for this RPC');
-    if (!this.output) throw new Error('No output established for this RPC');
+    if (!this.outputTable) throw new Error('No output established for this RPC');
   }
 
   formatObjKeysToSnakeCase(obj: any) {
@@ -530,7 +530,7 @@ export class ModuleBase {
     let afterInstallSql = '';
     let beforeUninstallSql = '';
     for (const [key, rpc] of Object.entries(this.rpc ?? {})) {
-      const rpcOutputEntries = Object.entries(rpc.output ?? {});
+      const rpcOutputEntries = Object.entries(rpc.outputTable ?? {});
       const rpcOutputTable = rpcOutputEntries
         .map(([columnName, columnType]) => `${columnName} ${columnType}`)
         .join(', ');
