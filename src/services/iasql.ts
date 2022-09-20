@@ -383,6 +383,8 @@ function colToRow(cols: { [key: string]: any[] }): { [key: string]: any }[] {
   return out;
 }
 
+//! DEPRECATED
+// `apply` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   logger.info(`Applying ${dbId}`);
