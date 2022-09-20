@@ -1,7 +1,5 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-import * as sql from '../sql';
-
 export class awsEcsSimplified1661524797888 implements MigrationInterface {
   name = 'awsEcsSimplified1661524797888';
 
@@ -12,11 +10,9 @@ export class awsEcsSimplified1661524797888 implements MigrationInterface {
     await queryRunner.query(
       `CREATE TABLE "ecs_simplified" ("app_name" character varying(18) NOT NULL, "desired_count" integer NOT NULL DEFAULT '1', "app_port" integer NOT NULL, "cpu_mem" "public"."ecs_simplified_cpu_mem_enum" NOT NULL DEFAULT 'vCPU2-8GB', "repository_uri" character varying, "image_tag" character varying, "image_digest" character varying, "public_ip" boolean NOT NULL DEFAULT false, "load_balancer_dns" character varying, "force_new_deployment" boolean NOT NULL DEFAULT false, "env_variables" text, CONSTRAINT "UQ_9bf52ef06bff8fe8182e27a5fd8" UNIQUE ("app_name"), CONSTRAINT "CHK_a309c4d1f364127e12e6aaaac2" CHECK (("image_tag" is null and "image_digest" is null) or ("image_tag" is not null and "image_digest" is null) or ("image_tag" is null and "image_digest" is not null)), CONSTRAINT "PK_9bf52ef06bff8fe8182e27a5fd8" PRIMARY KEY ("app_name"))`,
     );
-    await queryRunner.query(sql.createTriggers);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(sql.dropTriggers);
     await queryRunner.query(`DROP TABLE "ecs_simplified"`);
     await queryRunner.query(`DROP TYPE "public"."ecs_simplified_cpu_mem_enum"`);
   }

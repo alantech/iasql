@@ -1,7 +1,5 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-import * as sql from '../sql';
-
 export class awsEc21657324109020 implements MigrationInterface {
   name = 'awsEc21657324109020';
 
@@ -57,11 +55,9 @@ export class awsEc21657324109020 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "instance_security_groups" ADD CONSTRAINT "FK_b3b92934eff56d2eb0477a1d27f" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
     );
-    await queryRunner.query(sql.createCustomConstraints);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(sql.dropCustomConstraints);
     await queryRunner.query(
       `ALTER TABLE "instance_security_groups" DROP CONSTRAINT "FK_b3b92934eff56d2eb0477a1d27f"`,
     );
