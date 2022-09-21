@@ -68,7 +68,7 @@ export class DynamoTable {
     name: 'region',
     referencedColumnName: 'region',
   })
-  region: string;
+  region: AwsRegions | string;
 
   // TODO: Add encryption support, local secondary keys, stream support, global support,
   //       global secondary indexes, and tags

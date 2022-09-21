@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsDynamo1663714688828 implements MigrationInterface {
-  name = 'awsDynamo1663714688828';
+export class awsDynamo1663724940077 implements MigrationInterface {
+  name = 'awsDynamo1663724940077';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
