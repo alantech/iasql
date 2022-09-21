@@ -275,7 +275,7 @@ jobs:
         run: |
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
+          yarn test $(echo $MODULES | jq -r '."${{matrix.module}}"')
 
       - name: Return test account
         if: always()
