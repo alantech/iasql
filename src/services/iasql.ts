@@ -81,6 +81,8 @@ export async function getDbRecCount(conn: TypeormWrapper): Promise<number> {
   return parseInt(res[0].sum ?? '0', 10);
 }
 
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
 export async function getOpCount(conn: TypeormWrapper): Promise<number> {
   const res = await conn.query(`
     SELECT COUNT(*)
@@ -133,6 +135,7 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     roleGranted = true;
     const recCount = await getDbRecCount(conn2);
     const opCount = await getOpCount(conn2);
+    // TODO: UPDATE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
     await MetadataRepo.updateDbCounts(dbId, recCount, opCount);
     logger.info('Done!');
     // Return custom IasqlDatabase object since we need to return the password
