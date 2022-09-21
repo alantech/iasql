@@ -419,38 +419,42 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
         const GroupId = en?.securityGroup?.groupId;
         if (!GroupId)
           throw new Error('Cannot create a security group rule for a security group that does not yet exist');
-        const newRule: any = {};
-        // The rest of these should be defined if present
-        if (en.cidrIpv4) newRule.IpRanges = [{ CidrIp: en.cidrIpv4 }];
-        if (en.cidrIpv6) newRule.Ipv6Ranges = [{ CidrIpv6: en.cidrIpv6 }];
-        if (en.description) {
-          if (en.cidrIpv4) newRule.IpRanges[0].Description = en.description;
-          if (en.cidrIpv6) newRule.Ipv6Ranges[0].Description = en.description;
+        let input: any;
+
+        // check if we have a source security group or not
+        if (en.sourceSecurityGroup) {
+          // get data for this security group
+          input = {
+            GroupId,
+            SourceSecurityGroupName: en.sourceSecurityGroup.groupName,
+            SourceSecurityGroupOwnerId: en.sourceSecurityGroup.ownerId,
+          };
+        } else {
+          const newRule: any = {};
+          // The rest of these should be defined if present
+          if (en.cidrIpv4) newRule.IpRanges = [{ CidrIp: en.cidrIpv4 }];
+          if (en.cidrIpv6) newRule.Ipv6Ranges = [{ CidrIpv6: en.cidrIpv6 }];
+          if (en.description) {
+            if (en.cidrIpv4) newRule.IpRanges[0].Description = en.description;
+            if (en.cidrIpv6) newRule.Ipv6Ranges[0].Description = en.description;
+          }
+          if (en.fromPort) newRule.FromPort = en.fromPort;
+          if (en.ipProtocol) newRule.IpProtocol = en.ipProtocol;
+          if (en.prefixListId) newRule.PrefixListIds = [en.prefixListId];
+          // TODO: There's something weird about `ReferencedGroupId` that I need to dig into
+          if (en.toPort) newRule.ToPort = en.toPort;
+
+          input = {
+            GroupId,
+            IpPermissions: newRule,
+          };
         }
-        if (en.fromPort) newRule.FromPort = en.fromPort;
-        if (en.ipProtocol) newRule.IpProtocol = en.ipProtocol;
-        if (en.prefixListId) newRule.PrefixListIds = [en.prefixListId];
-        // TODO: There's something weird about `ReferencedGroupId` that I need to dig into
-        if (en.toPort) newRule.ToPort = en.toPort;
+
         let res;
         if (en.isEgress) {
-          res = (
-            await this.createSecurityGroupEgressRules(client.ec2client, [
-              {
-                GroupId,
-                IpPermissions: [newRule],
-              },
-            ])
-          )[0];
+          res = (await this.createSecurityGroupEgressRules(client.ec2client, [input]))[0];
         } else {
-          res = (
-            await this.createSecurityGroupIngressRules(client.ec2client, [
-              {
-                GroupId,
-                IpPermissions: [newRule],
-              },
-            ])
-          )[0];
+          res = (await this.createSecurityGroupIngressRules(client.ec2client, [input]))[0];
         }
         // Now to either throw on error or save the cloud-generated fields
         if (res.Return !== true || res.SecurityGroupRules?.length === 0) {
