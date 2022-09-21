@@ -1260,6 +1260,8 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   return 'Done!';
 }
 
+// ! DEPRECATED
+// `upgrade` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 // This function is always going to have special-cased logic for it, but hopefully it ends up in a
 // few different 'groups' by version number instead of being special-cased for each version.
 export async function upgrade(dbId: string, dbUser: string) {

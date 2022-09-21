@@ -206,19 +206,6 @@ BEGIN
 END;
 $$;
 
-create or replace function iasql_upgrade() returns text
-language plpgsql security definer
-as $$
-declare
-  _opid uuid;
-  _out text;
-begin
-  _opid := until_iasql_operation('UPGRADE', array[]::text[]);
-  select output into _out from iasql_operation where opid = _opid;
-  return _out;
-end;
-$$;
-
 create or replace function iasql_version() returns table (
   version text
 )
