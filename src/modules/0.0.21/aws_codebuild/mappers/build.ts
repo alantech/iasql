@@ -12,20 +12,28 @@ import { AwsCodebuildModule } from '..';
 import { AWS, paginateBuilder, crudBuilderFormat, crudBuilder2 } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { CodebuildBuildList, CodebuildBuildImport, BuildStatus } from '../entity';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
   module: AwsCodebuildModule;
   entity = CodebuildBuildList;
-  equals = (a: CodebuildBuildList, b: CodebuildBuildList) =>
-    Object.is(a.arn, b.arn) && Object.is(a.id, b.id) && Object.is(a.buildNumber, b.buildNumber) &&
+  equals = (a: CodebuildBuildList, b: CodebuildBuildList) => {
+    console.dir(a)
+    console.dir(b)
+    const equals = Object.is(a.arn, b.arn) && Object.is(a.id, b.id) && Object.is(a.buildNumber, b.buildNumber) &&
     Object.is(a.project?.arn, b.project?.arn) && Object.is(a.buildStatus, b.buildStatus) &&
-    Object.is(a.startTime, b.startTime) && Object.is(a.endTime, b.endTime);
+    Object.is(a.startTime?.toISOString(), b.startTime?.toISOString()) &&
+    Object.is(a.endTime?.toISOString(), b.endTime?.toISOString());
+    console.log('whatsapp', equals)
+    return equals;
+  }
 
-  async buildListMapper(s: Build, ctx: Context) {
+  async buildListMapper(s: Build, ctx: Context): Promise<CodebuildBuildList | undefined> {
+    console.dir(s);
     const out = new CodebuildBuildList();
-    if (!s?.arn) return undefined;
+    if (!s?.id || !s?.arn) return undefined;
     out.arn = s.arn;
-    out.id = s.id as string;
+    out.id = s.id;
     out.buildStatus = s.buildStatus as BuildStatus;
     if (!Object.values(ctx.memo?.cloud?.CodebuildProject ?? {}).length) {
       out.project =
@@ -38,7 +46,38 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
     out.buildNumber = s.buildNumber;
     out.endTime = s.endTime;
     out.startTime = s.startTime;
+    console.log('instagram')
+    console.dir(out)
     return out;
+  }
+
+  async waitForBuildsToStop(client: CodeBuild, ids: string[]) {
+    // wait for policies to be attached
+    const input: BatchGetBuildsCommandInput = {
+      ids: ids,
+    }
+    await createWaiter<CodeBuild, BatchGetBuildsCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 900,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (cl, cmd) => {
+        try {
+          const data = await cl.batchGetBuilds(cmd);
+          const done = data?.builds?.every(bd => bd.buildStatus === BuildStatus.STOPPED || !!bd.endTime);
+          if (done) {
+            return { state: WaiterState.SUCCESS };
+          }
+          return { state: WaiterState.RETRY };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
   }
 
   listBuildIds = paginateBuilder<CodeBuild>(paginateListBuilds, 'ids');
@@ -94,7 +133,7 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
       // This implies that on `update`s we only have to restore the values for those records.
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.CodebuildBuildList?.[e.arn ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.CodebuildBuildList?.[e.id];
         await this.module.buildList.db.update(cloudRecord, ctx);
         out.push(cloudRecord);
       }
@@ -102,12 +141,24 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
     },
     delete: async (bds: CodebuildBuildList[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
-      for (const id of bds.filter(bd => bd.buildStatus === BuildStatus.IN_PROGRESS).map(bd => bd.id)) {
+      const idsToStop = bds.filter(bd => bd.buildStatus === BuildStatus.IN_PROGRESS).map(bd => bd.id);
+      for (const id of idsToStop) {
         const input: StopBuildInput = { id };
         await this.stopBuild(client.cbClient, input);
       }
-      const input: BatchDeleteBuildsCommandInput = { ids: bds.map(bd => bd.id) };
-      await this.deleteBuilds(client.cbClient, input);
+      if (idsToStop) await this.waitForBuildsToStop(client.cbClient, idsToStop);
+      let idsToDel = bds.map(bd => bd.id);
+      // Wait for ~2.5min until builds can be deleted
+      let i = 0;
+      do {
+        const input: BatchDeleteBuildsCommandInput = { ids: idsToDel };
+        const out = await this.deleteBuilds(client.cbClient, input);
+        if (out?.buildsNotDeleted?.length === 0) break;
+        idsToDel = out?.buildsNotDeleted?.map(bd => bd.id as string) ?? [];
+        await new Promise(r => setTimeout(r, 5000)); // Sleep for 5s
+        i++;
+      } while (i < 60);
+      if (i === 59) throw new Error('Error deleting builds');
     },
   });
 
@@ -154,11 +205,16 @@ export class CodebuildBuildImportMapper extends MapperBase<CodebuildBuildImport>
         const input: StartBuildInput = {
           projectName: e.project.projectName,
         };
-        const build = await this.startBuild(client.cbClient, input);
-        if (!build || !build.arn) throw new Error('Error starting build');
-        const cloudBuild = await this.module.buildList.cloud.read(ctx, build.arn);
+        const cloudBuild = await this.startBuild(client.cbClient, input);
+        console.dir(cloudBuild);
+        console.log('macbook')
+        if (!cloudBuild) throw new Error('Error starting build');
+        const dbBuild = await this.module.buildList.buildListMapper(cloudBuild, ctx);
+        if (!dbBuild) throw new Error('Error starting build');
+        console.dir(dbBuild);
+        console.log(typeof dbBuild)
         await this.module.buildImport.db.delete(e, ctx);
-        await this.module.buildList.db.create(cloudBuild, ctx);
+        await this.module.buildList.db.create(dbBuild, ctx);
       }
     },
     read: async () => {
