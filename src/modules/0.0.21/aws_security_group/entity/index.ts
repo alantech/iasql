@@ -69,9 +69,9 @@ export class SecurityGroupRule {
   isEgress: boolean;
 
   @Column({
-    nullable: false,
+    nullable: true,
   })
-  ipProtocol: string;
+  ipProtocol?: string;
 
   @Column({
     nullable: true,
