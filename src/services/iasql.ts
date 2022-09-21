@@ -29,6 +29,8 @@ import { TypeormWrapper } from './typeorm';
 
 const exec = promisify(execNode);
 
+// ! DEPRECATED
+// `Crupde` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
 export function recordCount(records: { [key: string]: any }[]): [number, number, number] {
@@ -37,6 +39,9 @@ export function recordCount(records: { [key: string]: any }[]): [number, number,
   const bothCount = records.reduce((cumu, r) => cumu + r.diff.entitiesChanged.length, 0);
   return [dbCount, cloudCount, bothCount];
 }
+
+// ! DEPRECATED
+// `iasqlPlanV3` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 const iasqlPlanV3 = (toCreate: Crupde, toUpdate: Crupde, toReplace: Crupde, toDelete: Crupde) =>
   JSON.stringify({
     iasqlPlanVersion: 3,
@@ -369,6 +374,9 @@ export async function dump(dbId: string, dataOnly: boolean) {
   }
 }*/
 
+
+// ! DEPRECATED
+// `colToRow` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 function colToRow(cols: { [key: string]: any[] }): { [key: string]: any }[] {
   // Assumes equal length for all arrays
   const keys = Object.keys(cols);
