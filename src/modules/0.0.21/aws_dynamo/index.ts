@@ -15,7 +15,6 @@ import { WaiterOptions } from '@aws-sdk/util-waiter';
 import { throwError } from '../../../config/config';
 import { AWS, crudBuilder2, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
-import { AwsRegions } from '../aws_account/entity';
 import { DynamoTable, TableClass } from './entity';
 
 class DynamoTableMapper extends MapperBase<DynamoTable> {
@@ -93,10 +92,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
           } as WaiterOptions<DynamoDB>,
           { TableName: e.tableName },
         );
-        const newTable = this.dynamoMapper(
-          res.TableDescription,
-          (e.region as AwsRegions)?.region ?? (e.region as string),
-        );
+        const newTable = this.dynamoMapper(res.TableDescription, e.region);
         // We attach the original object's ID to this new one, indicating the exact record it is
         // replacing in the database.
         newTable.id = e.id;
@@ -166,10 +162,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
           } as WaiterOptions<DynamoDB>,
           { TableName: e.tableName },
         );
-        const newTable = this.dynamoMapper(
-          res.TableDescription,
-          (e.region as AwsRegions)?.region ?? (e.region as string),
-        );
+        const newTable = this.dynamoMapper(res.TableDescription, e.region);
         // We attach the original object's ID to this new one, indicating the exact record it is
         // replacing in the database.
         newTable.id = e.id;
