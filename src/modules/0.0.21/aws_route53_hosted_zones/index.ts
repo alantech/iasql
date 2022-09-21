@@ -266,11 +266,6 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     return `${name}${domainName}`;
   }
 
-  getNameFromDomain(recordName: string, domain: string) {
-    const nameIndex = recordName.indexOf(domain);
-    return recordName.substring(0, nameIndex);
-  }
-
   db = new Crud2<ResourceRecordSet>({
     create: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),
     update: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),

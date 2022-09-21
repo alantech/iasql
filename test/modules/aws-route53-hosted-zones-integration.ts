@@ -302,6 +302,36 @@ describe('Route53 Integration Testing', () => {
     return expect(res.length).toBe(5); 
   }));
 
+  it('creates hosted zone with the same name', query(`
+    INSERT INTO hosted_zone (domain_name) VALUES ('${replaceDomainName}');
+  `));
+
+  it('checks creation of hosted zone with the same name', query(`
+    SELECT * FROM hosted_zone WHERE domain_name = '${replaceDomainName}';
+  `, (res: any[]) => expect(res.length).toBe(2)));
+
+  it('applies the hosted zone with the same name', apply());
+
+  it('checks creation of default records', query(`
+    SELECT *
+    FROM resource_record_set
+    INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id
+    WHERE domain_name = '${replaceDomainName}';
+  `, (res: any[]) => expect(res.length).toBe(7)));
+
+  it('deletes the hosted zone with the same name', query(`
+    BEGIN;
+      DELETE FROM resource_record_set
+      USING hosted_zone
+      WHERE hosted_zone.id IN (SELECT id FROM hosted_zone WHERE domain_name = '${replaceDomainName}' ORDER BY ID DESC LIMIT 1);
+      DELETE FROM hosted_zone
+      WHERE id IN (SELECT id FROM hosted_zone WHERE domain_name = '${replaceDomainName}' ORDER BY ID DESC LIMIT 1);
+    COMMIT;
+  `));
+
+  it('applies the removal of hosted zone with the same name', apply());
+
+
   it('deletes records', query(`
     DELETE FROM resource_record_set
     USING hosted_zone
