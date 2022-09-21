@@ -80,6 +80,8 @@ export async function logRunSql(dbProps: DbProps, eventProps: EventProps, uid?: 
   await logEvent('RUNSQL', dbProps, eventProps, uid, deviceId);
 }
 
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
 export async function logOp(
   opType: IasqlOperationType,
   dbProps: DbProps,

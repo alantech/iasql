@@ -29,7 +29,8 @@ import { TypeormWrapper } from './typeorm';
 
 const exec = promisify(execNode);
 
-// ! DEPRECATED - REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
 // `Crupde` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
@@ -40,7 +41,8 @@ export function recordCount(records: { [key: string]: any }[]): [number, number,
   return [dbCount, cloudCount, bothCount];
 }
 
-// ! DEPRECATED - REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
 // `iasqlPlanV3` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 const iasqlPlanV3 = (toCreate: Crupde, toUpdate: Crupde, toReplace: Crupde, toDelete: Crupde) =>
   JSON.stringify({
@@ -375,7 +377,8 @@ export async function dump(dbId: string, dataOnly: boolean) {
 }*/
 
 
-// ! DEPRECATED - REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
 // `colToRow` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 function colToRow(cols: { [key: string]: any[] }): { [key: string]: any }[] {
   // Assumes equal length for all arrays
@@ -391,7 +394,8 @@ function colToRow(cols: { [key: string]: any[] }): { [key: string]: any }[] {
   return out;
 }
 
-// ! DEPRECATED - REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
 // `apply` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
@@ -632,7 +636,8 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
   }
 }
 
-// ! DEPRECATED - REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
 // `sync` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
@@ -864,7 +869,8 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
   }
 }
 
-// ! DEPRECATED - REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
 // `modules` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function modules(all: boolean, installed: boolean, dbId: string) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
@@ -903,7 +909,8 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
   }
 }
 
-// ! DEPRECATED - REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
 // `install` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function install(
   moduleList: string[],
@@ -1147,7 +1154,8 @@ ${Object.keys(tableCollisions)
   }
 }
 
-// ! DEPRECATED - REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
 // `uninstall` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function uninstall(moduleList: string[], dbId: string, force = false, orm?: TypeormWrapper) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
@@ -1268,7 +1276,8 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   return 'Done!';
 }
 
-// ! DEPRECATED - REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
 // `upgrade` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 // This function is always going to have special-cased logic for it, but hopefully it ends up in a
 // few different 'groups' by version number instead of being special-cased for each version.

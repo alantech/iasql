@@ -37,6 +37,8 @@ export class IasqlFunctions extends ModuleBase {
     this.iasqlUpgrade = new IasqlUpgrade(this);
     super.init();
   }
+  // ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
   iasqlOperationType = IasqlOperationType;
 }
 export const iasqlFunctions = new IasqlFunctions();

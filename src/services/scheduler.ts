@@ -48,6 +48,8 @@ export async function start(dbId: string, dbUser: string) {
     noHandleSignals: false,
     pollInterval: 1000, // ms
     taskList: {
+      // ! DEPRECATED
+      // TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
       operation: async (payload: any) => {
         const { params, opid, optype } = payload;
         let promise;
