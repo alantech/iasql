@@ -1,3 +1,4 @@
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
 import { throwError } from '../../../config/config';
@@ -497,5 +498,40 @@ export async function sync(
   } finally {
     // do not drop the conn if it was provided
     if (orm !== ormOpt) orm?.dropConn();
+  }
+}
+
+export async function modules(all: boolean, installed: boolean, dbId: string) {
+  const dbMeta = await MetadataRepo.getDbById(dbId);
+  if (dbMeta?.upgrading) throw new Error('Cannot check modules while upgrading');
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const Modules = (AllModules as any)[versionString];
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  const allModules = Object.values(Modules)
+    .filter((m: any) => m.hasOwnProperty('mappers') && m.hasOwnProperty('name') && !/iasql_.*/.test(m.name))
+    .map((m: any) => ({
+      moduleName: m.name,
+      moduleVersion: m.version,
+      dependencies: m.dependencies.filter((d: any) => !/iasql_.*/.test(d)),
+    }));
+  if (all) {
+    return allModules;
+  } else if (installed && dbId) {
+    const iasqlModule =
+      Modules?.IasqlPlatform?.utils?.IasqlModule ??
+      Modules?.iasqlPlatform?.iasqlModule ??
+      throwError('Core IasqlModule not found');
+    const iasqlTables =
+      Modules?.IasqlPlatform?.utils?.IasqlTables ??
+      Modules?.iasqlPlatform?.iasqlTables ??
+      throwError('Core IasqlTables not found');
+    const entities: Function[] = [iasqlModule, iasqlTables];
+    const orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
+    const mods = await orm.find(iasqlModule);
+    const modsInstalled = mods.map((m: any) => m.name);
+    return allModules.filter(m => modsInstalled.includes(`${m.moduleName}@${m.moduleVersion}`));
+  } else {
+    throw new Error('Invalid request parameters');
   }
 }

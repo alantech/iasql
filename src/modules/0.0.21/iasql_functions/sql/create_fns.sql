@@ -228,27 +228,6 @@ begin
 end;
 $$;
 
-create or replace function iasql_modules_list() returns table (
-  module_name text,
-  module_version text,
-  dependencies text[]
-)
-language plpgsql security definer
-as $$
-declare
-  _opid uuid;
-begin
-  _opid := until_iasql_operation('LIST', array[]::text[]);
-  return query select
-    j.s->>'moduleName' as module_name,
-    j.s->>'moduleVersion' as module_version,
-    array(select * from json_array_elements_text(j.s->'dependencies')) as dependencies
-  from (
-    select json_array_elements(output::json) as s from iasql_operation where opid = _opid
-  ) as j;
-end;
-$$;
-
 create or replace function iasql_modules_installed() returns table (
   module_name text,
   module_version text,

@@ -624,6 +624,8 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
   }
 }
 
+// ! DEPRECATED
+// `sync` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   logger.info(`Syncing ${dbId}`);
@@ -854,6 +856,8 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
   }
 }
 
+// ! DEPRECATED
+// `modules` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function modules(all: boolean, installed: boolean, dbId: string) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
   if (dbMeta?.upgrading) throw new Error('Cannot check modules while upgrading');
