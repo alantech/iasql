@@ -198,6 +198,19 @@ describe('Elasticache Integration Testing', () => {
     ),
   );
 
+  it('changes the region the cache_cluster is in', query(`
+    UPDATE cache_cluster SET region='us-east-1' WHERE cluster_id = '${newClusterId}';
+  `));
+
+  it('applies the change', apply());
+
+  it('checks the region was updated', query(`
+    SELECT * FROM cache_cluster WHERE cluster_id = '${newClusterId}';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].region).toBe('us-east-1');
+  }));
+
   it('uninstalls the elasticache module', uninstall(modules));
 
   it('installs the elasticache module again (to make sure it reloads stuff)', install(modules));
