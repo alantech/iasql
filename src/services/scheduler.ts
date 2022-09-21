@@ -310,7 +310,7 @@ if (require.main === module) {
   const port = 14527;
 
   function respondErrorAndDie(res: any, err: any) {
-    if (res) res.status(500).send(err);
+    res.status(500).send(err);
     logger.error(`Scheduler exited with error: ${err}`);
     process.exit(13);
   }
@@ -350,11 +350,7 @@ if (require.main === module) {
     res.sendStatus(200);
   });
 
-  init()
-    .then(() => {
-      app.listen(port, () => {
-        logger.info(`Scheduler running on port ${port}`);
-      });
-    })
-    .catch(e => respondErrorAndDie(undefined, e));
+  app.listen(port, () => {
+    logger.info(`Scheduler running on port ${port}`);
+  });
 }
