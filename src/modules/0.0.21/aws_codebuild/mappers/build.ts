@@ -7,17 +7,19 @@ import {
   StopBuildInput,
   paginateListBuilds,
 } from '@aws-sdk/client-codebuild';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsCodebuildModule } from '..';
 import { AWS, paginateBuilder, crudBuilderFormat, crudBuilder2 } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { CodebuildBuildList, CodebuildBuildImport, BuildStatus } from '../entity';
-import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
   module: AwsCodebuildModule;
   entity = CodebuildBuildList;
-  equals = (a: CodebuildBuildList, b: CodebuildBuildList) => Object.is(a.project?.arn, b.project?.arn) && Object.is(a.buildStatus, b.buildStatus) &&
+  equals = (a: CodebuildBuildList, b: CodebuildBuildList) =>
+    Object.is(a.project?.arn, b.project?.arn) &&
+    Object.is(a.buildStatus, b.buildStatus) &&
     Object.is(a.startTime?.toISOString(), b.startTime?.toISOString()) &&
     Object.is(a.endTime?.toISOString(), b.endTime?.toISOString());
 
@@ -34,7 +36,8 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
         (await this.module.project.cloud.read(ctx, s.projectName));
     } else {
       out.project =
-        (await this.module.project.db.read(ctx, s.projectName)) ?? ctx?.memo?.cloud?.CodebuildProject?.[s.projectName ?? ''];
+        (await this.module.project.db.read(ctx, s.projectName)) ??
+        ctx?.memo?.cloud?.CodebuildProject?.[s.projectName ?? ''];
     }
     out.buildNumber = s.buildNumber;
     out.endTime = s.endTime;
@@ -46,7 +49,7 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
     // wait for policies to be attached
     const input: BatchGetBuildsCommandInput = {
       ids: ids,
-    }
+    };
     await createWaiter<CodeBuild, BatchGetBuildsCommandInput>(
       {
         client,
@@ -76,18 +79,12 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
   getBuilds = crudBuilderFormat<CodeBuild, 'batchGetBuilds', Build[] | undefined>(
     'batchGetBuilds',
     input => input,
-    res => res?.builds
+    res => res?.builds,
   );
 
-  stopBuild = crudBuilder2<CodeBuild, 'stopBuild'>(
-    'stopBuild',
-    input => input,
-  );
+  stopBuild = crudBuilder2<CodeBuild, 'stopBuild'>('stopBuild', input => input);
 
-  deleteBuilds = crudBuilder2<CodeBuild, 'batchDeleteBuilds'>(
-    'batchDeleteBuilds',
-    input => input,
-  );
+  deleteBuilds = crudBuilder2<CodeBuild, 'batchDeleteBuilds'>('batchDeleteBuilds', input => input);
 
   cloud: Crud2<CodebuildBuildList> = new Crud2({
     create: async (es: CodebuildBuildList[], ctx: Context) => {
@@ -98,7 +95,7 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
       const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
         const input: BatchGetBuildsCommandInput = {
-          ids: [id]
+          ids: [id],
         };
         const builds = await this.getBuilds(client.cbClient, input);
         if (!builds || builds.length !== 1) return;
@@ -107,7 +104,7 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
       const ids = await this.listBuildIds(client.cbClient);
       if (!ids || !ids.length) return;
       const input: BatchGetBuildsCommandInput = {
-        ids
+        ids,
       };
       const builds = await this.getBuilds(client.cbClient, input);
       if (!builds) return;
@@ -165,13 +162,12 @@ export class CodebuildBuildImportMapper extends MapperBase<CodebuildBuildImport>
   entity = CodebuildBuildImport;
   entityId = (e: CodebuildBuildImport) => e.id.toString();
   equals = (a: CodebuildBuildImport, b: CodebuildBuildImport) =>
-    Object.is(a.id, b.id) &&
-    Object.is(a.project.projectName, b.project.projectName);
+    Object.is(a.id, b.id) && Object.is(a.project.projectName, b.project.projectName);
 
   startBuild = crudBuilderFormat<CodeBuild, 'startBuild', Build | undefined>(
     'startBuild',
     input => input,
-    res => res?.build
+    res => res?.build,
   );
 
   db = new Crud2<CodebuildBuildImport>({

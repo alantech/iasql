@@ -7,15 +7,14 @@ import {
   paginateListUsers,
   Role as AWSRole,
   User as AWSUser,
-  waitUntilRoleExists
+  waitUntilRoleExists,
 } from '@aws-sdk/client-iam';
+import { createWaiter, WaiterState, WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { policiesAreSame, objectsAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
-
 import { Role, IamUser } from './entity';
-import { createWaiter, WaiterState, WaiterOptions } from '@aws-sdk/util-waiter';
 
 class UserMapper extends MapperBase<IamUser> {
   module: AwsIamModule;
@@ -234,7 +233,7 @@ class RoleMapper extends MapperBase<Role> {
     // wait for policies to be attached
     const input: ListAttachedRolePoliciesCommandInput = {
       RoleName: roleName,
-    }
+    };
     await createWaiter<IAM, ListAttachedRolePoliciesCommandInput>(
       {
         client,
@@ -304,7 +303,6 @@ class RoleMapper extends MapperBase<Role> {
           RoleName: role.roleName,
           AssumeRolePolicyDocument: JSON.stringify(role.assumeRolePolicyDocument),
           Description: role.description,
-          
         });
         if (!roleArn) {
           // then who?
@@ -321,7 +319,11 @@ class RoleMapper extends MapperBase<Role> {
           { RoleName: role.roleName },
         );
         await this.attachRolePolicies(client.iamClient, role.roleName, role.attachedPoliciesArns ?? []);
-        await this.waitForAttachedRolePolicies(client.iamClient, role.roleName, role.attachedPoliciesArns ?? []);
+        await this.waitForAttachedRolePolicies(
+          client.iamClient,
+          role.roleName,
+          role.attachedPoliciesArns ?? [],
+        );
         const allowEc2Service = this.allowEc2Service(role);
         if (allowEc2Service) {
           await this.createInstanceProfile(client.iamClient, role.roleName);
@@ -386,16 +388,8 @@ class RoleMapper extends MapperBase<Role> {
           update = true;
         }
         if (!objectsAreSame(e.attachedPoliciesArns, b.attachedPoliciesArns)) {
-          await this.detachRolePolicies(
-            client.iamClient,
-            e.roleName,
-            b.attachedPoliciesArns ?? [],
-          );
-          await this.attachRolePolicies(
-            client.iamClient,
-            e.roleName,
-            e.attachedPoliciesArns ?? [],
-          );
+          await this.detachRolePolicies(client.iamClient, e.roleName, b.attachedPoliciesArns ?? []);
+          await this.attachRolePolicies(client.iamClient, e.roleName, e.attachedPoliciesArns ?? []);
           await this.waitForAttachedRolePolicies(client.iamClient, e.roleName, e.attachedPoliciesArns ?? []);
           update = true;
         }
