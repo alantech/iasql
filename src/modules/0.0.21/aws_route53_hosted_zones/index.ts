@@ -94,6 +94,11 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
     return out;
   }
 
+  getNameFromDomain(recordName: string, domain: string) {
+    const nameIndex = recordName.indexOf(domain);
+    return recordName.substring(0, nameIndex);
+  }
+
   cloud: Crud2<HostedZone> = new Crud2({
     create: async (hz: HostedZone[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
@@ -136,7 +141,8 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
     update: async (es: HostedZone[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.HostedZone?.[e.hostedZoneId ?? ''];
+        const cloudRecord: HostedZone = ctx?.memo?.cloud?.HostedZone?.[e.hostedZoneId ?? ''];
+        const oldDomainName = cloudRecord.domainName;
         const newEntity = await this.module.hostedZone.cloud.create(e, ctx);
         if (newEntity instanceof Array || !newEntity) continue;
         newEntity.id = cloudRecord.id;
@@ -154,6 +160,23 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
             ['NS', 'SOA'].includes(rrs.recordType),
         );
         await this.module.resourceRecordSet.db.create(relevantCloudRecords, ctx);
+        // Rename the ResourceRecordSets belonging to this HostedZone
+        const recordsToRename = dbRecords.filter(
+          rrs => rrs.parentHostedZone.id === e.id && !['NS', 'SOA'].includes(rrs.recordType),
+        );
+        recordsToRename.map(rrs => {
+          // Extract previous record name without the old domain
+          const name = this.getNameFromDomain(rrs.name, oldDomainName);
+          if (name) {
+            // Attach the new domain
+            rrs.name = `${name}${cloudRecord.domainName}`;
+          } else {
+            // If no previous name extracted it's because it was the complete domain, we just need to replace it
+            rrs.name = cloudRecord.domainName;
+          }
+        });
+        await this.module.resourceRecordSet.db.update(recordsToRename, ctx);
+
         out.push(newEntity);
       }
       return out;
@@ -258,7 +281,7 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
         ? {
             where: {
               parentHostedZone: {
-                hostedZoneId: zoneIdNameAndRecordType.split('|')[0],
+                id: zoneIdNameAndRecordType.split('|')[0],
               },
               name: zoneIdNameAndRecordType.split('|')[1],
               recordType: zoneIdNameAndRecordType.split('|')[2],
@@ -350,17 +373,6 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.ResourceRecordSet[this.module.resourceRecordSet.entityId(e)];
         // First check if theres a new hosted zone, the name need to change since it is based on the domain name
-        if (e.parentHostedZone.hostedZoneId !== cloudRecord.parentHostedZone.hostedZoneId) {
-          // Extract previous record name without the old domain
-          const name = this.getNameFromDomain(e.name, cloudRecord.parentHostedZone.domainName);
-          if (name) {
-            // Attach the new domain
-            e.name = `${name}${e.parentHostedZone.domainName}`;
-          } else {
-            // If no previous name extracted it's because it was the complete domain, we just need to replace it
-            e.name = e.parentHostedZone.domainName;
-          }
-        }
         const newEntity = await this.module.resourceRecordSet.cloud.create(e, ctx);
         if (newEntity instanceof Array || !newEntity) continue;
         await this.module.resourceRecordSet.cloud.delete(cloudRecord, ctx);

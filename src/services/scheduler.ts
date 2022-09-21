@@ -310,7 +310,7 @@ if (require.main === module) {
   const port = 14527;
 
   function respondErrorAndDie(res: any, err: any) {
-    res.status(500).send(err);
+    if (res) res.status(500).send(err);
     logger.error(`Scheduler exited with error: ${err}`);
     process.exit(13);
   }
