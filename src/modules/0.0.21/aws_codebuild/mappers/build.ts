@@ -24,7 +24,6 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
     Object.is(a.endTime?.toISOString(), b.endTime?.toISOString());
 
   async buildListMapper(s: Build, ctx: Context): Promise<CodebuildBuildList | undefined> {
-    console.dir(s);
     const out = new CodebuildBuildList();
     if (!s?.id || !s?.arn) return undefined;
     out.arn = s.arn;
@@ -48,7 +47,7 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
   async waitForBuildsToStop(client: CodeBuild, ids: string[]) {
     // wait for policies to be attached
     const input: BatchGetBuildsCommandInput = {
-      ids: ids,
+      ids,
     };
     await createWaiter<CodeBuild, BatchGetBuildsCommandInput>(
       {
@@ -93,20 +92,22 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
     },
     read: async (ctx: Context, id?: string) => {
       const client = (await ctx.getAwsClient()) as AWS;
+      let input: BatchGetBuildsCommandInput;
+      let builds: Build[] | undefined;
       if (id) {
-        const input: BatchGetBuildsCommandInput = {
+        input = {
           ids: [id],
         };
-        const builds = await this.getBuilds(client.cbClient, input);
+        builds = await this.getBuilds(client.cbClient, input);
         if (!builds || builds.length !== 1) return;
         return this.buildListMapper(builds[0], ctx);
       }
       const ids = await this.listBuildIds(client.cbClient);
       if (!ids || !ids.length) return;
-      const input: BatchGetBuildsCommandInput = {
+      input = {
         ids,
       };
-      const builds = await this.getBuilds(client.cbClient, input);
+      builds = await this.getBuilds(client.cbClient, input);
       if (!builds) return;
       const out = [];
       for (const build of builds) {
