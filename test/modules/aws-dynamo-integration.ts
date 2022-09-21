@@ -135,7 +135,7 @@ describe('Dynamo Integration Testing', () => {
 
   it('changes the region the table is located in', query(`
     UPDATE dynamo_table
-    SET region = '${process.env.AWS_REGION}
+    SET region = '${process.env.AWS_REGION}'
     WHERE table_name = '${prefix}regiontest';
   `));
 

@@ -129,7 +129,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
         return out;
       }
     },
-    updateOrReplace: (a: DynamoTable, b: DynamoTable) => a.region !== b.region ? 'replace' : 'update',
+    updateOrReplace: (a: DynamoTable, b: DynamoTable) => (a.region !== b.region ? 'replace' : 'update'),
     update: async (es: DynamoTable[], ctx: Context) => {
       const out = [];
       for (const e of es) {
