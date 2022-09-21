@@ -1,7 +1,6 @@
-import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
-import { AwsRegions } from '../../aws_account/entity';
 
 export enum TableClass {
   Standard = 'STANDARD',
