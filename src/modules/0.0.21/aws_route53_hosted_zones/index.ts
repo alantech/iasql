@@ -83,7 +83,7 @@ const getRecord = async (client: Route53, hostedZoneId: string, recordName: stri
 class HostedZoneMapper extends MapperBase<HostedZone> {
   module: AwsRoute53HostedZoneModule;
   entity = HostedZone;
-  equals = (a: HostedZone, b: HostedZone) => Object.is(a.hostedZoneId, b.hostedZoneId);
+  equals = (a: HostedZone, b: HostedZone) => Object.is(a.domainName, b.domainName);
 
   hostedZoneMapper(hz: AwsHostedZone) {
     const out = new HostedZone();
