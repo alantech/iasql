@@ -126,7 +126,14 @@ describe('AwsCodebuild Integration Testing', () => {
     WHERE project_name = '${dbAlias}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  // TODO poll repository image until it exists with a timeout
+  it('installs the codebuild module', install(modules));
+
+  it('uninstalls the codebuild module', uninstall(modules));
+
+  it('check build exists in list', query(`
+    SELECT * FROM codebuild_build_list
+    WHERE project_name = '${dbAlias}';
+  `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('delete build', query(`
     DELETE FROM codebuild_build_list
@@ -172,6 +179,43 @@ describe('AwsCodebuild Integration Testing', () => {
     FROM codebuild_project
     WHERE project_name = '${dbAlias}';
   `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('deletes the test db', (done) => void iasql
+    .disconnect(dbAlias, 'not-needed')
+    .then(...finish(done)));
+});
+
+describe('AwsCodebuild install/uninstall', () => {
+  it('creates a new test db', (done) => void iasql.connect(
+    dbAlias,
+    'not-needed', 'not-needed').then(...finish(done)));
+
+  it('installs the aws_account module', install(['aws_account']));
+
+  it('inserts aws credentials', query(`
+    INSERT INTO aws_credentials (access_key_id, secret_access_key)
+    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+  `, undefined, false));
+
+  it('syncs the regions', sync());
+
+  it('sets the default region', query(`
+    UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
+  `));
+
+  it('installs the codebuild module', install(modules));
+
+  it('uninstalls the codebuild module', uninstall(modules));
+
+  it('installs all modules', (done) => void iasql.install(
+    [],
+    dbAlias,
+    'postgres',
+    true).then(...finish(done)));
+
+  it('uninstalls the codebuild + ecs module', uninstall(['aws_codebuild', 'aws_ecs_fargate', 'aws_ecs_simplified',]));
+
+  it('installs the codebuild module', install(modules));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')
