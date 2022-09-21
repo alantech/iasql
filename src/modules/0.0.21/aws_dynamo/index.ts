@@ -129,9 +129,19 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
         return out;
       }
     },
+    updateOrReplace: (a: DynamoTable, b: DynamoTable) => a.region !== b.region ? 'replace' : 'update',
     update: async (es: DynamoTable[], ctx: Context) => {
       const out = [];
       for (const e of es) {
+        // TODO: Eliminate this memo hackery
+        const cloudRecord = ctx?.memo?.cloud?.DynamoTable?.[e.tableName];
+        const isUpdate = Object.is(this.module.dynamoTable.cloud.updateOrReplace(cloudRecord, e), 'update');
+        if (!isUpdate) {
+          // Delete the current cloud record from the cloud, create the new db record in the cloud
+          await this.module.dynamoTable.cloud.delete(cloudRecord, ctx);
+          await this.module.dynamoTable.cloud.create(e, ctx);
+          continue;
+        }
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const req: UpdateTableCommandInput = {
           TableName: e.tableName,

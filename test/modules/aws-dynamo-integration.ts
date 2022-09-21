@@ -133,6 +133,23 @@ describe('Dynamo Integration Testing', () => {
     expect(res[0].region).toBe('us-east-1');
   }));
 
+  it('changes the region the table is located in', query(`
+    UPDATE dynamo_table
+    SET region = '${process.env.AWS_REGION}
+    WHERE table_name = '${prefix}regiontest';
+  `));
+
+  it('applies the replacement', apply());
+
+  it('checks the table was moved', query(`
+    SELECT *
+    FROM dynamo_table
+    WHERE table_name = '${prefix}regiontest';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].region).toBe(process.env.AWS_REGION);
+  }));
+
   it('removes the dynamo table', query(`
     DELETE FROM dynamo_table
     WHERE table_name = '${prefix}regiontest';
