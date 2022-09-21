@@ -43,7 +43,7 @@ describe('Testing metadata repo', () => {
     WHERE pg_name = '${dbAlias}';
   `, (row: any[]) => expect(row.length).toBe(1)));
 
-  it('check op db count', metadataQuery(`
+  it('check rpc db count', metadataQuery(`
     SELECT rpc_count
     FROM iasql_database
     WHERE pg_name = '${dbAlias}';
@@ -67,7 +67,7 @@ describe('Testing metadata repo', () => {
 
   it('installs the aws_account module', install(['aws_account']));
 
-  it('check op db count', metadataQuery(`
+  it('check rpc db count', metadataQuery(`
     SELECT rpc_count
     FROM iasql_database
     WHERE pg_name = '${dbAlias}';
@@ -80,17 +80,11 @@ describe('Testing metadata repo', () => {
 
   it('apply updates db counts', apply());
 
-  it('check op db count', metadataQuery(`
-    SELECT rpc_count
-    FROM iasql_database
-    WHERE pg_name = '${dbAlias}';
-  `, (row: any[]) => expect(row[0].rpc_count).toBe(1)));
-
   it('check rpc db count', metadataQuery(`
     SELECT rpc_count
     FROM iasql_database
     WHERE pg_name = '${dbAlias}';
-  `, (row: any[]) => expect(row[0].rpc_count).toBe(1)));
+  `, (row: any[]) => expect(row[0].rpc_count).toBe(2)));
 
   it('check rec db count', metadataQuery(`
     SELECT record_count
