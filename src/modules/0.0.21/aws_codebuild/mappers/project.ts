@@ -28,7 +28,6 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
     Object.is(a.computeType, b.computeType) &&
     Object.is(a.privilegedMode, b.privilegedMode) &&
     Object.is(a.environmentType, b.environmentType);
-  // TODO env variables
 
   async projectMapper(pj: Project, ctx: Context) {
     const out = new CodebuildProject();

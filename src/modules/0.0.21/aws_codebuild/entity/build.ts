@@ -15,11 +15,13 @@ export enum BuildStatus {
 @Entity()
 export class CodebuildBuildList {
   // AWS unique ID for the build.
-  @Column()
-  id: string;
-
   @PrimaryColumn()
   @cloudId
+  id: string;
+
+  @Column({
+    nullable: true,
+  })
   arn: string;
 
   // The number of the build. For each project, the buildNumber of its first build is 1. The buildNumber of each subsequent build is incremented by 1. If a build is deleted, the buildNumber of other builds does not change.
@@ -45,13 +47,13 @@ export class CodebuildBuildList {
   buildStatus: BuildStatus;
 
   @Column({
-    type: 'timestamptz',
+    type: 'timestamp without time zone',
     nullable: true,
   })
   endTime?: Date;
 
   @Column({
-    type: 'timestamptz',
+    type: 'timestamp without time zone',
     nullable: true,
   })
   startTime?: Date;

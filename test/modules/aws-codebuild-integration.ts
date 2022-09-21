@@ -34,30 +34,6 @@ const assumeServicePolicy = JSON.stringify({
   "Version": "2012-10-17"
 });
 const ghUrl = 'https://github.com/iasql/iasql-engine';
-const envVariables = `[
-  { "name": "AWS_ACCOUNT_ID", "value": "658401754851" },
-  { "name": "IMAGE_REPO_NAME", "value": "${dbAlias}" },
-  { "name": "IMAGE_TAG", "value": "latest" },
-  { "name": "AWS_REGION", "value": "${process.env.AWS_REGION}" }
-]`;
-const buildSpec = `
-version: 0.2
-
-phases:
-  pre_build:
-    commands:
-      - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-  build:
-    commands:
-      - echo Building the Docker image...
-      - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG .
-      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
-  post_build:
-    commands:
-      - echo Pushing the Docker image...
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
-`;
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -127,8 +103,8 @@ describe('AwsCodebuild Integration Testing', () => {
   it('apply deps creation', apply());
 
   it('adds a new codebuild_project', query(`
-    INSERT INTO codebuild_project (project_name, source_type, service_role_name, source_location, environment_variables, build_spec)
-    VALUES ('${dbAlias}', 'GITHUB', '${dbAlias}', '${ghUrl}', '${envVariables}', '${buildSpec}');
+    INSERT INTO codebuild_project (project_name, source_type, service_role_name, source_location)
+    VALUES ('${dbAlias}', 'GITHUB', '${dbAlias}', '${ghUrl}');
   `, ));
 
   it('apply codebuild_project creation', apply());
@@ -173,6 +149,23 @@ describe('AwsCodebuild Integration Testing', () => {
   `));
 
   it('apply deletions', apply());
+
+  it('check build list is empty', query(`
+    SELECT * FROM codebuild_build_list
+    WHERE project_name = '${dbAlias}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check role is empty', query(`
+    SELECT *
+    FROM role
+    WHERE role_name = '${dbAlias}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('check repository is empty', query(`
+    SELECT *
+    FROM repository
+    WHERE repository_name = '${dbAlias}';
+  `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('check codebuild_project is empty', query(`
     SELECT *
