@@ -9,7 +9,7 @@ export enum BuildStatus {
   IN_PROGRESS = 'IN_PROGRESS',
   STOPPED = 'STOPPED',
   SUCCEEDED = 'SUCCEEDED',
-  TIMED_OUT = 'TIMED_OUT'
+  TIMED_OUT = 'TIMED_OUT',
 }
 
 @Entity()
