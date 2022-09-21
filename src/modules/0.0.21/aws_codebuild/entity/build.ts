@@ -17,7 +17,7 @@ export class CodebuildBuildList {
   // AWS unique ID for the build.
   @PrimaryColumn()
   @cloudId
-  id: string;
+  awsId: string;
 
   @Column({
     nullable: true,

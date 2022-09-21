@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsCodebuild1663773220784 implements MigrationInterface {
-    name = 'awsCodebuild1663773220784'
+export class awsCodebuild1663796007493 implements MigrationInterface {
+    name = 'awsCodebuild1663796007493'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."codebuild_project_compute_type_enum" AS ENUM('BUILD_GENERAL1_SMALL', 'BUILD_GENERAL1_MEDIUM', 'BUILD_GENERAL1_LARGE', 'BUILD_GENERAL1_2XLARGE')`);
@@ -14,7 +14,7 @@ export class awsCodebuild1663773220784 implements MigrationInterface {
         await queryRunner.query(`CREATE TYPE "public"."source_credentials_import_auth_type_enum" AS ENUM('PERSONAL_ACCESS_TOKEN')`);
         await queryRunner.query(`CREATE TABLE "source_credentials_import" ("id" SERIAL NOT NULL, "token" character varying NOT NULL, "source_type" "public"."source_credentials_import_source_type_enum" NOT NULL, "auth_type" "public"."source_credentials_import_auth_type_enum" NOT NULL, CONSTRAINT "PK_c1c5d499fdba24ff5ac63f3002c" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "public"."codebuild_build_list_build_status_enum" AS ENUM('FAILED', 'FAULT', 'IN_PROGRESS', 'STOPPED', 'SUCCEEDED', 'TIMED_OUT')`);
-        await queryRunner.query(`CREATE TABLE "codebuild_build_list" ("id" character varying NOT NULL, "arn" character varying, "build_number" integer, "build_status" "public"."codebuild_build_list_build_status_enum" NOT NULL, "end_time" TIMESTAMP, "start_time" TIMESTAMP, "project_name" character varying, CONSTRAINT "PK_50a7a7e05b0b8067c138324fa17" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "codebuild_build_list" ("aws_id" character varying NOT NULL, "arn" character varying, "build_number" integer, "build_status" "public"."codebuild_build_list_build_status_enum" NOT NULL, "end_time" TIMESTAMP, "start_time" TIMESTAMP, "project_name" character varying, CONSTRAINT "PK_47176194d6ba57c33c9474a9f2b" PRIMARY KEY ("aws_id"))`);
         await queryRunner.query(`CREATE TABLE "codebuild_build_import" ("id" SERIAL NOT NULL, "project_name" character varying, CONSTRAINT "PK_4ea8c3dad42dee7fddcf905f35f" PRIMARY KEY ("id"))`);
         await queryRunner.query(`ALTER TABLE "codebuild_project" ADD CONSTRAINT "FK_75407540d48925c3555c05543c3" FOREIGN KEY ("service_role_name") REFERENCES "role"("role_name") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "codebuild_build_list" ADD CONSTRAINT "FK_260ab6704f473a4323d955d39d5" FOREIGN KEY ("project_name") REFERENCES "codebuild_project"("project_name") ON DELETE NO ACTION ON UPDATE NO ACTION`);
