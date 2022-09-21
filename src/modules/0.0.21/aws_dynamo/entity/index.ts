@@ -55,6 +55,14 @@ export class DynamoTable {
   })
   createdAt?: Date;
 
+  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  region: string;
+
   // TODO: Add encryption support, local secondary keys, stream support, global support,
   //       global secondary indexes, and tags
 }
