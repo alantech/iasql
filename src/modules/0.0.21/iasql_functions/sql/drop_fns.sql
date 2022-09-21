@@ -4,7 +4,6 @@ DROP FUNCTION "iasql_upgrade";
 DROP FUNCTION "delete_all_records";
 DROP FUNCTION "iasql_modules_installed";
 DROP FUNCTION "iasql_uninstall";
-DROP FUNCTION "iasql_install";
 DROP FUNCTION "iasql_cloud_manipulation";
 DROP FUNCTION "until_iasql_operation";
 DROP FUNCTION "until_iasql_rpc";

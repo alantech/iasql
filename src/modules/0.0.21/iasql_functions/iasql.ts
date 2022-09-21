@@ -1,9 +1,12 @@
+import * as levenshtein from 'fastest-levenshtein';
+import { default as cloneDeep } from 'lodash.clonedeep';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
 import { throwError } from '../../../config/config';
 import { modules as AllModules } from '../../../modules';
 import { Context, MapperInterface, ModuleInterface } from '../../../modules';
+import * as dbMan from '../../../services/db-manager';
 import { findDiff } from '../../../services/diff';
 import { DepError, lazyLoader } from '../../../services/lazy-dep';
 import logger, { debugObj } from '../../../services/logger';
@@ -533,5 +536,248 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
     return allModules.filter(m => modsInstalled.includes(`${m.moduleName}@${m.moduleVersion}`));
   } else {
     throw new Error('Invalid request parameters');
+  }
+}
+
+export async function install(
+  moduleList: string[],
+  dbId: string,
+  dbUser: string,
+  allModules = false,
+  force = false,
+  syncContext?: Context,
+  ormOpt?: TypeormWrapper,
+) {
+  const dbMeta = await MetadataRepo.getDbById(dbId);
+  if (!force && dbMeta?.upgrading) throw new Error('Cannot install modules while upgrading');
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const Modules = (AllModules as any)[versionString];
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  // Check to make sure that all specified modules actually exist
+  if (allModules) {
+    const installedModules = (await modules(false, true, dbId)).map((r: any) => r.moduleName);
+    moduleList = (Object.values(Modules) as ModuleInterface[])
+      .filter((m: ModuleInterface) => !installedModules.includes(m.name))
+      .filter(
+        (m: ModuleInterface) =>
+          m.name && m.version && !['iasql_platform', 'iasql_functions'].includes(m.name),
+      )
+      .map((m: ModuleInterface) => `${m.name}@${m.version}`);
+  }
+  const version =
+    Modules?.IasqlPlatform?.version ??
+    Modules?.iasqlPlatform?.version ??
+    throwError('IasqlPlatform not found');
+  moduleList = moduleList.map((m: string) => (/@/.test(m) ? m : `${m}@${version}`));
+  const mods = moduleList.map((n: string) =>
+    (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
+  ) as ModuleInterface[];
+  if (mods.some((m: any) => m === undefined)) {
+    const modNames = (Object.values(Modules) as ModuleInterface[])
+      .filter(m => m.hasOwnProperty('name') && m.hasOwnProperty('version'))
+      .map(m => `${m.name}@${m.version}`);
+    const missingModules = moduleList.filter(
+      (n: string) => !(Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
+    );
+    const missingSuggestions = [
+      ...new Set(missingModules.map(m => levenshtein.closest(m, modNames))).values(),
+    ];
+    throw new Error(
+      `The following modules do not exist: ${missingModules.join(
+        ', ',
+      )}. Did you mean: ${missingSuggestions.join(', ')}`,
+    );
+  }
+  const orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
+  const queryRunner = orm.createQueryRunner();
+  await queryRunner.connect();
+  // See what modules are already installed and prune them from the list
+  const iasqlModule =
+    Modules?.IasqlPlatform?.utils?.IasqlModule ??
+    Modules?.iasqlPlatform?.iasqlModule ??
+    throwError('Core IasqlModule not found');
+  const existingModules = (await orm.find(iasqlModule)).map((m: any) => m.name);
+  for (let i = 0; i < mods.length; i++) {
+    if (existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
+      mods.splice(i, 1);
+      i--;
+    }
+  }
+  // Check to make sure that all dependent modules are in the list
+  let missingDeps: string[] = [];
+  do {
+    missingDeps = [
+      ...new Set(
+        mods
+          .flatMap((m: ModuleInterface) =>
+            m.dependencies.filter(d => !moduleList.includes(d) && !existingModules.includes(d)),
+          )
+          .filter(
+            (m: any) =>
+              ![`iasql_platform@${version}`, `iasql_functions@${version}`].includes(m) && m !== undefined,
+          ),
+      ),
+    ];
+    if (missingDeps.length > 0) {
+      logger.warn('Automatically attaching missing dependencies to this install', {
+        moduleList,
+        missingDeps,
+      });
+      const extraMods = missingDeps.map((n: string) =>
+        (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
+      ) as ModuleInterface[];
+      mods.push(...extraMods);
+      moduleList.push(...extraMods.map(mod => `${mod.name}@${mod.version}`));
+      continue;
+    }
+  } while (missingDeps.length > 0);
+  // See if we need to abort because now there's nothing to do
+  if (mods.length === 0) {
+    logger.warn('All modules already installed', { moduleList });
+    return 'Done!';
+  }
+  // Scan the database and see if there are any collisions
+  const tables = (
+    await queryRunner.query(`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema='public' AND table_type='BASE TABLE'
+  `)
+  ).map((t: any) => t.table_name);
+  const tableCollisions: { [key: string]: string[] } = {};
+  let hasCollision = false;
+  for (const md of mods) {
+    tableCollisions[md.name] = [];
+    if (md.provides?.tables) {
+      for (const t of md.provides.tables) {
+        if (tables.includes(t)) {
+          tableCollisions[md.name].push(t);
+          hasCollision = true;
+        }
+      }
+    }
+  }
+  if (hasCollision) {
+    throw new Error(`Collision with existing tables detected.
+${Object.keys(tableCollisions)
+  .filter(m => tableCollisions[m].length > 0)
+  .map(m => `Module ${m} collides with tables: ${tableCollisions[m].join(', ')}`)
+  .join('\n')}`);
+  }
+  // We're now good to go with installing the requested modules. To make sure they install correctly
+  // we first need to sync the existing modules to make sure there are no records the newly-added
+  // modules have a dependency on.
+  try {
+    await sync(dbId, false, force, syncContext ?? { memo: {}, orm }, orm);
+  } catch (e: any) {
+    logger.error('Sync during module install failed', e);
+    throw e;
+  }
+  // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
+  const rootToLeafOrder = sortModules(mods, existingModules);
+  // Actually run the installation. The install scripts are run from root-to-leaf. Wrapped in a
+  // transaction so any failure at this point when we're actually mutating the database doesn't leave things in a busted state.
+  await queryRunner.startTransaction();
+  try {
+    for (const md of rootToLeafOrder) {
+      if (md.migrations?.install) {
+        await md.migrations.install(queryRunner);
+      }
+      if (md.migrations?.afterInstall) {
+        await md.migrations.afterInstall(queryRunner);
+      }
+      const e = new iasqlModule();
+      e.name = `${md.name}@${md.version}`;
+      // Promise.all is okay here because it's guaranteed to not hit the cloud services
+      e.dependencies = await Promise.all(
+        md.dependencies.map(async dep => await orm.findOne(iasqlModule, { name: dep })),
+      );
+      await orm.save(iasqlModule, e);
+
+      const iasqlTables =
+        Modules?.IasqlPlatform?.utils?.IasqlTables ??
+        Modules?.iasqlPlatform?.iasqlTables ??
+        throwError('Core IasqlModule not found');
+      const modTables =
+        md?.provides?.tables?.map(t => {
+          const mt = new iasqlTables();
+          mt.table = t;
+          mt.module = e;
+          return mt;
+        }) ?? [];
+      await orm.save(iasqlTables, modTables);
+      // For each table, we need to attach the audit log trigger
+      for (const table of md?.provides?.tables ?? []) {
+        await queryRunner.query(`
+          CREATE TRIGGER ${table}_audit
+          AFTER INSERT OR UPDATE OR DELETE ON ${table}
+          FOR EACH ROW EXECUTE FUNCTION iasql_audit();
+        `);
+      }
+    }
+    await queryRunner.commitTransaction();
+    await orm.query(dbMan.grantPostgresRoleQuery(dbUser));
+  } catch (e: any) {
+    await queryRunner.rollbackTransaction();
+    throw e;
+  } finally {
+    await queryRunner.release();
+  }
+  // For all newly installed modules, query the cloud state, if any, and save it to the database.
+  // Since the context requires all installed modules and that has changed, for simplicity's sake
+  // we're re-loading the modules and constructing the context that way, first, but then iterating
+  // through the mappers of only the newly installed modules to sync from cloud to DB.
+  // TODO: For now we're gonna use the TypeORM client directly, but we should be using `db.create`,
+  // but we aren't right now because it would be slower. Need to figure out if/how to change the
+  // mapper to make batch create/update/delete more efficient.
+
+  // Find all of the installed modules, and create the context object only for these
+  const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
+  const context: Context = { orm, memo: {} }; // Every module gets access to the DB
+  for (const name of moduleNames) {
+    const md = (Object.values(Modules) as ModuleInterface[]).find(
+      m => `${m.name}@${m.version}` === name,
+    ) as ModuleInterface;
+    if (!md) throw new Error(`This should be impossible. Cannot find module ${name}`);
+    const moduleContext = md?.provides?.context ?? {};
+    Object.keys(moduleContext).forEach(k => {
+      if (typeof moduleContext[k] === 'function') {
+        context[k] = moduleContext[k];
+      } else {
+        context[k] = cloneDeep(moduleContext[k]);
+      }
+    });
+  }
+
+  try {
+    for (const md of rootToLeafOrder) {
+      // Get the relevant mappers, which are the ones where the DB is the source-of-truth
+      const mappers = Object.values(md.mappers);
+      await lazyLoader(
+        mappers.map(mapper => async () => {
+          let e;
+          try {
+            e = await mapper.cloud.read(context);
+          } catch (err: any) {
+            logger.error(`Error reading from cloud entity ${mapper.entity.name}`, err);
+            throw err;
+          }
+          if (!e || (Array.isArray(e) && !e.length)) {
+            logger.warn('No cloud entity records');
+          } else {
+            try {
+              await mapper.db.create(e, context);
+            } catch (err: any) {
+              logger.error(`Error reading from cloud entity ${mapper.entity.name}`, { e, err });
+              throw err;
+            }
+          }
+        }),
+      );
+    }
+    return 'Done!';
+  } catch (e: any) {
+    throw e;
   }
 }

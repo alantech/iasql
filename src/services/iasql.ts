@@ -895,6 +895,8 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
   }
 }
 
+// ! DEPRECATED
+// `install` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function install(
   moduleList: string[],
   dbId: string,

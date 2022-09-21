@@ -162,26 +162,6 @@ begin
 end;
 $$;
 
-create or replace function iasql_install(variadic _mods text[]) returns table (
-    module_name character varying,
-    created_table_name character varying,
-    record_count int
-)
-language plpgsql security definer
-as $$
-begin
-    perform until_iasql_operation('INSTALL', _mods);
-    return query select
-        m.name as module_name,
-        t.table as created_table_name,
-        (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
-    from iasql_module as m
-    inner join iasql_tables as t on m.name = t.module
-    inner join (select unnest(_mods) as module) as mo on true
-    where left(m.name, length(mo.module)) = mo.module;
-end;
-$$;
-
 create or replace function iasql_uninstall(variadic _mods text[]) returns table (
     module_name character varying,
     dropped_table_name character varying,

@@ -1,7 +1,14 @@
 /* THIS MODULE IS A SPECIAL SNOWFLAKE. DON'T LOOK AT IT FOR HOW TO WRITE A REAL MODULE */
 import { ModuleBase } from '../../interfaces';
 import { IasqlOperationType } from './entity';
-import { IasqlApply, IasqlModulesList, IasqlPreviewApply, IasqlPreviewSync, IasqlSync } from './rpcs';
+import {
+  IasqlApply,
+  IasqlInstall,
+  IasqlModulesList,
+  IasqlPreviewApply,
+  IasqlPreviewSync,
+  IasqlSync,
+} from './rpcs';
 
 export class IasqlFunctions extends ModuleBase {
   iasqlApply: IasqlApply;
@@ -9,6 +16,7 @@ export class IasqlFunctions extends ModuleBase {
   iasqlSync: IasqlSync;
   iasqlPreviewSync: IasqlPreviewSync;
   iasqlModulesList: IasqlModulesList;
+  iasqlInstall: IasqlInstall;
   constructor() {
     super();
     this.sql = {
@@ -20,6 +28,7 @@ export class IasqlFunctions extends ModuleBase {
     this.iasqlSync = new IasqlSync(this);
     this.iasqlPreviewSync = new IasqlPreviewSync(this);
     this.iasqlModulesList = new IasqlModulesList(this);
+    this.iasqlInstall = new IasqlInstall(this);
     super.init();
   }
   iasqlOperationType = IasqlOperationType;
