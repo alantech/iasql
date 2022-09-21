@@ -18,7 +18,7 @@ export class IasqlModulesList extends RpcBase {
     return res.map(rec => {
       const updatedRec = {
         moduleName: rec.moduleName,
-        moduleVersion: `${rec.moduleVersion}`,
+        moduleVersion: rec.moduleVersion,
         dependencies: JSON.stringify(rec.dependencies),
       };
       return super.formatObjKeysToSnakeCase(updatedRec) as RpcResponseObject<typeof this.outputTable>;
