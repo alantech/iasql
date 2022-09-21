@@ -367,7 +367,6 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
       const out = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.ResourceRecordSet[this.module.resourceRecordSet.entityId(e)];
-        // First check if theres a new hosted zone, the name need to change since it is based on the domain name
         const newEntity = await this.module.resourceRecordSet.cloud.create(e, ctx);
         if (newEntity instanceof Array || !newEntity) continue;
         await this.module.resourceRecordSet.cloud.delete(cloudRecord, ctx);
