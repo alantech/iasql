@@ -38,7 +38,7 @@ export class IasqlFunctions extends ModuleBase {
     super.init();
   }
   // ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+  // TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
   iasqlOperationType = IasqlOperationType;
 }
 export const iasqlFunctions = new IasqlFunctions();

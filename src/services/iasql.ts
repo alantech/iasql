@@ -376,7 +376,6 @@ export async function dump(dbId: string, dataOnly: boolean) {
   }
 }*/
 
-
 // ! DEPRECATED
 // TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
 // `colToRow` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
