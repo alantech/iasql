@@ -14,6 +14,7 @@ import { sortModules } from '../../../services/mod-sort';
 import MetadataRepo from '../../../services/repositories/metadata';
 import { TypeormWrapper } from '../../../services/typeorm';
 
+
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
 export function recordCount(records: { [key: string]: any }[]): [number, number, number] {
@@ -780,4 +781,123 @@ ${Object.keys(tableCollisions)
   } catch (e: any) {
     throw e;
   }
+}
+
+export async function uninstall(moduleList: string[], dbId: string, force = false, orm?: TypeormWrapper) {
+  const dbMeta = await MetadataRepo.getDbById(dbId);
+  if (!force && dbMeta?.upgrading) throw new Error('Cannot uninstall modules while upgrading');
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const Modules = (AllModules as any)[versionString];
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  // Check to make sure that all specified modules actually exist
+  const version =
+    Modules?.IasqlPlatform?.version ??
+    Modules?.iasqlPlatform?.version ??
+    throwError('Core IasqlPlatform not found');
+  moduleList = moduleList.map((m: string) => (/@/.test(m) ? m : `${m}@${version}`));
+  const mods = moduleList.map((n: string) =>
+    (Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
+  ) as ModuleInterface[];
+  if (mods.some((m: any) => m === undefined)) {
+    throw new Error(
+      `The following modules do not exist: ${moduleList
+        .filter(
+          (n: string) =>
+            !(Object.values(Modules) as ModuleInterface[]).find(m => `${m.name}@${m.version}` === n),
+        )
+        .join(', ')}`,
+    );
+  }
+  orm = !orm ? await TypeormWrapper.createConn(dbId) : orm;
+  const queryRunner = orm.createQueryRunner();
+  await queryRunner.connect();
+  // See what modules are already uninstalled and prune them from the list
+  const iasqlModule =
+    Modules?.IasqlPlatform?.utils?.IasqlModule ??
+    Modules?.iasqlPlatform?.iasqlModule ??
+    throwError('Core IasqlModule not found');
+  const iasqlTables =
+    Modules?.IasqlPlatform?.utils?.IasqlTables ??
+    Modules?.iasqlPlatform?.iasqlTables ??
+    throwError('Core IasqlTables not found');
+  const allInstalledModules = await orm.find(iasqlModule);
+  const existingModules = allInstalledModules.map((m: any) => m.name);
+  for (let i = 0; i < mods.length; i++) {
+    if (!existingModules.includes(`${mods[i].name}@${mods[i].version}`)) {
+      mods.splice(i, 1);
+      i--;
+    }
+  }
+  // See if we need to abort because now there's nothing to do
+  if (mods.length === 0) {
+    logger.warn('All modules already uninstalled', { moduleList });
+    return 'Done!';
+  }
+  const remainingModules = existingModules.filter(
+    (m: string) => !mods.some(m2 => `${m2.name}@${m2.version}` === m),
+  );
+  // See if any modules not being uninstalled depend on any of the modules to be uninstalled
+  const toUninstall = mods.map(m => `${m.name}@${m.version}`);
+  const leftoverModules = allInstalledModules.filter((m: any) => !toUninstall.includes(m.name));
+  // Because of TypeORM weirdness with self-referential tables, construct the dependencies array
+  // manually. We can do that because we can use the module's dependencies to figure out what they
+  // should be
+  for (const mod of leftoverModules) {
+    const Module: any = Object.values(Modules).find((m: any) => `${m.name}@${m.version}` === mod.name);
+    if (!Module) throw new Error(`Somehow ${mod.name} does not have a corresponding module defined`);
+    mod.dependencies = [];
+    for (const depName of Module.dependencies) {
+      const dep = allInstalledModules.find((m: any) => m.name === depName);
+      if (!dep) throw new Error(`Somehow ${depName} does not have a corresponding module defined`);
+      mod.dependencies.push(dep);
+    }
+  }
+  for (const mod of leftoverModules) {
+    if (mod.dependencies.filter((m: any) => toUninstall.includes(m.name)).length > 0) {
+      throw new Error(
+        `Cannot uninstall ${moduleList.join(', ')} as ${mod.name} still depends on one or more of them`,
+      );
+    }
+  }
+  // Sort the modules based on their dependencies, with both root-to-leaf order and vice-versa
+  const rootToLeafOrder = sortModules(mods, remainingModules);
+  const leafToRootOrder = [...rootToLeafOrder].reverse();
+  // Actually run the removal. Running all of the remove scripts from leaf-to-root. Wrapped in a
+  // transaction so any failure at this point when we're actually mutating the database doesn't
+  // leave things in a busted state.
+  await queryRunner.startTransaction();
+  try {
+    for (const md of leafToRootOrder) {
+      // For each table, we need to detach the audit log trigger
+      for (const table of md?.provides?.tables ?? []) {
+        await queryRunner.query(`
+          DROP TRIGGER IF EXISTS ${table}_audit ON ${table};
+        `);
+      }
+      if (md.migrations?.beforeRemove) {
+        await md.migrations.beforeRemove(queryRunner);
+      }
+      if (md.migrations?.remove) {
+        await md.migrations.remove(queryRunner);
+      }
+      const e = await orm.findOne(iasqlModule, { name: `${md.name}@${md.version}` });
+      const mt =
+        (await orm.find(iasqlTables, {
+          where: {
+            module: e,
+          },
+          relations: ['module'],
+        })) ?? [];
+      await orm.remove(iasqlTables, mt);
+      await orm.remove(iasqlModule, e);
+    }
+    await queryRunner.commitTransaction();
+  } catch (e: any) {
+    await queryRunner.rollbackTransaction();
+    throw e;
+  } finally {
+    await queryRunner.release();
+  }
+  return 'Done!';
 }

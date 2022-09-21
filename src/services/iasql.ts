@@ -1139,6 +1139,8 @@ ${Object.keys(tableCollisions)
   }
 }
 
+// ! DEPRECATED
+// `uninstall` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function uninstall(moduleList: string[], dbId: string, force = false, orm?: TypeormWrapper) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
   if (!force && dbMeta?.upgrading) throw new Error('Cannot uninstall modules while upgrading');

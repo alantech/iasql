@@ -8,6 +8,7 @@ import {
   IasqlPreviewApply,
   IasqlPreviewSync,
   IasqlSync,
+  IasqlUninstall,
 } from './rpcs';
 
 export class IasqlFunctions extends ModuleBase {
@@ -17,6 +18,7 @@ export class IasqlFunctions extends ModuleBase {
   iasqlPreviewSync: IasqlPreviewSync;
   iasqlModulesList: IasqlModulesList;
   iasqlInstall: IasqlInstall;
+  iasqlUninstall: IasqlUninstall;
   constructor() {
     super();
     this.sql = {
@@ -29,6 +31,7 @@ export class IasqlFunctions extends ModuleBase {
     this.iasqlPreviewSync = new IasqlPreviewSync(this);
     this.iasqlModulesList = new IasqlModulesList(this);
     this.iasqlInstall = new IasqlInstall(this);
+    this.iasqlUninstall = new IasqlUninstall(this);
     super.init();
   }
   iasqlOperationType = IasqlOperationType;
