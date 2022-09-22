@@ -77,4 +77,12 @@ export class MemoryDBCluster {
     nullable: true,
   })
   tags?: { [key: string]: string };
+
+  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  region: string;
 }

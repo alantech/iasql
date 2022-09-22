@@ -18,9 +18,10 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
   equals = (a: SubnetGroup, b: SubnetGroup) =>
     Object.is(a.description, b.description) &&
     Object.is(a.subnets?.length, b.subnets?.length) &&
-    (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false);
+    (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false) &&
+    Object.is(a.region, b.region);
 
-  async subnetGroupMapper(cloudE: AWSSubnetGroup, ctx: Context) {
+  async subnetGroupMapper(cloudE: AWSSubnetGroup, region: string) {
     const out = new SubnetGroup();
     if (!cloudE?.ARN || !cloudE?.Name) return undefined;
     out.arn = cloudE.ARN;
@@ -31,6 +32,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
       subnets.push(...cloudE.Subnets.map(sn => sn.Identifier ?? ''));
     }
     out.subnets = subnets;
+    out.region = region;
     return out;
   }
 
@@ -114,9 +116,9 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
 
   cloud: Crud2<SubnetGroup> = new Crud2({
     create: async (es: SubnetGroup[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         // Create subnet group first
         let subnetIds: string[] = [];
         if (!e.subnets?.length) {
@@ -137,7 +139,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
         const newObject = await this.getSubnetGroup(client.memoryDBClient, e.subnetGroupName);
         if (!newObject) continue;
         // We map this into the same kind of entity as `obj`
-        const newEntity = await this.subnetGroupMapper(newObject, ctx);
+        const newEntity = await this.subnetGroupMapper(newObject, e.region);
         if (!newEntity) continue;
         // Save the record back into the database to get the new fields updated
         newEntity.id = e.id;
@@ -147,84 +149,103 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (!supportedRegions.includes(client.region)) return;
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        const rawObj = await this.getSubnetGroup(client.memoryDBClient, id);
-        if (!rawObj) return;
-        return this.subnetGroupMapper(rawObj, ctx);
+        for (const region of enabledRegions) {
+          if (!supportedRegions.includes(region)) continue;
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawObj = await this.getSubnetGroup(client.memoryDBClient, id);
+          if (!rawObj) return;
+          return this.subnetGroupMapper(rawObj, region);
+        }
       } else {
-        const rawObjs = (await this.getSubnetGroups(client.memoryDBClient)) ?? [];
         const out = [];
-        for (const obj of rawObjs) {
-          const outObj = await this.subnetGroupMapper(obj, ctx);
-          if (outObj) out.push(outObj);
+        for (const region of enabledRegions) {
+          if (!supportedRegions.includes(region)) continue;
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawObjs = (await this.getSubnetGroups(client.memoryDBClient)) ?? [];
+          for (const obj of rawObjs) {
+            const outObj = await this.subnetGroupMapper(obj, region);
+            if (outObj) out.push(outObj);
+          }
         }
         return out;
       }
     },
+    updateOrReplace: (prev: SubnetGroup, next: SubnetGroup) => {
+      if (!Object.is(prev.region, next.region)) return 'replace';
+      return 'update';
+    },
     update: async (es: SubnetGroup[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const cloudRecord: SubnetGroup = ctx?.memo?.cloud?.SubnetGroup?.[e.subnetGroupName ?? ''];
-        let update = false;
-        if (
-          !Object.is(cloudRecord.subnets?.length, e.subnets?.length) &&
-          !(
-            cloudRecord.subnets?.every((asn: string) => !!e.subnets?.find(bsn => Object.is(asn, bsn))) ??
-            false
-          )
-        ) {
-          // Subnet group needs to be updated
-          let subnetIds: string[] = [];
-          if (!e.subnets?.length) {
-            const defaultSubnets = await this.getDefaultSubnets(ctx);
-            subnetIds = defaultSubnets.map(sn => sn.subnetId ?? '');
-          } else {
-            subnetIds = e.subnets;
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.SubnetGroup?.[e.subnetGroupName ?? ''];
+        const isUpdate = this.module.subnetGroup.cloud.updateOrReplace(cloudRecord, e) === 'update';
+        if (isUpdate) {
+          let update = false;
+          if (
+            !Object.is(cloudRecord.subnets?.length, e.subnets?.length) &&
+            !(
+              cloudRecord.subnets?.every((asn: string) => !!e.subnets?.find(bsn => Object.is(asn, bsn))) ??
+              false
+            )
+          ) {
+            // Subnet group needs to be updated
+            let subnetIds: string[] = [];
+            if (!e.subnets?.length) {
+              const defaultSubnets = await this.getDefaultSubnets(ctx);
+              subnetIds = defaultSubnets.map(sn => sn.subnetId ?? '');
+            } else {
+              subnetIds = e.subnets;
+            }
+            await this.handleSubnetGroupCreateOrUpdate(
+              'update',
+              client.memoryDBClient,
+              ctx,
+              e.subnetGroupName,
+              subnetIds,
+              e.description,
+            );
+            update = true;
           }
-          await this.handleSubnetGroupCreateOrUpdate(
-            'update',
-            client.memoryDBClient,
-            ctx,
-            e.subnetGroupName,
-            subnetIds,
-            e.description,
-          );
-          update = true;
-        }
-        if (!Object.is(cloudRecord.description, e.description)) {
-          await this.handleSubnetGroupCreateOrUpdate(
-            'update',
-            client.memoryDBClient,
-            ctx,
-            e.subnetGroupName,
-            e.subnets ?? [],
-            e.description,
-          );
-          update = true;
-        }
-        if (update) {
-          const rawObj = await this.getSubnetGroup(client.memoryDBClient, e.subnetGroupName ?? '');
-          if (!rawObj) continue;
-          const newObj = await this.subnetGroupMapper(rawObj, ctx);
-          if (!newObj) continue;
-          newObj.id = e.id;
-          await this.module.subnetGroup.db.update(newObj, ctx);
-          out.push(newObj);
+          if (!Object.is(cloudRecord.description, e.description)) {
+            await this.handleSubnetGroupCreateOrUpdate(
+              'update',
+              client.memoryDBClient,
+              ctx,
+              e.subnetGroupName,
+              e.subnets ?? [],
+              e.description,
+            );
+            update = true;
+          }
+          if (update) {
+            const rawObj = await this.getSubnetGroup(client.memoryDBClient, e.subnetGroupName ?? '');
+            if (!rawObj) continue;
+            const newObj = await this.subnetGroupMapper(rawObj, e.region);
+            if (!newObj) continue;
+            newObj.id = e.id;
+            await this.module.subnetGroup.db.update(newObj, ctx);
+            out.push(newObj);
+          } else {
+            // Restore record
+            cloudRecord.id = e.id;
+            await this.module.subnetGroup.db.update(cloudRecord, ctx);
+            out.push(cloudRecord);
+          }
         } else {
-          // Restore record
-          cloudRecord.id = e.id;
-          await this.module.subnetGroup.db.update(cloudRecord, ctx);
-          out.push(cloudRecord);
+          // Replace record
+          const newSubnetGroup = await this.module.subnetGroup.cloud.create(e, ctx);
+          await this.module.subnetGroup.cloud.delete(cloudRecord, ctx);
+          out.push(newSubnetGroup);
         }
       }
       return out;
     },
     delete: async (es: SubnetGroup[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteSubnetGroup(client.memoryDBClient, e.subnetGroupName ?? '');
       }
     },
