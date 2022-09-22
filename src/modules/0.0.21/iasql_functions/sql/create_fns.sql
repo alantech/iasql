@@ -43,7 +43,7 @@ begin
         FROM iasql_rpc
         WHERE start_date >= CURRENT_DATE - INTERVAL '6 months'
         ORDER BY start_date DESC
-        LIMIT 5000
+        LIMIT 4999
       )
     )
   );
