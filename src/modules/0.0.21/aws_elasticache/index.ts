@@ -15,7 +15,10 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
   module: AwsElastiCacheModule;
   entity = CacheCluster;
   equals = (a: CacheCluster, b: CacheCluster) =>
-    Object.is(a.engine, b.engine) && Object.is(a.nodeType, b.nodeType) && Object.is(a.numNodes, b.numNodes);
+    Object.is(a.engine, b.engine) &&
+    Object.is(a.nodeType, b.nodeType) &&
+    Object.is(a.numNodes, b.numNodes) &&
+    Object.is(a.region, b.region);
 
   cacheClusterMapper(cluster: CacheClusterAWS, region: string) {
     const out = new CacheCluster();
