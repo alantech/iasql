@@ -56,13 +56,20 @@ export class MemoryDBCluster {
   })
   securityGroups?: SecurityGroup[];
 
-  @ManyToOne(() => SubnetGroup, subnetGroup => subnetGroup.subnetGroupName, {
+  @ManyToOne(() => SubnetGroup, {
     nullable: false,
     eager: true,
   })
-  @JoinColumn({
-    name: 'subnet_group',
-  })
+  @JoinColumn([
+    {
+      name: 'subnet_group',
+      referencedColumnName: 'subnetGroupName',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   subnetGroup: SubnetGroup;
 
   @Column({ nullable: true })
@@ -77,12 +84,4 @@ export class MemoryDBCluster {
     nullable: true,
   })
   tags?: { [key: string]: string };
-
-  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
-  @Column({
-    type: 'character varying',
-    nullable: false,
-    default: () => 'default_aws_region()',
-  })
-  region: string;
 }

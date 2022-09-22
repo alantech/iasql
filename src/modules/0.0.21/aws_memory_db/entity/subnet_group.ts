@@ -2,7 +2,6 @@ import { Column, Entity, Generated, Index } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 
-// @Index("subnet_group_name_region_idx", ["subnet_group_name", "region"], { unique: true })
 @Entity()
 export class SubnetGroup {
   @Column()
@@ -24,6 +23,7 @@ export class SubnetGroup {
 
   // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
   @Column({
+    primary: true,
     type: 'character varying',
     nullable: false,
     default: () => 'default_aws_region()',
