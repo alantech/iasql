@@ -56,10 +56,21 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
 
   createSubnetGroup = crudBuilder2<MemoryDB, 'createSubnetGroup'>('createSubnetGroup', input => input);
 
-  getDefaultSubnets = async (ctx: Context): Promise<Subnet[]> => {
-    const defaultVpc: Vpc = (await awsVpcModule.vpc.db.read(ctx)).filter((vpc: Vpc) => vpc.isDefault).pop();
-    const subnets: Subnet[] = await awsVpcModule.subnet.db.read(ctx);
-    return subnets.filter(sn => sn.vpc.id === defaultVpc.id);
+  getDefaultSubnets = async (ctx: Context, region: string): Promise<Subnet[]> => {
+    const client = (await ctx.getAwsClient(region)) as AWS;
+    // TODO: do this properly once vpc and subnets are multiregion
+    const vpcs = [];
+    for (const vpc of await awsVpcModule.vpc.getVpcs(client.ec2client)) {
+      const outVpc = awsVpcModule.vpc.vpcMapper(vpc);
+      if (outVpc) vpcs.push(outVpc);
+    }
+    const defaultVpc: Vpc | undefined =  vpcs.filter((vpc: Vpc) => vpc.isDefault).pop();
+    const subnets: Subnet[] = [];
+    for (const sn of await awsVpcModule.subnet.getSubnets(client.ec2client)) {
+      const outSn = await awsVpcModule.subnet.subnetMapper(sn, ctx);
+      if (outSn) subnets.push(outSn);
+    }
+    return subnets.filter(sn => sn.vpc.id === defaultVpc?.id);
   };
 
   updateSubnetGroup = crudBuilder2<MemoryDB, 'updateSubnetGroup'>('updateSubnetGroup', input => input);
@@ -73,6 +84,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
     action: 'create' | 'update',
     client: MemoryDB,
     ctx: Context,
+    region: string,
     subnetGroupName: string,
     subnetIds: string[],
     description?: string,
@@ -95,7 +107,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
         const azIndex = (e.message as string).lastIndexOf(relevantSubstring) + relevantSubstring.length;
         const allowedAzString = (e.message as string).substring(azIndex, lastIndex - 1);
         const allowedAz = allowedAzString.split(', ');
-        const defaultSubnets = await this.getDefaultSubnets(ctx);
+        const defaultSubnets = await this.getDefaultSubnets(ctx, region);
         const defaultSubnetsIds = defaultSubnets
           .filter(sn => allowedAz.includes(sn.availabilityZone.name))
           .map(sn => sn.subnetId ?? '');
@@ -103,6 +115,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
           action,
           client,
           ctx,
+          region,
           subnetGroupName,
           defaultSubnetsIds,
           description,
@@ -122,7 +135,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
         // Create subnet group first
         let subnetIds: string[] = [];
         if (!e.subnets?.length) {
-          const defaultSubnets = await this.getDefaultSubnets(ctx);
+          const defaultSubnets = await this.getDefaultSubnets(ctx, e.region);
           subnetIds = defaultSubnets.map(sn => sn.subnetId ?? '');
         } else {
           subnetIds = e.subnets;
@@ -131,6 +144,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
           'create',
           client.memoryDBClient,
           ctx,
+          e.region,
           e.subnetGroupName,
           subnetIds,
           e.description ?? undefined,
@@ -194,7 +208,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
             // Subnet group needs to be updated
             let subnetIds: string[] = [];
             if (!e.subnets?.length) {
-              const defaultSubnets = await this.getDefaultSubnets(ctx);
+              const defaultSubnets = await this.getDefaultSubnets(ctx, e.region);
               subnetIds = defaultSubnets.map(sn => sn.subnetId ?? '');
             } else {
               subnetIds = e.subnets;
@@ -203,6 +217,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
               'update',
               client.memoryDBClient,
               ctx,
+              e.region,
               e.subnetGroupName,
               subnetIds,
               e.description,
@@ -214,6 +229,7 @@ export class SubnetGroupMapper extends MapperBase<SubnetGroup> {
               'update',
               client.memoryDBClient,
               ctx,
+              e.region,
               e.subnetGroupName,
               e.subnets ?? [],
               e.description,
