@@ -29,7 +29,7 @@ exception when others then
 end;
 $$;
 
-create or replace function iasql_should_clean_rpcs()
+create or replace function iasql_should_clean_rpcs() returns void
 language plpgsql security definer
 as $$
 DECLARE
