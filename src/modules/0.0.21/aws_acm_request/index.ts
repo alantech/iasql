@@ -119,7 +119,7 @@ class CertificateRequestMapper extends MapperBase<CertificateRequest> {
               let domainToCheck = zone.domainName;
               if (domainToCheck.lastIndexOf('.') === domainToCheck.length - 1)
                 domainToCheck = domainToCheck.substring(0, domainToCheck.length - 1);
-              const parsedName = awsRoute53HostedZoneModule.resourceRecordSet.getNameFromDomain(
+              const parsedName = awsRoute53HostedZoneModule.hostedZone.getNameFromDomain(
                 domainOption.DomainName,
                 domainToCheck,
               );
