@@ -7,10 +7,10 @@ name: CI
 on:
   push:
     branches: [main]
-    paths: ['src/**', 'test/**', 'package.json', 'yarn.lock']
+    paths: ['.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock']
   pull_request:
     branches: [main]
-    paths: ['src/**', 'test/**', 'package.json', 'yarn.lock']
+    paths: ['.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock']
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -275,7 +275,7 @@ jobs:
         run: |
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          yarn coverage $(echo $MODULES | jq -r '."${{matrix.module}}"')
+          yarn test $(echo $MODULES | jq -r '."${{matrix.module}}"')
 
       - name: Return test account
         if: always()
