@@ -29,6 +29,27 @@ exception when others then
 end;
 $$;
 
+create or replace function iasql_should_clean_rpcs()
+language plpgsql security definer
+as $$
+DECLARE
+  current_count integer;
+begin
+  DELETE FROM iasql_rpc
+  WHERE NOT (
+    opid = any(
+      array(
+        SELECT opid
+        FROM iasql_rpc
+        WHERE start_date >= CURRENT_DATE - INTERVAL '6 months'
+        ORDER BY start_date DESC
+        LIMIT 5000
+      )
+    )
+  );
+end;
+$$;
+
 create or replace function until_iasql_rpc(_module_name text, _method_name text, _params text[]) returns uuid
 language plpgsql security definer
 as $$
@@ -41,6 +62,7 @@ declare
     _db_id text;
     _dblink_conn_count int;
 begin
+    PERFORM iasql_should_clean_rpcs();
     select md5(random()::text || clock_timestamp()::text)::uuid into _opid;
     select current_database() into _db_id;
     -- reuse the 'iasqlrpcconn' db dblink connection if one exists for the session
