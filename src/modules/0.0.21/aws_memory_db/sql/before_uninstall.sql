@@ -1,3 +1,4 @@
+ALTER TABLE "memory_db_cluster" DROP CONSTRAINT "FK_memory_db_cluster_region";
 ALTER TABLE "subnet_group" DROP CONSTRAINT "FK_subnet_group_region";
 
 ALTER TABLE subnet_group DROP CONSTRAINT check_subnet_group_subnets;

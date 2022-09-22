@@ -84,4 +84,12 @@ export class MemoryDBCluster {
     nullable: true,
   })
   tags?: { [key: string]: string };
+
+  @Column({
+    primary: true,
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  region: string;
 }

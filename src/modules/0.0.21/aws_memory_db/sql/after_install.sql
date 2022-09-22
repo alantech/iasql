@@ -57,3 +57,4 @@ ALTER TABLE subnet_group ADD CONSTRAINT check_subnet_group_subnets_same_vpc CHEC
 
 -- Add region FK
 ALTER TABLE "subnet_group" ADD CONSTRAINT "FK_subnet_group_region" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION;
+ALTER TABLE "memory_db_cluster" ADD CONSTRAINT "FK_memory_db_cluster_region" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION;
