@@ -1,37 +1,21 @@
-// TODO: It seems like a lot of this logic could be migrated into the iasql_platform module and make
-// sense there. Need to think a bit more on that, but module manipulation that way could allow for
-// meta operations within the module code itself, if desirable.
-import { exec as execNode } from 'child_process';
 import * as levenshtein from 'fastest-levenshtein';
 import { default as cloneDeep } from 'lodash.clonedeep';
-import pg from 'pg';
-import { parse, deparse } from 'pgsql-parser';
 import { createConnection } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { snakeCase } from 'typeorm/util/StringUtils';
-import { promisify } from 'util';
-import { v4 as uuidv4 } from 'uuid';
 
-import config from '../config';
-import { throwError } from '../config/config';
-import { IasqlDatabase } from '../entity';
-import { modules as AllModules } from '../modules';
-import { Context, MapperInterface, ModuleInterface } from '../modules';
-import { isString } from './common';
-import * as dbMan from './db-manager';
-import { findDiff } from './diff';
-import { DepError, lazyLoader } from './lazy-dep';
-import logger, { debugObj } from './logger';
-import { sortModules } from './mod-sort';
-import MetadataRepo from './repositories/metadata';
-import * as scheduler from './scheduler-api';
-import { TypeormWrapper } from './typeorm';
+import config from '../../../config';
+import { throwError } from '../../../config/config';
+import { modules as AllModules } from '../../../modules';
+import { Context, MapperInterface, ModuleInterface } from '../../../modules';
+import * as dbMan from '../../../services/db-manager';
+import { findDiff } from '../../../services/diff';
+import { DepError, lazyLoader } from '../../../services/lazy-dep';
+import logger, { debugObj } from '../../../services/logger';
+import { sortModules } from '../../../services/mod-sort';
+import MetadataRepo from '../../../services/repositories/metadata';
+import { TypeormWrapper } from '../../../services/typeorm';
 
-const exec = promisify(execNode);
-
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-// `Crupde` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
 export function recordCount(records: { [key: string]: any }[]): [number, number, number] {
@@ -41,347 +25,30 @@ export function recordCount(records: { [key: string]: any }[]): [number, number,
   return [dbCount, cloudCount, bothCount];
 }
 
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-// `iasqlPlanV3` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
-const iasqlPlanV3 = (toCreate: Crupde, toUpdate: Crupde, toReplace: Crupde, toDelete: Crupde) =>
-  JSON.stringify({
-    iasqlPlanVersion: 3,
-    rows: (() => {
-      const out: any[] = [];
-      Object.keys(toCreate).forEach(tbl => {
-        const recs = toCreate[tbl];
-        recs.forEach(rec => out.push({ action: 'create', tableName: snakeCase(tbl), ...rec }));
-      });
-      Object.keys(toUpdate).forEach(tbl => {
-        const recs = toUpdate[tbl];
-        recs.forEach(rec => out.push({ action: 'update', tableName: snakeCase(tbl), ...rec }));
-      });
-      Object.keys(toReplace).forEach(tbl => {
-        const recs = toReplace[tbl];
-        recs.forEach(rec => out.push({ action: 'replace', tableName: snakeCase(tbl), ...rec }));
-      });
-      Object.keys(toDelete).forEach(tbl => {
-        const recs = toDelete[tbl];
-        recs.forEach(rec => out.push({ action: 'delete', tableName: snakeCase(tbl), ...rec }));
-      });
-      return out;
-    })(),
-  });
-
-export async function getDbRecCount(conn: TypeormWrapper): Promise<number> {
-  // only looks at the public schema
-  const res = await conn.query(`
-    SELECT SUM(
-      (xpath('/row/count/text()', query_to_xml('SELECT COUNT(*) FROM ' || format('%I.%I', table_schema, table_name), true, true, '')))[1]::text::int
-    )
-    FROM information_schema.tables
-    WHERE table_schema = 'public' AND table_name NOT LIKE 'iasql_%'
-  `);
-  return parseInt(res[0].sum ?? '0', 10);
-}
-
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-export async function getOpCount(conn: TypeormWrapper): Promise<number> {
-  const res = await conn.query(`
-    SELECT COUNT(*)
-    FROM iasql_operation
-  `);
-  return parseInt(res[0].count ?? '0', 10);
-}
-
-export async function getRpcCount(conn: TypeormWrapper): Promise<number> {
-  const res = await conn.query(`
-    SELECT COUNT(*)
-    FROM iasql_rpc
-  `);
-  return parseInt(res[0].count ?? '0', 10);
-}
-
-export async function connect(dbAlias: string, uid: string, email: string, dbId = dbMan.genDbId(dbAlias)) {
-  let conn1: any, conn2: any, dbUser: any;
-  let dbSaved,
-    schedulerStarted,
-    roleGranted = false;
-  try {
-    logger.info('Creating account for user...');
-    const dbGen = dbMan.genUserAndPass();
-    dbUser = dbGen[0];
-    const dbPass = dbGen[1];
-    const metaDb = new IasqlDatabase();
-    metaDb.alias = dbAlias;
-    metaDb.pgUser = dbUser;
-    metaDb.pgName = dbId;
-    await MetadataRepo.saveDb(uid, email, metaDb);
-    dbSaved = true;
-    logger.info('Establishing DB connections...');
-    conn1 = await createConnection(dbMan.baseConnConfig);
-    await conn1.query(`
-      CREATE DATABASE ${dbId};
-    `);
-    // wait for the scheduler to start and register its migrations before ours so that the stored procedures
-    // that use the scheduler's schema succeed
-    await scheduler.start(dbId, dbUser);
-    schedulerStarted = true;
-    conn2 = await createConnection({
-      ...dbMan.baseConnConfig,
-      name: dbId,
-      database: dbId,
+const iasqlPlanV3 = (toCreate: Crupde, toUpdate: Crupde, toReplace: Crupde, toDelete: Crupde) => ({
+  iasqlPlanVersion: 3,
+  rows: (() => {
+    const out: any[] = [];
+    Object.keys(toCreate).forEach(tbl => {
+      const recs = toCreate[tbl];
+      recs.forEach(rec => out.push({ action: 'create', tableName: snakeCase(tbl), ...rec }));
     });
-    await dbMan.migrate(conn2);
-    await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
-    await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
-    roleGranted = true;
-    const recCount = await getDbRecCount(conn2);
-    const opCount = await getOpCount(conn2);
-    // TODO: UPDATE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-    await MetadataRepo.updateDbCounts(dbId, recCount, opCount);
-    logger.info('Done!');
-    // Return custom IasqlDatabase object since we need to return the password
-    return {
-      user: dbUser,
-      password: dbPass,
-      recordCount: recCount,
-      operationCount: opCount,
-      alias: dbAlias,
-      id: dbId,
-    };
-  } catch (e: any) {
-    if (schedulerStarted) await scheduler.stop(dbId);
-    // delete db in psql and metadata
-    if (dbSaved) await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
-    if (dbUser && roleGranted) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser));
-    if (dbSaved) await MetadataRepo.delDb(uid, dbAlias);
-    // rethrow the error
-    throw e;
-  } finally {
-    await conn1?.close();
-    await conn2?.close();
-  }
-}
-
-export async function disconnect(dbAlias: string, uid: string) {
-  let conn;
-  try {
-    const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-    await scheduler.stop(db.pgName);
-    conn = await createConnection(dbMan.baseConnConfig);
-    await conn.query(`
-      DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
-    `);
-    await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser));
-    await MetadataRepo.delDb(uid, dbAlias);
-    return db.pgName;
-  } catch (e: any) {
-    // re-throw
-    throw e;
-  } finally {
-    conn?.close();
-  }
-}
-
-export async function runSql(dbAlias: string, uid: string, sql: string, byStatement: boolean) {
-  let connMain: any, connTemp: any;
-  const user = `_${uuidv4().replace(/-/g, '')}`;
-  const pass = `_${uuidv4().replace(/-/g, '')}`;
-  const db: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
-  if (db?.upgrading) throw new Error('Currently upgrading, cannot query at this time');
-  const database = db.pgName;
-  try {
-    connMain = await createConnection({ ...dbMan.baseConnConfig, database, name: pass });
-    // Apparently GRANT and REVOKE can run into concurrency issues in Postgres. Serializing it would
-    // be best, but https://www.postgresql.org/message-id/3473.1393693757%40sss.pgh.pa.us says that
-    // just retrying ought to work. Doing this in a simple do-while loop with a counter to abort if
-    // too many attempts occur.
-    let maxTries = 10;
-    let success = true;
-    do {
-      try {
-        await connMain.query(dbMan.newPostgresRoleQuery(user, pass, database));
-        success = true;
-      } catch (_) {
-        success = false;
-      }
-      maxTries--;
-    } while (!success && maxTries);
-    maxTries = 10;
-    success = true;
-    do {
-      try {
-        await connMain.query(dbMan.grantPostgresRoleQuery(user));
-        success = true;
-      } catch (_) {
-        success = false;
-      }
-      maxTries--;
-    } while (!success && maxTries);
-    connTemp = new pg.Client({
-      database,
-      user,
-      password: pass,
-      host: dbMan.baseConnConfig.host,
-      ssl: dbMan.baseConnConfig.extra.ssl,
+    Object.keys(toUpdate).forEach(tbl => {
+      const recs = toUpdate[tbl];
+      recs.forEach(rec => out.push({ action: 'update', tableName: snakeCase(tbl), ...rec }));
     });
-    await connTemp.connect();
-    const stmts = parse(sql);
-    const out = [];
-    for (const stmt of stmts) {
-      if (byStatement) {
-        out.push({
-          statement: deparse(stmt),
-          queryRes: await connTemp.query(deparse(stmt)),
-        });
-      } else {
-        out.push(await connTemp.query(deparse(stmt)));
-      }
-    }
-    // Let's make this a bit easier to parse. Error -> error path, single table -> array of objects,
-    // multiple tables -> array of array of objects
-    return out.map(t => {
-      if (byStatement) {
-        if (
-          !!t.queryRes.rows &&
-          t.queryRes.rows.length === 0 &&
-          t.queryRes.command !== 'SELECT' &&
-          typeof t.queryRes.rowCount === 'number'
-        ) {
-          return { statement: t.statement, affected_records: t.queryRes.rowCount };
-        } else if (isString(t.queryRes)) {
-          return { statement: t.statement, result: t.queryRes };
-        } else if (!!t.queryRes.rows) {
-          return { statement: t.statement, result: t.queryRes.rows };
-        } else {
-          return { statement: t.statement, error: `unexpected result: ${t.queryRes}` }; // TODO: Error this out
-        }
-      } else {
-        if (!!t.rows && t.rows.length === 0 && t.command !== 'SELECT' && typeof t.rowCount === 'number') {
-          return { affected_records: t.rowCount };
-        } else if (isString(t)) {
-          return { result: t };
-        } else if (!!t.rows) {
-          return t.rows;
-        } else {
-          return { error: `unexpected result: ${t}` }; // TODO: Error this out
-        }
-      }
+    Object.keys(toReplace).forEach(tbl => {
+      const recs = toReplace[tbl];
+      recs.forEach(rec => out.push({ action: 'replace', tableName: snakeCase(tbl), ...rec }));
     });
-  } catch (e: any) {
-    // re-throw
-    throw e;
-  } finally {
-    // Put this in a timeout so it doesn't block returning to the user
-    setTimeout(async () => {
-      await connTemp?.end();
-      // Same idea as above, but for the credential revocation
-      let maxTries = 10;
-      let success = true;
-      do {
-        try {
-          await connMain?.query(dbMan.revokePostgresRoleQuery(user, database));
-          success = true;
-        } catch (_) {
-          success = false;
-        }
-        maxTries--;
-      } while (!success && maxTries);
-      maxTries = 10;
-      success = true;
-      do {
-        try {
-          await connMain?.query(dbMan.dropPostgresRoleQuery(user));
-        } catch (_) {
-          success = false;
-        }
-        maxTries--;
-      } while (!success && maxTries);
-      await connMain?.close();
-    }, 1);
-  }
-}
-
-export async function dump(dbId: string, dataOnly: boolean) {
-  const dbMeta = await MetadataRepo.getDbById(dbId);
-  if (dbMeta?.upgrading) throw new Error('Currently upgrading, cannot dump this database');
-  const pgUrl = dbMan.ourPgUrl(dbId);
-  // TODO: Drop the old 'aws_account' when v0.0.20 is the oldest version.
-  // Also TODO: Automatically figure out which tables to exclude here.
-  const excludedDataTables =
-    "--exclude-table-data 'aws_account' --exclude-table-data 'aws_credentials' --exclude-table-data 'iasql_*'";
-  const { stdout } = await exec(
-    `pg_dump ${
-      dataOnly
-        ? `--data-only --no-privileges --column-inserts --rows-per-insert=50 --on-conflict-do-nothing ${excludedDataTables}`
-        : ''
-    } --inserts --exclude-schema=graphile_worker -x ${pgUrl}`,
-    { shell: '/bin/bash' },
-  );
-  return stdout;
-}
-
-// TODO revive and test
-/*export async function load(
-  dumpStr: string,
-  dbAlias: string,
-  awsRegion: string,
-  awsAccessKeyId: string,
-  awsSecretAccessKey: string,
-  user: any,
-) {
-  let conn1, conn2, dbId, dbUser;
-  try {
-    logger.info('Creating account for user...');
-    const dbGen = dbMan.genUserAndPass();
-    dbUser = dbGen[0];
-    const dbPass = dbGen[1];
-    const meta = await dbMan.setMetadata(dbAlias, dbUser, user);
-    dbId = meta.dbId;
-    logger.info('Establishing DB connections...');
-    conn1 = await createConnection(dbMan.baseConnConfig);
-    await conn1.query(`CREATE DATABASE ${dbId};`);
-    conn2 = await createConnection({
-      ...dbMan.baseConnConfig,
-      name: dbId,
-      database: dbId,
+    Object.keys(toDelete).forEach(tbl => {
+      const recs = toDelete[tbl];
+      recs.forEach(rec => out.push({ action: 'delete', tableName: snakeCase(tbl), ...rec }));
     });
-    // Restore dump and wrap it in a try catch
-    // that drops the database on error
-    logger.info('Restoring schema and data from dump...');
-    await conn2.query(dumpStr);
-    // Update aws_account schema
-    await conn2.query(`
-      UPDATE public.aws_account
-      SET access_key_id = '${awsAccessKeyId}', secret_access_key = '${awsSecretAccessKey}', region = '${awsRegion}'
-      WHERE id = 1;
-    `);
-    // Grant permissions
-    await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
-    await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
-    logger.info('Done!');
-    return {
-      alias: dbAlias,
-      id: dbId,
-      user: dbUser,
-      password: dbPass,
-    };
-  } catch (e: any) {
-    // delete db in psql and metadata in IP
-    await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
-    await conn1?.query(`
-      DROP ROLE IF EXISTS ${dbUser};
-    `);
-    await dbMan.delMetadata(dbAlias, user);
-    // rethrow the error
-    throw e;
-  } finally {
-    await conn1?.close();
-    await conn2?.close();
-  }
-}*/
+    return out;
+  })(),
+});
 
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-// `colToRow` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 function colToRow(cols: { [key: string]: any[] }): { [key: string]: any }[] {
   // Assumes equal length for all arrays
   const keys = Object.keys(cols);
@@ -396,10 +63,7 @@ function colToRow(cols: { [key: string]: any[] }): { [key: string]: any }[] {
   return out;
 }
 
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-// `apply` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
-export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapper) {
+export async function apply(dbId: string, dryRun: boolean, context: Context, ormOpt?: TypeormWrapper) {
   const t1 = Date.now();
   logger.info(`Applying ${dbId}`);
   const dbMeta = await MetadataRepo.getDbById(dbId);
@@ -411,28 +75,12 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
-    // Find all of the installed modules, and create the context object only for these
+    // Find all of the installed modules
     const iasqlModule =
       Modules?.IasqlPlatform?.utils?.IasqlModule ??
       Modules?.iasqlPlatform?.iasqlModule ??
       throwError('Core IasqlModule not found');
     const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
-    const memo: any = {}; // TODO: Stronger typing here
-    const context: Context = { orm, memo }; // Every module gets access to the DB
-    for (const name of moduleNames) {
-      const mod = (Object.values(Modules) as ModuleInterface[]).find(
-        m => `${m.name}@${m.version}` === name,
-      ) as ModuleInterface;
-      if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
-      const moduleContext = mod?.provides?.context ?? {};
-      Object.keys(moduleContext).forEach(k => {
-        if (typeof moduleContext[k] === 'function') {
-          context[k] = moduleContext[k];
-        } else {
-          context[k] = cloneDeep(moduleContext[k]);
-        }
-      });
-    }
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
     const moduleList = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
       moduleNames.includes(`${mod.name}@${mod.version}`),
@@ -458,7 +106,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
       logger.info('Starting outer loop');
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
-      memo.db = {}; // Flush the DB entities on the outer loop to restore the actual intended state
+      context.memo.db = {}; // Flush the DB entities on the outer loop to restore the actual intended state
       await lazyLoader(
         mappers.map(mapper => async () => {
           await mapper.db.read(context);
@@ -470,7 +118,7 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
       do {
         logger.info('Starting inner loop');
         ranUpdate = false;
-        memo.cloud = {}; // Flush the Cloud entities on the inner loop to track changes to the state
+        context.memo.cloud = {}; // Flush the Cloud entities on the inner loop to track changes to the state
         await lazyLoader(
           mappers.map(mapper => async () => {
             await mapper.cloud.read(context);
@@ -481,8 +129,8 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: tables.map(t => (memo.db[t] ? Object.values(memo.db[t]) : [])),
-          cloudEntity: tables.map(t => (memo.cloud[t] ? Object.values(memo.cloud[t]) : [])),
+          dbEntity: tables.map(t => (context.memo.db[t] ? Object.values(context.memo.db[t]) : [])),
+          cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
           comparator: comparators,
           idGen: idGens,
         });
@@ -490,10 +138,10 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
         logger.info(`AWS Mapping time: ${t4 - t3}ms`);
         if (!records.length) {
           // Only possible on just-created databases
-          return JSON.stringify({
+          return {
             iasqlPlanVersion: 3,
             rows: [],
-          });
+          };
         }
         const updatePlan = (crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) => {
           crupde[entityName] = crupde[entityName] ?? [];
@@ -638,10 +286,13 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
   }
 }
 
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-// `sync` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
-export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?: TypeormWrapper) {
+export async function sync(
+  dbId: string,
+  dryRun: boolean,
+  force = false,
+  context: Context,
+  ormOpt?: TypeormWrapper,
+) {
   const t1 = Date.now();
   logger.info(`Syncing ${dbId}`);
   const dbMeta = await MetadataRepo.getDbById(dbId);
@@ -653,28 +304,12 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
   let orm: TypeormWrapper | null = null;
   try {
     orm = !ormOpt ? await TypeormWrapper.createConn(dbId) : ormOpt;
-    // Find all of the installed modules, and create the context object only for these
+    // Find all of the installed modules
     const iasqlModule =
       Modules?.IasqlPlatform?.utils?.IasqlModule ??
       Modules?.iasqlPlatform?.iasqlModule ??
       throwError('Core IasqlModule not found');
     const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
-    const memo: any = {}; // TODO: Stronger typing here
-    const context: Context = { orm, memo }; // Every module gets access to the DB
-    for (const name of moduleNames) {
-      const mod = (Object.values(Modules) as ModuleInterface[]).find(
-        m => `${m.name}@${m.version}` === name,
-      ) as ModuleInterface;
-      if (!mod) throw new Error(`This should be impossible. Cannot find module ${name}`);
-      const moduleContext = mod?.provides?.context ?? {};
-      Object.keys(moduleContext).forEach(k => {
-        if (typeof moduleContext[k] === 'function') {
-          context[k] = moduleContext[k];
-        } else {
-          context[k] = cloneDeep(moduleContext[k]);
-        }
-      });
-    }
     // Get the mappers, regardless of source-of-truth
     const moduleList = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
       moduleNames.includes(`${mod.name}@${mod.version}`),
@@ -698,7 +333,7 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
-      memo.cloud = {}; // Flush the cloud entities on the outer loop to restore the actual intended state
+      context.memo.cloud = {}; // Flush the cloud entities on the outer loop to restore the actual intended state
       await lazyLoader(
         mappers.map(mapper => async () => {
           await mapper.cloud.read(context);
@@ -709,7 +344,7 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
       let ranUpdate = false;
       do {
         ranUpdate = false;
-        memo.db = {}; // Flush the DB entities on the inner loop to track changes to the state
+        context.memo.db = {}; // Flush the DB entities on the inner loop to track changes to the state
         await lazyLoader(
           mappers.map(mapper => async () => {
             await mapper.db.read(context);
@@ -720,8 +355,8 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: tables.map(t => (memo.db[t] ? Object.values(memo.db[t]) : [])),
-          cloudEntity: tables.map(t => (memo.cloud[t] ? Object.values(memo.cloud[t]) : [])),
+          dbEntity: tables.map(t => (context.memo.db[t] ? Object.values(context.memo.db[t]) : [])),
+          cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
           comparator: comparators,
           idGen: idGens,
         });
@@ -729,10 +364,10 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
         logger.info(`AWS Mapping time: ${t4 - t3}ms`);
         if (!records.length) {
           // Only possible on just-created databases
-          return JSON.stringify({
+          return {
             iasqlPlanVersion: 3,
             rows: [],
-          });
+          };
         }
         const updatePlan = (crupde: Crupde, entityName: string, mapper: MapperInterface<any>, es: any[]) => {
           crupde[entityName] = crupde[entityName] ?? [];
@@ -871,9 +506,6 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
   }
 }
 
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-// `modules` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function modules(all: boolean, installed: boolean, dbId: string) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
   if (dbMeta?.upgrading) throw new Error('Cannot check modules while upgrading');
@@ -889,7 +521,7 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
       dependencies: m.dependencies.filter((d: any) => !/iasql_.*/.test(d)),
     }));
   if (all) {
-    return JSON.stringify(allModules);
+    return allModules;
   } else if (installed && dbId) {
     const iasqlModule =
       Modules?.IasqlPlatform?.utils?.IasqlModule ??
@@ -903,23 +535,19 @@ export async function modules(all: boolean, installed: boolean, dbId: string) {
     const orm = await TypeormWrapper.createConn(dbId, { entities } as PostgresConnectionOptions);
     const mods = await orm.find(iasqlModule);
     const modsInstalled = mods.map((m: any) => m.name);
-    return JSON.stringify(
-      allModules.filter(m => modsInstalled.includes(`${m.moduleName}@${m.moduleVersion}`)),
-    );
+    return allModules.filter(m => modsInstalled.includes(`${m.moduleName}@${m.moduleVersion}`));
   } else {
     throw new Error('Invalid request parameters');
   }
 }
 
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-// `install` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function install(
   moduleList: string[],
   dbId: string,
   dbUser: string,
   allModules = false,
   force = false,
+  syncContext?: Context,
   ormOpt?: TypeormWrapper,
 ) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
@@ -930,7 +558,7 @@ export async function install(
     throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   // Check to make sure that all specified modules actually exist
   if (allModules) {
-    const installedModules = JSON.parse(await modules(false, true, dbId)).map((r: any) => r.moduleName);
+    const installedModules = (await modules(false, true, dbId)).map((r: any) => r.moduleName);
     moduleList = (Object.values(Modules) as ModuleInterface[])
       .filter((m: ModuleInterface) => !installedModules.includes(m.name))
       .filter(
@@ -1043,7 +671,7 @@ ${Object.keys(tableCollisions)
   // we first need to sync the existing modules to make sure there are no records the newly-added
   // modules have a dependency on.
   try {
-    await sync(dbId, false, force, orm);
+    await sync(dbId, false, force, syncContext ?? { memo: {}, orm }, orm);
   } catch (e: any) {
     logger.error('Sync during module install failed', e);
     throw e;
@@ -1156,9 +784,6 @@ ${Object.keys(tableCollisions)
   }
 }
 
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-// `uninstall` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 export async function uninstall(moduleList: string[], dbId: string, force = false, orm?: TypeormWrapper) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
   if (!force && dbMeta?.upgrading) throw new Error('Cannot uninstall modules while upgrading');
@@ -1278,12 +903,9 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
   return 'Done!';
 }
 
-// ! DEPRECATED
-// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
-// `upgrade` HAVE BEEN MOVED TO `iasql_functions` MODULE. DO NOT UPDATE HERE!
 // This function is always going to have special-cased logic for it, but hopefully it ends up in a
 // few different 'groups' by version number instead of being special-cased for each version.
-export async function upgrade(dbId: string, dbUser: string) {
+export async function upgrade(dbId: string, dbUser: string, context: Context) {
   const versionString = await TypeormWrapper.getVersionString(dbId);
   if (versionString === config.modules.latestVersion) {
     return 'Up to date';
@@ -1300,11 +922,13 @@ export async function upgrade(dbId: string, dbUser: string) {
       // be automated in some way later.)
       let conn: any;
       try {
-        conn = await createConnection({
-          ...dbMan.baseConnConfig,
-          name: dbId,
-          database: dbId,
-        });
+        conn =
+          context.orm ??
+          (await createConnection({
+            ...dbMan.baseConnConfig,
+            name: dbId,
+            database: dbId,
+          }));
         // 1. Read the `iasql_module` table to get all currently installed modules.
         const mods: string[] = (
           await conn.query(`
@@ -1385,7 +1009,7 @@ export async function upgrade(dbId: string, dbUser: string) {
             INSERT INTO aws_credentials (access_key_id, secret_access_key)
             VALUES ('${creds.access_key_id}', '${creds.secret_access_key}');
           `);
-          await sync(dbId, false, true);
+          await sync(dbId, false, true, context);
           if (creds.region) {
             await conn.query(`
               UPDATE aws_regions SET is_default = true WHERE region = '${creds.region}';

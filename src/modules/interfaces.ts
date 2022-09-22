@@ -1,7 +1,8 @@
 import callsite from 'callsite';
 import fs from 'fs';
 import path from 'path';
-import { QueryRunner, getMetadataArgsStorage } from 'typeorm';
+import { QueryRunner, getMetadataArgsStorage, ColumnType } from 'typeorm';
+import { snakeCase } from 'typeorm/util/StringUtils';
 
 import { throwError } from '../config/config';
 import { getCloudId } from '../services/cloud-id';
@@ -13,6 +14,11 @@ import logger from '../services/logger';
 // them.
 
 export type Context = { [key: string]: any };
+
+// TODO: use something better than ColumnType for possible postgres colum types
+export type RpcOutput = { [key: string]: ColumnType };
+
+export type RpcResponseObject<T> = { [Properties in keyof T]: any };
 
 export interface CrudInterface2<E> {
   create: (e: E[], ctx: Context) => Promise<void | E[]>;
@@ -212,6 +218,17 @@ export interface MapperInterface<E> {
   cloud: Crud2<E>;
 }
 
+export interface RpcInterface {
+  module: ModuleInterface;
+  outputTable: RpcOutput;
+  call: (
+    dbId: string,
+    dbUser: string,
+    ctx: Context,
+    ...args: string[]
+  ) => Promise<RpcResponseObject<RpcOutput>[]>;
+}
+
 export interface Mapper2ObjInterface<E> {
   entity: new () => E;
   entityId?: (e: E) => string;
@@ -343,6 +360,27 @@ export class MapperBase<E> {
   }
 }
 
+export class RpcBase {
+  module: ModuleInterface;
+  outputTable: RpcOutput;
+  call: (
+    dbId: string,
+    dbUser: string,
+    ctx: Context,
+    ...args: string[]
+  ) => Promise<RpcResponseObject<RpcOutput>[]>;
+
+  init() {
+    if (!this.module) throw new Error('No module established for this RPC');
+    if (!this.call) throw new Error('No call established for this RPC');
+    if (!this.outputTable) throw new Error('No output established for this RPC');
+  }
+
+  formatObjKeysToSnakeCase(obj: any) {
+    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [snakeCase(k), v]));
+  }
+}
+
 export interface ModuleInterface {
   name: string;
   version?: string;
@@ -359,6 +397,7 @@ export interface ModuleInterface {
   };
   utils?: { [key: string]: any };
   mappers: { [key: string]: MapperInterface<any> };
+  rpc?: { [key: string]: RpcInterface };
   migrations?: {
     install: (q: QueryRunner) => Promise<void>;
     afterInstall?: (q: QueryRunner) => Promise<void>;
@@ -479,12 +518,75 @@ export class ModuleBase {
     afterInstallSqlPath?: string;
     beforeUninstallSqlPath?: string;
   };
+  rpc?: { [key: string]: RpcInterface };
   migrations: {
     install: (q: QueryRunner) => Promise<void>;
     afterInstall?: (q: QueryRunner) => Promise<void>;
     beforeRemove?: (q: QueryRunner) => Promise<void>;
     remove: (q: QueryRunner) => Promise<void>;
   };
+
+  private getRpcSql(): [string, string] {
+    let afterInstallSql = '';
+    let beforeUninstallSql = '';
+    for (const [key, rpc] of Object.entries(this.rpc ?? {})) {
+      const rpcOutputEntries = Object.entries(rpc.outputTable ?? {});
+      const rpcOutputTable = rpcOutputEntries
+        .map(([columnName, columnType]) => `${columnName} ${columnType}`)
+        .join(', ');
+      afterInstallSql += `
+        create or replace function ${snakeCase(
+          key,
+        )}(variadic _args text[] default array[]::text[]) returns table (
+          ${rpcOutputTable}
+        )
+        language plpgsql security definer
+        as $$
+        declare
+          _opid uuid;
+        begin
+          _opid := until_iasql_rpc('${this.name}', '${key}', _args);
+          return query select
+            ${
+              rpcOutputEntries.length
+                ? `${rpcOutputEntries
+                    .map(([col, typ]) => `try_cast(j.s->>'${col}', NULL::${typ}) as ${col}`)
+                    .join(', ')}`
+                : ''
+            }
+          from (
+            select json_array_elements(output::json) as s from iasql_rpc where opid = _opid
+          ) as j;
+        end;
+        $$;
+      `;
+      beforeUninstallSql =
+        `
+        DROP FUNCTION "${snakeCase(key)}";
+      ` + beforeUninstallSql;
+    }
+    return [afterInstallSql, beforeUninstallSql];
+  }
+
+  private getCustomSql(): [string, string] {
+    const afterInstallSql = this.readSqlDir(this.sql?.afterInstallSqlPath, true) ?? '';
+    const beforeUninstallSql = this.readSqlDir(this.sql?.beforeUninstallSqlPath, false) ?? '';
+    return [afterInstallSql, beforeUninstallSql];
+  }
+
+  private readSqlDir(customDir: string | undefined, afterInstall: boolean) {
+    try {
+      // If no customDir specified, try to get the default
+      return fs.readFileSync(
+        `${this.dirname}/${
+          customDir ?? `sql/${afterInstall ? 'after_install.sql' : 'before_uninstall.sql'}`
+        }`,
+        'utf8',
+      );
+    } catch (_) {
+      /** Don't do anything if the default file is not there */
+    }
+  }
 
   init() {
     if (!this.dirname) {
@@ -517,6 +619,13 @@ export class ModuleBase {
         ([_, m]: [string, any]) => m instanceof Mapper2 || m instanceof MapperBase,
       ) as [[string, MapperInterface<any>]],
     );
+    this.rpc = Object.fromEntries(
+      Object.entries(this).filter(([_, m]: [string, any]) => m instanceof RpcBase) as [
+        [string, RpcInterface],
+      ],
+    );
+    const [customAfterInstallSql, customBeforeUninstallSql] = this.getCustomSql();
+    const [rpcAfterInstallSql, rpcBeforeUninstallSql] = this.getRpcSql();
     const migrationDir = `${this.dirname}/migration`;
     const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
     if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
@@ -530,45 +639,17 @@ export class ModuleBase {
       install: migrationClass.prototype.up,
       remove: migrationClass.prototype.down,
     };
-    if (this.sql?.afterInstallSqlPath) {
-      try {
-        const sql = fs.readFileSync(`${this.dirname}/${this.sql.afterInstallSqlPath}`, 'utf8');
-        this.migrations.afterInstall = async (q: QueryRunner) => {
-          await q.query(sql);
-        };
-      } catch (e) {
-        logger.warn(`Unable to read file ${this.dirname}/${this.sql.afterInstallSqlPath}`);
-      }
-    } else {
-      // If no path specified, try to get the default
-      try {
-        const sql = fs.readFileSync(`${this.dirname}/sql/after_install.sql`, 'utf8');
-        this.migrations.afterInstall = async (q: QueryRunner) => {
-          await q.query(sql);
-        };
-      } catch (_) {
-        /** Don't do anything if the default file is not there */
-      }
+    const afterInstallMigration = customAfterInstallSql + rpcAfterInstallSql;
+    const beforeUninstallMigration = rpcBeforeUninstallSql + customBeforeUninstallSql;
+    if (afterInstallMigration) {
+      this.migrations.afterInstall = async (q: QueryRunner) => {
+        await q.query(afterInstallMigration);
+      };
     }
-    if (this.sql?.beforeUninstallSqlPath) {
-      try {
-        const sql = fs.readFileSync(`${this.dirname}/${this.sql.beforeUninstallSqlPath}`, 'utf8');
-        this.migrations.beforeRemove = async (q: QueryRunner) => {
-          await q.query(sql);
-        };
-      } catch (e) {
-        logger.warn(`Unable to read file ${this.dirname}/${this.sql.beforeUninstallSqlPath}`);
-      }
-    } else {
-      // If no path specified, try to get the default
-      try {
-        const sql = fs.readFileSync(`${this.dirname}/sql/before_uninstall.sql`, 'utf8');
-        this.migrations.beforeRemove = async (q: QueryRunner) => {
-          await q.query(sql);
-        };
-      } catch (_) {
-        /** Don't do anything if the default file is not there */
-      }
+    if (beforeUninstallMigration) {
+      this.migrations.beforeRemove = async (q: QueryRunner) => {
+        await q.query(beforeUninstallMigration);
+      };
     }
     const syncified = new Function(
       'return ' +

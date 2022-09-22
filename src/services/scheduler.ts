@@ -2,6 +2,7 @@ import * as sentry from '@sentry/node';
 import express from 'express';
 import { run } from 'graphile-worker';
 import { default as cloneDeep } from 'lodash.clonedeep';
+import { camelCase } from 'typeorm/util/StringUtils';
 import { v4 as uuidv4 } from 'uuid';
 
 import config from '../config';
@@ -47,6 +48,8 @@ export async function start(dbId: string, dbUser: string) {
     noHandleSignals: false,
     pollInterval: 1000, // ms
     taskList: {
+      // ! DEPRECATED
+      // TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
       operation: async (payload: any) => {
         const { params, opid, optype } = payload;
         let promise;
@@ -149,7 +152,7 @@ export async function start(dbId: string, dbUser: string) {
       },
       rpc: async (payload: any) => {
         const { params, opid, modulename, methodname } = payload;
-        let output;
+        let output: string | undefined;
         let error;
         const user = await MetadataRepo.getUserFromDbId(dbId);
         const uid = user?.id;
@@ -161,12 +164,17 @@ export async function start(dbId: string, dbUser: string) {
           if (!Modules) {
             throwError(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
           }
-          if (!Modules[modulename]) throwError(`Module ${modulename} not found`);
-          if (!Modules[modulename][methodname]) {
-            throwError(`Method ${methodname} in module ${modulename} not found`);
-          }
+          // `Modules` is an object where the keys are all the exported elements from the modules dir
+          // Classes are exported with PascalCase
+          // Instantiated objects are exported with camelCase. We are interested in this objects.
+          // `modulename` is arriving with snake_case since is how the module defines it based on the dirname
+          const moduleName = Object.keys(Modules ?? {}).find(k => k === camelCase(modulename)) ?? 'unknown';
+          if (!Modules[moduleName]) throwError(`Module ${modulename} not found`);
           const context = await getContext(conn, Modules);
-          output = await Modules[modulename][methodname](context, ...params);
+          const rpcRes: any[] | undefined = await (Modules[moduleName] as ModuleInterface)?.rpc?.[
+            methodname
+          ].call(dbId, dbUser, context, ...params);
+          if (rpcRes) output = JSON.stringify(rpcRes);
           // once the rpc completes updating the `end_date`
           // will complete the polling
           const query = `
@@ -174,7 +182,6 @@ export async function start(dbId: string, dbUser: string) {
             set end_date = now(), output = '${output}'
             where opid = uuid('${opid}');
           `;
-          output = isString(output) ? output : JSON.stringify(output);
           await conn.query(query);
         } catch (e) {
           let errorMessage: string | string[] = logErrSentry(e, uid, email, dbAlias);
@@ -194,7 +201,7 @@ export async function start(dbId: string, dbUser: string) {
           try {
             const recordCount = await iasql.getDbRecCount(conn);
             const rpcCount = await iasql.getRpcCount(conn);
-            await MetadataRepo.updateDbCounts(dbId, recordCount, rpcCount);
+            await MetadataRepo.updateDbCounts(dbId, recordCount, undefined, rpcCount);
             // list is called by us and has no dbAlias so ignore
             // TODO: refactor properly this condition if (uid && modulename !== 'iasqlFunctions' && methodname !== 'modulesList')
             if (uid)

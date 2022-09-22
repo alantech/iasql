@@ -17,6 +17,18 @@ begin
 end;
 $$;
 
+-- picked from https://dba.stackexchange.com/questions/203934/postgresql-alternative-to-sql-server-s-try-cast-function
+create or replace function try_cast(_in text, INOUT _out ANYELEMENT)
+language plpgsql security definer
+as $$
+begin
+    execute format('SELECT %L::%s', $1, pg_typeof(_out))
+    into  _out;
+exception when others then
+    -- do nothing: _out already carries default
+end;
+$$;
+
 create or replace function until_iasql_rpc(_module_name text, _method_name text, _params text[]) returns uuid
 language plpgsql security definer
 as $$
@@ -31,21 +43,21 @@ declare
 begin
     select md5(random()::text || clock_timestamp()::text)::uuid into _opid;
     select current_database() into _db_id;
-    -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
+    -- reuse the 'iasqlrpcconn' db dblink connection if one exists for the session
     -- dblink connection closes automatically at the end of a session
     SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
-        WHERE dblink_get_connections@>'{iasqlopconn}';
+        WHERE dblink_get_connections@>'{iasqlrpcconn}';
     IF _dblink_conn_count = 0 THEN
-        PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
+        PERFORM dblink_connect('iasqlrpcconn', 'loopback_dblink_' || _db_id);
     END IF;
     -- schedule job via dblink
     _dblink_sql := format('insert into iasql_rpc (opid, module_name, method_name, params) values (%L, %L, %L, array[''%s'']::text[]);', _opid, _module_name, _method_name, array_to_string(_params, ''','''));
     -- raise exception '%', _dblink_sql;
-    PERFORM dblink_exec('iasqlopconn', _dblink_sql);
+    PERFORM dblink_exec('iasqlrpcconn', _dblink_sql);
     _dblink_sql := format('select graphile_worker.add_job(%L, json_build_object(%L, %L, %L, %L, %L, %L, %L, array[''%s'']::text[]));', 'rpc', 'opid', _opid, 'modulename', _module_name, 'methodname', _method_name, 'params', array_to_string(_params, ''','''));
     -- raise exception '%', _dblink_sql;
     -- allow statement that returns results in dblink https://stackoverflow.com/a/28299993
-    PERFORM * FROM dblink('iasqlopconn', _dblink_sql) alias(col text);
+    PERFORM * FROM dblink('iasqlrpcconn', _dblink_sql) alias(col text);
     -- times out after 45 minutes = 60 * 45 = 2700 seconds
     -- currently the longest is RDS where the unit test has a timeout of 16m
     while _counter < 2700 loop
@@ -69,251 +81,6 @@ begin
     -- timed out
     raise warning 'Done waiting for % %.', _module_name, _method_name
     using hint = 'The operation will show up in the iasql_rpc table when it completes under this opid: ' || _opid;
-end;
-$$;
-
-create or replace function iasql_rpc_default_call(_module_name text, _method_name text, _params text[]) returns table (
-  result text
-)
-language plpgsql security definer
-as $$
-declare
-  _opid uuid;
-begin
-  _opid := until_iasql_rpc(_module_name, _method_name, _params);
-  return query select
-    j.s->>'result' as result
-  from (
-    select json_array_elements(output::json) as s from iasql_rpc where opid = _opid
-  ) as j;
-end;
-$$;
-
--- TODO: here for testing purpose. To be delete it
-create or replace function iasql_custom_call(variadic _args text[]) returns table (
-  result text
-)
-language plpgsql security definer
-as $$
-begin
-  return query select * from iasql_rpc_default_call('iasqlFunctions', 'customCall', _args);
-end;
-$$;
-
-create or replace function until_iasql_operation(_optype iasql_operation_optype_enum, _params text[]) returns uuid
-language plpgsql security definer
-as $$
-declare
-    _opid uuid;
-    _counter integer := 0;
-    _output text;
-    _err text;
-    _dblink_sql text;
-    _db_id text;
-    _dblink_conn_count int;
-begin
-    select md5(random()::text || clock_timestamp()::text)::uuid into _opid;
-    select current_database() into _db_id;
-    -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
-    -- dblink connection closes automatically at the end of a session
-    SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
-        WHERE dblink_get_connections@>'{iasqlopconn}';
-    IF _dblink_conn_count = 0 THEN
-        PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
-    END IF;
-    -- schedule job via dblink
-    _dblink_sql := format('insert into iasql_operation (opid, optype, params) values (%L, %L, array[''%s'']::text[]);', _opid, _optype, array_to_string(_params, ''','''));
-    -- raise exception '%', _dblink_sql;
-    PERFORM dblink_exec('iasqlopconn', _dblink_sql);
-    _dblink_sql := format('select graphile_worker.add_job(%L, json_build_object(%L, %L, %L, %L, %L, array[''%s'']::text[]));', 'operation', 'opid', _opid, 'optype', _optype, 'params', array_to_string(_params, ''','''));
-    -- raise exception '%', _dblink_sql;
-    -- allow statement that returns results in dblink https://stackoverflow.com/a/28299993
-    PERFORM * FROM dblink('iasqlopconn', _dblink_sql) alias(col text);
-    -- times out after 45 minutes = 60 * 45 = 2700 seconds
-    -- currently the longest is RDS where the unit test has a timeout of 16m
-    while _counter < 2700 loop
-        if (select end_date from iasql_operation where opid = _opid) is not null then
-            select output into _output from iasql_operation where opid = _opid;
-            select err into _err from iasql_operation where opid = _opid;
-            -- done!
-            if _output is not null and _err is null then
-                return _opid;
-            end if;
-            if _err is not null then
-                raise exception '% error: %', _optype, _err::json->'message'
-                using detail = _err;
-            end if;
-            -- exit sp
-            return _opid;
-        end if;
-        perform pg_sleep(1);
-        _counter := _counter + 1;
-    end loop;
-    -- timed out
-    raise warning 'Done waiting for %.', _optype
-    using hint = 'The operation will show up in the iasql_operation table when it completes under this opid: ' || _opid;
-end;
-$$;
-
-create or replace function iasql_cloud_manipulation(_mode iasql_operation_optype_enum) returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
-declare
-  _opid uuid;
-begin
-  _opid := until_iasql_operation(_mode, array[]::text[]);
-  return query select
-    j.s->>'action' as action,
-    j.s->>'tableName' as table_name,
-    case when j.s->>'id' = '' then null else (j.s->>'id')::integer end as id,
-    j.s->>'description' as description
-  from (
-    select json_array_elements(output::json->'rows') as s from iasql_operation where opid = _opid
-  ) as j;
-end;
-$$;
-
-create or replace function iasql_apply() returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
-begin
-  return query select * from iasql_cloud_manipulation('APPLY');
-end;
-$$;
-
-create or replace function iasql_preview_apply() returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
-begin
-  return query select * from iasql_cloud_manipulation('PLAN_APPLY');
-end;
-$$;
-
-create or replace function iasql_sync() returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
-begin
-  return query select * from iasql_cloud_manipulation('SYNC');
-end;
-$$;
-
-create or replace function iasql_preview_sync() returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
-begin
-  return query select * from iasql_cloud_manipulation('PLAN_SYNC');
-end;
-$$;
-
-create or replace function iasql_install(variadic _mods text[]) returns table (
-    module_name character varying,
-    created_table_name character varying,
-    record_count int
-)
-language plpgsql security definer
-as $$
-begin
-    perform until_iasql_operation('INSTALL', _mods);
-    return query select
-        m.name as module_name,
-        t.table as created_table_name,
-        (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
-    from iasql_module as m
-    inner join iasql_tables as t on m.name = t.module
-    inner join (select unnest(_mods) as module) as mo on true
-    where left(m.name, length(mo.module)) = mo.module;
-end;
-$$;
-
-create or replace function iasql_uninstall(variadic _mods text[]) returns table (
-    module_name character varying,
-    dropped_table_name character varying,
-    record_count int
-)
-language plpgsql security definer
-as $$
-declare
-    _db_id text;
-    _dblink_conn_count int;
-    _dblink_sql text;
-    _out json;
-begin
-    select current_database() into _db_id;
-    -- reuse the 'iasqlopconn' db dblink connection if one exists for the session
-    -- dblink connection closes automatically at the end of a session
-    SELECT count(1) INTO _dblink_conn_count FROM dblink_get_connections()
-        WHERE dblink_get_connections@>'{iasqlopconn}';
-    IF _dblink_conn_count = 0 THEN
-        PERFORM dblink_connect('iasqlopconn', 'loopback_dblink_' || _db_id);
-    END IF;
-    -- define the query to get the current tables and record counts for the modules to be removed
-    -- TODO: Are these hoops to encode into JSON and then decode back out necessary now that
-    -- dblink is being used here, too?
-    _dblink_sql := format($dblink$
-    select json_agg(row_to_json(row(j.module_name, j.dropped_table_name, j.record_count))) as js from (
-        select
-        m.name as module_name,
-        t.table as dropped_table_name,
-        (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%%I', t.table), FALSE, TRUE, '')))[1]::text::int AS record_count
-        from iasql_module as m
-        inner join iasql_tables as t on m.name = t.module
-        inner join (select unnest(array['%s']) as module) as mo on true
-        where left(m.name, length(mo.module)) = mo.module
-    ) as j;
-    $dblink$, array_to_string(_mods, ''','''));
-    -- Execute the query on another connection so the table access doesn't count on this
-    -- transaction and cause Postgres to softlock itself
-    select js into _out from dblink('iasqlopconn', _dblink_sql) as x(js json);
-    -- Now actually remove the modules and tables in question
-    perform until_iasql_operation('UNINSTALL', _mods);
-    -- And extract the metadata from the JSON blob and return it to the user
-    return query select f1 as module_name, f2 as dropped_table_name, f3 as record_count from json_to_recordset(_out) as x(f1 character varying, f2 character varying, f3 int);
-end;
-$$;
-
-create or replace function iasql_modules_list() returns table (
-  module_name text,
-  module_version text,
-  dependencies text[]
-)
-language plpgsql security definer
-as $$
-declare
-  _opid uuid;
-begin
-  _opid := until_iasql_operation('LIST', array[]::text[]);
-  return query select
-    j.s->>'moduleName' as module_name,
-    j.s->>'moduleVersion' as module_version,
-    array(select * from json_array_elements_text(j.s->'dependencies')) as dependencies
-  from (
-    select json_array_elements(output::json) as s from iasql_operation where opid = _opid
-  ) as j;
 end;
 $$;
 
@@ -359,19 +126,6 @@ BEGIN
     loop_count := loop_count + 1;
   END LOOP;
 END;
-$$;
-
-create or replace function iasql_upgrade() returns text
-language plpgsql security definer
-as $$
-declare
-  _opid uuid;
-  _out text;
-begin
-  _opid := until_iasql_operation('UPGRADE', array[]::text[]);
-  select output into _out from iasql_operation where opid = _opid;
-  return _out;
-end;
 $$;
 
 create or replace function iasql_version() returns table (

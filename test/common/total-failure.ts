@@ -24,12 +24,12 @@ describe('Testing failure path', () => {
 
   it('check install error', query(`
     SELECT *
-    FROM iasql_operation
+    FROM iasql_rpc
     ORDER BY end_date DESC
     LIMIT 1;
   `, (row: any[]) => {
     expect(row.length).toBe(1);
-    expect(row[0].optype).toBe('INSTALL');
+    expect(row[0].method_name).toBe('iasqlInstall');
     expect(JSON.parse(row[0].err)).toHaveProperty('message');
   }));
 
@@ -42,12 +42,12 @@ describe('Testing failure path', () => {
 
   it('check uninstall error', query(`
     SELECT *
-    FROM iasql_operation
+    FROM iasql_rpc
     ORDER BY end_date DESC
     LIMIT 1;
   `, (row: any[]) => {
     expect(row.length).toBe(1);
-    expect(row[0].optype).toBe('UNINSTALL');
+    expect(row[0].method_name).toBe('iasqlUninstall');
     expect(JSON.parse(row[0].err)).toHaveProperty('message');
   }));
 
@@ -101,12 +101,13 @@ describe('Testing failure path', () => {
 
   it('check apply error', query(`
     SELECT *
-    FROM iasql_operation
+    FROM iasql_rpc
     ORDER BY end_date DESC
     LIMIT 1;
   `, (row: any[]) => {
     expect(row.length).toBe(1);
-    expect(row[0].optype).toBe('APPLY');
+    expect(row[0].module_name).toBe('iasql_functions');
+    expect(row[0].method_name).toBe('iasqlApply');
     expect(JSON.parse(row[0].err)).toHaveProperty('message')
   }));
 
@@ -119,12 +120,12 @@ describe('Testing failure path', () => {
 
   it('check upgrade message', query(`
     SELECT *
-    FROM iasql_operation
+    FROM iasql_rpc
     ORDER BY end_date DESC
     LIMIT 1;
   `, (row: any[]) => {
     expect(row.length).toBe(1);
-    expect(row[0].optype).toBe('UPGRADE');
+    expect(row[0].method_name).toBe('iasqlUpgrade');
     expect(row[0].output.length).toBeGreaterThan(0);
   }));
 

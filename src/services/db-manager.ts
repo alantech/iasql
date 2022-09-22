@@ -12,8 +12,6 @@ export async function migrate(conn: Connection) {
   const ModuleSet = (Modules as any)[config.modules.latestVersion];
   const iasqlPlatform =
     ModuleSet?.IasqlPlatform ?? ModuleSet?.iasqlPlatform ?? throwError('Core IasqlPlatform not found');
-  const iasqlFunctions =
-    ModuleSet?.IasqlFunctions ?? ModuleSet?.iasqlFunctions ?? throwError('Core IasqlFunctions not found');
   const version = iasqlPlatform.version;
   const qr = conn.createQueryRunner();
   await qr.connect();
@@ -22,9 +20,13 @@ export async function migrate(conn: Connection) {
     await iasqlPlatform.migrations.afterInstall(qr);
   }
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@${version}')`);
-  await iasqlFunctions.migrations.install(qr);
-  if (iasqlFunctions.migrations.afterInstall) {
-    await iasqlFunctions.migrations.afterInstall(qr);
+  await ModuleSet?.IasqlFunctions?.migrations?.install(qr);
+  await ModuleSet?.iasqlFunctions?.migrations?.install(qr);
+  if (ModuleSet?.IasqlFunctions?.migrations?.afterInstall) {
+    await ModuleSet?.IasqlFunctions?.migrations?.afterInstall(qr);
+  }
+  if (ModuleSet?.iasqlFunctions?.migrations?.afterInstall) {
+    await ModuleSet?.iasqlFunctions?.migrations?.afterInstall(qr);
   }
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_functions@${version}')`);
   await qr.query(

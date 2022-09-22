@@ -85,6 +85,7 @@ class MetadataRepo {
     });
   }
 
+  // TODO: REMOVE opCount BY THE TIME 0.0.20 BECOMES UNSUPPORTED
   async updateDbCounts(dbId: string, recCount: number, opCount?: number, rpcCount?: number) {
     const db = await this.dbRepo.findOne(dbId);
     if (!db) {
