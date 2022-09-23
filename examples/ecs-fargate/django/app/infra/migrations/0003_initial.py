@@ -2,11 +2,10 @@
 
 from django.conf import settings
 from django.db import migrations, connections
-import json
 
 from infra.models import SecurityGroup, SecurityGroupRule, LoadBalancer, TargetGroup, Listener, \
     LoadBalancerSecurityGroups, Repository, Cluster, ContainerDefinition, TaskDefinition, Service, \
-    ServiceSecurityGroups, Subnet, Role
+    ServiceSecurityGroups, Subnet, Role, Vpc
 
 
 # TODO replace with your desired project name
@@ -19,7 +18,7 @@ REPOSITORY = f"{PROJECT_NAME}-repository"
 # AWS IAM
 REGION = f"-{ENV('AWS_REGION')}" if ENV('AWS_REGION') is not None else ""
 TASK_ROLE_NAME = f"ecsTaskExecRole{REGION}"
-TASK_ASSUME_POLICY = json.dumps({
+TASK_ASSUME_POLICY = {
   "Version": "2012-10-17",
   "Statement": [
       {
@@ -31,7 +30,7 @@ TASK_ASSUME_POLICY = json.dumps({
           "Action": "sts:AssumeRole"
       }
   ]
-})
+}
 TASK_POLICY_ARN = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
 
 # AWS FARGATE + ELASTIC CONTAINER SERVICE (ECS)
@@ -68,19 +67,20 @@ def quickstart_up(_apps, schema_editor):
                                                      cidr_ipv4="0.0.0.0/0", description=SECURITY_GROUP,
                                                      security_group=security_group)
 
+    default_vpc = Vpc.objects.using(db_alias).get(is_default=True)
     # Load balancer
     target_group = TargetGroup.objects.using(db_alias).create(target_group_name=TARGET_GROUP, target_type="ip",
-                                                              protocol="HTTP", port=PORT, vpc='default',
+                                                              protocol="HTTP", port=PORT, vpc=default_vpc,
                                                               health_check_path='/health')
     load_balancer = LoadBalancer.objects.using(db_alias).create(load_balancer_name=LOAD_BALANCER,
-                                                                scheme="internet-facing", vpc="default",
+                                                                scheme="internet-facing", vpc=default_vpc,
                                                                 load_balancer_type="application",
                                                                 ip_address_type="ipv4")
-    LoadBalancerSecurityGroups.objects.using(db_alias).create(load_balancer_id=load_balancer.id,
+    LoadBalancerSecurityGroups.objects.using(db_alias).create(load_balancer_name=load_balancer,
                                                               security_group_id=security_group.id)
-    Listener.objects.using(db_alias).create(load_balancer_id=load_balancer.id,
+    Listener.objects.using(db_alias).create(load_balancer_name=load_balancer,
                                             port=PORT, protocol="HTTP", action_type="forward",
-                                            target_group_id=target_group.id)
+                                            target_group_name=target_group)
 
     # container (ECR + ECS)
     private_repository = Repository.objects.using(db_alias).create(repository_name=REPOSITORY,
@@ -93,18 +93,18 @@ def quickstart_up(_apps, schema_editor):
                                                                     task_role_name=role,
                                                                     execution_role_name=role)
     ContainerDefinition.objects.using(db_alias).create(name=CONTAINER, essential=True,
-                                                       repository_id=private_repository.id,
-                                                       task_definition_id=task_definition.id, tag=IMAGE_TAG,
+                                                       repository_name=private_repository,
+                                                       task_definition=task_definition, tag=IMAGE_TAG,
                                                        memory_reservation=CONTAINER_MEM_RESERVATION,
                                                        host_port=PORT, container_port=PORT, protocol=PROTOCOL.lower())
 
     # create ECS service and associate it to security group
     subnets = list(Subnet.objects.using(db_alias).filter(vpc__is_default=True).values_list("subnet_id", flat=True))
     service = Service.objects.using(db_alias).create(name=SERVICE, desired_count=SERVICE_DESIRED_COUNT,
-                                                     assign_public_ip="ENABLED", subnets=subnets, cluster_id=cluster.id,
-                                                     task_definition_id=task_definition.id,
-                                                     target_group_id=target_group.id)
-    ServiceSecurityGroups.objects.using(db_alias).create(service_id=service.id, security_group_id=security_group.id)
+                                                     assign_public_ip="ENABLED", subnets=subnets, cluster_name=cluster,
+                                                     task_definition=task_definition,
+                                                     target_group_name=target_group)
+    ServiceSecurityGroups.objects.using(db_alias).create(service_name=service, security_group=security_group)
 
 def quickstart_down(_apps, schema_editor):
     db_alias = schema_editor.connection.alias
