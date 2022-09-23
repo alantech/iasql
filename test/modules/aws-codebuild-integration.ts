@@ -126,9 +126,9 @@ describe('AwsCodebuild Integration Testing', () => {
     WHERE project_name = '${dbAlias}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('installs the codebuild module', install(modules));
-
   it('uninstalls the codebuild module', uninstall(modules));
+
+  it('installs the codebuild module', install(modules));
 
   it('check build exists in list', query(`
     SELECT * FROM codebuild_build_list

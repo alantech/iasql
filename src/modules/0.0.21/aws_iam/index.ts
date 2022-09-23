@@ -430,6 +430,11 @@ class RoleMapper extends MapperBase<Role> {
               entity.roleName,
               entity.attachedPoliciesArns ?? [],
             );
+            await this.waitForAttachedRolePolicies(
+              client.iamClient,
+              entity.roleName,
+              [],
+            );
             await this.deleteRole(client.iamClient, entity.roleName);
           }
         }

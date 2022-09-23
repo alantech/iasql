@@ -135,7 +135,7 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
         const input: StopBuildInput = { id };
         await this.stopBuild(client.cbClient, input);
       }
-      if (idsToStop) await this.waitForBuildsToStop(client.cbClient, idsToStop);
+      if (idsToStop.length > 0) await this.waitForBuildsToStop(client.cbClient, idsToStop);
       let idsToDel = bds.map(bd => bd.awsId);
       // Wait for ~2.5min until builds can be deleted
       let i = 0;
@@ -146,7 +146,7 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
         idsToDel = out?.buildsNotDeleted?.map(bd => bd.id as string) ?? [];
         await new Promise(r => setTimeout(r, 5000)); // Sleep for 5s
         i++;
-      } while (i < 60);
+      } while (i < 60 || idsToDel.length > 0);
       if (i === 59) throw new Error('Error deleting builds');
     },
   });
