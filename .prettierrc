@@ -10,7 +10,7 @@
   "endOfLine": "lf",
   "importOrderParserPlugins" : ["typescript", "decorators-legacy"],
   "importOrder": ["<THIRD_PARTY_MODULES>", "^@aws-sdk/(.*)$", "^[./]"],
-	"importOrderSeparation": true,
+  "importOrderSeparation": true,
 
   "language": "postgresql",
   "keywordCase": "upper",
