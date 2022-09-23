@@ -19,7 +19,7 @@ import { Route53 } from '@aws-sdk/client-route-53';
 import { S3 } from '@aws-sdk/client-s3';
 import { SecretsManager } from '@aws-sdk/client-secrets-manager';
 import { SSM } from '@aws-sdk/client-ssm';
-import { StandardRetryStrategy } from '@aws-sdk/middleware-retry';
+import { StandardRetryStrategy, DEFAULT_MAX_ATTEMPTS } from '@aws-sdk/middleware-retry';
 
 type AWSCreds = {
   accessKeyId: string;
@@ -72,6 +72,7 @@ export class AWS {
   cloudfrontClient: CloudFront;
   memoryDBClient: MemoryDB;
   slowRetryStrategy: StandardRetryStrategy;
+  codeBuildRetryStrategy: StandardRetryStrategy;
 
   constructor(config: AWSConfig) {
     // declare an specific slow retry strategy, to reuse in slow apis
@@ -84,6 +85,14 @@ export class AWS {
           ),
         ),
     });
+    // some strange internal caching inside of codebuild of the IAM roles
+    // adding a 3 second delay *right* after creating roles and attaching policies
+    // in the IAM mapper also fixes the problem
+    this.codeBuildRetryStrategy = new StandardRetryStrategy(async () => DEFAULT_MAX_ATTEMPTS, {
+      retryDecider: (sdkErr) => {
+        return sdkErr.message.includes('CodeBuild is not authorized to perform: sts:AssumeRole')
+      },
+    });
 
     this.region = config.region;
     this.apiGatewayClient = new ApiGatewayV2({
@@ -94,7 +103,11 @@ export class AWS {
     this.acmClient = new ACM(config);
     this.appSyncClient = new AppSync(config);
     this.cloudfrontClient = new CloudFront(config);
-    this.cbClient = new CodeBuild(config);
+    this.cbClient = new CodeBuild({
+      credentials: config.credentials,
+      region: config.region,
+      retryStrategy: this.codeBuildRetryStrategy,
+    });
     this.cwClient = new CloudWatchLogs(config);
     this.dynamoClient = new DynamoDB(config);
     this.elasticacheClient = new ElastiCache(config);
@@ -102,7 +115,11 @@ export class AWS {
     this.ecrClient = new ECR(config);
     this.ecsClient = new ECS(config);
     this.elbClient = new ElasticLoadBalancingV2(config);
-    this.iamClient = new IAM(config);
+    this.iamClient = new IAM({
+      credentials: config.credentials,
+      region: config.region,
+      retryStrategy: this.slowRetryStrategy,
+    });
     this.lambdaClient = new Lambda(config);
     this.rdsClient = new RDS(config);
     this.route53Client = new Route53(config);
