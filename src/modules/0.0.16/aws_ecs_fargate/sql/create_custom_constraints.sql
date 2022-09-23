@@ -1,7 +1,6 @@
--- Create service subnets constraint
-create or replace function check_service_subnets(_subnets text[]) returns boolean
-language plpgsql security definer
-as $$
+ -- Create service subnets constraint
+CREATE
+OR REPLACE FUNCTION check_service_subnets (_subnets TEXT[]) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
   _subnets_count integer;
 begin
@@ -11,9 +10,14 @@ begin
   return _subnets_count = array_length(_subnets, 1);
 end;
 $$;
-ALTER TABLE service ADD CONSTRAINT check_service_subnets CHECK (check_service_subnets(subnets));
 
-CREATE OR REPLACE FUNCTION check_subnets_by_service() RETURNS trigger AS $check_subnets_by_service$
+ALTER TABLE
+  service
+ADD
+  CONSTRAINT check_service_subnets CHECK (check_service_subnets (subnets));
+
+CREATE
+OR REPLACE FUNCTION check_subnets_by_service () RETURNS TRIGGER AS $check_subnets_by_service$
     DECLARE
         service_row record;
     BEGIN
@@ -34,7 +38,10 @@ $check_subnets_by_service$ LANGUAGE plpgsql;
 
 -- TODO: Currently any subnet update means a replacement and this could get affected. Eventually update the 
 -- trigger UPDATE OF property with the replacement fields
-CREATE TRIGGER check_subnets_by_service
-BEFORE DELETE OR UPDATE ON subnet
-FOR EACH ROW
-EXECUTE FUNCTION check_subnets_by_service();
+CREATE TRIGGER
+  check_subnets_by_service BEFORE DELETE
+  OR
+UPDATE
+  ON subnet FOR EACH ROW
+EXECUTE
+  FUNCTION check_subnets_by_service ();
