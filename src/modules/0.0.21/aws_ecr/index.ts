@@ -368,9 +368,10 @@ class RepositoryMapper extends MapperBase<Repository> {
     Object.is(a.repositoryUri, b.repositoryUri) &&
     Object.is(a.createdAt?.getTime(), b.createdAt?.getTime()) &&
     Object.is(a.imageTagMutability, b.imageTagMutability) &&
-    Object.is(a.scanOnPush, b.scanOnPush);
+    Object.is(a.scanOnPush, b.scanOnPush) &&
+    Object.is(a.region, b.region);
 
-  repositoryMapper(r: RepositoryAws) {
+  repositoryMapper(r: RepositoryAws, region: string) {
     const out = new Repository();
     if (!r?.repositoryName) return undefined;
     out.repositoryName = r.repositoryName;
@@ -380,6 +381,7 @@ class RepositoryMapper extends MapperBase<Repository> {
     out.createdAt = r.createdAt ? new Date(r.createdAt) : r.createdAt;
     out.imageTagMutability = (r.imageTagMutability as ImageTagMutability) ?? ImageTagMutability.MUTABLE;
     out.scanOnPush = r.imageScanningConfiguration?.scanOnPush ?? false;
+    out.region = region;
     return out;
   }
 
@@ -419,9 +421,9 @@ class RepositoryMapper extends MapperBase<Repository> {
 
   cloud = new Crud2({
     create: async (es: Repository[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const result = await this.createECRRepository(client.ecrClient, {
           repositoryName: e.repositoryName,
           imageTagMutability: e.imageTagMutability,
@@ -438,7 +440,7 @@ class RepositoryMapper extends MapperBase<Repository> {
         const newObject = await this.getECRRepository(client.ecrClient, result.repositoryName ?? '');
         if (!newObject) continue;
         // We map this into the same kind of entity as `obj`
-        const newEntity = this.repositoryMapper(newObject);
+        const newEntity = this.repositoryMapper(newObject, e.region);
         if (!newEntity) continue;
         // Save the record back into the database to get the new fields updated
         await this.module.repository.db.update(newEntity, ctx);
@@ -447,27 +449,43 @@ class RepositoryMapper extends MapperBase<Repository> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        const rawEcr = await this.getECRRepository(client.ecrClient, id);
-        if (!rawEcr) return;
-        return this.repositoryMapper(rawEcr);
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawEcr = await this.getECRRepository(client.ecrClient, id);
+          if (!rawEcr) continue;
+          return this.repositoryMapper(rawEcr, region);
+        }
       } else {
-        const ecrs = (await this.getECRRepositories(client.ecrClient)) ?? [];
         const out = [];
-        for (const ecr of ecrs) {
-          const outEcr = this.repositoryMapper(ecr);
-          if (outEcr) out.push(outEcr);
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const ecrs = (await this.getECRRepositories(client.ecrClient)) ?? [];
+          for (const ecr of ecrs) {
+            const outEcr = this.repositoryMapper(ecr, region);
+            if (outEcr) out.push(outEcr);
+          }
         }
         return out;
       }
     },
-    updateOrReplace: () => 'update',
+    updateOrReplace: (a: Repository, b: Repository) => a.region !== b.region ? 'replace' : 'update',
     update: async (es: Repository[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      const out = [];
+      const out: Repository[] = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.Repository?.[e.repositoryName ?? ''];
+        const isUpdate = Object.is(
+          this.module.repository.cloud.updateOrReplace(cloudRecord, e),
+          'update',
+        );
+        if (!isUpdate) {
+          const newRepository = await this.module.repository.cloud.create(e, ctx);
+          await this.module.repository.cloud.delete(e, ctx);
+          if (newRepository && !Array.isArray(newRepository)) out.push(newRepository);
+          continue;
+        }
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         let updatedRecord = { ...cloudRecord };
         if (cloudRecord?.imageTagMutability !== e.imageTagMutability) {
           await this.updateECRRepositoryImageTagMutability(
@@ -477,7 +495,7 @@ class RepositoryMapper extends MapperBase<Repository> {
           );
           const updatedRepository = await this.getECRRepository(client.ecrClient, e.repositoryName);
           if (!updatedRepository) continue;
-          updatedRecord = this.repositoryMapper(updatedRepository);
+          updatedRecord = this.repositoryMapper(updatedRepository, e.region);
         }
         if (cloudRecord?.scanOnPush !== e.scanOnPush) {
           await this.updateECRRepositoryImageScanningConfiguration(
@@ -487,7 +505,7 @@ class RepositoryMapper extends MapperBase<Repository> {
           );
           const updatedRepository = await this.getECRRepository(client.ecrClient, e.repositoryName);
           if (!updatedRepository) continue;
-          updatedRecord = this.repositoryMapper(updatedRepository);
+          updatedRecord = this.repositoryMapper(updatedRepository, e.region);
         }
         await this.module.repository.db.update(updatedRecord, ctx);
         out.push(updatedRecord);
@@ -495,8 +513,8 @@ class RepositoryMapper extends MapperBase<Repository> {
       return out;
     },
     delete: async (es: Repository[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteECRRepository(client.ecrClient, e.repositoryName!);
         // Also need to delete the repository policy associated with this repository,
         // if any

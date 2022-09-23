@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToOne, Index } from 'typeorm';
 
 import { Repository } from '.';
 
 @Entity()
+@Index(["id", "region"], { unique: true })
 export class RepositoryPolicy {
   @PrimaryGeneratedColumn()
   id: number;
@@ -13,9 +14,16 @@ export class RepositoryPolicy {
   registryId?: string;
 
   @OneToOne(() => Repository, { nullable: false, eager: true })
-  @JoinColumn({
-    name: 'repository_name',
-  })
+  @JoinColumn([
+    {
+      name: 'repository_name',
+      referencedColumnName: 'repositoryName',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   repository: Repository;
 
   @Column({
@@ -28,7 +36,6 @@ export class RepositoryPolicy {
     type: 'character varying',
     nullable: false,
     default: () => 'default_aws_region()',
-    primary: true,
   })
   region: string;
 }

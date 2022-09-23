@@ -30,9 +30,14 @@ export class RepositoryImage {
   registryId?: string;
 
   @ManyToOne(() => Repository, { nullable: true })
-  @JoinColumn({
+  @JoinColumn([{
     name: 'private_repository',
-  })
+    referencedColumnName: 'repositoryName'
+  },
+  {
+    name: 'private_repository_region',
+    referencedColumnName: 'region'
+  }])
   privateRepository?: Repository;
 
   @ManyToOne(() => PublicRepository, { nullable: true })

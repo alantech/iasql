@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryColumn, Column, OneToMany, Index } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 import { RepositoryImage } from './repository_image';
@@ -8,7 +8,9 @@ export enum ImageTagMutability {
   MUTABLE = 'MUTABLE',
 }
 
+
 @Entity()
+@Index(["repositoryName", "region"], { unique: true })
 export class Repository {
   // TODO: add constraint "must satisfy regular expression '(?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*'"
   @PrimaryColumn()
@@ -53,6 +55,14 @@ export class Repository {
     eager: true,
   })
   images?: RepositoryImage[];
+
+  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  region: string;
 
   // TODO: add encriptation configuration entity.
   // @Column({
