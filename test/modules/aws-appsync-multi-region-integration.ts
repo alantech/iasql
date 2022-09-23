@@ -63,8 +63,8 @@ describe('App Sync Multi-region Integration Testing', () => {
   it(
     'adds a new Graphql API',
     query(`  
-    INSERT INTO graphql_api (name, authentication_type)
-    VALUES ('${apiName}', '${authType}');
+    INSERT INTO graphql_api (name, authentication_type, region)
+    VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
   `),
   );
 
@@ -85,10 +85,11 @@ describe('App Sync Multi-region Integration Testing', () => {
   it(
     'adds a new Graphql API',
     query(`  
-    INSERT INTO graphql_api (name, authentication_type)
-    VALUES ('${apiName}', '${authType}');
+    INSERT INTO graphql_api (name, authentication_type, region)
+    VALUES ('${apiName}', '${authType}', '${nonDefaultRegion}');
   `),
   );
+
   it('applies the change', apply());
 
   it(
