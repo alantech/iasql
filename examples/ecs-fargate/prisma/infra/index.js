@@ -5,6 +5,7 @@ const pkg = require('./package.json');
 // TODO replace with your desired project name
 const appName = pkg.name;
 const cbRole = `${appName}codebuild`;
+const ghToken = process.env.GH_PAT;
 const port = 8088;
 const codebuildPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess';
 const cloudwatchLogsArn = 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess';
@@ -39,6 +40,14 @@ async function main() {
   });
 
   console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`)
+
+  await prisma.source_credentials_import.create({
+    data: {
+      token: ghToken,
+      source_type: 'GITHUB',
+      auth_type: 'PERSONAL_ACCESS_TOKEN',
+    }
+  })
 
   const repoUri = (await prisma.ecs_simplified.findFirst({
     where: { app_name: appName },
