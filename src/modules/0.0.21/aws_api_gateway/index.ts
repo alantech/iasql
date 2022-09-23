@@ -114,7 +114,7 @@ class ApiMapper extends MapperBase<Api> {
             };
             const res = await this.updateApi(client.apiGatewayClient, input);
             if (res) {
-              const newApi = this.apiMapper(res);
+              const newApi = this.apiMapper(res, r.region);
               if (newApi) {
                 newApi.name = r.name;
                 newApi.id = r.id;
