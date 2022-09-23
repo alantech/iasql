@@ -1,4 +1,4 @@
 {
   "name": "aws_codebuild",
-  "dependencies": ["iasql_platform", "aws_account", "aws_ecr", "aws_iam"]
+  "dependencies": ["iasql_platform", "aws_account", "aws_ecr", "aws_iam", "aws_cloudwatch"]
 }
