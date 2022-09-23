@@ -117,7 +117,7 @@ describe('AwsCloudwatch install/uninstall', () => {
     'postgres',
     true).then(...finish(done)));
 
-  it('uninstalls the cloudwatch + ecs module', uninstall(['aws_cloudwatch', 'aws_ecs_fargate', 'aws_ecs_simplified',]));
+  it('uninstalls the cloudwatch + codebuild + ecs module', uninstall(['aws_cloudwatch', 'aws_codebuild', 'aws_ecs_fargate', 'aws_ecs_simplified',]));
 
   it('installs the cloudwatch module', install(modules));
 
