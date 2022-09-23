@@ -22,4 +22,13 @@ export class RepositoryPolicy {
     nullable: true,
   })
   policyText?: string;
+
+  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+    primary: true,
+  })
+  region: string;
 }

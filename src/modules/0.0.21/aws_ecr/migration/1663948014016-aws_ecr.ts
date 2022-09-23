@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEcr1663315457087 implements MigrationInterface {
-  name = 'awsEcr1663315457087';
+export class awsEcr1663948014016 implements MigrationInterface {
+  name = 'awsEcr1663948014016';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -17,7 +17,7 @@ export class awsEcr1663315457087 implements MigrationInterface {
       `CREATE TABLE "repository" ("repository_name" character varying NOT NULL, "repository_arn" character varying, "registry_id" character varying, "repository_uri" character varying, "created_at" TIMESTAMP WITH TIME ZONE, "image_tag_mutability" "public"."repository_image_tag_mutability_enum" NOT NULL DEFAULT 'MUTABLE', "scan_on_push" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_8845a838de662324047b4a9bdd6" PRIMARY KEY ("repository_name"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "repository_policy" ("id" SERIAL NOT NULL, "registry_id" character varying, "policy_text" character varying, "repository_name" character varying NOT NULL, CONSTRAINT "REL_45a97f8e1308371a0b2874ee1c" UNIQUE ("repository_name"), CONSTRAINT "PK_14f3e653f2de6dd234051222769" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "repository_policy" ("id" SERIAL NOT NULL, "registry_id" character varying, "policy_text" character varying, "region" character varying NOT NULL DEFAULT default_aws_region(), "repository_name" character varying NOT NULL, CONSTRAINT "REL_45a97f8e1308371a0b2874ee1c" UNIQUE ("repository_name"), CONSTRAINT "PK_48baab7da5512ceed62193dde03" PRIMARY KEY ("id", "region"))`,
     );
     await queryRunner.query(
       `ALTER TABLE "repository_image" ADD CONSTRAINT "FK_3c7183f97647067d207d9276df6" FOREIGN KEY ("private_repository") REFERENCES "repository"("repository_name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
