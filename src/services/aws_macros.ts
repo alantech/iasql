@@ -89,8 +89,8 @@ export class AWS {
     // adding a 3 second delay *right* after creating roles and attaching policies
     // in the IAM mapper also fixes the problem
     this.codeBuildRetryStrategy = new StandardRetryStrategy(async () => DEFAULT_MAX_ATTEMPTS, {
-      retryDecider: (sdkErr) => {
-        return sdkErr.message.includes('CodeBuild is not authorized to perform: sts:AssumeRole')
+      retryDecider: sdkErr => {
+        return sdkErr.message.includes('CodeBuild is not authorized to perform: sts:AssumeRole');
       },
     });
 
