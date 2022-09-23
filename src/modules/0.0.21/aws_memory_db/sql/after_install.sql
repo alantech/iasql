@@ -1,9 +1,8 @@
--- Since Postgres does not allow arrays of foreign keys, but we prefer the syntactic simplicity they
+ -- Since Postgres does not allow arrays of foreign keys, but we prefer the syntactic simplicity they
 -- provide. This check function implements half of a foreign key's behavior by making sure on insert
 -- or update of a memory db subnet group that all referenced subnets actually exist.
-create or replace function check_subnet_group_subnets(_subnets text[]) returns boolean
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION check_subnet_group_subnets (_subnets TEXT[]) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
   _subnets_count integer;
 begin
@@ -13,11 +12,16 @@ begin
   return _subnets_count = array_length(_subnets, 1);
 end;
 $$;
-ALTER TABLE subnet_group ADD CONSTRAINT check_subnet_group_subnets CHECK (check_subnet_group_subnets(subnets));
+
+ALTER TABLE
+  subnet_group
+ADD
+  CONSTRAINT check_subnet_group_subnets CHECK (check_subnet_group_subnets (subnets));
 
 -- This check function implements the other half of a foreign key's behavior by raising an error on delete
 -- or update of a subnet that is being referenced by a memodry db subnet group.
-CREATE OR REPLACE FUNCTION check_subnets_by_subnet_group() RETURNS trigger AS $check_subnets_by_subnet_group$
+CREATE
+OR REPLACE FUNCTION check_subnets_by_subnet_group () RETURNS TRIGGER AS $check_subnets_by_subnet_group$
     DECLARE
         r record;
     BEGIN
@@ -36,14 +40,16 @@ CREATE OR REPLACE FUNCTION check_subnets_by_subnet_group() RETURNS trigger AS $c
     END;
 $check_subnets_by_subnet_group$ LANGUAGE plpgsql;
 
-CREATE TRIGGER check_subnets_by_subnet_group
-BEFORE DELETE OR UPDATE ON subnet
-FOR EACH ROW
-EXECUTE FUNCTION check_subnets_by_subnet_group();
+CREATE TRIGGER
+  check_subnets_by_subnet_group BEFORE DELETE
+  OR
+UPDATE
+  ON subnet FOR EACH ROW
+EXECUTE
+  FUNCTION check_subnets_by_subnet_group ();
 
-create or replace function check_subnet_group_subnets_same_vpc(_subnets text[]) returns boolean
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION check_subnet_group_subnets_same_vpc (_subnets TEXT[]) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
   _vpc_count integer;
 begin
@@ -53,4 +59,8 @@ begin
   return _vpc_count < 2;
 end;
 $$;
-ALTER TABLE subnet_group ADD CONSTRAINT check_subnet_group_subnets_same_vpc CHECK (check_subnet_group_subnets_same_vpc(subnets));
+
+ALTER TABLE
+  subnet_group
+ADD
+  CONSTRAINT check_subnet_group_subnets_same_vpc CHECK (check_subnet_group_subnets_same_vpc (subnets));
