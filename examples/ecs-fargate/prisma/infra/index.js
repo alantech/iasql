@@ -1,60 +1,99 @@
-const { execSync } = require('child_process')
 const { PrismaClient } = require('@prisma/client');
 
 const pkg = require('./package.json');
 
-const REGION = process.env.AWS_REGION ?? '';
-const PORT = 8088;
-
 // TODO replace with your desired project name
-const APP_NAME = pkg.name;
+const appName = pkg.name;
+const cbRole = `${appName}codebuild`;
+const port = 8088;
+const codebuildPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess';
+const cloudwatchLogsArn = 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess';
+const pushEcrPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess';
+const assumeServicePolicy = JSON.stringify({
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+          "Service": "codebuild.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    },
+  ],
+  "Version": "2012-10-17"
+});
+const ghUrl = 'https://github.com/iasql/iasql-engine';
 
 const prisma = new PrismaClient()
 
 async function main() {
-  const data = {
-    app_name: APP_NAME,
+  const ecsData = {
+    app_name: appName,
     public_ip: true,
-    app_port: PORT,
+    app_port: port,
     image_tag: 'latest'
   };
   await prisma.ecs_simplified.upsert({
-    where: { app_name: APP_NAME},
-    create: data,
-    update: data,
+    where: { app_name: appName},
+    create: ecsData,
+    update: ecsData,
   });
 
-  const apply = await prisma.$queryRaw`SELECT * from iasql_apply();`
-  console.dir(apply)
+  console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`)
 
   const repoUri = (await prisma.ecs_simplified.findFirst({
-    where: { app_name: APP_NAME },
+    where: { app_name: appName },
     select: { repository_uri: true }
   })).repository_uri;
 
-  console.log('Docker login...')
-  console.log(execSync(
-    `aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${repoUri}`,
-    { stdio: 'pipe', encoding: 'utf8', }, // Output stdout/err through the parent process
-  ));
+  const cbData = {
+    role_name: cbRole,
+    assume_role_policy_document: assumeServicePolicy,
+    attached_policies_arns: [codebuildPolicyArn, cloudwatchLogsArn, pushEcrPolicyArn]
+  }
+  await prisma.role.upsert({
+    where: { role_name: cbRole },
+    create: cbData,
+    update: cbData,
+  });
 
-  console.log('Building image...')
-  console.log(execSync(
-    `docker build -t ${APP_NAME}-repository ${__dirname}/../app`,
-    { stdio: 'pipe', encoding: 'utf8', },
-  ));
+  const buildSpec = `
+    version: 0.2
 
-  console.log('Tagging image...')
-  console.log(execSync(
-    `docker tag ${APP_NAME}-repository:latest ${repoUri}:latest`,
-    { stdio: 'pipe', encoding: 'utf8', },
-  ));
+    phases:
+      pre_build:
+        commands:
+          - echo Logging in to Amazon ECR...
+          - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${repoUri}
+      build:
+        commands:
+          - echo Building the Docker image...
+          - docker build -t ${appName}-repository ${__dirname}/../app
+          - docker tag ${appName}-repository:latest ${repoUri}:latest
+      post_build:
+        commands:
+          - echo Pushing the Docker image...
+          - docker push ${repoUri}:latest
+  `;
 
-  console.log('Pushing image...')
-  console.log(execSync(
-    `docker push ${repoUri}:latest`,
-    { stdio: 'pipe', encoding: 'utf8', },
-  ));
+  const pjData = {
+    project_name: appName,
+    source_type: 'GITHUB',
+    service_role_name: cbRole,
+    source_location: ghUrl,
+    build_spec: buildSpec,
+  };
+  await prisma.codebuild_project.upsert({
+    where: { project_name: appName},
+    create: pjData,
+    update: pjData,
+  });
+  await prisma.codebuild_build_import.create({
+    data: {
+      project_name: appName,
+    }
+  });
+
+  console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`)
 }
 
 main()
