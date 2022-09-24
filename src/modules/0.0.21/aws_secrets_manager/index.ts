@@ -133,7 +133,7 @@ class SecretMapper extends MapperBase<Secret> {
         return out;
       }
     },
-    updateOrReplace: (a: Secret, b: Secret) => (!!a.value && (a.region !== b.region) ? 'replace' : 'update'),
+    updateOrReplace: (a: Secret, b: Secret) => (!!a.value && a.region !== b.region ? 'replace' : 'update'),
     update: async (secrets: Secret[], ctx: Context) => {
       const out = [];
       for (const secret of secrets) {
