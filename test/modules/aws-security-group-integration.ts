@@ -326,14 +326,26 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'deletes the source security group',
-    query(`DELETE FROM security_group WHERE description = '${prefix}sgsourcetest'`),
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgsourcetest'`),
   );
   it(
     'deletes the original security group to test source',
-    query(`DELETE FROM security_group WHERE description = '${prefix}sgforsource'`),
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgforsource'`),
   );
 
   it('applies the deletion of source security group rule', apply());
+
+  it(
+    'check no security group for source remain',
+    query(
+      `
+    SELECT *
+    FROM security_group
+    WHERE group_name = '${prefix}sgsourcetest' OR group_name='${prefix}sgforsource';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
   it('uninstalls the security group module', uninstall(modules));
 
