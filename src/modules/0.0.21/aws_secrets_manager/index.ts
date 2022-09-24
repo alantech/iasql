@@ -144,12 +144,13 @@ class SecretMapper extends MapperBase<Secret> {
           // essentially just a 'replace' in that case, but if we don't have the secret value, then
           // simply restore the cloud record back into the database.
           if (!secret.value) {
-            await this.module.secret.db.update(cloudRecord, ctx);
-            continue;
+            secret.region = cloudRecord.region;
+            await this.module.secret.db.update(secret, ctx);
           } else {
             await this.module.secret.cloud.delete(cloudRecord, ctx);
             await this.module.secret.cloud.create(secret, ctx);
           }
+          continue;
         }
         const client = (await ctx.getAwsClient(secret.region)) as AWS;
         if (isUpdate) {
