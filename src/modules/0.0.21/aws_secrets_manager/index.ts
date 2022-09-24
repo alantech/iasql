@@ -146,6 +146,8 @@ class SecretMapper extends MapperBase<Secret> {
           if (!secret.value) {
             secret.region = cloudRecord.region;
             await this.module.secret.db.update(secret, ctx);
+            // Force override the DB memo to exit the update loop
+            ctx.memo.db.Secret[secret.name] = secret;
           } else {
             await this.module.secret.cloud.delete(cloudRecord, ctx);
             await this.module.secret.cloud.create(secret, ctx);
