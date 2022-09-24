@@ -76,7 +76,6 @@ class SecretMapper extends MapperBase<Secret> {
   deleteSecret = crudBuilder2<SecretsManager, 'deleteSecret'>('deleteSecret', input => input);
 
   cloud = new Crud2({
-    updateOrReplace: (a: Secret, b: Secret) => (!!a.value && a.region !== b.region ? 'replace' : 'update'),
     create: async (secrets: Secret[], ctx: Context) => {
       const out = [];
       for (const secret of secrets) {
@@ -134,11 +133,12 @@ class SecretMapper extends MapperBase<Secret> {
         return out;
       }
     },
+    updateOrReplace: (a: Secret, b: Secret) => (!!a.value && (a.region !== b.region) ? 'replace' : 'update'),
     update: async (secrets: Secret[], ctx: Context) => {
       const out = [];
       for (const secret of secrets) {
         const cloudRecord = ctx?.memo?.cloud?.Secret?.[secret.name ?? ''];
-        const isUpdate = Object.is(this.module.secret.cloud.updateOrReplace(cloudRecord, secret), 'update');
+        const isUpdate = Object.is(this.module.secret.cloud.updateOrReplace(secret, cloudRecord), 'update');
         if (!isUpdate) {
           // We can only 'move' a secret between regions *if* the secret value is present, which is
           // essentially just a 'replace' in that case, but if we don't have the secret value, then
