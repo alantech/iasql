@@ -100,8 +100,6 @@ describe('AwsCodebuild Integration Testing', () => {
     VALUES ('${dbAlias}', '${assumeServicePolicy}', array['${codebuildPolicyArn}', '${cloudwatchLogsArn}', '${pushEcrPolicyArn}']);
   `, ));
 
-  it('apply deps creation', apply());
-
   it('adds a new codebuild_project', query(`
     INSERT INTO codebuild_project (project_name, source_type, service_role_name, source_location)
     VALUES ('${dbAlias}', 'GITHUB', '${dbAlias}', '${ghUrl}');
