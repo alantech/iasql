@@ -16,9 +16,12 @@ class SecretMapper extends MapperBase<Secret> {
   module: AwsSecretsManagerModule;
   entity = Secret;
   equals = (a: Secret, b: Secret) =>
-    Object.is(a.description, b.description) && Object.is(a.versionId, b.versionId) && !a.value; // if password is set we need to update it,
+    Object.is(a.description, b.description) &&
+    Object.is(a.versionId, b.versionId) &&
+    Object.is(a.region, b.region) &&
+    !a.value; // if secret is set we need to update it,
 
-  secretsMapper(secret: SecretListEntry) {
+  secretsMapper(secret: SecretListEntry, region: string) {
     const out = new Secret();
     if (!secret.Name) return undefined;
     out.name = secret.Name;
@@ -34,6 +37,7 @@ class SecretMapper extends MapperBase<Secret> {
         }
       }
     }
+    out.region = region;
     return out;
   }
 
@@ -72,11 +76,11 @@ class SecretMapper extends MapperBase<Secret> {
   deleteSecret = crudBuilder2<SecretsManager, 'deleteSecret'>('deleteSecret', input => input);
 
   cloud = new Crud2({
-    updateOrReplace: (_a: Secret, _b: Secret) => 'update',
+    updateOrReplace: (a: Secret, b: Secret) => (!!a.value && a.region !== b.region ? 'replace' : 'update'),
     create: async (secrets: Secret[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const secret of secrets) {
+        const client = (await ctx.getAwsClient(secret.region)) as AWS;
         if (secret.value) {
           const input: CreateSecretCommandInput = {
             Name: secret.name,
@@ -109,28 +113,45 @@ class SecretMapper extends MapperBase<Secret> {
     },
 
     read: async (ctx: Context, secretName?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (secretName) {
-        const rawSecret = await this.getSecret(client.secretsClient, secretName);
-        if (!rawSecret) return;
-        const res = this.secretsMapper(rawSecret);
-        return res;
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawSecret = await this.getSecret(client.secretsClient, secretName);
+          if (!rawSecret) continue;
+          return this.secretsMapper(rawSecret, region);
+        }
       } else {
-        const rawSecrets = (await this.getAllSecrets(client.secretsClient)) ?? [];
         const out = [];
-        for (const i of rawSecrets) {
-          const sec = this.secretsMapper(i);
-          if (sec) out.push(sec);
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawSecrets = (await this.getAllSecrets(client.secretsClient)) ?? [];
+          for (const i of rawSecrets) {
+            const sec = this.secretsMapper(i, region);
+            if (sec) out.push(sec);
+          }
         }
         return out;
       }
     },
     update: async (secrets: Secret[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const secret of secrets) {
         const cloudRecord = ctx?.memo?.cloud?.Secret?.[secret.name ?? ''];
         const isUpdate = Object.is(this.module.secret.cloud.updateOrReplace(cloudRecord, secret), 'update');
+        if (!isUpdate) {
+          // We can only 'move' a secret between regions *if* the secret value is present, which is
+          // essentially just a 'replace' in that case, but if we don't have the secret value, then
+          // simply restore the cloud record back into the database.
+          if (!secret.value) {
+            await this.module.secret.db.update(cloudRecord, ctx);
+            continue;
+          } else {
+            await this.module.secret.cloud.delete(cloudRecord, ctx);
+            await this.module.secret.cloud.create(secret, ctx);
+          }
+        }
+        const client = (await ctx.getAwsClient(secret.region)) as AWS;
         if (isUpdate) {
           const input: UpdateSecretCommandInput = {
             SecretId: secret.name,
@@ -151,7 +172,7 @@ class SecretMapper extends MapperBase<Secret> {
             await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
 
             const rawSecret = await this.getSecret(client.secretsClient, secret.name);
-            finalSecret = await this.secretsMapper(rawSecret!);
+            finalSecret = this.secretsMapper(rawSecret!, secret.region);
             i++;
             if (!finalSecret) continue;
             if (secret.value && finalSecret.versionId !== cloudRecord.versionId) {
@@ -180,10 +201,10 @@ class SecretMapper extends MapperBase<Secret> {
       return out;
     },
     delete: async (secrets: Secret[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const secret of secrets) {
+        const client = (await ctx.getAwsClient(secret.region)) as AWS;
         if (secret.name) {
-          const result = await this.deleteSecret(client.secretsClient, {
+          await this.deleteSecret(client.secretsClient, {
             SecretId: secret.name,
             ForceDeleteWithoutRecovery: true,
           });

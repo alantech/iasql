@@ -26,4 +26,12 @@ export class Secret {
     nullable: true,
   })
   versionId?: string;
+
+  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  region: string;
 }
