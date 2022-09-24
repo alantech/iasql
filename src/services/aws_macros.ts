@@ -87,7 +87,8 @@ export class AWS {
     });
     // Get around some strange internal caching inside of codebuild of the IAM roles
     this.codeBuildRetryStrategy = new StandardRetryStrategy(async () => SLOW_STRATEGY_RETRIES, {
-      retryDecider: sdkErr => sdkErr.message.includes('CodeBuild is not authorized to perform: sts:AssumeRole'),
+      retryDecider: sdkErr =>
+        sdkErr.message.includes('CodeBuild is not authorized to perform: sts:AssumeRole'),
       delayDecider: (_, attempts) =>
         Math.floor(
           Math.min(

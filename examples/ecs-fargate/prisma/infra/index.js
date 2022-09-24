@@ -10,7 +10,7 @@ const port = 8088;
 const codebuildPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess';
 const cloudwatchLogsArn = 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess';
 const pushEcrPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess';
-const assumeServicePolicy = JSON.stringify({
+const assumeServicePolicy = {
   "Statement": [
     {
       "Effect": "Allow",
@@ -21,7 +21,7 @@ const assumeServicePolicy = JSON.stringify({
     },
   ],
   "Version": "2012-10-17"
-});
+};
 const ghUrl = 'https://github.com/iasql/iasql-engine';
 
 const prisma = new PrismaClient()
