@@ -19,7 +19,7 @@ import { Route53 } from '@aws-sdk/client-route-53';
 import { S3 } from '@aws-sdk/client-s3';
 import { SecretsManager } from '@aws-sdk/client-secrets-manager';
 import { SSM } from '@aws-sdk/client-ssm';
-import { StandardRetryStrategy, DEFAULT_MAX_ATTEMPTS } from '@aws-sdk/middleware-retry';
+import { StandardRetryStrategy } from '@aws-sdk/middleware-retry';
 
 type AWSCreds = {
   accessKeyId: string;
@@ -85,13 +85,16 @@ export class AWS {
           ),
         ),
     });
-    // some strange internal caching inside of codebuild of the IAM roles
-    // adding a 3 second delay *right* after creating roles and attaching policies
-    // in the IAM mapper also fixes the problem
-    this.codeBuildRetryStrategy = new StandardRetryStrategy(async () => DEFAULT_MAX_ATTEMPTS, {
-      retryDecider: sdkErr => {
-        return sdkErr.message.includes('CodeBuild is not authorized to perform: sts:AssumeRole');
-      },
+    // Get around some strange internal caching inside of codebuild of the IAM roles
+    this.codeBuildRetryStrategy = new StandardRetryStrategy(async () => SLOW_STRATEGY_RETRIES, {
+      retryDecider: sdkErr => sdkErr.message.includes('CodeBuild is not authorized to perform: sts:AssumeRole'),
+      delayDecider: (_, attempts) =>
+        Math.floor(
+          Math.min(
+            SLOW_STRATEGY_MAXIMUM_RETRY_DELAY,
+            Math.random() * 2 ** attempts * SLOW_STRATEGY_BASE_DELAY,
+          ),
+        ),
     });
 
     this.region = config.region;
