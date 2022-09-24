@@ -133,7 +133,7 @@ class SecretMapper extends MapperBase<Secret> {
         return out;
       }
     },
-    updateOrReplace: (a: Secret, b: Secret) => (!!a.value && a.region !== b.region ? 'replace' : 'update'),
+    updateOrReplace: (a: Secret, b: Secret) => (a.region !== b.region ? 'replace' : 'update'),
     update: async (secrets: Secret[], ctx: Context) => {
       const out = [];
       for (const secret of secrets) {
@@ -146,8 +146,6 @@ class SecretMapper extends MapperBase<Secret> {
           if (!secret.value) {
             secret.region = cloudRecord.region;
             await this.module.secret.db.update(secret, ctx);
-            // Force override the DB memo to exit the update loop
-            ctx.memo.db.Secret[secret.name] = secret;
           } else {
             await this.module.secret.cloud.delete(cloudRecord, ctx);
             await this.module.secret.cloud.create(secret, ctx);
