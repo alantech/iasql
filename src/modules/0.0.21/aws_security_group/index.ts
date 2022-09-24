@@ -1,3 +1,5 @@
+import e from 'cors';
+
 import {
   AuthorizeSecurityGroupEgressCommandInput,
   AuthorizeSecurityGroupIngressCommandInput,
@@ -9,6 +11,9 @@ import {
   SecurityGroupRule as AwsSecurityGroupRule,
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
+  IpPermission,
+  PrefixList,
+  PrefixListId,
 } from '@aws-sdk/client-ec2';
 
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
@@ -117,6 +122,12 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
     id => ({ GroupIds: [id] }),
     res => res?.SecurityGroups?.[0],
   );
+  getSecurityGroupByName = crudBuilderFormat<EC2, 'describeSecurityGroups', AwsSecurityGroup | undefined>(
+    'describeSecurityGroups',
+    name => ({ GroupNames: [name] }),
+    res => res?.SecurityGroups?.[0],
+  );
+
   getSecurityGroups = paginateBuilder<EC2>(paginateDescribeSecurityGroups, 'SecurityGroups');
 
   // TODO: Would it ever be possible to macro this?
@@ -345,28 +356,54 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
 class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
   module: AwsSecurityGroupModule;
   entity = SecurityGroupRule;
-  equals = (a: SecurityGroupRule, b: SecurityGroupRule) =>
-    Object.is(a.isEgress, b.isEgress) &&
-    Object.is(a.ipProtocol, b.ipProtocol) &&
-    Object.is(a.fromPort, b.fromPort) &&
-    Object.is(a.toPort, b.toPort) &&
-    Object.is(a.cidrIpv4, b.cidrIpv4) &&
-    Object.is(a.cidrIpv6, b.cidrIpv6) &&
-    Object.is(a.prefixListId, b.prefixListId) &&
-    Object.is(a.description, b.description);
+  equals = (a: SecurityGroupRule, b: SecurityGroupRule) => {
+    if (a.sourceSecurityGroup != b.sourceSecurityGroup) return false;
+    if (a.sourceSecurityGroup) {
+      // for source security group we avoid comparison with ip and description (as those are auto-created)
+      return (
+        Object.is(a.isEgress, b.isEgress) &&
+        Object.is(a.prefixListId, b.prefixListId) &&
+        Object.is(a.ipProtocol, b.ipProtocol)
+      );
+    } else {
+      return (
+        Object.is(a.isEgress, b.isEgress) &&
+        Object.is(a.ipProtocol, b.ipProtocol) &&
+        Object.is(a.fromPort, b.fromPort) &&
+        Object.is(a.toPort, b.toPort) &&
+        Object.is(a.cidrIpv4, b.cidrIpv4) &&
+        Object.is(a.cidrIpv6, b.cidrIpv6) &&
+        Object.is(a.prefixListId, b.prefixListId) &&
+        Object.is(a.description, b.description)
+      );
+    }
+  };
 
-  async sgrMapper(sgr: any, ctx: Context) {
+  async sgrMapper(sgr: AwsSecurityGroupRule, ctx: Context) {
+    const client = (await ctx.getAwsClient()) as AWS;
+
     const out = new SecurityGroupRule();
     out.securityGroupRuleId = sgr?.SecurityGroupRuleId;
     out.securityGroup = await this.module.securityGroup.cloud.read(ctx, sgr?.GroupId);
     out.isEgress = sgr?.IsEgress ?? false;
+
+    if (sgr.ReferencedGroupInfo) {
+      // retrieve group details
+      const group = await this.module.securityGroup.getSecurityGroup(
+        client.ec2client,
+        sgr.ReferencedGroupInfo.GroupId,
+      );
+      if (group) out.sourceSecurityGroup = group.GroupName;
+    } else {
+      out.fromPort = sgr?.FromPort;
+      out.toPort = sgr?.ToPort;
+      out.cidrIpv4 = sgr?.CidrIpv4;
+      out.cidrIpv6 = sgr?.CidrIpv6;
+    }
     out.ipProtocol = sgr?.IpProtocol ?? '';
-    out.fromPort = sgr?.FromPort;
-    out.toPort = sgr?.ToPort;
-    out.cidrIpv4 = sgr?.CidrIpv4;
-    out.cidrIpv6 = sgr?.CidrIpv6;
     out.prefixListId = sgr?.PrefixListId;
     out.description = sgr?.Description;
+
     return out;
   }
 
@@ -415,54 +452,105 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
       // with which returned ID to store in the database, so we're doing these sequentially at
       // the moment.
       const client = (await ctx.getAwsClient()) as AWS;
+      const out = [];
       for (const en of es) {
         const GroupId = en?.securityGroup?.groupId;
         if (!GroupId)
           throw new Error('Cannot create a security group rule for a security group that does not yet exist');
-        let input: any;
 
-        // check if we have a source security group or not
+        // if there is no protocol and no security group, fail
+        if (!en.ipProtocol && !en.sourceSecurityGroup) {
+          throw new Error(
+            'Cannot create a security group rule without either ip protocol or source security group',
+          );
+        }
+
+        // get details for security group if we have
+        let groupName: string | undefined = undefined;
+        let groupId: string | undefined = undefined;
+        let newRule: IpPermission | undefined = undefined;
+
         if (en.sourceSecurityGroup) {
-          // get data for this security group
-          input = {
-            GroupId,
-            SourceSecurityGroupName: en.sourceSecurityGroup.groupName,
-            SourceSecurityGroupOwnerId: en.sourceSecurityGroup.ownerId,
-          };
+          if (en.securityGroup.vpc?.isDefault) {
+            // we just specify group name
+            groupName = en.sourceSecurityGroup;
+          } else {
+            // get data for this security group
+            const group = await this.module.securityGroup.getSecurityGroupByName(
+              client.ec2client,
+              en.sourceSecurityGroup,
+            );
+            if (!group) throw new Error('Security group rule has no group associated');
+            if (group.GroupName) groupName = group.GroupName;
+            if (group.GroupId) groupId = group.GroupId;
+          }
         } else {
-          const newRule: any = {};
           // The rest of these should be defined if present
+          newRule = {};
           if (en.cidrIpv4) newRule.IpRanges = [{ CidrIp: en.cidrIpv4 }];
           if (en.cidrIpv6) newRule.Ipv6Ranges = [{ CidrIpv6: en.cidrIpv6 }];
           if (en.description) {
-            if (en.cidrIpv4) newRule.IpRanges[0].Description = en.description;
-            if (en.cidrIpv6) newRule.Ipv6Ranges[0].Description = en.description;
+            if (newRule.IpRanges) {
+              if (en.cidrIpv4) newRule.IpRanges[0].Description = en.description;
+            }
+            if (newRule.Ipv6Ranges) {
+              if (en.cidrIpv6) newRule.Ipv6Ranges[0].Description = en.description;
+            }
           }
           if (en.fromPort) newRule.FromPort = en.fromPort;
           if (en.ipProtocol) newRule.IpProtocol = en.ipProtocol;
-          if (en.prefixListId) newRule.PrefixListIds = [en.prefixListId];
+
+          if (en.prefixListId) newRule.PrefixListIds = [en.prefixListId as PrefixListId];
           // TODO: There's something weird about `ReferencedGroupId` that I need to dig into
           if (en.toPort) newRule.ToPort = en.toPort;
-
-          input = {
-            GroupId,
-            IpPermissions: newRule,
-          };
         }
 
         let res;
         if (en.isEgress) {
+          const input: AuthorizeSecurityGroupEgressCommandInput = {
+            GroupId,
+          };
+          if (newRule) input.IpPermissions = [newRule];
+          if (groupName) input.SourceSecurityGroupName = groupName;
+          if (groupId) input.SourceSecurityGroupOwnerId = groupId;
           res = (await this.createSecurityGroupEgressRules(client.ec2client, [input]))[0];
         } else {
+          const input: AuthorizeSecurityGroupIngressCommandInput = {
+            GroupId,
+          };
+          if (newRule) input.IpPermissions = [newRule];
+          if (groupName) input.SourceSecurityGroupName = groupName;
+          if (groupId) input.SourceSecurityGroupOwnerId = groupId;
           res = (await this.createSecurityGroupIngressRules(client.ec2client, [input]))[0];
         }
         // Now to either throw on error or save the cloud-generated fields
         if (res.Return !== true || res.SecurityGroupRules?.length === 0) {
           throw new Error(`Unable to create security group rule`);
         }
-        en.securityGroupRuleId = res.SecurityGroupRules?.[0].SecurityGroupRuleId;
-        // TODO: Are there any other fields to update?
-        await this.module.securityGroupRule.db.update(en, ctx);
+
+        if (!en.ipProtocol && en.sourceSecurityGroup) {
+          if (res.SecurityGroupRules.length > 0) {
+            // it will generate 3 rules - we need to delete the current one and replace by the 3 expanded ones
+            for (const rule of res.SecurityGroupRules) {
+              const e = await this.sgrMapper(rule, ctx);
+              if (e) {
+                e.securityGroup = en.securityGroup;
+                e.description = en.description;
+                e.isEgress = en.isEgress;
+                await this.db.create([e], ctx);
+                out.push(e);
+              }
+            }
+
+            // delete the previously created, not expanded, rule
+            await this.db.delete([en], ctx);
+          }
+        } else {
+          en.securityGroupRuleId = res.SecurityGroupRules?.[0].SecurityGroupRuleId;
+          out.push(en);
+          await this.module.securityGroupRule.db.update(en, ctx);
+        }
+        return out;
       }
     },
     read: async (ctx: Context, id?: string) => {
@@ -504,6 +592,7 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
           ingressDeletesToRun[GroupId].push(en.securityGroupRuleId);
         }
       }
+
       const client = (await ctx.getAwsClient()) as AWS;
       for (const GroupId of Object.keys(egressDeletesToRun)) {
         try {
