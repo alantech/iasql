@@ -6,10 +6,11 @@ const pkg = require('./package.json');
 const appName = pkg.name;
 const cbRole = `${appName}codebuild`;
 const ghToken = process.env.GH_PAT;
+const region = process.env.AWS_REGION;
 const port = 8088;
 const codebuildPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess';
 const cloudwatchLogsArn = 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess';
-const pushEcrPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess';
+const pushEcrPolicyArn = 'arn:aws:iam::aws:policy/service-role/AWSECRPullThroughCache_ServiceRolePolicy';
 const assumeServicePolicy = {
   "Statement": [
     {
@@ -72,7 +73,7 @@ async function main() {
       pre_build:
         commands:
           - echo Logging in to Amazon ECR...
-          - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${repoUri}
+          - aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${repoUri}
       build:
         commands:
           - echo Building the Docker image...
