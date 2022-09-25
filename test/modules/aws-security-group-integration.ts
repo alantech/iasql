@@ -57,7 +57,7 @@ describe('Security Group Integration Testing', () => {
 
   it('installs the security group module', install(modules));
 
-  /*it(
+  it(
     'adds a new security group',
     query(`  
     INSERT INTO security_group (description, group_name)
@@ -226,7 +226,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('should successfully create this mess', apply());*/
+  it('should successfully create this mess', apply());
 
   // create rule targetting to another security group
   it(
@@ -461,7 +461,7 @@ describe('Security Group Integration Testing', () => {
 
   it('applies the vpc removal', apply());
 
-  /*it('uninstalls the security group module', uninstall(modules));
+  it('uninstalls the security group module', uninstall(modules));
 
   it('installs the security group module', install(modules));
 
@@ -622,7 +622,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('deletes the final test records', apply());*/
+  it('deletes the final test records', apply());
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

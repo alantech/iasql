@@ -1,5 +1,3 @@
-import e from 'cors';
-
 import {
   AuthorizeSecurityGroupEgressCommandInput,
   AuthorizeSecurityGroupIngressCommandInput,
@@ -357,7 +355,7 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
   module: AwsSecurityGroupModule;
   entity = SecurityGroupRule;
   equals = (a: SecurityGroupRule, b: SecurityGroupRule) => {
-    if (a.sourceSecurityGroup != b.sourceSecurityGroup) return false;
+    if (a.sourceSecurityGroup !== b.sourceSecurityGroup) return false;
     if (a.sourceSecurityGroup) {
       // for source security group we avoid comparison with ip and description (as those are auto-created)
       return (
@@ -466,9 +464,9 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
         }
 
         // get details for security group if we have
-        let groupName: string | undefined = undefined;
-        let groupId: string | undefined = undefined;
-        let newRule: IpPermission | undefined = undefined;
+        let groupName: string | undefined;
+        let groupId: string | undefined;
+        let newRule: IpPermission | undefined;
 
         if (en.sourceSecurityGroup) {
           // get data for this security group
