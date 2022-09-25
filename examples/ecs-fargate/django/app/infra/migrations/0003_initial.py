@@ -3,129 +3,35 @@
 from django.conf import settings
 from django.db import migrations, connections
 
-from infra.models import SecurityGroup, SecurityGroupRule, LoadBalancer, TargetGroup, Listener, \
-    LoadBalancerSecurityGroups, Repository, Cluster, ContainerDefinition, TaskDefinition, Service, \
-    ServiceSecurityGroups, Subnet, Role, Vpc
-
+from infra.models import EcsSimplified
 
 # TODO replace with your desired project name
 PROJECT_NAME = settings.IASQL_PROJECT_NAME
-ENV = settings.ENV
 
-# AWS ELASTIC CONTAINER REPOSITORY (ECR)
-REPOSITORY = f"{PROJECT_NAME}-repository"
-
-# AWS IAM
-REGION = f"-{ENV('AWS_REGION')}" if ENV('AWS_REGION') is not None else ""
-TASK_ROLE_NAME = f"ecsTaskExecRole{REGION}"
-TASK_ASSUME_POLICY = {
-  "Version": "2012-10-17",
-  "Statement": [
-      {
-          "Sid": "",
-          "Effect": "Allow",
-          "Principal": {
-              "Service": "ecs-tasks.amazonaws.com"
-          },
-          "Action": "sts:AssumeRole"
-      }
-  ]
-}
-TASK_POLICY_ARN = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
-
-# AWS FARGATE + ELASTIC CONTAINER SERVICE (ECS)
-# https:#docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html
-TASK_DEF_RESOURCES = "vCPU2-8GB"  # task_definition_cpu_memory enum
-TASK_DEF_FAMILY = f"{PROJECT_NAME}-td"
-SERVICE_DESIRED_COUNT = 1
-IMAGE_TAG = "latest"
-CONTAINER = f"{PROJECT_NAME}-container"
-CONTAINER_MEM_RESERVATION = 8192  # in MiB
-PROTOCOL = "TCP"
-CLUSTER = f"{PROJECT_NAME}-cluster"
-SERVICE = f"{PROJECT_NAME}-service"
-
-# AWS SECURITY GROUP + VPC
-SECURITY_GROUP = f"{PROJECT_NAME}-security-group"
 PORT = 8088
-
-# AWS ELASTIC LOAD BALANCER
-TARGET_GROUP = f"{PROJECT_NAME}-target"
-LOAD_BALANCER = f"{PROJECT_NAME}-load-balancer"
 
 
 def quickstart_up(_apps, schema_editor):
     db_alias = schema_editor.connection.alias
+    ecs_deployment, _ = EcsSimplified.objects.using(db_alias).get_or_create(
+        app_name=PROJECT_NAME,
+        public_ip=True,
+        app_port=PORT,
+        image_tag='latest',
+        cpu_mem='vCPU2-8GB',
+        desired_count=1,
+        force_new_deployment=False,
+    )
 
-    # Security groups
-    security_group = SecurityGroup.objects.using(db_alias).create(group_name=SECURITY_GROUP,
-                                                                  description=f"{PROJECT_NAME} security group")
-    SecurityGroupRule.objects.using(db_alias).create(is_egress=False, ip_protocol="tcp", from_port=PORT, to_port=PORT,
-                                                     cidr_ipv4="0.0.0.0/0", description=SECURITY_GROUP,
-                                                     security_group=security_group)
-    SecurityGroupRule.objects.using(db_alias).create(is_egress=True, ip_protocol="-1", from_port=-1, to_port=-1,
-                                                     cidr_ipv4="0.0.0.0/0", description=SECURITY_GROUP,
-                                                     security_group=security_group)
-
-    default_vpc = Vpc.objects.using(db_alias).get(is_default=True)
-    # Load balancer
-    target_group = TargetGroup.objects.using(db_alias).create(target_group_name=TARGET_GROUP, target_type="ip",
-                                                              protocol="HTTP", port=PORT, vpc=default_vpc,
-                                                              health_check_path='/health')
-    load_balancer = LoadBalancer.objects.using(db_alias).create(load_balancer_name=LOAD_BALANCER,
-                                                                scheme="internet-facing", vpc=default_vpc,
-                                                                load_balancer_type="application",
-                                                                ip_address_type="ipv4")
-    LoadBalancerSecurityGroups.objects.using(db_alias).create(load_balancer_name=load_balancer,
-                                                              security_group_id=security_group.id)
-    Listener.objects.using(db_alias).create(load_balancer_name=load_balancer,
-                                            port=PORT, protocol="HTTP", action_type="forward",
-                                            target_group_name=target_group)
-
-    # container (ECR + ECS)
-    private_repository = Repository.objects.using(db_alias).create(repository_name=REPOSITORY,
-                                                                   image_tag_mutability='MUTABLE', scan_on_push=False)
-    cluster = Cluster.objects.using(db_alias).create(cluster_name=CLUSTER)
-    role = Role.objects.using(db_alias).create(role_name=TASK_ROLE_NAME, assume_role_policy_document=TASK_ASSUME_POLICY,
-                                        attached_policies_arns=[TASK_POLICY_ARN])
-    task_definition = TaskDefinition.objects.using(db_alias).create(family=TASK_DEF_FAMILY,
-                                                                    cpu_memory=TASK_DEF_RESOURCES,
-                                                                    task_role_name=role,
-                                                                    execution_role_name=role)
-    ContainerDefinition.objects.using(db_alias).create(name=CONTAINER, essential=True,
-                                                       repository_name=private_repository,
-                                                       task_definition=task_definition, tag=IMAGE_TAG,
-                                                       memory_reservation=CONTAINER_MEM_RESERVATION,
-                                                       host_port=PORT, container_port=PORT, protocol=PROTOCOL.lower())
-
-    # create ECS service and associate it to security group
-    subnets = list(Subnet.objects.using(db_alias).filter(vpc__is_default=True).values_list("subnet_id", flat=True))
-    service = Service.objects.using(db_alias).create(name=SERVICE, desired_count=SERVICE_DESIRED_COUNT,
-                                                     assign_public_ip="ENABLED", subnets=subnets, cluster_name=cluster,
-                                                     task_definition=task_definition,
-                                                     target_group_name=target_group)
-    ServiceSecurityGroups.objects.using(db_alias).create(service_name=service, security_group=security_group)
 
 def quickstart_down(_apps, schema_editor):
     db_alias = schema_editor.connection.alias
 
-    ServiceSecurityGroups.objects.using(db_alias).filter(service__name=SERVICE).delete()
-    Service.objects.using(db_alias).filter(name=SERVICE).delete()
-    ContainerDefinition.objects.using(db_alias).filter(task_definition__family=TASK_DEF_FAMILY).delete()
-    TaskDefinition.objects.using(db_alias).filter(family=TASK_DEF_FAMILY).delete()
-    Role.objects.using(db_alias).filter(role_name=TASK_ROLE_NAME).delete()
-    Cluster.objects.using(db_alias).filter(cluster_name=CLUSTER).delete()
-    Repository.objects.using(db_alias).filter(repository_name=REPOSITORY).delete()
-    Listener.objects.using(db_alias).filter(load_balancer__load_balancer_name=LOAD_BALANCER,
-                                            port=PORT, protocol="HTTP", action_type="forward",
-                                            target_group__target_group_name=TARGET_GROUP).delete()
-    LoadBalancerSecurityGroups.objects.using(db_alias).filter(load_balancer__load_balancer_name=LOAD_BALANCER,
-                                                              security_group__group_name=SECURITY_GROUP).delete()
-    LoadBalancer.objects.using(db_alias).filter(load_balancer_name=LOAD_BALANCER).delete()
-    TargetGroup.objects.using(db_alias).filter(target_group_name=TARGET_GROUP).delete()
-    
-    SecurityGroupRule.objects.using(db_alias).filter(security_group__group_name=SECURITY_GROUP).delete()
-    SecurityGroup.objects.using(db_alias).filter(group_name=SECURITY_GROUP).delete()
+    EcsSimplified.objects.using(db_alias).filter(
+        app_name=PROJECT_NAME,
+        app_port=PORT,
+    ).delete()
+
 
 def apply(_, schema_editor):
     db_alias = schema_editor.connection.alias
@@ -140,7 +46,6 @@ def apply(_, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     atomic = False
 
     dependencies = [
