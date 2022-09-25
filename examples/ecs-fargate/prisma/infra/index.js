@@ -10,6 +10,7 @@ const region = process.env.AWS_REGION;
 const port = 8088;
 const codebuildPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess';
 const cloudwatchLogsArn = 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess';
+// TODO provide ECR permissions once inline policies are supported in roles
 const pushEcrPolicyArn = 'arn:aws:iam::aws:policy/service-role/EC2InstanceProfileForImageBuilderECRContainerBuilds';
 const assumeServicePolicy = {
   "Statement": [
