@@ -76,7 +76,7 @@ async function main() {
       build:
         commands:
           - echo Building the Docker image...
-          - docker build -t ${appName}-repository ${__dirname}/../app
+          - docker build -t ${appName}-repository examples/ecs-fargate/prisma/app
           - docker tag ${appName}-repository:latest ${repoUri}:latest
       post_build:
         commands:
