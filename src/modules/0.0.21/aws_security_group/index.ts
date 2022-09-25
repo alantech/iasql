@@ -471,19 +471,17 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
         let newRule: IpPermission | undefined = undefined;
 
         if (en.sourceSecurityGroup) {
-          if (en.securityGroup.vpc?.isDefault) {
-            // we just specify group name
-            groupName = en.sourceSecurityGroup;
-          } else {
-            // get data for this security group
-            const group = await this.module.securityGroup.getSecurityGroupByName(
-              client.ec2client,
-              en.sourceSecurityGroup,
-            );
-            if (!group) throw new Error('Security group rule has no group associated');
-            if (group.GroupName) groupName = group.GroupName;
-            if (group.GroupId) groupId = group.GroupId;
-          }
+          // get data for this security group
+          const rawGroup = await this.module.securityGroup.getSecurityGroupByName(
+            client.ec2client,
+            en.sourceSecurityGroup,
+          );
+          if (!rawGroup) throw new Error('Security group rule has no group associated');
+
+          // check if it is a default vpc or not
+          const group = await this.module.securityGroup.sgMapper(rawGroup, ctx);
+          if (group.vpc?.isDefault) groupName = group.groupName;
+          else groupId = group.groupId;
         } else {
           // The rest of these should be defined if present
           newRule = {};

@@ -57,7 +57,7 @@ describe('Security Group Integration Testing', () => {
 
   it('installs the security group module', install(modules));
 
-  it(
+  /*it(
     'adds a new security group',
     query(`  
     INSERT INTO security_group (description, group_name)
@@ -226,7 +226,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('should successfully create this mess', apply());
+  it('should successfully create this mess', apply());*/
 
   // create rule targetting to another security group
   it(
@@ -325,9 +325,104 @@ describe('Security Group Integration Testing', () => {
   );
 
   it(
+    'creates a new vpc for testing',
+    query(
+      `INSERT INTO vpc (cidr_block, is_default)
+  VALUES ('192.${randIPBlock}.0.0/24', false);`,
+    ),
+  );
+
+  it(
+    'adds a new security group with non-default vpc',
+    query(`  
+    INSERT INTO security_group (description, group_name, vpc_id)
+    VALUES ('Source Security Group Test with non-default VPC', '${prefix}sgsourcetestnotdefault', (SELECT id FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/24'));
+  `),
+  );
+
+  it('creates the non-default security group', apply());
+
+  it(
+    'adds a new security group rule for non default',
+    query(`
+  INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
+  VALUES ('${prefix}sgsourcetestrulenotdefault', (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'),
+  '${prefix}sgsourcetestnotdefault', false);
+  `),
+  );
+
+  it('creates the source security group rule for non default', apply());
+
+  it(
+    'check security group rule expanded for TCP',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = '${prefix}sgsourcetestnotdefault' AND ip_protocol='tcp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check security group rule expanded for UDP',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = '${prefix}sgsourcetestnotdefault' AND ip_protocol='udp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check security group rule expanded for ICMP',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = '${prefix}sgsourcetestnotdefault' AND ip_protocol='icmp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'deletes the source security group rule for not default',
+    query(`DELETE FROM security_group_rule WHERE source_security_group = '${prefix}sgsourcetestnotdefault'`),
+  );
+
+  it('applies the deletion of source security group rule for not default', apply());
+
+  it(
+    'check no security group rules remain',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = '${prefix}sgsourcetest';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
     'deletes the source security group',
     query(`DELETE FROM security_group WHERE group_name = '${prefix}sgsourcetest'`),
   );
+  it(
+    'deletes the source security group for non default',
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgsourcetestnotdefault'`),
+  );
+  it(
+    'deletes the default security group for vpc',
+    query(
+      `DELETE FROM security_group WHERE vpc_id=(SELECT id FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/24')`,
+    ),
+  );
+
   it(
     'deletes the original security group to test source',
     query(`DELETE FROM security_group WHERE group_name = '${prefix}sgforsource'`),
@@ -347,7 +442,26 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
-  it('uninstalls the security group module', uninstall(modules));
+  it(
+    'deletes the vpc',
+    query(`
+    WITH vpc as (
+      SELECT id
+      FROM vpc
+      WHERE cidr_block = '192.${randIPBlock}.0.0/24'
+    )
+    DELETE FROM security_group
+    USING vpc
+    WHERE vpc_id = vpc.id;
+
+    DELETE FROM vpc
+    WHERE cidr_block = '192.${randIPBlock}.0.0/24';
+  `),
+  );
+
+  it('applies the vpc removal', apply());
+
+  /*it('uninstalls the security group module', uninstall(modules));
 
   it('installs the security group module', install(modules));
 
@@ -508,7 +622,7 @@ describe('Security Group Integration Testing', () => {
   `),
   );
 
-  it('deletes the final test records', apply());
+  it('deletes the final test records', apply());*/
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
