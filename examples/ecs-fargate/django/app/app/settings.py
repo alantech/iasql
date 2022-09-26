@@ -85,7 +85,11 @@ DATABASES = {
     },
 }
 
-if ENV.get_value('DB_USER', default=None):  # being run to provision resources, not on the deployed ECS container
+if all([
+    ENV.get_value('DB_NAME', default=None),
+    ENV.get_value('DB_USER', default=None),
+    ENV.get_value('DB_PASSWORD', default=None)
+]):  # being run to provision resources, not on the deployed ECS container
     DATABASES['infra'] = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': ENV('DB_NAME'),
