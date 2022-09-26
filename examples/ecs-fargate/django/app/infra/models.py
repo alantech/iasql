@@ -10,7 +10,7 @@ from django.db import models
 
 
 class AvailabilityZone(models.Model):
-    name = models.TextField(primary_key=True, )
+    name = models.TextField(primary_key=True)
 
     class Meta:
         managed = False
@@ -27,7 +27,7 @@ class AwsCredentials(models.Model):
 
 
 class AwsRegions(models.Model):
-    region = models.TextField(primary_key=True, )
+    region = models.TextField(primary_key=True)
     is_default = models.BooleanField()
     is_enabled = models.BooleanField()
 
@@ -51,7 +51,7 @@ class Certificate(models.Model):
 
 
 class Cluster(models.Model):
-    cluster_name = models.TextField(primary_key=True, )
+    cluster_name = models.TextField(primary_key=True)
     cluster_arn = models.TextField(blank=True, null=True)
     cluster_status = models.TextField(blank=True, null=True)
 
@@ -86,7 +86,7 @@ class ContainerDefinition(models.Model):
 
 
 class EcsSimplified(models.Model):
-    app_name = models.CharField(primary_key=True, max_length=18)
+    app_name = models.TextField(primary_key=True, max_length=18)
     desired_count = models.IntegerField()
     app_port = models.IntegerField()
     cpu_mem = models.TextField()  # This field type is a guess.
@@ -150,7 +150,7 @@ class IasqlDependencies(models.Model):
 
 
 class IasqlModule(models.Model):
-    name = models.TextField(primary_key=True, )
+    name = models.TextField(primary_key=True)
 
     class Meta:
         managed = False
@@ -187,7 +187,7 @@ class IasqlRpc(models.Model):
 
 
 class IasqlTables(models.Model):
-    table = models.TextField(primary_key=True, )
+    table = models.TextField(primary_key=True)
     module = models.ForeignKey(IasqlModule, models.DO_NOTHING, db_column='module')
 
     class Meta:
@@ -213,7 +213,7 @@ class Listener(models.Model):
 
 
 class LoadBalancer(models.Model):
-    load_balancer_name = models.TextField(primary_key=True, )
+    load_balancer_name = models.TextField(primary_key=True)
     load_balancer_arn = models.TextField(blank=True, null=True)
     dns_name = models.TextField(blank=True, null=True)
     canonical_hosted_zone_id = models.TextField(blank=True, null=True)
@@ -244,7 +244,7 @@ class LoadBalancerSecurityGroups(models.Model):
 
 
 class LogGroup(models.Model):
-    log_group_name = models.TextField(primary_key=True, )
+    log_group_name = models.TextField(primary_key=True)
     log_group_arn = models.TextField(blank=True, null=True)
     creation_time = models.DateTimeField(blank=True, null=True)
 
@@ -267,7 +267,7 @@ class NatGateway(models.Model):
 
 
 class PublicRepository(models.Model):
-    repository_name = models.TextField(primary_key=True, )
+    repository_name = models.TextField(primary_key=True)
     repository_arn = models.TextField(blank=True, null=True)
     registry_id = models.TextField(blank=True, null=True)
     repository_uri = models.TextField(blank=True, null=True)
@@ -279,7 +279,7 @@ class PublicRepository(models.Model):
 
 
 class Repository(models.Model):
-    repository_name = models.TextField(primary_key=True, )
+    repository_name = models.TextField(primary_key=True)
     repository_arn = models.TextField(blank=True, null=True)
     registry_id = models.TextField(blank=True, null=True)
     repository_uri = models.TextField(blank=True, null=True)
@@ -304,7 +304,7 @@ class RepositoryPolicy(models.Model):
 
 class Role(models.Model):
     arn = models.TextField(blank=True, null=True)
-    role_name = models.TextField(primary_key=True, )
+    role_name = models.TextField(primary_key=True)
     assume_role_policy_document = models.JSONField()
     description = models.TextField(blank=True, null=True)
     attached_policies_arns = ArrayField(models.TextField())
@@ -346,11 +346,11 @@ class SecurityGroupRule(models.Model):
 
 
 class Service(models.Model):
-    name = models.TextField(primary_key=True, )
+    name = models.TextField(primary_key=True)
     arn = models.TextField(blank=True, null=True)
     status = models.TextField(blank=True, null=True)
     desired_count = models.IntegerField()
-    subnets = subnets = ArrayField(models.TextField())  # This field type is a guess.
+    subnets = ArrayField(models.TextField())  # This field type is a guess.
     assign_public_ip = models.TextField()  # This field type is a guess.
     force_new_deployment = models.BooleanField(default=False)
     cluster_name = models.ForeignKey(Cluster, models.DO_NOTHING, db_column='cluster_name', blank=True, null=True)
@@ -389,7 +389,7 @@ class Subnet(models.Model):
 
 
 class TargetGroup(models.Model):
-    target_group_name = models.TextField(primary_key=True, )
+    target_group_name = models.TextField(primary_key=True)
     target_type = models.TextField()  # This field type is a guess.
     target_group_arn = models.TextField(blank=True, null=True)
     ip_address_type = models.TextField(blank=True, null=True)  # This field type is a guess.
