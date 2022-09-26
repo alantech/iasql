@@ -171,21 +171,6 @@ export class CodebuildBuildImportMapper extends MapperBase<CodebuildBuildImport>
     res => res?.build,
   );
 
-  db = new Crud2<CodebuildBuildImport>({
-    create: (es: CodebuildBuildImport[], ctx: Context) => ctx.orm.save(CodebuildBuildImport, es),
-    update: (es: CodebuildBuildImport[], ctx: Context) => ctx.orm.save(CodebuildBuildImport, es),
-    delete: (es: CodebuildBuildImport[], ctx: Context) => ctx.orm.remove(CodebuildBuildImport, es),
-    read: async (ctx: Context, id?: string) => {
-      const opts = id
-        ? {
-            where: {
-              id,
-            },
-          }
-        : {};
-      return await ctx.orm.find(CodebuildBuildImport, opts);
-    },
-  });
   cloud: Crud2<CodebuildBuildImport> = new Crud2({
     create: async (es: CodebuildBuildImport[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
