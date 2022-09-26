@@ -88,8 +88,8 @@ DATABASES = {
         'NAME': ENV('DB_NAME'),
         'USER': ENV('DB_USER'),
         'PASSWORD': ENV('DB_PASSWORD'),
-        'HOST': 'db.iasql.com',
-        'PORT': '5432',
+        'HOST': ENV.get_value('DB_HOST', default='db.iasql.com'),
+        'PORT': ENV.get_value('DB_PORT', cast=int, default=5432),
     }
 }
 
