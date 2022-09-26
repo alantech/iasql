@@ -381,16 +381,16 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
     out.securityGroup = await this.module.securityGroup.cloud.read(ctx, sgr?.GroupId);
     out.isEgress = sgr?.IsEgress ?? false;
 
-    if (sgr.ReferencedGroupInfo) {
-      // retrieve group details
-      const rawGroup = await this.module.securityGroup.getSecurityGroup(
-        client.ec2client,
-        sgr.ReferencedGroupInfo.GroupId,
-      );
-      if (rawGroup) {
-        const group = await this.module.securityGroup.sgMapper(rawGroup, ctx);
+    if (sgr.ReferencedGroupInfo && sgr.ReferencedGroupInfo.GroupId) {
+      // try to find in the database
+      const result = await this.module.securityGroup.db.read(ctx, sgr.ReferencedGroupInfo.GroupId);
+      if (result) out.sourceSecurityGroup = result;
+      else {
+        // try to read from cloud
+        const group = await this.module.securityGroup.cloud.read(ctx, sgr.ReferencedGroupInfo.GroupId);
         if (group) out.sourceSecurityGroup = group;
       }
+
       out.fromPort = undefined;
       out.toPort = undefined;
       out.cidrIpv4 = undefined;
@@ -476,7 +476,7 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
           // check if it is a default vpc or not
           if (en.sourceSecurityGroup.vpc?.isDefault) groupName = en.sourceSecurityGroup.groupName;
           else groupId = en.sourceSecurityGroup.groupId;
-        } else {
+        } else if (en.cidrIpv4 || en.cidrIpv6) {
           // The rest of these should be defined if present
           newRule = {};
           if (en.cidrIpv4) newRule.IpRanges = [{ CidrIp: en.cidrIpv4 }];
@@ -495,7 +495,7 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
           if (en.prefixListId) newRule.PrefixListIds = [en.prefixListId as PrefixListId];
           // TODO: There's something weird about `ReferencedGroupId` that I need to dig into
           if (en.toPort) newRule.ToPort = en.toPort;
-        }
+        } else continue; // still do not have the data, continue to next loop
 
         let res;
         if (en.isEgress) {
