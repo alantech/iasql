@@ -400,6 +400,7 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
       out.toPort = sgr?.ToPort;
       out.cidrIpv4 = sgr?.CidrIpv4;
       out.cidrIpv6 = sgr?.CidrIpv6;
+      out.sourceSecurityGroup = undefined;
     }
     out.ipProtocol = sgr?.IpProtocol ?? '';
     out.prefixListId = sgr?.PrefixListId;
