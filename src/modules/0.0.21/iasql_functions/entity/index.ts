@@ -1,4 +1,4 @@
-import { CreateDateColumn, Column, Entity, PrimaryColumn } from 'typeorm';
+import { CreateDateColumn, Column, Entity, PrimaryColumn, Index } from 'typeorm';
 
 // ! DEPRECATED
 // TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
@@ -65,6 +65,7 @@ export class IasqlRpc {
   })
   opid: string;
 
+  @Index('IDX_rpc_start_date')
   @CreateDateColumn({
     type: 'timestamptz',
   })

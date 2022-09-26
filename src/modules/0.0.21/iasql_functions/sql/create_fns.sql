@@ -28,6 +28,26 @@ end;
 $$;
 
 CREATE
+OR REPLACE FUNCTION iasql_should_clean_rpcs () RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  current_count integer;
+begin
+  DELETE FROM iasql_rpc
+  WHERE NOT (
+    opid = any(
+      array(
+        SELECT opid
+        FROM iasql_rpc
+        WHERE start_date >= CURRENT_DATE - INTERVAL '6 months'
+        ORDER BY start_date DESC
+        LIMIT 4999
+      )
+    )
+  );
+end;
+$$;
+
+CREATE
 OR REPLACE FUNCTION until_iasql_rpc (_module_name TEXT, _method_name TEXT, _params TEXT[]) RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
     _opid uuid;
@@ -38,6 +58,7 @@ declare
     _db_id text;
     _dblink_conn_count int;
 begin
+    PERFORM iasql_should_clean_rpcs();
     select md5(random()::text || clock_timestamp()::text)::uuid into _opid;
     select current_database() into _db_id;
     -- reuse the 'iasqlrpcconn' db dblink connection if one exists for the session
