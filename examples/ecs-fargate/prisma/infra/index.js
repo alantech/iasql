@@ -17,7 +17,7 @@ const assumeServicePolicy = {
     {
       "Effect": "Allow",
       "Principal": {
-          "Service": "codebuild.amazonaws.com"
+        "Service": "codebuild.amazonaws.com"
       },
       "Action": "sts:AssumeRole"
     },

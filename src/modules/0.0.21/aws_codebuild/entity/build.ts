@@ -63,6 +63,7 @@ export class CodebuildBuildList {
 @Entity()
 export class CodebuildBuildImport {
   @PrimaryGeneratedColumn()
+  @cloudId
   id: number;
 
   @ManyToOne(() => CodebuildProject, {
