@@ -109,7 +109,7 @@ export class SecurityGroupRule {
 
   @Check(
     'Check_security_or_ip_permissions',
-    `("source_security_group" IS NULL AND ("from_port" IS NOT NULL OR "to_port" IS NOT NULL OR "cidr_ipv4" IS NOT NULL OR "cidr_ipv6" IS NOT NULL)) OR ("source_security_group" IS NOT NULL AND ("from_port" IS NULL AND "to_port" IS NULL AND "cidr_ipv4" IS NULL AND "cidr_ipv6" IS NULL))`,
+    `("source_security_group" IS NULL AND ("from_port" IS NOT NULL OR "to_port" IS NOT NULL OR "cidr_ipv4" IS NOT NULL OR "cidr_ipv6" IS NOT NULL)) OR ("source_security_group" IS NOT NULL AND (("from_port" IS NULL OR "from_port"=-1) AND ("to_port" IS NULL OR "to_port"=-1) AND ("cidr_ipv4" IS NULL OR "cidr_ipv4"='0.0.0.0/0') AND "cidr_ipv6" IS NULL))`,
   )
   @ManyToOne(() => SecurityGroup, { nullable: true, eager: true })
   @JoinColumn({
