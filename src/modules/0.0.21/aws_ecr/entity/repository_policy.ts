@@ -3,7 +3,7 @@ import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToOne, Index } f
 import { Repository } from '.';
 
 @Entity()
-@Index(["id", "region"], { unique: true })
+@Index(['id', 'region'], { unique: true })
 export class RepositoryPolicy {
   @PrimaryGeneratedColumn()
   id: number;

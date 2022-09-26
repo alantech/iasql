@@ -30,14 +30,16 @@ export class RepositoryImage {
   registryId?: string;
 
   @ManyToOne(() => Repository, { nullable: true })
-  @JoinColumn([{
-    name: 'private_repository',
-    referencedColumnName: 'repositoryName'
-  },
-  {
-    name: 'private_repository_region',
-    referencedColumnName: 'region'
-  }])
+  @JoinColumn([
+    {
+      name: 'private_repository',
+      referencedColumnName: 'repositoryName',
+    },
+    {
+      name: 'private_repository_region',
+      referencedColumnName: 'region',
+    },
+  ])
   privateRepository?: Repository;
 
   @ManyToOne(() => PublicRepository, { nullable: true })
@@ -45,4 +47,11 @@ export class RepositoryImage {
     name: 'public_repository',
   })
   publicRepository?: PublicRepository;
+
+  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
+  @Column({
+    type: 'character varying',
+    nullable: true,
+  })
+  privateRepositoryRegion?: string;
 }
