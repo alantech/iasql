@@ -23,10 +23,6 @@ export class IasqlFunctions extends ModuleBase {
   iasqlUpgrade: IasqlUpgrade;
   constructor() {
     super();
-    this.sql = {
-      afterInstallSqlPath: 'sql/create_fns.sql',
-      beforeUninstallSqlPath: 'sql/drop_fns.sql',
-    };
     this.iasqlApply = new IasqlApply(this);
     this.iasqlPreviewApply = new IasqlPreviewApply(this);
     this.iasqlSync = new IasqlSync(this);
