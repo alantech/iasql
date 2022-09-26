@@ -143,6 +143,32 @@ describe("Secrets Manager Integration Testing", () => {
     )
   );
 
+  it('tries to move the secret to another region', query(`
+    UPDATE secret SET region='us-east-1' WHERE name='${secretName}';
+  `));
+
+  it("applies the attempted secret region update", apply());
+
+  it('confirms that the secret was not moved', query(`
+    SELECT * FROM secret WHERE name = '${secretName}';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].region).not.toBe('us-east-1');
+  }));
+
+  it('moves the secret to another region with a new value', query(`
+    UPDATE secret SET region='us-east-1', value='new_secret' WHERE name='${secretName}';
+  `));
+
+  it("applies the secret region update", apply());
+
+  it('confirms that the secret was moved', query(`
+    SELECT * FROM secret WHERE name = '${secretName}';
+  `, (res: any[]) => {
+    expect(res.length).toBe(1);
+    expect(res[0].region).toBe('us-east-1');
+  }));
+
   it(
     "deletes the secret",
     query(`
