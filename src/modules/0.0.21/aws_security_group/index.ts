@@ -391,6 +391,10 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
         const group = await this.module.securityGroup.sgMapper(rawGroup, ctx);
         if (group) out.sourceSecurityGroup = group;
       }
+      out.fromPort = undefined;
+      out.toPort = undefined;
+      out.cidrIpv4 = undefined;
+      out.cidrIpv6 = undefined;
     } else {
       out.fromPort = sgr?.FromPort;
       out.toPort = sgr?.ToPort;
