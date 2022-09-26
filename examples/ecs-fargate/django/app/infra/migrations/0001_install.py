@@ -14,26 +14,12 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             """
             SELECT * FROM iasql_install(
-                'aws_vpc',
-                'aws_security_group',
-                'aws_elb',
-                'aws_cloudwatch',
-                'aws_ecr',
-                'aws_ecs_fargate',
-                'aws_rds',
-                'aws_iam'
+                'aws_ecs_simplified'
             );
             """,
             """
             SELECT * FROM iasql_uninstall(
-                'aws_vpc',
-                'aws_security_group',
-                'aws_elb',
-                'aws_cloudwatch',
-                'aws_ecr',
-                'aws_ecs_fargate',
-                'aws_rds',
-                'aws_iam'
+                'aws_ecs_simplified'
             );
             """
         )

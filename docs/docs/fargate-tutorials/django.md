@@ -7,7 +7,7 @@ slug: '/django'
 
 In this tutorial, we will run [Django SQL migrations](https://docs.djangoproject.com/en/4.0/topics/migrations/) on top of IaSQL to deploy an HTTP server within a docker container on your AWS account using ECS, ECR and ELB. The container image will be hosted as a public repository in ECR and deployed to ECS using Fargate.
 
-The code for this tutorial lives in this part of the [repository](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/django/app/infra/migrations/0003_initial.py)
+The code for this tutorial lives in this part of the [repository](https://github.com/iasql/iasql-engine/tree/main/examples/ecs-fargate/django/app/infra/migrations/0003_initial.py).
 
 ## Start managing an AWS account with a hosted IaSQL db
 
@@ -35,16 +35,11 @@ Make sure to copy the PostgreSQL connection string as you will not see it again.
 
 1. Many different clients can be used to [connect](../how-to/connect.md) to a PostgreSQL database. For this tutorial, we'll use the standard `psql` CLI client. If you need to install `psql`, follow the instructions for your corresponding OS [here](https://www.postgresql.org/download/).
 
-2. The first migration calls the `iasql_install` SQL function to install [modules](../concepts/module.md) into the hosted database.
+2. The first migration calls the `iasql_install` SQL function to install the ECS simplified [module](../concepts/module.md) into the hosted database.
 
 ```sql title="psql postgres://d0va6ywg:nfdDh#EP4CyzveFr@db.iasql.com/_4b2bb09a59a411e4 -c"
 SELECT * from iasql_install(
-   'aws_cloudwatch',
-   'aws_ecr',
-   'aws_ecs_fargate',
-   'aws_elb',
-   'aws_security_group',
-   'aws_vpc'
+   'aws_ecs_simplified'
 );
 ```
 
@@ -107,7 +102,7 @@ If the function call is successful, it will return a virtual table with a record
 
     :::
 
-6. Per the [Djando database documentation](https://docs.djangoproject.com/en/4.0/ref/databases/#postgresql-connection-settings-1), to connect to a new database you have to update the `DATABASES` in the `my_project/app/app/settings.py` file. This is already configure in the example project.
+6. Per the [Django database documentation](https://docs.djangoproject.com/en/4.0/ref/databases/#postgresql-connection-settings-1), to connect to a new database you have to update the `DATABASES` in the `my_project/app/app/settings.py` file. This is already configure in the example project.
 
     ```python title="django/app/app/settings.py"
     DATABASES = {
@@ -180,7 +175,7 @@ In our case you will have to modify the `my_project/app/infra/models.py` file as
 If the function call is successful, it will return a list of dicts with each cloud resource that has been created, deleted or updated.
 
 ```python
-[{'action': 'create', 'table_name': 'repository', 'id': 9, 'description': 'quickstart-repository'}, {'action': 'create', 'table_name': 'cluster', 'id': 10, 'description': '10'}, {'action': 'create', 'table_name': 'task_definition', 'id': 4, 'description': '4'}, {'action': 'create', 'table_name': 'service', 'id': 3, 'description': '3'}, {'action': 'create', 'table_name': 'listener', 'id': 11, 'description': '11'}, {'action': 'create', 'table_name': 'load_balancer', 'id': 11, 'description': '11'}, {'action': 'create', 'table_name': 'target_group', 'id': 14, 'description': '14'}, {'action': 'create', 'table_name': 'security_group', 'id': 19, 'description': '19'}, {'action': 'create', 'table_name': 'security_group_rule', 'id': 27, 'description': '27'}, {'action': 'create', 'table_name': 'security_group_rule', 'id': 28, 'description': '28'}, {'action': 'create', 'table_name': 'role', 'id': None, 'description': 'ecsTaskExecRole-us-east-2'}, {'action': 'update', 'table_name': 'role', 'id': None, 'description': 'ecsTaskExecRole-us-east-2'}, {'action': 'delete', 'table_name': 'security_group_rule', 'id': None, 'description': 'sgr-083acce671bae65a1'}]
+[{'action': 'create', 'table_name': 'log_group', 'id': None, 'description': 'quickstart-log-group'}, {'action': 'create', 'table_name': 'repository', 'id': None, 'description': 'quickstart-repository'}, {'action': 'create', 'table_name': 'role', 'id': None, 'description': 'quickstart-ecs-task-exec-role'}, {'action': 'create', 'table_name': 'security_group', 'id': 31, 'description': '31'}, {'action': 'create', 'table_name': 'security_group_rule', 'id': 48, 'description': '48'}, {'action': 'create', 'table_name': 'security_group_rule', 'id': 49, 'description': '49'}, {'action': 'create', 'table_name': 'listener', 'id': 16, 'description': '16'}, {'action': 'create', 'table_name': 'load_balancer', 'id': None, 'description': 'quickstart-load-balancer'}, {'action': 'create', 'table_name': 'target_group', 'id': None, 'description': 'quickstart-target'}, {'action': 'create', 'table_name': 'cluster', 'id': None, 'description': 'quickstart-cluster'}, {'action': 'create', 'table_name': 'task_definition', 'id': 16, 'description': '16'}, {'action': 'create', 'table_name': 'service', 'id': None, 'description': 'quickstart-service'}, {'action': 'delete', 'table_name': 'security_group_rule', 'id': None, 'description': 'sgr-024274a604968919e'}]
 ```
 
 ## Login, build and push your code to the container registry
@@ -190,8 +185,8 @@ If the function call is successful, it will return a list of dicts with each clo
     ```bash
     QUICKSTART_ECR_URI=$(psql -At postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c "
     SELECT repository_uri
-    FROM repository
-    WHERE repository_name = '<project-name>-repository';")
+    FROM ecs_simplified
+    WHERE app_name = '<project-name>';")
     ```
 
 2. Login to AWS ECR using the AWS CLI. Run the following command and using the correct `<ECR-URI>` and AWS `<profile>`
@@ -228,9 +223,9 @@ Make sure the [CLI is configured with the same credentials](https://docs.aws.ama
 
     ```bash
     QUICKSTART_LB_DNS=$(psql -At postgres://qpp3pzqb:LN6jnHfhRJTBD6ia@db.iasql.com/_3ba201e349a11daf -c "
-    SELECT dns_name
-    FROM load_balancer
-    WHERE load_balancer_name = '<project-name>-load-balancer';")
+    SELECT load_balancer_dns
+    FROM ecs_simplified
+    WHERE app_name = '<project-name>';")
     ```
 
 7. Connect to your service!
