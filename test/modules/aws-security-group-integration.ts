@@ -252,7 +252,7 @@ describe('Security Group Integration Testing', () => {
       query(`
       INSERT INTO security_group_rule(security_group_id, ip_protocol, source_security_group, is_egress) 
       VALUES ((SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'), 'tcp',
-      (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest'), false);
+      (SELECT id FROM security_group WHERE group_name='${prefix}sgforsourcetest'), false);
       `);
     } catch (e) {
       expect(e).toBeTruthy;

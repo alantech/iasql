@@ -120,11 +120,6 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
     id => ({ GroupIds: [id] }),
     res => res?.SecurityGroups?.[0],
   );
-  getSecurityGroupByName = crudBuilderFormat<EC2, 'describeSecurityGroups', AwsSecurityGroup | undefined>(
-    'describeSecurityGroups',
-    name => ({ GroupNames: [name] }),
-    res => res?.SecurityGroups?.[0],
-  );
 
   getSecurityGroups = paginateBuilder<EC2>(paginateDescribeSecurityGroups, 'SecurityGroups');
 
@@ -355,13 +350,14 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
   module: AwsSecurityGroupModule;
   entity = SecurityGroupRule;
   equals = (a: SecurityGroupRule, b: SecurityGroupRule) => {
-    if (a.sourceSecurityGroup !== b.sourceSecurityGroup) return false;
+    if ((a.sourceSecurityGroup === undefined) !== (b.sourceSecurityGroup === undefined)) return false;
     if (a.sourceSecurityGroup) {
       // for source security group we avoid comparison with ip and description (as those are auto-created)
       return (
         Object.is(a.isEgress, b.isEgress) &&
         Object.is(a.prefixListId, b.prefixListId) &&
-        Object.is(a.ipProtocol, b.ipProtocol)
+        Object.is(a.ipProtocol, b.ipProtocol) &&
+        Object.is(a.sourceSecurityGroup.groupId, b.sourceSecurityGroup?.groupId)
       );
     } else {
       return (
@@ -472,17 +468,9 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
         let newRule: IpPermission | undefined;
 
         if (en.sourceSecurityGroup) {
-          // get data for this security group
-          const rawGroup = await this.module.securityGroup.getSecurityGroupByName(
-            client.ec2client,
-            en.sourceSecurityGroup,
-          );
-          if (!rawGroup) throw new Error('Security group rule has no group associated');
-
           // check if it is a default vpc or not
-          const group = await this.module.securityGroup.sgMapper(rawGroup, ctx);
-          if (group.vpc?.isDefault) groupName = group.groupName;
-          else groupId = group.groupId;
+          if (en.sourceSecurityGroup.vpc?.isDefault) groupName = en.sourceSecurityGroup.groupName;
+          else groupId = en.sourceSecurityGroup.groupId;
         } else {
           // The rest of these should be defined if present
           newRule = {};
@@ -536,6 +524,7 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
                 e.securityGroup = en.securityGroup;
                 e.description = en.description;
                 e.isEgress = en.isEgress;
+                e.sourceSecurityGroup = en.sourceSecurityGroup;
                 await this.db.create([e], ctx);
                 out.push(e);
               }
