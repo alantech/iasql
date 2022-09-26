@@ -1,10 +1,9 @@
--- Since Postgres does not allow arrays of foreign keys, but we prefer the syntactic simplicity they
+ -- Since Postgres does not allow arrays of foreign keys, but we prefer the syntactic simplicity they
 -- provide. This check function implements half of a foreign key's behavior by making sure on insert
 -- or update of a load balancer that all referenced availability zones actually exist. As AZs really
 -- never change at all, this is considered an acceptable compromise.
-create or replace function check_load_balancer_availability_zones(_load_balancer_name varchar, _availability_zones varchar[]) returns boolean
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION check_load_balancer_availability_zones (_load_balancer_name VARCHAR, _availability_zones VARCHAR[]) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
   _number_of_records integer;
 begin
@@ -15,14 +14,17 @@ begin
   return true;
 end;
 $$;
-ALTER TABLE load_balancer ADD CONSTRAINT check_load_balancer_availability_zones CHECK (check_load_balancer_availability_zones(load_balancer_name, availability_zones));
+
+ALTER TABLE
+  load_balancer
+ADD
+  CONSTRAINT check_load_balancer_availability_zones CHECK (check_load_balancer_availability_zones (load_balancer_name, availability_zones));
 
 -- Since Postgres does not allow arrays of foreign keys, but we prefer the syntactic simplicity they
 -- provide. This check function implements half of a foreign key's behavior by making sure on insert
 -- or update of a load balancer that all referenced subnets actually exist.
-create or replace function check_load_balancer_subnets(_subnets text[]) returns boolean
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION check_load_balancer_subnets (_subnets TEXT[]) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
   _subnets_count integer;
 begin
@@ -32,11 +34,16 @@ begin
   return _subnets_count = array_length(_subnets, 1);
 end;
 $$;
-ALTER TABLE load_balancer ADD CONSTRAINT check_load_balancer_subnets CHECK (check_load_balancer_subnets(subnets));
+
+ALTER TABLE
+  load_balancer
+ADD
+  CONSTRAINT check_load_balancer_subnets CHECK (check_load_balancer_subnets (subnets));
 
 -- This check function implements the other half of a foreign key's behavior by raising an error on delete
 -- or update of a subnet that is being referenced by a load balancer.
-CREATE OR REPLACE FUNCTION check_subnets_by_load_balancer() RETURNS trigger AS $check_subnets_by_load_balancer$
+CREATE
+OR REPLACE FUNCTION check_subnets_by_load_balancer () RETURNS TRIGGER AS $check_subnets_by_load_balancer$
     DECLARE
         lb_row record;
     BEGIN
@@ -55,7 +62,10 @@ CREATE OR REPLACE FUNCTION check_subnets_by_load_balancer() RETURNS trigger AS $
     END;
 $check_subnets_by_load_balancer$ LANGUAGE plpgsql;
 
-CREATE TRIGGER check_subnets_by_load_balancer
-BEFORE DELETE OR UPDATE ON subnet
-FOR EACH ROW
-EXECUTE FUNCTION check_subnets_by_load_balancer();
+CREATE TRIGGER
+  check_subnets_by_load_balancer BEFORE DELETE
+  OR
+UPDATE
+  ON subnet FOR EACH ROW
+EXECUTE
+  FUNCTION check_subnets_by_load_balancer ();

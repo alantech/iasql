@@ -7,7 +7,7 @@ import {
   AppSync,
 } from '@aws-sdk/client-appsync';
 
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilder2, crudBuilderFormat } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { AuthenticationType, GraphqlApi } from './entity';
 
@@ -20,9 +20,10 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
     Object.is(a.authenticationType, b.authenticationType) &&
     isEqual(a.lambdaAuthorizerConfig, b.lambdaAuthorizerConfig) &&
     isEqual(a.openIDConnectConfig, b.openIDConnectConfig) &&
-    isEqual(a.userPoolConfig, b.userPoolConfig);
+    isEqual(a.userPoolConfig, b.userPoolConfig) &&
+    isEqual(a.region, b.region);
 
-  graphqlApiMapper(api: GraphqlApiAWS) {
+  graphqlApiMapper(api: GraphqlApiAWS, region: string) {
     const out = new GraphqlApi();
     if (!api.name) return undefined;
     else out.name = api.name;
@@ -43,7 +44,7 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
     if (api.userPoolConfig) {
       out.userPoolConfig = api.userPoolConfig as GraphqlApi['userPoolConfig'];
     } else out.userPoolConfig = undefined;
-
+    out.region = region;
     return out;
   }
 
@@ -67,9 +68,9 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
 
   cloud = new Crud2({
     create: async (apis: GraphqlApi[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const api of apis) {
+        const client = (await ctx.getAwsClient(api.region)) as AWS;
         const input: CreateGraphqlApiCommandInput = {
           authenticationType: api.authenticationType,
           lambdaAuthorizerConfig: api.lambdaAuthorizerConfig,
@@ -80,7 +81,7 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
 
         const res = await this.createGraphqlApi(client.appSyncClient, input);
         if (res && res.graphqlApi) {
-          const newApi = this.graphqlApiMapper(res.graphqlApi);
+          const newApi = this.graphqlApiMapper(res.graphqlApi, api.region);
           if (!newApi) continue;
           await this.module.graphqlApi.db.update(newApi, ctx);
           out.push(newApi);
@@ -89,26 +90,33 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
       return out;
     },
     read: async (ctx: Context, apiId?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (apiId) {
-        const rawApi = await this.getGraphqlApi(client.appSyncClient, apiId);
-        if (!rawApi) return undefined;
-        return this.graphqlApiMapper(rawApi);
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawApi = await this.getGraphqlApi(client.appSyncClient, apiId);
+          if (!rawApi) continue;
+          return this.graphqlApiMapper(rawApi, region);
+        }
       } else {
-        const rawApis = (await this.getGraphqlApis(client.appSyncClient)) ?? [];
         const out = [];
-        for (const i of rawApis) {
-          const outApi = this.graphqlApiMapper(i);
-          if (outApi) out.push(outApi);
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawApis = (await this.getGraphqlApis(client.appSyncClient)) ?? [];
+          for (const i of rawApis) {
+            const outApi = this.graphqlApiMapper(i, region);
+            if (outApi) out.push(outApi);
+          }
         }
         return out;
       }
     },
+    updateOrReplace: (a: GraphqlApi, b: GraphqlApi) => (a.region !== b.region ? 'replace' : 'update'),
     update: async (apis: GraphqlApi[], ctx: Context) => {
       // if user has modified specific values, restore it. If not, go with update path
-      const client = (await ctx.getAwsClient()) as AWS;
-      const out = [];
+      const out: GraphqlApi[] = [];
       for (const api of apis) {
+        const client = (await ctx.getAwsClient(api.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.GraphqlApi?.[api.name ?? ''];
         const isUpdate = Object.is(this.module.graphqlApi.cloud.updateOrReplace(cloudRecord, api), 'update');
         if (isUpdate) {
@@ -133,7 +141,7 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
             };
             const res = await this.updateGraphqlApi(client.appSyncClient, input);
             if (res && res.graphqlApi) {
-              const newApi = this.graphqlApiMapper(res.graphqlApi);
+              const newApi: GraphqlApi | undefined = this.graphqlApiMapper(res.graphqlApi, api.region);
               if (newApi) {
                 newApi.name = api.name;
                 // Save the record back into the database to get the new fields updated
@@ -148,14 +156,22 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
             await this.module.graphqlApi.db.update(api, ctx);
             out.push(api);
           }
+        } else {
+          // Delete the current cloud record from the cloud, create the new db record in the cloud
+          await this.module.graphqlApi.cloud.delete(cloudRecord, ctx);
+          const newApi: GraphqlApi[] | GraphqlApi | undefined = await this.module.graphqlApi.cloud.create(
+            api,
+            ctx,
+          );
+          if (newApi && !Array.isArray(newApi)) out.push(newApi);
         }
       }
       return out;
     },
     delete: async (apis: GraphqlApi[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const api of apis) {
         if (api.apiId) {
+          const client = (await ctx.getAwsClient(api.region)) as AWS;
           await this.deleteGraphqlApi(client.appSyncClient, {
             apiId: api.apiId,
           });

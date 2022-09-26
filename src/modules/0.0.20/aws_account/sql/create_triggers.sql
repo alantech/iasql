@@ -1,5 +1,5 @@
-CREATE OR REPLACE FUNCTION default_aws_region()
-RETURNS TEXT LANGUAGE plpgsql AS $$
+CREATE
+OR REPLACE FUNCTION default_aws_region () RETURNS TEXT LANGUAGE plpgsql AS $$
 DECLARE
   r TEXT;
 BEGIN
@@ -10,8 +10,8 @@ BEGIN
 END
 $$;
 
-CREATE OR REPLACE FUNCTION default_aws_region(r text)
-RETURNS TEXT LANGUAGE plpgsql AS $$
+CREATE
+OR REPLACE FUNCTION default_aws_region (r TEXT) RETURNS TEXT LANGUAGE plpgsql AS $$
 BEGIN
   UPDATE aws_regions SET is_default = FALSE WHERE is_default = TRUE;
   UPDATE aws_regions SET is_default = TRUE where region = r;
@@ -19,8 +19,8 @@ BEGIN
 END
 $$;
 
-CREATE OR REPLACE FUNCTION aws_default_region_trigger()
-RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE
+OR REPLACE FUNCTION aws_default_region_trigger () RETURNS TRIGGER LANGUAGE plpgsql AS $$
 DECLARE
   default_count INTEGER;
 BEGIN
@@ -33,6 +33,10 @@ BEGIN
 END
 $$;
 
-CREATE TRIGGER aws_default_region BEFORE INSERT OR UPDATE
-ON aws_regions
-FOR EACH ROW EXECUTE FUNCTION aws_default_region_trigger();
+CREATE TRIGGER
+  aws_default_region BEFORE INSERT
+  OR
+UPDATE
+  ON aws_regions FOR EACH ROW
+EXECUTE
+  FUNCTION aws_default_region_trigger ();
