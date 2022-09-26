@@ -83,7 +83,10 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     },
-    'infra': {
+}
+
+if ENV.get_value('DB_USER', default=None):  # being run to provision resources, not on the deployed ECS container
+    DATABASES['infra'] = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': ENV('DB_NAME'),
         'USER': ENV('DB_USER'),
@@ -91,7 +94,6 @@ DATABASES = {
         'HOST': ENV.get_value('DB_HOST', default='db.iasql.com'),
         'PORT': ENV.get_value('DB_PORT', cast=int, default=5432),
     }
-}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
