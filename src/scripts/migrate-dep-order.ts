@@ -33,9 +33,10 @@ const entities = sortedDeps.map(
   const qr = conn.createQueryRunner();
 
   for (const dep of sortedDeps) {
-    console.log(`Adding ${dep.name}...`);
+    console.log(`Adding ${dep.name} migration...`);
     const migrationClass = getModMigration(dep.name, moduleVersion);
     await migrationClass.prototype.up(qr);
+    console.log(`Adding ${dep.name} after install...`);
     const afterInstallSql = getModAfterInstall(dep.name, moduleVersion);
     await qr.query(afterInstallSql);
   }
