@@ -252,7 +252,7 @@ describe('Security Group Integration Testing', () => {
       query(`
       INSERT INTO security_group_rule(security_group_id, ip_protocol, source_security_group, is_egress) 
       VALUES ((SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'), 'tcp',
-      '${prefix}sgsourcetest', false);
+      (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest'), false);
       `);
     } catch (e) {
       expect(e).toBeTruthy;
@@ -264,7 +264,7 @@ describe('Security Group Integration Testing', () => {
     query(`
   INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
   VALUES ('${prefix}sgsourcetestrule', (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'),
-  '${prefix}sgsourcetest', false);
+  (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest'), false);
   `),
   );
   it('creates the source security group rule', apply());
@@ -275,7 +275,7 @@ describe('Security Group Integration Testing', () => {
       `
     SELECT *
     FROM security_group_rule
-    WHERE source_security_group = '${prefix}sgsourcetest' AND ip_protocol='tcp';
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest') AND ip_protocol='tcp';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -287,7 +287,7 @@ describe('Security Group Integration Testing', () => {
       `
     SELECT *
     FROM security_group_rule
-    WHERE source_security_group = '${prefix}sgsourcetest' AND ip_protocol='udp';
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest') AND ip_protocol='udp';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -299,7 +299,7 @@ describe('Security Group Integration Testing', () => {
       `
     SELECT *
     FROM security_group_rule
-    WHERE source_security_group = '${prefix}sgsourcetest' AND ip_protocol='icmp';
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest') AND ip_protocol='icmp';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -307,7 +307,9 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'deletes the source security group rule',
-    query(`DELETE FROM security_group_rule WHERE source_security_group = '${prefix}sgsourcetest'`),
+    query(
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest')`,
+    ),
   );
 
   it('applies the deletion of source security group rule', apply());
@@ -318,7 +320,7 @@ describe('Security Group Integration Testing', () => {
       `
     SELECT *
     FROM security_group_rule
-    WHERE source_security_group = '${prefix}sgsourcetest';
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest');
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
@@ -347,7 +349,7 @@ describe('Security Group Integration Testing', () => {
     query(`
   INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
   VALUES ('${prefix}sgsourcetestrulenotdefault', (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'),
-  '${prefix}sgsourcetestnotdefault', false);
+  (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault'), false);
   `),
   );
 
@@ -359,7 +361,7 @@ describe('Security Group Integration Testing', () => {
       `
     SELECT *
     FROM security_group_rule
-    WHERE source_security_group = '${prefix}sgsourcetestnotdefault' AND ip_protocol='tcp';
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault') AND ip_protocol='tcp';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -371,7 +373,7 @@ describe('Security Group Integration Testing', () => {
       `
     SELECT *
     FROM security_group_rule
-    WHERE source_security_group = '${prefix}sgsourcetestnotdefault' AND ip_protocol='udp';
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault') AND ip_protocol='udp';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -383,7 +385,7 @@ describe('Security Group Integration Testing', () => {
       `
     SELECT *
     FROM security_group_rule
-    WHERE source_security_group = '${prefix}sgsourcetestnotdefault' AND ip_protocol='icmp';
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault') AND ip_protocol='icmp';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -391,7 +393,9 @@ describe('Security Group Integration Testing', () => {
 
   it(
     'deletes the source security group rule for not default',
-    query(`DELETE FROM security_group_rule WHERE source_security_group = '${prefix}sgsourcetestnotdefault'`),
+    query(
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault')`,
+    ),
   );
 
   it('applies the deletion of source security group rule for not default', apply());
@@ -402,7 +406,7 @@ describe('Security Group Integration Testing', () => {
       `
     SELECT *
     FROM security_group_rule
-    WHERE source_security_group = '${prefix}sgsourcetest';
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault');
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),

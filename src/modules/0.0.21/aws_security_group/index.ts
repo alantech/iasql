@@ -387,11 +387,14 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
 
     if (sgr.ReferencedGroupInfo) {
       // retrieve group details
-      const group = await this.module.securityGroup.getSecurityGroup(
+      const rawGroup = await this.module.securityGroup.getSecurityGroup(
         client.ec2client,
         sgr.ReferencedGroupInfo.GroupId,
       );
-      if (group) out.sourceSecurityGroup = group.GroupName;
+      if (rawGroup) {
+        const group = await this.module.securityGroup.sgMapper(rawGroup, ctx);
+        if (group) out.sourceSecurityGroup = group;
+      }
     } else {
       out.fromPort = sgr?.FromPort;
       out.toPort = sgr?.ToPort;

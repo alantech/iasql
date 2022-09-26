@@ -111,8 +111,9 @@ export class SecurityGroupRule {
     'Check_security_or_ip_permissions',
     `("source_security_group" IS NULL AND ("from_port" IS NOT NULL OR "to_port" IS NOT NULL OR "cidr_ipv4" IS NOT NULL OR "cidr_ipv6" IS NOT NULL)) OR ("source_security_group" IS NOT NULL AND ("from_port" IS NULL AND "to_port" IS NULL AND "cidr_ipv4" IS NULL AND "cidr_ipv6" IS NULL))`,
   )
-  @Column({
-    nullable: true,
+  @ManyToOne(() => SecurityGroup)
+  @JoinColumn({
+    name: 'source_security_group',
   })
-  sourceSecurityGroup?: string;
+  sourceSecurityGroup?: SecurityGroup;
 }
