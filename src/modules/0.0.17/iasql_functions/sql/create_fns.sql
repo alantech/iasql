@@ -1,7 +1,6 @@
--- TODO: Does this belong here or in a similar file in the iasql_platform module?
-create or replace function iasql_audit() returns trigger
-language plpgsql security definer
-as $$
+ -- TODO: Does this belong here or in a similar file in the iasql_platform module?
+CREATE
+OR REPLACE FUNCTION iasql_audit () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   if (TG_OP = 'INSERT') then
     INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
@@ -17,9 +16,8 @@ begin
 end;
 $$;
 
-create or replace function until_iasql_operation(_optype iasql_operation_optype_enum, _params text[]) returns uuid
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION until_iasql_operation (_optype iasql_operation_optype_enum, _params TEXT[]) RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
     _opid uuid;
     _counter integer := 0;
@@ -72,14 +70,8 @@ begin
 end;
 $$;
 
-create or replace function iasql_cloud_manipulation(_mode iasql_operation_optype_enum) returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_cloud_manipulation (_mode iasql_operation_optype_enum) RETURNS TABLE (ACTION TEXT, table_name TEXT, id INTEGER, description TEXT) LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
   _opid uuid;
 begin
@@ -95,65 +87,36 @@ begin
 end;
 $$;
 
-create or replace function iasql_apply() returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_apply () RETURNS TABLE (ACTION TEXT, table_name TEXT, id INTEGER, description TEXT) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   return query select * from iasql_cloud_manipulation('APPLY');
 end;
 $$;
 
-create or replace function iasql_preview_apply() returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_preview_apply () RETURNS TABLE (ACTION TEXT, table_name TEXT, id INTEGER, description TEXT) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   return query select * from iasql_cloud_manipulation('PLAN_APPLY');
 end;
 $$;
 
-create or replace function iasql_sync() returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_sync () RETURNS TABLE (ACTION TEXT, table_name TEXT, id INTEGER, description TEXT) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   return query select * from iasql_cloud_manipulation('SYNC');
 end;
 $$;
 
-create or replace function iasql_preview_sync() returns table (
-  action text,
-  table_name text,
-  id integer,
-  description text
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_preview_sync () RETURNS TABLE (ACTION TEXT, table_name TEXT, id INTEGER, description TEXT) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   return query select * from iasql_cloud_manipulation('PLAN_SYNC');
 end;
 $$;
 
-create or replace function iasql_install(variadic _mods text[]) returns table (
-    module_name character varying,
-    created_table_name character varying,
-    record_count int
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_install (VARIADIC _mods TEXT[]) RETURNS TABLE (module_name CHARACTER VARYING, created_table_name CHARACTER VARYING, record_count INT) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
     perform until_iasql_operation('INSTALL', _mods);
     return query select
@@ -167,13 +130,8 @@ begin
 end;
 $$;
 
-create or replace function iasql_uninstall(variadic _mods text[]) returns table (
-    module_name character varying,
-    dropped_table_name character varying,
-    record_count int
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_uninstall (VARIADIC _mods TEXT[]) RETURNS TABLE (module_name CHARACTER VARYING, dropped_table_name CHARACTER VARYING, record_count INT) LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
     _db_id text;
     _dblink_conn_count int;
@@ -213,13 +171,8 @@ begin
 end;
 $$;
 
-create or replace function iasql_modules_list() returns table (
-  module_name text,
-  module_version text,
-  dependencies text[]
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_modules_list () RETURNS TABLE (module_name TEXT, module_version TEXT, dependencies TEXT[]) LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
   _opid uuid;
 begin
@@ -234,13 +187,8 @@ begin
 end;
 $$;
 
-create or replace function iasql_modules_installed() returns table (
-  module_name text,
-  module_version text,
-  dependencies varchar[]
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_modules_installed () RETURNS TABLE (module_name TEXT, module_version TEXT, dependencies VARCHAR[]) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   return query select
     split_part(name, '@', 1) as module_name,
@@ -250,9 +198,8 @@ begin
 end;
 $$;
 
-create or replace function delete_all_records() returns void
-language plpgsql
-as $$
+CREATE
+OR REPLACE FUNCTION delete_all_records () RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
   loop_count integer := 0;
   tables_array_length integer;
@@ -278,9 +225,8 @@ BEGIN
 END;
 $$;
 
-create or replace function iasql_upgrade() returns text
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_upgrade () RETURNS TEXT LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
   _opid uuid;
   _out text;
@@ -291,24 +237,15 @@ begin
 end;
 $$;
 
-create or replace function iasql_version() returns table (
-  version text
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_version () RETURNS TABLE (VERSION TEXT) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   return query select split_part(name, '@', 2) as version from iasql_module limit 1;
 end;
 $$;
 
-create or replace function iasql_help() returns table (
-  name text,
-  signature text,
-  description text,
-  sample_usage text 
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_help () RETURNS TABLE (NAME TEXT, signature TEXT, description TEXT, sample_usage TEXT) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   return query select
     x.name, x.signature, x.description, x.sample_usage

@@ -19,7 +19,8 @@ class ApiMapper extends MapperBase<Api> {
       Object.is(a.disableExecuteApiEndpoint, b.disableExecuteApiEndpoint) &&
       Object.is(a.protocolType, b.protocolType) &&
       Object.is(a.version, b.version) &&
-      Object.is(a.name, b.name);
+      Object.is(a.name, b.name) &&
+      Object.is(a.region, b.region);
     return res;
   };
 
@@ -39,9 +40,9 @@ class ApiMapper extends MapperBase<Api> {
 
   cloud = new Crud2<Api>({
     create: async (rs: Api[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const r of rs) {
+        const client = (await ctx.getAwsClient(r.region)) as AWS;
         // add a default protocol
         if (!r.protocolType) r.protocolType = Protocol.HTTP;
 
@@ -55,7 +56,7 @@ class ApiMapper extends MapperBase<Api> {
         };
         const result = await this.createApi(client.apiGatewayClient, input);
         if (result) {
-          const newApi = this.apiMapper(result);
+          const newApi = this.apiMapper(result, r.region);
           // use the same ID as the one inserted, and set the name as is optionally returned
           if (newApi) {
             newApi.id = r.id;
@@ -68,26 +69,32 @@ class ApiMapper extends MapperBase<Api> {
       return out;
     },
     read: async (ctx: Context, apiId?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (apiId) {
-        const rawApi = await this.getApi(client.apiGatewayClient, apiId);
-        if (!rawApi) return undefined;
-        return this.apiMapper(rawApi);
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawApi = await this.getApi(client.apiGatewayClient, apiId);
+          if (!rawApi) continue;
+          return this.apiMapper(rawApi, region);
+        }
       } else {
-        const rawApis = (await this.getApis(client.apiGatewayClient)) ?? [];
         const out = [];
-        for (const i of rawApis) {
-          const outApi = this.apiMapper(i);
-          if (outApi) out.push(outApi);
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawApis = (await this.getApis(client.apiGatewayClient)) ?? [];
+          for (const i of rawApis) {
+            const outApi = this.apiMapper(i, region);
+            if (outApi) out.push(outApi);
+          }
         }
         return out;
       }
     },
-    updateOrReplace: (a: Api, b: Api) => 'update',
+    updateOrReplace: (a: Api, b: Api) => (a.region === b.region ? 'update' : 'replace'),
     update: async (rs: Api[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      const out = [];
+      const out: Api[] = [];
       for (const r of rs) {
+        const client = (await ctx.getAwsClient(r.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.Api?.[r.apiId ?? ''];
         const isUpdate = Object.is(this.module.api.cloud.updateOrReplace(cloudRecord, r), 'update');
         if (isUpdate) {
@@ -107,7 +114,7 @@ class ApiMapper extends MapperBase<Api> {
             };
             const res = await this.updateApi(client.apiGatewayClient, input);
             if (res) {
-              const newApi = this.apiMapper(res);
+              const newApi = this.apiMapper(res, r.region);
               if (newApi) {
                 newApi.name = r.name;
                 newApi.id = r.id;
@@ -119,13 +126,17 @@ class ApiMapper extends MapperBase<Api> {
               throw new Error('Error updating API');
             }
           }
+        } else {
+          const newApi: Api | Api[] | undefined = await this.module.api.cloud.create(r, ctx);
+          await this.module.api.cloud.delete(cloudRecord, ctx);
+          if (newApi && !Array.isArray(newApi)) out.push(newApi);
         }
       }
       return out;
     },
     delete: async (rs: Api[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const r of rs) {
+        const client = (await ctx.getAwsClient(r.region)) as AWS;
         await this.deleteApi(client.apiGatewayClient, r.apiId);
       }
     },
@@ -137,7 +148,7 @@ class ApiMapper extends MapperBase<Api> {
     super.init();
   }
 
-  apiMapper(instance: any) {
+  apiMapper(instance: any, region: string) {
     const r: Api = new Api();
     if (!instance.ApiId || !instance.Name) return undefined;
     r.description = instance.Description;
@@ -149,6 +160,7 @@ class ApiMapper extends MapperBase<Api> {
       r.protocolType = Protocol[typedProtocol];
     }
     r.version = instance.Version;
+    r.region = region;
     return r;
   }
 }

@@ -1,9 +1,8 @@
--- ######################
+ -- ######################
 -- INSERT ECS SIMPLIFIED
 -- ######################
-
-CREATE OR REPLACE FUNCTION get_mem_from_cpu_mem_enum(cpu_mem ecs_simplified_cpu_mem_enum)
-RETURNS INTEGER LANGUAGE plpgsql AS $$
+CREATE
+OR REPLACE FUNCTION get_mem_from_cpu_mem_enum (cpu_mem ecs_simplified_cpu_mem_enum) RETURNS INTEGER LANGUAGE plpgsql AS $$
 DECLARE
  mem TEXT;
 BEGIN
@@ -12,8 +11,8 @@ BEGIN
 END
 $$;
 
-CREATE OR REPLACE FUNCTION get_cpu_mem_enum_from_parts(cpu INTEGER, mem INTEGER)
-RETURNS TEXT LANGUAGE plpgsql AS $$
+CREATE
+OR REPLACE FUNCTION get_cpu_mem_enum_from_parts (cpu INTEGER, mem INTEGER) RETURNS TEXT LANGUAGE plpgsql AS $$
 DECLARE
   _cpu DECIMAL;
   _mem DECIMAL;
@@ -24,8 +23,8 @@ BEGIN
 END
 $$;
 
-CREATE OR REPLACE FUNCTION insert_ecs_simplified(NEW RECORD)
-RETURNS VOID LANGUAGE plpgsql AS $$
+CREATE
+OR REPLACE FUNCTION insert_ecs_simplified (NEW RECORD) RETURNS VOID LANGUAGE plpgsql AS $$
 DECLARE
   _security_group_id INTEGER;
 BEGIN
@@ -107,8 +106,8 @@ BEGIN
 END
 $$;
 
-CREATE OR REPLACE FUNCTION insert_ecs_simplified_trigger()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+CREATE
+OR REPLACE FUNCTION insert_ecs_simplified_trigger () RETURNS TRIGGER LANGUAGE plpgsql AS $$
 DECLARE
   new_v RECORD;
 BEGIN
@@ -118,16 +117,19 @@ BEGIN
 END
 $$;
 
-CREATE TRIGGER insert_ecs_simplified_trigger
-AFTER INSERT ON ecs_simplified
-FOR EACH ROW WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION insert_ecs_simplified_trigger();
+CREATE TRIGGER
+  insert_ecs_simplified_trigger
+AFTER
+  INSERT ON ecs_simplified FOR EACH ROW
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION insert_ecs_simplified_trigger ();
 
 -- ######################
 -- DELETE ECS SIMPLIFIED
 -- ######################
-CREATE OR REPLACE FUNCTION delete_ecs_simplified(OLD RECORD)
-RETURNS VOID LANGUAGE plpgsql AS $$
+CREATE
+OR REPLACE FUNCTION delete_ecs_simplified (OLD RECORD) RETURNS VOID LANGUAGE plpgsql AS $$
 BEGIN
   -- delete ECS service
   DELETE FROM service_security_groups
@@ -176,8 +178,8 @@ BEGIN
 END
 $$;
 
-CREATE OR REPLACE FUNCTION delete_ecs_simplified_trigger()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+CREATE
+OR REPLACE FUNCTION delete_ecs_simplified_trigger () RETURNS TRIGGER LANGUAGE plpgsql AS $$
 DECLARE
   old_v RECORD;
 BEGIN
@@ -187,16 +189,17 @@ BEGIN
 END
 $$;
 
-CREATE TRIGGER delete_ecs_simplified_trigger
-BEFORE DELETE ON ecs_simplified
-FOR EACH ROW WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION delete_ecs_simplified_trigger();
+CREATE TRIGGER
+  delete_ecs_simplified_trigger BEFORE DELETE ON ecs_simplified FOR EACH ROW
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION delete_ecs_simplified_trigger ();
 
 -- ######################
 -- UPDATE ECS SIMPLIFIED
 -- ######################
-CREATE OR REPLACE FUNCTION update_ecs_simplified_trigger()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+CREATE
+OR REPLACE FUNCTION update_ecs_simplified_trigger () RETURNS TRIGGER LANGUAGE plpgsql AS $$
 DECLARE
   old_v RECORD;
   new_v RECORD;
@@ -209,17 +212,20 @@ BEGIN
 END
 $$;
 
-CREATE TRIGGER update_ecs_simplified_trigger
-AFTER UPDATE ON ecs_simplified
-FOR EACH ROW WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION update_ecs_simplified_trigger();
+CREATE TRIGGER
+  update_ecs_simplified_trigger
+AFTER
+UPDATE
+  ON ecs_simplified FOR EACH ROW
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION update_ecs_simplified_trigger ();
 
 -- ##############################
 -- SYNC ECS SIMPLIFIED
 -- ##############################
-
-CREATE OR REPLACE FUNCTION sync_ecs_simplified()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+CREATE
+OR REPLACE FUNCTION sync_ecs_simplified () RETURNS TRIGGER LANGUAGE plpgsql AS $$
 DECLARE
   is_valid BOOLEAN;
   _app_name TEXT;
@@ -309,62 +315,144 @@ BEGIN
 END
 $$;
 
-CREATE TRIGGER ecs_simplified_service_trigger
-AFTER INSERT OR DELETE OR UPDATE ON service
-FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION sync_ecs_simplified();
+CREATE TRIGGER
+  ecs_simplified_service_trigger
+AFTER
+  INSERT
+  OR DELETE
+  OR
+UPDATE
+  ON service FOR EACH STATEMENT
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION sync_ecs_simplified ();
 
-CREATE TRIGGER ecs_simplified_repo_trigger
-AFTER INSERT OR DELETE OR UPDATE ON repository
-FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION sync_ecs_simplified();
+CREATE TRIGGER
+  ecs_simplified_repo_trigger
+AFTER
+  INSERT
+  OR DELETE
+  OR
+UPDATE
+  ON repository FOR EACH STATEMENT
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION sync_ecs_simplified ();
 
-CREATE TRIGGER ecs_simplified_td_trigger
-AFTER INSERT OR DELETE OR UPDATE ON task_definition
-FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION sync_ecs_simplified();
+CREATE TRIGGER
+  ecs_simplified_td_trigger
+AFTER
+  INSERT
+  OR DELETE
+  OR
+UPDATE
+  ON task_definition FOR EACH STATEMENT
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION sync_ecs_simplified ();
 
-CREATE TRIGGER ecs_simplified_cd_trigger
-AFTER INSERT OR DELETE OR UPDATE ON container_definition
-FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION sync_ecs_simplified();
+CREATE TRIGGER
+  ecs_simplified_cd_trigger
+AFTER
+  INSERT
+  OR DELETE
+  OR
+UPDATE
+  ON container_definition FOR EACH STATEMENT
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION sync_ecs_simplified ();
 
-CREATE TRIGGER ecs_simplified_tg_trigger
-AFTER INSERT OR DELETE OR UPDATE ON target_group
-FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION sync_ecs_simplified();
+CREATE TRIGGER
+  ecs_simplified_tg_trigger
+AFTER
+  INSERT
+  OR DELETE
+  OR
+UPDATE
+  ON target_group FOR EACH STATEMENT
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION sync_ecs_simplified ();
 
-CREATE TRIGGER ecs_simplified_lb_trigger
-AFTER INSERT OR DELETE OR UPDATE ON load_balancer
-FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION sync_ecs_simplified();
+CREATE TRIGGER
+  ecs_simplified_lb_trigger
+AFTER
+  INSERT
+  OR DELETE
+  OR
+UPDATE
+  ON load_balancer FOR EACH STATEMENT
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION sync_ecs_simplified ();
 
-CREATE TRIGGER ecs_simplified_listener_trigger
-AFTER INSERT OR DELETE OR UPDATE ON listener
-FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION sync_ecs_simplified();
+CREATE TRIGGER
+  ecs_simplified_listener_trigger
+AFTER
+  INSERT
+  OR DELETE
+  OR
+UPDATE
+  ON listener FOR EACH STATEMENT
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION sync_ecs_simplified ();
 
-CREATE TRIGGER ecs_simplified_sg_trigger
-AFTER INSERT OR DELETE OR UPDATE ON security_group
-FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION sync_ecs_simplified();
+CREATE TRIGGER
+  ecs_simplified_sg_trigger
+AFTER
+  INSERT
+  OR DELETE
+  OR
+UPDATE
+  ON security_group FOR EACH STATEMENT
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION sync_ecs_simplified ();
 
-CREATE TRIGGER ecs_simplified_sg_rule_trigger
-AFTER INSERT OR DELETE OR UPDATE ON security_group_rule
-FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION sync_ecs_simplified();
+CREATE TRIGGER
+  ecs_simplified_sg_rule_trigger
+AFTER
+  INSERT
+  OR DELETE
+  OR
+UPDATE
+  ON security_group_rule FOR EACH STATEMENT
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION sync_ecs_simplified ();
 
-CREATE TRIGGER ecs_simplified_service_sg_trigger
-AFTER INSERT OR DELETE OR UPDATE ON service_security_groups
-FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION sync_ecs_simplified();
+CREATE TRIGGER
+  ecs_simplified_service_sg_trigger
+AFTER
+  INSERT
+  OR DELETE
+  OR
+UPDATE
+  ON service_security_groups FOR EACH STATEMENT
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION sync_ecs_simplified ();
 
-CREATE TRIGGER ecs_simplified_lb_sg_trigger
-AFTER INSERT OR DELETE OR UPDATE ON load_balancer_security_groups
-FOR EACH STATEMENT WHEN (pg_trigger_depth() = 0)
-EXECUTE FUNCTION sync_ecs_simplified();
+CREATE TRIGGER
+  ecs_simplified_lb_sg_trigger
+AFTER
+  INSERT
+  OR DELETE
+  OR
+UPDATE
+  ON load_balancer_security_groups FOR EACH STATEMENT
+  WHEN (PG_TRIGGER_DEPTH() = 0)
+EXECUTE
+  FUNCTION sync_ecs_simplified ();
 
 -- This file runs after low-level/required ECS tables have been populated on install so to
 -- properly import ecs_simplified on install we need trigger ecs_simplified_service_trigger with
 -- a no-op update. This works since the trigger is `FOR EACH STATEMENT` and not `FOR EACH ROW`.
-UPDATE service SET arn = 'noop' WHERE 1 != 1;
+UPDATE
+  service
+SET
+  arn = 'noop'
+WHERE
+  1 != 1;

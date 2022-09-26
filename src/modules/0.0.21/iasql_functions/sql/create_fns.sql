@@ -1,7 +1,6 @@
--- TODO: Does this belong here or in a similar file in the iasql_platform module?
-create or replace function iasql_audit() returns trigger
-language plpgsql security definer
-as $$
+ -- TODO: Does this belong here or in a similar file in the iasql_platform module?
+CREATE
+OR REPLACE FUNCTION iasql_audit () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   if (TG_OP = 'INSERT') then
     INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
@@ -18,9 +17,8 @@ end;
 $$;
 
 -- picked from https://dba.stackexchange.com/questions/203934/postgresql-alternative-to-sql-server-s-try-cast-function
-create or replace function try_cast(_in text, INOUT _out ANYELEMENT)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION try_cast (_in TEXT, INOUT _out ANYELEMENT) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
     execute format('SELECT %L::%s', $1, pg_typeof(_out))
     into  _out;
@@ -29,9 +27,8 @@ exception when others then
 end;
 $$;
 
-create or replace function iasql_should_clean_rpcs() returns void
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_should_clean_rpcs () RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   current_count integer;
 begin
@@ -50,9 +47,8 @@ begin
 end;
 $$;
 
-create or replace function until_iasql_rpc(_module_name text, _method_name text, _params text[]) returns uuid
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION until_iasql_rpc (_module_name TEXT, _method_name TEXT, _params TEXT[]) RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
     _opid uuid;
     _counter integer := 0;
@@ -106,13 +102,8 @@ begin
 end;
 $$;
 
-create or replace function iasql_modules_installed() returns table (
-  module_name text,
-  module_version text,
-  dependencies varchar[]
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_modules_installed () RETURNS TABLE (module_name TEXT, module_version TEXT, dependencies VARCHAR[]) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   return query select
     split_part(name, '@', 1) as module_name,
@@ -122,9 +113,8 @@ begin
 end;
 $$;
 
-create or replace function delete_all_records() returns void
-language plpgsql
-as $$
+CREATE
+OR REPLACE FUNCTION delete_all_records () RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
   loop_count integer := 0;
   tables_array_length integer;
@@ -150,24 +140,15 @@ BEGIN
 END;
 $$;
 
-create or replace function iasql_version() returns table (
-  version text
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_version () RETURNS TABLE (VERSION TEXT) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   return query select split_part(name, '@', 2) as version from iasql_module limit 1;
 end;
 $$;
 
-create or replace function iasql_help() returns table (
-  name text,
-  signature text,
-  description text,
-  sample_usage text 
-)
-language plpgsql security definer
-as $$
+CREATE
+OR REPLACE FUNCTION iasql_help () RETURNS TABLE (NAME TEXT, signature TEXT, description TEXT, sample_usage TEXT) LANGUAGE plpgsql SECURITY DEFINER AS $$
 begin
   return query select
     x.name, x.signature, x.description, x.sample_usage
