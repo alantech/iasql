@@ -18,6 +18,7 @@ const region = process.env.AWS_REGION ?? 'barf';
 const awsServiceRoleName = 'AWSServiceRoleForSupport';
 const taskRoleName = `${prefix}${dbAlias}task-${region}`;
 const taskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy';
+const servicePolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role';
 const lambdaRoleName = `${prefix}${dbAlias}lambda-${region}`;
 const ec2RoleName = `${prefix}${dbAlias}ec2-${region}`;
 const anotherRoleName = `${prefix}${dbAlias}another-${region}`;
@@ -335,6 +336,29 @@ describe('IAM Role Integration Testing', () => {
     WHERE role_name = '${taskRoleName}' AND description = 'description';
   `,
       (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'tries to update role attached policies',
+    query(`
+    UPDATE role SET attached_policies_arn='[array['${servicePolicyArn}']]' WHERE role_name = '${taskRoleName}';
+  `),
+  );
+
+  it('applies change', apply());
+
+  it(
+    'check update role policy',
+    query(
+      `
+    SELECT *
+    FROM role
+    WHERE role_name = '${taskRoleName}' AND description = 'description';
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1), expect(res[0].attached_policies_arn).toBe(['${servicePolicyArn}']);
+      },
     ),
   );
 

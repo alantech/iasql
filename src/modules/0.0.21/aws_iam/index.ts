@@ -3,11 +3,13 @@ import isEqual from 'lodash.isequal';
 import {
   IAM,
   ListAttachedRolePoliciesCommandInput,
+  ListAttachedUserPoliciesCommandInput,
   paginateListRoles,
   paginateListUsers,
   Role as AWSRole,
   User as AWSUser,
   waitUntilRoleExists,
+  waitUntilUserExists,
 } from '@aws-sdk/client-iam';
 import { createWaiter, WaiterState, WaiterOptions } from '@aws-sdk/util-waiter';
 
@@ -58,6 +60,35 @@ class UserMapper extends MapperBase<IamUser> {
 
   deleteUser = crudBuilder2<IAM, 'deleteUser'>('deleteUser', UserName => ({ UserName }));
 
+  async waitForAttachedUserPolicies(client: IAM, userName: string, policyArns: string[]) {
+    // wait for policies to be attached
+    const input: ListAttachedUserPoliciesCommandInput = {
+      UserName: userName,
+    };
+    await createWaiter<IAM, ListAttachedUserPoliciesCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 900,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      input,
+      async (cl, cmd) => {
+        try {
+          const data = await cl.listAttachedUserPolicies(cmd);
+          const arns = data?.AttachedPolicies?.map(ap => ap.PolicyArn);
+          if (!objectsAreSame(arns, policyArns)) {
+            return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
+  }
+
   attachUserPolicy = crudBuilder2<IAM, 'attachUserPolicy'>('attachUserPolicy', (UserName, PolicyArn) => ({
     UserName,
     PolicyArn,
@@ -104,7 +135,23 @@ class UserMapper extends MapperBase<IamUser> {
           UserName: user.userName,
           Path: user.path,
         });
+        await waitUntilUserExists(
+          {
+            client: client.iamClient,
+            // all in seconds
+            maxWaitTime: 900,
+            minDelay: 1,
+            maxDelay: 4,
+          } as WaiterOptions<IAM>,
+          { UserName: user.userName },
+        );
+
         await this.attachUserPolicies(client.iamClient, user.userName, user.attachedPoliciesArns ?? []);
+        await this.waitForAttachedUserPolicies(
+          client.iamClient,
+          user.userName,
+          user.attachedPoliciesArns ?? [],
+        );
         if (rawUser) {
           const newUser = await this.userMapper(rawUser, ctx);
           if (newUser) {
@@ -149,6 +196,24 @@ class UserMapper extends MapperBase<IamUser> {
           // if we have modified path, update in cloud
           if (e.path !== cloudRecord.path) await this.updateUserPath(client.iamClient, e.userName, e.path);
 
+          if (!objectsAreSame(e.attachedPoliciesArns, cloudRecord.attachedPoliciesArns)) {
+            await this.detachUserPolicies(
+              client.iamClient,
+              e.userName,
+              cloudRecord.attachedPoliciesArns ?? [],
+            );
+            await this.attachUserPolicies(
+              client.iamClient,
+              e.userName,
+              cloudRecord.attachedPoliciesArns ?? [],
+            );
+            await this.waitForAttachedUserPolicies(
+              client.iamClient,
+              e.userName,
+              e.attachedPoliciesArns ?? [],
+            );
+          }
+
           const result = await this.module.user.db.update(e, ctx);
           if (!result) continue;
           out.push(e);
@@ -161,6 +226,7 @@ class UserMapper extends MapperBase<IamUser> {
       for (const e of es) {
         if (e.userName) {
           await this.detachUserPolicies(client.iamClient, e.userName, e.attachedPoliciesArns ?? []);
+          await this.waitForAttachedUserPolicies(client.iamClient, e.userName, []);
           await this.deleteUser(client.iamClient, e.userName);
         }
       }
