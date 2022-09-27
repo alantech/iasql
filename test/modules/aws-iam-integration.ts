@@ -726,6 +726,7 @@ describe('IAM install/uninstall', () => {
       'aws_ecs_fargate',
       'aws_ecs_simplified',
       'aws_lambda',
+      'aws_codebuild',
       'aws_iam',
     ]),
   );

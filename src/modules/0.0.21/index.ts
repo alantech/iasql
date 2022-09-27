@@ -6,6 +6,7 @@ export * from './aws_appsync';
 export * from './aws_api_gateway';
 export * from './aws_cloudfront';
 export * from './aws_cloudwatch';
+export * from './aws_codebuild';
 export * from './aws_dynamo';
 export * from './aws_ec2';
 export * from './aws_ec2_metadata';
