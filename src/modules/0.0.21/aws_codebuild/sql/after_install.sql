@@ -1,5 +1,5 @@
 CREATE
-OR REPLACE FUNCTION generate_put_ecr_image_build_spec(region text, image_tag text, repo_name text, repo_uri text, build_path text) RETURNS TEXT LANGUAGE plpgsql AS $$
+OR REPLACE FUNCTION generate_put_ecr_image_build_spec (region TEXT, image_tag TEXT, repo_name TEXT, repo_uri TEXT, build_path TEXT) RETURNS TEXT LANGUAGE plpgsql AS $$
 BEGIN
   RETURN 'version: 0.2
 

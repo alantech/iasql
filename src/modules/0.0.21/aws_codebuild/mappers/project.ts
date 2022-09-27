@@ -132,7 +132,8 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
         return out;
       }
     },
-    updateOrReplace: (_a: CodebuildProject, _b: CodebuildProject) => 'replace',
+    updateOrReplace: (a: CodebuildProject, b: CodebuildProject) =>
+      a.arn !== b.arn && this.module.project.equals(a, b) ? 'update' : 'replace',
     update: async (pjs: CodebuildProject[], ctx: Context) => {
       const out = [];
       for (const pj of pjs) {
