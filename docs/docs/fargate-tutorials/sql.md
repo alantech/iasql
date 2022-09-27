@@ -4,8 +4,7 @@ slug: '/sql'
 ---
 
 # IaSQL on SQL
-
-In this tutorial, we will run SQL queries on an IaSQL [database](../concepts/db.md) to deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, IAM, ECR, and ELB. The container image will be hosted as a private repository in ECR and deployed to ECS using Fargate.
+In this tutorial, we will run SQL queries on an IaSQL [database](../concepts/db.md) to deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, CodeBuild, IAM, ECR, and ELB. The container image will be built in CodeBuild, hosted within a private repository in ECR, and deployed to ECS using Fargate.
 
 ## Start managing an AWS account with a hosted IaSQL db
 
@@ -35,7 +34,8 @@ Use the `iasql_install` SQL function to install [modules](../concepts/module.md)
 
 ```sql
 SELECT * from iasql_install(
-   'aws_ecs_simplified'
+   'aws_ecs_simplified',
+   'aws_codebuild'
 );
 ```
 
@@ -63,17 +63,46 @@ If the function call is successful, it will return a virtual table with a record
  aws_ecs_fargate          | container_definition          |            0
  aws_ecs_fargate          | service_security_groups       |            0
  aws_ecs_simplified       | ecs_simplified                |            0
+ aws_codebuild            | codebuild_build_list          |            0
+ aws_codebuild            | codebuild_build_import        |            0
+ aws_codebuild            | codebuild_project             |            0
+ aws_codebuild            | source_credentials_list       |            0
+ aws_codebuild            | source_credentials_import     |            0
 (17 rows)
 ```
 
-## Provision cloud resources in your AWS account
+## Provision cloud resources in your AWS account, and deploy your app
 
-Insert a row into the `ecs_simplified` table and [`apply`](../concepts/apply-and-sync.md) the changes described in the hosted db to your cloud account which will take a few minutes waiting for AWS
-
+The two `SELECT * from iasql_apply();` queries will [`apply`](../concepts/apply-and-sync.md) the changes described in the hosted db to your cloud account which can take a few minutes waiting for AWS. It will then print a virtual table with the cloud resources that have been created, deleted, or updated.
 
 ```sql
 INSERT INTO ecs_simplified (app_name, app_port, public_ip, image_tag)
 VALUES ('quickstart', 8088, true, 'latest');
+
+SELECT * from iasql_apply();
+
+INSERT INTO source_credentials_import (token, source_type, auth_type)
+VALUES ('gh_XXXXXXXXX', 'GITHUB', 'PERSONAL_ACCESS_TOKEN');
+
+INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+VALUES ('quickstart', '{
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "codebuild.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    },
+  ],
+  "Version": "2012-10-17"
+}', array['arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess', 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess', 'arn:aws:iam::aws:policy/EC2InstanceProfileForImageBuilderECRContainerBuilds']);
+
+INSERT INTO codebuild_project (project_name, source_type, service_role_name, source_location, build_spec)
+VALUES ('quickstart', 'GITHUB', 'quickstart', 'https://github.com/iasql/iasql-engine', SELECT generate_put_ecr_image_build_spec('us-west-1', 'latest', 'quickstart-repository', SELECT repository_uri FROM ecs_simplified WHERE app_name = 'quickstart', 'examples/ecs-fargate/prisma/app'));
+
+INSERT INTO codebuild_build_import (project_name)
+VALUES ('quickstart');
 
 SELECT * from iasql_apply();
 ```
@@ -81,61 +110,14 @@ SELECT * from iasql_apply();
 <!--- https://www.urlencoder.org/ -->
 <button
   className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/INSERT%20INTO%20ecs_simplified%20%28app_name%2C%20app_port%2C%20public_ip%2C%20image_tag%29%0AVALUES%20%28%27quickstart%27%2C%208088%2C%20true%2C%20%27latest%27%29%3B%0A%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B', '_blank')}
+  onClick={() => window.open('https://app.iasql.com/#/button/INSERT%20INTO%20ecs_simplified%20%28app_name%2C%20app_port%2C%20public_ip%2C%20image_tag%29%0AVALUES%20%28%27quickstart%27%2C%208088%2C%20true%2C%20%27latest%27%29%3B%0A%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B%0A%0AINSERT%20INTO%20source_credentials_import%20%28token%2C%20source_type%2C%20auth_type%29%0AVALUES%20%28%27gh_XXXXXXXXX%27%2C%20%27GITHUB%27%2C%20%27PERSONAL_ACCESS_TOKEN%27%29%3B%0A%0AINSERT%20INTO%20role%20%28role_name%2C%20assume_role_policy_document%2C%20attached_policies_arns%29%0AVALUES%20%28%27quickstart%27%2C%20%27%7B%0A%20%20%22Statement%22%3A%20%5B%0A%20%20%20%20%7B%0A%20%20%20%20%20%20%22Effect%22%3A%20%22Allow%22%2C%0A%20%20%20%20%20%20%22Principal%22%3A%20%7B%0A%20%20%20%20%20%20%20%20%22Service%22%3A%20%22codebuild.amazonaws.com%22%0A%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%22Action%22%3A%20%22sts%3AAssumeRole%22%0A%20%20%20%20%7D%2C%0A%20%20%5D%2C%0A%20%20%22Version%22%3A%20%222012-10-17%22%0A%7D%27%2C%20array%5B%27arn%3Aaws%3Aiam%3A%3Aaws%3Apolicy%2FAWSCodeBuildAdminAccess%27%2C%20%27arn%3Aaws%3Aiam%3A%3Aaws%3Apolicy%2FCloudWatchLogsFullAccess%27%2C%20%27arn%3Aaws%3Aiam%3A%3Aaws%3Apolicy%2FEC2InstanceProfileForImageBuilderECRContainerBuilds%27%5D%29%3B%0A%0AINSERT%20INTO%20codebuild_project%20%28project_name%2C%20source_type%2C%20service_role_name%2C%20source_location%2C%20build_spec%29%0AVALUES%20%28%27quickstart%27%2C%20%27GITHUB%27%2C%20%27quickstart%27%2C%20%27https%3A%2F%2Fgithub.com%2Fiasql%2Fiasql-engine%27%2C%20SELECT%20generate_put_ecr_image_build_spec%28%27us-west-1%27%2C%20%27latest%27%2C%20%27quickstart-repository%27%2C%20SELECT%20repository_uri%20FROM%20ecs_simplified%20WHERE%20app_name%20%3D%20%27quickstart%27%2C%20%27examples%2Fecs-fargate%2Fprisma%2Fapp%27%29%29%3B%0A%0AINSERT%20INTO%20codebuild_build_import%20%28project_name%29%0AVALUES%20%28%27quickstart%27%29%3B%0A%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B', '_blank')}
 >
 Run SQL
 </button>
 
-If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted, or updated.
-Login, build and push your code to the container registry
+If the function calls are successful, they will return a virtual table with a record for each cloud resource type that has been created, deleted, or updated.
 
-1. Grab your new `ECR URI` from the hosted DB
-
-```sql
-SELECT repository_uri
-FROM ecs_simplified
-WHERE app_name = 'quickstart';
-```
-
-<!--- https://www.urlencoder.org/ -->
-<button
-  className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/SELECT%20repository_uri%0AFROM%20ecs_simplified%0AWHERE%20app_name%20%3D%20%27quickstart%27%3B', '_blank')}
->
-Run SQL
-</button>
-
-2. Login to AWS ECR using the AWS CLI. Run the following command and use the correct `<ECR-URI>` and AWS `<profile>`
-
-```bash
-aws ecr get-login-password --region ${AWS_REGION} --profile <profile> | docker login --username AWS --password-stdin ${QUICKSTART_ECR_URI}
-```
-
-:::caution
-
-Make sure the [CLI is configured with the same credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html), via environment variables or `~/.aws/credentials`, as the ones provided to IaSQL, or this will fail.
-
-:::
-
-3. Build your image locally
-
-```bash
-docker build -t quickstart-repository app
-```
-
-4. Tag your image
-
-```bash
-docker tag quickstart-repository:latest ${QUICKSTART_ECR_URI}:latest
-```
-
-5. Push your image
-
-```bash
-docker push ${QUICKSTART_ECR_URI}:latest
-```
-
-6. Grab your load balancer DNS and access your service!
+Grab your load balancer DNS and access your service!
 
 ```sql
 SELECT load_balancer_dns
@@ -150,8 +132,6 @@ WHERE app_name = 'quickstart';
 >
 Run SQL
 </button>
-
-7. Connect to your service!
 
 ```bash
 curl ${QUICKSTART_LB_DNS}:8088/health

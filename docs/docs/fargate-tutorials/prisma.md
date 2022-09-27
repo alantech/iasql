@@ -250,7 +250,7 @@ async function main() {
 }
 ```
 
-The two `SELECT * from iasql_apply();` queries will apply the changes described in the hosted db to your cloud account which can take a few minutes waiting for AWS and print arrays of javascript objects with the cloud resources that have been created, deleted, or updated.
+The two `SELECT * from iasql_apply();` queries will [`apply`](../concepts/apply-and-sync.md) the changes described in the hosted db to your cloud account which can take a few minutes waiting for AWS. It will then print arrays of javascript objects with the cloud resources that have been created, deleted, or updated.
 
 ```javascript
 [
