@@ -59,6 +59,7 @@ export enum ParameterGroupFamily {
 
 @Entity()
 @Unique('paragrp_name_region', ['name', 'region'])
+@Unique('paragrp_id_region', ['id', 'region'])
 export class ParameterGroup {
   @PrimaryGeneratedColumn()
   id?: number;
