@@ -2,7 +2,7 @@
 import { createConnection } from 'typeorm';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
-import { sortMods, getModMigration } from './module-json-utils';
+import { sortMods, getModMigration, getModAfterInstall } from './module-json-utils';
 
 const moduleName = process.argv[process.argv.length - 2];
 const moduleVersion = process.argv[process.argv.length - 1];
@@ -33,9 +33,12 @@ const entities = sortedDeps.map(
   const qr = conn.createQueryRunner();
 
   for (const dep of sortedDeps) {
-    console.log(`Adding ${dep.name}...`);
+    console.log(`Adding ${dep.name} migration...`);
     const migrationClass = getModMigration(dep.name, moduleVersion);
     await migrationClass.prototype.up(qr);
+    console.log(`Adding ${dep.name} after install...`);
+    const afterInstallSql = getModAfterInstall(dep.name, moduleVersion);
+    await qr.query(afterInstallSql);
   }
   console.log('Done!');
   process.exit(0);
