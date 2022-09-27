@@ -168,19 +168,19 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
           : [];
         const images = [];
         for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
+          const regionClient = (await ctx.getAwsClient(region)) as AWS;
           for (const r of repositories) {
             try {
               // first retrieve the list of images associated to the repo, then retrieve the details
               const ri = await this.listRepositoryImages(
-                client.ecrClient,
+                regionClient.ecrClient,
                 undefined,
                 r.repositoryName,
                 r.registryId,
               );
               if (ri?.imageIds) {
                 const imageDetails = await this.getRepositoryImage(
-                  client.ecrClient,
+                  regionClient.ecrClient,
                   ri.imageIds,
                   r.repositoryName,
                 );
@@ -195,7 +195,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
           }
         }
         // then public
-        const client = (await ctx.getAwsClient()) as AWS;
+        const globalClient = (await ctx.getAwsClient()) as AWS;
         const publicImages = [];
         const publicRepositories: PublicRepository[] = ctx.memo?.cloud?.PublicRepository
           ? Object.values(ctx.memo?.cloud?.PublicRepository)
@@ -203,7 +203,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         for (const rp of publicRepositories) {
           // first retrieve the list of images associated to the repo, then retrieve the details
           const ri = await this.listPublicRepositoryImages(
-            client.ecrPubClient,
+            globalClient.ecrPubClient,
             undefined,
             rp.repositoryName,
             rp.registryId,
