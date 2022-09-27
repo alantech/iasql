@@ -326,6 +326,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
+  // tests source security rule on non default vpc
   it(
     'creates a new vpc for testing',
     query(
@@ -427,6 +428,7 @@ describe('Security Group Integration Testing', () => {
     ),
   );
 
+  // tests self referencing security group
   it(
     'adds a new security group rule pointing to itself',
     query(`
@@ -532,6 +534,103 @@ describe('Security Group Integration Testing', () => {
 
   it('applies the vpc removal', apply());
 
+  // tests cycle in security rules
+  it(
+    'adds a new security group A',
+    query(`  
+    INSERT INTO security_group (description, group_name)
+    VALUES ('Security Group Test A', '${prefix}sgtestA'), ('Security Group Test B', '${prefix}sgtestB');
+  `),
+  );
+
+  it(
+    'adds security group rules pointing to the other ones (A)',
+    query(`
+  INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
+  VALUES ('${prefix}sgtestA', (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA'),
+  (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB'), false);
+  `),
+  );
+  it(
+    'adds security group rules pointing to the other ones (B)',
+    query(`
+  INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
+  VALUES ('${prefix}sgtestB', (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB'),
+  (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA'), false);
+  `),
+  );
+
+  it('creates the source groups and rules', apply());
+
+  it(
+    'check that security group and rules are correctly created - tcp, udp, icmp',
+    query(
+      `
+      SELECT sg.id, sgr.source_security_group FROM security_group sg INNER JOIN security_group_rule sgr ON sg.id = sgr.security_group_id WHERE sg.group_name='${prefix}sgtestA' AND sgr.source_security_group IS NOT NULL`,
+      (res: any[]) => {
+        expect(res.length).toBe(3), expect(res[0].source_security_group).toBe('${prefix}sgtestB');
+      },
+    ),
+  );
+  it(
+    'check that security group and rules are correctly created - tcp, udp, icmp',
+    query(
+      `
+      SELECT sg.id, sgr.source_security_group FROM security_group sg INNER JOIN security_group_rule sgr ON sg.id = sgr.security_group_id WHERE sg.group_name='${prefix}sgtestB' AND sgr.source_security_group IS NOT NULL`,
+      (res: any[]) => {
+        expect(res.length).toBe(1), expect(res[0].source_security_group).toBe('${prefix}sgtestA');
+      },
+    ),
+  );
+
+  it(
+    'deletes the source security group rule for A',
+    query(
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA')`,
+    ),
+  );
+  it(
+    'deletes the source security group rule for B',
+    query(
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB')`,
+    ),
+  );
+  it(
+    'deletes the source security group for A',
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgtestA'`),
+  );
+  it(
+    'deletes the source security group for B',
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgtestB'`),
+  );
+
+  it('deletes rules and groups', apply());
+
+  it(
+    'check no security group rules remain',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group IN (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA' OR group_name='${prefix}sgtestB');
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check no security group for source remain',
+    query(
+      `
+    SELECT *
+    FROM security_group
+    WHERE group_name = '${prefix}sgtestA' OR group_name='${prefix}sgtestB';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  // final cleanup
   it('uninstalls the security group module', uninstall(modules));
 
   it('installs the security group module', install(modules));
