@@ -24,9 +24,18 @@ class UserMapper extends MapperBase<IamUser> {
       Object.is(a.arn, b.arn) &&
       Object.is(a.userId, b.userId) &&
       isEqual(a.createDate, b.createDate) &&
-      Object.is(a.path, b.path)
+      Object.is(a.path, b.path) &&
+      Object.is(a.attachedPoliciesArns?.length, b.attachedPoliciesArns?.length) &&
+      ((!a.attachedPoliciesArns && !b.attachedPoliciesArns) ||
+        !!a.attachedPoliciesArns?.every(as => !!b.attachedPoliciesArns?.find(bs => Object.is(as, bs))))
     );
   };
+
+  getUserAttachedPoliciesArns = crudBuilderFormat<IAM, 'listAttachedUserPolicies', string[] | undefined>(
+    'listAttachedUserPolicies',
+    UserName => ({ UserName }),
+    res => (res?.AttachedPolicies?.length ? res.AttachedPolicies.map(p => p.PolicyArn ?? '') : undefined),
+  );
 
   createNewUser = crudBuilderFormat<IAM, 'createUser', AWSUser | undefined>(
     'createUser',
@@ -49,8 +58,25 @@ class UserMapper extends MapperBase<IamUser> {
 
   deleteUser = crudBuilder2<IAM, 'deleteUser'>('deleteUser', UserName => ({ UserName }));
 
+  attachUserPolicy = crudBuilder2<IAM, 'attachUserPolicy'>('attachUserPolicy', (UserName, PolicyArn) => ({
+    UserName,
+    PolicyArn,
+  }));
+
+  attachUserPolicies = (client: IAM, userName: string, policyArns: string[]) =>
+    mapLin(policyArns, policyArn => this.attachUserPolicy(client, userName, policyArn));
+
+  detachUserPolicy = crudBuilder2<IAM, 'detachUserPolicy'>('detachUserPolicy', (UserName, PolicyArn) => ({
+    UserName,
+    PolicyArn,
+  }));
+
+  detachUserPolicies = (client: IAM, roleName: string, policyArns: string[]) =>
+    mapLin(policyArns, (policyArn: string) => this.detachUserPolicy(client, roleName, policyArn));
+
   async userMapper(user: AWSUser, ctx: Context) {
     if (!user.UserName) return undefined;
+    const client = (await ctx.getAwsClient()) as AWS;
 
     const out = new IamUser();
     out.arn = user.Arn;
@@ -58,6 +84,14 @@ class UserMapper extends MapperBase<IamUser> {
     out.userId = user.UserId;
     out.path = user.Path;
     if (user.CreateDate) out.createDate = user.CreateDate;
+
+    try {
+      out.attachedPoliciesArns = await this.getUserAttachedPoliciesArns(client.iamClient, user.UserName);
+    } catch (e: any) {
+      // If could not get policies for the user implies a misconfiguration
+      if (e.Code === 'NoSuchEntity') return undefined;
+    }
+
     return out;
   }
 
@@ -70,6 +104,7 @@ class UserMapper extends MapperBase<IamUser> {
           UserName: user.userName,
           Path: user.path,
         });
+        await this.attachUserPolicies(client.iamClient, user.userName, user.attachedPoliciesArns ?? []);
         if (rawUser) {
           const newUser = await this.userMapper(rawUser, ctx);
           if (newUser) {
@@ -125,6 +160,7 @@ class UserMapper extends MapperBase<IamUser> {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
         if (e.userName) {
+          await this.detachUserPolicies(client.iamClient, e.userName, e.attachedPoliciesArns ?? []);
           await this.deleteUser(client.iamClient, e.userName);
         }
       }

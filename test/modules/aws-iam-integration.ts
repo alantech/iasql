@@ -599,8 +599,8 @@ describe('IAM User Integration Testing', () => {
   it(
     'adds a new user',
     query(`
-    INSERT INTO iam_user (user_name, path)
-    VALUES ('${userName}', '${userPath}');
+    INSERT INTO iam_user (user_name, path, attached_policies_arns)
+    VALUES ('${userName}', '${userPath}', array['${taskPolicyArn}']);
   `),
   );
 
