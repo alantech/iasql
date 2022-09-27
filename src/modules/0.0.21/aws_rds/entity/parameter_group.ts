@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn, } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 import { Parameter } from '@aws-sdk/client-rds';
 
