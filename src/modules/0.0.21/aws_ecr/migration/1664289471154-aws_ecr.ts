@@ -1,9 +1,12 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEcr1664191557434 implements MigrationInterface {
-  name = 'awsEcr1664191557434';
+export class awsEcr1664289471154 implements MigrationInterface {
+  name = 'awsEcr1664289471154';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `CREATE TABLE "public_repository" ("repository_name" character varying NOT NULL, "repository_arn" character varying, "registry_id" character varying, "repository_uri" character varying, "created_at" TIMESTAMP WITH TIME ZONE, CONSTRAINT "PK_5a7e30211ae44944c8cd65711dd" PRIMARY KEY ("repository_name"))`,
+    );
     await queryRunner.query(
       `CREATE TYPE "public"."repository_image_tag_mutability_enum" AS ENUM('IMMUTABLE', 'MUTABLE')`,
     );
@@ -21,9 +24,6 @@ export class awsEcr1664191557434 implements MigrationInterface {
     );
     await queryRunner.query(
       `CREATE TABLE "repository_image" ("image_id" character varying NOT NULL, "image_digest" character varying NOT NULL, "image_tag" character varying NOT NULL, "registry_id" character varying, "private_repository_region" character varying, "private_repository" character varying, "public_repository" character varying, CONSTRAINT "PK_95b2f828d40910528ca2fe72a0a" PRIMARY KEY ("image_id"))`,
-    );
-    await queryRunner.query(
-      `CREATE TABLE "public_repository" ("repository_name" character varying NOT NULL, "repository_arn" character varying, "registry_id" character varying, "repository_uri" character varying, "created_at" TIMESTAMP WITH TIME ZONE, CONSTRAINT "PK_5a7e30211ae44944c8cd65711dd" PRIMARY KEY ("repository_name"))`,
     );
     await queryRunner.query(
       `ALTER TABLE "repository_policy" ADD CONSTRAINT "FK_06da26d302fd4774e21181d3d6c" FOREIGN KEY ("repository_name", "region") REFERENCES "repository"("repository_name","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -46,12 +46,12 @@ export class awsEcr1664191557434 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "repository_policy" DROP CONSTRAINT "FK_06da26d302fd4774e21181d3d6c"`,
     );
-    await queryRunner.query(`DROP TABLE "public_repository"`);
     await queryRunner.query(`DROP TABLE "repository_image"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_48baab7da5512ceed62193dde0"`);
     await queryRunner.query(`DROP TABLE "repository_policy"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_d8ebc33bfa675482f550961506"`);
     await queryRunner.query(`DROP TABLE "repository"`);
     await queryRunner.query(`DROP TYPE "public"."repository_image_tag_mutability_enum"`);
+    await queryRunner.query(`DROP TABLE "public_repository"`);
   }
 }

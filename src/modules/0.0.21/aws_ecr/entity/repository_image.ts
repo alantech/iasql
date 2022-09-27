@@ -13,7 +13,7 @@ import { cloudId } from '../../../../services/cloud-id';
 
 @Entity()
 export class RepositoryImage {
-  // composed by digest + tag + repo type + repository name
+  // composed by digest + tag + repo type + repository name [+ region]
   @PrimaryColumn()
   @cloudId
   imageId: string;

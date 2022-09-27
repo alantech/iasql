@@ -53,7 +53,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     }
 
     out.imageId =
-      image.imageId.imageDigest + '|' + image.imageId.imageTag + '|' + type + '|' + image.repositoryName;
+      image.imageId.imageDigest + '|' + image.imageId.imageTag + '|' + type + '|' + image.repositoryName + `${region ?  '|' + region : ''}`;
     out.registryId = image.registryId;
     out.privateRepositoryRegion = region;
     return out;
@@ -238,8 +238,20 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         return out;
       }
     },
-    updateOrReplace: () => 'update',
-    update: async (_es: RepositoryImage[], _ctx: Context) => {
+    updateOrReplace: (a: RepositoryImage, b: RepositoryImage) => {
+      return a.privateRepositoryRegion !== b.privateRepositoryRegion ? 'replace' : 'update'
+    },
+    update: async (es: RepositoryImage[], ctx: Context) => {
+      for (const e of es) {
+        const cloudRecord = ctx?.memo?.cloud?.RepositoryImage?.[e.imageId ?? ''];
+        const isUpdate = Object.is(this.module.repositoryImages.cloud.updateOrReplace(cloudRecord, e), 'update');
+        if (!isUpdate) {
+          // If it is a replacement we need to force the images deletion since we cannot tranfer them
+          const client = (await ctx.getAwsClient(cloudRecord.privateRepositoryRegion)) as AWS;
+          await this.deleteRepositoryImage(client.ecrClient, [cloudRecord.imageId], cloudRecord.privateRepository?.repositoryName);
+          await this.module.repositoryImages.db.delete(e, ctx);
+        }
+      }
       return [];
     },
     delete: async (es: RepositoryImage[], ctx: Context) => {
@@ -545,7 +557,9 @@ class RepositoryMapper extends MapperBase<Repository> {
 class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
   module: AwsEcrModule;
   entity = RepositoryPolicy;
-  entityId = (e: RepositoryPolicy) => e.repository?.repositoryName + '' ?? e.id.toString();
+  entityId = (e: RepositoryPolicy) => {
+    return e.repository?.repositoryName && e.repository?.region ?  `${e.repository.repositoryName}|${e.repository?.region}` : e.id.toString();
+  };
   equals = (a: RepositoryPolicy, b: RepositoryPolicy) => {
     try {
       return (
@@ -660,13 +674,14 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
         return out;
       }
     },
-    updateOrReplace: (a: RepositoryPolicy, b: RepositoryPolicy) =>
-      a.region !== b.region ? 'replace' : 'update',
+    updateOrReplace: (a: RepositoryPolicy, b: RepositoryPolicy) => {
+      return a.region !== b.region ? 'replace' : 'update';
+    },
     update: async (es: RepositoryPolicy[], ctx: Context) => {
       const out: RepositoryPolicy[] = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[
-          e.repository.repositoryName ?? ''
+          `${e.repository.repositoryName}|${e.repository.region}` ?? ''
         ] as RepositoryPolicy;
         const isUpdate = Object.is(
           this.module.repositoryPolicy.cloud.updateOrReplace(cloudRecord, e),
