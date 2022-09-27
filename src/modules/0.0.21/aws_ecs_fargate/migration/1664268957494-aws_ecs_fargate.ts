@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEcsFargate1658248709690 implements MigrationInterface {
-  name = 'awsEcsFargate1658248709690';
+export class awsEcsFargate1664268957494 implements MigrationInterface {
+  name = 'awsEcsFargate1664268957494';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -11,7 +11,7 @@ export class awsEcsFargate1658248709690 implements MigrationInterface {
       `CREATE TYPE "public"."container_definition_protocol_enum" AS ENUM('tcp', 'udp')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "container_definition" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "image" character varying, "tag" character varying, "digest" character varying, "essential" boolean NOT NULL DEFAULT false, "cpu" integer, "memory" integer, "memory_reservation" integer, "host_port" integer, "container_port" integer, "protocol" "public"."container_definition_protocol_enum", "env_variables" text, "task_definition_id" integer, "repository_name" character varying, "public_repository_name" character varying, "log_group_name" character varying, CONSTRAINT "CHK_7c71371f8b24ff4868a039a7a9" CHECK (("tag" is null and "digest" is null) or ("tag" is not null and "digest" is null) or ("tag" is null and "digest" is not null)), CONSTRAINT "CHK_4de2350c230969507b1009bfbc" CHECK (("image" is null and ("repository_name" is not null or "public_repository_name" is not null)) or "image" is not null), CONSTRAINT "PK_79458e199ec6b2264a0735fd99e" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "container_definition" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "image" character varying, "tag" character varying, "digest" character varying, "essential" boolean NOT NULL DEFAULT false, "cpu" integer, "memory" integer, "memory_reservation" integer, "host_port" integer, "container_port" integer, "protocol" "public"."container_definition_protocol_enum", "env_variables" text, "task_definition_id" integer, "repository_name" character varying, "region" character varying, "public_repository_name" character varying, "log_group_name" character varying, CONSTRAINT "CHK_7c71371f8b24ff4868a039a7a9" CHECK (("tag" is null and "digest" is null) or ("tag" is not null and "digest" is null) or ("tag" is null and "digest" is not null)), CONSTRAINT "CHK_4de2350c230969507b1009bfbc" CHECK (("image" is null and ("repository_name" is not null or "public_repository_name" is not null)) or "image" is not null), CONSTRAINT "PK_79458e199ec6b2264a0735fd99e" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."service_assign_public_ip_enum" AS ENUM('DISABLED', 'ENABLED')`,
@@ -41,7 +41,7 @@ export class awsEcsFargate1658248709690 implements MigrationInterface {
       `ALTER TABLE "container_definition" ADD CONSTRAINT "FK_95900c2acc0286c7976d9b729b2" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
     );
     await queryRunner.query(
-      `ALTER TABLE "container_definition" ADD CONSTRAINT "FK_5b8e931f2150a5a570a809a08e8" FOREIGN KEY ("repository_name") REFERENCES "repository"("repository_name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "container_definition" ADD CONSTRAINT "FK_34e144fd6ae16712100b5dd32bb" FOREIGN KEY ("repository_name", "region") REFERENCES "repository"("repository_name","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "container_definition" ADD CONSTRAINT "FK_223740ffb1779c07fbad5853e28" FOREIGN KEY ("public_repository_name") REFERENCES "public_repository"("repository_name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -91,7 +91,7 @@ export class awsEcsFargate1658248709690 implements MigrationInterface {
       `ALTER TABLE "container_definition" DROP CONSTRAINT "FK_223740ffb1779c07fbad5853e28"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "container_definition" DROP CONSTRAINT "FK_5b8e931f2150a5a570a809a08e8"`,
+      `ALTER TABLE "container_definition" DROP CONSTRAINT "FK_34e144fd6ae16712100b5dd32bb"`,
     );
     await queryRunner.query(
       `ALTER TABLE "container_definition" DROP CONSTRAINT "FK_95900c2acc0286c7976d9b729b2"`,
