@@ -342,7 +342,7 @@ describe('IAM Role Integration Testing', () => {
   it(
     'tries to update role attached policies',
     query(`
-    UPDATE role SET attached_policies_arn='[array['${servicePolicyArn}']]' WHERE role_name = '${taskRoleName}';
+    UPDATE role SET attached_policies_arns=array['${servicePolicyArn}'] WHERE role_name = '${taskRoleName}';
   `),
   );
 
@@ -357,7 +357,8 @@ describe('IAM Role Integration Testing', () => {
     WHERE role_name = '${taskRoleName}' AND description = 'description';
   `,
       (res: any[]) => {
-        expect(res.length).toBe(1), expect(res[0].attached_policies_arn).toBe(['${servicePolicyArn}']);
+        expect(res.length).toBe(1),
+          expect(res[0].attached_policies_arns).toStrictEqual([`${servicePolicyArn}`]);
       },
     ),
   );
@@ -681,6 +682,30 @@ describe('IAM User Integration Testing', () => {
     WHERE user_name = '${userName}' AND path = '${userNewPath}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'tries to update user attached policies',
+    query(`
+    UPDATE iam_user SET attached_policies_arns=array['${servicePolicyArn}'] WHERE user_name = '${userName}';
+  `),
+  );
+
+  it('applies change', apply());
+
+  it(
+    'check update user policy',
+    query(
+      `
+    SELECT *
+    FROM iam_user
+    WHERE user_name = '${userName}';
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1),
+          expect(res[0].attached_policies_arns).toStrictEqual([`${servicePolicyArn}`]);
+      },
     ),
   );
 
