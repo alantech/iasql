@@ -536,7 +536,7 @@ describe('Security Group Integration Testing', () => {
 
   // tests cycle in security rules
   it(
-    'adds a new security group A',
+    'adds a new security groups A and B',
     query(`  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test A', '${prefix}sgtestA'), ('Security Group Test B', '${prefix}sgtestB');
