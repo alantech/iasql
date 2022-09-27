@@ -428,6 +428,73 @@ describe('Security Group Integration Testing', () => {
   );
 
   it(
+    'adds a new security group rule pointing to itself',
+    query(`
+  INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
+  VALUES ('${prefix}sgsourcetestrule', (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'),
+  (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'), false);
+  `),
+  );
+  it('creates the source security group rule pointing to itself', apply());
+
+  it(
+    'check security group rule expanded for TCP pointing to itself',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource') AND ip_protocol='tcp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check security group rule expanded for UDP pointing to itself',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource') AND ip_protocol='udp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check security group rule expanded for ICMP pointing to itself',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource') AND ip_protocol='icmp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'deletes the source security group rule pointing to itself',
+    query(
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource')`,
+    ),
+  );
+
+  it('applies the deletion of source security group rule', apply());
+
+  it(
+    'check no security group rules remain',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource');
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
     'deletes the original security group to test source',
     query(`DELETE FROM security_group WHERE group_name = '${prefix}sgforsource'`),
   );
