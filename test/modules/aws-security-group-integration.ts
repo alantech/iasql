@@ -536,24 +536,15 @@ describe('Security Group Integration Testing', () => {
 
   // tests cycle in security rules
   it(
-    'adds a new security groups A and B',
+    'adds self-referential security groups A and B',
     query(`  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test A', '${prefix}sgtestA'), ('Security Group Test B', '${prefix}sgtestB');
-  `),
-  );
-
-  it(
-    'adds security group rules pointing to the other ones (A)',
-    query(`
-  INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
+    
+    INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
   VALUES ('${prefix}sgtestA', (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA'),
   (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB'), false);
-  `),
-  );
-  it(
-    'adds security group rules pointing to the other ones (B)',
-    query(`
+  
   INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
   VALUES ('${prefix}sgtestB', (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB'),
   (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA'), false);
