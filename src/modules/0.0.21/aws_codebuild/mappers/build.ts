@@ -116,7 +116,6 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
       }
       return out;
     },
-    updateOrReplace: () => 'update',
     update: async (es: CodebuildBuildList[], ctx: Context) => {
       // Right now we can only modify AWS-generated fields in the database.
       // This implies that on `update`s we only have to restore the values for those records.

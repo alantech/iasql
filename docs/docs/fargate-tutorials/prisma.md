@@ -152,7 +152,6 @@ const region = process.env.AWS_REGION;
 const port = 8088;
 const codebuildPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess';
 const cloudwatchLogsArn = 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess';
-// TODO provide ECR permissions once inline policies are supported in roles
 const pushEcrPolicyArn = 'arn:aws:iam::aws:policy/EC2InstanceProfileForImageBuilderECRContainerBuilds';
 const assumeServicePolicy = {
   "Statement": [
@@ -209,24 +208,8 @@ async function main() {
     update: cbData,
   });
 
-  const buildSpec = `
-    version: 0.2
-
-    phases:
-      pre_build:
-        commands:
-          - echo Logging in to Amazon ECR...
-          - aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${repoUri}
-      build:
-        commands:
-          - echo Building the Docker image...
-          - docker build -t ${appName}-repository examples/ecs-fargate/prisma/app
-          - docker tag ${appName}-repository:latest ${repoUri}:latest
-      post_build:
-        commands:
-          - echo Pushing the Docker image...
-          - docker push ${repoUri}:latest
-  `;
+  const buildSpecRes = await prisma.$queryRaw`SELECT generate_put_ecr_image_build_spec('${region}', 'latest', '${appName}-repository', '${repoUri}', 'examples/ecs-fargate/prisma/app')`;
+  const buildSpec = buildSpecRes[0]['generate_put_ecr_image_build_spec'];
 
   const pjData = {
     project_name: appName,
