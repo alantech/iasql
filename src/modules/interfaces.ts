@@ -514,6 +514,7 @@ export class ModuleBase {
   };
   context?: Context;
   mappers: { [key: string]: MapperInterface<any> };
+  // TODO: delete after v0.0.20 is deleted
   sql?: {
     afterInstallSqlPath?: string;
     beforeUninstallSqlPath?: string;
@@ -569,11 +570,14 @@ export class ModuleBase {
   }
 
   private getCustomSql(): [string, string] {
+    // TODO: delete customDir param after v0.0.20 is deleted
     const afterInstallSql = this.readSqlDir(this.sql?.afterInstallSqlPath, true) ?? '';
+    // TODO: delete customDir param after v0.0.20 is deleted
     const beforeUninstallSql = this.readSqlDir(this.sql?.beforeUninstallSqlPath, false) ?? '';
     return [afterInstallSql, beforeUninstallSql];
   }
 
+  // TODO: delete customDir param after v0.0.20 is deleted
   private readSqlDir(customDir: string | undefined, afterInstall: boolean) {
     try {
       // If no customDir specified, try to get the default
