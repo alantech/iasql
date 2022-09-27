@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { Parameter } from '@aws-sdk/client-rds';
 
@@ -58,11 +58,13 @@ export enum ParameterGroupFamily {
 }
 
 @Entity()
+@Unique('paragrp_name_region', ['name', 'region'])
 export class ParameterGroup {
   @PrimaryGeneratedColumn()
   id?: number;
 
   @cloudId
+  @Column()
   name: string;
 
   @Column({
