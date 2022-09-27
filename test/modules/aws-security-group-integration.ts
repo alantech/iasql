@@ -566,9 +566,9 @@ describe('Security Group Integration Testing', () => {
     'check that security group and rules are correctly created - tcp, udp, icmp',
     query(
       `
-      SELECT sg.id, sgr.source_security_group FROM security_group sg INNER JOIN security_group_rule sgr ON sg.id = sgr.security_group_id WHERE sg.group_name='${prefix}sgtestA' AND sgr.source_security_group IS NOT NULL`,
+      SELECT sg.id, sgr.source_security_group FROM security_group sg INNER JOIN security_group_rule sgr ON sg.id = sgr.security_group_id WHERE sg.group_name='${prefix}sgtestA' AND sgr.source_security_group=(SELECT id FROM security_group WHERE group_name='${prefix}sgtestB')`,
       (res: any[]) => {
-        expect(res.length).toBe(3), expect(res[0].source_security_group).toBe('${prefix}sgtestB');
+        expect(res.length).toBe(3);
       },
     ),
   );
@@ -576,9 +576,9 @@ describe('Security Group Integration Testing', () => {
     'check that security group and rules are correctly created - tcp, udp, icmp',
     query(
       `
-      SELECT sg.id, sgr.source_security_group FROM security_group sg INNER JOIN security_group_rule sgr ON sg.id = sgr.security_group_id WHERE sg.group_name='${prefix}sgtestB' AND sgr.source_security_group IS NOT NULL`,
+      SELECT sg.id, sgr.source_security_group FROM security_group sg INNER JOIN security_group_rule sgr ON sg.id = sgr.security_group_id WHERE sg.group_name='${prefix}sgtestB' AND sgr.source_security_group=(SELECT id FROM security_group WHERE group_name='${prefix}sgtestA')`,
       (res: any[]) => {
-        expect(res.length).toBe(1), expect(res[0].source_security_group).toBe('${prefix}sgtestA');
+        expect(res.length).toBe(3);
       },
     ),
   );
