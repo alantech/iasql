@@ -49,13 +49,16 @@ export class ContainerDefinition {
     nullable: true,
     eager: true,
   })
-  @JoinColumn([{
-    name: 'repository_name',
-    referencedColumnName: 'repositoryName',
-  },{
-    name: 'region',
-    referencedColumnName: 'region',
-  }])
+  @JoinColumn([
+    {
+      name: 'repository_name',
+      referencedColumnName: 'repositoryName',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   repository?: Repository;
 
   @ManyToOne(() => PublicRepository, {
