@@ -58,7 +58,7 @@ describe('AwsCodebuild Integration Testing', () => {
 
   it('installs the codebuild module', install(modules));
 
-  it('check generate_put_ecr_image_build_spec', query(`
+  it('check generate_put_ecr_image_build_spec with no build args', query(`
     SELECT generate_put_ecr_image_build_spec('us-west-2', 'latest', 'my-repository', 'myrepouri.com', 'examples/ecs-fargate/prisma/app')
   `, (res: any[]) => {
     const buildSpec = `
@@ -73,6 +73,31 @@ describe('AwsCodebuild Integration Testing', () => {
           commands:
             - echo Building the Docker image...
             - docker build -t my-repository examples/ecs-fargate/prisma/app
+            - docker tag my-repository:latest myrepouri.com:latest
+        post_build:
+          commands:
+            - echo Pushing the Docker image...
+            - docker push myrepouri.com:latest
+    `;
+    expect(res.length).toBe(1);
+    expect(res[0]['generate_put_ecr_image_build_spec'].split(' ').join('').split('\n').join('')).toBe(buildSpec.split(' ').join('').split('\n').join(''))
+  }));
+
+  it('check generate_put_ecr_image_build_spec', query(`
+    SELECT generate_put_ecr_image_build_spec('us-west-2', 'latest', 'my-repository', 'myrepouri.com', 'examples/ecs-fargate/prisma/app', array['IASQL_ENV=local', 'SECRET=secret'])
+  `, (res: any[]) => {
+    const buildSpec = `
+      version: 0.2
+
+      phases:
+        pre_build:
+          commands:
+            - echo Logging in to Amazon ECR...
+            - aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin myrepouri.com
+        build:
+          commands:
+            - echo Building the Docker image...
+            - docker build --build-arg IASQL_ENV=local --build-arg SECRET=secret -t my-repository examples/ecs-fargate/prisma/app
             - docker tag my-repository:latest myrepouri.com:latest
         post_build:
           commands:
