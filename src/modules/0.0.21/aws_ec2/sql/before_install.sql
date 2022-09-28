@@ -20,7 +20,7 @@ declare
   _number_of_records integer;
 begin
   select count(*) into _number_of_records
-  from role
+  from iam_role
   where role_name = _role_name AND assume_role_policy_document -> 'Statement' @> '[{"Effect": "Allow", "Principal": { "Service": "ec2.amazonaws.com" }}]';
   return _number_of_records > 0;
 end;
