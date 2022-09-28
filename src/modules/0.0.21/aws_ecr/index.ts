@@ -26,10 +26,8 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
   module: AwsEcrModule;
   entity = RepositoryImage;
   equals = (a: RepositoryImage, b: RepositoryImage) => {
-    // the id already contains image digest , tag and repo, so no need to compare it here
-    return (
-      Object.is(a.registryId, b.registryId) && Object.is(a.privateRepositoryRegion, b.privateRepositoryRegion)
-    );
+    // the id already contains image digest, tag, repo and region, so no need to compare it here
+    return Object.is(a.registryId, b.registryId);
   };
 
   async repositoryImageMapper(image: ImageAws, ctx: Context, type: string, region?: string) {
@@ -53,7 +51,14 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     }
 
     out.imageId =
-      image.imageId.imageDigest + '|' + image.imageId.imageTag + '|' + type + '|' + image.repositoryName + `${region ?  '|' + region : ''}`;
+      image.imageId.imageDigest +
+      '|' +
+      image.imageId.imageTag +
+      '|' +
+      type +
+      '|' +
+      image.repositoryName +
+      `${region ? '|' + region : ''}`;
     out.registryId = image.registryId;
     out.privateRepositoryRegion = region;
     return out;
@@ -238,26 +243,12 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         return out;
       }
     },
-    updateOrReplace: (a: RepositoryImage, b: RepositoryImage) => {
-      return a.privateRepositoryRegion !== b.privateRepositoryRegion ? 'replace' : 'update'
-    },
     update: async (es: RepositoryImage[], ctx: Context) => {
-      for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.RepositoryImage?.[e.imageId ?? ''];
-        const isUpdate = Object.is(this.module.repositoryImages.cloud.updateOrReplace(cloudRecord, e), 'update');
-        if (!isUpdate) {
-          // If it is a replacement we need to force the images deletion since we cannot tranfer them
-          const client = (await ctx.getAwsClient(cloudRecord.privateRepositoryRegion)) as AWS;
-          await this.deleteRepositoryImage(client.ecrClient, [cloudRecord.imageId], cloudRecord.privateRepository?.repositoryName);
-          await this.module.repositoryImages.db.delete(e, ctx);
-        }
-      }
       return [];
     },
     delete: async (es: RepositoryImage[], ctx: Context) => {
       for (const e of es) {
         const imageId = { imageDigest: e.imageDigest, imageTag: e.imageTag };
-
         if (e.privateRepository) {
           const client = (await ctx.getAwsClient(e.privateRepositoryRegion)) as AWS;
           await this.deleteRepositoryImage(client.ecrClient, [imageId], e.privateRepository.repositoryName);
@@ -558,7 +549,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
   module: AwsEcrModule;
   entity = RepositoryPolicy;
   entityId = (e: RepositoryPolicy) => {
-    return e.repository?.repositoryName && e.repository?.region ?  `${e.repository.repositoryName}|${e.repository?.region}` : e.id.toString();
+    return e.id.toString();
   };
   equals = (a: RepositoryPolicy, b: RepositoryPolicy) => {
     try {
@@ -680,9 +671,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     update: async (es: RepositoryPolicy[], ctx: Context) => {
       const out: RepositoryPolicy[] = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[
-          `${e.repository.repositoryName}|${e.repository.region}` ?? ''
-        ] as RepositoryPolicy;
+        const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[`${e.id}`] as RepositoryPolicy;
         const isUpdate = Object.is(
           this.module.repositoryPolicy.cloud.updateOrReplace(cloudRecord, e),
           'update',
@@ -694,6 +683,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
           continue;
         }
         try {
+          // TODO: is this logic ok?
           if (!policiesAreSame(JSON.parse(cloudRecord.policyText!), JSON.parse(e.policyText!))) {
             const outPolicy = await this.module.repositoryPolicy.cloud.create(e, ctx);
             if (outPolicy instanceof RepositoryPolicy) out.push(outPolicy);

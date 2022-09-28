@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, OneToMany, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 import { RepositoryImage } from './repository_image';
@@ -9,7 +9,8 @@ export enum ImageTagMutability {
 }
 
 @Entity()
-@Index(['repositoryName', 'region'], { unique: true })
+@Unique('uq_repository_id_region', ['id', 'region'])
+@Unique('uq_repository_name_region', ['repositoryName', 'region'])
 export class Repository {
   @PrimaryGeneratedColumn()
   id: number;

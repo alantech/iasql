@@ -1,20 +1,17 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  OneToOne,
-  JoinColumn,
-  ManyToOne,
-  PrimaryColumn,
-} from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, Unique } from 'typeorm';
 
 import { PublicRepository, Repository } from '.';
 import { cloudId } from '../../../../services/cloud-id';
 
 @Entity()
+@Unique('uq_repository_image_region', ['id', 'privateRepositoryRegion'])
+@Unique('uq_repository_image_id_region', ['imageId', 'privateRepositoryRegion'])
 export class RepositoryImage {
+  @PrimaryGeneratedColumn()
+  id: number;
+
   // composed by digest + tag + repo type + repository name [+ region]
-  @PrimaryColumn()
+  @Column()
   @cloudId
   imageId: string;
 
@@ -32,8 +29,8 @@ export class RepositoryImage {
   @ManyToOne(() => Repository, { nullable: true })
   @JoinColumn([
     {
-      name: 'private_repository',
-      referencedColumnName: 'repositoryName',
+      name: 'private_repository_id',
+      referencedColumnName: 'id',
     },
     {
       name: 'private_repository_region',

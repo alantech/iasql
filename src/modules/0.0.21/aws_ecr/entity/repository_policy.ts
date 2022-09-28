@@ -1,9 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToOne, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToOne, Unique } from 'typeorm';
 
 import { Repository } from '.';
 
 @Entity()
-@Index(['id', 'region'], { unique: true })
+@Unique('uq_repository_policy_region', ['id', 'region'])
 export class RepositoryPolicy {
   @PrimaryGeneratedColumn()
   id: number;
@@ -16,8 +16,8 @@ export class RepositoryPolicy {
   @OneToOne(() => Repository, { nullable: false, eager: true })
   @JoinColumn([
     {
-      name: 'repository_name',
-      referencedColumnName: 'repositoryName',
+      name: 'repository_id',
+      referencedColumnName: 'id',
     },
     {
       name: 'region',
