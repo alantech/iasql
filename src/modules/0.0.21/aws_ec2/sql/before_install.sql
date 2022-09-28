@@ -13,7 +13,7 @@ $$;
 
 -- Create role ec2 instance profile constraint
 -- CREATE INDEX
---   role_policy_document_gin_idx ON ROLE USING gin ((assume_role_policy_document -> 'Statement') jsonb_path_ops);
+--   role_policy_document_gin_idx ON iam_role USING gin ((assume_role_policy_document -> 'Statement') jsonb_path_ops);
 CREATE
 OR REPLACE FUNCTION check_role_ec2 (_role_name TEXT) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
