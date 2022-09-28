@@ -11,7 +11,7 @@ class LogGroupMapper extends MapperBase<LogGroup> {
     Object.is(a.logGroupName, b.logGroupName) &&
     Object.is(a.logGroupArn, b.logGroupArn) &&
     Object.is(a.creationTime?.getTime(), b.creationTime?.getTime());
-  entityId = (e: LogGroup) => `${e.region}|${e.logGroupName}` ?? '';
+  entityId = (e: LogGroup) => `${e.region}|${e.logGroupName}`;
 
   createLogGroup = crudBuilderFormat<CloudWatchLogs, 'createLogGroup', undefined>(
     'createLogGroup',
@@ -79,7 +79,7 @@ class LogGroupMapper extends MapperBase<LogGroup> {
         return out;
       }
     },
-    updateOrReplace: (a: LogGroup, b: LogGroup) => (a.region !== b.region ? 'replace' : 'update'),
+    updateOrReplace: () => 'update',
     update: async (es: LogGroup[], ctx: Context) => {
       // Right now we can only modify AWS-generated fields in the database.
       // This implies that on `update`s we only have to restore the values for those records.
