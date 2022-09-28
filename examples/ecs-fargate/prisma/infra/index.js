@@ -66,7 +66,9 @@ async function main() {
     update: cbData,
   });
 
-  const buildSpecRes = await prisma.$queryRaw`SELECT generate_put_ecr_image_build_spec('${region}', 'latest', '${appName}-repository', '${repoUri}', 'examples/ecs-fargate/prisma/app')`;
+  // In Prisma's queryRaw template variables cannot be used inside SQL string literals so pass the whole string as a variable
+  const repoName = `${appName}-repository`;
+  const buildSpecRes = await prisma.$queryRaw`SELECT generate_put_ecr_image_build_spec(${region}, 'latest', ${repoName}, ${repoUri}, 'examples/ecs-fargate/prisma/app')`;
   const buildSpec = buildSpecRes[0]['generate_put_ecr_image_build_spec'];
 
   const pjData = {

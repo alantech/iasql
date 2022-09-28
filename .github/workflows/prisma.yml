@@ -1,0 +1,126 @@
+name: PRISMA TUTORIAL
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock']
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock']
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      region: ${{ steps['set-region'].outputs['region'] }}
+    steps:
+      - name: Set AWS region
+        id: set-region
+        run: |
+          # pick aws region at random and append it to the repository name
+          # since public ecr always works out of us-east-1
+          regions=("ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "sa-east-1" "us-east-1" "us-east-2" "us-west-1" "us-west-2")
+          regionslen=${#regions[@]}
+          index=$(($RANDOM % $regionslen))
+          echo "::set-output name=region::$(echo ${regions[$index]})"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs:
+      - setup
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+  
+      - name: Start local iasql engine
+        run: |
+          IASQL_ENV=ci docker-compose up --build --detach
+          while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
+
+      - name: Determine Test Account To Use
+        id: determine-test-account
+        env:
+          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+        run: |
+          RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
+          echo $RESPONSE
+          ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
+          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
+
+      - name: Setup IaSQL database
+        if: always()
+        run: |
+          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          ./src/scripts/setup-iasql-db.sh
+        env:
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          AWS_REGION: ${{ needs.setup.outputs['region'] }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+
+      - name: Pre-clean with cleaning script
+        if: always()
+        run: |
+          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          echo "\nDelete all records..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"
+          echo "\nApply..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_apply();"
+        env:
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          AWS_REGION: ${{ needs.setup.outputs['region'] }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+
+      - name: Run deploy script
+        run: |
+          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          ./test/tutorials/prisma-ci.sh
+        env:
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          AWS_REGION: ${{ needs.setup.outputs['region'] }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+          DATABASE_URL: postgres://postgres:test@localhost:5432/iasql
+          GH_PAT: ${{ secrets.GH_PAT }}
+
+      - name: Run cleaning script
+        if: always()
+        run: |
+          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          echo "\nDelete all records..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"
+          echo "\nApply..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_apply();"
+        env:
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          AWS_REGION: ${{ needs.setup.outputs['region'] }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+
+      - name: Return test account
+        if: always()
+        env:
+          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+        run: |
+          curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/
+
+      - name: Local engine logs
+        if: always()
+        run: docker logs iasql-engine_change_engine_1
+
+      - name: Local psql logs
+        if: always()
+        run: docker logs iasql-engine_postgresql_1
