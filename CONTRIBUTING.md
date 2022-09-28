@@ -184,13 +184,13 @@ IaSQL has a rolling release schedule for it's modules. The last 4 versions (1 mo
 
 The flow for any given development cycle is as follows:
 
-### 1. Release the newest version
-
-Go to the Actions tab and click the "Release Newest Version" tab. Then click the "Run Workflow" button to mark the newest version as released.
-
-### 2. Drop the old version
+### 1. Drop the old version
 
 Go to the Actions tab and click the "Drop Old Version" tab. Then click the "Run Workflow" button to drop the oldest, no-longer-supported version.
+
+### 2. Release the newest version
+
+Go to the Actions tab and click the "Release Newest Version" tab. Then click the "Run Workflow" button to mark the newest version as released.
 
 ### 3. Begin development of the next version
 
