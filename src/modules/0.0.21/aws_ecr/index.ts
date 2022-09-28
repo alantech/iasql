@@ -34,11 +34,11 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     const out = new RepositoryImage();
 
     // id is generated with imageDigest + tag
-    if (!image.imageId || !image.imageId.imageDigest || !image.imageId.imageTag) {
+    if (!image.imageId?.imageDigest) {
       throw new Error('Invalid repository image');
     }
     out.imageDigest = image.imageId.imageDigest;
-    out.imageTag = image.imageId.imageTag;
+    out.imageTag = image.imageId.imageTag ?? '<untagged>';
 
     (out.privateRepository = undefined), (out.publicRepository = undefined);
     if (type === 'private') {
@@ -234,8 +234,8 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     delete: async (es: RepositoryImage[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
-        const imageId = { imageDigest: e.imageDigest, imageTag: e.imageTag };
-
+        const imageId: any = { imageDigest: e.imageDigest };
+        if (e.imageTag !== '<untagged>') imageId.imageTag = e.imageTag;
         if (e.privateRepository) {
           await this.deleteRepositoryImage(client.ecrClient, [imageId], e.privateRepository.repositoryName);
         } else if (e.publicRepository) {

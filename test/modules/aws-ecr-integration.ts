@@ -30,6 +30,9 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_ecr'];
 const dockerImage = 'public.ecr.aws/docker/library/hello-world:latest';
+// Custom digest for linux/386
+const dockerImageUpdated =
+  'public.ecr.aws/docker/library/hello-world@sha256:995efde2e81b21d1ea7066aa77a59298a62a9e9fbb4b77f36c189774ec9b1089';
 const repositoryTag = 'v1';
 
 jest.setTimeout(240000);
@@ -39,6 +42,7 @@ beforeAll(async () => {
     `docker login --username AWS -p $(aws ecr-public get-login-password --region ${region}) public.ecr.aws`,
   );
   execSync(`docker pull ${dockerImage}`);
+  execSync(`docker pull ${dockerImageUpdated}`);
 
   await execComposeUp();
 });
@@ -133,11 +137,13 @@ describe('ECR Integration Testing', () => {
           execSync(
             `docker login --username AWS -p $(aws ecr get-login-password --region ${process.env.AWS_REGION}) ${repositoryUri}`,
           );
-
+          execSync(`docker push ${repositoryUri}`);
+          // We push a different image with the same tag to leave the previous one untagged
+          execSync(`docker tag ${dockerImageUpdated} ${repositoryUri}`);
           execSync(`docker push ${repositoryUri}`);
 
           // upload with a new tag
-          execSync(`docker tag ${dockerImage} ${repositoryUri}:${repositoryTag}`);
+          execSync(`docker tag ${dockerImageUpdated} ${repositoryUri}:${repositoryTag}`);
           execSync(`docker push ${repositoryUri}:${repositoryTag}`);
         },
       ),
@@ -154,7 +160,8 @@ describe('ECR Integration Testing', () => {
       WHERE private_repository = '${repositoryName}';
     `,
         (res: any[]) => {
-          expect(res.length).toBe(2);
+          expect(res.length).toBe(3);
+          expect(res.filter(i => i['image_tag'] === '<untagged>').length).toBe(1);
         },
       ),
     );
@@ -484,7 +491,10 @@ describe('ECR install/uninstall', () => {
   it('installs all modules', done =>
     void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
 
-  it('uninstalls the ECR module', uninstall(['aws_ecr', 'aws_codebuild', 'aws_ecs_fargate', 'aws_ecs_simplified']));
+  it(
+    'uninstalls the ECR module',
+    uninstall(['aws_ecr', 'aws_codebuild', 'aws_ecs_fargate', 'aws_ecs_simplified']),
+  );
 
   it('installs the ECR module', install(modules));
 
