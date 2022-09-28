@@ -29,7 +29,8 @@ const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const modules = ['aws_ecr'];
-const dockerImage = 'public.ecr.aws/docker/library/hello-world:latest';
+const helloworldDockerImage = 'public.ecr.aws/docker/library/hello-world:latest';
+const alpineDockerImage = 'public.ecr.aws/docker/library/alpine:latest';
 const repositoryTag = 'v1';
 
 jest.setTimeout(240000);
@@ -38,7 +39,8 @@ beforeAll(async () => {
   execSync(
     `docker login --username AWS -p $(aws ecr-public get-login-password --region ${region}) public.ecr.aws`,
   );
-  execSync(`docker pull ${dockerImage}`);
+  execSync(`docker pull ${helloworldDockerImage}`);
+  execSync(`docker pull ${alpineDockerImage}`);
 
   await execComposeUp();
 });
@@ -129,15 +131,17 @@ describe('ECR Integration Testing', () => {
         (res: any[]) => {
           // get repository uri to retag and pull
           const repositoryUri = res[0]['repository_uri'];
-          execSync(`docker tag ${dockerImage} ${repositoryUri}`);
+          execSync(`docker tag ${helloworldDockerImage} ${repositoryUri}`);
           execSync(
             `docker login --username AWS -p $(aws ecr get-login-password --region ${process.env.AWS_REGION}) ${repositoryUri}`,
           );
-
+          execSync(`docker push ${repositoryUri}`);
+          // We push a different image with the same tag to leave the previous one untagged
+          execSync(`docker tag ${alpineDockerImage} ${repositoryUri}`);
           execSync(`docker push ${repositoryUri}`);
 
           // upload with a new tag
-          execSync(`docker tag ${dockerImage} ${repositoryUri}:${repositoryTag}`);
+          execSync(`docker tag ${alpineDockerImage} ${repositoryUri}:${repositoryTag}`);
           execSync(`docker push ${repositoryUri}:${repositoryTag}`);
         },
       ),
@@ -154,7 +158,8 @@ describe('ECR Integration Testing', () => {
       WHERE private_repository = '${repositoryName}';
     `,
         (res: any[]) => {
-          expect(res.length).toBe(2);
+          expect(res.length).toBe(3);
+          expect(res.filter(i => i['image_tag'] === '<untagged>').length).toBe(1);
         },
       ),
     );
@@ -366,7 +371,7 @@ describe('ECR Integration Testing', () => {
         (res: any[]) => {
           // get repository uri to retag and pull
           const repositoryUri = res[0]['repository_uri'];
-          execSync(`docker tag ${dockerImage} ${repositoryUri}`);
+          execSync(`docker tag ${helloworldDockerImage} ${repositoryUri}`);
           execSync(
             `docker login --username AWS -p $(aws ecr-public get-login-password --region ${region}) ${repositoryUri}`,
           );
