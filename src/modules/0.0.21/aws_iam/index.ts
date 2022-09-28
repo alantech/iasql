@@ -200,11 +200,7 @@ class UserMapper extends MapperBase<IamUser> {
               e.userName,
               cloudRecord.attachedPoliciesArns ?? [],
             );
-            await this.attachUserPolicies(
-              client.iamClient,
-              e.userName,
-              cloudRecord.attachedPoliciesArns ?? [],
-            );
+            await this.attachUserPolicies(client.iamClient, e.userName, e.attachedPoliciesArns ?? []);
             await this.waitForAttachedUserPolicies(
               client.iamClient,
               e.userName,
