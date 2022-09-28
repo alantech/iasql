@@ -139,7 +139,7 @@ describe('IAM Role Integration Testing', () => {
   it(
     'adds a new iam_role',
     query(`
-    INSERT INTO role (role_name, assume_role_policy_document)
+    INSERT INTO iam_role (role_name, assume_role_policy_document)
     VALUES ('${lambdaRoleName}', '${attachAssumeLambdaPolicy}');
   `),
   );
@@ -355,7 +355,7 @@ describe('IAM Role Integration Testing', () => {
     query(
       `
     SELECT *
-    FROM role
+    FROM iam_role
     WHERE role_name = '${taskRoleName}' AND description = 'description';
   `,
       (res: any[]) => {
