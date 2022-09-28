@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
-import { Role } from '../../aws_iam/entity';
+import { IamRole } from '../../aws_iam/entity';
 // TODO: Is there a better way to deal with cross-module entities?
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { Subnet } from '../../aws_vpc/entity';
@@ -72,14 +72,14 @@ export class Instance {
   })
   securityGroups: SecurityGroup[];
 
-  @ManyToOne(() => Role, role => role.roleName, {
+  @ManyToOne(() => IamRole, role => role.roleName, {
     nullable: true,
     eager: true,
   })
   @JoinColumn({
     name: 'role_name',
   })
-  role?: Role;
+  role?: IamRole;
 
   @ManyToOne(() => Subnet, subnet => subnet.id, {
     nullable: true,
