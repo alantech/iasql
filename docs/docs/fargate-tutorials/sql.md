@@ -45,7 +45,7 @@ If the function call is successful, it will return a virtual table with a record
        module_name        |      created_table_name       | record_count
 --------------------------+-------------------------------+--------------
  aws_cloudwatch           | log_group                     |            0
- aws_iam                  | role                          |            0
+ aws_iam                  | iam_role                      |            0
  aws_ecr                  | public_repository             |            0
  aws_ecr                  | repository                    |            1
  aws_ecr                  | repository_policy             |            0
@@ -84,7 +84,7 @@ SELECT * from iasql_apply();
 INSERT INTO source_credentials_import (token, source_type, auth_type)
 VALUES ('gh_XXXXXXXXX', 'GITHUB', 'PERSONAL_ACCESS_TOKEN');
 
-INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
 VALUES ('quickstart', '{
   "Statement": [
     {
@@ -175,6 +175,6 @@ If the function call is successful, it will return a virtual table with a record
  delete | security_group      | [NULL] | sg-e0df1095
  delete | security_group_rule | [NULL] | sgr-06aa0915b15fd23a9
  delete | security_group_rule | [NULL] | sgr-02e2096ac9e77a5bf
- delete | role                | [NULL] | ecsTaskExecRole
+ delete | iam_role            | [NULL] | ecsTaskExecRole
 
 ```

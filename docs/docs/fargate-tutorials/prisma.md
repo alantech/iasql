@@ -48,7 +48,7 @@ If the function call is successful, it will return a virtual table with a record
        module_name        |      created_table_name       | record_count
 --------------------------+-------------------------------+--------------
  aws_cloudwatch           | log_group                     |            0
- aws_iam                  | role                          |            0
+ aws_iam                  | iam_role                      |            0
  aws_ecr                  | public_repository             |            0
  aws_ecr                  | repository                    |            1
  aws_ecr                  | repository_policy             |            0
@@ -202,7 +202,7 @@ async function main() {
     assume_role_policy_document: assumeServicePolicy,
     attached_policies_arns: [codebuildPolicyArn, cloudwatchLogsArn, pushEcrPolicyArn]
   }
-  await prisma.role.upsert({
+  await prisma.iam_role.upsert({
     where: { role_name: cbRole },
     create: cbData,
     update: cbData,
@@ -253,7 +253,7 @@ The two `SELECT * from iasql_apply();` queries will [`apply`](../concepts/apply-
   },
   {
     action: 'create',
-    table_name: 'role',
+    table_name: 'iam_role',
     id: '',
     description: 'quickstart-ecs-task-exec-role'
   },
@@ -355,6 +355,5 @@ If the function call is successful, it will return a virtual table with a record
  delete | security_group      | [NULL] | sg-e0df1095
  delete | security_group_rule | [NULL] | sgr-06aa0915b15fd23a9
  delete | security_group_rule | [NULL] | sgr-02e2096ac9e77a5bf
- delete | role                | [NULL] | ecsTaskExecRole
-
+ delete | iam_role            | [NULL] | ecsTaskExecRole
 ```

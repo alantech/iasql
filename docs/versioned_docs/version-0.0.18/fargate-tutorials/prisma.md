@@ -55,7 +55,7 @@ If the function call is successful, it will return a virtual table with a record
        module_name        |      created_table_name       | record_count
 --------------------------+-------------------------------+--------------
  aws_cloudwatch           | log_group                     |            0
- aws_iam                  | role                          |            0
+ aws_iam                  | iam_role                      |            0
  aws_ecr                  | public_repository             |            0
  aws_ecr                  | repository                    |            1
  aws_ecr                  | repository_policy             |            0
@@ -207,7 +207,7 @@ async function main() {
       target_group_name: tg.target_group_name,
     }
   });
-  const role = await prisma.role.create({
+  const role = await prisma.iam_role.create({
     data: {
       role_name: `ecsTaskExecRole`,
       assume_role_policy_document: '{"Version":"2012-10-17","Statement":[{"Sid":"","Effect":"Allow","Principal":{"Service":"ecs-tasks.amazonaws.com"},"Action":"sts:AssumeRole"}]}',
@@ -227,7 +227,7 @@ async function main() {
   const task = await prisma.task_definition.create({
     data: {
       family: `${PROJECT_NAME}-td`, cpu_memory: task_definition_cpu_memory_enum.vCPU2_8GB,
-      task_role_name: role.role_name, execution_role_name: role.role_name,
+      task_role_name: iam_role.role_name, execution_role_name: iam_role.role_name,
     }
   });
   const container = await prisma.container_definition.create({
@@ -289,7 +289,7 @@ If the function call is successful, it will return a virtual table with a record
  create | security_group      |      5 | 5
  create | security_group_rule |      3 | 3
  create | security_group_rule |      4 | 4
- create | role                |        | ecsTaskExecRole
+ create | iam_role            |        | ecsTaskExecRole
 ```
 
 ## Login, build and push your code to the container registry
@@ -397,6 +397,6 @@ If the function call is successful, it will return a virtual table with a record
  delete | security_group      | [NULL] | sg-e0df1095
  delete | security_group_rule | [NULL] | sgr-06aa0915b15fd23a9
  delete | security_group_rule | [NULL] | sgr-02e2096ac9e77a5bf
- delete | role                | [NULL] | ecsTaskExecRole
+ delete | iam_role            | [NULL] | ecsTaskExecRole
 
 ```
