@@ -28,4 +28,11 @@ export class IamUser {
 
   @Column({ nullable: true })
   userId?: string;
+
+  @Column({
+    type: 'text',
+    array: true,
+    nullable: true,
+  })
+  attachedPoliciesArns?: string[];
 }

@@ -18,6 +18,9 @@ const region = process.env.AWS_REGION ?? 'barf';
 const awsServiceRoleName = 'AWSServiceRoleForSupport';
 const taskRoleName = `${prefix}${dbAlias}task-${region}`;
 const taskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy';
+const servicePolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role';
+const userConfigPolicyArn = 'arn:aws:iam::aws:policy/AWSConfigUserAccess';
+const supportUserPolicyArn = 'arn:aws:iam::aws:policy/job-function/SupportUser';
 const lambdaRoleName = `${prefix}${dbAlias}lambda-${region}`;
 const ec2RoleName = `${prefix}${dbAlias}ec2-${region}`;
 const anotherRoleName = `${prefix}${dbAlias}another-${region}`;
@@ -338,6 +341,30 @@ describe('IAM Role Integration Testing', () => {
     ),
   );
 
+  it(
+    'tries to update role attached policies',
+    query(`
+    UPDATE role SET attached_policies_arns=array['${servicePolicyArn}'] WHERE role_name = '${taskRoleName}';
+  `),
+  );
+
+  it('applies change', apply());
+
+  it(
+    'check update role policy',
+    query(
+      `
+    SELECT *
+    FROM role
+    WHERE role_name = '${taskRoleName}' AND description = 'description';
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1),
+          expect(res[0].attached_policies_arns).toStrictEqual([`${servicePolicyArn}`]);
+      },
+    ),
+  );
+
   it('uninstalls the iam module', uninstall(modules));
 
   it('installs the iam module', install(modules));
@@ -577,8 +604,8 @@ describe('IAM User Integration Testing', () => {
   it(
     'adds a new user',
     query(`
-    INSERT INTO iam_user (user_name, path)
-    VALUES ('${userName}', '${userPath}');
+    INSERT INTO iam_user (user_name, path, attached_policies_arns)
+    VALUES ('${userName}', '${userPath}', array['${userConfigPolicyArn}']);
   `),
   );
 
@@ -657,6 +684,30 @@ describe('IAM User Integration Testing', () => {
     WHERE user_name = '${userName}' AND path = '${userNewPath}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'tries to update user attached policies',
+    query(`
+    UPDATE iam_user SET attached_policies_arns=array['${supportUserPolicyArn}'] WHERE user_name = '${userName}';
+  `),
+  );
+
+  it('applies change', apply());
+
+  it(
+    'check update user policy',
+    query(
+      `
+    SELECT *
+    FROM iam_user
+    WHERE user_name = '${userName}';
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1),
+          expect(res[0].attached_policies_arns).toStrictEqual([`${supportUserPolicyArn}`]);
+      },
     ),
   );
 
