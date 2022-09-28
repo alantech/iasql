@@ -6,7 +6,7 @@ set -e
 echo "\nUsing ${AWS_REGION} region"
 
 echo "\nSet working directory to examples/ecs-fargate/django/app/"
-cd ../../examples/ecs-fargate/django/app
+cd examples/ecs-fargate/django/app
 
 # Install pip packages
 echo "\nInstall pip packages"

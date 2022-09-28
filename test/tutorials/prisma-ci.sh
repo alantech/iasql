@@ -6,7 +6,7 @@ set -e
 echo "\nUsing ${AWS_REGION} region"
 
 echo "\nSet working directory to iasql-engine/examples/ecs-fargate/prisma/infra"
-cd ../../examples/ecs-fargate/prisma/infra
+cd examples/ecs-fargate/prisma/infra
 
 # Install npm modules
 echo "\nInstall npm modules"
