@@ -116,9 +116,8 @@ RPCUPGRADED=false
 while [ ${RPCCHECKCOUNT} -gt 0 ]; do
   AWSRPCCALL=`psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
     SELECT * FROM iasql_modules_list();
-  " || false`
-  echo "${AWSRPCCALL}"
-  if [ "${AWSRPCCALL}" != "false" ]; then
+  " || true`
+  if [ "${AWSRPCCALL}" != "true" ]; then
     RPCUPGRADED=true
     RPCCHECKCOUNT=0
   fi
