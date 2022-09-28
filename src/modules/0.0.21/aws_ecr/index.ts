@@ -234,7 +234,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     delete: async (es: RepositoryImage[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
-        const imageId: any = { imageDigest: e.imageDigest, };
+        const imageId: any = { imageDigest: e.imageDigest };
         if (e.imageTag !== '<untagged>') imageId.imageTag = e.imageTag;
         if (e.privateRepository) {
           await this.deleteRepositoryImage(client.ecrClient, [imageId], e.privateRepository.repositoryName);
