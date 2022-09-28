@@ -43,7 +43,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     (out.privateRepository = undefined), (out.publicRepository = undefined);
     if (type === 'private') {
       // retrieve repository details
-      const repo = await this.module.repository.cloud.read(ctx, image.repositoryName);
+      const repo = await this.module.repository.db.read(ctx, image.repositoryName);
       if (repo) out.privateRepository = repo;
     } else {
       const repo = await this.module.publicRepository.cloud.read(ctx, image.repositoryName);
@@ -60,7 +60,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
       image.repositoryName +
       `${region ? '|' + region : ''}`;
     out.registryId = image.registryId;
-    out.privateRepositoryRegion = region;
+    if (region) out.privateRepositoryRegion = region;
     return out;
   }
   getRepositoryImage = crudBuilder2<ECR, 'batchGetImage'>('batchGetImage', (imageIds, repositoryName) => ({
@@ -549,7 +549,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
   module: AwsEcrModule;
   entity = RepositoryPolicy;
   entityId = (e: RepositoryPolicy) => {
-    return e.id.toString();
+    return e.repository ? `${e.repository.repositoryName}|${e.repository.region}` : e.id.toString();
   };
   equals = (a: RepositoryPolicy, b: RepositoryPolicy) => {
     try {
@@ -568,8 +568,8 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     const out = new RepositoryPolicy();
     out.registryId = rp?.registryId;
     out.repository =
-      ctx.memo?.cloud?.Repository?.[rp.repositoryName] ??
-      (await this.module.repository.cloud.read(ctx, rp?.repositoryName));
+      await this.module.repository.db.read(ctx, rp?.repositoryName) ??
+      await this.module.repository.cloud.read(ctx, rp?.repositoryName);
     out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
     out.region = region;
     return out;
@@ -671,14 +671,14 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     update: async (es: RepositoryPolicy[], ctx: Context) => {
       const out: RepositoryPolicy[] = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[`${e.id}`] as RepositoryPolicy;
+        const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[`${e.repository.repositoryName}|${e.repository.region}`] as RepositoryPolicy;
         const isUpdate = Object.is(
           this.module.repositoryPolicy.cloud.updateOrReplace(cloudRecord, e),
           'update',
         );
         if (!isUpdate) {
-          const newPolicy = await this.module.repositoryPolicy.cloud.create(e, ctx);
           await this.module.repositoryPolicy.cloud.delete(e, ctx);
+          const newPolicy = await this.module.repositoryPolicy.cloud.create(e, ctx);
           if (newPolicy && !Array.isArray(newPolicy)) out.push(newPolicy);
           continue;
         }

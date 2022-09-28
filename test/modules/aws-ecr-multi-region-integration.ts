@@ -115,20 +115,23 @@ describe('ECR Multi-region Integration Testing', () => {
 
   it(
     'pushes repository image',
-    query(`SELECT repository_uri FROM repository WHERE repository_name='${repositoryName}' and region = '${nonDefaultRegion}'`, (res: any[]) => {
-      // get repository uri to retag and pull
-      const repositoryUri = res[0]['repository_uri'];
-      execSync(`docker tag ${dockerImage} ${repositoryUri}`);
-      execSync(
-        `docker login --username AWS -p $(aws ecr get-login-password --region ${nonDefaultRegion}) ${repositoryUri}`,
-      );
+    query(
+      `SELECT repository_uri FROM repository WHERE repository_name='${repositoryName}' and region = '${nonDefaultRegion}'`,
+      (res: any[]) => {
+        // get repository uri to retag and pull
+        const repositoryUri = res[0]['repository_uri'];
+        execSync(`docker tag ${dockerImage} ${repositoryUri}`);
+        execSync(
+          `docker login --username AWS -p $(aws ecr get-login-password --region ${nonDefaultRegion}) ${repositoryUri}`,
+        );
 
-      execSync(`docker push ${repositoryUri}`);
+        execSync(`docker push ${repositoryUri}`);
 
-      // upload with a new tag
-      execSync(`docker tag ${dockerImage} ${repositoryUri}:${repositoryTag}`);
-      execSync(`docker push ${repositoryUri}:${repositoryTag}`);
-    }),
+        // upload with a new tag
+        execSync(`docker tag ${dockerImage} ${repositoryUri}:${repositoryTag}`);
+        execSync(`docker push ${repositoryUri}:${repositoryTag}`);
+      },
+    ),
   );
 
   it('syncs the images', sync());
@@ -139,7 +142,7 @@ describe('ECR Multi-region Integration Testing', () => {
       `
     SELECT *
     FROM repository_image
-    WHERE private_repository = '${repositoryName}';
+    WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
   `,
       (res: any[]) => {
         expect(res.length).toBe(2);
@@ -150,8 +153,8 @@ describe('ECR Multi-region Integration Testing', () => {
   it(
     'adds a new repository policy',
     query(`
-    INSERT INTO repository_policy (repository_name, policy_text, region)
-    VALUES ('${repositoryName}', '${policyMock}', '${nonDefaultRegion}');
+    INSERT INTO repository_policy (repository_id, policy_text, region)
+    VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}', '${nonDefaultRegion}');
   `),
   );
 
@@ -163,7 +166,7 @@ describe('ECR Multi-region Integration Testing', () => {
       `
     SELECT *
     FROM repository_policy
-    WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
+    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${nonDefaultRegion}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -175,12 +178,12 @@ describe('ECR Multi-region Integration Testing', () => {
       with updated_repository_policy as (
         UPDATE repository_policy
           SET region = '${process.env.AWS_REGION}'
-          WHERE repository_name = '${repositoryName}'
+          WHERE repository_id = (select id from repository where repository_name = '${repositoryName}')
       ),
       udpated_repository_image as (
         UPDATE repository_image
         SET private_repository_region = '${process.env.AWS_REGION}'
-        WHERE private_repository = '${repositoryName}'
+        WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}')
       )
       UPDATE repository
       SET region = '${process.env.AWS_REGION}'
@@ -206,7 +209,7 @@ describe('ECR Multi-region Integration Testing', () => {
       `
     SELECT *
     FROM repository_policy
-    WHERE repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}';
+    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${process.env.AWS_REGION}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -218,7 +221,7 @@ describe('ECR Multi-region Integration Testing', () => {
       `
     SELECT *
     FROM repository_image
-    WHERE private_repository = '${repositoryName}' and private_repository_region = '${process.env.AWS_REGION}';
+    WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}') and private_repository_region = '${process.env.AWS_REGION}';
   `,
       (res: any[]) => expect(res.length).toBe(2),
     ),
@@ -243,10 +246,10 @@ describe('ECR Multi-region Integration Testing', () => {
     query(`
     BEGIN;
       DELETE FROM repository_image
-      WHERE private_repository = '${repositoryName}';
+      WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
 
       DELETE FROM repository_policy
-      WHERE repository_name = '${repositoryName}';
+      WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
 
       DELETE FROM repository
       WHERE repository_name = '${repositoryName}';
@@ -262,7 +265,7 @@ describe('ECR Multi-region Integration Testing', () => {
       `
     SELECT *
     FROM repository_image
-    WHERE private_repository = '${repositoryName}';
+    WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
@@ -274,7 +277,7 @@ describe('ECR Multi-region Integration Testing', () => {
       `
     SELECT *
     FROM repository_policy
-    WHERE repository_name = '${repositoryName}';
+    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
