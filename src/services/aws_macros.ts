@@ -3,6 +3,7 @@ import { ApiGatewayV2 } from '@aws-sdk/client-apigatewayv2';
 import { AppSync } from '@aws-sdk/client-appsync';
 import { CloudFront } from '@aws-sdk/client-cloudfront';
 import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
+import { CodeBuild } from '@aws-sdk/client-codebuild';
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
 import { EC2 } from '@aws-sdk/client-ec2';
 import { ECR } from '@aws-sdk/client-ecr';
@@ -51,6 +52,7 @@ export class AWS {
   acmClient: ACM;
   apiGatewayClient: ApiGatewayV2;
   appSyncClient: AppSync;
+  cbClient: CodeBuild;
   cwClient: CloudWatchLogs;
   ec2client: EC2;
   ecrClient: ECR;
@@ -70,10 +72,23 @@ export class AWS {
   cloudfrontClient: CloudFront;
   memoryDBClient: MemoryDB;
   slowRetryStrategy: StandardRetryStrategy;
+  codeBuildRetryStrategy: StandardRetryStrategy;
 
   constructor(config: AWSConfig) {
     // declare an specific slow retry strategy, to reuse in slow apis
     this.slowRetryStrategy = new StandardRetryStrategy(async () => SLOW_STRATEGY_RETRIES, {
+      delayDecider: (_, attempts) =>
+        Math.floor(
+          Math.min(
+            SLOW_STRATEGY_MAXIMUM_RETRY_DELAY,
+            Math.random() * 2 ** attempts * SLOW_STRATEGY_BASE_DELAY,
+          ),
+        ),
+    });
+    // Get around some strange internal caching inside of codebuild of the IAM roles
+    this.codeBuildRetryStrategy = new StandardRetryStrategy(async () => SLOW_STRATEGY_RETRIES, {
+      retryDecider: sdkErr =>
+        sdkErr.message.includes('CodeBuild is not authorized to perform: sts:AssumeRole'),
       delayDecider: (_, attempts) =>
         Math.floor(
           Math.min(
@@ -92,6 +107,11 @@ export class AWS {
     this.acmClient = new ACM(config);
     this.appSyncClient = new AppSync(config);
     this.cloudfrontClient = new CloudFront(config);
+    this.cbClient = new CodeBuild({
+      credentials: config.credentials,
+      region: config.region,
+      retryStrategy: this.codeBuildRetryStrategy,
+    });
     this.cwClient = new CloudWatchLogs(config);
     this.dynamoClient = new DynamoDB(config);
     this.elasticacheClient = new ElastiCache(config);
@@ -99,7 +119,11 @@ export class AWS {
     this.ecrClient = new ECR(config);
     this.ecsClient = new ECS(config);
     this.elbClient = new ElasticLoadBalancingV2(config);
-    this.iamClient = new IAM(config);
+    this.iamClient = new IAM({
+      credentials: config.credentials,
+      region: config.region,
+      retryStrategy: this.slowRetryStrategy,
+    });
     this.lambdaClient = new Lambda(config);
     this.rdsClient = new RDS(config);
     this.route53Client = new Route53(config);

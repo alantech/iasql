@@ -484,7 +484,7 @@ describe('ECR install/uninstall', () => {
   it('installs all modules', done =>
     void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
 
-  it('uninstalls the ECR module', uninstall(['aws_ecr', 'aws_ecs_fargate', 'aws_ecs_simplified']));
+  it('uninstalls the ECR module', uninstall(['aws_ecr', 'aws_codebuild', 'aws_ecs_fargate', 'aws_ecs_simplified']));
 
   it('installs the ECR module', install(modules));
 

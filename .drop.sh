@@ -28,7 +28,7 @@ CONFIGPRODUCTION="$(cat src/config/production.ts | sed "s/oldestVersion:.*/oldes
 CONFIGSTAGING="$(cat src/config/staging.ts | sed "s/latestVersion:.*/latestVersion: '${VERSION}',/;s/oldestVersion:.*/oldestVersion: '${LASTVERSION}'/")" && echo "${CONFIGSTAGING}" > src/config/staging.ts
 CONFIGTEST="$(cat src/config/test.ts | sed "s/latestVersion:.*/latestVersion: '${VERSION}',/;s/oldestVersion:.*/oldestVersion: '${LASTVERSION}'/")" && echo "${CONFIGTEST}" > src/config/test.ts
 CONFIGBOOTSTRAP="$(cat src/config/bootstrap.ts | sed "s/oldestVersion:.*/oldestVersion: '${LASTVERSION}'/")" && echo "${CONFIGBOOTSTRAP}" > src/config/bootstrap.ts # Bootstrap doesn't get the latest version edited
-CONFIGDOCSVERSION="$(cat docs/versions.json | sed "/${OLDESTVERSION}/d" | sed "s/,]/]/")" && echo "${CONFIGDOCSVERSION}" docs/versions.json
+CONFIGDOCSVERSION="$(cat docs/versions.json | sed "/${OLDESTVERSION}/d" | sed "s/,]/]/")" && echo "${CONFIGDOCSVERSION}" > docs/versions.json
 
 # Make sure it's all formatted the way we want it
 yarn format
