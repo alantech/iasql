@@ -152,6 +152,7 @@ export async function start(dbId: string, dbUser: string) {
       },
       rpc: async (payload: any) => {
         const { params, opid, modulename, methodname } = payload;
+        const rpcConn = await TypeormWrapper.createConn(dbId, { name: uuidv4() });
         let output: string | undefined;
         let error;
         const user = await MetadataRepo.getUserFromDbId(dbId);
@@ -170,7 +171,7 @@ export async function start(dbId: string, dbUser: string) {
           // `modulename` is arriving with snake_case since is how the module defines it based on the dirname
           const moduleName = Object.keys(Modules ?? {}).find(k => k === camelCase(modulename)) ?? 'unknown';
           if (!Modules[moduleName]) throwError(`Module ${modulename} not found`);
-          const context = await getContext(conn, Modules);
+          const context = await getContext(rpcConn, Modules);
           const rpcRes: any[] | undefined = await (Modules[moduleName] as ModuleInterface)?.rpc?.[
             methodname
           ].call(dbId, dbUser, context, ...params);
@@ -182,7 +183,7 @@ export async function start(dbId: string, dbUser: string) {
             set end_date = now(), output = '${output}'
             where opid = uuid('${opid}');
           `;
-          await conn.query(query);
+          await rpcConn.query(query);
         } catch (e) {
           let errorMessage: string | string[] = logErrSentry(e, uid, email, dbAlias);
           // split message if multiple lines in it
@@ -196,11 +197,11 @@ export async function start(dbId: string, dbUser: string) {
             set end_date = now(), err = '${error}'
             where opid = uuid('${opid}');
           `;
-          await conn.query(query);
+          await rpcConn.query(query);
         } finally {
           try {
-            const recordCount = await iasql.getDbRecCount(conn);
-            const rpcCount = await iasql.getRpcCount(conn);
+            const recordCount = await iasql.getDbRecCount(rpcConn);
+            const rpcCount = await iasql.getRpcCount(rpcConn);
             await MetadataRepo.updateDbCounts(dbId, recordCount, undefined, rpcCount);
             // list is called by us and has no dbAlias so ignore
             // TODO: refactor properly this condition if (uid && modulename !== 'iasqlFunctions' && methodname !== 'modulesList')
@@ -225,6 +226,7 @@ export async function start(dbId: string, dbUser: string) {
           } catch (e: any) {
             logger.error('could not log op event', e);
           }
+          await rpcConn?.dropConn();
         }
       },
     },
