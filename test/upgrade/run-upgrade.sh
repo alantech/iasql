@@ -109,4 +109,9 @@ if [ "${EC2UPGRADED}" == "false" ]; then
   exit 3;
 fi
 
+# Actually trigger the upgrade and loop until upgraded (or fail)
+psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+  SELECT * FROM iasql_module_list();
+";
+
 echo "Successfully upgraded!";
