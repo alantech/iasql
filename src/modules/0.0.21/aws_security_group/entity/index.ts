@@ -1,4 +1,13 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import {
+  Check,
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 import { Vpc } from '../../aws_vpc/entity';
@@ -60,9 +69,9 @@ export class SecurityGroupRule {
   isEgress: boolean;
 
   @Column({
-    nullable: false,
+    nullable: true,
   })
-  ipProtocol: string;
+  ipProtocol?: string;
 
   @Column({
     nullable: true,
@@ -97,4 +106,14 @@ export class SecurityGroupRule {
     nullable: true,
   })
   description?: string;
+
+  @Check(
+    'Check_security_or_ip_permissions',
+    `("source_security_group" IS NULL AND ("from_port" IS NOT NULL AND "to_port" IS NOT NULL AND ("cidr_ipv4" IS NOT NULL OR "cidr_ipv6" IS NOT NULL))) OR ("source_security_group" IS NOT NULL AND (("from_port" IS NULL OR "from_port"=-1) AND ("to_port" IS NULL OR "to_port"=-1) AND ("cidr_ipv4" IS NULL OR "cidr_ipv4"='0.0.0.0/0') AND ("cidr_ipv6" IS NULL)))`,
+  )
+  @ManyToOne(() => SecurityGroup, { nullable: true, eager: true })
+  @JoinColumn({
+    name: 'source_security_group',
+  })
+  sourceSecurityGroup?: SecurityGroup;
 }
