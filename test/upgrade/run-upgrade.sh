@@ -111,7 +111,7 @@ fi
 
 # Force new RPC run
 psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
-  SELECT * FROM iasql_module_list();
+  SELECT * FROM iasql_modules_list();
 ";
 
 echo "Successfully upgraded!";
