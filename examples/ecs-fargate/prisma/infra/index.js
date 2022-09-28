@@ -60,7 +60,7 @@ async function main() {
     assume_role_policy_document: assumeServicePolicy,
     attached_policies_arns: [codebuildPolicyArn, cloudwatchLogsArn, pushEcrPolicyArn]
   }
-  await prisma.role.upsert({
+  await prisma.iam_role.upsert({
     where: { role_name: cbRole },
     create: cbData,
     update: cbData,
