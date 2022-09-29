@@ -286,8 +286,8 @@ export async function resetConn(dbId: string) {
       `CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.db.user}', password '${config.db.password}')`,
     );
     workerRunners[dbId].conn = newConn;
-    await currentConn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
-    await currentConn.dropConn();
+    // await currentConn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
+    // await currentConn.dropConn();
   } else {
     logger.warn(`Graphile worker for ${dbId} not found`);
   }
