@@ -185,7 +185,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
     if (td.executionRoleArn) {
       const roleName = awsIamModule.role.roleNameFromArn(td.executionRoleArn, ctx);
       // there can be hundreds of task defintions so don't do an aws call for each
-      if (!Object.values(ctx.memo?.cloud?.Role ?? {}).length) {
+      if (!Object.values(ctx.memo?.cloud?.IamRole ?? {}).length) {
         try {
           out.executionRole =
             (await awsIamModule.role.db.read(ctx, roleName)) ??
@@ -207,7 +207,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
     if (td.taskRoleArn) {
       const roleName = awsIamModule.role.roleNameFromArn(td.taskRoleArn, ctx);
       // there can be hundreds of task defintions so don't do an aws call for each
-      if (!Object.values(ctx.memo?.cloud?.Role ?? {}).length) {
+      if (!Object.values(ctx.memo?.cloud?.IamRole ?? {}).length) {
         try {
           out.taskRole =
             (await awsIamModule.role.db.read(ctx, roleName)) ??
