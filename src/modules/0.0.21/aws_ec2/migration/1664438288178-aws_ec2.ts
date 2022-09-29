@@ -81,11 +81,11 @@ export class awsEc21664438288178 implements MigrationInterface {
     await queryRunner.query(`DROP INDEX "public"."IDX_b3b92934eff56d2eb0477a1d27"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_fa3c179d5090cb1309c63b5e20"`);
     await queryRunner.query(`DROP TABLE "instance_security_groups"`);
-    await queryRunner.query(`DROP TABLE "general_purpose_volume"`);
-    await queryRunner.query(`DROP TYPE "public"."general_purpose_volume_state_enum"`);
-    await queryRunner.query(`DROP TYPE "public"."general_purpose_volume_volume_type_enum"`);
     await queryRunner.query(`DROP TABLE "registered_instance"`);
     await queryRunner.query(`DROP TABLE "instance"`);
     await queryRunner.query(`DROP TYPE "public"."instance_state_enum"`);
+    await queryRunner.query(`DROP TABLE "general_purpose_volume"`);
+    await queryRunner.query(`DROP TYPE "public"."general_purpose_volume_state_enum"`);
+    await queryRunner.query(`DROP TYPE "public"."general_purpose_volume_volume_type_enum"`);
   }
 }

@@ -15,7 +15,7 @@ export class awsEcsFargate1664385917579 implements MigrationInterface {
       `CREATE TYPE "public"."service_assign_public_ip_enum" AS ENUM('DISABLED', 'ENABLED')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "service" ("name" character varying NOT NULL, "arn" character varying, "status" character varying, "desired_count" integer NOT NULL, "subnets" text array NOT NULL, "assign_public_ip" "public"."service_assign_public_ip_enum" NOT NULL DEFAULT 'DISABLED', "force_new_deployment" boolean NOT NULL DEFAULT false, "cluster_name" character varying, "task_definition_id" integer, "target_group_name" character varying, CONSTRAINT "PK_7806a14d42c3244064b4a1706ca" PRIMARY KEY ("name"))`,
+      `CREATE TABLE "service" ("name" character varying NOT NULL, "arn" character varying, "status" character varying, "desired_count" integer NOT NULL, "subnets" text array NOT NULL, "assign_public_ip" "public"."service_assign_public_ip_enum" NOT NULL DEFAULT 'DISABLED', "force_new_deployment" boolean NOT NULL DEFAULT false, "cluster_name" character varying, "task_definition_id" integer, "target_group_name" character varying, CONSTRAINT "check_service_subnets" CHECK (check_service_subnets(subnets)), CONSTRAINT "PK_7806a14d42c3244064b4a1706ca" PRIMARY KEY ("name"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."task_definition_status_enum" AS ENUM('ACTIVE', 'INACTIVE')`,
@@ -111,11 +111,7 @@ export class awsEcsFargate1664385917579 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "service"`);
     await queryRunner.query(`DROP TYPE "public"."service_assign_public_ip_enum"`);
     await queryRunner.query(`DROP TABLE "cluster"`);
-    await queryRunner.query(
-      `ALTER TABLE "load_balancer" ADD CONSTRAINT "check_load_balancer_subnets" CHECK (check_load_balancer_subnets((subnets)::text[]))`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "load_balancer" ADD CONSTRAINT "check_load_balancer_availability_zones" CHECK (check_load_balancer_availability_zones(load_balancer_name, availability_zones))`,
-    );
+    await queryRunner.query(`DROP TABLE "container_definition"`);
+    await queryRunner.query(`DROP TYPE "public"."container_definition_protocol_enum"`);
   }
 }
