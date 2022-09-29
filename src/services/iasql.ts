@@ -1055,6 +1055,9 @@ ${Object.keys(tableCollisions)
   await queryRunner.startTransaction();
   try {
     for (const md of rootToLeafOrder) {
+      if (md.migrations?.beforeInstall) {
+        await md.migrations.beforeInstall(queryRunner);
+      }
       if (md.migrations?.install) {
         await md.migrations.install(queryRunner);
       }
@@ -1256,6 +1259,9 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
       }
       if (md.migrations?.remove) {
         await md.migrations.remove(queryRunner);
+      }
+      if (md.migrations?.afterRemove) {
+        await md.migrations.afterRemove(queryRunner);
       }
       const e = await orm.findOne(iasqlModule, { name: `${md.name}@${md.version}` });
       const mt =
