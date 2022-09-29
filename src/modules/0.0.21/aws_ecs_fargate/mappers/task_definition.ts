@@ -197,7 +197,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
         }
       } else {
         out.executionRole =
-          (await awsIamModule.role.db.read(ctx, roleName)) ?? ctx?.memo?.cloud?.Role?.[roleName ?? ''];
+          (await awsIamModule.role.db.read(ctx, roleName)) ?? ctx?.memo?.cloud?.IamRole?.[roleName ?? ''];
       }
     }
     out.family = td.family;
@@ -219,7 +219,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
         }
       } else {
         out.taskRole =
-          (await awsIamModule.role.db.read(ctx, roleName)) ?? ctx?.memo?.cloud?.Role?.[roleName ?? ''];
+          (await awsIamModule.role.db.read(ctx, roleName)) ?? ctx?.memo?.cloud?.IamRole?.[roleName ?? ''];
       }
     }
     return out;
