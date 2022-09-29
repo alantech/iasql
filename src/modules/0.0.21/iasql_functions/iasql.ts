@@ -929,6 +929,7 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
       // be automated in some way later.)
       let conn: any;
       try {
+        await stop(dbId);
         conn =
           context.orm ??
           (await createConnection({
@@ -1055,7 +1056,6 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
           );
         }
         // await resetConn(dbId);
-        await stop(dbId);
         await start(dbId, dbUser);
       } catch (e) {
         logger.error('Failed to upgrade', { e });
