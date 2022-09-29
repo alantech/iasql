@@ -16,12 +16,18 @@ import MetadataRepo from './repositories/metadata';
 import * as telemetry from './telemetry';
 import { TypeormWrapper } from './typeorm';
 
-const latest = modules[config.modules.latestVersion];
-
-const IasqlOperationType =
-  latest?.IasqlFunctions?.utils?.IasqlOperationType ??
-  latest?.iasqlFunctions?.iasqlOperationType ??
-  throwError('Core IasqlFunctions not found');
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+enum IasqlOperationType {
+  APPLY = 'APPLY',
+  SYNC = 'SYNC',
+  INSTALL = 'INSTALL',
+  UNINSTALL = 'UNINSTALL',
+  PLAN_APPLY = 'PLAN_APPLY',
+  PLAN_SYNC = 'PLAN_SYNC',
+  LIST = 'LIST',
+  UPGRADE = 'UPGRADE',
+}
 
 const workerRunners: { [key: string]: { runner: any; conn: any } } = {}; // TODO: What is the runner type?
 
@@ -158,6 +164,11 @@ export async function start(dbId: string, dbUser: string) {
         const uid = user?.id;
         const email = user?.email;
         const dbAlias = user?.iasqlDatabases?.[0]?.alias;
+        const db = await MetadataRepo.getDbById(dbId);
+        // Do not call RPCs if db is upgrading.
+        if (db?.upgrading) {
+          throwError(`Database ${dbId} is upgrading.`);
+        }
         try {
           const versionString = await TypeormWrapper.getVersionString(dbId);
           const Modules = (modules as any)[versionString];
@@ -229,7 +240,16 @@ export async function start(dbId: string, dbUser: string) {
       },
     },
   });
+  // If a runner and a connection already exists for this dbId we need to end them and save the new ones
+  const { runner: prevRunner, conn: prevConn } = workerRunners[dbId] ?? {
+    runner: undefined,
+    conn: undefined,
+  };
   workerRunners[dbId] = { runner, conn };
+  if (prevRunner && prevConn) {
+    await stopRunner(prevRunner, dbId);
+    await prevConn.dropConn();
+  }
 }
 
 async function getContext(conn: TypeormWrapper, Modules: any): Promise<Context> {
@@ -261,19 +281,34 @@ async function getContext(conn: TypeormWrapper, Modules: any): Promise<Context> 
 export async function stop(dbId: string) {
   const { runner, conn } = workerRunners[dbId] ?? { runner: undefined, conn: undefined };
   if (runner && conn) {
-    try {
-      await runner.stop();
-    } catch (e) {
-      logger.warn(
-        `Graphile workers for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`,
-        { e },
-      );
-    }
-    await conn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
-    await conn.dropConn();
+    await stopRunner(runner, dbId);
+    await stopServerConn(conn, dbId);
     delete workerRunners[dbId];
   } else {
     logger.warn(`Graphile worker for ${dbId} not found`);
+  }
+}
+
+async function stopRunner(runner: any, dbId: string) {
+  try {
+    await runner.stop();
+  } catch (e) {
+    logger.warn(
+      `Graphile workers for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`,
+      { e },
+    );
+  }
+}
+
+async function stopServerConn(conn: any, dbId: string) {
+  try {
+    await conn?.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
+    await conn?.dropConn();
+  } catch (e) {
+    logger.warn(
+      `The connection for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`,
+      { e },
+    );
   }
 }
 

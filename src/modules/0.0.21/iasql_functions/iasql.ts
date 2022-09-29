@@ -14,6 +14,7 @@ import { DepError, lazyLoader } from '../../../services/lazy-dep';
 import logger, { debugObj } from '../../../services/logger';
 import { sortModules } from '../../../services/mod-sort';
 import MetadataRepo from '../../../services/repositories/metadata';
+import * as scheduler from '../../../services/scheduler-api';
 import { TypeormWrapper } from '../../../services/typeorm';
 
 // Crupde = CR-UP-DE, Create/Update/Delete
@@ -1057,6 +1058,8 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
         logger.error('Failed to upgrade', { e });
       } finally {
         conn?.close();
+        // Restart the scheduler
+        scheduler.start(dbId, dbUser);
         await MetadataRepo.dbUpgrading(db, false);
       }
     })();

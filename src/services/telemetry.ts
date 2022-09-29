@@ -2,19 +2,20 @@ import * as Amplitude from '@amplitude/node';
 import * as sentry from '@sentry/node';
 
 import config, { IASQL_ENV } from '../config';
-import { throwError } from '../config/config';
-import { modules } from '../modules';
 import logger from './logger';
 
-const latest = modules[config.modules.latestVersion];
-
-// Weird little dance to make it a type again.
-// From: https://www.typescriptlang.org/docs/handbook/enums.html#objects-vs-enums
-const IasqlOperationType =
-  latest?.IasqlFunctions?.utils?.IasqlOperationType ??
-  latest?.iasqlFunctions.iasqlOperationType ??
-  throwError('Core IasqlFunctions not found');
-type IasqlOperationType = typeof IasqlOperationType[keyof typeof IasqlOperationType];
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+enum IasqlOperationType {
+  APPLY = 'APPLY',
+  SYNC = 'SYNC',
+  INSTALL = 'INSTALL',
+  UNINSTALL = 'UNINSTALL',
+  PLAN_APPLY = 'PLAN_APPLY',
+  PLAN_SYNC = 'PLAN_SYNC',
+  LIST = 'LIST',
+  UPGRADE = 'UPGRADE',
+}
 
 const singleton = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
 

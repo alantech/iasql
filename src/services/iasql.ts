@@ -1433,6 +1433,8 @@ export async function upgrade(dbId: string, dbUser: string) {
         logger.error('Failed to upgrade', { e });
       } finally {
         conn?.close();
+        // Restart the scheduler
+        scheduler.start(dbId, dbUser);
         await MetadataRepo.dbUpgrading(db, false);
       }
     })();
