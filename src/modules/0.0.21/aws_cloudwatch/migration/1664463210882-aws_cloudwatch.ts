@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsCloudwatch1664294867830 implements MigrationInterface {
-  name = 'awsCloudwatch1664294867830';
+export class awsCloudwatch1664463210882 implements MigrationInterface {
+  name = 'awsCloudwatch1664463210882';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
