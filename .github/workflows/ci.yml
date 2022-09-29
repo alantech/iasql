@@ -14,65 +14,65 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # lint:
-  #   # The type of runner that the job will run on
-  #   runs-on: ubuntu-latest
+  lint:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
 
-  #   # Steps represent a sequence of tasks that will be executed as part of the job
-  #   steps:
-  #     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-  #     - uses: actions/checkout@v2
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
 
-  #     # Set up Node.js
-  #     - name: Use Node.js 16.x
-  #       uses: actions/setup-node@v1
-  #       with:
-  #         node-version: 16.x
+      # Set up Node.js
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
 
-  #     - name: Install dependencies
-  #       run: yarn
+      - name: Install dependencies
+        run: yarn
 
-  #     - name: Run linter check
-  #       run: yarn lint
+      - name: Run linter check
+        run: yarn lint
 
-  # style:
-  #   # The type of runner that the job will run on
-  #   runs-on: ubuntu-latest
+  style:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
 
-  #   # Steps represent a sequence of tasks that will be executed as part of the job
-  #   steps:
-  #     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-  #     - uses: actions/checkout@v2
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
 
-  #     # Set up Node.js
-  #     - name: Use Node.js 16.x
-  #       uses: actions/setup-node@v1
-  #       with:
-  #         node-version: 16.x
+      # Set up Node.js
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
 
-  #     - name: Install dependencies
-  #       run: yarn
+      - name: Install dependencies
+        run: yarn
 
-  #     - name: Run code style check
-  #       run: yarn style
+      - name: Run code style check
+        run: yarn style
 
-  # changes-in-latest-version:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         fetch-depth: 0
+  changes-in-latest-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
-  #     - name: Use Node.js 16.x
-  #       uses: actions/setup-node@v1
-  #       with:
-  #         node-version: 16.x
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
 
-  #     - name: Install dependencies
-  #       run: yarn
+      - name: Install dependencies
+        run: yarn
 
-  #     - name: checks modified files
-  #       run: yarn changes-in-version
+      - name: checks modified files
+        run: yarn changes-in-version
 
   common-test:
     runs-on: ubuntu-latest
@@ -143,144 +143,144 @@ jobs:
           A0_IASQL_API_TOKEN: ${{ secrets.A0_IASQL_API_TOKEN }}
           AWS_REGION: us-east-1
 
-  # setup-module-test:
-  #   runs-on: ubuntu-latest
-  #   outputs:
-  #     test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
-  #     set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - run: yarn
-  #     - id: set-test-modules
-  #       name: Set modules tests
-  #       run: >
-  #         echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
-  #     - id: set-test-module-names
-  #       name: Set modules tests names
-  #       run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
+  setup-module-test:
+    runs-on: ubuntu-latest
+    outputs:
+      test-modules: ${{ steps['set-test-modules'].outputs['test-modules'] }}
+      set-test-module-names: ${{ steps['set-test-module-names'].outputs['test-module-names'] }}
+    steps:
+      - uses: actions/checkout@v2
+      - run: yarn
+      - id: set-test-modules
+        name: Set modules tests
+        run: >
+          echo "::set-output name=test-modules::$(npx jest **/modules/* --listTests --json | jq -c 'map({(. | split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring): .}) | add')"
+      - id: set-test-module-names
+        name: Set modules tests names
+        run: echo "::set-output name=test-module-names::$(npx jest **/modules/* --listTests --json | jq -c 'map(split("/") | .[-1] | split(".") | .[0] | gsub( "-"; "_") | ascii_upcase | tostring)')"
 
-  # module-test:
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - setup-module-test
-  #   name: module test ${{ matrix.module }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       module: ${{ fromJson(needs.setup-module-test.outputs['set-test-module-names']) }}
+  module-test:
+    runs-on: ubuntu-latest
+    needs:
+      - setup-module-test
+    name: module test ${{ matrix.module }}
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.setup-module-test.outputs['set-test-module-names']) }}
 
-  #   steps:
-  #     - uses: actions/checkout@v2
+    steps:
+      - uses: actions/checkout@v2
 
-  #     - name: Use Node.js 16.x
-  #       uses: actions/setup-node@v1
-  #       with:
-  #         node-version: 16.x
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
 
-  #     - name: Install dependencies
-  #       run: yarn
+      - name: Install dependencies
+        run: yarn
 
-  #     - name: Determine Test Account To Use
-  #       id: determine-test-account
-  #       env:
-  #         SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
-  #       run: |
-  #         RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
-  #         echo $RESPONSE
-  #         ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
-  #         echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
-  #         # TODO: Drop regions when multi-region is done
-  #         regions=("ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "sa-east-1" "us-east-2" "us-west-1" "us-west-2")
-  #         regionslen=${#regions[@]}
-  #         index=$(($RANDOM % $regionslen))
-  #         region=${regions[$index]}
-  #         echo "::set-output name=region::$(echo ${region})"
+      - name: Determine Test Account To Use
+        id: determine-test-account
+        env:
+          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+        run: |
+          RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
+          echo $RESPONSE
+          ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
+          echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
+          # TODO: Drop regions when multi-region is done
+          regions=("ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "sa-east-1" "us-east-2" "us-west-1" "us-west-2")
+          regionslen=${#regions[@]}
+          index=$(($RANDOM % $regionslen))
+          region=${regions[$index]}
+          echo "::set-output name=region::$(echo ${region})"
 
-  #     - name: Pre-clean Test Account
-  #       id: pre-clean-test-account
-  #       env:
-  #         IASQL_ENV: ci
-  #         ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-  #         AWS_REGION: ${{ steps['determine-test-account'].outputs['region'] }}
-  #         ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
-  #         SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-  #       run: |
-  #         # Establish needed secrets
-  #         export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-  #         export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+      - name: Pre-clean Test Account
+        id: pre-clean-test-account
+        env:
+          IASQL_ENV: ci
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          AWS_REGION: ${{ steps['determine-test-account'].outputs['region'] }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+        run: |
+          # Establish needed secrets
+          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
 
-  #         # Spin up the engine and a postgres instance
-  #         docker-compose up -d
-  #         while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
+          # Spin up the engine and a postgres instance
+          docker-compose up -d
+          while ! curl --output /dev/null --silent --head --fail http://localhost:8088/health; do sleep 1 && echo -n .; done;
 
-  #         # connect `iasql` db to aws account for `apply`
-  #         echo "\nCreating an iasql db..."
-  #         curl http://localhost:8088/v1/db/connect/iasql
+          # connect `iasql` db to aws account for `apply`
+          echo "\nCreating an iasql db..."
+          curl http://localhost:8088/v1/db/connect/iasql
 
-  #         # Setup Account
-  #         echo "\nInstalling aws_account..."
-  #         psql postgres://postgres:test@localhost:5432/iasql -c "
-  #           select iasql_install(
-  #             'aws_account'
-  #           );
-  #         ";
+          # Setup Account
+          echo "\nInstalling aws_account..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "
+            select iasql_install(
+              'aws_account'
+            );
+          ";
 
-  #         echo "\nAttaching credentials..."
-  #         psql postgres://postgres:test@localhost:5432/iasql -c "
-  #           INSERT INTO aws_credentials (access_key_id, secret_access_key)
-  #           VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
-  #         ";
+          echo "\nAttaching credentials..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "
+            INSERT INTO aws_credentials (access_key_id, secret_access_key)
+            VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
+          ";
 
-  #         psql postgres://postgres:test@localhost:5432/iasql -c "
-  #           SELECT * FROM iasql_sync();
-  #         ";
+          psql postgres://postgres:test@localhost:5432/iasql -c "
+            SELECT * FROM iasql_sync();
+          ";
 
-  #         psql postgres://postgres:test@localhost:5432/iasql -c "
-  #           SELECT * FROM default_aws_region('${AWS_REGION}');
-  #         ";
+          psql postgres://postgres:test@localhost:5432/iasql -c "
+            SELECT * FROM default_aws_region('${AWS_REGION}');
+          ";
 
-  #         echo "\nDebug log..."
-  #         psql postgres://postgres:test@localhost:5432/iasql -c "
-  #           SELECT * FROM aws_regions;
-  #         ";
+          echo "\nDebug log..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "
+            SELECT * FROM aws_regions;
+          ";
 
-  #         echo "\nInstalling all modules in iasql db..."
-  #         psql postgres://postgres:test@localhost:5432/iasql -c "
-  #           select iasql_install(
-  #             variadic array(select module_name from iasql_modules_list())
-  #           );
-  #         ";
+          echo "\nInstalling all modules in iasql db..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "
+            select iasql_install(
+              variadic array(select module_name from iasql_modules_list())
+            );
+          ";
 
-  #         # Delete all recods
-  #         echo "\nDelete all records..."
-  #         psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"
+          # Delete all recods
+          echo "\nDelete all records..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"
 
-  #         echo "\nApply..."
-  #         psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_apply();"
+          echo "\nApply..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "select * from iasql_apply();"
 
-  #         # Shut down the engine
-  #         docker-compose down
+          # Shut down the engine
+          docker-compose down
 
-  #     - name: Run modules tests
-  #       timeout-minutes: 45
-  #       env:
-  #         IASQL_ENV: test
-  #         MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
-  #         ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-  #         AWS_REGION: ${{ steps['determine-test-account'].outputs['region'] }}
-  #         ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
-  #         SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
-  #         STAGING_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}
-  #         STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
-  #       run: |
-  #         export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
-  #         export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-  #         yarn test $(echo $MODULES | jq -r '."${{matrix.module}}"')
+      - name: Run modules tests
+        timeout-minutes: 45
+        env:
+          IASQL_ENV: test
+          MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+          AWS_REGION: ${{ steps['determine-test-account'].outputs['region'] }}
+          ACCESS_KEY_IDS: ${{ secrets.ACCESS_KEY_IDS }}
+          SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
+          STAGING_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}
+          STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
+        run: |
+          export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          yarn test $(echo $MODULES | jq -r '."${{matrix.module}}"')
 
-  #     - name: Return test account
-  #       if: always()
-  #       env:
-  #         SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
-  #         ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
-  #       run: |
-  #         curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/
+      - name: Return test account
+        if: always()
+        env:
+          SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+          ACCOUNT_INDEX: ${{ steps['determine-test-account'].outputs['account_index'] }}
+        run: |
+          curl -X POST -H "Content-Type: application/json" -H "${SECRET_HEADER}" -H "x-iasql-drop: true" -d "[${ACCOUNT_INDEX}]" https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/
