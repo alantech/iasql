@@ -917,6 +917,7 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
   if (versionString === config.modules.latestVersion) {
     return 'Up to date';
   } else {
+    await stop(dbId);
     const db = await MetadataRepo.getDbById(dbId);
     if (!db) return 'Database no found (somehow)';
     await MetadataRepo.dbUpgrading(db, true);
@@ -929,7 +930,6 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
       // be automated in some way later.)
       let conn: any;
       try {
-        await stop(dbId);
         conn =
           context.orm ??
           (await createConnection({
