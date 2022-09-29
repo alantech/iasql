@@ -226,7 +226,7 @@ export async function start(dbId: string, dbUser: string) {
           } catch (e: any) {
             logger.error('could not log op event', e);
           }
-          await rpcConn?.dropConn();
+          // await rpcConn?.dropConn();
         }
       },
     },
