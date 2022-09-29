@@ -1297,7 +1297,6 @@ export async function upgrade(dbId: string, dbUser: string) {
     const db = await MetadataRepo.getDbById(dbId);
     if (!db) return 'Database no found (somehow)';
     await MetadataRepo.dbUpgrading(db, true);
-    // await scheduler.stop(dbId);
     (async () => {
       // First, figure out all of the modules installed, and if the `aws_account` module is
       // installed, also grab those credentials (eventually need to make this distinction and need
@@ -1434,6 +1433,7 @@ export async function upgrade(dbId: string, dbUser: string) {
         logger.error('Failed to upgrade', { e });
       } finally {
         conn?.close();
+        // Restart the scheduler
         scheduler.start(dbId, dbUser);
         await MetadataRepo.dbUpgrading(db, false);
       }

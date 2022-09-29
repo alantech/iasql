@@ -14,8 +14,8 @@ import { DepError, lazyLoader } from '../../../services/lazy-dep';
 import logger, { debugObj } from '../../../services/logger';
 import { sortModules } from '../../../services/mod-sort';
 import MetadataRepo from '../../../services/repositories/metadata';
+import * as scheduler from '../../../services/scheduler-api';
 import { TypeormWrapper } from '../../../services/typeorm';
-import { start, stop, } from '../../../services/scheduler-api'
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
@@ -917,17 +917,9 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
   if (versionString === config.modules.latestVersion) {
     return 'Up to date';
   } else {
-    logger.info(`+-+ calling upgrade with db ${dbId} and user ${dbUser}`)
     const db = await MetadataRepo.getDbById(dbId);
     if (!db) return 'Database no found (somehow)';
     await MetadataRepo.dbUpgrading(db, true);
-    try {
-      logger.info(`+-+ before calling stop for db ${dbId}`)
-      await stop(dbId);
-      logger.info(`+-+ after calling stop for db ${dbId}`)
-    } catch (e: any) {
-      logger.info(`+-+ does the call to stop failed? ${e.message}`)
-    }
     (async () => {
       // First, figure out all of the modules installed, and if the `aws_account` module is
       // installed, also grab those credentials (eventually need to make this distinction and need
@@ -1062,18 +1054,12 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
             true,
           );
         }
-        // await resetConn(dbId);
-        try {
-          logger.info(`+-+ before calling start for db ${dbId} and user ${dbUser}`)
-          await start(dbId, dbUser);
-          logger.info(`+-+ after calling start for db ${dbId} and user ${dbUser}`)
-        } catch (e: any) {
-          logger.info(`+-+ does the call to start failed? ${e.message}`)
-        }
       } catch (e) {
         logger.error('Failed to upgrade', { e });
       } finally {
         conn?.close();
+        // Restart the scheduler
+        scheduler.start(dbId, dbUser);
         await MetadataRepo.dbUpgrading(db, false);
       }
     })();

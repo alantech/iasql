@@ -26,6 +26,4 @@ export const start = (dbId: string, dbUser: string) =>
   shouldRpc ? fetchOrRaise(`${schedulerAddress}/start/${dbId}/${dbUser}/`) : scheduler.start(dbId, dbUser);
 export const stop = (dbId: string) =>
   shouldRpc ? fetchOrRaise(`${schedulerAddress}/stop/${dbId}/`) : scheduler.stop(dbId);
-export const resetConn = (dbId: string) =>
-  shouldRpc ? fetchOrRaise(`${schedulerAddress}/resetConn/${dbId}/`) : scheduler.resetConn(dbId);
 export const stopAll = () => (shouldRpc ? fetchOrRaise(`${schedulerAddress}/stopAll/`) : scheduler.stopAll());

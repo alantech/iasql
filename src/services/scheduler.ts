@@ -165,12 +165,10 @@ export async function start(dbId: string, dbUser: string) {
         const email = user?.email;
         const dbAlias = user?.iasqlDatabases?.[0]?.alias;
         const db = await MetadataRepo.getDbById(dbId);
-        logger.info(`+-+ db ${db?.alias} upgrading ${db?.upgrading}`)
+        // Do not call RPCs if db is upgrading.
         if (db?.upgrading) {
-          logger.info(`+-+ if upgrading thorw error`)
           throwError(`Database ${dbId} is upgrading.`);
         }
-        logger.info(`+-+ somehow db ${db?.alias} upgrading ${db?.upgrading} continue executing`)
         try {
           const versionString = await TypeormWrapper.getVersionString(dbId);
           const Modules = (modules as any)[versionString];
@@ -183,7 +181,6 @@ export async function start(dbId: string, dbUser: string) {
           // `modulename` is arriving with snake_case since is how the module defines it based on the dirname
           const moduleName = Object.keys(Modules ?? {}).find(k => k === camelCase(modulename)) ?? 'unknown';
           if (!Modules[moduleName]) throwError(`Module ${modulename} not found`);
-          logger.info(`+-+ trying to get context db ${db?.alias} upgrading ${db?.upgrading} with modules ${JSON.stringify(Object.keys(Modules ?? {}))}`)
           const context = await getContext(conn, Modules);
           const rpcRes: any[] | undefined = await (Modules[moduleName] as ModuleInterface)?.rpc?.[
             methodname
@@ -243,26 +240,15 @@ export async function start(dbId: string, dbUser: string) {
       },
     },
   });
-  // If a runner and a conn existed for this db we end them and save the new ones
-  logger.info(`+-+ If a runner and a conn existed for this db we end them and save the new ones`)
-  const { runner: prevRunner, conn: prevConn } = workerRunners[dbId] ?? { runner: undefined, conn: undefined };
+  // If a runner and a connection already exists for this dbId we need to end them and save the new ones
+  const { runner: prevRunner, conn: prevConn } = workerRunners[dbId] ?? {
+    runner: undefined,
+    conn: undefined,
+  };
   workerRunners[dbId] = { runner, conn };
   if (prevRunner && prevConn) {
-    logger.info(`+-+ Found existing ones!!!`)
-    try {
-      await prevRunner.stop();
-    } catch (e) {
-      logger.warn(
-        `Graphile workers for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`,
-        { e },
-      );
-    }
-    try {
-      await prevConn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
-      await prevConn.dropConn();
-    } catch (err: any) {
-      logger.info(`+-+ error letting go the connection ${err.message}`)
-    }
+    await stopRunner(prevRunner, dbId);
+    await stopConnection(prevConn, dbId);
   }
 }
 
@@ -292,51 +278,37 @@ async function getContext(conn: TypeormWrapper, Modules: any): Promise<Context> 
   return context;
 }
 
-export async function resetConn(dbId: string) {
-  const { conn: currentConn } = workerRunners[dbId] ?? { conn: undefined };
-  if (currentConn) {
-    const newConn = await TypeormWrapper.createConn(dbId, { name: uuidv4() });
-    // create a dblink server per db to reduce connections when calling dblink in iasql op SP
-    // https://aws.amazon.com/blogs/database/migrating-oracle-autonomous-transactions-to-postgresql/
-    await newConn.query(`CREATE EXTENSION IF NOT EXISTS dblink;`);
-    await newConn.query(
-      `CREATE SERVER IF NOT EXISTS loopback_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname '${dbId}', port '${config.db.port}');`,
-    );
-    await newConn.query(
-      `CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.db.user}', password '${config.db.password}')`,
-    );
-    workerRunners[dbId].conn = newConn;
-    // await currentConn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
-    // await currentConn.dropConn();
+export async function stop(dbId: string) {
+  const { runner, conn } = workerRunners[dbId] ?? { runner: undefined, conn: undefined };
+  if (runner && conn) {
+    await stopRunner(runner, dbId);
+    await stopConnection(conn, dbId);
+    delete workerRunners[dbId];
   } else {
     logger.warn(`Graphile worker for ${dbId} not found`);
   }
 }
 
-export async function stop(dbId: string) {
-  logger.info(`+-+ stop being called for db ${dbId}`)
-  logger.info(`+-+ current worker runners ${Object.keys(workerRunners ?? {})}`)
-  const { runner, conn } = workerRunners[dbId] ?? { runner: undefined, conn: undefined };
-  if (runner && conn) {
-    try {
-      await runner.stop();
-    } catch (e) {
-      logger.warn(
-        `Graphile workers for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`,
-        { e },
-      );
-    }
-    try {
-      await conn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
-      await conn.dropConn();
-    } catch (err: any) {
-      logger.info(`+-+ error letting go the connection ${err.message}`)
-    }
-    logger.info(`+-+ deleting worker ${dbId} from ${Object.keys(workerRunners)}`)
-    delete workerRunners[dbId];
-    logger.info(`+-+ remaining worker runners ${Object.keys(workerRunners)}`)
-  } else {
-    logger.warn(`Graphile worker for ${dbId} not found`);
+async function stopRunner(runner: any, dbId: string) {
+  try {
+    await runner.stop();
+  } catch (e) {
+    logger.warn(
+      `Graphile workers for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`,
+      { e },
+    );
+  }
+}
+
+async function stopConnection(conn: any, dbId: string) {
+  try {
+    await conn?.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
+    await conn?.dropConn();
+  } catch (e) {
+    logger.warn(
+      `The connection for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`,
+      { e },
+    );
   }
 }
 
@@ -406,13 +378,6 @@ if (require.main === module) {
   app.get('/stop/:dbId/', (req: any, res: any) => {
     const { dbId } = req.params;
     stop(dbId)
-      .then(() => res.sendStatus(200))
-      .catch(e => respondErrorAndDie(res, e.message));
-  });
-
-  app.get('/resetConn/:dbId/', (req: any, res: any) => {
-    const { dbId } = req.params;
-    resetConn(dbId)
       .then(() => res.sendStatus(200))
       .catch(e => respondErrorAndDie(res, e.message));
   });
