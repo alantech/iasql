@@ -1,7 +1,7 @@
 import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
-import { Role } from '../../aws_iam/entity';
+import { IamRole } from '../../aws_iam/entity';
 
 export enum Architecture {
   arm64 = 'arm64',
@@ -67,11 +67,11 @@ export class LambdaFunction {
   @Column({ nullable: true })
   zipB64?: string;
 
-  @ManyToOne(() => Role, role => role.roleName, { eager: true })
+  @ManyToOne(() => IamRole, role => role.roleName, { eager: true })
   @JoinColumn({
     name: 'role_name',
   })
-  role: Role;
+  role: IamRole;
 
   @Check(
     'CHK_lambda_handler__package_type',

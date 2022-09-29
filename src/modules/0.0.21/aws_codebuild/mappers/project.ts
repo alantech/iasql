@@ -44,13 +44,13 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
     out.sourceType = pj.source?.type as SourceType;
     if (pj.serviceRole) {
       const roleName = awsIamModule.role.roleNameFromArn(pj.serviceRole, ctx);
-      if (!Object.values(ctx.memo?.cloud?.Role ?? {}).length) {
+      if (!Object.values(ctx.memo?.cloud?.IamRole ?? {}).length) {
         out.serviceRole =
           (await awsIamModule.role.db.read(ctx, roleName)) ??
           (await awsIamModule.role.cloud.read(ctx, roleName));
       } else {
         out.serviceRole =
-          (await awsIamModule.role.db.read(ctx, roleName)) ?? ctx?.memo?.cloud?.Role?.[roleName ?? ''];
+          (await awsIamModule.role.db.read(ctx, roleName)) ?? ctx?.memo?.cloud?.IamRole?.[roleName ?? ''];
       }
     }
     return out;

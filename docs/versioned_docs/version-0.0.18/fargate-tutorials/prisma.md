@@ -289,7 +289,7 @@ If the function call is successful, it will return a virtual table with a record
  create | security_group      |      5 | 5
  create | security_group_rule |      3 | 3
  create | security_group_rule |      4 | 4
- create | role                |        | ecsTaskExecRole
+ create | role                |      3 | ecsTaskExecRole
 ```
 
 ## Login, build and push your code to the container registry

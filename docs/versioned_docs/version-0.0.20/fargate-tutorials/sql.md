@@ -211,6 +211,6 @@ If the function call is successful, it will return a virtual table with a record
  delete | security_group      | [NULL] | sg-e0df1095
  delete | security_group_rule | [NULL] | sgr-06aa0915b15fd23a9
  delete | security_group_rule | [NULL] | sgr-02e2096ac9e77a5bf
- delete | role                | [NULL] | ecsTaskExecRole
+ delete | role            | [NULL] | ecsTaskExecRole
 
 ```
