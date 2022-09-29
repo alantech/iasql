@@ -917,10 +917,10 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
   if (versionString === config.modules.latestVersion) {
     return 'Up to date';
   } else {
-    await stop(dbId);
     const db = await MetadataRepo.getDbById(dbId);
     if (!db) return 'Database no found (somehow)';
     await MetadataRepo.dbUpgrading(db, true);
+    await stop(dbId);
     (async () => {
       // First, figure out all of the modules installed, and if the `aws_account` module is
       // installed, also grab those credentials (eventually need to make this distinction and need
