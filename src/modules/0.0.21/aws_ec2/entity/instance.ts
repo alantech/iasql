@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   Entity,
   JoinColumn,
@@ -23,6 +24,7 @@ export enum State {
 }
 
 @Entity()
+@Check('check_role_ec2', 'role_name IS NULL OR (role_name IS NOT NULL AND check_role_ec2(role_name))')
 export class Instance {
   @PrimaryGeneratedColumn()
   id?: number;

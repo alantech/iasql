@@ -19,6 +19,10 @@ export enum VolumeState {
 }
 
 @Unique('Unique_gp_instance_device_name', ['instanceDeviceName', 'attachedInstance'])
+@Check(
+  'check_instance_ebs_availability_zone',
+  'check_instance_ebs_availability_zone(attached_instance_id, availability_zone)',
+)
 @Entity()
 export class GeneralPurposeVolume {
   @PrimaryGeneratedColumn()

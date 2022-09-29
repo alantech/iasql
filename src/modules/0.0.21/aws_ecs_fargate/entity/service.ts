@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Check, Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryColumn } from 'typeorm';
 
 import { Cluster, TaskDefinition } from '.';
 import { cloudId } from '../../../../services/cloud-id';
@@ -11,6 +11,7 @@ export enum AssignPublicIp {
 }
 
 @Entity()
+@Check('check_service_subnets', 'check_service_subnets(subnets)')
 export class Service {
   @PrimaryColumn()
   name: string;

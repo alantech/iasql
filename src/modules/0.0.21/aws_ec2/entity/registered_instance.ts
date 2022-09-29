@@ -1,10 +1,10 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Check, Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
 import { Instance } from '.';
 import { TargetGroup } from '../../aws_elb/entity';
 
-// Constraint to only join with target groups with type 'instance' added in migration file
 @Entity()
+@Check('check_target_group_instance', 'check_target_group_instance(target_group)')
 export class RegisteredInstance {
   @ManyToOne(() => Instance, instance => instance.id, {
     primary: true,
