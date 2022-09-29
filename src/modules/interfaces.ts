@@ -592,10 +592,7 @@ export class ModuleBase {
   private readSqlDir(sqlFile: string, customDir?: string) {
     try {
       // If no customDir specified, try to get the default
-      return fs.readFileSync(
-        `${this.dirname}/${customDir ? `${customDir}` : `sql/${sqlFile}.sql`}`,
-        'utf8',
-      );
+      return fs.readFileSync(`${this.dirname}/${customDir ? `${customDir}` : `sql/${sqlFile}.sql`}`, 'utf8');
     } catch (_) {
       /** Don't do anything if the default file is not there */
     }
