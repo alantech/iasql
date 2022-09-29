@@ -243,9 +243,27 @@ export async function start(dbId: string, dbUser: string) {
       },
     },
   });
-  const { conn: prevConn } = workerRunners[dbId] ?? { conn: undefined };
-  await prevConn?.dropConn();
+  // If a runner and a conn existed for this db we end them and save the new ones
+  logger.info(`+-+ If a runner and a conn existed for this db we end them and save the new ones`)
+  const { runner: prevRunner, conn: prevConn } = workerRunners[dbId] ?? { runner: undefined, conn: undefined };
   workerRunners[dbId] = { runner, conn };
+  if (prevRunner && prevConn) {
+    logger.info(`+-+ Found existing ones!!!`)
+    try {
+      await prevRunner.stop();
+    } catch (e) {
+      logger.warn(
+        `Graphile workers for ${dbId} has already been stopped. Perhaps Kubernetes is going to restart the process?`,
+        { e },
+      );
+    }
+    try {
+      await prevConn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
+      await prevConn.dropConn();
+    } catch (err: any) {
+      logger.info(`+-+ error letting go the connection ${err.message}`)
+    }
+  }
 }
 
 async function getContext(conn: TypeormWrapper, Modules: any): Promise<Context> {

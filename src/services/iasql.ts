@@ -1430,11 +1430,11 @@ export async function upgrade(dbId: string, dbUser: string) {
             true,
           );
         }
-        await scheduler.start(dbId, dbUser);
       } catch (e) {
         logger.error('Failed to upgrade', { e });
       } finally {
         conn?.close();
+        scheduler.start(dbId, dbUser);
         await MetadataRepo.dbUpgrading(db, false);
       }
     })();
