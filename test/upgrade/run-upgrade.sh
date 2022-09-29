@@ -125,7 +125,6 @@ while [ ${RPCCHECKCOUNT} -gt 0 ]; do
   RPCCHECKCOUNT=$((${RPCCHECKCOUNT}-1))
 done
 
-# The check that the upgrade successfully loads up the new version for the `aws_ec2` module
 if [ "${RPCUPGRADED}" == "false" ]; then
   echo "Did not successfully upgrade!";
   exit 4;
