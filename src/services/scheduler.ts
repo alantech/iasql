@@ -258,6 +258,27 @@ async function getContext(conn: TypeormWrapper, Modules: any): Promise<Context> 
   return context;
 }
 
+export async function resetConn(dbId: string) {
+  const { conn: currentConn } = workerRunners[dbId] ?? { conn: undefined };
+  if (currentConn) {
+    const newConn = await TypeormWrapper.createConn(dbId, { name: uuidv4() });
+    // create a dblink server per db to reduce connections when calling dblink in iasql op SP
+    // https://aws.amazon.com/blogs/database/migrating-oracle-autonomous-transactions-to-postgresql/
+    await newConn.query(`CREATE EXTENSION IF NOT EXISTS dblink;`);
+    await newConn.query(
+      `CREATE SERVER IF NOT EXISTS loopback_dblink_${dbId} FOREIGN DATA WRAPPER dblink_fdw OPTIONS (host '${config.db.host}', dbname '${dbId}', port '${config.db.port}');`,
+    );
+    await newConn.query(
+      `CREATE USER MAPPING IF NOT EXISTS FOR ${config.db.user} SERVER loopback_dblink_${dbId} OPTIONS (user '${config.db.user}', password '${config.db.password}')`,
+    );
+    workerRunners[dbId].conn = newConn;
+    await currentConn.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
+    await currentConn.dropConn();
+  } else {
+    logger.warn(`Graphile worker for ${dbId} not found`);
+  }
+}
+
 export async function stop(dbId: string) {
   const { runner, conn } = workerRunners[dbId] ?? { runner: undefined, conn: undefined };
   if (runner && conn) {
