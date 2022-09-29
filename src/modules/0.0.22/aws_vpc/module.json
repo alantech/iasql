@@ -1,0 +1,4 @@
+{
+  "name": "aws_vpc",
+  "dependencies": ["iasql_platform", "aws_account"]
+}
