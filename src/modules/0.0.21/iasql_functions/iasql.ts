@@ -15,7 +15,7 @@ import logger, { debugObj } from '../../../services/logger';
 import { sortModules } from '../../../services/mod-sort';
 import MetadataRepo from '../../../services/repositories/metadata';
 import { TypeormWrapper } from '../../../services/typeorm';
-import { resetConn, } from '../../../services/scheduler'
+import { resetConn, start, stop, } from '../../../services/scheduler'
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
@@ -1054,7 +1054,9 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
             true,
           );
         }
-        await resetConn(dbId);
+        // await resetConn(dbId);
+        await stop(dbId);
+        await start(dbId, dbUser);
       } catch (e) {
         logger.error('Failed to upgrade', { e });
       } finally {
