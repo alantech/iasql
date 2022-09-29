@@ -390,6 +390,13 @@ if (require.main === module) {
       .catch(e => respondErrorAndDie(res, e.message));
   });
 
+  app.get('/resetConn/:dbId/', (req: any, res: any) => {
+    const { dbId } = req.params;
+    resetConn(dbId)
+      .then(() => res.sendStatus(200))
+      .catch(e => respondErrorAndDie(res, e.message));
+  });
+
   app.get('/stopAll/', (req: any, res: any) => {
     stopAll()
       .then(() => res.sendStatus(200))
