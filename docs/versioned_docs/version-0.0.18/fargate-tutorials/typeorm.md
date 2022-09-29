@@ -55,7 +55,7 @@ If the function call is successful, it will return a virtual table with a record
        module_name        |      created_table_name       | record_count
 --------------------------+-------------------------------+--------------
  aws_cloudwatch           | log_group                     |            0
- aws_iam                  | iam_role                      |            0
+ aws_iam                  | role                          |            0
  aws_ecr                  | public_repository             |            0
  aws_ecr                  | repository                    |            1
  aws_ecr                  | repository_policy             |            0
@@ -239,7 +239,7 @@ module.exports = class Initial1646683871219 {
 
         INSERT INTO cluster (cluster_name) VALUES('${CLUSTER}');
 
-        INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+        INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
         VALUES ('${TASK_ROLE_NAME}', '${TASK_ASSUME_POLICY}', array['${TASK_POLICY_ARN}']);
 
         INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
@@ -303,7 +303,7 @@ module.exports = class Initial1646683871219 {
 
         DELETE FROM task_definition WHERE family = '${TASK_DEF_FAMILY}';
 
-        DELETE FROM iam_role WHERE role_name = '${TASK_ROLE_NAME}';
+        DELETE FROM role WHERE role_name = '${TASK_ROLE_NAME}';
 
         DELETE FROM cluster WHERE cluster_name = '${CLUSTER}';
 
@@ -466,6 +466,6 @@ If the function call is successful, it will return a virtual table with a record
  delete | security_group      | [NULL] | sg-e0df1095
  delete | security_group_rule | [NULL] | sgr-06aa0915b15fd23a9
  delete | security_group_rule | [NULL] | sgr-02e2096ac9e77a5bf
- delete | iam_role            | [NULL] | ecsTaskExecRole
+ delete | role                | [NULL] | ecsTaskExecRole
 
 ```
