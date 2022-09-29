@@ -1,14 +1,14 @@
 name: PRISMA TUTORIAL
 
-# on:
-#   # Allows you to run this workflow manually from the Actions tab
-#   workflow_dispatch:
-#   push:
-#     branches: [main]
-#     paths: ['.github/workflows/prisma.yml', 'examples/**', 'src/**', 'test/tutorials/**', 'package.json', 'yarn.lock']
-#   pull_request:
-#     branches: [main]
-#     paths: ['.github/workflows/prisma.yml', 'examples/**', 'src/**', 'test/tutorials/**', 'package.json', 'yarn.lock']
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/prisma.yml', 'examples/**', 'src/**', 'test/tutorials/**', 'package.json', 'yarn.lock']
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/prisma.yml', 'examples/**', 'src/**', 'test/tutorials/**', 'package.json', 'yarn.lock']
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
