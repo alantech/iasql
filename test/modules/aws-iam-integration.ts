@@ -344,7 +344,7 @@ describe('IAM Role Integration Testing', () => {
   it(
     'tries to update role attached policies',
     query(`
-    UPDATE role SET attached_policies_arns=array['${servicePolicyArn}'] WHERE role_name = '${taskRoleName}';
+    UPDATE iam_role SET attached_policies_arns=array['${servicePolicyArn}'] WHERE role_name = '${taskRoleName}';
   `),
   );
 
