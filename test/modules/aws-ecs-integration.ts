@@ -1,5 +1,5 @@
 import config from '../../src/config';
-import * as iasql from '../../src/services/iasql'
+import * as iasql from '../../src/services/iasql';
 import {
   getPrefix,
   runInstall,
@@ -10,7 +10,7 @@ import {
   execComposeUp,
   execComposeDown,
   runSync,
-} from '../helpers'
+} from '../helpers';
 
 const {
   CpuMemCombination,
@@ -31,7 +31,15 @@ const querySync = runQuery.bind(null, dbAliasSidecar);
 const installSync = runInstall.bind(null, dbAliasSidecar);
 const syncSync = runSync.bind(null, dbAliasSidecar);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_ecr', 'aws_elb', 'aws_security_group', 'aws_cloudwatch', 'aws_ecs_fargate', 'aws_vpc', 'aws_iam'];
+const modules = [
+  'aws_ecr',
+  'aws_elb',
+  'aws_security_group',
+  'aws_cloudwatch',
+  'aws_ecs_fargate',
+  'aws_vpc',
+  'aws_iam',
+];
 
 // Test constants
 const serviceName = `${prefix}${dbAlias}service`;
@@ -44,7 +52,7 @@ const containerNameDigest = `${prefix}${dbAlias}containerdgst`;
 const image = 'redis';
 const imageTag = 'latest';
 const imageDigest = 'sha256:0079affeb8a75e09d6d7f0ac30c31e5d35ca93ad86faa682cdb7c2228c8439db';
-const containerMemoryReservation = 2048;  // MiB
+const containerMemoryReservation = 2048; // MiB
 const containerEssential = true;
 const containerPort = 6379;
 const hostPort = 6379;
@@ -52,17 +60,17 @@ const protocol = 'tcp';
 const tdFamily = `${prefix}${dbAlias}td`;
 const taskExecRoleName = `${prefix}${dbAlias}ecsTaskExecRole-${region}`;
 const taskRolePolicyDoc = JSON.stringify({
-  "Version": "2012-10-17",
-  "Statement": [
-      {
-          "Sid": "",
-          "Effect": "Allow",
-          "Principal": {
-              "Service": "ecs-tasks.amazonaws.com"
-          },
-          "Action": "sts:AssumeRole"
-      }
-  ]
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Sid: '',
+      Effect: 'Allow',
+      Principal: {
+        Service: 'ecs-tasks.amazonaws.com',
+      },
+      Action: 'sts:AssumeRole',
+    },
+  ],
 });
 const taskPolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy';
 const tdCpuMem = CpuMemCombination['vCPU2-8GB'];
@@ -74,79 +82,116 @@ const newServiceName = `${serviceName}replace`;
 const securityGroup = `${prefix}${dbAlias}sg`;
 
 // TODO: Improve timings for this test
-jest.setTimeout(1800000);  // 30min timeout
+jest.setTimeout(1800000); // 30min timeout
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
 describe('ECS Integration Testing', () => {
-  it('creates a new test db ECS', (done) => void iasql.connect(
-    dbAlias,
-    'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db ECS', done =>
+    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the aws_account module', install(['aws_account']));
 
-  it('inserts aws credentials', query(`
+  it(
+    'inserts aws credentials',
+    query(
+      `
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `, undefined, false));
+  `,
+      undefined,
+      false,
+    ),
+  );
 
   it('syncs the regions', sync());
 
-  it('sets the default region', query(`
+  it(
+    'sets the default region',
+    query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `));
+  `),
+  );
 
-  it('creates a new sidecar test db ECS', (done) => void iasql.connect(
-    dbAliasSidecar,
-    'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new sidecar test db ECS', done =>
+    void iasql.connect(dbAliasSidecar, 'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the aws_account module', installSync(['aws_account']));
 
-  it('inserts aws credentials', querySync(`
+  it(
+    'inserts aws credentials',
+    querySync(
+      `
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `, undefined, false));
+  `,
+      undefined,
+      false,
+    ),
+  );
 
   it('syncs the regions', syncSync());
 
-  it('sets the default region', querySync(`
+  it(
+    'sets the default region',
+    querySync(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
-  `));
+  `),
+  );
 
   it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 
   it('installs the ecs module and its dependencies', install(modules));
 
   // Cluster
-  it('adds a new cluster', query(`
+  it(
+    'adds a new cluster',
+    query(`
     INSERT INTO cluster (cluster_name)
     VALUES('${clusterName}');
-  `));
+  `),
+  );
 
   it('undo changes', sync());
 
-  it('check cluster insertion', query(`
+  it(
+    'check cluster insertion',
+    query(
+      `
     SELECT *
     FROM cluster
     WHERE cluster_name = '${clusterName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
-
-  it('adds a new cluster', query(`
+  it(
+    'adds a new cluster',
+    query(`
     INSERT INTO cluster (cluster_name)
     VALUES('${clusterName}');
-  `));
+  `),
+  );
 
   it('applies adds a new cluster', apply());
 
-  it('check cluster insertion', query(`
+  it(
+    'check cluster insertion',
+    query(
+      `
     SELECT *
     FROM cluster
     WHERE cluster_name = '${clusterName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   // Service dependencies
-  it('adds service dependencies', query(`
+  it(
+    'adds service dependencies',
+    query(`
     BEGIN;
       INSERT INTO security_group
         (description, group_name)
@@ -176,116 +221,208 @@ describe('ECS Integration Testing', () => {
           ('${serviceLoadBalancerName}',
             ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
     COMMIT;
-  `));
+  `),
+  );
 
   it('applies service dependencies', apply());
 
-  it('check target group insertion', query(`
+  it(
+    'check target group insertion',
+    query(
+      `
     SELECT *
     FROM target_group
     WHERE target_group_name = '${serviceTargetGroupName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('check target group insertion', query(`
+  it(
+    'check target group insertion',
+    query(
+      `
     SELECT *
     FROM load_balancer
     WHERE load_balancer_name = '${serviceLoadBalancerName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   // Service spinning up a task definition with container using a docker image
   // Container definition
-  it('adds container dependencies', query(`
+  it(
+    'adds container dependencies',
+    query(`
     BEGIN;
       INSERT INTO log_group (log_group_name)
       VALUES ('${logGroupName}');
-      INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+      INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
       VALUES ('${taskExecRoleName}', '${taskRolePolicyDoc}', array['${taskPolicyArn}']);
     COMMIT;
-  `));
+  `),
+  );
 
   it('applies adds container dependencies', apply());
 
-  it('check target group insertion', query(`
+  it(
+    'check target group insertion',
+    query(
+      `
     SELECT *
     FROM log_group
     WHERE log_group_name = '${logGroupName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('check target group insertion', query(`
+  it(
+    'check target group insertion',
+    query(
+      `
     SELECT *
-    FROM role
+    FROM iam_role
     WHERE role_name = '${taskExecRoleName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   // Task definition
-  it('adds a new task definition', query(`
+  it(
+    'adds a new task definition',
+    query(`
     INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
     VALUES ('${tdFamily}', '${taskExecRoleName}', '${taskExecRoleName}', '${tdCpuMem}');
-  `));
+  `),
+  );
 
-  it('check task_definition insertion', query(`
+  it(
+    'check task_definition insertion',
+    query(
+      `
     SELECT *
     FROM task_definition
     WHERE family = '${tdFamily}' AND status IS NULL;
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('adds a new container definition', query(`
+  it(
+    'adds a new container definition',
+    query(`
     BEGIN;
       INSERT INTO container_definition ("name", image, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_name)
       VALUES('${containerName}', '${image}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), '${logGroupName}');
       INSERT INTO container_definition ("name", image, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_name)
-      VALUES('${containerNameTag}', '${image}', '${imageTag}', false, ${containerMemoryReservation}, ${hostPort + 1}, ${containerPort + 1}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), '${logGroupName}');
+      VALUES('${containerNameTag}', '${image}', '${imageTag}', false, ${containerMemoryReservation}, ${
+      hostPort + 1
+    }, ${
+      containerPort + 1
+    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), '${logGroupName}');
       INSERT INTO container_definition ("name", image, digest, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_name)
-      VALUES('${containerNameDigest}', '${image}', '${imageDigest}', false, ${containerMemoryReservation}, ${hostPort + 2}, ${containerPort + 2}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), '${logGroupName}');
+      VALUES('${containerNameDigest}', '${image}', '${imageDigest}', false, ${containerMemoryReservation}, ${
+      hostPort + 2
+    }, ${
+      containerPort + 2
+    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), '${logGroupName}');
     COMMIT;
-  `));
+  `),
+  );
 
-  it('check container definition insertion', query(`
+  it(
+    'check container definition insertion',
+    query(
+      `
     SELECT *
     FROM container_definition
     WHERE name = '${containerName}' AND image = '${image}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('check container definition insertion', query(`
+  it(
+    'check container definition insertion',
+    query(
+      `
     SELECT *
     FROM container_definition
     WHERE name = '${containerNameTag}' AND image = '${image}' AND tag = '${imageTag}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('check container definition insertion', query(`
+  it(
+    'check container definition insertion',
+    query(
+      `
     SELECT *
     FROM container_definition
     WHERE name = '${containerNameDigest}' AND image = '${image}' AND digest = '${imageDigest}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   it('applies adds a new task definition with container definition', apply());
 
-  it('check task_definition insertion', query(`
+  it(
+    'check task_definition insertion',
+    query(
+      `
     SELECT *
     FROM task_definition
     WHERE family = '${tdFamily}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('check container definition insertion', query(`
+  it(
+    'check container definition insertion',
+    query(
+      `
     SELECT *
     FROM container_definition
     WHERE name = '${containerName}' AND image = '${image}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('check container definition insertion', query(`
+  it(
+    'check container definition insertion',
+    query(
+      `
     SELECT *
     FROM container_definition
     WHERE name = '${containerNameTag}' AND image = '${image}' AND tag = '${imageTag}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('check container definition insertion', query(`
+  it(
+    'check container definition insertion',
+    query(
+      `
     SELECT *
     FROM container_definition
     WHERE name = '${containerNameDigest}' AND image = '${image}' AND digest = '${imageDigest}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   // Service
-  it('adds a new service', query(`
+  it(
+    'adds a new service',
+    query(`
     BEGIN;
       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
       VALUES ('${serviceName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
@@ -293,21 +430,36 @@ describe('ECS Integration Testing', () => {
       INSERT INTO service_security_groups (service_name, security_group_id)
       VALUES ('${serviceName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
     COMMIT;
-  `));
+  `),
+  );
 
-  it('check service insertion', query(`
+  it(
+    'check service insertion',
+    query(
+      `
     SELECT *
     FROM service
     WHERE name = '${serviceName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('check service_security_groups insertion', query(`
+  it(
+    'check service_security_groups insertion',
+    query(
+      `
     SELECT *
     FROM service_security_groups
     WHERE service_name = '${serviceName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('tries to update a task definition', query(`
+  it(
+    'tries to update a task definition',
+    query(`
     WITH td AS (
       SELECT revision
       FROM task_definition
@@ -316,85 +468,140 @@ describe('ECS Integration Testing', () => {
       LIMIT 1
     )
     UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td);
-  `));
-  
+  `),
+  );
+
   it('applies tries to update a task definition field', apply());
 
-  it('check service insertion', query(`
+  it(
+    'check service insertion',
+    query(
+      `
     SELECT *
     FROM service
     WHERE name = '${serviceName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('check task_definition update', query(`
+  it(
+    'check task_definition update',
+    query(
+      `
     SELECT *
     FROM task_definition
     WHERE family = '${tdFamily}' AND status = '${tdActive}';
-  `, (res: any[]) => expect(res.length).toBe(2)));
+  `,
+      (res: any[]) => expect(res.length).toBe(2),
+    ),
+  );
 
-  
-  it('tries to update a service (update)', query(`
+  it(
+    'tries to update a service (update)',
+    query(`
     UPDATE service SET desired_count = ${serviceDesiredCount + 1} WHERE name = '${serviceName}';
-  `));
+  `),
+  );
 
   it('applies tries to update a service (update)', apply());
 
-  it('check service update', query(`
+  it(
+    'check service update',
+    query(
+      `
     SELECT *
     FROM service
     WHERE name = '${serviceName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('tries to update a service (restore)', query(`
+  it(
+    'tries to update a service (restore)',
+    query(`
     UPDATE service SET status = 'fake' WHERE name = '${serviceName}';
-  `));
+  `),
+  );
 
   it('applies tries to update a service (restore)', apply());
 
-  it('check service update', query(`
+  it(
+    'check service update',
+    query(
+      `
     SELECT *
     FROM service
     WHERE name = '${serviceName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('tries to update a service (replace)', query(`
+  it(
+    'tries to update a service (replace)',
+    query(`
     UPDATE service SET name = '${newServiceName}' WHERE name = '${serviceName}';
-  `));
+  `),
+  );
 
   it('applies tries to update a service (replace)', apply());
 
-  it('check service update', query(`
+  it(
+    'check service update',
+    query(
+      `
     SELECT *
     FROM service
     WHERE name = '${newServiceName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('tries to force update a service', query(`
+  it(
+    'tries to force update a service',
+    query(`
     UPDATE service SET force_new_deployment = true WHERE name = '${newServiceName}';
-  `));
+  `),
+  );
 
   it('tries to force update a service', apply());
 
-  it('check service update', query(`
+  it(
+    'check service update',
+    query(
+      `
     SELECT *
     FROM service
     WHERE name = '${newServiceName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('check service new deployment', query(`
+  it(
+    'check service new deployment',
+    query(
+      `
     SELECT *
     FROM service
     WHERE name = '${newServiceName}';
-  `, (res: any[]) => expect(res[0]['force_new_deployment']).toBe(false)));
+  `,
+      (res: any[]) => expect(res[0]['force_new_deployment']).toBe(false),
+    ),
+  );
 
   it('sync sidecar database', sidecarSync());
 
   it('uninstalls the ecs module', uninstall(['aws_ecs_fargate']));
 
-  it('installs the ecs module', install(
-    ['aws_ecs_fargate']));
+  it('installs the ecs module', install(['aws_ecs_fargate']));
 
-  it('deletes service', query(`
+  it(
+    'deletes service',
+    query(`
     BEGIN;
       delete from service_security_groups
       using service
@@ -405,17 +612,26 @@ describe('ECS Integration Testing', () => {
 
 
     COMMIT;
-  `));
+  `),
+  );
 
   it('applies deletes service', apply());
 
-  it('check service deletion', query(`
+  it(
+    'check service deletion',
+    query(
+      `
     SELECT *
     FROM service
     WHERE name = '${serviceName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
-  it('deletes container definitons', query(`
+  it(
+    'deletes container definitons',
+    query(`
     begin;
       delete from container_definition
       using task_definition
@@ -424,44 +640,63 @@ describe('ECS Integration Testing', () => {
       delete from task_definition
       where family = '${tdFamily}';
 
-      delete from role
+      delete from iam_role
       where role_name = '${taskExecRoleName}';
 
       delete from log_group
       where log_group_name = '${logGroupName}';
     commit;
-  `));
+  `),
+  );
 
   it('applies deletes tasks and container definitions', apply());
 
   it('sync sidecar database', sidecarSync());
 
-  it('check role deletion', query(`
+  it(
+    'check role deletion',
+    query(
+      `
     SELECT *
-    FROM role
+    FROM iam_role
     WHERE role_name = '${taskExecRoleName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
-  it('check log group deletion', query(`
+  it(
+    'check log group deletion',
+    query(
+      `
     SELECT *
     FROM log_group
     WHERE log_group_name = '${logGroupName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
-  it('check task def deletion', query(`
+  it(
+    'check task def deletion',
+    query(
+      `
     SELECT *
     FROM task_definition
     WHERE family = '${tdFamily}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
-  it('uninstalls the ecs module', uninstall(
-    ['aws_ecs_fargate']));
+  it('uninstalls the ecs module', uninstall(['aws_ecs_fargate']));
 
-  it('installs the ecs module', install(
-    ['aws_ecs_fargate']));
+  it('installs the ecs module', install(['aws_ecs_fargate']));
 
   // deletes service dependencies
-  it('deletes service dependencies', query(`
+  it(
+    'deletes service dependencies',
+    query(`
     BEGIN;
       DELETE FROM listener
       WHERE load_balancer_name = '${serviceLoadBalancerName}'
@@ -484,75 +719,82 @@ describe('ECS Integration Testing', () => {
       DELETE FROM security_group
       WHERE group_name = '${securityGroup}';
     COMMIT;
-  `));
+  `),
+  );
 
   it('applies deletes service dependencies', apply());
 
-  it('tries to update a cluster field (restore)', query(`
+  it(
+    'tries to update a cluster field (restore)',
+    query(`
     UPDATE cluster SET cluster_status = 'fake' WHERE cluster_name = '${clusterName}';
-  `));
+  `),
+  );
 
   it('applies tries to update a cluster field (restore)', apply());
 
-  it('tries to update cluster (replace)', query(`
+  it(
+    'tries to update cluster (replace)',
+    query(`
     UPDATE cluster SET cluster_name = '${newClusterName}' WHERE cluster_name = '${clusterName}';
-  `));
+  `),
+  );
 
   it('applies tries to update cluster (replace)', apply());
 
-  it('deletes the cluster', query(`
+  it(
+    'deletes the cluster',
+    query(`
     delete from cluster
     where cluster_name = '${newClusterName}';
-  `));
+  `),
+  );
 
   it('applies deletes the cluster', apply());
 
-  it('deletes the sidecar test db', (done) => void iasql
-    .disconnect(dbAliasSidecar, 'not-needed')
-    .then(...finish(done)));
+  it('deletes the sidecar test db', done =>
+    void iasql.disconnect(dbAliasSidecar, 'not-needed').then(...finish(done)));
 
-  it('deletes the test db', (done) => void iasql
-    .disconnect(dbAlias, 'not-needed')
-    .then(...finish(done)));
+  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
 describe('ECS install/uninstall', () => {
-  it('creates a new test db', (done) => void iasql.connect(
-    dbAlias,
-    'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done =>
+    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the aws_account module', install(['aws_account']));
 
-  it('inserts aws credentials', query(`
+  it(
+    'inserts aws credentials',
+    query(
+      `
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `, undefined, false));
+  `,
+      undefined,
+      false,
+    ),
+  );
 
   it('syncs the regions', sync());
 
-  it('sets the default region', query(`
+  it(
+    'sets the default region',
+    query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `));
+  `),
+  );
 
-  it('installs the ECS module', install(
-    modules));
+  it('installs the ECS module', install(modules));
 
-  it('uninstalls the ECS module', uninstall(
-    modules));
+  it('uninstalls the ECS module', uninstall(modules));
 
-  it('installs all modules', (done) => void iasql.install(
-    [],
-    dbAlias,
-    config.db.user,
-    true).then(...finish(done)));
+  it('installs all modules', done =>
+    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
 
-  it('uninstalls the ECS module', uninstall(
-    ['aws_ecs_fargate', 'aws_ecs_simplified']));
+  it('uninstalls the ECS module', uninstall(['aws_ecs_fargate', 'aws_ecs_simplified']));
 
-  it('installs the ECS module', install(
-    ['aws_ecs_fargate']));
+  it('installs the ECS module', install(['aws_ecs_fargate']));
 
-  it('deletes the test db', (done) => void iasql
-    .disconnect(dbAlias, 'not-needed')
-    .then(...finish(done)));
+  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

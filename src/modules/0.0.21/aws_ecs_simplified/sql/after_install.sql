@@ -65,7 +65,7 @@ BEGIN
 
   INSERT INTO cluster (cluster_name) VALUES(NEW.app_name || '-cluster');
 
-  INSERT INTO role (role_name, assume_role_policy_document, attached_policies_arns)
+  INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
   VALUES (NEW.app_name || '-ecs-task-exec-role', '{"Version":"2012-10-17","Statement":[{"Sid":"","Effect":"Allow","Principal":{"Service":"ecs-tasks.amazonaws.com"},"Action":"sts:AssumeRole"}]}', array['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy']);
 
   INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
@@ -145,7 +145,7 @@ BEGIN
 
   DELETE FROM task_definition WHERE family = OLD.app_name || '-td';
 
-  DELETE FROM role WHERE role_name = OLD.app_name || '-ecs-task-exec-role';
+  DELETE FROM iam_role WHERE role_name = OLD.app_name || '-ecs-task-exec-role';
 
   DELETE FROM cluster WHERE cluster_name = OLD.app_name || '-cluster';
 

@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEc21664418899838 implements MigrationInterface {
-  name = 'awsEc21664418899838';
+export class awsEc21664442066032 implements MigrationInterface {
+  name = 'awsEc21664442066032';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -38,7 +38,7 @@ export class awsEc21664418899838 implements MigrationInterface {
       `ALTER TABLE "general_purpose_volume" ADD CONSTRAINT "FK_b60cd423a9b292b547913dcc6ac" FOREIGN KEY ("attached_instance_id") REFERENCES "instance"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "instance" ADD CONSTRAINT "FK_c24c2124cf72257adac2dfa2c8e" FOREIGN KEY ("role_name") REFERENCES "role"("role_name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "instance" ADD CONSTRAINT "FK_c24c2124cf72257adac2dfa2c8e" FOREIGN KEY ("role_name") REFERENCES "iam_role"("role_name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "instance" ADD CONSTRAINT "FK_7660424ef50e6538c77706b2480" FOREIGN KEY ("subnet_id") REFERENCES "subnet"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,

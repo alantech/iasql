@@ -1,4 +1,5 @@
-DO $$
+DO
+  $$
 DECLARE
   loop_count integer := 0;
   tables_array_length integer;
@@ -14,7 +15,7 @@ BEGIN
     FOR table_elem IN array_lower(aux_tables_array, 1)..array_upper(aux_tables_array, 1) LOOP
       BEGIN
         raise notice 'logging table %', aux_tables_array[table_elem];
-        IF aux_tables_array[table_elem] != 'public_repository' AND aux_tables_array[table_elem] != 'role' THEN
+        IF aux_tables_array[table_elem] != 'public_repository' AND aux_tables_array[table_elem] != 'iam_role' THEN
           EXECUTE format('DELETE FROM %I', aux_tables_array[table_elem]);
         END IF;
         SELECT array_remove(tables_array, aux_tables_array[table_elem]) INTO tables_array;

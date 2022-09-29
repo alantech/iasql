@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsLambda1658749020346 implements MigrationInterface {
-  name = 'awsLambda1658749020346';
+export class awsLambda1664442553658 implements MigrationInterface {
+  name = 'awsLambda1664442553658';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -15,7 +15,7 @@ export class awsLambda1658749020346 implements MigrationInterface {
       `CREATE TABLE "lambda_function" ("name" character varying NOT NULL, "arn" character varying, "version" character varying NOT NULL DEFAULT '$LATEST', "description" character varying, "zip_b64" character varying, "handler" character varying, "runtime" "public"."lambda_function_runtime_enum", "package_type" "public"."lambda_function_package_type_enum" NOT NULL DEFAULT 'Zip', "architecture" "public"."lambda_function_architecture_enum" NOT NULL DEFAULT 'x86_64', "memory_size" integer NOT NULL DEFAULT '128', "environment" json, "tags" json, "role_name" character varying, CONSTRAINT "CHK_lambda_handler__package_type" CHECK (("package_type" = 'Zip' AND "handler" IS NOT NULL) OR "package_type" != 'Zip'), CONSTRAINT "CHK_lambda_runtime__package_type" CHECK (("package_type" = 'Zip' AND "runtime" IS NOT NULL) OR "package_type" != 'Zip'), CONSTRAINT "PK_c29c98bda01914d7de9c822c025" PRIMARY KEY ("name"))`,
     );
     await queryRunner.query(
-      `ALTER TABLE "lambda_function" ADD CONSTRAINT "FK_e326decbc2b59a537bb9ee68ab9" FOREIGN KEY ("role_name") REFERENCES "role"("role_name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "lambda_function" ADD CONSTRAINT "FK_e326decbc2b59a537bb9ee68ab9" FOREIGN KEY ("role_name") REFERENCES "iam_role"("role_name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
   }
 

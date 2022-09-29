@@ -4,7 +4,7 @@ import { cloudId } from '../../../../services/cloud-id';
 
 // TODO complete schema
 @Entity()
-export class Role {
+export class IamRole {
   @Column({
     nullable: true,
   })

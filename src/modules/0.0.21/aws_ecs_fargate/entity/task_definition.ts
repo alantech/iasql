@@ -2,7 +2,7 @@ import { Column, Entity, OneToMany, ManyToOne, JoinColumn, PrimaryGeneratedColum
 
 import { ContainerDefinition } from '.';
 import { cloudId } from '../../../../services/cloud-id';
-import { Role } from '../../aws_iam/entity';
+import { IamRole } from '../../aws_iam/entity';
 
 export enum TaskDefinitionStatus {
   ACTIVE = 'ACTIVE',
@@ -82,17 +82,17 @@ export class TaskDefinition {
   })
   revision?: number;
 
-  @ManyToOne(() => Role, { nullable: true, eager: true })
+  @ManyToOne(() => IamRole, { nullable: true, eager: true })
   @JoinColumn({
     name: 'task_role_name',
   })
-  taskRole?: Role;
+  taskRole?: IamRole;
 
-  @ManyToOne(() => Role, { nullable: true, eager: true })
+  @ManyToOne(() => IamRole, { nullable: true, eager: true })
   @JoinColumn({
     name: 'execution_role_name',
   })
-  executionRole?: Role;
+  executionRole?: IamRole;
 
   @Column({
     nullable: true,

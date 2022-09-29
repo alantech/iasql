@@ -16,7 +16,7 @@ import { createWaiter, WaiterState, WaiterOptions } from '@aws-sdk/util-waiter';
 import { policiesAreSame, objectsAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
-import { Role, IamUser } from './entity';
+import { IamRole, IamUser } from './entity';
 
 class UserMapper extends MapperBase<IamUser> {
   module: AwsIamModule;
@@ -234,10 +234,10 @@ class UserMapper extends MapperBase<IamUser> {
   }
 }
 
-class RoleMapper extends MapperBase<Role> {
+class RoleMapper extends MapperBase<IamRole> {
   module: AwsIamModule;
-  entity = Role;
-  equals = (a: Role, b: Role) =>
+  entity = IamRole;
+  equals = (a: IamRole, b: IamRole) =>
     Object.is(a.roleName, b.roleName) &&
     Object.is(a.arn, b.arn) &&
     Object.is(a.description, b.description) &&
@@ -356,7 +356,7 @@ class RoleMapper extends MapperBase<Role> {
 
   async roleMapper(role: AWSRole, ctx: Context) {
     const client = (await ctx.getAwsClient()) as AWS;
-    const out = new Role();
+    const out = new IamRole();
     out.arn = role.Arn;
     if (!role.RoleName) return undefined;
     out.roleName = role.RoleName;
@@ -384,14 +384,14 @@ class RoleMapper extends MapperBase<Role> {
     // EC2 role instance profile ARN example - arn:aws:iam::257682470237:instance-profile/test-role
     return arn.split('/').pop();
   }
-  allowEc2Service(a: Role) {
+  allowEc2Service(a: IamRole) {
     return a.assumeRolePolicyDocument?.Statement?.find(
       (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com',
     );
   }
 
   cloud = new Crud2({
-    create: async (es: Role[], ctx: Context) => {
+    create: async (es: IamRole[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const role of es) {
@@ -452,11 +452,11 @@ class RoleMapper extends MapperBase<Role> {
       }
     },
     updateOrReplace: () => 'update',
-    update: async (es: Role[], ctx: Context) => {
+    update: async (es: IamRole[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.Role?.[e.roleName ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.IamRole?.[e.roleName ?? ''];
         // aws-service-roles are immutable so undo change and return
         if (cloudRecord.arn.includes(':role/aws-service-role/')) {
           await this.module.role.db.update(cloudRecord, ctx);
@@ -503,7 +503,7 @@ class RoleMapper extends MapperBase<Role> {
       }
       return out;
     },
-    delete: async (es: Role[], ctx: Context) => {
+    delete: async (es: IamRole[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const entity of es) {
         if (entity.arn) {

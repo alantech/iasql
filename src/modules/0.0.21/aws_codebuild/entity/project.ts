@@ -1,7 +1,7 @@
 import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
-import { Role } from '../../aws_iam/entity/role';
+import { IamRole } from '../../aws_iam/entity/role';
 
 export enum SourceType {
   GITHUB = 'GITHUB',
@@ -62,13 +62,13 @@ export class CodebuildProject {
   })
   image: string;
 
-  @ManyToOne(() => Role, {
+  @ManyToOne(() => IamRole, {
     eager: true,
   })
   @JoinColumn({
     name: 'service_role_name',
   })
-  serviceRole: Role;
+  serviceRole: IamRole;
 
   @Column({
     type: 'enum',
