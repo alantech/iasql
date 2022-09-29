@@ -1430,7 +1430,7 @@ export async function upgrade(dbId: string, dbUser: string) {
             true,
           );
         }
-        await scheduler.resetConn(dbId);
+        await scheduler.start(dbId, dbUser);
       } catch (e) {
         logger.error('Failed to upgrade', { e });
       } finally {

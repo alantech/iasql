@@ -243,6 +243,8 @@ export async function start(dbId: string, dbUser: string) {
       },
     },
   });
+  const { conn: prevConn } = workerRunners[dbId] ?? { conn: undefined };
+  await prevConn?.dropConn();
   workerRunners[dbId] = { runner, conn };
 }
 
