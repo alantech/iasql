@@ -294,6 +294,8 @@ export async function resetConn(dbId: string) {
 }
 
 export async function stop(dbId: string) {
+  logger.info(`+-+ stop being called for db ${dbId}`)
+  logger.info(`+-+ current worker runners ${Object.keys(workerRunners ?? {})}`)
   const { runner, conn } = workerRunners[dbId] ?? { runner: undefined, conn: undefined };
   if (runner && conn) {
     try {

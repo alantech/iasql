@@ -15,7 +15,7 @@ import logger, { debugObj } from '../../../services/logger';
 import { sortModules } from '../../../services/mod-sort';
 import MetadataRepo from '../../../services/repositories/metadata';
 import { TypeormWrapper } from '../../../services/typeorm';
-import { resetConn, start, stop, } from '../../../services/scheduler'
+import { start, stop, } from '../../../services/scheduler-api'
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
