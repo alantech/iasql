@@ -16,12 +16,18 @@ import MetadataRepo from './repositories/metadata';
 import * as telemetry from './telemetry';
 import { TypeormWrapper } from './typeorm';
 
-const latest = modules[config.modules.latestVersion];
-
-const IasqlOperationType =
-  latest?.IasqlFunctions?.utils?.IasqlOperationType ??
-  latest?.iasqlFunctions?.iasqlOperationType ??
-  throwError('Core IasqlFunctions not found');
+// ! DEPRECATED
+// TODO: REMOVE BY THE TIME 0.0.20 BECOMES UNSUPPORTED
+enum IasqlOperationType {
+  APPLY = 'APPLY',
+  SYNC = 'SYNC',
+  INSTALL = 'INSTALL',
+  UNINSTALL = 'UNINSTALL',
+  PLAN_APPLY = 'PLAN_APPLY',
+  PLAN_SYNC = 'PLAN_SYNC',
+  LIST = 'LIST',
+  UPGRADE = 'UPGRADE',
+}
 
 const workerRunners: { [key: string]: { runner: any; conn: any } } = {}; // TODO: What is the runner type?
 
