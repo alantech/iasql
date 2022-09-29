@@ -282,7 +282,7 @@ export async function stop(dbId: string) {
   const { runner, conn } = workerRunners[dbId] ?? { runner: undefined, conn: undefined };
   if (runner && conn) {
     await stopRunner(runner, dbId);
-    await stopConnection(conn, dbId);
+    await stopServerConn(conn, dbId);
     delete workerRunners[dbId];
   } else {
     logger.warn(`Graphile worker for ${dbId} not found`);
@@ -300,7 +300,7 @@ async function stopRunner(runner: any, dbId: string) {
   }
 }
 
-async function stopConnection(conn: any, dbId: string) {
+async function stopServerConn(conn: any, dbId: string) {
   try {
     await conn?.query(`DROP SERVER IF EXISTS loopback_dblink_${dbId} CASCADE`);
     await conn?.dropConn();
