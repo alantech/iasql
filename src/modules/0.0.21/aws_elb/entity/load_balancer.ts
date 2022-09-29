@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Check, Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 import { SecurityGroup } from '../../aws_security_group/entity';
@@ -28,6 +28,11 @@ export enum IpAddressType {
 }
 
 @Entity()
+@Check(
+  'check_load_balancer_availability_zones',
+  'check_load_balancer_availability_zones(load_balancer_name, availability_zones)',
+)
+@Check('check_load_balancer_subnets', 'check_load_balancer_subnets(subnets)')
 export class LoadBalancer {
   @PrimaryColumn()
   loadBalancerName: string;
