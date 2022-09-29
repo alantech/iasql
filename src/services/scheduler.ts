@@ -248,7 +248,7 @@ export async function start(dbId: string, dbUser: string) {
   workerRunners[dbId] = { runner, conn };
   if (prevRunner && prevConn) {
     await stopRunner(prevRunner, dbId);
-    await stopConnection(prevConn, dbId);
+    await prevConn.dropConn();
   }
 }
 
