@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsElb1655822977761 implements MigrationInterface {
-  name = 'awsElb1655822977761';
+export class awsElb1664422673405 implements MigrationInterface {
+  name = 'awsElb1664422673405';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -17,7 +17,7 @@ export class awsElb1655822977761 implements MigrationInterface {
       `CREATE TYPE "public"."load_balancer_ip_address_type_enum" AS ENUM('dualstack', 'ipv4')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "load_balancer" ("load_balancer_name" character varying NOT NULL, "load_balancer_arn" character varying, "dns_name" character varying, "canonical_hosted_zone_id" character varying, "created_time" TIMESTAMP WITH TIME ZONE, "scheme" "public"."load_balancer_scheme_enum" NOT NULL, "state" "public"."load_balancer_state_enum", "load_balancer_type" "public"."load_balancer_load_balancer_type_enum" NOT NULL, "subnets" character varying array, "availability_zones" character varying array, "ip_address_type" "public"."load_balancer_ip_address_type_enum" NOT NULL, "customer_owned_ipv4_pool" character varying, "vpc" integer, CONSTRAINT "PK_752cf6361c52a07bd00d9b7c4dd" PRIMARY KEY ("load_balancer_name"))`,
+      `CREATE TABLE "load_balancer" ("load_balancer_name" character varying NOT NULL, "load_balancer_arn" character varying, "dns_name" character varying, "canonical_hosted_zone_id" character varying, "created_time" TIMESTAMP WITH TIME ZONE, "scheme" "public"."load_balancer_scheme_enum" NOT NULL, "state" "public"."load_balancer_state_enum", "load_balancer_type" "public"."load_balancer_load_balancer_type_enum" NOT NULL, "subnets" character varying array, "availability_zones" character varying array, "ip_address_type" "public"."load_balancer_ip_address_type_enum" NOT NULL, "customer_owned_ipv4_pool" character varying, "vpc" integer, CONSTRAINT "check_load_balancer_subnets" CHECK (check_load_balancer_subnets(subnets)), CONSTRAINT "check_load_balancer_availability_zones" CHECK (check_load_balancer_availability_zones(load_balancer_name, availability_zones)), CONSTRAINT "PK_752cf6361c52a07bd00d9b7c4dd" PRIMARY KEY ("load_balancer_name"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."target_group_target_type_enum" AS ENUM('alb', 'instance', 'ip', 'lambda')`,

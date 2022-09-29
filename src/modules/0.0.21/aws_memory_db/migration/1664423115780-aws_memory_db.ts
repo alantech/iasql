@@ -1,11 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsMemoryDb1661522276500 implements MigrationInterface {
-  name = 'awsMemoryDb1661522276500';
+export class awsMemoryDb1664423115780 implements MigrationInterface {
+  name = 'awsMemoryDb1664423115780';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "subnet_group" ("id" SERIAL NOT NULL, "subnet_group_name" character varying NOT NULL, "description" character varying, "arn" character varying, "subnets" character varying array, CONSTRAINT "UQ_129b8295c594237d6cc4adee49a" UNIQUE ("subnet_group_name"), CONSTRAINT "PK_129b8295c594237d6cc4adee49a" PRIMARY KEY ("subnet_group_name"))`,
+      `CREATE TABLE "subnet_group" ("id" SERIAL NOT NULL, "subnet_group_name" character varying NOT NULL, "description" character varying, "arn" character varying, "subnets" character varying array, CONSTRAINT "UQ_129b8295c594237d6cc4adee49a" UNIQUE ("subnet_group_name"), CONSTRAINT "check_subnet_group_subnets_same_vpc" CHECK (check_subnet_group_subnets_same_vpc(subnets)), CONSTRAINT "check_subnet_group_subnets" CHECK (check_subnet_group_subnets(subnets)), CONSTRAINT "PK_129b8295c594237d6cc4adee49a" PRIMARY KEY ("subnet_group_name"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."memory_db_cluster_node_type_enum" AS ENUM('db.t4g.small', 'db.t4g.medium', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarg')`,

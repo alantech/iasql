@@ -1,24 +1,4 @@
- -- Since Postgres does not allow arrays of foreign keys, but we prefer the syntactic simplicity they
--- provide. This check function implements half of a foreign key's behavior by making sure on insert
--- or update of a memory db subnet group that all referenced subnets actually exist.
-CREATE
-OR REPLACE FUNCTION check_subnet_group_subnets (_subnets TEXT[]) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
-declare
-  _subnets_count integer;
-begin
-  select COUNT(*) into _subnets_count
-  from subnet
-  where subnet_id = any(_subnets);
-  return _subnets_count = array_length(_subnets, 1);
-end;
-$$;
-
-ALTER TABLE
-  subnet_group
-ADD
-  CONSTRAINT check_subnet_group_subnets CHECK (check_subnet_group_subnets (subnets));
-
--- This check function implements the other half of a foreign key's behavior by raising an error on delete
+ -- This check function implements the other half of a foreign key's behavior by raising an error on delete
 -- or update of a subnet that is being referenced by a memodry db subnet group.
 CREATE
 OR REPLACE FUNCTION check_subnets_by_subnet_group () RETURNS TRIGGER AS $check_subnets_by_subnet_group$
@@ -47,20 +27,3 @@ UPDATE
   ON subnet FOR EACH ROW
 EXECUTE
   FUNCTION check_subnets_by_subnet_group ();
-
-CREATE
-OR REPLACE FUNCTION check_subnet_group_subnets_same_vpc (_subnets TEXT[]) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
-declare
-  _vpc_count integer;
-begin
-  select COUNT(distinct vpc_id) into _vpc_count
-  from subnet
-  where subnet_id = any(_subnets);
-  return _vpc_count < 2;
-end;
-$$;
-
-ALTER TABLE
-  subnet_group
-ADD
-  CONSTRAINT check_subnet_group_subnets_same_vpc CHECK (check_subnet_group_subnets_same_vpc (subnets));
