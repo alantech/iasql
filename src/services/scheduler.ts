@@ -183,7 +183,7 @@ export async function start(dbId: string, dbUser: string) {
           // `modulename` is arriving with snake_case since is how the module defines it based on the dirname
           const moduleName = Object.keys(Modules ?? {}).find(k => k === camelCase(modulename)) ?? 'unknown';
           if (!Modules[moduleName]) throwError(`Module ${modulename} not found`);
-          logger.info(`+-+ trying to get context db ${db?.alias} upgrading ${db?.upgrading} with conn ${conn} and modules ${JSON.stringify(Modules)}`)
+          logger.info(`+-+ trying to get context db ${db?.alias} upgrading ${db?.upgrading} with conn ${conn} and modules ${JSON.stringify(Object.keys(Modules ?? {}))}`)
           const context = await getContext(conn, Modules);
           const rpcRes: any[] | undefined = await (Modules[moduleName] as ModuleInterface)?.rpc?.[
             methodname
