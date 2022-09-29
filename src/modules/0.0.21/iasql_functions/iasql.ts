@@ -15,7 +15,7 @@ import logger, { debugObj } from '../../../services/logger';
 import { sortModules } from '../../../services/mod-sort';
 import MetadataRepo from '../../../services/repositories/metadata';
 import { TypeormWrapper } from '../../../services/typeorm';
-import * as scheduler from '../../../services/scheduler-api';
+import { start, stop, } from '../../../services/scheduler'
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
@@ -923,7 +923,7 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
       // be automated in some way later.)
       let conn: any;
       try {
-        await scheduler.stop(dbId);
+        await stop(dbId);
         conn =
           context.orm ??
           (await createConnection({
@@ -1025,7 +1025,7 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
             true,
           );
         }
-        await scheduler.start(dbId, dbUser);
+        await start(dbId, dbUser);
       } catch (e) {
         logger.error('Failed to upgrade', { e });
       } finally {
