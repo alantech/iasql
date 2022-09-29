@@ -1343,31 +1343,55 @@ export async function upgrade(dbId: string, dbUser: string) {
           await OldModules?.IasqlFunctions?.migrations?.beforeRemove(qr);
         }
         await OldModules?.IasqlFunctions?.migrations?.remove(qr);
+        if (OldModules?.IasqlFunctions?.migrations?.beforeRemove) {
+          await OldModules?.IasqlFunctions?.migrations?.afterRemove(qr);
+        }
         if (OldModules?.iasqlFunctions?.migrations?.beforeRemove) {
           await OldModules?.iasqlFunctions?.migrations?.beforeRemove(qr);
         }
         await OldModules?.iasqlFunctions?.migrations?.remove(qr);
+        if (OldModules?.iasqlFunctions?.migrations?.afterRemove) {
+          await OldModules?.iasqlFunctions?.migrations?.afterRemove(qr);
+        }
         if (OldModules?.IasqlPlatform?.migrations?.beforeRemove) {
           await OldModules?.IasqlPlatform?.migrations?.beforeRemove(qr);
         }
         await OldModules?.IasqlPlatform?.migrations?.remove(qr);
+        if (OldModules?.IasqlPlatform?.migrations?.afterRemove) {
+          await OldModules?.IasqlPlatform?.migrations?.afterRemove(qr);
+        }
         if (OldModules?.iasqlPlatform?.migrations?.beforeRemove) {
           await OldModules?.iasqlPlatform?.migrations?.beforeRemove(qr);
         }
         await OldModules?.iasqlPlatform?.migrations?.remove(qr);
+        if (OldModules?.iasqlPlatform?.migrations?.afterRemove) {
+          await OldModules?.iasqlPlatform?.migrations?.afterRemove(qr);
+        }
         // 5. Install the new `iasql_*` modules manually
         const NewModules = AllModules[config.modules.latestVersion];
+        if (NewModules?.IasqlPlatform?.migrations?.beforeInstall) {
+          await NewModules?.IasqlPlatform?.migrations?.beforeInstall(qr);
+        }
         await NewModules?.IasqlPlatform?.migrations?.install(qr);
         if (NewModules?.IasqlPlatform?.migrations?.afterInstall) {
           await NewModules?.IasqlPlatform?.migrations?.afterInstall(qr);
+        }
+        if (NewModules?.iasqlPlatform?.migrations?.beforeInstall) {
+          await NewModules?.iasqlPlatform?.migrations?.beforeInstall(qr);
         }
         await NewModules?.iasqlPlatform?.migrations?.install(qr);
         if (NewModules?.iasqlPlatform?.migrations?.afterInstall) {
           await NewModules?.iasqlPlatform?.migrations?.afterInstall(qr);
         }
+        if (NewModules?.IasqlFunctions?.migrations?.beforeInstall) {
+          await NewModules?.IasqlFunctions?.migrations?.beforeInstall(qr);
+        }
         await NewModules?.IasqlFunctions?.migrations?.install(qr);
         if (NewModules?.IasqlFunctions?.migrations?.afterInstall) {
           await NewModules?.IasqlFunctions?.migrations?.afterInstall(qr);
+        }
+        if (NewModules?.iasqlFunctions?.migrations?.beforeInstall) {
+          await NewModules?.iasqlFunctions?.migrations?.beforeInstall(qr);
         }
         await NewModules?.iasqlFunctions?.migrations?.install(qr);
         if (NewModules?.iasqlFunctions?.migrations?.afterInstall) {
