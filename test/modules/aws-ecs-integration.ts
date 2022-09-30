@@ -312,7 +312,7 @@ describe('ECS Integration Testing', () => {
   );
 
   it(
-    'adds a new container definition',
+    'adds a new container definition', // TODO: add region to log_group selects when multi-region is supported
     query(`
     BEGIN;
       INSERT INTO container_definition ("name", image, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
