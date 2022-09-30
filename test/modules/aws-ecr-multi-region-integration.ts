@@ -83,9 +83,9 @@ describe('ECR Multi-region Integration Testing', () => {
     'checks it has been removed',
     query(
       `
-    SELECT *
-    FROM repository
-    WHERE repository_name = '${repositoryName}';
+      SELECT *
+      FROM repository
+      WHERE repository_name = '${repositoryName}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
@@ -94,7 +94,7 @@ describe('ECR Multi-region Integration Testing', () => {
   it(
     'adds a new repository',
     query(`  
-    INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability, region)
+      INSERT INTO repository (repository_name, scan_on_push, image_tag_mutability, region)
       VALUES ('${repositoryName}', false, 'MUTABLE', '${nonDefaultRegion}');
   `),
   );
@@ -106,89 +106,110 @@ describe('ECR Multi-region Integration Testing', () => {
     query(
       `
       SELECT *
-    FROM repository
-    WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
+      FROM repository
+      WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
 
-  it(
-    'pushes repository image',
-    query(
-      `SELECT repository_uri FROM repository WHERE repository_name='${repositoryName}' and region = '${nonDefaultRegion}'`,
-      (res: any[]) => {
-        // get repository uri to retag and pull
-        const repositoryUri = res[0]['repository_uri'];
-        execSync(`docker tag ${dockerImage} ${repositoryUri}`);
-        execSync(
-          `docker login --username AWS -p $(aws ecr get-login-password --region ${nonDefaultRegion}) ${repositoryUri}`,
-        );
+  // it(
+  //   'pushes repository image',
+  //   query(
+  //     `SELECT repository_uri FROM repository WHERE repository_name='${repositoryName}' and region = '${nonDefaultRegion}'`,
+  //     (res: any[]) => {
+  //       // get repository uri to retag and pull
+  //       const repositoryUri = res[0]['repository_uri'];
+  //       execSync(`docker tag ${dockerImage} ${repositoryUri}`);
+  //       execSync(
+  //         `docker login --username AWS -p $(aws ecr get-login-password --region ${nonDefaultRegion}) ${repositoryUri}`,
+  //       );
 
-        execSync(`docker push ${repositoryUri}`);
+  //       execSync(`docker push ${repositoryUri}`);
 
-        // upload with a new tag
-        execSync(`docker tag ${dockerImage} ${repositoryUri}:${repositoryTag}`);
-        execSync(`docker push ${repositoryUri}:${repositoryTag}`);
-      },
-    ),
-  );
+  //       // upload with a new tag
+  //       execSync(`docker tag ${dockerImage} ${repositoryUri}:${repositoryTag}`);
+  //       execSync(`docker push ${repositoryUri}:${repositoryTag}`);
+  //     },
+  //   ),
+  // );
 
-  it('syncs the images', sync());
+  // it('syncs the images', sync());
 
-  it(
-    'check that new images has been created under a private repo',
-    query(
-      `
-    SELECT *
-    FROM repository_image
-    WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
-  `,
-      (res: any[]) => {
-        expect(res.length).toBe(2);
-      },
-    ),
-  );
+  // it(
+  //   'check that new images has been created under a private repo',
+  //   query(
+  //     `
+  //   SELECT *
+  //   FROM repository_image
+  //   WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
+  // `,
+  //     (res: any[]) => {
+  //       expect(res.length).toBe(2);
+  //     },
+  //   ),
+  // );
 
-  it(
-    'adds a new repository policy',
-    query(`
-    INSERT INTO repository_policy (repository_id, policy_text, region)
-    VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}', '${nonDefaultRegion}');
-  `),
-  );
+  // it(
+  //   'adds a new repository policy',
+  //   query(`
+  //   INSERT INTO repository_policy (repository_id, policy_text, region)
+  //   VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}', '${nonDefaultRegion}');
+  // `),
+  // );
 
-  it('applies the change', apply());
+  // it('applies the change', apply());
 
-  it(
-    'check adds a new repository policy',
-    query(
-      `
-    SELECT *
-    FROM repository_policy
-    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${nonDefaultRegion}';
-  `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
+  // it(
+  //   'check adds a new repository policy',
+  //   query(
+  //     `
+  //   SELECT *
+  //   FROM repository_policy
+  //   WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${nonDefaultRegion}';
+  // `,
+  //     (res: any[]) => expect(res.length).toBe(1),
+  //   ),
+  // );
+
+  // it(
+  //   'changes the region the repository is located in',
+  //   query(`
+  //     with updated_repository_policy as (
+  //       UPDATE repository_policy
+  //         SET region = '${process.env.AWS_REGION}'
+  //         WHERE repository_id = (select id from repository where repository_name = '${repositoryName}')
+  //     ),
+  //     udpated_repository_image as (
+  //       UPDATE repository_image
+  //       SET private_repository_region = '${process.env.AWS_REGION}'
+  //       WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}')
+  //     )
+  //     UPDATE repository
+  //     SET region = '${process.env.AWS_REGION}'
+  //     WHERE repository_name = '${repositoryName}';
+  // `),
+  // );
 
   it(
     'changes the region the repository is located in',
     query(`
-      with updated_repository_policy as (
-        UPDATE repository_policy
-          SET region = '${process.env.AWS_REGION}'
-          WHERE repository_id = (select id from repository where repository_name = '${repositoryName}')
-      ),
-      udpated_repository_image as (
-        UPDATE repository_image
-        SET private_repository_region = '${process.env.AWS_REGION}'
-        WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}')
-      )
       UPDATE repository
       SET region = '${process.env.AWS_REGION}'
-      WHERE repository_name = '${repositoryName}';
+      WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
   `),
+  );
+
+  it(
+    'check old repository region',
+    query(
+      `
+    SELECT *
+    FROM repository
+    WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
   );
 
   it(
@@ -203,29 +224,29 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
-  it(
-    'check new repository policy region',
-    query(
-      `
-    SELECT *
-    FROM repository_policy
-    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${process.env.AWS_REGION}';
-  `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
+  // it(
+  //   'check new repository policy region',
+  //   query(
+  //     `
+  //   SELECT *
+  //   FROM repository_policy
+  //   WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${process.env.AWS_REGION}';
+  // `,
+  //     (res: any[]) => expect(res.length).toBe(1),
+  //   ),
+  // );
 
-  it(
-    'check new repository image region',
-    query(
-      `
-    SELECT *
-    FROM repository_image
-    WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}') and private_repository_region = '${process.env.AWS_REGION}';
-  `,
-      (res: any[]) => expect(res.length).toBe(2),
-    ),
-  );
+  // it(
+  //   'check new repository image region',
+  //   query(
+  //     `
+  //   SELECT *
+  //   FROM repository_image
+  //   WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}') and private_repository_region = '${process.env.AWS_REGION}';
+  // `,
+  //     (res: any[]) => expect(res.length).toBe(2),
+  //   ),
+  // );
 
   it('applies the replacement', apply());
 
@@ -241,47 +262,55 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
+  // it(
+  //   'removes the repository',
+  //   query(`
+  //   BEGIN;
+  //     DELETE FROM repository_image
+  //     WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
+
+  //     DELETE FROM repository_policy
+  //     WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
+
+  //     DELETE FROM repository
+  //     WHERE repository_name = '${repositoryName}';
+  //   COMMIT;
+  // `),
+  // );
+
   it(
     'removes the repository',
     query(`
-    BEGIN;
-      DELETE FROM repository_image
-      WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
-
-      DELETE FROM repository_policy
-      WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
-
       DELETE FROM repository
-      WHERE repository_name = '${repositoryName}';
-    COMMIT;
+      WHERE repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}';
   `),
   );
 
   it('applies the removal', apply());
 
-  it(
-    'checks the remaining table count for the last time',
-    query(
-      `
-    SELECT *
-    FROM repository_image
-    WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
+  // it(
+  //   'checks the remaining table count for the last time',
+  //   query(
+  //     `
+  //   SELECT *
+  //   FROM repository_image
+  //   WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
+  // `,
+  //     (res: any[]) => expect(res.length).toBe(0),
+  //   ),
+  // );
 
-  it(
-    'checks the remaining table count for the last time',
-    query(
-      `
-    SELECT *
-    FROM repository_policy
-    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
+  // it(
+  //   'checks the remaining table count for the last time',
+  //   query(
+  //     `
+  //   SELECT *
+  //   FROM repository_policy
+  //   WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
+  // `,
+  //     (res: any[]) => expect(res.length).toBe(0),
+  //   ),
+  // );
 
   it(
     'checks the remaining table count for the last time',

@@ -377,6 +377,7 @@ class PublicRepositoryMapper extends MapperBase<PublicRepository> {
 class RepositoryMapper extends MapperBase<Repository> {
   module: AwsEcrModule;
   entity = Repository;
+  entityId = (e: Repository) => `${e.repositoryName}|${e.region}`;
   equals = (a: Repository, b: Repository) =>
     Object.is(a.repositoryName, b.repositoryName) &&
     Object.is(a.repositoryArn, b.repositoryArn) &&
@@ -468,11 +469,11 @@ class RepositoryMapper extends MapperBase<Repository> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        for (const region of enabledRegions) {
+        const [repositoryName, region] = id.split('|');
+        if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawEcr = await this.getECRRepository(client.ecrClient, id);
-          if (!rawEcr) continue;
-          return this.repositoryMapper(rawEcr, region);
+          const rawEcr = await this.getECRRepository(client.ecrClient, repositoryName);
+          if (rawEcr) return this.repositoryMapper(rawEcr, region);
         }
       } else {
         const out = [];
@@ -487,18 +488,10 @@ class RepositoryMapper extends MapperBase<Repository> {
         return out;
       }
     },
-    updateOrReplace: (a: Repository, b: Repository) => (a.region !== b.region ? 'replace' : 'update'),
     update: async (es: Repository[], ctx: Context) => {
       const out: Repository[] = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.Repository?.[e.repositoryName ?? ''];
-        const isUpdate = Object.is(this.module.repository.cloud.updateOrReplace(cloudRecord, e), 'update');
-        if (!isUpdate) {
-          const newRepository = await this.module.repository.cloud.create(e, ctx);
-          await this.module.repository.cloud.delete(e, ctx);
-          if (newRepository && !Array.isArray(newRepository)) out.push(newRepository);
-          continue;
-        }
+        const cloudRecord = ctx?.memo?.cloud?.Repository?.[this.entityId(e) ?? ''];
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         let updatedRecord = { ...cloudRecord };
         if (cloudRecord?.imageTagMutability !== e.imageTagMutability) {
@@ -533,6 +526,7 @@ class RepositoryMapper extends MapperBase<Repository> {
         await this.deleteECRRepository(client.ecrClient, e.repositoryName!);
         // Also need to delete the repository policy associated with this repository,
         // if any
+        // todo: fix with multiregion policies
         const policy = await this.module.repositoryPolicy.db.read(ctx, e.repositoryName);
         await this.module.repositoryPolicy.db.delete(policy, ctx);
       }
