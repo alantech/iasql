@@ -150,27 +150,27 @@ describe('ECR Multi-region Integration Testing', () => {
   //   ),
   // );
 
-  // it(
-  //   'adds a new repository policy',
-  //   query(`
-  //   INSERT INTO repository_policy (repository_id, policy_text, region)
-  //   VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}', '${nonDefaultRegion}');
-  // `),
-  // );
+  it(
+    'adds a new repository policy',
+    query(`
+    INSERT INTO repository_policy (repository_id, policy_text, region)
+    VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}', '${nonDefaultRegion}');
+  `),
+  );
 
-  // it('applies the change', apply());
+  it('applies the change', apply());
 
-  // it(
-  //   'check adds a new repository policy',
-  //   query(
-  //     `
-  //   SELECT *
-  //   FROM repository_policy
-  //   WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${nonDefaultRegion}';
-  // `,
-  //     (res: any[]) => expect(res.length).toBe(1),
-  //   ),
-  // );
+  it(
+    'check adds a new repository policy',
+    query(
+      `
+    SELECT *
+    FROM repository_policy
+    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${nonDefaultRegion}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   // it(
   //   'changes the region the repository is located in',
@@ -194,6 +194,11 @@ describe('ECR Multi-region Integration Testing', () => {
   it(
     'changes the region the repository is located in',
     query(`
+      with updated_repository_policy as (
+        UPDATE repository_policy
+          SET region = '${process.env.AWS_REGION}'
+          WHERE repository_id = (select id from repository where repository_name = '${repositoryName}')
+      )
       UPDATE repository
       SET region = '${process.env.AWS_REGION}'
       WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
@@ -204,9 +209,9 @@ describe('ECR Multi-region Integration Testing', () => {
     'check old repository region',
     query(
       `
-    SELECT *
-    FROM repository
-    WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
+      SELECT *
+      FROM repository
+      WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
@@ -216,25 +221,37 @@ describe('ECR Multi-region Integration Testing', () => {
     'check new repository region',
     query(
       `
-    SELECT *
-    FROM repository
-    WHERE repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}';
+      SELECT *
+      FROM repository
+      WHERE repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
 
-  // it(
-  //   'check new repository policy region',
-  //   query(
-  //     `
-  //   SELECT *
-  //   FROM repository_policy
-  //   WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${process.env.AWS_REGION}';
-  // `,
-  //     (res: any[]) => expect(res.length).toBe(1),
-  //   ),
-  // );
+  it(
+    'check old repository policy region',
+    query(
+      `
+    SELECT *
+    FROM repository_policy
+    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${nonDefaultRegion}';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check new repository policy region',
+    query(
+      `
+    SELECT *
+    FROM repository_policy
+    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${process.env.AWS_REGION}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   // it(
   //   'check new repository image region',
@@ -262,6 +279,18 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
+  it(
+    'check new repository policy region',
+    query(
+      `
+      SELECT *
+      FROM repository_policy
+      WHERE repository_id = (select id from repository where repository_name = '${repositoryName}') and region = '${process.env.AWS_REGION}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
   // it(
   //   'removes the repository',
   //   query(`
@@ -281,8 +310,13 @@ describe('ECR Multi-region Integration Testing', () => {
   it(
     'removes the repository',
     query(`
-      DELETE FROM repository
-      WHERE repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}';
+      BEGIN;
+        DELETE FROM repository_policy
+        WHERE repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}');
+
+        DELETE FROM repository
+        WHERE repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}';
+      COMMIT;
   `),
   );
 
@@ -300,17 +334,17 @@ describe('ECR Multi-region Integration Testing', () => {
   //   ),
   // );
 
-  // it(
-  //   'checks the remaining table count for the last time',
-  //   query(
-  //     `
-  //   SELECT *
-  //   FROM repository_policy
-  //   WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
-  // `,
-  //     (res: any[]) => expect(res.length).toBe(0),
-  //   ),
-  // );
+  it(
+    'checks the remaining table count for the last time',
+    query(
+      `
+    SELECT *
+    FROM repository_policy
+    WHERE repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${process.env.AWS_REGION}');
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
   it(
     'checks the remaining table count for the last time',

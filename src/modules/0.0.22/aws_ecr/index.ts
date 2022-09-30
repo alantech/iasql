@@ -444,7 +444,6 @@ class RepositoryMapper extends MapperBase<Repository> {
     create: async (es: Repository[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        logger.info(`+-+ what im trying to create ${JSON.stringify(e)}`);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const result = await this.createECRRepository(client.ecrClient, {
           repositoryName: e.repositoryName,
@@ -566,7 +565,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     out.repository =
       (await this.module.repository.db.read(ctx))
         .filter((r: Repository) => r.region === region && r.repositoryName === rp.repositoryName)
-        .pop() ?? (await this.module.repository.cloud.read(ctx, this.entityId(rp)));
+        .pop() ?? (await this.module.repository.cloud.read(ctx, `${rp.repositoryName}|${region}`));
     out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
     out.region = region;
     return out;
