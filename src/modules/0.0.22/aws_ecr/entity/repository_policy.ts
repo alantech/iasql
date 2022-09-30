@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToOne, Unique } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToOne, Unique, ManyToOne } from 'typeorm';
 
 import { Repository } from '.';
+import { AwsRegions } from '../../aws_account/entity';
 
 @Entity()
 @Unique('uq_repository_policy_region', ['id', 'region'])
@@ -31,11 +32,12 @@ export class RepositoryPolicy {
   })
   policyText?: string;
 
-  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
   @Column({
     type: 'character varying',
     nullable: false,
     default: () => 'default_aws_region()',
   })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
   region: string;
 }

@@ -1,6 +1,7 @@
-import { Entity, Column, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Entity, Column, OneToMany, PrimaryGeneratedColumn, Unique, ManyToOne, JoinColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { RepositoryImage } from './repository_image';
 
 export enum ImageTagMutability {
@@ -59,12 +60,13 @@ export class Repository {
   })
   images?: RepositoryImage[];
 
-  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
   @Column({
     type: 'character varying',
     nullable: false,
     default: () => 'default_aws_region()',
   })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
   region: string;
 
   // TODO: add encriptation configuration entity.

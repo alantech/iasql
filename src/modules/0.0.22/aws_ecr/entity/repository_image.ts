@@ -2,6 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, Unique }
 
 import { PublicRepository, Repository } from '.';
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 
 @Entity()
 @Unique('uq_repository_image_region', ['id', 'privateRepositoryRegion'])
@@ -45,10 +46,11 @@ export class RepositoryImage {
   })
   publicRepository?: PublicRepository;
 
-  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
   @Column({
     type: 'character varying',
     nullable: true,
   })
-  privateRepositoryRegion?: string;
+  @ManyToOne(() => AwsRegions, { nullable: true })
+  @JoinColumn({ name: 'privateRepositoryRegion', referencedColumnName: 'region' })
+  privateRepositoryRegion: string;
 }

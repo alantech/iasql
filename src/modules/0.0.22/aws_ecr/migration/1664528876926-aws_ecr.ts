@@ -1,11 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEcr1664372768382 implements MigrationInterface {
-  name = 'awsEcr1664372768382';
+export class awsEcr1664528876926 implements MigrationInterface {
+  name = 'awsEcr1664528876926';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "repository_image" ("id" SERIAL NOT NULL, "image_id" character varying NOT NULL, "image_digest" character varying NOT NULL, "image_tag" character varying NOT NULL, "registry_id" character varying, "private_repository_region" character varying, "private_repository_id" integer, "public_repository" character varying, CONSTRAINT "uq_repository_image_id_region" UNIQUE ("image_id", "private_repository_region"), CONSTRAINT "uq_repository_image_region" UNIQUE ("id", "private_repository_region"), CONSTRAINT "PK_b78ff8649cde8d938a7c25f8333" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "repository_image" ("id" SERIAL NOT NULL, "image_id" character varying NOT NULL, "image_digest" character varying NOT NULL, "image_tag" character varying NOT NULL, "registry_id" character varying, "private_repository_region" character varying, "private_repository_id" integer, "public_repository" character varying, "privateRepositoryRegion" character varying, CONSTRAINT "uq_repository_image_id_region" UNIQUE ("image_id", "private_repository_region"), CONSTRAINT "uq_repository_image_region" UNIQUE ("id", "private_repository_region"), CONSTRAINT "PK_b78ff8649cde8d938a7c25f8333" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "public_repository" ("repository_name" character varying NOT NULL, "repository_arn" character varying, "registry_id" character varying, "repository_uri" character varying, "created_at" TIMESTAMP WITH TIME ZONE, CONSTRAINT "PK_5a7e30211ae44944c8cd65711dd" PRIMARY KEY ("repository_name"))`,
@@ -26,13 +26,29 @@ export class awsEcr1664372768382 implements MigrationInterface {
       `ALTER TABLE "repository_image" ADD CONSTRAINT "FK_73e200bf737f9171cf79db50514" FOREIGN KEY ("public_repository") REFERENCES "public_repository"("repository_name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
+      `ALTER TABLE "repository_image" ADD CONSTRAINT "FK_ee0777d152be59ff72d5a549778" FOREIGN KEY ("privateRepositoryRegion") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "repository" ADD CONSTRAINT "FK_93a1a4e1c4fc4aa282463561ea4" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "repository_policy" ADD CONSTRAINT "FK_d63954354967f55ff8b506931fe" FOREIGN KEY ("repository_id", "region") REFERENCES "repository"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "repository_policy" ADD CONSTRAINT "FK_91306c99185bd327ed6c2c70f92" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
+      `ALTER TABLE "repository_policy" DROP CONSTRAINT "FK_91306c99185bd327ed6c2c70f92"`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "repository_policy" DROP CONSTRAINT "FK_d63954354967f55ff8b506931fe"`,
+    );
+    await queryRunner.query(`ALTER TABLE "repository" DROP CONSTRAINT "FK_93a1a4e1c4fc4aa282463561ea4"`);
+    await queryRunner.query(
+      `ALTER TABLE "repository_image" DROP CONSTRAINT "FK_ee0777d152be59ff72d5a549778"`,
     );
     await queryRunner.query(
       `ALTER TABLE "repository_image" DROP CONSTRAINT "FK_73e200bf737f9171cf79db50514"`,
