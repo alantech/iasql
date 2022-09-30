@@ -43,7 +43,10 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     (out.privateRepository = undefined), (out.publicRepository = undefined);
     if (type === 'private') {
       // retrieve repository details
-      const repo = await this.module.repository.db.read(ctx, image.repositoryName);
+      const repo =
+        (await this.module.repository.db.read(ctx))
+          .filter((r: Repository) => r.repositoryName === image.repositoryName && r.region === region)
+          .pop() ?? (await this.module.repository.cloud.read(ctx, `${image.repositoryName}|${region}`));
       if (repo) out.privateRepository = repo;
     } else {
       const repo = await this.module.publicRepository.cloud.read(ctx, image.repositoryName);
@@ -140,12 +143,13 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         const type = decoded[2];
 
         if (type === 'private') {
-          for (const region of enabledRegions) {
-            const client = (await ctx.getAwsClient(region)) as AWS;
+          const idRegion = decoded[4];
+          if (enabledRegions.includes(idRegion)) {
+            const client = (await ctx.getAwsClient(idRegion)) as AWS;
             const rawImage = await this.getRepositoryImage(client.ecrClient, [imageId], decoded[3]);
             if (rawImage?.images && rawImage.images[0]) {
-              return await this.repositoryImageMapper(rawImage.images[0], ctx, type, region);
-            } else continue;
+              return await this.repositoryImageMapper(rawImage.images[0], ctx, type, idRegion);
+            }
           }
         } else {
           // public, we need to use different api
@@ -174,7 +178,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         const images = [];
         for (const region of enabledRegions) {
           const regionClient = (await ctx.getAwsClient(region)) as AWS;
-          for (const r of repositories) {
+          for (const r of repositories.filter(repo => repo?.region === region)) {
             try {
               // first retrieve the list of images associated to the repo, then retrieve the details
               const ri = await this.listRepositoryImages(
@@ -560,9 +564,9 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     const out = new RepositoryPolicy();
     out.registryId = rp?.registryId;
     out.repository =
-      (await this.module.repository.db.read(ctx)).filter(
-        (r: Repository) => r.region === region && r.repositoryName === rp.repositoryName,
-      ).pop() ?? (await this.module.repository.cloud.read(ctx, this.entityId(rp)));
+      (await this.module.repository.db.read(ctx))
+        .filter((r: Repository) => r.region === region && r.repositoryName === rp.repositoryName)
+        .pop() ?? (await this.module.repository.cloud.read(ctx, this.entityId(rp)));
     out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
     out.region = region;
     return out;
