@@ -323,12 +323,12 @@ describe('ECS Integration Testing', () => {
     }, ${
       containerPort + 1
     }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName}'));
-      INSERT INTO container_definition ("name", image, digest, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_name)
+      INSERT INTO container_definition ("name", image, digest, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
       VALUES('${containerNameDigest}', '${image}', '${imageDigest}', false, ${containerMemoryReservation}, ${
       hostPort + 2
     }, ${
       containerPort + 2
-    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), '${logGroupName}');
+    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName}'));
     COMMIT;
   `),
   );
