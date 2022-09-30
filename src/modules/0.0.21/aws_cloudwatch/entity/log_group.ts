@@ -1,12 +1,11 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
+
+import { cloudId } from '../../../../services/cloud-id';
 
 @Entity()
-@Index(['logGroupName', 'region'], { unique: true })
 export class LogGroup {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @Column()
+  @PrimaryColumn()
+  @cloudId
   logGroupName: string;
 
   @Column({
@@ -19,12 +18,4 @@ export class LogGroup {
     type: 'timestamp with time zone',
   })
   creationTime?: Date;
-
-  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
-  @Column({
-    type: 'character varying',
-    nullable: false,
-    default: () => 'default_aws_region()',
-  })
-  region: string;
 }

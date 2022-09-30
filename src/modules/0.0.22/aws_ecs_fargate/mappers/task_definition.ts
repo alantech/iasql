@@ -167,8 +167,8 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
     if (c.logConfiguration?.logDriver === 'awslogs') {
       const groupName = c.logConfiguration.options['awslogs-group'];
       const logGroup =
-        (await awsCloudwatchModule.logGroup.db.read(ctx, groupName)) ??
-        (await awsCloudwatchModule.logGroup.cloud.read(ctx, groupName));
+        (await awsCloudwatchModule.logGroup.db.read(ctx)).find((lg: any) => lg.logGroupName === groupName) ??
+        (await awsCloudwatchModule.logGroup.cloud.read(ctx)).find((lg: any) => lg.logGroupName === groupName);
       out.logGroup = logGroup;
     }
     return out;
