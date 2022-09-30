@@ -85,7 +85,8 @@ export async function apply(dbId: string, dryRun: boolean, context: Context, orm
     );
     const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as ModuleInterface[])
-      .map(mod => Object.values(mod as ModuleInterface))
+      .map(mod => Object.values(mod))
+      .flat()
       .filter(val => val instanceof MapperBase)
       .flat()
       .filter(mapper => mapper.source === 'db');
@@ -312,7 +313,8 @@ export async function sync(
     );
     const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as ModuleInterface[])
-      .map(mod => Object.values(mod as ModuleInterface))
+      .map(mod => Object.values(mod))
+      .flat()
       .filter(val => val instanceof MapperBase)
       .flat();
     const t2 = Date.now();

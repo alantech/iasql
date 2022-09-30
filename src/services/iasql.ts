@@ -436,7 +436,8 @@ export async function apply(dbId: string, dryRun: boolean, ormOpt?: TypeormWrapp
     );
     const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as ModuleInterface[])
-      .map(mod => Object.values(mod as ModuleInterface))
+      .map(mod => Object.values(mod))
+      .flat()
       .filter(val => val instanceof MapperBase)
       .flat()
       .filter(mapper => mapper.source === 'db');
@@ -676,7 +677,8 @@ export async function sync(dbId: string, dryRun: boolean, force = false, ormOpt?
     );
     const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as ModuleInterface[])
-      .map(mod => Object.values(mod as ModuleInterface))
+      .map(mod => Object.values(mod))
+      .flat()
       .filter(val => val instanceof MapperBase)
       .flat();
     const t2 = Date.now();
