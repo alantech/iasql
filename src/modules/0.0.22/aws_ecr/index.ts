@@ -560,9 +560,9 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     const out = new RepositoryPolicy();
     out.registryId = rp?.registryId;
     out.repository =
-      (await this.module.repository.db.read(ctx, rp?.repositoryName)).filter(
-        (r: Repository) => r.region === region,
-      ) ?? (await this.module.repository.cloud.read(ctx, this.entityId(rp)));
+      (await this.module.repository.db.read(ctx)).filter(
+        (r: Repository) => r.region === region && r.repositoryName === rp.repositoryName,
+      ).pop() ?? (await this.module.repository.cloud.read(ctx, this.entityId(rp)));
     out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
     out.region = region;
     return out;
