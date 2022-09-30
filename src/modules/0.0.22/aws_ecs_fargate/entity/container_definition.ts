@@ -51,8 +51,8 @@ export class ContainerDefinition {
   })
   @JoinColumn([
     {
-      name: 'repository_name',
-      referencedColumnName: 'repositoryName',
+      name: 'repository_id',
+      referencedColumnName: 'id',
     },
     {
       name: 'region',
