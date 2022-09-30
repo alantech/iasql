@@ -113,42 +113,39 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
-  // it(
-  //   'pushes repository image',
-  //   query(
-  //     `SELECT repository_uri FROM repository WHERE repository_name='${repositoryName}' and region = '${nonDefaultRegion}'`,
-  //     (res: any[]) => {
-  //       // get repository uri to retag and pull
-  //       const repositoryUri = res[0]['repository_uri'];
-  //       execSync(`docker tag ${dockerImage} ${repositoryUri}`);
-  //       execSync(
-  //         `docker login --username AWS -p $(aws ecr get-login-password --region ${nonDefaultRegion}) ${repositoryUri}`,
-  //       );
+  it(
+    'pushes repository image',
+    query(
+      `SELECT repository_uri FROM repository WHERE repository_name='${repositoryName}' and region = '${nonDefaultRegion}'`,
+      (res: any[]) => {
+        // get repository uri to retag and pull
+        const repositoryUri = res[0]['repository_uri'];
+        execSync(`docker tag ${dockerImage} ${repositoryUri}`);
+        execSync(
+          `docker login --username AWS -p $(aws ecr get-login-password --region ${nonDefaultRegion}) ${repositoryUri}`,
+        );
+        execSync(`docker push ${repositoryUri}`);
+      },
+    ),
+  );
 
-  //       execSync(`docker push ${repositoryUri}`);
+  it('syncs the images', sync());
 
-  //       // upload with a new tag
-  //       execSync(`docker tag ${dockerImage} ${repositoryUri}:${repositoryTag}`);
-  //       execSync(`docker push ${repositoryUri}:${repositoryTag}`);
-  //     },
-  //   ),
-  // );
+  it(
+    'check that new images has been created under a private repo',
+    query(
+      `
+      SELECT *
+      FROM repository_image
+      WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${nonDefaultRegion}');
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+      },
+    ),
+  );
 
-  // it('syncs the images', sync());
-
-  // it(
-  //   'check that new images has been created under a private repo',
-  //   query(
-  //     `
-  //   SELECT *
-  //   FROM repository_image
-  //   WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
-  // `,
-  //     (res: any[]) => {
-  //       expect(res.length).toBe(2);
-  //     },
-  //   ),
-  // );
+  // todo: force error and the delete image
 
   it(
     'adds a new repository policy',
@@ -172,32 +169,45 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
-  // it(
-  //   'changes the region the repository is located in',
-  //   query(`
-  //     with updated_repository_policy as (
-  //       UPDATE repository_policy
-  //         SET region = '${process.env.AWS_REGION}'
-  //         WHERE repository_id = (select id from repository where repository_name = '${repositoryName}')
-  //     ),
-  //     udpated_repository_image as (
-  //       UPDATE repository_image
-  //       SET private_repository_region = '${process.env.AWS_REGION}'
-  //       WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}')
-  //     )
-  //     UPDATE repository
-  //     SET region = '${process.env.AWS_REGION}'
-  //     WHERE repository_name = '${repositoryName}';
-  // `),
-  // );
+  it('should fail trying to move a repository with its images to a different region', () => {
+    try {
+      query(`
+      with updated_repository_policy as (
+        UPDATE repository_policy
+        SET region = '${process.env.AWS_REGION}'
+        WHERE repository_id = (select id from repository where repository_name = '${repositoryName}')
+      ),
+      updated_repository_image as (
+        UPDATE repository_image
+        SET private_repository_region = '${process.env.AWS_REGION}'
+        WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}')
+      )
+      UPDATE repository
+      SET region = '${process.env.AWS_REGION}'
+      WHERE repository_name = '${repositoryName}' and region = '${nonDefaultRegion}';
+  `);
+    } catch (e: any) {
+      expect(e.message).toContain('Region cannot be modified');
+    }
+  });
+
+  it(
+    'removes the repository images',
+    query(`
+      DELETE FROM repository_image
+      WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
+  `),
+  );
+
+  it('applies the deletion', apply());
 
   it(
     'changes the region the repository is located in',
     query(`
       with updated_repository_policy as (
         UPDATE repository_policy
-          SET region = '${process.env.AWS_REGION}'
-          WHERE repository_id = (select id from repository where repository_name = '${repositoryName}')
+        SET region = '${process.env.AWS_REGION}'
+        WHERE repository_id = (select id from repository where repository_name = '${repositoryName}')
       )
       UPDATE repository
       SET region = '${process.env.AWS_REGION}'
@@ -253,18 +263,6 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
-  // it(
-  //   'check new repository image region',
-  //   query(
-  //     `
-  //   SELECT *
-  //   FROM repository_image
-  //   WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}') and private_repository_region = '${process.env.AWS_REGION}';
-  // `,
-  //     (res: any[]) => expect(res.length).toBe(2),
-  //   ),
-  // );
-
   it('applies the replacement', apply());
 
   it(
@@ -291,22 +289,6 @@ describe('ECR Multi-region Integration Testing', () => {
     ),
   );
 
-  // it(
-  //   'removes the repository',
-  //   query(`
-  //   BEGIN;
-  //     DELETE FROM repository_image
-  //     WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
-
-  //     DELETE FROM repository_policy
-  //     WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
-
-  //     DELETE FROM repository
-  //     WHERE repository_name = '${repositoryName}';
-  //   COMMIT;
-  // `),
-  // );
-
   it(
     'removes the repository',
     query(`
@@ -321,18 +303,6 @@ describe('ECR Multi-region Integration Testing', () => {
   );
 
   it('applies the removal', apply());
-
-  // it(
-  //   'checks the remaining table count for the last time',
-  //   query(
-  //     `
-  //   SELECT *
-  //   FROM repository_image
-  //   WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
-  // `,
-  //     (res: any[]) => expect(res.length).toBe(0),
-  //   ),
-  // );
 
   it(
     'checks the remaining table count for the last time',
