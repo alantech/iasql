@@ -1,6 +1,7 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { CodedeployDeploymentGroup } from './deploymentGroup';
 
 export enum ComputePlatform {
   Lambda = 'Lambda',
@@ -11,12 +12,12 @@ export enum ComputePlatform {
 export class CodedeployApplication {
   @PrimaryColumn()
   @cloudId
-  applicationName: string;
+  name: string;
 
   @Column({
     nullable: true,
   })
-  applicationId?: string;
+  id?: string;
 
   @Column({
     type: 'enum',
@@ -24,4 +25,9 @@ export class CodedeployApplication {
     default: ComputePlatform.Server,
   })
   computePlatform: ComputePlatform;
+
+  @OneToMany(() => CodedeployDeploymentGroup, deploymentGroups => deploymentGroups.application, {
+    nullable: true,
+  })
+  deploymentGroups?: CodedeployDeploymentGroup[];
 }

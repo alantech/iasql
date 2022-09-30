@@ -1,3 +1,5 @@
+import { EC2 } from '@aws-sdk/client-ec2';
+
 import * as iasql from '../../src/services/iasql';
 import {
   execComposeDown,
@@ -14,15 +16,83 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'codedeploytest';
 const applicationName = `${prefix}${dbAlias}application`;
+const applicationNameForDeployment = `${prefix}${dbAlias}applicationForDeployment`;
+const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
+const ubuntuAmiId =
+  'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
+
+const region = process.env.AWS_REGION ?? '';
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
+const ec2client = new EC2({
+  credentials: {
+    accessKeyId,
+    secretAccessKey,
+  },
+  region,
+});
+
+const getAvailabilityZones = async () => {
+  return await ec2client.describeAvailabilityZones({
+    Filters: [
+      {
+        Name: 'region-name',
+        Values: [region],
+      },
+    ],
+  });
+};
+
+const getInstanceTypeOffering = async (availabilityZones: string[]) => {
+  return await ec2client.describeInstanceTypeOfferings({
+    LocationType: 'availability-zone',
+    Filters: [
+      {
+        Name: 'location',
+        Values: availabilityZones,
+      },
+      {
+        Name: 'instance-type',
+        Values: ['t2.micro', 't3.micro'],
+      },
+    ],
+  });
+};
+
+const roleName = `${prefix}-codedeploy-${region}`;
+const ec2RolePolicy = JSON.stringify({
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Effect: 'Allow',
+      Principal: {
+        Service: 'ec2.amazonaws.com',
+      },
+      Action: 'sts:AssumeRole',
+    },
+  ],
+});
+
+let availabilityZone: string;
+let instanceType: string;
+
 const apply = runApply.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
-const modules = ['aws_codedeploy'];
+const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2'];
 
-jest.setTimeout(360000);
-beforeAll(async () => await execComposeUp());
+jest.setTimeout(560000);
+beforeAll(async () => {
+  const availabilityZones =
+    (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
+  availabilityZone = availabilityZones.pop() ?? '';
+  const instanceTypesByAz1 = await getInstanceTypeOffering([availabilityZone]);
+  instanceType = instanceTypesByAz1.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
+
+  await execComposeUp();
+});
 afterAll(async () => await execComposeDown());
 
 describe('AwsCodedeploy Integration Testing', () => {
@@ -52,75 +122,108 @@ describe('AwsCodedeploy Integration Testing', () => {
   `),
   );
 
-  it('installs the codedeploy module', install(modules));
+  it('installs the codedeploy module and dependencies', install(modules));
+
+  describe('create IAM role', () => {
+    it(
+      'creates ec2 instance role',
+      query(`
+      INSERT INTO iam_role (role_name, assume_role_policy_document)
+      VALUES ('${roleName}', '${ec2RolePolicy}');
+    `),
+    );
+    it('applies the role creation', apply());
+  });
+
+  // create sample ec2 instance
+  describe('create ec2 instance for deployment', () => {
+    it('adds an ec2 instance', done => {
+      query(`
+        BEGIN;
+          INSERT INTO instance (ami, instance_type, tags, subnet_id)
+            SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${prefix}-vm"}', id
+            FROM subnet
+            WHERE availability_zone = '${availabilityZone}'
+            LIMIT 1;
+          INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+            (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-vm'),
+            (SELECT id FROM security_group WHERE group_name='default');
+        COMMIT;
+        `);
+    });
+
+    it('applies the created instance', apply());
+  });
 
   it(
     'adds a new codedeploy_application',
     query(`
-    INSERT INTO codedeploy_application (application_name, compute_platform)
+    INSERT INTO codedeploy_application (name, compute_platform)
     VALUES ('${applicationName}', 'Server');
   `),
   );
 
   it('undo changes', sync());
 
-  it(
-    'adds a new codedeploy_application',
-    query(`
-    INSERT INTO codedeploy_application (application_name, compute_platform)
-    VALUES ('${applicationName}', 'Server');
-  `),
-  );
+  describe('create code deploy application', () => {
+    it(
+      'adds a new codedeploy_application',
+      query(`
+      INSERT INTO codedeploy_application (name, compute_platform)
+      VALUES ('${applicationName}', 'Server');
+    `),
+    );
 
-  it('apply codedeploy_application creation', apply());
+    it('apply codedeploy_application creation', apply());
 
-  it(
-    'check codedeploy_application is available',
-    query(
-      `
-  SELECT * FROM codedeploy_application WHERE application_name='${applicationName}';
+    it(
+      'check codedeploy_application is available',
+      query(
+        `
+    SELECT * FROM codedeploy_application WHERE name='${applicationName}';
+    `,
+        (res: any) => expect(res.length).toBe(1),
+      ),
+    );
+
+    it(
+      'tries to update application ID',
+      query(`
+    UPDATE codedeploy_application SET id='fake' WHERE name='${applicationName}'
+    `),
+    );
+
+    it('applies the application ID update', apply());
+
+    it(
+      'checks that application ID has not been been modified',
+      query(
+        `
+    SELECT * FROM codedeploy_application WHERE id='fake' AND name='${applicationName}';
   `,
-      (res: any) => expect(res.length).toBe(1),
-    ),
-  );
+        (res: any) => expect(res.length).toBe(0),
+      ),
+    );
 
-  it(
-    'tries to update application ID',
-    query(`
-  UPDATE codedeploy_application SET application_id='fake' WHERE application_name='${applicationName}'
-  `),
-  );
+    it(
+      'tries to update the codedeploy_application compute_platform',
+      query(`
+    UPDATE codedeploy_application SET compute_platform='Lambda' WHERE name='${applicationName}'
+    `),
+    );
 
-  it('applies the application ID update', apply());
+    it('applies the codedeploy_application compute_platform update', apply());
 
-  it(
-    'checks that application ID has not been been modified',
-    query(
-      `
-  SELECT * FROM codedeploy_application WHERE application_id='fake' AND application_name='${applicationName}';
-`,
-      (res: any) => expect(res.length).toBe(0),
-    ),
-  );
-
-  it(
-    'tries to update the codedeploy_application compute_platform',
-    query(`
-  UPDATE codedeploy_application SET compute_platform='Lambda' WHERE application_name='${applicationName}'
-  `),
-  );
-
-  it('applies the codedeploy_application compute_platform update', apply());
-
-  it(
-    'checks that codedeploy_application compute_platform has been modified',
-    query(
-      `
-  SELECT * FROM codedeploy_application WHERE compute_platform='Lambda' AND application_name='${applicationName}';
-`,
-      (res: any) => expect(res.length).toBe(1),
-    ),
-  );
+    it(
+      'checks that codedeploy_application compute_platform has been modified',
+      query(
+        `
+    SELECT * FROM codedeploy_application WHERE compute_platform='Lambda' AND name='${applicationName}';
+  `,
+        (res: any) => expect(res.length).toBe(1),
+      ),
+    );
+  });
 
   it('uninstalls the codedeploy module', uninstall(modules));
 
@@ -130,12 +233,105 @@ describe('AwsCodedeploy Integration Testing', () => {
     'delete application',
     query(`
     DELETE FROM codedeploy_application
-    WHERE application_name = '${applicationName}';
+    WHERE name = '${applicationName}';
   `),
   );
+  it('applies the application deletion', apply());
 
-  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
+  // deployment group testing
+  describe('create codedeploy deployment group', () => {
+    it(
+      'adds a new codedeploy_application for deployment',
+      query(`
+      INSERT INTO codedeploy_application (name, compute_platform)
+      VALUES ('${applicationNameForDeployment}', 'Server');
+    `),
+    );
+
+    it(
+      'adds a new deployment_group',
+      query(`
+      INSERT INTO codedeploy_deployment_group (application_name, name)
+      VALUES ('${applicationNameForDeployment}', '${deploymentGroupName}');
+    `),
+    );
+
+    it('apply codedeploy_deployment_group creation', apply());
+
+    it(
+      'check codedeploy_deployment_group is available',
+      query(
+        `
+    SELECT * FROM codedeploy_deployment_group WHERE name='${deploymentGroupName}';
+    `,
+        (res: any) => expect(res.length).toBe(1),
+      ),
+    );
+
+    it(
+      'tries to update the codedeploy_deployment_group role and tags',
+      query(`
+    UPDATE codedeploy_deployment_group SET role_name='${roleName}', ec2TagFilters='' WHERE name='${deploymentGroupName}'
+    `),
+    );
+
+    it('applies the codedeploy_deployment_group update', apply());
+
+    it(
+      'checks that codedeploy_deployment_group has been modified',
+      query(
+        `
+    SELECT * FROM codedeploy_deployment_group WHERE role_name='${roleName}' AND name='${deploymentGroupName}';
+  `,
+        (res: any) => expect(res.length).toBe(1),
+      ),
+    );
+  });
 });
+
+describe('deployment cleanup', () => {
+  it(
+    'delete deployment group',
+    query(`
+      DELETE FROM codedeploy_deployment_group
+      WHERE name = '${deploymentGroupName}';
+    `),
+  );
+
+  it(
+    'delete application',
+    query(`
+      DELETE FROM codedeploy_application
+      WHERE name = '${applicationNameForDeployment}';
+    `),
+  );
+
+  it('apply codedeploy_deployment_group deletion', apply());
+});
+
+describe('ec2 cleanup', () => {
+  it(
+    'deletes the instance',
+    query(`
+      DELETE FROM instance WHERE instance.tags ->> 'name' = '${prefix}-vm';
+    `),
+  );
+  it('applies the vm deletion', apply());
+});
+
+describe('delete role', () => {
+  it(
+    'deletes role',
+    query(`
+      DELETE FROM iam_role WHERE role_name = '${roleName}';
+    `),
+  );
+
+  it('applies the role deletion', apply());
+});
+
+// cleanup
+it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 
 describe('AwsCodedeploy install/uninstall', () => {
   it('creates a new test db', done =>

@@ -3,7 +3,6 @@ import {
   ApplicationInfo,
   paginateListApplications,
   CreateApplicationCommandInput,
-  GetApplicationCommandInput,
 } from '@aws-sdk/client-codedeploy';
 
 import { AwsCodedeployModule } from '..';
@@ -15,15 +14,13 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
   module: AwsCodedeployModule;
   entity = CodedeployApplication;
   equals = (a: CodedeployApplication, b: CodedeployApplication) =>
-    Object.is(a.applicationName, b.applicationName) &&
-    Object.is(a.computePlatform, b.computePlatform) &&
-    Object.is(a.applicationId, b.applicationId);
+    Object.is(a.name, b.name) && Object.is(a.computePlatform, b.computePlatform) && Object.is(a.id, b.id);
 
   async applicationMapper(app: ApplicationInfo) {
     const out = new CodedeployApplication();
     if (!app.applicationName) return undefined;
-    out.applicationName = app.applicationName;
-    out.applicationId = app.applicationId;
+    out.name = app.applicationName;
+    out.id = app.applicationId;
     out.computePlatform = (app.computePlatform as ComputePlatform) ?? ComputePlatform.Server;
     return out;
   }
@@ -50,14 +47,14 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
       const out = [];
       for (const e of es) {
         const input: CreateApplicationCommandInput = {
-          applicationName: e.applicationName,
+          applicationName: e.name,
           computePlatform: ComputePlatform[e.computePlatform],
         };
         const appId = await this.createApplication(client.cdClient, input);
         if (!appId) continue;
 
         // we just need to add the id
-        e.applicationId = appId;
+        e.id = appId;
         await this.db.update(e, ctx);
         out.push(e);
       }
@@ -87,13 +84,13 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
       }
     },
     updateOrReplace: (a: CodedeployApplication, b: CodedeployApplication) =>
-      a.applicationId !== b.applicationId ? 'update' : 'replace',
+      a.id !== b.id ? 'update' : 'replace',
     update: async (apps: CodedeployApplication[], ctx: Context) => {
       const out = [];
       for (const app of apps) {
-        const cloudRecord = ctx?.memo?.cloud?.CodedeployApplication?.[app.applicationName ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.CodedeployApplication?.[app.name ?? ''];
         if (this.module.application.cloud.updateOrReplace(app, cloudRecord) == 'update') {
-          if (app.applicationId !== cloudRecord.applicationId) {
+          if (app.id !== cloudRecord.id) {
             // restore
             await this.module.application.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
@@ -105,7 +102,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
           if (!appId) continue;
 
           // retrieve app details
-          const createdApp = await this.module.application.cloud.read(ctx, app.applicationName);
+          const createdApp = await this.module.application.cloud.read(ctx, app.name);
           if (createdApp) out.push(createdApp);
         }
       }
@@ -114,7 +111,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
     delete: async (apps: CodedeployApplication[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       for (const app of apps) {
-        await this.deleteApplication(client.cdClient, { applicationName: app.applicationName });
+        await this.deleteApplication(client.cdClient, { applicationName: app.name });
       }
     },
   });
