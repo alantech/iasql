@@ -1,6 +1,6 @@
 {
   "name": "iasql",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Infrastructure as SQL",
   "main": "dist/index.js",
   "scripts": {

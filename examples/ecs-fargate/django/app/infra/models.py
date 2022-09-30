@@ -311,7 +311,7 @@ class Role(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'role'
+        db_table = 'iam_role'
 
 
 class SecurityGroup(models.Model):

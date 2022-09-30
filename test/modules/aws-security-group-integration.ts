@@ -1,6 +1,16 @@
 import config from '../../src/config';
-import * as iasql from '../../src/services/iasql'
-import { getPrefix, runQuery, runInstall, runUninstall, runApply, finish, execComposeUp, execComposeDown, runSync, } from '../helpers'
+import * as iasql from '../../src/services/iasql';
+import {
+  getPrefix,
+  runQuery,
+  runInstall,
+  runUninstall,
+  runApply,
+  finish,
+  execComposeUp,
+  execComposeDown,
+  runSync,
+} from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 'sgtest';
@@ -19,53 +29,81 @@ beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
 describe('Security Group Integration Testing', () => {
-  it('creates a new test db', (done) => void iasql.connect(
-    dbAlias,
-    'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done =>
+    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the aws_account module', install(['aws_account']));
 
-  it('inserts aws credentials', query(`
+  it(
+    'inserts aws credentials',
+    query(
+      `
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `, undefined, false));
+  `,
+      undefined,
+      false,
+    ),
+  );
 
   it('syncs the regions', sync());
 
-  it('sets the default region', query(`
+  it(
+    'sets the default region',
+    query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
-  `));
+  `),
+  );
 
-  it('installs the security group module', install(
-    modules));
+  it('installs the security group module', install(modules));
 
-  it('adds a new security group', query(`  
+  it(
+    'adds a new security group',
+    query(`  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test', '${prefix}sgtest');
-  `));
-  
+  `),
+  );
+
   it('undo changes', sync());
 
-  it('check security_group insertion', query(`
+  it(
+    'check security_group insertion',
+    query(
+      `
     SELECT *
     FROM security_group
     WHERE group_name = '${sgName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
-  it('adds a new security group', query(`  
+  it(
+    'adds a new security group',
+    query(`  
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test', '${prefix}sgtest');
-  `));
+  `),
+  );
 
   it('applies the security group change', apply());
 
-  it('check security_group insertion', query(`
+  it(
+    'check security_group insertion',
+    query(
+      `
     SELECT *
     FROM security_group
     WHERE group_name = '${sgName}';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
-  it('adds security group rules', query(`
+  it(
+    'adds security group rules',
+    query(`
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT true, 'tcp', 443, 443, '0.0.0.0/8', '${prefix}testrule', id
     FROM security_group
@@ -74,50 +112,77 @@ describe('Security Group Integration Testing', () => {
     SELECT false, 'tcp', 22, 22, '::/8', '${prefix}testrule2', id
     FROM security_group
     WHERE group_name = '${prefix}sgtest';
-  `));
+  `),
+  );
 
   it('applies the security group rule change', apply());
 
-  it('updates the security group rule', query(`
+  it(
+    'updates the security group rule',
+    query(`
     UPDATE security_group_rule SET to_port = 8443 WHERE description = '${prefix}testrule';
     UPDATE security_group_rule SET to_port = 8022 WHERE description = '${prefix}testrule2';
-  `));
+  `),
+  );
 
-  it('check security_group update', query(`
+  it(
+    'check security_group update',
+    query(
+      `
     SELECT *
     FROM security_group_rule
     INNER JOIN security_group ON security_group.id = security_group_rule.security_group_id
     WHERE group_name = '${sgName}';
-  `, (res: any[]) => {
-    expect(res.length).toBe(2);
-    expect([8443, 8022].includes(res[0]['to_port'])).toBe(true);
-    return expect([8443, 8022].includes(res[1]['to_port'])).toBe(true);
-  }));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(2);
+        expect([8443, 8022].includes(res[0]['to_port'])).toBe(true);
+        return expect([8443, 8022].includes(res[1]['to_port'])).toBe(true);
+      },
+    ),
+  );
 
   it('applies the security group rule change (again)', apply());
 
-  it('updates the security group', query(`
+  it(
+    'updates the security group',
+    query(`
     UPDATE security_group SET group_name = '${prefix}sgtest2' WHERE group_name = '${prefix}sgtest';
-  `));
+  `),
+  );
 
   it('applies the security group change (again)', apply());
 
-  it('check security_group insertion', query(`
+  it(
+    'check security_group insertion',
+    query(
+      `
     SELECT *
     FROM security_group
     WHERE group_name = '${sgName}';
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
-  it('check security_group insertion', query(`
+  it(
+    'check security_group insertion',
+    query(
+      `
     SELECT *
     FROM security_group
     WHERE group_name = '${prefix}sgtest2';
-  `, (res: any[]) => expect(res.length).toBe(1)));
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   // Testing potential race condition with security group with very large ruleset, particularly
   // during install
-  
-  it('inserts a security group with a large ruleset and more', query(`
+
+  it(
+    'inserts a security group with a large ruleset and more',
+    query(`
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16'), ('192.${randIPBlock2}.0.0/16');
 
@@ -131,36 +196,439 @@ describe('Security Group Integration Testing', () => {
 
     INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
     SELECT x.is_egress, x.ip_protocol, x.from_port, x.to_port, x.cidr_ipv4, x.description, s.security_group_id
-    FROM json_to_recordset('${JSON.stringify(Array(20).fill('').map(_ => ({
-      is_egress: Math.random() > 0.5,
-      ip_protocol: Math.random() > 0.5 ? 'tcp' : 'udp',
-      from_port: Math.floor(Math.random()*32768),
-      to_port: Math.floor(Math.random()*32768+32768),
-      cidr_ipv4: `192.${Math.floor(Math.random() * 255)}.0.0/16`,
-      description: [
-        ['My', 'Your', 'Our', 'Their'],
-        ['Fluffy', 'Stinky', 'Fuzzy', 'Angry', 'Dirty', 'Dry', 'Dangerous', 'Dingy', 'Ecstatic'],
-        ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Indigo', 'Violet'],
-        ['Cat', 'Dog', 'Horse', 'Orangutan', 'Parrot', 'Sheep', 'GOAT', 'Walrus', 'Llama', 'Uncle Jim'],
-        ['Ate', 'Sat On', 'Punched', 'Debated With', 'Raced', 'Worshipped', 'Cleaned', 'Observed'],
-        ['Two', 'Five', 'Three', 'Twenty-Seven', 'OVER 9000'],
-        ['Seahorses', 'Gorillas', 'Bats', 'Gerbils', 'Orcas', 'Sharks', 'Second Cousins'],
-      ].map(r => r[Math.floor(Math.random() * r.length)]).join(' '),
-    })), undefined, '  ')}') AS x(is_egress boolean, ip_protocol varchar, from_port integer, to_port integer, cidr_ipv4 cidr, description varchar)
+    FROM json_to_recordset('${JSON.stringify(
+      Array(20)
+        .fill('')
+        .map(_ => ({
+          is_egress: Math.random() > 0.5,
+          ip_protocol: Math.random() > 0.5 ? 'tcp' : 'udp',
+          from_port: Math.floor(Math.random() * 32768),
+          to_port: Math.floor(Math.random() * 32768 + 32768),
+          cidr_ipv4: `192.${Math.floor(Math.random() * 255)}.0.0/16`,
+          description: [
+            ['My', 'Your', 'Our', 'Their'],
+            ['Fluffy', 'Stinky', 'Fuzzy', 'Angry', 'Dirty', 'Dry', 'Dangerous', 'Dingy', 'Ecstatic'],
+            ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Indigo', 'Violet'],
+            ['Cat', 'Dog', 'Horse', 'Orangutan', 'Parrot', 'Sheep', 'GOAT', 'Walrus', 'Llama', 'Uncle Jim'],
+            ['Ate', 'Sat On', 'Punched', 'Debated With', 'Raced', 'Worshipped', 'Cleaned', 'Observed'],
+            ['Two', 'Five', 'Three', 'Twenty-Seven', 'OVER 9000'],
+            ['Seahorses', 'Gorillas', 'Bats', 'Gerbils', 'Orcas', 'Sharks', 'Second Cousins'],
+          ]
+            .map(r => r[Math.floor(Math.random() * r.length)])
+            .join(' '),
+        })),
+      undefined,
+      '  ',
+    )}') AS x(is_egress boolean, ip_protocol varchar, from_port integer, to_port integer, cidr_ipv4 cidr, description varchar)
     INNER JOIN (
       SELECT id AS security_group_id FROM security_group WHERE group_name = '${prefix}beegbeegsg'
     ) AS s ON 1 = 1;
-  `));
+  `),
+  );
 
   it('should successfully create this mess', apply());
 
-  it('uninstalls the security group module', uninstall(
-    modules));
+  // create rule targetting to another security group
+  it(
+    'adds a new security group',
+    query(`  
+    INSERT INTO security_group (description, group_name)
+    VALUES ('Security Group to test source', '${prefix}sgforsource');
+  `),
+  );
 
-  it('installs the security group module', install(
-    modules));
+  it(
+    'adds a new security group',
+    query(`  
+    INSERT INTO security_group (description, group_name)
+    VALUES ('Source Security Group Test', '${prefix}sgsourcetest');
+  `),
+  );
 
-  it('deletes the security group rules', query(`
+  it('creates the source security group', apply());
+
+  it('should fail when inserting a security group rule with ip and security rule', () => {
+    try {
+      query(`
+      INSERT INTO security_group_rule(security_group_id, ip_protocol, source_security_group, is_egress) 
+      VALUES ((SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'), 'tcp',
+      (SELECT id FROM security_group WHERE group_name='${prefix}sgforsourcetest'), false);
+      `);
+    } catch (e) {
+      expect(e).toBeTruthy;
+    }
+  });
+
+  it(
+    'adds a new security group rule',
+    query(`
+  INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
+  VALUES ('${prefix}sgsourcetestrule', (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'),
+  (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest'), false);
+  `),
+  );
+  it('creates the source security group rule', apply());
+
+  it(
+    'check security group rule expanded for TCP',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest') AND ip_protocol='tcp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check security group rule expanded for UDP',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest') AND ip_protocol='udp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check security group rule expanded for ICMP',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest') AND ip_protocol='icmp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'deletes the source security group rule',
+    query(
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest')`,
+    ),
+  );
+
+  it('applies the deletion of source security group rule', apply());
+
+  it(
+    'check no security group rules remain',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetest');
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  // tests source security rule on non default vpc
+  it(
+    'creates a new vpc for testing',
+    query(
+      `INSERT INTO vpc (cidr_block, is_default)
+  VALUES ('192.${randIPBlock}.0.0/24', false);`,
+    ),
+  );
+
+  it(
+    'adds a new security group with non-default vpc',
+    query(`  
+    INSERT INTO security_group (description, group_name, vpc_id)
+    VALUES ('Source Security Group Test with non-default VPC', '${prefix}sgsourcetestnotdefault', (SELECT id FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/24'));
+  `),
+  );
+
+  it('creates the non-default security group', apply());
+
+  it(
+    'adds a new security group rule for non default',
+    query(`
+  INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
+  VALUES ('${prefix}sgsourcetestrulenotdefault', (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'),
+  (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault'), false);
+  `),
+  );
+
+  it('creates the source security group rule for non default', apply());
+
+  it(
+    'check security group rule expanded for TCP',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault') AND ip_protocol='tcp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check security group rule expanded for UDP',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault') AND ip_protocol='udp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check security group rule expanded for ICMP',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault') AND ip_protocol='icmp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'deletes the source security group rule for not default',
+    query(
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault')`,
+    ),
+  );
+
+  it('applies the deletion of source security group rule for not default', apply());
+
+  it(
+    'check no security group rules remain',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgsourcetestnotdefault');
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'deletes the source security group',
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgsourcetest'`),
+  );
+  it(
+    'deletes the source security group for non default',
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgsourcetestnotdefault'`),
+  );
+  it(
+    'deletes the default security group for vpc',
+    query(
+      `DELETE FROM security_group WHERE vpc_id=(SELECT id FROM vpc WHERE cidr_block='192.${randIPBlock}.0.0/24')`,
+    ),
+  );
+
+  // tests self referencing security group
+  it(
+    'adds a new security group rule pointing to itself',
+    query(`
+  INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
+  VALUES ('${prefix}sgsourcetestrule', (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'),
+  (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource'), false);
+  `),
+  );
+  it('creates the source security group rule pointing to itself', apply());
+
+  it(
+    'check security group rule expanded for TCP pointing to itself',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource') AND ip_protocol='tcp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check security group rule expanded for UDP pointing to itself',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource') AND ip_protocol='udp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check security group rule expanded for ICMP pointing to itself',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource') AND ip_protocol='icmp';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'deletes the source security group rule pointing to itself',
+    query(
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource')`,
+    ),
+  );
+
+  it('applies the deletion of source security group rule', apply());
+
+  it(
+    'check no security group rules remain',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgforsource');
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'deletes the original security group to test source',
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgforsource'`),
+  );
+
+  it('applies the deletion of source security group rule', apply());
+
+  it(
+    'check no security group for source remain',
+    query(
+      `
+    SELECT *
+    FROM security_group
+    WHERE group_name = '${prefix}sgsourcetest' OR group_name='${prefix}sgforsource';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'deletes the vpc',
+    query(`
+    WITH vpc as (
+      SELECT id
+      FROM vpc
+      WHERE cidr_block = '192.${randIPBlock}.0.0/24'
+    )
+    DELETE FROM security_group
+    USING vpc
+    WHERE vpc_id = vpc.id;
+
+    DELETE FROM vpc
+    WHERE cidr_block = '192.${randIPBlock}.0.0/24';
+  `),
+  );
+
+  it('applies the vpc removal', apply());
+
+  // tests cycle in security rules
+  it(
+    'adds self-referential security groups A and B',
+    query(`  
+    INSERT INTO security_group (description, group_name)
+    VALUES ('Security Group Test A', '${prefix}sgtestA'), ('Security Group Test B', '${prefix}sgtestB');
+    
+    INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
+  VALUES ('${prefix}sgtestA', (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA'),
+  (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB'), false);
+  
+  INSERT INTO security_group_rule(description, security_group_id, source_security_group, is_egress) 
+  VALUES ('${prefix}sgtestB', (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB'),
+  (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA'), false);
+  `),
+  );
+
+  it('creates the source groups and rules', apply());
+
+  it(
+    'check that security group and rules are correctly created - tcp, udp, icmp',
+    query(
+      `
+      SELECT sg.id, sgr.source_security_group FROM security_group sg INNER JOIN security_group_rule sgr ON sg.id = sgr.security_group_id WHERE sg.group_name='${prefix}sgtestA' AND sgr.source_security_group=(SELECT id FROM security_group WHERE group_name='${prefix}sgtestB')`,
+      (res: any[]) => {
+        expect(res.length).toBe(3);
+      },
+    ),
+  );
+  it(
+    'check that security group and rules are correctly created - tcp, udp, icmp',
+    query(
+      `
+      SELECT sg.id, sgr.source_security_group FROM security_group sg INNER JOIN security_group_rule sgr ON sg.id = sgr.security_group_id WHERE sg.group_name='${prefix}sgtestB' AND sgr.source_security_group=(SELECT id FROM security_group WHERE group_name='${prefix}sgtestA')`,
+      (res: any[]) => {
+        expect(res.length).toBe(3);
+      },
+    ),
+  );
+
+  it(
+    'deletes the source security group rule for A',
+    query(
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA')`,
+    ),
+  );
+  it(
+    'deletes the source security group rule for B',
+    query(
+      `DELETE FROM security_group_rule WHERE source_security_group = (SELECT id FROM security_group WHERE group_name='${prefix}sgtestB')`,
+    ),
+  );
+  it(
+    'deletes the source security group for A',
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgtestA'`),
+  );
+  it(
+    'deletes the source security group for B',
+    query(`DELETE FROM security_group WHERE group_name = '${prefix}sgtestB'`),
+  );
+
+  it('deletes rules and groups', apply());
+
+  it(
+    'check no security group rules remain',
+    query(
+      `
+    SELECT *
+    FROM security_group_rule
+    WHERE source_security_group IN (SELECT id FROM security_group WHERE group_name='${prefix}sgtestA' OR group_name='${prefix}sgtestB');
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check no security group for source remain',
+    query(
+      `
+    SELECT *
+    FROM security_group
+    WHERE group_name = '${prefix}sgtestA' OR group_name='${prefix}sgtestB';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  // final cleanup
+  it('uninstalls the security group module', uninstall(modules));
+
+  it('installs the security group module', install(modules));
+
+  it(
+    'deletes the security group rules',
+    query(`
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule';
     DELETE FROM security_group_rule WHERE description = '${prefix}testrule2';
 
@@ -173,11 +641,14 @@ describe('Security Group Integration Testing', () => {
     USING security_group
     WHERE security_group_rule.security_group_id = security_group.id
     AND security_group.group_name = '${prefix}beegbeegsg';
-  `));
+  `),
+  );
 
   it('applies the security group rule change (last time)', apply());
 
-  it('deletes the security groups', query(`
+  it(
+    'deletes the security groups',
+    query(`
     DELETE FROM security_group
     WHERE group_name in (
       '${prefix}sgtest2', '${prefix}beegbeegsg', '${prefix}teenysg',
@@ -190,62 +661,92 @@ describe('Security Group Integration Testing', () => {
     AND vpc.cidr_block IN ('192.${randIPBlock}.0.0/16', '192.${randIPBlock2}.0.0/16');
 
     DELETE FROM vpc WHERE cidr_block IN ('192.${randIPBlock}.0.0/16', '192.${randIPBlock2}.0.0/16');
-  `));
+  `),
+  );
 
   it('applies the security group change (last time)', apply());
 
-  it('check security_group insertion', query(`
+  it(
+    'check security_group insertion',
+    query(
+      `
     SELECT *
     FROM security_group
     WHERE group_name = '${prefix}sgtest2';
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
-  it('check security_group update', query(`
+  it(
+    'check security_group update',
+    query(
+      `
     SELECT *
     FROM security_group_rule
     INNER JOIN security_group ON security_group.id = security_group_rule.security_group_id
     WHERE group_name = '${prefix}sgtest2';
-  `, (res: any[]) => expect(res.length).toBe(0)));
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
 
   // Special testing involving the default security group you can't edit or delete
-  
-  it('clears out any default security group rules if they exist', query(`
+
+  it(
+    'clears out any default security group rules if they exist',
+    query(`
     DELETE FROM security_group_rule
     USING security_group
     WHERE security_group_rule.security_group_id = security_group.id
     AND security_group.group_name = 'default';
-  `));
+  `),
+  );
 
   it('applies this change', apply());
-  
-  it('tries to delete the default security group', query(`
+
+  it(
+    'tries to delete the default security group',
+    query(`
     DELETE FROM security_group WHERE group_name = 'default';
-  `));
+  `),
+  );
 
   it('applies the security group change which will restore the record', apply());
 
-  it('tries to change the default security group description', query(`
+  it(
+    'tries to change the default security group description',
+    query(`
     UPDATE security_group SET description = 'Not the default' where group_name = 'default';
-  `));
+  `),
+  );
 
   it('applies the security group change which will undo this change', apply());
 
-  it('tries to change the default security group id which triggers simultaneous create/delete', query(`
+  it(
+    'tries to change the default security group id which triggers simultaneous create/delete',
+    query(`
     UPDATE security_group SET group_id = 'remakethis' where group_name = 'default';
-  `));
+  `),
+  );
 
   it('applies the security group change which will recreate the record', apply());
 
-  it('adds another two security groups for a more complex test', query(`
+  it(
+    'adds another two security groups for a more complex test',
+    query(`
     INSERT INTO security_group (description, group_name)
     VALUES
       ('Security Group Test 3', '${prefix}sgtest3'),
       ('Security Group Test 4', '${prefix}sgtest4');
-  `));
+  `),
+  );
 
   it('creates these security groups', apply());
 
-  it('creates a new security group, deletes another security group, and modifies a third', query(`
+  it(
+    'creates a new security group, deletes another security group, and modifies a third',
+    query(`
     INSERT INTO security_group (description, group_name)
     VALUES ('Security Group Test 5', '${prefix}sgtest5');
 
@@ -254,100 +755,146 @@ describe('Security Group Integration Testing', () => {
     UPDATE security_group
     SET description = 'Security Group Test Four'
     WHERE group_name = '${prefix}sgtest4';
-  `));
+  `),
+  );
 
   it('performs all of these operations', apply());
 
-  it('checks all of these security_group changes', query(`
+  it(
+    'checks all of these security_group changes',
+    query(
+      `
     SELECT *
     FROM security_group
     WHERE group_name in ('${prefix}sgtest3', '${prefix}sgtest4', '${prefix}sgtest5');
-  `, (res: any[]) => {
-    expect(res.length).toBe(2);
-    expect(res.map(r => r.description).includes('Security Group Test Four')).toBe(true);
-    expect(res.map(r => r.description).includes('Security Group Test 5')).toBe(true);
-  }));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(2);
+        expect(res.map(r => r.description).includes('Security Group Test Four')).toBe(true);
+        expect(res.map(r => r.description).includes('Security Group Test 5')).toBe(true);
+      },
+    ),
+  );
 
-  it('deletes these test records', query(`
+  it(
+    'deletes these test records',
+    query(`
     DELETE FROM security_group WHERE group_name in ('${prefix}sgtest4', '${prefix}sgtest5');
-  `));
+  `),
+  );
 
   it('deletes the final test records', apply());
 
-  it('deletes the test db', (done) => void iasql
-    .disconnect(dbAlias, 'not-needed')
-    .then(...finish(done)));
+  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
 describe('Security Group install/uninstall', () => {
-  it('creates a new test db', (done) => void iasql.connect(
-    dbAlias,
-    'not-needed', 'not-needed').then(...finish(done)));
+  it('creates a new test db', done =>
+    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
   it('installs the aws_account module', install(['aws_account']));
 
-  it('inserts aws credentials', query(`
+  it(
+    'inserts aws credentials',
+    query(
+      `
     INSERT INTO aws_credentials (access_key_id, secret_access_key)
     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `, undefined, false));
+  `,
+      undefined,
+      false,
+    ),
+  );
 
   it('syncs the regions', sync());
 
-  it('sets the default region', query(`
+  it(
+    'sets the default region',
+    query(`
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `));
+  `),
+  );
 
-  it('installs the Security Group module and confirms two tables are created', query(`
+  it(
+    'installs the Security Group module and confirms two tables are created',
+    query(
+      `
     select * from iasql_install('aws_security_group', 'aws_vpc');
-  `, (res: any[]) => {
-      expect(res.length).toBe(8);
-  }));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(8);
+      },
+    ),
+  );
 
-  it('uninstalls the Security Group module and confirms two tables are removed', query(`
+  it(
+    'uninstalls the Security Group module and confirms two tables are removed',
+    query(
+      `
     select * from iasql_uninstall('aws_security_group', 'aws_vpc');
-  `, (res: any[]) => {
-    expect(res.length).toBe(8);
-  }));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(8);
+      },
+    ),
+  );
 
-  it('installs all modules', (done) => void iasql.install(
-    [],
-    dbAlias,
-    config.db.user,
-    true).then(...finish(done)));
+  it('installs all modules', done =>
+    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
 
-  it('uninstalls the Security Group module', uninstall(
-    ['aws_rds', 'aws_ecs_fargate', 'aws_ecs_simplified', 'aws_elb', 'aws_security_group', 'aws_ec2', 'aws_ec2_metadata', 'aws_route53_hosted_zones', 'aws_memory_db', 'aws_acm_request'],
-  ));
+  it(
+    'uninstalls the Security Group module',
+    uninstall([
+      'aws_rds',
+      'aws_ecs_fargate',
+      'aws_ecs_simplified',
+      'aws_elb',
+      'aws_security_group',
+      'aws_ec2',
+      'aws_ec2_metadata',
+      'aws_route53_hosted_zones',
+      'aws_memory_db',
+      'aws_acm_request',
+    ]),
+  );
 
-  it('inserts a new VPC (that creates a new default SG automatically)', query(`
+  it(
+    'inserts a new VPC (that creates a new default SG automatically)',
+    query(`
     INSERT INTO vpc (cidr_block)
     VALUES ('192.${randIPBlock}.0.0/16');
-  `));
+  `),
+  );
 
   it('creates the VPC', apply());
 
-  it('installs the Security Group module', install(
-    ['aws_security_group']));
+  it('installs the Security Group module', install(['aws_security_group']));
 
-  it('confirms that the auto-generated security group is there', query(`
+  it(
+    'confirms that the auto-generated security group is there',
+    query(
+      `
     SELECT sg.* FROM security_group as sg
     INNER JOIN vpc on vpc.id = sg.vpc_id
     WHERE vpc.cidr_block = '192.${randIPBlock}.0.0/16';
-  `, (res: any[]) => {
-    expect(res.length).toBeGreaterThanOrEqual(1);
-  }));
+  `,
+      (res: any[]) => {
+        expect(res.length).toBeGreaterThanOrEqual(1);
+      },
+    ),
+  );
 
-  it('uninstalls the Security Group module again (to be easier)', uninstall(
-    ['aws_security_group']));
+  it('uninstalls the Security Group module again (to be easier)', uninstall(['aws_security_group']));
 
-  it('deletes the vpc', query(`
+  it(
+    'deletes the vpc',
+    query(`
     DELETE FROM vpc
     WHERE cidr_block = '192.${randIPBlock}.0.0/16';
-  `));
+  `),
+  );
 
   it('applies the vpc removal', apply());
 
-  it('deletes the test db', (done) => void iasql
-    .disconnect(dbAlias, 'not-needed')
-    .then(...finish(done)));
+  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

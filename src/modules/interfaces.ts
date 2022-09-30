@@ -399,10 +399,12 @@ export interface ModuleInterface {
   mappers: { [key: string]: MapperInterface<any> };
   rpc?: { [key: string]: RpcInterface };
   migrations?: {
+    beforeInstall?: (q: QueryRunner) => Promise<void>;
     install: (q: QueryRunner) => Promise<void>;
     afterInstall?: (q: QueryRunner) => Promise<void>;
     beforeRemove?: (q: QueryRunner) => Promise<void>;
     remove: (q: QueryRunner) => Promise<void>;
+    afterRemove?: (q: QueryRunner) => Promise<void>;
   };
 }
 
@@ -521,10 +523,12 @@ export class ModuleBase {
   };
   rpc?: { [key: string]: RpcInterface };
   migrations: {
+    beforeInstall?: (q: QueryRunner) => Promise<void>;
     install: (q: QueryRunner) => Promise<void>;
     afterInstall?: (q: QueryRunner) => Promise<void>;
     beforeRemove?: (q: QueryRunner) => Promise<void>;
     remove: (q: QueryRunner) => Promise<void>;
+    afterRemove?: (q: QueryRunner) => Promise<void>;
   };
 
   private getRpcSql(): [string, string] {
@@ -569,24 +573,26 @@ export class ModuleBase {
     return [afterInstallSql, beforeUninstallSql];
   }
 
-  private getCustomSql(): [string, string] {
+  private getCustomSql() {
+    const beforeInstallSql = this.readSqlDir('before_install') ?? '';
     // TODO: delete customDir param after v0.0.20 is deleted
-    const afterInstallSql = this.readSqlDir(this.sql?.afterInstallSqlPath, true) ?? '';
+    const afterInstallSql = this.readSqlDir('after_install', this.sql?.afterInstallSqlPath) ?? '';
     // TODO: delete customDir param after v0.0.20 is deleted
-    const beforeUninstallSql = this.readSqlDir(this.sql?.beforeUninstallSqlPath, false) ?? '';
-    return [afterInstallSql, beforeUninstallSql];
+    const beforeUninstallSql = this.readSqlDir('before_uninstall', this.sql?.beforeUninstallSqlPath) ?? '';
+    const afterUninstallSql = this.readSqlDir('after_uninstall') ?? '';
+    return {
+      beforeInstallSql,
+      afterInstallSql,
+      beforeUninstallSql,
+      afterUninstallSql,
+    };
   }
 
   // TODO: delete customDir param after v0.0.20 is deleted
-  private readSqlDir(customDir: string | undefined, afterInstall: boolean) {
+  private readSqlDir(sqlFile: string, customDir?: string) {
     try {
       // If no customDir specified, try to get the default
-      return fs.readFileSync(
-        `${this.dirname}/${
-          customDir ?? `sql/${afterInstall ? 'after_install.sql' : 'before_uninstall.sql'}`
-        }`,
-        'utf8',
-      );
+      return fs.readFileSync(`${this.dirname}/${customDir ? `${customDir}` : `sql/${sqlFile}.sql`}`, 'utf8');
     } catch (_) {
       /** Don't do anything if the default file is not there */
     }
@@ -628,7 +634,7 @@ export class ModuleBase {
         [string, RpcInterface],
       ],
     );
-    const [customAfterInstallSql, customBeforeUninstallSql] = this.getCustomSql();
+    const { beforeInstallSql, afterInstallSql, beforeUninstallSql, afterUninstallSql } = this.getCustomSql();
     const [rpcAfterInstallSql, rpcBeforeUninstallSql] = this.getRpcSql();
     const migrationDir = `${this.dirname}/migration`;
     const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
@@ -643,8 +649,13 @@ export class ModuleBase {
       install: migrationClass.prototype.up,
       remove: migrationClass.prototype.down,
     };
-    const afterInstallMigration = customAfterInstallSql + rpcAfterInstallSql;
-    const beforeUninstallMigration = rpcBeforeUninstallSql + customBeforeUninstallSql;
+    const afterInstallMigration = afterInstallSql + rpcAfterInstallSql;
+    const beforeUninstallMigration = rpcBeforeUninstallSql + beforeUninstallSql;
+    if (beforeInstallSql) {
+      this.migrations.beforeInstall = async (q: QueryRunner) => {
+        await q.query(beforeInstallSql);
+      };
+    }
     if (afterInstallMigration) {
       this.migrations.afterInstall = async (q: QueryRunner) => {
         await q.query(afterInstallMigration);
@@ -653,6 +664,11 @@ export class ModuleBase {
     if (beforeUninstallMigration) {
       this.migrations.beforeRemove = async (q: QueryRunner) => {
         await q.query(beforeUninstallMigration);
+      };
+    }
+    if (afterUninstallSql) {
+      this.migrations.afterRemove = async (q: QueryRunner) => {
+        await q.query(afterUninstallSql);
       };
     }
     const syncified = new Function(

@@ -31,11 +31,11 @@ export const getModMigration = (name: string, version: string) => {
   return migrationClass;
 };
 
-export const getModAfterInstall = (name: string, version: string) => {
+export const getModBeforeInstall = (name: string, version: string) => {
   try {
     const sqlDir = `${__dirname}/../modules/${version}/${name}/sql`;
-    const afterInstallSql = fs.readFileSync(`${sqlDir}/after_install.sql`, 'utf8');
-    return afterInstallSql;
+    const beforeInstallSql = fs.readFileSync(`${sqlDir}/before_install.sql`, 'utf8');
+    return beforeInstallSql;
   } catch (_) {
     return '';
   }

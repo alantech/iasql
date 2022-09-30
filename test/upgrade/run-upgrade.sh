@@ -109,4 +109,25 @@ if [ "${EC2UPGRADED}" == "false" ]; then
   exit 3;
 fi
 
+# Force new RPC run
+# Another loop to wait for engine to be receptive
+RPCCHECKCOUNT=30
+RPCUPGRADED=false
+while [ ${RPCCHECKCOUNT} -gt 0 ]; do
+  AWSRPCCALL=`psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+    SELECT * FROM iasql_modules_list();
+  " || true`
+  if [ "${AWSRPCCALL}" != "" ]; then
+    RPCUPGRADED=true
+    RPCCHECKCOUNT=0
+  fi
+  sleep 1;
+  RPCCHECKCOUNT=$((${RPCCHECKCOUNT}-1))
+done
+
+if [ "${RPCUPGRADED}" == "false" ]; then
+  echo "Did not successfully upgrade!";
+  exit 4;
+fi
+
 echo "Successfully upgraded!";
