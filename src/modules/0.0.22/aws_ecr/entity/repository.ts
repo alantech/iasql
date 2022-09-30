@@ -1,6 +1,5 @@
 import { Entity, Column, OneToMany, PrimaryGeneratedColumn, Unique, ManyToOne, JoinColumn } from 'typeorm';
 
-import { cloudId } from '../../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { RepositoryImage } from './repository_image';
 
