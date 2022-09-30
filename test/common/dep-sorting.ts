@@ -1,11 +1,11 @@
 import { sortModules, } from '../../src/services/mod-sort'
-import { Module2, } from '../../src/modules/interfaces'
+import { ModuleBase, } from '../../src/modules/interfaces'
 
 const fakeMod = (name: string, dependencies: string[]) => ({
   name,
   version: '0.0.1',
   dependencies,
-} as Module2);
+} as ModuleBase);
 
 describe('Module Sorting', () => {
   it('should sort from root to leaf order', () => {
