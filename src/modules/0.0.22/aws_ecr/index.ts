@@ -440,6 +440,7 @@ class RepositoryMapper extends MapperBase<Repository> {
     create: async (es: Repository[], ctx: Context) => {
       const out = [];
       for (const e of es) {
+        logger.info(`+-+ what im trying to create ${JSON.stringify(e)}`);
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const result = await this.createECRRepository(client.ecrClient, {
           repositoryName: e.repositoryName,
@@ -527,7 +528,7 @@ class RepositoryMapper extends MapperBase<Repository> {
         // Also need to delete the repository policy associated with this repository,
         // if any
         // todo: fix with multiregion policies
-        const policy = await this.module.repositoryPolicy.db.read(ctx, e.repositoryName);
+        const policy = await this.module.repositoryPolicy.db.read(ctx, this.entityId(e));
         await this.module.repositoryPolicy.db.delete(policy, ctx);
       }
     },
@@ -543,16 +544,12 @@ class RepositoryMapper extends MapperBase<Repository> {
 class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
   module: AwsEcrModule;
   entity = RepositoryPolicy;
-  entityId = (e: RepositoryPolicy) => {
-    return e.repository ? `${e.repository.repositoryName}|${e.repository.region}` : e.id.toString();
-  };
+  entityId = (e: RepositoryPolicy) => `${e.repository.repositoryName}|${e.repository.region}`;
   equals = (a: RepositoryPolicy, b: RepositoryPolicy) => {
     try {
       return (
         Object.is(a.registryId, b.registryId) &&
-        Object.is(a.repository.repositoryName, b.repository.repositoryName) &&
-        policiesAreSame(JSON.parse(a.policyText!), JSON.parse(b.policyText!)) &&
-        Object.is(a.region, b.region)
+        policiesAreSame(JSON.parse(a.policyText!), JSON.parse(b.policyText!))
       );
     } catch (e) {
       return false;
@@ -563,8 +560,9 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     const out = new RepositoryPolicy();
     out.registryId = rp?.registryId;
     out.repository =
-      (await this.module.repository.db.read(ctx, rp?.repositoryName)) ??
-      (await this.module.repository.cloud.read(ctx, rp?.repositoryName));
+      (await this.module.repository.db.read(ctx, rp?.repositoryName)).filter(
+        (r: Repository) => r.region === region,
+      ) ?? (await this.module.repository.cloud.read(ctx, this.entityId(rp)));
     out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
     out.region = region;
     return out;
@@ -587,11 +585,13 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     create: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.save(RepositoryPolicy, es),
     update: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.save(RepositoryPolicy, es),
     delete: (es: RepositoryPolicy[], ctx: Context) => ctx.orm.remove(RepositoryPolicy, es),
-    read: async (ctx: Context, repositoryName?: string) => {
+    read: async (ctx: Context, id?: string) => {
+      const [repositoryName, region] = id?.split('|') ?? [undefined, undefined];
       const opts = repositoryName
         ? {
             where: {
               repositoryName,
+              region,
             },
           }
         : {};
@@ -630,12 +630,10 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
       // TODO: Can this function be refactored to be simpler?
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawRepositoryPolicy = await this.getECRRepositoryPolicy(client.ecrClient, id);
-          if (!rawRepositoryPolicy) continue;
-          return await this.repositoryPolicyMapper(rawRepositoryPolicy, ctx, region);
-        }
+        const [repositoryName, region] = id.split('|');
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawRepositoryPolicy = await this.getECRRepositoryPolicy(client.ecrClient, repositoryName);
+        if (rawRepositoryPolicy) return await this.repositoryPolicyMapper(rawRepositoryPolicy, ctx, region);
       } else {
         const out = [];
         for (const region of enabledRegions) {
@@ -644,7 +642,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
           const repositories = ctx.memo?.cloud?.Repository
             ? Object.values(ctx.memo?.cloud?.Repository)
             : await this.module.repository.cloud.read(ctx);
-          for (const r of repositories) {
+          for (const r of repositories.filter((r: Repository) => r.region === region)) {
             try {
               const rp = await this.getECRRepositoryPolicy(client.ecrClient, r.repositoryName);
               policies.push(rp);
@@ -660,27 +658,12 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
         return out;
       }
     },
-    updateOrReplace: (a: RepositoryPolicy, b: RepositoryPolicy) => {
-      return a.region !== b.region ? 'replace' : 'update';
-    },
     update: async (es: RepositoryPolicy[], ctx: Context) => {
       const out: RepositoryPolicy[] = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[
-          `${e.repository.repositoryName}|${e.repository.region}`
-        ] as RepositoryPolicy;
-        const isUpdate = Object.is(
-          this.module.repositoryPolicy.cloud.updateOrReplace(cloudRecord, e),
-          'update',
-        );
-        if (!isUpdate) {
-          await this.module.repositoryPolicy.cloud.delete(e, ctx);
-          const newPolicy = await this.module.repositoryPolicy.cloud.create(e, ctx);
-          if (newPolicy && !Array.isArray(newPolicy)) out.push(newPolicy);
-          continue;
-        }
+        const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[this.entityId(e)] as RepositoryPolicy;
+        let policyUpdated = false;
         try {
-          // TODO: is this logic ok?
           if (!policiesAreSame(JSON.parse(cloudRecord.policyText!), JSON.parse(e.policyText!))) {
             const outPolicy = await this.module.repositoryPolicy.cloud.create(e, ctx);
             if (outPolicy instanceof RepositoryPolicy) out.push(outPolicy);
@@ -689,17 +672,16 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
                 if (pol instanceof RepositoryPolicy) out.push(pol);
               }
             }
-            // todo: create a test to make this fail, here we need to continue,
-            // otherwise will insert two objects in the output array
-            // maybe it was not failing because we were not awaiting?
-            // continue;
+            policyUpdated = true;
           }
         } catch (e) {
           logger.error('Error comparing policy records');
         }
-        cloudRecord.id = e.id;
-        await this.module.repositoryPolicy.db.update(cloudRecord, ctx);
-        out.push(cloudRecord);
+        if (!policyUpdated) {
+          cloudRecord.id = e.id;
+          await this.module.repositoryPolicy.db.update(cloudRecord, ctx);
+          out.push(cloudRecord);
+        }
       }
       return out;
     },
