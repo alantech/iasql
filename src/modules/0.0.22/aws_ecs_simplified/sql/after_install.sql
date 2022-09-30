@@ -79,6 +79,7 @@ BEGIN
     VALUES (
       NEW.app_name || '-container', true,
       NEW.app_name || '-repository',
+      -- TODO: add region to log_group select when multi-region support added
       (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL LIMIT 1), get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp', (SELECT id from log_group WHERE log_group_name = NEW.app_name || '-log-group'), NEW.env_variables
     );
   ELSE
