@@ -3,8 +3,8 @@ import { Column, Entity, PrimaryColumn } from 'typeorm';
 import { cloudId } from '../../../../services/cloud-id';
 
 export enum ComputePlatform {
-  LAMBDA = 'LAMBDA',
-  SERVER = 'SERVER',
+  Lambda = 'Lambda',
+  Server = 'Server',
 }
 
 @Entity()
@@ -21,7 +21,7 @@ export class CodedeployApplication {
   @Column({
     type: 'enum',
     enum: ComputePlatform,
-    default: ComputePlatform.SERVER,
+    default: ComputePlatform.Server,
   })
   computePlatform: ComputePlatform;
 }

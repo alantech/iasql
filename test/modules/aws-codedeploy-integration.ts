@@ -58,7 +58,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'adds a new codedeploy_application',
     query(`
     INSERT INTO codedeploy_application (application_name, compute_platform)
-    VALUES ('${applicationName}', 'SERVER');
+    VALUES ('${applicationName}', 'Server');
   `),
   );
 
@@ -68,7 +68,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'adds a new codedeploy_application',
     query(`
     INSERT INTO codedeploy_application (application_name, compute_platform)
-    VALUES ('${applicationName}', 'SERVER');
+    VALUES ('${applicationName}', 'Server');
   `),
   );
 
@@ -97,7 +97,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'checks that application ID has not been been modified',
     query(
       `
-  SELECT * FROM codedeploy_application WHERE api_id='fake' AND application_name='${applicationName}';
+  SELECT * FROM codedeploy_application WHERE application_id='fake' AND application_name='${applicationName}';
 `,
       (res: any) => expect(res.length).toBe(0),
     ),
@@ -106,7 +106,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   it(
     'tries to update the codedeploy_application compute_platform',
     query(`
-  UPDATE codedeploy_application SET compute_platform='LAMBDA' WHERE application_name='${applicationName}'
+  UPDATE codedeploy_application SET compute_platform='Lambda' WHERE application_name='${applicationName}'
   `),
   );
 
@@ -116,7 +116,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'checks that codedeploy_application compute_platform has been modified',
     query(
       `
-  SELECT * FROM codedeploy_application WHERE compute_platform='LAMBDA' AND application_name='${applicationName}';
+  SELECT * FROM codedeploy_application WHERE compute_platform='Lambda' AND application_name='${applicationName}';
 `,
       (res: any) => expect(res.length).toBe(1),
     ),

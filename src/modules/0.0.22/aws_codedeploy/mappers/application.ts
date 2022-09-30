@@ -15,14 +15,16 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
   module: AwsCodedeployModule;
   entity = CodedeployApplication;
   equals = (a: CodedeployApplication, b: CodedeployApplication) =>
-    Object.is(a.applicationName, b.applicationName) && Object.is(a.computePlatform, b.computePlatform);
+    Object.is(a.applicationName, b.applicationName) &&
+    Object.is(a.computePlatform, b.computePlatform) &&
+    Object.is(a.applicationId, b.applicationId);
 
   async applicationMapper(app: ApplicationInfo) {
     const out = new CodedeployApplication();
     if (!app.applicationName) return undefined;
     out.applicationName = app.applicationName;
     out.applicationId = app.applicationId;
-    out.computePlatform = (app.computePlatform as ComputePlatform) ?? ComputePlatform.SERVER;
+    out.computePlatform = (app.computePlatform as ComputePlatform) ?? ComputePlatform.Server;
     return out;
   }
 
@@ -49,7 +51,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
       for (const e of es) {
         const input: CreateApplicationCommandInput = {
           applicationName: e.applicationName,
-          computePlatform: e.computePlatform,
+          computePlatform: ComputePlatform[e.computePlatform],
         };
         const appId = await this.createApplication(client.cdClient, input);
         if (!appId) continue;
@@ -75,7 +77,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
         const appNames = await this.listApplications(client.cdClient);
         if (!appNames || !appNames.length) return;
         for (const name of appNames) {
-          const rawApp = await this.getApplication(client.cdClient, name);
+          const rawApp = await this.getApplication(client.cdClient, { applicationName: name });
           if (!rawApp) continue;
 
           const app = await this.applicationMapper(rawApp);
@@ -92,10 +94,9 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
         const cloudRecord = ctx?.memo?.cloud?.CodedeployApplication?.[app.applicationName ?? ''];
         if (this.module.application.cloud.updateOrReplace(app, cloudRecord) == 'update') {
           if (app.applicationId !== cloudRecord.applicationId) {
-            // replace
+            // restore
             await this.module.application.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
-            continue;
           }
         } else {
           // delete app and create new one
@@ -108,6 +109,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
           if (createdApp) out.push(createdApp);
         }
       }
+      return out;
     },
     delete: async (apps: CodedeployApplication[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
