@@ -569,8 +569,8 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     const out = new RepositoryPolicy();
     out.registryId = rp?.registryId;
     out.repository =
-      await this.module.repository.db.read(ctx, rp?.repositoryName) ??
-      await this.module.repository.cloud.read(ctx, rp?.repositoryName);
+      (await this.module.repository.db.read(ctx, rp?.repositoryName)) ??
+      (await this.module.repository.cloud.read(ctx, rp?.repositoryName));
     out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
     out.region = region;
     return out;
@@ -672,7 +672,9 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     update: async (es: RepositoryPolicy[], ctx: Context) => {
       const out: RepositoryPolicy[] = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[`${e.repository.repositoryName}|${e.repository.region}`] as RepositoryPolicy;
+        const cloudRecord = ctx?.memo?.cloud?.RepositoryPolicy?.[
+          `${e.repository.repositoryName}|${e.repository.region}`
+        ] as RepositoryPolicy;
         const isUpdate = Object.is(
           this.module.repositoryPolicy.cloud.updateOrReplace(cloudRecord, e),
           'update',
