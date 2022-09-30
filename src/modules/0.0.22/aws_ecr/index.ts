@@ -642,7 +642,7 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
           const repositories = ctx.memo?.cloud?.Repository
             ? Object.values(ctx.memo?.cloud?.Repository)
             : await this.module.repository.cloud.read(ctx);
-          for (const r of repositories.filter((r: Repository) => r.region === region)) {
+          for (const r of repositories.filter((repository: Repository) => repository.region === region)) {
             try {
               const rp = await this.getECRRepositoryPolicy(client.ecrClient, r.repositoryName);
               policies.push(rp);
