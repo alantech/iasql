@@ -1,10 +1,7 @@
-import e from 'cors';
-import { filter } from 'lodash';
 import isEqual from 'lodash.isequal';
 
 import {
   CodeDeploy,
-  CreateDeploymentGroupCommand,
   CreateDeploymentGroupCommandInput,
   DeploymentGroupInfo,
   paginateListDeploymentGroups,
@@ -26,7 +23,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     Object.is(a.id, b.id) &&
     Object.is(a.name, b.name) &&
     isEqual(a.role, b.role) &&
-    isEqual(a.ec2TagFilters, b.ec2TagFilters);
+    isEqual(a.ec2TagFilters ?? [], b.ec2TagFilters ?? []);
 
   async deploymentGroupMapper(group: DeploymentGroupInfo, ctx: Context) {
     const out = new CodedeployDeploymentGroup();
@@ -92,7 +89,15 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     res => res,
   );
 
-  listDeploymentGroups = paginateBuilder<CodeDeploy>(paginateListDeploymentGroups, 'deploymentGroups');
+  listDeploymentGroups = paginateBuilder<CodeDeploy>(
+    paginateListDeploymentGroups,
+    'deploymentGroups',
+    undefined,
+    undefined,
+    applicationName => ({
+      applicationName: applicationName,
+    }),
+  );
 
   deleteDeploymentGroup = crudBuilder2<CodeDeploy, 'deleteDeploymentGroup'>(
     'deleteDeploymentGroup',
@@ -114,8 +119,13 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
         const groupId = await this.createDeploymentGroup(client.cdClient, input);
         if (!groupId) continue;
 
-        // we just need to add the id
+        // we need to update group id and app
         e.id = groupId;
+
+        const app =
+          (await this.module.application.db.read(ctx, e.application.name)) ??
+          this.module.application.cloud.read(ctx, e.application.name);
+        if (app) e.application = app;
         await this.db.update(e, ctx);
         out.push(e);
       }
@@ -123,8 +133,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     },
     read: async (ctx: Context, applicationName?: string, deploymentGroupName?: string) => {
       const client = (await ctx.getAwsClient()) as AWS;
-      if (!applicationName) return; // neeed to always pass application name
-      if (deploymentGroupName) {
+      if (applicationName && deploymentGroupName) {
         const rawGroup = await this.getDeploymentGroup(client.cdClient, {
           applicationName: applicationName,
           deploymentGroupName: deploymentGroupName,
@@ -135,20 +144,24 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
         const group = await this.deploymentGroupMapper(rawGroup, ctx);
         return group;
       } else {
+        // first need to read all applications
         const out = [];
-        const groupNames = await this.listDeploymentGroups(client.cdClient, {
-          applicationName: applicationName,
-        });
-        if (!groupNames || !groupNames.length) return;
-        for (const group of groupNames) {
-          const rawGroup = await this.getDeploymentGroup(client.cdClient, {
-            applicationName: applicationName,
-            deploymentGroupName: deploymentGroupName,
-          });
-          if (!rawGroup) continue;
+        const apps = await this.module.application.cloud.read(ctx);
+        for (const app of apps) {
+          if (app && app.name) {
+            const groupNames = await this.listDeploymentGroups(client.cdClient, app.name);
+            for (const groupName of groupNames) {
+              const rawGroup = await this.getDeploymentGroup(client.cdClient, {
+                applicationName: app.name,
+                deploymentGroupName: groupName,
+              });
+              if (!rawGroup) return;
 
-          const app = await this.deploymentGroupMapper(rawGroup, ctx);
-          if (app) out.push(app);
+              // map to entity
+              const group = await this.deploymentGroupMapper(rawGroup, ctx);
+              if (group) out.push(group);
+            }
+          }
         }
         return out;
       }

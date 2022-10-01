@@ -20,6 +20,7 @@ export enum EC2TagFilterType {
 export class CodedeployDeploymentGroup {
   @PrimaryColumn()
   @cloudId
+  // it is composed by application_name+'|'+group_name
   name: string;
 
   @Column({
@@ -54,11 +55,11 @@ export class CodedeployDeploymentGroup {
   }[];
 
   @ManyToOne(() => IamRole, role => role.roleName, {
-    nullable: true,
+    nullable: false,
     eager: true,
   })
   @JoinColumn({
     name: 'role_name',
   })
-  role?: IamRole;
+  role: IamRole;
 }
