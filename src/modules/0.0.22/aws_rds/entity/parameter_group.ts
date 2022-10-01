@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { Parameter } from '@aws-sdk/client-rds';
 
@@ -58,9 +58,14 @@ export enum ParameterGroupFamily {
 }
 
 @Entity()
+@Unique('paragrp_name_region', ['name', 'region'])
+@Unique('paragrp_id_region', ['id', 'region'])
 export class ParameterGroup {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
+  id?: number;
+
   @cloudId
+  @Column()
   name: string;
 
   @Column({
@@ -83,4 +88,13 @@ export class ParameterGroup {
     nullable: true,
   })
   parameters?: Parameter[];
+
+  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @cloudId
+  region: string;
 }

@@ -100,8 +100,24 @@ export class RDS {
     eager: true,
     nullable: true,
   })
-  @JoinColumn({
-    name: 'parameter_group_name',
-  })
+  @JoinColumn([
+    {
+      name: 'parameter_group_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   parameterGroup?: ParameterGroup;
+
+  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @cloudId
+  region: string;
 }
