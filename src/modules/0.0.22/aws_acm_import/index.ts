@@ -45,9 +45,9 @@ class CertificateImportMapper extends MapperBase<CertificateImport> {
   });
   cloud = new Crud2<CertificateImport>({
     create: async (es: CertificateImport[], ctx: Context) => {
+      const client = (await ctx.getAwsClient()) as AWS;
       const textEncoder = new TextEncoder();
       for (const e of es) {
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: ImportCertificateCommandInput = {
           Certificate: textEncoder.encode(e.certificate),
           PrivateKey: textEncoder.encode(e.privateKey),
@@ -57,10 +57,9 @@ class CertificateImportMapper extends MapperBase<CertificateImport> {
         }
         const importedCertArn = await this.importCertificate(client.acmClient, input);
         if (!importedCertArn) throw new Error('Error importing certificate');
+        const importedCert = await awsAcmListModule.certificate.cloud.read(ctx, importedCertArn);
         await this.module.certificateImport.db.delete(e, ctx);
         try {
-          // TODO: awsAcmListModule should also be converted to multi-region for this to work
-          const importedCert = await awsAcmListModule.certificate.cloud.read(ctx, importedCertArn);
           await awsAcmListModule.certificate.db.create(importedCert, ctx);
         } catch (e) {
           // Do nothing
@@ -95,5 +94,4 @@ class AwsAcmImportModule extends ModuleBase {
     super.init();
   }
 }
-
 export const awsAcmImportModule = new AwsAcmImportModule();
