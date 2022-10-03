@@ -315,10 +315,10 @@ describe('ECS Integration Testing', () => {
     'adds a new container definition',
     query(`
     BEGIN;
-      INSERT INTO container_definition ("name", repository_id, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-      VALUES('${containerNameRepository}', (select id from repository where repository_name = '${repositoryName}'), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
-      INSERT INTO container_definition ("name", repository_id, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-      VALUES('${containerNameRepository}dgst', (select id from repository where repository_name = '${repositoryName}'), false, ${containerMemoryReservation}, ${
+      INSERT INTO container_definition ("name", repository_id, region, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
+      VALUES('${containerNameRepository}', (select id from repository where repository_name = '${repositoryName}'), (select region from repository where repository_name = '${repositoryName}'), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
+      INSERT INTO container_definition ("name", repository_id, region, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
+      VALUES('${containerNameRepository}dgst', (select id from repository where repository_name = '${repositoryName}'), (select region from repository where repository_name = '${repositoryName}'), false, ${containerMemoryReservation}, ${
       hostPort + 2
     }, ${
       containerPort + 2
