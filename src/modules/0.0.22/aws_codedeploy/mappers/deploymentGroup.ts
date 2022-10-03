@@ -147,19 +147,21 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
         // first need to read all applications
         const out = [];
         const apps = await this.module.application.cloud.read(ctx);
-        for (const app of apps) {
-          if (app && app.name) {
-            const groupNames = await this.listDeploymentGroups(client.cdClient, app.name);
-            for (const groupName of groupNames) {
-              const rawGroup = await this.getDeploymentGroup(client.cdClient, {
-                applicationName: app.name,
-                deploymentGroupName: groupName,
-              });
-              if (!rawGroup) return;
+        if (apps && apps.length > 0) {
+          for (const app of apps) {
+            if (app && app.name) {
+              const groupNames = await this.listDeploymentGroups(client.cdClient, app.name);
+              for (const groupName of groupNames) {
+                const rawGroup = await this.getDeploymentGroup(client.cdClient, {
+                  applicationName: app.name,
+                  deploymentGroupName: groupName,
+                });
+                if (!rawGroup) continue;
 
-              // map to entity
-              const group = await this.deploymentGroupMapper(rawGroup, ctx);
-              if (group) out.push(group);
+                // map to entity
+                const group = await this.deploymentGroupMapper(rawGroup, ctx);
+                if (group) out.push(group);
+              }
             }
           }
         }

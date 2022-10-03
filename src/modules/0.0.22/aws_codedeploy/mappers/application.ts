@@ -1,27 +1,107 @@
+import isEqual from 'lodash.isequal';
+
 import {
   CodeDeploy,
   ApplicationInfo,
   paginateListApplications,
   CreateApplicationCommandInput,
+  RevisionInfo,
+  paginateListApplicationRevisions,
+  RegisterApplicationRevisionCommandInput,
 } from '@aws-sdk/client-codedeploy';
 
 import { AwsCodedeployModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { CodedeployApplication, ComputePlatform } from '../entity';
+import {
+  CodedeployApplication,
+  CodedeployDeploymentGroup,
+  CodedeployRevision,
+  ComputePlatform,
+  RevisionType,
+} from '../entity';
 
 export class CodedeployApplicationMapper extends MapperBase<CodedeployApplication> {
   module: AwsCodedeployModule;
   entity = CodedeployApplication;
   equals = (a: CodedeployApplication, b: CodedeployApplication) =>
-    Object.is(a.name, b.name) && Object.is(a.computePlatform, b.computePlatform) && Object.is(a.id, b.id);
+    Object.is(a.name, b.name) &&
+    Object.is(a.computePlatform, b.computePlatform) &&
+    Object.is(a.id, b.id) &&
+    isEqual(a.revisions, b.revisions);
 
-  async applicationMapper(app: ApplicationInfo) {
+  listRevisions = paginateBuilder<CodeDeploy>(
+    paginateListApplicationRevisions,
+    'paginateListApplicationRevisions',
+    'revisions',
+    undefined,
+    applicationName => ({
+      applicationName: applicationName,
+    }),
+  );
+
+  getApplicationRevisions = crudBuilderFormat<
+    CodeDeploy,
+    'batchGetApplicationRevisions',
+    RevisionInfo[] | undefined
+  >(
+    'batchGetApplicationRevisions',
+    input => input,
+    res => res?.revisions,
+  );
+
+  async applicationMapper(app: ApplicationInfo, ctx: Context) {
+    const client = (await ctx.getAwsClient()) as AWS;
     const out = new CodedeployApplication();
     if (!app.applicationName) return undefined;
     out.name = app.applicationName;
     out.id = app.applicationId;
     out.computePlatform = (app.computePlatform as ComputePlatform) ?? ComputePlatform.Server;
+
+    // reconcile revisions
+    out.revisions = [];
+    const rawRevs = await this.listRevisions(client.cdClient, app.applicationName);
+
+    for (const rawRev in rawRevs) {
+      // get details
+      const rawDetailedRev = await this.getApplicationRevisions(client.cdClient, {
+        applicationName: app.applicationName,
+        revisions: [rawRev],
+      });
+      if (rawDetailedRev && rawDetailedRev.length > 0) {
+        const rev = await this.revisionMapper(rawDetailedRev[0], ctx);
+        if (rev) out.revisions.push(rev);
+      }
+    }
+    return out;
+  }
+
+  async revisionMapper(revision: RevisionInfo, ctx: Context) {
+    const out = new CodedeployRevision();
+    if (!revision.genericRevisionInfo?.deploymentGroups) return undefined;
+
+    // get application from deployment groups
+    for (const group of revision.genericRevisionInfo.deploymentGroups) {
+      // all revisions will be for the same application
+      const rawGroup: CodedeployDeploymentGroup =
+        (await this.module.deploymentGroup.db.read(ctx, group)) ??
+        this.module.deploymentGroup.cloud.read(ctx, group);
+      if (rawGroup) {
+        out.application = rawGroup.application;
+      }
+      break;
+    }
+    out.description = revision.genericRevisionInfo.description;
+
+    // get location details
+    if (revision.revisionLocation) {
+      out.location = {
+        githubLocation: revision.revisionLocation.gitHubLocation,
+        s3Location: revision.revisionLocation.s3Location,
+        revisionType: revision.revisionLocation.revisionType as RevisionType,
+      };
+    }
+
     return out;
   }
 
@@ -29,6 +109,12 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
     'createApplication',
     input => input,
     res => res?.applicationId,
+  );
+
+  createRevision = crudBuilderFormat<CodeDeploy, 'registerApplicationRevision', null>(
+    'registerApplicationRevision',
+    input => input,
+    res => null,
   );
 
   getApplication = crudBuilderFormat<CodeDeploy, 'getApplication', ApplicationInfo | undefined>(
@@ -56,6 +142,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
         // we just need to add the id
         e.id = appId;
         await this.db.update(e, ctx);
+
         out.push(e);
       }
       return out;
@@ -67,7 +154,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
         if (!rawApp) return;
 
         // map to entity
-        const app = await this.applicationMapper(rawApp);
+        const app = await this.applicationMapper(rawApp, ctx);
         return app;
       } else {
         const out = [];
@@ -77,16 +164,18 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
           const rawApp = await this.getApplication(client.cdClient, { applicationName: name });
           if (!rawApp) continue;
 
-          const app = await this.applicationMapper(rawApp);
+          const app = await this.applicationMapper(rawApp, ctx);
           if (app) out.push(app);
         }
         return out;
       }
     },
     updateOrReplace: (a: CodedeployApplication, b: CodedeployApplication) =>
-      a.id !== b.id ? 'update' : 'replace',
+      a.id !== b.id || a.revisions !== b.revisions ? 'update' : 'replace',
     update: async (apps: CodedeployApplication[], ctx: Context) => {
+      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
+
       for (const app of apps) {
         const cloudRecord = ctx?.memo?.cloud?.CodedeployApplication?.[app.name ?? ''];
         if (this.module.application.cloud.updateOrReplace(app, cloudRecord) == 'update') {
@@ -94,6 +183,36 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
             // restore
             await this.module.application.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
+          }
+          console.log('i have different revisions');
+          console.log(app.revisions);
+          console.log(cloudRecord.revisions);
+
+          // check the number of registers. If the are more, add the latest one on the cloud
+          if (app.revisions!.length > cloudRecord.revisions!.length) {
+            const diff = app.revisions!.length - cloudRecord.revisions!.length;
+            console.log('i have diff');
+            console.log(diff);
+            // sort by id decreasing
+            const latest = app.revisions?.sort((a: CodedeployRevision, b: CodedeployRevision) =>
+              a.id < b.id ? 1 : -1,
+            );
+            const pickedRevs = latest?.splice(0, diff);
+            console.log('picked revs are');
+            console.log(pickedRevs);
+
+            if (pickedRevs && pickedRevs.length > 0) {
+              for (const rev of pickedRevs) {
+                console.log('i create');
+                // we will create the new revision
+                const input: RegisterApplicationRevisionCommandInput = {
+                  applicationName: app.name,
+                  description: rev.description,
+                  revision: rev.location,
+                };
+                await this.createRevision(client.cdClient, input);
+              }
+            }
           }
         } else {
           // delete app and create new one

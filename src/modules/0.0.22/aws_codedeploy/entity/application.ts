@@ -2,6 +2,7 @@ import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 import { CodedeployDeploymentGroup } from './deploymentGroup';
+import { CodedeployRevision } from './revision';
 
 export enum ComputePlatform {
   Lambda = 'Lambda',
@@ -28,6 +29,14 @@ export class CodedeployApplication {
 
   @OneToMany(() => CodedeployDeploymentGroup, deploymentGroups => deploymentGroups.application, {
     nullable: true,
+    cascade: true,
   })
   deploymentGroups?: CodedeployDeploymentGroup[];
+
+  @OneToMany(() => CodedeployRevision, revisions => revisions.application, {
+    nullable: true,
+    cascade: true,
+    eager: true,
+  })
+  revisions?: CodedeployRevision[];
 }

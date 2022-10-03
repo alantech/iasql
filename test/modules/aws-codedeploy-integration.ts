@@ -82,6 +82,21 @@ const ec2FilterTags = JSON.stringify([
   },
 ]);
 
+const revisionLocationv0 = JSON.stringify({
+  revisionType: 'GitHub',
+  gitHubLocation: {
+    repository: 'aws-samples/aws-codedeploy-samples',
+    commitId: '7b2c0d6515c1c59eeedd409b752ceec0aae4d886',
+  },
+});
+
+const revisionLocationv1 = JSON.stringify({
+  revisionType: 'GitHub',
+  gitHubLocation: {
+    repository: 'aws-samples/aws-codedeploy-samples',
+  },
+});
+
 let availabilityZone: string;
 let instanceType: string;
 
@@ -94,11 +109,11 @@ const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2'];
 
 jest.setTimeout(560000);
 beforeAll(async () => {
-  const availabilityZones =
+  /*const availabilityZones =
     (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
   availabilityZone = availabilityZones.pop() ?? '';
   const instanceTypesByAz1 = await getInstanceTypeOffering([availabilityZone]);
-  instanceType = instanceTypesByAz1.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
+  instanceType = instanceTypesByAz1.InstanceTypeOfferings?.pop()?.InstanceType ?? '';*/
 
   await execComposeUp();
 });
@@ -133,7 +148,7 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it('installs the codedeploy module and dependencies', install(modules));
 
-  it(
+  /*it(
     'creates ec2 instance role',
     query(`
     INSERT INTO iam_role (role_name, assume_role_policy_document)
@@ -241,7 +256,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     WHERE name = '${applicationName}';
   `),
   );
-  it('applies the application deletion', apply());
+  it('applies the application deletion', apply());*/
 
   // deployment group testing
   it(
@@ -252,7 +267,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   `),
   );
 
-  it(
+  /*it(
     'adds a new deployment_group',
     query(`
     INSERT INTO codedeploy_deployment_group (application_name, name, role_name)
@@ -294,16 +309,37 @@ describe('AwsCodedeploy Integration Testing', () => {
       },
     ),
   );
-});
+});*/
 
-describe('deployment cleanup', () => {
+  // create application revision
+  it(
+    'adds a new codedeploy_revision',
+    query(`
+  INSERT INTO codedeploy_revision (description, application_name, location)
+  VALUES ('Codedeploy revision v0', '${applicationNameForDeployment}', '${revisionLocationv0}');
+`),
+  );
+  it('applies the codedeploy_application registration', apply());
+
+  it(
+    'check codedeploy_revision is available',
+    query(
+      `
+SELECT * FROM codedeploy_revision WHERE description='Codedeploy revision v0';
+`,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  // cleanup
+  /*describe('deployment cleanup', () => {
   it(
     'delete deployment group',
     query(`
       DELETE FROM codedeploy_deployment_group
       WHERE name = '${deploymentGroupName}';
     `),
-  );
+  );*/
 
   it(
     'delete application',
@@ -316,7 +352,7 @@ describe('deployment cleanup', () => {
   it('apply codedeploy_deployment_group deletion', apply());
 });
 
-describe('ec2 cleanup', () => {
+/*describe('ec2 cleanup', () => {
   it(
     'deletes all ec2 instances',
     query(`
@@ -344,7 +380,7 @@ describe('delete role', () => {
   );
 
   it('applies the role deletion', apply());
-});
+});*/
 
 // cleanup
 it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));

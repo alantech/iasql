@@ -11,7 +11,6 @@ export enum RevisionType {
 @Entity()
 export class CodedeployRevision {
   @PrimaryGeneratedColumn()
-  @cloudId
   id: number;
 
   @Column({
@@ -20,7 +19,7 @@ export class CodedeployRevision {
   description?: string;
 
   @ManyToOne(() => CodedeployApplication, {
-    eager: true,
+    eager: false,
     nullable: false,
   })
   @JoinColumn({
