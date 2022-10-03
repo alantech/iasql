@@ -78,7 +78,7 @@ class ContainerDefinition(models.Model):
                                         null=True)
     public_repository_name = models.ForeignKey('PublicRepository', models.DO_NOTHING,
                                                db_column='public_repository_name', blank=True, null=True)
-    log_group_name = models.ForeignKey('LogGroup', models.DO_NOTHING, db_column='log_group_name', blank=True, null=True)
+    log_group = models.ForeignKey('LogGroup', models.DO_NOTHING, blank=True, null=True)
 
     class Meta:
         managed = False
