@@ -634,9 +634,11 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
         const [repositoryName, region] = id.split('|');
-        const client = (await ctx.getAwsClient(region)) as AWS;
-        const rawRepositoryPolicy = await this.getECRRepositoryPolicy(client.ecrClient, repositoryName);
-        if (rawRepositoryPolicy) return await this.repositoryPolicyMapper(rawRepositoryPolicy, ctx, region);
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawRepositoryPolicy = await this.getECRRepositoryPolicy(client.ecrClient, repositoryName);
+          if (rawRepositoryPolicy) return await this.repositoryPolicyMapper(rawRepositoryPolicy, ctx, region);
+        }
       } else {
         const out = [];
         for (const region of enabledRegions) {
