@@ -143,7 +143,7 @@ describe('Lambda Multi-region Integration Testing', () => {
     'changes the region the lambda function is located in',
     query(`
       UPDATE lambda_function
-      SET region = '${process.env.AWS_REGION}'
+      SET region = '${process.env.AWS_REGION}', zip_b64 = '${lambdaFunctionCode}'
       WHERE name = '${lambdaFunctionName}' and region = '${nonDefaultRegion}';
   `),
   );
