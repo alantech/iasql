@@ -1,4 +1,4 @@
-import * as iasql from '../../src/services/iasql'
+import * as iasql from '../../src/services/iasql';
 import {
   getPrefix,
   runQuery,
@@ -10,7 +10,7 @@ import {
   runInstall,
   runUninstall,
   getKeyCertPair,
-} from '../helpers'
+} from '../helpers';
 
 const prefix = getPrefix();
 const dbAlias = 'acmimporttest';
@@ -59,7 +59,7 @@ describe('AwsAcmImport Integration Testing', () => {
     SELECT *
     FROM certificate_import;
   `, (res: any[]) => expect(res.length).toBe(0)));
-    
+
   it('adds a new certificate to import', query(`
     INSERT INTO certificate_import (certificate, private_key)
     VALUES ('${cert}', '${key}');
@@ -110,6 +110,38 @@ describe('AwsAcmImport Integration Testing', () => {
     FROM certificate
     WHERE domain_name = '${domainName}';
   `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('import a certificate in non-default region', query(`
+    INSERT INTO certificate_import (certificate, private_key, region)
+    VALUES ('${cert}', '${key}', 'us-east-1');
+  `));
+
+  it('applies import of certificate in non-default region', apply());
+
+  // TODO: remove this after the acm_list modules supports multi-region
+  it('sets the default region to us-east-1 to sync the certificate', query(`
+    SELECT default_aws_region('us-east-1');
+  `));
+
+  it('syncs the certificate from the non-default region', sync());
+
+  it('verifies the certificate in the non-default region is created', query(`
+    SELECT *
+    FROM certificate
+    WHERE domain_name = '${domainName}';
+  `, (res: any) => expect(res.length).toBe(1)));
+
+  it('verifies the certificate import record is deleted', query(`
+    SELECT *
+    FROM certificate_import
+    WHERE region = 'us-east-1';
+  `, (res: any) => expect(res.length).toBe(0)));
+
+  it('deletes the certificate in non-default region', query(`
+    DELETE FROM certificate;
+  `));
+
+  it('applies the deletion of the certificate in the non-default region', apply());
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

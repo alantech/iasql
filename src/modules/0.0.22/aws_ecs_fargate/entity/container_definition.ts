@@ -122,8 +122,6 @@ export class ContainerDefinition {
     nullable: true,
     eager: true,
   })
-  @JoinColumn({
-    name: 'log_group_name',
-  })
+  @JoinColumn()
   logGroup?: LogGroup;
 }

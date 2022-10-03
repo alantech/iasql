@@ -6,6 +6,3 @@ DROP FUNCTION
 
 DROP FUNCTION
   default_aws_region (TEXT);
-
-DROP FUNCTION
-  default_aws_region ();

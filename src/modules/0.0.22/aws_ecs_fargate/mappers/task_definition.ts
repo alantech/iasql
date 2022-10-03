@@ -172,9 +172,10 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
     // TODO: eventually handle more log drivers
     if (c.logConfiguration?.logDriver === 'awslogs') {
       const groupName = c.logConfiguration.options['awslogs-group'];
+      // TODO: also take the `region` into account in the below commands (when this module supports multi-region)
       const logGroup =
-        (await awsCloudwatchModule.logGroup.db.read(ctx, groupName)) ??
-        (await awsCloudwatchModule.logGroup.cloud.read(ctx, groupName));
+        (await awsCloudwatchModule.logGroup.db.read(ctx)).find((lg: any) => lg.logGroupName === groupName) ??
+        (await awsCloudwatchModule.logGroup.cloud.read(ctx)).find((lg: any) => lg.logGroupName === groupName);
       out.logGroup = logGroup;
     }
     return out;
