@@ -1,14 +1,13 @@
+import isEqual from 'lodash.isequal';
+
 import {
   CodeDeploy,
-  CreateDeploymentGroupCommandInput,
-  GenericRevisionInfo,
-  paginateListDeploymentGroups,
+  RegisterApplicationRevisionCommandInput,
   RevisionInfo,
-  UpdateDeploymentGroupCommandOutput,
 } from '@aws-sdk/client-codedeploy';
 
 import { AwsCodedeployModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
+import { AWS, crudBuilderFormat } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { CodedeployDeploymentGroup } from '../entity';
 import { CodedeployRevision, RevisionType } from '../entity/revision';
@@ -16,10 +15,12 @@ import { CodedeployRevision, RevisionType } from '../entity/revision';
 export class CodedeployRevisionGroupMapper extends MapperBase<CodedeployRevision> {
   module: AwsCodedeployModule;
   entity = CodedeployRevision;
-  // we are not going to update any revision as you only can register new
-  equals = (a: CodedeployRevision, b: CodedeployRevision) => true;
+  equals = (a: CodedeployRevision, b: CodedeployRevision) =>
+    Object.is(a.application, b.application) &&
+    Object.is(a.description, b.description) &&
+    isEqual(a.location, b.location);
 
-  async revisionGroupMapper(revision: RevisionInfo, ctx: Context) {
+  async revisionMapper(revision: RevisionInfo, ctx: Context) {
     const out = new CodedeployRevision();
     if (!revision.genericRevisionInfo?.deploymentGroups) return undefined;
 
@@ -54,7 +55,7 @@ export class CodedeployRevisionGroupMapper extends MapperBase<CodedeployRevision
     res => null,
   );
 
-  getApplicationRevision = crudBuilderFormat<
+  getApplicationRevisions = crudBuilderFormat<
     CodeDeploy,
     'batchGetApplicationRevisions',
     RevisionInfo[] | undefined
@@ -64,39 +65,19 @@ export class CodedeployRevisionGroupMapper extends MapperBase<CodedeployRevision
     res => res?.revisions,
   );
 
-  listDeploymentGroups = paginateBuilder<CodeDeploy>(
-    paginateListDeploymentGroups,
-    'deploymentGroups',
-    undefined,
-    undefined,
-    applicationName => ({
-      applicationName: applicationName,
-    }),
-  );
-
-  deleteDeploymentGroup = crudBuilder2<CodeDeploy, 'deleteDeploymentGroup'>(
-    'deleteDeploymentGroup',
-    input => input,
-  );
-
-  cloud: Crud2<CodedeployDeploymentGroup> = new Crud2({
-    create: async (es: CodedeployDeploymentGroup[], ctx: Context) => {
+  cloud: Crud2<CodedeployRevision> = new Crud2({
+    create: async (es: CodedeployRevision[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const input: CreateDeploymentGroupCommandInput = {
+        const input: RegisterApplicationRevisionCommandInput = {
           applicationName: e.application.name,
-          deploymentConfigName: e.deploymentConfigName,
-          deploymentGroupName: e.name,
-          ec2TagFilters: e.ec2TagFilters,
-          serviceRoleArn: e.role?.arn,
+          description: e.description,
+          revision: e.location,
         };
-        const groupId = await this.createDeploymentGroup(client.cdClient, input);
-        if (!groupId) continue;
+        await this.createRevision(client.cdClient, input);
 
-        // we need to update group id and app
-        e.id = groupId;
-
+        // we need to update app
         const app =
           (await this.module.application.db.read(ctx, e.application.name)) ??
           this.module.application.cloud.read(ctx, e.application.name);
@@ -106,75 +87,56 @@ export class CodedeployRevisionGroupMapper extends MapperBase<CodedeployRevision
       }
       return out;
     },
-    read: async (ctx: Context, applicationName?: string, deploymentGroupName?: string) => {
+    read: async (ctx: Context, applicationName?: string) => {
       const client = (await ctx.getAwsClient()) as AWS;
-      if (applicationName && deploymentGroupName) {
-        const rawGroup = await this.getDeploymentGroup(client.cdClient, {
-          applicationName: applicationName,
-          deploymentGroupName: deploymentGroupName,
-        });
-        if (!rawGroup) return;
+      const out = [];
 
-        // map to entity
-        const group = await this.deploymentGroupMapper(rawGroup, ctx);
-        return group;
+      if (applicationName) {
+        const rawApps = await this.getApplicationRevisions(client.cdClient, {
+          applicationName: applicationName,
+        });
+        if (!rawApps) return;
+
+        // map to entities
+        for (const rawApp of rawApps) {
+          const app = await this.revisionMapper(rawApp, ctx);
+          if (app) out.push(app);
+        }
       } else {
         // first need to read all applications
-        const out = [];
         const apps = await this.module.application.cloud.read(ctx);
         for (const app of apps) {
           if (app && app.name) {
-            const groupNames = await this.listDeploymentGroups(client.cdClient, app.name);
-            for (const groupName of groupNames) {
-              const rawGroup = await this.getDeploymentGroup(client.cdClient, {
-                applicationName: app.name,
-                deploymentGroupName: groupName,
-              });
-              if (!rawGroup) return;
+            const rawApps = await this.getApplicationRevisions(client.cdClient, {
+              applicationName: app.name,
+            });
+            if (!rawApps) return;
 
-              // map to entity
-              const group = await this.deploymentGroupMapper(rawGroup, ctx);
-              if (group) out.push(group);
+            // map to entities
+            for (const rawApp of rawApps) {
+              const app = await this.revisionMapper(rawApp, ctx);
+              if (app) out.push(app);
             }
           }
         }
         return out;
       }
     },
-    update: async (groups: CodedeployDeploymentGroup[], ctx: Context) => {
+    update: async (revisions: CodedeployRevision[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
-      for (const group of groups) {
-        if (!group.application || !group.name) continue; // cannot update a deployment group without app or id
-        // we always update
-        const cloudRecord = ctx?.memo?.cloud?.CodedeployDeploymentGroup?.[group.name ?? ''];
-        if (group.id !== cloudRecord.id) {
-          // restore
-          await this.module.application.db.update(cloudRecord, ctx);
-          out.push(cloudRecord);
-        } else {
-          const res = await this.updateDeploymentGroup(client.cdClient, {
-            applicationName: group.application.name,
-            currentDeploymentGroupName: group.name,
-            ec2TagFilters: group.ec2TagFilters,
-            serviceRoleArn: group.role?.arn,
-          });
+      for (const revision of revisions) {
+        if (!revision.application || !revision.location || !revision.id) continue;
 
-          // update the db
-          await this.db.update(group, ctx);
-          out.push(group);
-        }
+        // we will just restore the details
+        const cloudRecord = ctx?.memo?.cloud?.CodedeployRevision?.[revision.id ?? ''];
+        await this.db.update(cloudRecord, ctx);
+        out.push(cloudRecord);
       }
       return out;
     },
-    delete: async (groups: CodedeployDeploymentGroup[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      for (const group of groups) {
-        await this.deleteDeploymentGroup(client.cdClient, {
-          applicationName: group.application.name,
-          deploymentGroupName: group.name,
-        });
-      }
+    delete: async (revisions: CodedeployRevision[], ctx: Context) => {
+      return;
     },
   });
 
