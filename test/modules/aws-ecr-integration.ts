@@ -237,7 +237,7 @@ describe('ECR Integration Testing', () => {
         `
       SELECT *
       FROM repository_policy
-      WHERE repository_is = (select id from repository where repository_name = '${repositoryName}');
+      WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
     `,
         (res: any[]) => expect(res.length).toBe(1),
       ),
