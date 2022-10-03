@@ -41,16 +41,6 @@ export const getModBeforeInstall = (name: string, version: string) => {
   }
 };
 
-export const getModAfterInstall = (name: string, version: string) => {
-  try {
-    const sqlDir = `${__dirname}/../modules/${version}/${name}/sql`;
-    const afterInstallSql = fs.readFileSync(`${sqlDir}/after_install.sql`, 'utf8');
-    return afterInstallSql;
-  } catch (_) {
-    return '';
-  }
-};
-
 // TODO: Figure out some way to DRY this logic with `dep-sorting.ts`
 export const sortMods = (name: string, version: string, includeRoot: boolean) => {
   const mods = getModJsons(version);
