@@ -75,10 +75,11 @@ BEGIN
   IF NEW.repository_uri IS NULL AND NEW.image_digest IS NULL THEN
     INSERT INTO repository (repository_name) VALUES (NEW.app_name || '-repository');
     -- fill in repository_name in container_definition
-    INSERT INTO container_definition ("name", essential, repository_name, task_definition_id, memory_reservation, host_port, container_port, protocol, log_group_name, env_variables)
+    INSERT INTO container_definition ("name", essential, repository_id, region, task_definition_id, memory_reservation, host_port, container_port, protocol, log_group_name, env_variables)
     VALUES (
       NEW.app_name || '-container', true,
-      NEW.app_name || '-repository',
+      (SELECT id from repository where repository_name = NEW.app_name || '-repository'),
+      (SELECT region from repository where repository_name = NEW.app_name || '-repository'),
       (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL LIMIT 1), get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp', NEW.app_name || '-log-group', NEW.env_variables
     );
   ELSE
