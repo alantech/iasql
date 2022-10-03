@@ -313,6 +313,7 @@ describe('ECS Integration Testing', () => {
 
   it(
     'adds a new container definition',
+     // TODO: add region to repository selects when multi-region is supported
     query(`
     BEGIN;
       INSERT INTO container_definition ("name", repository_id, region, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
@@ -329,6 +330,7 @@ describe('ECS Integration Testing', () => {
 
   it(
     'check container definition insertion',
+     // TODO: add region to repository selects when multi-region is supported
     query(
       `
     SELECT *
@@ -355,6 +357,7 @@ describe('ECS Integration Testing', () => {
 
   it(
     'check container definition insertion',
+     // TODO: add region to repository selects when multi-region is supported
     query(
       `
     SELECT *
