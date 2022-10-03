@@ -248,7 +248,7 @@ export class Mapper2<E> {
 
   constructor(def: Mapper2ObjInterface<E>) {
     this.entity = def.entity;
-    const cloudColumn = getCloudId(def.entity);
+    const cloudColumns = getCloudId(def.entity);
     if (def.entityId) {
       this.entityId = def.entityId;
     } else {
@@ -260,7 +260,13 @@ export class Mapper2<E> {
           .map(c => c.propertyName)
           .shift() ?? '';
       // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
-      this.entityId = (e: E) => ((e as any)[cloudColumn] ?? (e as any)[primaryColumn]) + '';
+      this.entityId = (e: E) => {
+        if (cloudColumns && !(cloudColumns instanceof Error)) {
+          return cloudColumns.map(col => (e as any)[col]).join('|');
+        } else {
+          return (e as any)[primaryColumn] + '';
+        }
+      };
     }
     this.equals = def.equals;
     this.source = def.source;
@@ -269,7 +275,7 @@ export class Mapper2<E> {
       this.db.entity = def.entity;
       this.db.entityId = this.entityId;
       this.db.dest = 'db';
-    } else if (!!cloudColumn) {
+    } else if (!!cloudColumns) {
       this.db = new Crud2<E>({
         create: (es: E[], ctx: Context) => ctx.orm.save(def.entity, es),
         update: (es: E[], ctx: Context) => ctx.orm.save(def.entity, es),
@@ -277,9 +283,9 @@ export class Mapper2<E> {
         read: async (ctx: Context, id?: string) => {
           const opts = id
             ? {
-                where: {
-                  [cloudColumn]: id,
-                },
+                where: Object.fromEntries(
+                  id.split('|').map((val, i) => [(cloudColumns as string[])[i], val]),
+                ),
               }
             : {};
           return await ctx.orm.find(def.entity, opts);
@@ -310,7 +316,7 @@ export class MapperBase<E> {
   init() {
     if (!this.module) throw new Error('No module link established for this mapper');
     if (!this.entity) throw new Error('No entity defined for this mapper');
-    const cloudColumn = getCloudId(this.entity);
+    const cloudColumns = getCloudId(this.entity);
     if (!this.entityId) {
       const ormMetadata = getMetadataArgsStorage();
       const primaryColumn =
@@ -320,7 +326,13 @@ export class MapperBase<E> {
           .map(c => c.propertyName)
           .shift() ?? '';
       // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
-      this.entityId = (e: E) => ((e as any)[cloudColumn] ?? (e as any)[primaryColumn]) + '';
+      this.entityId = (e: E) => {
+        if (cloudColumns && !(cloudColumns instanceof Error)) {
+          return cloudColumns.map(col => (e as any)[col]).join('|');
+        } else {
+          return (e as any)[primaryColumn] + '';
+        }
+      };
     }
     if (!this.equals) throw new Error('No entity equals method defined'); // TODO: Make a default
     if (!this.source) this.source = 'db';
@@ -329,7 +341,7 @@ export class MapperBase<E> {
       this.db.entityId = this.entityId;
       this.db.dest = 'db';
       this.db.module = this.module;
-    } else if (!!cloudColumn && !((cloudColumn as any) instanceof Error)) {
+    } else if (!!cloudColumns && !(cloudColumns instanceof Error)) {
       this.db = new Crud2<E>({
         create: (es: E[], ctx: Context) => ctx.orm.save(this.entity, es),
         update: (es: E[], ctx: Context) => ctx.orm.save(this.entity, es),
@@ -337,9 +349,7 @@ export class MapperBase<E> {
         read: async (ctx: Context, id?: string) => {
           const opts = id
             ? {
-                where: {
-                  [cloudColumn]: id,
-                },
+                where: Object.fromEntries(id.split('|').map((val, i) => [cloudColumns[i], val])),
               }
             : {};
           return await ctx.orm.find(this.entity, opts);
