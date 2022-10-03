@@ -75,6 +75,7 @@ BEGIN
   IF NEW.repository_uri IS NULL AND NEW.image_digest IS NULL THEN
     INSERT INTO repository (repository_name) VALUES (NEW.app_name || '-repository');
     -- fill in repository_name in container_definition
+    -- TODO: pick repository id by name and region once aws_ecs_fargate is converted to multiregion
     INSERT INTO container_definition ("name", essential, repository_id, region, task_definition_id, memory_reservation, host_port, container_port, protocol, log_group_name, env_variables)
     VALUES (
       NEW.app_name || '-container', true,
