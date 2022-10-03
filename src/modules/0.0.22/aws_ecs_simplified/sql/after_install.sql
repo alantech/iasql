@@ -279,7 +279,7 @@ BEGIN
     WHERE id = _task_definition_id AND execution_role_name = task_role_name;
 
     -- TODO get latest or sort ?
-    SELECT tag, digest, repository_name, log_group_name, cpu, memory, image, env_variables
+    SELECT tag, digest, (SELECT repository_name FROM repository where id = repository_id), log_group_name, cpu, memory, image, env_variables
     INTO _image_tag, _image_digest, _repository_name, _log_group_name, _cpu, _mem, _repository_uri, _env_variables
     FROM container_definition
     WHERE task_definition_id = _task_definition_id AND host_port = _app_port AND container_port = _app_port AND essential = true LIMIT 1;
