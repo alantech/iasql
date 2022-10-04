@@ -94,6 +94,7 @@ const revisionLocationv1 = JSON.stringify({
   revisionType: 'GitHub',
   gitHubLocation: {
     repository: 'aws-samples/aws-codedeploy-samples',
+    commitId: '8cb5e5df89e17193dbcc178e92511d3b8e91a38c',
   },
 });
 
@@ -325,9 +326,38 @@ describe('AwsCodedeploy Integration Testing', () => {
     'check codedeploy_revision is available',
     query(
       `
-SELECT * FROM codedeploy_revision WHERE description='Codedeploy revision v0';
+SELECT * FROM codedeploy_revision WHERE description='Codedeploy revision v0' AND application_name='${applicationNameForDeployment}';
 `,
       (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'adds a new codedeploy_revision',
+    query(`
+  INSERT INTO codedeploy_revision (description, application_name, location)
+  VALUES ('Codedeploy revision v1', '${applicationNameForDeployment}', '${revisionLocationv1}');
+`),
+  );
+  it('applies the codedeploy_application registration', apply());
+
+  it(
+    'check codedeploy_revision_v1 is available',
+    query(
+      `
+SELECT * FROM codedeploy_revision WHERE description='Codedeploy revision v1' AND application_name='${applicationNameForDeployment}';
+`,
+      (res: any) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check that we have two revisions',
+    query(
+      `
+SELECT * FROM codedeploy_revision WHERE application_name='${applicationNameForDeployment}';
+`,
+      (res: any) => expect(res.length).toBe(2),
     ),
   );
 
@@ -349,7 +379,17 @@ SELECT * FROM codedeploy_revision WHERE description='Codedeploy revision v0';
     `),
   );
 
-  it('apply codedeploy_deployment_group deletion', apply());
+  it('apply codedeploy_application deletion', apply());
+
+  it(
+    'check no codedeploy_revisions remain',
+    query(
+      `
+SELECT * FROM codedeploy_revision WHERE application_name='${applicationNameForDeployment}';
+`,
+      (res: any) => expect(res.length).toBe(0),
+    ),
+  );
 });
 
 /*describe('ec2 cleanup', () => {

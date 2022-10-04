@@ -21,6 +21,7 @@ export class CodedeployRevision {
   @ManyToOne(() => CodedeployApplication, {
     eager: false,
     nullable: false,
+    onDelete: 'CASCADE',
   })
   @JoinColumn({
     name: 'application_name',

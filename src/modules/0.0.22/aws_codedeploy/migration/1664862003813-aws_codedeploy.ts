@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsCodedeploy1664814949855 implements MigrationInterface {
-    name = 'awsCodedeploy1664814949855'
+export class awsCodedeploy1664862003813 implements MigrationInterface {
+    name = 'awsCodedeploy1664862003813'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."codedeploy_deployment_group_deployment_config_name_enum" AS ENUM('CodeDeployDefault.AllAtOnce', 'CodeDeployDefault.HalfAtATime', 'CodeDeployDefault.OneAtATime')`);
@@ -11,7 +11,7 @@ export class awsCodedeploy1664814949855 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "codedeploy_application" ("name" character varying NOT NULL, "id" character varying, "compute_platform" "public"."codedeploy_application_compute_platform_enum" NOT NULL DEFAULT 'Server', CONSTRAINT "PK_065aec2451add762a29370b65f4" PRIMARY KEY ("name"))`);
         await queryRunner.query(`ALTER TABLE "codedeploy_deployment_group" ADD CONSTRAINT "FK_033ac438c1906805e21252415e5" FOREIGN KEY ("application_name") REFERENCES "codedeploy_application"("name") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "codedeploy_deployment_group" ADD CONSTRAINT "FK_86e94742305aa3c507e978781ce" FOREIGN KEY ("role_name") REFERENCES "iam_role"("role_name") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "codedeploy_revision" ADD CONSTRAINT "FK_3acb71f43ea663377faea0debf4" FOREIGN KEY ("application_name") REFERENCES "codedeploy_application"("name") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "codedeploy_revision" ADD CONSTRAINT "FK_3acb71f43ea663377faea0debf4" FOREIGN KEY ("application_name") REFERENCES "codedeploy_application"("name") ON DELETE CASCADE ON UPDATE NO ACTION`);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
