@@ -1,8 +1,9 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 import { IamRole } from '../../aws_iam/entity';
 import { CodedeployApplication } from './application';
+import { CodedeployDeployment } from './deployment';
 
 export enum DeploymentConfigType {
   ALL_AT_ONCE = 'CodeDeployDefault.AllAtOnce',
@@ -20,7 +21,6 @@ export enum EC2TagFilterType {
 export class CodedeployDeploymentGroup {
   @PrimaryColumn()
   @cloudId
-  // it is composed by application_name+'|'+group_name
   name: string;
 
   @Column({
@@ -62,4 +62,10 @@ export class CodedeployDeploymentGroup {
     name: 'role_name',
   })
   role: IamRole;
+
+  @OneToMany(() => CodedeployDeployment, deployments => deployments.deploymentGroup, {
+    nullable: true,
+    cascade: true,
+  })
+  deployments?: CodedeployDeployment[];
 }
