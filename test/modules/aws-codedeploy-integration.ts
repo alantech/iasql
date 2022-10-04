@@ -361,6 +361,27 @@ SELECT * FROM codedeploy_revision WHERE application_name='${applicationNameForDe
     ),
   );
 
+  it('should fail when updating a revision', () => {
+    try {
+      query(`
+      UPDATE codedeploy_revision SET description='fake description' WHERE application_name='${applicationNameForDeployment}';
+      `);
+    } catch (e) {
+      expect(e).toBeTruthy;
+    }
+  });
+
+  it('should fail when deleting a revision', () => {
+    try {
+      query(`
+      DELETE FROM codedeploy_revision WHERE application_name='${applicationNameForDeployment}';
+      `);
+    } catch (e) {
+      expect(e).toBeTruthy;
+    }
+  });
+  it('applies the update and deletion', apply());
+
   // cleanup
   /*describe('deployment cleanup', () => {
   it(
