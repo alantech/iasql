@@ -24,7 +24,7 @@ const modules = ['aws_security_group', 'aws_vpc'];
 const randIPBlock = Math.floor(Math.random() * 254) + 1; // 0 collides with the default CIDR block
 const randIPBlock2 = Math.floor(Math.random() * 254) + 1; // 0 collides with the default CIDR block
 
-jest.setTimeout(240000);
+jest.setTimeout(300000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
