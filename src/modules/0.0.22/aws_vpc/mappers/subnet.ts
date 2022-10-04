@@ -8,10 +8,11 @@ import { Subnet, SubnetState, Vpc } from '../entity';
 export class SubnetMapper extends MapperBase<Subnet> {
   module: AwsVpcModule;
   entity = Subnet;
+  entityId = (e: Subnet) => `${e.subnetId}|${e.region}`;
   equals = (a: Subnet, b: Subnet) =>
     Object.is(a.subnetId, b.subnetId) && Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name); // TODO: Do better
 
-  async subnetMapper(sn: AwsSubnet, ctx: Context) {
+  async subnetMapper(sn: AwsSubnet, ctx: Context, region: string) {
     const out = new Subnet();
     if (!sn?.SubnetId || !sn?.VpcId) return undefined;
     out.state = sn.State as SubnetState;
@@ -20,8 +21,8 @@ export class SubnetMapper extends MapperBase<Subnet> {
       (await this.module.availabilityZone.db.read(ctx, sn.AvailabilityZone)) ??
       (await this.module.availabilityZone.cloud.read(ctx, sn.AvailabilityZone));
     out.vpc =
-      (await this.module.vpc.db.read(ctx)).find((vpc: Vpc) => vpc.vpcId === sn.VpcId) ??
-      (await this.module.vpc.cloud.read(ctx)).find((vpc: Vpc) => vpc.vpcId === sn.VpcId);
+      (await this.module.vpc.db.read(ctx, `${sn.VpcId}|${region}`)) ??
+      (await this.module.vpc.cloud.read(ctx, `${sn.VpcId}|${region}`));
     if (sn.VpcId && !out.vpc) throw new Error(`Waiting for VPC ${sn.VpcId}`);
     if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
       await this.module.vpc.db.create(out.vpc, ctx);
@@ -31,6 +32,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
     out.subnetId = sn.SubnetId;
     out.ownerId = sn.OwnerId;
     out.subnetArn = sn.SubnetArn;
+    out.region = region;
     return out;
   }
 
@@ -47,8 +49,8 @@ export class SubnetMapper extends MapperBase<Subnet> {
     create: async (es: Subnet[], ctx: Context) => {
       // TODO: Add support for creating default subnets (only one is allowed, also add
       // constraint that a single subnet is set as default)
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: any = {
           AvailabilityZone: e.availabilityZone.name,
           VpcId: e.vpc.vpcId,
@@ -56,7 +58,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
         if (e.cidrBlock) input.CidrBlock = e.cidrBlock;
         const res = await this.createSubnet(client.ec2client, input);
         if (res?.Subnet) {
-          const newSubnet = await this.subnetMapper(res.Subnet, ctx);
+          const newSubnet = await this.subnetMapper(res.Subnet, ctx, e.region);
           if (!newSubnet) continue;
           newSubnet.id = e.id;
           Object.keys(newSubnet).forEach(k => ((e as any)[k] = (newSubnet as any)[k]));
@@ -66,17 +68,24 @@ export class SubnetMapper extends MapperBase<Subnet> {
       }
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       // TODO: Convert AWS subnet representation to our own
       if (!!id) {
-        const rawSubnet = await this.getSubnet(client.ec2client, id);
-        if (!rawSubnet) return;
-        return await this.subnetMapper(rawSubnet, ctx);
+        const [subnetId, region] = id.split('|');
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawSubnet = await this.getSubnet(client.ec2client, subnetId);
+          if (!rawSubnet) return;
+          return await this.subnetMapper(rawSubnet, ctx, region);
+        }
       } else {
         const out = [];
-        for (const sn of await this.getSubnets(client.ec2client)) {
-          const outSn = await this.subnetMapper(sn, ctx);
-          if (outSn) out.push(outSn);
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          for (const sn of await this.getSubnets(client.ec2client)) {
+            const outSn = await this.subnetMapper(sn, ctx, region);
+            if (outSn) out.push(outSn);
+          }
         }
         return out;
       }
@@ -88,8 +97,8 @@ export class SubnetMapper extends MapperBase<Subnet> {
       if (out instanceof Array) return out;
     },
     delete: async (es: Subnet[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         // Special behavior here. You're not allowed to mess with the "default" VPC or its subnets.
         // Any attempt to update it is instead turned into *restoring* the value in
         // the database to match the cloud value

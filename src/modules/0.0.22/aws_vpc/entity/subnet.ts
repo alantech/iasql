@@ -1,6 +1,7 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
-import { cloudId } from '../../../../services/cloud-id';
+// todo: import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { AvailabilityZone } from './availability_zone';
 import { Vpc } from './vpc';
 
@@ -9,6 +10,8 @@ export enum SubnetState {
   PENDING = 'pending',
 }
 
+@Unique('uq_subnet_region', ['id', 'region'])
+@Unique('uq_subnet_id_region', ['subnetId', 'region'])
 @Entity()
 export class Subnet {
   @PrimaryGeneratedColumn()
@@ -28,9 +31,16 @@ export class Subnet {
   state?: SubnetState;
 
   @ManyToOne(() => Vpc, { nullable: false, eager: true })
-  @JoinColumn({
-    name: 'vpc_id',
-  })
+  @JoinColumn([
+    {
+      name: 'vpc_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   vpc: Vpc;
 
   @Column({
@@ -47,7 +57,7 @@ export class Subnet {
   @Column({
     nullable: true,
   })
-  @cloudId
+  // todo: @cloudId
   subnetId?: string;
 
   @Column({
@@ -59,4 +69,14 @@ export class Subnet {
     nullable: true,
   })
   subnetArn?: string;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  // todo: @cloudId
+  region: string;
 }

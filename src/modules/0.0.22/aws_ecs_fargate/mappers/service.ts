@@ -240,8 +240,10 @@ export class ServiceMapper extends MapperBase<Service> {
         // misconfigured resources
         let subnet: Subnet;
         try {
+          // todo: search by region when multiregion
           subnet =
-            (await awsVpcModule.subnet.db.read(ctx, sn)) ?? (await awsVpcModule.subnet.cloud.read(ctx, sn));
+            (await awsVpcModule.subnet.db.read(ctx)).find((sbn: Subnet) => sbn.subnetId === sn) ??
+            (await awsVpcModule.subnet.cloud.read(ctx)).find((sbn: Subnet) => sbn.subnetId === sn);
           if (!subnet) return undefined;
         } catch (e: any) {
           if (e.Code === 'InvalidSubnetID.NotFound') return undefined;

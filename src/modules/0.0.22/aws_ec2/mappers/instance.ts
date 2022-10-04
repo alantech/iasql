@@ -14,6 +14,7 @@ import { AwsEc2Module } from '..';
 import { awsIamModule, awsSecurityGroupModule, awsVpcModule } from '../..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { Subnet } from '../../aws_vpc/entity';
 import { GeneralPurposeVolume, Instance, State, VolumeState } from '../entity';
 import { updateTags, eqTags } from './tags';
 
@@ -78,8 +79,12 @@ export class InstanceMapper extends MapperBase<Instance> {
       }
     }
     out.subnet =
-      (await awsVpcModule.subnet.db.read(ctx, instance.SubnetId)) ??
-      (await awsVpcModule.subnet.cloud.read(ctx, instance.SubnetId));
+      (await awsVpcModule.subnet.db.read(ctx)).find(
+        (subnet: Subnet) => subnet.subnetId === instance.SubnetId,
+      ) ??
+      (await awsVpcModule.subnet.cloud.read(ctx)).find(
+        (subnet: Subnet) => subnet.subnetId === instance.SubnetId,
+      );
     out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
     return out;
   }

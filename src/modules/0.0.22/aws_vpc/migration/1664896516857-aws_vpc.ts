@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsVpc1664882982497 implements MigrationInterface {
-  name = 'awsVpc1664882982497';
+export class awsVpc1664896516857 implements MigrationInterface {
+  name = 'awsVpc1664896516857';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -19,7 +19,7 @@ export class awsVpc1664882982497 implements MigrationInterface {
     );
     await queryRunner.query(`CREATE TYPE "public"."subnet_state_enum" AS ENUM('available', 'pending')`);
     await queryRunner.query(
-      `CREATE TABLE "subnet" ("id" SERIAL NOT NULL, "state" "public"."subnet_state_enum", "available_ip_address_count" integer, "cidr_block" character varying, "subnet_id" character varying, "owner_id" character varying, "subnet_arn" character varying, "availability_zone" character varying NOT NULL, "vpc_id" integer NOT NULL, CONSTRAINT "PK_27239a6d70e746b9ac33497a47f" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "subnet" ("id" SERIAL NOT NULL, "state" "public"."subnet_state_enum", "available_ip_address_count" integer, "cidr_block" character varying, "subnet_id" character varying, "owner_id" character varying, "subnet_arn" character varying, "region" character varying NOT NULL DEFAULT default_aws_region(), "availability_zone" character varying NOT NULL, "vpc_id" integer NOT NULL, CONSTRAINT "uq_subnet_id_region" UNIQUE ("subnet_id", "region"), CONSTRAINT "uq_subnet_region" UNIQUE ("id", "region"), CONSTRAINT "PK_27239a6d70e746b9ac33497a47f" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."nat_gateway_connectivity_type_enum" AS ENUM('private', 'public')`,
@@ -41,7 +41,10 @@ export class awsVpc1664882982497 implements MigrationInterface {
       `ALTER TABLE "subnet" ADD CONSTRAINT "FK_93592d2af8429f2614b4ea3686d" FOREIGN KEY ("availability_zone") REFERENCES "availability_zone"("name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "subnet" ADD CONSTRAINT "FK_6b5bf9e47cab22f2857019b8eaf" FOREIGN KEY ("vpc_id") REFERENCES "vpc"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "subnet" ADD CONSTRAINT "FK_0e2c2bf1604ba2ffd4103157d24" FOREIGN KEY ("vpc_id", "region") REFERENCES "vpc"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subnet" ADD CONSTRAINT "FK_01b828964edce6b867e4e554b97" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "nat_gateway" ADD CONSTRAINT "FK_902c1e8953c40c17c23265e14dc" FOREIGN KEY ("subnet_id") REFERENCES "subnet"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -60,7 +63,8 @@ export class awsVpc1664882982497 implements MigrationInterface {
     );
     await queryRunner.query(`ALTER TABLE "nat_gateway" DROP CONSTRAINT "FK_398d5c82233501745759cb9dc3d"`);
     await queryRunner.query(`ALTER TABLE "nat_gateway" DROP CONSTRAINT "FK_902c1e8953c40c17c23265e14dc"`);
-    await queryRunner.query(`ALTER TABLE "subnet" DROP CONSTRAINT "FK_6b5bf9e47cab22f2857019b8eaf"`);
+    await queryRunner.query(`ALTER TABLE "subnet" DROP CONSTRAINT "FK_01b828964edce6b867e4e554b97"`);
+    await queryRunner.query(`ALTER TABLE "subnet" DROP CONSTRAINT "FK_0e2c2bf1604ba2ffd4103157d24"`);
     await queryRunner.query(`ALTER TABLE "subnet" DROP CONSTRAINT "FK_93592d2af8429f2614b4ea3686d"`);
     await queryRunner.query(`ALTER TABLE "vpc" DROP CONSTRAINT "FK_4e3193d811417bcd61e4f305e74"`);
     await queryRunner.query(`DROP TABLE "endpoint_gateway"`);
