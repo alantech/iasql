@@ -3,7 +3,7 @@ import { EC2, Subnet as AwsSubnet, paginateDescribeSubnets } from '@aws-sdk/clie
 import { AwsVpcModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { Subnet, SubnetState } from '../entity';
+import { Subnet, SubnetState, Vpc } from '../entity';
 
 export class SubnetMapper extends MapperBase<Subnet> {
   module: AwsVpcModule;
@@ -20,7 +20,8 @@ export class SubnetMapper extends MapperBase<Subnet> {
       (await this.module.availabilityZone.db.read(ctx, sn.AvailabilityZone)) ??
       (await this.module.availabilityZone.cloud.read(ctx, sn.AvailabilityZone));
     out.vpc =
-      (await this.module.vpc.db.read(ctx, sn.VpcId)) ?? (await this.module.vpc.cloud.read(ctx, sn.VpcId));
+      (await this.module.vpc.db.read(ctx)).find((vpc: Vpc) => vpc.vpcId === sn.VpcId) ??
+      (await this.module.vpc.cloud.read(ctx)).find((vpc: Vpc) => vpc.vpcId === sn.VpcId);
     if (sn.VpcId && !out.vpc) throw new Error(`Waiting for VPC ${sn.VpcId}`);
     if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
       await this.module.vpc.db.create(out.vpc, ctx);

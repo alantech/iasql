@@ -38,7 +38,8 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
     out.groupId = sg.GroupId;
     if (sg.VpcId) {
       out.vpc =
-        (await awsVpcModule.vpc.db.read(ctx, sg.VpcId)) ?? (await awsVpcModule.vpc.cloud.read(ctx, sg.VpcId));
+        (await awsVpcModule.vpc.db.read(ctx)).find((vpc: Vpc) => vpc.vpcId === sg.VpcId) ??
+        (await awsVpcModule.vpc.cloud.read(ctx)).find((vpc: Vpc) => vpc.vpcId === sg.VpcId);
       if (!out.vpc) throw new Error(`Waiting for VPC ${sg.VpcId}`);
     }
     return out;
@@ -164,7 +165,9 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
           // There may be a race condition/double write happening here, so check if this thing
           // has been created in the meantime
-          const dbVpc = await awsVpcModule.vpc.db.read(ctx, out.vpc.vpcId);
+          const dbVpc = (await awsVpcModule.vpc.db.read(ctx)).find(
+            (vpc: Vpc) => vpc.vpcId === out?.vpc?.vpcId,
+          );
           if (!!dbVpc) {
             out.vpc = dbVpc;
           } else {
@@ -209,7 +212,9 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
           // There may be a race condition/double write happening here, so check if this thing
           // has been created in the meantime
-          const dbVpc = await awsVpcModule.vpc.db.read(ctx, out.vpc.vpcId);
+          const dbVpc = (await awsVpcModule.vpc.db.read(ctx)).find(
+            (vpc: Vpc) => vpc.vpcId === out?.vpc?.vpcId,
+          );
           if (!!dbVpc) {
             out.vpc = dbVpc;
           } else {

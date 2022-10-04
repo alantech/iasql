@@ -23,6 +23,7 @@ import { awsAcmListModule, awsSecurityGroupModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { awsVpcModule } from '../aws_vpc';
+import { Vpc } from '../aws_vpc/entity';
 import {
   ActionTypeEnum,
   Listener,
@@ -288,7 +289,8 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     out.ipAddressType = lb.IpAddressType as IpAddressType;
     out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
     const vpc =
-      (await awsVpcModule.vpc.db.read(ctx, lb.VpcId)) ?? (await awsVpcModule.vpc.cloud.read(ctx, lb.VpcId));
+      (await awsVpcModule.vpc.db.read(ctx)).find((vpc: Vpc) => vpc.vpcId === lb.VpcId) ??
+      (await awsVpcModule.vpc.cloud.read(ctx)).find((vpc: Vpc) => vpc.vpcId === lb.VpcId);
     out.vpc = vpc;
     out.availabilityZones = lb.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
     out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
@@ -595,7 +597,8 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
     out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum;
     try {
       const vpc =
-        (await awsVpcModule.vpc.db.read(ctx, tg.VpcId)) ?? (await awsVpcModule.vpc.cloud.read(ctx, tg.VpcId));
+        (await awsVpcModule.vpc.db.read(ctx)).find((vpc: Vpc) => vpc.vpcId === tg.VpcId) ??
+        (await awsVpcModule.vpc.cloud.read(ctx)).find((vpc: Vpc) => vpc.vpcId === tg.VpcId);
       if (tg.VpcId && !vpc) return undefined;
       out.vpc = vpc;
     } catch (e: any) {

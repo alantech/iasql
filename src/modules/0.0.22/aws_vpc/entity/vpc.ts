@@ -1,12 +1,15 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
-import { cloudId } from '../../../../services/cloud-id';
+// todo: import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 
 export enum VpcState {
   AVAILABLE = 'available',
   PENDING = 'pending',
 }
 
+@Unique('uq_vpc_region', ['id', 'region'])
+@Unique('uq_vpc_id_region', ['vpcId', 'region'])
 @Entity()
 export class Vpc {
   @PrimaryGeneratedColumn()
@@ -16,7 +19,7 @@ export class Vpc {
     nullable: true,
   })
   @Index({ unique: true, where: 'vpc_id IS NOT NULL' })
-  @cloudId
+  // todo: @cloudId
   vpcId?: string;
 
   @Column()
@@ -39,4 +42,14 @@ export class Vpc {
     nullable: true,
   })
   tags?: { [key: string]: string };
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  // todo: @cloudId
+  region: string;
 }
