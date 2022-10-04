@@ -171,7 +171,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
           if (!!dbVpc) {
             out.vpc = dbVpc;
           } else {
-            await awsVpcModule.vpc.db.create(out.vpc, ctx);
+            // await awsVpcModule.vpc.db.create(out.vpc, ctx);
           }
         }
       }
@@ -189,20 +189,21 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
           }
         : { relations };
       const securityGroups = await ctx.orm.find(SecurityGroup, opts);
-      for (const sg of securityGroups) {
-        if (!sg.vpc) {
-          const vpcs: Vpc[] = await awsVpcModule.vpc.db.read(ctx);
-          if (!vpcs.length) {
-            throw new Error('Vpcs need to be loaded first');
-          }
-          const defaultVpc = vpcs.find((vpc: Vpc) => vpc.isDefault === true);
-          sg.vpc = defaultVpc;
-          await ctx.orm.save(SecurityGroup, sg);
-          if (sg.groupId) {
-            ctx.memo.db.SecurityGroup[sg.groupId] = sg;
-          }
-        }
-      }
+      // security groups have vpc as eager, this should not be necessary
+      // for (const sg of securityGroups) {
+      //   if (!sg.vpc) {
+      //     const vpcs: Vpc[] = await awsVpcModule.vpc.db.read(ctx);
+      //     if (!vpcs.length) {
+      //       throw new Error('Vpcs need to be loaded first');
+      //     }
+      //     const defaultVpc = vpcs.find((vpc: Vpc) => vpc.isDefault === true);
+      //     sg.vpc = defaultVpc;
+      //     await ctx.orm.save(SecurityGroup, sg);
+      //     if (sg.groupId) {
+      //       ctx.memo.db.SecurityGroup[sg.groupId] = sg;
+      //     }
+      //   }
+      // }
       return securityGroups;
     },
     update: async (e: SecurityGroup[], ctx: Context) => {
@@ -218,7 +219,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
           if (!!dbVpc) {
             out.vpc = dbVpc;
           } else {
-            await awsVpcModule.vpc.db.create(out.vpc, ctx);
+            // await awsVpcModule.vpc.db.create(out.vpc, ctx);
           }
         }
       }
