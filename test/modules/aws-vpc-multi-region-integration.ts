@@ -81,7 +81,7 @@ describe('VPC Multiregion Integration Testing', () => {
     WITH updated_subnet AS (
       UPDATE subnet
       SET region='${process.env.AWS_REGION}', availability_zone='${availabilityZone}'
-      WHERE cidr_block='192.${randIPBlock}.0.0/16' AND availability_zone='${nonDefaultRegionAvailabilityZone}' AND region = '${nonDefaultRegion}';
+      WHERE cidr_block='192.${randIPBlock}.0.0/16' AND availability_zone='${nonDefaultRegionAvailabilityZone}' AND region = '${nonDefaultRegion}'
     )
     UPDATE vpc
     SET region='${process.env.AWS_REGION}'

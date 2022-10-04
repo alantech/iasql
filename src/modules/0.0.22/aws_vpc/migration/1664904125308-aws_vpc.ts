@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsVpc1664901222006 implements MigrationInterface {
-  name = 'awsVpc1664901222006';
+export class awsVpc1664904125308 implements MigrationInterface {
+  name = 'awsVpc1664904125308';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -13,9 +13,6 @@ export class awsVpc1664901222006 implements MigrationInterface {
     await queryRunner.query(`CREATE TYPE "public"."vpc_state_enum" AS ENUM('available', 'pending')`);
     await queryRunner.query(
       `CREATE TABLE "vpc" ("id" SERIAL NOT NULL, "vpc_id" character varying, "cidr_block" character varying NOT NULL, "state" "public"."vpc_state_enum", "is_default" boolean NOT NULL DEFAULT false, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "uq_vpc_id_region" UNIQUE ("vpc_id", "region"), CONSTRAINT "uq_vpc_region" UNIQUE ("id", "region"), CONSTRAINT "PK_293725cf47b341e1edc38bd2075" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
-      `CREATE UNIQUE INDEX "IDX_b978cbc48bf5ef1c8eb8bfbdb3" ON "vpc" ("vpc_id") WHERE vpc_id IS NOT NULL`,
     );
     await queryRunner.query(`CREATE TYPE "public"."subnet_state_enum" AS ENUM('available', 'pending')`);
     await queryRunner.query(
@@ -80,7 +77,6 @@ export class awsVpc1664901222006 implements MigrationInterface {
     await queryRunner.query(`DROP TYPE "public"."nat_gateway_connectivity_type_enum"`);
     await queryRunner.query(`DROP TABLE "subnet"`);
     await queryRunner.query(`DROP TYPE "public"."subnet_state_enum"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_b978cbc48bf5ef1c8eb8bfbdb3"`);
     await queryRunner.query(`DROP TABLE "vpc"`);
     await queryRunner.query(`DROP TYPE "public"."vpc_state_enum"`);
     await queryRunner.query(`DROP TABLE "elastic_ip"`);

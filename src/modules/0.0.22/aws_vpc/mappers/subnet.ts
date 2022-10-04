@@ -24,9 +24,6 @@ export class SubnetMapper extends MapperBase<Subnet> {
       (await this.module.vpc.db.read(ctx, `${sn.VpcId}|${region}`)) ??
       (await this.module.vpc.cloud.read(ctx, `${sn.VpcId}|${region}`));
     if (sn.VpcId && !out.vpc) throw new Error(`Waiting for VPC ${sn.VpcId}`);
-    if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
-      await this.module.vpc.db.create(out.vpc, ctx);
-    }
     out.availableIpAddressCount = sn.AvailableIpAddressCount;
     out.cidrBlock = sn.CidrBlock;
     out.subnetId = sn.SubnetId;

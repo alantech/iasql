@@ -34,7 +34,7 @@ export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
     },
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      const out = [];
+      const outAzs = [];
       for (const region of enabledRegions) {
         const client = (await ctx.getAwsClient(region)) as AWS;
         const availabilityZones = await this.getAvailabilityZones(client.ec2client, region);
@@ -45,13 +45,13 @@ export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
             out.region = az.RegionName as string;
             return out;
           }) ?? [];
-        out.push(...azs);
+        outAzs.push(...azs);
       }
       if (!!id) {
         const [name, region] = id.split('|');
-        return out.find(az => az.name === name && az.region === region);
+        return outAzs.find(az => az.name === name && az.region === region);
       }
-      return out;
+      return outAzs;
     },
     // Update should never happen because the name is the only field
     update: async (_e: AvailabilityZone[], _ctx: Context) => {

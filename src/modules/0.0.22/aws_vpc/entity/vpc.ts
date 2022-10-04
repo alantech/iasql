@@ -18,7 +18,6 @@ export class Vpc {
   @Column({
     nullable: true,
   })
-  @Index({ unique: true, where: 'vpc_id IS NOT NULL' })
   // todo: @cloudId
   vpcId?: string;
 
