@@ -191,9 +191,9 @@ export class VpcMapper extends MapperBase<Vpc> {
           // we're interested in, which makes it a bit simpler here
           await this.module.vpc.db.update(e, ctx);
           // Make absolutely sure it shows up in the memo
-          ctx.memo.db.Vpc[e.vpcId ?? ''] = e;
+          ctx.memo.db.Vpc[this.entityId(e)] = e;
           const subnets: Subnet[] = Object.values(ctx?.memo?.cloud?.Subnet ?? {});
-          const relevantSubnets = subnets.filter((s: Subnet) => s.vpc.vpcId === e.vpcId);
+          const relevantSubnets = subnets.filter((s: Subnet) => s.vpc.vpcId === e.vpcId && s.region === e.region);
           if (relevantSubnets.length > 0) {
             await this.module.subnet.db.update(relevantSubnets, ctx);
           }
