@@ -18,9 +18,16 @@ export class Subnet {
   id: number;
 
   @ManyToOne(() => AvailabilityZone, { nullable: false, eager: true })
-  @JoinColumn({
-    name: 'availability_zone',
-  })
+  @JoinColumn([
+    {
+      name: 'availability_zone',
+      referencedColumnName: 'name',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   availabilityZone: AvailabilityZone;
 
   @Column({

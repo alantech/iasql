@@ -18,8 +18,8 @@ export class SubnetMapper extends MapperBase<Subnet> {
     out.state = sn.State as SubnetState;
     if (!sn.AvailabilityZone) return undefined;
     out.availabilityZone =
-      (await this.module.availabilityZone.db.read(ctx, sn.AvailabilityZone)) ??
-      (await this.module.availabilityZone.cloud.read(ctx, sn.AvailabilityZone));
+      (await this.module.availabilityZone.db.read(ctx, `${sn.AvailabilityZone}|${region}`)) ??
+      (await this.module.availabilityZone.cloud.read(ctx, `${sn.AvailabilityZone}|${region}`));
     out.vpc =
       (await this.module.vpc.db.read(ctx, `${sn.VpcId}|${region}`)) ??
       (await this.module.vpc.cloud.read(ctx, `${sn.VpcId}|${region}`));

@@ -8,6 +8,7 @@ import { AvailabilityZone } from '../entity';
 export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
   module: AwsVpcModule;
   entity = AvailabilityZone;
+  entityId = (e: AvailabilityZone) => `${e.name}|${e.region}`;
   equals = (a: AvailabilityZone, b: AvailabilityZone) => a.name === b.name;
 
   getAvailabilityZones = crudBuilder2<EC2, 'describeAvailabilityZones'>(
@@ -31,17 +32,26 @@ export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
         return [out];
       }
     },
-    read: async (ctx: Context, name?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      const availabilityZones = await this.getAvailabilityZones(client.ec2client, client.region);
-      const azs =
-        availabilityZones?.AvailabilityZones?.filter(az => !!az.ZoneName).map(az => {
-          const out = new AvailabilityZone();
-          out.name = az.ZoneName as string; // TS should have figured this out from the filter
-          return out;
-        }) ?? [];
-      if (!!name) return azs.filter(az => az.name === name);
-      return azs;
+    read: async (ctx: Context, id?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      const out = [];
+      for (const region of enabledRegions) {
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const availabilityZones = await this.getAvailabilityZones(client.ec2client, region);
+        const azs =
+          availabilityZones?.AvailabilityZones?.filter(az => !!az.ZoneName).map(az => {
+            const out = new AvailabilityZone();
+            out.name = az.ZoneName as string; // TS should have figured this out from the filter
+            out.region = az.RegionName as string;
+            return out;
+          }) ?? [];
+        out.push(...azs);
+      }
+      if (!!id) {
+        const [name, region] = id.split('|');
+        return out.find(az => az.name === name && az.region === region);
+      }
+      return out;
     },
     // Update should never happen because the name is the only field
     update: async (_e: AvailabilityZone[], _ctx: Context) => {

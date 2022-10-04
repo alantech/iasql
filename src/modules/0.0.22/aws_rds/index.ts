@@ -18,6 +18,7 @@ import { awsSecurityGroupModule, awsVpcModule } from '..';
 import { objectsAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { AvailabilityZone } from '../aws_vpc/entity';
 import { ParameterGroup, ParameterGroupFamily, RDS } from './entity';
 
 interface DBParameterGroupWParameters extends DBParameterGroup {
@@ -49,7 +50,9 @@ class RdsMapper extends MapperBase<RDS> {
   async rdsMapper(rds: any, ctx: Context) {
     const out = new RDS();
     out.allocatedStorage = rds?.AllocatedStorage;
-    out.availabilityZone = await awsVpcModule.availabilityZone.db.read(ctx, rds?.AvailabilityZone);
+    out.availabilityZone = (await awsVpcModule.availabilityZone.db.read(ctx)).find(
+      (az: AvailabilityZone) => az.name === rds?.AvailabilityZone,
+    );
     out.dbInstanceClass = rds?.DBInstanceClass;
     out.dbInstanceIdentifier = rds?.DBInstanceIdentifier;
     out.endpointAddr = rds?.Endpoint?.Address;
