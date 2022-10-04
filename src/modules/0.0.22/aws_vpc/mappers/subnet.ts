@@ -105,11 +105,11 @@ export class SubnetMapper extends MapperBase<Subnet> {
         if (e.vpc?.isDefault) {
           // For delete, we have un-memoed the record, but the record passed in *is* the one
           // we're interested in, which makes it a bit simpler here
-          const vpc = ctx?.memo?.db?.Vpc[e.vpc.vpcId ?? ''] ?? null;
+          const vpc = ctx?.memo?.db?.Vpc[`${e.vpc.vpcId}|${e.vpc.region}`] ?? null;
           e.vpc.id = vpc.id;
           await this.module.subnet.db.update(e, ctx);
           // Make absolutely sure it shows up in the memo
-          ctx.memo.db.Subnet[e.subnetId ?? ''] = e;
+          ctx.memo.db.Subnet[this.entityId(e)] = e;
         } else {
           await this.deleteSubnet(client.ec2client, {
             SubnetId: e.subnetId,
