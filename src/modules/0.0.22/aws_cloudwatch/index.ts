@@ -59,10 +59,10 @@ class LogGroupMapper extends MapperBase<LogGroup> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
-        const [groupName, region] = id.split('|');
+        const { logGroupName, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawLogGroup = await this.getLogGroup(client.cwClient, groupName);
+          const rawLogGroup = await this.getLogGroup(client.cwClient, logGroupName);
           if (rawLogGroup) return this.logGroupMapper(rawLogGroup, region);
         }
       } else {

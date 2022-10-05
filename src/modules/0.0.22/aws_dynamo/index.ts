@@ -105,7 +105,7 @@ class DynamoTableMapper extends MapperBase<DynamoTable> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
-        const [tableName, region] = id.split('|');
+        const { region, tableName } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawTable = await this.getTable(client.dynamoClient, tableName);

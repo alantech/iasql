@@ -111,10 +111,10 @@ class SecretMapper extends MapperBase<Secret> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
-        const [secretName, region] = id.split('|');
+        const { region, name } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawSecret = await this.getSecret(client.secretsClient, secretName);
+          const rawSecret = await this.getSecret(client.secretsClient, name);
           if (rawSecret) return this.secretsMapper(rawSecret, region);
         }
       } else {

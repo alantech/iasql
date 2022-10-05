@@ -13,6 +13,8 @@ import logger from '../services/logger';
 // the classes use these interfaces it helps give you hints as you develop a lot better than without
 // them.
 
+export type IdFields = { [key: string]: string };
+
 export type Context = { [key: string]: any };
 
 // TODO: use something better than ColumnType for possible postgres colum types
@@ -38,6 +40,7 @@ export class Crud2<E> {
   dest?: 'db' | 'cloud';
   entity?: new () => E;
   entityId?: (e: E) => string;
+  idFields?: (id: string) => IdFields;
 
   constructor(def: CrudInterface2<E>) {
     this.createFn = def.create;
@@ -212,6 +215,7 @@ export class Crud2<E> {
 export interface MapperInterface<E> {
   entity: new () => E;
   entityId: (e: E) => string;
+  idFields: (id: string) => IdFields;
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
   db: Crud2<E>;
@@ -233,6 +237,7 @@ export class MapperBase<E> {
   module: ModuleInterface;
   entity: new () => E;
   entityId: (e: E) => string;
+  idFields: (id: string) => IdFields; // TODO: add better tyoing
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
   db: Crud2<E>;
@@ -261,11 +266,31 @@ export class MapperBase<E> {
         }
       };
     }
+    if (!this.idFields) {
+      const ormMetadata = getMetadataArgsStorage();
+      const primaryColumn =
+        ormMetadata.columns
+          .filter(c => c.target === this.entity)
+          .filter(c => c.options.primary)
+          .map(c => c.propertyName)
+          .shift() ?? '';
+      this.idFields = (id: string) => {
+        const fields: IdFields = {};
+        const splittedId = id.split('|');
+        if (cloudColumns && !(cloudColumns instanceof Error)) {
+          cloudColumns.forEach((cc, i) => (fields[cc] = splittedId[i]));
+        } else {
+          fields[primaryColumn] = splittedId.pop() ?? '';
+        }
+        return fields;
+      };
+    }
     if (!this.equals) throw new Error('No entity equals method defined'); // TODO: Make a default
     if (!this.source) this.source = 'db';
     if (this.db) {
       this.db.entity = this.entity;
       this.db.entityId = this.entityId;
+      this.db.idFields = this.idFields;
       this.db.dest = 'db';
       this.db.module = this.module;
     } else if (!!cloudColumns && !(cloudColumns instanceof Error)) {
@@ -292,6 +317,7 @@ export class MapperBase<E> {
     if (!this.cloud) throw new Error('No cloud entity CRUD defined');
     this.cloud.entity = this.entity;
     this.cloud.entityId = this.entityId;
+    this.cloud.idFields = this.idFields;
     this.cloud.dest = 'cloud';
     this.cloud.module = this.module;
   }

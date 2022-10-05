@@ -91,10 +91,10 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
-        const [apiId, region] = id.split('|');
+        const { name, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawApi = await this.getGraphqlApi(client.appSyncClient, apiId);
+          const rawApi = await this.getGraphqlApi(client.appSyncClient, name);
           if (rawApi) return this.graphqlApiMapper(rawApi, region);
         }
       } else {

@@ -112,7 +112,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
-        const [clusterId, region] = id.split('|');
+        const { region, clusterId } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawCluster = await this.getCacheCluster(client.elasticacheClient, clusterId);
