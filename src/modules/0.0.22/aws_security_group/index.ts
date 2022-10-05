@@ -449,8 +449,17 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
       const out = [];
       for (const en of es) {
         const GroupId = en?.securityGroup?.groupId;
-        if (!GroupId)
-          throw new Error('Cannot create a security group rule for a security group that does not yet exist');
+        if (!GroupId) {
+          // Double-check if the security group does exist now but didn't before
+          const sg = await ctx.orm.findOne(SecurityGroup, { id: en?.securityGroup?.id, });
+          if (sg?.groupId) {
+            en.securityGroup = sg;
+          } else {
+            throw new Error(
+              'Cannot create a security group rule for a security group that does not yet exist'
+            );
+          }
+        }
 
         // if there is no protocol and no security group, fail
         if (!en.ipProtocol && !en.sourceSecurityGroup) {
