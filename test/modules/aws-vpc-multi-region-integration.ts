@@ -78,6 +78,7 @@ describe('VPC Multiregion Integration Testing', () => {
   ` , (res: any) => expect(res.length).toBe(1)));
   
   it('updates vpc region', query(`
+    DELETE FROM security_group WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1');
     WITH updated_subnet AS (
       UPDATE subnet
       SET region='${process.env.AWS_REGION}', availability_zone='${availabilityZone}'
