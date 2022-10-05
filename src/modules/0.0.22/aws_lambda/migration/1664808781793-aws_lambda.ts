@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsLambda1664442553658 implements MigrationInterface {
-  name = 'awsLambda1664442553658';
+export class awsLambda1664808781793 implements MigrationInterface {
+  name = 'awsLambda1664808781793';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -12,14 +12,18 @@ export class awsLambda1664442553658 implements MigrationInterface {
       `CREATE TYPE "public"."lambda_function_architecture_enum" AS ENUM('arm64', 'x86_64')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "lambda_function" ("name" character varying NOT NULL, "arn" character varying, "version" character varying NOT NULL DEFAULT '$LATEST', "description" character varying, "zip_b64" character varying, "handler" character varying, "runtime" "public"."lambda_function_runtime_enum", "package_type" "public"."lambda_function_package_type_enum" NOT NULL DEFAULT 'Zip', "architecture" "public"."lambda_function_architecture_enum" NOT NULL DEFAULT 'x86_64', "memory_size" integer NOT NULL DEFAULT '128', "environment" json, "tags" json, "role_name" character varying, CONSTRAINT "CHK_lambda_handler__package_type" CHECK (("package_type" = 'Zip' AND "handler" IS NOT NULL) OR "package_type" != 'Zip'), CONSTRAINT "CHK_lambda_runtime__package_type" CHECK (("package_type" = 'Zip' AND "runtime" IS NOT NULL) OR "package_type" != 'Zip'), CONSTRAINT "PK_c29c98bda01914d7de9c822c025" PRIMARY KEY ("name"))`,
+      `CREATE TABLE "lambda_function" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "version" character varying NOT NULL DEFAULT '$LATEST', "description" character varying, "zip_b64" character varying, "handler" character varying, "runtime" "public"."lambda_function_runtime_enum", "package_type" "public"."lambda_function_package_type_enum" NOT NULL DEFAULT 'Zip', "architecture" "public"."lambda_function_architecture_enum" NOT NULL DEFAULT 'x86_64', "memory_size" integer NOT NULL DEFAULT '128', "environment" json, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "role_name" character varying, CONSTRAINT "uq_lambda_region" UNIQUE ("name", "region"), CONSTRAINT "CHK_lambda_handler__package_type" CHECK (("package_type" = 'Zip' AND "handler" IS NOT NULL) OR "package_type" != 'Zip'), CONSTRAINT "CHK_lambda_runtime__package_type" CHECK (("package_type" = 'Zip' AND "runtime" IS NOT NULL) OR "package_type" != 'Zip'), CONSTRAINT "PK_047cc4e8b0922f375f48b74c2d8" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `ALTER TABLE "lambda_function" ADD CONSTRAINT "FK_e326decbc2b59a537bb9ee68ab9" FOREIGN KEY ("role_name") REFERENCES "iam_role"("role_name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
+    await queryRunner.query(
+      `ALTER TABLE "lambda_function" ADD CONSTRAINT "FK_544ef802e761e12c43a2b63ca13" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`ALTER TABLE "lambda_function" DROP CONSTRAINT "FK_544ef802e761e12c43a2b63ca13"`);
     await queryRunner.query(`ALTER TABLE "lambda_function" DROP CONSTRAINT "FK_e326decbc2b59a537bb9ee68ab9"`);
     await queryRunner.query(`DROP TABLE "lambda_function"`);
     await queryRunner.query(`DROP TYPE "public"."lambda_function_architecture_enum"`);
