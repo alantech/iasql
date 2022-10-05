@@ -60,7 +60,9 @@ const getInstanceTypeOffering = async (availabilityZones: string[]) => {
 };
 
 const roleName = `${prefix}-codedeploy-${region}`;
-const ec2RolePolicy = JSON.stringify({
+const ec2RoleName = `${prefix}-codedeploy-ec2-${region}`;
+
+const codedeployRolePolicy = JSON.stringify({
   Version: '2012-10-17',
   Statement: [
     {
@@ -73,12 +75,30 @@ const ec2RolePolicy = JSON.stringify({
     },
   ],
 });
+const codedeployPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess';
+const deployEC2PolicyArn = 'arn:aws:iam::aws:policy/AmazonEC2FullAccess';
+
+const ec2RolePolicy = JSON.stringify({
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Sid: '',
+      Effect: 'Allow',
+      Principal: {
+        Service: ['ec2.amazonaws.com'],
+      },
+      Action: 'sts:AssumeRole',
+    },
+  ],
+});
+const ssmPolicyArn = 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore';
+const instanceTag = `${prefix}-codedeploy-vm`;
 
 const ec2FilterTags = JSON.stringify([
   {
     Type: 'KEY_AND_VALUE',
     Key: 'name',
-    Value: `${prefix}-vm`,
+    Value: `${instanceTag}`,
   },
 ]);
 
@@ -97,6 +117,10 @@ const revisionLocationv1 = JSON.stringify({
     commitId: '8cb5e5df89e17193dbcc178e92511d3b8e91a38c',
   },
 });
+
+const installCodedeployAgent = `
+sudo apt update && sudo apt install ruby-full && sudo apt install wget
+`;
 
 let availabilityZone: string;
 let instanceType: string;
@@ -150,25 +174,34 @@ describe('AwsCodedeploy Integration Testing', () => {
   it('installs the codedeploy module and dependencies', install(modules));
 
   it(
-    'creates ec2 instance role',
+    'adds a new codedeploy role',
     query(`
-    INSERT INTO iam_role (role_name, assume_role_policy_document)
-    VALUES ('${roleName}', '${ec2RolePolicy}');
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('${roleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployEC2PolicyArn}']);
   `),
   );
+
+  it(
+    'adds a new ec2 role',
+    query(`
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('${ec2RoleName}', '${ec2RolePolicy}', array['${deployEC2PolicyArn}']);
+  `),
+  );
+
   it('applies the role creation', apply());
 
   // create sample ec2 instance
   it('adds an ec2 instance', done => {
     query(`
       BEGIN;
-        INSERT INTO instance (ami, instance_type, tags, subnet_id)
-          SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${prefix}-vm"}', id
+        INSERT INTO instance (ami, instance_type, tags, subnet_id, role_name)
+          SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${instanceTag}"}', id, '${ec2RoleName}'
           FROM subnet
           WHERE availability_zone = '${availabilityZone}'
           LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
-          (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-vm'),
+          (SELECT id FROM instance WHERE tags ->> 'name' = '${instanceTag}'),
           (SELECT id FROM security_group WHERE group_name='default');
       COMMIT;
       `)((e?: any) => {
@@ -176,9 +209,10 @@ describe('AwsCodedeploy Integration Testing', () => {
       done();
     });
   });
+
   it('applies the created instance', apply());
 
-  it(
+  /*it(
     'adds a new codedeploy_application',
     query(`
     INSERT INTO codedeploy_application (name, compute_platform)
@@ -257,7 +291,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     WHERE name = '${applicationName}';
   `),
   );
-  it('applies the application deletion', apply());
+  it('applies the application deletion', apply());*/
 
   // deployment group testing
   it(
@@ -382,6 +416,26 @@ it('should fail when deleting a revision', () => {
 });
 it('applies the update and deletion', apply());
 
+// deployment
+it(
+  'adds a new deployment',
+  query(`
+  INSERT INTO codedeploy_deployment (application_name, deployment_group_name, description, revision_id)
+  VALUES ('${applicationNameForDeployment}', '${deploymentGroupName}', 'Codedeploy deployment v0', (SELECT id FROM codedeploy_revision WHERE application_name='${applicationNameForDeployment}' AND description='Codedeploy revision v0'));
+`),
+);
+it('applies the deployment creation', apply());
+
+it(
+  'check that we have a working deployment',
+  query(
+    `
+SELECT * FROM codedeploy_deployment WHERE application_name='${applicationNameForDeployment}' AND description='Codedeploy deployment v0' AND status='Succeeded';
+`,
+    (res: any) => expect(res.length).toBe(0),
+  ),
+);
+
 // cleanup
 describe('deployment cleanup', () => {
   it(
@@ -421,10 +475,10 @@ describe('ec2 cleanup', () => {
       DELETE FROM general_purpose_volume
       USING instance
       WHERE instance.id = general_purpose_volume.attached_instance_id AND 
-        (instance.tags ->> 'name' = '${prefix}-vm');
+        (instance.tags ->> 'name' = '${instanceTag}');
 
       DELETE FROM instance
-      WHERE tags ->> 'name' = '${prefix}-vm';
+      WHERE tags ->> 'name' = '${instanceTag}';
     COMMIT;
   `),
   );
@@ -432,11 +486,11 @@ describe('ec2 cleanup', () => {
   it('applies the instance deletion', apply());
 });
 
-describe('delete role', () => {
+describe('delete roles', () => {
   it(
     'deletes role',
     query(`
-      DELETE FROM iam_role WHERE role_name = '${roleName}';
+      DELETE FROM iam_role WHERE role_name = '${roleName}' OR role_name='${ec2RoleName}';
     `),
   );
 
@@ -446,7 +500,7 @@ describe('delete role', () => {
 // cleanup
 it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 
-describe('AwsCodedeploy install/uninstall', () => {
+/*describe('AwsCodedeploy install/uninstall', () => {
   it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -484,4 +538,4 @@ describe('AwsCodedeploy install/uninstall', () => {
   it('installs the codedeploy module', install(['aws_codedeploy']));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});
+});*/

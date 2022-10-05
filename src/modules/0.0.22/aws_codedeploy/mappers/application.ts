@@ -152,7 +152,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
       }
     },
     updateOrReplace: (a: CodedeployApplication, b: CodedeployApplication) =>
-      a.id !== b.id || a.revisions !== b.revisions ? 'update' : 'replace',
+      a.id !== b.id || (a.revisions ?? []).length !== (b.revisions ?? []).length ? 'update' : 'replace',
     update: async (apps: CodedeployApplication[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];

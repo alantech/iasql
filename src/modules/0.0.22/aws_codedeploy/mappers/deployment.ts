@@ -9,19 +9,14 @@ import {
   paginateListDeploymentGroups,
   paginateListDeployments,
   UpdateDeploymentGroupCommandOutput,
+  waitUntilDeploymentSuccessful,
 } from '@aws-sdk/client-codedeploy';
+import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AwsCodedeployModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
+import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { awsIamModule } from '../../aws_iam';
-import {
-  CodedeployDeployment,
-  CodedeployDeploymentGroup,
-  DeploymentConfigType,
-  DeploymentStatusEnum,
-  EC2TagFilterType,
-} from '../entity';
+import { CodedeployDeployment, DeploymentStatusEnum } from '../entity';
 
 export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment> {
   module: AwsCodedeployModule;
@@ -86,21 +81,33 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
         const deploymentId = await this.createDeployment(client.cdClient, input);
         if (!deploymentId) continue;
 
-        // we need to update id, app and deployment group
-        e.deploymentId = deploymentId;
+        // wait until deployment is succeeded
+        await waitUntilDeploymentSuccessful(
+          {
+            client: client.cdClient,
+            // all in seconds
+            maxWaitTime: 900,
+            minDelay: 1,
+            maxDelay: 4,
+          } as WaiterOptions<CodeDeploy>,
+          { deploymentId: deploymentId },
+        );
 
-        const app =
-          (await this.module.application.db.read(ctx, e.application.name)) ??
-          this.module.application.cloud.read(ctx, e.application.name);
-        if (app) e.application = app;
+        // we need to update id, app deployment group and status
+        const newDeployment: CodedeployDeployment = await this.module.deployment.cloud.read(
+          client.cdClient,
+          deploymentId,
+        );
+        if (newDeployment) {
+          e.deploymentId = newDeployment.deploymentId;
+          e.application = newDeployment.application;
+          e.deploymentGroup = newDeployment.deploymentGroup;
+          e.revision = newDeployment.revision;
+          e.status = newDeployment.status;
 
-        const deploymentGroup =
-          (await this.module.deploymentGroup.db.read(ctx, e.deploymentGroup.name)) ??
-          this.module.deploymentGroup.cloud.read(ctx, e.deploymentGroup.name);
-        if (deploymentGroup) e.deploymentGroup = deploymentGroup;
-
-        await this.db.update(e, ctx);
-        out.push(e);
+          await this.db.update(e, ctx);
+          out.push(e);
+        }
       }
       return out;
     },
