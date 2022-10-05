@@ -229,81 +229,6 @@ export interface RpcInterface {
   ) => Promise<RpcResponseObject<RpcOutput>[]>;
 }
 
-export interface Mapper2ObjInterface<E> {
-  entity: new () => E;
-  entityId?: (e: E) => string;
-  equals: (a: E, b: E) => boolean;
-  source: 'db' | 'cloud';
-  db?: Crud2<E>;
-  cloud: Crud2<E>;
-}
-
-export class Mapper2<E> {
-  entity: new () => E;
-  entityId: (e: E) => string;
-  equals: (a: E, b: E) => boolean;
-  source: 'db' | 'cloud';
-  db: Crud2<E>;
-  cloud: Crud2<E>;
-
-  constructor(def: Mapper2ObjInterface<E>) {
-    this.entity = def.entity;
-    const cloudColumns = getCloudId(def.entity);
-    if (def.entityId) {
-      this.entityId = def.entityId;
-    } else {
-      const ormMetadata = getMetadataArgsStorage();
-      const primaryColumn =
-        ormMetadata.columns
-          .filter(c => c.target === def.entity)
-          .filter(c => c.options.primary)
-          .map(c => c.propertyName)
-          .shift() ?? '';
-      // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
-      this.entityId = (e: E) => {
-        if (cloudColumns && !(cloudColumns instanceof Error)) {
-          return cloudColumns.map(col => (e as any)[col]).join('|');
-        } else {
-          return (e as any)[primaryColumn] + '';
-        }
-      };
-    }
-    this.equals = def.equals;
-    this.source = def.source;
-    if (def.db) {
-      this.db = def.db;
-      this.db.entity = def.entity;
-      this.db.entityId = this.entityId;
-      this.db.dest = 'db';
-    } else if (!!cloudColumns) {
-      this.db = new Crud2<E>({
-        create: (es: E[], ctx: Context) => ctx.orm.save(def.entity, es),
-        update: (es: E[], ctx: Context) => ctx.orm.save(def.entity, es),
-        delete: (es: E[], ctx: Context) => ctx.orm.remove(def.entity, es),
-        read: async (ctx: Context, id?: string) => {
-          const opts = id
-            ? {
-                where: Object.fromEntries(
-                  id.split('|').map((val, i) => [(cloudColumns as string[])[i], val]),
-                ),
-              }
-            : {};
-          return await ctx.orm.find(def.entity, opts);
-        },
-      });
-      this.db.entity = def.entity;
-      this.db.entityId = this.entityId;
-      this.db.dest = 'db';
-    } else {
-      throw new Error('Cannot automatically build database bindings without @cloudId decorator');
-    }
-    this.cloud = def.cloud;
-    this.cloud.entity = def.entity;
-    this.cloud.entityId = this.entityId;
-    this.cloud.dest = 'cloud';
-  }
-}
-
 export class MapperBase<E> {
   module: ModuleInterface;
   entity: new () => E;
@@ -328,7 +253,9 @@ export class MapperBase<E> {
       // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
       this.entityId = (e: E) => {
         if (cloudColumns && !(cloudColumns instanceof Error)) {
-          return cloudColumns.map(col => (e as any)[col]).join('|');
+          const out = cloudColumns.map(col => (e as any)[col]).join('|');
+          if (!out) return (e as any)[primaryColumn] + '';
+          return out;
         } else {
           return (e as any)[primaryColumn] + '';
         }
@@ -405,8 +332,6 @@ export interface ModuleInterface {
     // `aws_account` module, for instance.
     context?: Context;
   };
-  utils?: { [key: string]: any };
-  mappers: { [key: string]: MapperInterface<any> };
   rpc?: { [key: string]: RpcInterface };
   migrations?: {
     beforeInstall?: (q: QueryRunner) => Promise<void>;
@@ -416,101 +341,6 @@ export interface ModuleInterface {
     remove: (q: QueryRunner) => Promise<void>;
     afterRemove?: (q: QueryRunner) => Promise<void>;
   };
-}
-
-// This is just a no-op class at the moment. Not strictly necessary but keeps things consistent
-export class Module2 {
-  name: string;
-  version: string;
-  dependencies: string[];
-  provides: {
-    entities: { [key: string]: any };
-    tables: string[];
-    functions: string[];
-    context?: Context;
-  };
-  utils: { [key: string]: any };
-  mappers: { [key: string]: MapperInterface<any> };
-  migrations: {
-    install: (q: QueryRunner) => Promise<void>;
-    remove: (q: QueryRunner) => Promise<void>;
-  };
-
-  constructor(def: ModuleInterface, dirname: string) {
-    def.provides = def.provides ?? {};
-    this.name = def.name;
-    if (def.version) {
-      this.version = def.version;
-    } else {
-      // Extract the version from the `dirname`, guaranteed by project structure
-      const pathSegments = dirname.split(path.sep);
-      const version = pathSegments[pathSegments.length - 2];
-      this.version = version;
-    }
-    this.dependencies = def.dependencies.map(dep => (dep.includes('@') ? dep : `${dep}@${this.version}`));
-    if (this.name !== 'iasql_platform' && !this.dependencies.includes(`iasql_platform@${this.version}`))
-      throw new Error(`${def.name} did not declare an iasql_platform dependency and cannot be loaded.`);
-    const entityDir = `${dirname}/entity`;
-    const entities = require(`${entityDir}/index`);
-    this.provides = {
-      entities,
-      tables: def.provides.tables ?? [], // These will be populated automatically below
-      functions: def.provides.functions ?? [],
-    };
-    if (def.provides.context) this.provides.context = def.provides.context;
-    this.utils = def?.utils ?? {};
-    this.mappers = Object.fromEntries(
-      Object.entries(def.mappers).filter(
-        ([_, m]: [string, any]) => m instanceof Mapper2 || m instanceof MapperBase,
-      ) as [[string, MapperInterface<any>]],
-    );
-    const migrationDir = `${dirname}/migration`;
-    const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
-    if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
-    const migration = require(`${migrationDir}/${files[0]}`);
-    // Assuming TypeORM migration files
-    const migrationClass = migration[Object.keys(migration)[0]];
-    if (!migrationClass || !migrationClass.prototype.up || !migrationClass.prototype.down) {
-      throw new Error('Presumed migration file is not a TypeORM migration');
-    }
-    this.migrations = {
-      install: migrationClass.prototype.up,
-      remove: migrationClass.prototype.down,
-    };
-    const syncified = new Function(
-      'return ' +
-        migrationClass.prototype.up
-          .toString()
-          .replace(/\basync\b/g, '')
-          .replace(/\bawait\b/g, '')
-          .replace(/^/, 'function')
-          // The following are only for the test suite, but need to be included at all times
-          .replace(/\/* istanbul ignore next *\//g, '')
-          .replace(/cov_.*/g, '')
-          // Drop any lines that don't have backticks because they must be handwritten add-ons
-          // to the migration file (TODO: Avoid this hackery somehow)
-          .split('\n')
-          .filter((l: string) => !/query\(/.test(l) || /`/.test(l))
-          .join('\n'),
-    )();
-    const tables: string[] = [];
-    const functions: string[] = [];
-    syncified({
-      query: (text: string) => {
-        // TODO: Proper parsing (maybe LP?)
-        if (/^create table/i.test(text)) {
-          tables.push((text.match(/^[^"]*"([^"]*)"/) ?? [])[1]);
-        } else if (/^create or replace procedure/i.test(text)) {
-          functions.push((text.match(/^create or replace procedure ([^(]*)/i) ?? [])[0]);
-        } else if (/^create or replace function/i.test(text)) {
-          functions.push((text.match(/^create or replace function ([^(]*)/i) ?? [])[0]);
-        }
-        // Don't do anything for queries that don't match
-      },
-    });
-    if (!def.provides.tables) this.provides.tables = tables;
-    if (!def.provides.functions) this.provides.functions = functions;
-  }
 }
 
 export class ModuleBase {
@@ -525,7 +355,6 @@ export class ModuleBase {
     context?: Context;
   };
   context?: Context;
-  mappers: { [key: string]: MapperInterface<any> };
   // TODO: delete after v0.0.20 is deleted
   sql?: {
     afterInstallSqlPath?: string;
@@ -634,11 +463,6 @@ export class ModuleBase {
       functions: [], // TODO: Auto-populate these
     };
     if (this.context) this.provides.context = this.context;
-    this.mappers = Object.fromEntries(
-      Object.entries(this).filter(
-        ([_, m]: [string, any]) => m instanceof Mapper2 || m instanceof MapperBase,
-      ) as [[string, MapperInterface<any>]],
-    );
     this.rpc = Object.fromEntries(
       Object.entries(this).filter(([_, m]: [string, any]) => m instanceof RpcBase) as [
         [string, RpcInterface],

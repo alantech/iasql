@@ -75,20 +75,21 @@ BEGIN
   IF NEW.repository_uri IS NULL AND NEW.image_digest IS NULL THEN
     INSERT INTO repository (repository_name) VALUES (NEW.app_name || '-repository');
     -- fill in repository_name in container_definition
-    INSERT INTO container_definition ("name", essential, repository_name, task_definition_id, memory_reservation, host_port, container_port, protocol, log_group_name, env_variables)
+    INSERT INTO container_definition ("name", essential, repository_name, task_definition_id, memory_reservation, host_port, container_port, protocol, log_group_id, env_variables)
     VALUES (
       NEW.app_name || '-container', true,
       NEW.app_name || '-repository',
-      (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL LIMIT 1), get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp', NEW.app_name || '-log-group', NEW.env_variables
+      -- TODO: add region to log_group select when multi-region support added
+      (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL LIMIT 1), get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp', (SELECT id from log_group WHERE log_group_name = NEW.app_name || '-log-group'), NEW.env_variables
     );
   ELSE
     -- fill in image, tag and digest in container_definition
-    INSERT INTO container_definition ("name", essential, image, task_definition_id, tag, digest, memory_reservation, host_port, container_port, protocol, log_group_name, env_variables)
+    INSERT INTO container_definition ("name", essential, image, task_definition_id, tag, digest, memory_reservation, host_port, container_port, protocol, log_group_id, env_variables)
     VALUES (
       NEW.app_name || '-container', true,
       NEW.repository_uri,
       (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL LIMIT 1),
-      NEW.image_tag, NEW.image_digest, get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp', NEW.app_name || '-log-group', NEW.env_variables
+      NEW.image_tag, NEW.image_digest, get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp', (SELECT id from log_group WHERE log_group_name = NEW.app_name || '-log-group'), NEW.env_variables
     );
   END IF;
 
@@ -238,7 +239,7 @@ DECLARE
   _image_digest TEXT;
   _public_ip BOOLEAN;
   _repository_uri TEXT;
-  _log_group_name TEXT;
+  _log_group_id INTEGER;
   _load_balancer_name TEXT;
   _repository_name TEXT;
   _load_balancer_dns TEXT;
@@ -278,8 +279,8 @@ BEGIN
     WHERE id = _task_definition_id AND execution_role_name = task_role_name;
 
     -- TODO get latest or sort ?
-    SELECT tag, digest, repository_name, log_group_name, cpu, memory, image, env_variables
-    INTO _image_tag, _image_digest, _repository_name, _log_group_name, _cpu, _mem, _repository_uri, _env_variables
+    SELECT tag, digest, repository_name, log_group_id, cpu, memory, image, env_variables
+    INTO _image_tag, _image_digest, _repository_name, _log_group_id, _cpu, _mem, _repository_uri, _env_variables
     FROM container_definition
     WHERE task_definition_id = _task_definition_id AND host_port = _app_port AND container_port = _app_port AND essential = true LIMIT 1;
 

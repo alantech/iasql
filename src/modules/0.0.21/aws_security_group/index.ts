@@ -10,7 +10,6 @@ import {
   paginateDescribeSecurityGroupRules,
   paginateDescribeSecurityGroups,
   IpPermission,
-  PrefixList,
   PrefixListId,
 } from '@aws-sdk/client-ec2';
 
@@ -309,11 +308,6 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
           await this.module.securityGroup.db.update(e, ctx);
           // Make absolutely sure it shows up in the memo
           ctx.memo.db.SecurityGroup[e.groupId ?? ''] = e;
-          const rules = ctx?.memo?.cloud?.SecurityGroupRule ?? [];
-          const relevantRules = rules.filter((r: SecurityGroupRule) => r.securityGroup.groupId === e.groupId);
-          if (relevantRules.length > 0) {
-            await this.module.securityGroupRule.db.update(relevantRules, ctx);
-          }
         } else {
           await this.deleteSecurityGroup(client.ec2client, {
             GroupId: e.groupId,
@@ -374,8 +368,6 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
   };
 
   async sgrMapper(sgr: AwsSecurityGroupRule, ctx: Context) {
-    const client = (await ctx.getAwsClient()) as AWS;
-
     const out = new SecurityGroupRule();
     out.securityGroupRuleId = sgr?.SecurityGroupRuleId;
     out.securityGroup = await this.module.securityGroup.cloud.read(ctx, sgr?.GroupId);

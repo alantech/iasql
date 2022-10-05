@@ -1,16 +1,4 @@
 CREATE
-OR REPLACE FUNCTION default_aws_region () RETURNS TEXT LANGUAGE plpgsql AS $$
-DECLARE
-  r TEXT;
-BEGIN
-  SELECT region INTO r
-  FROM aws_regions WHERE is_default = TRUE;
-  SELECT CASE WHEN r is NULL THEN 'us-east-1' ELSE r END into r;
-  RETURN r;
-END
-$$;
-
-CREATE
 OR REPLACE FUNCTION default_aws_region (r TEXT) RETURNS TEXT LANGUAGE plpgsql AS $$
 BEGIN
   UPDATE aws_regions SET is_default = FALSE WHERE is_default = TRUE;
