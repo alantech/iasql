@@ -61,6 +61,7 @@ export class DynamoTable {
     nullable: false,
     default: () => 'default_aws_region()',
   })
+  @cloudId
   region: string;
 
   // TODO: Add encryption support, local secondary keys, stream support, global support,

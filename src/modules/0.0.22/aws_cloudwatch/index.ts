@@ -58,23 +58,25 @@ class LogGroupMapper extends MapperBase<LogGroup> {
     },
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      if (id) {
-        for (const region of enabledRegions) {
+      if (!!id) {
+        const { logGroupName, region } = this.idFields(id);
+        if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawLogGroup = await this.getLogGroup(client.cwClient, id);
-          if (!rawLogGroup) continue;
-          return this.logGroupMapper(rawLogGroup, region);
+          const rawLogGroup = await this.getLogGroup(client.cwClient, logGroupName);
+          if (rawLogGroup) return this.logGroupMapper(rawLogGroup, region);
         }
       } else {
-        const out = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const logGroups = (await this.getLogGroups(client.cwClient)) ?? [];
-          for (const i of logGroups) {
-            const lg = this.logGroupMapper(i, region);
-            if (lg) out.push(lg);
-          }
-        }
+        const out: LogGroup[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const logGroups = (await this.getLogGroups(client.cwClient)) ?? [];
+            for (const i of logGroups) {
+              const lg = this.logGroupMapper(i, region);
+              if (lg) out.push(lg);
+            }
+          }),
+        );
         return out;
       }
     },

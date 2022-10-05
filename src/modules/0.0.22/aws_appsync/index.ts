@@ -20,8 +20,7 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
     Object.is(a.authenticationType, b.authenticationType) &&
     isEqual(a.lambdaAuthorizerConfig, b.lambdaAuthorizerConfig) &&
     isEqual(a.openIDConnectConfig, b.openIDConnectConfig) &&
-    isEqual(a.userPoolConfig, b.userPoolConfig) &&
-    isEqual(a.region, b.region);
+    isEqual(a.userPoolConfig, b.userPoolConfig);
 
   graphqlApiMapper(api: GraphqlApiAWS, region: string) {
     const out = new GraphqlApi();
@@ -89,81 +88,71 @@ class GraphqlApiMapper extends MapperBase<GraphqlApi> {
       }
       return out;
     },
-    read: async (ctx: Context, apiId?: string) => {
+    read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      if (apiId) {
-        for (const region of enabledRegions) {
+      if (!!id) {
+        const { name, region } = this.idFields(id);
+        if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawApi = await this.getGraphqlApi(client.appSyncClient, apiId);
-          if (!rawApi) continue;
-          return this.graphqlApiMapper(rawApi, region);
+          const rawApi = await this.getGraphqlApi(client.appSyncClient, name);
+          if (rawApi) return this.graphqlApiMapper(rawApi, region);
         }
       } else {
-        const out = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawApis = (await this.getGraphqlApis(client.appSyncClient)) ?? [];
-          for (const i of rawApis) {
-            const outApi = this.graphqlApiMapper(i, region);
-            if (outApi) out.push(outApi);
-          }
-        }
+        const out: GraphqlApi[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawApis = (await this.getGraphqlApis(client.appSyncClient)) ?? [];
+            for (const i of rawApis) {
+              const outApi = this.graphqlApiMapper(i, region);
+              if (outApi) out.push(outApi);
+            }
+          }),
+        );
         return out;
       }
     },
-    updateOrReplace: (a: GraphqlApi, b: GraphqlApi) => (a.region !== b.region ? 'replace' : 'update'),
     update: async (apis: GraphqlApi[], ctx: Context) => {
       // if user has modified specific values, restore it. If not, go with update path
       const out: GraphqlApi[] = [];
       for (const api of apis) {
         const client = (await ctx.getAwsClient(api.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.GraphqlApi?.[api.name ?? ''];
-        const isUpdate = Object.is(this.module.graphqlApi.cloud.updateOrReplace(cloudRecord, api), 'update');
-        if (isUpdate) {
-          // in case of key fields being modified, restore them
-          if (api.apiId !== cloudRecord.apiId) api.apiId = cloudRecord.apiId;
-          if (api.arn !== cloudRecord.arn) api.arn = cloudRecord.arn;
+        const cloudRecord = ctx?.memo?.cloud?.GraphqlApi?.[this.entityId(api)];
+        // in case of key fields being modified, restore them
+        if (api.apiId !== cloudRecord.apiId) api.apiId = cloudRecord.apiId;
+        if (api.arn !== cloudRecord.arn) api.arn = cloudRecord.arn;
 
-          // need to continue updating
-          if (
-            api.authenticationType !== cloudRecord.authenticationType ||
-            !isEqual(api.lambdaAuthorizerConfig, cloudRecord.lambdaAuthorizerConfig) ||
-            !isEqual(api.openIDConnectConfig, cloudRecord.openIDConnectConfig) ||
-            !isEqual(api.userPoolConfig, cloudRecord.userPoolConfig)
-          ) {
-            const input: UpdateGraphqlApiCommandInput = {
-              apiId: api.apiId,
-              name: api.name,
-              authenticationType: api.authenticationType,
-              lambdaAuthorizerConfig: api.lambdaAuthorizerConfig,
-              openIDConnectConfig: api.openIDConnectConfig,
-              userPoolConfig: api.userPoolConfig,
-            };
-            const res = await this.updateGraphqlApi(client.appSyncClient, input);
-            if (res && res.graphqlApi) {
-              const newApi: GraphqlApi | undefined = this.graphqlApiMapper(res.graphqlApi, api.region);
-              if (newApi) {
-                newApi.name = api.name;
-                // Save the record back into the database to get the new fields updated
-                await this.module.graphqlApi.db.update(newApi, ctx);
-                out.push(newApi);
-              }
-            } else {
-              throw new Error('Error updating Graphql API');
+        // need to continue updating
+        if (
+          api.authenticationType !== cloudRecord.authenticationType ||
+          !isEqual(api.lambdaAuthorizerConfig, cloudRecord.lambdaAuthorizerConfig) ||
+          !isEqual(api.openIDConnectConfig, cloudRecord.openIDConnectConfig) ||
+          !isEqual(api.userPoolConfig, cloudRecord.userPoolConfig)
+        ) {
+          const input: UpdateGraphqlApiCommandInput = {
+            apiId: api.apiId,
+            name: api.name,
+            authenticationType: api.authenticationType,
+            lambdaAuthorizerConfig: api.lambdaAuthorizerConfig,
+            openIDConnectConfig: api.openIDConnectConfig,
+            userPoolConfig: api.userPoolConfig,
+          };
+          const res = await this.updateGraphqlApi(client.appSyncClient, input);
+          if (res && res.graphqlApi) {
+            const newApi: GraphqlApi | undefined = this.graphqlApiMapper(res.graphqlApi, api.region);
+            if (newApi) {
+              newApi.name = api.name;
+              // Save the record back into the database to get the new fields updated
+              await this.module.graphqlApi.db.update(newApi, ctx);
+              out.push(newApi);
             }
           } else {
-            // we just need simple update
-            await this.module.graphqlApi.db.update(api, ctx);
-            out.push(api);
+            throw new Error('Error updating Graphql API');
           }
         } else {
-          // Delete the current cloud record from the cloud, create the new db record in the cloud
-          await this.module.graphqlApi.cloud.delete(cloudRecord, ctx);
-          const newApi: GraphqlApi[] | GraphqlApi | undefined = await this.module.graphqlApi.cloud.create(
-            api,
-            ctx,
-          );
-          if (newApi && !Array.isArray(newApi)) out.push(newApi);
+          // we just need simple update
+          await this.module.graphqlApi.db.update(api, ctx);
+          out.push(api);
         }
       }
       return out;

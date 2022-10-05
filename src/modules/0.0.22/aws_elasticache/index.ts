@@ -15,10 +15,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
   module: AwsElastiCacheModule;
   entity = CacheCluster;
   equals = (a: CacheCluster, b: CacheCluster) =>
-    Object.is(a.engine, b.engine) &&
-    Object.is(a.nodeType, b.nodeType) &&
-    Object.is(a.numNodes, b.numNodes) &&
-    Object.is(a.region, b.region);
+    Object.is(a.engine, b.engine) && Object.is(a.nodeType, b.nodeType) && Object.is(a.numNodes, b.numNodes);
 
   cacheClusterMapper(cluster: CacheClusterAWS, region: string) {
     const out = new CacheCluster();
@@ -112,28 +109,30 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
       }
       return out;
     },
-    read: async (ctx: Context, clusterId?: string) => {
+    read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      if (clusterId) {
-        for (const region of enabledRegions) {
+      if (!!id) {
+        const { region, clusterId } = this.idFields(id);
+        if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawCluster = await this.getCacheCluster(client.elasticacheClient, clusterId);
-          if (!rawCluster) continue;
-          if (rawCluster?.CacheClusterStatus === 'deleting') continue;
-
-          return this.cacheClusterMapper(rawCluster, region);
-        }
-      } else {
-        const out = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawClusters = (await this.getCacheClusters(client.elasticacheClient)) ?? [];
-          for (const i of rawClusters) {
-            if (i.CacheClusterStatus === 'deleting') continue;
-            const outCacheCluster = this.cacheClusterMapper(i, region);
-            if (outCacheCluster) out.push(outCacheCluster);
+          if (rawCluster && rawCluster.CacheClusterStatus !== 'deleting') {
+            return this.cacheClusterMapper(rawCluster, region);
           }
         }
+      } else {
+        const out: CacheCluster[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawClusters = (await this.getCacheClusters(client.elasticacheClient)) ?? [];
+            for (const i of rawClusters) {
+              if (i.CacheClusterStatus === 'deleting') continue;
+              const outCacheCluster = this.cacheClusterMapper(i, region);
+              if (outCacheCluster) out.push(outCacheCluster);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -141,7 +140,7 @@ class CacheClusterMapper extends MapperBase<CacheCluster> {
       // if user has modified state, restore it. If not, go with replace path
       const out = [];
       for (const cluster of clusters) {
-        const cloudRecord = ctx?.memo?.cloud?.CacheCluster?.[cluster.clusterId ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.CacheCluster?.[this.entityId(cluster)];
         const isUpdate = Object.is(
           this.module.cacheCluster.cloud.updateOrReplace(cloudRecord, cluster),
           'update',
