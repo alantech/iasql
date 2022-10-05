@@ -110,11 +110,11 @@ const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2'];
 
 jest.setTimeout(560000);
 beforeAll(async () => {
-  /*const availabilityZones =
+  const availabilityZones =
     (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
   availabilityZone = availabilityZones.pop() ?? '';
   const instanceTypesByAz1 = await getInstanceTypeOffering([availabilityZone]);
-  instanceType = instanceTypesByAz1.InstanceTypeOfferings?.pop()?.InstanceType ?? '';*/
+  instanceType = instanceTypesByAz1.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
 
   await execComposeUp();
 });
@@ -149,7 +149,7 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it('installs the codedeploy module and dependencies', install(modules));
 
-  /*it(
+  it(
     'creates ec2 instance role',
     query(`
     INSERT INTO iam_role (role_name, assume_role_policy_document)
@@ -257,7 +257,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     WHERE name = '${applicationName}';
   `),
   );
-  it('applies the application deletion', apply());*/
+  it('applies the application deletion', apply());
 
   // deployment group testing
   it(
@@ -268,7 +268,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   `),
   );
 
-  /*it(
+  it(
     'adds a new deployment_group',
     query(`
     INSERT INTO codedeploy_deployment_group (application_name, name, role_name)
@@ -310,87 +310,87 @@ describe('AwsCodedeploy Integration Testing', () => {
       },
     ),
   );
-});*/
+});
 
-  // create application revision
-  it(
-    'adds a new codedeploy_revision',
-    query(`
+// create application revision
+it(
+  'adds a new codedeploy_revision',
+  query(`
   INSERT INTO codedeploy_revision (description, application_name, location)
   VALUES ('Codedeploy revision v0', '${applicationNameForDeployment}', '${revisionLocationv0}');
 `),
-  );
-  it('applies the codedeploy_application registration', apply());
+);
+it('applies the codedeploy_application registration', apply());
 
-  it(
-    'check codedeploy_revision is available',
-    query(
-      `
+it(
+  'check codedeploy_revision is available',
+  query(
+    `
 SELECT * FROM codedeploy_revision WHERE description='Codedeploy revision v0' AND application_name='${applicationNameForDeployment}';
 `,
-      (res: any) => expect(res.length).toBe(1),
-    ),
-  );
+    (res: any) => expect(res.length).toBe(1),
+  ),
+);
 
-  it(
-    'adds a new codedeploy_revision',
-    query(`
+it(
+  'adds a new codedeploy_revision',
+  query(`
   INSERT INTO codedeploy_revision (description, application_name, location)
   VALUES ('Codedeploy revision v1', '${applicationNameForDeployment}', '${revisionLocationv1}');
 `),
-  );
-  it('applies the codedeploy_application registration', apply());
+);
+it('applies the codedeploy_application registration', apply());
 
-  it(
-    'check codedeploy_revision_v1 is available',
-    query(
-      `
+it(
+  'check codedeploy_revision_v1 is available',
+  query(
+    `
 SELECT * FROM codedeploy_revision WHERE description='Codedeploy revision v1' AND application_name='${applicationNameForDeployment}';
 `,
-      (res: any) => expect(res.length).toBe(1),
-    ),
-  );
+    (res: any) => expect(res.length).toBe(1),
+  ),
+);
 
-  it(
-    'check that we have two revisions',
-    query(
-      `
+it(
+  'check that we have two revisions',
+  query(
+    `
 SELECT * FROM codedeploy_revision WHERE application_name='${applicationNameForDeployment}';
 `,
-      (res: any) => expect(res.length).toBe(2),
-    ),
-  );
+    (res: any) => expect(res.length).toBe(2),
+  ),
+);
 
-  it('should fail when updating a revision', () => {
-    try {
-      query(`
+it('should fail when updating a revision', () => {
+  try {
+    query(`
       UPDATE codedeploy_revision SET description='fake description' WHERE application_name='${applicationNameForDeployment}';
       `);
-    } catch (e) {
-      expect(e).toBeTruthy;
-    }
-  });
+  } catch (e) {
+    expect(e).toBeTruthy;
+  }
+});
 
-  it('should fail when deleting a revision', () => {
-    try {
-      query(`
+it('should fail when deleting a revision', () => {
+  try {
+    query(`
       DELETE FROM codedeploy_revision WHERE application_name='${applicationNameForDeployment}';
       `);
-    } catch (e) {
-      expect(e).toBeTruthy;
-    }
-  });
-  it('applies the update and deletion', apply());
+  } catch (e) {
+    expect(e).toBeTruthy;
+  }
+});
+it('applies the update and deletion', apply());
 
-  // cleanup
-  /*describe('deployment cleanup', () => {
+// cleanup
+describe('deployment cleanup', () => {
   it(
     'delete deployment group',
     query(`
       DELETE FROM codedeploy_deployment_group
       WHERE name = '${deploymentGroupName}';
     `),
-  );*/
+  );
 
   it(
     'delete application',
@@ -413,7 +413,7 @@ SELECT * FROM codedeploy_revision WHERE application_name='${applicationNameForDe
   );
 });
 
-/*describe('ec2 cleanup', () => {
+describe('ec2 cleanup', () => {
   it(
     'deletes all ec2 instances',
     query(`
@@ -441,12 +441,12 @@ describe('delete role', () => {
   );
 
   it('applies the role deletion', apply());
-});*/
+});
 
 // cleanup
 it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 
-/*describe('AwsCodedeploy install/uninstall', () => {
+describe('AwsCodedeploy install/uninstall', () => {
   it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -484,4 +484,4 @@ it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').t
   it('installs the codedeploy module', install(['aws_codedeploy']));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});*/
+});

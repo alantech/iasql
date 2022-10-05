@@ -66,8 +66,9 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
     'paginateListDeployments',
     undefined,
     undefined,
-    applicationName => ({
+    (applicationName, deploymentGroupName) => ({
       applicationName: applicationName,
+      deploymentGroupName: deploymentGroupName,
     }),
   );
 
@@ -115,13 +116,17 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
         const deployment = await this.deploymentMapper(rawDeployment, ctx);
         return deployment;
       } else {
-        // first need to read all applications
+        // first need to read all deployment groups
         const out = [];
-        const apps = await this.module.application.cloud.read(ctx);
-        if (apps && apps.length > 0) {
-          for (const app of apps) {
-            if (app && app.name) {
-              const deploymentIds = await this.listDeployments(client.cdClient, app.name);
+        const groups = await this.module.deploymentGroup.cloud.read(ctx);
+        if (groups && groups.length > 0) {
+          for (const group of groups) {
+            if (group && group.name) {
+              const deploymentIds = await this.listDeployments(
+                client.cdClient,
+                group.application.name,
+                group.name,
+              );
               for (const deploymentId of deploymentIds) {
                 const rawDeployment = await this.getDeployment(client.cdClient, {
                   deploymentId: deploymentId,

@@ -160,6 +160,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
       for (const app of apps) {
         const cloudRecord = ctx?.memo?.cloud?.CodedeployApplication?.[app.name ?? ''];
         if (this.module.application.cloud.updateOrReplace(app, cloudRecord) == 'update') {
+          console.log('in update');
           if (app.id !== cloudRecord.id) {
             // restore
             await this.module.application.db.update(cloudRecord, ctx);
@@ -193,13 +194,18 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
             }
           }
         } else {
+          console.log('in delete');
           // delete app and create new one
           await this.module.application.cloud.delete(app, ctx);
+          console.log('after delete');
           const appId = await this.module.application.cloud.create(app, ctx);
+          console.log('after create');
           if (!appId) continue;
 
           // retrieve app details
           const createdApp = await this.module.application.cloud.read(ctx, app.name);
+          console.log('i create');
+          console.log(createdApp);
           if (createdApp) out.push(createdApp);
         }
       }
