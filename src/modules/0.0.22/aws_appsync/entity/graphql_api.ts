@@ -78,5 +78,6 @@ export class GraphqlApi {
     nullable: false,
     default: () => 'default_aws_region()',
   })
+  @cloudId
   region: string;
 }
