@@ -152,7 +152,7 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     },
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      if (id) {
+      if (!!id) {
         const [name, region] = id.split('|');
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
@@ -160,15 +160,17 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
           return rawFn ? await this.lambdaFunctionMapper(rawFn, ctx, region) : undefined;
         }
       } else {
-        const out = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawFns = (await getFunctions(client.lambdaClient)) ?? [];
-          for (const rawFn of rawFns) {
-            const fnMapped = await this.lambdaFunctionMapper(rawFn, ctx, region);
-            if (fnMapped) out.push(fnMapped);
-          }
-        }
+        const out: LambdaFunction[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawFns = (await getFunctions(client.lambdaClient)) ?? [];
+            for (const rawFn of rawFns) {
+              const fnMapped = await this.lambdaFunctionMapper(rawFn, ctx, region);
+              if (fnMapped) out.push(fnMapped);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -176,7 +178,7 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.LambdaFunction?.[e.name ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.LambdaFunction?.[this.entityId(e)];
         if (!this.updateableFunctionFieldsEq(cloudRecord, e)) {
           // Update function configuration
           const input: UpdateFunctionConfigurationCommandInput = {
