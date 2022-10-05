@@ -51,6 +51,5 @@ export class Api {
     nullable: false,
     default: () => 'default_aws_region()',
   })
-  @cloudId
   region: string;
 }
