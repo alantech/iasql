@@ -51,7 +51,7 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     return bytes;
   }
 
-  async lambdaFunctionMapper(fn: GetFunctionResponse, ctx: Context) {
+  async lambdaFunctionMapper(fn: GetFunctionResponse, ctx: Context, region: string) {
     const out = new LambdaFunction();
     out.architecture = (fn.Configuration?.Architectures?.pop() as Architecture) ?? Architecture.x86_64;
     out.description = fn.Configuration?.Description;
@@ -79,6 +79,7 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
     out.tags = fn.Tags;
     out.version = fn.Configuration?.Version;
     out.arn = fn.Configuration?.FunctionArn;
+    out.region = region;
     return out;
   }
 
@@ -101,9 +102,9 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
 
   cloud = new Crud2({
     create: async (es: LambdaFunction[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         // TODO: handle properly once more lambda sources are added (ecr, s3)
         if (!e.zipB64) throw new Error('Missing base64 encoded zip file');
         const input: CreateFunctionCommandInput = {
@@ -137,8 +138,9 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
         // Do not use cloud.read method to avoid cache
         const rawFn = await getFunction(client.lambdaClient, newFunction.FunctionName);
         if (!rawFn) throw new Error('Newly created function could not be found.'); // Should be impossible
-        const newEntity = await this.lambdaFunctionMapper(rawFn, ctx);
+        const newEntity = await this.lambdaFunctionMapper(rawFn, ctx, e.region);
         if (newEntity) {
+          newEntity.id = e.id;
           // Set zipB64 as null to avoid infinite loop trying to update it.
           // Reminder: zipB64 need to be null since when we read Lambda functions from AWS this property is not retrieved
           (newEntity as any).zipB64 = null;
@@ -149,25 +151,34 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (id) {
-        const rawFn = await getFunction(client.lambdaClient, id);
-        return rawFn ? await this.lambdaFunctionMapper(rawFn, ctx) : undefined;
-      } else {
-        const rawFns = (await getFunctions(client.lambdaClient)) ?? [];
-        const out = [];
-        for (const rawFn of rawFns) {
-          const fnMapped = await this.lambdaFunctionMapper(rawFn, ctx);
-          if (fnMapped) out.push(fnMapped);
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (!!id) {
+        const [name, region] = id.split('|');
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawFn = await getFunction(client.lambdaClient, name);
+          return rawFn ? await this.lambdaFunctionMapper(rawFn, ctx, region) : undefined;
         }
+      } else {
+        const out: LambdaFunction[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawFns = (await getFunctions(client.lambdaClient)) ?? [];
+            for (const rawFn of rawFns) {
+              const fnMapped = await this.lambdaFunctionMapper(rawFn, ctx, region);
+              if (fnMapped) out.push(fnMapped);
+            }
+          }),
+        );
         return out;
       }
     },
     update: async (es: LambdaFunction[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.LambdaFunction?.[e.name ?? ''];
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.LambdaFunction?.[this.entityId(e)];
         if (!this.updateableFunctionFieldsEq(cloudRecord, e)) {
           // Update function configuration
           const input: UpdateFunctionConfigurationCommandInput = {
@@ -202,8 +213,9 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
         }
         const rawUpdatedFunction = await getFunction(client.lambdaClient, e.name);
         if (rawUpdatedFunction) {
-          const updatedFunction: any = await this.lambdaFunctionMapper(rawUpdatedFunction, ctx);
+          const updatedFunction: any = await this.lambdaFunctionMapper(rawUpdatedFunction, ctx, e.region);
           if (updatedFunction) {
+            updatedFunction.id = e.id;
             // Set zipB64 as null to avoid infinite loop trying to update it.
             // Reminder: zipB64 need to be null since when we read Lambda functions from AWS this property is not retrieved
             updatedFunction.zipB64 = null;
@@ -215,8 +227,8 @@ class LambdaFunctionMapper extends MapperBase<LambdaFunction> {
       return out;
     },
     delete: async (es: LambdaFunction[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         await deleteFunction(client.lambdaClient, e.name);
       }
     },
