@@ -253,7 +253,9 @@ export class MapperBase<E> {
       // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
       this.entityId = (e: E) => {
         if (cloudColumns && !(cloudColumns instanceof Error)) {
-          return cloudColumns.map(col => (e as any)[col]).join('|');
+          const out = cloudColumns.map(col => (e as any)[col]).join('|');
+          if (!out) return (e as any)[primaryColumn] + '';
+          return out;
         } else {
           return (e as any)[primaryColumn] + '';
         }
