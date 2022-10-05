@@ -179,13 +179,14 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
       await ctx.orm.save(SecurityGroup, e);
     },
     read: async (ctx: Context, id?: string) => {
-      // TODO: what is id here?
       // TODO: Possible to automate this?
+      const [groupId, region] = id?.split('|') ?? [undefined, undefined];
       const relations = ['securityGroupRules', 'securityGroupRules.securityGroup'];
-      const opts = id
+      const opts = groupId && region
         ? {
             where: {
-              groupId: id,
+              groupId,
+              region,
             },
             relations,
           }
