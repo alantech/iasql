@@ -247,14 +247,14 @@ export class MapperBase<E> {
     if (!this.module) throw new Error('No module link established for this mapper');
     if (!this.entity) throw new Error('No entity defined for this mapper');
     const cloudColumns = getCloudId(this.entity);
+    const ormMetadata = getMetadataArgsStorage();
+    const primaryColumn =
+      ormMetadata.columns
+        .filter(c => c.target === this.entity)
+        .filter(c => c.options.primary)
+        .map(c => c.propertyName)
+        .shift() ?? '';
     if (!this.entityId) {
-      const ormMetadata = getMetadataArgsStorage();
-      const primaryColumn =
-        ormMetadata.columns
-          .filter(c => c.target === this.entity)
-          .filter(c => c.options.primary)
-          .map(c => c.propertyName)
-          .shift() ?? '';
       // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
       this.entityId = (e: E) => {
         if (cloudColumns && !(cloudColumns instanceof Error)) {
@@ -267,13 +267,6 @@ export class MapperBase<E> {
       };
     }
     if (!this.idFields) {
-      const ormMetadata = getMetadataArgsStorage();
-      const primaryColumn =
-        ormMetadata.columns
-          .filter(c => c.target === this.entity)
-          .filter(c => c.options.primary)
-          .map(c => c.propertyName)
-          .shift() ?? '';
       this.idFields = (id: string) => {
         const fields: IdFields = {};
         const splittedId = id.split('|');
