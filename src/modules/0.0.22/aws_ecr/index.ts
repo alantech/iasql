@@ -381,7 +381,6 @@ class PublicRepositoryMapper extends MapperBase<PublicRepository> {
 class RepositoryMapper extends MapperBase<Repository> {
   module: AwsEcrModule;
   entity = Repository;
-  entityId = (e: Repository) => `${e.repositoryName}|${e.region}`;
   equals = (a: Repository, b: Repository) =>
     Object.is(a.repositoryName, b.repositoryName) &&
     Object.is(a.repositoryArn, b.repositoryArn) &&
