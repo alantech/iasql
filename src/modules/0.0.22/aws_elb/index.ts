@@ -22,6 +22,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { awsAcmListModule, awsSecurityGroupModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { SecurityGroup } from '../aws_security_group/entity';
 import { awsVpcModule } from '../aws_vpc';
 import { Vpc } from '../aws_vpc/entity';
 import {
@@ -277,8 +278,12 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     for (const sg of cloudSecurityGroups) {
       try {
         securityGroups.push(
-          (await awsSecurityGroupModule.securityGroup.db.read(ctx, sg)) ??
-            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg)),
+          (await awsSecurityGroupModule.securityGroup.db.read(ctx)).find(
+            (scgrp: SecurityGroup) => scgrp.groupId === sg,
+          ) ??
+            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx)).find(
+              (scgrp: SecurityGroup) => scgrp.groupId === sg,
+            ),
         );
       } catch (_) {
         // If security groups are misconfigured ignore them

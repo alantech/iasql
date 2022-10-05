@@ -18,6 +18,7 @@ import { awsSecurityGroupModule, awsVpcModule } from '..';
 import { objectsAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { SecurityGroup } from '../aws_security_group/entity';
 import { AvailabilityZone } from '../aws_vpc/entity';
 import { ParameterGroup, ParameterGroupFamily, RDS } from './entity';
 
@@ -66,8 +67,12 @@ class RdsMapper extends MapperBase<RDS> {
     out.vpcSecurityGroups = [];
     for (const sgId of vpcSecurityGroupIds) {
       const sg =
-        (await awsSecurityGroupModule.securityGroup.db.read(ctx, sgId)) ??
-        (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sgId));
+        (await awsSecurityGroupModule.securityGroup.db.read(ctx)).find(
+          (scgrp: SecurityGroup) => scgrp.groupId === sgId,
+        ) ??
+        (await awsSecurityGroupModule.securityGroup.cloud.read(ctx)).find(
+          (scgrp: SecurityGroup) => scgrp.groupId === sgId,
+        );
       if (sg) out.vpcSecurityGroups.push(sg);
     }
     out.backupRetentionPeriod = rds?.BackupRetentionPeriod ?? 1;
