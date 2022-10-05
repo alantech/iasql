@@ -249,15 +249,18 @@ export class MapperBase<E> {
     if (!this.entity) throw new Error('No entity defined for this mapper');
     const cloudColumns = getCloudId(this.entity);
     const ormMetadata = getMetadataArgsStorage();
-    const primaryColumn =
-      ormMetadata.columns
-        .filter(c => c.target === this.entity)
-        .filter(c => c.options.primary)
-        .map(c => c.propertyName)
-        .shift() ?? '';
-    if (!this.entityId) {
+    if (!this.entityId || !this.idFields) {
+      // Technically we should have a check for if only one of the two is defined, because the author
+      // could create the 'id' string any way they want, and if not properly paired it could break in
+      // weird ways, but since all extant versions of 'entityId' join with '|', we're rolling with it
+      const primaryColumn =
+        ormMetadata.columns
+          .filter(c => c.target === this.entity)
+          .filter(c => c.options.primary)
+          .map(c => c.propertyName)
+          .shift() ?? '';
       // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
-      this.entityId = (e: E) => {
+      this.entityId = this.entityId || ((e: E) => {
         if (cloudColumns && !(cloudColumns instanceof Error)) {
           const out = cloudColumns.map(col => (e as any)[col]).join('|');
           if (!out) return (e as any)[primaryColumn] + '';
@@ -265,10 +268,8 @@ export class MapperBase<E> {
         } else {
           return (e as any)[primaryColumn] + '';
         }
-      };
-    }
-    if (!this.idFields) {
-      this.idFields = (id: string) => {
+      });
+      this.idFields = this.idFields || ((id: string) => {
         const fields: IdFields = {};
         const splittedId = id.split('|');
         if (cloudColumns && !(cloudColumns instanceof Error)) {
@@ -277,7 +278,7 @@ export class MapperBase<E> {
           fields[primaryColumn] = splittedId.pop() ?? '';
         }
         return fields;
-      };
+      });
     }
     if (!this.equals) throw new Error('No entity equals method defined'); // TODO: Make a default
     if (!this.source) this.source = 'db';
