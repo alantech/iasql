@@ -224,7 +224,7 @@ describe('EC2 Integration Testing', () => {
           LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'),
-          (SELECT id FROM security_group WHERE group_name='default');
+          (SELECT id FROM security_group WHERE group_name='default' AND region = '${process.env.AWS_REGION}');
       COMMIT;
 
       BEGIN;
@@ -235,7 +235,7 @@ describe('EC2 Integration Testing', () => {
           LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'),
-          (SELECT id FROM security_group WHERE group_name='default');
+          (SELECT id FROM security_group WHERE group_name='default' AND region = '${process.env.AWS_REGION}');
       COMMIT;
     `)((e?: any) => {
       if (!!e) return done(e);
