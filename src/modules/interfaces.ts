@@ -260,25 +260,29 @@ export class MapperBase<E> {
           .map(c => c.propertyName)
           .shift() ?? '';
       // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
-      this.entityId = this.entityId || ((e: E) => {
-        if (cloudColumns && !(cloudColumns instanceof Error)) {
-          const out = cloudColumns.map(col => (e as any)[col]).join('|');
-          if (!out) return (e as any)[primaryColumn] + '';
-          return out;
-        } else {
-          return (e as any)[primaryColumn] + '';
-        }
-      });
-      this.idFields = this.idFields || ((id: string) => {
-        const fields: IdFields = {};
-        const splittedId = id.split('|');
-        if (cloudColumns && !(cloudColumns instanceof Error)) {
-          cloudColumns.forEach((cc, i) => (fields[cc] = splittedId[i]));
-        } else {
-          fields[primaryColumn] = splittedId.pop() ?? '';
-        }
-        return fields;
-      });
+      this.entityId =
+        this.entityId ||
+        ((e: E) => {
+          if (cloudColumns && !(cloudColumns instanceof Error)) {
+            const out = cloudColumns.map(col => (e as any)[col]).join('|');
+            if (!out) return (e as any)[primaryColumn] + '';
+            return out;
+          } else {
+            return (e as any)[primaryColumn] + '';
+          }
+        });
+      this.idFields =
+        this.idFields ||
+        ((id: string) => {
+          const fields: IdFields = {};
+          const splittedId = id.split('|');
+          if (cloudColumns && !(cloudColumns instanceof Error)) {
+            cloudColumns.forEach((cc, i) => (fields[cc] = splittedId[i]));
+          } else {
+            fields[primaryColumn] = splittedId.pop() ?? '';
+          }
+          return fields;
+        });
     }
     if (!this.equals) throw new Error('No entity equals method defined'); // TODO: Make a default
     if (!this.source) this.source = 'db';
