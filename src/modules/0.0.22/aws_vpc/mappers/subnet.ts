@@ -8,7 +8,6 @@ import { Subnet, SubnetState, Vpc } from '../entity';
 export class SubnetMapper extends MapperBase<Subnet> {
   module: AwsVpcModule;
   entity = Subnet;
-  entityId = (e: Subnet) => `${e.subnetId}|${e.region}`;
   equals = (a: Subnet, b: Subnet) =>
     Object.is(a.subnetId, b.subnetId) && Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name); // TODO: Do better
 

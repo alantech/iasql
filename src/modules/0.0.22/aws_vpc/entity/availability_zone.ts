@@ -11,7 +11,7 @@ import { AwsRegions } from '../../aws_account/entity';
 })
 export class AvailabilityZone {
   @PrimaryColumn()
-  // todo: @cloudId
+  @cloudId
   name: string;
 
   @Column({
@@ -21,6 +21,6 @@ export class AvailabilityZone {
   })
   @ManyToOne(() => AwsRegions, { nullable: false })
   @JoinColumn({ name: 'region' })
-  // todo: @cloudId
+  @cloudId
   region: string;
 }

@@ -1,6 +1,6 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
-// todo: import { cloudId } from '../../../../services/cloud-id';
+import { cloudId } from '../../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
 export enum VpcState {
@@ -18,7 +18,7 @@ export class Vpc {
   @Column({
     nullable: true,
   })
-  // todo: @cloudId
+  @cloudId
   vpcId?: string;
 
   @Column()
@@ -49,6 +49,6 @@ export class Vpc {
   })
   @ManyToOne(() => AwsRegions, { nullable: false })
   @JoinColumn({ name: 'region' })
-  // todo: @cloudId
+  @cloudId
   region: string;
 }

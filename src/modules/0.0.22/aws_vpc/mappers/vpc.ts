@@ -17,7 +17,6 @@ import { eqTags, updateTags } from './tags';
 export class VpcMapper extends MapperBase<Vpc> {
   module: AwsVpcModule;
   entity = Vpc;
-  entityId = (e: Vpc) => `${e.vpcId}|${e.region}`;
   equals = (a: Vpc, b: Vpc) => {
     const result =
       Object.is(a.cidrBlock, b.cidrBlock) &&

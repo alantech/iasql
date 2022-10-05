@@ -8,7 +8,6 @@ import { AvailabilityZone } from '../entity';
 export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
   module: AwsVpcModule;
   entity = AvailabilityZone;
-  entityId = (e: AvailabilityZone) => `${e.name}|${e.region}`;
   equals = (a: AvailabilityZone, b: AvailabilityZone) => a.name === b.name;
 
   getAvailabilityZones = crudBuilder2<EC2, 'describeAvailabilityZones'>(
@@ -35,18 +34,20 @@ export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       const outAzs: AvailabilityZone[] = [];
-      await Promise.all(enabledRegions.map(async region => {
-        const client = (await ctx.getAwsClient(region)) as AWS;
-        const availabilityZones = await this.getAvailabilityZones(client.ec2client, region);
-        const azs =
-          availabilityZones?.AvailabilityZones?.filter(az => !!az.ZoneName).map(az => {
-            const out = new AvailabilityZone();
-            out.name = az.ZoneName as string; // TS should have figured this out from the filter
-            out.region = az.RegionName as string;
-            return out;
-          }) ?? [];
-        outAzs.push(...azs);
-      }))
+      await Promise.all(
+        enabledRegions.map(async region => {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const availabilityZones = await this.getAvailabilityZones(client.ec2client, region);
+          const azs =
+            availabilityZones?.AvailabilityZones?.filter(az => !!az.ZoneName).map(az => {
+              const out = new AvailabilityZone();
+              out.name = az.ZoneName as string; // TS should have figured this out from the filter
+              out.region = az.RegionName as string;
+              return out;
+            }) ?? [];
+          outAzs.push(...azs);
+        }),
+      );
       if (!!id) {
         const [name, region] = id.split('|');
         return outAzs.find(az => az.name === name && az.region === region);

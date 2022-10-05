@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
-// todo: import { cloudId } from '../../../../services/cloud-id';
+import { cloudId } from '../../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 import { AvailabilityZone } from './availability_zone';
 import { Vpc } from './vpc';
@@ -64,7 +64,7 @@ export class Subnet {
   @Column({
     nullable: true,
   })
-  // todo: @cloudId
+  @cloudId
   subnetId?: string;
 
   @Column({
@@ -84,6 +84,6 @@ export class Subnet {
   })
   @ManyToOne(() => AwsRegions, { nullable: false })
   @JoinColumn({ name: 'region' })
-  // todo: @cloudId
+  @cloudId
   region: string;
 }
