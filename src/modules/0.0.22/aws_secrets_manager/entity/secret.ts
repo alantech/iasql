@@ -33,5 +33,6 @@ export class Secret {
     nullable: false,
     default: () => 'default_aws_region()',
   })
+  @cloudId
   region: string;
 }
