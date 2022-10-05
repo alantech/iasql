@@ -11,7 +11,6 @@ class LogGroupMapper extends MapperBase<LogGroup> {
     Object.is(a.logGroupName, b.logGroupName) &&
     Object.is(a.logGroupArn, b.logGroupArn) &&
     Object.is(a.creationTime?.getTime(), b.creationTime?.getTime());
-  entityId = (e: LogGroup) => `${e.region}|${e.logGroupName}`;
 
   createLogGroup = crudBuilderFormat<CloudWatchLogs, 'createLogGroup', undefined>(
     'createLogGroup',
