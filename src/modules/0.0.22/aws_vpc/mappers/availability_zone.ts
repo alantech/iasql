@@ -34,8 +34,8 @@ export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
     },
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      const outAzs = [];
-      for (const region of enabledRegions) {
+      const outAzs: AvailabilityZone[] = [];
+      await Promise.all(enabledRegions.map(async region => {
         const client = (await ctx.getAwsClient(region)) as AWS;
         const availabilityZones = await this.getAvailabilityZones(client.ec2client, region);
         const azs =
@@ -46,7 +46,7 @@ export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
             return out;
           }) ?? [];
         outAzs.push(...azs);
-      }
+      }))
       if (!!id) {
         const [name, region] = id.split('|');
         return outAzs.find(az => az.name === name && az.region === region);

@@ -76,14 +76,16 @@ export class SubnetMapper extends MapperBase<Subnet> {
           return await this.subnetMapper(rawSubnet, ctx, region);
         }
       } else {
-        const out = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          for (const sn of await this.getSubnets(client.ec2client)) {
-            const outSn = await this.subnetMapper(sn, ctx, region);
-            if (outSn) out.push(outSn);
-          }
-        }
+        const out: Subnet[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            for (const sn of await this.getSubnets(client.ec2client)) {
+              const outSn = await this.subnetMapper(sn, ctx, region);
+              if (outSn) out.push(outSn);
+            }
+          }),
+        );
         return out;
       }
     },

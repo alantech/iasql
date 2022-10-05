@@ -142,14 +142,16 @@ export class VpcMapper extends MapperBase<Vpc> {
           return this.vpcMapper(rawVpc, region);
         }
       } else {
-        const out = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          for (const vpc of await this.getVpcs(client.ec2client)) {
-            const outVpc = this.vpcMapper(vpc, region);
-            if (outVpc) out.push(outVpc);
-          }
-        }
+        const out: Vpc[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            for (const vpc of await this.getVpcs(client.ec2client)) {
+              const outVpc = this.vpcMapper(vpc, region);
+              if (outVpc) out.push(outVpc);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -158,7 +160,7 @@ export class VpcMapper extends MapperBase<Vpc> {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.Vpc?.[e.vpcId ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.Vpc?.[this.entityId(e)];
         if (!Object.is(e.state, cloudRecord.state)) {
           // Restore record
           cloudRecord.id = e.id;
