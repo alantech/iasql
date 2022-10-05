@@ -14,6 +14,7 @@ import { AwsRegions } from '../../aws_account/entity';
 import { Vpc } from '../../aws_vpc/entity';
 
 @Unique('UQ_groupNameByVpc', ['groupName', 'vpc'])
+@Unique('uq_security_group_region', ['id', 'region'])
 @Entity()
 export class SecurityGroup {
   @PrimaryGeneratedColumn()
@@ -64,6 +65,7 @@ export class SecurityGroup {
 }
 
 @Unique('UQ_rule', ['isEgress', 'ipProtocol', 'fromPort', 'toPort', 'cidrIpv4', 'securityGroup'])
+@Unique('uq_security_group_rule_region', ['id', 'region'])
 @Entity()
 export class SecurityGroupRule {
   @PrimaryGeneratedColumn()
