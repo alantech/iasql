@@ -237,7 +237,8 @@ export class MapperBase<E> {
   module: ModuleInterface;
   entity: new () => E;
   entityId: (e: E) => string;
-  idFields: (id: string) => IdFields; // TODO: add better tyoing
+  // TODO: add better typing based on cloudColumns if possible
+  idFields: (id: string) => IdFields;
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
   db: Crud2<E>;
