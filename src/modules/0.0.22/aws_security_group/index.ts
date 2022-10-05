@@ -182,15 +182,16 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
       // TODO: Possible to automate this?
       const [groupId, region] = id?.split('|') ?? [undefined, undefined];
       const relations = ['securityGroupRules', 'securityGroupRules.securityGroup'];
-      const opts = groupId && region
-        ? {
-            where: {
-              groupId,
-              region,
-            },
-            relations,
-          }
-        : { relations };
+      const opts =
+        groupId && region
+          ? {
+              where: {
+                groupId,
+                region,
+              },
+              relations,
+            }
+          : { relations };
       const securityGroups = await ctx.orm.find(SecurityGroup, opts);
       // security groups have vpc as eager, this should not be necessary
       // for (const sg of securityGroups) {
