@@ -1,4 +1,4 @@
-import _, { forEach } from 'lodash';
+import _ from 'lodash';
 import isEqual from 'lodash.isequal';
 
 import {
@@ -11,7 +11,7 @@ import {
 } from '@aws-sdk/client-cloudfront';
 import { WaiterOptions } from '@aws-sdk/util-waiter';
 
-import { AWS, crudBuilder2, paginateBuilder } from '../../../services/aws_macros';
+import { AWS, crudBuilder2 } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { Distribution, viewerProtocolPolicyEnum } from './entity';
 

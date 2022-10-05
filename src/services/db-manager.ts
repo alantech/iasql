@@ -10,21 +10,22 @@ export async function migrate(conn: Connection) {
   // Needs to be done this way or a redeploy would accidentally start using the next version even
   // if it is not yet enabled.
   const ModuleSet = (Modules as any)[config.modules.latestVersion];
-  const iasqlPlatform =
-    ModuleSet?.IasqlPlatform ?? ModuleSet?.iasqlPlatform ?? throwError('Core IasqlPlatform not found');
+  const iasqlPlatform = ModuleSet?.iasqlPlatform ?? throwError('Core IasqlPlatform not found');
   const version = iasqlPlatform.version;
   const qr = conn.createQueryRunner();
   await qr.connect();
+  if (iasqlPlatform.migrations?.beforeInstall) {
+    await iasqlPlatform.migrations.beforeInstall(qr);
+  }
   await iasqlPlatform.migrations.install(qr);
   if (iasqlPlatform.migrations.afterInstall) {
     await iasqlPlatform.migrations.afterInstall(qr);
   }
   await qr.query(`INSERT INTO iasql_module VALUES ('iasql_platform@${version}')`);
-  await ModuleSet?.IasqlFunctions?.migrations?.install(qr);
-  await ModuleSet?.iasqlFunctions?.migrations?.install(qr);
-  if (ModuleSet?.IasqlFunctions?.migrations?.afterInstall) {
-    await ModuleSet?.IasqlFunctions?.migrations?.afterInstall(qr);
+  if (ModuleSet?.iasqlFunctions?.migrations?.beforeInstall) {
+    await ModuleSet?.iasqlFunctions?.migrations?.beforeInstall(qr);
   }
+  await ModuleSet?.iasqlFunctions?.migrations?.install(qr);
   if (ModuleSet?.iasqlFunctions?.migrations?.afterInstall) {
     await ModuleSet?.iasqlFunctions?.migrations?.afterInstall(qr);
   }
