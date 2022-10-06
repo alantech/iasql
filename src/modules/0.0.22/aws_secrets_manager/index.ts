@@ -16,10 +16,7 @@ class SecretMapper extends MapperBase<Secret> {
   module: AwsSecretsManagerModule;
   entity = Secret;
   equals = (a: Secret, b: Secret) =>
-    Object.is(a.description, b.description) &&
-    Object.is(a.versionId, b.versionId) &&
-    Object.is(a.region, b.region) &&
-    !a.value; // if secret is set we need to update it,
+    Object.is(a.description, b.description) && Object.is(a.versionId, b.versionId) && !a.value; // if secret is set we need to update it,
 
   secretsMapper(secret: SecretListEntry, region: string) {
     const out = new Secret();
@@ -111,93 +108,78 @@ class SecretMapper extends MapperBase<Secret> {
       return out;
     },
 
-    read: async (ctx: Context, secretName?: string) => {
+    read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      if (secretName) {
-        for (const region of enabledRegions) {
+      if (!!id) {
+        const { region, name } = this.idFields(id);
+        if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawSecret = await this.getSecret(client.secretsClient, secretName);
-          if (!rawSecret) continue;
-          return this.secretsMapper(rawSecret, region);
+          const rawSecret = await this.getSecret(client.secretsClient, name);
+          if (rawSecret) return this.secretsMapper(rawSecret, region);
         }
       } else {
-        const out = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawSecrets = (await this.getAllSecrets(client.secretsClient)) ?? [];
-          for (const i of rawSecrets) {
-            const sec = this.secretsMapper(i, region);
-            if (sec) out.push(sec);
-          }
-        }
+        const out: Secret[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawSecrets = (await this.getAllSecrets(client.secretsClient)) ?? [];
+            for (const i of rawSecrets) {
+              const sec = this.secretsMapper(i, region);
+              if (sec) out.push(sec);
+            }
+          }),
+        );
         return out;
       }
     },
-    updateOrReplace: (a: Secret, b: Secret) => (a.region !== b.region ? 'replace' : 'update'),
     update: async (secrets: Secret[], ctx: Context) => {
       const out = [];
       for (const secret of secrets) {
-        const cloudRecord = ctx?.memo?.cloud?.Secret?.[secret.name ?? ''];
-        const isUpdate = Object.is(this.module.secret.cloud.updateOrReplace(secret, cloudRecord), 'update');
-        if (!isUpdate) {
-          // We can only 'move' a secret between regions *if* the secret value is present, which is
-          // essentially just a 'replace' in that case, but if we don't have the secret value, then
-          // simply restore the cloud record back into the database.
-          if (!secret.value) {
-            secret.region = cloudRecord.region;
-            await this.module.secret.db.update(secret, ctx);
-          } else {
-            await this.module.secret.cloud.delete(cloudRecord, ctx);
-            await this.module.secret.cloud.create(secret, ctx);
-          }
-          continue;
-        }
+        const cloudRecord = ctx?.memo?.cloud?.Secret?.[this.entityId(secret)];
         const client = (await ctx.getAwsClient(secret.region)) as AWS;
-        if (isUpdate) {
-          const input: UpdateSecretCommandInput = {
-            SecretId: secret.name,
-            Description: secret.description,
-          };
-          if (secret.value) {
-            input.SecretString = secret.value;
-          }
-          const updatedSecret = await this.updateSecret(client.secretsClient, input);
-          if (!updatedSecret) {
-            throw new Error('Secret not properly updated in AWS');
-          }
-
-          let finalSecret: Secret | undefined;
-          let i = 0;
-          do {
-            // retrieve updated secret to avoid race conditions
-            await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
-
-            const rawSecret = await this.getSecret(client.secretsClient, secret.name);
-            finalSecret = this.secretsMapper(rawSecret!, secret.region);
-            i++;
-            if (!finalSecret) continue;
-            if (secret.value && finalSecret.versionId !== cloudRecord.versionId) {
-              secret.versionId = finalSecret.versionId;
-              break;
-            }
-            if (!secret.value && finalSecret.versionId) {
-              secret.versionId = cloudRecord.versionId;
-              break;
-            }
-          } while (i < 30);
-
-          if (!finalSecret) {
-            throw new Error('Secret not properly returned');
-          }
-          if (secret.value && finalSecret.versionId === cloudRecord.versionId) {
-            throw new Error('Secret has not been modified');
-          }
-
-          // modify the database, without saving the secret
-          secret.value = null;
-          await this.module.secret.db.update(secret, ctx);
-          out.push(secret);
+        const input: UpdateSecretCommandInput = {
+          SecretId: secret.name,
+          Description: secret.description,
+        };
+        if (secret.value) {
+          input.SecretString = secret.value;
         }
+        const updatedSecret = await this.updateSecret(client.secretsClient, input);
+        if (!updatedSecret) {
+          throw new Error('Secret not properly updated in AWS');
+        }
+
+        let finalSecret: Secret | undefined;
+        let i = 0;
+        do {
+          // retrieve updated secret to avoid race conditions
+          await new Promise(r => setTimeout(r, 2000)); // Sleep for 2s
+
+          const rawSecret = await this.getSecret(client.secretsClient, secret.name);
+          finalSecret = this.secretsMapper(rawSecret!, secret.region);
+          i++;
+          if (!finalSecret) continue;
+          if (secret.value && finalSecret.versionId !== cloudRecord.versionId) {
+            secret.versionId = finalSecret.versionId;
+            break;
+          }
+          if (!secret.value && finalSecret.versionId) {
+            secret.versionId = cloudRecord.versionId;
+            break;
+          }
+        } while (i < 30);
+
+        if (!finalSecret) {
+          throw new Error('Secret not properly returned');
+        }
+        if (secret.value && finalSecret.versionId === cloudRecord.versionId) {
+          throw new Error('Secret has not been modified');
+        }
+
+        // modify the database, without saving the secret
+        secret.value = null;
+        await this.module.secret.db.update(secret, ctx);
+        out.push(secret);
       }
       return out;
     },
