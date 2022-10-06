@@ -98,7 +98,7 @@ BEGIN
   -- create ECS service and associate it to security group
   INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name, force_new_deployment)
   VALUES (
-    NEW.app_name || '-service', NEW.desired_count, (SELECT ARRAY(SELECT subnet_id FROM subnet WHERE vpc_id = (SELECT id FROM vpc WHERE is_default = true and region = (SELECT region FROM aws_regions WHERE is_default = TRUE) LIMIT 1) LIMIT 3)), (CASE WHEN NEW.public_ip THEN 'ENABLED' ELSE 'DISABLED' END)::service_assign_public_ip_enum,
+    NEW.app_name || '-service', NEW.desired_count, (SELECT ARRAY(SELECT subnet_id FROM subnet WHERE vpc_id = (SELECT id FROM vpc WHERE is_default = true and vpc.region = (SELECT region FROM aws_regions WHERE is_default = TRUE) LIMIT 1) LIMIT 3)), (CASE WHEN NEW.public_ip THEN 'ENABLED' ELSE 'DISABLED' END)::service_assign_public_ip_enum,
     NEW.app_name || '-cluster',
     (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' ORDER BY revision DESC LIMIT 1),
     NEW.app_name || '-target', NEW.force_new_deployment
