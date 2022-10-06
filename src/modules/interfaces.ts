@@ -264,6 +264,7 @@ export class MapperBase<E> {
         this.entityId ||
         ((e: E) => {
           if (cloudColumns && !(cloudColumns instanceof Error)) {
+            if (cloudColumns.some(col => !(e as any)[col])) return (e as any)[primaryColumn] + '';
             const out = cloudColumns.map(col => (e as any)[col]).join('|');
             if (!out) return (e as any)[primaryColumn] + '';
             return out;
