@@ -146,6 +146,19 @@ class AwsAccount extends ModuleBase {
       });
       return fullEntities ? awsRegions : awsRegions.map((r: AwsRegions) => r.region);
     },
+    async getDefaultRegion() {
+      const orm = this.orm;
+      const region =
+        (
+          await orm.findOne(AwsRegions, {
+            where: {
+              isDefault: true,
+            },
+          })
+        )?.region ??
+        'us-east-1'; // TODO: Eliminate this last fallback
+      return region;
+    },
   };
   awsCredentials: CredentialsMapper;
   awsRegions: RegionsMapper;
