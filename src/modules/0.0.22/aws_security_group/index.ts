@@ -317,7 +317,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
           // If there is a security group in the database with the 'default' groupName but we
           // are still hitting the 'delete' path, that's a race condition and we should just do
           // nothing here.
-          const dbRecord = Object.values(ctx?.memo?.db?.SecurityGroup ?? {}).find(
+          const dbRecord = (await this.module.securityGroup.db.read(ctx)).find(
             (a: any) =>
               a.groupName === 'default' &&
               a.region === e.region &&
