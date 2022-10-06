@@ -155,8 +155,7 @@ class AwsAccount extends ModuleBase {
               isDefault: true,
             },
           })
-        )?.region ??
-        'us-east-1'; // TODO: Eliminate this last fallback
+        )?.region ?? 'us-east-1'; // TODO: Eliminate this last fallback
       return region;
     },
   };

@@ -1,7 +1,4 @@
-import {
-  SubnetGroup as AWSSubnetGroup,
-  MemoryDB,
-} from '@aws-sdk/client-memorydb';
+import { SubnetGroup as AWSSubnetGroup, MemoryDB } from '@aws-sdk/client-memorydb';
 
 import { AwsMemoryDBModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../../services/aws_macros';
