@@ -133,12 +133,11 @@ export class VpcMapper extends MapperBase<Vpc> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
-        const [vpcId, region] = id.split('|');
+        const { vpcId, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawVpc = await this.getVpc(client.ec2client, vpcId);
-          if (!rawVpc) return;
-          return this.vpcMapper(rawVpc, region);
+          if (rawVpc) return this.vpcMapper(rawVpc, region);
         }
       } else {
         const out: Vpc[] = [];
@@ -156,9 +155,9 @@ export class VpcMapper extends MapperBase<Vpc> {
     },
     update: async (es: Vpc[], ctx: Context) => {
       // if user has modified state, restore it. If not, go with replace path
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.Vpc?.[this.entityId(e)];
         if (!Object.is(e.state, cloudRecord.state)) {
           // Restore record
@@ -193,7 +192,7 @@ export class VpcMapper extends MapperBase<Vpc> {
           await this.module.vpc.db.update(e, ctx);
           // Make absolutely sure it shows up in the memo
           ctx.memo.db.Vpc[this.entityId(e)] = e;
-          const subnets: Subnet[] = Object.values(ctx?.memo?.cloud?.Subnet ?? {});
+          const subnets: Subnet[] = await this.module.subnet.cloud.read(ctx);
           const relevantSubnets = subnets.filter(
             (s: Subnet) => s.vpc.vpcId === e.vpcId && s.region === e.region,
           );

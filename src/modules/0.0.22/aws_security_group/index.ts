@@ -270,6 +270,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
           // properly associated so we don't need to do anything about them here, just restore
           // the other properties
           const cloudRecord = ctx?.memo?.cloud?.SecurityGroup?.[this.entityId(e)];
+          logger.info(`debugging cloud record ${JSON.stringify(cloudRecord)}`)
           cloudRecord.id = e.id;
           await this.module.securityGroup.db.update(cloudRecord, ctx);
           ctx.memo.db.SecurityGroup[this.entityId(cloudRecord)] = cloudRecord; // Force the cache
@@ -310,14 +311,16 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         // You can mess with its rules, but not this record itself, so any attempt to update it
         // is instead turned into *restoring* the value in the database to match the cloud value
         // Check if there is a VPC for this security group in the database
-        const vpcDbRecord = Object.values(ctx?.memo?.db?.Vpc ?? {}).find(
+        const vpcDbRecord = (await awsVpcModule.vpc.db.read(ctx)).find(
           (a: any) => a.vpcId === e.vpc?.vpcId && a.region === e.region,
         );
         if (e.groupName === 'default' && !!vpcDbRecord) {
           // If there is a security group in the database with the 'default' groupName but we
           // are still hitting the 'delete' path, that's a race condition and we should just do
           // nothing here.
-          const dbRecord = (await this.module.securityGroup.db.read(ctx)).find(
+          const sgDbRecords = await this.module.securityGroup.db.read(ctx);
+          logger.info(`+-+ the vpc groups we are checking are ${JSON.stringify(sgDbRecords)}`)
+          const dbRecord = sgDbRecords.find(
             (a: any) =>
               a.groupName === 'default' &&
               a.region === e.region &&
