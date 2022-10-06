@@ -160,7 +160,6 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
       for (const app of apps) {
         const cloudRecord = ctx?.memo?.cloud?.CodedeployApplication?.[app.name ?? ''];
         if (this.module.application.cloud.updateOrReplace(app, cloudRecord) == 'update') {
-          console.log('in update');
           if (app.id !== cloudRecord.id) {
             // restore
             await this.module.application.db.update(cloudRecord, ctx);

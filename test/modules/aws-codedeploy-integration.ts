@@ -69,7 +69,7 @@ const codedeployRolePolicy = JSON.stringify({
       Sid: '',
       Effect: 'Allow',
       Principal: {
-        Service: ['codedeploy.amazonaws.com'],
+        Service: 'codedeploy.amazonaws.com',
       },
       Action: 'sts:AssumeRole',
     },
@@ -85,7 +85,7 @@ const ec2RolePolicy = JSON.stringify({
       Sid: '',
       Effect: 'Allow',
       Principal: {
-        Service: ['ec2.amazonaws.com'],
+        Service: 'ec2.amazonaws.com',
       },
       Action: 'sts:AssumeRole',
     },
@@ -105,22 +105,20 @@ const ec2FilterTags = JSON.stringify([
 const revisionLocationv0 = JSON.stringify({
   revisionType: 'GitHub',
   gitHubLocation: {
-    repository: 'aws-samples/aws-codedeploy-samples',
-    commitId: '7b2c0d6515c1c59eeedd409b752ceec0aae4d886',
+    repository: 'iasql/iasql-codedeploy-example',
+    commitId: 'cf6aa63cbd2502a5d1064363c2af5c56cc2107cc',
   },
 });
 
 const revisionLocationv1 = JSON.stringify({
   revisionType: 'GitHub',
   gitHubLocation: {
-    repository: 'aws-samples/aws-codedeploy-samples',
-    commitId: '8cb5e5df89e17193dbcc178e92511d3b8e91a38c',
+    repository: 'iasql/iasql-codedeploy-example',
+    commitId: '165582e107955f0b114a9d9d74cd2e4f198454a7',
   },
 });
 
-const installCodedeployAgent = `
-sudo apt update && sudo apt install ruby-full && sudo apt install wget
-`;
+const sgGroupName = `${prefix}sgcodedeploy`;
 
 let availabilityZone: string;
 let instanceType: string;
@@ -185,24 +183,52 @@ describe('AwsCodedeploy Integration Testing', () => {
     'adds a new ec2 role',
     query(`
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${ec2RoleName}', '${ec2RolePolicy}', array['${deployEC2PolicyArn}']);
+    VALUES ('${ec2RoleName}', '${ec2RolePolicy}', array['${deployEC2PolicyArn}', '${ssmPolicyArn}']);
   `),
   );
 
   it('applies the role creation', apply());
 
+  it(
+    'adds a new security group',
+    query(`  
+    INSERT INTO security_group (description, group_name)
+    VALUES ('CodedeploySecurity Group', '${sgGroupName}');
+  `),
+  );
+
+  it(
+    'adds security group rules',
+    query(`
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT false, 'tcp', 22, 22, '0.0.0.0/0', '${prefix}codedeploy_rule_ssh', id
+    FROM security_group
+    WHERE group_name = '${sgGroupName}';
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT false, 'tcp', 80, 80, '0.0.0.0/0', '${prefix}codedeploy_rule_http', id
+    FROM security_group
+    WHERE group_name = '${sgGroupName}';
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', '${prefix}codedeploy_rule_egress', id
+    FROM security_group
+    WHERE group_name = '${sgGroupName}';
+
+  `),
+  );
+  it('applies the security group and rules creation', apply());
+
   // create sample ec2 instance
   it('adds an ec2 instance', done => {
     query(`
       BEGIN;
-        INSERT INTO instance (ami, instance_type, tags, subnet_id, role_name)
-          SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${instanceTag}"}', id, '${ec2RoleName}'
+        INSERT INTO instance (ami, instance_type, tags, subnet_id, role_name, user_data)
+          SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${instanceTag}"}', id, '${ec2RoleName}', (SELECT generate_codedeploy_agent_install_script('${region}', 'ubuntu'))
           FROM subnet
           WHERE availability_zone = '${availabilityZone}'
           LIMIT 1;
         INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
           (SELECT id FROM instance WHERE tags ->> 'name' = '${instanceTag}'),
-          (SELECT id FROM security_group WHERE group_name='default');
+          (SELECT id FROM security_group WHERE group_name='${sgGroupName}');
       COMMIT;
       `)((e?: any) => {
       if (!!e) return done(e);
@@ -495,6 +521,17 @@ describe('delete roles', () => {
   );
 
   it('applies the role deletion', apply());
+});
+
+describe('delete security groups', () => {
+  it(
+    'deletes security group',
+    query(`
+      DELETE FROM security_group WHERE group_name = '${sgGroupName}';
+    `),
+  );
+
+  it('applies the security group deletion', apply());
 });
 
 // cleanup
