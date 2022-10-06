@@ -175,34 +175,36 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         const repositories: Repository[] = ctx.memo?.cloud?.Repository
           ? Object.values(ctx.memo?.cloud?.Repository)
           : [];
-        const images = [];
-        for (const region of enabledRegions) {
-          const regionClient = (await ctx.getAwsClient(region)) as AWS;
-          for (const r of repositories.filter(repo => repo?.region === region)) {
-            try {
-              // first retrieve the list of images associated to the repo, then retrieve the details
-              const ri = await this.listRepositoryImages(
-                regionClient.ecrClient,
-                undefined,
-                r.repositoryName,
-                r.registryId,
-              );
-              if (ri?.imageIds) {
-                const imageDetails = await this.getRepositoryImage(
+        const images: any[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const regionClient = (await ctx.getAwsClient(region)) as AWS;
+            for (const r of repositories.filter(repo => repo?.region === region)) {
+              try {
+                // first retrieve the list of images associated to the repo, then retrieve the details
+                const ri = await this.listRepositoryImages(
                   regionClient.ecrClient,
-                  ri.imageIds,
+                  undefined,
                   r.repositoryName,
+                  r.registryId,
                 );
-                if (imageDetails && imageDetails.images) {
-                  for (const image of imageDetails.images) images.push({ ...image, region });
+                if (ri?.imageIds) {
+                  const imageDetails = await this.getRepositoryImage(
+                    regionClient.ecrClient,
+                    ri.imageIds,
+                    r.repositoryName,
+                  );
+                  if (imageDetails && imageDetails.images) {
+                    for (const image of imageDetails.images) images.push({ ...image, region });
+                  }
                 }
+              } catch (_) {
+                // We try to retrieve the policy for the repository, but if none it is not an error
+                continue;
               }
-            } catch (_) {
-              // We try to retrieve the policy for the repository, but if none it is not an error
-              continue;
             }
-          }
-        }
+          }),
+        );
         // then public
         const globalClient = (await ctx.getAwsClient()) as AWS;
         const publicImages = [];
@@ -472,22 +474,24 @@ class RepositoryMapper extends MapperBase<Repository> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        const [repositoryName, region] = id.split('|');
+        const { repositoryName, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawEcr = await this.getECRRepository(client.ecrClient, repositoryName);
           if (rawEcr) return this.repositoryMapper(rawEcr, region);
         }
       } else {
-        const out = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const ecrs = (await this.getECRRepositories(client.ecrClient)) ?? [];
-          for (const ecr of ecrs) {
-            const outEcr = this.repositoryMapper(ecr, region);
-            if (outEcr) out.push(outEcr);
-          }
-        }
+        const out: Repository[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const ecrs = (await this.getECRRepositories(client.ecrClient)) ?? [];
+            for (const ecr of ecrs) {
+              const outEcr = this.repositoryMapper(ecr, region);
+              if (outEcr) out.push(outEcr);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -547,6 +551,10 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
   module: AwsEcrModule;
   entity = RepositoryPolicy;
   entityId = (e: RepositoryPolicy) => `${e.repository.repositoryName}|${e.repository.region}`;
+  idFields = (id: string) => {
+    const [repositoryName, region] = id.split('|');
+    return { repositoryName, region };
+  };
   equals = (a: RepositoryPolicy, b: RepositoryPolicy) => {
     try {
       return (
@@ -632,33 +640,35 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
       // TODO: Can this function be refactored to be simpler?
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        const [repositoryName, region] = id.split('|');
+        const { repositoryName, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawRepositoryPolicy = await this.getECRRepositoryPolicy(client.ecrClient, repositoryName);
           if (rawRepositoryPolicy) return await this.repositoryPolicyMapper(rawRepositoryPolicy, ctx, region);
         }
       } else {
-        const out = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const policies: any = [];
-          const repositories = ctx.memo?.cloud?.Repository
-            ? Object.values(ctx.memo?.cloud?.Repository)
-            : await this.module.repository.cloud.read(ctx);
-          for (const r of repositories.filter((repository: Repository) => repository.region === region)) {
-            try {
-              const rp = await this.getECRRepositoryPolicy(client.ecrClient, r.repositoryName);
-              policies.push(rp);
-            } catch (_) {
-              // We try to retrieve the policy for the repository, but if none it is not an error
-              continue;
+        const out: RepositoryPolicy[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const policies: any = [];
+            const repositories = ctx.memo?.cloud?.Repository
+              ? Object.values(ctx.memo?.cloud?.Repository)
+              : await this.module.repository.cloud.read(ctx);
+            for (const r of repositories.filter((repository: Repository) => repository.region === region)) {
+              try {
+                const rp = await this.getECRRepositoryPolicy(client.ecrClient, r.repositoryName);
+                policies.push(rp);
+              } catch (_) {
+                // We try to retrieve the policy for the repository, but if none it is not an error
+                continue;
+              }
             }
-          }
-          for (const rp of policies) {
-            if (rp) out.push(await this.repositoryPolicyMapper(rp, ctx, region));
-          }
-        }
+            for (const rp of policies) {
+              if (rp) out.push(await this.repositoryPolicyMapper(rp, ctx, region));
+            }
+          }),
+        );
         return out;
       }
     },
