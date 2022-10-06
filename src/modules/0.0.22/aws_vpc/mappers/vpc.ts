@@ -200,9 +200,13 @@ export class VpcMapper extends MapperBase<Vpc> {
             await this.module.subnet.db.update(relevantSubnets, ctx);
           }
         } else {
-          await this.deleteVpc(client.ec2client, {
-            VpcId: e.vpcId,
-          });
+          try {
+            await this.deleteVpc(client.ec2client, {
+              VpcId: e.vpcId,
+            });
+          } catch (e) {
+            throw e;
+          }
         }
       }
     },

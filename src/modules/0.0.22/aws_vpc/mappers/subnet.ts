@@ -9,7 +9,9 @@ export class SubnetMapper extends MapperBase<Subnet> {
   module: AwsVpcModule;
   entity = Subnet;
   equals = (a: Subnet, b: Subnet) =>
-    Object.is(a.subnetId, b.subnetId) && Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name); // TODO: Do better
+    Object.is(a.cidrBlock, b.cidrBlock) &&
+    Object.is(a?.availabilityZone?.name, b?.availabilityZone?.name) &&
+    Object.is(a?.vpc?.vpcId, b?.vpc?.vpcId);
 
   async subnetMapper(sn: AwsSubnet, ctx: Context, region: string) {
     const out = new Subnet();
@@ -45,6 +47,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
     create: async (es: Subnet[], ctx: Context) => {
       // TODO: Add support for creating default subnets (only one is allowed, also add
       // constraint that a single subnet is set as default)
+      const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: any = {
@@ -52,27 +55,34 @@ export class SubnetMapper extends MapperBase<Subnet> {
           VpcId: e.vpc.vpcId,
         };
         if (e.cidrBlock) input.CidrBlock = e.cidrBlock;
-        const res = await this.createSubnet(client.ec2client, input);
-        if (res?.Subnet) {
-          const newSubnet = await this.subnetMapper(res.Subnet, ctx, e.region);
-          if (!newSubnet) continue;
-          newSubnet.id = e.id;
-          Object.keys(newSubnet).forEach(k => ((e as any)[k] = (newSubnet as any)[k]));
-          await this.module.subnet.db.update(e, ctx);
-          // TODO: What to do if no subnet returned?
+        try {
+          const res = await this.createSubnet(client.ec2client, input);
+          if (res?.Subnet) {
+            const rawSubnet = await this.getSubnet(client.ec2client, res.Subnet.SubnetId);
+            if (rawSubnet) {
+              const newSubnet = await this.subnetMapper(rawSubnet, ctx, e.region);
+              if (newSubnet) {
+                newSubnet.id = e.id;
+                await this.module.subnet.db.update(newSubnet, ctx);
+                out.push(newSubnet);
+              }
+            }
+          }
+        } catch (e) {
+          throw e;
         }
       }
+      return out;
     },
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       // TODO: Convert AWS subnet representation to our own
       if (!!id) {
-        const [subnetId, region] = id.split('|');
+        const { subnetId, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawSubnet = await this.getSubnet(client.ec2client, subnetId);
-          if (!rawSubnet) return;
-          return await this.subnetMapper(rawSubnet, ctx, region);
+          if (rawSubnet) return await this.subnetMapper(rawSubnet, ctx, region);
         }
       } else {
         const out: Subnet[] = [];
@@ -91,8 +101,12 @@ export class SubnetMapper extends MapperBase<Subnet> {
     update: async (es: Subnet[], ctx: Context) => {
       // There is no update mechanism for a subnet so instead we will create a new one and the
       // next loop through should delete the old one
-      const out = await this.module.subnet.cloud.create(es, ctx);
-      if (out instanceof Array) return out;
+      const out = [];
+      for (const e of es) {
+        const newSubnet = await this.module.subnet.cloud.create(e, ctx);
+        if (newSubnet && !Array.isArray(newSubnet)) out.push(newSubnet);
+      }
+      return out;
     },
     delete: async (es: Subnet[], ctx: Context) => {
       for (const e of es) {
