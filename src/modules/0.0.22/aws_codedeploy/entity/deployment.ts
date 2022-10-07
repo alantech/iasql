@@ -48,6 +48,7 @@ export class CodedeployDeployment {
   @ManyToOne(() => CodedeployDeploymentGroup, {
     eager: true,
     nullable: false,
+    onDelete: 'CASCADE',
   })
   @JoinColumn({
     name: 'deployment_group_name',
@@ -64,14 +65,14 @@ export class CodedeployDeployment {
   })
   externalId?: string;
 
-  @ManyToOne(() => CodedeployRevision, {
+  @OneToOne(() => CodedeployRevision, {
     eager: true,
-    nullable: false,
+    nullable: true,
   })
   @JoinColumn({
     name: 'revision_id',
   })
-  revision: CodedeployRevision;
+  revision?: CodedeployRevision;
 
   @Column({
     nullable: true,

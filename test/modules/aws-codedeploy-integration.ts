@@ -238,7 +238,7 @@ describe('AwsCodedeploy Integration Testing', () => {
 
   it('applies the created instance', apply());
 
-  /*it(
+  it(
     'adds a new codedeploy_application',
     query(`
     INSERT INTO codedeploy_application (name, compute_platform)
@@ -317,7 +317,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     WHERE name = '${applicationName}';
   `),
   );
-  it('applies the application deletion', apply());*/
+  it('applies the application deletion', apply());
 
   // deployment group testing
   it(
@@ -458,9 +458,20 @@ it(
     `
 SELECT * FROM codedeploy_deployment WHERE application_name='${applicationNameForDeployment}' AND description='Codedeploy deployment v0' AND status='Succeeded';
 `,
-    (res: any) => expect(res.length).toBe(0),
+    (res: any) => expect(res.length).toBe(1),
   ),
 );
+
+it('should fail when deleting a deployment', () => {
+  try {
+    query(`
+      DELETE FROM codedeploy_deployment WHERE application_name='${applicationNameForDeployment}' AND description='Codedeploy deployment v1';
+      `);
+  } catch (e) {
+    expect(e).toBeTruthy;
+  }
+});
+it('applies the update and deletion', apply());
 
 // cleanup
 describe('deployment cleanup', () => {
@@ -487,6 +498,26 @@ describe('deployment cleanup', () => {
     query(
       `
 SELECT * FROM codedeploy_revision WHERE application_name='${applicationNameForDeployment}';
+`,
+      (res: any) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check no codedeploy_deployment_groups remain',
+    query(
+      `
+SELECT * FROM codedeploy_deployment_group WHERE application_name='${applicationNameForDeployment}';
+`,
+      (res: any) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check no codedeploy_deployments remain',
+    query(
+      `
+SELECT * FROM codedeploy_deployment WHERE application_name='${applicationNameForDeployment}';
 `,
       (res: any) => expect(res.length).toBe(0),
     ),
@@ -523,7 +554,14 @@ describe('delete roles', () => {
   it('applies the role deletion', apply());
 });
 
-describe('delete security groups', () => {
+describe('delete security groups and rules', () => {
+  it(
+    'deletes security group rules',
+    query(`
+      DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
+    `),
+  );
+
   it(
     'deletes security group',
     query(`
@@ -537,7 +575,7 @@ describe('delete security groups', () => {
 // cleanup
 it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 
-/*describe('AwsCodedeploy install/uninstall', () => {
+describe('AwsCodedeploy install/uninstall', () => {
   it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -575,4 +613,4 @@ it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').t
   it('installs the codedeploy module', install(['aws_codedeploy']));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});*/
+});

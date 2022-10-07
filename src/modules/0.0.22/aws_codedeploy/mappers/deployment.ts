@@ -21,13 +21,16 @@ import { CodedeployDeployment, DeploymentStatusEnum } from '../entity';
 export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment> {
   module: AwsCodedeployModule;
   entity = CodedeployDeployment;
-  equals = (a: CodedeployDeployment, b: CodedeployDeployment) =>
-    isEqual(a.application, b.application) &&
-    isEqual(a.deploymentGroup, b.deploymentGroup) &&
-    Object.is(a.deploymentId, b.deploymentId) &&
-    Object.is(a.description, b.description) &&
-    Object.is(a.externalId, b.externalId) &&
-    Object.is(a.status, b.status);
+  equals = (a: CodedeployDeployment, b: CodedeployDeployment) => {
+    return (
+      isEqual(a.application.name, b.application.name) &&
+      isEqual(a.deploymentGroup.name, b.deploymentGroup.name) &&
+      Object.is(a.deploymentId, b.deploymentId) &&
+      Object.is(a.description, b.description) &&
+      Object.is(a.externalId, b.externalId) &&
+      Object.is(a.status, b.status)
+    );
+  };
 
   async deploymentMapper(deployment: DeploymentInfo, ctx: Context) {
     const out = new CodedeployDeployment();
@@ -56,22 +59,16 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
     res => res?.deploymentInfo,
   );
 
-  listDeployments = paginateBuilder<CodeDeploy>(
-    paginateListDeployments,
-    'paginateListDeployments',
-    undefined,
-    undefined,
-    (applicationName, deploymentGroupName) => ({
-      applicationName: applicationName,
-      deploymentGroupName: deploymentGroupName,
-    }),
-  );
+  listDeployments = paginateBuilder<CodeDeploy>(paginateListDeployments, 'deployments');
 
   cloud: Crud2<CodedeployDeployment> = new Crud2({
     create: async (es: CodedeployDeployment[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        // if we do not have application, deployment group or revision, continue
+        if (!e.application || !e.deploymentGroup || !e.revision) continue;
+
         const input: CreateDeploymentCommandInput = {
           applicationName: e.application.name,
           deploymentGroupName: e.deploymentGroup.name,
@@ -80,9 +77,10 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
         };
         const deploymentId = await this.createDeployment(client.cdClient, input);
         if (!deploymentId) continue;
+        e.deploymentId = deploymentId;
 
         // wait until deployment is succeeded
-        await waitUntilDeploymentSuccessful(
+        const result = await waitUntilDeploymentSuccessful(
           {
             client: client.cdClient,
             // all in seconds
@@ -93,18 +91,8 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
           { deploymentId: deploymentId },
         );
 
-        // we need to update id, app deployment group and status
-        const newDeployment: CodedeployDeployment = await this.module.deployment.cloud.read(
-          client.cdClient,
-          deploymentId,
-        );
-        if (newDeployment) {
-          e.deploymentId = newDeployment.deploymentId;
-          e.application = newDeployment.application;
-          e.deploymentGroup = newDeployment.deploymentGroup;
-          e.revision = newDeployment.revision;
-          e.status = newDeployment.status;
-
+        if (result.state == 'SUCCESS') {
+          e.status = DeploymentStatusEnum.SUCCEEDED;
           await this.db.update(e, ctx);
           out.push(e);
         }
@@ -123,35 +111,35 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
         const deployment = await this.deploymentMapper(rawDeployment, ctx);
         return deployment;
       } else {
-        // first need to read all deployment groups
         const out = [];
-        const groups = await this.module.deploymentGroup.cloud.read(ctx);
-        if (groups && groups.length > 0) {
-          for (const group of groups) {
-            if (group && group.name) {
-              const deploymentIds = await this.listDeployments(
-                client.cdClient,
-                group.application.name,
-                group.name,
-              );
-              for (const deploymentId of deploymentIds) {
-                const rawDeployment = await this.getDeployment(client.cdClient, {
-                  deploymentId: deploymentId,
-                });
-                if (!rawDeployment) continue;
+        const deploymentIds = await this.listDeployments(client.cdClient);
+        for (const deploymentId of deploymentIds) {
+          const rawDeployment = await this.getDeployment(client.cdClient, {
+            deploymentId: deploymentId,
+          });
+          if (!rawDeployment) continue;
 
-                // map to entity
-                const deployment = await this.deploymentMapper(rawDeployment, ctx);
-                if (deployment) out.push(deployment);
-              }
-            }
-          }
+          // map to entity
+          const deployment = await this.deploymentMapper(rawDeployment, ctx);
+          if (deployment) out.push(deployment);
         }
         return out;
       }
     },
-    update: async (groups: CodedeployDeployment[], ctx: Context) => {
-      return;
+    update: async (deployments: CodedeployDeployment[], ctx: Context) => {
+      const client = (await ctx.getAwsClient()) as AWS;
+      const out = [];
+      for (const deployment of deployments) {
+        if (!deployment.application || !deployment.deploymentGroup) continue; // cannot update a deployment group without app or id
+
+        // we just need to replace the record. We keep the initial revision, as it cannot be retrieved from mapper
+        const cloudRecord = ctx?.memo?.cloud?.CodedeployDeployment?.[deployment.deploymentId ?? ''];
+        cloudRecord.revision = deployment.revision;
+        cloudRecord.id = deployment.id;
+        await this.module.deployment.db.update(cloudRecord, ctx);
+        out.push(cloudRecord);
+      }
+      return out;
     },
     delete: async (groups: CodedeployDeployment[], ctx: Context) => {
       return;

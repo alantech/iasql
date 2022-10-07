@@ -30,23 +30,6 @@ CREATE TRIGGER
 EXECUTE
   FUNCTION block_codedeploy_revision_delete_function ();
 
--- prevents update on deployment table
-CREATE
-OR REPLACE FUNCTION block_codedeploy_deployment_update_function () RETURNS TRIGGER AS $block_codedeploy_deployment_update_function$
-    BEGIN
-        RAISE EXCEPTION 'Deployment cannot be modified'
-        USING detail = 'Deployments can only be added';
-        RETURN OLD;
-    END;
-$block_codedeploy_deployment_update_function$ LANGUAGE plpgsql;
-
-CREATE TRIGGER
-  block_codedeploy_deployment_update_trigger BEFORE
-UPDATE
-  ON codedeploy_deployment
-EXECUTE
-  FUNCTION block_codedeploy_deployment_update_function ();
-
 -- prevents deletion on deployment table
 CREATE
 OR REPLACE FUNCTION block_codedeploy_deployment_delete_function () RETURNS TRIGGER AS $block_codedeploy_deployment_delete_function$
@@ -106,7 +89,38 @@ AFTER
 EXECUTE
   FUNCTION readd_all_codedeploy_rules ();
 
---
+-- triggers for before and after delete deployment group
+CREATE TRIGGER
+  before_delete_codedeploy_deployment_group BEFORE DELETE ON codedeploy_deployment_group
+EXECUTE
+  FUNCTION drop_all_codedeploy_rules ();
+
+CREATE TRIGGER
+  after_delete_codedeploy_deployment_group
+AFTER
+  DELETE ON codedeploy_deployment_group
+EXECUTE
+  FUNCTION readd_all_codedeploy_rules ();
+
+-- block updating revision on deployment column
+CREATE
+OR REPLACE FUNCTION block_update_on_deployment_revision () RETURNS TRIGGER LANGUAGE PLPGSQL AS $block_update_on_deployment_revision$
+BEGIN
+  IF NEW.revision_id <> OLD.revision_id THEN
+      RAISE EXCEPTION 'Updating revisions on a deployment is not allowed';
+   END IF;
+   RETURN NEW;
+END;
+$block_update_on_deployment_revision$;
+
+CREATE TRIGGER
+  before_update_deployment BEFORE
+UPDATE
+  ON codedeploy_deployment FOR EACH ROW
+EXECUTE
+  FUNCTION block_update_on_deployment_revision ();
+
+-- agent install
 CREATE
 OR REPLACE FUNCTION generate_codedeploy_agent_install_script (region TEXT, distro TEXT) RETURNS TEXT LANGUAGE plpgsql AS $$
 BEGIN
