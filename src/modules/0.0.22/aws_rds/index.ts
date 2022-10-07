@@ -81,7 +81,10 @@ class RdsMapper extends MapperBase<RDS> {
       const parameterGroup = rds.DBParameterGroups[0];
       out.parameterGroup =
         (await this.module.parameterGroup.db.read(ctx, `${parameterGroup.DBParameterGroupName}|${region}`)) ??
-        (await this.module.parameterGroup.cloud.read(ctx, `${parameterGroup.DBParameterGroupName}|${region}`));
+        (await this.module.parameterGroup.cloud.read(
+          ctx,
+          `${parameterGroup.DBParameterGroupName}|${region}`,
+        ));
     }
     out.region = region;
     return out;
@@ -243,7 +246,10 @@ class RdsMapper extends MapperBase<RDS> {
         // We need to update the parameter groups if its a default one and it does not exists
         const parameterGroupName = newObject?.DBParameterGroups?.[0].DBParameterGroupName;
         if (!(await this.module.parameterGroup.db.read(ctx, `${parameterGroupName}|${e.region}`))) {
-          const cloudParameterGroup = await this.module.parameterGroup.cloud.read(ctx, `${parameterGroupName}|${e.region}`);
+          const cloudParameterGroup = await this.module.parameterGroup.cloud.read(
+            ctx,
+            `${parameterGroupName}|${e.region}`,
+          );
           await this.module.parameterGroup.db.create(cloudParameterGroup, ctx);
         }
         // We map this into the same kind of entity as `obj`
@@ -264,7 +270,7 @@ class RdsMapper extends MapperBase<RDS> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        const { name, region, } = this.idFields(id);
+        const { name, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
         const rawRds = await this.getDBInstance(client.rdsClient, name);
         if (!rawRds) return;
@@ -461,7 +467,7 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        const { dbInstanceIdentifier, region, } = this.idFields(id);
+        const { dbInstanceIdentifier, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
         const parameterGroup = await this.getDBParameterGroup(client.rdsClient, dbInstanceIdentifier);
         if (!parameterGroup) return;
