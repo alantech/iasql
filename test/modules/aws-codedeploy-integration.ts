@@ -572,6 +572,8 @@ describe('delete security groups and rules', () => {
   it('applies the security group deletion', apply());
 });
 
+it('apply delete', apply());
+
 // cleanup
 it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 

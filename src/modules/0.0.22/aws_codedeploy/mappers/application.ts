@@ -30,7 +30,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
     'revisions',
     undefined,
     undefined,
-    applicationName => applicationName,
+    applicationName => ({ applicationName }),
   );
 
   getApplicationRevisions = crudBuilderFormat<

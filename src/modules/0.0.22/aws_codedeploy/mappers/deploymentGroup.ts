@@ -94,7 +94,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     'deploymentGroups',
     undefined,
     undefined,
-    applicationName => applicationName,
+    appName => ({ applicationName: appName }),
   );
 
   deleteDeploymentGroup = crudBuilder2<CodeDeploy, 'deleteDeploymentGroup'>(
