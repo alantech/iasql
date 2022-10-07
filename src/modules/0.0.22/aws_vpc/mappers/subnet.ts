@@ -55,22 +55,15 @@ export class SubnetMapper extends MapperBase<Subnet> {
           VpcId: e.vpc.vpcId,
         };
         if (e.cidrBlock) input.CidrBlock = e.cidrBlock;
-        try {
-          const res = await this.createSubnet(client.ec2client, input);
-          if (res?.Subnet) {
-            const rawSubnet = await this.getSubnet(client.ec2client, res.Subnet.SubnetId);
-            if (rawSubnet) {
-              const newSubnet = await this.subnetMapper(rawSubnet, ctx, e.region);
-              if (newSubnet) {
-                newSubnet.id = e.id;
-                await this.module.subnet.db.update(newSubnet, ctx);
-                out.push(newSubnet);
-              }
-            }
-          }
-        } catch (e) {
-          throw e;
-        }
+        const res = await this.createSubnet(client.ec2client, input);
+        if (!res?.Subnet) continue;
+        const rawSubnet = await this.getSubnet(client.ec2client, res.Subnet.SubnetId);
+        if (!rawSubnet) continue;
+        const newSubnet = await this.subnetMapper(rawSubnet, ctx, e.region);
+        if (!newSubnet) continue;
+        newSubnet.id = e.id;
+        await this.module.subnet.db.update(newSubnet, ctx);
+        out.push(newSubnet);
       }
       return out;
     },
