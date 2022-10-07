@@ -94,9 +94,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     'deploymentGroups',
     undefined,
     undefined,
-    applicationName => ({
-      applicationName: applicationName,
-    }),
+    applicationName => applicationName,
   );
 
   deleteDeploymentGroup = crudBuilder2<CodeDeploy, 'deleteDeploymentGroup'>(
@@ -135,8 +133,8 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
       const client = (await ctx.getAwsClient()) as AWS;
       if (applicationName && deploymentGroupName) {
         const rawGroup = await this.getDeploymentGroup(client.cdClient, {
-          applicationName: applicationName,
-          deploymentGroupName: deploymentGroupName,
+          applicationName,
+          deploymentGroupName,
         });
         if (!rawGroup) return;
 

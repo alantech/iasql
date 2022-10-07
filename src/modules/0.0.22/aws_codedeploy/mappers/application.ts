@@ -22,7 +22,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
     Object.is(a.name, b.name) &&
     Object.is(a.computePlatform, b.computePlatform) &&
     Object.is(a.id, b.id) &&
-    Object.is(a.revisions == undefined, b.revisions == undefined) &&
+    Object.is(a.revisions === undefined, b.revisions === undefined) &&
     Object.is(a.revisions!.length, b.revisions!.length);
 
   listRevisions = paginateBuilder<CodeDeploy>(
@@ -30,9 +30,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
     'revisions',
     undefined,
     undefined,
-    applicationName => ({
-      applicationName: applicationName,
-    }),
+    applicationName => applicationName,
   );
 
   getApplicationRevisions = crudBuilderFormat<
@@ -141,8 +139,8 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
         const out = [];
         const appNames = await this.listApplications(client.cdClient);
         if (!appNames || !appNames.length) return;
-        for (const name of appNames) {
-          const rawApp = await this.getApplication(client.cdClient, { applicationName: name });
+        for (const appName of appNames) {
+          const rawApp = await this.getApplication(client.cdClient, { applicationName: appName });
           if (!rawApp) continue;
 
           const app = await this.applicationMapper(rawApp, ctx);
@@ -159,7 +157,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
 
       for (const app of apps) {
         const cloudRecord = ctx?.memo?.cloud?.CodedeployApplication?.[app.name ?? ''];
-        if (this.module.application.cloud.updateOrReplace(app, cloudRecord) == 'update') {
+        if (this.module.application.cloud.updateOrReplace(app, cloudRecord) === 'update') {
           if (app.id !== cloudRecord.id) {
             // restore
             await this.module.application.db.update(cloudRecord, ctx);
@@ -193,18 +191,13 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
             }
           }
         } else {
-          console.log('in delete');
           // delete app and create new one
           await this.module.application.cloud.delete(app, ctx);
-          console.log('after delete');
           const appId = await this.module.application.cloud.create(app, ctx);
-          console.log('after create');
           if (!appId) continue;
 
           // retrieve app details
           const createdApp = await this.module.application.cloud.read(ctx, app.name);
-          console.log('i create');
-          console.log(createdApp);
           if (createdApp) out.push(createdApp);
         }
       }

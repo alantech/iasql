@@ -88,10 +88,10 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
             minDelay: 1,
             maxDelay: 4,
           } as WaiterOptions<CodeDeploy>,
-          { deploymentId: deploymentId },
+          { deploymentId },
         );
 
-        if (result.state == 'SUCCESS') {
+        if (result.state === 'SUCCESS') {
           e.status = DeploymentStatusEnum.SUCCEEDED;
           await this.db.update(e, ctx);
           out.push(e);
@@ -103,7 +103,7 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       const client = (await ctx.getAwsClient()) as AWS;
       if (deploymentId) {
         const rawDeployment = await this.getDeployment(client.cdClient, {
-          deploymentId: deploymentId,
+          deploymentId,
         });
         if (!rawDeployment) return;
 
@@ -113,9 +113,9 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       } else {
         const out = [];
         const deploymentIds = await this.listDeployments(client.cdClient);
-        for (const deploymentId of deploymentIds) {
+        for (const depId of deploymentIds) {
           const rawDeployment = await this.getDeployment(client.cdClient, {
-            deploymentId: deploymentId,
+            deploymentId: depId,
           });
           if (!rawDeployment) continue;
 
