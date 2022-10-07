@@ -106,7 +106,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
         const cloudRecord =
           ctx?.memo?.cloud?.Subnet?.[this.entityId(e)] ??
           (await this.module.subnet.cloud.read(ctx, this.entityId(e)));
-        if (cloudRecord?.vpc?.vpcId === e.vpc?.vpcId) {
+        if (cloudRecord?.vpc?.vpcId !== e.vpc?.vpcId) {
           // If vpc changes we need to take into account the one from the `cloudRecord` since it will be the most updated one
           e.vpc = cloudRecord.vpc;
         }
