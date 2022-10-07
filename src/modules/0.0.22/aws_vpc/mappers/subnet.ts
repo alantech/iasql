@@ -3,7 +3,7 @@ import { EC2, Subnet as AwsSubnet, paginateDescribeSubnets } from '@aws-sdk/clie
 import { AwsVpcModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { Subnet, SubnetState, Vpc } from '../entity';
+import { Subnet, SubnetState } from '../entity';
 
 export class SubnetMapper extends MapperBase<Subnet> {
   module: AwsVpcModule;
@@ -103,6 +103,13 @@ export class SubnetMapper extends MapperBase<Subnet> {
       // next loop through should delete the old one
       const out = [];
       for (const e of es) {
+        const cloudRecord =
+          ctx?.memo?.cloud?.Subnet?.[this.entityId(e)] ??
+          (await this.module.subnet.cloud.read(ctx, this.entityId(e)));
+        if (cloudRecord?.vpc?.vpcId === e.vpc?.vpcId) {
+          // If vpc changes we need to take into account the one from the `cloudRecord` since it will be the most updated one
+          e.vpc = cloudRecord.vpc;
+        }
         const newSubnet = await this.module.subnet.cloud.create(e, ctx);
         if (newSubnet && !Array.isArray(newSubnet)) out.push(newSubnet);
       }
