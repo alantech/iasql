@@ -313,12 +313,13 @@ describe('ECS Integration Testing', () => {
 
   it(
     'adds a new container definition',
+     // TODO: add region to repository selects when multi-region is supported
     query(`
     BEGIN;
-      INSERT INTO container_definition ("name", repository_name, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-      VALUES('${containerNameRepository}', '${repositoryName}', '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
-      INSERT INTO container_definition ("name", repository_name, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-      VALUES('${containerNameRepository}dgst', '${repositoryName}', false, ${containerMemoryReservation}, ${
+      INSERT INTO container_definition ("name", repository_id, region, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
+      VALUES('${containerNameRepository}', (select id from repository where repository_name = '${repositoryName}'), (select region from repository where repository_name = '${repositoryName}'), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
+      INSERT INTO container_definition ("name", repository_id, region, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
+      VALUES('${containerNameRepository}dgst', (select id from repository where repository_name = '${repositoryName}'), (select region from repository where repository_name = '${repositoryName}'), false, ${containerMemoryReservation}, ${
       hostPort + 2
     }, ${
       containerPort + 2
@@ -329,11 +330,12 @@ describe('ECS Integration Testing', () => {
 
   it(
     'check container definition insertion',
+     // TODO: add region to repository selects when multi-region is supported
     query(
       `
     SELECT *
     FROM container_definition
-    WHERE name = '${containerNameRepository}' AND repository_name = '${repositoryName}' AND tag = '${imageTag}';
+    WHERE name = '${containerNameRepository}' AND repository_id = (select id from repository where repository_name = '${repositoryName}') AND tag = '${imageTag}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -355,11 +357,12 @@ describe('ECS Integration Testing', () => {
 
   it(
     'check container definition insertion',
+     // TODO: add region to repository selects when multi-region is supported
     query(
       `
     SELECT *
     FROM container_definition
-    WHERE name = '${containerNameRepository}' AND repository_name = '${repositoryName}' AND tag = '${imageTag}';
+    WHERE name = '${containerNameRepository}' AND repository_id = (select id from repository where repository_name = '${repositoryName}') AND tag = '${imageTag}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),

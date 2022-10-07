@@ -5,6 +5,7 @@ import { awsCloudwatchModule, awsEcrModule, awsIamModule } from '../..';
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../../services/aws_macros';
 import logger from '../../../../services/logger';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { Repository } from '../../aws_ecr/entity';
 import { ContainerDefinition, CpuMemCombination, TaskDefinition } from '../entity';
 
 export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
@@ -40,7 +41,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       Object.is(a.hostPort, b.hostPort) &&
       Object.is(a.protocol, b.protocol) &&
       Object.is(a.publicRepository?.repositoryName, b.publicRepository?.repositoryName) &&
-      Object.is(a.repository?.repositoryName, b.repository?.repositoryName) &&
+      Object.is(a.repository?.id, b.repository?.id) &&
       Object.is(a.image, b.image) &&
       Object.is(a.digest, b.digest) &&
       Object.is(a.tag, b.tag)
@@ -136,9 +137,14 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       const parts = containerImage.split('/');
       const repositoryName = parts[parts.length - 1] ?? null;
       try {
+        // TODO: compare repository name + region once this module is multiregion
         const repository =
-          (await awsEcrModule.repository.db.read(ctx, repositoryName)) ??
-          (await awsEcrModule.repository.cloud.read(ctx, repositoryName));
+          (await awsEcrModule.repository.db.read(ctx))
+            .filter((repo: Repository) => repo.repositoryName === repositoryName)
+            .pop() ??
+          (await awsEcrModule.repository.cloud.read(ctx))
+            .filter((repo: Repository) => repo.repositoryName === repositoryName)
+            .pop();
         out.repository = repository;
       } catch (e) {
         // Repository could have been deleted

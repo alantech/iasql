@@ -157,7 +157,7 @@ describe('ECR Integration Testing', () => {
         `
       SELECT *
       FROM repository_image
-      WHERE private_repository = '${repositoryName}';
+      WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
     `,
         (res: any[]) => {
           expect(res.length).toBe(3);
@@ -169,7 +169,7 @@ describe('ECR Integration Testing', () => {
     it(
       'deletes image with a tag from a private repo',
       query(
-        `DELETE FROM repository_image WHERE private_repository='${repositoryName}' AND image_tag='${repositoryTag}';`,
+        `DELETE FROM repository_image WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}') AND image_tag='${repositoryTag}';`,
       ),
     );
     it('applies image delete change', apply());
@@ -180,7 +180,7 @@ describe('ECR Integration Testing', () => {
         `
       SELECT *
       FROM repository_image
-      WHERE private_repository = '${repositoryName}' AND image_tag='${repositoryTag}';
+      WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}') AND image_tag='${repositoryTag}';
     `,
         (res: any[]) => {
           expect(res.length).toBe(0);
@@ -224,8 +224,8 @@ describe('ECR Integration Testing', () => {
     it(
       'adds a new repository policy',
       query(`
-      INSERT INTO repository_policy (repository_name, policy_text)
-      VALUES ('${repositoryName}', '${policyMock}');
+      INSERT INTO repository_policy (repository_id, policy_text)
+      VALUES ((select id from repository where repository_name = '${repositoryName}'), '${policyMock}');
     `),
     );
 
@@ -237,7 +237,7 @@ describe('ECR Integration Testing', () => {
         `
       SELECT *
       FROM repository_policy
-      WHERE repository_name = '${repositoryName}';
+      WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
     `,
         (res: any[]) => expect(res.length).toBe(1),
       ),
@@ -248,7 +248,7 @@ describe('ECR Integration Testing', () => {
       query(`
       UPDATE repository_policy
       SET registry_id = '${repositoryName}registry'
-      WHERE repository_name = '${repositoryName}';
+      WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
     `),
     );
 
@@ -259,7 +259,7 @@ describe('ECR Integration Testing', () => {
       query(`
       UPDATE repository_policy
       SET policy_text = '${updatePolicyMock}'
-      WHERE repository_name = '${repositoryName}';
+      WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
     `),
     );
 
@@ -269,7 +269,7 @@ describe('ECR Integration Testing', () => {
       'deletes the repository policy',
       query(`
       DELETE FROM repository_policy
-      WHERE repository_name = '${repositoryName}';
+      WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
     `),
     );
 
@@ -281,7 +281,7 @@ describe('ECR Integration Testing', () => {
         `
       SELECT *
       FROM repository_policy
-      WHERE repository_name = '${repositoryName}';
+      WHERE repository_id = (select id from repository where repository_name = '${repositoryName}');
     `,
         (res: any[]) => expect(res.length).toBe(0),
       ),
@@ -294,7 +294,7 @@ describe('ECR Integration Testing', () => {
     it(
       'deletes the repository images',
       query(`
-    DELETE FROM repository_image WHERE private_repository= '${repositoryName}';
+    DELETE FROM repository_image WHERE private_repository_id = (select id from repository where repository_name = '${repositoryName}');
   `),
     );
 
