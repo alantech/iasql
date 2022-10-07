@@ -14,7 +14,7 @@ import { policiesAreSame } from '../../../../services/aws-diff';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { isString } from '../../../../services/common';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { EndpointGateway, EndpointGatewayService } from '../entity';
+import { EndpointGateway, EndpointGatewayService, Vpc } from '../entity';
 import { eqTags, updateTags } from './tags';
 
 export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
@@ -43,7 +43,8 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
     if (!service) return undefined;
     out.service = service;
     out.vpc =
-      (await this.module.vpc.db.read(ctx, eg.VpcId)) ?? (await this.module.vpc.cloud.read(ctx, eg.VpcId));
+      (await this.module.vpc.db.read(ctx)).find((vpc: Vpc) => vpc.vpcId === eg.VpcId) ??
+      (await this.module.vpc.cloud.read(ctx)).find((vpc: Vpc) => vpc.vpcId === eg.VpcId);
     if (!out.vpc) return undefined;
     out.policyDocument = eg.PolicyDocument;
     out.state = eg.State;
@@ -257,7 +258,8 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
           }
         } else {
           // Replace record
-          const newEndpointGateway = await this.module.endpointGateway.cloud.create(e, ctx);
+          let newEndpointGateway;
+          newEndpointGateway = await this.module.endpointGateway.cloud.create(e, ctx);
           await this.module.endpointGateway.cloud.delete(cloudRecord, ctx);
           out.push(newEndpointGateway);
         }

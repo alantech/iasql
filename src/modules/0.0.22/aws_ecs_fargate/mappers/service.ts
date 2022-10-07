@@ -12,6 +12,7 @@ import { awsElbModule, awsSecurityGroupModule, awsVpcModule } from '../..';
 import { AWS, crudBuilderFormat } from '../../../../services/aws_macros';
 import logger from '../../../../services/logger';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { SecurityGroup } from '../../aws_security_group/entity';
 import { Subnet } from '../../aws_vpc/entity';
 import { Service } from '../entity';
 
@@ -228,8 +229,12 @@ export class ServiceMapper extends MapperBase<Service> {
       const cloudSecurityGroups = networkConf.securityGroups ?? [];
       for (const sg of cloudSecurityGroups) {
         securityGroups.push(
-          (await awsSecurityGroupModule.securityGroup.db.read(ctx, sg)) ??
-            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg)),
+          (await awsSecurityGroupModule.securityGroup.db.read(ctx)).find(
+            (scgrp: SecurityGroup) => scgrp.groupId === sg,
+          ) ??
+            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx)).find(
+              (scgrp: SecurityGroup) => scgrp.groupId === sg,
+            ),
         );
       }
       if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length)
@@ -240,8 +245,10 @@ export class ServiceMapper extends MapperBase<Service> {
         // misconfigured resources
         let subnet: Subnet;
         try {
+          // todo: search by region when multiregion
           subnet =
-            (await awsVpcModule.subnet.db.read(ctx, sn)) ?? (await awsVpcModule.subnet.cloud.read(ctx, sn));
+            (await awsVpcModule.subnet.db.read(ctx)).find((sbn: Subnet) => sbn.subnetId === sn) ??
+            (await awsVpcModule.subnet.cloud.read(ctx)).find((sbn: Subnet) => sbn.subnetId === sn);
           if (!subnet) return undefined;
         } catch (e: any) {
           if (e.Code === 'InvalidSubnetID.NotFound') return undefined;

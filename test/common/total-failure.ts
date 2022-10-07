@@ -77,13 +77,13 @@ describe('Testing failure path', () => {
         VALUES ('fake', 't2.micro', '{"name":"i-1"}');
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = 'i-1'),
-        (SELECT id FROM security_group WHERE group_name='default');
+        (SELECT id FROM security_group WHERE group_name='default' AND region='us-west-2');
 
       INSERT INTO instance (ami, instance_type, tags)
         VALUES ('ami-0892d3c7ee96c0bf7', 't2.micr', '{"name":"i-2"}');
       INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
         (SELECT id FROM instance WHERE tags ->> 'name' = 'i-2'),
-        (SELECT id FROM security_group WHERE group_name='default');
+        (SELECT id FROM security_group WHERE group_name='default' AND region='us-west-2');
     COMMIT;
   `));
 

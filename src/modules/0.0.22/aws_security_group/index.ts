@@ -30,7 +30,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
     Object.is(a.groupId, b.groupId) &&
     Object.is(a.vpc?.vpcId, b.vpc?.vpcId);
 
-  async sgMapper(sg: any, ctx: Context) {
+  async sgMapper(sg: any, ctx: Context, region: string) {
     const out = new SecurityGroup();
     out.description = sg.Description;
     out.groupName = sg.GroupName;
@@ -38,18 +38,20 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
     out.groupId = sg.GroupId;
     if (sg.VpcId) {
       out.vpc =
-        (await awsVpcModule.vpc.db.read(ctx, sg.VpcId)) ?? (await awsVpcModule.vpc.cloud.read(ctx, sg.VpcId));
+        (await awsVpcModule.vpc.db.read(ctx, `${sg.VpcId}|${region}`)) ??
+        (await awsVpcModule.vpc.cloud.read(ctx, `${sg.VpcId}|${region}`));
       if (!out.vpc) throw new Error(`Waiting for VPC ${sg.VpcId}`);
     }
+    out.region = region;
     return out;
   }
 
   async sgCloudCreate(es: SecurityGroup[], ctx: Context, doNotSave: boolean) {
     // This is popped out into a util so we can change its behavior when used as part of a
     // cloud `replace` involving a collision of a unique-constrained identifier (the `groupName`)
-    const client = (await ctx.getAwsClient()) as AWS;
     const out = [];
     for (const e of es) {
+      const client = (await ctx.getAwsClient(e.region)) as AWS;
       // Special behavior here. You can't delete the 'default' security group, so if you're
       // trying to create it, something is seriously wrong.
       if (e.groupName === 'default') {
@@ -58,7 +60,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         // The security group rules associated with the user's created "default" group are
         // still fine to actually set in AWS, so we leave that alone.
         const actualEntity = Object.values(ctx?.memo?.cloud?.SecurityGroup ?? {}).find(
-          (a: any) => a.groupName === 'default' && a.vpc?.vpcId === e.vpc?.vpcId, // TODO: Fix typing here
+          (a: any) => a.groupName === 'default' && a.region === e.region && a.vpc?.vpcId === e.vpc?.vpcId, // TODO: Fix typing here
         ) as SecurityGroup;
         e.description = actualEntity.description;
         e.groupId = actualEntity.groupId;
@@ -67,7 +69,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         e.vpc = actualEntity.vpc;
         await ctx.orm.save(SecurityGroup, e);
         if (e.groupId) {
-          ctx.memo.db.SecurityGroup[e.groupId] = e;
+          ctx.memo.db.SecurityGroup[this.entityId(e)] = e;
         }
 
         out.push(e);
@@ -78,11 +80,11 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         if (!vpcs.length) {
           throw new Error('Vpcs need to be loaded first');
         }
-        const defaultVpc = vpcs.find((vpc: Vpc) => vpc.isDefault === true);
+        const defaultVpc = vpcs.find((vpc: Vpc) => vpc.isDefault === true && vpc.region === e.region);
         e.vpc = defaultVpc;
         await ctx.orm.save(SecurityGroup, e);
         if (e.groupId) {
-          ctx.memo.db.SecurityGroup[e.groupId] = e;
+          ctx.memo.db.SecurityGroup[this.entityId(e)] = e;
         }
       }
       // First construct the security group
@@ -101,7 +103,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
       const newGroup = await this.getSecurityGroup(client.ec2client, result.GroupId ?? '');
       if (!newGroup) continue;
       // We map this into the same kind of entity as `obj`
-      const newEntity = await this.sgMapper(newGroup, ctx);
+      const newEntity = await this.sgMapper(newGroup, ctx, e.region);
       if (doNotSave) return [newEntity];
       // We attach the original object's ID to this new one, indicating the exact record it is
       // replacing in the database.
@@ -164,11 +166,11 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
           // There may be a race condition/double write happening here, so check if this thing
           // has been created in the meantime
-          const dbVpc = await awsVpcModule.vpc.db.read(ctx, out.vpc.vpcId);
+          const dbVpc = (await awsVpcModule.vpc.db.read(ctx)).find(
+            (vpc: Vpc) => vpc.vpcId === out?.vpc?.vpcId && vpc.region === out?.region,
+          );
           if (!!dbVpc) {
             out.vpc = dbVpc;
-          } else {
-            await awsVpcModule.vpc.db.create(out.vpc, ctx);
           }
         }
       }
@@ -176,30 +178,19 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
     },
     read: async (ctx: Context, id?: string) => {
       // TODO: Possible to automate this?
+      const { groupId, region } = id ? this.idFields(id) : { groupId: undefined, region: undefined };
       const relations = ['securityGroupRules', 'securityGroupRules.securityGroup'];
-      const opts = id
-        ? {
-            where: {
-              groupId: id,
-            },
-            relations,
-          }
-        : { relations };
+      const opts =
+        groupId && region
+          ? {
+              where: {
+                groupId,
+                region,
+              },
+              relations,
+            }
+          : { relations };
       const securityGroups = await ctx.orm.find(SecurityGroup, opts);
-      for (const sg of securityGroups) {
-        if (!sg.vpc) {
-          const vpcs: Vpc[] = await awsVpcModule.vpc.db.read(ctx);
-          if (!vpcs.length) {
-            throw new Error('Vpcs need to be loaded first');
-          }
-          const defaultVpc = vpcs.find((vpc: Vpc) => vpc.isDefault === true);
-          sg.vpc = defaultVpc;
-          await ctx.orm.save(SecurityGroup, sg);
-          if (sg.groupId) {
-            ctx.memo.db.SecurityGroup[sg.groupId] = sg;
-          }
-        }
-      }
       return securityGroups;
     },
     update: async (e: SecurityGroup[], ctx: Context) => {
@@ -209,11 +200,11 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
           // There may be a race condition/double write happening here, so check if this thing
           // has been created in the meantime
-          const dbVpc = await awsVpcModule.vpc.db.read(ctx, out.vpc.vpcId);
+          const dbVpc = (await awsVpcModule.vpc.db.read(ctx)).find(
+            (vpc: Vpc) => vpc.vpcId === out?.vpc?.vpcId && vpc.region === out?.region,
+          );
           if (!!dbVpc) {
             out.vpc = dbVpc;
-          } else {
-            await awsVpcModule.vpc.db.create(out.vpc, ctx);
           }
         }
       }
@@ -225,17 +216,25 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
   cloud: Crud2<SecurityGroup> = new Crud2({
     create: (es: SecurityGroup[], ctx: Context) => this.sgCloudCreate(es, ctx, false),
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (id) {
-        const rawSecurityGroup = await this.getSecurityGroup(client.ec2client, id);
-        if (!rawSecurityGroup) return;
-        return await this.sgMapper(rawSecurityGroup, ctx);
-      } else {
-        const sgs = await this.getSecurityGroups(client.ec2client);
-        const out = [];
-        for (const sg of sgs) {
-          out.push(await this.sgMapper(sg, ctx));
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (!!id) {
+        const { groupId, region } = this.idFields(id);
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawSecurityGroup = await this.getSecurityGroup(client.ec2client, groupId);
+          if (rawSecurityGroup) return await this.sgMapper(rawSecurityGroup, ctx, region);
         }
+      } else {
+        const out: SecurityGroup[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const sgs = await this.getSecurityGroups(client.ec2client);
+            for (const sg of sgs) {
+              if (sg) out.push(await this.sgMapper(sg, ctx, region));
+            }
+          }),
+        );
         return out;
       }
     },
@@ -247,14 +246,27 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         // You can mess with its rules, but not this record itself, so any attempt to update it
         // is instead turned into *restoring* the value in the database to match the cloud value
         if (e.groupName === 'default') {
-          // Because updates are based on the `groupId` matching but not some other property,
-          // we can be sure that the security group rules for the default security group are
-          // properly associated so we don't need to do anything about them here, just restore
-          // the other properties
-          const cloudRecord = ctx?.memo?.cloud?.SecurityGroup?.[e.groupId ?? ''];
-          cloudRecord.id = e.id;
-          await this.module.securityGroup.db.update(cloudRecord, ctx);
-          ctx.memo.db.SecurityGroup[cloudRecord.groupId] = cloudRecord; // Force the cache
+          const cloudRecord = ctx?.memo?.cloud?.SecurityGroup?.[this.entityId(e)];
+          if (!Object.is(cloudRecord.vpc?.vpcId, e.vpc?.vpcId)) {
+            // If theres a vpc change we have to bring the new default sg and update the db
+            // At this point what it is in the cloudRecord has the latest info related to the vpc
+            const cloudSecutiryGroups = await this.module.securityGroup.cloud.read(ctx);
+            const newDefaultSg = cloudSecutiryGroups.find(
+              (sg: SecurityGroup) => sg?.vpc?.vpcId === cloudRecord?.vpc?.vpcId && sg.groupName === 'default',
+            );
+            newDefaultSg.id = e.id;
+            await this.module.securityGroup.db.update(newDefaultSg, ctx);
+            delete ctx.memo.db.SecurityGroup[this.entityId(e)]; // Force cache cleanup
+            ctx.memo.db.SecurityGroup[this.entityId(newDefaultSg)] = newDefaultSg; // Force the cache
+          } else {
+            // Because updates are based on the `groupId` matching but not some other property,
+            // we can be sure that the security group rules for the default security group are
+            // properly associated so we don't need to do anything about them here, just restore
+            // the other properties
+            cloudRecord.id = e.id;
+            await this.module.securityGroup.db.update(cloudRecord, ctx);
+            ctx.memo.db.SecurityGroup[this.entityId(cloudRecord)] = cloudRecord; // Force the cache
+          }
         } else {
           // AWS does not have a way to update the top-level SecurityGroup entity. You can
           // update the various rules associated with it, but not the name or description of the
@@ -286,28 +298,33 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
       return out;
     },
     delete: async (es: SecurityGroup[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         // Special behavior here. You're not allowed to mess with the "default" SecurityGroup while the VPC is active.
         // You can mess with its rules, but not this record itself, so any attempt to update it
         // is instead turned into *restoring* the value in the database to match the cloud value
         // Check if there is a VPC for this security group in the database
-        const vpcDbRecord = Object.values(ctx?.memo?.db?.Vpc ?? {}).find(
-          (a: any) => a.vpcId === e.vpc?.vpcId,
+        const vpcDbRecord = (await awsVpcModule.vpc.db.read(ctx)).find(
+          (a: any) => a.vpcId === e.vpc?.vpcId && a.region === e.region,
         );
         if (e.groupName === 'default' && !!vpcDbRecord) {
           // If there is a security group in the database with the 'default' groupName but we
           // are still hitting the 'delete' path, that's a race condition and we should just do
           // nothing here.
-          const dbRecord = Object.values(ctx?.memo?.db?.SecurityGroup ?? {}).find(
-            (a: any) => a.groupName === 'default' && a.vpc?.vpcId === e.vpc?.vpcId,
+          const sgDbRecords = await this.module.securityGroup.db.read(ctx);
+          const dbRecord = sgDbRecords.find(
+            (a: any) =>
+              a.groupName === 'default' &&
+              a.region === e.region &&
+              a.vpc?.vpcId === e.vpc?.vpcId &&
+              a.vpc?.region === e.region,
           );
           if (!!dbRecord) return;
           // For delete, we have un-memoed the record, but the record passed in *is* the one
           // we're interested in, which makes it a bit simpler here
           await this.module.securityGroup.db.update(e, ctx);
           // Make absolutely sure it shows up in the memo
-          ctx.memo.db.SecurityGroup[e.groupId ?? ''] = e;
+          ctx.memo.db.SecurityGroup[this.entityId(e)] = e;
         } else {
           await this.deleteSecurityGroup(client.ec2client, {
             GroupId: e.groupId,
@@ -315,17 +332,21 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
           // Also need to delete the security group rules associated with this security group,
           // if any
           const rules = await this.module.securityGroupRule.db.read(ctx);
-          const relevantRules = rules.filter((r: SecurityGroupRule) => r.securityGroup.groupId === e.groupId);
+          const relevantRules = rules.filter(
+            (r: SecurityGroupRule) => r.securityGroup.groupId === e.groupId && r.region === e.region,
+          );
           await this.module.securityGroupRule.db.delete(relevantRules, ctx);
           // Let's clear the record from the caches here, too?
           ctx.memo.cloud.SecurityGroup = Object.fromEntries(
             Object.entries(ctx.memo.cloud.SecurityGroup).filter(
-              ([_, v]) => e.groupId !== (v as SecurityGroup).groupId,
+              ([_, v]) =>
+                e.groupId !== (v as SecurityGroup).groupId && e.region !== (v as SecurityGroup).region,
             ),
           );
           ctx.memo.db.SecurityGroup = Object.fromEntries(
             Object.entries(ctx.memo.db.SecurityGroup).filter(
-              ([_, v]) => e.groupId !== (v as SecurityGroup).groupId,
+              ([_, v]) =>
+                e.groupId !== (v as SecurityGroup).groupId && e.region !== (v as SecurityGroup).region,
             ),
           );
         }
@@ -367,19 +388,25 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
     }
   };
 
-  async sgrMapper(sgr: AwsSecurityGroupRule, ctx: Context) {
+  async sgrMapper(sgr: AwsSecurityGroupRule, ctx: Context, region: string) {
     const out = new SecurityGroupRule();
     out.securityGroupRuleId = sgr?.SecurityGroupRuleId;
-    out.securityGroup = await this.module.securityGroup.cloud.read(ctx, sgr?.GroupId);
+    out.securityGroup = await this.module.securityGroup.cloud.read(ctx, `${sgr?.GroupId}|${region}`);
     out.isEgress = sgr?.IsEgress ?? false;
 
     if (sgr.ReferencedGroupInfo && sgr.ReferencedGroupInfo.GroupId) {
       // try to find in the database
-      const result = await this.module.securityGroup.db.read(ctx, sgr.ReferencedGroupInfo.GroupId);
+      const result = await this.module.securityGroup.db.read(
+        ctx,
+        `${sgr.ReferencedGroupInfo.GroupId}|${region}`,
+      );
       if (result) out.sourceSecurityGroup = result;
       else {
         // try to read from cloud
-        const group = await this.module.securityGroup.cloud.read(ctx, sgr.ReferencedGroupInfo.GroupId);
+        const group = await this.module.securityGroup.cloud.read(
+          ctx,
+          `${sgr.ReferencedGroupInfo.GroupId}|${region}`,
+        );
         if (group) out.sourceSecurityGroup = group;
       }
 
@@ -397,6 +424,7 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
     out.ipProtocol = sgr?.IpProtocol ?? '';
     out.prefixListId = sgr?.PrefixListId;
     out.description = sgr?.Description;
+    out.region = region;
 
     return out;
   }
@@ -423,16 +451,21 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
   db = new Crud2({
     create: (e: SecurityGroupRule[], ctx: Context) => ctx.orm.save(SecurityGroupRule, e),
     read: async (ctx: Context, id?: string) => {
+      const { securityGroupRuleId, region } = id
+        ? this.idFields(id)
+        : { securityGroupRuleId: undefined, region: undefined };
       // TODO: Possible to automate this?
       const relations = ['securityGroup', 'securityGroup.securityGroupRules'];
-      const opts = id
-        ? {
-            where: {
-              securityGroupRuleId: id,
-            },
-            relations,
-          }
-        : { relations };
+      const opts =
+        securityGroupRuleId && region
+          ? {
+              where: {
+                securityGroupRuleId,
+                region,
+              },
+              relations,
+            }
+          : { relations };
       return await ctx.orm.find(SecurityGroupRule, opts);
     },
     update: (e: SecurityGroupRule[], ctx: Context) => ctx.orm.save(SecurityGroupRule, e),
@@ -445,9 +478,9 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
       // I can't figure out a 100% correct way to identify which created rules are associated
       // with which returned ID to store in the database, so we're doing these sequentially at
       // the moment.
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const en of es) {
+        const client = (await ctx.getAwsClient(en.region)) as AWS;
         const GroupId = en?.securityGroup?.groupId;
         if (!GroupId)
           throw new Error('Cannot create a security group rule for a security group that does not yet exist');
@@ -516,12 +549,13 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
           if (res.SecurityGroupRules.length > 0) {
             // it will generate 3 rules - we need to delete the current one and replace by the 3 expanded ones
             for (const rule of res.SecurityGroupRules) {
-              const e = await this.sgrMapper(rule, ctx);
+              const e = await this.sgrMapper(rule, ctx, en.region);
               if (e) {
                 e.securityGroup = en.securityGroup;
                 e.description = en.description;
                 e.isEgress = en.isEgress;
                 e.sourceSecurityGroup = en.sourceSecurityGroup;
+                e.region = en.region;
                 await this.db.create([e], ctx);
                 out.push(e);
               }
@@ -539,17 +573,23 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
       }
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (id) {
-        const rawSecurityGroupRule = await this.getSecurityGroupRule(client.ec2client, id);
-        if (!rawSecurityGroupRule) return;
-        return await this.sgrMapper(rawSecurityGroupRule, ctx);
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (!!id) {
+        const { securityGroupRuleId, region } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawSecurityGroupRule = await this.getSecurityGroupRule(client.ec2client, securityGroupRuleId);
+        if (rawSecurityGroupRule) return await this.sgrMapper(rawSecurityGroupRule, ctx, region);
       } else {
-        const sgrs = await this.getSecurityGroupRules(client.ec2client);
-        const out = [];
-        for (const sgr of sgrs) {
-          out.push(await this.sgrMapper(sgr, ctx));
-        }
+        const out: SecurityGroupRule[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const sgrs = await this.getSecurityGroupRules(client.ec2client);
+            for (const sgr of sgrs) {
+              out.push(await this.sgrMapper(sgr, ctx, region));
+            }
+          }),
+        );
         return out;
       }
     },
@@ -567,25 +607,27 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
       const ingressDeletesToRun: any = {};
       for (const en of es) {
         const GroupId = en?.securityGroup?.groupId;
-        if (!GroupId)
+        const region = en?.securityGroup?.region;
+        if (!GroupId && !region)
           throw new Error('Cannot create a security group rule for a security group that does not yet exist');
         if (en.isEgress) {
-          egressDeletesToRun[GroupId] = egressDeletesToRun[GroupId] ?? [];
-          egressDeletesToRun[GroupId].push(en.securityGroupRuleId);
+          egressDeletesToRun[`${GroupId}|${region}`] = egressDeletesToRun[`${GroupId}|${region}`] ?? [];
+          egressDeletesToRun[`${GroupId}|${region}`].push(en.securityGroupRuleId);
         } else {
-          ingressDeletesToRun[GroupId] = ingressDeletesToRun[GroupId] ?? [];
-          ingressDeletesToRun[GroupId].push(en.securityGroupRuleId);
+          ingressDeletesToRun[`${GroupId}|${region}`] = ingressDeletesToRun[`${GroupId}|${region}`] ?? [];
+          ingressDeletesToRun[`${GroupId}|${region}`].push(en.securityGroupRuleId);
         }
       }
 
-      const client = (await ctx.getAwsClient()) as AWS;
-      for (const GroupId of Object.keys(egressDeletesToRun)) {
+      for (const key of Object.keys(egressDeletesToRun)) {
+        const [GroupId, region] = key.split('|');
+        const client = (await ctx.getAwsClient(region)) as AWS;
         try {
           const res = (
             await this.deleteSecurityGroupEgressRules(client.ec2client, [
               {
                 GroupId,
-                SecurityGroupRuleIds: egressDeletesToRun[GroupId],
+                SecurityGroupRuleIds: egressDeletesToRun[key],
               },
             ])
           )[0];
@@ -600,13 +642,15 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
           }
         }
       }
-      for (const GroupId of Object.keys(ingressDeletesToRun)) {
+      for (const key of Object.keys(ingressDeletesToRun)) {
+        const [GroupId, region] = key.split('|');
+        const client = (await ctx.getAwsClient(region)) as AWS;
         try {
           const res = (
             await this.deleteSecurityGroupIngressRules(client.ec2client, [
               {
                 GroupId,
-                SecurityGroupRuleIds: ingressDeletesToRun[GroupId],
+                SecurityGroupRuleIds: ingressDeletesToRun[key],
               },
             ])
           )[0];
@@ -625,16 +669,14 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
       ctx.memo.cloud.SecurityGroupRule = ctx?.memo?.cloud?.SecurityGroupRule
         ? Object.fromEntries(
             Object.entries(ctx.memo.cloud.SecurityGroupRule).filter(
-              ([_, v]) =>
-                !es.map(e => e.securityGroupRuleId).includes((v as SecurityGroupRule).securityGroupRuleId),
+              ([_, v]) => !es.map(e => this.entityId(e)).includes(this.entityId(v as SecurityGroupRule)),
             ),
           )
         : {};
       ctx.memo.db.SecurityGroupRule = ctx?.memo?.db?.SecurityGroupRule
         ? Object.fromEntries(
             Object.entries(ctx.memo.db.SecurityGroupRule).filter(
-              ([_, v]) =>
-                !es.map(e => e.securityGroupRuleId).includes((v as SecurityGroupRule).securityGroupRuleId),
+              ([_, v]) => !es.map(e => this.entityId(e)).includes(this.entityId(v as SecurityGroupRule)),
             ),
           )
         : {};

@@ -14,6 +14,8 @@ import { AwsEc2Module } from '..';
 import { awsIamModule, awsSecurityGroupModule, awsVpcModule } from '../..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { SecurityGroup } from '../../aws_security_group/entity';
+import { Subnet } from '../../aws_vpc/entity';
 import { GeneralPurposeVolume, Instance, State, VolumeState } from '../entity';
 import { updateTags, eqTags } from './tags';
 
@@ -61,7 +63,9 @@ export class InstanceMapper extends MapperBase<Instance> {
     if (!out.instanceType) return undefined;
     out.securityGroups = [];
     for (const sgId of instance.SecurityGroups?.map(sg => sg.GroupId) ?? []) {
-      const sg = await awsSecurityGroupModule.securityGroup.db.read(ctx, sgId);
+      const sg = (await awsSecurityGroupModule.securityGroup.db.read(ctx)).find(
+        (scgrp: SecurityGroup) => scgrp.groupId === sgId,
+      );
       if (sg) out.securityGroups.push(sg);
     }
     if (instance.IamInstanceProfile?.Arn) {
@@ -78,8 +82,12 @@ export class InstanceMapper extends MapperBase<Instance> {
       }
     }
     out.subnet =
-      (await awsVpcModule.subnet.db.read(ctx, instance.SubnetId)) ??
-      (await awsVpcModule.subnet.cloud.read(ctx, instance.SubnetId));
+      (await awsVpcModule.subnet.db.read(ctx)).find(
+        (subnet: Subnet) => subnet.subnetId === instance.SubnetId,
+      ) ??
+      (await awsVpcModule.subnet.cloud.read(ctx)).find(
+        (subnet: Subnet) => subnet.subnetId === instance.SubnetId,
+      );
     out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
     return out;
   }

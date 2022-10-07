@@ -45,8 +45,12 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     for (const sgm of cloudE.SecurityGroups ?? []) {
       try {
         const sg =
-          (await awsSecurityGroupModule.securityGroup.db.read(ctx, sgm.SecurityGroupId)) ??
-          (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sgm.SecurityGroupId));
+          (await awsSecurityGroupModule.securityGroup.db.read(ctx)).find(
+            (scgrp: SecurityGroup) => scgrp.groupId === sgm.SecurityGroupId,
+          ) ??
+          (await awsSecurityGroupModule.securityGroup.cloud.read(ctx)).find(
+            (scgrp: SecurityGroup) => scgrp.groupId === sgm.SecurityGroupId,
+          );
         if (sg) securityGroups.push(sg);
       } catch (e: any) {
         /*Ignore misconfigured security groups*/

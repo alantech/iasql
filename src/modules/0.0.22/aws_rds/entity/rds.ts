@@ -36,6 +36,7 @@ export class RDS {
   @ManyToOne(() => AvailabilityZone, { eager: true, nullable: false })
   @JoinColumn({
     name: 'availability_zone',
+    referencedColumnName: 'name',
   })
   availabilityZone: AvailabilityZone;
 

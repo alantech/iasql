@@ -26,7 +26,7 @@ export class VpcMapper extends MapperBase<Vpc> {
     return result;
   };
 
-  vpcMapper(vpc: AwsVpc) {
+  vpcMapper(vpc: AwsVpc, region: string) {
     const out = new Vpc();
     if (!vpc?.VpcId || !vpc?.CidrBlock) return undefined;
     out.vpcId = vpc.VpcId;
@@ -40,7 +40,7 @@ export class VpcMapper extends MapperBase<Vpc> {
         tags[t.Key as string] = t.Value;
       });
     out.tags = tags;
-
+    out.region = region;
     return out;
   }
 
@@ -92,9 +92,9 @@ export class VpcMapper extends MapperBase<Vpc> {
     create: async (es: Vpc[], ctx: Context) => {
       // TODO: Add support for creating default VPCs (only one is allowed, also add constraint
       // that a single VPC is set as default)
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         let tgs: Tag[] = [];
         if (e.tags !== undefined && e.tags !== null) {
           const tags: { [key: string]: string } = e.tags;
@@ -120,7 +120,7 @@ export class VpcMapper extends MapperBase<Vpc> {
         }
         const res: AwsVpc | undefined = await this.createVpc(client.ec2client, input);
         if (res) {
-          const newVpc = this.vpcMapper(res);
+          const newVpc = this.vpcMapper(res, e.region);
           if (!newVpc) continue;
           newVpc.id = e.id;
           await this.module.vpc.db.update(newVpc, ctx);
@@ -131,26 +131,34 @@ export class VpcMapper extends MapperBase<Vpc> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
-        const rawVpc = await this.getVpc(client.ec2client, id);
-        if (!rawVpc) return;
-        return this.vpcMapper(rawVpc);
-      } else {
-        const out = [];
-        for (const vpc of await this.getVpcs(client.ec2client)) {
-          const outVpc = this.vpcMapper(vpc);
-          if (outVpc) out.push(outVpc);
+        const { vpcId, region } = this.idFields(id);
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawVpc = await this.getVpc(client.ec2client, vpcId);
+          if (rawVpc) return this.vpcMapper(rawVpc, region);
         }
+      } else {
+        const out: Vpc[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            for (const vpc of await this.getVpcs(client.ec2client)) {
+              const outVpc = this.vpcMapper(vpc, region);
+              if (outVpc) out.push(outVpc);
+            }
+          }),
+        );
         return out;
       }
     },
     update: async (es: Vpc[], ctx: Context) => {
       // if user has modified state, restore it. If not, go with replace path
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.Vpc?.[e.vpcId ?? ''];
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.Vpc?.[this.entityId(e)];
         if (!Object.is(e.state, cloudRecord.state)) {
           // Restore record
           cloudRecord.id = e.id;
@@ -173,8 +181,8 @@ export class VpcMapper extends MapperBase<Vpc> {
       return out;
     },
     delete: async (es: Vpc[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         // Special behavior here. You're not allowed to mess with the "default" VPC.
         // Any attempt to update it is instead turned into *restoring* the value in
         // the database to match the cloud value
@@ -183,9 +191,11 @@ export class VpcMapper extends MapperBase<Vpc> {
           // we're interested in, which makes it a bit simpler here
           await this.module.vpc.db.update(e, ctx);
           // Make absolutely sure it shows up in the memo
-          ctx.memo.db.Vpc[e.vpcId ?? ''] = e;
-          const subnets = ctx?.memo?.cloud?.Subnet ?? [];
-          const relevantSubnets = subnets.filter((s: Subnet) => s.vpc.vpcId === e.vpcId);
+          ctx.memo.db.Vpc[this.entityId(e)] = e;
+          const subnets: Subnet[] = await this.module.subnet.cloud.read(ctx);
+          const relevantSubnets = subnets.filter(
+            (s: Subnet) => s.vpc.vpcId === e.vpcId && s.region === e.region,
+          );
           if (relevantSubnets.length > 0) {
             await this.module.subnet.db.update(relevantSubnets, ctx);
           }

@@ -22,7 +22,9 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { awsAcmListModule, awsSecurityGroupModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { SecurityGroup } from '../aws_security_group/entity';
 import { awsVpcModule } from '../aws_vpc';
+import { Vpc } from '../aws_vpc/entity';
 import {
   ActionTypeEnum,
   Listener,
@@ -276,8 +278,12 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     for (const sg of cloudSecurityGroups) {
       try {
         securityGroups.push(
-          (await awsSecurityGroupModule.securityGroup.db.read(ctx, sg)) ??
-            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, sg)),
+          (await awsSecurityGroupModule.securityGroup.db.read(ctx)).find(
+            (scgrp: SecurityGroup) => scgrp.groupId === sg,
+          ) ??
+            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx)).find(
+              (scgrp: SecurityGroup) => scgrp.groupId === sg,
+            ),
         );
       } catch (_) {
         // If security groups are misconfigured ignore them
@@ -288,7 +294,8 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     out.ipAddressType = lb.IpAddressType as IpAddressType;
     out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
     const vpc =
-      (await awsVpcModule.vpc.db.read(ctx, lb.VpcId)) ?? (await awsVpcModule.vpc.cloud.read(ctx, lb.VpcId));
+      (await awsVpcModule.vpc.db.read(ctx)).find((v: Vpc) => v.vpcId === lb.VpcId) ??
+      (await awsVpcModule.vpc.cloud.read(ctx)).find((v: Vpc) => v.vpcId === lb.VpcId);
     out.vpc = vpc;
     out.availabilityZones = lb.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
     out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
@@ -595,7 +602,8 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
     out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum;
     try {
       const vpc =
-        (await awsVpcModule.vpc.db.read(ctx, tg.VpcId)) ?? (await awsVpcModule.vpc.cloud.read(ctx, tg.VpcId));
+        (await awsVpcModule.vpc.db.read(ctx)).find((v: Vpc) => v.vpcId === tg.VpcId) ??
+        (await awsVpcModule.vpc.cloud.read(ctx)).find((v: Vpc) => v.vpcId === tg.VpcId);
       if (tg.VpcId && !vpc) return undefined;
       out.vpc = vpc;
     } catch (e: any) {

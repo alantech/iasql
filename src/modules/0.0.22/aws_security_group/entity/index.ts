@@ -10,9 +10,11 @@ import {
 } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { Vpc } from '../../aws_vpc/entity';
 
 @Unique('UQ_groupNameByVpc', ['groupName', 'vpc'])
+@Unique('uq_security_group_region', ['id', 'region'])
 @Entity()
 export class SecurityGroup {
   @PrimaryGeneratedColumn()
@@ -36,16 +38,34 @@ export class SecurityGroup {
   groupId?: string;
 
   @ManyToOne(() => Vpc, { nullable: true, eager: true })
-  @JoinColumn({
-    name: 'vpc_id',
-  })
+  @JoinColumn([
+    {
+      name: 'vpc_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   vpc?: Vpc;
 
   @OneToMany(() => SecurityGroupRule, sgr => sgr.securityGroup)
   securityGroupRules: SecurityGroupRule[];
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }
 
 @Unique('UQ_rule', ['isEgress', 'ipProtocol', 'fromPort', 'toPort', 'cidrIpv4', 'securityGroup'])
+@Unique('uq_security_group_rule_region', ['id', 'region'])
 @Entity()
 export class SecurityGroupRule {
   @PrimaryGeneratedColumn()
@@ -58,9 +78,16 @@ export class SecurityGroupRule {
   securityGroupRuleId?: string;
 
   @ManyToOne(() => SecurityGroup)
-  @JoinColumn({
-    name: 'security_group_id',
-  })
+  @JoinColumn([
+    {
+      name: 'security_group_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   securityGroup: SecurityGroup;
 
   @Column({
@@ -116,4 +143,14 @@ export class SecurityGroupRule {
     name: 'source_security_group',
   })
   sourceSecurityGroup?: SecurityGroup;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }

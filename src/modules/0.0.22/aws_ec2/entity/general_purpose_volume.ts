@@ -42,6 +42,7 @@ export class GeneralPurposeVolume {
   @ManyToOne(() => AvailabilityZone, { nullable: false, eager: true })
   @JoinColumn({
     name: 'availability_zone',
+    referencedColumnName: 'name',
   })
   availabilityZone: AvailabilityZone;
 

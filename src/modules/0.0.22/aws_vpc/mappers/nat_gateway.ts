@@ -12,7 +12,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 import { AwsVpcModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { ElasticIp, NatGateway, NatGatewayState, ConnectivityType } from '../entity';
+import { ElasticIp, NatGateway, NatGatewayState, ConnectivityType, Subnet } from '../entity';
 import { eqTags, updateTags } from './tags';
 
 export class NatGatewayMapper extends MapperBase<NatGateway> {
@@ -41,9 +41,10 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
     }
     out.natGatewayId = nat.NatGatewayId;
     out.state = nat.State as NatGatewayState;
+    // todo: search by region when multiregion
     out.subnet =
-      (await this.module.subnet.db.read(ctx, nat.SubnetId)) ??
-      (await this.module.subnet.cloud.read(ctx, nat.SubnetId));
+      (await this.module.subnet.db.read(ctx)).find((subnet: Subnet) => subnet.subnetId === nat.SubnetId) ??
+      (await this.module.subnet.cloud.read(ctx)).find((subnet: Subnet) => subnet.subnetId === nat.SubnetId);
     if (nat.SubnetId && !out.subnet) return undefined;
     const tags: { [key: string]: string } = {};
     (nat.Tags || [])
