@@ -11,6 +11,7 @@ import {
 
 import { AwsVpcModule } from '..';
 import { policiesAreSame } from '../../../../services/aws-diff';
+import logger from '../../../../services/logger';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { isString } from '../../../../services/common';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
@@ -258,7 +259,12 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
           }
         } else {
           // Replace record
-          const newEndpointGateway = await this.module.endpointGateway.cloud.create(e, ctx);
+          let newEndpointGateway;
+          try {
+            newEndpointGateway = await this.module.endpointGateway.cloud.create(e, ctx);
+          } catch (e) {
+            logger.info(`+-+ why is this failing ${JSON.stringify(e)}`)
+          }
           await this.module.endpointGateway.cloud.delete(cloudRecord, ctx);
           out.push(newEndpointGateway);
         }
