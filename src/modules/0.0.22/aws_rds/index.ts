@@ -80,8 +80,8 @@ class RdsMapper extends MapperBase<RDS> {
     if (rds.DBParameterGroups?.length) {
       const parameterGroup = rds.DBParameterGroups[0];
       out.parameterGroup =
-        (await this.module.parameterGroup.db.read(ctx, parameterGroup.DBParameterGroupName)) ??
-        (await this.module.parameterGroup.cloud.read(ctx, parameterGroup.DBParameterGroupName));
+        (await this.module.parameterGroup.db.read(ctx, `${parameterGroup.DBParameterGroupName}|${region}`)) ??
+        (await this.module.parameterGroup.cloud.read(ctx, `${parameterGroup.DBParameterGroupName}|${region}`));
     }
     out.region = region;
     return out;
@@ -242,8 +242,8 @@ class RdsMapper extends MapperBase<RDS> {
         const newObject = await this.getDBInstance(client.rdsClient, result.DBInstanceIdentifier ?? '');
         // We need to update the parameter groups if its a default one and it does not exists
         const parameterGroupName = newObject?.DBParameterGroups?.[0].DBParameterGroupName;
-        if (!(await this.module.parameterGroup.db.read(ctx, parameterGroupName))) {
-          const cloudParameterGroup = await this.module.parameterGroup.cloud.read(ctx, parameterGroupName);
+        if (!(await this.module.parameterGroup.db.read(ctx, `${parameterGroupName}|${e.region}`))) {
+          const cloudParameterGroup = await this.module.parameterGroup.cloud.read(ctx, `${parameterGroupName}|${e.region}`);
           await this.module.parameterGroup.db.create(cloudParameterGroup, ctx);
         }
         // We map this into the same kind of entity as `obj`
@@ -264,12 +264,11 @@ class RdsMapper extends MapperBase<RDS> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawRds = await this.getDBInstance(client.rdsClient, id);
-          if (!rawRds) continue;
-          return await this.rdsMapper(rawRds, ctx, region);
-        }
+        const { name, region, } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawRds = await this.getDBInstance(client.rdsClient, name);
+        if (!rawRds) return;
+        return await this.rdsMapper(rawRds, ctx, region);
       } else {
         const out = [];
         for (const region of enabledRegions) {
@@ -462,12 +461,11 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const parameterGroup = await this.getDBParameterGroup(client.rdsClient, id);
-          if (!parameterGroup) continue;
-          return this.parameterGroupMapper(parameterGroup, region);
-        }
+        const { dbInstanceIdentifier, region, } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const parameterGroup = await this.getDBParameterGroup(client.rdsClient, dbInstanceIdentifier);
+        if (!parameterGroup) return;
+        return this.parameterGroupMapper(parameterGroup, region);
       } else {
         const out = [];
         for (const region of enabledRegions) {
@@ -502,7 +500,7 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
         if (anyUpdate) {
           // Delete record from memo since we want a fresh read from cloud
           delete ctx?.memo?.cloud?.ParameterGroup?.[e.name ?? ''];
-          updatedRecord = await this.module.parameterGroup.cloud.read(ctx, e.name);
+          updatedRecord = await this.module.parameterGroup.cloud.read(ctx, this.entityId(e));
         }
         await this.module.parameterGroup.db.update(updatedRecord, ctx);
         out.push(updatedRecord);
