@@ -239,6 +239,11 @@ jobs:
             SELECT * FROM default_aws_region('${AWS_REGION}');
           ";
 
+          # Disable all non-default regions so we only try to clean the region we're using
+          psql postgres://postgres:test@localhost:5432/iasql -c "
+            UPDATE aws_regions SET is_enabled = false WHERE is_default = false;
+          ";
+
           echo "\nDebug log..."
           psql postgres://postgres:test@localhost:5432/iasql -c "
             SELECT * FROM aws_regions;
