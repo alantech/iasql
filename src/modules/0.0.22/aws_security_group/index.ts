@@ -171,8 +171,6 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
           );
           if (!!dbVpc) {
             out.vpc = dbVpc;
-          } else {
-            // await awsVpcModule.vpc.db.create(out.vpc, ctx);
           }
         }
       }
@@ -180,7 +178,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
     },
     read: async (ctx: Context, id?: string) => {
       // TODO: Possible to automate this?
-      const [groupId, region] = id?.split('|') ?? [undefined, undefined];
+      const { groupId, region } = id ? this.idFields(id) : { groupId: undefined, region: undefined };
       const relations = ['securityGroupRules', 'securityGroupRules.securityGroup'];
       const opts =
         groupId && region
@@ -193,21 +191,6 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
             }
           : { relations };
       const securityGroups = await ctx.orm.find(SecurityGroup, opts);
-      // security groups have vpc as eager, this should not be necessary
-      // for (const sg of securityGroups) {
-      //   if (!sg.vpc) {
-      //     const vpcs: Vpc[] = await awsVpcModule.vpc.db.read(ctx);
-      //     if (!vpcs.length) {
-      //       throw new Error('Vpcs need to be loaded first');
-      //     }
-      //     const defaultVpc = vpcs.find((vpc: Vpc) => vpc.isDefault === true);
-      //     sg.vpc = defaultVpc;
-      //     await ctx.orm.save(SecurityGroup, sg);
-      //     if (sg.groupId) {
-      //       ctx.memo.db.SecurityGroup[sg.groupId] = sg;
-      //     }
-      //   }
-      // }
       return securityGroups;
     },
     update: async (e: SecurityGroup[], ctx: Context) => {
@@ -222,8 +205,6 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
           );
           if (!!dbVpc) {
             out.vpc = dbVpc;
-          } else {
-            // await awsVpcModule.vpc.db.create(out.vpc, ctx);
           }
         }
       }
@@ -237,7 +218,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
-        const [groupId, region] = id.split('|');
+        const { groupId, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
           const rawSecurityGroup = await this.getSecurityGroup(client.ec2client, groupId);
@@ -470,7 +451,9 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
   db = new Crud2({
     create: (e: SecurityGroupRule[], ctx: Context) => ctx.orm.save(SecurityGroupRule, e),
     read: async (ctx: Context, id?: string) => {
-      const [securityGroupRuleId, region] = id?.split('|') ?? [undefined, undefined];
+      const { securityGroupRuleId, region } = id
+        ? this.idFields(id)
+        : { securityGroupRuleId: undefined, region: undefined };
       // TODO: Possible to automate this?
       const relations = ['securityGroup', 'securityGroup.securityGroupRules'];
       const opts =
@@ -592,9 +575,9 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
-        const [ruleId, region] = id.split('|');
+        const { securityGroupRuleId, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
-        const rawSecurityGroupRule = await this.getSecurityGroupRule(client.ec2client, ruleId);
+        const rawSecurityGroupRule = await this.getSecurityGroupRule(client.ec2client, securityGroupRuleId);
         if (rawSecurityGroupRule) return await this.sgrMapper(rawSecurityGroupRule, ctx, region);
       } else {
         const out: SecurityGroupRule[] = [];
