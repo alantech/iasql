@@ -275,6 +275,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
             );
             newDefaultSg.id = e.id;
             await this.module.securityGroup.db.update(newDefaultSg, ctx);
+            delete ctx.memo.db.SecurityGroup[this.entityId(e)]; // Force cache cleanup
             ctx.memo.db.SecurityGroup[this.entityId(newDefaultSg)] = newDefaultSg; // Force the cache
           } else {
             // Because updates are based on the `groupId` matching but not some other property,
