@@ -49,7 +49,7 @@ export class AvailabilityZoneMapper extends MapperBase<AvailabilityZone> {
         }),
       );
       if (!!id) {
-        const [name, region] = id.split('|');
+        const { name, region } = this.idFields(id);
         return outAzs.find(az => az.name === name && az.region === region);
       }
       return outAzs;
