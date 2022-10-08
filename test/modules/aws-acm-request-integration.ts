@@ -190,6 +190,42 @@ describe('AwsAcmRequest Integration Testing', () => {
     ),
   );
 
+  it('creates a certificate request in non-default region', query(`
+      INSERT INTO certificate_request (domain_name, region)
+      VALUES ('${domainName}', 'us-east-1');
+  `));
+
+  it('applies the creation of the certificate request in non-default region', apply());
+
+  it('checks the removal of the certificate request', query(`
+      SELECT *
+      FROM certificate_request;
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
+  it('checks the certificate in non-default region is created and validated', query(`
+      SELECT *
+      FROM certificate
+      WHERE domain_name = '${domainName}'
+        AND status = 'ISSUED'
+        AND region = 'us-east-1';
+  `, (res: any[]) => expect(res.length).toBe(1)));
+
+  it('deletes the certificate issued in the non-default region', query(`
+      DELETE
+      FROM certificate
+      WHERE domain_name = '${domainName}';
+  `));
+
+  it('applies the deletion of the certificate in the non-default region', apply());
+
+  it('checks the deletion of the certificate in the non-default region', query(`
+      SELECT *
+      FROM certificate
+      WHERE domain_name = '${domainName}'
+        AND status = 'ISSUED'
+        AND region = 'us-east-1';
+  `, (res: any[]) => expect(res.length).toBe(0)));
+
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
