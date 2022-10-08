@@ -34,10 +34,16 @@ export class RDS {
   allocatedStorage: number;
 
   @ManyToOne(() => AvailabilityZone, { eager: true, nullable: false })
-  @JoinColumn({
-    name: 'availability_zone',
-    referencedColumnName: 'name',
-  })
+  @JoinColumn([
+    {
+      name: 'availability_zone',
+      referencedColumnName: 'name',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   availabilityZone: AvailabilityZone;
 
   // TODO: make this an entity eventually?

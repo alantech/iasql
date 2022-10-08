@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsRds1664308699895 implements MigrationInterface {
-  name = 'awsRds1664308699895';
+export class awsRds1665270402792 implements MigrationInterface {
+  name = 'awsRds1665270402792';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -23,7 +23,7 @@ export class awsRds1664308699895 implements MigrationInterface {
       `CREATE INDEX "IDX_a4080f9f7f3fa99ac9d68dd910" ON "rds_security_groups" ("security_group_id") `,
     );
     await queryRunner.query(
-      `ALTER TABLE "rds" ADD CONSTRAINT "FK_4c5ad183bee6e2e1364213be525" FOREIGN KEY ("availability_zone") REFERENCES "availability_zone"("name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "rds" ADD CONSTRAINT "FK_651e8eb207ea4120c252c5469f5" FOREIGN KEY ("availability_zone", "region") REFERENCES "availability_zone"("name","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "rds" ADD CONSTRAINT "FK_2303532f134366cb86aae40763f" FOREIGN KEY ("parameter_group_id", "region") REFERENCES "parameter_group"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -44,7 +44,7 @@ export class awsRds1664308699895 implements MigrationInterface {
       `ALTER TABLE "rds_security_groups" DROP CONSTRAINT "FK_a1927b280e2770235e52a9e0fb1"`,
     );
     await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_2303532f134366cb86aae40763f"`);
-    await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_4c5ad183bee6e2e1364213be525"`);
+    await queryRunner.query(`ALTER TABLE "rds" DROP CONSTRAINT "FK_651e8eb207ea4120c252c5469f5"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_a4080f9f7f3fa99ac9d68dd910"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_a1927b280e2770235e52a9e0fb"`);
     await queryRunner.query(`DROP TABLE "rds_security_groups"`);
