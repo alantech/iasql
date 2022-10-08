@@ -172,7 +172,7 @@ describe('RDS Integration Testing', () => {
     WHERE db_instance_identifier = '${prefix}test';
     UPDATE rds_security_groups SET
       security_group_id = (SELECT id FROM security_group WHERE group_name='default' AND region = 'us-east-1')
-    WHERE rds_id = (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test'),
+    WHERE rds_id = (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test');
   `));
 
   it('applies the region move and parameter group usage', apply());
