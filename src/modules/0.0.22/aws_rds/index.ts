@@ -508,6 +508,7 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
           delete ctx?.memo?.cloud?.ParameterGroup?.[this.entityId(e)];
           updatedRecord = await this.module.parameterGroup.cloud.read(ctx, this.entityId(e));
         }
+        updatedRecord.id = e.id;
         await this.module.parameterGroup.db.update(updatedRecord, ctx);
         out.push(updatedRecord);
       }
