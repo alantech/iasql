@@ -270,9 +270,9 @@ class RdsMapper extends MapperBase<RDS> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        const { name, region } = this.idFields(id);
+        const { dbInstanceIdentifier, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
-        const rawRds = await this.getDBInstance(client.rdsClient, name);
+        const rawRds = await this.getDBInstance(client.rdsClient, dbInstanceIdentifier);
         if (!rawRds) return;
         return await this.rdsMapper(rawRds, ctx, region);
       } else {
@@ -467,9 +467,9 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (id) {
-        const { dbInstanceIdentifier, region } = this.idFields(id);
+        const { name, region } = this.idFields(id);
         const client = (await ctx.getAwsClient(region)) as AWS;
-        const parameterGroup = await this.getDBParameterGroup(client.rdsClient, dbInstanceIdentifier);
+        const parameterGroup = await this.getDBParameterGroup(client.rdsClient, name);
         if (!parameterGroup) return;
         return this.parameterGroupMapper(parameterGroup, region);
       } else {
