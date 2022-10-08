@@ -44,6 +44,5 @@ export class CertificateRequest {
   })
   @ManyToOne(() => AwsRegions, { nullable: false })
   @JoinColumn({ name: 'region' })
-  @cloudId
   region: string;
 }
