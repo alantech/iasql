@@ -158,7 +158,7 @@ describe('RDS Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('moves the parameter group to another region', query(`
-    UPDATE parameter_group SET region = 'us-east-1' WHERE name = '${parameterGroupName}';
+    UPDATE parameter_group SET region = 'us-east-1', arn = NULL WHERE name = '${parameterGroupName}';
   `));
 
   it('updates the RDS instance to use the parameter group and moves it to another region', query(`
