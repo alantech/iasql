@@ -291,7 +291,7 @@ class RdsMapper extends MapperBase<RDS> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.RDS?.[e.dbInstanceIdentifier ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.RDS?.[this.entityId(e)];
         let updatedRecord = { ...cloudRecord };
         if (
           !(
@@ -488,7 +488,7 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.ParameterGroup?.[e.name ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.ParameterGroup?.[this.entityId(e)];
         let updatedRecord = { ...cloudRecord };
         const parametersNotEqual = this.getParametersNotEqual(e.parameters, cloudRecord.parameters);
         let anyUpdate = false;
@@ -505,7 +505,7 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
         }
         if (anyUpdate) {
           // Delete record from memo since we want a fresh read from cloud
-          delete ctx?.memo?.cloud?.ParameterGroup?.[e.name ?? ''];
+          delete ctx?.memo?.cloud?.ParameterGroup?.[this.entityId(e)];
           updatedRecord = await this.module.parameterGroup.cloud.read(ctx, this.entityId(e));
         }
         await this.module.parameterGroup.db.update(updatedRecord, ctx);
