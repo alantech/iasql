@@ -489,6 +489,14 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.ParameterGroup?.[this.entityId(e)];
+        // Always use the cloud ARN, there's no way for the user to actually be able to figure it out
+        e.arn = cloudRecord.arn;
+        // If that was the only difference, just re-save the updated record and continue
+        if (this.equals(e, cloudRecord)) {
+          await this.module.parameterGroup.db.update(e, ctx);
+          out.push(e);
+          continue;
+        }
         let updatedRecord = { ...cloudRecord };
         const parametersNotEqual = this.getParametersNotEqual(e.parameters, cloudRecord.parameters);
         let anyUpdate = false;
