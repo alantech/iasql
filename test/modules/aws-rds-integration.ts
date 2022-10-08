@@ -162,7 +162,7 @@ describe('RDS Integration Testing', () => {
   `));
 
   it('updates the RDS instance to use the parameter group and moves it to another region', query(`
-    UPDATE rds SET region = 'us-east-1', parameter_group_id = (
+    UPDATE rds SET region = 'us-east-1', master_user_password = 'testpass', parameter_group_id = (
       SELECT id FROM parameter_group WHERE name = '${parameterGroupName}'
     ) WHERE db_instance_identifier = '${prefix}test';
   `));
