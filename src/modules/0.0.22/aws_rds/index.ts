@@ -458,6 +458,7 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
         );
         // We map this into the same kind of entity as `obj`
         const newEntity = this.parameterGroupMapper(newObject, e.region);
+        newEntity.id = e.id;
         // Save the record back into the database to get the new fields updated
         await this.module.parameterGroup.db.update(newEntity, ctx);
         out.push(newEntity);
