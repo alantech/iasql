@@ -1,4 +1,5 @@
 import { ACM, CertificateDetail, paginateListCertificates } from '@aws-sdk/client-acm';
+import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
 import { AWS, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
@@ -19,7 +20,8 @@ class CertificateMapper extends MapperBase<Certificate> {
     Object.is(a.domainName, b.domainName) &&
     Object.is(a.inUse, b.inUse) &&
     Object.is(a.renewalEligibility, b.renewalEligibility) &&
-    Object.is(a.status, b.status);
+    Object.is(a.status, b.status) &&
+    Object.is(a.region, b.region);
 
   getCertificate = crudBuilderFormat<ACM, 'describeCertificate', CertificateDetail | undefined>(
     'describeCertificate',
@@ -27,11 +29,13 @@ class CertificateMapper extends MapperBase<Certificate> {
     res => res?.Certificate,
   );
   getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
+
   getCertificates(client: ACM) {
     return mapLin(this.getCertificatesSummary(client), (cert: any) =>
       this.getCertificate(client, cert.CertificateArn),
     );
   }
+
   // TODO: How to macro-ify this function, or should the waiting bit be another macro function and
   // we compose two macro functions together?
   async deleteCertificate(client: ACM, arn: string) {
@@ -51,15 +55,18 @@ class CertificateMapper extends MapperBase<Certificate> {
     if (!t) return false;
     return Object.values<string>(certificateTypeEnum).includes(t);
   }
+
   isRenewalEligibility(t?: string): t is certificateRenewalEligibilityEnum {
     if (!t) return false;
     return Object.values<string>(certificateRenewalEligibilityEnum).includes(t);
   }
+
   isStatusType(t?: string): t is certificateStatusEnum {
     if (!t) return false;
     return Object.values<string>(certificateStatusEnum).includes(t);
   }
-  certificateMapper(e: CertificateDetail) {
+
+  certificateMapper(e: CertificateDetail, region: string) {
     const out = new Certificate();
     // To ignore faulty data in AWS, instead of throwing an error on bad data, we return
     // undefined
@@ -72,8 +79,10 @@ class CertificateMapper extends MapperBase<Certificate> {
     out.inUse = !!e.InUseBy?.length;
     if (this.isRenewalEligibility(e.RenewalEligibility)) out.renewalEligibility = e.RenewalEligibility;
     if (this.isStatusType(e.Status)) out.status = e.Status;
+    out.region = region;
     return out;
   }
+
   db = new Crud2<Certificate>({
     create: (es: Certificate[], ctx: Context) => ctx.orm.save(Certificate, es),
     update: (es: Certificate[], ctx: Context) => ctx.orm.save(Certificate, es),
@@ -94,18 +103,24 @@ class CertificateMapper extends MapperBase<Certificate> {
       // Do not cloud create, just restore database
       await this.module.certificate.db.delete(es, ctx);
     },
-    read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (id) {
-        const rawCert = await this.getCertificate(client.acmClient, id);
+    read: async (ctx: Context, arn?: string) => {
+      if (arn) {
+        const region = parseArn(arn).region;
+        const client = (await ctx.getAwsClient(region)) as AWS;
+
+        const rawCert = await this.getCertificate(client.acmClient, arn);
         if (!rawCert) return;
-        return this.certificateMapper(rawCert);
+        return this.certificateMapper(rawCert, region);
       } else {
-        const rawCerts = (await this.getCertificates(client.acmClient)) ?? [];
+        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
         const out = [];
-        for (const rawCert of rawCerts) {
-          const cert = this.certificateMapper(rawCert);
-          if (cert) out.push(cert);
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawCerts = (await this.getCertificates(client.acmClient)) ?? [];
+          for (const rawCert of rawCerts) {
+            const cert = this.certificateMapper(rawCert, region);
+            if (cert) out.push(cert);
+          }
         }
         return out;
       }
@@ -124,8 +139,8 @@ class CertificateMapper extends MapperBase<Certificate> {
       return out;
     },
     delete: async (es: Certificate[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteCertificate(client.acmClient, e.arn ?? '');
       }
     },
@@ -147,4 +162,5 @@ class AwsAcmListModule extends ModuleBase {
     super.init();
   }
 }
+
 export const awsAcmListModule = new AwsAcmListModule();

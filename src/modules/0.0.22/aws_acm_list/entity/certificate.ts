@@ -1,6 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 
 export enum certificateStatusEnum {
   EXPIRED = 'EXPIRED',
@@ -69,4 +70,13 @@ export class Certificate {
     default: false,
   })
   inUse: boolean;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  region: string;
 }
