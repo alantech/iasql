@@ -27,9 +27,7 @@ export class Listener {
     nullable: false,
     eager: true,
   })
-  @JoinColumn({
-    name: 'load_balancer_name',
-  })
+  @JoinColumn()
   loadBalancer: LoadBalancer;
 
   @Column({ type: 'integer' })
@@ -52,9 +50,7 @@ export class Listener {
     nullable: false,
     eager: true,
   })
-  @JoinColumn({
-    name: 'target_group_name',
-  })
+  @JoinColumn()
   targetGroup: TargetGroup;
 
   @ManyToOne(() => Certificate, {
