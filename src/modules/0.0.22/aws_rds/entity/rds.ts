@@ -6,6 +6,7 @@ import {
   ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
@@ -14,15 +15,12 @@ import { AvailabilityZone } from '../../aws_vpc/entity';
 import { ParameterGroup } from './parameter_group';
 
 @Entity()
+@Unique('UQ_identifier_region', ['dbInstanceIdentifier', 'region'])
 export class RDS {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  // TODO: add constraints
-  // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#dbinstanceidentifier
-  @Column({
-    unique: true,
-  })
+  @Column()
   @cloudId
   dbInstanceIdentifier: string;
 

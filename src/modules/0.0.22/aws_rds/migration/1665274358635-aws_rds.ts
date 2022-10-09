@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsRds1665270402792 implements MigrationInterface {
-  name = 'awsRds1665270402792';
+export class awsRds1665274358635 implements MigrationInterface {
+  name = 'awsRds1665274358635';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -11,7 +11,7 @@ export class awsRds1665270402792 implements MigrationInterface {
       `CREATE TABLE "parameter_group" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "family" "public"."parameter_group_family_enum" NOT NULL, "description" character varying NOT NULL, "parameters" jsonb, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "UQ_cd5d35716aae42c8f6acb7dc989" UNIQUE ("arn"), CONSTRAINT "paragrp_id_region" UNIQUE ("id", "region"), CONSTRAINT "paragrp_name_region" UNIQUE ("name", "region"), CONSTRAINT "PK_33d024772ff6924f4bc337d865a" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "rds" ("id" SERIAL NOT NULL, "db_instance_identifier" character varying NOT NULL, "allocated_storage" integer NOT NULL, "db_instance_class" character varying NOT NULL, "engine" character varying NOT NULL, "master_user_password" character varying, "master_username" character varying, "endpoint_addr" character varying, "endpoint_port" integer, "endpoint_hosted_zone_id" character varying, "backup_retention_period" integer NOT NULL DEFAULT '1', "region" character varying NOT NULL DEFAULT default_aws_region(), "availability_zone" character varying NOT NULL, "parameter_group_id" integer, CONSTRAINT "UQ_7fb01956cebcabd694baf5f1f6b" UNIQUE ("db_instance_identifier"), CONSTRAINT "PK_67d6c2133366c8eda49b40de7b0" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "rds" ("id" SERIAL NOT NULL, "db_instance_identifier" character varying NOT NULL, "allocated_storage" integer NOT NULL, "db_instance_class" character varying NOT NULL, "engine" character varying NOT NULL, "master_user_password" character varying, "master_username" character varying, "endpoint_addr" character varying, "endpoint_port" integer, "endpoint_hosted_zone_id" character varying, "backup_retention_period" integer NOT NULL DEFAULT '1', "region" character varying NOT NULL DEFAULT default_aws_region(), "availability_zone" character varying NOT NULL, "parameter_group_id" integer, CONSTRAINT "UQ_identifier_region" UNIQUE ("db_instance_identifier", "region"), CONSTRAINT "PK_67d6c2133366c8eda49b40de7b0" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "rds_security_groups" ("rds_id" integer NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_a0b5fa8fc927a6d22d5e2125e86" PRIMARY KEY ("rds_id", "security_group_id"))`,
