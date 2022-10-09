@@ -157,26 +157,6 @@ describe('RDS Integration Testing', () => {
     WHERE name = '${parameterGroupName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('moves the parameter group to another region', query(`
-    UPDATE parameter_group SET region = 'us-east-1' WHERE name = '${parameterGroupName}';
-  `));
-
-  it('updates the RDS instance to use the parameter group and moves it to another region', query(`
-    UPDATE rds SET
-      region = 'us-east-1',
-      availability_zone = (SELECT name FROM availability_zone WHERE region = 'us-east-1' LIMIT 1),
-      master_user_password = 'testpass',
-      parameter_group_id = (
-        SELECT id FROM parameter_group WHERE name = '${parameterGroupName}'
-      )
-    WHERE db_instance_identifier = '${prefix}test';
-    UPDATE rds_security_groups SET
-      security_group_id = (SELECT id FROM security_group WHERE group_name='default' AND region = 'us-east-1')
-    WHERE rds_id = (SELECT id FROM rds WHERE db_instance_identifier='${prefix}test');
-  `));
-
-  it('applies the region move and parameter group usage', apply());
-
   it('removes the RDS instance', query(`
     DELETE FROM rds
     WHERE db_instance_identifier = '${prefix}test';
