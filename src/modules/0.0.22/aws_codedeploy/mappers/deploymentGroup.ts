@@ -22,7 +22,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     Object.is(a.deploymentConfigName, b.deploymentConfigName) &&
     Object.is(a.id, b.id) &&
     Object.is(a.name, b.name) &&
-    isEqual(a.role.roleName, b.role.roleName) &&
+    isEqual(a.role?.roleName, b.role?.roleName) &&
     isEqual(a.ec2TagFilters ?? [], b.ec2TagFilters ?? []);
 
   async deploymentGroupMapper(group: DeploymentGroupInfo, ctx: Context) {

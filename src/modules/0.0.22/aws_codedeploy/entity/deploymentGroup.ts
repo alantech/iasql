@@ -55,13 +55,13 @@ export class CodedeployDeploymentGroup {
   }[];
 
   @ManyToOne(() => IamRole, role => role.roleName, {
-    nullable: false,
+    nullable: true,
     eager: true,
   })
   @JoinColumn({
     name: 'role_name',
   })
-  role: IamRole;
+  role?: IamRole;
 
   @OneToMany(() => CodedeployDeployment, deployments => deployments.deploymentGroup, {
     nullable: true,
