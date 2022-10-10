@@ -1,8 +1,9 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, Unique, ManyToOne, JoinColumn } from 'typeorm';
 
 import { Parameter } from '@aws-sdk/client-rds';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 
 // Enum generated executing the command
 // aws rds describe-db-engine-versions --query "DBEngineVersions[].DBParameterGroupFamily"
@@ -58,9 +59,14 @@ export enum ParameterGroupFamily {
 }
 
 @Entity()
+@Unique('paragrp_name_region', ['name', 'region'])
+@Unique('paragrp_id_region', ['id', 'region']) // So the RDS entity can join on both
 export class ParameterGroup {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
+  id?: number;
+
   @cloudId
+  @Column()
   name: string;
 
   @Column({
@@ -83,4 +89,14 @@ export class ParameterGroup {
     nullable: true,
   })
   parameters?: Parameter[];
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }

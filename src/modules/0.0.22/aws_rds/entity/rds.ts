@@ -6,23 +6,22 @@ import {
   ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { AvailabilityZone } from '../../aws_vpc/entity';
 import { ParameterGroup } from './parameter_group';
 
 @Entity()
+@Unique('UQ_identifier_region', ['dbInstanceIdentifier', 'region'])
 export class RDS {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  // TODO: add constraints
-  // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-rds/interfaces/createdbinstancecommandinput.html#dbinstanceidentifier
-  @Column({
-    unique: true,
-  })
+  @Column()
   @cloudId
   dbInstanceIdentifier: string;
 
@@ -34,10 +33,16 @@ export class RDS {
   allocatedStorage: number;
 
   @ManyToOne(() => AvailabilityZone, { eager: true, nullable: false })
-  @JoinColumn({
-    name: 'availability_zone',
-    referencedColumnName: 'name',
-  })
+  @JoinColumn([
+    {
+      name: 'availability_zone',
+      referencedColumnName: 'name',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   availabilityZone: AvailabilityZone;
 
   // TODO: make this an entity eventually?
@@ -100,8 +105,25 @@ export class RDS {
     eager: true,
     nullable: true,
   })
-  @JoinColumn({
-    name: 'parameter_group_name',
-  })
+  @JoinColumn([
+    {
+      name: 'parameter_group_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   parameterGroup?: ParameterGroup;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }
