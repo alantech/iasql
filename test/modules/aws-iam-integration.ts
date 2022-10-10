@@ -23,6 +23,7 @@ const userConfigPolicyArn = 'arn:aws:iam::aws:policy/AWSConfigUserAccess';
 const supportUserPolicyArn = 'arn:aws:iam::aws:policy/job-function/SupportUser';
 const lambdaRoleName = `${prefix}${dbAlias}lambda-${region}`;
 const ec2RoleName = `${prefix}${dbAlias}ec2-${region}`;
+const ec2RoleNameArray = `${prefix}${dbAlias}ec2Array-${region}`;
 const anotherRoleName = `${prefix}${dbAlias}another-${region}`;
 const principalServArr = `${prefix}${dbAlias}ppalservarr-${region}`;
 const attachAssumeTaskPolicy = JSON.stringify({
@@ -57,6 +58,18 @@ const attachAssumeEc2Policy = JSON.stringify({
       Effect: 'Allow',
       Principal: {
         Service: 'ec2.amazonaws.com',
+      },
+      Action: 'sts:AssumeRole',
+    },
+  ],
+});
+const attachAssumeEc2PolicyArray = JSON.stringify({
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Effect: 'Allow',
+      Principal: {
+        Service: ['ec2.amazonaws.com'],
       },
       Action: 'sts:AssumeRole',
     },
@@ -177,6 +190,9 @@ describe('IAM Role Integration Testing', () => {
       VALUES ('${ec2RoleName}', '${attachAssumeEc2Policy}');
 
       INSERT INTO iam_role (role_name, assume_role_policy_document)
+      VALUES ('${ec2RoleNameArray}', '${attachAssumeEc2PolicyArray}');
+
+      INSERT INTO iam_role (role_name, assume_role_policy_document)
       VALUES ('${anotherRoleName}', '${attachAnotherPolicy}');
 
       INSERT INTO iam_role (role_name, assume_role_policy_document)
@@ -216,6 +232,18 @@ describe('IAM Role Integration Testing', () => {
     SELECT *
     FROM iam_role
     WHERE role_name = '${ec2RoleName}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check a new role addition',
+    query(
+      `
+    SELECT *
+    FROM iam_role
+    WHERE role_name = '${ec2RoleNameArray}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -397,6 +425,14 @@ describe('IAM Role Integration Testing', () => {
     'deletes the role',
     query(`
     DELETE FROM iam_role
+    WHERE role_name = '${ec2RoleNameArray}';
+  `),
+  );
+
+  it(
+    'deletes the role',
+    query(`
+    DELETE FROM iam_role
     WHERE role_name = '${anotherRoleName}';
   `),
   );
@@ -442,6 +478,18 @@ describe('IAM Role Integration Testing', () => {
     SELECT *
     FROM iam_role
     WHERE role_name = '${ec2RoleName}';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check deletes the role',
+    query(
+      `
+    SELECT *
+    FROM iam_role
+    WHERE role_name = '${ec2RoleNameArray}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),

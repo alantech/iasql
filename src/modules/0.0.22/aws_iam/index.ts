@@ -386,7 +386,10 @@ class RoleMapper extends MapperBase<IamRole> {
   }
   allowEc2Service(a: IamRole) {
     return a.assumeRolePolicyDocument?.Statement?.find(
-      (s: any) => s.Effect === 'Allow' && s.Principal?.Service === 'ec2.amazonaws.com',
+      (s: any) =>
+        s.Effect === 'Allow' &&
+        ((Array.isArray(s.Principal?.Service) && s.Principal?.Service.includes('ec2.amazonaws.com')) ||
+          s.Principal?.Service === 'ec2.amazonaws.com'),
     );
   }
 
