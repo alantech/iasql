@@ -855,6 +855,7 @@ describe('Security Group install/uninstall', () => {
       'aws_route53_hosted_zones',
       'aws_memory_db',
       'aws_acm_request',
+      'aws_codedeploy',
     ]),
   );
 
