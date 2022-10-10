@@ -195,7 +195,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.MemoryDBCluster?.[this.entityId(e)] ?? await this.module.memoryDBCluster.cloud.read(ctx, this.entityId(e));
+        const cloudRecord = ctx?.memo?.cloud?.MemoryDBCluster?.[this.entityId(e)];
         const isUpdate = this.module.memoryDBCluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           // todo: add waiters
@@ -253,6 +253,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
           } else {
             // Restore record
             cloudRecord.id = e.id;
+            logger.info(`+-+ restoring the record: ${JSON.stringify(cloudRecord)}`)
             await this.module.memoryDBCluster.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
           }
