@@ -29,9 +29,16 @@ export class EndpointGateway {
   policyDocument?: string;
 
   @ManyToOne(() => Vpc, { nullable: false, eager: true })
-  @JoinColumn({
-    name: 'vpc_id',
-  })
+  @JoinColumn([
+    {
+      name: 'vpc_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   vpc?: Vpc;
 
   @Column({ nullable: true })

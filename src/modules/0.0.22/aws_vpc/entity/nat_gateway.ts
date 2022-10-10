@@ -34,9 +34,16 @@ export class NatGateway {
   natGatewayId?: string;
 
   @ManyToOne(() => Subnet, { nullable: false, eager: true })
-  @JoinColumn({
-    name: 'subnet_id',
-  })
+  @JoinColumn([
+    {
+      name: 'subnet_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   subnet?: Subnet;
 
   @Column({

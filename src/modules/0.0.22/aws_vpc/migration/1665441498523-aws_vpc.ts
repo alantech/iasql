@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsVpc1665437712911 implements MigrationInterface {
-  name = 'awsVpc1665437712911';
+export class awsVpc1665441498523 implements MigrationInterface {
+  name = 'awsVpc1665441498523';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -50,7 +50,7 @@ export class awsVpc1665437712911 implements MigrationInterface {
       `ALTER TABLE "subnet" ADD CONSTRAINT "FK_01b828964edce6b867e4e554b97" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "nat_gateway" ADD CONSTRAINT "FK_902c1e8953c40c17c23265e14dc" FOREIGN KEY ("subnet_id") REFERENCES "subnet"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "nat_gateway" ADD CONSTRAINT "FK_a8a06631830bd53add76d00579b" FOREIGN KEY ("subnet_id", "region") REFERENCES "subnet"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "nat_gateway" ADD CONSTRAINT "FK_630cbc267698f4fbe265bc9aecf" FOREIGN KEY ("elastic_ip_id", "region") REFERENCES "elastic_ip"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -59,7 +59,7 @@ export class awsVpc1665437712911 implements MigrationInterface {
       `ALTER TABLE "nat_gateway" ADD CONSTRAINT "FK_0b6b32474c287236151d32ee15e" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "endpoint_gateway" ADD CONSTRAINT "FK_cea670f322f7a21bd20c35dd008" FOREIGN KEY ("vpc_id") REFERENCES "vpc"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "endpoint_gateway" ADD CONSTRAINT "FK_f4b22969137e68a91da4e9510b7" FOREIGN KEY ("vpc_id", "region") REFERENCES "vpc"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "endpoint_gateway" ADD CONSTRAINT "FK_54d6c333020521f251592867da4" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -71,11 +71,11 @@ export class awsVpc1665437712911 implements MigrationInterface {
       `ALTER TABLE "endpoint_gateway" DROP CONSTRAINT "FK_54d6c333020521f251592867da4"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "endpoint_gateway" DROP CONSTRAINT "FK_cea670f322f7a21bd20c35dd008"`,
+      `ALTER TABLE "endpoint_gateway" DROP CONSTRAINT "FK_f4b22969137e68a91da4e9510b7"`,
     );
     await queryRunner.query(`ALTER TABLE "nat_gateway" DROP CONSTRAINT "FK_0b6b32474c287236151d32ee15e"`);
     await queryRunner.query(`ALTER TABLE "nat_gateway" DROP CONSTRAINT "FK_630cbc267698f4fbe265bc9aecf"`);
-    await queryRunner.query(`ALTER TABLE "nat_gateway" DROP CONSTRAINT "FK_902c1e8953c40c17c23265e14dc"`);
+    await queryRunner.query(`ALTER TABLE "nat_gateway" DROP CONSTRAINT "FK_a8a06631830bd53add76d00579b"`);
     await queryRunner.query(`ALTER TABLE "subnet" DROP CONSTRAINT "FK_01b828964edce6b867e4e554b97"`);
     await queryRunner.query(`ALTER TABLE "subnet" DROP CONSTRAINT "FK_0e2c2bf1604ba2ffd4103157d24"`);
     await queryRunner.query(`ALTER TABLE "subnet" DROP CONSTRAINT "FK_89d16ba5682889f8fae7927052c"`);

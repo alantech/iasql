@@ -170,12 +170,18 @@ describe('VPC Multiregion Integration Testing', () => {
     `, (res: any) => expect(res.length).toBe(1)));
 
     it('moves the nat gateway and elastic IP to another region', query(`
-      -- Detaching and re-attaching the elastic IP record to avoid join issues
-      UPDATE nat_gateway SET elastic_ip_id = NULL, region='us-east-1'
+      -- Detaching and re-attaching the elastic IP and subnet records to avoid join issues
+      UPDATE nat_gateway SET elastic_ip_id = NULL, subnet_id = NULL, region='us-east-1'
       WHERE tags ->> 'Name' = '${pubNg}';
       UPDATE elastic_ip SET region='us-east-1' WHERE tags ->> 'name' = '${eip}';
+      INSERT INTO subnet (cidr_block, region
+      INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
+      SELECT 'us-east-1a', id, '191.${randIPBlock}.0.0/16', 'us-east-1'
+      FROM vpc
+      WHERE is_default = true AND region = 'us-east-1';
       UPDATE nat_gateway
-      SET elastic_ip_id = (SELECT id from elastic_ip WHERE tags ->> 'name' = '${eip}')
+      SET elastic_ip_id = (SELECT id from elastic_ip WHERE tags ->> 'name' = '${eip}'),
+      SET subnet_id = (SELECT id from subnet WHERE cidr_block = '191.${randIPBlock}.0.0/16')
       WHERE tags ->> 'Name' = '${pubNg}';
     `));
 
@@ -235,7 +241,10 @@ describe('VPC Multiregion Integration Testing', () => {
     `, (res: any) => expect(res.length).toBe(1)));
 
     it('moves the endpoint gateway to another region', query(`
-      UPDATE endpoint_gateway SET region='us-east-1' WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
+      UPDATE endpoint_gateway
+      SET region = 'us-east-1',
+      vpc_id = (SELECT id from vpc WHERE is_default = true AND region='us-east-1')
+      WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
     `));
 
     it('applies the endpoint gateway region change', apply());
