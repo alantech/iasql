@@ -3,12 +3,9 @@ import isEqual from 'lodash.isequal';
 import {
   CodeDeploy,
   CreateDeploymentCommandInput,
-  CreateDeploymentGroupCommandInput,
-  DeploymentGroupInfo,
   DeploymentInfo,
-  paginateListDeploymentGroups,
   paginateListDeployments,
-  UpdateDeploymentGroupCommandOutput,
+  RevisionLocation,
   waitUntilDeploymentSuccessful,
 } from '@aws-sdk/client-codedeploy';
 import { WaiterOptions } from '@aws-sdk/util-waiter';
@@ -16,7 +13,7 @@ import { WaiterOptions } from '@aws-sdk/util-waiter';
 import { AwsCodedeployModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { CodedeployDeployment, DeploymentStatusEnum } from '../entity';
+import { CodedeployDeployment, DeploymentStatusEnum, RevisionType } from '../entity';
 
 export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment> {
   module: AwsCodedeployModule;
@@ -28,7 +25,13 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       Object.is(a.deploymentId, b.deploymentId) &&
       Object.is(a.description, b.description) &&
       Object.is(a.externalId, b.externalId) &&
-      Object.is(a.status, b.status)
+      Object.is(a.status, b.status) &&
+      Object.is(a.location.githubLocation ?? '', b.location.githubLocation ?? '') &&
+      Object.is(a.location.revisionType, b.location.revisionType) &&
+      ((a.location.revisionType === RevisionType.GITHUB &&
+        Object.is(a.location.githubLocation, b.location.githubLocation)) ||
+        (a.location.revisionType === RevisionType.S3 &&
+          Object.is(a.location.s3Location, b.location.s3Location)))
     );
   };
 
@@ -43,6 +46,18 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
     out.description = deployment.description;
     out.externalId = deployment.externalId;
     out.status = deployment.status as DeploymentStatusEnum;
+
+    if (deployment.revision.revisionType === RevisionType.GITHUB) {
+      out.location = {
+        githubLocation: deployment.revision.gitHubLocation,
+        revisionType: RevisionType.GITHUB,
+      };
+    } else if (deployment.revision.revisionType === RevisionType.S3) {
+      out.location = {
+        s3Location: deployment.revision.s3Location,
+        revisionType: RevisionType.S3,
+      };
+    }
 
     return out;
   }
@@ -67,13 +82,13 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       const out = [];
       for (const e of es) {
         // if we do not have application, deployment group or revision, continue
-        if (!e.application || !e.deploymentGroup || !e.revision) continue;
+        if (!e.application || !e.deploymentGroup || !e.location) continue;
 
         const input: CreateDeploymentCommandInput = {
           applicationName: e.application.name,
           deploymentGroupName: e.deploymentGroup.name,
           description: e.description,
-          revision: e.revision.location,
+          revision: e.location,
         };
         const deploymentId = await this.createDeployment(client.cdClient, input);
         if (!deploymentId) continue;
@@ -126,23 +141,25 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
         return out;
       }
     },
+    updateOrReplace: (a: CodedeployDeployment, b: CodedeployDeployment) => 'update',
     update: async (deployments: CodedeployDeployment[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const deployment of deployments) {
         if (!deployment.application || !deployment.deploymentGroup) continue; // cannot update a deployment group without app or id
 
-        // we just need to replace the record. We keep the initial revision, as it cannot be retrieved from mapper
         const cloudRecord = ctx?.memo?.cloud?.CodedeployDeployment?.[deployment.deploymentId ?? ''];
-        cloudRecord.revision = deployment.revision;
         cloudRecord.id = deployment.id;
+        cloudRecord.deploymentGroup = deployment.deploymentGroup;
         await this.module.deployment.db.update(cloudRecord, ctx);
         out.push(cloudRecord);
       }
       return out;
     },
-    delete: async (groups: CodedeployDeployment[], ctx: Context) => {
-      return;
+    delete: async (deployments: CodedeployDeployment[], ctx: Context) => {
+      const out = await this.module.deployment.db.create(deployments, ctx);
+      if (!out || out instanceof Array) return out;
+      return [out];
     },
   });
 

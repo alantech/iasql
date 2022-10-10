@@ -11,7 +11,6 @@ import {
 import { cloudId } from '../../../../services/cloud-id';
 import { CodedeployApplication, ComputePlatform } from './application';
 import { CodedeployDeploymentGroup } from './deploymentGroup';
-import { CodedeployRevision } from './revision';
 
 export enum DeploymentStatusEnum {
   BAKING = 'Baking',
@@ -22,6 +21,11 @@ export enum DeploymentStatusEnum {
   READY = 'Ready',
   STOPPED = 'Stopped',
   SUCCEEDED = 'Succeeded',
+}
+
+export enum RevisionType {
+  S3 = 'S3',
+  GITHUB = 'Github',
 }
 
 @Entity()
@@ -65,19 +69,32 @@ export class CodedeployDeployment {
   })
   externalId?: string;
 
-  @OneToOne(() => CodedeployRevision, {
-    eager: true,
-    nullable: true,
-  })
-  @JoinColumn({
-    name: 'revision_id',
-  })
-  revision?: CodedeployRevision;
-
   @Column({
     nullable: true,
     type: 'enum',
     enum: DeploymentStatusEnum,
   })
   status?: DeploymentStatusEnum;
+
+  @Column({
+    nullable: false,
+    type: 'json',
+  })
+  location: {
+    githubLocation?:
+      | {
+          // the GitHub account and repository pair that stores a reference to the commit that represents the bundled artifacts for the application revision. Specified as account/repository.
+          repository?: string | undefined;
+          commitId?: string | undefined;
+        }
+      | undefined;
+    revisionType: RevisionType;
+    s3Location?:
+      | {
+          bucket?: string | undefined;
+          key?: string | undefined;
+          version?: string | undefined;
+        }
+      | undefined;
+  };
 }

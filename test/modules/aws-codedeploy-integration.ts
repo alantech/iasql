@@ -372,82 +372,12 @@ describe('AwsCodedeploy Integration Testing', () => {
   );
 });
 
-// create application revision
-it(
-  'adds a new codedeploy_revision',
-  query(`
-  INSERT INTO codedeploy_revision (description, application_name, location)
-  VALUES ('Codedeploy revision v0', '${applicationNameForDeployment}', '${revisionLocationv0}');
-`),
-);
-it('applies the codedeploy_application registration', apply());
-
-it(
-  'check codedeploy_revision is available',
-  query(
-    `
-SELECT * FROM codedeploy_revision WHERE description='Codedeploy revision v0' AND application_name='${applicationNameForDeployment}';
-`,
-    (res: any) => expect(res.length).toBe(1),
-  ),
-);
-
-it(
-  'adds a new codedeploy_revision',
-  query(`
-  INSERT INTO codedeploy_revision (description, application_name, location)
-  VALUES ('Codedeploy revision v1', '${applicationNameForDeployment}', '${revisionLocationv1}');
-`),
-);
-it('applies the codedeploy_application registration', apply());
-
-it(
-  'check codedeploy_revision_v1 is available',
-  query(
-    `
-SELECT * FROM codedeploy_revision WHERE description='Codedeploy revision v1' AND application_name='${applicationNameForDeployment}';
-`,
-    (res: any) => expect(res.length).toBe(1),
-  ),
-);
-
-it(
-  'check that we have two revisions',
-  query(
-    `
-SELECT * FROM codedeploy_revision WHERE application_name='${applicationNameForDeployment}';
-`,
-    (res: any) => expect(res.length).toBe(2),
-  ),
-);
-
-it('should fail when updating a revision', () => {
-  try {
-    query(`
-      UPDATE codedeploy_revision SET description='fake description' WHERE application_name='${applicationNameForDeployment}';
-      `);
-  } catch (e) {
-    expect(e).toBeTruthy;
-  }
-});
-
-it('should fail when deleting a revision', () => {
-  try {
-    query(`
-      DELETE FROM codedeploy_revision WHERE application_name='${applicationNameForDeployment}';
-      `);
-  } catch (e) {
-    expect(e).toBeTruthy;
-  }
-});
-it('applies the update and deletion', apply());
-
 // deployment
 it(
   'adds a new deployment',
   query(`
-  INSERT INTO codedeploy_deployment (application_name, deployment_group_name, description, revision_id)
-  VALUES ('${applicationNameForDeployment}', '${deploymentGroupName}', 'Codedeploy deployment v0', (SELECT id FROM codedeploy_revision WHERE application_name='${applicationNameForDeployment}' AND description='Codedeploy revision v0'));
+  INSERT INTO codedeploy_deployment (application_name, deployment_group_name, description, location)
+  VALUES ('${applicationNameForDeployment}', '${deploymentGroupName}', 'Codedeploy deployment v0', '${revisionLocationv0}');
 `),
 );
 it('applies the deployment creation', apply());
@@ -462,16 +392,43 @@ SELECT * FROM codedeploy_deployment WHERE application_name='${applicationNameFor
   ),
 );
 
-it('should fail when deleting a deployment', () => {
-  try {
-    query(`
+// check that we cannot update
+it(
+  'updates a deployment',
+  query(`
+      UPDATE codedeploy_deployment SET description='fake' WHERE application_name='${applicationNameForDeployment}';
+      `),
+);
+it('applies the update', apply());
+
+it(
+  'check that deployments are back',
+  query(
+    `
+SELECT * FROM codedeploy_deployment WHERE application_name='${applicationNameForDeployment}' AND description='Codedeploy deployment v0' AND status='Succeeded';
+`,
+    (res: any) => expect(res.length).toBe(1),
+  ),
+);
+
+// check that we cannot delete
+it(
+  'deletes a deployment',
+  query(`
       DELETE FROM codedeploy_deployment WHERE application_name='${applicationNameForDeployment}' AND description='Codedeploy deployment v1';
-      `);
-  } catch (e) {
-    expect(e).toBeTruthy;
-  }
-});
-it('applies the update and deletion', apply());
+      `),
+);
+it('applies the deletion', apply());
+
+it(
+  'check that deployments are back',
+  query(
+    `
+SELECT * FROM codedeploy_deployment WHERE application_name='${applicationNameForDeployment}' AND description='Codedeploy deployment v0' AND status='Succeeded';
+`,
+    (res: any) => expect(res.length).toBe(1),
+  ),
+);
 
 // cleanup
 describe('deployment cleanup', () => {

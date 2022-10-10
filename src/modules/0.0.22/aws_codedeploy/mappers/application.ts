@@ -1,11 +1,8 @@
-import isEqual from 'lodash.isequal';
-
 import {
   CodeDeploy,
   ApplicationInfo,
   paginateListApplications,
   CreateApplicationCommandInput,
-  RevisionInfo,
   paginateListApplicationRevisions,
   RegisterApplicationRevisionCommandInput,
 } from '@aws-sdk/client-codedeploy';
@@ -13,7 +10,7 @@ import {
 import { AwsCodedeployModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { CodedeployApplication, CodedeployRevision, ComputePlatform, RevisionType } from '../entity';
+import { CodedeployApplication, ComputePlatform, RevisionType } from '../entity';
 
 export class CodedeployApplicationMapper extends MapperBase<CodedeployApplication> {
   module: AwsCodedeployModule;
@@ -21,27 +18,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
   equals = (a: CodedeployApplication, b: CodedeployApplication) =>
     Object.is(a.name, b.name) &&
     Object.is(a.computePlatform, b.computePlatform) &&
-    Object.is(a.applicationId, b.applicationId) &&
-    Object.is(a.revisions === undefined, b.revisions === undefined) &&
-    Object.is(a.revisions!.length, b.revisions!.length);
-
-  listRevisions = paginateBuilder<CodeDeploy>(
-    paginateListApplicationRevisions,
-    'revisions',
-    undefined,
-    undefined,
-    applicationName => ({ applicationName }),
-  );
-
-  getApplicationRevisions = crudBuilderFormat<
-    CodeDeploy,
-    'batchGetApplicationRevisions',
-    RevisionInfo[] | undefined
-  >(
-    'batchGetApplicationRevisions',
-    input => input,
-    res => res?.revisions,
-  );
+    Object.is(a.applicationId, b.applicationId);
 
   async applicationMapper(app: ApplicationInfo, ctx: Context) {
     const client = (await ctx.getAwsClient()) as AWS;
@@ -51,36 +28,6 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
     out.applicationId = app.applicationId;
     out.computePlatform = (app.computePlatform as ComputePlatform) ?? ComputePlatform.Server;
 
-    // reconcile revisions
-    out.revisions = [];
-    const rawRevs = await this.listRevisions(client.cdClient, app.applicationName);
-
-    for (const rawRev of rawRevs) {
-      // get details
-      const rawDetailedRev = await this.getApplicationRevisions(client.cdClient, {
-        applicationName: app.applicationName,
-        revisions: [rawRev],
-      });
-      if (rawDetailedRev && rawDetailedRev.length > 0) {
-        const rev = await this.revisionMapper(rawDetailedRev[0]);
-        if (rev) out.revisions.push(rev);
-      }
-    }
-    return out;
-  }
-
-  async revisionMapper(revision: RevisionInfo) {
-    const out = new CodedeployRevision();
-    out.description = revision.genericRevisionInfo?.description;
-
-    // get location details
-    if (revision.revisionLocation) {
-      out.location = {
-        githubLocation: revision.revisionLocation.gitHubLocation,
-        s3Location: revision.revisionLocation.s3Location,
-        revisionType: revision.revisionLocation.revisionType as RevisionType,
-      };
-    }
     return out;
   }
 
@@ -149,59 +96,20 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
         return out;
       }
     },
-    updateOrReplace: (a: CodedeployApplication, b: CodedeployApplication) =>
-      a.applicationId !== b.applicationId || (a.revisions ?? []).length !== (b.revisions ?? []).length
-        ? 'update'
-        : 'replace',
+    updateOrReplace: (a: CodedeployApplication, b: CodedeployApplication) => 'replace',
     update: async (apps: CodedeployApplication[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
 
       for (const app of apps) {
-        const cloudRecord = ctx?.memo?.cloud?.CodedeployApplication?.[app.name ?? ''];
-        if (this.module.application.cloud.updateOrReplace(app, cloudRecord) === 'update') {
-          if (app.applicationId !== cloudRecord.applicationId) {
-            // restore
-            await this.module.application.db.update(cloudRecord, ctx);
-            out.push(cloudRecord);
-            continue;
-          }
-          // check the number of registers. If the are more, add the latest one on the cloud
-          if (app.revisions!.length > cloudRecord.revisions!.length) {
-            const diff = app.revisions!.length - cloudRecord.revisions!.length;
-            // sort by id decreasing
-            const latest = app.revisions?.sort((a: CodedeployRevision, b: CodedeployRevision) =>
-              a.id < b.id ? 1 : -1,
-            );
-            const pickedRevs = latest?.splice(0, diff);
+        // delete app and create new one
+        await this.module.application.cloud.delete(app, ctx);
+        const appId = await this.module.application.cloud.create(app, ctx);
+        if (!appId) continue;
 
-            if (pickedRevs && pickedRevs.length > 0) {
-              app.revisions = cloudRecord.revisions;
-
-              for (const rev of pickedRevs) {
-                // we will create the new revision
-                const input: RegisterApplicationRevisionCommandInput = {
-                  applicationName: app.name,
-                  description: rev.description,
-                  revision: rev.location,
-                };
-                await this.createRevision(client.cdClient, input);
-                app.revisions?.push(rev);
-              }
-
-              out.push(app);
-            }
-          }
-        } else {
-          // delete app and create new one
-          await this.module.application.cloud.delete(app, ctx);
-          const appId = await this.module.application.cloud.create(app, ctx);
-          if (!appId) continue;
-
-          // retrieve app details
-          const createdApp = await this.module.application.cloud.read(ctx, app.name);
-          if (createdApp) out.push(createdApp);
-        }
+        // retrieve app details
+        const createdApp = await this.module.application.cloud.read(ctx, app.name);
+        if (createdApp) out.push(createdApp);
       }
       return out;
     },
