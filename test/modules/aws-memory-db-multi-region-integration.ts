@@ -108,7 +108,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
         SET region = '${nonDefaultRegion}'
         WHERE cluster_name = '${clusterName}';
       `);
-    } catch (e) {
+    } catch (e: any) {
       expect(e.message).toContain('tbd');
     }
   });
