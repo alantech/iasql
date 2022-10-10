@@ -18,9 +18,9 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
   module: AwsCodedeployModule;
   entity = CodedeployDeploymentGroup;
   equals = (a: CodedeployDeploymentGroup, b: CodedeployDeploymentGroup) =>
-    isEqual(a.application.id, b.application.id) &&
+    isEqual(a.application.applicationId, b.application.applicationId) &&
     Object.is(a.deploymentConfigName, b.deploymentConfigName) &&
-    Object.is(a.id, b.id) &&
+    Object.is(a.deploymentGroupId, b.deploymentGroupId) &&
     Object.is(a.name, b.name) &&
     isEqual(a.role?.roleName, b.role?.roleName) &&
     isEqual(a.ec2TagFilters ?? [], b.ec2TagFilters ?? []);
@@ -46,7 +46,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
       }
       out.ec2TagFilters = filters;
     }
-    if (group.deploymentGroupId) out.id = group.deploymentGroupId;
+    if (group.deploymentGroupId) out.deploymentGroupId = group.deploymentGroupId;
     out.name = group.deploymentGroupName;
 
     if (group.serviceRoleArn) {
@@ -118,7 +118,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
         if (!groupId) continue;
 
         // we need to update group id and app
-        e.id = groupId;
+        e.deploymentGroupId = groupId;
 
         const app =
           (await this.module.application.db.read(ctx, e.application.name)) ??
@@ -173,7 +173,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
         if (!group.application || !group.name) continue; // cannot update a deployment group without app or id
         // we always update
         const cloudRecord = ctx?.memo?.cloud?.CodedeployDeploymentGroup?.[group.name ?? ''];
-        if (group.id !== cloudRecord.id) {
+        if (group.deploymentGroupId !== cloudRecord.deploymentGroupId) {
           // restore
           await this.module.application.db.update(cloudRecord, ctx);
           out.push(cloudRecord);

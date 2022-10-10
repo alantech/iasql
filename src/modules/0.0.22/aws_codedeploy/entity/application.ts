@@ -18,7 +18,7 @@ export class CodedeployApplication {
   @Column({
     nullable: true,
   })
-  id?: string;
+  applicationId?: string;
 
   @Column({
     type: 'enum',

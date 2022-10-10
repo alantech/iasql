@@ -21,7 +21,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
   equals = (a: CodedeployApplication, b: CodedeployApplication) =>
     Object.is(a.name, b.name) &&
     Object.is(a.computePlatform, b.computePlatform) &&
-    Object.is(a.id, b.id) &&
+    Object.is(a.applicationId, b.applicationId) &&
     Object.is(a.revisions === undefined, b.revisions === undefined) &&
     Object.is(a.revisions!.length, b.revisions!.length);
 
@@ -48,7 +48,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
     const out = new CodedeployApplication();
     if (!app.applicationName) return undefined;
     out.name = app.applicationName;
-    out.id = app.applicationId;
+    out.applicationId = app.applicationId;
     out.computePlatform = (app.computePlatform as ComputePlatform) ?? ComputePlatform.Server;
 
     // reconcile revisions
@@ -119,7 +119,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
         if (!appId) continue;
 
         // we just need to add the id
-        e.id = appId;
+        e.applicationId = appId;
         await this.db.update(e, ctx);
 
         out.push(e);
@@ -150,7 +150,9 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
       }
     },
     updateOrReplace: (a: CodedeployApplication, b: CodedeployApplication) =>
-      a.id !== b.id || (a.revisions ?? []).length !== (b.revisions ?? []).length ? 'update' : 'replace',
+      a.applicationId !== b.applicationId || (a.revisions ?? []).length !== (b.revisions ?? []).length
+        ? 'update'
+        : 'replace',
     update: async (apps: CodedeployApplication[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
@@ -158,7 +160,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
       for (const app of apps) {
         const cloudRecord = ctx?.memo?.cloud?.CodedeployApplication?.[app.name ?? ''];
         if (this.module.application.cloud.updateOrReplace(app, cloudRecord) === 'update') {
-          if (app.id !== cloudRecord.id) {
+          if (app.applicationId !== cloudRecord.applicationId) {
             // restore
             await this.module.application.db.update(cloudRecord, ctx);
             out.push(cloudRecord);

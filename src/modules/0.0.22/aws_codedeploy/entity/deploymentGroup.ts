@@ -26,7 +26,7 @@ export class CodedeployDeploymentGroup {
   @Column({
     nullable: true,
   })
-  id?: string;
+  deploymentGroupId?: string;
 
   @ManyToOne(() => CodedeployApplication, {
     eager: true,

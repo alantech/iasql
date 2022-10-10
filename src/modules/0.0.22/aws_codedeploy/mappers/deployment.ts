@@ -84,7 +84,7 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
           {
             client: client.cdClient,
             // all in seconds
-            maxWaitTime: 3600,
+            maxWaitTime: 1200,
             minDelay: 1,
             maxDelay: 4,
           } as WaiterOptions<CodeDeploy>,
