@@ -100,7 +100,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
       {
         client,
         // all in seconds
-        maxWaitTime: 1200,
+        maxWaitTime: 1800,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -195,7 +195,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.MemoryDBCluster?.[this.entityId(e)];
+        const cloudRecord = ctx?.memo?.cloud?.MemoryDBCluster?.[this.entityId(e)] ?? await this.module.memoryDBCluster.cloud.read(ctx, this.entityId(e));
         const isUpdate = this.module.memoryDBCluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           // todo: add waiters
