@@ -218,7 +218,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.EndpointGateway?.[e.vpcEndpointId ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.EndpointGateway?.[this.entityId(e)];
         const isUpdate = this.module.endpointGateway.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           let update = false;

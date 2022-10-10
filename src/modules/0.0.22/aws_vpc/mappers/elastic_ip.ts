@@ -99,7 +99,7 @@ export class ElasticIpMapper extends MapperBase<ElasticIp> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.ElasticIp?.[e.allocationId ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.ElasticIp?.[this.entityId(e)];
         if (e.tags && !eqTags(cloudRecord.tags, e.tags)) {
           await updateTags(client.ec2client, e.allocationId ?? '', e.tags);
           const rawElasticIp = await this.getElasticIp(client.ec2client, e.allocationId ?? '');

@@ -239,7 +239,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.NatGateway?.[e.natGatewayId ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.NatGateway?.[this.entityId(e)];
         // `isUpdate` means only `tags` and/or `state` have changed
         const isUpdate = Object.is(this.module.natGateway.cloud.updateOrReplace(cloudRecord, e), 'update');
         if (isUpdate && !eqTags(cloudRecord.tags, e.tags)) {
