@@ -74,8 +74,8 @@ describe('MemoryDB Integration Testing', () => {
   it('applies the change', apply());
 
   it ('creates a memory db cluster', query(`
-    INSERT INTO memory_db_cluster (cluster_name, subnet_group)
-    VALUES ('${clusterName}', '${subnetGroupName}');
+    INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
+    VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
   `));
 
   it('undo changes', sync());
@@ -87,8 +87,8 @@ describe('MemoryDB Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it ('creates a memory db cluster', query(`
-    INSERT INTO memory_db_cluster (cluster_name, subnet_group)
-    VALUES ('${clusterName}', '${subnetGroupName}');
+    INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
+    VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
   `));
 
   it('applies the change', apply());
