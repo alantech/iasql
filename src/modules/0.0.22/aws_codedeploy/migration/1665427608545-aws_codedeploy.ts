@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsCodedeploy1665424085034 implements MigrationInterface {
-  name = 'awsCodedeploy1665424085034';
+export class awsCodedeploy1665427608545 implements MigrationInterface {
+  name = 'awsCodedeploy1665427608545';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -14,7 +14,7 @@ export class awsCodedeploy1665424085034 implements MigrationInterface {
       `CREATE TYPE "public"."codedeploy_deployment_status_enum" AS ENUM('Baking', 'Created', 'Failed', 'InProgress', 'Queued', 'Ready', 'Stopped', 'Succeeded')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "codedeploy_deployment" ("id" SERIAL NOT NULL, "deployment_id" character varying, "description" character varying, "external_id" character varying, "status" "public"."codedeploy_deployment_status_enum", "location" json NOT NULL, "application_name" character varying NOT NULL, "deployment_group_name" character varying NOT NULL, CONSTRAINT "UQ_b2f00b6e221c03dac7537468e99" UNIQUE ("deployment_id"), CONSTRAINT "PK_e0ac7fcb16e35c7fe3e90ad3dae" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "codedeploy_deployment" ("id" SERIAL NOT NULL, "deployment_id" character varying, "description" character varying, "external_id" character varying, "status" "public"."codedeploy_deployment_status_enum", "location" json, "application_name" character varying NOT NULL, "deployment_group_name" character varying NOT NULL, CONSTRAINT "UQ_b2f00b6e221c03dac7537468e99" UNIQUE ("deployment_id"), CONSTRAINT "PK_e0ac7fcb16e35c7fe3e90ad3dae" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."codedeploy_deployment_group_deployment_config_name_enum" AS ENUM('CodeDeployDefault.AllAtOnce', 'CodeDeployDefault.HalfAtATime', 'CodeDeployDefault.OneAtATime')`,

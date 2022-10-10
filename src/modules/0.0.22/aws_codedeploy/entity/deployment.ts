@@ -77,10 +77,10 @@ export class CodedeployDeployment {
   status?: DeploymentStatusEnum;
 
   @Column({
-    nullable: false,
+    nullable: true,
     type: 'json',
   })
-  location: {
+  location?: {
     githubLocation?:
       | {
           // the GitHub account and repository pair that stores a reference to the commit that represents the bundled artifacts for the application revision. Specified as account/repository.
