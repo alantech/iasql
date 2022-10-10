@@ -104,24 +104,27 @@ class CertificateMapper extends MapperBase<Certificate> {
       await this.module.certificate.db.delete(es, ctx);
     },
     read: async (ctx: Context, arn?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (arn) {
         const region = parseArn(arn).region;
-        const client = (await ctx.getAwsClient(region)) as AWS;
-
-        const rawCert = await this.getCertificate(client.acmClient, arn);
-        if (!rawCert) return;
-        return this.certificateMapper(rawCert, region);
-      } else {
-        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-        const out = [];
-        for (const region of enabledRegions) {
+        if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          const rawCerts = (await this.getCertificates(client.acmClient)) ?? [];
-          for (const rawCert of rawCerts) {
-            const cert = this.certificateMapper(rawCert, region);
-            if (cert) out.push(cert);
-          }
+          const rawCert = await this.getCertificate(client.acmClient, arn);
+          if (!rawCert) return;
+          return this.certificateMapper(rawCert, region);
         }
+      } else {
+        const out: Certificate[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawCerts = (await this.getCertificates(client.acmClient)) ?? [];
+            for (const rawCert of rawCerts) {
+              const cert = this.certificateMapper(rawCert, region);
+              if (cert) out.push(cert);
+            }
+          }),
+        );
         return out;
       }
     },
