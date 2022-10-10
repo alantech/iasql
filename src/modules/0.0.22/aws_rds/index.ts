@@ -276,14 +276,16 @@ class RdsMapper extends MapperBase<RDS> {
         if (!rawRds) return;
         return await this.rdsMapper(rawRds, ctx, region);
       } else {
-        const out = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const rdses = await this.getDBInstances(client.rdsClient);
-          for (const rds of rdses) {
-            out.push(await this.rdsMapper(rds, ctx, region));
-          }
-        }
+        const out: RDS[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rdses = await this.getDBInstances(client.rdsClient);
+            for (const rds of rdses) {
+              out.push(await this.rdsMapper(rds, ctx, region));
+            }
+          }),
+        );
         return out;
       }
     },
@@ -474,14 +476,16 @@ class ParameterGroupMapper extends MapperBase<ParameterGroup> {
         if (!parameterGroup) return;
         return this.parameterGroupMapper(parameterGroup, region);
       } else {
-        const out = [];
-        for (const region of enabledRegions) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          const parameterGroups = await this.getDBParameterGroups(client.rdsClient);
-          for (const pg of parameterGroups) {
-            out.push(this.parameterGroupMapper(pg, region));
-          }
-        }
+        const out: ParameterGroup[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const parameterGroups = await this.getDBParameterGroups(client.rdsClient);
+            for (const pg of parameterGroups) {
+              out.push(this.parameterGroupMapper(pg, region));
+            }
+          }),
+        );
         return out;
       }
     },
