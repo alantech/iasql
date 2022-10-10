@@ -385,9 +385,6 @@ class RoleMapper extends MapperBase<IamRole> {
     return arn.split('/').pop();
   }
   allowEc2Service(a: IamRole) {
-    console.log('role is');
-    console.log(a);
-    console.log(a.assumeRolePolicyDocument?.Statement);
     return a.assumeRolePolicyDocument?.Statement?.find(
       (s: any) =>
         s.Effect === 'Allow' &&
@@ -428,7 +425,6 @@ class RoleMapper extends MapperBase<IamRole> {
         );
         const allowEc2Service = this.allowEc2Service(role);
         if (allowEc2Service) {
-          console.log('i allow ec2');
           await this.createInstanceProfile(client.iamClient, role.roleName);
           await this.attachRoleToInstanceProfile(client.iamClient, role.roleName);
         }
