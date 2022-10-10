@@ -137,7 +137,7 @@ describe('VPC Multiregion Integration Testing', () => {
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags)
       SELECT 'private', id, '{"Name":"${ng}"}'
       FROM subnet
-      WHERE cidr_block = '191.${randIPBlock}.0.0/16';
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16';
     `));
 
     it('applies the private nat gateway change', apply());
@@ -160,7 +160,7 @@ describe('VPC Multiregion Integration Testing', () => {
       INSERT INTO nat_gateway (connectivity_type, subnet_id, tags, elastic_ip_id)
       SELECT 'public', subnet.id, '{"Name":"${pubNg}"}', elastic_ip.id
       FROM subnet, elastic_ip
-      WHERE cidr_block = '191.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
+      WHERE cidr_block = '192.${randIPBlock}.0.0/16' AND elastic_ip.tags ->> 'name' = '${eip}';
     `));
 
     it('applies the public nat gateway with existing elastic ip change', apply());
@@ -221,7 +221,7 @@ describe('VPC Multiregion Integration Testing', () => {
       SELECT 's3', id, '{"Name": "${s3VpcEndpoint}"}'
       FROM vpc
       WHERE is_default = false
-      AND cidr_block = '191.${randIPBlock}.0.0/16';
+      AND cidr_block = '192.${randIPBlock}.0.0/16';
     `));
 
     it('checks endpoint gateway count', query(`
