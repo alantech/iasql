@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsVpc1665426533179 implements MigrationInterface {
-  name = 'awsVpc1665426533179';
+export class awsVpc1665427355455 implements MigrationInterface {
+  name = 'awsVpc1665427355455';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -29,7 +29,7 @@ export class awsVpc1665426533179 implements MigrationInterface {
     );
     await queryRunner.query(`CREATE TYPE "public"."endpoint_gateway_service_enum" AS ENUM('dynamodb', 's3')`);
     await queryRunner.query(
-      `CREATE TABLE "endpoint_gateway" ("id" SERIAL NOT NULL, "vpc_endpoint_id" character varying, "service" "public"."endpoint_gateway_service_enum" NOT NULL, "policy_document" character varying, "state" character varying, "route_table_ids" text array, "tags" json, "vpc_id" integer NOT NULL, CONSTRAINT "PK_b81d6fec498a6dca8304f9de403" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "endpoint_gateway" ("id" SERIAL NOT NULL, "vpc_endpoint_id" character varying, "service" "public"."endpoint_gateway_service_enum" NOT NULL, "policy_document" character varying, "state" character varying, "route_table_ids" text array, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "vpc_id" integer NOT NULL, CONSTRAINT "PK_b81d6fec498a6dca8304f9de403" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `ALTER TABLE "availability_zone" ADD CONSTRAINT "FK_9557e4873661a90723a39e5b9c2" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -58,9 +58,15 @@ export class awsVpc1665426533179 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "endpoint_gateway" ADD CONSTRAINT "FK_cea670f322f7a21bd20c35dd008" FOREIGN KEY ("vpc_id") REFERENCES "vpc"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
+    await queryRunner.query(
+      `ALTER TABLE "endpoint_gateway" ADD CONSTRAINT "FK_54d6c333020521f251592867da4" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "endpoint_gateway" DROP CONSTRAINT "FK_54d6c333020521f251592867da4"`,
+    );
     await queryRunner.query(
       `ALTER TABLE "endpoint_gateway" DROP CONSTRAINT "FK_cea670f322f7a21bd20c35dd008"`,
     );

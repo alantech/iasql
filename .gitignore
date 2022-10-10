@@ -7,3 +7,4 @@ coverage/
 *.zip
 .DS_Store
 .idea
+*.swp
