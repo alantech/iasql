@@ -271,7 +271,7 @@ describe('AwsCodedeploy Integration Testing', () => {
   it(
     'tries to update application ID',
     query(`
-  UPDATE codedeploy_application SET id='fake' WHERE name='${applicationName}'
+  UPDATE codedeploy_application SET application_id='fake' WHERE name='${applicationName}'
   `),
   );
 
@@ -281,7 +281,7 @@ describe('AwsCodedeploy Integration Testing', () => {
     'checks that application ID has not been been modified',
     query(
       `
-  SELECT * FROM codedeploy_application WHERE id='fake' AND name='${applicationName}';
+  SELECT * FROM codedeploy_application WHERE application_id='fake' AND name='${applicationName}';
 `,
       (res: any) => expect(res.length).toBe(0),
     ),
