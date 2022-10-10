@@ -1,6 +1,7 @@
 import { Check, Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { ElasticIp } from './elastic_ip';
 import { Subnet } from './subnet';
 
@@ -65,4 +66,14 @@ export class NatGateway {
     nullable: true,
   })
   tags?: { [key: string]: string };
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }

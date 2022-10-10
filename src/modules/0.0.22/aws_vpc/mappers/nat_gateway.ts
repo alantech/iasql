@@ -25,7 +25,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
     Object.is(a.subnet?.subnetArn, b.subnet?.subnetArn) &&
     eqTags(a.tags, b.tags);
 
-  async natGatewayMapper(nat: AwsNatGateway, ctx: Context) {
+  async natGatewayMapper(nat: AwsNatGateway, region: string, ctx: Context) {
     const out = new NatGateway();
     out.connectivityType = nat.ConnectivityType as ConnectivityType;
     const natPublicAddress = nat.NatGatewayAddresses?.filter(n => !!n.AllocationId).pop();
@@ -53,6 +53,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
         tags[t.Key as string] = t.Value as string;
       });
     out.tags = tags;
+    out.region = region;
     return out;
   }
 
@@ -160,8 +161,8 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
   cloud: Crud2<NatGateway> = new Crud2({
     create: async (es: NatGateway[], ctx: Context) => {
       const out = [];
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateNatGatewayCommandInput = {
           SubnetId: e.subnet?.subnetId,
           ConnectivityType: e.connectivityType,
@@ -193,7 +194,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
         }
         const res: AwsNatGateway | undefined = await this.createNatGateway(client.ec2client, input);
         if (res) {
-          const newNatGateway = await this.natGatewayMapper(res, ctx);
+          const newNatGateway = await this.natGatewayMapper(res, e.region, ctx);
           if (!newNatGateway) continue;
           newNatGateway.id = e.id;
           await this.module.natGateway.db.update(newNatGateway, ctx);
@@ -203,17 +204,24 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       if (!!id) {
-        const rawNatGateway = await this.getNatGateway(client.ec2client, id);
+        const { natGatewayId, region } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawNatGateway = await this.getNatGateway(client.ec2client, natGatewayId);
         if (!rawNatGateway) return;
-        return await this.natGatewayMapper(rawNatGateway, ctx);
+        return await this.natGatewayMapper(rawNatGateway, region, ctx);
       } else {
-        const out = [];
-        for (const ng of await this.getNatGateways(client.ec2client)) {
-          const outNg = await this.natGatewayMapper(ng, ctx);
-          if (outNg) out.push(outNg);
-        }
+        const out: NatGateway[] = [];
+        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            for (const ng of await this.getNatGateways(client.ec2client)) {
+              const outNg = await this.natGatewayMapper(ng, region, ctx);
+              if (outNg) out.push(outNg);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -228,9 +236,9 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
       return 'replace';
     },
     update: async (es: NatGateway[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.NatGateway?.[e.natGatewayId ?? ''];
         // `isUpdate` means only `tags` and/or `state` have changed
         const isUpdate = Object.is(this.module.natGateway.cloud.updateOrReplace(cloudRecord, e), 'update');
@@ -239,7 +247,7 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
           await updateTags(client.ec2client, e.natGatewayId ?? '', e.tags);
           const rawNatGateway = await this.getNatGateway(client.ec2client, e.natGatewayId ?? '');
           if (!rawNatGateway) continue;
-          const updatedNatGateway = await this.natGatewayMapper(rawNatGateway, ctx);
+          const updatedNatGateway = await this.natGatewayMapper(rawNatGateway, e.region, ctx);
           if (!updatedNatGateway) continue;
           updatedNatGateway.id = e.id;
           await this.module.natGateway.db.update(updatedNatGateway, ctx);
@@ -260,8 +268,8 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
       return out;
     },
     delete: async (es: NatGateway[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteNatGateway(client.ec2client, e.natGatewayId ?? '');
       }
     },
