@@ -147,7 +147,15 @@ describe('VPC Multiregion Integration Testing', () => {
     `, (res: any) => expect(res.length).toBe(1)));
 
     it('updates the private nat gateway to another region', query(`
-      UPDATE nat_gateway SET region='us-east-1' WHERE tags ->> 'Name' = '${ng}';
+      INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
+      SELECT 'us-east-1a', id, '191.${randIPBlock}.0.0/16', 'us-east-1'
+      FROM vpc
+      WHERE is_default = true AND region = 'us-east-1';
+      UPDATE nat_gateway
+      SET
+        region = 'us-east-1',
+        vpc_id = (SELECT id FROM subnet WHERE cidr_block = '191.${randIPBlock}.0.0/16')
+      WHERE tags ->> 'Name' = '${ng}';
     `));
 
     it('applies the private nat gateway region change', apply());
@@ -170,10 +178,6 @@ describe('VPC Multiregion Integration Testing', () => {
     `, (res: any) => expect(res.length).toBe(1)));
 
     it('moves the nat gateway and elastic IP to another region', query(`
-      INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
-      SELECT 'us-east-1a', id, '191.${randIPBlock}.0.0/16', 'us-east-1'
-      FROM vpc
-      WHERE is_default = true AND region = 'us-east-1';
       -- Detaching and re-attaching the elastic IP record to avoid join issues
       UPDATE nat_gateway
       SET 
