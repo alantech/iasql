@@ -5552,15 +5552,10 @@
     "@types/node" "*"
     form-data "^3.0.0"
 
-"@types/node@*":
-  version "18.6.1"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.6.1.tgz#828e4785ccca13f44e2fb6852ae0ef11e3e20ba5"
-  integrity sha512-z+2vB6yDt1fNwKOeGbckpmirO+VBDuQqecXkgeIqDlaOtmKn6hPR/viQ8cxCfqLU4fTlvM3+YjM367TukWdxpg==
-
-"@types/node@^16.11.28":
-  version "16.11.45"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.11.45.tgz#155b13a33c665ef2b136f7f245fa525da419e810"
-  integrity sha512-3rKg/L5x0rofKuuUt5zlXzOnKyIHXmIu5R8A0TuNDMF2062/AOIDBciFIjToLEJ/9F9DzkHNot+BpNsMI1OLdQ==
+"@types/node@*", "@types/node@^18.8.3":
+  version "18.8.3"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.8.3.tgz#ce750ab4017effa51aed6a7230651778d54e327c"
+  integrity sha512-0os9vz6BpGwxGe9LOhgP/ncvYN5Tx1fNcd2TM3rD/aCGBkysb+ZWpXEocG24h6ZzOi13+VB8HndAQFezsSOw1w==
 
 "@types/parse-json@^4.0.0":
   version "4.0.0"
@@ -9504,10 +9499,10 @@ pgpass@1.x:
   dependencies:
     split2 "^4.1.0"
 
-pgsql-deparser@^13.3.13:
-  version "13.3.13"
-  resolved "https://registry.yarnpkg.com/pgsql-deparser/-/pgsql-deparser-13.3.13.tgz#3ff4962e53096d4395d9b21e55d03910ec6f3e59"
-  integrity sha512-huhLnH3GuPQRkt3hQWlqgyPQR6RB7vhd8tlTrOYtF3nAF39mWhHL/H31/nCJ/Mh53u7ybNDmrppYjKCAAyf+9A==
+pgsql-deparser@^13.3.14:
+  version "13.3.14"
+  resolved "https://registry.yarnpkg.com/pgsql-deparser/-/pgsql-deparser-13.3.14.tgz#f5931efeb7f4e5c94cd41068f8b2194398f2a8f6"
+  integrity sha512-vt1xWeGE6c9NMVh8oTJCsCO6Ny1XfVlnmKs4fRoSO+8DGaCM7SBBJ6cE8fS5HznA8ODJThBMQlRM4im+ewkeqw==
   dependencies:
     "@babel/runtime" "^7.11.2"
     dotty "^0.1.0"
@@ -9521,15 +9516,15 @@ pgsql-enums@^13.1.3:
   dependencies:
     "@babel/runtime" "^7.4.2"
 
-pgsql-parser@^13.3.13:
-  version "13.3.13"
-  resolved "https://registry.yarnpkg.com/pgsql-parser/-/pgsql-parser-13.3.13.tgz#bce45eac03d9e9a455801ddaa7ce4f1f87c4c902"
-  integrity sha512-M63RVoNZjvj9U+1ZWiR0WVtYnT6bCJUCNSQdPh9naunKTLNNS4HDmNlpwBQgEa05hlFbFmUgWJXfagz8HcyVjA==
+pgsql-parser@^13.3.14:
+  version "13.3.14"
+  resolved "https://registry.yarnpkg.com/pgsql-parser/-/pgsql-parser-13.3.14.tgz#fa404e1970b07501f54f891d09eb29a3ab00f19e"
+  integrity sha512-0b2JK/B9YePhlZ7l1ifTrqC7uutiCs4Xp7WEEV9BSND/Ab/zbHmzoLGkHRWYHA0hP51jZ9nZ81PPup5NU8vb6Q==
   dependencies:
     "@babel/runtime" "^7.11.2"
     libpg-query "13.2.5"
     minimist "^1.2.6"
-    pgsql-deparser "^13.3.13"
+    pgsql-deparser "^13.3.14"
     pgsql-enums "^13.1.3"
 
 picocolors@^1.0.0:
