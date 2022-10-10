@@ -60,6 +60,7 @@ export enum ParameterGroupFamily {
 
 @Entity()
 @Unique('paragrp_name_region', ['name', 'region'])
+@Unique('paragrp_id_region', ['id', 'region']) // So the RDS entity can join on both
 export class ParameterGroup {
   @PrimaryGeneratedColumn()
   id?: number;
