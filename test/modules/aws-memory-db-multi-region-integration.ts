@@ -13,7 +13,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'memorydbtest';
 
-const nonDefaultRegion = 'us-easst-1';
+const nonDefaultRegion = 'us-east-1';
 
 const subnetGroupName = `${prefix}${dbAlias}sng`;
 const clusterName = `${prefix}${dbAlias}cl`;
@@ -82,8 +82,27 @@ describe('MemoryDB Multi-region Integration Testing', () => {
   it(
     'creates a memory db cluster',
     query(`
-    INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
-    VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
+      INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
+      VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
+  `),
+  );
+
+  it('should fail inserting a wrong security group', () => {
+    try {
+      query(`
+        INSERT INTO memory_db_cluster_security_groups (security_group_id, security_group_region, memory_db_cluster_id, memory_db_cluster_region)
+        VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), '${nonDefaultRegion}', (select id from memory_db_cluster where cluster_name = '${clusterName}}', '${process.env.AWS_REGION}'));
+      `);
+    } catch (e: any) {
+      expect(e.message).toBe('asdfsdg');
+    }
+  });
+
+  it(
+    'creates a memory db cluster',
+    query(`
+      INSERT INTO memory_db_cluster_security_groups (security_group_id, security_group_region, memory_db_cluster_id, memory_db_cluster_region)
+      VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), '${process.env.AWS_REGION}', (select id from memory_db_cluster where cluster_name = '${clusterName}}', '${process.env.AWS_REGION}'));
   `),
   );
 
@@ -101,7 +120,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     ),
   );
 
-  it('cshould fail trying to update luster region without changing the subnet group', () => {
+  it('should fail trying to update cluster region without changing the subnet group', () => {
     try {
       query(`
         UPDATE memory_db_cluster
@@ -109,7 +128,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
         WHERE cluster_name = '${clusterName}';
       `);
     } catch (e: any) {
-      expect(e.message).toContain('tbd');
+      expect(e.message).toBe('asdfghj');
     }
   });
 
@@ -120,7 +139,11 @@ describe('MemoryDB Multi-region Integration Testing', () => {
       UPDATE subnet_group
       SET region = '${nonDefaultRegion}'
       WHERE subnet_group_name = '${subnetGroupName}'
-    )
+    ), updated_memory_db_cluster_security_groups AS (
+      UPDATE memory_db_cluster_security_groups
+      SET memory_db_cluster_region = '${nonDefaultRegion}', security_group_region = '${nonDefaultRegion}', security_group_id = (select id from security_group where group_name = 'default' and region = '${nonDefaultRegion}')
+      WHERE memory_db_cluster_id = (select id from memory_db_cluster where cluster_name = '${clusterName}')
+    ) 
     UPDATE memory_db_cluster
     SET region = '${nonDefaultRegion}'
     WHERE cluster_name = '${clusterName}';
