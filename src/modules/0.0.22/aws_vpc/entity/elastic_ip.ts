@@ -1,9 +1,10 @@
-import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
 @Entity()
+@Unique('elasticip_id_region', ['id', 'region']) // So the NAT Gateway entity can join on both
 export class ElasticIp {
   @PrimaryGeneratedColumn()
   id: number;

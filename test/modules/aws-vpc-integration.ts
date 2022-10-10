@@ -186,8 +186,8 @@ describe('VPC Integration Testing', () => {
     it('checks public nat gateway with no existing elastic ip count', query(`
       SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
     `, (res: any) => expect(res.length).toBe(1)));
-  
-    it('checks public nat gateway with no existing elastic ip count', query(`
+
+    it('checks elastic IP count', query(`
       SELECT * FROM elastic_ip WHERE tags ->> 'Name' = '${pubNg2}';
     `, (res: any) => expect(res.length).toBe(1)));
   });
@@ -423,9 +423,9 @@ describe('VPC Integration Testing', () => {
       WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}';
     `));
   
-    it('applies theendpoint_gateway change', apply());
+    it('applies the endpoint_gateway change', apply());
   
-    it('checksendpoint_gateway count', query(`
+    it('checks endpoint_gateway count', query(`
       SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}' OR tags ->> 'Name' = '${s3VpcEndpoint}'
     `, (res: any) => expect(res.length).toBe(0)));
   });

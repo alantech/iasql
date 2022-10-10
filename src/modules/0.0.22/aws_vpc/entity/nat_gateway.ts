@@ -49,9 +49,16 @@ export class NatGateway {
     nullable: true,
     eager: true,
   })
-  @JoinColumn({
-    name: 'elastic_ip_id',
-  })
+  @JoinColumn([
+    {
+      name: 'elastic_ip_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   elasticIp?: ElasticIp;
 
   @Column({
