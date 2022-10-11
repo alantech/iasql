@@ -147,10 +147,12 @@ describe('VPC Multiregion Integration Testing', () => {
     `, (res: any) => expect(res.length).toBe(1)));
 
     it('updates the private nat gateway to another region', query(`
+      INSERT INTO vpc (cidr_block, region)
+      VALUES ('191.${randIPBlock}.0.0/16', 'us-east-1');
       INSERT INTO subnet (availability_zone, vpc_id, cidr_block, region)
       SELECT 'us-east-1a', id, '191.${randIPBlock}.0.0/16', 'us-east-1'
       FROM vpc
-      WHERE is_default = true AND region = 'us-east-1';
+      WHERE is_default = false AND region = 'us-east-1' AND cidr_block = '191.${randIPBlock}.0.0/16';
       UPDATE nat_gateway
       SET
         region = 'us-east-1',
@@ -272,7 +274,7 @@ describe('VPC Multiregion Integration Testing', () => {
     `, (res: any) => expect(res.length).toBe(0)));
   });
 
-  it('deletes the vpc', query(`
+  it('deletes the vpcs', query(`
     WITH vpc as (
       SELECT id
       FROM vpc
@@ -287,6 +289,21 @@ describe('VPC Multiregion Integration Testing', () => {
 
     DELETE FROM vpc
     WHERE cidr_block='192.${randIPBlock}.0.0/16' AND tags ->> 'name' = '${prefix}-1' AND region = '${process.env.AWS_REGION}';
+
+    WITH vpc as (
+      SELECT id
+      FROM vpc
+      WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1'
+    )
+    DELETE FROM security_group
+    USING vpc
+    WHERE vpc_id = vpc.id;
+
+    DELETE FROM subnet
+    WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1';
+
+    DELETE FROM vpc
+    WHERE cidr_block='191.${randIPBlock}.0.0/16' AND region = 'us-east-1';
   `));
 
   it('applies the vpc removal', apply());
