@@ -3,6 +3,7 @@ import {
   execComposeDown,
   execComposeUp,
   finish,
+  getPrefix,
   runApply,
   runInstall,
   runQuery,
@@ -10,13 +11,76 @@ import {
   runUninstall,
 } from '../helpers';
 
+const prefix = getPrefix();
 const dbAlias = 'codepipelinetest';
 const apply = runApply.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
-const modules = ['aws_codepipeline'];
+const modules = ['aws_codepipeline', 'aws_s3'];
+
+const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipelineFullAccess';
+const bucket = `${prefix}-bucket`;
+const assumeServicePolicy = JSON.stringify({
+  Statement: [
+    {
+      Effect: 'Allow',
+      Principal: {
+        Service: 'codepipeline.amazonaws.com',
+      },
+      Action: 'sts:AssumeRole',
+    },
+  ],
+  Version: '2012-10-17',
+});
+
+const stages = JSON.stringify([
+  {
+    name: 'Source',
+    actions: [
+      {
+        name: 'SourceAction',
+        actionTypeId: {
+          category: 'Source',
+          owner: 'ThirdParty',
+          version: '1',
+          provider: 'GitHub',
+        },
+        configuration: {
+          Owner: 'iasql',
+          Repo: 'iasql-codedeploy-example',
+          Branch: 'main',
+          OAuthToken: process.env.GH_PAT,
+        },
+        outputArtifacts: [
+          {
+            name: 'Source',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Deploy',
+    actions: [
+      {
+        name: 'DeployApp',
+        actionTypeId: {
+          category: 'Deploy',
+          owner: 'AWS',
+          version: '1',
+          provider: 'CodeDeploy',
+        },
+        configuration: {
+          ApplicationName: 'iasql-codedeploy-example',
+        },
+      },
+    ],
+  },
+]);
+
+const artifactStore = JSON.stringify({ type: 'S3', location: bucket });
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -52,10 +116,26 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('installs the codepipeline module', install(modules));
 
   it(
+    'adds a new role',
+    query(`
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('${prefix}-${dbAlias}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}']);
+  `),
+  );
+
+  it(
+    'add storage s3 endpoint',
+    query(`
+    INSERT INTO bucket (name) VALUES ('${bucket}')`),
+  );
+
+  it('applies the s3 creation', apply());
+
+  it(
     'adds a new pipeline',
     query(`
-    INSERT INTO pipeline_declaration (name)
-    VALUES ('${dbAlias}');
+    INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
+    VALUES ('${prefix}-${dbAlias}', '${prefix}-${dbAlias}', '${stages}', '${artifactStore}');
   `),
   );
 
@@ -66,7 +146,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     SELECT * FROM pipeline_declaration
-    WHERE name = '${dbAlias}';
+    WHERE name = '${prefix}-${dbAlias}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
@@ -80,7 +160,23 @@ describe('AwsCodepipeline Integration Testing', () => {
     'delete pipeline',
     query(`
     DELETE FROM pipeline_declaration
-    WHERE name = '${dbAlias}';
+    WHERE name = '${prefix}-${dbAlias}';
+  `),
+  );
+
+  it(
+    'delete role',
+    query(`
+    DELETE FROM iam_role
+    WHERE role_name = '${prefix}-${dbAlias}';
+  `),
+  );
+
+  it(
+    'delete bucket',
+    query(`
+    DELETE FROM bucket
+    WHERE name = '${bucket}';
   `),
   );
 
@@ -91,7 +187,18 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     SELECT * FROM pipeline_declaration
-    WHERE project_name = '${dbAlias}';
+    WHERE name = '${prefix}-${dbAlias}';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check role list is empty',
+    query(
+      `
+    SELECT * FROM iam_role
+    WHERE role_name = '${prefix}-${dbAlias}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
@@ -100,7 +207,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
-describe('AwsCodepipeline install/uninstall', () => {
+/*describe('AwsCodepipeline install/uninstall', () => {
   it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -138,4 +245,4 @@ describe('AwsCodepipeline install/uninstall', () => {
   it('installs the codepipeline module', install(modules));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});
+});*/

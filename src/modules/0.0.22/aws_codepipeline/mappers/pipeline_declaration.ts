@@ -13,22 +13,34 @@ import {
 import { AwsCodepipelineModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { awsIamModule } from '../../aws_iam';
 import { PipelineDeclaration } from '../entity';
 
 export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
   module: AwsCodepipelineModule;
   entity = PipelineDeclaration;
   equals = (a: PipelineDeclaration, b: PipelineDeclaration) =>
-    Object.is(a.roleArn, b.roleArn) &&
+    Object.is(a.serviceRole?.arn, b.serviceRole?.arn) &&
     Object.is(a.name, b.name) &&
     isEqual(a.artifactStore, b.artifactStore) &&
     isEqual(a.stages, b.stages);
 
   async pipelineDeclarationMapper(pd: AWSPipelineDeclaration, ctx: Context) {
-    const out = new PipelineDeclaration();
+    if (!pd.roleArn || !pd.name) return;
 
-    out.roleArn = pd.roleArn;
-    if (pd.name) out.name = pd.name;
+    const out = new PipelineDeclaration();
+    if (pd.roleArn) {
+      const roleName = awsIamModule.role.roleNameFromArn(pd.roleArn, ctx);
+      if (!Object.values(ctx.memo?.cloud?.IamRole ?? {}).length) {
+        out.serviceRole =
+          (await awsIamModule.role.db.read(ctx, roleName)) ??
+          (await awsIamModule.role.cloud.read(ctx, roleName));
+      } else {
+        out.serviceRole =
+          (await awsIamModule.role.db.read(ctx, roleName)) ?? ctx?.memo?.cloud?.IamRole?.[roleName ?? ''];
+      }
+    }
+    out.name = pd.name;
     out.artifactStore = {
       encryptionKey: pd.artifactStore?.encryptionKey,
       location: pd.artifactStore?.location,
@@ -77,12 +89,12 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const pd of pds) {
-        if (!pd.name) continue;
+        if (!pd.name || !pd.serviceRole) continue;
 
         const input: CreatePipelineCommandInput = {
           pipeline: {
             name: pd.name,
-            roleArn: pd.roleArn,
+            roleArn: pd.serviceRole.arn,
             artifactStore: pd.artifactStore,
             stages: pd.stages as AWSStageDeclaration[],
           },
@@ -127,8 +139,8 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
       for (const pd of pds) {
         const cloudRecord = ctx?.memo?.cloud?.PipelineDeclaration?.[pd.name ?? ''];
         // if we have modified arn, restore it
-        if (pd.roleArn !== cloudRecord.roleArn) {
-          pd.roleArn = cloudRecord.roleArn;
+        if (pd.serviceRole.arn !== cloudRecord.serviceRole.arn) {
+          pd.serviceRole = cloudRecord.serviceRole;
           await this.module.pipeline_declaration.db.update(pd, ctx);
           out.push(pd);
           continue;

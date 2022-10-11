@@ -3,6 +3,7 @@ import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { ArtifactStore, StageDeclaration } from '@aws-sdk/client-codepipeline';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { IamRole } from '../../aws_iam/entity';
 
 export enum ActionCategory {
   Approval = 'Approval',
@@ -28,10 +29,13 @@ export class PipelineDeclaration {
   })
   artifactStore: ArtifactStore;
 
-  @Column({
-    nullable: true,
+  @ManyToOne(() => IamRole, {
+    eager: true,
   })
-  roleArn?: string;
+  @JoinColumn({
+    name: 'service_role_name',
+  })
+  serviceRole: IamRole;
 
   @Column({
     type: 'json',
