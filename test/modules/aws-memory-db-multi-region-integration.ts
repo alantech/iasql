@@ -125,7 +125,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     query(`
     WITH updated_subnet_group AS (
       UPDATE subnet_group
-      SET region = '${nonDefaultRegion}', subnets = ARRAY(SELECT subnet_id FROM subnet WHERE region = '${nonDefaultRegion}' AND is_default = TRUE)
+      SET region = '${nonDefaultRegion}', subnets = ARRAY(SELECT subnet_id FROM subnet INNER JOIN vpc ON vpc.id = subnet.vpc_id WHERE subnet.region = '${nonDefaultRegion}' AND vpc.is_default = TRUE)
       WHERE subnet_group_name = '${subnetGroupName}'
     ), updated_memory_db_cluster_security_groups AS (
       UPDATE memory_db_cluster_security_groups
