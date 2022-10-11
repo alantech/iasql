@@ -45,7 +45,7 @@ begin
   from subnet
   where subnet_id = any(NEW.subnets) and region = NEW.region;
 
-  IF (_subnets_count = array_length(NEW.subnets, 1) AND _vpc_count = 1) THEN
+  IF ((_subnets_count = 0 OR _subnets_count = array_length(NEW.subnets, 1)) AND _vpc_count <= 1) THEN
     RETURN NEW;
   ELSE
     RAISE EXCEPTION 'Subnets must be from the same vpc and region.';
