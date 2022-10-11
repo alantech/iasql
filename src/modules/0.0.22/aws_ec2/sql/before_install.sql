@@ -1,12 +1,12 @@
  -- Create target group instance constraint
 CREATE
-OR REPLACE FUNCTION check_target_group_instance (_target_group_name TEXT) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+OR REPLACE FUNCTION check_target_group_instance (_target_group_id INTEGER) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 declare
   _target_group_type target_group_target_type_enum;
 begin
   select target_type into _target_group_type
   from target_group
-  where target_group_name = _target_group_name;
+  where target_group_id = _target_group_id;
   return _target_group_type = 'instance';
 end;
 $$;

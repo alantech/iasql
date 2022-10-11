@@ -69,9 +69,7 @@ export class Service {
   @ManyToOne(() => TargetGroup, {
     eager: true,
   })
-  @JoinColumn({
-    name: 'target_group_name',
-  })
+  @JoinColumn()
   targetGroup?: TargetGroup;
 
   @Column({
