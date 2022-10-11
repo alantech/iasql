@@ -204,14 +204,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
       }
     },
     updateOrReplace: (a: EndpointGateway, b: EndpointGateway) => {
-      if (
-        !(
-          Object.is(a.vpc?.vpcId, b.vpc?.vpcId) &&
-          Object.is(a.service, b.service) &&
-          Object.is(a.region, b.region)
-        )
-      )
-        return 'replace';
+      if (!(Object.is(a.vpc?.vpcId, b.vpc?.vpcId) && Object.is(a.service, b.service))) return 'replace';
       return 'update';
     },
     update: async (es: EndpointGateway[], ctx: Context) => {
