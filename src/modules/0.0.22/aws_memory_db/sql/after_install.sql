@@ -28,7 +28,7 @@ UPDATE
 EXECUTE
   FUNCTION check_subnets_by_subnet_group ();
 
-ALTER TABLE
-  "memory_db_cluster_security_groups"
-ADD
-  CONSTRAINT "check_memorydb_cluster_security_group_region" CHECK (security_group_region = memory_db_cluster_region)
+-- ALTER TABLE
+--   "memory_db_cluster_security_groups"
+-- ADD
+--   CONSTRAINT "check_memorydb_cluster_security_group_region" CHECK (security_group_region = memory_db_cluster_region)

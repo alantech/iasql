@@ -146,7 +146,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     void query(`
     WITH updated_memory_db_cluster_security_groups AS (
       UPDATE memory_db_cluster_security_groups
-      SET memory_db_cluster_region = '${nonDefaultRegion}', security_group_region = '${nonDefaultRegion}', security_group_id = (select id from security_group where group_name = 'default' and region = '${nonDefaultRegion}')
+      SET security_group_id = (select id from security_group where group_name = 'default' and region = '${nonDefaultRegion}')
       WHERE memory_db_cluster_id = (select id from memory_db_cluster where cluster_name = '${clusterName}')
     )
     UPDATE memory_db_cluster
