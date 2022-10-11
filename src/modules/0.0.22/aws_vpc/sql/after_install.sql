@@ -13,7 +13,8 @@ OR REPLACE FUNCTION check_route_table_ids_region_update () RETURNS TRIGGER AS $$
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER
-  check_route_table_ids_region_update BEFORE UPDATE
+  check_route_table_ids_region_update BEFORE
+UPDATE
   ON endpoint_gateway FOR EACH ROW
 EXECUTE
   FUNCTION check_route_table_ids_region_update ();
