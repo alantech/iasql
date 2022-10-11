@@ -4,6 +4,12 @@ DROP TRIGGER
 DROP FUNCTION
   "check_subnets_by_subnet_group";
 
+DROP TRIGGER
+  IF EXISTS check_subnet_group_subnets ON subnet;
+
+DROP FUNCTION
+  "check_subnet_group_subnets";
+
 -- ALTER TABLE
 --   "memory_db_cluster_security_groups"
 -- DROP

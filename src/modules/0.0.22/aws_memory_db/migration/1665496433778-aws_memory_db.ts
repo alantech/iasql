@@ -1,11 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsMemoryDb1665480736508 implements MigrationInterface {
-  name = 'awsMemoryDb1665480736508';
+export class awsMemoryDb1665496433778 implements MigrationInterface {
+  name = 'awsMemoryDb1665496433778';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "subnet_group" ("id" SERIAL NOT NULL, "subnet_group_name" character varying NOT NULL, "description" character varying, "arn" character varying, "subnets" character varying array, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "uq_subnet_group_name_region" UNIQUE ("subnet_group_name", "region"), CONSTRAINT "uq_subnet_group_id_region" UNIQUE ("id", "region"), CONSTRAINT "check_subnet_group_subnets_same_vpc" CHECK (check_subnet_group_subnets_same_vpc(subnets)), CONSTRAINT "check_subnet_group_subnets" CHECK (check_subnet_group_subnets(subnets)), CONSTRAINT "PK_a54731069caf05d2029dc7cd4c2" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "subnet_group" ("id" SERIAL NOT NULL, "subnet_group_name" character varying NOT NULL, "description" character varying, "arn" character varying, "subnets" character varying array, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "uq_subnet_group_name_region" UNIQUE ("subnet_group_name", "region"), CONSTRAINT "uq_subnet_group_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_a54731069caf05d2029dc7cd4c2" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."memory_db_cluster_node_type_enum" AS ENUM('db.t4g.small', 'db.t4g.medium', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarg')`,
