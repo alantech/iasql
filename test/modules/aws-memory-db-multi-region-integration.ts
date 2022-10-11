@@ -89,8 +89,8 @@ describe('MemoryDB Multi-region Integration Testing', () => {
 
   it('should fail inserting a wrong security group region', done =>
     void query(`
-    INSERT INTO memory_db_cluster_security_groups (security_group_id, security_group_region, memory_db_cluster_id, memory_db_cluster_region)
-    VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), '${nonDefaultRegion}', (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${process.env.AWS_REGION}');
+    INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id)
+    VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'));
   `)((e?: any) => {
       console.log({ e });
       try {
@@ -106,8 +106,8 @@ describe('MemoryDB Multi-region Integration Testing', () => {
   it(
     'creates a memory db cluster',
     query(`
-      INSERT INTO memory_db_cluster_security_groups (security_group_id, security_group_region, memory_db_cluster_id, memory_db_cluster_region)
-      VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), '${process.env.AWS_REGION}', (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${process.env.AWS_REGION}');
+      INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id)
+      VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'));
   `),
   );
 
@@ -173,7 +173,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
       WHERE subnet_group_name = '${subnetGroupName}'
     ), updated_memory_db_cluster_security_groups AS (
       UPDATE memory_db_cluster_security_groups
-      SET memory_db_cluster_region = '${nonDefaultRegion}', security_group_region = '${nonDefaultRegion}', security_group_id = (select id from security_group where group_name = 'default' and region = '${nonDefaultRegion}')
+      SET security_group_id = (select id from security_group where group_name = 'default' and region = '${nonDefaultRegion}')
       WHERE memory_db_cluster_id = (select id from memory_db_cluster where cluster_name = '${clusterName}')
     ) 
     UPDATE memory_db_cluster
