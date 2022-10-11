@@ -13,6 +13,8 @@ wget https://aws-codedeploy-' || region || '.s3.' || region || '.amazonaws.com/l
 chmod +x ./install
 sudo ./install auto
 sudo service codedeploy-agent start';
+  ELSE
+    RAISE EXCEPTION 'Only Ubuntu is supported on Codedeploy agent script generation';
   END case;
 END;
 $$;
