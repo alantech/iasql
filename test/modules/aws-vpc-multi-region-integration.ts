@@ -251,8 +251,10 @@ describe('VPC Multiregion Integration Testing', () => {
 
     it('moves the endpoint gateway to another region', query(`
       UPDATE endpoint_gateway
-      SET region = 'us-east-1',
-      vpc_id = (SELECT id from vpc WHERE is_default = true AND region='us-east-1')
+      SET
+        region = 'us-east-1',
+        rout_table_ids = NULL, -- TODO: Handle this in the mapper instead?
+        vpc_id = (SELECT id from vpc WHERE is_default = true AND region='us-east-1')
       WHERE tags ->> 'Name' = '${s3VpcEndpoint}';
     `));
 
