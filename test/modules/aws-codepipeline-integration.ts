@@ -18,10 +18,16 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
-const modules = ['aws_codepipeline', 'aws_s3'];
+const modules = ['aws_codepipeline', 'aws_s3', 'aws_codedeployment'];
 
 const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipelineFullAccess';
 const bucket = `${prefix}-bucket`;
+
+const applicationNameForDeployment = `${prefix}${dbAlias}applicationForDeployment`;
+const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
+const region = process.env.AWS_REGION ?? '';
+const roleName = `${prefix}-codedeploy-${region}`;
+
 const assumeServicePolicy = JSON.stringify({
   Statement: [
     {
@@ -74,11 +80,28 @@ const stages = JSON.stringify([
         },
         configuration: {
           ApplicationName: 'iasql-codedeploy-example',
+          deploymentGroupName: deploymentGroupName,
         },
       },
     ],
   },
 ]);
+
+const codedeployRolePolicy = JSON.stringify({
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Sid: '',
+      Effect: 'Allow',
+      Principal: {
+        Service: 'codedeploy.amazonaws.com',
+      },
+      Action: 'sts:AssumeRole',
+    },
+  ],
+});
+const codedeployPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess';
+const deployEC2PolicyArn = 'arn:aws:iam::aws:policy/AmazonEC2FullAccess';
 
 const artifactStore = JSON.stringify({ type: 'S3', location: bucket });
 
@@ -129,6 +152,30 @@ describe('AwsCodepipeline Integration Testing', () => {
     INSERT INTO bucket (name) VALUES ('${bucket}')`),
   );
 
+  it(
+    'adds a new codedeploy_application for deployment',
+    query(`
+    INSERT INTO codedeploy_application (name, compute_platform)
+    VALUES ('${applicationNameForDeployment}', 'Server');
+  `),
+  );
+
+  it(
+    'adds a new codedeploy role',
+    query(`
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('${roleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployEC2PolicyArn}']);
+  `),
+  );
+
+  it(
+    'adds a new deployment_group',
+    query(`
+    INSERT INTO codedeploy_deployment_group (application_name, name, role_name)
+    VALUES ('${applicationNameForDeployment}', '${deploymentGroupName}', '${roleName}');
+  `),
+  );
+
   it('applies the s3 creation', apply());
 
   it(
@@ -168,7 +215,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'delete role',
     query(`
     DELETE FROM iam_role
-    WHERE role_name = '${prefix}-${dbAlias}';
+    WHERE role_name = '${prefix}-${dbAlias}' OR role_name='${roleName}';
   `),
   );
 
@@ -178,6 +225,22 @@ describe('AwsCodepipeline Integration Testing', () => {
     DELETE FROM bucket
     WHERE name = '${bucket}';
   `),
+  );
+
+  it(
+    'delete deployment group',
+    query(`
+      DELETE FROM codedeploy_deployment_group
+      WHERE name = '${deploymentGroupName}';
+    `),
+  );
+
+  it(
+    'delete application',
+    query(`
+      DELETE FROM codedeploy_application
+      WHERE name = '${applicationNameForDeployment}';
+    `),
   );
 
   it('apply deletions', apply());
