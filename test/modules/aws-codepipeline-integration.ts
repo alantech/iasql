@@ -18,7 +18,7 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
-const modules = ['aws_codepipeline', 'aws_s3', 'aws_codedeployment'];
+const modules = ['aws_codepipeline', 'aws_s3', 'aws_codedeploy'];
 
 const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipelineFullAccess';
 const bucket = `${prefix}-bucket`;
@@ -80,8 +80,13 @@ const stages = JSON.stringify([
         },
         configuration: {
           ApplicationName: 'iasql-codedeploy-example',
-          deploymentGroupName: deploymentGroupName,
+          DeploymentGroupName: deploymentGroupName,
         },
+        inputArtifacts: [
+          {
+            name: 'Source',
+          },
+        ],
       },
     ],
   },
