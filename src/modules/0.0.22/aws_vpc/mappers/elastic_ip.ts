@@ -11,7 +11,7 @@ export class ElasticIpMapper extends MapperBase<ElasticIp> {
   entity = ElasticIp;
   equals = (a: ElasticIp, b: ElasticIp) => Object.is(a.publicIp, b.publicIp) && eqTags(a.tags, b.tags);
 
-  elasticIpMapper(eip: Address) {
+  elasticIpMapper(eip: Address, region: string) {
     const out = new ElasticIp();
     out.allocationId = eip.AllocationId;
     if (!out.allocationId) return undefined;
@@ -23,6 +23,7 @@ export class ElasticIpMapper extends MapperBase<ElasticIp> {
         tags[t.Key as string] = t.Value as string;
       });
     out.tags = tags;
+    out.region = region;
     return out;
   }
 
@@ -57,12 +58,12 @@ export class ElasticIpMapper extends MapperBase<ElasticIp> {
   cloud = new Crud2({
     create: async (es: ElasticIp[], ctx: Context) => {
       const out = [];
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const res = await this.createElasticIp(client.ec2client, e.tags);
         const rawElasticIp = await this.getElasticIp(client.ec2client, res.AllocationId ?? '');
         if (!rawElasticIp) continue;
-        const newElasticIp = this.elasticIpMapper(rawElasticIp);
+        const newElasticIp = this.elasticIpMapper(rawElasticIp, e.region);
         if (!newElasticIp) continue;
         newElasticIp.id = e.id;
         await this.module.elasticIp.db.update(newElasticIp, ctx);
@@ -71,32 +72,39 @@ export class ElasticIpMapper extends MapperBase<ElasticIp> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       if (!!id) {
-        const rawElasticIp = await this.getElasticIp(client.ec2client, id);
+        const { allocationId, region } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawElasticIp = await this.getElasticIp(client.ec2client, allocationId);
         if (!rawElasticIp) return;
-        return this.elasticIpMapper(rawElasticIp);
+        return this.elasticIpMapper(rawElasticIp, region);
       } else {
-        const out = [];
-        for (const eip of await this.getElasticIps(client.ec2client)) {
-          const outEip = this.elasticIpMapper(eip);
-          if (outEip) out.push(outEip);
-        }
+        const out: ElasticIp[] = [];
+        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            for (const eip of await this.getElasticIps(client.ec2client)) {
+              const outEip = this.elasticIpMapper(eip, region);
+              if (outEip) out.push(outEip);
+            }
+          }),
+        );
         return out;
       }
     },
     update: async (es: ElasticIp[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       // Elastic ip properties cannot be updated other than tags.
       // If the public ip is updated we just restor it
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.ElasticIp?.[e.allocationId ?? ''];
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.ElasticIp?.[this.entityId(e)];
         if (e.tags && !eqTags(cloudRecord.tags, e.tags)) {
           await updateTags(client.ec2client, e.allocationId ?? '', e.tags);
           const rawElasticIp = await this.getElasticIp(client.ec2client, e.allocationId ?? '');
           if (!rawElasticIp) continue;
-          const newElasticIp = this.elasticIpMapper(rawElasticIp);
+          const newElasticIp = this.elasticIpMapper(rawElasticIp, e.region);
           if (!newElasticIp) continue;
           newElasticIp.id = e.id;
           await this.module.elasticIp.db.update(newElasticIp, ctx);
@@ -111,8 +119,8 @@ export class ElasticIpMapper extends MapperBase<ElasticIp> {
       return out;
     },
     delete: async (es: ElasticIp[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteElasticIp(client.ec2client, e.allocationId ?? '');
       }
     },

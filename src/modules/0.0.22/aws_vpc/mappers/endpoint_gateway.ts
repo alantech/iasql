@@ -34,7 +34,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
     !!a.routeTableIds?.every(art => !!b.routeTableIds?.find(brt => Object.is(art, brt))) &&
     eqTags(a.tags, b.tags);
 
-  async endpointGatewayMapper(eg: AwsVpcEndpoint, ctx: Context) {
+  async endpointGatewayMapper(eg: AwsVpcEndpoint, region: string, ctx: Context) {
     if (!eg.ServiceName) return undefined;
     const out = new EndpointGateway();
     out.vpcEndpointId = eg.VpcEndpointId;
@@ -56,6 +56,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
       });
       out.tags = tags;
     }
+    out.region = region;
     return out;
   }
 
@@ -136,8 +137,8 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
   cloud: Crud2<EndpointGateway> = new Crud2({
     create: async (es: EndpointGateway[], ctx: Context) => {
       const out = [];
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateVpcEndpointCommandInput = {
           VpcEndpointType: 'Gateway',
           ServiceName: await this.getVpcEndpointGatewayServiceName(client.ec2client, e.service),
@@ -172,7 +173,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
           res?.VpcEndpointId ?? '',
         );
         if (!rawEndpointGateway) continue;
-        const newEndpointGateway = await this.endpointGatewayMapper(rawEndpointGateway, ctx);
+        const newEndpointGateway = await this.endpointGatewayMapper(rawEndpointGateway, e.region, ctx);
         if (!newEndpointGateway) continue;
         newEndpointGateway.id = e.id;
         await this.module.endpointGateway.db.update(newEndpointGateway, ctx);
@@ -181,17 +182,24 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       if (!!id) {
-        const rawEndpointGateway = await this.getVpcEndpointGateway(client.ec2client, id);
+        const { vpcEndpointId, region } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawEndpointGateway = await this.getVpcEndpointGateway(client.ec2client, vpcEndpointId);
         if (!rawEndpointGateway) return;
-        return await this.endpointGatewayMapper(rawEndpointGateway, ctx);
+        return await this.endpointGatewayMapper(rawEndpointGateway, region, ctx);
       } else {
-        const out = [];
-        for (const eg of await this.getVpcEndpointGateways(client.ec2client)) {
-          const outEg = await this.endpointGatewayMapper(eg, ctx);
-          if (outEg) out.push(outEg);
-        }
+        const out: EndpointGateway[] = [];
+        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            for (const eg of await this.getVpcEndpointGateways(client.ec2client)) {
+              const outEg = await this.endpointGatewayMapper(eg, region, ctx);
+              if (outEg) out.push(outEg);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -200,10 +208,10 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
       return 'update';
     },
     update: async (es: EndpointGateway[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.EndpointGateway?.[e.vpcEndpointId ?? ''];
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.EndpointGateway?.[this.entityId(e)];
         const isUpdate = this.module.endpointGateway.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           let update = false;
@@ -245,7 +253,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
               e.vpcEndpointId ?? '',
             );
             if (!rawEndpointGateway) continue;
-            const newEndpointGateway = await this.endpointGatewayMapper(rawEndpointGateway, ctx);
+            const newEndpointGateway = await this.endpointGatewayMapper(rawEndpointGateway, e.region, ctx);
             if (!newEndpointGateway) continue;
             newEndpointGateway.id = e.id;
             await this.module.endpointGateway.db.update(newEndpointGateway, ctx);
@@ -267,8 +275,8 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
       return out;
     },
     delete: async (es: EndpointGateway[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteVpcEndpointGateway(client.ec2client, e.vpcEndpointId ?? '');
       }
     },

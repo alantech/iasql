@@ -1,6 +1,7 @@
 import { Check, Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { ElasticIp } from './elastic_ip';
 import { Subnet } from './subnet';
 
@@ -33,9 +34,16 @@ export class NatGateway {
   natGatewayId?: string;
 
   @ManyToOne(() => Subnet, { nullable: false, eager: true })
-  @JoinColumn({
-    name: 'subnet_id',
-  })
+  @JoinColumn([
+    {
+      name: 'subnet_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   subnet?: Subnet;
 
   @Column({
@@ -48,9 +56,16 @@ export class NatGateway {
     nullable: true,
     eager: true,
   })
-  @JoinColumn({
-    name: 'elastic_ip_id',
-  })
+  @JoinColumn([
+    {
+      name: 'elastic_ip_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   elasticIp?: ElasticIp;
 
   @Column({
@@ -65,4 +80,14 @@ export class NatGateway {
     nullable: true,
   })
   tags?: { [key: string]: string };
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }

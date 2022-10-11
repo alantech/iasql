@@ -2,6 +2,7 @@ import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 't
 
 import { Vpc } from '.';
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 
 export enum EndpointGatewayService {
   DYNAMODB = 'dynamodb',
@@ -28,9 +29,16 @@ export class EndpointGateway {
   policyDocument?: string;
 
   @ManyToOne(() => Vpc, { nullable: false, eager: true })
-  @JoinColumn({
-    name: 'vpc_id',
-  })
+  @JoinColumn([
+    {
+      name: 'vpc_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   vpc?: Vpc;
 
   @Column({ nullable: true })
@@ -45,4 +53,14 @@ export class EndpointGateway {
     nullable: true,
   })
   tags?: { [key: string]: string };
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }
