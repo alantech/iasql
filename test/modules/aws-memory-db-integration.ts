@@ -92,6 +92,9 @@ describe('MemoryDB Integration Testing', () => {
   it ('creates a memory db cluster', query(`
     INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
     VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
+
+    INSERT INTO memory_db_cluster_security_groups (security_group_id, security_group_region, memory_db_cluster_id, memory_db_cluster_region)
+    VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), '${process.env.AWS_REGION}', (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${process.env.AWS_REGION}');
   `));
 
   it('applies the change', apply());
