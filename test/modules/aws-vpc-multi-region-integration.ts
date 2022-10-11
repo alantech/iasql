@@ -154,7 +154,7 @@ describe('VPC Multiregion Integration Testing', () => {
       UPDATE nat_gateway
       SET
         region = 'us-east-1',
-        vpc_id = (SELECT id FROM subnet WHERE cidr_block = '191.${randIPBlock}.0.0/16')
+        subnet_id = (SELECT id FROM subnet WHERE cidr_block = '191.${randIPBlock}.0.0/16')
       WHERE tags ->> 'Name' = '${ng}';
     `));
 
@@ -188,7 +188,7 @@ describe('VPC Multiregion Integration Testing', () => {
       UPDATE elastic_ip SET region='us-east-1' WHERE tags ->> 'name' = '${eip}';
       UPDATE nat_gateway
       SET
-        elastic_ip_id = (SELECT id from elastic_ip WHERE tags ->> 'name' = '${eip}'),
+        elastic_ip_id = (SELECT id from elastic_ip WHERE tags ->> 'name' = '${eip}')
       WHERE tags ->> 'Name' = '${pubNg}';
     `));
 
