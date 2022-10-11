@@ -265,7 +265,7 @@ DECLARE
   is_valid BOOLEAN;
   _app_name TEXT;
   _app_port INTEGER;
-  _target_group_id TEXT;
+  _target_group_id INTEGER;
   _cluster_name TEXT;
   _desired_count INTEGER;
   _task_definition_id INTEGER;
@@ -274,7 +274,7 @@ DECLARE
   _public_ip BOOLEAN;
   _repository_uri TEXT;
   _log_group_id INTEGER;
-  _load_balancer_id TEXT;
+  _load_balancer_id INTEGER;
   _repository_name TEXT;
   _load_balancer_dns TEXT;
   _service_name TEXT;
