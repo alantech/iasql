@@ -72,7 +72,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
 
   deletePipelineDeclaration = crudBuilder2<CodePipeline, 'deletePipeline'>('deletePipeline', input => input);
 
-  cloud: Crud2<PipelineDeclaration | undefined> = new Crud2({
+  cloud: Crud2<PipelineDeclaration> = new Crud2({
     create: async (pds: PipelineDeclaration[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
@@ -122,18 +122,24 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
         return out;
       }
     },
-    updateOrReplace: (a: PipelineDeclaration, b: PipelineDeclaration) => 'replace',
     update: async (pds: PipelineDeclaration[], ctx: Context) => {
       const out = [];
       for (const pd of pds) {
-        const cloudRecord = ctx?.memo?.cloud?.CodebuildProject?.[pd.name ?? ''];
-        if (cloudRecord) {
-          await this.module.pipeline_declaration.cloud.delete([cloudRecord], ctx);
-          const pipelines = await this.module.pipeline_declaration.cloud.create([pd], ctx);
-          if (pipelines) out.push(pipelines);
+        const cloudRecord = ctx?.memo?.cloud?.PipelineDeclaration?.[pd.name ?? ''];
+        // if we have modified arn, restore it
+        if (pd.roleArn !== cloudRecord.roleArn) {
+          pd.roleArn = cloudRecord.roleArn;
+          await this.module.pipeline_declaration.db.update(pd, ctx);
+          out.push(pd);
+          continue;
         }
+
+        // delete previous pipeline and create a new one
+        await this.module.pipeline_declaration.cloud.delete(pd, ctx);
+        const created = await this.module.pipeline_declaration.cloud.create(pd, ctx);
+        if (!!created && created instanceof Array) out.push(...created);
+        else if (!!created) out.push(created);
       }
-      return out;
     },
     delete: async (pds: PipelineDeclaration[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;

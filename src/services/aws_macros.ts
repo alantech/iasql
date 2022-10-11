@@ -5,6 +5,7 @@ import { CloudFront } from '@aws-sdk/client-cloudfront';
 import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
 import { CodeBuild } from '@aws-sdk/client-codebuild';
 import { CodeDeploy } from '@aws-sdk/client-codedeploy';
+import { CodePipeline } from '@aws-sdk/client-codepipeline';
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
 import { EC2 } from '@aws-sdk/client-ec2';
 import { ECR } from '@aws-sdk/client-ecr';
@@ -55,6 +56,7 @@ export class AWS {
   appSyncClient: AppSync;
   cbClient: CodeBuild;
   cdClient: CodeDeploy;
+  cpClient: CodePipeline;
   cwClient: CloudWatchLogs;
   ec2client: EC2;
   ecrClient: ECR;
