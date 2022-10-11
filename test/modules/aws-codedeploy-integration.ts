@@ -451,16 +451,6 @@ describe('deployment cleanup', () => {
   it('apply codedeploy_application deletion', apply());
 
   it(
-    'check no codedeploy_revisions remain',
-    query(
-      `
-SELECT * FROM codedeploy_revision WHERE application_name='${applicationNameForDeployment}';
-`,
-      (res: any) => expect(res.length).toBe(0),
-    ),
-  );
-
-  it(
     'check no codedeploy_deployment_groups remain',
     query(
       `

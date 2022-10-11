@@ -26,11 +26,7 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       Object.is(a.description, b.description) &&
       Object.is(a.externalId, b.externalId) &&
       Object.is(a.status, b.status) &&
-      Object.is(a.location?.revisionType, b.location?.revisionType) &&
-      ((a.location?.revisionType === RevisionType.GITHUB &&
-        Object.is(a.location?.githubLocation, b.location?.githubLocation)) ||
-        (a.location?.revisionType === RevisionType.S3 &&
-          Object.is(a.location?.s3Location, b.location?.s3Location)))
+      isEqual(a.location, b.location)
     );
   };
 
@@ -56,7 +52,7 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
         s3Location: deployment.revision.s3Location,
         revisionType: RevisionType.S3,
       };
-    }
+    } else out.location = undefined;
 
     return out;
   }

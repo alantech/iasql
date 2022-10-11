@@ -25,7 +25,7 @@ export enum DeploymentStatusEnum {
 
 export enum RevisionType {
   S3 = 'S3',
-  GITHUB = 'Github',
+  GITHUB = 'GitHub',
 }
 
 @Entity()
