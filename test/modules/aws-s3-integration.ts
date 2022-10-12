@@ -88,8 +88,6 @@ describe('S3 Integration Testing', () => {
 
   it('installs the s3 module', install(modules));
 
-  it('cleans the bucket', query(`SELECT * FROM s3_clean_bucket('bucket_name')`));
-
   it(
     'adds a new s3 bucket',
     query(`  
@@ -174,6 +172,13 @@ describe('S3 Integration Testing', () => {
     WHERE name = '${s3Name}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'cleans the bucket',
+    query(`SELECT * FROM s3_clean_bucket('${s3Name}')`, (res: any[]) =>
+      expect(res[0].status).toStrictEqual('OK'),
     ),
   );
 

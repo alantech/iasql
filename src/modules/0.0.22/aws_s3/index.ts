@@ -160,4 +160,4 @@ export class AwsS3Module extends ModuleBase {
     super.init();
   }
 }
-export const awsS3Module = new AwsS3Module();
+export const awsS3 = new AwsS3Module();
