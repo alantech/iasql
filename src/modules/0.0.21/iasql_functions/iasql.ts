@@ -1002,7 +1002,9 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
             INSERT INTO aws_credentials (access_key_id, secret_access_key)
             VALUES ('${creds.access_key_id}', '${creds.secret_access_key}');
           `);
+          logger.info(`+-+ begin step 6 sync`)
           await sync(dbId, false, true, context);
+          logger.info(`+-+ begin step 6 sync`);
           if (creds.region) {
             await conn.query(`
               UPDATE aws_regions SET is_default = true WHERE region = '${creds.region}';
