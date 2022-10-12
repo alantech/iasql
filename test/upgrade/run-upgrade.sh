@@ -11,7 +11,8 @@ fi
 
 # Get metadata on the current branch to use during the test
 LATESTVERSION=$(./node_modules/.bin/ts-node src/scripts/latestVersion.ts)
-AVAILABLEVERSIONS=$(./node_modules/.bin/ts-node src/scripts/availableVersions.ts)
+# AVAILABLEVERSIONS=$(./node_modules/.bin/ts-node src/scripts/availableVersions.ts)
+AVAILABLEVERSIONS="0.0.21"
 CURRENTGITSHA=$(git rev-parse HEAD)
 
 # Github Actions apparently doesn't pull down the tags by default?
