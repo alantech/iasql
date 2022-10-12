@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { IamRole } from '../../aws_iam/entity';
 // TODO: Is there a better way to deal with cross-module entities?
 import { SecurityGroup } from '../../aws_security_group/entity';
@@ -94,4 +95,14 @@ export class Instance {
     default: false,
   })
   hibernationEnabled: boolean;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }
