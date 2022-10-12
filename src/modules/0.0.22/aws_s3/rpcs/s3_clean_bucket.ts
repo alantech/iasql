@@ -23,13 +23,13 @@ export class S3CleanBucketRpc extends RpcBase {
   }));
 
   call = async (
-    dbId: string,
-    dbUser: string,
+    _dbId: string,
+    _dbUser: string,
     ctx: Context,
     ...params: string[]
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     // we need to have bucket name as first element of params
-    if (!params || !Array.isArray(params) || params.length < 1) {
+    if (!params || !Array.isArray(params) || params.length < 1 || params[0] === '') {
       return [
         {
           bucket: 'none',

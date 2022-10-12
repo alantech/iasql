@@ -182,6 +182,11 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
+  it(
+    'cleans the bucket incorrectly',
+    query(`SELECT * FROM s3_clean_bucket()`, (res: any[]) => expect(res[0].status).toStrictEqual('KO')),
+  );
+
   describe('S3 bucket policy integration testing', () => {
     it(
       'gets current bucket policy',
