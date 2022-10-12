@@ -82,6 +82,8 @@ export class TypeormWrapper {
     // Now that we have the entities for this database, close the temporary connection and create
     // the real connection with the entities present
     const name = uuidv4();
+    logger.info(`+-+ conn ${name} with Modules ${Object.keys(Modules)}`)
+    logger.info(`+-+ conn ${name} with Modules provides ${Object.values(Modules).filter((m: any) => m.hasOwnProperty('provides')).map((m: any) => `${JSON.stringify(m.provides.entities)} |`)}`)
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
       name: dbname,
