@@ -483,7 +483,7 @@ export class ModuleBase {
       throw new Error(`${this.name} did not declare an iasql_platform dependency and cannot be loaded.`);
     const entityDir = `${this.dirname}/entity`;
     const entities = require(`${entityDir}/index`);
-    logger.info(`+-+ ENTITIES = ${Object.keys(entities)}`)
+    logger.info(`+-+ ENTITIES = ${JSON.stringify(entities)}`)
     this.provides = {
       entities,
       tables: [], // These will be populated automatically below
