@@ -503,8 +503,8 @@ export class ModuleBase {
     }
     if (this.context) this.provides.context = this.context;
     this.migrations = {
-      install: async (_q: QueryRunner) => {},
-      remove: async (_q: QueryRunner) => {},
+      install: async (_q: QueryRunner) => undefined,
+      remove: async (_q: QueryRunner) => undefined,
     };
     const afterInstallMigration = afterInstallSql + rpcAfterInstallSql;
     const beforeUninstallMigration = rpcBeforeUninstallSql + beforeUninstallSql;
