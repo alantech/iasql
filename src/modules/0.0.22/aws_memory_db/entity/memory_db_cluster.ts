@@ -61,9 +61,7 @@ export class MemoryDBCluster {
       { name: 'memory_db_cluster_id', referencedColumnName: 'id' },
       { name: 'region', referencedColumnName: 'region' },
     ],
-    inverseJoinColumns: [
-      { name: 'security_group_id', referencedColumnName: 'id' },
-    ],
+    inverseJoinColumns: [{ name: 'security_group_id', referencedColumnName: 'id' }],
   })
   securityGroups?: SecurityGroup[];
 
