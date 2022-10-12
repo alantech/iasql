@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import config from '../config';
 import { modules as AllModules } from '../modules';
 import { NullCheckerSubscriber } from '../modules/subscribers';
+import logger from '../services/logger';
 
 export class TypeormWrapper {
   private connection: Connection;
@@ -90,6 +91,7 @@ export class TypeormWrapper {
     };
 
     typeorm.connection = await createConnection({ ...connOpts, entities, name });
+    logger.info(`+-+ conn ${name} or ${dbname} with entities ${JSON.stringify(entities)}`)
     return typeorm;
   }
 

@@ -330,7 +330,7 @@ export async function sync(
     let cloudCount = -1;
     let bothCount = -1;
     let spinCount = 0;
-    logger.info(`+-+ context = ${JSON.stringify(context.orm)}`)
+    logger.info(`+-+ context = ${JSON.stringify((context.orm as TypeormWrapper))}`)
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
