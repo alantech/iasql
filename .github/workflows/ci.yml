@@ -6,7 +6,7 @@ name: CI
 # events but only for the main branch.
 on:
   push:
-    branches: [main, fix-functions-upgrade]
+    branches: [main, fix-funcitons-upgrade]
     paths: ['.github/workflows/ci.yml', 'src/**', 'test/**', 'package.json', 'yarn.lock']
   pull_request:
     branches: [main]
