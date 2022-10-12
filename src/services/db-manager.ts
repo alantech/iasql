@@ -83,6 +83,7 @@ export function grantPostgresRoleQuery(user: string) {
   `;
 }
 
+// runs query using the group role so user generated tables have the same owner
 export function setPostgresRoleQuery() {
   return `
     SET ROLE ${queryUserGroupRole};

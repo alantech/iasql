@@ -82,14 +82,16 @@ export function runQuery(
   queryString: string,
   assertFn?: (res: any[]) => void,
   log = true,
+  username = 'postgres',
+  password = 'test',
 ) {
   return function (done: (e?: any) => {}) {
     if (log) logger.info(queryString);
     createConnection({
       name: uuidv4(),
       type: 'postgres',
-      username: 'postgres',
-      password: 'test',
+      username,
+      password,
       host: 'localhost',
       port: 5432,
       database: databaseName,
