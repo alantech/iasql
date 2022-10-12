@@ -6,6 +6,8 @@ import config from '../config';
 import { throwError } from '../config/config';
 import { modules as Modules } from '../modules';
 
+const queryUserGroupRole = 'query_table_access_group';
+
 export async function migrate(conn: Connection) {
   // Needs to be done this way or a redeploy would accidentally start using the next version even
   // if it is not yet enabled.
@@ -56,11 +58,7 @@ export const baseConnConfig: PostgresConnectionOptions = {
   }, // TODO: remove once DB instance with custom ssl cert is in place
 };
 
-// TODO: The permissions below work just fine, but prevent the users from creating their own
-// tables. We want to allow that in the future, but not sure the precise details of how, as
-// the various options have their own trade-offs and potential sources of bugs to worry about.
-// But we'll want to decide (before public launch?) one of them and replace this
-// TODO: #2, also try to roll back the `GRANT CREATE` to something a bit narrower in the future
+// TODO: try to roll back the `GRANT CREATE` to something a bit narrower in the future
 export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
   return `
     CREATE ROLE ${user} LOGIN PASSWORD '${pass}';
@@ -69,29 +67,34 @@ export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
   `;
 }
 
+export function createQueryGroupRole() {
+  return `
+    CREATE ROLE ${queryUserGroupRole};
+  `;
+}
+
 export function grantPostgresRoleQuery(user: string) {
   return `
-    GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user};
-    GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${user};
-    GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${user};
-    GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${user};
-    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${user};
-    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${user};
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${user};
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${queryUserGroupRole};
+    GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${queryUserGroupRole};
+    GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${queryUserGroupRole};
+    GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${queryUserGroupRole};
+    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${queryUserGroupRole};
+    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${queryUserGroupRole};
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${queryUserGroupRole};
+    GRANT ${queryUserGroupRole} to ${user};
+  `;
+}
+
+export function setPostgresRoleQuery() {
+  return `
+    SET ROLE ${queryUserGroupRole};
   `;
 }
 
 export function revokePostgresRoleQuery(user: string, dbId: string) {
   return `
-    REVOKE SELECT ON ALL TABLES IN SCHEMA public FROM ${user};
-    REVOKE INSERT ON ALL TABLES IN SCHEMA public FROM ${user};
-    REVOKE UPDATE ON ALL TABLES IN SCHEMA public FROM ${user};
-    REVOKE DELETE ON ALL TABLES IN SCHEMA public FROM ${user};
-    REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM ${user};
-    REVOKE EXECUTE ON ALL PROCEDURES IN SCHEMA public FROM ${user};
-    REVOKE USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public FROM ${user};
-    REVOKE CREATE ON SCHEMA public FROM ${user};
-    REVOKE CONNECT ON DATABASE ${dbId} FROM ${user};
+    REVOKE ${queryUserGroupRole} FROM ${user};
   `;
 }
 

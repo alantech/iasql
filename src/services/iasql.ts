@@ -130,6 +130,7 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
       database: dbId,
     });
     await dbMan.migrate(conn2);
+    await conn2.query(dbMan.createQueryGroupRole());
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
     roleGranted = true;
@@ -224,6 +225,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
       ssl: dbMan.baseConnConfig.extra.ssl,
     });
     await connTemp.connect();
+    await connTemp.query(dbMan.setPostgresRoleQuery());
     const stmts = parse(sql);
     const out = [];
     for (const stmt of stmts) {
