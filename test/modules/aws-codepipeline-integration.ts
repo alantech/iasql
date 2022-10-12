@@ -21,6 +21,8 @@ const sync = runSync.bind(null, dbAlias);
 const modules = ['aws_codepipeline', 'aws_s3', 'aws_codedeploy'];
 
 const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipelineFullAccess';
+const s3PolicyArn = 'arn:aws:iam::aws:policy/AmazonS3FullAccess';
+
 const bucket = `${prefix}-bucket`;
 
 const applicationNameForDeployment = `${prefix}${dbAlias}applicationForDeployment`;
@@ -79,7 +81,7 @@ const stages = JSON.stringify([
           provider: 'CodeDeploy',
         },
         configuration: {
-          ApplicationName: 'iasql-codedeploy-example',
+          ApplicationName: `${prefix}${dbAlias}applicationForDeployment`,
           DeploymentGroupName: deploymentGroupName,
         },
         inputArtifacts: [
@@ -147,7 +149,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new role',
     query(`
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${prefix}-${dbAlias}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}']);
+    VALUES ('${prefix}-${dbAlias}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}']);
   `),
   );
 
@@ -217,22 +219,6 @@ describe('AwsCodepipeline Integration Testing', () => {
   );
 
   it(
-    'delete role',
-    query(`
-    DELETE FROM iam_role
-    WHERE role_name = '${prefix}-${dbAlias}' OR role_name='${roleName}';
-  `),
-  );
-
-  it(
-    'delete bucket',
-    query(`
-    DELETE FROM bucket
-    WHERE name = '${bucket}';
-  `),
-  );
-
-  it(
     'delete deployment group',
     query(`
       DELETE FROM codedeploy_deployment_group
@@ -246,6 +232,22 @@ describe('AwsCodepipeline Integration Testing', () => {
       DELETE FROM codedeploy_application
       WHERE name = '${applicationNameForDeployment}';
     `),
+  );
+
+  it(
+    'delete role',
+    query(`
+    DELETE FROM iam_role
+    WHERE role_name = '${prefix}-${dbAlias}' OR role_name='${roleName}';
+  `),
+  );
+
+  it(
+    'delete bucket',
+    query(`
+    DELETE FROM bucket
+    WHERE name = '${bucket}';
+  `),
   );
 
   it('apply deletions', apply());

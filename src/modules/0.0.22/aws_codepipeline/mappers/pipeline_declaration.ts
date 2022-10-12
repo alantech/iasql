@@ -1,4 +1,4 @@
-import isEqual from 'lodash.isequal';
+import { differenceWith, isEqual, List } from 'lodash';
 
 import {
   ArtifactStoreType,
@@ -19,11 +19,20 @@ import { PipelineDeclaration } from '../entity';
 export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
   module: AwsCodepipelineModule;
   entity = PipelineDeclaration;
-  equals = (a: PipelineDeclaration, b: PipelineDeclaration) =>
-    Object.is(a.serviceRole?.arn, b.serviceRole?.arn) &&
-    Object.is(a.name, b.name) &&
-    isEqual(a.artifactStore, b.artifactStore) &&
-    isEqual(a.stages, b.stages);
+  equals = (a: PipelineDeclaration, b: PipelineDeclaration) => {
+    const difference = differenceWith(
+      a.stages as List<StageDeclaration>,
+      b.stages as List<StageDeclaration>,
+      isEqual,
+    );
+    return (
+      Object.is(a.serviceRole?.arn, b.serviceRole?.arn) &&
+      Object.is(a.name, b.name) &&
+      Object.is(a.artifactStore.location, b.artifactStore.location) &&
+      Object.is(a.artifactStore.type, b.artifactStore.type) &&
+      Object.is(a.stages?.length, b.stages?.length)
+    );
+  };
 
   async pipelineDeclarationMapper(pd: AWSPipelineDeclaration, ctx: Context) {
     if (!pd.roleArn || !pd.name) return;
@@ -147,7 +156,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
         }
 
         // delete previous pipeline and create a new one
-        await this.module.pipeline_declaration.cloud.delete(pd, ctx);
+        await this.module.pipeline_declaration.cloud.delete([pd], ctx);
         const created = await this.module.pipeline_declaration.cloud.create(pd, ctx);
         if (!!created && created instanceof Array) out.push(...created);
         else if (!!created) out.push(created);
