@@ -54,7 +54,7 @@ export class MemoryDBCluster {
   })
   nodeType: NodeTypeEnum;
 
-  @ManyToMany(() => SecurityGroup, { eager: true, cascade: false })
+  @ManyToMany(() => SecurityGroup, { eager: true })
   @JoinTable({
     name: 'memory_db_cluster_security_groups',
     joinColumns: [

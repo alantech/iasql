@@ -126,21 +126,21 @@ describe('MemoryDB Multi-region Integration Testing', () => {
   );
 
   it('should fail updating only the memory db cluster without updating the subnet group', done =>
-  void query(`
+    void query(`
   UPDATE memory_db_cluster
   SET region = '${nonDefaultRegion}'
   WHERE cluster_name = '${clusterName}';
 `)((e?: any) => {
-    console.log({ e });
-    try {
-      expect(e?.message).toContain('violates foreign key constraint');
-    } catch (err) {
-      done(err);
+      console.log({ e });
+      try {
+        expect(e?.message).toContain('violates foreign key constraint');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
       return {};
-    }
-    done();
-    return {};
-  }));
+    }));
 
   it('should fail updating security group region being referenced by the memory db cluster', done =>
     void query(`
@@ -164,7 +164,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     query(`
     WITH updated_subnet_group AS (
       UPDATE subnet_group
-      SET region = '${nonDefaultRegion}', subnets = ARRAY(SELECT subnet_id FROM subnet INNER JOIN vpc ON vpc.id = subnet.vpc_id WHERE subnet.region = '${nonDefaultRegion}' AND vpc.is_default = TRUE)
+      SET region = '${nonDefaultRegion}', subnets = ARRAY(SELECT subnet_id FROM subnet INNER JOIN vpc ON vpc.id = subnet.vpc_id WHERE subnet.region = '${nonDefaultRegion}' AND vpc.is_default = TRUE LIMIT 2)
       WHERE subnet_group_name = '${subnetGroupName}'
     ), updated_memory_db_cluster_security_groups AS (
       UPDATE memory_db_cluster_security_groups

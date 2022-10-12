@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsMemoryDb1665558352606 implements MigrationInterface {
-  name = 'awsMemoryDb1665558352606';
+export class awsMemoryDb1665571756904 implements MigrationInterface {
+  name = 'awsMemoryDb1665571756904';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

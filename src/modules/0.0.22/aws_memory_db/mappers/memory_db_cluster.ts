@@ -253,7 +253,6 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
           } else {
             // Restore record
             cloudRecord.id = e.id;
-            logger.info(`+-+ restoring the record: ${JSON.stringify(cloudRecord)}`);
             await this.module.memoryDBCluster.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
           }
