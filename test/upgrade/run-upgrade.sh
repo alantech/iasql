@@ -135,4 +135,7 @@ for version in "${availableVersions[@]}"; do
   fi
 
   echo "Successfully upgraded!"
+  # Shut down the database and engine, switch back to the current commit, and fire up a new engine
+  docker container stop $(basename ${PWD})_change_engine_1
+  docker container stop $(basename ${PWD})_postgresql_1
 done
