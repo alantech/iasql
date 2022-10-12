@@ -84,9 +84,31 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     query(`
       INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
       VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
+  `),
+  );
+
+  it('should fail inserting the memory db cluster security group in the wrong region', done =>
+    void query(`
+      INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id, region)
+      VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${nonDefaultRegion}');
+  `)((e?: any) => {
+      console.log({ e });
+      try {
+        expect(e?.message).toContain('violates foreign key constraint');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+    }));
+
+  it(
+    'inserts the memory db cluster security group',
+    query(`
       INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id, region)
       VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${process.env.AWS_REGION}');
-  `),
+    `),
   );
 
   it('applies the change', apply());
@@ -104,10 +126,27 @@ describe('MemoryDB Multi-region Integration Testing', () => {
   );
 
   it('should fail updating only the memory db cluster without updating the subnet group', done =>
+  void query(`
+  UPDATE memory_db_cluster
+  SET region = '${nonDefaultRegion}'
+  WHERE cluster_name = '${clusterName}';
+`)((e?: any) => {
+    console.log({ e });
+    try {
+      expect(e?.message).toContain('violates foreign key constraint');
+    } catch (err) {
+      done(err);
+      return {};
+    }
+    done();
+    return {};
+  }));
+
+  it('should fail updating security group region being referenced by the memory db cluster', done =>
     void query(`
-    UPDATE memory_db_cluster
+    UPDATE security_group
     SET region = '${nonDefaultRegion}'
-    WHERE cluster_name = '${clusterName}';
+    WHERE group_name = 'default' and region = '${process.env.AWS_REGION}';
   `)((e?: any) => {
       console.log({ e });
       try {

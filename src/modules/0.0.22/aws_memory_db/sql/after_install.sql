@@ -61,3 +61,9 @@ UPDATE
   ON subnet_group FOR EACH ROW
 EXECUTE
   FUNCTION check_subnet_group_subnets ();
+
+-- We have a weird case were we need to add 2 FKs to a join table column, and typeorm is not that flexible to define that
+ALTER TABLE
+  "memory_db_cluster_security_groups"
+ADD
+  CONSTRAINT "FK_memory_db_cluster_security_groups_region" FOREIGN KEY ("security_group_id", "region") REFERENCES "security_group" ("id", "region") ON DELETE CASCADE ON UPDATE CASCADE;
