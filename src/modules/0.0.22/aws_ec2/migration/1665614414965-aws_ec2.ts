@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEc21665613423837 implements MigrationInterface {
-  name = 'awsEc21665613423837';
+export class awsEc21665614414965 implements MigrationInterface {
+  name = 'awsEc21665614414965';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -20,7 +20,7 @@ export class awsEc21665613423837 implements MigrationInterface {
       `CREATE TYPE "public"."general_purpose_volume_state_enum" AS ENUM('available', 'creating', 'deleted', 'deleting', 'error', 'in-use')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "general_purpose_volume" ("id" SERIAL NOT NULL, "volume_id" character varying, "volume_type" "public"."general_purpose_volume_volume_type_enum" NOT NULL, "size" integer NOT NULL DEFAULT '8', "state" "public"."general_purpose_volume_state_enum", "instance_device_name" character varying, "iops" integer, "throughput" integer, "snapshot_id" character varying, "tags" json, "availability_zone" character varying NOT NULL, "attached_instance_id" integer, CONSTRAINT "Unique_gp_instance_device_name" UNIQUE ("instance_device_name", "attached_instance_id"), CONSTRAINT "Check_gp_volume_size_min_max" CHECK ("size" > 0 AND "size" < 16385), CONSTRAINT "Check_gp_volume_instance_device" CHECK (("instance_device_name" IS NULL AND "attached_instance_id" IS NULL) OR ("instance_device_name" IS NOT NULL AND "attached_instance_id" IS NOT NULL)), CONSTRAINT "Check_gp_volume_iops" CHECK ("iops" is NULL OR ("iops" is NOT NULL AND (("volume_type" = 'gp3' AND "iops" <= 16000 AND "iops" >= 3000) OR ("volume_type" = 'gp2' AND "iops" > 0)))), CONSTRAINT "Check_gp_volume_throughput" CHECK ("throughput" IS NULL OR ("throughput" IS NOT NULL AND "volume_type" = 'gp3' AND "throughput" >= 125 AND "throughput" <= 1000)), CONSTRAINT "check_instance_ebs_availability_zone" CHECK (check_instance_ebs_availability_zone(attached_instance_id, availability_zone)), CONSTRAINT "PK_ded6aa0f99ab2bc666ee032778e" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "general_purpose_volume" ("id" SERIAL NOT NULL, "volume_id" character varying, "volume_type" "public"."general_purpose_volume_volume_type_enum" NOT NULL, "size" integer NOT NULL DEFAULT '8', "state" "public"."general_purpose_volume_state_enum", "instance_device_name" character varying, "iops" integer, "throughput" integer, "snapshot_id" character varying, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "availability_zone" character varying NOT NULL, "attached_instance_id" integer, CONSTRAINT "Unique_gp_instance_device_name" UNIQUE ("instance_device_name", "attached_instance_id", "region"), CONSTRAINT "Check_gp_volume_size_min_max" CHECK ("size" > 0 AND "size" < 16385), CONSTRAINT "Check_gp_volume_instance_device" CHECK (("instance_device_name" IS NULL AND "attached_instance_id" IS NULL) OR ("instance_device_name" IS NOT NULL AND "attached_instance_id" IS NOT NULL)), CONSTRAINT "Check_gp_volume_iops" CHECK ("iops" is NULL OR ("iops" is NOT NULL AND (("volume_type" = 'gp3' AND "iops" <= 16000 AND "iops" >= 3000) OR ("volume_type" = 'gp2' AND "iops" > 0)))), CONSTRAINT "Check_gp_volume_throughput" CHECK ("throughput" IS NULL OR ("throughput" IS NOT NULL AND "volume_type" = 'gp3' AND "throughput" >= 125 AND "throughput" <= 1000)), CONSTRAINT "check_instance_ebs_availability_zone" CHECK (check_instance_ebs_availability_zone(attached_instance_id, availability_zone)), CONSTRAINT "PK_ded6aa0f99ab2bc666ee032778e" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "instance_security_groups" ("instance_id" integer NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_8045eb55d2a16cf6e4cf80e7ee5" PRIMARY KEY ("instance_id", "security_group_id"))`,
@@ -50,7 +50,10 @@ export class awsEc21665613423837 implements MigrationInterface {
       `ALTER TABLE "general_purpose_volume" ADD CONSTRAINT "FK_6d207f0b3f4bf5f7c162c28cd9e" FOREIGN KEY ("availability_zone") REFERENCES "availability_zone"("name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "general_purpose_volume" ADD CONSTRAINT "FK_b60cd423a9b292b547913dcc6ac" FOREIGN KEY ("attached_instance_id") REFERENCES "instance"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "general_purpose_volume" ADD CONSTRAINT "FK_f4115326fcf8e16edc0ac49f8b1" FOREIGN KEY ("attached_instance_id", "region") REFERENCES "instance"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "general_purpose_volume" ADD CONSTRAINT "FK_6cf180e59980f6cda9aff59af15" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "instance_security_groups" ADD CONSTRAINT "FK_fa3c179d5090cb1309c63b5e20a" FOREIGN KEY ("instance_id") REFERENCES "instance"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
@@ -68,7 +71,10 @@ export class awsEc21665613423837 implements MigrationInterface {
       `ALTER TABLE "instance_security_groups" DROP CONSTRAINT "FK_fa3c179d5090cb1309c63b5e20a"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "general_purpose_volume" DROP CONSTRAINT "FK_b60cd423a9b292b547913dcc6ac"`,
+      `ALTER TABLE "general_purpose_volume" DROP CONSTRAINT "FK_6cf180e59980f6cda9aff59af15"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "general_purpose_volume" DROP CONSTRAINT "FK_f4115326fcf8e16edc0ac49f8b1"`,
     );
     await queryRunner.query(
       `ALTER TABLE "general_purpose_volume" DROP CONSTRAINT "FK_6d207f0b3f4bf5f7c162c28cd9e"`,

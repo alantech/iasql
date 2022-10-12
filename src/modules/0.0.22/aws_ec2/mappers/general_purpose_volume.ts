@@ -237,9 +237,9 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
 
   cloud: Crud2<GeneralPurposeVolume> = new Crud2({
     create: async (es: GeneralPurposeVolume[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         if (e.attachedInstance && !e.attachedInstance.instanceId) {
           throw new Error('Want to attach volume to an instance not created yet');
         }
@@ -288,18 +288,25 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
-        const rawVolume = await this.getVolume(client.ec2client, id);
+        const { volumeId, region } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawVolume = await this.getVolume(client.ec2client, volumeId);
         if (!rawVolume) return;
         return this.generalPurposeVolumeMapper(rawVolume, ctx);
       } else {
-        const rawVolumes = (await this.getGeneralPurposeVolumes(client.ec2client)) ?? [];
-        const out = [];
-        for (const vol of rawVolumes) {
-          const outVol = await this.generalPurposeVolumeMapper(vol, ctx);
-          if (outVol) out.push(outVol);
-        }
+        const out: GeneralPurposeVolume[] = [];
+        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawVolumes = (await this.getGeneralPurposeVolumes(client.ec2client)) ?? [];
+            for (const vol of rawVolumes) {
+              const outVol = await this.generalPurposeVolumeMapper(vol, ctx);
+              if (outVol) out.push(outVol);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -312,9 +319,9 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       return 'update';
     },
     update: async (es: GeneralPurposeVolume[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const cloudRecord = ctx?.memo?.cloud?.GeneralPurposeVolume?.[e.volumeId ?? ''];
         const isUpdate = this.module.generalPurposeVolume.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
@@ -398,8 +405,8 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       return out;
     },
     delete: async (vol: GeneralPurposeVolume[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of vol) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         if (e.attachedInstance) {
           await this.detachVolume(client.ec2client, e.volumeId ?? '');
         }
