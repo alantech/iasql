@@ -1,4 +1,4 @@
-import { differenceWith, isEqual, List } from 'lodash';
+import _ from 'lodash';
 
 import {
   ArtifactStoreType,
@@ -20,17 +20,14 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
   module: AwsCodepipelineModule;
   entity = PipelineDeclaration;
   equals = (a: PipelineDeclaration, b: PipelineDeclaration) => {
-    const difference = differenceWith(
-      a.stages as List<StageDeclaration>,
-      b.stages as List<StageDeclaration>,
-      isEqual,
-    );
+    const stages_a = _.pickBy(a.stages, _.identity);
+    const stages_b = _.pickBy(a.stages, _.identity);
     return (
       Object.is(a.serviceRole?.arn, b.serviceRole?.arn) &&
       Object.is(a.name, b.name) &&
       Object.is(a.artifactStore.location, b.artifactStore.location) &&
       Object.is(a.artifactStore.type, b.artifactStore.type) &&
-      Object.is(a.stages?.length, b.stages?.length)
+      _.isEqual(stages_a, stages_b)
     );
   };
 
