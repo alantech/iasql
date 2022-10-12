@@ -307,10 +307,12 @@ export async function sync(
     // Find all of the installed modules
     const iasqlModule = Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
     const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
+    logger.info(`+-+ SYNC MODULE NAMES ARE ${moduleNames}`)
     // Get the mappers, regardless of source-of-truth
     const moduleList = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
       moduleNames.includes(`${mod.name}@${mod.version}`),
     );
+    logger.info(`+-+ SYNC MODULE LIST ARE ${moduleList.map(m => `${m.name} = ${Object.keys(m ?? {})}`)}`)
     const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as ModuleInterface[])
       .map(mod => Object.values(mod))
