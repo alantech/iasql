@@ -1,6 +1,5 @@
 import * as levenshtein from 'fastest-levenshtein';
 import { default as cloneDeep } from 'lodash.clonedeep';
-import { createConnection } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
@@ -331,6 +330,7 @@ export async function sync(
     let cloudCount = -1;
     let bothCount = -1;
     let spinCount = 0;
+    logger.info(`+-+ context = ${JSON.stringify(context.orm)}`)
     do {
       ranFullUpdate = false;
       const tables = mappers.map(mapper => mapper.entity.name);
@@ -912,7 +912,7 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
       // be automated in some way later.)
       let conn: TypeormWrapper | null = null;
       try {
-        conn = await TypeormWrapper.createConn(dbId, dbMan.baseConnConfig);
+        conn = await TypeormWrapper.createConn(dbId);
         // 1. Read the `iasql_module` table to get all currently installed modules.
         logger.info(`+-+ executing step 1`);
         const mods: string[] = (
