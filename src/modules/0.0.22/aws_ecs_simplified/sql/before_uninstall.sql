@@ -63,3 +63,6 @@ DROP FUNCTION
 
 DROP FUNCTION
   get_cpu_mem_enum_from_parts;
+
+DROP TABLE
+  ecs_simplified;

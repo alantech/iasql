@@ -1,8 +1,40 @@
- -- ######################
+-- ######################
+-- ENTITIES
+-- ######################
+CREATE TABLE
+  ecs_simplified (
+    app_name CHARACTER VARYING(18) PRIMARY KEY,
+    desired_count INTEGER NOT NULL DEFAULT '1',
+    app_port INTEGER NOT NULL,
+    cpu_mem task_definition_cpu_memory_enum NOT NULL DEFAULT 'vCPU2-8GB',
+    repository_uri CHARACTER VARYING,
+    image_tag CHARACTER VARYING,
+    image_digest CHARACTER VARYING,
+    public_ip BOOLEAN NOT NULL DEFAULT FALSE,
+    load_balancer_dns CHARACTER VARYING,
+    force_new_deployment BOOLEAN NOT NULL DEFAULT FALSE,
+    env_variables TEXT,
+    CONSTRAINT valid_image_fields CHECK (
+      (
+        image_tag IS NULL
+        AND image_digest IS NULL
+      )
+      OR (
+        image_tag IS NOT NULL
+        AND image_digest IS NULL
+      )
+      OR (
+        image_tag IS NULL
+        AND image_digest IS NOT NULL
+      )
+    )
+  );
+
+-- ######################
 -- INSERT ECS SIMPLIFIED
 -- ######################
 CREATE
-OR REPLACE FUNCTION get_mem_from_cpu_mem_enum (cpu_mem ecs_simplified_cpu_mem_enum) RETURNS INTEGER LANGUAGE plpgsql AS $$
+OR REPLACE FUNCTION get_mem_from_cpu_mem_enum (cpu_mem task_definition_cpu_memory_enum) RETURNS INTEGER LANGUAGE plpgsql AS $$
 DECLARE
  mem TEXT;
 BEGIN
@@ -310,7 +342,7 @@ BEGIN
 
     IF is_valid THEN
       INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip, load_balancer_dns, repository_uri, env_variables, force_new_deployment)
-      VALUES (_app_name, _desired_count, _app_port, _cpu_mem::ecs_simplified_cpu_mem_enum, _image_tag, _public_ip, _load_balancer_dns, _repository_uri, _env_variables, _force_new_deployment);
+      VALUES (_app_name, _desired_count, _app_port, _cpu_mem::task_definition_cpu_memory_enum, _image_tag, _public_ip, _load_balancer_dns, _repository_uri, _env_variables, _force_new_deployment);
     END IF;
   END LOOP;
 

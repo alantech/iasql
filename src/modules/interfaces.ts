@@ -464,9 +464,14 @@ export class ModuleBase {
   }
 
   init() {
+    this.loadBasics();
+    this.loadTypeORM();
+  }
+
+  loadBasics() {
     if (!this.dirname) {
       this.dirname =
-        path.dirname(callsite()?.[1]?.getFileName?.()) ??
+        path.dirname(callsite()?.[2]?.getFileName?.()) ??
         throwError('Invalid module definition. No `dirname` property found');
     }
     // Extract the name and version from `__dirname`
@@ -481,14 +486,6 @@ export class ModuleBase {
     // Make sure every module depends on the `iasql_platform` module (except that module itself)
     if (this.name !== 'iasql_platform' && !this.dependencies.includes(`iasql_platform@${this.version}`))
       throw new Error(`${this.name} did not declare an iasql_platform dependency and cannot be loaded.`);
-    const entityDir = `${this.dirname}/entity`;
-    const entities = require(`${entityDir}/index`);
-    this.provides = {
-      entities,
-      tables: [], // These will be populated automatically below
-      functions: [], // TODO: Auto-populate these
-    };
-    if (this.context) this.provides.context = this.context;
     this.rpc = Object.fromEntries(
       Object.entries(this).filter(([_, m]: [string, any]) => m instanceof RpcBase) as [
         [string, RpcInterface],
@@ -496,18 +493,18 @@ export class ModuleBase {
     );
     const { beforeInstallSql, afterInstallSql, beforeUninstallSql, afterUninstallSql } = this.getCustomSql();
     const [rpcAfterInstallSql, rpcBeforeUninstallSql] = this.getRpcSql();
-    const migrationDir = `${this.dirname}/migration`;
-    const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
-    if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
-    const migration = require(`${migrationDir}/${files[0]}`);
-    // Assuming TypeORM migration files
-    const migrationClass = migration[Object.keys(migration)[0]];
-    if (!migrationClass || !migrationClass.prototype.up || !migrationClass.prototype.down) {
-      throw new Error('Presumed migration file is not a TypeORM migration');
+    this.provides = {
+      entities: {},
+      tables: [],
+      functions: [],
+    };
+    if (/^create table/i.test(afterInstallSql)) {
+      this.provides.tables.push((afterInstallSql.match(/^[^"]*"([^"]*)"/) ?? [])[1]);
     }
+    if (this.context) this.provides.context = this.context;
     this.migrations = {
-      install: migrationClass.prototype.up,
-      remove: migrationClass.prototype.down,
+      install: async (_q: QueryRunner) => {},
+      remove: async (_q: QueryRunner) => {},
     };
     const afterInstallMigration = afterInstallSql + rpcAfterInstallSql;
     const beforeUninstallMigration = rpcBeforeUninstallSql + beforeUninstallSql;
@@ -531,6 +528,22 @@ export class ModuleBase {
         await q.query(afterUninstallSql);
       };
     }
+  }
+
+  loadTypeORM() {
+    const migrationDir = `${this.dirname}/migration`;
+    const files = fs.readdirSync(migrationDir).filter(f => !/.map$/.test(f));
+    if (files.length !== 1) throw new Error('Cannot determine which file is the migration');
+    const migration = require(`${migrationDir}/${files[0]}`);
+    // Assuming TypeORM migration files
+    const migrationClass = migration[Object.keys(migration)[0]];
+    if (!migrationClass || !migrationClass.prototype.up || !migrationClass.prototype.down) {
+      throw new Error('Presumed migration file is not a TypeORM migration');
+    }
+    this.migrations.install = migrationClass.prototype.up;
+    this.migrations.remove = migrationClass.prototype.down;
+    const entityDir = `${this.dirname}/entity`;
+    this.provides.entities = require(`${entityDir}/index`);
     const syncified = new Function(
       'return ' +
         migrationClass.prototype.up

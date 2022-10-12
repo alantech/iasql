@@ -4,7 +4,7 @@ import { ModuleBase } from '../../interfaces';
 class AwsEcsSimplified extends ModuleBase {
   constructor() {
     super();
-    super.init();
+    super.loadBasics();
   }
 }
 export const ecsSimplified = new AwsEcsSimplified();
