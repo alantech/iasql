@@ -20,7 +20,7 @@ git pull origin --tags ${CURRENTGITSHA}
 IFS=',' read -r -a availableVersions <<<"$AVAILABLEVERSIONS"
 
 for version in "${availableVersions[@]}"; do
-  echo ${version}
+  echo "Upgrading from version ${version} to ${LATESTVERSION}"
   # Check out the older version of the codebase and launch the engine with a local postgres
   git checkout v${version}
   yarn docker-compose &
@@ -134,8 +134,9 @@ for version in "${availableVersions[@]}"; do
     exit 4
   fi
 
-  echo "Successfully upgraded!"
+  echo "Successfully upgraded from ${version} to ${LATESTVERSION}!"
   # Shut down the database and engine, switch back to the current commit, and fire up a new engine
+  curl http://localhost:8088/v1/db/disconnect/to_upgrade
   docker container stop $(basename ${PWD})_change_engine_1
   docker container stop $(basename ${PWD})_postgresql_1
 done
