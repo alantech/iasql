@@ -1,5 +1,4 @@
 import {
-  Check,
   Column,
   Entity,
   JoinColumn,
@@ -58,14 +57,13 @@ export class MemoryDBCluster {
   @ManyToMany(() => SecurityGroup, { eager: true, cascade: false })
   @JoinTable({
     name: 'memory_db_cluster_security_groups',
-    // joinColumns: [
-    //   { name: 'memory_db_cluster_id', referencedColumnName: 'id' },
-    //   { name: 'memory_db_cluster_region', referencedColumnName: 'region' },
-    // ],
-    // inverseJoinColumns: [
-    //   { name: 'security_group_id', referencedColumnName: 'id' },
-    //   { name: 'security_group_region', referencedColumnName: 'region' },
-    // ],
+    joinColumns: [
+      { name: 'memory_db_cluster_id', referencedColumnName: 'id' },
+      { name: 'region', referencedColumnName: 'region' },
+    ],
+    inverseJoinColumns: [
+      { name: 'security_group_id', referencedColumnName: 'id' },
+    ],
   })
   securityGroups?: SecurityGroup[];
 

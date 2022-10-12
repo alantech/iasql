@@ -77,8 +77,8 @@ describe('MemoryDB Integration Testing', () => {
     INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
     VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
 
-    INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id)
-    VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'));
+    INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id, region)
+    VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${process.env.AWS_REGION}');
   `));
 
   it('undo changes', sync());
@@ -93,8 +93,8 @@ describe('MemoryDB Integration Testing', () => {
     INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
     VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
 
-    INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id)
-    VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'));
+    INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id, region)
+    VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${process.env.AWS_REGION}');
   `));
 
   it('applies the change', apply());

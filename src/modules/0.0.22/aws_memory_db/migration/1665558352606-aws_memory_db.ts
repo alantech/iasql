@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsMemoryDb1665496433778 implements MigrationInterface {
-  name = 'awsMemoryDb1665496433778';
+export class awsMemoryDb1665558352606 implements MigrationInterface {
+  name = 'awsMemoryDb1665558352606';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -14,10 +14,10 @@ export class awsMemoryDb1665496433778 implements MigrationInterface {
       `CREATE TABLE "memory_db_cluster" ("id" SERIAL NOT NULL, "cluster_name" character varying NOT NULL, "description" character varying, "address" character varying, "port" integer NOT NULL DEFAULT '6379', "node_type" "public"."memory_db_cluster_node_type_enum" NOT NULL DEFAULT 'db.r6g.large', "arn" character varying, "status" character varying, "tags" json, "region" character varying NOT NULL DEFAULT default_aws_region(), "subnet_group_id" integer NOT NULL, CONSTRAINT "uq_memory_db_cluster_name_region" UNIQUE ("cluster_name", "region"), CONSTRAINT "uq_memory_db_cluster_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_b7461d91a0f9b5cda3a86a7da24" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "memory_db_cluster_security_groups" ("memory_db_cluster_id" integer NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_7e87bbcf6a72ca299ad58fb8915" PRIMARY KEY ("memory_db_cluster_id", "security_group_id"))`,
+      `CREATE TABLE "memory_db_cluster_security_groups" ("memory_db_cluster_id" integer NOT NULL, "region" character varying NOT NULL, "security_group_id" integer NOT NULL, CONSTRAINT "PK_c24a4fa57989c3c95d17eb2e457" PRIMARY KEY ("memory_db_cluster_id", "region", "security_group_id"))`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_f8d300474415c8556e3d7fd7fa" ON "memory_db_cluster_security_groups" ("memory_db_cluster_id") `,
+      `CREATE INDEX "IDX_4d04c1c4a206dae4337919be4d" ON "memory_db_cluster_security_groups" ("memory_db_cluster_id", "region") `,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_934dbce49712bcc04e479d551c" ON "memory_db_cluster_security_groups" ("security_group_id") `,
@@ -32,7 +32,7 @@ export class awsMemoryDb1665496433778 implements MigrationInterface {
       `ALTER TABLE "memory_db_cluster" ADD CONSTRAINT "FK_6fd8e3f2d624960bc1ac10f4cea" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "memory_db_cluster_security_groups" ADD CONSTRAINT "FK_f8d300474415c8556e3d7fd7fa9" FOREIGN KEY ("memory_db_cluster_id") REFERENCES "memory_db_cluster"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+      `ALTER TABLE "memory_db_cluster_security_groups" ADD CONSTRAINT "FK_4d04c1c4a206dae4337919be4dc" FOREIGN KEY ("memory_db_cluster_id", "region") REFERENCES "memory_db_cluster"("id","region") ON DELETE CASCADE ON UPDATE CASCADE`,
     );
     await queryRunner.query(
       `ALTER TABLE "memory_db_cluster_security_groups" ADD CONSTRAINT "FK_934dbce49712bcc04e479d551cf" FOREIGN KEY ("security_group_id") REFERENCES "security_group"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
@@ -44,7 +44,7 @@ export class awsMemoryDb1665496433778 implements MigrationInterface {
       `ALTER TABLE "memory_db_cluster_security_groups" DROP CONSTRAINT "FK_934dbce49712bcc04e479d551cf"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "memory_db_cluster_security_groups" DROP CONSTRAINT "FK_f8d300474415c8556e3d7fd7fa9"`,
+      `ALTER TABLE "memory_db_cluster_security_groups" DROP CONSTRAINT "FK_4d04c1c4a206dae4337919be4dc"`,
     );
     await queryRunner.query(
       `ALTER TABLE "memory_db_cluster" DROP CONSTRAINT "FK_6fd8e3f2d624960bc1ac10f4cea"`,
@@ -54,7 +54,7 @@ export class awsMemoryDb1665496433778 implements MigrationInterface {
     );
     await queryRunner.query(`ALTER TABLE "subnet_group" DROP CONSTRAINT "FK_9c167de4a925902861770929701"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_934dbce49712bcc04e479d551c"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_f8d300474415c8556e3d7fd7fa"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_4d04c1c4a206dae4337919be4d"`);
     await queryRunner.query(`DROP TABLE "memory_db_cluster_security_groups"`);
     await queryRunner.query(`DROP TABLE "memory_db_cluster"`);
     await queryRunner.query(`DROP TYPE "public"."memory_db_cluster_node_type_enum"`);

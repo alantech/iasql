@@ -84,8 +84,8 @@ describe('MemoryDB Multi-region Integration Testing', () => {
     query(`
       INSERT INTO memory_db_cluster (cluster_name, subnet_group_id)
       VALUES ('${clusterName}', (select id from subnet_group where subnet_group_name = '${subnetGroupName}'));
-      INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id)
-      VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'));
+      INSERT INTO memory_db_cluster_security_groups (security_group_id, memory_db_cluster_id, region)
+      VALUES ((select id from security_group where group_name = 'default' and region = '${process.env.AWS_REGION}'), (select id from memory_db_cluster where cluster_name = '${clusterName}'), '${process.env.AWS_REGION}');
   `),
   );
 
@@ -129,7 +129,7 @@ describe('MemoryDB Multi-region Integration Testing', () => {
       WHERE subnet_group_name = '${subnetGroupName}'
     ), updated_memory_db_cluster_security_groups AS (
       UPDATE memory_db_cluster_security_groups
-      SET security_group_id = (select id from security_group where group_name = 'default' and region = '${nonDefaultRegion}')
+      SET security_group_id = (select id from security_group where group_name = 'default' and region = '${nonDefaultRegion}'), region = '${nonDefaultRegion}'
       WHERE memory_db_cluster_id = (select id from memory_db_cluster where cluster_name = '${clusterName}')
     ) 
     UPDATE memory_db_cluster
