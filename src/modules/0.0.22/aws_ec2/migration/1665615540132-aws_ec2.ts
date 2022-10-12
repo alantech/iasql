@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEc21665614978848 implements MigrationInterface {
-  name = 'awsEc21665614978848';
+export class awsEc21665615540132 implements MigrationInterface {
+  name = 'awsEc21665615540132';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -11,7 +11,7 @@ export class awsEc21665614978848 implements MigrationInterface {
       `CREATE TABLE "instance" ("id" SERIAL NOT NULL, "instance_id" character varying, "ami" character varying NOT NULL, "instance_type" character varying NOT NULL, "key_pair_name" character varying, "state" "public"."instance_state_enum" NOT NULL DEFAULT 'running', "user_data" text, "tags" json, "hibernation_enabled" boolean NOT NULL DEFAULT false, "region" character varying NOT NULL DEFAULT default_aws_region(), "role_name" character varying, "subnet_id" integer, CONSTRAINT "instance_id_region" UNIQUE ("id", "region"), CONSTRAINT "check_role_ec2" CHECK (role_name IS NULL OR (role_name IS NOT NULL AND check_role_ec2(role_name))), CONSTRAINT "PK_eaf60e4a0c399c9935413e06474" PRIMARY KEY ("id")); COMMENT ON COLUMN "instance"."instance_id" IS 'Unique identifier provided by AWS once the instance is provisioned'`,
     );
     await queryRunner.query(
-      `CREATE TABLE "registered_instance" ("port" integer, "instance" integer NOT NULL, "target_group" character varying NOT NULL, CONSTRAINT "check_target_group_instance" CHECK (check_target_group_instance(target_group)), CONSTRAINT "PK_9bf32facbba2872745e70d25b3a" PRIMARY KEY ("instance", "target_group"))`,
+      `CREATE TABLE "registered_instance" ("port" integer, "region" character varying NOT NULL DEFAULT default_aws_region(), "instance" integer NOT NULL, "target_group" character varying NOT NULL, CONSTRAINT "check_target_group_instance" CHECK (check_target_group_instance(target_group)), CONSTRAINT "PK_9bf32facbba2872745e70d25b3a" PRIMARY KEY ("instance", "target_group"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."general_purpose_volume_volume_type_enum" AS ENUM('gp2', 'gp3')`,
@@ -41,10 +41,13 @@ export class awsEc21665614978848 implements MigrationInterface {
       `ALTER TABLE "instance" ADD CONSTRAINT "FK_52f1134c0a4287cdb97af5a9886" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "registered_instance" ADD CONSTRAINT "FK_407298b1d222bfd78d4886a254d" FOREIGN KEY ("instance") REFERENCES "instance"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+      `ALTER TABLE "registered_instance" ADD CONSTRAINT "FK_6bf12c7f170e44eeb869e171f0c" FOREIGN KEY ("instance", "region") REFERENCES "instance"("id","region") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "registered_instance" ADD CONSTRAINT "FK_bdcacf2c01109dd6ad3ffab7a83" FOREIGN KEY ("target_group") REFERENCES "target_group"("target_group_name") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "registered_instance" ADD CONSTRAINT "FK_65a392a8bbc87257b1251aeb63e" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "general_purpose_volume" ADD CONSTRAINT "FK_6d207f0b3f4bf5f7c162c28cd9e" FOREIGN KEY ("availability_zone") REFERENCES "availability_zone"("name") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -80,10 +83,13 @@ export class awsEc21665614978848 implements MigrationInterface {
       `ALTER TABLE "general_purpose_volume" DROP CONSTRAINT "FK_6d207f0b3f4bf5f7c162c28cd9e"`,
     );
     await queryRunner.query(
+      `ALTER TABLE "registered_instance" DROP CONSTRAINT "FK_65a392a8bbc87257b1251aeb63e"`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "registered_instance" DROP CONSTRAINT "FK_bdcacf2c01109dd6ad3ffab7a83"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "registered_instance" DROP CONSTRAINT "FK_407298b1d222bfd78d4886a254d"`,
+      `ALTER TABLE "registered_instance" DROP CONSTRAINT "FK_6bf12c7f170e44eeb869e171f0c"`,
     );
     await queryRunner.query(`ALTER TABLE "instance" DROP CONSTRAINT "FK_52f1134c0a4287cdb97af5a9886"`);
     await queryRunner.query(`ALTER TABLE "instance" DROP CONSTRAINT "FK_7660424ef50e6538c77706b2480"`);

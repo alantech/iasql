@@ -1,6 +1,7 @@
 import { Check, Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
 import { Instance } from '.';
+import { AwsRegions } from '../../aws_account/entity';
 import { TargetGroup } from '../../aws_elb/entity';
 
 @Entity()
@@ -11,7 +12,16 @@ export class RegisteredInstance {
     eager: true,
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'instance' })
+  @JoinColumn([
+    {
+      name: 'instance',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   instance: Instance;
 
   @ManyToOne(() => TargetGroup, targetGroup => targetGroup.targetGroupName, {
@@ -27,4 +37,13 @@ export class RegisteredInstance {
     type: 'int',
   })
   port?: number;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  region: string;
 }
