@@ -662,7 +662,9 @@ ${Object.keys(tableCollisions)
   // we first need to sync the existing modules to make sure there are no records the newly-added
   // modules have a dependency on.
   try {
+    logger.info(`+-+ STARTED SYNCING`)
     await sync(dbId, false, force, syncContext ?? { memo: {}, orm }, orm);
+    logger.info(`+-+ END SYNCING`)
   } catch (e: any) {
     logger.error('Sync during module install failed', e);
     throw e;
