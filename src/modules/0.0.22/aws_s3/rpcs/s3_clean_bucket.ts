@@ -26,10 +26,10 @@ export class S3CleanBucketRpc extends RpcBase {
     _dbId: string,
     _dbUser: string,
     ctx: Context,
-    ...params: string[]
+    bucketName: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     // we need to have bucket name as first element of params
-    if (!params || !Array.isArray(params) || params.length < 1 || params[0] === '') {
+    if (!bucketName) {
       return [
         {
           bucket: 'none',
@@ -39,19 +39,18 @@ export class S3CleanBucketRpc extends RpcBase {
       ];
     }
     const client = (await ctx.getAwsClient()) as AWS;
-    const bucket = params[0];
-    const objects = await this.getBucketObjects(client.s3Client, bucket);
+    const objects = await this.getBucketObjects(client.s3Client, bucketName);
     for (const object of objects) {
       // delete the object
-      await this.deleteBucketObject(client.s3Client, bucket, object.Key);
+      await this.deleteBucketObject(client.s3Client, bucketName, object.Key);
     }
 
     // query again to see if all objects have been deleted
-    const remainingObjects = await this.getBucketObjects(client.s3Client, bucket);
+    const remainingObjects = await this.getBucketObjects(client.s3Client, bucketName);
     if (!remainingObjects.length) {
       return [
         {
-          bucket,
+          bucket: bucketName,
           status: 'OK',
           response_message: 'All bucket objects have been deleted',
         },
@@ -59,7 +58,7 @@ export class S3CleanBucketRpc extends RpcBase {
     } else {
       return [
         {
-          bucket,
+          bucket: bucketName,
           status: 'KO',
           response_message: 'There are remaining objects that could not be deleted',
         },
