@@ -75,9 +75,9 @@ export class TypeormWrapper {
     // the TypeORM client
     const entities = Object.values(Modules)
       .filter((m: any) => m.hasOwnProperty('provides'))
-      .map((m: any) => Object.values(m.provides.entities))
-      .flat()
-      .filter(e => typeof e === 'function') as Function[];
+      .map((m: any) => Object.keys(m.provides.entities))
+      .flat();
+      // .filter(e => typeof e === 'function') as Function[];
 
     // Now that we have the entities for this database, close the temporary connection and create
     // the real connection with the entities present
