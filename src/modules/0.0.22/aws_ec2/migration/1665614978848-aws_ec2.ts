@@ -1,14 +1,14 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEc21665614414965 implements MigrationInterface {
-  name = 'awsEc21665614414965';
+export class awsEc21665614978848 implements MigrationInterface {
+  name = 'awsEc21665614978848';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `CREATE TYPE "public"."instance_state_enum" AS ENUM('running', 'stopped', 'hibernate')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "instance" ("id" SERIAL NOT NULL, "instance_id" character varying, "ami" character varying NOT NULL, "instance_type" character varying NOT NULL, "key_pair_name" character varying, "state" "public"."instance_state_enum" NOT NULL DEFAULT 'running', "user_data" text, "tags" json, "hibernation_enabled" boolean NOT NULL DEFAULT false, "region" character varying NOT NULL DEFAULT default_aws_region(), "role_name" character varying, "subnet_id" integer, CONSTRAINT "check_role_ec2" CHECK (role_name IS NULL OR (role_name IS NOT NULL AND check_role_ec2(role_name))), CONSTRAINT "PK_eaf60e4a0c399c9935413e06474" PRIMARY KEY ("id")); COMMENT ON COLUMN "instance"."instance_id" IS 'Unique identifier provided by AWS once the instance is provisioned'`,
+      `CREATE TABLE "instance" ("id" SERIAL NOT NULL, "instance_id" character varying, "ami" character varying NOT NULL, "instance_type" character varying NOT NULL, "key_pair_name" character varying, "state" "public"."instance_state_enum" NOT NULL DEFAULT 'running', "user_data" text, "tags" json, "hibernation_enabled" boolean NOT NULL DEFAULT false, "region" character varying NOT NULL DEFAULT default_aws_region(), "role_name" character varying, "subnet_id" integer, CONSTRAINT "instance_id_region" UNIQUE ("id", "region"), CONSTRAINT "check_role_ec2" CHECK (role_name IS NULL OR (role_name IS NOT NULL AND check_role_ec2(role_name))), CONSTRAINT "PK_eaf60e4a0c399c9935413e06474" PRIMARY KEY ("id")); COMMENT ON COLUMN "instance"."instance_id" IS 'Unique identifier provided by AWS once the instance is provisioned'`,
     );
     await queryRunner.query(
       `CREATE TABLE "registered_instance" ("port" integer, "instance" integer NOT NULL, "target_group" character varying NOT NULL, CONSTRAINT "check_target_group_instance" CHECK (check_target_group_instance(target_group)), CONSTRAINT "PK_9bf32facbba2872745e70d25b3a" PRIMARY KEY ("instance", "target_group"))`,

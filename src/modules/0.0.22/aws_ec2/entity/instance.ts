@@ -7,6 +7,7 @@ import {
   ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
@@ -26,6 +27,7 @@ export enum State {
 
 @Entity()
 @Check('check_role_ec2', 'role_name IS NULL OR (role_name IS NOT NULL AND check_role_ec2(role_name))')
+@Unique('instance_id_region', ['id', 'region']) // So the General Purpose Volume entity can join on both
 export class Instance {
   @PrimaryGeneratedColumn()
   id?: number;
