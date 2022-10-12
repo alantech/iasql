@@ -75,10 +75,7 @@ export function createQueryGroupRole() {
 
 export function grantPostgresRoleQuery(user: string) {
   return `
-    GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${queryUserGroupRole};
-    GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${queryUserGroupRole};
-    GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${queryUserGroupRole};
-    GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${queryUserGroupRole};
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${queryUserGroupRole};
     GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${queryUserGroupRole};
     GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${queryUserGroupRole};
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${queryUserGroupRole};
