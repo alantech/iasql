@@ -32,7 +32,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     Object.is(a.subnetGroup?.subnetGroupName, b.subnetGroup?.subnetGroupName);
   // todo: && isEqual(a.tags, b.tags);  // update
 
-  async memoryDBClusterMapper(cloudE: AWSCluster, ctx: Context) {
+  async memoryDBClusterMapper(cloudE: AWSCluster, ctx: Context, region: string) {
     const out = new MemoryDBCluster();
     if (!cloudE?.ARN || !cloudE?.Name || !cloudE?.NodeType || !cloudE.SubnetGroupName) return undefined;
     out.address = cloudE.ClusterEndpoint?.Address;
@@ -45,12 +45,8 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     for (const sgm of cloudE.SecurityGroups ?? []) {
       try {
         const sg =
-          (await awsSecurityGroupModule.securityGroup.db.read(ctx)).find(
-            (scgrp: SecurityGroup) => scgrp.groupId === sgm.SecurityGroupId,
-          ) ??
-          (await awsSecurityGroupModule.securityGroup.cloud.read(ctx)).find(
-            (scgrp: SecurityGroup) => scgrp.groupId === sgm.SecurityGroupId,
-          );
+          (await awsSecurityGroupModule.securityGroup.db.read(ctx, `${sgm.SecurityGroupId}|${region}`)) ??
+          (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, `${sgm.SecurityGroupId}|${region}`));
         if (sg) securityGroups.push(sg);
       } catch (e: any) {
         /*Ignore misconfigured security groups*/
@@ -62,9 +58,10 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     out.securityGroups = securityGroups;
     out.status = cloudE.Status;
     out.subnetGroup =
-      (await awsMemoryDBModule.subnetGroup.db.read(ctx, cloudE.SubnetGroupName)) ??
-      (await awsMemoryDBModule.subnetGroup.cloud.read(ctx, cloudE.SubnetGroupName));
+      (await awsMemoryDBModule.subnetGroup.db.read(ctx, `${cloudE.SubnetGroupName}|${region}`)) ??
+      (await awsMemoryDBModule.subnetGroup.cloud.read(ctx, `${cloudE.SubnetGroupName}|${region}`));
     // todo: out.tags =
+    out.region = region;
     return out;
   }
 
@@ -103,7 +100,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
       {
         client,
         // all in seconds
-        maxWaitTime: 1200,
+        maxWaitTime: 1800,
         minDelay: 1,
         maxDelay: 4,
       },
@@ -129,9 +126,9 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
 
   cloud: Crud2<MemoryDBCluster> = new Crud2({
     create: async (es: MemoryDBCluster[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         // Check if subnet group already exists
         if (!e.subnetGroup.arn) throw new Error('Subnet group need to be created first');
         // Now create the cluster
@@ -151,7 +148,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
         const newObject = await this.getCluster(client.memoryDBClient, newClusterName);
         if (!newObject) continue;
         // We map this into the same kind of entity as `obj`
-        const newEntity = await this.memoryDBClusterMapper(newObject, ctx);
+        const newEntity = await this.memoryDBClusterMapper(newObject, ctx, e.region);
         if (!newEntity) continue;
         // Save the record back into the database to get the new fields updated
         newEntity.id = e.id;
@@ -161,19 +158,27 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (!supportedRegions.includes(client.region)) return;
-      if (id) {
-        const rawCluster = await this.getCluster(client.memoryDBClient, id);
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (!!id) {
+        const { clusterName, region } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        if (!supportedRegions.includes(region)) return;
+        const rawCluster = await this.getCluster(client.memoryDBClient, clusterName);
         if (!rawCluster) return;
-        return this.memoryDBClusterMapper(rawCluster, ctx);
+        return this.memoryDBClusterMapper(rawCluster, ctx, region);
       } else {
-        const rawClusters = (await this.getClusters(client.memoryDBClient)) ?? [];
-        const out = [];
-        for (const cl of rawClusters) {
-          const outCl = await this.memoryDBClusterMapper(cl, ctx);
-          if (outCl) out.push(outCl);
-        }
+        const out: MemoryDBCluster[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            if (!supportedRegions.includes(region)) return;
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawClusters = (await this.getClusters(client.memoryDBClient)) ?? [];
+            for (const cl of rawClusters) {
+              const outCl = await this.memoryDBClusterMapper(cl, ctx, region);
+              if (outCl) out.push(outCl);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -187,10 +192,10 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
       return 'update';
     },
     update: async (es: MemoryDBCluster[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.MemoryDBCluster?.[e.clusterName ?? ''];
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.MemoryDBCluster?.[this.entityId(e)];
         const isUpdate = this.module.memoryDBCluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           // todo: add waiters
@@ -240,7 +245,7 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
           if (update) {
             const rawCluster = await this.getCluster(client.memoryDBClient, e.clusterName ?? '');
             if (!rawCluster) continue;
-            const newCluster = await this.memoryDBClusterMapper(rawCluster, ctx);
+            const newCluster = await this.memoryDBClusterMapper(rawCluster, ctx, e.region);
             if (!newCluster) continue;
             newCluster.id = e.id;
             await this.module.memoryDBCluster.db.update(newCluster, ctx);
@@ -261,8 +266,8 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
       return out;
     },
     delete: async (es: MemoryDBCluster[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteCluster(client.memoryDBClient, e.clusterName ?? '');
         await this.waitClusterUntil(client.memoryDBClient, e.clusterName, 'deleted');
       }

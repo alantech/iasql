@@ -1,16 +1,16 @@
-import { Check, Column, Entity, Generated } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 
 @Entity()
-@Check('check_subnet_group_subnets', 'check_subnet_group_subnets(subnets)')
-@Check('check_subnet_group_subnets_same_vpc', 'check_subnet_group_subnets_same_vpc(subnets)')
+@Unique('uq_subnet_group_id_region', ['id', 'region'])
+@Unique('uq_subnet_group_name_region', ['subnetGroupName', 'region'])
 export class SubnetGroup {
-  @Column()
-  @Generated('increment')
+  @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true, primary: true })
+  @Column()
   @cloudId
   subnetGroupName: string;
 
@@ -22,4 +22,14 @@ export class SubnetGroup {
 
   @Column('varchar', { array: true, nullable: true })
   subnets?: string[];
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }

@@ -6,9 +6,11 @@ import {
   ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { SubnetGroup } from './subnet_group';
 
@@ -25,11 +27,13 @@ export enum NodeTypeEnum {
 }
 
 @Entity()
+@Unique('uq_memory_db_cluster_id_region', ['id', 'region'])
+@Unique('uq_memory_db_cluster_name_region', ['clusterName', 'region'])
 export class MemoryDBCluster {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
+  @Column()
   @cloudId
   clusterName: string;
 
@@ -53,6 +57,11 @@ export class MemoryDBCluster {
   @ManyToMany(() => SecurityGroup, { eager: true })
   @JoinTable({
     name: 'memory_db_cluster_security_groups',
+    joinColumns: [
+      { name: 'memory_db_cluster_id', referencedColumnName: 'id' },
+      { name: 'region', referencedColumnName: 'region' },
+    ],
+    inverseJoinColumns: [{ name: 'security_group_id', referencedColumnName: 'id' }],
   })
   securityGroups?: SecurityGroup[];
 
@@ -60,9 +69,16 @@ export class MemoryDBCluster {
     nullable: false,
     eager: true,
   })
-  @JoinColumn({
-    name: 'subnet_group',
-  })
+  @JoinColumn([
+    {
+      name: 'subnet_group_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   subnetGroup: SubnetGroup;
 
   @Column({ nullable: true })
@@ -77,4 +93,14 @@ export class MemoryDBCluster {
     nullable: true,
   })
   tags?: { [key: string]: string };
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }
