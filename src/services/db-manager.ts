@@ -6,8 +6,6 @@ import config from '../config';
 import { throwError } from '../config/config';
 import { modules as Modules } from '../modules';
 
-const queryUserGroupRole = 'query_table_access_group';
-
 export async function migrate(conn: Connection) {
   // Needs to be done this way or a redeploy would accidentally start using the next version even
   // if it is not yet enabled.
@@ -46,6 +44,10 @@ export function genDbId(dbAlias: string) {
   return config.auth ? `_${randomHexValue()}` : dbAlias;
 }
 
+function getGroupRole(dbId: string) {
+  return `group_role_${dbId}`;
+}
+
 export const baseConnConfig: PostgresConnectionOptions = {
   name: 'base', // If you use multiple connections they must have unique names or typeorm bails
   type: 'postgres',
@@ -67,32 +69,33 @@ export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
   `;
 }
 
-export function createQueryGroupRole() {
+export function createQueryGroupRole(dbId: string) {
   return `
-    CREATE ROLE ${queryUserGroupRole};
+    CREATE ROLE ${getGroupRole(dbId)};
   `;
 }
 
-export function grantPostgresRoleQuery(user: string) {
+export function grantPostgresRoleQuery(user: string, dbId: string) {
+  const groupRole = getGroupRole(dbId);
   return `
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${queryUserGroupRole};
-    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${queryUserGroupRole};
-    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${queryUserGroupRole};
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${queryUserGroupRole};
-    GRANT ${queryUserGroupRole} to ${user};
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${groupRole};
+    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${groupRole};
+    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${groupRole};
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${groupRole};
+    GRANT ${groupRole} to ${user};
   `;
 }
 
 // runs query using the group role so user generated tables have the same owner
-export function setPostgresRoleQuery() {
+export function setPostgresRoleQuery(dbId: string) {
   return `
-    SET ROLE ${queryUserGroupRole};
+    SET ROLE ${getGroupRole(dbId)};
   `;
 }
 
 export function revokePostgresRoleQuery(user: string, dbId: string) {
   return `
-    REVOKE ${queryUserGroupRole} FROM ${user};
+    REVOKE ${getGroupRole(dbId)} FROM ${user};
   `;
 }
 
