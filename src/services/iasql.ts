@@ -132,7 +132,7 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     await dbMan.migrate(conn2);
     await conn2.query(dbMan.createQueryGroupRole(dbId));
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
-    await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId));
+    await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId, config.modules.latestVersion));
     roleGranted = true;
     const recCount = await getDbRecCount(conn2);
     const opCount = await getOpCount(conn2);
@@ -190,6 +190,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
   if (db?.upgrading) throw new Error('Currently upgrading, cannot query at this time');
   const database = db.pgName;
   try {
+    const versionString = await TypeormWrapper.getVersionString(database);
     connMain = await createConnection({ ...dbMan.baseConnConfig, database, name: pass });
     // Apparently GRANT and REVOKE can run into concurrency issues in Postgres. Serializing it would
     // be best, but https://www.postgresql.org/message-id/3473.1393693757%40sss.pgh.pa.us says that
@@ -210,7 +211,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
     success = true;
     do {
       try {
-        await connMain.query(dbMan.grantPostgresGroupRoleQuery(user, database));
+        await connMain.query(dbMan.grantPostgresGroupRoleQuery(user, database, versionString));
         success = true;
       } catch (_) {
         success = false;
@@ -225,7 +226,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
       ssl: dbMan.baseConnConfig.extra.ssl,
     });
     await connTemp.connect();
-    await connTemp.query(dbMan.setPostgresRoleQuery(database));
+    await connTemp.query(dbMan.setPostgresRoleQuery(database, versionString));
     const stmts = parse(sql);
     const out = [];
     for (const stmt of stmts) {
@@ -1082,7 +1083,7 @@ ${Object.keys(tableCollisions)
       }
     }
     await queryRunner.commitTransaction();
-    await orm.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId));
+    await orm.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId, versionString));
   } catch (e: any) {
     await queryRunner.rollbackTransaction();
     throw e;

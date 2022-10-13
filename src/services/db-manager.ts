@@ -89,20 +89,24 @@ export function grantPostgresRoleQuery(user: string) {
   `;
 }
 
-export function grantPostgresGroupRoleQuery(user: string, dbId: string) {
-  const groupRole = getGroupRole(dbId);
-  return `
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${groupRole};
-    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${groupRole};
-    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${groupRole};
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${groupRole};
-    GRANT ${groupRole} to ${user};
-  `;
+export function grantPostgresGroupRoleQuery(user: string, dbId: string, versionString: string) {
+  if (['0.0.17', '0.0.18', '0.0.20', '0.0.21'].includes(versionString)) {
+    return grantPostgresRoleQuery(user);
+  } else {
+    const groupRole = getGroupRole(dbId);
+    return `
+      GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${groupRole};
+      GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${groupRole};
+      GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${groupRole};
+      GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${groupRole};
+      GRANT ${groupRole} to ${user};
+    `;
+  }
 }
 
 // runs query using the group role so user generated tables have the same owner
-export function setPostgresRoleQuery(dbId: string) {
-  return `
+export function setPostgresRoleQuery(dbId: string, versionString: string) {
+  return ['0.0.17', '0.0.18', '0.0.20', '0.0.21'].includes(versionString) ? '' : `
     SET ROLE ${getGroupRole(dbId)};
   `;
 }
