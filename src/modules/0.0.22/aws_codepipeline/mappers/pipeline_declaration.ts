@@ -4,11 +4,13 @@ import {
   ArtifactStoreType,
   CodePipeline,
   CreatePipelineCommandInput,
+  GetPipelineStateCommandInput,
   paginateListPipelines,
   PipelineDeclaration as AWSPipelineDeclaration,
   StageDeclaration as AWSStageDeclaration,
   StageDeclaration,
 } from '@aws-sdk/client-codepipeline';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsCodepipelineModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
@@ -23,10 +25,6 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
     // needed to avoid comparisons between undefined and not defined keys
     const stages_a = _.pickBy(a.stages, _.identity);
     const stages_b = _.pickBy(a.stages, _.identity);
-    console.log(_.isEqual(stages_a, stages_b));
-    console.log('in equals');
-    console.dir(stages_a, { depth: null });
-    console.dir(stages_b, { depth: null });
     return (
       Object.is(a.serviceRole?.arn, b.serviceRole?.arn) &&
       Object.is(a.name, b.name) &&
@@ -95,6 +93,41 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
 
   deletePipelineDeclaration = crudBuilder2<CodePipeline, 'deletePipeline'>('deletePipeline', input => input);
 
+  async waitForPipelineExecution(client: CodePipeline, name: string) {
+    const result = await createWaiter<CodePipeline, GetPipelineStateCommandInput>(
+      {
+        client,
+        // all in seconds
+        maxWaitTime: 900,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      {
+        name: name,
+      },
+      async (cl, cmd) => {
+        let allSuccess = true;
+        try {
+          const data = await cl.getPipelineState(cmd);
+          if (data.stageStates && data.stageStates.length > 0) {
+            for (const state of data.stageStates) {
+              const latest = state.latestExecution;
+              if (latest?.status != 'Suceeded') {
+                allSuccess = false;
+                break;
+              }
+            }
+          }
+          if (allSuccess) return { state: WaiterState.SUCCESS };
+          else return { state: WaiterState.RETRY };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
+    return result;
+  }
+
   cloud: Crud2<PipelineDeclaration> = new Crud2({
     create: async (pds: PipelineDeclaration[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;
@@ -113,7 +146,11 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
         const rp = await this.createPipelineDeclaration(client.cpClient, input);
         if (rp) {
           const newPipeline = await this.pipelineDeclarationMapper(rp, ctx);
-          if (newPipeline) out.push(newPipeline);
+          if (newPipeline) {
+            // wait until the execution is finished
+            const result = await this.waitForPipelineExecution(client.cpClient, pd.name);
+            if (result.state == WaiterState.SUCCESS) out.push(newPipeline);
+          }
         }
       }
       return out;
@@ -149,20 +186,12 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
       const out = [];
       for (const pd of pds) {
         const cloudRecord = ctx?.memo?.cloud?.PipelineDeclaration?.[pd.name ?? ''];
-        // if we have modified arn, restore it
-        if (pd.serviceRole.arn !== cloudRecord.serviceRole.arn) {
-          pd.serviceRole = cloudRecord.serviceRole;
-          await this.module.pipeline_declaration.db.update(pd, ctx);
-          out.push(pd);
-          continue;
-        }
-
-        // delete previous pipeline and create a new one
-        await this.module.pipeline_declaration.cloud.delete([pd], ctx);
-        const created = await this.module.pipeline_declaration.cloud.create(pd, ctx);
-        if (!!created && created instanceof Array) out.push(...created);
-        else if (!!created) out.push(created);
+        // we cannot allow to update a pipeline because we cannot reuse oauth or any secrets
+        pd.serviceRole = cloudRecord.serviceRole;
+        await this.module.pipeline_declaration.db.update(pd, ctx);
+        out.push(pd);
       }
+      return out;
     },
     delete: async (pds: PipelineDeclaration[], ctx: Context) => {
       const client = (await ctx.getAwsClient()) as AWS;

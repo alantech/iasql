@@ -29,7 +29,7 @@ const bucket = `${prefix}-bucket`;
 
 const applicationNameForDeployment = `${prefix}${dbAlias}applicationForDeployment`;
 const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
-const region = process.env.AWS_REGION ?? '';
+const region = 'us-east-1'; // we need to force to us-east-1 due to issue #1398
 const roleName = `${prefix}-codedeploy-${region}`;
 const ec2RoleName = `${prefix}-codedeploy-ec2-${region}`;
 const sgGroupName = `${prefix}sgcodedeploy`;
@@ -171,6 +171,14 @@ const ubuntuAmiId =
 const instanceTag = `${prefix}-codedeploy-vm`;
 const ssmPolicyArn = 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore';
 
+const ec2FilterTags = JSON.stringify([
+  {
+    Type: 'KEY_AND_VALUE',
+    Key: 'name',
+    Value: `${instanceTag}`,
+  },
+]);
+
 let availabilityZone: string;
 let instanceType: string;
 
@@ -227,7 +235,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new ec2 role',
     query(`
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${ec2RoleName}', '${ec2RolePolicy}', array['${deployEC2PolicyArn}', '${ssmPolicyArn}']);
+    VALUES ('${ec2RoleName}', '${ec2RolePolicy}', array['${deployEC2PolicyArn}', '${ssmPolicyArn}', '${codedeployPolicyArn}']);
   `),
   );
 
@@ -305,8 +313,8 @@ describe('AwsCodepipeline Integration Testing', () => {
   it(
     'adds a new deployment_group',
     query(`
-    INSERT INTO codedeploy_deployment_group (application_name, name, role_name)
-    VALUES ('${applicationNameForDeployment}', '${deploymentGroupName}', '${roleName}');
+    INSERT INTO codedeploy_deployment_group (application_name, name, role_name, ec2_tag_filters)
+    VALUES ('${applicationNameForDeployment}', '${deploymentGroupName}', '${roleName}', '${ec2FilterTags}');
   `),
   );
 
