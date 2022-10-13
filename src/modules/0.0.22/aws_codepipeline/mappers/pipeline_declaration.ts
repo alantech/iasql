@@ -23,6 +23,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
     // needed to avoid comparisons between undefined and not defined keys
     const stages_a = _.pickBy(a.stages, _.identity);
     const stages_b = _.pickBy(a.stages, _.identity);
+    console.log(_.isEqual(stages_a, stages_b));
     console.log('in equals');
     console.dir(stages_a, { depth: null });
     console.dir(stages_b, { depth: null });

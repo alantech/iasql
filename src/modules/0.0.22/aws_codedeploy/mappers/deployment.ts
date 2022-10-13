@@ -19,9 +19,20 @@ import { CodedeployDeployment, DeploymentStatusEnum, RevisionType } from '../ent
 export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment> {
   module: AwsCodedeployModule;
   entity = CodedeployDeployment;
+
   equals = (a: CodedeployDeployment, b: CodedeployDeployment) => {
-    const location_a = _.pickBy(a.location, _.identity);
-    const location_b = _.pickBy(b.location, _.identity);
+    let locationEqual: boolean;
+    if (a.location?.revisionType == b.location?.revisionType) {
+      if (a.location?.revisionType == RevisionType.GITHUB) {
+        locationEqual =
+          Object.is(a.location.githubLocation?.repository, b.location?.githubLocation?.repository) &&
+          Object.is(a.location.githubLocation?.commitId, b.location?.githubLocation?.commitId);
+      } else {
+        locationEqual =
+          Object.is(a.location?.s3Location?.bucket, b.location?.s3Location?.bucket) &&
+          Object.is(a.location?.s3Location?.key, b.location?.s3Location?.key);
+      }
+    } else return false;
 
     return (
       isEqual(a.application.name, b.application.name) &&
@@ -30,7 +41,7 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       Object.is(a.description, b.description) &&
       Object.is(a.externalId, b.externalId) &&
       Object.is(a.status, b.status) &&
-      isEqual(location_a, location_b)
+      locationEqual
     );
   };
 

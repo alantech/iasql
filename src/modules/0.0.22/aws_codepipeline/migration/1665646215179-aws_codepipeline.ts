@@ -1,7 +1,7 @@
 import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class awsCodepipeline1665502180353 implements MigrationInterface {
-    name = 'awsCodepipeline1665502180353'
+export class awsCodepipeline1665646215179 implements MigrationInterface {
+    name = 'awsCodepipeline1665646215179'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "pipeline_declaration" ("name" character varying NOT NULL, "artifact_store" json NOT NULL, "stages" json, "service_role_name" character varying, CONSTRAINT "PK_f69c1c2a340911b6ea0e2508741" PRIMARY KEY ("name"))`);
