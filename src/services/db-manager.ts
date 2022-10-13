@@ -5,7 +5,6 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 import config from '../config';
 import { throwError } from '../config/config';
 import { modules as Modules } from '../modules';
-import { TypeormWrapper } from './typeorm';
 
 export async function migrate(conn: Connection) {
   // Needs to be done this way or a redeploy would accidentally start using the next version even
@@ -70,7 +69,7 @@ export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
   `;
 }
 
-export function createQueryGroupRole(dbId: string) {
+export function createDbPostgreGroupRole(dbId: string) {
   return `
     CREATE ROLE ${getGroupRole(dbId)};
   `;
@@ -136,8 +135,8 @@ export function revokePostgresRoleQuery(user: string, dbId: string, versionStrin
 
 export function dropPostgresRoleQuery(user: string, dbId: string, dropGroupRole: boolean) {
   return `
-    ${dropGroupRole ? `DROP ROLE IF EXISTS ${getGroupRole(dbId)};` : ''}
     DROP ROLE IF EXISTS ${user};
+    ${dropGroupRole ? `DROP ROLE IF EXISTS ${getGroupRole(dbId)};` : ''}
   `;
 }
 

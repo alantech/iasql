@@ -130,7 +130,7 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
       database: dbId,
     });
     await dbMan.migrate(conn2);
-    await conn2.query(dbMan.createQueryGroupRole(dbId));
+    await conn2.query(dbMan.createDbPostgreGroupRole(dbId));
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
     await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId, config.modules.latestVersion));
     roleGranted = true;
@@ -1291,6 +1291,12 @@ export async function upgrade(dbId: string, dbUser: string) {
           name: dbId,
           database: dbId,
         });
+        // TODO remove once 0.0.21 is deprecated
+        // If upgrading from a version older v0.0.22 add a group role
+        // that gets added on connect
+        if (['0.0.17', '0.0.18', '0.0.20', '0.0.21'].includes(versionString)) {
+          await conn.query(dbMan.createDbPostgreGroupRole(dbId));
+        }
         // 1. Read the `iasql_module` table to get all currently installed modules.
         const mods: string[] = (
           await conn.query(`
