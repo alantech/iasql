@@ -33,7 +33,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     Object.is(a.snapshotId, b.snapshotId) &&
     eqTags(a.tags, b.tags);
 
-  async generalPurposeVolumeMapper(vol: AWSVolume, ctx: Context) {
+  async generalPurposeVolumeMapper(vol: AWSVolume, region: string, ctx: Context) {
     const out = new GeneralPurposeVolume();
     if (!vol?.VolumeId) return undefined;
     out.volumeId = vol.VolumeId;
@@ -65,6 +65,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       });
       out.tags = tags;
     }
+    out.region = region;
     return out;
   }
 
@@ -278,7 +279,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
         const newObject = await this.getVolume(client.ec2client, newVolumeId);
         if (!newObject) continue;
         // We map this into the same kind of entity as `obj`
-        const newEntity = await this.generalPurposeVolumeMapper(newObject, ctx);
+        const newEntity = await this.generalPurposeVolumeMapper(newObject, e.region, ctx);
         if (!newEntity) continue;
         // Save the record back into the database to get the new fields updated
         newEntity.id = e.id;
@@ -293,7 +294,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
         const client = (await ctx.getAwsClient(region)) as AWS;
         const rawVolume = await this.getVolume(client.ec2client, volumeId);
         if (!rawVolume) return;
-        return this.generalPurposeVolumeMapper(rawVolume, ctx);
+        return this.generalPurposeVolumeMapper(rawVolume, region, ctx);
       } else {
         const out: GeneralPurposeVolume[] = [];
         const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
@@ -302,7 +303,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
             const client = (await ctx.getAwsClient(region)) as AWS;
             const rawVolumes = (await this.getGeneralPurposeVolumes(client.ec2client)) ?? [];
             for (const vol of rawVolumes) {
-              const outVol = await this.generalPurposeVolumeMapper(vol, ctx);
+              const outVol = await this.generalPurposeVolumeMapper(vol, region, ctx);
               if (outVol) out.push(outVol);
             }
           }),
@@ -384,7 +385,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
           if (update) {
             const rawVolume = await this.getVolume(client.ec2client, e.volumeId);
             if (!rawVolume) continue;
-            const updatedVolume = await this.generalPurposeVolumeMapper(rawVolume, ctx);
+            const updatedVolume = await this.generalPurposeVolumeMapper(rawVolume, e.region, ctx);
             if (!updatedVolume) continue;
             updatedVolume.id = e.id;
             await this.module.generalPurposeVolume.db.update(updatedVolume, ctx);
