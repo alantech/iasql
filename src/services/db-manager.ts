@@ -106,7 +106,9 @@ export function grantPostgresGroupRoleQuery(user: string, dbId: string, versionS
 
 // runs query using the group role so user generated tables have the same owner
 export function setPostgresRoleQuery(dbId: string, versionString: string) {
-  return ['0.0.17', '0.0.18', '0.0.20', '0.0.21'].includes(versionString) ? '' : `
+  return ['0.0.17', '0.0.18', '0.0.20', '0.0.21'].includes(versionString)
+    ? ''
+    : `
     SET ROLE ${getGroupRole(dbId)};
   `;
 }
