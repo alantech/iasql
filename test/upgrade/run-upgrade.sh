@@ -89,7 +89,7 @@ while [ $i -lt $(($len - 1)) ]; do
 
   # The check that the upgrade successfully loads up the new version for the account
   if [ "${ISUPGRADED}" == "false" ]; then
-    echo "Did not successfully upgrade!"
+    echo "Did not successfully upgrade from version ${availableVersions[$i]} to ${LATESTVERSION}!"
     exit 2
   fi
 
@@ -110,7 +110,7 @@ while [ $i -lt $(($len - 1)) ]; do
 
   # The check that the upgrade successfully loads up the new version for the `aws_ec2` module
   if [ "${EC2UPGRADED}" == "false" ]; then
-    echo "Did not successfully upgrade!"
+    echo "Did not successfully upgrade from version ${availableVersions[$i]} to ${LATESTVERSION}!"
     exit 3
   fi
 
@@ -131,7 +131,7 @@ while [ $i -lt $(($len - 1)) ]; do
   done
 
   if [ "${RPCUPGRADED}" == "false" ]; then
-    echo "Did not successfully upgrade!"
+    echo "Did not successfully upgrade from version ${availableVersions[$i]} to ${LATESTVERSION}!"
     exit 4
   fi
 
