@@ -11,19 +11,19 @@ fi
 
 # Get metadata on the current branch to use during the test
 LATESTVERSION=$(./node_modules/.bin/ts-node src/scripts/latestVersion.ts)
-# AVAILABLEVERSIONS=$(./node_modules/.bin/ts-node src/scripts/availableVersions.ts)
-AVAILABLEVERSIONS="0.0.22"
+AVAILABLEVERSIONS=$(./node_modules/.bin/ts-node src/scripts/availableVersions.ts)
 CURRENTGITSHA=$(git rev-parse HEAD)
 
 # Github Actions apparently doesn't pull down the tags by default?
 git pull origin --tags ${CURRENTGITSHA}
 
 IFS=',' read -r -a availableVersions <<<"$AVAILABLEVERSIONS"
-
-for version in "${availableVersions[@]}"; do
-  echo "Upgrading from version ${version} to ${LATESTVERSION}"
+len=${#availableVersions[@]}
+i=0
+while [ $i -lt $(($len - 1)) ]; do
+  echo "Upgrading from version ${availableVersions[$i]} to ${LATESTVERSION}"
   # Check out the older version of the codebase and launch the engine with a local postgres
-  git checkout v${version}
+  git checkout v${availableVersions[$i]}
   yarn docker-compose &
   yarn wait-on http://localhost:8088/health/
 
@@ -140,4 +140,5 @@ for version in "${availableVersions[@]}"; do
   curl http://localhost:8088/v1/db/disconnect/to_upgrade
   docker container stop $(basename ${PWD})_change_engine_1
   docker container stop $(basename ${PWD})_postgresql_1
+  i=$(($i + 1))
 done
