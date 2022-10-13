@@ -22,8 +22,8 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
 
   equals = (a: CodedeployDeployment, b: CodedeployDeployment) => {
     let locationEqual: boolean;
-    if (a.location?.revisionType == b.location?.revisionType) {
-      if (a.location?.revisionType == RevisionType.GITHUB) {
+    if (a.location?.revisionType === b.location?.revisionType) {
+      if (a.location?.revisionType === RevisionType.GITHUB) {
         locationEqual =
           Object.is(a.location.githubLocation?.repository, b.location?.githubLocation?.repository) &&
           Object.is(a.location.githubLocation?.commitId, b.location?.githubLocation?.commitId);

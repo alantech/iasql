@@ -2,11 +2,11 @@ import { ModuleBase } from '../../interfaces';
 import { PipelineDeclarationMapper } from './mappers';
 
 export class AwsCodepipelineModule extends ModuleBase {
-  pipeline_declaration: PipelineDeclarationMapper;
+  pipelineDeclaration: PipelineDeclarationMapper;
 
   constructor() {
     super();
-    this.pipeline_declaration = new PipelineDeclarationMapper(this);
+    this.pipelineDeclaration = new PipelineDeclarationMapper(this);
     super.init();
   }
 }

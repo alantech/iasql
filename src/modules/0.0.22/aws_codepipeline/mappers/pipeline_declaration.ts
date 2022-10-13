@@ -23,14 +23,14 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
   entity = PipelineDeclaration;
   equals = (a: PipelineDeclaration, b: PipelineDeclaration) => {
     // needed to avoid comparisons between undefined and not defined keys
-    const stages_a = _.pickBy(a.stages, _.identity);
-    const stages_b = _.pickBy(a.stages, _.identity);
+    const stagesA = _.pickBy(a.stages, _.identity);
+    const stagesB = _.pickBy(a.stages, _.identity);
     return (
       Object.is(a.serviceRole?.arn, b.serviceRole?.arn) &&
       Object.is(a.name, b.name) &&
       Object.is(a.artifactStore.location, b.artifactStore.location) &&
       Object.is(a.artifactStore.type, b.artifactStore.type) &&
-      _.isEqual(stages_a, stages_b)
+      _.isEqual(stagesA, stagesB)
     );
   };
 
@@ -103,7 +103,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
         maxDelay: 4,
       },
       {
-        name: name,
+        name,
       },
       async (cl, cmd) => {
         let allSuccess = true;
@@ -112,7 +112,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
           if (data.stageStates && data.stageStates.length > 0) {
             for (const state of data.stageStates) {
               const latest = state.latestExecution;
-              if (latest?.status != 'Suceeded') {
+              if (latest?.status !== 'Succeeded') {
                 allSuccess = false;
                 break;
               }
@@ -149,7 +149,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
           if (newPipeline) {
             // wait until the execution is finished
             const result = await this.waitForPipelineExecution(client.cpClient, pd.name);
-            if (result.state == WaiterState.SUCCESS) out.push(newPipeline);
+            if (result.state === WaiterState.SUCCESS) out.push(newPipeline);
           }
         }
       }
@@ -188,7 +188,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
         const cloudRecord = ctx?.memo?.cloud?.PipelineDeclaration?.[pd.name ?? ''];
         // we cannot allow to update a pipeline because we cannot reuse oauth or any secrets
         pd.serviceRole = cloudRecord.serviceRole;
-        await this.module.pipeline_declaration.db.update(pd, ctx);
+        await this.module.pipelineDeclaration.db.update(pd, ctx);
         out.push(pd);
       }
       return out;

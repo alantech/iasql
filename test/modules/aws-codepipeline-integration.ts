@@ -217,7 +217,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 
@@ -453,7 +453,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
-/*describe('AwsCodepipeline install/uninstall', () => {
+describe('AwsCodepipeline install/uninstall', () => {
   it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -491,4 +491,4 @@ describe('AwsCodepipeline Integration Testing', () => {
   it('installs the codepipeline module', install(modules));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});*/
+});
