@@ -15,6 +15,7 @@ import { sortModules } from '../../../services/mod-sort';
 import MetadataRepo from '../../../services/repositories/metadata';
 import * as scheduler from '../../../services/scheduler-api';
 import { TypeormWrapper } from '../../../services/typeorm';
+import { install as newInstall, sync as newSync } from '../../0.0.22/iasql_functions/iasql'
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
@@ -964,9 +965,9 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
         if (OldModules?.iasqlPlatform?.migrations?.afterRemove) {
           await OldModules?.iasqlPlatform?.migrations?.afterRemove(qr);
         }
-        // close previous conne and create a new one
-        await conn?.dropConn();
-        conn = await TypeormWrapper.createConn(dbId, dbMan.baseConnConfig);
+        //  // close previous conne and create a new one
+        //  await conn?.dropConn();
+        //  conn = await TypeormWrapper.createConn(dbId, dbMan.baseConnConfig);
         qr = conn.createQueryRunner();
         // 5. Install the new `iasql_*` modules manually
         logger.info(`+-+ executing step 5`);
@@ -992,24 +993,25 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
           INSERT INTO iasql_module (name) VALUES ('iasql_platform@${config.modules.latestVersion}'), ('iasql_functions@${config.modules.latestVersion}');
           INSERT INTO iasql_dependencies (module, dependency) VALUES ('iasql_functions@${config.modules.latestVersion}', 'iasql_platform@${config.modules.latestVersion}');
         `);
-        // 6. Install the `aws_account` module and then re-insert the creds if present, then add
-        //    the rest of the modules back.
+        // // 6. Install the `aws_account` module and then re-insert the creds if present, then add
+        // //    the rest of the modules back.
         logger.info(`+-+ executing step 6`);
         if (!!creds) {
-          await install(['aws_account'], dbId, dbUser, false, true);
+          install
+          await newInstall(['aws_account'], dbId, dbUser, false, true);
           await conn.query(`
             INSERT INTO aws_credentials (access_key_id, secret_access_key)
             VALUES ('${creds.access_key_id}', '${creds.secret_access_key}');
           `);
           logger.info(`+-+ begin step 6 sync`)
-          await sync(dbId, false, true, context);
+          await newSync(dbId, false, true, context);
           logger.info(`+-+ begin step 6 sync`);
           if (creds.region) {
             await conn.query(`
               UPDATE aws_regions SET is_default = true WHERE region = '${creds.region}';
             `);
           }
-          await install(
+          await newInstall(
             mods.filter((m: string) => !['aws_account', 'iasql_platform', 'iasql_functions'].includes(m)),
             dbId,
             dbUser,
