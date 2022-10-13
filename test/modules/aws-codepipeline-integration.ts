@@ -142,7 +142,7 @@ const codedeployRolePolicy = JSON.stringify({
       Sid: '',
       Effect: 'Allow',
       Principal: {
-        Service: 'codedeploy.amazonaws.com',
+        Service: ['codedeploy.amazonaws.com'],
       },
       Action: 'sts:AssumeRole',
     },
