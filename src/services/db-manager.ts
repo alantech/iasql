@@ -99,8 +99,9 @@ export function revokePostgresRoleQuery(user: string, dbId: string) {
   `;
 }
 
-export function dropPostgresRoleQuery(user: string) {
+export function dropPostgresRoleQuery(user: string, dbId: string, dropGroupRole: boolean) {
   return `
+    ${dropGroupRole ? `DROP ROLE IF EXISTS ${getGroupRole(dbId)};` : ''}
     DROP ROLE IF EXISTS ${user};
   `;
 }

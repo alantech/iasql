@@ -152,7 +152,7 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     if (schedulerStarted) await scheduler.stop(dbId);
     // delete db in psql and metadata
     if (dbSaved) await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
-    if (dbUser && roleGranted) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser));
+    if (dbUser && roleGranted) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser, dbId, true));
     if (dbSaved) await MetadataRepo.delDb(uid, dbAlias);
     // rethrow the error
     throw e;
@@ -171,7 +171,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);
-    await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser));
+    await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser, db.pgName, true));
     await MetadataRepo.delDb(uid, dbAlias);
     return db.pgName;
   } catch (e: any) {
@@ -291,7 +291,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
       success = true;
       do {
         try {
-          await connMain?.query(dbMan.dropPostgresRoleQuery(user));
+          await connMain?.query(dbMan.dropPostgresRoleQuery(user, database, false));
         } catch (_) {
           success = false;
         }
