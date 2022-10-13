@@ -15,6 +15,7 @@ import { sortModules } from '../../../services/mod-sort';
 import MetadataRepo from '../../../services/repositories/metadata';
 import * as scheduler from '../../../services/scheduler-api';
 import { TypeormWrapper } from '../../../services/typeorm';
+
 const upgradedIasql = require(`../../${config.modules.latestVersion}/iasql_functions/iasql`);
 
 // Crupde = CR-UP-DE, Create/Update/Delete
@@ -307,12 +308,10 @@ export async function sync(
     // Find all of the installed modules
     const iasqlModule = Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
     const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
-    logger.info(`+-+ SYNC MODULE NAMES ARE ${moduleNames}`)
     // Get the mappers, regardless of source-of-truth
     const moduleList = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
       moduleNames.includes(`${mod.name}@${mod.version}`),
     );
-    logger.info(`+-+ SYNC MODULE LIST ARE ${moduleList.map(m => `${m.name} = ${Object.keys(m ?? {})}`)}`)
     const rootToLeafOrder = sortModules(moduleList, []);
     const mappers = (rootToLeafOrder as ModuleInterface[])
       .map(mod => Object.values(mod))
@@ -662,9 +661,7 @@ ${Object.keys(tableCollisions)
   // we first need to sync the existing modules to make sure there are no records the newly-added
   // modules have a dependency on.
   try {
-    logger.info(`+-+ STARTED SYNCING`)
     await sync(dbId, false, force, syncContext ?? { memo: {}, orm }, orm);
-    logger.info(`+-+ END SYNCING`)
   } catch (e: any) {
     logger.error('Sync during module install failed', e);
     throw e;
@@ -893,7 +890,6 @@ export async function uninstall(moduleList: string[], dbId: string, force = fals
 // This function is always going to have special-cased logic for it, but hopefully it ends up in a
 // few different 'groups' by version number instead of being special-cased for each version.
 export async function upgrade(dbId: string, dbUser: string, context: Context) {
-  logger.info(`+-+ EXECUTING UPGRADE!!!`);
   const versionString = await TypeormWrapper.getVersionString(dbId);
   if (versionString === config.modules.latestVersion) {
     return 'Up to date';
@@ -914,14 +910,12 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
       try {
         conn = await TypeormWrapper.createConn(dbId);
         // 1. Read the `iasql_module` table to get all currently installed modules.
-        logger.info(`+-+ executing step 1`);
         const mods: string[] = (
           await conn.query(`
           SELECT name FROM iasql_module;
         `)
         ).map((r: any) => r.name.split('@')[0]);
         // 2. Read the `aws_account` table to get the credentials (if any).
-        logger.info(`+-+ executing step 2`);
         const OldModules = (AllModules as any)[versionString];
         let creds: any;
         // TODO: Drop this old path once v0.0.20 is the oldest version
@@ -945,11 +939,9 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
           )[0];
         }
         // 3. Uninstall all of the non-`iasql_*` modules
-        logger.info(`+-+ executing step 3`);
         const nonIasqlMods = mods.filter(m => !/^iasql/.test(m));
         await uninstall(nonIasqlMods, dbId, true);
         // 4. Uninstall the `iasql_*` modules manually
-        logger.info(`+-+ executing step 4`);
         let qr = conn.createQueryRunner();
         if (OldModules?.iasqlFunctions?.migrations?.beforeRemove) {
           await OldModules?.iasqlFunctions?.migrations?.beforeRemove(qr);
@@ -965,14 +957,13 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
         if (OldModules?.iasqlPlatform?.migrations?.afterRemove) {
           await OldModules?.iasqlPlatform?.migrations?.afterRemove(qr);
         }
-         // close previous conne and create a new one
+        // close previous conne and create a new one
         await conn?.dropConn();
         conn = await TypeormWrapper.createConn(dbId);
         // update the context to use the new connection
         context.orm = conn;
         qr = conn.createQueryRunner();
         // 5. Install the new `iasql_*` modules manually
-        logger.info(`+-+ executing step 5`);
         const NewModules = AllModules[config.modules.latestVersion];
         if (NewModules?.iasqlPlatform?.migrations?.beforeInstall) {
           await NewModules?.iasqlPlatform?.migrations?.beforeInstall(qr);
@@ -985,29 +976,22 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
           await NewModules?.iasqlFunctions?.migrations?.beforeInstall(qr);
         }
         await NewModules?.iasqlFunctions?.migrations?.install(qr);
-        logger.info(`+-+ just executed migration install fro iasqlFunctions`);
         if (NewModules?.iasqlFunctions?.migrations?.afterInstall) {
-          logger.info(`+-+ am I installing this???`);
-          debugObj(NewModules?.iasqlFunctions?.migrations?.afterInstall);
           await NewModules?.iasqlFunctions?.migrations?.afterInstall(qr);
         }
         await conn.query(`
           INSERT INTO iasql_module (name) VALUES ('iasql_platform@${config.modules.latestVersion}'), ('iasql_functions@${config.modules.latestVersion}');
           INSERT INTO iasql_dependencies (module, dependency) VALUES ('iasql_functions@${config.modules.latestVersion}', 'iasql_platform@${config.modules.latestVersion}');
         `);
-        // // 6. Install the `aws_account` module and then re-insert the creds if present, then add
-        // //    the rest of the modules back.
-        logger.info(`+-+ executing step 6`);
+        // 6. Install the `aws_account` module and then re-insert the creds if present, then add
+        //    the rest of the modules back.
         if (!!creds) {
-          install
           await upgradedIasql.install(['aws_account'], dbId, dbUser, false, true);
           await conn.query(`
             INSERT INTO aws_credentials (access_key_id, secret_access_key)
             VALUES ('${creds.access_key_id}', '${creds.secret_access_key}');
           `);
-          logger.info(`+-+ begin step 6 sync`)
           await upgradedIasql.sync(dbId, false, true, context);
-          logger.info(`+-+ begin step 6 sync`);
           if (creds.region) {
             await conn.query(`
               UPDATE aws_regions SET is_default = true WHERE region = '${creds.region}';
@@ -1024,7 +1008,6 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
       } catch (e) {
         logger.error('Failed to upgrade', { e });
       } finally {
-        logger.info(`+-+ executing finally`);
         conn?.dropConn();
         // Restart the scheduler
         scheduler.start(dbId, dbUser);
