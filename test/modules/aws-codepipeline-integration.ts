@@ -100,7 +100,7 @@ const stages = JSON.stringify([
           Owner: 'iasql',
           Repo: 'iasql-codedeploy-example',
           Branch: 'main',
-          OAuthToken: process.env.GH_PAT,
+          OAuthToken: `token-${process.env.GH_PAT}`,
         },
         outputArtifacts: [
           {
@@ -306,7 +306,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new codedeploy role',
     query(`
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${roleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployEC2PolicyArn}']);
+    VALUES ('${roleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployEC2PolicyArn}', '${codepipelinePolicyArn}', '${s3PolicyArn}']);
   `),
   );
 
@@ -318,7 +318,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   `),
   );
 
-  it('applies the s3 creation', apply());
+  it('applies the deployment group creation', apply());
 
   it(
     'adds a new pipeline',
