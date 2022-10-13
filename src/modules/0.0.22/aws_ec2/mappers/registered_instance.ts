@@ -191,8 +191,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord =
-          ctx?.memo?.cloud?.RegisteredInstance?.[this.entityId(e)];
+        const cloudRecord = ctx?.memo?.cloud?.RegisteredInstance?.[this.entityId(e)];
         if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn)
           throw new Error('Valid targetGroup and instance needed.');
         if (!cloudRecord.instance?.instanceId || !cloudRecord.targetGroup?.targetGroupArn)
@@ -210,10 +209,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
           cloudRecord.targetGroup.targetGroupArn,
           cloudRecord.port,
         );
-        const registeredInstance = await this.module.registeredInstance.cloud.read(
-          ctx,
-          this.entityId(e),
-        );
+        const registeredInstance = await this.module.registeredInstance.cloud.read(ctx, this.entityId(e));
         await this.module.registeredInstance.db.update(registeredInstance, ctx);
         out.push(registeredInstance);
       }

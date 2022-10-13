@@ -368,7 +368,9 @@ export class InstanceMapper extends MapperBase<Instance> {
           // Attach volume
           const rawAttachedVolume = (await this.getVolumesByInstanceId(client.ec2client, instanceId))?.pop();
           await this.waitUntilInUse(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
-          delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[`${rawAttachedVolume?.VolumeId}|${instance.region}`];
+          delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[
+            `${rawAttachedVolume?.VolumeId}|${instance.region}`
+          ];
           const attachedVolume: GeneralPurposeVolume = await this.module.generalPurposeVolume.cloud.read(
             ctx,
             rawAttachedVolume?.VolumeId ?? '',
