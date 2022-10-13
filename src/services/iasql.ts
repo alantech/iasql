@@ -132,7 +132,7 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     await dbMan.migrate(conn2);
     await conn2.query(dbMan.createQueryGroupRole(dbId));
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
-    await conn2.query(dbMan.grantPostgresRoleQuery(dbUser, dbId));
+    await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId));
     roleGranted = true;
     const recCount = await getDbRecCount(conn2);
     const opCount = await getOpCount(conn2);
@@ -210,7 +210,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
     success = true;
     do {
       try {
-        await connMain.query(dbMan.grantPostgresRoleQuery(user, database));
+        await connMain.query(dbMan.grantPostgresGroupRoleQuery(user, database));
         success = true;
       } catch (_) {
         success = false;
@@ -1081,7 +1081,7 @@ ${Object.keys(tableCollisions)
       }
     }
     await queryRunner.commitTransaction();
-    await orm.query(dbMan.grantPostgresRoleQuery(dbUser, dbId));
+    await orm.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId));
   } catch (e: any) {
     await queryRunner.rollbackTransaction();
     throw e;

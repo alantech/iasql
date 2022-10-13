@@ -75,7 +75,20 @@ export function createQueryGroupRole(dbId: string) {
   `;
 }
 
-export function grantPostgresRoleQuery(user: string, dbId: string) {
+// TODO: Deprecate with v0.0.21
+export function grantPostgresRoleQuery(user: string) {
+  return `
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${user};
+    GRANT INSERT ON ALL TABLES IN SCHEMA public TO ${user};
+    GRANT UPDATE ON ALL TABLES IN SCHEMA public TO ${user};
+    GRANT DELETE ON ALL TABLES IN SCHEMA public TO ${user};
+    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO ${user};
+    GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO ${user};
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${user};
+  `;
+}
+
+export function grantPostgresGroupRoleQuery(user: string, dbId: string) {
   const groupRole = getGroupRole(dbId);
   return `
     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${groupRole};
