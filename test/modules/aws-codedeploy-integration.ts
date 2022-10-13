@@ -128,7 +128,7 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
-const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2'];
+const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2', 'aws_codepipeline'];
 
 jest.setTimeout(560000);
 beforeAll(async () => {
