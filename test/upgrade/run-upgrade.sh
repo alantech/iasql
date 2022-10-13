@@ -135,7 +135,7 @@ while [ $i -lt $(($len - 1)) ]; do
     exit 4
   fi
 
-  echo "Successfully upgraded from ${version} to ${LATESTVERSION}!"
+  echo "Successfully upgraded from ${availableVersions[$i]} to ${LATESTVERSION}!"
   # Shut down the database and engine, switch back to the current commit, and fire up a new engine
   curl http://localhost:8088/v1/db/disconnect/to_upgrade
   docker container stop $(basename ${PWD})_change_engine_1
