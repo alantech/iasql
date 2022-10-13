@@ -150,6 +150,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
           e.port,
         );
         const registeredInstance = await this.module.registeredInstance.cloud.read(ctx, this.entityId(e));
+        registeredInstance.id = e.id;
         await this.module.registeredInstance.db.update(registeredInstance, ctx);
         out.push(registeredInstance);
       }
@@ -207,6 +208,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
           cloudRecord.port,
         );
         const registeredInstance = await this.module.registeredInstance.cloud.read(ctx, this.entityId(e));
+        registeredInstance.id = e.id;
         await this.module.registeredInstance.db.update(registeredInstance, ctx);
         out.push(registeredInstance);
       }
