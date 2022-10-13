@@ -54,8 +54,8 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     if (vol.Attachments?.length) {
       const attachment = vol.Attachments.pop();
       out.attachedInstance =
-        (await this.module.instance.db.read(ctx, attachment?.InstanceId)) ??
-        (await this.module.instance.cloud.read(ctx, attachment?.InstanceId));
+        (await this.module.instance.db.read(ctx, `${attachment?.InstanceId}|${region}`)) ??
+        (await this.module.instance.cloud.read(ctx, `${attachment?.InstanceId}|${region}`));
       out.instanceDeviceName = attachment?.Device;
     }
     if (vol.Tags?.length) {

@@ -24,8 +24,8 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
   ) {
     const out = new RegisteredInstance();
     out.instance =
-      (await this.module.instance.db.read(ctx, registeredInstance.instanceId)) ??
-      (await this.module.instance.cloud.read(ctx, registeredInstance.instanceId));
+      (await this.module.instance.db.read(ctx, `${registeredInstance.instanceId}|${region}`)) ??
+      (await this.module.instance.cloud.read(ctx, `${registeredInstance.instanceId}|${region}`));
     out.targetGroup =
       (await awsElbModule.targetGroup.db.read(ctx, registeredInstance.targetGroupArn)) ??
       (await awsElbModule.targetGroup.cloud.read(ctx, registeredInstance.targetGroupArn));
@@ -151,7 +151,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
         );
         const registeredInstance = await this.module.registeredInstance.cloud.read(
           ctx,
-          this.module.registeredInstance.entityId(e),
+          this.entityId(e),
         );
         await this.module.registeredInstance.db.update(registeredInstance, ctx);
         out.push(registeredInstance);

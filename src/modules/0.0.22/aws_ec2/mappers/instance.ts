@@ -373,7 +373,7 @@ export class InstanceMapper extends MapperBase<Instance> {
           ];
           const attachedVolume: GeneralPurposeVolume = await this.module.generalPurposeVolume.cloud.read(
             ctx,
-            rawAttachedVolume?.VolumeId ?? '',
+            `${rawAttachedVolume?.VolumeId}|${newEntity.region}`,
           );
           if (attachedVolume && !Array.isArray(attachedVolume)) {
             attachedVolume.attachedInstance = newEntity;
@@ -462,7 +462,7 @@ export class InstanceMapper extends MapperBase<Instance> {
         delete ctx?.memo?.db?.GeneralPurposeVolume?.[`${rawAttachedVolume?.VolumeId}|${entity.region}`];
         const attachedVolume = await this.module.generalPurposeVolume.db.read(
           ctx,
-          rawAttachedVolume?.VolumeId ?? '',
+          `${rawAttachedVolume?.VolumeId}|${entity.region}`,
         );
         if (attachedVolume && !Array.isArray(attachedVolume))
           await this.module.generalPurposeVolume.db.delete(attachedVolume, ctx);
