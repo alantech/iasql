@@ -280,7 +280,8 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
       let success = true;
       do {
         try {
-          await connMain?.query(dbMan.revokePostgresRoleQuery(user, database));
+          const versionString = await TypeormWrapper.getVersionString(database);
+          await connMain?.query(dbMan.revokePostgresRoleQuery(user, database, versionString));
           success = true;
         } catch (_) {
           success = false;

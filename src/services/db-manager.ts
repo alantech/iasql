@@ -5,6 +5,7 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 import config from '../config';
 import { throwError } from '../config/config';
 import { modules as Modules } from '../modules';
+import { TypeormWrapper } from './typeorm';
 
 export async function migrate(conn: Connection) {
   // Needs to be done this way or a redeploy would accidentally start using the next version even
@@ -106,10 +107,25 @@ export function setPostgresRoleQuery(dbId: string) {
   `;
 }
 
-export function revokePostgresRoleQuery(user: string, dbId: string) {
-  return `
-    REVOKE ${getGroupRole(dbId)} FROM ${user};
-  `;
+export function revokePostgresRoleQuery(user: string, dbId: string, versionString:string) {
+  // TODO deprecate
+  if (['0.0.17', '0.0.18', '0.0.20', '0.0.21'].includes(versionString)) {
+    return `
+      REVOKE SELECT ON ALL TABLES IN SCHEMA public FROM ${user};
+      REVOKE INSERT ON ALL TABLES IN SCHEMA public FROM ${user};
+      REVOKE UPDATE ON ALL TABLES IN SCHEMA public FROM ${user};
+      REVOKE DELETE ON ALL TABLES IN SCHEMA public FROM ${user};
+      REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM ${user};
+      REVOKE EXECUTE ON ALL PROCEDURES IN SCHEMA public FROM ${user};
+      REVOKE USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public FROM ${user};
+      REVOKE CREATE ON SCHEMA public FROM ${user};
+      REVOKE CONNECT ON DATABASE ${dbId} FROM ${user};
+    `;
+  } else {
+    return `
+      REVOKE ${getGroupRole(dbId)} FROM ${user};
+    `;
+  }
 }
 
 export function dropPostgresRoleQuery(user: string, dbId: string, dropGroupRole: boolean) {
