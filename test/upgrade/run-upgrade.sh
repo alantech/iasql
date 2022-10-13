@@ -14,6 +14,9 @@ LATESTVERSION=$(./node_modules/.bin/ts-node src/scripts/latestVersion.ts)
 AVAILABLEVERSIONS=$(./node_modules/.bin/ts-node src/scripts/availableVersions.ts)
 CURRENTGITSHA=$(git rev-parse HEAD)
 
+# Connection string
+CONNSTR="postgres://postgres:test@127.0.0.1:5432/to_upgrade"
+
 # Github Actions apparently doesn't pull down the tags by default?
 git pull origin --tags ${CURRENTGITSHA}
 
@@ -29,36 +32,36 @@ while [ $i -lt $(($len - 1)) ]; do
 
   # Create a new database connected to a test account
   curl http://localhost:8088/v1/db/connect/to_upgrade
-  psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+  psql $CONNSTR -c "
       select iasql_install(
         'aws_account'
       );
     "
 
   # Determine which kind of 'aws_account' module this is (TODO: Remove this branch once v0.0.19 is oldest)
-  AWSACCOUNTTABLE=$(psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -AXqtc "
+  AWSACCOUNTTABLE=$(psql $CONNSTR -AXqtc "
       SELECT \"table\" FROM iasql_tables WHERE \"table\" = 'aws_account';
     ")
   if [ "${AWSACCOUNTTABLE}" == "aws_account" ]; then # It's the old style
-    psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+    psql $CONNSTR -c "
         INSERT INTO aws_account (access_key_id, secret_access_key, region)
         VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}', 'us-east-1');
       "
   else
-    psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+    psql $CONNSTR -c "
         INSERT INTO aws_credentials (access_key_id, secret_access_key)
         VALUES ('${AWS_ACCESS_KEY_ID}', '${AWS_SECRET_ACCESS_KEY}');
       "
-    psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+    psql $CONNSTR -c "
         SELECT * FROM iasql_sync();
       "
-    psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+    psql $CONNSTR -c "
         SELECT * FROM default_aws_region('us-east-1');
       "
   fi
 
   # Add one module that we can use to verify that everything actually comes back up
-  psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+  psql $CONNSTR -c "
       SELECT * FROM iasql_install('aws_ec2');
     "
 
@@ -70,13 +73,13 @@ while [ $i -lt $(($len - 1)) ]; do
   yarn wait-on http://localhost:8088/health/
 
   # Actually trigger the upgrade and loop until upgraded (or fail)
-  psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+  psql $CONNSTR -c "
       SELECT * FROM iasql_upgrade();
     "
   UPGRADECHECKCOUNT=30
   ISUPGRADED=false
   while [ ${UPGRADECHECKCOUNT} -gt 0 ]; do
-    AWSACCOUNTMODULE=$(psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -AXqtc "
+    AWSACCOUNTMODULE=$(psql $CONNSTR -AXqtc "
         SELECT name FROM iasql_module WHERE name like 'aws_account%'
       ")
     if [ "${AWSACCOUNTMODULE}" == "aws_account@${LATESTVERSION}" ]; then
@@ -97,7 +100,7 @@ while [ $i -lt $(($len - 1)) ]; do
   EC2CHECKCOUNT=30
   EC2UPGRADED=false
   while [ ${EC2CHECKCOUNT} -gt 0 ]; do
-    AWSEC2MODULE=$(psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -AXqtc "
+    AWSEC2MODULE=$(psql $CONNSTR -AXqtc "
         SELECT name FROM iasql_module WHERE name like 'aws_ec2%'
       ")
     if [ "${AWSEC2MODULE}" == "aws_ec2@${LATESTVERSION}" ]; then
@@ -119,7 +122,7 @@ while [ $i -lt $(($len - 1)) ]; do
   RPCCHECKCOUNT=30
   RPCUPGRADED=false
   while [ ${RPCCHECKCOUNT} -gt 0 ]; do
-    AWSRPCCALL=$(psql postgres://postgres:test@127.0.0.1:5432/to_upgrade -c "
+    AWSRPCCALL=$(psql $CONNSTR -c "
         SELECT * FROM iasql_modules_list();
       " || true)
     if [ "${AWSRPCCALL}" != "" ]; then
