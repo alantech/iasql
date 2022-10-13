@@ -966,8 +966,9 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
           await OldModules?.iasqlPlatform?.migrations?.afterRemove(qr);
         }
         //  // close previous conne and create a new one
-        //  await conn?.dropConn();
-        //  conn = await TypeormWrapper.createConn(dbId, dbMan.baseConnConfig);
+        await conn?.dropConn();
+        conn = await TypeormWrapper.createConn(dbId);
+        context.orm = conn;
         qr = conn.createQueryRunner();
         // 5. Install the new `iasql_*` modules manually
         logger.info(`+-+ executing step 5`);
