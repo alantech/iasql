@@ -16,12 +16,13 @@ export class SourceCredentialsListMapper extends MapperBase<SourceCredentialsLis
   equals = (a: SourceCredentialsList, b: SourceCredentialsList) =>
     Object.is(a.arn, b.arn) && Object.is(a.authType, b.authType) && Object.is(a.sourceType, b.sourceType);
 
-  sourceCredentialsListMapper(s: SourceCredentialsInfo, _ctx: Context) {
+  sourceCredentialsListMapper(s: SourceCredentialsInfo, region: string) {
     const out = new SourceCredentialsList();
     if (!s?.arn) return undefined;
     out.arn = s.arn;
     out.sourceType = s.serverType as SourceType;
     out.authType = s.authType as AuthType;
+    out.region = region;
     return out;
   }
 
@@ -46,20 +47,32 @@ export class SourceCredentialsListMapper extends MapperBase<SourceCredentialsLis
       await this.module.sourceCredentialsList.db.delete(es, ctx);
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      const scs = await this.listSourceCredentials(client.cbClient);
-      if (!scs) return;
-      if (id) {
-        const res = scs?.filter(c => id === c.arn);
-        if (!res || res.length !== 1) return;
-        return this.sourceCredentialsListMapper(res[0], ctx);
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (!!id) {
+        const { region, arn } = this.idFields(id);
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const scs = await this.listSourceCredentials(client.cbClient);
+          if (!scs) return;
+          const res = scs?.filter(c => arn === c.arn);
+          if (!res || res.length !== 1) return;
+          return this.sourceCredentialsListMapper(res[0], region);
+        }
+      } else {
+        const out: SourceCredentialsList[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const scs = await this.listSourceCredentials(client.cbClient);
+            if (!scs) return;
+            for (const sc of scs) {
+              const outSc = this.sourceCredentialsListMapper(sc, region);
+              if (outSc) out.push(outSc);
+            }
+          }),
+        );
+        return out;
       }
-      const out = [];
-      for (const sc of scs) {
-        const outSc = this.sourceCredentialsListMapper(sc, ctx);
-        if (outSc) out.push(outSc);
-      }
-      return out;
     },
     updateOrReplace: () => 'update',
     update: async (es: SourceCredentialsList[], ctx: Context) => {
@@ -67,15 +80,15 @@ export class SourceCredentialsListMapper extends MapperBase<SourceCredentialsLis
       // This implies that on `update`s we only have to restore the values for those records.
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.SourceCredentialsList?.[e.arn ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.SourceCredentialsList?.[this.entityId(e)];
         await this.module.sourceCredentialsList.db.update(cloudRecord, ctx);
         out.push(cloudRecord);
       }
       return out;
     },
     delete: async (scs: SourceCredentialsList[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const sc of scs) {
+        const client = (await ctx.getAwsClient(sc.region)) as AWS;
         const input: DeleteSourceCredentialsCommandInput = {
           arn: sc.arn,
         };
@@ -99,7 +112,8 @@ export class SourceCredentialsImportMapper extends MapperBase<SourceCredentialsI
     Object.is(a.authType, b.authType) &&
     Object.is(a.id, b.id) &&
     Object.is(a.sourceType, b.sourceType) &&
-    Object.is(a.token, b.token);
+    Object.is(a.token, b.token) &&
+    Object.is(a.region, b.region);
 
   importSourceCredentials = crudBuilderFormat<CodeBuild, 'importSourceCredentials', string | undefined>(
     'importSourceCredentials',
@@ -124,8 +138,8 @@ export class SourceCredentialsImportMapper extends MapperBase<SourceCredentialsI
   });
   cloud: Crud2<SourceCredentialsImport> = new Crud2({
     create: async (es: SourceCredentialsImport[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: ImportSourceCredentialsInput = {
           token: e.token,
           serverType: e.sourceType,
@@ -133,7 +147,7 @@ export class SourceCredentialsImportMapper extends MapperBase<SourceCredentialsI
         };
         const arn = await this.importSourceCredentials(client.cbClient, input);
         if (!arn) throw new Error('Error importing source credentials');
-        const importedCreds = await this.module.sourceCredentialsList.cloud.read(ctx, arn);
+        const importedCreds = await this.module.sourceCredentialsList.cloud.read(ctx, `${arn}|${e.region}`);
         await this.module.sourceCredentialsImport.db.delete(e, ctx);
         await this.module.sourceCredentialsList.db.create(importedCreds, ctx);
       }

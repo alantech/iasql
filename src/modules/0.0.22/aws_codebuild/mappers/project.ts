@@ -29,7 +29,7 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
     Object.is(a.privilegedMode, b.privilegedMode) &&
     Object.is(a.environmentType, b.environmentType);
 
-  async projectMapper(pj: Project, ctx: Context) {
+  async projectMapper(pj: Project, ctx: Context, region: string) {
     const out = new CodebuildProject();
     if (!pj?.name) return undefined;
     out.projectName = pj.name;
@@ -53,6 +53,7 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
           (await awsIamModule.role.db.read(ctx, roleName)) ?? ctx?.memo?.cloud?.IamRole?.[roleName ?? ''];
       }
     }
+    out.region = region;
     return out;
   }
 
@@ -74,9 +75,9 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
 
   cloud: Crud2<CodebuildProject> = new Crud2({
     create: async (es: CodebuildProject[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateProjectCommandInput = {
           name: e.projectName,
           environment: {
@@ -100,35 +101,44 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
         };
         const awsPj = await this.createProject(client.cbClient, input);
         if (!awsPj) continue;
-        const newPj = await this.projectMapper(awsPj, ctx);
+        const newPj = await this.projectMapper(awsPj, ctx, e.region);
         if (newPj) out.push(newPj);
       }
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (id) {
-        const input: BatchGetProjectsCommandInput = {
-          names: [id],
-        };
-        const pjs = await this.getProjects(client.cbClient, input);
-        if (!pjs || pjs.length !== 1) return;
-        const pj = await this.projectMapper(pjs[0], ctx);
-        if (!pj) return;
-        return pj;
-      } else {
-        const pjIds = await this.listProjects(client.cbClient);
-        if (!pjIds || !pjIds.length) return;
-        const input: BatchGetProjectsCommandInput = {
-          names: pjIds,
-        };
-        const pjs = await this.getProjects(client.cbClient, input);
-        if (!pjs) return;
-        const out = [];
-        for (const pj of pjs) {
-          const outPj = await this.projectMapper(pj, ctx);
-          if (outPj) out.push(outPj);
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (!!id) {
+        const { region, projectName } = this.idFields(id);
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const input: BatchGetProjectsCommandInput = {
+            names: [projectName],
+          };
+          const pjs = await this.getProjects(client.cbClient, input);
+          if (!pjs || pjs.length !== 1) return;
+          const pj = await this.projectMapper(pjs[0], ctx, region);
+          if (!pj) return;
+          return pj;
         }
+      } else {
+        const out: CodebuildProject[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const pjIds = await this.listProjects(client.cbClient);
+            if (!pjIds || !pjIds.length) return;
+            const input: BatchGetProjectsCommandInput = {
+              names: pjIds,
+            };
+            const pjs = await this.getProjects(client.cbClient, input);
+            if (!pjs) return;
+            for (const pj of pjs) {
+              const outPj = await this.projectMapper(pj, ctx, region);
+              if (outPj) out.push(outPj);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -137,7 +147,7 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
     update: async (pjs: CodebuildProject[], ctx: Context) => {
       const out = [];
       for (const pj of pjs) {
-        const cloudRecord = ctx?.memo?.cloud?.CodebuildProject?.[pj.projectName ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.CodebuildProject?.[this.entityId(pj)];
         if (pj.arn !== cloudRecord.arn) {
           pj.arn = cloudRecord.arn;
           if (this.module.project.equals(pj, cloudRecord)) {
@@ -156,8 +166,8 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
       }
     },
     delete: async (pjs: CodebuildProject[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const pj of pjs) {
+        const client = (await ctx.getAwsClient(pj.region)) as AWS;
         const input: DeleteProjectInput = {
           name: pj.projectName,
         };
