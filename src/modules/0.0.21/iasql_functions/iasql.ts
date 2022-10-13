@@ -16,6 +16,7 @@ import MetadataRepo from '../../../services/repositories/metadata';
 import * as scheduler from '../../../services/scheduler-api';
 import { TypeormWrapper } from '../../../services/typeorm';
 
+// tslint:disable-next-line:no-var-requires
 const upgradedIasql = require(`../../${config.modules.latestVersion}/iasql_functions/iasql`);
 
 // Crupde = CR-UP-DE, Create/Update/Delete
