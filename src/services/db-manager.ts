@@ -107,7 +107,7 @@ export function setPostgresRoleQuery(dbId: string) {
   `;
 }
 
-export function revokePostgresRoleQuery(user: string, dbId: string, versionString:string) {
+export function revokePostgresRoleQuery(user: string, dbId: string, versionString: string) {
   // TODO deprecate
   if (['0.0.17', '0.0.18', '0.0.20', '0.0.21'].includes(versionString)) {
     return `
