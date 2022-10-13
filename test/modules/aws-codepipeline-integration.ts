@@ -148,7 +148,7 @@ const codedeployRolePolicy = JSON.stringify({
     },
   ],
 });
-const codedeployPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeDeployRole';
+const codedeployPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess';
 const deployEC2PolicyArn = 'arn:aws:iam::aws:policy/AmazonEC2FullAccess';
 
 const ec2RolePolicy = JSON.stringify({
