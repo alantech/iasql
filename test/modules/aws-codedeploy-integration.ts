@@ -372,64 +372,6 @@ describe('AwsCodedeploy Integration Testing', () => {
   );
 });
 
-// deployment
-it(
-  'adds a new deployment',
-  query(`
-  INSERT INTO codedeploy_deployment (application_name, deployment_group_name, description, location)
-  VALUES ('${applicationNameForDeployment}', '${deploymentGroupName}', 'Codedeploy deployment v0', '${revisionLocationv0}');
-`),
-);
-it('applies the deployment creation', apply());
-
-it(
-  'check that we have a working deployment',
-  query(
-    `
-SELECT * FROM codedeploy_deployment WHERE application_name='${applicationNameForDeployment}' AND description='Codedeploy deployment v0' AND status='Succeeded';
-`,
-    (res: any) => expect(res.length).toBe(1),
-  ),
-);
-
-// check that we cannot update
-it(
-  'updates a deployment',
-  query(`
-      UPDATE codedeploy_deployment SET description='fake' WHERE application_name='${applicationNameForDeployment}';
-      `),
-);
-it('applies the update', apply());
-
-it(
-  'check that deployments are back',
-  query(
-    `
-SELECT * FROM codedeploy_deployment WHERE application_name='${applicationNameForDeployment}' AND description='Codedeploy deployment v0' AND status='Succeeded';
-`,
-    (res: any) => expect(res.length).toBe(1),
-  ),
-);
-
-// check that we cannot delete
-it(
-  'deletes a deployment',
-  query(`
-      DELETE FROM codedeploy_deployment WHERE application_name='${applicationNameForDeployment}' AND description='Codedeploy deployment v1';
-      `),
-);
-it('applies the deletion', apply());
-
-it(
-  'check that deployments are back',
-  query(
-    `
-SELECT * FROM codedeploy_deployment WHERE application_name='${applicationNameForDeployment}' AND description='Codedeploy deployment v0' AND status='Succeeded';
-`,
-    (res: any) => expect(res.length).toBe(1),
-  ),
-);
-
 // cleanup
 describe('deployment cleanup', () => {
   it(

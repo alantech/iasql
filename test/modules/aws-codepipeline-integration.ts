@@ -100,7 +100,7 @@ const stages = JSON.stringify([
           Owner: 'iasql',
           Repo: 'iasql-codedeploy-example',
           Branch: 'main',
-          OAuthToken: `token-${process.env.GH_PAT}`,
+          OAuthToken: `${process.env.GH_PAT}`,
         },
         outputArtifacts: [
           {
@@ -322,10 +322,14 @@ describe('AwsCodepipeline Integration Testing', () => {
 
   it(
     'adds a new pipeline',
-    query(`
+    query(
+      `
     INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
     VALUES ('${prefix}-${dbAlias}', '${prefix}-${dbAlias}', '${stages}', '${artifactStore}');
-  `),
+  `,
+      undefined,
+      false,
+    ),
   );
 
   it('apply pipeline creation', apply());
