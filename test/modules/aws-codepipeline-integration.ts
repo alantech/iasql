@@ -1,3 +1,5 @@
+import { EC2 } from '@aws-sdk/client-ec2';
+
 import * as iasql from '../../src/services/iasql';
 import {
   execComposeDown,
@@ -29,6 +31,45 @@ const applicationNameForDeployment = `${prefix}${dbAlias}applicationForDeploymen
 const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
 const region = process.env.AWS_REGION ?? '';
 const roleName = `${prefix}-codedeploy-${region}`;
+const ec2RoleName = `${prefix}-codedeploy-ec2-${region}`;
+const sgGroupName = `${prefix}sgcodedeploy`;
+
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
+const ec2client = new EC2({
+  credentials: {
+    accessKeyId,
+    secretAccessKey,
+  },
+  region,
+});
+
+const getAvailabilityZones = async () => {
+  return await ec2client.describeAvailabilityZones({
+    Filters: [
+      {
+        Name: 'region-name',
+        Values: [region],
+      },
+    ],
+  });
+};
+
+const getInstanceTypeOffering = async (availabilityZones: string[]) => {
+  return await ec2client.describeInstanceTypeOfferings({
+    LocationType: 'availability-zone',
+    Filters: [
+      {
+        Name: 'location',
+        Values: availabilityZones,
+      },
+      {
+        Name: 'instance-type',
+        Values: ['t2.micro', 't3.micro'],
+      },
+    ],
+  });
+};
 
 const assumeServicePolicy = JSON.stringify({
   Statement: [
@@ -110,10 +151,39 @@ const codedeployRolePolicy = JSON.stringify({
 const codedeployPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeDeployFullAccess';
 const deployEC2PolicyArn = 'arn:aws:iam::aws:policy/AmazonEC2FullAccess';
 
+const ec2RolePolicy = JSON.stringify({
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Sid: '',
+      Effect: 'Allow',
+      Principal: {
+        Service: 'ec2.amazonaws.com',
+      },
+      Action: 'sts:AssumeRole',
+    },
+  ],
+});
+
 const artifactStore = JSON.stringify({ type: 'S3', location: bucket });
+const ubuntuAmiId =
+  'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
+const instanceTag = `${prefix}-codedeploy-vm`;
+const ssmPolicyArn = 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore';
+
+let availabilityZone: string;
+let instanceType: string;
 
 jest.setTimeout(360000);
-beforeAll(async () => await execComposeUp());
+beforeAll(async () => {
+  const availabilityZones =
+    (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
+  availabilityZone = availabilityZones.pop() ?? '';
+  const instanceTypesByAz1 = await getInstanceTypeOffering([availabilityZone]);
+  instanceType = instanceTypesByAz1.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
+
+  await execComposeUp();
+});
 afterAll(async () => await execComposeDown());
 
 describe('AwsCodepipeline Integration Testing', () => {
@@ -149,7 +219,15 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new role',
     query(`
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${prefix}-${dbAlias}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}']);
+    VALUES ('${prefix}-${dbAlias}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codedeployPolicyArn}']);
+  `),
+  );
+
+  it(
+    'adds a new ec2 role',
+    query(`
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('${ec2RoleName}', '${ec2RolePolicy}', array['${deployEC2PolicyArn}', '${ssmPolicyArn}']);
   `),
   );
 
@@ -158,6 +236,55 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(`
     INSERT INTO bucket (name) VALUES ('${bucket}')`),
   );
+
+  it(
+    'adds a new security group',
+    query(`  
+    INSERT INTO security_group (description, group_name)
+    VALUES ('CodedeploySecurity Group', '${sgGroupName}');
+  `),
+  );
+
+  it(
+    'adds security group rules',
+    query(`
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT false, 'tcp', 22, 22, '0.0.0.0/0', '${prefix}codedeploy_rule_ssh', id
+    FROM security_group
+    WHERE group_name = '${sgGroupName}';
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT false, 'tcp', 80, 80, '0.0.0.0/0', '${prefix}codedeploy_rule_http', id
+    FROM security_group
+    WHERE group_name = '${sgGroupName}';
+    INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
+    SELECT true, 'tcp', 1, 65335, '0.0.0.0/0', '${prefix}codedeploy_rule_egress', id
+    FROM security_group
+    WHERE group_name = '${sgGroupName}';
+
+  `),
+  );
+  it('applies the security group and rules creation', apply());
+
+  // create sample ec2 instance
+  it('adds an ec2 instance', done => {
+    query(`
+      BEGIN;
+        INSERT INTO instance (ami, instance_type, tags, subnet_id, role_name, user_data)
+          SELECT '${ubuntuAmiId}', '${instanceType}', '{"name":"${instanceTag}"}', id, '${ec2RoleName}', (SELECT generate_codedeploy_agent_install_script('${region}', 'ubuntu'))
+          FROM subnet
+          WHERE availability_zone = '${availabilityZone}'
+          LIMIT 1;
+        INSERT INTO instance_security_groups (instance_id, security_group_id) SELECT
+          (SELECT id FROM instance WHERE tags ->> 'name' = '${instanceTag}'),
+          (SELECT id FROM security_group WHERE group_name='${sgGroupName}');
+      COMMIT;
+      `)((e?: any) => {
+      if (!!e) return done(e);
+      done();
+    });
+  });
+
+  it('applies the created instance', apply());
 
   it(
     'adds a new codedeploy_application for deployment',
@@ -202,7 +329,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     SELECT * FROM pipeline_declaration
     WHERE name = '${prefix}-${dbAlias}';
   `,
-      (res: any[]) => expect(res.length).toBe(0),
+      (res: any[]) => expect(res.length).toBe(1),
     ),
   );
 
@@ -234,11 +361,30 @@ describe('AwsCodepipeline Integration Testing', () => {
     `),
   );
 
+  describe('ec2 cleanup', () => {
+    it(
+      'deletes all ec2 instances',
+      query(`
+      BEGIN;
+        DELETE FROM general_purpose_volume
+        USING instance
+        WHERE instance.id = general_purpose_volume.attached_instance_id AND 
+          (instance.tags ->> 'name' = '${instanceTag}');
+  
+        DELETE FROM instance
+        WHERE tags ->> 'name' = '${instanceTag}';
+      COMMIT;
+    `),
+    );
+
+    it('applies the instance deletion', apply());
+  });
+
   it(
     'delete role',
     query(`
     DELETE FROM iam_role
-    WHERE role_name = '${prefix}-${dbAlias}' OR role_name='${roleName}';
+    WHERE role_name = '${prefix}-${dbAlias}' OR role_name='${roleName}' OR role_name='${ec2RoleName}';
   `),
   );
 
@@ -251,6 +397,26 @@ describe('AwsCodepipeline Integration Testing', () => {
   );
 
   it('apply deletions', apply());
+
+  describe('delete security groups and rules', () => {
+    it(
+      'deletes security group rules',
+      query(`
+        DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
+      `),
+    );
+
+    it(
+      'deletes security group',
+      query(`
+        DELETE FROM security_group WHERE group_name = '${sgGroupName}';
+      `),
+    );
+
+    it('applies the security group deletion', apply());
+  });
+
+  it('apply delete', apply());
 
   it(
     'check pipeline list is empty',

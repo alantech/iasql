@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import isEqual from 'lodash.isequal';
 
 import {
@@ -19,6 +20,9 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
   module: AwsCodedeployModule;
   entity = CodedeployDeployment;
   equals = (a: CodedeployDeployment, b: CodedeployDeployment) => {
+    const location_a = _.pickBy(a.location, _.identity);
+    const location_b = _.pickBy(b.location, _.identity);
+
     return (
       isEqual(a.application.name, b.application.name) &&
       isEqual(a.deploymentGroup.name, b.deploymentGroup.name) &&
@@ -26,7 +30,7 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       Object.is(a.description, b.description) &&
       Object.is(a.externalId, b.externalId) &&
       Object.is(a.status, b.status) &&
-      isEqual(a.location, b.location)
+      isEqual(location_a, location_b)
     );
   };
 

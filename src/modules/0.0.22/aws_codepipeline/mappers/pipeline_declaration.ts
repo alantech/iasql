@@ -20,8 +20,12 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
   module: AwsCodepipelineModule;
   entity = PipelineDeclaration;
   equals = (a: PipelineDeclaration, b: PipelineDeclaration) => {
+    // needed to avoid comparisons between undefined and not defined keys
     const stages_a = _.pickBy(a.stages, _.identity);
     const stages_b = _.pickBy(a.stages, _.identity);
+    console.log('in equals');
+    console.dir(stages_a, { depth: null });
+    console.dir(stages_b, { depth: null });
     return (
       Object.is(a.serviceRole?.arn, b.serviceRole?.arn) &&
       Object.is(a.name, b.name) &&
