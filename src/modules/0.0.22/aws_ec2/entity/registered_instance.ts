@@ -41,6 +41,7 @@ export class RegisteredInstance {
   @Column({
     type: 'character varying',
     nullable: false,
+    primary: true,
     default: () => 'default_aws_region()',
   })
   @ManyToOne(() => AwsRegions, { nullable: false })
