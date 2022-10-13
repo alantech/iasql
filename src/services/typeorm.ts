@@ -75,23 +75,13 @@ export class TypeormWrapper {
     // the TypeORM client
     const entities = Object.values(Modules)
       .filter((m: any) => m.hasOwnProperty('provides'))
-      .map((m: any) => Object.keys(m.provides.entities))
-      .flat();
-      // .filter(e => typeof e === 'function') as Function[];
+      .map((m: any) => Object.values(m.provides.entities))
+      .flat()
+      .filter(e => typeof e === 'function') as Function[];
 
     // Now that we have the entities for this database, close the temporary connection and create
     // the real connection with the entities present
     const name = uuidv4();
-    // logger.info(`+-+ conn ${name} with Modules ${Object.keys(Modules)}`)
-    // logger.info(`+-+ conn ${name} with Modules provides ${Object.values(Modules).filter((m: any) => m.hasOwnProperty('provides')).map((m: any) => `${JSON.stringify(m.provides.entities)} |`)}`)
-    logger.info(`+-+ conn ${name} with Modules  provides entities keys flat ${JSON.stringify(Object.values(Modules)
-      .filter((m: any) => m.hasOwnProperty('provides'))
-      .map((m: any) => Object.keys(m.provides.entities))
-      .flat())}`)
-    logger.info(`+-+ conn ${name} with Modules  provides entities flat ${JSON.stringify(Object.values(Modules)
-      .filter((m: any) => m.hasOwnProperty('provides'))
-      .map((m: any) => Object.values(m.provides.entities))
-      .flat())}`)
     const connOpts: PostgresConnectionOptions = {
       ...typeorm.connectionConfig,
       name: dbname,
@@ -101,7 +91,7 @@ export class TypeormWrapper {
     };
 
     typeorm.connection = await createConnection({ ...connOpts, entities, name });
-    logger.info(`+-+ conn ${name} or ${dbname} with entities ${JSON.stringify(entities)}`)
+    logger.info(`+-+ conn ${name} or ${dbname} with entities ${entities}`);
     return typeorm;
   }
 
