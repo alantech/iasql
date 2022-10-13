@@ -294,7 +294,6 @@ export class InstanceMapper extends MapperBase<Instance> {
       const out = [];
       for (const instance of es) {
         const client = (await ctx.getAwsClient(instance.region)) as AWS;
-        const previousInstanceId = instance.instanceId;
         if (instance.ami) {
           let tgs: AWSTag[] = [];
           if (instance.tags !== undefined) {
@@ -369,31 +368,13 @@ export class InstanceMapper extends MapperBase<Instance> {
           // Attach volume
           const rawAttachedVolume = (await this.getVolumesByInstanceId(client.ec2client, instanceId))?.pop();
           await this.waitUntilInUse(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
-          delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
+          delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[`${rawAttachedVolume?.VolumeId}|${instance.region}`];
           const attachedVolume: GeneralPurposeVolume = await this.module.generalPurposeVolume.cloud.read(
             ctx,
             rawAttachedVolume?.VolumeId ?? '',
           );
           if (attachedVolume && !Array.isArray(attachedVolume)) {
             attachedVolume.attachedInstance = newEntity;
-            // If this is a replace path, there could be already a root volume in db, we need to
-            // find it and delete it before creating the new one.
-            if (previousInstanceId) {
-              const rawPreviousInstance: AWSInstance = await this.getInstance(
-                client.ec2client,
-                previousInstanceId,
-              );
-              const dbAttachedVolume = await ctx.orm.findOne(GeneralPurposeVolume, {
-                where: {
-                  attachedInstance: {
-                    id: newEntity.id,
-                  },
-                  instanceDeviceName: rawPreviousInstance.RootDeviceName,
-                },
-                relations: ['attachedInstance'],
-              });
-              if (dbAttachedVolume) await this.module.generalPurposeVolume.db.delete(dbAttachedVolume, ctx);
-            }
             await this.module.generalPurposeVolume.db.create(attachedVolume, ctx);
           }
         }
@@ -431,7 +412,7 @@ export class InstanceMapper extends MapperBase<Instance> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.Instance?.[this.entityId(e)];
         if (this.instanceEqReplaceableFields(e, cloudRecord)) {
           const insId = e.instanceId as string;
           if (!eqTags(e.tags, cloudRecord.tags) && e.instanceId && e.tags) {
@@ -475,8 +456,8 @@ export class InstanceMapper extends MapperBase<Instance> {
         )?.pop();
         if (entity.instanceId) await this.terminateInstance(client.ec2client, entity.instanceId);
         await this.waitUntilDeleted(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
-        delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
-        delete ctx?.memo?.db?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
+        delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[`${rawAttachedVolume?.VolumeId}|${entity.region}`];
+        delete ctx?.memo?.db?.GeneralPurposeVolume?.[`${rawAttachedVolume?.VolumeId}|${entity.region}`];
         const attachedVolume = await this.module.generalPurposeVolume.db.read(
           ctx,
           rawAttachedVolume?.VolumeId ?? '',

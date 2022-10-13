@@ -323,7 +323,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.GeneralPurposeVolume?.[e.volumeId ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.GeneralPurposeVolume?.[this.entityId(e)];
         const isUpdate = this.module.generalPurposeVolume.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           let update = false;
