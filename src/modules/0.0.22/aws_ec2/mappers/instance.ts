@@ -361,7 +361,7 @@ export class InstanceMapper extends MapperBase<Instance> {
             // then who?
             throw new Error('should not be possible');
           }
-          const newEntity = await this.module.instance.cloud.read(ctx, instanceId);
+          const newEntity = await this.module.instance.cloud.read(ctx, `${instanceId}|${instance.region}`);
           newEntity.id = instance.id;
           await this.module.instance.db.update(newEntity, ctx);
           out.push(newEntity);
