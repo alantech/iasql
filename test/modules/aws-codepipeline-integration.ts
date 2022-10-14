@@ -30,7 +30,8 @@ const bucket = `${prefix}-bucket`;
 const applicationNameForDeployment = `${prefix}${dbAlias}applicationForDeployment`;
 const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
 const region = 'us-east-1'; // we need to force to us-east-1 due to issue #1398
-const roleName = `${prefix}-codedeploy-${region}`;
+const codeDeployRoleName = `${prefix}-codedeploy-${region}`;
+const codePipelineRoleName = `${prefix}-codepipeline-${region}`;
 const ec2RoleName = `${prefix}-codedeploy-ec2-${region}`;
 const sgGroupName = `${prefix}sgcodedeploy`;
 
@@ -227,7 +228,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new role',
     query(`
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${prefix}-${dbAlias}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codedeployPolicyArn}']);
+    VALUES ('${codePipelineRoleName}', '${assumeServicePolicy}', array['${codepipelinePolicyArn}', '${s3PolicyArn}', '${codedeployPolicyArn}']);
   `),
   );
 
@@ -236,6 +237,14 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(`
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
     VALUES ('${ec2RoleName}', '${ec2RolePolicy}', array['${deployEC2PolicyArn}', '${ssmPolicyArn}', '${codedeployPolicyArn}', '${s3PolicyArn}']);
+  `),
+  );
+
+  it(
+    'adds a new codedeploy role',
+    query(`
+    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
+    VALUES ('${codeDeployRoleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployEC2PolicyArn}', '${s3PolicyArn}']);
   `),
   );
 
@@ -303,18 +312,10 @@ describe('AwsCodepipeline Integration Testing', () => {
   );
 
   it(
-    'adds a new codedeploy role',
-    query(`
-    INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${roleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployEC2PolicyArn}', '${s3PolicyArn}']);
-  `),
-  );
-
-  it(
     'adds a new deployment_group',
     query(`
     INSERT INTO codedeploy_deployment_group (application_name, name, role_name, ec2_tag_filters)
-    VALUES ('${applicationNameForDeployment}', '${deploymentGroupName}', '${roleName}', '${ec2FilterTags}');
+    VALUES ('${applicationNameForDeployment}', '${deploymentGroupName}', '${codeDeployRoleName}', '${ec2FilterTags}');
   `),
   );
 
@@ -325,7 +326,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
-    VALUES ('${prefix}-${dbAlias}', '${prefix}-${dbAlias}', '${stages}', '${artifactStore}');
+    VALUES ('${prefix}-${dbAlias}', '${codePipelineRoleName}}', '${stages}', '${artifactStore}');
   `,
       undefined,
       false,
@@ -396,7 +397,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'delete role',
     query(`
     DELETE FROM iam_role
-    WHERE role_name = '${prefix}-${dbAlias}' OR role_name='${roleName}' OR role_name='${ec2RoleName}';
+    WHERE role_name = '${codePipelineRoleName}' OR role_name='${codeDeployRoleName}' OR role_name='${ec2RoleName}';
   `),
   );
 
@@ -448,7 +449,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     SELECT * FROM iam_role
-    WHERE role_name = '${prefix}-${dbAlias}';
+    WHERE role_name = '${codePipelineRoleName}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
