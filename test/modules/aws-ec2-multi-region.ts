@@ -312,7 +312,8 @@ describe('EC2 Integration Testing', () => {
         region = 'us-east-1',
         availability_zone = 'us-east-1a',
         tags = '{"tomove": "thisone"}',
-        attached_instance_id = null
+        attached_instance_id = null,
+        instance_device_name = null
       WHERE attached_instance_id = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
       );
