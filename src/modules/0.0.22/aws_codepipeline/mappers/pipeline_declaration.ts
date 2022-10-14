@@ -166,29 +166,34 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
         return;
       } else console.log('my region is enabled');
 
-      if (id) {
-        const pipeline = await this.getPipelineDeclarations(client.cpClient, {
-          name: id,
-        });
-        if (pipeline) {
-          const pipe = await this.pipelineDeclarationMapper(pipeline, ctx);
-          return pipe;
-        }
-      } else {
-        const out = [];
-        const pipelines = await this.listPipelineDeclarations(client.cpClient);
-        if (!pipelines || !pipelines.length) return;
-
-        for (const pipeline of pipelines) {
-          const rawPipeline = await this.getPipelineDeclarations(client.cpClient, {
-            name: pipeline.name,
+      try {
+        if (id) {
+          const pipeline = await this.getPipelineDeclarations(client.cpClient, {
+            name: id,
           });
-          if (rawPipeline) {
-            const newPipeline = await this.pipelineDeclarationMapper(rawPipeline, ctx);
-            if (newPipeline) out.push(newPipeline);
+          if (pipeline) {
+            const pipe = await this.pipelineDeclarationMapper(pipeline, ctx);
+            return pipe;
           }
+        } else {
+          const out = [];
+          const pipelines = await this.listPipelineDeclarations(client.cpClient);
+          if (!pipelines || !pipelines.length) return;
+
+          for (const pipeline of pipelines) {
+            const rawPipeline = await this.getPipelineDeclarations(client.cpClient, {
+              name: pipeline.name,
+            });
+            if (rawPipeline) {
+              const newPipeline = await this.pipelineDeclarationMapper(rawPipeline, ctx);
+              if (newPipeline) out.push(newPipeline);
+            }
+          }
+          return out;
         }
-        return out;
+      } catch (e) {
+        console.log('in read methods');
+        return;
       }
     },
     update: async (pds: PipelineDeclaration[], ctx: Context) => {
