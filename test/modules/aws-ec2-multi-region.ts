@@ -304,7 +304,7 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('moves the instance to another region', query(`
-      DELETE registered_instance WHERE instance = (
+      DELETE FROM registered_instance WHERE instance = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
       );
       UPDATE general_purpose_volume
