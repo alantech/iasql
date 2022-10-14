@@ -117,7 +117,12 @@ export class AWS {
       retryStrategy: this.codeBuildRetryStrategy,
     });
     this.cdClient = new CodeDeploy(config);
-    this.cpClient = new CodePipeline(config);
+    try {
+      this.cpClient = new CodePipeline(config);
+    } catch (e) {
+      console.log('failure in instlaling codepipeline');
+      console.log(e);
+    }
     this.cwClient = new CloudWatchLogs(config);
     this.dynamoClient = new DynamoDB(config);
     this.elasticacheClient = new ElastiCache(config);
