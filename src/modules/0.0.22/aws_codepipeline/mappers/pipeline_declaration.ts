@@ -159,46 +159,34 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
     read: async (ctx: Context, id?: string) => {
       const client = (await ctx.getAwsClient()) as AWS;
       const region = await client.region;
-      console.log('region is');
-      console.log(region);
-      console.log('all regions are');
-      console.log(supportedRegions);
       if (!supportedRegions.includes(region)) return;
 
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      if (!enabledRegions.includes(region)) {
-        console.log('i do not have enabled region');
-        return;
-      } else console.log('my region is enabled');
+      if (!enabledRegions.includes(region)) return;
 
-      try {
-        if (id) {
-          const pipeline = await this.getPipelineDeclarations(client.cpClient, {
-            name: id,
-          });
-          if (pipeline) {
-            const pipe = await this.pipelineDeclarationMapper(pipeline, ctx);
-            return pipe;
-          }
-        } else {
-          const out = [];
-          const pipelines = await this.listPipelineDeclarations(client.cpClient);
-          if (!pipelines || !pipelines.length) return;
-
-          for (const pipeline of pipelines) {
-            const rawPipeline = await this.getPipelineDeclarations(client.cpClient, {
-              name: pipeline.name,
-            });
-            if (rawPipeline) {
-              const newPipeline = await this.pipelineDeclarationMapper(rawPipeline, ctx);
-              if (newPipeline) out.push(newPipeline);
-            }
-          }
-          return out;
+      if (id) {
+        const pipeline = await this.getPipelineDeclarations(client.cpClient, {
+          name: id,
+        });
+        if (pipeline) {
+          const pipe = await this.pipelineDeclarationMapper(pipeline, ctx);
+          return pipe;
         }
-      } catch (e) {
-        console.log('in read methods');
-        return;
+      } else {
+        const out = [];
+        const pipelines = await this.listPipelineDeclarations(client.cpClient);
+        if (!pipelines || !pipelines.length) return;
+
+        for (const pipeline of pipelines) {
+          const rawPipeline = await this.getPipelineDeclarations(client.cpClient, {
+            name: pipeline.name,
+          });
+          if (rawPipeline) {
+            const newPipeline = await this.pipelineDeclarationMapper(rawPipeline, ctx);
+            if (newPipeline) out.push(newPipeline);
+          }
+        }
+        return out;
       }
     },
     update: async (pds: PipelineDeclaration[], ctx: Context) => {

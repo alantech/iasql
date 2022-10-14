@@ -128,7 +128,7 @@ const uninstall = runUninstall.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
-const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2', 'aws_codepipeline'];
+const modules = ['aws_codedeploy', 'aws_iam', 'aws_ec2'];
 
 jest.setTimeout(560000);
 beforeAll(async () => {
@@ -499,7 +499,7 @@ describe('AwsCodedeploy install/uninstall', () => {
 
   it('installs all modules', done => void iasql.install([], dbAlias, 'postgres', true).then(...finish(done)));
 
-  it('uninstalls the codedeploy module', uninstall(['aws_codedeploy']));
+  it('uninstalls the codedeploy module', uninstall(['aws_codedeploy', 'aws_codepipeline']));
 
   it('installs the codedeploy module', install(['aws_codedeploy']));
 

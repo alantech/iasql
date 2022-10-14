@@ -183,7 +183,7 @@ const ec2FilterTags = JSON.stringify([
 let availabilityZone: string;
 let instanceType: string;
 
-jest.setTimeout(360000);
+jest.setTimeout(960000);
 beforeAll(async () => {
   const availabilityZones =
     (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
