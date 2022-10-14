@@ -191,7 +191,11 @@ jobs:
           echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
 
           # temporary: fix codepipeline to us-east-1 , due to s3 limitations
+          echo "modules are"
+          echo $MODULES
           CURRENT_MODULE="$(echo $MODULES | jq -r '."${{matrix.module}}"')"
+          echo "current is"
+          echo $CURRENT_MODULE
           if [ "$CURRENT_MODULE" == "AWS_CODEPIPELINE_INTEGRATION" ]; then
             region='us-east-1'
           else
@@ -201,6 +205,8 @@ jobs:
             index=$(($RANDOM % $regionslen))
             region=${regions[$index]}
           fi
+          echo "region is"
+          echo $REGION
           echo "::set-output name=region::$(echo ${region})"
 
       - name: Pre-clean Test Account
