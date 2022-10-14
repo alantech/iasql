@@ -17,6 +17,7 @@ import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { awsIamModule } from '../../aws_iam';
 import { PipelineDeclaration } from '../entity';
+import supportedRegions from './supported_regions';
 
 export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
   module: AwsCodepipelineModule;
@@ -156,6 +157,10 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      const region = process.env.AWS_REGION;
+      if (!region || !supportedRegions.includes(region)) return;
+
       const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
         const pipeline = await this.getPipelineDeclarations(client.cpClient, {
