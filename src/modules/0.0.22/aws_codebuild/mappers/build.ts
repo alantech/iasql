@@ -207,8 +207,8 @@ export class CodebuildBuildImportMapper extends MapperBase<CodebuildBuildImport>
 
   cloud: Crud2<CodebuildBuildImport> = new Crud2({
     create: async (es: CodebuildBuildImport[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: StartBuildInput = {
           projectName: e.project.projectName,
         };
