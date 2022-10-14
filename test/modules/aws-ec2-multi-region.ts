@@ -307,11 +307,11 @@ describe('EC2 Integration Testing', () => {
       DELETE FROM registered_instance WHERE instance = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
       );
-      UPDATE general_purpose_volume
+      UPDATE general_purpose_volume gpv
       SET
         region = 'us-east-1',
         availability_zone = 'us-east-1a',
-        tags['tomove'] = 'thisone',
+        tags = '{"tomove": "thisone"}',
         attached_instance_id = null
       WHERE attached_instance_id = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
