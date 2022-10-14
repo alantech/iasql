@@ -29,7 +29,7 @@ const bucket = `${prefix}-bucket`;
 
 const applicationNameForDeployment = `${prefix}${dbAlias}applicationForDeployment`;
 const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
-const region = 'us-east-1'; // we need to force to us-east-1 due to issue #1398
+const region = `${process.env.AWS_REGION}`; // we need to force to us-east-1 due to issue #1398
 const codeDeployRoleName = `${prefix}-codedeploy-${region}`;
 const codePipelineRoleName = `${prefix}-codepipeline-${region}`;
 const ec2RoleName = `${prefix}-codedeploy-ec2-${region}`;
@@ -481,7 +481,7 @@ describe('AwsCodepipeline install/uninstall', () => {
   it(
     'sets the default region',
     query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
+    UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
 
