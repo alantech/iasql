@@ -1,6 +1,5 @@
 import * as levenshtein from 'fastest-levenshtein';
 import { default as cloneDeep } from 'lodash.clonedeep';
-import { createConnection } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
@@ -16,6 +15,12 @@ import { sortModules } from '../../../services/mod-sort';
 import MetadataRepo from '../../../services/repositories/metadata';
 import * as scheduler from '../../../services/scheduler-api';
 import { TypeormWrapper } from '../../../services/typeorm';
+
+// The last part of the upgrade method needs to call install and sync on the database. These method calls
+// will be running in this file, but they should use the latest version to ensure the new DB is initialized
+// with the correct version.
+// tslint:disable-next-line:no-var-requires
+const upgradedIasql = require(`../../${config.modules.latestVersion}/iasql_functions/iasql`);
 
 // Crupde = CR-UP-DE, Create/Update/Delete
 type Crupde = { [key: string]: { id: string; description: string }[] };
@@ -897,21 +902,17 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
     if (!db) return 'Database no found (somehow)';
     await MetadataRepo.dbUpgrading(db, true);
     (async () => {
+      // We need to sleep for a bit to let the scheduler response execute before we start messing up with the db
+      await new Promise(r => setTimeout(r, 5000));
       // First, figure out all of the modules installed, and if the `aws_account` module is
       // installed, also grab those credentials (eventually need to make this distinction and need
       // generalized). But now we then run the `uninstall` code for the old version of the modules,
       // then install with the new versions, with a special 'breakpoint' with `aws_account` if it
       // exists to insert the credentials so the other modules install correctly. (This should also
       // be automated in some way later.)
-      let conn: any;
+      let conn: TypeormWrapper | null = null;
       try {
-        conn =
-          context.orm ??
-          (await createConnection({
-            ...dbMan.baseConnConfig,
-            name: dbId,
-            database: dbId,
-          }));
+        conn = await TypeormWrapper.createConn(dbId);
         // 1. Read the `iasql_module` table to get all currently installed modules.
         const mods: string[] = (
           await conn.query(`
@@ -945,7 +946,7 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
         const nonIasqlMods = mods.filter(m => !/^iasql/.test(m));
         await uninstall(nonIasqlMods, dbId, true);
         // 4. Uninstall the `iasql_*` modules manually
-        const qr = conn.createQueryRunner();
+        let qr = conn.createQueryRunner();
         if (OldModules?.iasqlFunctions?.migrations?.beforeRemove) {
           await OldModules?.iasqlFunctions?.migrations?.beforeRemove(qr);
         }
@@ -960,6 +961,12 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
         if (OldModules?.iasqlPlatform?.migrations?.afterRemove) {
           await OldModules?.iasqlPlatform?.migrations?.afterRemove(qr);
         }
+        // close previous connection and create a new one
+        await conn?.dropConn();
+        conn = await TypeormWrapper.createConn(dbId);
+        // update the context to use the new connection
+        context.orm = conn;
+        qr = conn.createQueryRunner();
         // 5. Install the new `iasql_*` modules manually
         const NewModules = AllModules[config.modules.latestVersion];
         if (NewModules?.iasqlPlatform?.migrations?.beforeInstall) {
@@ -983,18 +990,18 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
         // 6. Install the `aws_account` module and then re-insert the creds if present, then add
         //    the rest of the modules back.
         if (!!creds) {
-          await install(['aws_account'], dbId, dbUser, false, true);
+          await upgradedIasql.install(['aws_account'], dbId, dbUser, false, true);
           await conn.query(`
             INSERT INTO aws_credentials (access_key_id, secret_access_key)
             VALUES ('${creds.access_key_id}', '${creds.secret_access_key}');
           `);
-          await sync(dbId, false, true, context);
+          await upgradedIasql.sync(dbId, false, true, context);
           if (creds.region) {
             await conn.query(`
               UPDATE aws_regions SET is_default = true WHERE region = '${creds.region}';
             `);
           }
-          await install(
+          await upgradedIasql.install(
             mods.filter((m: string) => !['aws_account', 'iasql_platform', 'iasql_functions'].includes(m)),
             dbId,
             dbUser,
@@ -1005,7 +1012,7 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
       } catch (e) {
         logger.error('Failed to upgrade', { e });
       } finally {
-        conn?.close();
+        conn?.dropConn();
         // Restart the scheduler
         scheduler.start(dbId, dbUser);
         await MetadataRepo.dbUpgrading(db, false);

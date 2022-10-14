@@ -83,6 +83,9 @@ async function main() {
     create: pjData,
     update: pjData,
   });
+
+  console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`)
+
   await prisma.codebuild_build_import.create({
     data: {
       project_name: appName,

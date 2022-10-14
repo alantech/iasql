@@ -45,7 +45,7 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
     return out;
   }
 
-  async waitForBuildsToStop(client: CodeBuild, ids: string[]) {
+  async waitForBuildsToComplete(client: CodeBuild, ids: string[]) {
     // wait for policies to be attached
     const input: BatchGetBuildsCommandInput = {
       ids,
@@ -62,7 +62,7 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
       async (cl, cmd) => {
         try {
           const data = await cl.batchGetBuilds(cmd);
-          const done = data?.builds?.every(bd => bd.buildStatus === BuildStatus.STOPPED || !!bd.endTime);
+          const done = data?.builds?.every(bd => bd.buildStatus !== BuildStatus.IN_PROGRESS || !!bd.endTime);
           if (done) {
             return { state: WaiterState.SUCCESS };
           }
@@ -158,7 +158,7 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
       await Promise.all(
         Object.entries(idsToStop).map(async ([region, ids]) => {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          return this.waitForBuildsToStop(client.cbClient, ids);
+          return this.waitForBuildsToComplete(client.cbClient, ids);
         }),
       );
       const idsToDel: { [key: string]: string[] } = {};
@@ -213,7 +213,8 @@ export class CodebuildBuildImportMapper extends MapperBase<CodebuildBuildImport>
           projectName: e.project.projectName,
         };
         const cloudBuild = await this.startBuild(client.cbClient, input);
-        if (!cloudBuild) throw new Error('Error starting build');
+        if (!cloudBuild || !cloudBuild.id) throw new Error('Error starting build');
+        await this.module.buildList.waitForBuildsToComplete(client.cbClient, [cloudBuild.id]);
         const dbBuild = await this.module.buildList.buildListMapper(cloudBuild, ctx, e.region);
         if (!dbBuild) throw new Error('Error starting build');
         await this.module.buildImport.db.delete(e, ctx);
