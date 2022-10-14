@@ -213,7 +213,7 @@ phases:
   it('apply codebuild_project creation', apply());
 
   it(
-    'start build',
+    'start and wait for build',
     query(`
     INSERT INTO codebuild_build_import (project_name)
     VALUES ('${dbAlias}');
@@ -234,11 +234,11 @@ phases:
   );
 
   it(
-    'check build exists in list',
+    'check failed build exists in list',
     query(
       `
     SELECT * FROM codebuild_build_list
-    WHERE project_name = '${dbAlias}';
+    WHERE project_name = '${dbAlias}' and build_status = 'FAILED';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
