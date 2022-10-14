@@ -175,6 +175,7 @@ describe('AwsAcmList install/uninstall', () => {
       'aws_ec2_metadata',
       'aws_route53_hosted_zones',
       'aws_codedeploy',
+      'aws_codepipeline',
     ]),
   );
 
