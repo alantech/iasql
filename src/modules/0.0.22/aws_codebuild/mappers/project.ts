@@ -153,8 +153,8 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
         if (pj.arn !== cloudRecord.arn) {
           pj.arn = cloudRecord.arn;
           if (this.module.project.equals(pj, cloudRecord)) {
-            await this.module.project.db.update(cloudRecord, ctx);
             cloudRecord.id = pj.id;
+            await this.module.project.db.update(cloudRecord, ctx);
             out.push(cloudRecord);
             continue;
           }

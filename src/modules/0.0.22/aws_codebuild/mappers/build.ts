@@ -133,8 +133,8 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
       const out = [];
       for (const e of es) {
         const cloudRecord = ctx?.memo?.cloud?.CodebuildBuildList?.[this.entityId(e)];
-        await this.module.buildList.db.update(cloudRecord, ctx);
         cloudRecord.id = e.id;
+        await this.module.buildList.db.update(cloudRecord, ctx);
         out.push(cloudRecord);
       }
       return out;
