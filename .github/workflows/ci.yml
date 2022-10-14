@@ -184,6 +184,7 @@ jobs:
         id: determine-test-account
         env:
           SECRET_HEADER: ${{ secrets.SECRET_HEADER }}
+          MODULES: ${{ needs.setup-module-test.outputs['test-modules'] }}
         run: |
           RESPONSE=$(curl -X POST -H "Content-Type: text/plain" -H "${SECRET_HEADER}" -d '1' https://fkk3xlyad5tobhmezx4onpvele0zyehu.lambda-url.us-east-2.on.aws/ 2>/dev/null)
           echo $RESPONSE
@@ -206,7 +207,7 @@ jobs:
             region=${regions[$index]}
           fi
           echo "region is"
-          echo $REGION
+          echo $region
           echo "::set-output name=region::$(echo ${region})"
 
       - name: Pre-clean Test Account
