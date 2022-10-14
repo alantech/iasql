@@ -306,7 +306,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     'adds a new codedeploy role',
     query(`
     INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
-    VALUES ('${roleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployEC2PolicyArn}', '${codepipelinePolicyArn}', '${s3PolicyArn}']);
+    VALUES ('${roleName}', '${codedeployRolePolicy}', array['${codedeployPolicyArn}', '${deployEC2PolicyArn}', '${s3PolicyArn}']);
   `),
   );
 
