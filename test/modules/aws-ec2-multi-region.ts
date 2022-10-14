@@ -305,6 +305,7 @@ describe('EC2 Integration Testing', () => {
 
   it('moves the instance to another region', query(`
     BEGIN;
+      SET CONSTRAINTS ALL DEFERRED;
       UPDATE instance SET region = 'us-east-1' WHERE tags ->> 'name' = '${prefix}-1';
       UPDATE registered_instance SET region = 'us-east-1' WHERE instance = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
