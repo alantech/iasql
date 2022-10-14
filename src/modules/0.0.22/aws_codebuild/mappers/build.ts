@@ -11,6 +11,7 @@ import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsCodebuildModule } from '..';
 import { AWS, paginateBuilder, crudBuilderFormat, crudBuilder2 } from '../../../../services/aws_macros';
+import logger from '../../../../services/logger';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { CodebuildBuildList, CodebuildBuildImport, BuildStatus } from '../entity';
 
@@ -140,48 +141,52 @@ export class CodebuildBuildListMapper extends MapperBase<CodebuildBuildList> {
       return out;
     },
     delete: async (bds: CodebuildBuildList[], ctx: Context) => {
-      const idsToStop: { [key: string]: string[] } = {};
-      bds
-        .filter(bd => bd.buildStatus === BuildStatus.IN_PROGRESS)
-        .forEach(bd =>
-          idsToStop[bd.region] ? idsToStop[bd.region].push(bd.awsId) : (idsToStop[bd.region] = [bd.awsId]),
+      try {
+        const idsToStop: { [key: string]: string[] } = {};
+        bds
+          .filter(bd => bd.buildStatus === BuildStatus.IN_PROGRESS)
+          .forEach(bd =>
+            idsToStop[bd.region] ? idsToStop[bd.region].push(bd.awsId) : (idsToStop[bd.region] = [bd.awsId]),
+          );
+        await Promise.all(
+          Object.entries(idsToStop).map(async ([region, ids]) => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            for (const id of ids) {
+              const input: StopBuildInput = { id };
+              await this.stopBuild(client.cbClient, input);
+            }
+          }),
         );
-      await Promise.all(
-        Object.entries(idsToStop).map(async ([region, ids]) => {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          for (const id of ids) {
-            const input: StopBuildInput = { id };
-            await this.stopBuild(client.cbClient, input);
-          }
-        }),
-      );
-      await Promise.all(
-        Object.entries(idsToStop).map(async ([region, ids]) => {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          return this.waitForBuildsToComplete(client.cbClient, ids);
-        }),
-      );
-      const idsToDel: { [key: string]: string[] } = {};
-      bds.forEach(bd =>
-        idsToDel[bd.region] ? idsToDel[bd.region].push(bd.awsId) : (idsToDel[bd.region] = [bd.awsId]),
-      );
-      await Promise.all(
-        Object.entries(idsToStop).map(async ([region, ids]) => {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-          // Wait for ~2.5min until builds can be deleted
-          let i = 0;
-          let idsToRetry: string[];
-          do {
-            const input: BatchDeleteBuildsCommandInput = { ids };
-            const out = await this.deleteBuilds(client.cbClient, input);
-            if (out?.buildsNotDeleted?.length === 0) break;
-            idsToRetry = out?.buildsNotDeleted?.map(bd => bd.id as string) ?? [];
-            await new Promise(r => setTimeout(r, 5000)); // Sleep for 5s
-            i++;
-          } while (i < 60 || idsToRetry.length > 0);
-          if (i === 59) throw new Error('Error deleting builds');
-        }),
-      );
+        await Promise.all(
+          Object.entries(idsToStop).map(async ([region, ids]) => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            return this.waitForBuildsToComplete(client.cbClient, ids);
+          }),
+        );
+        const idsToDel: { [key: string]: string[] } = {};
+        bds.forEach(bd =>
+          idsToDel[bd.region] ? idsToDel[bd.region].push(bd.awsId) : (idsToDel[bd.region] = [bd.awsId]),
+        );
+        await Promise.all(
+          Object.entries(idsToStop).map(async ([region, ids]) => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            // Wait for ~2.5min until builds can be deleted
+            let i = 0;
+            let idsToRetry: string[];
+            do {
+              const input: BatchDeleteBuildsCommandInput = { ids };
+              const out = await this.deleteBuilds(client.cbClient, input);
+              if (out?.buildsNotDeleted?.length === 0) break;
+              idsToRetry = out?.buildsNotDeleted?.map(bd => bd.id as string) ?? [];
+              await new Promise(r => setTimeout(r, 5000)); // Sleep for 5s
+              i++;
+            } while (i < 60 || idsToRetry.length > 0);
+            if (i === 59) throw new Error('Error deleting builds');
+          }),
+        );
+      } catch (e) {
+        logger.info(`+-+ why ma i failing??? ${e}`);
+      }
     },
   });
 
