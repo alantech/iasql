@@ -856,6 +856,7 @@ describe('Security Group install/uninstall', () => {
       'aws_memory_db',
       'aws_acm_request',
       'aws_codedeploy',
+      'aws_codepipeline',
     ]),
   );
 
