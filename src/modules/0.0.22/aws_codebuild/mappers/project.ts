@@ -102,7 +102,9 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
         const awsPj = await this.createProject(client.cbClient, input);
         if (!awsPj) continue;
         const newPj = await this.projectMapper(awsPj, ctx, e.region);
-        if (newPj) out.push(newPj);
+        if (!newPj) return;
+        newPj.id = e.id;
+        out.push(newPj);
       }
       return out;
     },
@@ -152,6 +154,7 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
           pj.arn = cloudRecord.arn;
           if (this.module.project.equals(pj, cloudRecord)) {
             await this.module.project.db.update(cloudRecord, ctx);
+            cloudRecord.id = pj.id;
             out.push(cloudRecord);
             continue;
           }
