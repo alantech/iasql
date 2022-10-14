@@ -17,6 +17,7 @@ import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { awsIamModule } from '../../aws_iam';
 import { PipelineDeclaration } from '../entity';
+import supportedRegions from './supported_regions';
 
 export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
   module: AwsCodepipelineModule;
@@ -160,6 +161,10 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
       const region = await client.region;
       console.log('region is');
       console.log(region);
+      console.log('all regions are');
+      console.log(supportedRegions);
+      if (!supportedRegions.includes(region)) return;
+
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!enabledRegions.includes(region)) {
         console.log('i do not have enabled region');
