@@ -104,6 +104,7 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
         const newPj = await this.projectMapper(awsPj, ctx, e.region);
         if (!newPj) return;
         newPj.id = e.id;
+        await this.module.project.db.update(newPj, ctx);
         out.push(newPj);
       }
       return out;
