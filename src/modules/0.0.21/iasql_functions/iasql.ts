@@ -913,6 +913,9 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
       let conn: TypeormWrapper | null = null;
       try {
         conn = await TypeormWrapper.createConn(dbId);
+        // when upgrading to v0.0.22 or newer add the new group role
+        // that gets added on connect
+        await conn.query(dbMan.createDbPostgreGroupRole(dbId));
         // 1. Read the `iasql_module` table to get all currently installed modules.
         const mods: string[] = (
           await conn.query(`

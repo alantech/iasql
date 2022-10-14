@@ -1291,10 +1291,9 @@ export async function upgrade(dbId: string, dbUser: string) {
           name: dbId,
           database: dbId,
         });
-        // TODO remove once 0.0.21 is deprecated
-        // If upgrading from a version older v0.0.22 add a group role
-        // that gets added on connect
-        if (['0.0.17', '0.0.18', '0.0.20', '0.0.21'].includes(versionString)) {
+        // If upgrading from a version older than v0.0.22 add a group role
+        // that typically gets added on connect
+        if (['0.0.17', '0.0.18', '0.0.20'].includes(versionString)) {
           await conn.query(dbMan.createDbPostgreGroupRole(dbId));
         }
         // 1. Read the `iasql_module` table to get all currently installed modules.

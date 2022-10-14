@@ -60,6 +60,9 @@ export const baseConnConfig: PostgresConnectionOptions = {
   }, // TODO: remove once DB instance with custom ssl cert is in place
 };
 
+// TODO remove when all versions become unsupported
+const versionsWithNoGroupRole = ['0.0.17', '0.0.18', '0.0.20', '0.0.21'];
+
 // TODO: try to roll back the `GRANT CREATE` to something a bit narrower in the future
 export function newPostgresRoleQuery(user: string, pass: string, dbId: string) {
   return `
@@ -89,7 +92,7 @@ export function grantPostgresRoleQuery(user: string) {
 }
 
 export function grantPostgresGroupRoleQuery(user: string, dbId: string, versionString: string) {
-  if (['0.0.17', '0.0.18', '0.0.20', '0.0.21'].includes(versionString)) {
+  if (versionsWithNoGroupRole.includes(versionString)) {
     return grantPostgresRoleQuery(user);
   } else {
     const groupRole = getGroupRole(dbId);
@@ -105,7 +108,7 @@ export function grantPostgresGroupRoleQuery(user: string, dbId: string, versionS
 
 // runs query using the group role so user generated tables have the same owner
 export function setPostgresRoleQuery(dbId: string, versionString: string) {
-  return ['0.0.17', '0.0.18', '0.0.20', '0.0.21'].includes(versionString)
+  return versionsWithNoGroupRole.includes(versionString)
     ? ''
     : `
     SET ROLE ${getGroupRole(dbId)};
@@ -114,7 +117,7 @@ export function setPostgresRoleQuery(dbId: string, versionString: string) {
 
 export function revokePostgresRoleQuery(user: string, dbId: string, versionString: string) {
   // TODO deprecate
-  if (['0.0.17', '0.0.18', '0.0.20', '0.0.21'].includes(versionString)) {
+  if (versionsWithNoGroupRole.includes(versionString)) {
     return `
       REVOKE SELECT ON ALL TABLES IN SCHEMA public FROM ${user};
       REVOKE INSERT ON ALL TABLES IN SCHEMA public FROM ${user};
