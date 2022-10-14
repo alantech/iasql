@@ -53,7 +53,6 @@ const getInstanceTypeOffering = async (availabilityZones: string[]) => {
 };
 let availabilityZone1: string;
 let instanceType1: string;
-let availabilityZone2: string;
 const ubuntuAmiId =
   'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 
@@ -94,7 +93,6 @@ beforeAll(async () => {
   const availabilityZones =
     (await getAvailabilityZones())?.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
   availabilityZone1 = availabilityZones.pop() ?? '';
-  availabilityZone2 = availabilityZones.pop() ?? '';
   const instanceTypesByAz1 = await getInstanceTypeOffering([availabilityZone1]);
   instanceType1 = instanceTypesByAz1.InstanceTypeOfferings?.pop()?.InstanceType ?? '';
   await execComposeUp();
@@ -306,7 +304,15 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('moves the instance to another region', query(`
-    UPDATE instance SET region = 'us-east-1' WHERE tags ->> 'name' = '${prefix}-1';
+    BEGIN;
+      UPDATE instance SET region = 'us-east-1' WHERE tags ->> 'name' = '${prefix}-1';
+      UPDATE registered_instance SET region = 'us-east-1' WHERE instance = (
+        SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
+      );
+      UPDATE general_purpose_volume SET region = 'us-east-1' WHERE attached_instance_id = (
+        SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
+      );
+    COMMIT;
   `));
 
   it('applies the move', apply());
