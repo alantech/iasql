@@ -304,16 +304,22 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('moves the instance to another region', query(`
-    BEGIN;
-      SET CONSTRAINTS ALL DEFERRED;
+      DELETE registered_instance WHERE instance = (
+        SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
+      );
+      UPDATE general_purpose_volume
+      SET
+        region = 'us-east-1',
+        availability_zone = 'us-east-1a',
+        tags ->> 'tomove' = 'thisone',
+        attached_instance_id = null
+      WHERE attached_instance_id = (
+        SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
+      );
       UPDATE instance SET region = 'us-east-1' WHERE tags ->> 'name' = '${prefix}-1';
-      UPDATE registered_instance SET region = 'us-east-1' WHERE instance = (
+      UPDATE general_purpose_volume SET attached_instance_id = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
-      );
-      UPDATE general_purpose_volume SET region = 'us-east-1' WHERE attached_instance_id = (
-        SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
-      );
-    COMMIT;
+      ) WHERE tags ->> 'tomove' = 'thisone';
   `));
 
   it('applies the move', apply());
@@ -338,7 +344,7 @@ describe('EC2 Integration Testing', () => {
     FROM registered_instance
     WHERE target_group = '${tgName}';
   `,
-      (res: any[]) => expect(res.length).toBe(1),
+      (res: any[]) => expect(res.length).toBe(0),
     ),
   );
 
