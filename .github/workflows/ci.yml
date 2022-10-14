@@ -197,6 +197,8 @@ jobs:
           CURRENT_MODULE="$(echo $MODULES | jq -r '."${{matrix.module}}"')"
           echo "current is"
           echo $CURRENT_MODULE
+          echo "module to run is"
+          echo "${{matrix.module}}"
           if [ "$CURRENT_MODULE" == "AWS_CODEPIPELINE_INTEGRATION" ]; then
             region='us-east-1'
           else
