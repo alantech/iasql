@@ -16,15 +16,7 @@ export class IasqlInstall extends RpcBase {
     ctx: Context,
     ...params: string[]
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    console.log('in install');
-    console.log(params);
-
-    try {
-      await iasql.install(params, dbId, dbUser, false, false, ctx);
-    } catch (e) {
-      console.log('failure in iasql.install');
-      console.log(e);
-    }
+    await iasql.install(params, dbId, dbUser, false, false, ctx);
     const query = `
       select
           m.name as module_name,
