@@ -29,7 +29,7 @@ const bucket = `${prefix}-bucket`;
 
 const applicationNameForDeployment = `${prefix}${dbAlias}applicationForDeployment`;
 const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
-const region = `${process.env.AWS_REGION}`; // we need to force to us-east-1 due to issue #1398
+const region = `${process.env.AWS_REGION}`;
 const codeDeployRoleName = `${prefix}-codedeploy-${region}`;
 const codePipelineRoleName = `${prefix}-codepipeline-${region}`;
 const ec2RoleName = `${prefix}-codedeploy-ec2-${region}`;
@@ -326,7 +326,7 @@ describe('AwsCodepipeline Integration Testing', () => {
     query(
       `
     INSERT INTO pipeline_declaration (name, service_role_name, stages, artifact_store)
-    VALUES ('${prefix}-${dbAlias}', '${codePipelineRoleName}}', '${stages}', '${artifactStore}');
+    VALUES ('${prefix}-${dbAlias}', '${codePipelineRoleName}', '${stages}', '${artifactStore}');
   `,
       undefined,
       false,
