@@ -16,6 +16,9 @@ import MetadataRepo from '../../../services/repositories/metadata';
 import * as scheduler from '../../../services/scheduler-api';
 import { TypeormWrapper } from '../../../services/typeorm';
 
+// The last part of the upgrade method needs to call install and sync on the database. These method calls
+// will be running in this file, but they should use the latest version to ensure the new DB is initialized
+// with the correct version.
 // tslint:disable-next-line:no-var-requires
 const upgradedIasql = require(`../../${config.modules.latestVersion}/iasql_functions/iasql`);
 
@@ -958,7 +961,7 @@ export async function upgrade(dbId: string, dbUser: string, context: Context) {
         if (OldModules?.iasqlPlatform?.migrations?.afterRemove) {
           await OldModules?.iasqlPlatform?.migrations?.afterRemove(qr);
         }
-        // close previous conne and create a new one
+        // close previous connection and create a new one
         await conn?.dropConn();
         conn = await TypeormWrapper.createConn(dbId);
         // update the context to use the new connection
