@@ -157,11 +157,10 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      const region = process.env.AWS_REGION;
-      if (!region || !supportedRegions.includes(region)) return;
-
       const client = (await ctx.getAwsClient()) as AWS;
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (supportedRegions.includes(client.region)) return;
+
       if (id) {
         const pipeline = await this.getPipelineDeclarations(client.cpClient, {
           name: id,
