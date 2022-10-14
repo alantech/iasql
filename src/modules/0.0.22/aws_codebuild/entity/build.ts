@@ -49,9 +49,16 @@ export class CodebuildBuildList {
     eager: true,
     nullable: true,
   })
-  @JoinColumn({
-    name: 'project_name',
-  })
+  @JoinColumn([
+    {
+      name: 'project_name',
+      referencedColumnName: 'projectName',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   project: CodebuildProject;
 
   @Column({

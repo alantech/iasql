@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsCodebuild1665682555188 implements MigrationInterface {
-  name = 'awsCodebuild1665682555188';
+export class awsCodebuild1665746759374 implements MigrationInterface {
+  name = 'awsCodebuild1665746759374';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -18,7 +18,7 @@ export class awsCodebuild1665682555188 implements MigrationInterface {
       `CREATE TYPE "public"."codebuild_build_list_build_status_enum" AS ENUM('FAILED', 'FAULT', 'IN_PROGRESS', 'STOPPED', 'SUCCEEDED', 'TIMED_OUT')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "codebuild_build_list" ("id" SERIAL NOT NULL, "aws_id" character varying NOT NULL, "arn" character varying, "build_number" integer, "build_status" "public"."codebuild_build_list_build_status_enum" NOT NULL, "end_time" TIMESTAMP, "start_time" TIMESTAMP, "region" character varying NOT NULL DEFAULT default_aws_region(), "project_name" integer, CONSTRAINT "uq_codebuildlist_name_region" UNIQUE ("aws_id", "region"), CONSTRAINT "uq_codebuildlist_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_50a7a7e05b0b8067c138324fa17" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "codebuild_build_list" ("id" SERIAL NOT NULL, "aws_id" character varying NOT NULL, "arn" character varying, "build_number" integer, "build_status" "public"."codebuild_build_list_build_status_enum" NOT NULL, "end_time" TIMESTAMP, "start_time" TIMESTAMP, "region" character varying NOT NULL DEFAULT default_aws_region(), "project_name" character varying, CONSTRAINT "uq_codebuildlist_name_region" UNIQUE ("aws_id", "region"), CONSTRAINT "uq_codebuildlist_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_50a7a7e05b0b8067c138324fa17" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "codebuild_build_import" ("id" SERIAL NOT NULL, "region" character varying NOT NULL DEFAULT default_aws_region(), "project_name" character varying, CONSTRAINT "PK_4ea8c3dad42dee7fddcf905f35f" PRIMARY KEY ("id"))`,
@@ -45,7 +45,7 @@ export class awsCodebuild1665682555188 implements MigrationInterface {
       `ALTER TABLE "codebuild_project" ADD CONSTRAINT "FK_7f9fd2d9eea87e92a9748b3bfa0" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "codebuild_build_list" ADD CONSTRAINT "FK_260ab6704f473a4323d955d39d5" FOREIGN KEY ("project_name") REFERENCES "codebuild_project"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "codebuild_build_list" ADD CONSTRAINT "FK_a10d877414684a4c96249d4fa82" FOREIGN KEY ("project_name", "region") REFERENCES "codebuild_project"("project_name","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "codebuild_build_list" ADD CONSTRAINT "FK_6832b4b361539b03981122a1457" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -81,7 +81,7 @@ export class awsCodebuild1665682555188 implements MigrationInterface {
       `ALTER TABLE "codebuild_build_list" DROP CONSTRAINT "FK_6832b4b361539b03981122a1457"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "codebuild_build_list" DROP CONSTRAINT "FK_260ab6704f473a4323d955d39d5"`,
+      `ALTER TABLE "codebuild_build_list" DROP CONSTRAINT "FK_a10d877414684a4c96249d4fa82"`,
     );
     await queryRunner.query(
       `ALTER TABLE "codebuild_project" DROP CONSTRAINT "FK_7f9fd2d9eea87e92a9748b3bfa0"`,
