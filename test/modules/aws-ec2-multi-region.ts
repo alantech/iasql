@@ -287,7 +287,7 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('moves the instance to another region', query(`
-    BEGIN
+    BEGIN;
       SET CONSTRAINTS ALL DEFERRED;
       DELETE FROM registered_instance WHERE instance = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
@@ -300,7 +300,7 @@ describe('EC2 Integration Testing', () => {
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
       );
       UPDATE instance SET region = 'us-east-1' WHERE tags ->> 'name' = '${prefix}-1';
-    COMMIT
+    COMMIT;
   `));
 
   it('applies the move', apply());
