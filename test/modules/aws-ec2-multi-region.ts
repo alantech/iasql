@@ -294,7 +294,7 @@ describe('EC2 Integration Testing', () => {
       SET
         region = 'us-east-1',
         availability_zone = 'us-east-1a',
-        tags = '{"tomove": "thisone"}',
+        tags = '{"tomove": "thisone"}'
       WHERE attached_instance_id = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
       );
