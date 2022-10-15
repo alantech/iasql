@@ -295,7 +295,7 @@ describe('EC2 Integration Testing', () => {
       UPDATE general_purpose_volume gpv
       SET
         region = 'us-east-1',
-        availability_zone = 'us-east-1a',
+        availability_zone = 'us-east-1a'
       WHERE attached_instance_id = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
       );
