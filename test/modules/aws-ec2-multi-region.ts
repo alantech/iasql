@@ -170,23 +170,6 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
-  // TODO add table to allow creating key value pairs and then check user_data ran
-  // https://stackoverflow.com/questions/15904095/how-to-check-whether-my-user-data-passing-to-ec2-instance-is-working
-  it(
-    'check user data',
-    query(
-      `
-    SELECT user_data
-    FROM instance
-    WHERE tags ->> 'name' = '${prefix}-1';
-  `,
-      (res: any[]) => {
-        expect(res.length).toBe(1);
-        expect(res[0].user_data).toBe('ls;');
-      },
-    ),
-  );
-
   it(
     'check number of volumes',
     query(
@@ -312,8 +295,6 @@ describe('EC2 Integration Testing', () => {
         region = 'us-east-1',
         availability_zone = 'us-east-1a',
         tags = '{"tomove": "thisone"}',
-        attached_instance_id = null,
-        instance_device_name = null
       WHERE attached_instance_id = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
       );
