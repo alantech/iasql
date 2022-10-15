@@ -287,6 +287,8 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('moves the instance to another region', query(`
+    BEGIN
+      SET CONSTRAINTS ALL DEFERRED;
       DELETE FROM registered_instance WHERE instance = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
       );
@@ -294,14 +296,11 @@ describe('EC2 Integration Testing', () => {
       SET
         region = 'us-east-1',
         availability_zone = 'us-east-1a',
-        tags = '{"tomove": "thisone"}'
       WHERE attached_instance_id = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
       );
       UPDATE instance SET region = 'us-east-1' WHERE tags ->> 'name' = '${prefix}-1';
-      UPDATE general_purpose_volume SET attached_instance_id = (
-        SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
-      ) WHERE tags ->> 'tomove' = 'thisone';
+    COMMIT
   `));
 
   it('applies the move', apply());
