@@ -304,7 +304,7 @@ describe('EC2 Integration Testing', () => {
         region = 'us-east-1',
         subnet_id = (
           SELECT id FROM subnet WHERE region = 'us-east-1' LIMIT 1
-        );
+        )
       WHERE tags ->> 'name' = '${prefix}-1';
     COMMIT;
   `));
