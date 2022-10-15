@@ -299,7 +299,13 @@ describe('EC2 Integration Testing', () => {
       WHERE attached_instance_id = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
       );
-      UPDATE instance SET region = 'us-east-1' WHERE tags ->> 'name' = '${prefix}-1';
+      UPDATE instance
+      SET
+        region = 'us-east-1',
+        subnet_id = (
+          SELECT id FROM subnet WHERE region = 'us-east-1' LIMIT 1
+        );
+      WHERE tags ->> 'name' = '${prefix}-1';
     COMMIT;
   `));
 
