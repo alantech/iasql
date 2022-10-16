@@ -151,32 +151,31 @@ class ListenerMapper extends MapperBase<Listener> {
       return out;
     },
     read: async (ctx: Context, arn?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (arn) {
         const region = parseArn(arn).region;
-        const client = (await ctx.getAwsClient(region)) as AWS;
-        const rawListener = await this.getListener(client.elbClient, arn);
-        if (!rawListener) return;
-        return await this.listenerMapper(rawListener, ctx);
-      } else {
-        const out = [];
-        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-        for (const region of enabledRegions) {
+        if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          const listeners = await (async () => {
-            // TODO: Should this behavior be standard?
-            const loadBalancers = ctx.memo?.cloud?.LoadBalancer
-              ? Object.values(ctx.memo?.cloud?.LoadBalancer)
-              : await this.module.loadBalancer.cloud.read(ctx);
-            const loadBalancerArns = loadBalancers
-              .filter((lb: any) => lb.region === region)
-              .map((lb: any) => lb.loadBalancerArn);
-            return await this.getListeners(client.elbClient, loadBalancerArns);
-          })();
-          for (const l of listeners) {
-            const o = await this.listenerMapper(l, ctx);
-            if (o) out.push(o);
-          }
+          const rawListener = await this.getListener(client.elbClient, arn);
+          if (!rawListener) return;
+          return await this.listenerMapper(rawListener, ctx);
         }
+      } else {
+        const out: Listener[] = [];
+        const loadBalancers = ctx.memo?.cloud?.LoadBalancer
+          ? Object.values(ctx.memo?.cloud?.LoadBalancer)
+          : await this.module.loadBalancer.cloud.read(ctx);
+
+        await Promise.all(
+          loadBalancers.map(async (lb: LoadBalancer) => {
+            const client = (await ctx.getAwsClient(lb.region)) as AWS;
+            const listeners = await this.getListenersForArn(client.elbClient, lb.loadBalancerArn);
+            for (const l of listeners) {
+              const o = await this.listenerMapper(l, ctx);
+              if (o) out.push(o);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -369,6 +368,7 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     );
     return loadBalancer;
   }
+
   // TODO: Really refactor the client access in this thing later
   async deleteLoadBalancer(client: { elbClient: ElasticLoadBalancingV2; ec2client: EC2 }, arn: string) {
     await client.elbClient.deleteLoadBalancer({ LoadBalancerArn: arn });
@@ -467,23 +467,27 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
       return out;
     },
     read: async (ctx: Context, arn?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (arn) {
         const region = parseArn(arn).region;
-        const client = (await ctx.getAwsClient(region)) as AWS;
-        const rawLoadBalancer = await this.getLoadBalancer(client.elbClient, arn);
-        if (!rawLoadBalancer) return;
-        return await this.loadBalancerMapper(rawLoadBalancer, ctx, region);
-      } else {
-        const out = [];
-        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-        for (const region of enabledRegions) {
+        if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          const lbs = await this.getLoadBalancers(client.elbClient);
-          for (const lb of lbs) {
-            const o = await this.loadBalancerMapper(lb, ctx, region);
-            if (o) out.push(o);
-          }
+          const rawLoadBalancer = await this.getLoadBalancer(client.elbClient, arn);
+          if (!rawLoadBalancer) return;
+          return await this.loadBalancerMapper(rawLoadBalancer, ctx, region);
         }
+      } else {
+        const out: LoadBalancer[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const lbs = await this.getLoadBalancers(client.elbClient);
+            for (const lb of lbs) {
+              const o = await this.loadBalancerMapper(lb, ctx, region);
+              if (o) out.push(o);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -822,4 +826,5 @@ class AwsElbModule extends ModuleBase {
     super.init();
   }
 }
+
 export const awsElbModule = new AwsElbModule();
