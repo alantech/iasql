@@ -41,7 +41,7 @@ export class InstanceMapper extends MapperBase<Instance> {
   }
 
   async instanceMapper(instance: AWSInstance, region: string, ctx: Context) {
-    const client = (await ctx.getAwsClient()) as AWS;
+    const client = (await ctx.getAwsClient(region)) as AWS;
     const out = new Instance();
     if (!instance.InstanceId) return undefined;
     out.instanceId = instance.InstanceId;

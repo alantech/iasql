@@ -128,7 +128,7 @@ describe('EC2 Integration Testing', () => {
 
   it('installs the ec2 module', install(modules));
 
-  it('adds and ec2 instance', done => {
+  it('adds an ec2 instance', done => {
     query(`
       INSERT INTO instance (ami, instance_type, tags, subnet_id)
         SELECT '${ubuntuAmiId}', '${instanceType1}', '{"name":"${prefix}-1"}', id
@@ -287,26 +287,50 @@ describe('EC2 Integration Testing', () => {
   );
 
   it('moves the instance to another region', query(`
-    BEGIN;
-      SET CONSTRAINTS ALL DEFERRED;
-      DELETE FROM registered_instance WHERE instance = (
+    -- You can't move a registered instance at all, so unregister it
+    DELETE FROM registered_instance WHERE instance = (
+      SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
+    );
+    -- Because of interlinking constraints, we need to first "detach" the volume from the instance
+    -- then update the instance, then re-attach it. Hence the volume being updated twice to go to
+    -- a new region
+    UPDATE general_purpose_volume
+    SET
+      volume_id = null,
+      attached_instance_id = null,
+      instance_device_name = null,
+      snapshot_id = null
+    WHERE attached_instance_id = (
+      SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
+    );
+    -- We have to make sure the subnet is correct and we have to re-assign the AMI ID because they
+    -- are different between regions
+    UPDATE instance
+    SET
+      instance_id = null,
+      region = 'us-east-1',
+      ami = '${ubuntuAmiId}',
+      subnet_id = (
+        SELECT id FROM subnet WHERE region = 'us-east-1' AND availability_zone = 'us-east-1a'
+      )
+    WHERE tags ->> 'name' = '${prefix}-1';
+    -- Re-attaching of the volume. But it is given a different name since /dev/xvda is reserved for
+    -- the initial boot volume and can't be re-used here. Technically an equivalent version of this
+    -- volume is automatically re-attached by the new instance being brought up.
+    UPDATE general_purpose_volume
+    SET
+      region = 'us-east-1',
+      availability_zone = 'us-east-1a',
+      attached_instance_id = (
         SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
-      );
-      UPDATE general_purpose_volume gpv
-      SET
-        region = 'us-east-1',
-        availability_zone = 'us-east-1a'
-      WHERE attached_instance_id = (
-        SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
-      );
-      UPDATE instance
-      SET
-        region = 'us-east-1',
-        subnet_id = (
-          SELECT id FROM subnet WHERE region = 'us-east-1' LIMIT 1
-        )
-      WHERE tags ->> 'name' = '${prefix}-1';
-    COMMIT;
+      ),
+      instance_device_name = '/dev/xvdb'
+    WHERE attached_instance_id IS NULL;
+    -- Also need to drop the security groups it is currently attached to. This is done with a join
+    -- table so we get no good constraint checking on the validity here at the moment
+    DELETE FROM instance_security_groups WHERE instance_id = (
+      SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'
+    );
   `));
 
   it('applies the move', apply());

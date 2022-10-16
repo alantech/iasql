@@ -1,4 +1,4 @@
-import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
@@ -19,7 +19,9 @@ export enum VolumeState {
   IN_USE = 'in-use',
 }
 
-@Unique('Unique_gp_instance_device_name', ['instanceDeviceName', 'attachedInstance'])
+// TODO: Revive this, but more safely. Currently breaks `iasql install` if the account has multiple
+// detached volumes.
+// @Unique('Unique_gp_instance_device_name', ['instanceDeviceName', 'attachedInstance'])
 @Check(
   'check_instance_ebs_availability_zone',
   'check_instance_ebs_availability_zone(attached_instance_id, availability_zone)',
