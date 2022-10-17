@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import isEqual from 'lodash.isequal';
 
 import {
