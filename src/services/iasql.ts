@@ -130,8 +130,9 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
       database: dbId,
     });
     await dbMan.migrate(conn2);
+    await conn2.query(dbMan.createDbPostgreGroupRole(dbId));
     await conn2.query(dbMan.newPostgresRoleQuery(dbUser, dbPass, dbId));
-    await conn2.query(dbMan.grantPostgresRoleQuery(dbUser));
+    await conn2.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId, config.modules.latestVersion));
     roleGranted = true;
     const recCount = await getDbRecCount(conn2);
     const opCount = await getOpCount(conn2);
@@ -151,7 +152,7 @@ export async function connect(dbAlias: string, uid: string, email: string, dbId 
     if (schedulerStarted) await scheduler.stop(dbId);
     // delete db in psql and metadata
     if (dbSaved) await conn1?.query(`DROP DATABASE IF EXISTS ${dbId} WITH (FORCE);`);
-    if (dbUser && roleGranted) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser));
+    if (dbUser && roleGranted) await conn1?.query(dbMan.dropPostgresRoleQuery(dbUser, dbId, true));
     if (dbSaved) await MetadataRepo.delDb(uid, dbAlias);
     // rethrow the error
     throw e;
@@ -170,7 +171,7 @@ export async function disconnect(dbAlias: string, uid: string) {
     await conn.query(`
       DROP DATABASE IF EXISTS ${db.pgName} WITH (FORCE);
     `);
-    await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser));
+    await conn.query(dbMan.dropPostgresRoleQuery(db.pgUser, db.pgName, true));
     await MetadataRepo.delDb(uid, dbAlias);
     return db.pgName;
   } catch (e: any) {
@@ -189,6 +190,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
   if (db?.upgrading) throw new Error('Currently upgrading, cannot query at this time');
   const database = db.pgName;
   try {
+    const versionString = await TypeormWrapper.getVersionString(database);
     connMain = await createConnection({ ...dbMan.baseConnConfig, database, name: pass });
     // Apparently GRANT and REVOKE can run into concurrency issues in Postgres. Serializing it would
     // be best, but https://www.postgresql.org/message-id/3473.1393693757%40sss.pgh.pa.us says that
@@ -209,7 +211,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
     success = true;
     do {
       try {
-        await connMain.query(dbMan.grantPostgresRoleQuery(user));
+        await connMain.query(dbMan.grantPostgresGroupRoleQuery(user, database, versionString));
         success = true;
       } catch (_) {
         success = false;
@@ -224,6 +226,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
       ssl: dbMan.baseConnConfig.extra.ssl,
     });
     await connTemp.connect();
+    await connTemp.query(dbMan.setPostgresRoleQuery(database, versionString));
     const stmts = parse(sql);
     const out = [];
     for (const stmt of stmts) {
@@ -278,7 +281,8 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
       let success = true;
       do {
         try {
-          await connMain?.query(dbMan.revokePostgresRoleQuery(user, database));
+          const versionString = await TypeormWrapper.getVersionString(database);
+          await connMain?.query(dbMan.revokePostgresRoleQuery(user, database, versionString));
           success = true;
         } catch (_) {
           success = false;
@@ -289,7 +293,7 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
       success = true;
       do {
         try {
-          await connMain?.query(dbMan.dropPostgresRoleQuery(user));
+          await connMain?.query(dbMan.dropPostgresRoleQuery(user, database, false));
         } catch (_) {
           success = false;
         }
@@ -1079,7 +1083,7 @@ ${Object.keys(tableCollisions)
       }
     }
     await queryRunner.commitTransaction();
-    await orm.query(dbMan.grantPostgresRoleQuery(dbUser));
+    await orm.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId, versionString));
   } catch (e: any) {
     await queryRunner.rollbackTransaction();
     throw e;
@@ -1287,6 +1291,11 @@ export async function upgrade(dbId: string, dbUser: string) {
           name: dbId,
           database: dbId,
         });
+        // If upgrading from a version older than v0.0.22 add a group role
+        // that typically gets added on connect
+        if (['0.0.17', '0.0.18', '0.0.20'].includes(versionString)) {
+          await conn.query(dbMan.createDbPostgreGroupRole(dbId));
+        }
         // 1. Read the `iasql_module` table to get all currently installed modules.
         const mods: string[] = (
           await conn.query(`

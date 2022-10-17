@@ -713,7 +713,7 @@ ${Object.keys(tableCollisions)
       }
     }
     await queryRunner.commitTransaction();
-    await orm.query(dbMan.grantPostgresRoleQuery(dbUser));
+    await orm.query(dbMan.grantPostgresGroupRoleQuery(dbUser, dbId, versionString));
   } catch (e: any) {
     await queryRunner.rollbackTransaction();
     throw e;
