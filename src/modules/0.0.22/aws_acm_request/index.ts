@@ -178,8 +178,8 @@ class CertificateRequestMapper extends MapperBase<CertificateRequest> {
   });
   cloud = new Crud2<CertificateRequest>({
     create: async (es: CertificateRequest[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: RequestCertificateCommandInput = {
           CertificateAuthorityArn: e.arn,
           DomainName: e.domainName,

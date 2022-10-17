@@ -325,9 +325,13 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
         if (!newEntity) return;
         // We attach the original object's ID to this new one, indicating the exact record it is
         // replacing in the database.
-        newEntity.id = e.id;
-        // Save the record back into the database to get the new fields updated
-        await this.module.resourceRecordSet.db.update(newEntity, ctx);
+        if (e.id) {
+          // the entity is already in the database, fields need to be updated
+          newEntity.id = e.id;
+          // Save the record back into the database to get the new fields updated
+          await this.module.resourceRecordSet.db.update(newEntity, ctx);
+        }
+
         out.push(newEntity);
       }
       return out;
