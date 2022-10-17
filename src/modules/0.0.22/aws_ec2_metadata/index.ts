@@ -24,8 +24,8 @@ class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
     Object.is(a.memSizeMB, b.memSizeMB);
   source: 'db' | 'cloud' = 'cloud';
 
-  async instanceMetadataMapper(instance: AWSInstance, ctx: Context) {
-    const client = (await ctx.getAwsClient()) as AWS;
+  async instanceMetadataMapper(instance: AWSInstance, region: string, ctx: Context) {
+    const client = (await ctx.getAwsClient(region)) as AWS;
     const out = new InstanceMetadata();
     if (!instance.InstanceId) return undefined;
     out.instanceId = instance.InstanceId;
@@ -43,6 +43,7 @@ class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
     out.ebsOptimized = instance.EbsOptimized ?? false;
     out.rootDeviceName = instance.RootDeviceName ?? '';
     out.rootDeviceType = (instance.RootDeviceType as RootDeviceType) ?? RootDeviceType.EBS;
+    out.region = region;
     return out;
   }
 
@@ -64,20 +65,27 @@ class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
     // tslint:disable-next-line: no-empty
     create: async (_es: InstanceMetadata[], _ctx: Context) => {},
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
-        const rawInstance = await this.getInstance(client.ec2client, id);
+        const { instanceId, region } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawInstance = await this.getInstance(client.ec2client, instanceId);
         if (!rawInstance) return;
         if (rawInstance.State?.Name === 'terminated' || rawInstance.State?.Name === 'shutting-down') return;
-        return await this.instanceMetadataMapper(rawInstance, ctx);
+        return await this.instanceMetadataMapper(rawInstance, region, ctx);
       } else {
-        const rawInstances = (await this.getInstances(client.ec2client)) ?? [];
-        const out = [];
-        for (const i of rawInstances) {
-          if (i?.State?.Name === 'terminated' || i?.State?.Name === 'shutting-down') continue;
-          const outInst = await this.instanceMetadataMapper(i, ctx);
-          if (outInst) out.push(outInst);
-        }
+        const out: InstanceMetadata[] = [];
+        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawInstances = (await this.getInstances(client.ec2client)) ?? [];
+            for (const i of rawInstances) {
+              if (i?.State?.Name === 'terminated' || i?.State?.Name === 'shutting-down') continue;
+              const outInst = await this.instanceMetadataMapper(i, region, ctx);
+              if (outInst) out.push(outInst);
+            }
+          }),
+        );
         return out;
       }
     },
