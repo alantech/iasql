@@ -119,14 +119,14 @@ export class BucketMapper extends MapperBase<Bucket> {
           client = (await ctx.getAwsClient(region)) as AWS;
           try {
             const result = await this.headBucket(client.s3Client, e.name);
-            throw new Error('Cannot create bucket, it already exists on another region');
-          } catch (error) {
-            // we can create the bucket
-            client = (await ctx.getAwsClient(e.region)) as AWS;
-            await this.createBucket(client.s3Client, e.name);
-            out.push(e);
-          }
+            throw new Error('Cannot create the bucket, it already exists in anothe region');
+          } catch (_) {}
         }
+
+        // we can create the bucket
+        client = (await ctx.getAwsClient(e.region)) as AWS;
+        await this.createBucket(client.s3Client, e.name);
+        out.push(e);
       }
       return out;
     },
