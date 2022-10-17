@@ -15,27 +15,6 @@ export class BucketMapper extends MapperBase<Bucket> {
   module: AwsS3Module;
   entity = Bucket;
 
-  async addPolicyToBuckets(client: S3, buckets: BucketAWS[], region: string) {
-    const out = [];
-    for (const bucket of buckets) {
-      // retrieve bucket policy
-      const input: GetBucketPolicyCommandInput = {
-        Bucket: bucket.Name,
-      };
-
-      const bucketPolicy = await this.getBucketPolicy(client, input);
-      const b: Bucket = this.module.bucket.bucketMapper(bucket, region);
-
-      if (bucketPolicy && bucketPolicy.Policy) {
-        b.policyDocument = JSON.parse(bucketPolicy.Policy);
-      } else {
-        b.policyDocument = undefined;
-      }
-      out.push(b);
-    }
-    return out;
-  }
-
   bucketMapper(instance: BucketAWS, region: string) {
     const b: Bucket = new Bucket();
     if (!instance.Name) throw new Error('Received a bucket without a name');
@@ -58,6 +37,14 @@ export class BucketMapper extends MapperBase<Bucket> {
     'listBuckets',
     () => ({}),
     res => res?.Buckets ?? [],
+  );
+
+  getBucketLocation = crudBuilderFormat<S3, 'getBucketLocation', string | undefined>(
+    'getBucketLocation',
+    name => ({
+      Bucket: name,
+    }),
+    res => res?.LocationConstraint,
   );
 
   headBucket = crudBuilderFormat<S3, 'headBucket', void>(
@@ -118,8 +105,8 @@ export class BucketMapper extends MapperBase<Bucket> {
         for (const region of enabledRegions) {
           client = (await ctx.getAwsClient(region)) as AWS;
           try {
-            const result = await this.headBucket(client.s3Client, e.name);
-            throw new Error('Cannot create the bucket, it already exists in anothe region');
+            await this.headBucket(client.s3Client, e.name);
+            throw new Error('Cannot create the bucket, it already exists in another region');
           } catch (_) {}
         }
 
@@ -131,36 +118,58 @@ export class BucketMapper extends MapperBase<Bucket> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
+      console.log('in read');
+      const client = (await ctx.getAwsClient(await ctx.getDefaultRegion())) as AWS;
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       let out: Bucket[] = [];
+      let rawBuckets: BucketAWS[] = [];
+      console.log('is is');
+      console.log(id);
 
       if (!!id) {
         const { region, bucketId } = this.idFields(id);
         if (enabledRegions.includes(region)) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
-
-          // list all buckets in region, filtered by id
           const allBuckets = await this.getBuckets(client.s3Client);
-          const rawBuckets: BucketAWS[] = allBuckets
-            .filter(b => !bucketId || b.Name === bucketId)
-            .filter(b => !!b.Name);
-
-          if (rawBuckets && rawBuckets.length > 0) {
-            out = await this.addPolicyToBuckets(client.s3Client, rawBuckets, region);
-          } else return [];
+          rawBuckets = allBuckets.filter(b => !bucketId || b.Name === bucketId).filter(b => !!b.Name);
         }
       } else {
         // we need to retrieve all buckets from all regions
-        await Promise.all(
-          enabledRegions.map(async region => {
-            const client = (await ctx.getAwsClient(region)) as AWS;
-            const rawBuckets = (await this.getBuckets(client.s3Client)) ?? [];
-            out = await this.addPolicyToBuckets(client.s3Client, rawBuckets, region);
-          }),
-        );
-        if (out && out.length > 0) return out;
-        else return [];
+        rawBuckets = (await this.getBuckets(client.s3Client)) ?? [];
       }
+      console.log('raw is');
+      console.log(rawBuckets);
+
+      if (rawBuckets && rawBuckets.length > 0) {
+        for (const rawBucket of rawBuckets) {
+          // for each bucket, retrieve the location
+          let location = await this.getBucketLocation(client.s3Client, rawBucket.Name);
+          console.log('locatio is');
+          console.log(location);
+          if (!location) location = 'us-east-1';
+          if (enabledRegions.includes(location)) {
+            console.log('i map');
+            // read policy
+            const input: GetBucketPolicyCommandInput = {
+              Bucket: rawBucket.Name,
+            };
+
+            const bucketPolicy = await this.getBucketPolicy(client.s3Client, input);
+            const b: Bucket = this.module.bucket.bucketMapper(rawBucket, location);
+
+            if (bucketPolicy && bucketPolicy.Policy) {
+              b.policyDocument = JSON.parse(bucketPolicy.Policy);
+            } else {
+              b.policyDocument = undefined;
+            }
+            console.log(', have');
+            console.log(b);
+            out.push(b);
+          }
+        }
+      }
+      console.log('after all read');
+      console.log(out);
+      return out;
     },
     updateOrReplace: (a: Bucket, b: Bucket) => {
       if (!Object.is(a.policyDocument, b.policyDocument)) return 'update';
