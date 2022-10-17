@@ -14,18 +14,23 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
   module: AwsEc2Module;
   entity = RegisteredInstance;
   entityId = (e: RegisteredInstance) =>
-    `${e.instance.instanceId}|${e.targetGroup.targetGroupArn}|${e.port}` ?? '';
+    `${e.instance.instanceId}|${e.targetGroup.targetGroupArn}|${e.port}|${e.region}` ?? '';
   equals = (a: RegisteredInstance, b: RegisteredInstance) => Object.is(a.port, b.port);
 
-  async registeredInstanceMapper(registeredInstance: { [key: string]: string | undefined }, ctx: Context) {
+  async registeredInstanceMapper(
+    registeredInstance: { [key: string]: string | undefined },
+    region: string,
+    ctx: Context,
+  ) {
     const out = new RegisteredInstance();
     out.instance =
-      (await this.module.instance.db.read(ctx, registeredInstance.instanceId)) ??
-      (await this.module.instance.cloud.read(ctx, registeredInstance.instanceId));
+      (await this.module.instance.db.read(ctx, `${registeredInstance.instanceId}|${region}`)) ??
+      (await this.module.instance.cloud.read(ctx, `${registeredInstance.instanceId}|${region}`));
     out.targetGroup =
       (await awsElbModule.targetGroup.db.read(ctx, registeredInstance.targetGroupArn)) ??
       (await awsElbModule.targetGroup.cloud.read(ctx, registeredInstance.targetGroupArn));
     out.port = registeredInstance.port ? +registeredInstance.port : undefined;
+    out.region = region;
     return out;
   }
 
@@ -130,9 +135,9 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
 
   cloud: Crud2<RegisteredInstance> = new Crud2({
     create: async (es: RegisteredInstance[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn)
           throw new Error('Valid targetGroup and instance needed.');
         if (!e.port) {
@@ -144,19 +149,17 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
           e.targetGroup.targetGroupArn,
           e.port,
         );
-        const registeredInstance = await this.module.registeredInstance.cloud.read(
-          ctx,
-          this.module.registeredInstance.entityId(e),
-        );
+        const registeredInstance = await this.module.registeredInstance.cloud.read(ctx, this.entityId(e));
+        registeredInstance.id = e.id;
         await this.module.registeredInstance.db.update(registeredInstance, ctx);
         out.push(registeredInstance);
       }
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
-        const [instanceId, targetGroupArn, port] = id.split('|');
+        const [instanceId, targetGroupArn, port, region] = id.split('|');
+        const client = (await ctx.getAwsClient(region)) as AWS;
         if (!instanceId || !targetGroupArn) return undefined;
         const registeredInstance = await this.getRegisteredInstance(
           client.elbClient,
@@ -165,23 +168,28 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
           port,
         );
         if (!registeredInstance) return undefined;
-        return await this.registeredInstanceMapper(registeredInstance, ctx);
+        return await this.registeredInstanceMapper(registeredInstance, region, ctx);
       }
-      const registeredInstances = (await this.getRegisteredInstances(client.elbClient)) ?? [];
-      const out = [];
-      for (const i of registeredInstances) {
-        const outInst = await this.registeredInstanceMapper(i, ctx);
-        if (outInst) out.push(outInst);
-      }
+      const out: RegisteredInstance[] = [];
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      await Promise.all(
+        enabledRegions.map(async region => {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const registeredInstances = (await this.getRegisteredInstances(client.elbClient)) ?? [];
+          for (const i of registeredInstances) {
+            const outInst = await this.registeredInstanceMapper(i, region, ctx);
+            if (outInst) out.push(outInst);
+          }
+        }),
+      );
       return out;
     },
     updateOrReplace: () => 'replace',
     update: async (es: RegisteredInstance[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const cloudRecord =
-          ctx?.memo?.cloud?.RegisteredInstance?.[this.module.registeredInstance.entityId(e)];
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.RegisteredInstance?.[this.entityId(e)];
         if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn)
           throw new Error('Valid targetGroup and instance needed.');
         if (!cloudRecord.instance?.instanceId || !cloudRecord.targetGroup?.targetGroupArn)
@@ -199,18 +207,16 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
           cloudRecord.targetGroup.targetGroupArn,
           cloudRecord.port,
         );
-        const registeredInstance = await this.module.registeredInstance.cloud.read(
-          ctx,
-          this.module.registeredInstance.entityId(e),
-        );
+        const registeredInstance = await this.module.registeredInstance.cloud.read(ctx, this.entityId(e));
+        registeredInstance.id = e.id;
         await this.module.registeredInstance.db.update(registeredInstance, ctx);
         out.push(registeredInstance);
       }
       return out;
     },
     delete: async (es: RegisteredInstance[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         if (!e.instance?.instanceId || !e.targetGroup?.targetGroupArn)
           throw new Error('Valid targetGroup and instance needed.');
         await this.deregisterInstance(

@@ -1,6 +1,7 @@
-import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { AvailabilityZone } from '../../aws_vpc/entity';
 import { Instance } from '../entity';
 
@@ -18,7 +19,9 @@ export enum VolumeState {
   IN_USE = 'in-use',
 }
 
-@Unique('Unique_gp_instance_device_name', ['instanceDeviceName', 'attachedInstance'])
+// TODO: Revive this, but more safely. Currently breaks `iasql install` if the account has multiple
+// detached volumes.
+// @Unique('Unique_gp_instance_device_name', ['instanceDeviceName', 'attachedInstance'])
 @Check(
   'check_instance_ebs_availability_zone',
   'check_instance_ebs_availability_zone(attached_instance_id, availability_zone)',
@@ -64,7 +67,16 @@ export class GeneralPurposeVolume {
     eager: true,
     nullable: true,
   })
-  @JoinColumn({ name: 'attached_instance_id' })
+  @JoinColumn([
+    {
+      name: 'attached_instance_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   attachedInstance?: Instance;
 
   @Check(
@@ -104,4 +116,14 @@ export class GeneralPurposeVolume {
     nullable: true,
   })
   tags?: { [key: string]: string };
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }

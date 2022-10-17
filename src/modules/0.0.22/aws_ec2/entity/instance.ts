@@ -7,9 +7,11 @@ import {
   ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { IamRole } from '../../aws_iam/entity';
 // TODO: Is there a better way to deal with cross-module entities?
 import { SecurityGroup } from '../../aws_security_group/entity';
@@ -25,6 +27,7 @@ export enum State {
 
 @Entity()
 @Check('check_role_ec2', 'role_name IS NULL OR (role_name IS NOT NULL AND check_role_ec2(role_name))')
+@Unique('instance_id_region', ['id', 'region']) // So the General Purpose Volume entity can join on both
 export class Instance {
   @PrimaryGeneratedColumn()
   id?: number;
@@ -94,4 +97,14 @@ export class Instance {
     default: false,
   })
   hibernationEnabled: boolean;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }

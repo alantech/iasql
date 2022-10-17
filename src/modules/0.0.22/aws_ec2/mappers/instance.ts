@@ -40,8 +40,8 @@ export class InstanceMapper extends MapperBase<Instance> {
     );
   }
 
-  async instanceMapper(instance: AWSInstance, ctx: Context) {
-    const client = (await ctx.getAwsClient()) as AWS;
+  async instanceMapper(instance: AWSInstance, region: string, ctx: Context) {
+    const client = (await ctx.getAwsClient(region)) as AWS;
     const out = new Instance();
     if (!instance.InstanceId) return undefined;
     out.instanceId = instance.InstanceId;
@@ -89,6 +89,7 @@ export class InstanceMapper extends MapperBase<Instance> {
         (subnet: Subnet) => subnet.subnetId === instance.SubnetId,
       );
     out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
+    out.region = region;
     return out;
   }
 
@@ -290,9 +291,9 @@ export class InstanceMapper extends MapperBase<Instance> {
 
   cloud: Crud2<Instance> = new Crud2({
     create: async (es: Instance[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const instance of es) {
+        const client = (await ctx.getAwsClient(instance.region)) as AWS;
         const previousInstanceId = instance.instanceId;
         if (instance.ami) {
           let tgs: AWSTag[] = [];
@@ -361,17 +362,19 @@ export class InstanceMapper extends MapperBase<Instance> {
             // then who?
             throw new Error('should not be possible');
           }
-          const newEntity = await this.module.instance.cloud.read(ctx, instanceId);
+          const newEntity = await this.module.instance.cloud.read(ctx, `${instanceId}|${instance.region}`);
           newEntity.id = instance.id;
           await this.module.instance.db.update(newEntity, ctx);
           out.push(newEntity);
           // Attach volume
           const rawAttachedVolume = (await this.getVolumesByInstanceId(client.ec2client, instanceId))?.pop();
           await this.waitUntilInUse(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
-          delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
+          delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[
+            `${rawAttachedVolume?.VolumeId}|${instance.region}`
+          ];
           const attachedVolume: GeneralPurposeVolume = await this.module.generalPurposeVolume.cloud.read(
             ctx,
-            rawAttachedVolume?.VolumeId ?? '',
+            `${rawAttachedVolume?.VolumeId}|${newEntity.region}`,
           );
           if (attachedVolume && !Array.isArray(attachedVolume)) {
             attachedVolume.attachedInstance = newEntity;
@@ -400,30 +403,37 @@ export class InstanceMapper extends MapperBase<Instance> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
-        const rawInstance = await this.getInstance(client.ec2client, id);
+        const { instanceId, region } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawInstance = await this.getInstance(client.ec2client, instanceId);
         // exclude spot instances
         if (!rawInstance || rawInstance.InstanceLifecycle === InstanceLifecycle.SPOT) return;
         if (rawInstance.State?.Name === 'terminated' || rawInstance.State?.Name === 'shutting-down') return;
-        return this.instanceMapper(rawInstance, ctx);
+        return this.instanceMapper(rawInstance, region, ctx);
       } else {
-        const rawInstances = (await this.getInstances(client.ec2client)) ?? [];
-        const out = [];
-        for (const i of rawInstances) {
-          if (i?.State?.Name === 'terminated' || i?.State?.Name === 'shutting-down') continue;
-          const outInst = await this.instanceMapper(i, ctx);
-          if (outInst) out.push(outInst);
-        }
+        const out: Instance[] = [];
+        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawInstances = (await this.getInstances(client.ec2client)) ?? [];
+            for (const i of rawInstances) {
+              if (i?.State?.Name === 'terminated' || i?.State?.Name === 'shutting-down') continue;
+              const outInst = await this.instanceMapper(i, region, ctx);
+              if (outInst) out.push(outInst);
+            }
+          }),
+        );
         return out;
       }
     },
     updateOrReplace: (_a: Instance, _b: Instance) => 'replace',
     update: async (es: Instance[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.Instance?.[e.instanceId ?? ''];
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.Instance?.[this.entityId(e)];
         if (this.instanceEqReplaceableFields(e, cloudRecord)) {
           const insId = e.instanceId as string;
           if (!eqTags(e.tags, cloudRecord.tags) && e.instanceId && e.tags) {
@@ -459,19 +469,19 @@ export class InstanceMapper extends MapperBase<Instance> {
       return out;
     },
     delete: async (es: Instance[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const entity of es) {
+        const client = (await ctx.getAwsClient(entity.region)) as AWS;
         // Remove attached volume
         const rawAttachedVolume = (
           await this.getVolumesByInstanceId(client.ec2client, entity.instanceId ?? '')
         )?.pop();
         if (entity.instanceId) await this.terminateInstance(client.ec2client, entity.instanceId);
         await this.waitUntilDeleted(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
-        delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
-        delete ctx?.memo?.db?.GeneralPurposeVolume?.[rawAttachedVolume?.VolumeId ?? ''];
+        delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[`${rawAttachedVolume?.VolumeId}|${entity.region}`];
+        delete ctx?.memo?.db?.GeneralPurposeVolume?.[`${rawAttachedVolume?.VolumeId}|${entity.region}`];
         const attachedVolume = await this.module.generalPurposeVolume.db.read(
           ctx,
-          rawAttachedVolume?.VolumeId ?? '',
+          `${rawAttachedVolume?.VolumeId}|${entity.region}`,
         );
         if (attachedVolume && !Array.isArray(attachedVolume))
           await this.module.generalPurposeVolume.db.delete(attachedVolume, ctx);

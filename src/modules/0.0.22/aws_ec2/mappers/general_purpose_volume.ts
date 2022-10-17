@@ -33,7 +33,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     Object.is(a.snapshotId, b.snapshotId) &&
     eqTags(a.tags, b.tags);
 
-  async generalPurposeVolumeMapper(vol: AWSVolume, ctx: Context) {
+  async generalPurposeVolumeMapper(vol: AWSVolume, region: string, ctx: Context) {
     const out = new GeneralPurposeVolume();
     if (!vol?.VolumeId) return undefined;
     out.volumeId = vol.VolumeId;
@@ -54,8 +54,8 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     if (vol.Attachments?.length) {
       const attachment = vol.Attachments.pop();
       out.attachedInstance =
-        (await this.module.instance.db.read(ctx, attachment?.InstanceId)) ??
-        (await this.module.instance.cloud.read(ctx, attachment?.InstanceId));
+        (await this.module.instance.db.read(ctx, `${attachment?.InstanceId}|${region}`)) ??
+        (await this.module.instance.cloud.read(ctx, `${attachment?.InstanceId}|${region}`));
       out.instanceDeviceName = attachment?.Device;
     }
     if (vol.Tags?.length) {
@@ -65,6 +65,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       });
       out.tags = tags;
     }
+    out.region = region;
     return out;
   }
 
@@ -237,9 +238,9 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
 
   cloud: Crud2<GeneralPurposeVolume> = new Crud2({
     create: async (es: GeneralPurposeVolume[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         if (e.attachedInstance && !e.attachedInstance.instanceId) {
           throw new Error('Want to attach volume to an instance not created yet');
         }
@@ -278,7 +279,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
         const newObject = await this.getVolume(client.ec2client, newVolumeId);
         if (!newObject) continue;
         // We map this into the same kind of entity as `obj`
-        const newEntity = await this.generalPurposeVolumeMapper(newObject, ctx);
+        const newEntity = await this.generalPurposeVolumeMapper(newObject, e.region, ctx);
         if (!newEntity) continue;
         // Save the record back into the database to get the new fields updated
         newEntity.id = e.id;
@@ -288,18 +289,25 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       if (id) {
-        const rawVolume = await this.getVolume(client.ec2client, id);
+        const { volumeId, region } = this.idFields(id);
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawVolume = await this.getVolume(client.ec2client, volumeId);
         if (!rawVolume) return;
-        return this.generalPurposeVolumeMapper(rawVolume, ctx);
+        return this.generalPurposeVolumeMapper(rawVolume, region, ctx);
       } else {
-        const rawVolumes = (await this.getGeneralPurposeVolumes(client.ec2client)) ?? [];
-        const out = [];
-        for (const vol of rawVolumes) {
-          const outVol = await this.generalPurposeVolumeMapper(vol, ctx);
-          if (outVol) out.push(outVol);
-        }
+        const out: GeneralPurposeVolume[] = [];
+        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const rawVolumes = (await this.getGeneralPurposeVolumes(client.ec2client)) ?? [];
+            for (const vol of rawVolumes) {
+              const outVol = await this.generalPurposeVolumeMapper(vol, region, ctx);
+              if (outVol) out.push(outVol);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -312,10 +320,10 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       return 'update';
     },
     update: async (es: GeneralPurposeVolume[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.GeneralPurposeVolume?.[e.volumeId ?? ''];
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.GeneralPurposeVolume?.[this.entityId(e)];
         const isUpdate = this.module.generalPurposeVolume.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           let update = false;
@@ -377,7 +385,7 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
           if (update) {
             const rawVolume = await this.getVolume(client.ec2client, e.volumeId);
             if (!rawVolume) continue;
-            const updatedVolume = await this.generalPurposeVolumeMapper(rawVolume, ctx);
+            const updatedVolume = await this.generalPurposeVolumeMapper(rawVolume, e.region, ctx);
             if (!updatedVolume) continue;
             updatedVolume.id = e.id;
             await this.module.generalPurposeVolume.db.update(updatedVolume, ctx);
@@ -398,8 +406,8 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       return out;
     },
     delete: async (vol: GeneralPurposeVolume[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of vol) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         if (e.attachedInstance) {
           await this.detachVolume(client.ec2client, e.volumeId ?? '');
         }
