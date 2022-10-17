@@ -73,14 +73,14 @@ async function main() {
 
   const pjData = {
     project_name: appName,
+    region,
     source_type: 'GITHUB',
     service_role_name: cbRole,
     source_location: ghUrl,
     build_spec: buildSpec,
-    region
   };
   await prisma.codebuild_project.upsert({
-    where: { project_name: appName, region },
+    where: { project_name_region: {project_name: appName, region } },
     create: pjData,
     update: pjData,
   });
