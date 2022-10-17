@@ -33,6 +33,12 @@ export class BucketMapper extends MapperBase<Bucket> {
     return res;
   };
 
+  entityId = (e: Bucket) => `${e.name}|${e.region}`;
+  idFields = (id: string) => {
+    const [bucketName, region] = id.split('|');
+    return { bucketName, region };
+  };
+
   getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
     'listBuckets',
     () => ({}),
@@ -107,47 +113,42 @@ export class BucketMapper extends MapperBase<Bucket> {
           try {
             await this.headBucket(client.s3Client, e.name);
             throw new Error('Cannot create the bucket, it already exists in another region');
-          } catch (_) {}
+          } catch (_) {
+            // it is ok, we can create bucket
+          }
         }
 
         // we can create the bucket
         client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.createBucket(client.s3Client, e.name);
+
         out.push(e);
       }
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      console.log('in read');
       const client = (await ctx.getAwsClient(await ctx.getDefaultRegion())) as AWS;
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      let out: Bucket[] = [];
+      const out: Bucket[] = [];
       let rawBuckets: BucketAWS[] = [];
-      console.log('is is');
-      console.log(id);
 
       if (!!id) {
-        const { region, bucketId } = this.idFields(id);
+        const { bucketName, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const allBuckets = await this.getBuckets(client.s3Client);
-          rawBuckets = allBuckets.filter(b => !bucketId || b.Name === bucketId).filter(b => !!b.Name);
+          rawBuckets = allBuckets.filter(b => !bucketName || b.Name === bucketName).filter(b => !!b.Name);
         }
       } else {
         // we need to retrieve all buckets from all regions
         rawBuckets = (await this.getBuckets(client.s3Client)) ?? [];
       }
-      console.log('raw is');
-      console.log(rawBuckets);
 
       if (rawBuckets && rawBuckets.length > 0) {
         for (const rawBucket of rawBuckets) {
           // for each bucket, retrieve the location
           let location = await this.getBucketLocation(client.s3Client, rawBucket.Name);
-          console.log('locatio is');
-          console.log(location);
           if (!location) location = 'us-east-1';
           if (enabledRegions.includes(location)) {
-            console.log('i map');
             // read policy
             const input: GetBucketPolicyCommandInput = {
               Bucket: rawBucket.Name,
@@ -161,18 +162,14 @@ export class BucketMapper extends MapperBase<Bucket> {
             } else {
               b.policyDocument = undefined;
             }
-            console.log(', have');
-            console.log(b);
             out.push(b);
           }
         }
       }
-      console.log('after all read');
-      console.log(out);
       return out;
     },
     updateOrReplace: (a: Bucket, b: Bucket) => {
-      if (!Object.is(a.policyDocument, b.policyDocument)) return 'update';
+      if (!policiesAreSame(a.policyDocument ?? [], b.policyDocument ?? [])) return 'update';
       else return 'replace';
     },
     // TODO: With the model this simple it is actually impossible to really update this thing
@@ -180,25 +177,31 @@ export class BucketMapper extends MapperBase<Bucket> {
     // the cloud cache and force it into the DB cache
     update: async (es: Bucket[], ctx: Context) => {
       const out = [];
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+
       for (const e of es) {
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const cloudRecord = ctx?.memo?.cloud?.Bucket?.[e.name ?? ''];
-        const isUpdate = Object.is(this.module.bucket.cloud.updateOrReplace(cloudRecord, e), 'update');
-        if (isUpdate) {
-          e.createdAt = cloudRecord.createdAt;
-          e.policyDocument = await this.module.bucket.createBucketPolicy(client.s3Client, e, ctx);
-          out.push(e);
-        } else {
-          // if region has changed, we need to delete from older region and create in the new one
-          if (cloudRecord.region !== e.region) {
-            await this.module.bucket.cloud.delete(e, ctx);
-            await this.module.bucket.cloud.create(cloudRecord, ctx);
-            out.push(cloudRecord);
+        if (enabledRegions.includes(e.region)) {
+          const client = (await ctx.getAwsClient(e.region)) as AWS;
+          const cloudRecord = ctx?.memo?.cloud?.Bucket?.[this.entityId(e)];
+          const isUpdate = Object.is(this.module.bucket.cloud.updateOrReplace(cloudRecord, e), 'update');
+          if (isUpdate) {
+            e.createdAt = cloudRecord.createdAt;
+            e.policyDocument = await this.module.bucket.createBucketPolicy(client.s3Client, e, ctx);
+            out.push(e);
           } else {
-            // Replace if name has changed
-            await this.module.bucket.db.update(cloudRecord, ctx);
-            ctx.memo.db.Bucket[cloudRecord.name] = cloudRecord;
-            out.push(cloudRecord);
+            // if region has changed, we need to delete from older region and create in the new one
+            if (cloudRecord.region !== e.region) {
+              if (enabledRegions.includes(cloudRecord.region)) {
+                await this.module.bucket.cloud.delete(e, ctx);
+                await this.module.bucket.cloud.create(cloudRecord, ctx);
+                out.push(cloudRecord);
+              } else throw new Error('Cannot update bucket because target region is not supported');
+            } else {
+              // Replace if name has changed
+              await this.module.bucket.db.update(cloudRecord, ctx);
+              ctx.memo.db.Bucket[cloudRecord.name] = cloudRecord;
+              out.push(cloudRecord);
+            }
           }
         }
       }
