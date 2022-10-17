@@ -183,6 +183,26 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it(
+    'check instance metadata',
+    query(
+      `
+    SELECT *
+    FROM instance_metadata
+    WHERE instance_id = (
+      SELECT instance_id
+      FROM instance
+      WHERE tags ->> 'name' = '${prefix}-1'
+    );
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].mem_size_mb).toBe(1024);
+        expect(res[0].cpu_cores).toBe(1);
+      },
+    ),
+  );
+
   describe('create IAM role', () => {
     it(
       'creates ec2 instance role',
@@ -344,6 +364,27 @@ describe('EC2 Integration Testing', () => {
     WHERE tags ->> 'name' = '${prefix}-1';
   `,
       (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'check instance metadata again',
+    query(
+      `
+    SELECT *
+    FROM instance_metadata
+    WHERE instance_id = (
+      SELECT instance_id
+      FROM instance
+      WHERE tags ->> 'name' = '${prefix}-1'
+    );
+  `,
+      (res: any[]) => {
+        expect(res.length).toBe(1);
+        expect(res[0].mem_size_mb).toBe(1024);
+        expect(res[0].cpu_cores).toBe(1);
+        expect(res[0].region).toBe('us-east-1');
+      },
     ),
   );
 
