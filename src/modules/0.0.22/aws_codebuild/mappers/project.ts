@@ -102,9 +102,8 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
         const awsPj = await this.createProject(client.cbClient, input);
         if (!awsPj) continue;
         const newPj = await this.projectMapper(awsPj, ctx, e.region);
-        if (!newPj) return;
+        if (!newPj) continue;
         newPj.id = e.id;
-        await this.module.project.db.update(newPj, ctx);
         out.push(newPj);
       }
       return out;
