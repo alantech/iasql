@@ -183,6 +183,8 @@ describe('EC2 Integration Testing', () => {
     ),
   );
 
+  it('syncs the cloud state to update the metadata', sync());
+
   it(
     'check instance metadata',
     query(
@@ -366,6 +368,8 @@ describe('EC2 Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('syncs the cloud state to update the metadata', sync());
 
   it(
     'check instance metadata again',
