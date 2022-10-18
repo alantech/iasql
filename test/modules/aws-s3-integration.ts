@@ -222,39 +222,25 @@ describe('S3 Integration Testing', () => {
     );
   });
 
-  it(
-    'changes the region',
-    query(
-      `
-    UPDATE bucket SET region='${nonDefaultRegion}' WHERE name = '${s3Name}';
-    `,
-    ),
-  );
-  it('applies the s3 bucket region update', apply());
+  it('should fail when changing the region', () => {
+    try {
+      query(`
+      UPDATE bucket SET region='${nonDefaultRegion}' WHERE name = '${s3Name}';
+      `);
+    } catch (e) {
+      expect(e).toBeTruthy;
+    }
+  });
 
-  it(
-    'check s3 bucket region is reverted',
-    query(
-      `
-    SELECT *
-    FROM bucket 
-    WHERE name='${s3Name}' AND region='${nonDefaultRegion}';
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
-
-  it(
-    'check s3 bucket region is reverted',
-    query(
-      `
-    SELECT *
-    FROM bucket 
-    WHERE name='${s3Name}' AND region='${process.env.AWS_REGION}';
-  `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
+  it('should fail when changing the name', () => {
+    try {
+      query(`
+      UPDATE bucket SET name='${nonDefaultRegion}' WHERE name = '${s3Name}';
+      `);
+    } catch (e) {
+      expect(e).toBeTruthy;
+    }
+  });
 
   it('uninstalls the s3 module', uninstall(modules));
 
