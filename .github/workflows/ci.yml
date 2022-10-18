@@ -189,11 +189,17 @@ jobs:
           echo $RESPONSE
           ACCOUNT_INDEX=$(echo $RESPONSE | jq '.[0]' || exit 1)
           echo "::set-output name=account_index::$(echo ${ACCOUNT_INDEX})"
-          # TODO: Drop regions when multi-region is done
-          regions=("ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "sa-east-1" "us-east-2" "us-west-1" "us-west-2")
-          regionslen=${#regions[@]}
-          index=$(($RANDOM % $regionslen))
-          region=${regions[$index]}
+
+          # temporary: fix codepipeline to us-east-1 , due to s3 limitations
+          if [ "${{matrix.module}}" == "AWS_CODEPIPELINE_INTEGRATION" ]; then
+            region='us-east-1'
+          else
+            # TODO: Drop regions when multi-region is done
+            regions=("ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "sa-east-1" "us-east-2" "us-west-1" "us-west-2")
+            regionslen=${#regions[@]}
+            index=$(($RANDOM % $regionslen))
+            region=${regions[$index]}
+          fi
           echo "::set-output name=region::$(echo ${region})"
 
       - name: Pre-clean Test Account
@@ -277,6 +283,7 @@ jobs:
           SECRET_ACCESS_KEYS: ${{ secrets.SECRET_ACCESS_KEYS }}
           STAGING_ACCESS_KEY_ID: ${{ secrets.STAGING_ACCESS_KEY_ID }}
           STAGING_SECRET_ACCESS_KEY: ${{ secrets.STAGING_SECRET_ACCESS_KEY }}
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")

@@ -303,9 +303,15 @@ describe('VPC Integration Testing', () => {
       query(
         `
       SELECT * FROM nat_gateway WHERE tags ->> 'Name' = '${pubNg2}';
-    `, (res: any) => expect(res.length).toBe(1)));
+    `,
+        (res: any) => expect(res.length).toBe(1),
+      ),
+    );
 
-    it('checks elastic IP count', query(`
+    it(
+      'checks elastic IP count',
+      query(
+        `
 
       SELECT * FROM elastic_ip WHERE tags ->> 'Name' = '${pubNg2}';
     `,
@@ -744,11 +750,15 @@ describe('VPC Integration Testing', () => {
       query(`
       DELETE FROM endpoint_gateway
       WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}';
-    `));
-  
+    `),
+    );
+
     it('applies the endpoint_gateway change', apply());
-  
-    it('checks endpoint_gateway count', query(`
+
+    it(
+      'checks endpoint_gateway count',
+      query(
+        `
       SELECT * FROM endpoint_gateway WHERE tags ->> 'Name' = '${dynamodbVpcEndpoint}' OR tags ->> 'Name' = '${s3VpcEndpoint}'
     `,
         (res: any) => expect(res.length).toBe(0),
@@ -844,6 +854,7 @@ describe('VPC install/uninstall', () => {
       'aws_memory_db',
       'aws_acm_request',
       'aws_codedeploy',
+      'aws_codepipeline',
     ]),
   );
 
