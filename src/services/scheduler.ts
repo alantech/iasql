@@ -2,13 +2,12 @@ import * as sentry from '@sentry/node';
 import express from 'express';
 import { run } from 'graphile-worker';
 import { default as cloneDeep } from 'lodash.clonedeep';
-import { camelCase } from 'typeorm/util/StringUtils';
 import { v4 as uuidv4 } from 'uuid';
 
 import config from '../config';
 import { throwError } from '../config/config';
 import { IasqlDatabase } from '../entity';
-import { Context, ModuleInterface, modules } from '../modules';
+import { Context, ModuleBase, ModuleInterface, modules } from '../modules';
 import { isString } from './common';
 import * as iasql from './iasql';
 import logger, { logErrSentry } from './logger';
@@ -175,11 +174,9 @@ export async function start(dbId: string, dbUser: string) {
           if (!Modules) {
             throwError(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
           }
-          // `Modules` is an object where the keys are all the exported elements from the modules dir
-          // Classes are exported with PascalCase
-          // Instantiated objects are exported with camelCase. We are interested in this objects.
-          // `modulename` is arriving with snake_case since is how the module defines it based on the dirname
-          const moduleName = Object.keys(Modules ?? {}).find(k => k === camelCase(modulename)) ?? 'unknown';
+          const [moduleName, _] = Object.entries(Modules ?? {})
+            .filter(([_, m]: [string, any]) => m instanceof ModuleBase)
+            .find(([_, m]: [string, any]) => m.name === modulename) ?? ['unknown', undefined];
           if (!Modules[moduleName]) throwError(`Module ${modulename} not found`);
           const context = await getContext(conn, Modules);
           const rpcRes: any[] | undefined = await (Modules[moduleName] as ModuleInterface)?.rpc?.[
