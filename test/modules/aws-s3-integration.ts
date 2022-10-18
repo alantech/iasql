@@ -21,6 +21,7 @@ const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 const modules = ['aws_s3'];
+const nonDefaultRegion = 'us-east-1';
 
 const policyJSON = {
   Version: '2012-10-17',
@@ -157,7 +158,7 @@ describe('S3 Integration Testing', () => {
       `
     SELECT *
     FROM bucket 
-    WHERE created_at = '1984-01-01T00:00:00';
+    WHERE name='${s3Name}' AND created_at = '1984-01-01T00:00:00';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
@@ -220,6 +221,40 @@ describe('S3 Integration Testing', () => {
       ),
     );
   });
+
+  it(
+    'changes the region',
+    query(
+      `
+    UPDATE bucket SET region='${nonDefaultRegion}' WHERE name = '${s3Name}';
+    `,
+    ),
+  );
+  it('applies the s3 bucket region update', apply());
+
+  it(
+    'check s3 bucket region is reverted',
+    query(
+      `
+    SELECT *
+    FROM bucket 
+    WHERE name='${s3Name}' AND region='${nonDefaultRegion}';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'check s3 bucket region is reverted',
+    query(
+      `
+    SELECT *
+    FROM bucket 
+    WHERE name='${s3Name}' AND region='${process.env.AWS_REGION}';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
 
   it('uninstalls the s3 module', uninstall(modules));
 

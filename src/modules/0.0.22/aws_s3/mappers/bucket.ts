@@ -189,19 +189,10 @@ export class BucketMapper extends MapperBase<Bucket> {
             e.policyDocument = await this.module.bucket.createBucketPolicy(client.s3Client, e, ctx);
             out.push(e);
           } else {
-            // if region has changed, we need to delete from older region and create in the new one
-            if (cloudRecord.region !== e.region) {
-              if (enabledRegions.includes(cloudRecord.region)) {
-                await this.module.bucket.cloud.delete(e, ctx);
-                await this.module.bucket.cloud.create(cloudRecord, ctx);
-                out.push(cloudRecord);
-              } else throw new Error('Cannot update bucket because target region is not supported');
-            } else {
-              // Replace if name has changed
-              await this.module.bucket.db.update(cloudRecord, ctx);
-              ctx.memo.db.Bucket[cloudRecord.name] = cloudRecord;
-              out.push(cloudRecord);
-            }
+            // we cannot modify bucket name or region of the bucket, replace it
+            await this.module.bucket.db.update(cloudRecord, ctx);
+            ctx.memo.db.Bucket[cloudRecord.name] = cloudRecord;
+            out.push(cloudRecord);
           }
         }
       }
