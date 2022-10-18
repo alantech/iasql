@@ -16,8 +16,9 @@ UPDATE
     OLD.name IS DISTINCT
     FROM
       NEW.name
-
-      OR OLD.region is DISTINCT FROM NEW.region
+      OR OLD.region IS DISTINCT
+    FROM
+      NEW.region
   )
 EXECUTE
   FUNCTION block_s3_primary_key_update ();
