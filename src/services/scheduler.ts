@@ -174,12 +174,13 @@ export async function start(dbId: string, dbUser: string) {
           if (!Modules) {
             throwError(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
           }
-          const [moduleName, _] = Object.entries(Modules ?? {})
+          // Look for the Module's instance name with the RPC to be called
+          const [moduleInstanceName, _] = Object.entries(Modules ?? {})
             .filter(([_, m]: [string, any]) => m instanceof ModuleBase)
             .find(([_, m]: [string, any]) => m.name === modulename) ?? ['unknown', undefined];
-          if (!Modules[moduleName]) throwError(`Module ${modulename} not found`);
+          if (!Modules[moduleInstanceName]) throwError(`Module ${modulename} not found`);
           const context = await getContext(conn, Modules);
-          const rpcRes: any[] | undefined = await (Modules[moduleName] as ModuleInterface)?.rpc?.[
+          const rpcRes: any[] | undefined = await (Modules[moduleInstanceName] as ModuleInterface)?.rpc?.[
             methodname
           ].call(dbId, dbUser, context, ...params);
           if (rpcRes) output = JSON.stringify(rpcRes);
