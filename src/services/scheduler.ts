@@ -175,7 +175,7 @@ export async function start(dbId: string, dbUser: string) {
             throwError(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
           }
           // Look for the Module's instance name with the RPC to be called
-          const [moduleInstanceName, _] = Object.entries(Modules ?? {})
+          const [moduleInstanceName] = Object.entries(Modules ?? {})
             .filter(([_, m]: [string, any]) => m instanceof ModuleBase)
             .find(([_, m]: [string, any]) => m.name === modulename) ?? ['unknown', undefined];
           if (!Modules[moduleInstanceName]) throwError(`Module ${modulename} not found`);
