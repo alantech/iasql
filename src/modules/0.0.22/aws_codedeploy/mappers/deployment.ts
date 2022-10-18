@@ -20,19 +20,6 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
   entity = CodedeployDeployment;
 
   equals = (a: CodedeployDeployment, b: CodedeployDeployment) => {
-    let locationEqual: boolean;
-    if (a.location?.revisionType === b.location?.revisionType) {
-      if (a.location?.revisionType === RevisionType.GITHUB) {
-        locationEqual =
-          Object.is(a.location.githubLocation?.repository, b.location?.githubLocation?.repository) &&
-          Object.is(a.location.githubLocation?.commitId, b.location?.githubLocation?.commitId);
-      } else {
-        locationEqual =
-          Object.is(a.location?.s3Location?.bucket, b.location?.s3Location?.bucket) &&
-          Object.is(a.location?.s3Location?.key, b.location?.s3Location?.key);
-      }
-    } else return false;
-
     return (
       isEqual(a.application.name, b.application.name) &&
       isEqual(a.deploymentGroup.name, b.deploymentGroup.name) &&
@@ -40,7 +27,11 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       Object.is(a.description, b.description) &&
       Object.is(a.externalId, b.externalId) &&
       Object.is(a.status, b.status) &&
-      locationEqual
+      Object.is(a.location?.revisionType, b.location?.revisionType) &&
+      Object.is(a.location?.githubLocation?.repository, b.location?.githubLocation?.repository) &&
+      Object.is(a.location?.githubLocation?.commitId, b.location?.githubLocation?.commitId) &&
+      Object.is(a.location?.s3Location?.bucket, b.location?.s3Location?.bucket) &&
+      Object.is(a.location?.s3Location?.key, b.location?.s3Location?.key)
     );
   };
 
