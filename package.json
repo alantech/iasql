@@ -68,7 +68,7 @@
     "@aws-sdk/client-cloudwatch-logs": "^3.154.0",
     "@aws-sdk/client-codebuild": "^3.170.0",
     "@aws-sdk/client-codedeploy": "^3.188.0",
-    "@aws-sdk/client-codepipeline": "^3.186.0",
+    "@aws-sdk/client-codepipeline": "^3.190.0",
     "@aws-sdk/client-dynamodb": "^3.154.0",
     "@aws-sdk/client-ec2": "^3.188.0",
     "@aws-sdk/client-ecr": "^3.181.0",
