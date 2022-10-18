@@ -827,6 +827,7 @@ describe('IAM install/uninstall', () => {
       'aws_lambda',
       'aws_codebuild',
       'aws_codedeploy',
+      'aws_codepipeline',
       'aws_iam',
     ]),
   );

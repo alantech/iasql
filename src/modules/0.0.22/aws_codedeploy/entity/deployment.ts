@@ -93,7 +93,6 @@ export class CodedeployDeployment {
       | {
           bucket?: string | undefined;
           key?: string | undefined;
-          version?: string | undefined;
         }
       | undefined;
   };

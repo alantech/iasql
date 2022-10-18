@@ -535,6 +535,7 @@ describe('ELB install/uninstall', () => {
       'aws_memory_db',
       'aws_rds',
       'aws_codedeploy',
+      'aws_codepipeline',
       'aws_elb',
     ]),
   );
