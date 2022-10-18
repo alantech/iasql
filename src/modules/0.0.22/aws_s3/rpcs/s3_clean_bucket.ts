@@ -48,7 +48,8 @@ export class S3CleanBucketRpc extends RpcBase {
     const client = (await ctx.getAwsClient(await ctx.getDefaultRegion())) as AWS;
 
     // first determine bucket region
-    const region = await this.getBucketLocation(client.s3Client, bucketName);
+    let region = await this.getBucketLocation(client.s3Client, bucketName);
+    if (!region) region = 'us-east-1';
     const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
 
     if (region) {
