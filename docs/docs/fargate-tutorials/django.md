@@ -3,7 +3,7 @@ sidebar_position: 3
 slug: '/django'
 ---
 
-# Deploy AWS ECS Fargate using IaSQL on Django (Python)
+# Deploy containerized app to ECS Fargate using IaSQL on Django (Python)
 
 In this tutorial, we will run [Django SQL migrations](https://docs.djangoproject.com/en/4.0/topics/migrations/) on top of IaSQL to deploy an HTTP server within a docker container on your AWS account using ECS, ECR and ELB. The container image will be hosted as a public repository in ECR and deployed to ECS using Fargate.
 

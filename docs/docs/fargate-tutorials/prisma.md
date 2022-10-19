@@ -3,7 +3,7 @@ sidebar_position: 2
 slug: '/prisma'
 ---
 
-# Deploy AWS ECS Fargate using IaSQL on Prisma (Javascript)
+# Deploy containerized app to ECS Fargate using IaSQL on Prisma (Javascript)
 
 In this tutorial, we will use a script that uses [Prisma](https://www.prisma.io) to introspect the schema of an IaSQL database and deploy a Node.js HTTP server within a docker container on your AWS account using Fargate ECS, CodeBuild, IAM, ECR, and ELB. The container image will be built in CodeBuild, hosted within a private repository in ECR, and deployed to ECS using Fargate.
 
