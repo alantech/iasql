@@ -1,15 +1,8 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToOne,
-  PrimaryColumn,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
-import { CodedeployApplication, ComputePlatform } from './application';
+import { AwsRegions } from '../../aws_account/entity';
+import { CodedeployApplication } from './application';
 import { CodedeployDeploymentGroup } from './deploymentGroup';
 
 export enum DeploymentStatusEnum {
@@ -28,6 +21,8 @@ export enum RevisionType {
   GITHUB = 'GitHub',
 }
 
+@Unique('uq_codedeploydeployment_id_region', ['id', 'region'])
+@Unique('uq_codedeploydeployment_deploymentid_region', ['deploymentId', 'region'])
 @Entity()
 export class CodedeployDeployment {
   @PrimaryGeneratedColumn()
@@ -44,9 +39,16 @@ export class CodedeployDeployment {
     eager: true,
     nullable: false,
   })
-  @JoinColumn({
-    name: 'application_name',
-  })
+  @JoinColumn([
+    {
+      name: 'application_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   application: CodedeployApplication;
 
   @ManyToOne(() => CodedeployDeploymentGroup, {
@@ -54,9 +56,16 @@ export class CodedeployDeployment {
     nullable: false,
     onDelete: 'CASCADE',
   })
-  @JoinColumn({
-    name: 'deployment_group_name',
-  })
+  @JoinColumn([
+    {
+      name: 'deployment_group_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   deploymentGroup: CodedeployDeploymentGroup;
 
   @Column({
@@ -96,4 +105,14 @@ export class CodedeployDeployment {
         }
       | undefined;
   };
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }

@@ -1,6 +1,7 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { IamRole } from '../../aws_iam/entity';
 import { CodedeployApplication } from './application';
 import { CodedeployDeployment } from './deployment';
@@ -17,9 +18,14 @@ export enum EC2TagFilterType {
   VALUE_ONLY = 'VALUE_ONLY',
 }
 
+@Unique('uq_codedeploydeploymentgroup_id_region', ['id', 'region'])
+@Unique('uq_codedeploydeploymentgroup_name_region', ['name', 'region'])
 @Entity()
 export class CodedeployDeploymentGroup {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
   @cloudId
   name: string;
 
@@ -32,9 +38,16 @@ export class CodedeployDeploymentGroup {
     eager: true,
     nullable: false,
   })
-  @JoinColumn({
-    name: 'application_name',
-  })
+  @JoinColumn([
+    {
+      name: 'application_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   application: CodedeployApplication;
 
   @Column({
@@ -68,4 +81,14 @@ export class CodedeployDeploymentGroup {
     cascade: true,
   })
   deployments?: CodedeployDeployment[];
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }
