@@ -161,7 +161,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
         const out: CodedeployDeploymentGroup[] = [];
         // first need to read all applications in all region
         const apps = await this.module.application.cloud.read(ctx);
-        const appNamesByRegion: { [region: string]: string[] } = {};
+        const appNamesByRegion: { [key: string]: string[] } = {};
         apps.forEach((a: CodedeployApplication) =>
           appNamesByRegion[a.region]
             ? appNamesByRegion[a.region].push(a.name)
@@ -170,7 +170,8 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
         await Promise.all(
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
-            for (const appName of appNamesByRegion[region]) {
+            const regionAppNames = appNamesByRegion[region] ?? []; 
+            for (const appName of regionAppNames) {
               if (appName) {
                 const groupNames = await this.listDeploymentGroups(client.cdClient, appName);
                 for (const groupName of groupNames) {
