@@ -35,12 +35,14 @@ const ghUrl = 'https://github.com/iasql/iasql-engine';
 const prisma = new PrismaClient()
 
 async function main() {
+  console.log("in main");
   const ecsData = {
     app_name: appName,
     public_ip: true,
     app_port: port,
     image_tag: 'latest'
   };
+  console.log("before ecs");
   await prisma.ecs_simplified.upsert({
     where: { app_name: appName},
     create: ecsData,
@@ -48,11 +50,6 @@ async function main() {
   });
 
   console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`)
-
-  const repoUri = (await prisma.ecs_simplified.findFirst({
-    where: { app_name: appName },
-    select: { repository_uri: true }
-  })).repository_uri;
 
   // generate a pipeline for building image
   const stages = JSON.stringify([
@@ -156,6 +153,7 @@ async function main() {
 
 main()
   .catch((e) => {
+    console.log(e);
     throw e
   })
   .finally(async () => {
