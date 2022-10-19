@@ -26,10 +26,8 @@ export class BucketMapper extends MapperBase<Bucket> {
 
   equals = (a: Bucket, b: Bucket) => {
     const res =
-      Object.is(a.name, b.name) &&
       Object.is(a.createdAt?.toISOString(), b.createdAt?.toISOString()) &&
-      policiesAreSame(a.policyDocument, b.policyDocument) &&
-      Object.is(a.region, b.region);
+      policiesAreSame(a.policyDocument, b.policyDocument);
     return res;
   };
 
@@ -130,7 +128,22 @@ export class BucketMapper extends MapperBase<Bucket> {
         if (enabledRegions.includes(region)) {
           const allBuckets = await this.getBuckets(client.s3Client);
           const foundBucket = allBuckets.find((b: BucketAWS) => b.Name === bucketName);
-          if (foundBucket) rawBuckets.push(foundBucket);
+          if (foundBucket) {
+            // read policy
+            const input: GetBucketPolicyCommandInput = {
+              Bucket: foundBucket.Name,
+            };
+
+            const bucketPolicy = await this.getBucketPolicy(client.s3Client, input);
+            const b: Bucket = this.module.bucket.bucketMapper(foundBucket, region);
+
+            if (bucketPolicy && bucketPolicy.Policy) {
+              b.policyDocument = JSON.parse(bucketPolicy.Policy);
+            } else {
+              b.policyDocument = undefined;
+            }
+            return b;
+          }
         }
       } else {
         // we need to retrieve all buckets from all regions
