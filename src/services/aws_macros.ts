@@ -136,8 +136,7 @@ export class AWS {
     this.secretsClient = new SecretsManager(config);
     this.ssmClient = new SSM(config);
     this.memoryDBClient = new MemoryDB(config);
-    // Technically available in multiple regions but with weird constraints, and the default is us-east-1
-    this.s3Client = new S3({ ...config, region: 'us-east-1' });
+    this.s3Client = new S3(config);
     // Service endpoint only available in 'us-east-1' https://docs.aws.amazon.com/general/latest/gr/ecr-public.html
     this.ecrPubClient = new ECRPUBLIC({ credentials: config.credentials, region: 'us-east-1' });
   }
