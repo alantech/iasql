@@ -6,7 +6,7 @@ declare
 begin
   select target_type into _target_group_type
   from target_group
-  where target_group_id = _target_group_id;
+  where id = _target_group_id;
   return _target_group_type = 'instance';
 end;
 $$;
