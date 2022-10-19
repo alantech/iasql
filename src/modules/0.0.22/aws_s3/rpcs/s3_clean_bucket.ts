@@ -21,6 +21,13 @@ export class S3CleanBucketRpc extends RpcBase {
     Bucket: bucketName,
     Key: key,
   }));
+  getBucketLocation = crudBuilderFormat<S3, 'getBucketLocation', string | undefined>(
+    'getBucketLocation',
+    name => ({
+      Bucket: name,
+    }),
+    res => res?.LocationConstraint,
+  );
 
   call = async (
     _dbId: string,
@@ -38,29 +45,57 @@ export class S3CleanBucketRpc extends RpcBase {
         },
       ];
     }
-    const client = (await ctx.getAwsClient()) as AWS;
-    const objects = await this.getBucketObjects(client.s3Client, bucketName);
-    for (const object of objects) {
-      // delete the object
-      await this.deleteBucketObject(client.s3Client, bucketName, object.Key);
-    }
+    const client = (await ctx.getAwsClient(await ctx.getDefaultRegion())) as AWS;
 
-    // query again to see if all objects have been deleted
-    const remainingObjects = await this.getBucketObjects(client.s3Client, bucketName);
-    if (!remainingObjects.length) {
-      return [
-        {
-          bucket: bucketName,
-          status: 'OK',
-          response_message: 'All bucket objects have been deleted',
-        },
-      ];
+    // first determine bucket region
+    const region = (await this.getBucketLocation(client.s3Client, bucketName)) ?? 'us-east-1';
+    const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+
+    if (region) {
+      // check if it is on enabled regions
+      if (enabledRegions.includes(region)) {
+        const clientRegion = (await ctx.getAwsClient(region)) as AWS;
+
+        const objects = await this.getBucketObjects(clientRegion.s3Client, bucketName);
+        for (const object of objects) {
+          // delete the object
+          await this.deleteBucketObject(clientRegion.s3Client, bucketName, object.Key);
+        }
+
+        // query again to see if all objects have been deleted
+        const remainingObjects = await this.getBucketObjects(clientRegion.s3Client, bucketName);
+        if (!remainingObjects.length) {
+          return [
+            {
+              bucket: bucketName,
+              status: 'OK',
+              response_message: 'All bucket objects have been deleted',
+            },
+          ];
+        } else {
+          return [
+            {
+              bucket: bucketName,
+              status: 'KO',
+              response_message: 'There are remaining objects that could not be deleted',
+            },
+          ];
+        }
+      } else {
+        return [
+          {
+            bucket: bucketName,
+            status: 'KO',
+            response_message: 'Bucket could not be deleted because it is not on supported regions',
+          },
+        ];
+      }
     } else {
       return [
         {
           bucket: bucketName,
           status: 'KO',
-          response_message: 'There are remaining objects that could not be deleted',
+          response_message: 'Bucket does not exist',
         },
       ];
     }

@@ -1,6 +1,7 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 
 export enum Engine {
   MEMCACHED = 'memcached',
@@ -34,12 +35,13 @@ export class CacheCluster {
   })
   numNodes?: number;
 
-  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
   @Column({
     type: 'character varying',
     nullable: false,
     default: () => 'default_aws_region()',
   })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
   @cloudId
   region: string;
 }

@@ -1,30 +1,30 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
 import { AwsRegions } from '../../aws_account/entity';
 
 @Entity()
-@Index(['logGroupName', 'region'], { unique: true })
-export class LogGroup {
-  @PrimaryGeneratedColumn()
-  id: number;
-
+@Unique('uq_bucket_name_region', ['name', 'region'])
+export class Bucket {
+  @PrimaryColumn({
+    nullable: false,
+    type: 'varchar',
+  })
   @cloudId
-  @Column()
-  logGroupName: string;
+  name: string;
+
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
+  policyDocument?: any;
 
   @Column({
     nullable: true,
+    type: 'timestamp without time zone',
   })
-  logGroupArn?: string;
+  createdAt?: Date;
 
-  @Column({
-    nullable: true,
-    type: 'timestamp with time zone',
-  })
-  creationTime?: Date;
-
-  @cloudId
   @Column({
     type: 'character varying',
     nullable: false,
@@ -32,5 +32,6 @@ export class LogGroup {
   })
   @ManyToOne(() => AwsRegions, { nullable: false })
   @JoinColumn({ name: 'region' })
+  @cloudId
   region: string;
 }
