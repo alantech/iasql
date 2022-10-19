@@ -505,3 +505,4 @@ describe('AwsCodedeploy install/uninstall', () => {
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
+
