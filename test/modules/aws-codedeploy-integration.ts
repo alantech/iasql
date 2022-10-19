@@ -420,10 +420,11 @@ describe('Move deployments to another region', () => {
         updated_deployments AS (
           UPDATE codedeploy_deployment
           SET region = '${nonDefaultRegion}'
-          FROM codedeploy_deployment
-          INNER JOIN codedeploy_deployment_group ON codedeploy_deployment.deployment_group_id = codedeploy_deployment_group.id
-          INNER JOIN codedeploy_application ON codedeploy_deployment.application_id = codedeploy_application.id
-          WHERE codedeploy_deployment_group.name = '${deploymentGroupName}' AND codedeploy_application.name = '${applicationNameForDeployment}'
+          FROM codedeploy_deployment_group, codedeploy_application
+          WHERE codedeploy_deployment.application_id = codedeploy_application.id AND
+            codedeploy_deployment_group.id = codedeploy_deployment.deployment_group_id AND
+            codedeploy_deployment_group.name = '${deploymentGroupName}' AND
+            codedeploy_application.name = '${applicationNameForDeployment}'
         )
         UPDATE codedeploy_application
         SET region = '${nonDefaultRegion}'
