@@ -33,12 +33,6 @@ export class BucketMapper extends MapperBase<Bucket> {
     return res;
   };
 
-  entityId = (e: Bucket) => `${e.name}|${e.region}`;
-  idFields = (id: string) => {
-    const [bucketName, region] = id.split('|');
-    return { bucketName, region };
-  };
-
   getBuckets = crudBuilderFormat<S3, 'listBuckets', BucketAWS[]>(
     'listBuckets',
     () => ({}),
@@ -135,7 +129,8 @@ export class BucketMapper extends MapperBase<Bucket> {
         const { bucketName, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const allBuckets = await this.getBuckets(client.s3Client);
-          rawBuckets = allBuckets.filter(b => !bucketName || b.Name === bucketName).filter(b => !!b.Name);
+          const foundBucket = allBuckets.find((b: BucketAWS) => b.Name === bucketName);
+          if (foundBucket) rawBuckets.push(foundBucket);
         }
       } else {
         // we need to retrieve all buckets from all regions
@@ -190,7 +185,7 @@ export class BucketMapper extends MapperBase<Bucket> {
           } else {
             // we cannot modify bucket name or region of the bucket, replace it
             await this.module.bucket.db.update(cloudRecord, ctx);
-            ctx.memo.db.Bucket[cloudRecord.name] = cloudRecord;
+            ctx.memo.db.Bucket[this.entityId(cloudRecord)] = cloudRecord;
             out.push(cloudRecord);
           }
         }
