@@ -228,6 +228,31 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     },
   });
 
+  db = new Crud2<CodedeployDeploymentGroup>({
+    create: (es: CodedeployDeploymentGroup[], ctx: Context) => ctx.orm.save(CodedeployDeploymentGroup, es),
+    update: (es: CodedeployDeploymentGroup[], ctx: Context) => ctx.orm.save(CodedeployDeploymentGroup, es),
+    delete: (es: CodedeployDeploymentGroup[], ctx: Context) => ctx.orm.remove(CodedeployDeploymentGroup, es),
+    read: async (ctx: Context, id?: string) => {
+      const { deploymentGroupName, applicationName, region } = id
+        ? this.idFields(id)
+        : { deploymentGroupName: undefined, applicationName: undefined, region: undefined };
+      const opts =
+        deploymentGroupName && applicationName && region
+          ? {
+              where: {
+                name: deploymentGroupName,
+                application: {
+                  name: applicationName,
+                  region,
+                },
+                region,
+              },
+            }
+          : {};
+      return await ctx.orm.find(CodedeployDeploymentGroup, opts);
+    },
+  });
+
   constructor(module: AwsCodedeployModule) {
     super();
     this.module = module;
