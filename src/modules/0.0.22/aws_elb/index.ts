@@ -112,9 +112,13 @@ class ListenerMapper extends MapperBase<Listener> {
 
   cloud: Crud2<Listener> = new Crud2({
     create: async (es: Listener[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        if (e.loadBalancer && e.loadBalancer.region !== e.targetGroup.region)
+          throw new Error('Target group and load balancer are not from the same region.');
+
+        const region = e.targetGroup.region;
+        const client = (await ctx.getAwsClient(region)) as AWS;
         const listenerInput: CreateListenerCommandInput = {
           Port: e.port,
           Protocol: e.protocol,

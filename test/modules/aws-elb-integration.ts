@@ -72,9 +72,9 @@ describe('ELB Integration Testing', () => {
     'inserts aws credentials',
     query(
       `
-      INSERT INTO aws_credentials (access_key_id, secret_access_key)
-      VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `,
+          INSERT INTO aws_credentials (access_key_id, secret_access_key)
+          VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+      `,
       undefined,
       false,
     ),
@@ -85,10 +85,10 @@ describe('ELB Integration Testing', () => {
   it(
     'sets the default region',
     query(`
-      UPDATE aws_regions
-      SET is_default = TRUE
-      WHERE region = '${process.env.AWS_REGION}';
-  `),
+        UPDATE aws_regions
+        SET is_default = TRUE
+        WHERE region = '${process.env.AWS_REGION}';
+    `),
   );
 
   it('installs the elb module', install(modules));
@@ -97,9 +97,9 @@ describe('ELB Integration Testing', () => {
   it(
     'adds a new targetGroup',
     query(`
-      INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
-      VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
-  `),
+        INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
+        VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
+    `),
   );
 
   it('undo changes', sync());
@@ -108,10 +108,10 @@ describe('ELB Integration Testing', () => {
     'check target_group insertion',
     query(
       `
-      SELECT *
-      FROM target_group
-      WHERE target_group_name = '${tgName}';
-  `,
+          SELECT *
+          FROM target_group
+          WHERE target_group_name = '${tgName}';
+      `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
@@ -119,19 +119,19 @@ describe('ELB Integration Testing', () => {
   it(
     'adds a new targetGroup',
     query(`
-      INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
-      VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
-  `),
+        INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path)
+        VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health');
+    `),
   );
 
   it(
     'check target_group insertion',
     query(
       `
-      SELECT *
-      FROM target_group
-      WHERE target_group_name = '${tgName}';
-  `,
+          SELECT *
+          FROM target_group
+          WHERE target_group_name = '${tgName}';
+      `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
@@ -141,10 +141,10 @@ describe('ELB Integration Testing', () => {
   it(
     'tries to update a target group field',
     query(`
-      UPDATE target_group
-      SET health_check_path = '/fake-health'
-      WHERE target_group_name = '${tgName}';
-  `),
+        UPDATE target_group
+        SET health_check_path = '/fake-health'
+        WHERE target_group_name = '${tgName}';
+    `),
   );
 
   it('applies the change', apply());
@@ -152,10 +152,10 @@ describe('ELB Integration Testing', () => {
   it(
     'tries to update a target group field (replace)',
     query(`
-      UPDATE target_group
-      SET port = 5677
-      WHERE target_group_name = '${tgName}';
-  `),
+        UPDATE target_group
+        SET port = 5677
+        WHERE target_group_name = '${tgName}';
+    `),
   );
 
   it('applies the change', apply());
@@ -164,9 +164,9 @@ describe('ELB Integration Testing', () => {
   it(
     'adds a new load balancer',
     query(`
-      INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
-      VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
-  `),
+        INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type)
+        VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}');
+    `),
   );
 
   it('undo changes', sync());
@@ -175,16 +175,18 @@ describe('ELB Integration Testing', () => {
     'check load_balancer insertion',
     query(
       `SELECT *
-      FROM load_balancer
-      WHERE load_balancer_name = '${lbName}';
-  `, (res: any[]) => expect(res.length).toBe(0),
-),
-  );it('adds new security groups', query(`
-      INSERT INTO security_group (description, group_name)
-      VALUES ('Security Group Test 1', '${sg1}');
-      INSERT INTO security_group (description, group_name)
-      VALUES ('Security Group Test 2', '${sg2}');
-  `),
+       FROM load_balancer
+       WHERE load_balancer_name = '${lbName}';
+      `, (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it('adds new security groups', query(`
+              INSERT INTO security_group (description, group_name)
+              VALUES ('Security Group Test 1', '${sg1}');
+              INSERT INTO security_group (description, group_name)
+              VALUES ('Security Group Test 2', '${sg2}');
+    `),
   );
 
   it('applies the change', apply());
@@ -207,10 +209,10 @@ describe('ELB Integration Testing', () => {
     'check load_balancer insertion',
     query(
       `
-      SELECT *
-      FROM load_balancer
-      WHERE load_balancer_name = '${lbName}';
-  `,
+          SELECT *
+          FROM load_balancer
+          WHERE load_balancer_name = '${lbName}';
+      `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
@@ -219,10 +221,10 @@ describe('ELB Integration Testing', () => {
     'check load_balancer_security_groups insertion',
     query(
       `
-      SELECT *
-      FROM load_balancer_security_groups
-      WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
-  `,
+          SELECT *
+          FROM load_balancer_security_groups
+          WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
+      `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
@@ -232,10 +234,10 @@ describe('ELB Integration Testing', () => {
   it(
     'tries to update a load balancer field',
     query(`
-      UPDATE load_balancer
-      SET state = '${LoadBalancerStateEnum.FAILED}'
-      WHERE load_balancer_name = '${lbName}';
-  `),
+        UPDATE load_balancer
+        SET state = '${LoadBalancerStateEnum.FAILED}'
+        WHERE load_balancer_name = '${lbName}';
+    `),
   );
 
   it('applies the change and restore it', apply());
@@ -243,21 +245,21 @@ describe('ELB Integration Testing', () => {
   it(
     'tries to update a load balancer security group (replace)',
     query(`
-      UPDATE load_balancer_security_groups
-      SET security_group_id = (SELECT id FROM security_group WHERE group_name = '${sg2}')
-      WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
-  `),
+        UPDATE load_balancer_security_groups
+        SET security_group_id = (SELECT id FROM security_group WHERE group_name = '${sg2}')
+        WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
+    `),
   );
 
   it('applies the change', apply());
 
   it(
-    'tries to update a target group field (replace)',
+    'tries to update a load balancer scheme (replace)',
     query(`
-      UPDATE load_balancer
-      SET scheme = '${LoadBalancerSchemeEnum.INTERNAL}'
-      WHERE load_balancer_name = '${lbName}';
-  `),
+        UPDATE load_balancer
+        SET scheme = '${LoadBalancerSchemeEnum.INTERNAL}'
+        WHERE load_balancer_name = '${lbName}';
+    `),
   );
 
   it('applies the change', apply());
@@ -265,22 +267,22 @@ describe('ELB Integration Testing', () => {
   it(
     'adds a new listener',
     query(`
-      INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
-      VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
-              ${port},
-              '${protocol}',
-              (SELECT id FROM target_group WHERE target_group_name = '${tgName}'));
-  `),
+        INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
+        VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
+                ${port},
+                '${protocol}',
+                (SELECT id FROM target_group WHERE target_group_name = '${tgName}'));
+    `),
   );
 
   it(
     'check listener insertion',
     query(
       `
-      SELECT *
-      FROM listener
-      WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
-  `,
+          SELECT *
+          FROM listener
+          WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
+      `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
@@ -290,10 +292,10 @@ describe('ELB Integration Testing', () => {
   it(
     'tries to update a listener field',
     query(`
-      UPDATE listener
-      SET port = ${port + 1}
-      WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
-  `),
+        UPDATE listener
+        SET port = ${port + 1}
+        WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
+    `),
   );
 
   it('applies the change', apply());
@@ -301,18 +303,18 @@ describe('ELB Integration Testing', () => {
   it(
     'adds a new certificate to import',
     query(`
-      INSERT INTO certificate_import (certificate, private_key)
-      VALUES ('${cert}', '${key}');
-  `),
+        INSERT INTO certificate_import (certificate, private_key)
+        VALUES ('${cert}', '${key}');
+    `),
   );
 
   it(
     'check adds new certificate to import',
     query(
       `
-      SELECT *
-      FROM certificate_import;
-  `,
+          SELECT *
+          FROM certificate_import;
+      `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
@@ -323,9 +325,9 @@ describe('ELB Integration Testing', () => {
     'check import row delete',
     query(
       `
-      SELECT *
-      FROM certificate_import;
-  `,
+          SELECT *
+          FROM certificate_import;
+      `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
@@ -334,10 +336,10 @@ describe('ELB Integration Testing', () => {
     'check new certificate added',
     query(
       `
-      SELECT *
-      FROM certificate
-      WHERE domain_name = '${domainName}';
-  `,
+          SELECT *
+          FROM certificate
+          WHERE domain_name = '${domainName}';
+      `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
@@ -345,23 +347,23 @@ describe('ELB Integration Testing', () => {
   it(
     'adds a new HTTPS listener',
     query(`
-      INSERT INTO listener (load_balancer_id, port, protocol, target_group_id, certificate_id)
-      VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
-              ${portHTTPS},
-              '${protocolHTTPS}',
-              (SELECT id FROM target_group WHERE target_group_name = '${tgName}'),
-              (SELECT id FROM certificate WHERE domain_name = '${domainName}'));
-  `),
+        INSERT INTO listener (load_balancer_id, port, protocol, target_group_id, certificate_id)
+        VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
+                ${portHTTPS},
+                '${protocolHTTPS}',
+                (SELECT id FROM target_group WHERE target_group_name = '${tgName}'),
+                (SELECT id FROM certificate WHERE domain_name = '${domainName}'));
+    `),
   );
 
   it(
     'check https listener insertion',
     query(
       `
-      SELECT *
-      FROM listener
-      WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
-  `,
+          SELECT *
+          FROM listener
+          WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
+      `,
       (res: any[]) => expect(res.length).toBe(2),
     ),
   );
@@ -372,10 +374,10 @@ describe('ELB Integration Testing', () => {
     'check https listener insertion',
     query(
       `
-      SELECT *
-      FROM listener
-      WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
-  `,
+          SELECT *
+          FROM listener
+          WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
+      `,
       (res: any[]) => expect(res.length).toBe(2),
     ),
   );
@@ -387,20 +389,20 @@ describe('ELB Integration Testing', () => {
   it(
     'deletes the listener',
     query(`
-      DELETE
-      FROM listener
-      WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
-  `),
+        DELETE
+        FROM listener
+        WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
+    `),
   );
 
   it(
     'check listener delete',
     query(
       `
-      SELECT *
-      FROM listener
-      WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
-  `,
+          SELECT *
+          FROM listener
+          WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}');
+      `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
@@ -410,20 +412,20 @@ describe('ELB Integration Testing', () => {
   it(
     'deletes the load balancer',
     query(`
-      DELETE
-      FROM load_balancer
-      WHERE load_balancer_name = '${lbName}';
-  `),
+        DELETE
+        FROM load_balancer
+        WHERE load_balancer_name = '${lbName}';
+    `),
   );
 
   it(
     'check load_balancer delete',
     query(
       `
-      SELECT *
-      FROM load_balancer
-      WHERE load_balancer_name = '${lbName}';
-  `,
+          SELECT *
+          FROM load_balancer
+          WHERE load_balancer_name = '${lbName}';
+      `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
@@ -431,20 +433,20 @@ describe('ELB Integration Testing', () => {
   it(
     'deletes the security groups',
     query(`
-      DELETE
-      FROM security_group
-      WHERE group_name IN ('${sg1}', '${sg2}');
-  `),
+        DELETE
+        FROM security_group
+        WHERE group_name IN ('${sg1}', '${sg2}');
+    `),
   );
 
   it(
     'check load_balancer delete',
     query(
       `
-      SELECT *
-      FROM security_group
-      WHERE group_name IN ('${sg1}', '${sg2}');
-  `,
+          SELECT *
+          FROM security_group
+          WHERE group_name IN ('${sg1}', '${sg2}');
+      `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
@@ -454,20 +456,20 @@ describe('ELB Integration Testing', () => {
   it(
     'deletes the target group',
     query(`
-      DELETE
-      FROM target_group
-      WHERE target_group_name = '${tgName}';
-  `),
+        DELETE
+        FROM target_group
+        WHERE target_group_name = '${tgName}';
+    `),
   );
 
   it(
     'check target_group deletion',
     query(
       `
-      SELECT *
-      FROM target_group
-      WHERE target_group_name = '${tgName}';
-  `,
+          SELECT *
+          FROM target_group
+          WHERE target_group_name = '${tgName}';
+      `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
@@ -477,25 +479,89 @@ describe('ELB Integration Testing', () => {
   it(
     'deletes the certificate',
     query(`
-      DELETE
-      FROM certificate
-      WHERE domain_name = '${domainName}';
-  `),
+        DELETE
+        FROM certificate
+        WHERE domain_name = '${domainName}';
+    `),
   );
 
   it(
     'check certificate deletion',
     query(
       `
-      SELECT *
-      FROM certificate
-      WHERE domain_name = '${domainName}';
-  `,
+          SELECT *
+          FROM certificate
+          WHERE domain_name = '${domainName}';
+      `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
   );
 
   it('applies the cert delete change', apply());
+
+  it(
+    'creates a target group in non-default region',
+    query(`
+        INSERT INTO target_group (target_group_name, target_type, protocol, port, vpc, health_check_path, region)
+        VALUES ('${tgName}', '${tgType}', '${protocol}', ${port}, null, '/health', 'us-east-1');
+    `),
+  );
+
+  it('applies creation of the target group in non-default region', apply());
+
+  it('verifies the target group is created', query(`
+      SELECT target_group_arn
+      FROM target_group
+      WHERE target_group_name = '${tgName}';
+  `, (res: any) => {
+    expect(res.length).toBe(1);
+    expect(res[0].target_group_arn).not.toEqual('');
+  }));
+
+  it('creates a security group in non-default region', query(`
+      INSERT INTO security_group (description, group_name, region)
+      VALUES ('Security Group Multi-region Test 1', '${sg1}', 'us-east-1');
+  `));
+
+  it('creates a load balancer in non-default region', query(`
+    BEGIN;
+      INSERT INTO load_balancer (load_balancer_name, scheme, vpc, load_balancer_type, ip_address_type, region)
+      VALUES ('${lbName}', '${lbScheme}', null, '${lbType}', '${lbIPAddressType}', 'us-east-1');
+
+      INSERT INTO load_balancer_security_groups(load_balancer_id, security_group_id)
+      SELECT (SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
+             (SELECT id FROM security_group WHERE group_name = '${sg1}');
+    COMMIT;
+  `));
+
+  it('applies the creation of load balancer and security group in non-default region', apply());
+
+  it('verifies that load balancer in non-default region is created', query(`
+      SELECT load_balancer_arn
+      FROM load_balancer
+      WHERE load_balancer_name = '${lbName}';
+  `, (res: any) => {
+    expect(res.length).toBe(1);
+    expect(res[0].load_balancer_arn).not.toBeNull();
+  }));
+
+  it('adds a listener to the load balancer in non-default region', query(`
+      INSERT INTO listener (load_balancer_id, port, protocol, target_group_id)
+      VALUES ((SELECT id FROM load_balancer WHERE load_balancer_name = '${lbName}'),
+              ${port},
+              '${protocol}',
+              (SELECT id FROM target_group WHERE target_group_name = '${tgName}'));
+  `));
+
+  it('applies creation of the listener in non-default region', apply());
+
+  it('verifies the listener in non-default region is created', query(`
+      SELECT listener_arn
+      FROM listener;
+  `, (res: any) => {
+    expect(res.length).toBe(1);
+    expect(res[0].listener_arn).not.toBeNull();
+  }));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
@@ -510,9 +576,9 @@ describe('ELB install/uninstall', () => {
     'inserts aws credentials',
     query(
       `
-    INSERT INTO aws_credentials (access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `,
+          INSERT INTO aws_credentials (access_key_id, secret_access_key)
+          VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+      `,
       undefined,
       false,
     ),
@@ -523,10 +589,10 @@ describe('ELB install/uninstall', () => {
   it(
     'sets the default region',
     query(`
-      UPDATE aws_regions
-      SET is_default = TRUE
-      WHERE region = 'us-east-1';
-  `),
+        UPDATE aws_regions
+        SET is_default = TRUE
+        WHERE region = 'us-east-1';
+    `),
   );
 
   it('installs the ELB module', install(modules));

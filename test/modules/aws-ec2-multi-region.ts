@@ -249,7 +249,7 @@ describe('EC2 Integration Testing', () => {
       VALUES ('${tgName}', '${tgType}', '${protocol}', ${tgPort}, '/health');
 
       INSERT INTO registered_instance (instance, target_group_id)
-      SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), (SELECT id FROm target_group WHERE target_group_name = '${tgName}');
+      SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
     COMMIT;
   `),
   );
