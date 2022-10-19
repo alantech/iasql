@@ -119,7 +119,7 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
     },
     delete: async (apps: CodedeployApplication[], ctx: Context) => {
       for (const app of apps) {
-        const client = (await ctx.getAwsClient(app.id)) as AWS;
+        const client = (await ctx.getAwsClient(app.region)) as AWS;
         await this.deleteApplication(client.cdClient, { applicationName: app.name });
       }
     },
