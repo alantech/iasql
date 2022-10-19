@@ -406,65 +406,65 @@ SELECT * FROM codedeploy_deployment_group WHERE application_id = (SELECT id FROM
     'check no codedeploy_deployments remain',
     query(
       `
-SELECT * FROM codedeploy_deployment WHERE application_id = (SELECT id FROM codedeploy_application WHERE name = '${applicationNameForDeployment}');
-`,
+    SELECT * FROM codedeploy_deployment WHERE application_id = (SELECT id FROM codedeploy_application WHERE name = '${applicationNameForDeployment}');
+    `,
       (res: any) => expect(res.length).toBe(0),
     ),
   );
-});
 
-describe('ec2 cleanup', () => {
-  it(
-    'deletes all ec2 instances',
-    query(`
-    BEGIN;
-      DELETE FROM general_purpose_volume
-      USING instance
-      WHERE instance.id = general_purpose_volume.attached_instance_id AND 
-        (instance.tags ->> 'name' = '${instanceTag}');
-
-      DELETE FROM instance
-      WHERE tags ->> 'name' = '${instanceTag}';
-    COMMIT;
-  `),
-  );
-
-  it('applies the instance deletion', apply());
-});
-
-describe('delete roles', () => {
-  it(
-    'deletes role',
-    query(`
-      DELETE FROM iam_role WHERE role_name = '${roleName}' OR role_name='${ec2RoleName}';
+  describe('ec2 cleanup', () => {
+    it(
+      'deletes all ec2 instances',
+      query(`
+      BEGIN;
+        DELETE FROM general_purpose_volume
+        USING instance
+        WHERE instance.id = general_purpose_volume.attached_instance_id AND 
+          (instance.tags ->> 'name' = '${instanceTag}');
+  
+        DELETE FROM instance
+        WHERE tags ->> 'name' = '${instanceTag}';
+      COMMIT;
     `),
-  );
+    );
 
-  it('applies the role deletion', apply());
+    it('applies the instance deletion', apply());
+  });
+
+  describe('delete roles', () => {
+    it(
+      'deletes role',
+      query(`
+        DELETE FROM iam_role WHERE role_name = '${roleName}' OR role_name='${ec2RoleName}';
+      `),
+    );
+
+    it('applies the role deletion', apply());
+  });
+
+  describe('delete security groups and rules', () => {
+    it(
+      'deletes security group rules',
+      query(`
+        DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
+      `),
+    );
+
+    it(
+      'deletes security group',
+      query(`
+        DELETE FROM security_group WHERE group_name = '${sgGroupName}';
+      `),
+    );
+
+    it('applies the security group deletion', apply());
+  });
+
+  it('apply delete', apply());
+
+  // cleanup
+  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
-
-describe('delete security groups and rules', () => {
-  it(
-    'deletes security group rules',
-    query(`
-      DELETE FROM security_group_rule WHERE description='${prefix}codedeploy_rule_ssh' or description='${prefix}codedeploy_rule_http' or description='${prefix}codedeploy_rule_egress';
-    `),
-  );
-
-  it(
-    'deletes security group',
-    query(`
-      DELETE FROM security_group WHERE group_name = '${sgGroupName}';
-    `),
-  );
-
-  it('applies the security group deletion', apply());
-});
-
-it('apply delete', apply());
-
-// cleanup
-it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 
 // describe('AwsCodedeploy install/uninstall', () => {
 //   it('creates a new test db', done =>
