@@ -566,6 +566,10 @@ describe('ELB Integration Testing', () => {
   it('deletes multi-region resources', query(`
     BEGIN;
         DELETE
+        FROM listener
+        WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
+
+        DELETE
         FROM target_group
         WHERE target_group_name = '${tgName}';
 
