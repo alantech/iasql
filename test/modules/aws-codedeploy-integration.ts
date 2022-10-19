@@ -21,6 +21,7 @@ const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
 const ubuntuAmiId =
   'resolve:ssm:/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id';
 
+const nonDefaultRegion = 'us-east-1';
 const region = process.env.AWS_REGION ?? '';
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? '';
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? '';
@@ -370,6 +371,67 @@ describe('AwsCodedeploy Integration Testing', () => {
       },
     ),
   );
+});
+
+describe('Move deployments to another region', () => {
+  it('should fail moving just the deployment group', done =>
+    void query(`
+      UPDATE codedeploy_deployment_group
+      SET region = '${nonDefaultRegion}'
+      WHERE name = '${deploymentGroupName}';
+  `)((e?: any) => {
+      console.log({ e });
+      try {
+        expect(e?.message).toContain('violates foreign key constraint');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+  }));
+
+  it('should fail moving just the application', done =>
+    void query(`
+      UPDATE codedeploy_application
+      SET region = '${nonDefaultRegion}'
+      WHERE name = '${applicationNameForDeployment}';
+  `)((e?: any) => {
+      console.log({ e });
+      try {
+        expect(e?.message).toContain('violates foreign key constraint');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+  }));
+
+  it(
+    'moves a deployment to another region',
+    query(`
+      WITH
+        updated_deployment_group AS (
+          UPDATE codedeploy_deployment_group
+          SET region = '${nonDefaultRegion}'
+          WHERE name = '${deploymentGroupName}'
+        ),
+        updated_deployments AS (
+          UPDATE codedeploy_deployment
+          SET region = '${nonDefaultRegion}'
+          FROM codedeploy_deployment
+          INNER JOIN codedeploy_deployment_group ON codedeploy_deployment.deployment_group_id = codedeploy_deployment_group.id
+          INNER JOIN codedeploy_application ON codedeploy_deployment.application_id = codedeploy_application.id
+          WHERE codedeploy_deployment_group.name = '${deploymentGroupName}' AND codedeploy_application.name = '${applicationNameForDeployment}'
+        )
+        UPDATE codedeploy_application
+        SET region = '${nonDefaultRegion}'
+        WHERE name = '${applicationNameForDeployment}'
+    `),
+  );
+
+  it('apply region move', apply());
 });
 
 // cleanup
