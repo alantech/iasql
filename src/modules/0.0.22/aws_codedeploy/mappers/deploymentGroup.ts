@@ -170,7 +170,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
         await Promise.all(
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
-            const regionAppNames = appNamesByRegion[region] ?? []; 
+            const regionAppNames = appNamesByRegion[region] ?? [];
             for (const appName of regionAppNames) {
               if (appName) {
                 const groupNames = await this.listDeploymentGroups(client.cdClient, appName);
