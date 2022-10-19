@@ -563,6 +563,24 @@ describe('ELB Integration Testing', () => {
     expect(res[0].listener_arn).not.toBeNull();
   }));
 
+  it('deletes multi-region resources', query(`
+    BEGIN;
+        DELETE
+        FROM target_group
+        WHERE target_group_name = '${tgName}';
+
+        DELETE
+        FROM security_group
+        WHERE group_name = '${sg1}';
+
+        DELETE
+        FROM load_balancer
+        WHERE load_balancer_name = '${lbName}';
+    COMMIT;
+  `));
+
+  it('applies deletion of multi-region resources', apply());
+
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
