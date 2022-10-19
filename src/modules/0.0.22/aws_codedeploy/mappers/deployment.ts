@@ -45,7 +45,7 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
     );
     out.deploymentGroup = await this.module.deploymentGroup.cloud.read(
       ctx,
-      `${deployment.deploymentGroupName}|${region}`,
+      `${deployment.deploymentGroupName}|${deployment.applicationName}|${region}`,
     );
     out.deploymentId = deployment.deploymentId;
     out.description = deployment.description;

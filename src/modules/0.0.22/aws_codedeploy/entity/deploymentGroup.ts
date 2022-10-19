@@ -26,7 +26,6 @@ export class CodedeployDeploymentGroup {
   id: number;
 
   @Column()
-  @cloudId
   name: string;
 
   @Column({
@@ -89,6 +88,5 @@ export class CodedeployDeploymentGroup {
   })
   @ManyToOne(() => AwsRegions, { nullable: false })
   @JoinColumn({ name: 'region' })
-  @cloudId
   region: string;
 }

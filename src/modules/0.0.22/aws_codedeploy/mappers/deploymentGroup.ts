@@ -12,11 +12,22 @@ import { AwsCodedeployModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { awsIamModule } from '../../aws_iam';
-import { CodedeployDeploymentGroup, DeploymentConfigType, EC2TagFilterType } from '../entity';
+import {
+  CodedeployApplication,
+  CodedeployDeploymentGroup,
+  DeploymentConfigType,
+  EC2TagFilterType,
+} from '../entity';
 
 export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploymentGroup> {
   module: AwsCodedeployModule;
   entity = CodedeployDeploymentGroup;
+  entityId = (e: CodedeployDeploymentGroup) =>
+    `${e.name}|${e.application.name}|${e.region}` ?? e.id.toString();
+  idFields = (id: string) => {
+    const [deploymentGroupName, applicationName, region] = id.split('|');
+    return { deploymentGroupName, applicationName, region };
+  };
   equals = (a: CodedeployDeploymentGroup, b: CodedeployDeploymentGroup) =>
     isEqual(a.application.applicationId, b.application.applicationId) &&
     Object.is(a.deploymentConfigName, b.deploymentConfigName) &&
@@ -25,11 +36,11 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
     isEqual(a.role?.roleName, b.role?.roleName) &&
     isEqual(a.ec2TagFilters ?? [], b.ec2TagFilters ?? []);
 
-  async deploymentGroupMapper(group: DeploymentGroupInfo, ctx: Context) {
+  async deploymentGroupMapper(group: DeploymentGroupInfo, region: string, ctx: Context) {
     const out = new CodedeployDeploymentGroup();
     if (!group.applicationName || !group.deploymentGroupName) return undefined;
 
-    out.application = await this.module.application.cloud.read(ctx, group.applicationName);
+    out.application = await this.module.application.cloud.read(ctx, `${group.applicationName}|${region}`);
     out.deploymentConfigName =
       (group.deploymentConfigName as DeploymentConfigType) ?? DeploymentConfigType.ONE_AT_A_TIME;
 
@@ -64,6 +75,7 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
       }
     }
 
+    out.region = region;
     return out;
   }
 
@@ -104,9 +116,9 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
 
   cloud: Crud2<CodedeployDeploymentGroup> = new Crud2({
     create: async (es: CodedeployDeploymentGroup[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateDeploymentGroupCommandInput = {
           applicationName: e.application.name,
           deploymentConfigName: e.deploymentConfigName,
@@ -121,64 +133,77 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
         e.deploymentGroupId = groupId;
 
         const app =
-          (await this.module.application.db.read(ctx, e.application.name)) ??
-          this.module.application.cloud.read(ctx, e.application.name);
+          (await this.module.application.db.read(ctx, `${e.application.name}|${e.region}`)) ??
+          this.module.application.cloud.read(ctx, `${e.application.name}|${e.region}`);
         if (app) e.application = app;
         await this.db.update(e, ctx);
         out.push(e);
       }
       return out;
     },
-    read: async (ctx: Context, applicationName?: string, deploymentGroupName?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (applicationName && deploymentGroupName) {
-        const rawGroup = await this.getDeploymentGroup(client.cdClient, {
-          applicationName,
-          deploymentGroupName,
-        });
-        if (!rawGroup) return;
+    read: async (ctx: Context, id?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (!!id) {
+        const { deploymentGroupName, applicationName, region } = this.idFields(id);
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawGroup = await this.getDeploymentGroup(client.cdClient, {
+            applicationName,
+            deploymentGroupName,
+          });
+          if (!rawGroup) return;
 
-        // map to entity
-        const group = await this.deploymentGroupMapper(rawGroup, ctx);
-        return group;
+          // map to entity
+          const group = await this.deploymentGroupMapper(rawGroup, region, ctx);
+          return group;
+        }
       } else {
-        // first need to read all applications
-        const out = [];
+        const out: CodedeployDeploymentGroup[] = [];
+        // first need to read all applications in all region
         const apps = await this.module.application.cloud.read(ctx);
-        if (apps && apps.length > 0) {
-          for (const app of apps) {
-            if (app && app.name) {
-              const groupNames = await this.listDeploymentGroups(client.cdClient, app.name);
-              for (const groupName of groupNames) {
-                const rawGroup = await this.getDeploymentGroup(client.cdClient, {
-                  applicationName: app.name,
-                  deploymentGroupName: groupName,
-                });
-                if (!rawGroup) continue;
-
-                // map to entity
-                const group = await this.deploymentGroupMapper(rawGroup, ctx);
-                if (group) out.push(group);
+        const appNamesByRegion: { [region: string]: string[] } = {};
+        apps.forEach((a: CodedeployApplication) =>
+          appNamesByRegion[a.region]
+            ? appNamesByRegion[a.region].push(a.name)
+            : (appNamesByRegion[a.region] = [a.name]),
+        );
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            for (const appName of appNamesByRegion[region]) {
+              if (appName) {
+                const groupNames = await this.listDeploymentGroups(client.cdClient, appName);
+                for (const groupName of groupNames) {
+                  const rawGroup = await this.getDeploymentGroup(client.cdClient, {
+                    applicationName: appName,
+                    deploymentGroupName: groupName,
+                  });
+                  if (!rawGroup) continue;
+                  // map to entity
+                  const group = await this.deploymentGroupMapper(rawGroup, region, ctx);
+                  if (group) out.push(group);
+                }
               }
             }
-          }
-        }
+          }),
+        );
         return out;
       }
     },
     update: async (groups: CodedeployDeploymentGroup[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const group of groups) {
+        const client = (await ctx.getAwsClient(group.region)) as AWS;
         if (!group.application || !group.name) continue; // cannot update a deployment group without app or id
         // we always update
-        const cloudRecord = ctx?.memo?.cloud?.CodedeployDeploymentGroup?.[group.name ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.CodedeployDeploymentGroup?.[this.entityId(group)];
+        cloudRecord.id = group.id;
         if (group.deploymentGroupId !== cloudRecord.deploymentGroupId) {
           // restore
           await this.module.application.db.update(cloudRecord, ctx);
           out.push(cloudRecord);
         } else {
-          const res = await this.updateDeploymentGroup(client.cdClient, {
+          await this.updateDeploymentGroup(client.cdClient, {
             applicationName: group.application.name,
             currentDeploymentGroupName: group.name,
             ec2TagFilters: group.ec2TagFilters,
@@ -193,8 +218,8 @@ export class CodedeployDeploymentGroupMapper extends MapperBase<CodedeployDeploy
       return out;
     },
     delete: async (groups: CodedeployDeploymentGroup[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const group of groups) {
+        const client = (await ctx.getAwsClient(group.region)) as AWS;
         await this.deleteDeploymentGroup(client.cdClient, {
           applicationName: group.application.name,
           deploymentGroupName: group.name,
