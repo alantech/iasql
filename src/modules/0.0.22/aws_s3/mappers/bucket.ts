@@ -82,7 +82,6 @@ export class BucketMapper extends MapperBase<Bucket> {
       Policy: JSON.stringify(bucket.policyDocument ?? {}),
     };
     await this.updateBucketPolicy(client, input);
-    await this.module.bucket.db.update(bucket, ctx);
 
     // requery the created policy from AWS
     const inputGet: GetBucketPolicyCommandInput = {
