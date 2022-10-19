@@ -22,13 +22,13 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_acm_list', 'aws_acm_import'];
+const modules = ['aws_acm'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
-describe('AwsAcmImport Integration Testing', () => {
+describe('AwsAcm Import Integration Testing', () => {
   it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
     'not-needed', 'not-needed').then(...finish(done)));
@@ -46,36 +46,11 @@ describe('AwsAcmImport Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${process.env.AWS_REGION}';
   `));
 
-  it('installs the acm_import module', install(modules));
+  it('installs the acm module', install(modules));
 
   it('adds a new certificate to import', query(`
-    INSERT INTO certificate_import (certificate, private_key)
-    VALUES ('${cert}', '${key}');
+    CALL certificate_import('${cert}', '${key}', '${process.env.AWS_REGION}', '');
   `));
-
-  it('sync before apply (should restore)', sync());
-
-  it('check no new certificate to import', query(`
-    SELECT *
-    FROM certificate_import;
-  `, (res: any[]) => expect(res.length).toBe(0)));
-
-  it('adds a new certificate to import', query(`
-    INSERT INTO certificate_import (certificate, private_key)
-    VALUES ('${cert}', '${key}');
-  `));
-
-  it('check adds new certificate to import', query(`
-    SELECT *
-    FROM certificate_import;
-  `, (res: any[]) => expect(res.length).toBe(1)));
-
-  it('applies the new certificate import', apply());
-
-  it('check import row delete', query(`
-    SELECT *
-    FROM certificate_import;
-  `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('check new certificate added', query(`
     SELECT *
@@ -93,11 +68,6 @@ describe('AwsAcmImport Integration Testing', () => {
     WHERE domain_name = '${domainName}';
   `, (res: any[]) => expect(res.length).toBe(1)));
 
-  it('check certificate import count after uninstall/install', query(`
-    SELECT *
-    FROM certificate_import;
-  `, (res: any[]) => expect(res.length).toBe(0)));
-
   it('deletes a certificate imported', query(`
     DELETE FROM certificate
     WHERE domain_name = '${domainName}';
@@ -112,30 +82,14 @@ describe('AwsAcmImport Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('import a certificate in non-default region', query(`
-    INSERT INTO certificate_import (certificate, private_key, region)
-    VALUES ('${cert}', '${key}', 'us-east-1');
+    CALL certificate_import('${cert}', '${key}', 'us-east-1', '');
   `));
-
-  it('applies import of certificate in non-default region', apply());
-
-  // TODO: remove this after the acm_list modules supports multi-region
-  it('sets the default region to us-east-1 to sync the certificate', query(`
-    SELECT default_aws_region('us-east-1');
-  `));
-
-  it('syncs the certificate from the non-default region', sync());
 
   it('verifies the certificate in the non-default region is created', query(`
     SELECT *
     FROM certificate
     WHERE domain_name = '${domainName}';
   `, (res: any) => expect(res.length).toBe(1)));
-
-  it('verifies the certificate import record is deleted', query(`
-    SELECT *
-    FROM certificate_import
-    WHERE region = 'us-east-1';
-  `, (res: any) => expect(res.length).toBe(0)));
 
   it('deletes the certificate in non-default region', query(`
     DELETE FROM certificate;
@@ -148,7 +102,7 @@ describe('AwsAcmImport Integration Testing', () => {
     .then(...finish(done)));
 });
 
-describe('AwsAcmImport install/uninstall', () => {
+describe('AwsAcm Import install/uninstall', () => {
   it('creates a new test db', (done) => void iasql.connect(
     dbAlias,
     'not-needed', 'not-needed').then(...finish(done)));
@@ -176,9 +130,9 @@ describe('AwsAcmImport install/uninstall', () => {
     'postgres',
     true).then(...finish(done)));
 
-  it('uninstalls the import module', uninstall(['aws_acm_import']));
+  it('uninstalls the acm module', uninstall(['aws_acm']));
 
-  it('installs the module', install(['aws_acm_import']));
+  it('installs the module', install(['aws_acm']));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

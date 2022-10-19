@@ -20,13 +20,13 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_acm_request', 'aws_route53_hosted_zones', 'aws_elb', 'aws_acm_list'];
+const modules = ['aws_acm', 'aws_route53_hosted_zones', 'aws_elb'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
-describe('AwsAcmRequest Integration Testing', () => {
+describe('AwsAcm Request Integration Testing', () => {
   it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -53,34 +53,12 @@ describe('AwsAcmRequest Integration Testing', () => {
   `),
   );
 
-  it('installs the acm_request module', install(modules));
-
-  it(
-    'adds a new certificate to request',
-    query(`
-    INSERT INTO certificate_request (domain_name)
-    VALUES ('${domainName}');
-  `),
-  );
-
-  it('sync before apply (should restore)', sync());
-
-  it(
-    'check no new certificate to request',
-    query(
-      `
-    SELECT *
-    FROM certificate_request;
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
+  it('installs the acm module', install(modules));
 
   it(
     'adds a new certificate to request with incorrect domain',
     query(`
-    INSERT INTO certificate_request (domain_name)
-    VALUES ('fakeDomain.com');
+      CALL certificate_request('fakeDomain.com', 'DNS', '${process.env.AWS_REGION}', '');
   `),
   );
   it('applies the new certificate request', apply());
@@ -100,33 +78,8 @@ describe('AwsAcmRequest Integration Testing', () => {
   it(
     'adds a new certificate to request',
     query(`
-    INSERT INTO certificate_request (domain_name)
-    VALUES ('${domainName}');
+      CALL certificate_request('${domainName}', 'DNS', '${process.env.AWS_REGION}', '');
   `),
-  );
-
-  it(
-    'check adds new certificate to request',
-    query(
-      `
-    SELECT *
-    FROM certificate_request;
-  `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
-
-  it('applies the new certificate request', apply());
-
-  it(
-    'check request row delete',
-    query(
-      `
-    SELECT *
-    FROM certificate_request;
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
   );
 
   it(
@@ -158,17 +111,6 @@ describe('AwsAcmRequest Integration Testing', () => {
   );
 
   it(
-    'check certificate request count after uninstall/install',
-    query(
-      `
-    SELECT *
-    FROM certificate_request;
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
-
-  it(
     'deletes a certificate requested',
     query(`
     DELETE FROM certificate
@@ -191,16 +133,9 @@ describe('AwsAcmRequest Integration Testing', () => {
   );
 
   it('creates a certificate request in non-default region', query(`
-      INSERT INTO certificate_request (domain_name, region)
-      VALUES ('${domainName}', 'us-east-1');
-  `));
-
-  it('applies the creation of the certificate request in non-default region', apply());
-
-  it('checks the removal of the certificate request', query(`
-      SELECT *
-      FROM certificate_request;
-  `, (res: any[]) => expect(res.length).toBe(0)));
+      CALL certificate_request('${domainName}', 'DNS', 'us-east-1', '');
+  `),
+  );
 
   it('checks the certificate in non-default region is created and validated', query(`
       SELECT *
@@ -229,7 +164,7 @@ describe('AwsAcmRequest Integration Testing', () => {
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
-describe('AwsAcmRequest install/uninstall', () => {
+describe('AwsAcm Request install/uninstall', () => {
   it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -262,7 +197,7 @@ describe('AwsAcmRequest install/uninstall', () => {
 
   it('installs all modules', done => void iasql.install([], dbAlias, 'postgres', true).then(...finish(done)));
 
-  it('uninstalls the request module', uninstall(['aws_acm_request']));
+  it('uninstalls the acm module', uninstall(['aws_acm']));
 
   it('installs the module', install(['aws_acm_request']));
 

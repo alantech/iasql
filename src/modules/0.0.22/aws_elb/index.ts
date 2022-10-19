@@ -20,8 +20,8 @@ import {
 import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
-import { awsAcmListModule, awsSecurityGroupModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
+import { awsAcmModule, awsSecurityGroupModule } from '..';
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { SecurityGroup } from '../aws_security_group/entity';
 import { awsVpcModule } from '../aws_vpc';
@@ -76,8 +76,8 @@ class ListenerMapper extends MapperBase<Listener> {
       out.sslPolicy = l.SslPolicy;
       const cloudCertificate = l.Certificates.pop();
       out.certificate =
-        (await awsAcmListModule.certificate.db.read(ctx, cloudCertificate?.CertificateArn)) ??
-        (await awsAcmListModule.certificate.cloud.read(ctx, cloudCertificate?.CertificateArn));
+        (await awsAcmModule.certificate.db.read(ctx, cloudCertificate?.CertificateArn)) ??
+        (await awsAcmModule.certificate.cloud.read(ctx, cloudCertificate?.CertificateArn));
     }
     return out;
   }

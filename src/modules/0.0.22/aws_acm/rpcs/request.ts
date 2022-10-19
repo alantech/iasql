@@ -10,18 +10,25 @@ import {
 } from '@aws-sdk/client-acm';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
-import { AWS, paginateBuilder } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
-import { awsAcmListModule } from '../aws_acm_list';
-import { awsRoute53HostedZoneModule } from '../aws_route53_hosted_zones';
-import { HostedZone, ResourceRecordSet } from '../aws_route53_hosted_zones/entity';
-import { CertificateRequest, ValidationMethod } from './entity';
+import { AwsAcmModule } from '..';
+import { AWS, paginateBuilder } from '../../../../services/aws_macros';
+import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
+import { awsRoute53HostedZoneModule } from '../../aws_route53_hosted_zones';
+import { HostedZone, ResourceRecordSet } from '../../aws_route53_hosted_zones/entity';
+import { safeParse } from './common';
 
-class CertificateRequestMapper extends MapperBase<CertificateRequest> {
-  module: AwsAcmRequestModule;
-  entity = CertificateRequest;
-  entityId = (e: CertificateRequest) => e.id?.toString() ?? '';
-  equals = () => true; // only database values
+enum ValidationMethod {
+  DNS = 'DNS',
+  EMAIL = 'EMAIL',
+}
+
+export class CertificateRequestRpc extends RpcBase {
+  module: AwsAcmModule;
+  outputTable = {
+    arn: 'string',
+    status: 'string',
+    message: 'string',
+  } as const;
 
   getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');
 
@@ -161,83 +168,80 @@ class CertificateRequestMapper extends MapperBase<CertificateRequest> {
     }
   }
 
-  db = new Crud2<CertificateRequest>({
-    create: (es: CertificateRequest[], ctx: Context) => ctx.orm.save(CertificateRequest, es),
-    update: (es: CertificateRequest[], ctx: Context) => ctx.orm.save(CertificateRequest, es),
-    delete: (es: CertificateRequest[], ctx: Context) => ctx.orm.remove(CertificateRequest, es),
-    read: async (ctx: Context, id?: string) => {
-      const opts = id
-        ? {
-            where: {
-              id,
-            },
-          }
-        : {};
-      return await ctx.orm.find(CertificateRequest, opts);
-    },
-  });
-  cloud = new Crud2<CertificateRequest>({
-    create: async (es: CertificateRequest[], ctx: Context) => {
-      for (const e of es) {
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
-        const input: RequestCertificateCommandInput = {
-          CertificateAuthorityArn: e.arn,
-          DomainName: e.domainName,
-          DomainValidationOptions: e.domainValidationOptions,
-          SubjectAlternativeNames: e.subjectAlternativeNames,
-          ValidationMethod: e.validationMethod,
-        };
-        const requestedCertArn = await this.requestCertificate(client.acmClient, input);
-        if (!requestedCertArn) throw new Error('Error requesting certificate');
-        const requestedCert = await awsAcmListModule.certificate.cloud.read(ctx, requestedCertArn);
-        await this.module.certificateRequest.db.delete(e, ctx);
-        await awsAcmListModule.certificate.db.create(requestedCert, ctx);
+  call = async (
+    _dbId: string,
+    _dbUser: string,
+    ctx: Context,
+    domainName: string,
+    validationMethod: string,
+    region: string,
+    options: string,
+  ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
+    const opts = safeParse(options);
+    const client = (await ctx.getAwsClient(region)) as AWS;
+    const input: RequestCertificateCommandInput = {
+      CertificateAuthorityArn: opts?.arn,
+      DomainName: domainName,
+      DomainValidationOptions: opts?.domainValidationOptions,
+      SubjectAlternativeNames: opts?.subjectAlternativeNames,
+      ValidationMethod: validationMethod,
+    };
+    const requestedCertArn = await this.requestCertificate(client.acmClient, input);
+    if (!requestedCertArn) {
+      return [
+        {
+          arn: '',
+          status: 'ERROR',
+          message: 'Error requesting certificate',
+        },
+      ];
+    }
+    const requestedCert = await this.module.certificate.cloud.read(ctx, requestedCertArn);
+    await this.module.certificate.db.create(requestedCert, ctx);
 
-        // query the details of the certificate, to get the domain validation options
-        if (e.validationMethod === ValidationMethod.DNS) {
-          const result = await this.validateCertificate(client.acmClient, ctx, requestedCertArn);
-          // check if certificate has been validated
-          const certInput: DescribeCertificateCommandInput = {
-            CertificateArn: requestedCertArn,
-          };
-          const describedCert = await this.describeCertificate(client.acmClient, certInput);
-          if (!(describedCert.Certificate?.Status === CertificateStatus.ISSUED)) {
-            // not validated, need to remove it
-            const cloudCert = await awsAcmListModule.certificate.cloud.read(ctx, requestedCertArn);
-            if (cloudCert) {
-              await awsAcmListModule.certificate.cloud.delete(cloudCert, ctx);
-              await awsAcmListModule.certificate.db.delete(cloudCert, ctx);
-            }
-            throw new Error('Certificate could not be validated');
-          }
+    // query the details of the certificate, to get the domain validation options
+    if (validationMethod === ValidationMethod.DNS) {
+      await this.validateCertificate(client.acmClient, ctx, requestedCertArn);
+      // check if certificate has been validated
+      const certInput: DescribeCertificateCommandInput = {
+        CertificateArn: requestedCertArn,
+      };
+      const describedCert = await this.describeCertificate(client.acmClient, certInput);
+      if (!(describedCert.Certificate?.Status === CertificateStatus.ISSUED)) {
+        // not validated, need to remove it
+        const cloudCert = await this.module.certificate.cloud.read(ctx, requestedCertArn);
+        if (cloudCert) {
+          await this.module.certificate.cloud.delete(cloudCert, ctx);
+          await this.module.certificate.db.delete(cloudCert, ctx);
         }
+        return [
+          {
+            arn: requestedCertArn,
+            status: describedCert.Certificate?.Status,
+            message: 'Certificate could not be validated',
+          },
+        ];
       }
-    },
-    read: async () => {
-      return;
-    },
-    update: async () => {
-      return;
-    },
-    delete: async () => {
-      return;
-    },
-  });
+      return [
+        {
+          arn: requestedCertArn,
+          status: describedCert.Certificate?.Status,
+          message: 'Successfully validated the certificate',
+        },
+      ];
+    }
+    return [
+      {
+        arn: '',
+        status: 'PENDING',
+        message: 'Check your email for next steps to validate the certificate request',
+      },
+    ];
+  };
 
-  constructor(module: AwsAcmRequestModule) {
+  constructor(module: AwsAcmModule) {
     super();
     this.module = module;
     super.init();
   }
 }
-
-class AwsAcmRequestModule extends ModuleBase {
-  certificateRequest: CertificateRequestMapper;
-
-  constructor() {
-    super();
-    this.certificateRequest = new CertificateRequestMapper(this);
-    super.init();
-  }
-}
-export const awsAcmRequestModule = new AwsAcmRequestModule();

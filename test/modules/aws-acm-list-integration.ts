@@ -20,13 +20,13 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_acm_list'];
+const modules = ['aws_acm'];
 
 jest.setTimeout(240000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
-describe('AwsAcmList Integration Testing', () => {
+describe('AwsAcm List Integration Testing', () => {
   it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -53,7 +53,7 @@ describe('AwsAcmList Integration Testing', () => {
   `),
   );
 
-  it('installs the acm_list module', install(modules));
+  it('installs the acm module', install(modules));
 
   it(
     'adds a new certificate',
@@ -111,9 +111,9 @@ describe('AwsAcmList Integration Testing', () => {
     ),
   );
 
-  it('uninstalls the acm_list module', uninstall(modules));
+  it('uninstalls the acm module', uninstall(modules));
 
-  it('installs the acm_list module', install(modules));
+  it('installs the acm module', install(modules));
 
   it(
     'check count after uninstall/install',
@@ -130,7 +130,7 @@ describe('AwsAcmList Integration Testing', () => {
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
-describe('AwsAcmList install/uninstall', () => {
+describe('AwsAcm List install/uninstall', () => {
   it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -166,8 +166,7 @@ describe('AwsAcmList install/uninstall', () => {
   it(
     'uninstalls the module',
     uninstall([
-      'aws_acm_list',
-      'aws_acm_request',
+      'aws_acm',
       'aws_elb',
       'aws_ecs_fargate',
       'aws_ecs_simplified',
