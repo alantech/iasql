@@ -107,7 +107,7 @@ export class BucketMapper extends MapperBase<Bucket> {
       let client;
 
       for (const e of es) {
-        // if the bucket name exists into another region we cannot create it, throw error
+        // if the bucket name exists in another region we cannot create it, throw error
         for (const region of enabledRegions) {
           client = (await ctx.getAwsClient(region)) as AWS;
           try {

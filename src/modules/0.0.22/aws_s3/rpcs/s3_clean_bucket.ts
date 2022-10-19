@@ -48,23 +48,22 @@ export class S3CleanBucketRpc extends RpcBase {
     const client = (await ctx.getAwsClient(await ctx.getDefaultRegion())) as AWS;
 
     // first determine bucket region
-    let region = await this.getBucketLocation(client.s3Client, bucketName);
-    if (!region) region = 'us-east-1';
+    const region = (await this.getBucketLocation(client.s3Client, bucketName)) ?? 'us-east-1';
     const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
 
     if (region) {
       // check if it is on enabled regions
       if (enabledRegions.includes(region)) {
-        const client1 = (await ctx.getAwsClient(region)) as AWS;
+        const clientRegion = (await ctx.getAwsClient(region)) as AWS;
 
-        const objects = await this.getBucketObjects(client1.s3Client, bucketName);
+        const objects = await this.getBucketObjects(clientRegion.s3Client, bucketName);
         for (const object of objects) {
           // delete the object
-          await this.deleteBucketObject(client1.s3Client, bucketName, object.Key);
+          await this.deleteBucketObject(clientRegion.s3Client, bucketName, object.Key);
         }
 
         // query again to see if all objects have been deleted
-        const remainingObjects = await this.getBucketObjects(client1.s3Client, bucketName);
+        const remainingObjects = await this.getBucketObjects(clientRegion.s3Client, bucketName);
         if (!remainingObjects.length) {
           return [
             {
