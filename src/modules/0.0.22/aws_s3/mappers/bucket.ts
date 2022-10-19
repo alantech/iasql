@@ -124,10 +124,10 @@ export class BucketMapper extends MapperBase<Bucket> {
       let rawBuckets: BucketAWS[] = [];
 
       if (!!id) {
-        const { bucketName, region } = this.idFields(id);
+        const { name, region } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           const allBuckets = await this.getBuckets(client.s3Client);
-          const foundBucket = allBuckets.find((b: BucketAWS) => b.Name === bucketName);
+          const foundBucket = allBuckets.find((b: BucketAWS) => b.Name === name);
           if (foundBucket) {
             // read policy
             const input: GetBucketPolicyCommandInput = {
