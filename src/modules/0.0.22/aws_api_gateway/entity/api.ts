@@ -1,6 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 
 export enum Protocol {
   HTTP = 'HTTP',
@@ -45,12 +46,13 @@ export class Api {
   })
   version?: string;
 
-  // This column is joined to `aws_regions` manually via hooks in the `../sql` directory
   @Column({
     type: 'character varying',
     nullable: false,
     default: () => 'default_aws_region()',
   })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
   @cloudId
   region: string;
 }
