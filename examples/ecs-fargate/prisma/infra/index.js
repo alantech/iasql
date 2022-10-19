@@ -4,8 +4,32 @@ const pkg = require('./package.json');
 
 // TODO replace with your desired project name
 const appName = pkg.name;
+const cpRole = `${appName}codebuild`;
 const region = process.env.AWS_REGION;
 const port = 8088;
+
+const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipelineAdminAccess';
+const codebuildPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess';
+const cloudwatchLogsArn = 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess';
+const pushEcrPolicyArn = 'arn:aws:iam::aws:policy/EC2InstanceProfileForImageBuilderECRContainerBuilds';
+const assumeServicePolicy = {
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "codepipeline.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    },
+  ],
+  "Version": "2012-10-17"
+};
+const cpRoleData = {
+  role_name: cpRole,
+  assume_role_policy_document: assumeServicePolicy,
+  attached_policies_arns: [codepipelinePolicyArn, codebuildPolicyArn, cloudwatchLogsArn, pushEcrPolicyArn]
+}
+
 const ghUrl = 'https://github.com/iasql/iasql-engine';
 
 const prisma = new PrismaClient()
@@ -30,29 +54,11 @@ async function main() {
     select: { repository_uri: true }
   })).repository_uri;
 
-  const cbData = {
-    role_name: cbRole,
-    assume_role_policy_document: assumeServicePolicy,
-    attached_policies_arns: [codebuildPolicyArn, cloudwatchLogsArn, pushEcrPolicyArn]
-  }
-  await prisma.iam_role.upsert({
-    where: { role_name: cbRole },
-    create: cbData,
-    update: cbData,
-  });
-
-  // generate buildspec and store into an s3 bucket
-  const repoName = `${appName}-repository`;
-  const buildSpecRes = await prisma.$queryRaw`SELECT generate_put_ecr_image_build_spec(${region}, 'latest', ${repoName}, ${repoUri}, 'examples/ecs-fargate/prisma/app')`;
-  const buildSpec = buildSpecRes[0]['generate_put_ecr_image_build_spec'];
-
-  await prisma.
-
   // generate a pipeline for building image
   const stages = JSON.stringify([
     {
       name: 'Source',
-      actions: [
+      actions: [        
         {
           name: 'SourceAction',
           actionTypeId: {
@@ -105,31 +111,47 @@ async function main() {
     },
   ]);
 
+  const cpStore = { type: 'S3', location: bucketName };
 
-  const pjData = {
-    project_name: appName,
-    region,
-    source_type: 'GITHUB',
-    service_role_name: cbRole,
-    source_location: ghUrl,
-    build_spec: buildSpec,
+  const cpData = {
+    name: pipelineName,
+    artifact_store: cpStore,
+    stages: stages,
+    service_role_name: cpRole,
   };
+
+  await prisma.iam_role.upsert({
+    where: { role_name: cbRole },
+    create: cbRoleData,
+    update: cbRoleData,
+  });
+
+  await prisma.iam_role.upsert({
+    where: { role_name: cpRole },
+    create: cpRoleData,
+    update: cpRoleData,
+  });
+
+  await prisma.bucket.create({
+    data: cpBucketData
+  })
+
   await prisma.codebuild_project.upsert({
     where: { project_name_region: {project_name: appName, region } },
     create: pjData,
     update: pjData,
+  });    
+
+  await prisma.pipeline_declaration.upsert({
+    where: { name: pipelineName },
+    create: cpData,
+    update: cpData,
   });
 
-  console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`)
+  console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`);
 
-  await prisma.codebuild_build_import.create({
-    data: {
-      project_name: appName,
-      region
-    }
-  });
-
-  console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`)
+  // clean up bucket before finishing
+  console.dir(await prisma.$queryRaw`SELECT * FROM s3_clean_bucket(${bucketName});`);
 }
 
 main()
