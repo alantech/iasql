@@ -199,7 +199,7 @@ describe('AwsAcm Request install/uninstall', () => {
 
   it('uninstalls the acm module', uninstall(['aws_acm']));
 
-  it('installs the module', install(['aws_acm_request']));
+  it('installs the module', install(['aws_acm']));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
