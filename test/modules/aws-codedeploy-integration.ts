@@ -380,7 +380,6 @@ describe('Move deployments to another region', () => {
       SET region = '${nonDefaultRegion}'
       WHERE name = '${deploymentGroupName}';
   `)((e?: any) => {
-      console.log({ e });
       try {
         expect(e?.message).toContain('violates foreign key constraint');
       } catch (err) {
