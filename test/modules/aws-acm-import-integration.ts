@@ -49,7 +49,7 @@ describe('AwsAcm Import Integration Testing', () => {
   it('installs the acm module', install(modules));
 
   it('adds a new certificate to import', query(`
-    CALL certificate_import('${cert}', '${key}', '${process.env.AWS_REGION}', '');
+    SELECT * FROM certificate_import('${cert}', '${key}', '${process.env.AWS_REGION}', '');
   `));
 
   it('check new certificate added', query(`
@@ -82,7 +82,7 @@ describe('AwsAcm Import Integration Testing', () => {
   `, (res: any[]) => expect(res.length).toBe(0)));
 
   it('import a certificate in non-default region', query(`
-    CALL certificate_import('${cert}', '${key}', 'us-east-1', '');
+    SELECT * FROM certificate_import('${cert}', '${key}', '${process.env.AWS_REGION}', '');
   `));
 
   it('verifies the certificate in the non-default region is created', query(`

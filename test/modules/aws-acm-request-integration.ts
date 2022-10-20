@@ -78,7 +78,7 @@ describe('AwsAcm Request Integration Testing', () => {
   it(
     'adds a new certificate to request',
     query(`
-      CALL certificate_request('${domainName}', 'DNS', '${process.env.AWS_REGION}', '');
+      SELECT * FROM certificate_request('${domainName}', 'DNS', '${process.env.AWS_REGION}', '');
   `),
   );
 
@@ -133,7 +133,7 @@ describe('AwsAcm Request Integration Testing', () => {
   );
 
   it('creates a certificate request in non-default region', query(`
-      CALL certificate_request('${domainName}', 'DNS', 'us-east-1', '');
+      SELECT * FROM certificate_request('${domainName}', 'DNS', 'us-east-1', '');
   `),
   );
 
