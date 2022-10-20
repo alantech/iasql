@@ -2,47 +2,79 @@ const { PrismaClient } = require('@prisma/client');
 
 const pkg = require('./package.json');
 
+function getPrefix() {
+  const lowerCaseLetters = Array(26)
+    .fill('a')
+    .map((c, i) => String.fromCharCode(c.charCodeAt() + i));
+  const digits = Array(10)
+    .fill('0')
+    .map((c, i) => String.fromCharCode(c.charCodeAt() + i));
+  const chars = [lowerCaseLetters, digits].flat();
+  const randChar = ()  => chars[Math.floor(Math.random() * chars.length)];
+  const randLetter = () => lowerCaseLetters[Math.floor(Math.random() * lowerCaseLetters.length)];
+  return (
+    randLetter() +
+    Array(6)
+      .fill('')
+      .map(() => randChar())
+      .join('')
+  );
+}
+
 // TODO replace with your desired project name
 const appName = pkg.name;
-const cpRole = `${appName}codebuild`;
+const prefix = getPrefix();
+const cbRole = `${appName}codebuild`;
+const cpRole = `${appName}codepipeline`;
 const region = process.env.AWS_REGION;
 const port = 8088;
+const bucketName = `${prefix}-${appName}-bucket`;
 
-const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipelineAdminAccess';
+const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipelineFullAccess';
 const codebuildPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess';
 const cloudwatchLogsArn = 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess';
 const pushEcrPolicyArn = 'arn:aws:iam::aws:policy/EC2InstanceProfileForImageBuilderECRContainerBuilds';
+const s3PolicyArn = 'arn:aws:iam::aws:policy/AmazonS3FullAccess';
+
 const assumeServicePolicy = {
-  "Statement": [
+  Statement: [
     {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "codepipeline.amazonaws.com"
+      Effect: 'Allow',
+      Principal: {
+        Service: 'codepipeline.amazonaws.com',
       },
-      "Action": "sts:AssumeRole"
+      Action: 'sts:AssumeRole',
     },
   ],
-  "Version": "2012-10-17"
+  Version: '2012-10-17',
 };
+const cbRoleData = {
+  role_name: cbRole,
+  assume_role_policy_document: assumeServicePolicy,
+  attached_policies_arns: [codebuildPolicyArn, cloudwatchLogsArn, pushEcrPolicyArn]
+}
 const cpRoleData = {
   role_name: cpRole,
   assume_role_policy_document: assumeServicePolicy,
-  attached_policies_arns: [codepipelinePolicyArn, codebuildPolicyArn, cloudwatchLogsArn, pushEcrPolicyArn]
+  attached_policies_arns: [codepipelinePolicyArn, codebuildPolicyArn, s3PolicyArn],
+};
+
+const cpBucketData = {
+  name: bucketName,
+  region: region
 }
 
-const ghUrl = 'https://github.com/iasql/iasql-engine';
+const ghUrl = 'iasql-engine';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log("in main");
   const ecsData = {
     app_name: appName,
     public_ip: true,
     app_port: port,
-    image_tag: 'latest'
+    image_tag: 'latest',
   };
-  console.log("before ecs");
   await prisma.ecs_simplified.upsert({
     where: { app_name: appName},
     create: ecsData,
@@ -51,11 +83,31 @@ async function main() {
 
   console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`)
 
+  // generate codebuild project
+  const ghUrl = 'https://github.com/iasql/iasql-engine';
+
+  const repoUri = (await prisma.ecs_simplified.findFirst({
+    where: { app_name: appName },
+    select: { repository_uri: true }
+  })).repository_uri;
+
+  const repoName = `${appName}-repository`;
+  const buildSpecRes = await prisma.$queryRaw`SELECT generate_put_ecr_image_build_spec(${region}, 'latest', ${repoName}, ${repoUri}, 'examples/ecs-fargate/prisma/app')`;
+  const buildSpec = buildSpecRes[0]['generate_put_ecr_image_build_spec'];
+
+  const pjData = {
+    project_name: appName,
+    source_type: 'GITHUB',
+    service_role_name: cbRole,
+    source_location: ghUrl,
+    build_spec: buildSpec,
+  };
+
   // generate a pipeline for building image
-  const stages = JSON.stringify([
+  const stages = [
     {
       name: 'Source',
-      actions: [        
+      actions: [
         {
           name: 'SourceAction',
           actionTypeId: {
@@ -66,7 +118,7 @@ async function main() {
           },
           configuration: {
             Owner: 'iasql',
-            Repo: ghUrl,
+            Repo: 'iasql-engine',
             Branch: 'main',
             OAuthToken: `${process.env.GH_PAT}`,
           },
@@ -92,22 +144,21 @@ async function main() {
             category: 'Build',
             owner: 'AWS',
             version: '1',
-            provider: 'AWS CodeBuild',
+            provider: 'CodeBuild',
           },
           configuration: {
-            ProjectName: `${appName}`,
-            PrimarySource: 'Source'
+            ProjectName: appName,
+            PrimarySource: 'Source',
           },
           outputArtifacts: [
             {
-              name: "Image"
-            }
-          ]
+              name: 'Image',
+            },
+          ],
         },
       ],
     },
-  ]);
-
+  ];
   const cpStore = { type: 'S3', location: bucketName };
 
   const cpData = {
@@ -152,10 +203,10 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
+  .catch(e => {
     console.log(e);
-    throw e
+    throw e;
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });
