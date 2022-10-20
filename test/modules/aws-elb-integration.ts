@@ -301,7 +301,7 @@ describe('ELB Integration Testing', () => {
   it(
     'adds a new certificate to import',
     query(`
-      CALL certificate_import('${cert}', '${key}', '${process.env.AWS_REGION}', '');
+      SELECT * FROM certificate_import('${cert}', '${key}', '${process.env.AWS_REGION}', '');
   `),
   );
 
