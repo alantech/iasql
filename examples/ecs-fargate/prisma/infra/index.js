@@ -224,6 +224,7 @@ async function main() {
   // clean up bucket before finishing
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   console.dir(await prisma.$queryRaw`SELECT * FROM s3_clean_bucket(${bucketName});`);
 =======
   await prisma.$queryRaw`SELECT * FROM s3_clean_bucket('${bucketName}');`;
@@ -231,6 +232,9 @@ async function main() {
 =======
   console.dir(await prisma.$queryRaw`SELECT * FROM s3_clean_bucket('${bucketName}');`);
 >>>>>>> d1b23b81 (debug in s3)
+=======
+  console.dir(await prisma.$queryRaw`SELECT * FROM s3_clean_bucket(${bucketName});`);
+>>>>>>> 23029428 (fix in var interpolation)
 }
 
 main()
