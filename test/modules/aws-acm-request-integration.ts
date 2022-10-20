@@ -62,9 +62,9 @@ describe('AwsAcm Request Integration Testing', () => {
         SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${process.env.AWS_REGION}', '');
       `)((e: any) => {
         if (e instanceof Error) {
-          done();
+          return done();
         }
-        done('Somehow did not get an error back from the function');
+        return done('Somehow did not get an error back from the function');
       });
     }
   );
