@@ -177,7 +177,7 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
         }
         const deploymentGroup = await this.module.deploymentGroup.db.read(
           ctx,
-          `${d.deploymentGroup.name}|${d.region}`,
+          `${d.deploymentGroup.name}|${d.application.name}|${d.region}`,
         );
         if (deploymentGroup) {
           d.deploymentGroup.id = deploymentGroup.id;
