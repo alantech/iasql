@@ -499,28 +499,6 @@ export class ModuleBase {
       tables: [],
       functions: [],
     };
-    // Should we also be doing this for `beforeInstallSql`?
-    try {
-      const afterInstallSqlParsed = parse(afterInstallSql);
-      const tableStmts = afterInstallSqlParsed.filter((s: any) =>
-        Object.keys(s.RawStmt?.stmt ?? {}).includes('CreateStmt'),
-      );
-      this.provides.tables.push(
-        ...tableStmts
-          .map((ts: any) => ts.RawStmt?.stmt?.CreateStmt?.relation?.relname)
-          .filter((v: string | undefined) => !!v),
-      );
-      const fnStmts = afterInstallSqlParsed.filter((s: any) =>
-        Object.keys(s.RawStmt?.stmt ?? {}).includes('CreateFunctionStmt'),
-      );
-      this.provides.functions.push(
-        ...fnStmts
-          .map((fns: any) => fns.RawStmt?.stmt?.CreateFunctionStmt?.funcname?.pop()?.String?.str)
-          .filter((v: string | undefined) => !!v),
-      );
-    } catch (_) {
-      /** Do nothing */
-    }
     if (this.context) this.provides.context = this.context;
     this.migrations = {
       install: async (_q: QueryRunner) => undefined,
@@ -529,11 +507,15 @@ export class ModuleBase {
     const afterInstallMigration = afterInstallSql + rpcAfterInstallSql;
     const beforeUninstallMigration = rpcBeforeUninstallSql + beforeUninstallSql;
     if (beforeInstallSql) {
+      this.provides.tables.push(...this.getFromSql('tables', beforeInstallSql));
+      this.provides.functions.push(...this.getFromSql('functions', beforeInstallSql));
       this.migrations.beforeInstall = async (q: QueryRunner) => {
         await q.query(beforeInstallSql);
       };
     }
     if (afterInstallMigration) {
+      this.provides.tables.push(...this.getFromSql('tables', afterInstallMigration));
+      this.provides.functions.push(...this.getFromSql('functions', afterInstallMigration));
       this.migrations.afterInstall = async (q: QueryRunner) => {
         await q.query(afterInstallMigration);
       };
@@ -548,6 +530,24 @@ export class ModuleBase {
         await q.query(afterUninstallSql);
       };
     }
+  }
+
+  getFromSql(stmtType: 'tables' | 'functions', sql: string): string[] {
+    try {
+      const sqlParsed = parse(sql);
+      const stmtKey = stmtType === 'tables' ? 'CreateStmt' : 'CreateFunctionStmt';
+      return sqlParsed
+        .filter((s: any) => Object.keys(s.RawStmt?.stmt ?? {}).includes(stmtKey))
+        .map((s: any) => {
+          return stmtType === 'tables'
+            ? s.RawStmt?.stmt?.CreateStmt?.relation?.relname
+            : s.RawStmt?.stmt?.CreateFunctionStmt?.funcname?.pop()?.String?.str;
+        })
+        .filter((v: string | undefined) => !!v);
+    } catch (_) {
+      /** Do nothing */
+    }
+    return [];
   }
 
   loadTypeORM() {
