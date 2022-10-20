@@ -15,6 +15,7 @@ import { AWS, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
 import { awsRoute53HostedZoneModule } from '../../aws_route53_hosted_zones';
 import { HostedZone, ResourceRecordSet } from '../../aws_route53_hosted_zones/entity';
+import { Certificate } from '../entity';
 import { safeParse } from './common';
 
 enum ValidationMethod {
@@ -197,7 +198,7 @@ export class CertificateRequestRpc extends RpcBase {
       ];
     }
     const requestedCert = await this.module.certificate.cloud.read(ctx, requestedCertArn);
-    await this.module.certificate.db.create(requestedCert, ctx);
+    const dbCert = await this.module.certificate.db.create(requestedCert, ctx);
 
     // query the details of the certificate, to get the domain validation options
     if (validationMethod === ValidationMethod.DNS) {
@@ -221,6 +222,11 @@ export class CertificateRequestRpc extends RpcBase {
             message: 'Certificate could not be validated',
           },
         ];
+      } else {
+        // Update the cert in the DB with the latest version
+        const cert = await this.module.certificate.cloud.read(ctx, requestedCertArn);
+        if (dbCert instanceof Certificate) cert.id = dbCert.id;
+        await this.module.certificate.db.update(cert, ctx);
       }
       return [
         {
