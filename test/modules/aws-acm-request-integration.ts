@@ -197,7 +197,20 @@ describe('AwsAcm Request install/uninstall', () => {
 
   it('installs all modules', done => void iasql.install([], dbAlias, 'postgres', true).then(...finish(done)));
 
-  it('uninstalls the acm module', uninstall(['aws_acm', 'aws_elb', 'aws_route53_hosted_zones', 'aws_ec2']));
+  it(
+    'uninstalls the acm module',
+    uninstall([
+      'aws_acm',
+      'aws_elb',
+      'aws_ecs_fargate',
+      'aws_ecs_simplified',
+      'aws_ec2',
+      'aws_ec2_metadata',
+      'aws_route53_hosted_zones',
+      'aws_codedeploy',
+      'aws_codepipeline',
+    ]),
+  );
 
   it('installs the module', install(['aws_acm']));
 
