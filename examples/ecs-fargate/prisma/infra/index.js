@@ -30,6 +30,7 @@ const region = process.env.AWS_REGION;
 const port = 8088;
 const bucketName = `${prefix}-${appName}-bucket`;
 
+
 const codepipelinePolicyArn = 'arn:aws:iam::aws:policy/AWSCodePipelineFullAccess';
 const codebuildPolicyArn = 'arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess';
 const cloudwatchLogsArn = 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess';
@@ -212,7 +213,11 @@ async function main() {
   console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`);
 
   // clean up bucket before finishing
+<<<<<<< HEAD
   console.dir(await prisma.$queryRaw`SELECT * FROM s3_clean_bucket(${bucketName});`);
+=======
+  await prisma.$queryRaw`SELECT * FROM s3_clean_bucket('${bucketName}');`;
+>>>>>>> b6df01d9 (fix syntax on clean bucket)
 }
 
 main()
