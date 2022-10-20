@@ -176,7 +176,11 @@ async function main() {
   const cpStore = { type: 'S3', location: bucketName };
 
   const cpData = {
+<<<<<<< HEAD
     name: pipelineName,
+=======
+    name: appName,
+>>>>>>> 43cc79f6 (renaming pipeline)
     artifact_store: cpStore,
     stages: stages,
     service_role_name: cpRole,

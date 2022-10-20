@@ -46,25 +46,19 @@ export class S3CleanBucketRpc extends RpcBase {
         },
       ];
     }
-    console.log('region is');
-    console.log(await ctx.getDefaultRegion());
     const client = (await ctx.getAwsClient(await ctx.getDefaultRegion())) as AWS;
 
     // first determine bucket region
-    console.log('i want to clean bucket');
-    console.log(bucketName);
     const region = (await this.getBucketLocation(client.s3Client, bucketName)) ?? 'us-east-1';
-    console.log('region is');
-    console.log(region);
     const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
 
     if (region) {
       // check if it is on enabled regions
       if (enabledRegions.includes(region)) {
-        console.log('i am in region');
         const clientRegion = (await ctx.getAwsClient(region)) as AWS;
 
         const objects = await this.getBucketObjects(clientRegion.s3Client, bucketName);
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
         for (const o of objects) {
@@ -75,6 +69,8 @@ export class S3CleanBucketRpc extends RpcBase {
 =======
         console.log('after read objects');
 >>>>>>> d1b23b81 (debug in s3)
+=======
+>>>>>>> 43cc79f6 (renaming pipeline)
         for (const object of objects) {
 >>>>>>> 68ecfeb2 (add logging information)
           // delete the object
@@ -91,9 +87,7 @@ export class S3CleanBucketRpc extends RpcBase {
         }
 
         // query again to see if all objects have been deleted
-        console.log('before requery objects');
         const remainingObjects = await this.getBucketObjects(clientRegion.s3Client, bucketName);
-        console.log('after remaining objects');
         if (!remainingObjects.length) {
           return [
             {
