@@ -200,7 +200,8 @@ export class CertificateRequestRpc extends RpcBase {
       ];
     }
     const requestedCert = await this.module.certificate.cloud.read(ctx, requestedCertArn);
-    const dbCert = await this.module.certificate.db.create(requestedCert, ctx);
+    await this.module.certificate.db.create(requestedCert, ctx);
+    const dbCert = await this.module.certificate.db.read(ctx, requestedCertArn);
     console.log({ dbCert, });
 
     // query the details of the certificate, to get the domain validation options
