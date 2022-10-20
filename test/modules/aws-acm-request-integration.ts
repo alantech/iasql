@@ -53,15 +53,23 @@ describe('AwsAcm Request Integration Testing', () => {
   `),
   );
 
-  it('installs the acm module', install(modules));
+  it('installs the acm module alone', install(['aws_acm']));
 
   it(
-    'adds a new certificate to request with incorrect domain',
+    'adds a new certificate to request with a domain without route53 support',
     query(`
       SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${process.env.AWS_REGION}', '');
-  `),
+    `, console.log),
   );
-  it('applies the new certificate request', apply());
+
+  it('installs the rest of the modules needed', install(modules));
+
+  it(
+    'adds a new certificate to request with a fake domain',
+    query(`
+      SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${process.env.AWS_REGION}', '');
+    `, console.log),
+  );
 
   it(
     'check new certificate was not created',

@@ -15,6 +15,7 @@ import { AWS, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
 import { awsRoute53HostedZoneModule } from '../../aws_route53_hosted_zones';
 import { HostedZone, ResourceRecordSet } from '../../aws_route53_hosted_zones/entity';
+import { modules } from '../../iasql_functions/iasql';
 import { Certificate } from '../entity';
 import { safeParse } from './common';
 
@@ -170,7 +171,7 @@ export class CertificateRequestRpc extends RpcBase {
   }
 
   call = async (
-    _dbId: string,
+    dbId: string,
     _dbUser: string,
     ctx: Context,
     domainName: string,
@@ -178,6 +179,16 @@ export class CertificateRequestRpc extends RpcBase {
     region: string,
     options: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
+    if (validationMethod === ValidationMethod.DNS) {
+      const installedModules = await modules(false, true, dbId);
+      if (!installedModules.map(m => m.moduleName).includes('aws_route53_hosted_zones')) {
+        // TODO: Should the other error path, which is an AWS error instead of a user error, also
+        // use the 'throw new Error' pattern?
+        throw new Error(
+          'DNS validated certificates only possible if "aws_route53_hosted_zones" is installed',
+        );
+      }
+    }
     const opts = safeParse(options);
     const client = (await ctx.getAwsClient(region)) as AWS;
     const input: RequestCertificateCommandInput = {
