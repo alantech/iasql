@@ -1,6 +1,7 @@
 import callsite from 'callsite';
 import fs from 'fs';
 import path from 'path';
+import { parse } from 'pgsql-parser';
 import { QueryRunner, getMetadataArgsStorage, ColumnType } from 'typeorm';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
@@ -498,8 +499,27 @@ export class ModuleBase {
       tables: [],
       functions: [],
     };
-    if (/^create table/i.test(afterInstallSql)) {
-      this.provides.tables.push((afterInstallSql.match(/^[^"]*"([^"]*)"/) ?? [])[1]);
+    // Should we also be doing this for `beforeInstallSql`?
+    try {
+      const afterInstallSqlParsed = parse(afterInstallSql);
+      const tableStmts = afterInstallSqlParsed.filter((s: any) =>
+        Object.keys(s.RawStmt?.stmt ?? {}).includes('CreateStmt'),
+      );
+      this.provides.tables.push(
+        ...tableStmts
+          .map((ts: any) => ts.RawStmt?.stmt?.CreateStmt?.relation?.relname)
+          .filter((v: string | undefined) => !!v),
+      );
+      const fnStmts = afterInstallSqlParsed.filter((s: any) =>
+        Object.keys(s.RawStmt?.stmt ?? {}).includes('CreateFunctionStmt'),
+      );
+      this.provides.functions.push(
+        ...fnStmts
+          .map((fs: any) => fs.RawStmt?.stmt?.CreateFunctionStmt?.funcname?.pop()?.String?.str)
+          .filter((v: string | undefined) => !!v),
+      );
+    } catch (_) {
+      /** Do nothing */
     }
     if (this.context) this.provides.context = this.context;
     this.migrations = {
