@@ -170,6 +170,19 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       return out;
     },
     delete: async (deployments: CodedeployDeployment[], ctx: Context) => {
+      for (const d of deployments) {
+        const application = await this.module.application.db.read(ctx, `${d.application.name}|${d.region}`);
+        if (application) {
+          d.application.id = application.id;
+        }
+        const deploymentGroup = await this.module.deploymentGroup.db.read(
+          ctx,
+          `${d.deploymentGroup.name}|${d.region}`,
+        );
+        if (deploymentGroup) {
+          d.deploymentGroup.id = deploymentGroup.id;
+        }
+      }
       const out = await this.module.deployment.db.create(deployments, ctx);
       if (!out || out instanceof Array) return out;
       return [out];
