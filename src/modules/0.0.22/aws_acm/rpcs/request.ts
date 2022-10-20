@@ -25,9 +25,9 @@ enum ValidationMethod {
 export class CertificateRequestRpc extends RpcBase {
   module: AwsAcmModule;
   outputTable = {
-    arn: 'text',
-    status: 'text',
-    message: 'text',
+    arn: 'varchar',
+    status: 'varchar',
+    message: 'varchar',
   } as const;
 
   getCertificatesSummary = paginateBuilder<ACM>(paginateListCertificates, 'CertificateSummaryList');

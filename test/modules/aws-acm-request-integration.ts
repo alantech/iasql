@@ -58,7 +58,7 @@ describe('AwsAcm Request Integration Testing', () => {
   it(
     'adds a new certificate to request with incorrect domain',
     query(`
-      CALL certificate_request('fakeDomain.com', 'DNS', '${process.env.AWS_REGION}', '');
+      SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${process.env.AWS_REGION}', '');
   `),
   );
   it('applies the new certificate request', apply());
@@ -197,7 +197,7 @@ describe('AwsAcm Request install/uninstall', () => {
 
   it('installs all modules', done => void iasql.install([], dbAlias, 'postgres', true).then(...finish(done)));
 
-  it('uninstalls the acm module', uninstall(['aws_acm']));
+  it('uninstalls the acm module', uninstall(['aws_acm', 'aws_elb']));
 
   it('installs the module', install(['aws_acm']));
 

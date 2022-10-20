@@ -301,33 +301,8 @@ describe('ELB Integration Testing', () => {
   it(
     'adds a new certificate to import',
     query(`
-        INSERT INTO certificate_import (certificate, private_key)
-        VALUES ('${cert}', '${key}');
-    `),
-  );
-
-  it(
-    'check adds new certificate to import',
-    query(
-      `
-          SELECT *
-          FROM certificate_import;
-      `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
-
-  it('applies the new certificate import', apply());
-
-  it(
-    'check import row delete',
-    query(
-      `
-          SELECT *
-          FROM certificate_import;
-      `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
+      CALL certificate_import('${cert}', '${key}', '${process.env.AWS_REGION}', '');
+  `),
   );
 
   it(
