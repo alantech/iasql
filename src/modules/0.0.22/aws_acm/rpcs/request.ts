@@ -188,7 +188,9 @@ export class CertificateRequestRpc extends RpcBase {
       ValidationMethod: validationMethod,
     };
     const requestedCertArn = await this.requestCertificate(client.acmClient, input);
+    console.log({ requestedCertArn, });
     if (!requestedCertArn) {
+      console.log('a');
       return [
         {
           arn: '',
@@ -199,6 +201,7 @@ export class CertificateRequestRpc extends RpcBase {
     }
     const requestedCert = await this.module.certificate.cloud.read(ctx, requestedCertArn);
     const dbCert = await this.module.certificate.db.create(requestedCert, ctx);
+    console.log({ dbCert, });
 
     // query the details of the certificate, to get the domain validation options
     if (validationMethod === ValidationMethod.DNS) {
@@ -208,6 +211,7 @@ export class CertificateRequestRpc extends RpcBase {
         CertificateArn: requestedCertArn,
       };
       const describedCert = await this.describeCertificate(client.acmClient, certInput);
+      console.log({ describedCert, });
       if (!(describedCert.Certificate?.Status === CertificateStatus.ISSUED)) {
         // not validated, need to remove it
         const cloudCert = await this.module.certificate.cloud.read(ctx, requestedCertArn);
@@ -215,6 +219,7 @@ export class CertificateRequestRpc extends RpcBase {
           await this.module.certificate.cloud.delete(cloudCert, ctx);
           await this.module.certificate.db.delete(cloudCert, ctx);
         }
+        console.log('b');
         return [
           {
             arn: requestedCertArn,
@@ -226,8 +231,10 @@ export class CertificateRequestRpc extends RpcBase {
         // Update the cert in the DB with the latest version
         const cert = await this.module.certificate.cloud.read(ctx, requestedCertArn);
         if (dbCert instanceof Certificate) cert.id = dbCert.id;
+        console.log({ cert, });
         await this.module.certificate.db.update(cert, ctx);
       }
+      console.log('c');
       return [
         {
           arn: requestedCertArn,
@@ -236,6 +243,7 @@ export class CertificateRequestRpc extends RpcBase {
         },
       ];
     }
+    console.log('d');
     return [
       {
         arn: '',
