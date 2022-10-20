@@ -48,9 +48,22 @@ const assumeServicePolicy = {
   ],
   Version: '2012-10-17',
 };
+const assumeServicePolicyCodebuild = {
+  Statement: [
+    {
+      Effect: 'Allow',
+      Principal: {
+        Service: 'codebuild.amazonaws.com',
+      },
+      Action: 'sts:AssumeRole',
+    },
+  ],
+  Version: '2012-10-17',
+};
+
 const cbRoleData = {
   role_name: cbRole,
-  assume_role_policy_document: assumeServicePolicy,
+  assume_role_policy_document: assumeServicePolicyCodebuild,
   attached_policies_arns: [codebuildPolicyArn, cloudwatchLogsArn, pushEcrPolicyArn]
 }
 const cpRoleData = {
