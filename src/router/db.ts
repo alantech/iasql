@@ -169,15 +169,15 @@ db.post('/run/:dbAlias', async (req, res) => {
 
 db.post('/event', async (req, res) => {
   logger.info('Calling /event');
-  const { dbAlias, eventName, ampDeviceId, buttonAlias } = req.body;
+  const { dbAlias, eventName, ampDeviceId, buttonAlias, sql } = req.body;
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
   if (dbAlias) {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     const dbId = database.pgName;
-    telemetry.logEvent(eventName.toUpperCase(), { dbAlias, dbId, email }, { buttonAlias }, uid, ampDeviceId);
+    telemetry.logEvent(eventName.toUpperCase(), { dbAlias, dbId, email }, { buttonAlias, sql }, uid, ampDeviceId);
   } else {
-    telemetry.logEvent(eventName.toUpperCase(), { email }, { buttonAlias }, uid, ampDeviceId);
+    telemetry.logEvent(eventName.toUpperCase(), { email }, { buttonAlias, sql }, uid, ampDeviceId);
   }
   res.json(`event registered`);
 });
