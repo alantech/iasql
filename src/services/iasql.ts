@@ -1371,7 +1371,8 @@ export async function upgrade(dbId: string, dbUser: string) {
             `../modules/${config.modules.latestVersion}/iasql_functions/iasql`
           );
           const memo: any = {}; // TODO: Stronger typing here
-          const context: Context = { orm: conn, memo }; // Every module gets access to the DB
+          const orm = await TypeormWrapper.createConn(dbId);
+          const context: Context = { orm, memo }; // Every module gets access to the DB
           await continueUpgrade(dbId, dbUser, context, creds, mods);
         }
       } catch (e) {
