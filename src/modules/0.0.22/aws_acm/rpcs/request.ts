@@ -229,7 +229,14 @@ export class CertificateRequestRpc extends RpcBase {
         ];
       } else {
         // Update the cert in the DB with the latest version
-        const cert = await this.module.certificate.cloud.read(ctx, requestedCertArn);
+        let cert = await this.module.certificate.cloud.read(ctx, requestedCertArn);
+        // There can be some weird eventual consistency issues here, so wait until the status is 
+        // issued again, if necessary
+        let i = 30;
+        while (cert.status !== CertificateStatus.ISSUED && (i--) > 0) {
+          await new Promise(r => setTimeout(r, 3000));
+          cert = await this.module.certificate.cloud.read(ctx, requestedCertArn);
+        }
         if (dbCert instanceof Certificate) cert.id = dbCert.id;
         console.log({ cert, });
         await this.module.certificate.db.update(cert, ctx);
