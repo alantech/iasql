@@ -1367,7 +1367,9 @@ export async function upgrade(dbId: string, dbUser: string) {
         // 6. Install the `aws_account` module and then re-insert the creds if present, then add
         //    the rest of the modules back.
         if (!!creds) {
-          const { continueUpgrade } = await import(`../modules/${config.modules.latestVersion}/iasql_functions/iasql`);
+          const { continueUpgrade } = await import(
+            `../modules/${config.modules.latestVersion}/iasql_functions/iasql`
+          );
           const memo: any = {}; // TODO: Stronger typing here
           const context: Context = { orm: conn, memo }; // Every module gets access to the DB
           await continueUpgrade(dbId, dbUser, context, creds, mods);
