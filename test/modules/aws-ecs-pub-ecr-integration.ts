@@ -153,15 +153,16 @@ describe('ECS Integration Testing', () => {
       VALUES
           ('${serviceLoadBalancerName}', 'internet-facing', null, 'application', 'ipv4');
       INSERT INTO load_balancer_security_groups
-          (load_balancer_name, security_group_id)
+          (load_balancer_id, security_group_id)
       VALUES
-          ('${serviceLoadBalancerName}',
+          ((SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}'),
             (SELECT id FROM security_group WHERE group_name = '${securityGroup}' LIMIT 1));
       INSERT INTO listener
-          (load_balancer_name, port, protocol, action_type, target_group_name)
-      VALUES 
-          ('${serviceLoadBalancerName}',
-            ${hostPort}, 'HTTP', 'forward', '${serviceTargetGroupName}');
+          (load_balancer_id, port, protocol, action_type, target_group_id)
+      VALUES
+          ((SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}'),
+            ${hostPort}, 'HTTP', 'forward',
+           (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}'));
     COMMIT;
   `));
 
@@ -242,8 +243,8 @@ describe('ECS Integration Testing', () => {
   // Service
   it('adds a new service', query(`
     BEGIN;
-      INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name)
-      VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${process.env.AWS_REGION}' limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), '${serviceTargetGroupName}');
+      INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_id)
+      VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${process.env.AWS_REGION}' limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}'));
 
       INSERT INTO service_security_groups (service_name, security_group_id)
       VALUES ('${servicePublicRepositoryName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
@@ -343,13 +344,13 @@ describe('ECS Integration Testing', () => {
   it('deletes service dependencies', query(`
     BEGIN;
       DELETE FROM listener
-      WHERE load_balancer_name = '${serviceLoadBalancerName}'
-        and port = ${hostPort} and protocol = 'HTTP' and action_type = 'forward' 
-        and target_group_name = '${serviceTargetGroupName}';
+      WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}')
+        and port = ${hostPort} and protocol = 'HTTP' and action_type = 'forward'
+        and target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}');
 
       DELETE FROM load_balancer_security_groups
-      WHERE load_balancer_name = '${serviceLoadBalancerName}';
-    
+      WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = '${serviceLoadBalancerName}');
+
       DELETE FROM load_balancer
       WHERE load_balancer_name = '${serviceLoadBalancerName}';
 

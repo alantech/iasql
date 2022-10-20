@@ -1,7 +1,7 @@
 import {
+  DescribeNetworkInterfacesCommandInput,
   EC2,
   paginateDescribeSubnets,
-  DescribeNetworkInterfacesCommandInput,
   paginateDescribeVpcs,
 } from '@aws-sdk/client-ec2';
 import {
@@ -12,30 +12,31 @@ import {
   Listener as ListenerAws,
   LoadBalancer as LoadBalancerAws,
   ModifyListenerCommandInput,
-  TargetGroup as TargetGroupAws,
   paginateDescribeListeners,
   paginateDescribeLoadBalancers,
   paginateDescribeTargetGroups,
+  TargetGroup as TargetGroupAws,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
+import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { awsAcmListModule, awsSecurityGroupModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
+import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { SecurityGroup } from '../aws_security_group/entity';
 import { awsVpcModule } from '../aws_vpc';
 import { Vpc } from '../aws_vpc/entity';
 import {
   ActionTypeEnum,
+  IpAddressType,
   Listener,
   LoadBalancer,
-  TargetGroup,
-  IpAddressType,
   LoadBalancerSchemeEnum,
   LoadBalancerStateEnum,
   LoadBalancerTypeEnum,
   ProtocolEnum,
   ProtocolVersionEnum,
+  TargetGroup,
   TargetGroupIpAddressTypeEnum,
   TargetTypeEnum,
 } from './entity';
@@ -111,9 +112,13 @@ class ListenerMapper extends MapperBase<Listener> {
 
   cloud: Crud2<Listener> = new Crud2({
     create: async (es: Listener[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        if (e.loadBalancer && e.loadBalancer.region !== e.targetGroup.region)
+          throw new Error('Target group and load balancer are not from the same region.');
+
+        const region = e.targetGroup.region;
+        const client = (await ctx.getAwsClient(region)) as AWS;
         const listenerInput: CreateListenerCommandInput = {
           Port: e.port,
           Protocol: e.protocol,
@@ -149,26 +154,32 @@ class ListenerMapper extends MapperBase<Listener> {
       }
       return out;
     },
-    read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (id) {
-        const rawListener = await this.getListener(client.elbClient, id);
-        if (!rawListener) return;
-        return await this.listenerMapper(rawListener, ctx);
-      } else {
-        const listeners = await (async () => {
-          // TODO: Should this behavior be standard?
-          const loadBalancers = ctx.memo?.cloud?.LoadBalancer
-            ? Object.values(ctx.memo?.cloud?.LoadBalancer)
-            : await this.module.loadBalancer.cloud.read(ctx);
-          const loadBalancerArns = loadBalancers.map((lb: any) => lb.loadBalancerArn);
-          return await this.getListeners(client.elbClient, loadBalancerArns);
-        })();
-        const out = [];
-        for (const l of listeners) {
-          const o = await this.listenerMapper(l, ctx);
-          if (o) out.push(o);
+    read: async (ctx: Context, arn?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (arn) {
+        const region = parseArn(arn).region;
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawListener = await this.getListener(client.elbClient, arn);
+          if (!rawListener) return;
+          return await this.listenerMapper(rawListener, ctx);
         }
+      } else {
+        const out: Listener[] = [];
+        const loadBalancers = ctx.memo?.cloud?.LoadBalancer
+          ? Object.values(ctx.memo?.cloud?.LoadBalancer)
+          : await this.module.loadBalancer.cloud.read(ctx);
+
+        await Promise.all(
+          loadBalancers.map(async (lb: LoadBalancer) => {
+            const client = (await ctx.getAwsClient(lb.region)) as AWS;
+            const listeners = await this.getListenersForArn(client.elbClient, lb.loadBalancerArn);
+            for (const l of listeners) {
+              const o = await this.listenerMapper(l, ctx);
+              if (o) out.push(o);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -258,9 +269,10 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     Object.is(a.state, b.state) &&
     Object.is(a.subnets?.length, b.subnets?.length) &&
     (a.subnets?.every(asn => !!b.subnets?.find(bsn => Object.is(asn, bsn))) ?? false) &&
-    Object.is(a.vpc?.vpcId, b.vpc?.vpcId);
+    Object.is(a.vpc?.vpcId, b.vpc?.vpcId) &&
+    Object.is(a.region, b.region);
 
-  async loadBalancerMapper(lb: LoadBalancerAws, ctx: Context) {
+  async loadBalancerMapper(lb: LoadBalancerAws, ctx: Context, region: string) {
     const out = new LoadBalancer();
     if (!lb?.LoadBalancerName || !lb?.Scheme || !lb?.Type || !lb?.IpAddressType || !lb.VpcId) {
       return undefined;
@@ -299,6 +311,7 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     out.vpc = vpc;
     out.availabilityZones = lb.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
     out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
+    out.region = region;
     return out;
   }
 
@@ -359,6 +372,7 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     );
     return loadBalancer;
   }
+
   // TODO: Really refactor the client access in this thing later
   async deleteLoadBalancer(client: { elbClient: ElasticLoadBalancingV2; ec2client: EC2 }, arn: string) {
     await client.elbClient.deleteLoadBalancer({ LoadBalancerArn: arn });
@@ -417,10 +431,11 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
 
   cloud: Crud2<LoadBalancer> = new Crud2({
     create: async (es: LoadBalancer[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      const subnets = (await this.getSubnets(client.ec2client)).map(s => s.SubnetId ?? '');
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const subnets = (await this.getSubnets(client.ec2client)).map(s => s.SubnetId ?? '');
+
         const securityGroups = e.securityGroups?.map(sg => {
           if (!sg.groupId) throw new Error('Security group need to be loaded first');
           return sg.groupId;
@@ -446,27 +461,37 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
         const newObject = await this.getLoadBalancer(client.elbClient, result.LoadBalancerArn ?? '');
         if (!newObject) continue;
         // We map this into the same kind of entity as `obj`
-        const newEntity = await this.loadBalancerMapper(newObject, ctx);
+        const newEntity = await this.loadBalancerMapper(newObject, ctx, e.region);
         if (!newEntity) continue;
+        newEntity.id = e.id;
         // Save the record back into the database to get the new fields updated
         await this.module.loadBalancer.db.update(newEntity, ctx);
         out.push(newEntity);
       }
       return out;
     },
-    read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (id) {
-        const rawLoadBalancer = await this.getLoadBalancer(client.elbClient, id);
-        if (!rawLoadBalancer) return;
-        return await this.loadBalancerMapper(rawLoadBalancer, ctx);
-      } else {
-        const lbs = await this.getLoadBalancers(client.elbClient);
-        const out = [];
-        for (const lb of lbs) {
-          const o = await this.loadBalancerMapper(lb, ctx);
-          if (o) out.push(o);
+    read: async (ctx: Context, arn?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (arn) {
+        const region = parseArn(arn).region;
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawLoadBalancer = await this.getLoadBalancer(client.elbClient, arn);
+          if (!rawLoadBalancer) return;
+          return await this.loadBalancerMapper(rawLoadBalancer, ctx, region);
         }
+      } else {
+        const out: LoadBalancer[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const lbs = await this.getLoadBalancers(client.elbClient);
+            for (const lb of lbs) {
+              const o = await this.loadBalancerMapper(lb, ctx, region);
+              if (o) out.push(o);
+            }
+          }),
+        );
         return out;
       }
     },
@@ -476,7 +501,8 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
           Object.is(prev.loadBalancerName, next.loadBalancerName) &&
           Object.is(prev.loadBalancerType, next.loadBalancerType) &&
           Object.is(prev.scheme, next.scheme) &&
-          Object.is(prev.vpc?.vpcId, next.vpc?.vpcId)
+          Object.is(prev.vpc?.vpcId, next.vpc?.vpcId) &&
+          Object.is(prev.region, next.region)
         )
       ) {
         return 'replace';
@@ -484,9 +510,10 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
       return 'update';
     },
     update: async (es: LoadBalancer[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+
         const cloudRecord = ctx?.memo?.cloud?.LoadBalancer?.[e.loadBalancerArn ?? ''];
         let updatedRecord = { ...cloudRecord };
         const isUpdate = this.module.loadBalancer.cloud.updateOrReplace(cloudRecord, e) === 'update';
@@ -499,7 +526,7 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
             });
             const updatedLoadBalancer = await this.getLoadBalancer(client.elbClient, e.loadBalancerArn ?? '');
             if (!updatedLoadBalancer) continue;
-            updatedRecord = await this.loadBalancerMapper(updatedLoadBalancer, ctx);
+            updatedRecord = await this.loadBalancerMapper(updatedLoadBalancer, ctx, e.region);
           }
           // Update subnets
           if (
@@ -515,7 +542,7 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
             });
             const updatedLoadBalancer = await this.getLoadBalancer(client.elbClient, e.loadBalancerArn ?? '');
             if (!updatedLoadBalancer) continue;
-            updatedRecord = await this.loadBalancerMapper(updatedLoadBalancer, ctx);
+            updatedRecord = await this.loadBalancerMapper(updatedLoadBalancer, ctx, e.region);
           }
           // Update security groups
           if (
@@ -533,8 +560,9 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
             });
             const updatedLoadBalancer = await this.getLoadBalancer(client.elbClient, e.loadBalancerArn ?? '');
             if (!updatedLoadBalancer) continue;
-            updatedRecord = await this.loadBalancerMapper(updatedLoadBalancer, ctx);
+            updatedRecord = await this.loadBalancerMapper(updatedLoadBalancer, ctx, e.region);
           }
+          updatedRecord.id = e.id;
           await this.module.loadBalancer.db.update(updatedRecord, ctx);
           out.push(updatedRecord);
         } else {
@@ -547,8 +575,8 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
       return out;
     },
     delete: async (es: LoadBalancer[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteLoadBalancer({ ...client }, e.loadBalancerArn!);
       }
     },
@@ -580,9 +608,10 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
     Object.is(a.healthCheckIntervalSeconds, b.healthCheckIntervalSeconds) &&
     Object.is(a.healthCheckTimeoutSeconds, b.healthCheckTimeoutSeconds) &&
     Object.is(a.healthyThresholdCount, b.healthyThresholdCount) &&
-    Object.is(a.unhealthyThresholdCount, b.unhealthyThresholdCount);
+    Object.is(a.unhealthyThresholdCount, b.unhealthyThresholdCount) &&
+    Object.is(a.region, b.region);
 
-  async targetGroupMapper(tg: any, ctx: Context) {
+  async targetGroupMapper(tg: any, ctx: Context, region: string) {
     const out = new TargetGroup();
     if (!tg?.TargetGroupName) return undefined;
     out.targetGroupName = tg.TargetGroupName;
@@ -609,6 +638,7 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
     } catch (e: any) {
       if (e.Code === 'InvalidVpcID.NotFound') return undefined;
     }
+    out.region = region;
     return out;
   }
 
@@ -648,11 +678,12 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
 
   cloud: Crud2<TargetGroup> = new Crud2({
     create: async (es: TargetGroup[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      const vpcs = await this.getVpcs(client.ec2client);
-      const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const vpcs = await this.getVpcs(client.ec2client);
+        const defaultVpc = vpcs.find(vpc => vpc.IsDefault === true) ?? {};
+
         const result = await this.createTargetGroup(client.elbClient, {
           Name: e.targetGroupName,
           TargetType: e.targetType,
@@ -678,26 +709,32 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getTargetGroup(client.elbClient, result.TargetGroupArn ?? '');
         // We map this into the same kind of entity as `obj`
-        const newEntity = await this.targetGroupMapper(newObject, ctx);
+        const newEntity = await this.targetGroupMapper(newObject, ctx, e.region);
         if (!newEntity) continue;
+        newEntity.id = e.id;
         // Save the record back into the database to get the new fields updated
         await this.module.targetGroup.db.update(newEntity, ctx);
         out.push(newEntity);
       }
       return out;
     },
-    read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (id) {
-        const rawTargetGroup = await this.getTargetGroup(client.elbClient, id);
+    read: async (ctx: Context, arn?: string) => {
+      if (arn) {
+        const region = parseArn(arn).region;
+        const client = (await ctx.getAwsClient(region)) as AWS;
+        const rawTargetGroup = await this.getTargetGroup(client.elbClient, arn);
         if (!rawTargetGroup) return;
-        return await this.targetGroupMapper(rawTargetGroup, ctx);
+        return await this.targetGroupMapper(rawTargetGroup, ctx, region);
       } else {
-        const tgs = await this.getTargetGroups(client.elbClient);
         const out = [];
-        for (const tg of tgs) {
-          const tgMapped = await this.targetGroupMapper(tg, ctx);
-          if (tgMapped) out.push(tgMapped);
+        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const tgs = await this.getTargetGroups(client.elbClient);
+          for (const tg of tgs) {
+            const tgMapped = await this.targetGroupMapper(tg, ctx, region);
+            if (tgMapped) out.push(tgMapped);
+          }
         }
         return out;
       }
@@ -711,7 +748,8 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
           Object.is(prev.port, next.port) &&
           Object.is(prev.protocol, next.protocol) &&
           Object.is(prev.ipAddressType, next.ipAddressType) &&
-          Object.is(prev.protocolVersion, next.protocolVersion)
+          Object.is(prev.protocolVersion, next.protocolVersion) &&
+          Object.is(prev.region, next.region)
         )
       ) {
         return 'replace';
@@ -747,7 +785,7 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
             HealthyThresholdCount: e.healthyThresholdCount,
             UnhealthyThresholdCount: e.unhealthyThresholdCount,
           });
-          const o = await this.targetGroupMapper(updatedTargetGroup, ctx);
+          const o = await this.targetGroupMapper(updatedTargetGroup, ctx, e.region);
           if (!o) continue;
           if (o instanceof Array) {
             out.push(...o);
@@ -765,8 +803,8 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
       return out;
     },
     delete: async (es: TargetGroup[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteTargetGroup(client.elbClient, e.targetGroupArn!);
       }
     },
@@ -792,4 +830,5 @@ class AwsElbModule extends ModuleBase {
     super.init();
   }
 }
+
 export const awsElbModule = new AwsElbModule();

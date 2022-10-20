@@ -15,9 +15,7 @@ export class AliasTarget {
   @ManyToOne(() => LoadBalancer, {
     eager: true,
   })
-  @JoinColumn({
-    name: 'load_balancer_name',
-  })
+  @JoinColumn()
   loadBalancer?: LoadBalancer;
 
   // TODO: Add gradually new alias target FKs

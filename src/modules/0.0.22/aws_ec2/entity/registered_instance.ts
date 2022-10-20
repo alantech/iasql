@@ -5,7 +5,7 @@ import { AwsRegions } from '../../aws_account/entity';
 import { TargetGroup } from '../../aws_elb/entity';
 
 @Entity()
-@Check('check_target_group_instance', 'check_target_group_instance(target_group)')
+@Check('check_target_group_instance', 'check_target_group_instance(target_group_id)')
 export class RegisteredInstance {
   @PrimaryGeneratedColumn()
   id: number;
@@ -26,11 +26,11 @@ export class RegisteredInstance {
   ])
   instance: Instance;
 
-  @ManyToOne(() => TargetGroup, targetGroup => targetGroup.targetGroupName, {
+  @ManyToOne(() => TargetGroup, {
     eager: true,
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'target_group' })
+  @JoinColumn()
   targetGroup: TargetGroup;
 
   @Column({
