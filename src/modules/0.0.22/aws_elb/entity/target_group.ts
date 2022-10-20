@@ -1,6 +1,7 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { Vpc } from '../../aws_vpc/entity';
 
 export enum TargetTypeEnum {
@@ -32,8 +33,12 @@ export enum ProtocolVersionEnum {
 }
 
 @Entity()
+@Index(['targetGroupName', 'region'], { unique: true })
 export class TargetGroup {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
   targetGroupName: string;
 
   @Column({
@@ -129,4 +134,13 @@ export class TargetGroup {
     enum: ProtocolVersionEnum,
   })
   protocolVersion?: ProtocolVersionEnum;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  region: string;
 }

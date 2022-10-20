@@ -398,8 +398,8 @@ describe('EC2 Integration Testing', () => {
       INSERT INTO target_group (target_group_name, target_type, protocol, port, health_check_path)
       VALUES ('${tgName}', '${tgType}', '${protocol}', ${tgPort}, '/health');
 
-      INSERT INTO registered_instance (instance, target_group)
-      SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), '${tgName}';
+      INSERT INTO registered_instance (instance, target_group_id)
+      SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
     COMMIT;
   `),
   );
@@ -422,7 +422,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -436,7 +436,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -449,11 +449,11 @@ describe('EC2 Integration Testing', () => {
     SELECT *
     FROM registered_instance
     INNER JOIN instance ON instance.id = registered_instance.instance
-    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-1';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}') AND instance.tags ->> 'name' = '${prefix}-1';
   `,
       (res: any[]) => {
         console.log(JSON.stringify(res));
-        return expect(res[0]['port']).toBe(tgPort);
+        return expect(res[0].port).toBe(tgPort);
       },
     ),
   );
@@ -461,8 +461,8 @@ describe('EC2 Integration Testing', () => {
   it(
     'register instance with custom port to target group',
     query(`
-    INSERT INTO registered_instance (instance, target_group, port)
-    SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'), '${tgName}', ${instancePort}
+    INSERT INTO registered_instance (instance, target_group_id, port)
+    SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-2'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}'), ${instancePort}
   `),
   );
 
@@ -472,7 +472,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(2),
     ),
@@ -486,7 +486,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(2),
     ),
@@ -499,9 +499,9 @@ describe('EC2 Integration Testing', () => {
     SELECT *
     FROM registered_instance
     INNER JOIN instance ON instance.id = registered_instance.instance
-    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}') AND instance.tags ->> 'name' = '${prefix}-2';
   `,
-      (res: any[]) => expect(res[0]['port']).toBe(instancePort),
+      (res: any[]) => expect(res[0].port).toBe(instancePort),
     ),
   );
 
@@ -511,7 +511,7 @@ describe('EC2 Integration Testing', () => {
     UPDATE registered_instance
     SET port = ${instancePort + 1}
     FROM instance
-    WHERE instance.id = registered_instance.instance AND target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
+    WHERE instance.id = registered_instance.instance AND target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}') AND instance.tags ->> 'name' = '${prefix}-2';
   `),
   );
 
@@ -523,7 +523,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(2),
     ),
@@ -536,9 +536,9 @@ describe('EC2 Integration Testing', () => {
     SELECT *
     FROM registered_instance
     INNER JOIN instance ON instance.id = registered_instance.instance
-    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}') AND instance.tags ->> 'name' = '${prefix}-2';
   `,
-      (res: any[]) => expect(res[0]['port']).toBe(instancePort + 1),
+      (res: any[]) => expect(res[0].port).toBe(instancePort + 1),
     ),
   );
 
@@ -691,7 +691,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(2),
     ),
@@ -704,9 +704,9 @@ describe('EC2 Integration Testing', () => {
     SELECT *
     FROM registered_instance
     INNER JOIN instance ON instance.id = registered_instance.instance
-    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-1';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}') AND instance.tags ->> 'name' = '${prefix}-1';
   `,
-      (res: any[]) => expect(res[0]['port']).toBe(tgPort),
+      (res: any[]) => expect(res[0].port).toBe(tgPort),
     ),
   );
 
@@ -717,9 +717,9 @@ describe('EC2 Integration Testing', () => {
     SELECT *
     FROM registered_instance
     INNER JOIN instance ON instance.id = registered_instance.instance
-    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-2';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}') AND instance.tags ->> 'name' = '${prefix}-2';
   `,
-      (res: any[]) => expect(res[0]['port']).toBe(instancePort + 1),
+      (res: any[]) => expect(res[0].port).toBe(instancePort + 1),
     ),
   );
 
@@ -790,7 +790,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -804,7 +804,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -869,7 +869,7 @@ describe('EC2 Integration Testing', () => {
     BEGIN;
       DELETE FROM general_purpose_volume
       USING instance
-      WHERE instance.id = general_purpose_volume.attached_instance_id AND 
+      WHERE instance.id = general_purpose_volume.attached_instance_id AND
         (instance.tags ->> 'name' = '${prefix}-nosg' OR
         instance.tags ->> 'name' = '${prefix}-1' OR
         instance.tags ->> 'name' = '${prefix}-2');
@@ -918,7 +918,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
@@ -1125,7 +1125,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     FROM general_purpose_volume
     WHERE tags ->> 'Name' = '${gp2VolumeName}';
   `,
-      (res: any[]) => expect(res[0]['state']).toBe('available'),
+      (res: any[]) => expect(res[0].state).toBe('available'),
     ),
   );
 
@@ -1146,7 +1146,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     FROM general_purpose_volume
     WHERE tags ->> 'Name' = '${gp3VolumeName}';
   `,
-      (res: any[]) => expect(res[0]['size']).toBe(150),
+      (res: any[]) => expect(res[0].size).toBe(150),
     ),
   );
 
@@ -1180,7 +1180,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     FROM general_purpose_volume
     WHERE tags ->> 'Name' = '${gp3VolumeName}';
   `,
-      (res: any[]) => expect(res[0]['availability_zone']).toBe(availabilityZone2),
+      (res: any[]) => expect(res[0].availability_zone).toBe(availabilityZone2),
     ),
   );
 
@@ -1201,7 +1201,7 @@ describe('EC2 General Purpose Volume Integration Testing', () => {
     FROM general_purpose_volume
     WHERE tags ->> 'Name' = '${gp2VolumeName}';
   `,
-      (res: any[]) => expect(res[0]['tags']['updated']).toBe('true'),
+      (res: any[]) => expect(res[0].tags.updated).toBe('true'),
     ),
   );
 

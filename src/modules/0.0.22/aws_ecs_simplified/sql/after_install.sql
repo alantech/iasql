@@ -83,14 +83,14 @@ BEGIN
     (NEW.app_name || '-load-balancer', 'internet-facing', 'application', 'ipv4');
 
   INSERT INTO load_balancer_security_groups
-    (load_balancer_name, security_group_id)
+    (load_balancer_id, security_group_id)
   VALUES
-    (NEW.app_name || '-load-balancer', _security_group_id);
+    ((SELECT id FROM load_balancer WHERE load_balancer_name = NEW.app_name || '-load-balancer'), _security_group_id);
 
   INSERT INTO listener
-    (load_balancer_name, port, protocol, action_type, target_group_name)
+    (load_balancer_id, port, protocol, action_type, target_group_id)
   VALUES
-    (NEW.app_name || '-load-balancer', NEW.app_port, 'HTTP', 'forward', NEW.app_name || '-target');
+    ((SELECT id FROM load_balancer WHERE load_balancer_name = NEW.app_name || '-load-balancer'), NEW.app_port, 'HTTP', 'forward', (SELECT id FROM target_group WHERE target_group_name = NEW.app_name || '-target'));
 
   -- setup ecs: cloudwatch + iam + ecr
   INSERT INTO log_group (log_group_name) VALUES (NEW.app_name || '-log-group');
@@ -128,12 +128,12 @@ BEGIN
   END IF;
 
   -- create ECS service and associate it to security group
-  INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_name, force_new_deployment)
+  INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_id, force_new_deployment)
   VALUES (
     NEW.app_name || '-service', NEW.desired_count, (SELECT ARRAY(SELECT subnet_id FROM subnet WHERE vpc_id = (SELECT id FROM vpc WHERE is_default = true and vpc.region = (SELECT region FROM aws_regions WHERE is_default = TRUE) LIMIT 1) LIMIT 3)), (CASE WHEN NEW.public_ip THEN 'ENABLED' ELSE 'DISABLED' END)::service_assign_public_ip_enum,
     NEW.app_name || '-cluster',
     (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' ORDER BY revision DESC LIMIT 1),
-    NEW.app_name || '-target', NEW.force_new_deployment
+    (SELECT id FROM target_group WHERE target_group_name = NEW.app_name || '-target'), NEW.force_new_deployment
   );
 
   INSERT INTO service_security_groups (service_name, security_group_id)
@@ -193,10 +193,10 @@ BEGIN
 
   -- delete ELB
   DELETE FROM listener
-  WHERE load_balancer_name = OLD.app_name || '-load-balancer' AND target_group_name = OLD.app_name || '-target';
+  WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = OLD.app_name || '-load-balancer') AND target_group_id = (SELECT id FROM target_group WHERE target_group_name = OLD.app_name || '-target');
 
   DELETE FROM load_balancer_security_groups
-  WHERE load_balancer_name = OLD.app_name || '-load-balancer';
+  WHERE load_balancer_id = (SELECT id FROM load_balancer WHERE load_balancer_name = OLD.app_name || '-load-balancer');
 
   DELETE FROM load_balancer
   WHERE load_balancer_name = OLD.app_name || '-load-balancer';
@@ -265,7 +265,7 @@ DECLARE
   is_valid BOOLEAN;
   _app_name TEXT;
   _app_port INTEGER;
-  _target_group_name TEXT;
+  _target_group_id INTEGER;
   _cluster_name TEXT;
   _desired_count INTEGER;
   _task_definition_id INTEGER;
@@ -274,7 +274,7 @@ DECLARE
   _public_ip BOOLEAN;
   _repository_uri TEXT;
   _log_group_id INTEGER;
-  _load_balancer_name TEXT;
+  _load_balancer_id INTEGER;
   _repository_name TEXT;
   _load_balancer_dns TEXT;
   _service_name TEXT;
@@ -287,15 +287,15 @@ DECLARE
 BEGIN
   -- clear out the ecs_simplified table and completely recreate it so there is no logic specific to the table / trigger input and so that deletes work since this is an AFTER UPDATE/INSERT/DELETE trigger
   DELETE FROM ecs_simplified;
-  FOR _service_name, _desired_count, _public_ip, _cluster_name, _target_group_name, _task_definition_id, _force_new_deployment IN
-  SELECT name, desired_count, assign_public_ip = 'ENABLED', cluster_name, target_group_name, task_definition_id, force_new_deployment FROM service
+  FOR _service_name, _desired_count, _public_ip, _cluster_name, _target_group_id, _task_definition_id, _force_new_deployment IN
+  SELECT name, desired_count, assign_public_ip = 'ENABLED', cluster_name, target_group_id, task_definition_id, force_new_deployment FROM service
   LOOP
 
     _app_name = SPLIT_PART(_service_name, '-', 1);
 
     SELECT port INTO _app_port
     FROM target_group
-    WHERE target_group_name = _target_group_name AND target_type = 'ip' AND protocol = 'HTTP' AND health_check_path = '/health';
+    WHERE id = _target_group_id AND target_type = 'ip' AND protocol = 'HTTP' AND health_check_path = '/health';
 
     SELECT security_group_id INTO _security_group_id
     FROM service_security_groups
@@ -326,19 +326,19 @@ BEGIN
       SELECT repository_uri INTO _repository_uri FROM repository WHERE repository_name = _repository_name;
     END IF;
 
-    is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM listener WHERE port = _app_port AND target_group_name = _target_group_name AND protocol = 'HTTP' AND action_type = 'forward');
+    is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM listener WHERE port = _app_port AND target_group_id = _target_group_id AND protocol = 'HTTP' AND action_type = 'forward');
 
-    SELECT load_balancer_name INTO _load_balancer_name
+    SELECT load_balancer_id INTO _load_balancer_id
     FROM listener
-    WHERE port = _app_port AND target_group_name = _target_group_name;
+    WHERE port = _app_port AND target_group_id = _target_group_id;
 
-    is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM load_balancer WHERE load_balancer_name = _load_balancer_name AND scheme = 'internet-facing' AND load_balancer_type = 'application' AND ip_address_type = 'ipv4');
+    is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM load_balancer WHERE id = _load_balancer_id AND scheme = 'internet-facing' AND load_balancer_type = 'application' AND ip_address_type = 'ipv4');
 
-    is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM load_balancer_security_groups WHERE load_balancer_name = _load_balancer_name AND security_group_id = _security_group_id);
+    is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM load_balancer_security_groups WHERE load_balancer_id = _load_balancer_id AND security_group_id = _security_group_id);
 
     SELECT dns_name INTO _load_balancer_dns
     FROM load_balancer
-    WHERE load_balancer_name = _load_balancer_name;
+    WHERE id = _load_balancer_id;
 
     IF is_valid THEN
       INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip, load_balancer_dns, repository_uri, env_variables, force_new_deployment)

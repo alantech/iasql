@@ -1,6 +1,17 @@
-import { Check, Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryColumn } from 'typeorm';
+import {
+  Check,
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { Vpc } from '../../aws_vpc/entity';
 
@@ -33,8 +44,12 @@ export enum IpAddressType {
   'check_load_balancer_availability_zones(load_balancer_name, availability_zones)',
 )
 @Check('check_load_balancer_subnets', 'check_load_balancer_subnets(subnets)')
+@Index(['loadBalancerName', 'region'], { unique: true })
 export class LoadBalancer {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
   loadBalancerName: string;
 
   @Column({
@@ -96,10 +111,6 @@ export class LoadBalancer {
   @ManyToMany(() => SecurityGroup, { eager: true })
   @JoinTable({
     name: 'load_balancer_security_groups',
-    joinColumn: {
-      name: 'load_balancer_name',
-      referencedColumnName: 'loadBalancerName',
-    },
   })
   securityGroups?: SecurityGroup[];
 
@@ -113,4 +124,13 @@ export class LoadBalancer {
     nullable: true,
   })
   customerOwnedIpv4Pool?: string;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  region: string;
 }

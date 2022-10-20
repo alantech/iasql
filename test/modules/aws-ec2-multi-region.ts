@@ -248,8 +248,8 @@ describe('EC2 Integration Testing', () => {
       INSERT INTO target_group (target_group_name, target_type, protocol, port, health_check_path)
       VALUES ('${tgName}', '${tgType}', '${protocol}', ${tgPort}, '/health');
 
-      INSERT INTO registered_instance (instance, target_group)
-      SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), '${tgName}';
+      INSERT INTO registered_instance (instance, target_group_id)
+      SELECT (SELECT id FROM instance WHERE tags ->> 'name' = '${prefix}-1'), (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
     COMMIT;
   `),
   );
@@ -272,7 +272,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -286,7 +286,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -299,7 +299,9 @@ describe('EC2 Integration Testing', () => {
     SELECT *
     FROM registered_instance
     INNER JOIN instance ON instance.id = registered_instance.instance
-    WHERE target_group = '${tgName}' AND instance.tags ->> 'name' = '${prefix}-1';
+    WHERE
+      target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}') AND
+      instance.tags ->> 'name' = '${prefix}-1';
   `,
       (res: any[]) => {
         console.log(JSON.stringify(res));
@@ -398,7 +400,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
@@ -453,7 +455,7 @@ describe('EC2 Integration Testing', () => {
       `
     SELECT *
     FROM registered_instance
-    WHERE target_group = '${tgName}';
+    WHERE target_group_id = (SELECT id FROM target_group WHERE target_group_name = '${tgName}');
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
