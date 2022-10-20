@@ -130,7 +130,7 @@ describe('AwsAcm Import install/uninstall', () => {
     'postgres',
     true).then(...finish(done)));
 
-  it('uninstalls the acm module', uninstall(['aws_acm', 'aws_elb']));
+  it('uninstalls the acm module', uninstall(['aws_acm', 'aws_elb', 'aws_route53_hosted_zones']));
 
   it('installs the module', install(['aws_acm']));
 
