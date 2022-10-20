@@ -2,6 +2,7 @@ import { S3, _Object } from '@aws-sdk/client-s3';
 
 import { AwsS3Module } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../../services/aws_macros';
+import logger from '../../../../services/logger';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
 import { BucketObject } from '../entity';
 
@@ -46,26 +47,33 @@ export class S3CleanBucketRpc extends RpcBase {
         },
       ];
     }
+    logger.info('region is');
+    logger.info(await ctx.getDefaultRegion());
     const client = (await ctx.getAwsClient(await ctx.getDefaultRegion())) as AWS;
 
     // first determine bucket region
-    console.log('i want to clean bucket');
-    console.log(bucketName);
+    logger.info('i want to clean bucket');
+    logger.info(bucketName);
     const region = (await this.getBucketLocation(client.s3Client, bucketName)) ?? 'us-east-1';
-    console.log('region is');
-    console.log(region);
+    logger.info('region is');
+    logger.info(region);
     const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
 
     if (region) {
       // check if it is on enabled regions
       if (enabledRegions.includes(region)) {
-        console.log('i am in region');
+        logger.info('i am in region');
         const clientRegion = (await ctx.getAwsClient(region)) as AWS;
 
         const objects = await this.getBucketObjects(clientRegion.s3Client, bucketName);
+<<<<<<< HEAD
         for (const o of objects) {
           if (!o.Key) continue;
 
+=======
+        logger.info('after read objects');
+        for (const object of objects) {
+>>>>>>> 68ecfeb2 (add logging information)
           // delete the object
           await this.deleteBucketObject(clientRegion.s3Client, bucketName, o.Key);
 
@@ -80,9 +88,9 @@ export class S3CleanBucketRpc extends RpcBase {
         }
 
         // query again to see if all objects have been deleted
-        console.log('before requery objects');
+        logger.info('before requery objects');
         const remainingObjects = await this.getBucketObjects(clientRegion.s3Client, bucketName);
-        console.log('after remaining objects');
+        logger.info('after remaining objects');
         if (!remainingObjects.length) {
           return [
             {
