@@ -515,7 +515,7 @@ export class ModuleBase {
       );
       this.provides.functions.push(
         ...fnStmts
-          .map((fs: any) => fs.RawStmt?.stmt?.CreateFunctionStmt?.funcname?.pop()?.String?.str)
+          .map((fns: any) => fns.RawStmt?.stmt?.CreateFunctionStmt?.funcname?.pop()?.String?.str)
           .filter((v: string | undefined) => !!v),
       );
     } catch (_) {
