@@ -23,6 +23,7 @@ function getPrefix() {
 
 // TODO replace with your desired project name
 const appName = pkg.name;
+const pipelineName = `${appName}-pipeline`;
 const prefix = getPrefix();
 const cbRole = `${appName}codebuild`;
 const cpRole = `${appName}codepipeline`;
@@ -177,10 +178,14 @@ async function main() {
 
   const cpData = {
 <<<<<<< HEAD
+<<<<<<< HEAD
     name: pipelineName,
 =======
     name: appName,
 >>>>>>> 43cc79f6 (renaming pipeline)
+=======
+    name: pipelineName,
+>>>>>>> 202b6f32 (modify pipeline name)
     artifact_store: cpStore,
     stages: stages,
     service_role_name: cpRole,
