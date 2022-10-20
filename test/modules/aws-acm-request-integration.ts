@@ -57,9 +57,16 @@ describe('AwsAcm Request Integration Testing', () => {
 
   it(
     'adds a new certificate to request with a domain without route53 support',
-    query(`
-      SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${process.env.AWS_REGION}', '');
-    `, console.log),
+    (done) => {
+      query(`
+        SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${process.env.AWS_REGION}', '');
+      `)((e: any) => {
+        if (e instanceof Error) {
+          done();
+        }
+        done('Somehow did not get an error back from the function');
+      });
+    }
   );
 
   it('installs the rest of the modules needed', install(modules));
