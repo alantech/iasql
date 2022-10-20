@@ -30,7 +30,7 @@ export class LogGroupTailRpc extends RpcBase {
     if (!logGroupName) {
       throw new Error('Invalid log group name');
     }
-    const clientRegion = region ?? await ctx.getDefaultRegion();
+    const clientRegion = region ?? (await ctx.getDefaultRegion());
     const client = (await ctx.getAwsClient(clientRegion)) as AWS;
     const logEvents = await this.filterLogEvents(client.cwClient, logGroupName);
     return logEvents.map(le => ({
