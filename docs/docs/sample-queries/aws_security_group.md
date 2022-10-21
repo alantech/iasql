@@ -35,9 +35,10 @@ WHERE group_name = 'iasql-sample-sg';
 ```
 
 <!--- https://www.urlencoder.org/ -->
+<a href='https://app.iasql.com/#/button/SELECT%20%2A%20FROM%20iasql_install%28%27aws_security_group%27%29%3B%0A%0AINSERT%20INTO%20security_group%20%28description%2C%20group_name%29%0AVALUES%20%28%27Security%20Group%20from%20IaSQL%20sample%27%2C%20%27iasql-sample-sg%27%29%3B%0A%0AINSERT%20INTO%20security_group_rule%20%28is_egress%2C%20ip_protocol%2C%20from_port%2C%20to_port%2C%20cidr_ipv4%2C%20description%2C%20security_group_id%29%0ASELECT%20true%2C%20%27tcp%27%2C%20443%2C%20443%2C%20%270.0.0.0%2F8%27%2C%20%27iasqlsamplerule%27%2C%20id%0AFROM%20security_group%0AWHERE%20group_name%20%3D%20%27iasql-sample-sg%27%3B%0A%0AINSERT%20INTO%20security_group_rule%20%28is_egress%2C%20ip_protocol%2C%20from_port%2C%20to_port%2C%20cidr_ipv6%2C%20description%2C%20security_group_id%29%0ASELECT%20false%2C%20%27tcp%27%2C%2022%2C%2022%2C%20%27%3A%3A%2F8%27%2C%20%27iasqlsamplerule2%27%2C%20id%0AFROM%20security_group%0AWHERE%20group_name%20%3D%20%27iasql-sample-sg%27%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B'>
 <button
   className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/SELECT%20%2A%20FROM%20iasql_install%28%27aws_security_group%27%29%3B%0A%0AINSERT%20INTO%20security_group%20%28description%2C%20group_name%29%0AVALUES%20%28%27Security%20Group%20from%20IaSQL%20sample%27%2C%20%27iasql-sample-sg%27%29%3B%0A%0AINSERT%20INTO%20security_group_rule%20%28is_egress%2C%20ip_protocol%2C%20from_port%2C%20to_port%2C%20cidr_ipv4%2C%20description%2C%20security_group_id%29%0ASELECT%20true%2C%20%27tcp%27%2C%20443%2C%20443%2C%20%270.0.0.0%2F8%27%2C%20%27iasqlsamplerule%27%2C%20id%0AFROM%20security_group%0AWHERE%20group_name%20%3D%20%27iasql-sample-sg%27%3B%0A%0AINSERT%20INTO%20security_group_rule%20%28is_egress%2C%20ip_protocol%2C%20from_port%2C%20to_port%2C%20cidr_ipv6%2C%20description%2C%20security_group_id%29%0ASELECT%20false%2C%20%27tcp%27%2C%2022%2C%2022%2C%20%27%3A%3A%2F8%27%2C%20%27iasqlsamplerule2%27%2C%20id%0AFROM%20security_group%0AWHERE%20group_name%20%3D%20%27iasql-sample-sg%27%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B', '_blank')}
 >
 Run SQL
 </button>
+</a>

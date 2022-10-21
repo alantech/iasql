@@ -3,7 +3,7 @@ sidebar_position: 7
 slug: '/aws_route53'
 ---
 
-# AWS Route53 Hosted Zones
+# AWS Route53
 
 Install the AWS Route53 module for hosted zones. Read more about AWS Route53 hosted zones [here](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-working-with.html).
 
@@ -28,12 +28,13 @@ SELECT * FROM iasql_apply();
 ```
 
 <!--- https://www.urlencoder.org/ -->
+<a href='https://app.iasql.com/#/button/INSERT%20INTO%20hosted_zone%20%28domain_name%29%0AVALUES%20%28%27iasqlsample.com%27%29%3B%0A%0AINSERT%20INTO%20resource_record_set%20%28name%2C%20record_type%2C%20record%2C%20ttl%2C%20parent_hosted_zone_id%29%0ASELECT%20%27test.iasqlsample.com%27%2C%20%27CNAME%27%2C%20%27example.com.%27%2C%20300%2C%20id%0AFROM%20hosted_zone%0AWHERE%20domain_name%20%3D%20%27iasqlsample.com%27%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B'>
 <button
   className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/INSERT%20INTO%20hosted_zone%20%28domain_name%29%0AVALUES%20%28%27iasqlsample.com%27%29%3B%0A%0AINSERT%20INTO%20resource_record_set%20%28name%2C%20record_type%2C%20record%2C%20ttl%2C%20parent_hosted_zone_id%29%0ASELECT%20%27test.iasqlsample.com%27%2C%20%27CNAME%27%2C%20%27example.com.%27%2C%20300%2C%20id%0AFROM%20hosted_zone%0AWHERE%20domain_name%20%3D%20%27iasqlsample.com%27%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B', '_blank')}
 >
 Run SQL
 </button>
+</a>
 
 ## Check default record sets have been added
 
@@ -46,9 +47,10 @@ INNER JOIN hosted_zone ON hosted_zone.id = parent_hosted_zone_id
 WHERE domain_name = 'iasqlsample.com';
 ```
 <!--- https://www.urlencoder.org/ -->
+<a href='https://app.iasql.com/#/button/SELECT%20%2A%0AFROM%20resource_record_set%0AINNER%20JOIN%20hosted_zone%20ON%20hosted_zone.id%20%3D%20parent_hosted_zone_id%0AWHERE%20domain_name%20%3D%20%27iasqlsample.com%27%3B'>
 <button
   className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/SELECT%20%2A%0AFROM%20resource_record_set%0AINNER%20JOIN%20hosted_zone%20ON%20hosted_zone.id%20%3D%20parent_hosted_zone_id%0AWHERE%20domain_name%20%3D%20%27iasqlsample.com%27%3B', '_blank')}
 >
 Run SQL
 </button>
+</a>
