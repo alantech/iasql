@@ -78,9 +78,9 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
-        let artifactType: string;
-        if (e.sourceType === SourceType.CODEPIPELINE) artifactType = SourceType.CODEPIPELINE;
-        else artifactType = 'NO_ARTIFACTS';
+
+        const artifactType =
+          e.sourceType === SourceType.CODEPIPELINE ? SourceType.CODEPIPELINE : 'NO_ARTIFACTS';
 
         const input: CreateProjectCommandInput = {
           name: e.projectName,
