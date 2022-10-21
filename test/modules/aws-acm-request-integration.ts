@@ -75,7 +75,7 @@ describe('AwsAcm Request Integration Testing', () => {
     'adds a new certificate to request with a fake domain',
     query(`
       SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${process.env.AWS_REGION}', '');
-    `, console.log),
+    `),
   );
 
   it(
