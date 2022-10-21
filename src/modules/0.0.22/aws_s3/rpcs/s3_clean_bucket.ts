@@ -46,8 +46,6 @@ export class S3CleanBucketRpc extends RpcBase {
         },
       ];
     }
-    console.log('i try to clean');
-    console.log(bucketName);
     const client = (await ctx.getAwsClient(await ctx.getDefaultRegion())) as AWS;
 
     // first determine bucket region

@@ -112,9 +112,8 @@ async function main() {
 
   const pjData = {
     project_name: appName,
-    source_type: 'GITHUB',
+    source_type: 'CODEPIPELINE',
     service_role_name: cbRole,
-    source_location: ghUrl,
     build_spec: buildSpec,
   };
 
