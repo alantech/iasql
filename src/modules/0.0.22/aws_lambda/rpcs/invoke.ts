@@ -25,7 +25,7 @@ export class LambdaFunctionInvokeRpc extends RpcBase {
     region: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     if (!functionName) {
-      throw new Error('Plase provide a valid lambda function name.');
+      throw new Error('Please provide a valid lambda function name.');
     }
     const clientRegion = region ?? (await ctx.getDefaultRegion());
     const client = (await ctx.getAwsClient(clientRegion)) as AWS;
