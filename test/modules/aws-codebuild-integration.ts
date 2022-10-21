@@ -69,6 +69,35 @@ describe('AwsCodebuild Integration Testing', () => {
   it('installs the codebuild module', install(modules));
 
   it(
+    'adds a new codebuild_project with codepipeline type',
+    query(`
+    INSERT INTO codebuild_project (project_name, source_type, service_role_name)
+    VALUES ('${dbAlias}-codepipeline', 'CODEPIPELINE', '${dbAlias}');
+  `),
+  );
+
+  it('apply codebuild_project codepipeline creation', apply());
+
+  it(
+    'check new project exists',
+    query(
+      `
+    SELECT *
+    FROM codebuild_project
+    WHERE project_name='${dbAlias}-codepipeline';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
+    'deletes codebuild codepipeline project',
+    query(`
+    DELETE FROM codebuild_project WHERE project_name='${dbAlias}-codepipeline';
+  `),
+  );
+
+  it(
     'check generate_put_ecr_image_build_spec with no build args',
     query(
       `

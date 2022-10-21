@@ -68,7 +68,7 @@ export class CodebuildProject {
   buildSpec?: string;
 
   // For a GitHub repository, the HTTPS clone URL with the source code location
-  @Column()
+  @Column({ nullable: true })
   sourceLocation: string;
 
   @Column({
