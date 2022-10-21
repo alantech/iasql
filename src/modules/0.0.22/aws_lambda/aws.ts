@@ -4,7 +4,6 @@ import {
   Lambda,
   paginateListFunctions,
   waitUntilFunctionActiveV2,
-  waitUntilFunctionExists,
   waitUntilFunctionUpdatedV2,
 } from '@aws-sdk/client-lambda';
 
@@ -95,5 +94,7 @@ export const waitUntilFunctionUpdated = (client: Lambda, FunctionName: string) =
     { FunctionName },
   );
 };
+
+export const invokeFunction = crudBuilder2<Lambda, 'invoke'>('invoke', input => input);
 
 export { AWS };
