@@ -157,20 +157,20 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('should fail invoking with fake name', done =>
-     void query(`
-      SELECT *
-      FROM invoke_lambda('fake');
-   `)((e?: any) => {
-       try {
-         expect(e?.message).toContain('Please provide a valid lambda function name');
-       } catch (err) {
-         done(err);
-         return {};
-       }
-       done();
-       return {};
-   }));
+  it('should fail invoking without fucntion name', done =>
+    void query(`
+    SELECT *
+    FROM invoke_lambda();
+  `)((e?: any) => {
+      try {
+        expect(e?.message).toContain('Please provide a valid lambda function name');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+  }));
 
   it('should fail invoking with wrong payload', done =>
     void query(`
