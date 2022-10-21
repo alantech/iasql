@@ -15,7 +15,7 @@ import { IamRole } from '../../aws_iam/entity/role';
 export enum SourceType {
   GITHUB = 'GITHUB',
   // CODECOMMIT = 'CODECOMMIT',
-  // CODEPIPELINE = 'CODEPIPELINE',
+  CODEPIPELINE = 'CODEPIPELINE',
   // S3 = 'S3',
   // BITBUCKET = 'BITBUCKET',
   // GITHUB_ENTERPRISE = 'GITHUB_ENTERPRISE',

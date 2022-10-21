@@ -107,7 +107,7 @@ async function main() {
   })).repository_uri;
 
   const repoName = `${appName}-repository`;
-  const buildSpecRes = await prisma.$queryRaw`SELECT generate_put_ecr_image_build_spec(${region}, 'latest', ${repoName}, ${repoUri}, 'examples/ecs-fargate/prisma/app')`;
+  const buildSpecRes = await prisma.$queryRaw`SELECT generate_put_ecr_image_build_spec(${region}, 'latest', ${repoName}, ${repoUri}, '$CODEBUILD_SRC_DIR/examples/ecs-fargate/prisma/app')`;
   const buildSpec = buildSpecRes[0]['generate_put_ecr_image_build_spec'];
 
   const pjData = {
