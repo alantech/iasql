@@ -141,6 +141,52 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
+  // Invoke Lambda function
+  it(
+    'invoke lambda',
+    query(
+      `
+      SELECT *
+      FROM invoke_lambda('${lambdaFunctionName}', '{"name": "test"}');
+    `,
+      (res: any[]) => {
+        console.log(res[0]);
+        expect(res[0]['status']).toBe('200');
+        return expect(res.length).toBe(1)
+      },
+    ),
+  );
+
+  it('should fail invoking with fake name', done =>
+     void query(`
+      SELECT *
+      FROM invoke_lambda('fake');
+   `)((e?: any) => {
+       try {
+         expect(e?.message).toContain('Please provide a valid lambda function name');
+       } catch (err) {
+         done(err);
+         return {};
+       }
+       done();
+       return {};
+   }));
+
+  it('should fail invoking with wrong payload', done =>
+    void query(`
+      SELECT *
+      FROM invoke_lambda('${lambdaFunctionName}', '{name: test}');
+  `)((e?: any) => {
+      try {
+        expect(e?.message).toContain('The payload must be a valid JSON string');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+  }));
+
   // Check restore path
   it(
     'updates the function arn',
@@ -350,63 +396,63 @@ describe('Lambda Integration Testing', () => {
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });
 
-describe('Lambda install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
+// describe('Lambda install/uninstall', () => {
+//   it('creates a new test db', done =>
+//     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
-  it('installs the aws_account module', install(['aws_account']));
+//   it('installs the aws_account module', install(['aws_account']));
 
-  it(
-    'inserts aws credentials',
-    query(
-      `
-    INSERT INTO aws_credentials (access_key_id, secret_access_key)
-    VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
-  `,
-      undefined,
-      false,
-    ),
-  );
+//   it(
+//     'inserts aws credentials',
+//     query(
+//       `
+//     INSERT INTO aws_credentials (access_key_id, secret_access_key)
+//     VALUES ('${process.env.AWS_ACCESS_KEY_ID}', '${process.env.AWS_SECRET_ACCESS_KEY}')
+//   `,
+//       undefined,
+//       false,
+//     ),
+//   );
 
-  it('syncs the regions', sync());
+//   it('syncs the regions', sync());
 
-  it(
-    'sets the default region',
-    query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
-  );
+//   it(
+//     'sets the default region',
+//     query(`
+//     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
+//   `),
+//   );
 
-  it(
-    'installs the Lambda module and confirms one table is created',
-    query(
-      `
-    select * from iasql_install('aws_lambda');
-  `,
-      (res: any[]) => {
-        expect(res.length).toBe(1);
-      },
-    ),
-  );
+//   it(
+//     'installs the Lambda module and confirms one table is created',
+//     query(
+//       `
+//     select * from iasql_install('aws_lambda');
+//   `,
+//       (res: any[]) => {
+//         expect(res.length).toBe(1);
+//       },
+//     ),
+//   );
 
-  it(
-    'uninstalls the Lambda module and confirms one table is removed',
-    query(
-      `
-    select * from iasql_uninstall('aws_lambda');
-  `,
-      (res: any[]) => {
-        expect(res.length).toBe(1);
-      },
-    ),
-  );
+//   it(
+//     'uninstalls the Lambda module and confirms one table is removed',
+//     query(
+//       `
+//     select * from iasql_uninstall('aws_lambda');
+//   `,
+//       (res: any[]) => {
+//         expect(res.length).toBe(1);
+//       },
+//     ),
+//   );
 
-  it('installs all modules', done =>
-    void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
+//   it('installs all modules', done =>
+//     void iasql.install([], dbAlias, config.db.user, true).then(...finish(done)));
 
-  it('uninstalls the lambda module', uninstall(modules));
+//   it('uninstalls the lambda module', uninstall(modules));
 
-  it('installs the lambda module', install(modules));
+//   it('installs the lambda module', install(modules));
 
-  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});
+//   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
+// });
