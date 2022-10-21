@@ -43,8 +43,8 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
     if (!service) return undefined;
     out.service = service;
     out.vpc =
-      (await this.module.vpc.db.read(ctx)).find((vpc: Vpc) => vpc.vpcId === eg.VpcId) ??
-      (await this.module.vpc.cloud.read(ctx)).find((vpc: Vpc) => vpc.vpcId === eg.VpcId);
+      (await this.module.vpc.db.read(ctx, `${eg.VpcId}|${region}`)) ??
+      (await this.module.vpc.cloud.read(ctx, `${eg.VpcId}|${region}`));
     if (!out.vpc) return undefined;
     out.policyDocument = eg.PolicyDocument;
     out.state = eg.State;

@@ -63,9 +63,7 @@ export class InstanceMapper extends MapperBase<Instance> {
     if (!out.instanceType) return undefined;
     out.securityGroups = [];
     for (const sgId of instance.SecurityGroups?.map(sg => sg.GroupId) ?? []) {
-      const sg = (await awsSecurityGroupModule.securityGroup.db.read(ctx)).find(
-        (scgrp: SecurityGroup) => scgrp.groupId === sgId,
-      );
+      const sg = await awsSecurityGroupModule.securityGroup.db.read(ctx, `${sgId}|${region}`);
       if (sg) out.securityGroups.push(sg);
     }
     if (instance.IamInstanceProfile?.Arn) {
@@ -82,12 +80,8 @@ export class InstanceMapper extends MapperBase<Instance> {
       }
     }
     out.subnet =
-      (await awsVpcModule.subnet.db.read(ctx)).find(
-        (subnet: Subnet) => subnet.subnetId === instance.SubnetId,
-      ) ??
-      (await awsVpcModule.subnet.cloud.read(ctx)).find(
-        (subnet: Subnet) => subnet.subnetId === instance.SubnetId,
-      );
+      (await awsVpcModule.subnet.db.read(ctx, `${instance.SubnetId}|${region}`)) ??
+      (await awsVpcModule.subnet.cloud.read(ctx, `${instance.SubnetId}|${region}`));
     out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
     out.region = region;
     return out;

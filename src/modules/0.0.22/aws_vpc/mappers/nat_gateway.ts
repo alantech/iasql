@@ -41,10 +41,9 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
     }
     out.natGatewayId = nat.NatGatewayId;
     out.state = nat.State as NatGatewayState;
-    // todo: search by region when multiregion
     out.subnet =
-      (await this.module.subnet.db.read(ctx)).find((subnet: Subnet) => subnet.subnetId === nat.SubnetId) ??
-      (await this.module.subnet.cloud.read(ctx)).find((subnet: Subnet) => subnet.subnetId === nat.SubnetId);
+      (await this.module.subnet.db.read(ctx, `${nat.SubnetId}|${region}`)) ??
+      (await this.module.subnet.cloud.read(ctx, `${nat.SubnetId}|${region}`));
     if (nat.SubnetId && !out.subnet) return undefined;
     const tags: { [key: string]: string } = {};
     (nat.Tags || [])

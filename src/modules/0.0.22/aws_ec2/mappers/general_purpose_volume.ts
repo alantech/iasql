@@ -38,14 +38,9 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     if (!vol?.VolumeId) return undefined;
     out.volumeId = vol.VolumeId;
     out.volumeType = vol.VolumeType as GeneralPurposeVolumeType;
-    // todo: find by region too when multiregion
     out.availabilityZone =
-      (await awsVpcModule.availabilityZone.db.read(ctx)).find(
-        (az: AvailabilityZone) => az.name === vol.AvailabilityZone,
-      ) ??
-      (await awsVpcModule.availabilityZone.cloud.read(ctx)).find(
-        (az: AvailabilityZone) => az.name === vol.AvailabilityZone,
-      );
+      (await awsVpcModule.availabilityZone.db.read(ctx, `${vol.AvailabilityZone}|${region}`)) ??
+      (await awsVpcModule.availabilityZone.cloud.read(ctx, `${vol.AvailabilityZone}|${region}`));
     out.size = vol.Size ?? 1;
     out.iops = vol.Iops;
     out.throughput = vol.Throughput;

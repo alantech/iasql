@@ -52,8 +52,9 @@ class RdsMapper extends MapperBase<RDS> {
   async rdsMapper(rds: any, ctx: Context, region: string) {
     const out = new RDS();
     out.allocatedStorage = rds?.AllocatedStorage;
-    out.availabilityZone = (await awsVpcModule.availabilityZone.db.read(ctx)).find(
-      (az: AvailabilityZone) => az.name === rds?.AvailabilityZone,
+    out.availabilityZone = await awsVpcModule.availabilityZone.db.read(
+      ctx,
+      `${rds?.AvailabilityZone}|${region}`,
     );
     out.dbInstanceClass = rds?.DBInstanceClass;
     out.dbInstanceIdentifier = rds?.DBInstanceIdentifier;
@@ -68,12 +69,8 @@ class RdsMapper extends MapperBase<RDS> {
     out.vpcSecurityGroups = [];
     for (const sgId of vpcSecurityGroupIds) {
       const sg =
-        (await awsSecurityGroupModule.securityGroup.db.read(ctx)).find(
-          (scgrp: SecurityGroup) => scgrp.groupId === sgId,
-        ) ??
-        (await awsSecurityGroupModule.securityGroup.cloud.read(ctx)).find(
-          (scgrp: SecurityGroup) => scgrp.groupId === sgId,
-        );
+        (await awsSecurityGroupModule.securityGroup.db.read(ctx, `${sgId}|${region}`)) ??
+        (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, `${sgId}|${region}`));
       if (sg) out.vpcSecurityGroups.push(sg);
     }
     out.backupRetentionPeriod = rds?.BackupRetentionPeriod ?? 1;

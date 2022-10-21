@@ -44,9 +44,8 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     if (type === 'private') {
       // retrieve repository details
       const repo =
-        (await this.module.repository.db.read(ctx))
-          .filter((r: Repository) => r.repositoryName === image.repositoryName && r.region === region)
-          .pop() ?? (await this.module.repository.cloud.read(ctx, `${image.repositoryName}|${region}`));
+        (await this.module.repository.db.read(ctx, `${image.repositoryName}|${region}`)) ??
+        (await this.module.repository.cloud.read(ctx, `${image.repositoryName}|${region}`));
       if (repo) out.privateRepository = repo;
     } else {
       const repo = await this.module.publicRepository.cloud.read(ctx, image.repositoryName);
@@ -533,7 +532,6 @@ class RepositoryMapper extends MapperBase<Repository> {
         await this.deleteECRRepository(client.ecrClient, e.repositoryName!);
         // Also need to delete the repository policy associated with this repository,
         // if any
-        // todo: fix with multiregion policies
         const policy = await this.module.repositoryPolicy.db.read(ctx, this.entityId(e));
         await this.module.repositoryPolicy.db.delete(policy, ctx);
       }
@@ -570,9 +568,8 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     const out = new RepositoryPolicy();
     out.registryId = rp?.registryId;
     out.repository =
-      (await this.module.repository.db.read(ctx))
-        .filter((r: Repository) => r.region === region && r.repositoryName === rp.repositoryName)
-        .pop() ?? (await this.module.repository.cloud.read(ctx, `${rp.repositoryName}|${region}`));
+      (await this.module.repository.db.read(ctx, `${rp.repositoryName}|${region}`)) ??
+      (await this.module.repository.cloud.read(ctx, `${rp.repositoryName}|${region}`));
     out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
     out.region = region;
     return out;

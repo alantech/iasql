@@ -166,9 +166,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
           // There may be a race condition/double write happening here, so check if this thing
           // has been created in the meantime
-          const dbVpc = (await awsVpcModule.vpc.db.read(ctx)).find(
-            (vpc: Vpc) => vpc.vpcId === out?.vpc?.vpcId && vpc.region === out?.region,
-          );
+          const dbVpc = await awsVpcModule.vpc.db.read(ctx, `${out?.vpc?.vpcId}|${out?.region}`);
           if (!!dbVpc) {
             out.vpc = dbVpc;
           }
@@ -200,9 +198,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
           // There may be a race condition/double write happening here, so check if this thing
           // has been created in the meantime
-          const dbVpc = (await awsVpcModule.vpc.db.read(ctx)).find(
-            (vpc: Vpc) => vpc.vpcId === out?.vpc?.vpcId && vpc.region === out?.region,
-          );
+          const dbVpc = await awsVpcModule.vpc.db.read(ctx, `${out?.vpc?.vpcId}|${out?.region}`);
           if (!!dbVpc) {
             out.vpc = dbVpc;
           }
@@ -304,9 +300,7 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         // You can mess with its rules, but not this record itself, so any attempt to update it
         // is instead turned into *restoring* the value in the database to match the cloud value
         // Check if there is a VPC for this security group in the database
-        const vpcDbRecord = (await awsVpcModule.vpc.db.read(ctx)).find(
-          (a: any) => a.vpcId === e.vpc?.vpcId && a.region === e.region,
-        );
+        const vpcDbRecord = await awsVpcModule.vpc.db.read(ctx, `${e.vpc?.vpcId}|${e.region}`);
         if (e.groupName === 'default' && !!vpcDbRecord) {
           // If there is a security group in the database with the 'default' groupName but we
           // are still hitting the 'delete' path, that's a race condition and we should just do
