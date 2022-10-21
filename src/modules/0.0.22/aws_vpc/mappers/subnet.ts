@@ -19,11 +19,11 @@ export class SubnetMapper extends MapperBase<Subnet> {
     out.state = sn.State as SubnetState;
     if (!sn.AvailabilityZone) return undefined;
     out.availabilityZone =
-      (await this.module.availabilityZone.db.read(ctx, `${sn.AvailabilityZone}|${region}`)) ??
-      (await this.module.availabilityZone.cloud.read(ctx, `${sn.AvailabilityZone}|${region}`));
+      (await this.module.availabilityZone.db.read(ctx, super.generateId(sn.AvailabilityZone, region))) ??
+      (await this.module.availabilityZone.cloud.read(ctx, super.generateId(sn.AvailabilityZone, region)));
     out.vpc =
-      (await this.module.vpc.db.read(ctx, `${sn.VpcId}|${region}`)) ??
-      (await this.module.vpc.cloud.read(ctx, `${sn.VpcId}|${region}`));
+      (await this.module.vpc.db.read(ctx, super.generateId(sn.VpcId, region))) ??
+      (await this.module.vpc.cloud.read(ctx, super.generateId(sn.VpcId, region)));
     if (sn.VpcId && !out.vpc) throw new Error(`Waiting for VPC ${sn.VpcId}`);
     out.availableIpAddressCount = sn.AvailableIpAddressCount;
     out.cidrBlock = sn.CidrBlock;
@@ -117,7 +117,7 @@ export class SubnetMapper extends MapperBase<Subnet> {
         if (e.vpc?.isDefault) {
           // For delete, we have un-memoed the record, but the record passed in *is* the one
           // we're interested in, which makes it a bit simpler here
-          const vpc = ctx?.memo?.db?.Vpc[`${e.vpc.vpcId}|${e.vpc.region}`] ?? null;
+          const vpc = ctx?.memo?.db?.Vpc[super.generateId(e.vpc.vpcId, e.vpc.region)] ?? null;
           e.vpc.id = vpc.id;
           await this.module.subnet.db.update(e, ctx);
           // Make absolutely sure it shows up in the memo

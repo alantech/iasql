@@ -39,8 +39,8 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     out.volumeId = vol.VolumeId;
     out.volumeType = vol.VolumeType as GeneralPurposeVolumeType;
     out.availabilityZone =
-      (await awsVpcModule.availabilityZone.db.read(ctx, `${vol.AvailabilityZone}|${region}`)) ??
-      (await awsVpcModule.availabilityZone.cloud.read(ctx, `${vol.AvailabilityZone}|${region}`));
+      (await awsVpcModule.availabilityZone.db.read(ctx, super.generateId(vol.AvailabilityZone, region))) ??
+      (await awsVpcModule.availabilityZone.cloud.read(ctx, super.generateId(vol.AvailabilityZone, region)));
     out.size = vol.Size ?? 1;
     out.iops = vol.Iops;
     out.throughput = vol.Throughput;
@@ -49,8 +49,8 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     if (vol.Attachments?.length) {
       const attachment = vol.Attachments.pop();
       out.attachedInstance =
-        (await this.module.instance.db.read(ctx, `${attachment?.InstanceId}|${region}`)) ??
-        (await this.module.instance.cloud.read(ctx, `${attachment?.InstanceId}|${region}`));
+        (await this.module.instance.db.read(ctx, super.generateId(attachment?.InstanceId, region))) ??
+        (await this.module.instance.cloud.read(ctx, super.generateId(attachment?.InstanceId, region)));
       out.instanceDeviceName = attachment?.Device;
     }
     if (vol.Tags?.length) {

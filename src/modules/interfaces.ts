@@ -321,6 +321,10 @@ export class MapperBase<E> {
     this.cloud.dest = 'cloud';
     this.cloud.module = this.module;
   }
+
+  generateId(...args: (string | undefined)[]): string {
+    return args.join('|');
+  }
 }
 
 export class RpcBase {

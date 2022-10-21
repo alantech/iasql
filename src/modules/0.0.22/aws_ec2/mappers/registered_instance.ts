@@ -14,7 +14,7 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
   module: AwsEc2Module;
   entity = RegisteredInstance;
   entityId = (e: RegisteredInstance) =>
-    `${e.instance.instanceId}|${e.targetGroup.targetGroupArn}|${e.port}|${e.region}` ?? '';
+    super.generateId(e.instance.instanceId, e.targetGroup.targetGroupArn, `${e.port}`, e.region) ?? '';
   equals = (a: RegisteredInstance, b: RegisteredInstance) => Object.is(a.port, b.port);
 
   async registeredInstanceMapper(
@@ -24,8 +24,8 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
   ) {
     const out = new RegisteredInstance();
     out.instance =
-      (await this.module.instance.db.read(ctx, `${registeredInstance.instanceId}|${region}`)) ??
-      (await this.module.instance.cloud.read(ctx, `${registeredInstance.instanceId}|${region}`));
+      (await this.module.instance.db.read(ctx, super.generateId(registeredInstance.instanceId, region))) ??
+      (await this.module.instance.cloud.read(ctx, super.generateId(registeredInstance.instanceId, region)));
     out.targetGroup =
       (await awsElbModule.targetGroup.db.read(ctx, registeredInstance.targetGroupArn)) ??
       (await awsElbModule.targetGroup.cloud.read(ctx, registeredInstance.targetGroupArn));

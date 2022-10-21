@@ -32,8 +32,14 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
     if (natPublicAddress?.AllocationId) {
       try {
         out.elasticIp =
-          (await this.module.elasticIp.db.read(ctx, `${natPublicAddress.AllocationId}|${region}`)) ??
-          (await this.module.elasticIp.cloud.read(ctx, `${natPublicAddress.AllocationId}|${region}`));
+          (await this.module.elasticIp.db.read(
+            ctx,
+            super.generateId(natPublicAddress.AllocationId, region),
+          )) ??
+          (await this.module.elasticIp.cloud.read(
+            ctx,
+            super.generateId(natPublicAddress.AllocationId, region),
+          ));
       } catch (error: any) {
         if (error.Code === 'InvalidAllocationID.NotFound') return undefined;
       }
@@ -42,8 +48,8 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
     out.natGatewayId = nat.NatGatewayId;
     out.state = nat.State as NatGatewayState;
     out.subnet =
-      (await this.module.subnet.db.read(ctx, `${nat.SubnetId}|${region}`)) ??
-      (await this.module.subnet.cloud.read(ctx, `${nat.SubnetId}|${region}`));
+      (await this.module.subnet.db.read(ctx, super.generateId(nat.SubnetId, region))) ??
+      (await this.module.subnet.cloud.read(ctx, super.generateId(nat.SubnetId, region)));
     if (nat.SubnetId && !out.subnet) return undefined;
     const tags: { [key: string]: string } = {};
     (nat.Tags || [])

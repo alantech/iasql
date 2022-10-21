@@ -54,7 +54,7 @@ class RdsMapper extends MapperBase<RDS> {
     out.allocatedStorage = rds?.AllocatedStorage;
     out.availabilityZone = await awsVpcModule.availabilityZone.db.read(
       ctx,
-      `${rds?.AvailabilityZone}|${region}`,
+      super.generateId(rds?.AvailabilityZone, region),
     );
     out.dbInstanceClass = rds?.DBInstanceClass;
     out.dbInstanceIdentifier = rds?.DBInstanceIdentifier;
@@ -69,18 +69,21 @@ class RdsMapper extends MapperBase<RDS> {
     out.vpcSecurityGroups = [];
     for (const sgId of vpcSecurityGroupIds) {
       const sg =
-        (await awsSecurityGroupModule.securityGroup.db.read(ctx, `${sgId}|${region}`)) ??
-        (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, `${sgId}|${region}`));
+        (await awsSecurityGroupModule.securityGroup.db.read(ctx, super.generateId(sgId, region))) ??
+        (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, super.generateId(sgId, region)));
       if (sg) out.vpcSecurityGroups.push(sg);
     }
     out.backupRetentionPeriod = rds?.BackupRetentionPeriod ?? 1;
     if (rds.DBParameterGroups?.length) {
       const parameterGroup = rds.DBParameterGroups[0];
       out.parameterGroup =
-        (await this.module.parameterGroup.db.read(ctx, `${parameterGroup.DBParameterGroupName}|${region}`)) ??
+        (await this.module.parameterGroup.db.read(
+          ctx,
+          super.generateId(parameterGroup.DBParameterGroupName, region),
+        )) ??
         (await this.module.parameterGroup.cloud.read(
           ctx,
-          `${parameterGroup.DBParameterGroupName}|${region}`,
+          super.generateId(parameterGroup.DBParameterGroupName, region),
         ));
     }
     out.region = region;
@@ -242,10 +245,12 @@ class RdsMapper extends MapperBase<RDS> {
         const newObject = await this.getDBInstance(client.rdsClient, result.DBInstanceIdentifier ?? '');
         // We need to update the parameter groups if its a default one and it does not exists
         const parameterGroupName = newObject?.DBParameterGroups?.[0].DBParameterGroupName;
-        if (!(await this.module.parameterGroup.db.read(ctx, `${parameterGroupName}|${e.region}`))) {
+        if (
+          !(await this.module.parameterGroup.db.read(ctx, super.generateId(parameterGroupName, e.region)))
+        ) {
           const cloudParameterGroup = await this.module.parameterGroup.cloud.read(
             ctx,
-            `${parameterGroupName}|${e.region}`,
+            super.generateId(parameterGroupName, e.region),
           );
           await this.module.parameterGroup.db.create(cloudParameterGroup, ctx);
         }

@@ -199,7 +199,8 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
 class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
   module: AwsRoute53HostedZoneModule;
   entity = ResourceRecordSet;
-  entityId = (e: ResourceRecordSet) => `${e.parentHostedZone.hostedZoneId}|${e.name}|${e.recordType}`;
+  entityId = (e: ResourceRecordSet) =>
+    super.generateId(e.parentHostedZone.hostedZoneId, e.name, e.recordType);
   equals = (a: ResourceRecordSet, b: ResourceRecordSet) =>
     Object.is(a.parentHostedZone?.hostedZoneId, b.parentHostedZone?.hostedZoneId) &&
     Object.is(a.recordType, b.recordType) &&

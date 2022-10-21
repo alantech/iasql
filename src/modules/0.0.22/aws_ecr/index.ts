@@ -44,8 +44,8 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     if (type === 'private') {
       // retrieve repository details
       const repo =
-        (await this.module.repository.db.read(ctx, `${image.repositoryName}|${region}`)) ??
-        (await this.module.repository.cloud.read(ctx, `${image.repositoryName}|${region}`));
+        (await this.module.repository.db.read(ctx, super.generateId(image.repositoryName, region))) ??
+        (await this.module.repository.cloud.read(ctx, super.generateId(image.repositoryName, region)));
       if (repo) out.privateRepository = repo;
     } else {
       const repo = await this.module.publicRepository.cloud.read(ctx, image.repositoryName);
@@ -548,7 +548,7 @@ class RepositoryMapper extends MapperBase<Repository> {
 class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
   module: AwsEcrModule;
   entity = RepositoryPolicy;
-  entityId = (e: RepositoryPolicy) => `${e.repository.repositoryName}|${e.repository.region}`;
+  entityId = (e: RepositoryPolicy) => super.generateId(e.repository.repositoryName, e.repository.region);
   idFields = (id: string) => {
     const [repositoryName, region] = id.split('|');
     return { repositoryName, region };
@@ -568,8 +568,8 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     const out = new RepositoryPolicy();
     out.registryId = rp?.registryId;
     out.repository =
-      (await this.module.repository.db.read(ctx, `${rp.repositoryName}|${region}`)) ??
-      (await this.module.repository.cloud.read(ctx, `${rp.repositoryName}|${region}`));
+      (await this.module.repository.db.read(ctx, super.generateId(rp.repositoryName, region))) ??
+      (await this.module.repository.cloud.read(ctx, super.generateId(rp.repositoryName, region)));
     out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
     out.region = region;
     return out;

@@ -45,8 +45,14 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     for (const sgm of cloudE.SecurityGroups ?? []) {
       try {
         const sg =
-          (await awsSecurityGroupModule.securityGroup.db.read(ctx, `${sgm.SecurityGroupId}|${region}`)) ??
-          (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, `${sgm.SecurityGroupId}|${region}`));
+          (await awsSecurityGroupModule.securityGroup.db.read(
+            ctx,
+            super.generateId(sgm.SecurityGroupId, region),
+          )) ??
+          (await awsSecurityGroupModule.securityGroup.cloud.read(
+            ctx,
+            super.generateId(sgm.SecurityGroupId, region),
+          ));
         if (sg) securityGroups.push(sg);
       } catch (e: any) {
         /*Ignore misconfigured security groups*/
@@ -58,8 +64,8 @@ export class MemoryDBClusterMapper extends MapperBase<MemoryDBCluster> {
     out.securityGroups = securityGroups;
     out.status = cloudE.Status;
     out.subnetGroup =
-      (await awsMemoryDBModule.subnetGroup.db.read(ctx, `${cloudE.SubnetGroupName}|${region}`)) ??
-      (await awsMemoryDBModule.subnetGroup.cloud.read(ctx, `${cloudE.SubnetGroupName}|${region}`));
+      (await awsMemoryDBModule.subnetGroup.db.read(ctx, super.generateId(cloudE.SubnetGroupName, region))) ??
+      (await awsMemoryDBModule.subnetGroup.cloud.read(ctx, super.generateId(cloudE.SubnetGroupName, region)));
     // todo: out.tags =
     out.region = region;
     return out;
