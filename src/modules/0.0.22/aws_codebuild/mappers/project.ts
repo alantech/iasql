@@ -17,17 +17,17 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
   module: AwsCodebuildModule;
   entity = CodebuildProject;
   equals = (a: CodebuildProject, b: CodebuildProject) =>
-      Object.is(a.projectName, b.projectName) &&
-      Object.is(a.arn, b.arn) &&
-      Object.is(a.buildSpec, b.buildSpec) &&
-      Object.is(a.sourceLocation ?? '', b.sourceLocation ?? '') &&
-      Object.is(a.sourceVersion, b.sourceVersion) &&
-      Object.is(a.sourceType, b.sourceType) &&
-      Object.is(a.image, b.image) &&
-      Object.is(a.serviceRole?.arn, b.serviceRole?.arn) &&
-      Object.is(a.computeType, b.computeType) &&
-      Object.is(a.privilegedMode, b.privilegedMode) &&
-      Object.is(a.environmentType, b.environmentType);
+    Object.is(a.projectName, b.projectName) &&
+    Object.is(a.arn, b.arn) &&
+    Object.is(a.buildSpec, b.buildSpec) &&
+    Object.is(a.sourceLocation ?? '', b.sourceLocation ?? '') &&
+    Object.is(a.sourceVersion, b.sourceVersion) &&
+    Object.is(a.sourceType, b.sourceType) &&
+    Object.is(a.image, b.image) &&
+    Object.is(a.serviceRole?.arn, b.serviceRole?.arn) &&
+    Object.is(a.computeType, b.computeType) &&
+    Object.is(a.privilegedMode, b.privilegedMode) &&
+    Object.is(a.environmentType, b.environmentType);
 
   async projectMapper(pj: Project, ctx: Context, region: string) {
     const out = new CodebuildProject();
