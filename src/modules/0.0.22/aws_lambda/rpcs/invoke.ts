@@ -3,6 +3,7 @@ import { InvokeCommandInput, InvokeCommandOutput } from '@aws-sdk/client-lambda'
 import { AwsLambdaModule } from '..';
 import { AWS } from '../../../../services/aws_macros';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
+import { awsCloudwatchModule } from '../../aws_cloudwatch';
 import { invokeFunction } from '../aws';
 
 export class LambdaFunctionInvokeRpc extends RpcBase {
@@ -41,6 +42,26 @@ export class LambdaFunctionInvokeRpc extends RpcBase {
     };
     const res: InvokeCommandOutput | undefined = await invokeFunction(client.lambdaClient, input);
     if (!res) throw new Error('No invoke response');
+    // After we invoke a lambda function a new loggroup is autogeenrated by AWS and it is not configurable.
+    // If the module is installed, we need to read the db and if it is not there we need to insert it
+    try {
+      const lambdaLogGroupName = `/aws/lambda/${functionName}`;
+      const functionLogGroup = await awsCloudwatchModule.logGroup.db.read(
+        ctx,
+        `${lambdaLogGroupName}|${clientRegion}`,
+      );
+      if (!functionLogGroup) {
+        const cloudFunctionLogGroup = await awsCloudwatchModule.logGroup.cloud.read(
+          ctx,
+          `${lambdaLogGroupName}|${clientRegion}`,
+        );
+        if (cloudFunctionLogGroup) {
+          await awsCloudwatchModule.logGroup.db.create(cloudFunctionLogGroup, ctx);
+        }
+      }
+    } catch (e) {
+      /** Do nothing, it might be that the module is not installed */
+    }
     return [
       {
         function_name: functionName,
