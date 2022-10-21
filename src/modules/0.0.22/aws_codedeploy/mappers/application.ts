@@ -3,14 +3,12 @@ import {
   ApplicationInfo,
   paginateListApplications,
   CreateApplicationCommandInput,
-  paginateListApplicationRevisions,
-  RegisterApplicationRevisionCommandInput,
 } from '@aws-sdk/client-codedeploy';
 
 import { AwsCodedeployModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { CodedeployApplication, ComputePlatform, RevisionType } from '../entity';
+import { CodedeployApplication, ComputePlatform } from '../entity';
 
 export class CodedeployApplicationMapper extends MapperBase<CodedeployApplication> {
   module: AwsCodedeployModule;
@@ -20,14 +18,13 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
     Object.is(a.computePlatform, b.computePlatform) &&
     Object.is(a.applicationId, b.applicationId);
 
-  async applicationMapper(app: ApplicationInfo, ctx: Context) {
-    const client = (await ctx.getAwsClient()) as AWS;
+  async applicationMapper(app: ApplicationInfo, region: string) {
     const out = new CodedeployApplication();
     if (!app.applicationName) return undefined;
     out.name = app.applicationName;
     out.applicationId = app.applicationId;
     out.computePlatform = (app.computePlatform as ComputePlatform) ?? ComputePlatform.Server;
-
+    out.region = region;
     return out;
   }
 
@@ -55,9 +52,9 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
 
   cloud: Crud2<CodedeployApplication> = new Crud2({
     create: async (es: CodedeployApplication[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateApplicationCommandInput = {
           applicationName: e.name,
           computePlatform: ComputePlatform[e.computePlatform],
@@ -73,32 +70,38 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
       }
       return out;
     },
-    read: async (ctx: Context, name?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (name) {
-        const rawApp = await this.getApplication(client.cdClient, { applicationName: name });
-        if (!rawApp) return;
-
-        // map to entity
-        const app = await this.applicationMapper(rawApp, ctx);
-        return app;
-      } else {
-        const out = [];
-        const appNames = await this.listApplications(client.cdClient);
-        if (!appNames || !appNames.length) return;
-        for (const appName of appNames) {
-          const rawApp = await this.getApplication(client.cdClient, { applicationName: appName });
-          if (!rawApp) continue;
-
-          const app = await this.applicationMapper(rawApp, ctx);
-          if (app) out.push(app);
+    read: async (ctx: Context, id?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (!!id) {
+        const { name, region } = this.idFields(id);
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawApp = await this.getApplication(client.cdClient, { applicationName: name });
+          if (!rawApp) return;
+          // map to entity
+          const app = await this.applicationMapper(rawApp, region);
+          return app;
         }
+      } else {
+        const out: CodedeployApplication[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const appNames = await this.listApplications(client.cdClient);
+            if (!appNames || !appNames.length) return;
+            for (const appName of appNames) {
+              const rawApp = await this.getApplication(client.cdClient, { applicationName: appName });
+              if (!rawApp) continue;
+              const app = await this.applicationMapper(rawApp, region);
+              if (app) out.push(app);
+            }
+          }),
+        );
         return out;
       }
     },
-    updateOrReplace: (a: CodedeployApplication, b: CodedeployApplication) => 'replace',
+    updateOrReplace: (_a: CodedeployApplication, _b: CodedeployApplication) => 'replace',
     update: async (apps: CodedeployApplication[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
 
       for (const app of apps) {
@@ -109,13 +112,14 @@ export class CodedeployApplicationMapper extends MapperBase<CodedeployApplicatio
 
         // retrieve app details
         const createdApp = await this.module.application.cloud.read(ctx, app.name);
+        createdApp.id = app.id;
         if (createdApp) out.push(createdApp);
       }
       return out;
     },
     delete: async (apps: CodedeployApplication[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const app of apps) {
+        const client = (await ctx.getAwsClient(app.region)) as AWS;
         await this.deleteApplication(client.cdClient, { applicationName: app.name });
       }
     },

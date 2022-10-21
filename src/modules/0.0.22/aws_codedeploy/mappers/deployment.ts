@@ -5,7 +5,6 @@ import {
   CreateDeploymentCommandInput,
   DeploymentInfo,
   paginateListDeployments,
-  RevisionLocation,
   waitUntilDeploymentSuccessful,
 } from '@aws-sdk/client-codedeploy';
 import { WaiterOptions } from '@aws-sdk/util-waiter';
@@ -35,13 +34,19 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
     );
   };
 
-  async deploymentMapper(deployment: DeploymentInfo, ctx: Context) {
+  async deploymentMapper(deployment: DeploymentInfo, region: string, ctx: Context) {
     const out = new CodedeployDeployment();
     // needs to have application, deployment group and revision
     if (!deployment.applicationName || !deployment.deploymentGroupName || !deployment.revision)
       return undefined;
-    out.application = await this.module.application.cloud.read(ctx, deployment.applicationName);
-    out.deploymentGroup = await this.module.deploymentGroup.cloud.read(ctx, deployment.deploymentGroupName);
+    out.application = await this.module.application.cloud.read(
+      ctx,
+      `${deployment.applicationName}|${region}`,
+    );
+    out.deploymentGroup = await this.module.deploymentGroup.cloud.read(
+      ctx,
+      `${deployment.deploymentGroupName}|${deployment.applicationName}|${region}`,
+    );
     out.deploymentId = deployment.deploymentId;
     out.description = deployment.description;
     out.externalId = deployment.externalId;
@@ -58,7 +63,7 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
         revisionType: RevisionType.S3,
       };
     } else out.location = undefined;
-
+    out.region = region;
     return out;
   }
 
@@ -78,9 +83,9 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
 
   cloud: Crud2<CodedeployDeployment> = new Crud2({
     create: async (es: CodedeployDeployment[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         // if we do not have application, deployment group or revision, continue
         if (!e.application || !e.deploymentGroup || !e.location) continue;
 
@@ -114,41 +119,49 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       }
       return out;
     },
-    read: async (ctx: Context, deploymentId?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (deploymentId) {
-        const rawDeployment = await this.getDeployment(client.cdClient, {
-          deploymentId,
-        });
-        if (!rawDeployment) return;
-
-        // map to entity
-        const deployment = await this.deploymentMapper(rawDeployment, ctx);
-        return deployment;
-      } else {
-        const out = [];
-        const deploymentIds = await this.listDeployments(client.cdClient);
-        for (const depId of deploymentIds) {
+    read: async (ctx: Context, id?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (!!id) {
+        const { deploymentId, region } = this.idFields(id);
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
           const rawDeployment = await this.getDeployment(client.cdClient, {
-            deploymentId: depId,
+            deploymentId,
           });
-          if (!rawDeployment) continue;
+          if (!rawDeployment) return;
 
           // map to entity
-          const deployment = await this.deploymentMapper(rawDeployment, ctx);
-          if (deployment) out.push(deployment);
+          const deployment = await this.deploymentMapper(rawDeployment, region, ctx);
+          return deployment;
         }
+      } else {
+        const out: CodedeployDeployment[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const deploymentIds = await this.listDeployments(client.cdClient);
+            for (const depId of deploymentIds) {
+              const rawDeployment = await this.getDeployment(client.cdClient, {
+                deploymentId: depId,
+              });
+              if (!rawDeployment) continue;
+
+              // map to entity
+              const deployment = await this.deploymentMapper(rawDeployment, region, ctx);
+              if (deployment) out.push(deployment);
+            }
+          }),
+        );
         return out;
       }
     },
-    updateOrReplace: (a: CodedeployDeployment, b: CodedeployDeployment) => 'update',
+    updateOrReplace: (_a: CodedeployDeployment, _b: CodedeployDeployment) => 'update',
     update: async (deployments: CodedeployDeployment[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const deployment of deployments) {
         if (!deployment.application || !deployment.deploymentGroup) continue; // cannot update a deployment group without app or id
 
-        const cloudRecord = ctx?.memo?.cloud?.CodedeployDeployment?.[deployment.deploymentId ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.CodedeployDeployment?.[this.entityId(deployment)];
         cloudRecord.id = deployment.id;
         cloudRecord.deploymentGroup = deployment.deploymentGroup;
         await this.module.deployment.db.update(cloudRecord, ctx);
@@ -157,6 +170,19 @@ export class CodedeployDeploymentMapper extends MapperBase<CodedeployDeployment>
       return out;
     },
     delete: async (deployments: CodedeployDeployment[], ctx: Context) => {
+      for (const d of deployments) {
+        const application = await this.module.application.db.read(ctx, `${d.application.name}|${d.region}`);
+        if (application) {
+          d.application.id = application.id;
+        }
+        const deploymentGroup = await this.module.deploymentGroup.db.read(
+          ctx,
+          `${d.deploymentGroup.name}|${d.application.name}|${d.region}`,
+        );
+        if (deploymentGroup) {
+          d.deploymentGroup.id = deploymentGroup.id;
+        }
+      }
       const out = await this.module.deployment.db.create(deployments, ctx);
       if (!out || out instanceof Array) return out;
       return [out];

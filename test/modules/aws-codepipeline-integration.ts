@@ -314,8 +314,8 @@ describe('AwsCodepipeline Integration Testing', () => {
   it(
     'adds a new deployment_group',
     query(`
-    INSERT INTO codedeploy_deployment_group (application_name, name, role_name, ec2_tag_filters)
-    VALUES ('${applicationNameForDeployment}', '${deploymentGroupName}', '${codeDeployRoleName}', '${ec2FilterTags}');
+    INSERT INTO codedeploy_deployment_group (application_id, name, role_name, ec2_tag_filters)
+    VALUES ((SELECT id FROM codedeploy_application WHERE name = '${applicationNameForDeployment}'), '${deploymentGroupName}', '${codeDeployRoleName}', '${ec2FilterTags}');
   `),
   );
 
