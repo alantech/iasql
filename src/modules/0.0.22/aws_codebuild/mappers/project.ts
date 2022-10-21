@@ -27,8 +27,7 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
       Object.is(a.serviceRole?.arn, b.serviceRole?.arn) &&
       Object.is(a.computeType, b.computeType) &&
       Object.is(a.privilegedMode, b.privilegedMode) &&
-      Object.is(a.environmentType, b.environmentType)
-  };
+      Object.is(a.environmentType, b.environmentType);
 
   async projectMapper(pj: Project, ctx: Context, region: string) {
     const out = new CodebuildProject();
@@ -80,7 +79,7 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         let artifactType: string;
-        if (e.sourceType == SourceType.CODEPIPELINE) artifactType = SourceType.CODEPIPELINE;
+        if (e.sourceType === SourceType.CODEPIPELINE) artifactType = SourceType.CODEPIPELINE;
         else artifactType = 'NO_ARTIFACTS';
 
         const input: CreateProjectCommandInput = {
