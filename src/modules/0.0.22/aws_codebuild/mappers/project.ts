@@ -89,7 +89,7 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
           },
           sourceVersion: e.sourceVersion,
           source: {
-            location: e.sourceLocation,
+            location: e.sourceLocation ?? undefined,
             type: e.sourceType,
             buildspec: e.buildSpec,
           },
