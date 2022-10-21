@@ -9,7 +9,7 @@ export class LogGroupTailRpc extends RpcBase {
   outputTable = {
     event_id: 'varchar',
     log_stream_name: 'varchar',
-    event_timestamp: 'timestamp',
+    event_timestamp: 'timestamp with time zone',
     message: 'varchar',
   } as const;
 
@@ -36,7 +36,7 @@ export class LogGroupTailRpc extends RpcBase {
     return logEvents.map(le => ({
       event_id: le.eventId,
       log_stream_name: le.logStreamName,
-      event_timestamp: le.timestamp,
+      event_timestamp: le.timestamp ? new Date(le.timestamp) : le.timestamp,
       message: le.message,
     }));
   };
