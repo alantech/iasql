@@ -66,7 +66,7 @@ const assumeServicePolicyCodebuild = {
 const cbRoleData = {
   role_name: cbRole,
   assume_role_policy_document: assumeServicePolicyCodebuild,
-  attached_policies_arns: [codebuildPolicyArn, cloudwatchLogsArn, pushEcrPolicyArn]
+  attached_policies_arns: [codebuildPolicyArn, cloudwatchLogsArn, pushEcrPolicyArn, s3PolicyArn]
 }
 const cpRoleData = {
   role_name: cpRole,
