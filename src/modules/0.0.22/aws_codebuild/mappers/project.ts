@@ -23,7 +23,7 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
     console.log(Object.is(a.projectName, b.projectName));
     console.log(Object.is(a.arn, b.arn));
     console.log(Object.is(a.buildSpec, b.buildSpec));
-    console.log(Object.is(a.sourceLocation, b.sourceLocation));
+    console.log(Object.is(a.sourceLocation ?? '', b.sourceLocation ?? ''));
     console.log(Object.is(a.sourceVersion, b.sourceVersion));
     console.log(Object.is(a.sourceType, b.sourceType));
     console.log(Object.is(a.image, b.image));
