@@ -78,6 +78,10 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+        let artifactType: string;
+        if (e.sourceType == SourceType.CODEPIPELINE) artifactType = SourceType.CODEPIPELINE;
+        else artifactType = 'NO_ARTIFACTS';
+
         const input: CreateProjectCommandInput = {
           name: e.projectName,
           environment: {
@@ -96,7 +100,7 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
           serviceRole: e.serviceRole?.arn,
           // TODO implement artifacts
           artifacts: {
-            type: 'NO_ARTIFACTS',
+            type: artifactType,
           },
         };
         const awsPj = await this.createProject(client.cbClient, input);
