@@ -23,9 +23,10 @@ SELECT * FROM iasql_apply();
 ```
 
 <!--- https://www.urlencoder.org/ -->
+<a href='https://app.iasql.com/#/button/INSERT%20INTO%20role%20%28role_name%2C%20assume_role_policy_document%29%0AVALUES%20%28%27ecs-assume-role%27%2C%20%27%7B%22Version%22%3A%20%222012-10-17%22%2C%20%22Statement%22%3A%20%5B%7B%22Sid%22%3A%20%22%22%2C%20%22Effect%22%3A%20%22Allow%22%2C%20%22Principal%22%3A%20%7B%22Service%22%3A%20%22ecs-tasks.amazonaws.com%22%7D%2C%22Action%22%3A%20%22sts%3AAssumeRole%22%7D%5D%7D%27%29%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B'>
 <button
   className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/INSERT%20INTO%20role%20%28role_name%2C%20assume_role_policy_document%29%0AVALUES%20%28%27ecs-assume-role%27%2C%20%27%7B%22Version%22%3A%20%222012-10-17%22%2C%20%22Statement%22%3A%20%5B%7B%22Sid%22%3A%20%22%22%2C%20%22Effect%22%3A%20%22Allow%22%2C%20%22Principal%22%3A%20%7B%22Service%22%3A%20%22ecs-tasks.amazonaws.com%22%7D%2C%22Action%22%3A%20%22sts%3AAssumeRole%22%7D%5D%7D%27%29%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B', '_blank')}
 >
 Run SQL
 </button>
+</a>

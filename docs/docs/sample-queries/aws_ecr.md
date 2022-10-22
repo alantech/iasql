@@ -23,12 +23,13 @@ SELECT * FROM iasql_apply();
 ```
 
 <!--- https://www.urlencoder.org/ -->
+<a href='https://app.iasql.com/#/button/INSERT%20INTO%20repository%20%28repository_name%2C%20scan_on_push%2C%20image_tag_mutability%29%0AVALUES%20%28%27iasqlsample%27%2C%20false%2C%20%27MUTABLE%27%29%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B'>
 <button
   className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/INSERT%20INTO%20repository%20%28repository_name%2C%20scan_on_push%2C%20image_tag_mutability%29%0AVALUES%20%28%27iasqlsample%27%2C%20false%2C%20%27MUTABLE%27%29%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B', '_blank')}
 >
 Run SQL
 </button>
+</a>
 
 ## Create a public repository
 
@@ -42,9 +43,10 @@ SELECT * FROM iasql_apply();
 ```
 
 <!--- https://www.urlencoder.org/ -->
+<a href='https://app.iasql.com/#/button/INSERT%20INTO%20public_repository%20%28repository_name%29%0AVALUES%20%28%27iasqlsample%27%29%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B'>
 <button
   className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/INSERT%20INTO%20public_repository%20%28repository_name%29%0AVALUES%20%28%27iasqlsample%27%29%3B%0A%0ASELECT%20%2A%20FROM%20iasql_apply%28%29%3B', '_blank')}
 >
 Run SQL
 </button>
+</a>
