@@ -17,6 +17,9 @@ function addDeviceId() {
   // Docs
   document.querySelectorAll("[href='https://docs.iasql.com']")
     .forEach(n => n.href = `https://docs.iasql.com?amp_device_id=${deviceId}`);
+  // Blog
+  document.querySelectorAll("[href='https://blog.iasql.com']")
+  .forEach(n => n.href = `https://blog.iasql.com?amp_device_id=${deviceId}`);
   // Landing page
   document.querySelectorAll("[href='https://iasql.com']")
     .forEach(n => n.href = `https://iasql.com?amp_device_id=${deviceId}`);
