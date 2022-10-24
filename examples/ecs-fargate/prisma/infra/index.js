@@ -79,8 +79,6 @@ const cpBucketData = {
   region: region
 }
 
-const ghUrl = 'iasql-engine';
-
 const prisma = new PrismaClient();
 
 async function main() {
@@ -97,9 +95,6 @@ async function main() {
   });
 
   console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`)
-
-  // generate codebuild project
-  const ghUrl = 'https://github.com/iasql/iasql-engine';
 
   const repoUri = (await prisma.ecs_simplified.findFirst({
     where: { app_name: appName },
