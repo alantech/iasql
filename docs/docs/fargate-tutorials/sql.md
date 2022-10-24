@@ -109,12 +109,11 @@ SELECT * from iasql_apply();
 ```
 
 <!--- https://www.urlencoder.org/ -->
-<button
-  className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/INSERT%20INTO%20ecs_simplified%20%28app_name%2C%20app_port%2C%20public_ip%2C%20image_tag%29%0AVALUES%20%28%27quickstart%27%2C%208088%2C%20true%2C%20%27latest%27%29%3B%0A%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B%0A%0AINSERT%20INTO%20source_credentials_import%20%28token%2C%20source_type%2C%20auth_type%29%0AVALUES%20%28%27gh_XXXXXXXXX%27%2C%20%27GITHUB%27%2C%20%27PERSONAL_ACCESS_TOKEN%27%29%3B%0A%0AINSERT%20INTO%20role%20%28role_name%2C%20assume_role_policy_document%2C%20attached_policies_arns%29%0AVALUES%20%28%27quickstart%27%2C%20%27%7B%0A%20%20%22Statement%22%3A%20%5B%0A%20%20%20%20%7B%0A%20%20%20%20%20%20%22Effect%22%3A%20%22Allow%22%2C%0A%20%20%20%20%20%20%22Principal%22%3A%20%7B%0A%20%20%20%20%20%20%20%20%22Service%22%3A%20%22codebuild.amazonaws.com%22%0A%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%22Action%22%3A%20%22sts%3AAssumeRole%22%0A%20%20%20%20%7D%2C%0A%20%20%5D%2C%0A%20%20%22Version%22%3A%20%222012-10-17%22%0A%7D%27%2C%20array%5B%27arn%3Aaws%3Aiam%3A%3Aaws%3Apolicy%2FAWSCodeBuildAdminAccess%27%2C%20%27arn%3Aaws%3Aiam%3A%3Aaws%3Apolicy%2FCloudWatchLogsFullAccess%27%2C%20%27arn%3Aaws%3Aiam%3A%3Aaws%3Apolicy%2FEC2InstanceProfileForImageBuilderECRContainerBuilds%27%5D%29%3B%0A%0AINSERT%20INTO%20codebuild_project%20%28project_name%2C%20source_type%2C%20service_role_name%2C%20source_location%2C%20build_spec%29%0AVALUES%20%28%27quickstart%27%2C%20%27GITHUB%27%2C%20%27quickstart%27%2C%20%27https%3A%2F%2Fgithub.com%2Fiasql%2Fiasql-engine%27%2C%20SELECT%20generate_put_ecr_image_build_spec%28%27us-west-1%27%2C%20%27latest%27%2C%20%27quickstart-repository%27%2C%20SELECT%20repository_uri%20FROM%20ecs_simplified%20WHERE%20app_name%20%3D%20%27quickstart%27%2C%20%27examples%2Fecs-fargate%2Fprisma%2Fapp%27%29%29%3B%0A%0AINSERT%20INTO%20codebuild_build_import%20%28project_name%29%0AVALUES%20%28%27quickstart%27%29%3B%0A%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B', '_blank')}
->
+<a href='https://app.iasql.com/#/button/INSERT%20INTO%20ecs_simplified%20%28app_name%2C%20app_port%2C%20public_ip%2C%20image_tag%29%0AVALUES%20%28%27quickstart%27%2C%208088%2C%20true%2C%20%27latest%27%29%3B%0A%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B%0A%0AINSERT%20INTO%20source_credentials_import%20%28token%2C%20source_type%2C%20auth_type%29%0AVALUES%20%28%27gh_XXXXXXXXX%27%2C%20%27GITHUB%27%2C%20%27PERSONAL_ACCESS_TOKEN%27%29%3B%0A%0AINSERT%20INTO%20role%20%28role_name%2C%20assume_role_policy_document%2C%20attached_policies_arns%29%0AVALUES%20%28%27quickstart%27%2C%20%27%7B%0A%20%20%22Statement%22%3A%20%5B%0A%20%20%20%20%7B%0A%20%20%20%20%20%20%22Effect%22%3A%20%22Allow%22%2C%0A%20%20%20%20%20%20%22Principal%22%3A%20%7B%0A%20%20%20%20%20%20%20%20%22Service%22%3A%20%22codebuild.amazonaws.com%22%0A%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%22Action%22%3A%20%22sts%3AAssumeRole%22%0A%20%20%20%20%7D%2C%0A%20%20%5D%2C%0A%20%20%22Version%22%3A%20%222012-10-17%22%0A%7D%27%2C%20array%5B%27arn%3Aaws%3Aiam%3A%3Aaws%3Apolicy%2FAWSCodeBuildAdminAccess%27%2C%20%27arn%3Aaws%3Aiam%3A%3Aaws%3Apolicy%2FCloudWatchLogsFullAccess%27%2C%20%27arn%3Aaws%3Aiam%3A%3Aaws%3Apolicy%2FEC2InstanceProfileForImageBuilderECRContainerBuilds%27%5D%29%3B%0A%0AINSERT%20INTO%20codebuild_project%20%28project_name%2C%20source_type%2C%20service_role_name%2C%20source_location%2C%20build_spec%29%0AVALUES%20%28%27quickstart%27%2C%20%27GITHUB%27%2C%20%27quickstart%27%2C%20%27https%3A%2F%2Fgithub.com%2Fiasql%2Fiasql-engine%27%2C%20SELECT%20generate_put_ecr_image_build_spec%28%27us-west-1%27%2C%20%27latest%27%2C%20%27quickstart-repository%27%2C%20SELECT%20repository_uri%20FROM%20ecs_simplified%20WHERE%20app_name%20%3D%20%27quickstart%27%2C%20%27examples%2Fecs-fargate%2Fprisma%2Fapp%27%29%29%3B%0A%0AINSERT%20INTO%20codebuild_build_import%20%28project_name%29%0AVALUES%20%28%27quickstart%27%29%3B%0A%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B'>
+<button className={"button button--primary button--lg margin-bottom--lg"}>
 Run SQL
 </button>
+</a>
 
 If the function calls are successful, they will return a virtual table with a record for each cloud resource type that has been created, deleted, or updated.
 
@@ -127,12 +126,13 @@ WHERE app_name = 'quickstart';
 ```
 
 <!--- https://www.urlencoder.org/ -->
+<a href='https://app.iasql.com/#/button/SELECT%20load_balancer_dns%0AFROM%20ecs_simplified%0AWHERE%20app_name%20%3D%20%27quickstart%27%3B'>
 <button
   className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/SELECT%20load_balancer_dns%0AFROM%20ecs_simplified%0AWHERE%20app_name%20%3D%20%27quickstart%27%3B', '_blank')}
 >
 Run SQL
 </button>
+</a>
 
 ```bash
 curl ${QUICKSTART_LB_DNS}:8088/health
@@ -154,12 +154,13 @@ SELECT * from iasql_apply();
 ```
 
 <!--- https://www.urlencoder.org/ -->
+<a href='https://app.iasql.com/#/button/SELECT%20delete_all_records%28%29%3B%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B'>
 <button
   className={"button button--primary button--lg margin-bottom--lg"}
-  onClick={() => window.open('https://app.iasql.com/#/button/SELECT%20delete_all_records%28%29%3B%0ASELECT%20%2A%20from%20iasql_apply%28%29%3B', '_blank')}
 >
 Run SQL
 </button>
+</a>
 
 If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted or updated.
 

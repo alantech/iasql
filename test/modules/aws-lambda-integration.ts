@@ -157,7 +157,7 @@ describe('Lambda Integration Testing', () => {
     ),
   );
 
-  it('should fail invoking without fucntion name', done =>
+  it('should fail when invoking without function name', done =>
     void query(`
     SELECT *
     FROM invoke_lambda();

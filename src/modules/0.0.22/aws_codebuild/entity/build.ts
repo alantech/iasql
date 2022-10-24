@@ -1,6 +1,15 @@
-import { Column, Entity, PrimaryGeneratedColumn, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  PrimaryGeneratedColumn,
+  PrimaryColumn,
+  ManyToOne,
+  JoinColumn,
+  Unique,
+} from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { CodebuildProject } from './project';
 
 export enum BuildStatus {
@@ -13,9 +22,14 @@ export enum BuildStatus {
 }
 
 @Entity()
+@Unique('uq_codebuildlist_id_region', ['id', 'region'])
+@Unique('uq_codebuildlist_name_region', ['awsId', 'region'])
 export class CodebuildBuildList {
+  @PrimaryGeneratedColumn()
+  id: number;
+
   // AWS unique ID for the build.
-  @PrimaryColumn()
+  @Column()
   @cloudId
   awsId: string;
 
@@ -35,9 +49,16 @@ export class CodebuildBuildList {
     eager: true,
     nullable: true,
   })
-  @JoinColumn({
-    name: 'project_name',
-  })
+  @JoinColumn([
+    {
+      name: 'project_name',
+      referencedColumnName: 'projectName',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   project: CodebuildProject;
 
   @Column({
@@ -57,6 +78,16 @@ export class CodebuildBuildList {
     nullable: true,
   })
   startTime?: Date;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }
 
 // TODO allow overrides
@@ -69,8 +100,25 @@ export class CodebuildBuildImport {
   @ManyToOne(() => CodebuildProject, {
     eager: true,
   })
-  @JoinColumn({
-    name: 'project_name',
-  })
+  @JoinColumn([
+    {
+      name: 'project_name',
+      referencedColumnName: 'projectName',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   project: CodebuildProject;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }

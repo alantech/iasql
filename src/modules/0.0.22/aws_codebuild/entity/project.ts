@@ -1,6 +1,15 @@
-import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  PrimaryColumn,
+  ManyToOne,
+  JoinColumn,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { IamRole } from '../../aws_iam/entity/role';
 
 export enum SourceType {
@@ -36,8 +45,13 @@ export enum EnvironmentType {
 
 // TODO support buildspec file in repo
 @Entity()
+@Unique('uq_codebuildproject_id_region', ['id', 'region'])
+@Unique('uq_codebuildproject_name_region', ['projectName', 'region'])
 export class CodebuildProject {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
   @cloudId
   projectName: string;
 
@@ -108,4 +122,14 @@ export class CodebuildProject {
     default: true,
   })
   privilegedMode: boolean;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }
