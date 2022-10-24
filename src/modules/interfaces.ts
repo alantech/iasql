@@ -1,6 +1,7 @@
 import callsite from 'callsite';
 import fs from 'fs';
 import path from 'path';
+import { parse } from 'pgsql-parser';
 import { QueryRunner, getMetadataArgsStorage, ColumnType } from 'typeorm';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
@@ -498,9 +499,6 @@ export class ModuleBase {
       tables: [],
       functions: [],
     };
-    if (/^create table/i.test(afterInstallSql)) {
-      this.provides.tables.push((afterInstallSql.match(/^[^"]*"([^"]*)"/) ?? [])[1]);
-    }
     if (this.context) this.provides.context = this.context;
     this.migrations = {
       install: async (_q: QueryRunner) => undefined,
@@ -509,11 +507,15 @@ export class ModuleBase {
     const afterInstallMigration = afterInstallSql + rpcAfterInstallSql;
     const beforeUninstallMigration = rpcBeforeUninstallSql + beforeUninstallSql;
     if (beforeInstallSql) {
+      this.provides.tables.push(...this.getFromSql('tables', beforeInstallSql));
+      this.provides.functions.push(...this.getFromSql('functions', beforeInstallSql));
       this.migrations.beforeInstall = async (q: QueryRunner) => {
         await q.query(beforeInstallSql);
       };
     }
     if (afterInstallMigration) {
+      this.provides.tables.push(...this.getFromSql('tables', afterInstallMigration));
+      this.provides.functions.push(...this.getFromSql('functions', afterInstallMigration));
       this.migrations.afterInstall = async (q: QueryRunner) => {
         await q.query(afterInstallMigration);
       };
@@ -528,6 +530,24 @@ export class ModuleBase {
         await q.query(afterUninstallSql);
       };
     }
+  }
+
+  getFromSql(stmtType: 'tables' | 'functions', sql: string): string[] {
+    try {
+      const sqlParsed = parse(sql);
+      const stmtKey = stmtType === 'tables' ? 'CreateStmt' : 'CreateFunctionStmt';
+      return sqlParsed
+        .filter((s: any) => Object.keys(s.RawStmt?.stmt ?? {}).includes(stmtKey))
+        .map((s: any) => {
+          return stmtType === 'tables'
+            ? s.RawStmt?.stmt?.CreateStmt?.relation?.relname
+            : s.RawStmt?.stmt?.CreateFunctionStmt?.funcname?.pop()?.String?.str;
+        })
+        .filter((v: string | undefined) => !!v);
+    } catch (_) {
+      /** Do nothing */
+    }
+    return [];
   }
 
   loadTypeORM() {
