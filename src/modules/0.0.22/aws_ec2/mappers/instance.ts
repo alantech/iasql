@@ -14,8 +14,6 @@ import { AwsEc2Module } from '..';
 import { awsIamModule, awsSecurityGroupModule, awsVpcModule } from '../..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { SecurityGroup } from '../../aws_security_group/entity';
-import { Subnet } from '../../aws_vpc/entity';
 import { GeneralPurposeVolume, Instance, State, VolumeState } from '../entity';
 import { updateTags, eqTags } from './tags';
 
@@ -85,11 +83,11 @@ export class InstanceMapper extends MapperBase<Instance> {
     out.subnet =
       (await awsVpcModule.subnet.db.read(
         ctx,
-        awsVpcModule.subnet.generateId({ SubnetId: instance.SubnetId ?? '', region }),
+        awsVpcModule.subnet.generateId({ subnetId: instance.SubnetId ?? '', region }),
       )) ??
       (await awsVpcModule.subnet.cloud.read(
         ctx,
-        awsVpcModule.subnet.generateId({ SubnetId: instance.SubnetId ?? '', region }),
+        awsVpcModule.subnet.generateId({ subnetId: instance.SubnetId ?? '', region }),
       ));
     out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
     out.region = region;
