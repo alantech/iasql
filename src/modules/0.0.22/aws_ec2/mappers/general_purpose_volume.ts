@@ -56,11 +56,11 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
       out.attachedInstance =
         (await this.module.instance.db.read(
           ctx,
-          this.module.instance.generateId({ InstanceId: attachment?.InstanceId ?? '', region }),
+          this.module.instance.generateId({ instanceId: attachment?.InstanceId ?? '', region }),
         )) ??
         (await this.module.instance.cloud.read(
           ctx,
-          this.module.instance.generateId({ InstanceId: attachment?.InstanceId ?? '', region }),
+          this.module.instance.generateId({ instanceId: attachment?.InstanceId ?? '', region }),
         ));
       out.instanceDeviceName = attachment?.Device;
     }
