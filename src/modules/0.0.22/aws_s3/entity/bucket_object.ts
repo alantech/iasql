@@ -17,7 +17,7 @@ import { Bucket } from './bucket';
 @Unique('uq_bucketobject_bucket_key_region', ['key', 'region'])
 export class BucketObject {
   @PrimaryGeneratedColumn()
-  id: number;
+  id?: number;
 
   @PrimaryColumn({
     nullable: false,
@@ -58,16 +58,4 @@ export class BucketObject {
     nullable: true,
   })
   eTag?: string;
-
-  @Column({
-    nullable: true,
-    type: 'timestamp without time zone',
-  })
-  lastModified?: Date;
-
-  @Column({
-    type: 'integer',
-    nullable: true,
-  })
-  size?: number;
 }

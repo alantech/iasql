@@ -3,6 +3,7 @@ import { S3, _Object } from '@aws-sdk/client-s3';
 import { AwsS3Module } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../../services/aws_macros';
 import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
+import { BucketObject } from '../entity';
 
 export class S3CleanBucketRpc extends RpcBase {
   module: AwsS3Module;
@@ -57,9 +58,20 @@ export class S3CleanBucketRpc extends RpcBase {
         const clientRegion = (await ctx.getAwsClient(region)) as AWS;
 
         const objects = await this.getBucketObjects(clientRegion.s3Client, bucketName);
-        for (const object of objects) {
+        for (const o of objects) {
+          if (!o.Key) continue;
+
           // delete the object
-          await this.deleteBucketObject(clientRegion.s3Client, bucketName, object.Key);
+          await this.deleteBucketObject(clientRegion.s3Client, bucketName, o.Key);
+
+          // query for the bucket
+          const bucket =
+            (await this.module.bucket.db.read(ctx, `${bucketName}|${region}`)) ??
+            (await this.module.bucket.cloud.read(ctx, `${bucketName}|${region}`));
+
+          // delete in the db
+          const bo = await this.module.bucketObject.db.read(ctx, `${o.Key}|${bucketName}|${region}`);
+          if (bo) await this.module.bucketObject.db.delete(bo, ctx);
         }
 
         // query again to see if all objects have been deleted

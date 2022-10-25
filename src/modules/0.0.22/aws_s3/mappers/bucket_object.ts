@@ -1,4 +1,5 @@
-import { S3, _Object, paginateListObjectsV2 } from '@aws-sdk/client-s3';
+import { S3, _Object, paginateListObjectsV2, waitUntilObjectNotExists } from '@aws-sdk/client-s3';
+import { WaiterOptions } from '@aws-sdk/util-waiter';
 
 import { AwsS3Module } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
@@ -21,19 +22,17 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
     } else {
       bo.bucket =
         (await this.module.bucket.db.read(ctx, `${bucket}|${region}`)) ??
-        ctx?.memo?.cloud?.CodebuildProject?.[`${bucket}|${region}`];
+        ctx?.memo?.cloud?.BucketAWS?.[`${bucket}|${region}`];
     }
+
     bo.region = region;
     bo.eTag = instance.ETag;
     bo.key = instance.Key;
-    bo.lastModified = instance.LastModified;
-    bo.size = instance.Size;
     return bo;
   }
 
   equals = (a: BucketObject, b: BucketObject) => {
-    const res =
-      Object.is(a.eTag, b.eTag) && Object.is(a.lastModified, b.lastModified) && Object.is(a.size, b.size);
+    const res = Object.is(a.eTag, b.eTag);
     return res;
   };
 
@@ -51,33 +50,39 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient(await ctx.getDefaultRegion())) as AWS;
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      const out: Bucket[] = [];
-      let rawObjects: BucketObject[] = [];
 
       if (!!id) {
         const { bucketName, objectKey, region } = this.idFields(id);
 
         if (enabledRegions.includes(region)) {
-          const client = (await ctx.getAwsClient(region)) as AWS;
+          const regionClient = (await ctx.getAwsClient(region)) as AWS;
 
-          const bucketObjects = await this.getBucketObjects(client.s3Client, bucketName, objectKey);
+          const bucketObjects = await this.getBucketObjects(regionClient.s3Client, bucketName, objectKey);
           for (const o of bucketObjects) {
             const finalObject = await this.bucketObjectMapper(o, ctx, bucketName, region);
             return finalObject;
           }
         }
       } else {
+        const out: BucketObject[] = [];
+
         // we need to retrieve all buckets from all regions, then read their objects
-        const rawBuckets = (await this.module.bucket.db.read(client.s3Client)) ?? [];
-        const out = [];
+        const rawBuckets =
+          (await this.module.bucket.db.read(ctx)) ?? (await this.module.bucket.cloud.read(ctx)) ?? [];
         for (const bucket of rawBuckets) {
+          // instantiate client with the specific region
+          const clientRegion = (await ctx.getAwsClient(bucket.region ?? 'us-east-1')) as AWS;
+
           // retrieve objects
-          const objects = await this.getBucketObjects(client.s3Client, bucket.name);
-          for (const o of objects) {
-            const finalObject = await this.bucketObjectMapper(o, ctx, bucket.name, bucket.region);
-            if (finalObject) out.push(finalObject);
+          try {
+            const objects = await this.getBucketObjects(clientRegion.s3Client, bucket.name);
+            for (const o of objects) {
+              const finalObject = await this.bucketObjectMapper(o, ctx, bucket.name, bucket.region);
+              if (finalObject) out.push(finalObject);
+            }
+          } catch (e) {
+            // do nothing, try the next bucket
           }
         }
         return out;
@@ -97,8 +102,22 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
     },
     delete: async (es: BucketObject[], ctx: Context) => {
       for (const e of es) {
-        const client = (await ctx.getAwsClient(e.region)) as AWS;
-        await this.deleteBucketObject(client.s3Client, e.bucket, e.key);
+        if (e.key && e.bucket?.name) {
+          const client = (await ctx.getAwsClient(e.region)) as AWS;
+          await this.deleteBucketObject(client.s3Client, e.bucket?.name, e.key);
+
+          // wait until the object is available
+          const res = await waitUntilObjectNotExists(
+            {
+              client: client.s3Client,
+              // all in seconds
+              maxWaitTime: 900,
+              minDelay: 1,
+              maxDelay: 4,
+            } as WaiterOptions<S3>,
+            { Bucket: e.bucket.name, Key: e.key },
+          );
+        }
       }
     },
   });
