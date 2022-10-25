@@ -216,6 +216,7 @@ export interface MapperInterface<E> {
   entity: new () => E;
   entityId: (e: E) => string;
   idFields: (id: string) => IdFields;
+  generateId: (idFields: IdFields) => string;
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
   db: Crud2<E>;
@@ -239,6 +240,7 @@ export class MapperBase<E> {
   entityId: (e: E) => string;
   // TODO: add better typing based on cloudColumns if possible
   idFields: (id: string) => IdFields;
+  generateId: (idFields: IdFields) => string;
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
   db: Crud2<E>;
@@ -249,16 +251,41 @@ export class MapperBase<E> {
     if (!this.entity) throw new Error('No entity defined for this mapper');
     const cloudColumns = getCloudId(this.entity);
     const ormMetadata = getMetadataArgsStorage();
+    // Technically we should have a check for if only one of the two is defined, because the author
+    // could create the 'id' string any way they want, and if not properly paired it could break in
+    // weird ways, but since all extant versions of 'entityId' join with '|', we're rolling with it
+    const primaryColumn =
+      ormMetadata.columns
+        .filter(c => c.target === this.entity)
+        .filter(c => c.options.primary)
+        .map(c => c.propertyName)
+        .shift() ?? '';
+    if (!this.generateId) {
+      this.generateId = (fields: IdFields) => {
+        if (cloudColumns && !(cloudColumns instanceof Error)) {
+          if (
+            Object.keys(fields).length !== cloudColumns.length ||
+            !Object.keys(fields).every(fk => cloudColumns.includes(fk))
+          ) {
+            throw new Error(
+              `Id generation error. Valid fields to generate id are: ${cloudColumns.join(', ')}`,
+            );
+          }
+          const out = cloudColumns.map(col => fields[col]).join('|');
+          if (!out) return fields[primaryColumn] + '';
+          return out;
+        } else {
+          if (
+            Object.keys(fields).length !== 1 ||
+            !Object.keys(fields).every(fk => [primaryColumn].includes(fk))
+          ) {
+            throw new Error(`Id generation error. Valid field to generate id is: ${primaryColumn}`);
+          }
+          return fields[primaryColumn] + '';
+        }
+      };
+    }
     if (!this.entityId || !this.idFields) {
-      // Technically we should have a check for if only one of the two is defined, because the author
-      // could create the 'id' string any way they want, and if not properly paired it could break in
-      // weird ways, but since all extant versions of 'entityId' join with '|', we're rolling with it
-      const primaryColumn =
-        ormMetadata.columns
-          .filter(c => c.target === this.entity)
-          .filter(c => c.options.primary)
-          .map(c => c.propertyName)
-          .shift() ?? '';
       // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
       this.entityId =
         this.entityId ||
@@ -320,10 +347,6 @@ export class MapperBase<E> {
     this.cloud.idFields = this.idFields;
     this.cloud.dest = 'cloud';
     this.cloud.module = this.module;
-  }
-
-  generateId(...args: (string | undefined)[]): string {
-    return args.join('|');
   }
 }
 
