@@ -343,6 +343,11 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
     read: async (ctx: Context, arn?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (arn) {
+        try {
+          parseArn(arn).region;
+        } catch (e: any) {
+          logger.info(`+-+ how are we gettign here??? ${e} - task definition arn ${arn}`)
+        }
         const region = parseArn(arn).region;
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;

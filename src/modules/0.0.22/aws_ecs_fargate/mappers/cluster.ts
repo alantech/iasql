@@ -12,6 +12,7 @@ import { AwsEcsFargateModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { Cluster } from '../entity';
+import logger from '../../../../services/logger';
 
 export class ClusterMapper extends MapperBase<Cluster> {
   module: AwsEcsFargateModule;
@@ -136,6 +137,11 @@ export class ClusterMapper extends MapperBase<Cluster> {
     read: async (ctx: Context, arn?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (arn) {
+        try {
+          parseArn(arn).region;
+        } catch (e: any) {
+          logger.info(`+-+ how are we gettign here??? ${e} - cluster arn ${arn}`)
+        }
         const region = parseArn(arn).region;
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
