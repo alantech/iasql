@@ -380,7 +380,7 @@ describe('S3 install/uninstall', () => {
     select * from iasql_install('aws_s3');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(1);
+        expect(res.length).toBe(2);
       },
     ),
   );
@@ -392,7 +392,7 @@ describe('S3 install/uninstall', () => {
     select * from iasql_uninstall('aws_s3');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(1);
+        expect(res.length).toBe(2);
       },
     ),
   );
