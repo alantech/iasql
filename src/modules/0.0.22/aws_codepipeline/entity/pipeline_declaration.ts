@@ -1,8 +1,17 @@
-import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  PrimaryColumn,
+  ManyToOne,
+  JoinColumn,
+  Unique,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 import { ArtifactStore, StageDeclaration } from '@aws-sdk/client-codepipeline';
 
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { IamRole } from '../../aws_iam/entity';
 
 export enum ActionCategory {
@@ -15,8 +24,12 @@ export enum ActionCategory {
 }
 
 @Entity()
+@Unique('uq_pipeline_name_region', ['name', 'region'])
 export class PipelineDeclaration {
-  @PrimaryColumn({
+  @PrimaryGeneratedColumn()
+  id?: number;
+
+  @Column({
     nullable: false,
     type: 'varchar',
   })
@@ -42,4 +55,14 @@ export class PipelineDeclaration {
     nullable: true,
   })
   stages?: StageDeclaration[] | undefined;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  @cloudId
+  region: string;
 }
