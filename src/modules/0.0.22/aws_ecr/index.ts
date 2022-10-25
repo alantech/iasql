@@ -47,14 +47,14 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         (await this.module.repository.db.read(
           ctx,
           this.module.repository.generateId({
-            resporitoryName: image.repositoryName ?? '',
+            repositoryName: image.repositoryName ?? '',
             region: region ?? '',
           }),
         )) ??
         (await this.module.repository.cloud.read(
           ctx,
           this.module.repository.generateId({
-            resporitoryName: image.repositoryName ?? '',
+            repositoryName: image.repositoryName ?? '',
             region: region ?? '',
           }),
         ));
@@ -260,7 +260,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         return out;
       }
     },
-    update: async (es: RepositoryImage[], ctx: Context) => {
+    update: async (_es: RepositoryImage[], _ctx: Context) => {
       return [];
     },
     delete: async (es: RepositoryImage[], ctx: Context) => {
