@@ -46,7 +46,7 @@ Attempting to `iasql_sync` in the middle of that `iasql_apply` could cause IaSQL
 
 However, it is possible for "Two-Way" mode to emulate the other three in a way that is also mostly-backwards-compatible with the current manual mode. Furthermore, a singular IaSQL database would be able to have different "parts" of the database emulating different modes at the same time.
 
-To accomplish this, let's assume under normal operations, there is a singular apply/sync-combined command to perform the "Two-Way"-style action. It works similarly to the current sync and apply, but also uses the audit log to decide for each record which behavior to follow. This piece can be operated in a "manual" style, invoked explicitly, but we'll instead invoke it through a cron-like interval, every few minutes, to make the automatic mode. In this way, there is no special syntax for users to work with normally. They just `SELECT/INSERT/UPDATE/DELETE` records they see and eventually this is reflected in their cloud account.
+To accomplish this, let's assume under normal operations, there is a singular apply/sync-combined command to perform the "Two-Way"-style action. It works similarly to the current sync and apply, but also uses the audit log to decide for each record which behavior to follow. This piece can be operated in a "manual" style, invoked explicitly, but we'll instead invoke it through a cron-like interval, every few minutes, to make the automatic mode. In this way, there is no special syntax for users to work with normally. They just `SELECT/INSERT/UPDATE/DELETE` records they see and eventually this is reflected in their cloud account. This should also work with migration systems without issues, though in an eventually-consistent fashion.
 
 To emulate manual mode would basically be to temporarily turn off that cron, let the user make whatever changes they want to batch together, and then re-enable that cron. Because we can't actually support the current `iasql_apply` for the three `code-` services, and because entering this batching mode that could potentially be unwound, it looks a *lot* like a transaction, so the proposed new syntax would be to emulate that:
 
@@ -66,41 +66,18 @@ CALL iasql_rollback(); -- Executes `iasql_sync`, then re-enables the cron
 CALL iasql_commit(); -- Re-enables the cron, but also performs a blocking execution of the new logic so a `SELECT` on the newly-created records has the desired cloud IDs
 ```
 
-To emulate the two One-Way automatic modes, we can take a page from Postgres' [Table and Row-Level Locking](https://www.postgresql.org/docs/15/explicit-locking.html). We can create sets of functions to put a whole table or just specific rows into either of these modes or put them back to normal operations. These functions would write to a new metadata table that would override the decision the audit log makes, which makes them pretty easy additions to the functionality while gaining significant power and flexibility for users (and could be pure SQL stored procedures that don't go through the engine's RPC path at all, since they just manipulate a config table).
+Backing this would be a minor addition to the existing audit log. If we have the new cron logic and the rollback/commit calls add rows to the audit log when it starts and ends, they can check if the most recent of these records is a `start` one, implying that the engine is currently working on applying and synchronizing changes with the cloud, and would alter their behavior slightly. The `cron` would simply early exit in this case, as it implies there is an existing cron that has gone overtime, and so it should wait until the next execution of the cron to try again. `iasql_begin` would block until a paired `end` record exists and then continue with its work. `iasql_rollback` and `iasql_commit` should therefore never see this state after `iasql_begin` is called, but for defensiveness they should as well block until an `end` record exists and then do their own work.
 
-Naming these functions to be clearly understood will be important so "Anti-Chaos-Monkey" can't be what we go with here. ;) The current proposal for the name for the "Write-Only Automatic" style functions is "Enforce" as the user is asking IaSQL to enforce these particular rows or tables to always match the database, and the "Read-Only Automatic" style becomes "Track" as the user is asking IaSQL to track the upstream cloud. The proposed new syntax for these is:
+These checks should also pay attention to the timestamp and ignore the missing `end` record condition if it has been "too long" and therefore the engine was likely restarted in the meantime. The exact time will depend on what limit we ourselves put on the new commit logic, but perhaps 30 minutes?
 
-```sql
-SELECT iasql_enforce('table_name'); -- Enforce an entire table onto the cloud.
-
-SELECT iasql_enforce('table_name', 5); -- Enforce a particular row from a table onto the cloud. We need to use the database ID here because enforcement *will* cause `@cloudId` churn if it needs to recreate the resource.
-
-SELECT iasql_enforce_all(); -- Essentially makes the DB write-only
-
-SELECT iasql_drop_enforce('table_name'); -- Drop the enforcement of the table. Should it also automatically drop specific row-level enforcement is something to decide. I'm leaning towards "yes" but it could be unexpected.
-
-SELECT iasql_drop_enforce('table_name', 5); -- Drop the enforcement of a particular row. This one, at least, is unambiguous.
-
-SELECT iasql_drop_enforce_all(); -- Restores normal behavior.
-
-SELECT iasql_track('table_name'); -- Makes the table effectively read-only.
-
-SELECT iasql_track('table_name', 5); -- Makes a particular row read-only.
-
-SELECT iasql_track_all(); -- Makes the DB read-only
-
-SELECT iasql_drop_track('table_name'); -- Drops tracking for the table. Similar issue to above: should this affect row-level tracking in the same table?
-
-SELECT iasql_drop_track('table_name', 5); -- Drops tracking for a particular row.
-
-SELECT iasql_drop_track_all(); -- Restores normal behavior
-```
-
-While entering the transaction mode introduces a synchronous point (such that `CALL iasql_commit();` blocks until the apply/sync operation is complete), there may be times where a user made changes in "normal" two-way mode but they now need to wait for resources to actually be created. A proposed helper function would trigger a blocking call until a user condition is met. One possible syntax for this is:
+While entering the transaction mode introduces a synchronous point (such that `CALL iasql_commit();` blocks until the apply/sync operation is complete), there may be times where a user made changes in non-transactional two-way mode but they now need to wait for resources to actually be created. A proposed helper function would trigger a blocking call until a user condition is met. One possible syntax for this is:
 
 ```sql
 SELECT iasql_wait_for('table_name', 5, 'cloud_id IS NOT NULL'); -- Default version
+
 SELECT iasql_wait_for('table_name', 5, 'cloud_id IS NOT NULL', 30); -- Optional argument for maximum # of seconds to wait before erroring (defaulting to 5 minutes or something)
+
+SELECT iasql_wait_for_all(); -- This uses special querying of the audit log to make sure all changes up to the time this function is invoked are represented in the cloud
 ```
 
 Similar to the enforce and track functions, it is essentially executing (on another postgres thread/process) a particular select statement in a loop with a sleep thrown in until success or it errors out if the condition is never met. That select statement would be something like:
@@ -109,9 +86,33 @@ Similar to the enforce and track functions, it is essentially executing (on anot
 SELECT count(*) > 0 FROM `table_name` WHERE id = `5` AND `cloud_id IS NOT NULL`
 ```
 
-The parts in backticks are from the user-provided values. This is SQL injection, but it's their own database and we already allow arbitrary SQL statements to run on the database, so it doesn't affect the security situation in the slightest, even if it does immediately cause heart palpitations while looking at it. ;)
+The parts in backticks are from the user-provided values. This is SQL injection, but it's their own database and we already allow arbitrary SQL statements to run on the database, so it doesn't affect the security situation in the slightest, even if it does immediately cause heart palpitations while looking at it. ;) This is also not blocking for the transition, but simply a pair of convenience functions that we should be able to provide relatively easily.
 
-The final recommendation is to keep `iasql_apply` and `iasql_sync` as functions that can be called, but make them no-ops that warn that they don't do anything anymore, and that at some time in the future these functions will be dropped. The reasoning behind this is that this transition will take some time and there may be IaSQL snippets out there that do continue working after this transition assuming they didn't call either of those functions. We can track the number of actual invocations in these functions by having the engine-side implementation simply fire off an alert to us. If we see little-to-no triggering by end users, we could drop them sooner rather than later.
+With this, we now have enough to unblock the `code-` services, but we can continue from here to emulate the two One-Way automatic modes, we can take a page from Postgres' [Table and Row-Level Locking](https://www.postgresql.org/docs/15/explicit-locking.html).
+
+Naming these modes to be clearly understood will be important so "Anti-Chaos-Monkey" can't be what we go with here. ;) The current proposal for the name for the "Write-Only Automatic" style functions is "Enforce" as the user is asking IaSQL to enforce these particular rows or tables to always match the database, and the "Read-Only Automatic" style becomes "Track" as the user is asking IaSQL to track the upstream cloud. These various configuration choices have differing levels of scope and collisions between the rules can be confusing. How these are interpreted needs to be well-defined and queryable. So we need a new table to represent these states in the database, and then we should follow a few rules:
+
+1. More specific rules override less specific rules, so if we "track" cloud changes for a table, but "enforce" one particular row from that table, the "enforced" row will be "write-only automatic" while the rest of the records in the table will be "read-only automatic".
+2. Equal level contradictory rules should not exist, but if they can, we should err on the side of not breaking things, so "Read-Only Automatic" > "Two-Way Automatic" > "Write-Only Automatic" when dealing with a tie.
+
+That last one *shouldn't* be a problem for us, though, because we can define a new `iasql_mode` table like this:
+
+```
++-----------------------------------------+
+| iasql_mode                              |
++-----------------------------------------+
+| table_name NULLABLE VARCHAR             |
+| record_id  NULLABLE INT                 |
+| mode       ENUM(NORMAL, ENFORCE, TRACK) |
++-----------------------------------------+
+| UNIQUE (table_name, record_id)          |
+| FK (table_name => iasql_tables.table)   |
++-----------------------------------------+
+```
+
+The unique constraint makes it impossible to set two different modes of behavior on the same rule level, the nullable `table_name` and `record_id` allows providing `NULL` for the wildcard case, and the foreign key on the `iasql_tables` table makes sure specified tables actually exist. I can't find a good way to also enforce that the `record_id` also exists, though. If there is no `iasql_mode` record that would apply to a given record being considered, the `NORMAL` mode would be assumed to apply (so this table being empty is not a configuration error). The `NORMAL` enum state is defined to allow overriding particular tables or records back to the default state if a more global state is not the default mode.
+
+The final recommendation is to keep `iasql_apply`, `iasql_sync`, `iasql_preview_apply`, and `iasql_preview_sync` as functions that can be called, but make them no-ops that warn/error that they don't do anything anymore, and that at some time in the future these functions will be dropped. The reasoning behind this is that this transition will take some time and there may be IaSQL snippets out there that do continue working after this transition assuming they didn't call either of those functions. We can track the number of actual invocations in these functions by having the engine-side implementation simply fire off an alert to us. If we see little-to-no triggering by end users, we could drop them sooner rather than later.
 
 So what does all of this buy us?
 
@@ -156,5 +157,7 @@ This will take a few weeks to get across the line. The major steps (with estimat
 
 1. Implement the `iasql_commit` function and port test suite to using it. (1 week)
 2. Implement pausable cron and transaction functionality, make `apply/sync` no-ops, and update the test suite again. (1 week)
-3. Implement Enforce/Track/WaitFor and add new tests for them (3-4 days)
+3. Implement WaitFor and add new tests for them (1-2 days)
+4. Implement Track and add new tests for them (3-4 days)
+5. Implement Enforce and add new tests for them (3-4 days)
 
