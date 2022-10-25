@@ -290,8 +290,14 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     for (const sg of cloudSecurityGroups) {
       try {
         securityGroups.push(
-          (await awsSecurityGroupModule.securityGroup.db.read(ctx, super.generateId(sg, region))) ??
-            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, super.generateId(sg, region))),
+          (await awsSecurityGroupModule.securityGroup.db.read(
+            ctx,
+            awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
+          )) ??
+            (await awsSecurityGroupModule.securityGroup.cloud.read(
+              ctx,
+              awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
+            )),
         );
       } catch (_) {
         // If security groups are misconfigured ignore them
@@ -302,8 +308,8 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     out.ipAddressType = lb.IpAddressType as IpAddressType;
     out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
     const vpc =
-      (await awsVpcModule.vpc.db.read(ctx, super.generateId(lb.VpcId, region))) ??
-      (await awsVpcModule.vpc.cloud.read(ctx, super.generateId(lb.VpcId, region)));
+      (await awsVpcModule.vpc.db.read(ctx, awsVpcModule.vpc.generateId({ vpcId: lb.VpcId, region }))) ??
+      (await awsVpcModule.vpc.cloud.read(ctx, awsVpcModule.vpc.generateId({ vpcId: lb.VpcId, region })));
     out.vpc = vpc;
     out.availabilityZones = lb.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
     out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
@@ -627,8 +633,8 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
     out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum;
     try {
       const vpc =
-        (await awsVpcModule.vpc.db.read(ctx, super.generateId(tg.VpcId, region))) ??
-        (await awsVpcModule.vpc.cloud.read(ctx, super.generateId(tg.VpcId, region)));
+        (await awsVpcModule.vpc.db.read(ctx, awsVpcModule.vpc.generateId({ vpcId: tg.VpcId, region }))) ??
+        (await awsVpcModule.vpc.cloud.read(ctx, awsVpcModule.vpc.generateId({ vpcId: tg.VpcId, region })));
       if (tg.VpcId && !vpc) return undefined;
       out.vpc = vpc;
     } catch (e: any) {

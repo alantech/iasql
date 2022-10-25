@@ -38,8 +38,8 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
     out.groupId = sg.GroupId;
     if (sg.VpcId) {
       out.vpc =
-        (await awsVpcModule.vpc.db.read(ctx, super.generateId(sg.VpcId, region))) ??
-        (await awsVpcModule.vpc.cloud.read(ctx, super.generateId(sg.VpcId, region)));
+        (await awsVpcModule.vpc.db.read(ctx, awsVpcModule.vpc.generateId({ vpcId: sg.VpcId, region }))) ??
+        (await awsVpcModule.vpc.cloud.read(ctx, awsVpcModule.vpc.generateId({ vpcId: sg.VpcId, region })));
       if (!out.vpc) throw new Error(`Waiting for VPC ${sg.VpcId}`);
     }
     out.region = region;
@@ -166,7 +166,10 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
           // There may be a race condition/double write happening here, so check if this thing
           // has been created in the meantime
-          const dbVpc = await awsVpcModule.vpc.db.read(ctx, super.generateId(out?.vpc?.vpcId, out?.region));
+          const dbVpc = await awsVpcModule.vpc.db.read(
+            ctx,
+            awsVpcModule.vpc.generateId({ vpcId: out?.vpc?.vpcId, region: out?.region }),
+          );
           if (!!dbVpc) {
             out.vpc = dbVpc;
           }
@@ -198,7 +201,10 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         if (out.vpc && out.vpc.vpcId && !out.vpc.id) {
           // There may be a race condition/double write happening here, so check if this thing
           // has been created in the meantime
-          const dbVpc = await awsVpcModule.vpc.db.read(ctx, super.generateId(out?.vpc?.vpcId, out?.region));
+          const dbVpc = await awsVpcModule.vpc.db.read(
+            ctx,
+            awsVpcModule.vpc.generateId({ vpcId: out?.vpc?.vpcId, region: out?.region }),
+          );
           if (!!dbVpc) {
             out.vpc = dbVpc;
           }
@@ -300,7 +306,10 @@ class SecurityGroupMapper extends MapperBase<SecurityGroup> {
         // You can mess with its rules, but not this record itself, so any attempt to update it
         // is instead turned into *restoring* the value in the database to match the cloud value
         // Check if there is a VPC for this security group in the database
-        const vpcDbRecord = await awsVpcModule.vpc.db.read(ctx, super.generateId(e.vpc?.vpcId, e.region));
+        const vpcDbRecord = await awsVpcModule.vpc.db.read(
+          ctx,
+          awsVpcModule.vpc.generateId({ vpcId: e.vpc?.vpcId ?? '', region: e.region }),
+        );
         if (e.groupName === 'default' && !!vpcDbRecord) {
           // If there is a security group in the database with the 'default' groupName but we
           // are still hitting the 'delete' path, that's a race condition and we should just do
@@ -387,7 +396,7 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
     out.securityGroupRuleId = sgr?.SecurityGroupRuleId;
     out.securityGroup = await this.module.securityGroup.cloud.read(
       ctx,
-      super.generateId(sgr?.GroupId, region),
+      this.module.securityGroup.generateId({ groupId: sgr?.GroupId ?? '', region }),
     );
     out.isEgress = sgr?.IsEgress ?? false;
 
@@ -395,14 +404,14 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
       // try to find in the database
       const result = await this.module.securityGroup.db.read(
         ctx,
-        super.generateId(sgr.ReferencedGroupInfo.GroupId, region),
+        this.module.securityGroup.generateId({ groupId: sgr.ReferencedGroupInfo.GroupId, region }),
       );
       if (result) out.sourceSecurityGroup = result;
       else {
         // try to read from cloud
         const group = await this.module.securityGroup.cloud.read(
           ctx,
-          super.generateId(sgr.ReferencedGroupInfo.GroupId, region),
+          this.module.securityGroup.generateId({ groupId: sgr.ReferencedGroupInfo.GroupId, region }),
         );
         if (group) out.sourceSecurityGroup = group;
       }
@@ -608,13 +617,19 @@ class SecurityGroupRuleMapper extends MapperBase<SecurityGroupRule> {
         if (!GroupId && !region)
           throw new Error('Cannot create a security group rule for a security group that does not yet exist');
         if (en.isEgress) {
-          egressDeletesToRun[super.generateId(GroupId, region)] =
-            egressDeletesToRun[super.generateId(GroupId, region)] ?? [];
-          egressDeletesToRun[super.generateId(GroupId, region)].push(en.securityGroupRuleId);
+          egressDeletesToRun[this.module.securityGroup.generateId({ groupId: GroupId ?? '', region })] =
+            egressDeletesToRun[this.module.securityGroup.generateId({ groupId: GroupId ?? '', region })] ??
+            [];
+          egressDeletesToRun[this.module.securityGroup.generateId({ groupId: GroupId ?? '', region })].push(
+            en.securityGroupRuleId,
+          );
         } else {
-          ingressDeletesToRun[super.generateId(GroupId, region)] =
-            ingressDeletesToRun[super.generateId(GroupId, region)] ?? [];
-          ingressDeletesToRun[super.generateId(GroupId, region)].push(en.securityGroupRuleId);
+          ingressDeletesToRun[this.module.securityGroup.generateId({ groupId: GroupId ?? '', region })] =
+            ingressDeletesToRun[this.module.securityGroup.generateId({ groupId: GroupId ?? '', region })] ??
+            [];
+          ingressDeletesToRun[this.module.securityGroup.generateId({ groupId: GroupId ?? '', region })].push(
+            en.securityGroupRuleId,
+          );
         }
       }
 

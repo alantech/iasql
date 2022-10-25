@@ -63,7 +63,10 @@ export class InstanceMapper extends MapperBase<Instance> {
     if (!out.instanceType) return undefined;
     out.securityGroups = [];
     for (const sgId of instance.SecurityGroups?.map(sg => sg.GroupId) ?? []) {
-      const sg = await awsSecurityGroupModule.securityGroup.db.read(ctx, super.generateId(sgId, region));
+      const sg = await awsSecurityGroupModule.securityGroup.db.read(
+        ctx,
+        awsSecurityGroupModule.securityGroup.generateId({ groupId: sgId ?? '', region }),
+      );
       if (sg) out.securityGroups.push(sg);
     }
     if (instance.IamInstanceProfile?.Arn) {
@@ -80,8 +83,14 @@ export class InstanceMapper extends MapperBase<Instance> {
       }
     }
     out.subnet =
-      (await awsVpcModule.subnet.db.read(ctx, super.generateId(instance.SubnetId, region))) ??
-      (await awsVpcModule.subnet.cloud.read(ctx, super.generateId(instance.SubnetId, region)));
+      (await awsVpcModule.subnet.db.read(
+        ctx,
+        awsVpcModule.subnet.generateId({ SubnetId: instance.SubnetId ?? '', region }),
+      )) ??
+      (await awsVpcModule.subnet.cloud.read(
+        ctx,
+        awsVpcModule.subnet.generateId({ SubnetId: instance.SubnetId ?? '', region }),
+      ));
     out.hibernationEnabled = instance.HibernationOptions?.Configured ?? false;
     out.region = region;
     return out;
@@ -358,7 +367,7 @@ export class InstanceMapper extends MapperBase<Instance> {
           }
           const newEntity = await this.module.instance.cloud.read(
             ctx,
-            super.generateId(instanceId, instance.region),
+            this.module.instance.generateId({ instanceId, region: instance.region }),
           );
           newEntity.id = instance.id;
           await this.module.instance.db.update(newEntity, ctx);
@@ -367,11 +376,17 @@ export class InstanceMapper extends MapperBase<Instance> {
           const rawAttachedVolume = (await this.getVolumesByInstanceId(client.ec2client, instanceId))?.pop();
           await this.waitUntilInUse(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
           delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[
-            super.generateId(rawAttachedVolume?.VolumeId, instance.region)
+            this.module.generalPurposeVolume.generateId({
+              volumeId: rawAttachedVolume?.VolumeId ?? '',
+              region: instance.region,
+            })
           ];
           const attachedVolume: GeneralPurposeVolume = await this.module.generalPurposeVolume.cloud.read(
             ctx,
-            super.generateId(rawAttachedVolume?.VolumeId, newEntity.region),
+            this.module.generalPurposeVolume.generateId({
+              volumeId: rawAttachedVolume?.VolumeId ?? '',
+              region: newEntity.region,
+            }),
           );
           if (attachedVolume && !Array.isArray(attachedVolume)) {
             attachedVolume.attachedInstance = newEntity;
@@ -475,14 +490,23 @@ export class InstanceMapper extends MapperBase<Instance> {
         if (entity.instanceId) await this.terminateInstance(client.ec2client, entity.instanceId);
         await this.waitUntilDeleted(client.ec2client, rawAttachedVolume?.VolumeId ?? '');
         delete ctx?.memo?.cloud?.GeneralPurposeVolume?.[
-          super.generateId(rawAttachedVolume?.VolumeId, entity.region)
+          this.module.generalPurposeVolume.generateId({
+            volumeId: rawAttachedVolume?.VolumeId ?? '',
+            region: entity.region,
+          })
         ];
         delete ctx?.memo?.db?.GeneralPurposeVolume?.[
-          super.generateId(rawAttachedVolume?.VolumeId, entity.region)
+          this.module.generalPurposeVolume.generateId({
+            volumeId: rawAttachedVolume?.VolumeId ?? '',
+            region: entity.region,
+          })
         ];
         const attachedVolume = await this.module.generalPurposeVolume.db.read(
           ctx,
-          super.generateId(rawAttachedVolume?.VolumeId, entity.region),
+          this.module.generalPurposeVolume.generateId({
+            volumeId: rawAttachedVolume?.VolumeId ?? '',
+            region: entity.region,
+          }),
         );
         if (attachedVolume && !Array.isArray(attachedVolume))
           await this.module.generalPurposeVolume.db.delete(attachedVolume, ctx);
