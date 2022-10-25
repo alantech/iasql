@@ -329,6 +329,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
           newEntity?.containerDefinitions?.forEach((nc: any) => {
             if (nc.name === c.name) {
               nc.id = c.id;
+              nc.region = c.region;
               // TODO KEEP TRACK OF PORT AND ENV IDS?
             }
           });
