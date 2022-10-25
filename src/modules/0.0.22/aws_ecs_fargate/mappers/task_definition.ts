@@ -1,11 +1,11 @@
 import { ECS, TaskDefinition as AwsTaskDefinition, paginateListTaskDefinitions } from '@aws-sdk/client-ecs';
+import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
 import { AwsEcsFargateModule } from '..';
 import { awsCloudwatchModule, awsEcrModule, awsIamModule } from '../..';
 import { AWS, crudBuilder2, crudBuilderFormat } from '../../../../services/aws_macros';
 import logger from '../../../../services/logger';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { Repository } from '../../aws_ecr/entity';
 import { ContainerDefinition, CpuMemCombination, TaskDefinition } from '../entity';
 
 export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
@@ -102,7 +102,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
     };
   }
 
-  async containerDefinitionMapper(c: any, ctx: Context) {
+  async containerDefinitionMapper(c: any, region: string, ctx: Context) {
     const out = new ContainerDefinition();
     out.cpu = c?.cpu;
     out.envVariables = {};
@@ -139,12 +139,8 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       try {
         // TODO: compare repository name + region once this module is multiregion
         const repository =
-          (await awsEcrModule.repository.db.read(ctx))
-            .filter((repo: Repository) => repo.repositoryName === repositoryName)
-            .pop() ??
-          (await awsEcrModule.repository.cloud.read(ctx))
-            .filter((repo: Repository) => repo.repositoryName === repositoryName)
-            .pop();
+          (await awsEcrModule.repository.db.read(ctx, `${repositoryName}|${region}`)) ??
+          (await awsEcrModule.repository.cloud.read(ctx, `${repositoryName}|${region}`));
         out.repository = repository;
       } catch (e) {
         // Repository could have been deleted
@@ -174,18 +170,19 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       const groupName = c.logConfiguration.options['awslogs-group'];
       // TODO: also take the `region` into account in the below commands (when this module supports multi-region)
       const logGroup =
-        (await awsCloudwatchModule.logGroup.db.read(ctx)).find((lg: any) => lg.logGroupName === groupName) ??
-        (await awsCloudwatchModule.logGroup.cloud.read(ctx)).find((lg: any) => lg.logGroupName === groupName);
+        (await awsCloudwatchModule.logGroup.db.read(ctx, `${groupName}|${region}`)) ??
+        (await awsCloudwatchModule.logGroup.cloud.read(ctx, `${groupName}|${region}`));
       out.logGroup = logGroup;
     }
+    out.region = region;
     return out;
   }
 
-  async taskDefinitionMapper(td: any, ctx: Context) {
+  async taskDefinitionMapper(td: any, region: string, ctx: Context) {
     const out = new TaskDefinition();
     out.containerDefinitions = [];
     for (const tdc of td.containerDefinitions) {
-      const cd = await this.containerDefinitionMapper(tdc, ctx);
+      const cd = await this.containerDefinitionMapper(tdc, region, ctx);
       out.containerDefinitions.push(cd);
     }
     out.cpuMemory = `vCPU${+(td.cpu ?? '256') / 1024}-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
@@ -229,14 +226,15 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
           (await awsIamModule.role.db.read(ctx, roleName)) ?? ctx?.memo?.cloud?.IamRole?.[roleName ?? ''];
       }
     }
+    out.region = region;
     return out;
   }
 
   cloud = new Crud2({
     create: async (es: TaskDefinition[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const res = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const containerDefinitions =
           e.containerDefinitions?.map(c => {
             const container: any = { ...c };
@@ -322,7 +320,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
         const newObject = await this.getTaskDefinition(client.ecsClient, result.taskDefinitionArn ?? '');
         if (!newObject) continue;
         // We map this into the same kind of entity as `obj`
-        const newEntity = await this.taskDefinitionMapper(newObject, ctx);
+        const newEntity = await this.taskDefinitionMapper(newObject, e.region, ctx);
         // We attach the original object's ID to this new one, indicating the exact record it is
         // replacing in the database.
         newEntity.id = e.id;
@@ -341,29 +339,38 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       }
       return res;
     },
-    read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (id) {
-        const rawTaskDef = await this.getTaskDefinition(client.ecsClient, id);
-        if (!rawTaskDef) return;
-        if (!rawTaskDef.compatibilities?.includes('FARGATE')) return;
-        return await this.taskDefinitionMapper(rawTaskDef, ctx);
-      } else {
-        const taskDefs = ((await this.getTaskDefinitions(client.ecsClient)).taskDefinitions ?? []).filter(
-          td => td.compatibilities.includes('FARGATE'),
-        );
-        const tds = [];
-        for (const td of taskDefs) {
-          tds.push(await this.taskDefinitionMapper(td, ctx));
+    read: async (ctx: Context, arn?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (arn) {
+        const region = parseArn(arn).region;
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawTaskDef = await this.getTaskDefinition(client.ecsClient, arn);
+          if (!rawTaskDef) return;
+          if (!rawTaskDef.compatibilities?.includes('FARGATE')) return;
+          return await this.taskDefinitionMapper(rawTaskDef, region, ctx);
         }
-        return tds;
+      } else {
+        const out: TaskDefinition[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const taskDefs = ((await this.getTaskDefinitions(client.ecsClient)).taskDefinitions ?? []).filter(
+              td => td.compatibilities.includes('FARGATE'),
+            );
+            for (const td of taskDefs) {
+              out.push(await this.taskDefinitionMapper(td, region, ctx));
+            }
+          }),
+        );
+        return out;
       }
     },
     updateOrReplace: () => 'update',
     update: async (es: TaskDefinition[], ctx: Context) => {
       const res = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.TaskDefinition?.[e.taskDefinitionArn ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.TaskDefinition?.[this.entityId(e)];
         // Any change in a task definition will imply the creation of a new revision and to restore
         // the previous value.
         const newRecord = { ...e };
@@ -389,10 +396,10 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       const services = ctx.memo?.cloud?.Service
         ? Object.values(ctx.memo?.cloud?.Service)
         : await this.module.service.cloud.read(ctx);
-      const client = (await ctx.getAwsClient()) as AWS;
       const esWithServiceAttached = [];
       const esToDelete = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         if (Object.values(services).find((s: any) => s.task?.taskDefinitionArn === e.taskDefinitionArn)) {
           esWithServiceAttached.push(e);
         } else {
@@ -409,6 +416,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
         }
       }
       for (const e of esToDelete) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         await this.deleteTaskDefinition(client.ecsClient, e.taskDefinitionArn!);
       }
       if (esWithServiceAttached.length)
