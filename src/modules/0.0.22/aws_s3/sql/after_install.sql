@@ -28,7 +28,7 @@ OR REPLACE FUNCTION block_s3_object_primary_key_update () RETURNS TRIGGER AS $bl
     BEGIN
         RAISE EXCEPTION 'Object bucket, key or region cannot be modified'
         USING detail = 'A bucket object cannot be renamed or moved to another region or bucket', 
-        hint = 'If you want to rename or change bucket object, first remove it and then you could readd it.';
+        hint = 'If you want to rename or change bucket object, first remove it and then you could add it again.';
         RETURN OLD;
     END;
 $block_s3_object_primary_key_update$ LANGUAGE plpgsql;
