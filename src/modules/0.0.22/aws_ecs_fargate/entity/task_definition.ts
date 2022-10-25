@@ -2,6 +2,7 @@ import { Column, Entity, OneToMany, ManyToOne, JoinColumn, PrimaryGeneratedColum
 
 import { ContainerDefinition } from '.';
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { IamRole } from '../../aws_iam/entity';
 
 export enum TaskDefinitionStatus {
@@ -113,4 +114,13 @@ export class TaskDefinition {
     cascade: true,
   })
   containerDefinitions: ContainerDefinition[];
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  region: string;
 }

@@ -1,6 +1,7 @@
 import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 import { TaskDefinition } from '.';
+import { AwsRegions } from '../../aws_account/entity';
 import { LogGroup } from '../../aws_cloudwatch/entity';
 import { PublicRepository, Repository } from '../../aws_ecr/entity';
 
@@ -30,9 +31,16 @@ export class ContainerDefinition {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })
-  @JoinColumn({
-    name: 'task_definition_id',
-  })
+  @JoinColumn([
+    {
+      name: 'task_definition_id',
+      referencedColumnName: 'id',
+    },
+    {
+      name: 'region',
+      referencedColumnName: 'region',
+    },
+  ])
   taskDefinition: TaskDefinition;
 
   // TODO: add constraint  Up to 255 letters (uppercase and lowercase), numbers, hyphens, underscores, colons, periods, forward slashes, and number signs are allowed.
@@ -124,4 +132,13 @@ export class ContainerDefinition {
   })
   @JoinColumn()
   logGroup?: LogGroup;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  region: string;
 }
