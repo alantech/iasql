@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEcsFargate1666697016133 implements MigrationInterface {
-  name = 'awsEcsFargate1666697016133';
+export class awsEcsFargate1666711629814 implements MigrationInterface {
+  name = 'awsEcsFargate1666711629814';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -20,7 +20,7 @@ export class awsEcsFargate1666697016133 implements MigrationInterface {
       `CREATE TYPE "public"."task_definition_cpu_memory_enum" AS ENUM('vCPU0.25-0.5GB', 'vCPU0.25-1GB', 'vCPU0.25-2GB', 'vCPU0.5-1GB', 'vCPU0.5-2GB', 'vCPU0.5-3GB', 'vCPU0.5-4GB', 'vCPU1-2GB', 'vCPU1-3GB', 'vCPU1-4GB', 'vCPU1-5GB', 'vCPU1-6GB', 'vCPU1-7GB', 'vCPU1-8GB', 'vCPU2-4GB', 'vCPU2-5GB', 'vCPU2-6GB', 'vCPU2-7GB', 'vCPU2-8GB', 'vCPU2-9GB', 'vCPU2-10GB', 'vCPU2-11GB', 'vCPU2-12GB', 'vCPU2-13GB', 'vCPU2-14GB', 'vCPU2-15GB', 'vCPU2-16GB', 'vCPU4-8GB', 'vCPU4-9GB', 'vCPU4-10GB', 'vCPU4-11GB', 'vCPU4-12GB', 'vCPU4-13GB', 'vCPU4-14GB', 'vCPU4-15GB', 'vCPU4-16GB', 'vCPU4-17GB', 'vCPU4-18GB', 'vCPU4-19GB', 'vCPU4-20GB', 'vCPU4-21GB', 'vCPU4-22GB', 'vCPU4-23GB', 'vCPU4-24GB', 'vCPU4-25GB', 'vCPU4-26GB', 'vCPU4-27GB', 'vCPU4-28GB', 'vCPU4-29GB', 'vCPU4-30GB')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "task_definition" ("id" SERIAL NOT NULL, "task_definition_arn" character varying, "family" character varying NOT NULL, "revision" integer, "status" "public"."task_definition_status_enum", "cpu_memory" "public"."task_definition_cpu_memory_enum", "region" character varying NOT NULL DEFAULT default_aws_region(), "task_role_name" character varying, "execution_role_name" character varying, CONSTRAINT "PK_35a67b870f083fc37a99867de7a" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "task_definition" ("id" SERIAL NOT NULL, "task_definition_arn" character varying, "family" character varying NOT NULL, "revision" integer, "status" "public"."task_definition_status_enum", "cpu_memory" "public"."task_definition_cpu_memory_enum", "region" character varying NOT NULL DEFAULT default_aws_region(), "task_role_name" character varying, "execution_role_name" character varying, CONSTRAINT "uq_task_definition_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_35a67b870f083fc37a99867de7a" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."container_definition_protocol_enum" AS ENUM('tcp', 'udp')`,

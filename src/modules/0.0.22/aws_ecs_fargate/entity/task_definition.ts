@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, ManyToOne, JoinColumn, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, ManyToOne, JoinColumn, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { ContainerDefinition } from '.';
 import { cloudId } from '../../../../services/cloud-id';
@@ -64,6 +64,7 @@ export enum CpuMemCombination {
 }
 
 @Entity()
+@Unique('uq_task_definition_id_region', ['id', 'region'])
 export class TaskDefinition {
   @PrimaryGeneratedColumn()
   id?: number;
