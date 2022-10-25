@@ -268,7 +268,9 @@ export class MapperBase<E> {
             !Object.keys(fields).every(fk => cloudColumns.includes(fk))
           ) {
             throw new Error(
-              `Id generation error. Valid fields to generate id are: ${cloudColumns.join(', ')}`,
+              `Id generation error. Valid fields to generate id are: ${cloudColumns.join(
+                ', ',
+              )}. Receiving: ${Object.keys(fields).join(', ')}`,
             );
           }
           const out = cloudColumns.map(col => fields[col]).join('|');
@@ -279,7 +281,11 @@ export class MapperBase<E> {
             Object.keys(fields).length !== 1 ||
             !Object.keys(fields).every(fk => [primaryColumn].includes(fk))
           ) {
-            throw new Error(`Id generation error. Valid field to generate id is: ${primaryColumn}`);
+            throw new Error(
+              `Id generation error. Valid field to generate id is: ${primaryColumn}. Receiving: ${Object.keys(
+                fields,
+              ).join(', ')}`,
+            );
           }
           return fields[primaryColumn] + '';
         }
