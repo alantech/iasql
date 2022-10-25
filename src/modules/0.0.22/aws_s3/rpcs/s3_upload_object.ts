@@ -45,15 +45,7 @@ export class S3UploadObjectRpc extends RpcBase {
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
     // we need to have bucket name, key and source
     if (!bucketName || !bucketKey || !content || !contentType) {
-      return [
-        {
-          bucket: 'none',
-          key: 'none',
-          status: 'KO',
-          response_message:
-            'Please specify bucket name, key, content and content type of the object to upload',
-        },
-      ];
+      throw new Error('Cannot upload an object without bucket name, key, content or content type');
     }
 
     const client = (await ctx.getAwsClient(await ctx.getDefaultRegion())) as AWS;

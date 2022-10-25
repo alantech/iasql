@@ -53,12 +53,12 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
 
       if (!!id) {
-        const { bucketName, objectKey, region } = this.idFields(id);
+        const { bucketName, key, region } = this.idFields(id);
 
         if (enabledRegions.includes(region)) {
           const regionClient = (await ctx.getAwsClient(region)) as AWS;
 
-          const bucketObjects = await this.getBucketObjects(regionClient.s3Client, bucketName, objectKey);
+          const bucketObjects = await this.getBucketObjects(regionClient.s3Client, bucketName, key);
           for (const o of bucketObjects) {
             const finalObject = await this.bucketObjectMapper(o, ctx, bucketName, region);
             return finalObject;
