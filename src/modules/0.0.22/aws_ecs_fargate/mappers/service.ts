@@ -337,20 +337,21 @@ export class ServiceMapper extends MapperBase<Service> {
         await Promise.all(
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
-            let fargateResult: any[] = [];
-            try{
-              const clusters = ctx.memo?.cloud?.Cluster
+            let clusters = []
+            try {
+              clusters = ctx.memo?.cloud?.Cluster
                 ? Object.values(ctx.memo?.cloud?.Cluster)
                 : await this.module.cluster.cloud.read(ctx);
-              const result = await this.getServices(
-                client.ecsClient,
-                clusters?.map((c: any) => c.clusterArn) ?? [],
-              );
-              // Make sure we just handle FARGATE services
-              fargateResult = result.filter(s => s.launchType === 'FARGATE');
             } catch (e) {
-              logger.info(`+-+ failing on bofre service mapper? ${e}`)
+              logger.info(`+-+ I KNOW I'M FAILING HERE BUT WHY ${e}`)
+              throw e;
             }
+            const result = await this.getServices(
+              client.ecsClient,
+              clusters?.map((c: any) => c.clusterArn) ?? [],
+            );
+            // Make sure we just handle FARGATE services
+            const fargateResult = result.filter(s => s.launchType === 'FARGATE');
             for (const s of fargateResult) {
               try{
                 const mappedService = await this.serviceMapper(s, region, ctx);
