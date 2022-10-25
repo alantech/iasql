@@ -13,20 +13,25 @@ import { AwsRegions } from '../../aws_account/entity';
 import { Bucket } from './bucket';
 
 @Entity()
-@Unique('uq_bucketobject_id_region', ['id', 'region'])
-@Unique('uq_bucketobject_bucket_key_region', ['key', 'region'])
+@Unique('uq_bucketobject_bucket_name_key_region', ['bucketName', 'key', 'region'])
 export class BucketObject {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @PrimaryColumn({
+  @Column({
     nullable: false,
     type: 'varchar',
   })
   @cloudId
   key: string;
 
+  @Column({
+    nullable: false,
+    type: 'varchar',
+  })
   @cloudId
+  bucketName: string;
+
   @ManyToOne(() => Bucket, bucket => Bucket.name, {
     eager: true,
     nullable: true,
@@ -50,7 +55,6 @@ export class BucketObject {
   })
   @ManyToOne(() => AwsRegions, { nullable: false })
   @JoinColumn({ name: 'region' })
-  @cloudId
   region: string;
 
   @Column({

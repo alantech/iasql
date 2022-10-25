@@ -70,7 +70,7 @@ export class S3CleanBucketRpc extends RpcBase {
             (await this.module.bucket.cloud.read(ctx, `${bucketName}|${region}`));
 
           // delete in the db
-          const bo = await this.module.bucketObject.db.read(ctx, `${o.Key}|${bucketName}|${region}`);
+          const bo = await this.module.bucketObject.db.read(ctx, `${o.Key}|${bucketName}`);
           if (bo) await this.module.bucketObject.db.delete(bo, ctx);
         }
 

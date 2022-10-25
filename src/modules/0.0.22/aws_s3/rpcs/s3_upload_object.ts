@@ -95,6 +95,7 @@ export class S3UploadObjectRpc extends RpcBase {
           // need to insert records in the db
           const bucketObject: BucketObject = {
             key: bucketKey,
+            bucketName,
             region,
             bucket,
             eTag: result.ETag,

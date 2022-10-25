@@ -139,6 +139,26 @@ describe('S3 Integration Testing', () => {
   );
 
   it(
+    'inserts content into bucket object',
+    query(
+      `INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_bucket', '${process.env.AWS_REGION}')`,
+    ),
+  );
+  it('applies the s3 object removal', apply());
+
+  it(
+    'check fake object deletion',
+    query(
+      `
+    SELECT *
+    FROM bucket_object 
+    WHERE bucket_name = '${s3Name}' AND key='fake_bucket';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
     'adds content to bucket',
     query(
       `SELECT * FROM s3_upload_object('${s3Name}', 'iasql_message', '${bucketContent}', 'application/json')`,

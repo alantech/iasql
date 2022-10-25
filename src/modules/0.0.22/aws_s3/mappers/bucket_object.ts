@@ -15,19 +15,17 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
     if (!instance.Key) throw new Error('Received a bucket object without a key');
 
     // check for bucket instance
-    if (!Object.values(ctx.memo?.cloud?.Bucket ?? {}).length) {
-      bo.bucket =
-        (await this.module.bucket.db.read(ctx, `${bucket}|${region}`)) ??
-        (await this.module.bucket.cloud.read(ctx, `${bucket}|${region}`));
-    } else {
-      bo.bucket =
-        (await this.module.bucket.db.read(ctx, `${bucket}|${region}`)) ??
-        ctx?.memo?.cloud?.BucketAWS?.[`${bucket}|${region}`];
-    }
+    const bucketInstance =
+      (await this.module.bucket.db.read(ctx, `${bucket}|${region}`)) ??
+      (await this.module.bucket.cloud.read(ctx, `${bucket}|${region}`));
 
-    bo.region = region;
-    bo.eTag = instance.ETag;
-    bo.key = instance.Key;
+    if (bucketInstance) {
+      bo.bucketName = bucketInstance.name;
+      bo.bucket = bucketInstance;
+      bo.region = region;
+      bo.eTag = instance.ETag;
+      bo.key = instance.Key;
+    }
     return bo;
   }
 
@@ -45,7 +43,9 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
 
   cloud = new Crud2<BucketObject>({
     create: async (es: BucketObject[], ctx: Context) => {
-      // we cannot create buckets
+      // we cannot create buckets, remove the existing ones
+      await this.module.bucketObject.db.delete(es, ctx);
+
       const out: any = [];
       return out;
     },
@@ -89,7 +89,7 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
       }
     },
     update: async (es: BucketObject[], ctx: Context) => {
-      // we can just replace, no modification allowed
+      // we can just restore, no modification allowed
       const out = [];
 
       for (const e of es) {
@@ -102,9 +102,9 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
     },
     delete: async (es: BucketObject[], ctx: Context) => {
       for (const e of es) {
-        if (e.key && e.bucket?.name) {
+        if (e.key && e.bucketName) {
           const client = (await ctx.getAwsClient(e.region)) as AWS;
-          await this.deleteBucketObject(client.s3Client, e.bucket?.name, e.key);
+          await this.deleteBucketObject(client.s3Client, e.bucketName, e.key);
 
           // wait until the object is available
           const res = await waitUntilObjectNotExists(
@@ -115,7 +115,7 @@ export class BucketObjectMapper extends MapperBase<BucketObject> {
               minDelay: 1,
               maxDelay: 4,
             } as WaiterOptions<S3>,
-            { Bucket: e.bucket.name, Key: e.key },
+            { Bucket: e.bucketName, Key: e.key },
           );
         }
       }
