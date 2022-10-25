@@ -341,7 +341,6 @@ export class ServiceMapper extends MapperBase<Service> {
             );
             // Make sure we just handle FARGATE services
             const fargateResult = result.filter(s => s.launchType === 'FARGATE');
-            const out = [];
             for (const s of fargateResult) {
               const mappedService = await this.serviceMapper(s, region, ctx);
               if (mappedService) out.push(mappedService);
