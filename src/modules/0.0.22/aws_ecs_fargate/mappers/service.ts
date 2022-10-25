@@ -337,18 +337,27 @@ export class ServiceMapper extends MapperBase<Service> {
         await Promise.all(
           enabledRegions.map(async region => {
             const client = (await ctx.getAwsClient(region)) as AWS;
-            const clusters = ctx.memo?.cloud?.Cluster
-              ? Object.values(ctx.memo?.cloud?.Cluster)
-              : await this.module.cluster.cloud.read(ctx);
-            const result = await this.getServices(
-              client.ecsClient,
-              clusters?.map((c: any) => c.clusterArn) ?? [],
-            );
-            // Make sure we just handle FARGATE services
-            const fargateResult = result.filter(s => s.launchType === 'FARGATE');
+            let fargateResult: any[] = [];
+            try{
+              const clusters = ctx.memo?.cloud?.Cluster
+                ? Object.values(ctx.memo?.cloud?.Cluster)
+                : await this.module.cluster.cloud.read(ctx);
+              const result = await this.getServices(
+                client.ecsClient,
+                clusters?.map((c: any) => c.clusterArn) ?? [],
+              );
+              // Make sure we just handle FARGATE services
+              fargateResult = result.filter(s => s.launchType === 'FARGATE');
+            } catch (e) {
+              logger.info(`+-+ failing on bofre service mapper? ${e}`)
+            }
             for (const s of fargateResult) {
-              const mappedService = await this.serviceMapper(s, region, ctx);
-              if (mappedService) out.push(mappedService);
+              try{
+                const mappedService = await this.serviceMapper(s, region, ctx);
+                if (mappedService) out.push(mappedService);
+              } catch (e) {
+                logger.info(`+-+ failing on service mapper? ${e} - service ${s.serviceArn}`)
+              }
             }
           }),
         );
