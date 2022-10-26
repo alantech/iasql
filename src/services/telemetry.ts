@@ -69,8 +69,8 @@ export async function logEvent(
         properties: {
           ...eventProps,
           // set user properties
-          '$set': dbProps,
-        }
+          $set: dbProps,
+        },
       });
     }
   } catch (e: any) {

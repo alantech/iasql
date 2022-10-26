@@ -178,13 +178,7 @@ db.post('/event', async (req, res) => {
   if (dbAlias) {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     const dbId = database.pgName;
-    telemetry.logEvent(
-      uid,
-      eventName,
-      { dbAlias, dbId, email },
-      { buttonAlias, sql },
-      ampDeviceId,
-    );
+    telemetry.logEvent(uid, eventName, { dbAlias, dbId, email }, { buttonAlias, sql }, ampDeviceId);
   } else {
     telemetry.logEvent(uid, eventName, { email }, { buttonAlias, sql }, ampDeviceId);
   }
