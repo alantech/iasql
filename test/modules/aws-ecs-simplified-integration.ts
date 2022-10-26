@@ -60,6 +60,10 @@ describe('ECS Simplified Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `));
 
+  it('sets only 2 enabled regions to avoid long runs', query(`
+    UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' LIMIT 1);
+  `));
+
   it('installs the ecs simplified module and its dependencies', install(modules));
 
   it('adds a new row', query(`

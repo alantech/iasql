@@ -113,6 +113,10 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
+  it('sets only 2 enabled regions to avoid long runs', query(`
+    UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
+  `));
+
   it('creates a new sidecar test db ECS', done =>
     void iasql.connect(dbAliasSidecar, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -138,6 +142,10 @@ describe('ECS Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
+
+  it('sets only 2 enabled regions to avoid long runs', querySync(`
+    UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
+  `));
 
   it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 
