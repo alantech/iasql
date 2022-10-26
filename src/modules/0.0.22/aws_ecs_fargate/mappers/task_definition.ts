@@ -358,17 +358,15 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
         }
       } else {
         const out: TaskDefinition[] = [];
-        await Promise.all(
-          enabledRegions.map(async region => {
-            const client = (await ctx.getAwsClient(region)) as AWS;
-            const taskDefs = ((await this.getTaskDefinitions(client.ecsClient)).taskDefinitions ?? []).filter(
-              td => td.compatibilities.includes('FARGATE'),
-            );
-            for (const td of taskDefs) {
-              out.push(await this.taskDefinitionMapper(td, region, ctx));
-            }
-          }),
-        );
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const taskDefs = ((await this.getTaskDefinitions(client.ecsClient)).taskDefinitions ?? []).filter(
+            td => td.compatibilities.includes('FARGATE'),
+          );
+          for (const td of taskDefs) {
+            out.push(await this.taskDefinitionMapper(td, region, ctx));
+          }
+        }
         return out;
       }
     },

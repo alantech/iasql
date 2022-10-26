@@ -334,34 +334,39 @@ export class ServiceMapper extends MapperBase<Service> {
         }
       } else {
         const out: Service[] = [];
-        await Promise.all(
-          enabledRegions.map(async region => {
-            const client = (await ctx.getAwsClient(region)) as AWS;
-            let clusters = []
-            try {
-              clusters = ctx.memo?.cloud?.Cluster
-                ? Object.values(ctx.memo?.cloud?.Cluster)
-                : await this.module.cluster.cloud.read(ctx);
+        for (const region of enabledRegions) {
+          logger.info(`+-+ reading service for region ${region}`);
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          let clusters = [];
+          try {
+            clusters = ctx.memo?.cloud?.Cluster
+              ? Object.values(ctx.memo?.cloud?.Cluster)
+              : await this.module.cluster.cloud.read(ctx);
+          } catch (e) {
+            logger.info(`+-+ I KNOW I'M FAILING HERE BUT WHY ${e}`)
+            throw e;
+          }
+          logger.info(`+-+ successfully read clusters ${JSON.stringify(clusters)}`)
+          const result = await this.getServices(
+            client.ecsClient,
+            clusters?.map((c: any) => c.clusterArn) ?? [],
+          );
+          logger.info(`+-+ successfully get services ${JSON.stringify(result)}`)
+          // Make sure we just handle FARGATE services
+          const fargateResult = result.filter(s => s.launchType === 'FARGATE');
+          logger.info(`+-+ successfully filtered fargate ${JSON.stringify(fargateResult)}`)
+          for (const s of fargateResult) {
+            try{
+              logger.info(`+-+ going to mapp service ${s.serviceArn}`)
+              const mappedService = await this.serviceMapper(s, region, ctx);
+              logger.info(`+-+ service mapped ${s.serviceArn}`)
+              if (mappedService) out.push(mappedService);
             } catch (e) {
-              logger.info(`+-+ I KNOW I'M FAILING HERE BUT WHY ${e}`)
+              logger.info(`+-+ failing on service mapper? ${e} - service ${s.serviceArn}`)
               throw e;
             }
-            const result = await this.getServices(
-              client.ecsClient,
-              clusters?.map((c: any) => c.clusterArn) ?? [],
-            );
-            // Make sure we just handle FARGATE services
-            const fargateResult = result.filter(s => s.launchType === 'FARGATE');
-            for (const s of fargateResult) {
-              try{
-                const mappedService = await this.serviceMapper(s, region, ctx);
-                if (mappedService) out.push(mappedService);
-              } catch (e) {
-                logger.info(`+-+ failing on service mapper? ${e} - service ${s.serviceArn}`)
-              }
-            }
-          }),
-        );
+          }
+        }
         return out;
       }
     },
