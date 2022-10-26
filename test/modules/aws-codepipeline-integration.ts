@@ -412,7 +412,7 @@ describe('AwsCodepipeline Integration Testing', () => {
   `),
   );
 
-  it('cleans up the bucket', query(`SELECT * FROM s3_clean_bucket('${bucket}')`));
+  it('cleans up the bucket', query(`DELETE FROM bucket_object WHERE bucket_name='${bucket}'`));
 
   it(
     'delete bucket',

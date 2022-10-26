@@ -260,12 +260,7 @@ describe('S3 Integration Testing', () => {
     ),
   );
 
-  it(
-    'cleans the bucket',
-    query(`SELECT * FROM s3_clean_bucket('${s3Name}')`, (res: any[]) =>
-      expect(res[0].status).toStrictEqual('OK'),
-    ),
-  );
+  it('cleans the bucket', query(`DELETE FROM bucket_object WHERE bucket_name='${s3Name}'`));
 
   it(
     'check no s3 objects still exist',
@@ -277,11 +272,6 @@ describe('S3 Integration Testing', () => {
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),
-  );
-
-  it(
-    'cleans the bucket incorrectly',
-    query(`SELECT * FROM s3_clean_bucket()`, (res: any[]) => expect(res[0].status).toStrictEqual('KO')),
   );
 
   describe('S3 bucket policy integration testing', () => {

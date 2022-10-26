@@ -87,8 +87,6 @@ jobs:
         run: |
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          echo "\nClean all buckets..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "select s3_clean_bucket(name) FROM bucket;"
           echo "\nDelete all records..."
           psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"
           echo "\nApply..."
@@ -117,8 +115,6 @@ jobs:
         run: |
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
-          echo "\nClean all buckets..."
-          psql postgres://postgres:test@localhost:5432/iasql -c "select s3_clean_bucket(name) FROM bucket;"
           echo "\nDelete all records..."
           psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"
           echo "\nApply..."
