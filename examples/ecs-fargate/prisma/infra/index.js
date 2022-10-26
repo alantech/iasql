@@ -171,15 +171,7 @@ async function main() {
   const cpStore = { type: 'S3', location: bucketName };
 
   const cpData = {
-<<<<<<< HEAD
-<<<<<<< HEAD
     name: pipelineName,
-=======
-    name: appName,
->>>>>>> 43cc79f6 (renaming pipeline)
-=======
-    name: pipelineName,
->>>>>>> 202b6f32 (modify pipeline name)
     artifact_store: cpStore,
     stages: stages,
     service_role_name: cpRole,
@@ -216,19 +208,7 @@ async function main() {
   console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`);
 
   // clean up bucket before finishing
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
   console.dir(await prisma.$queryRaw`SELECT * FROM s3_clean_bucket(${bucketName});`);
-=======
-  await prisma.$queryRaw`SELECT * FROM s3_clean_bucket('${bucketName}');`;
->>>>>>> b6df01d9 (fix syntax on clean bucket)
-=======
-  console.dir(await prisma.$queryRaw`SELECT * FROM s3_clean_bucket('${bucketName}');`);
->>>>>>> d1b23b81 (debug in s3)
-=======
-  console.dir(await prisma.$queryRaw`SELECT * FROM s3_clean_bucket(${bucketName});`);
->>>>>>> 23029428 (fix in var interpolation)
 }
 
 main()

@@ -58,21 +58,9 @@ export class S3CleanBucketRpc extends RpcBase {
         const clientRegion = (await ctx.getAwsClient(region)) as AWS;
 
         const objects = await this.getBucketObjects(clientRegion.s3Client, bucketName);
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
         for (const o of objects) {
           if (!o.Key) continue;
 
-=======
-        logger.info('after read objects');
-=======
-        console.log('after read objects');
->>>>>>> d1b23b81 (debug in s3)
-=======
->>>>>>> 43cc79f6 (renaming pipeline)
-        for (const object of objects) {
->>>>>>> 68ecfeb2 (add logging information)
           // delete the object
           await this.deleteBucketObject(clientRegion.s3Client, bucketName, o.Key);
 
