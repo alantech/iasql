@@ -200,7 +200,7 @@ async function main() {
   });    
 
   await prisma.pipeline_declaration.upsert({
-    where: { name: pipelineName },
+    where: { name_region: { name: pipelineName, region }},
     create: cpData,
     update: cpData,
   });
