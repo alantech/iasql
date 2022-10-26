@@ -30,6 +30,7 @@ const bucket = `${prefix}-bucket`;
 const applicationNameForDeployment = `${prefix}${dbAlias}applicationForDeployment`;
 const deploymentGroupName = `${prefix}${dbAlias}deployment_group`;
 const region = `${process.env.AWS_REGION}`;
+const nonDefaultRegion = 'us-east-1';
 const codeDeployRoleName = `${prefix}-codedeploy-${region}`;
 const codePipelineRoleName = `${prefix}-codepipeline-${region}`;
 const ec2RoleName = `${prefix}-codedeploy-ec2-${region}`;
@@ -345,6 +346,16 @@ describe('AwsCodepipeline Integration Testing', () => {
       (res: any[]) => expect(res.length).toBe(1),
     ),
   );
+
+  it('should fail when changing the region', () => {
+    try {
+      query(`
+      UPDATE pipeline_declaration SET region='${nonDefaultRegion} WHERE name='${prefix}-${dbAlias}');
+      `);
+    } catch (e) {
+      expect(e).toBeTruthy;
+    }
+  });
 
   it('uninstalls the codepipeline module', uninstall(modules));
 
