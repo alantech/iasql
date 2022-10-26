@@ -46,7 +46,7 @@ export class Service {
     eager: true,
   })
   @JoinColumn({
-    name: 'cluster_name',
+    name: 'cluster_id',
   })
   cluster?: Cluster;
 

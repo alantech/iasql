@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEcsFargate1666784312020 implements MigrationInterface {
-  name = 'awsEcsFargate1666784312020';
+export class awsEcsFargate1666789593019 implements MigrationInterface {
+  name = 'awsEcsFargate1666789593019';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -11,7 +11,7 @@ export class awsEcsFargate1666784312020 implements MigrationInterface {
       `CREATE TYPE "public"."service_assign_public_ip_enum" AS ENUM('DISABLED', 'ENABLED')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "service" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "status" character varying, "desired_count" integer NOT NULL, "subnets" text array NOT NULL, "assign_public_ip" "public"."service_assign_public_ip_enum" NOT NULL DEFAULT 'DISABLED', "force_new_deployment" boolean NOT NULL DEFAULT false, "region" character varying NOT NULL DEFAULT default_aws_region(), "cluster_name" integer, "task_definition_id" integer, "target_group_id" integer, CONSTRAINT "uq_service_name_region" UNIQUE ("name", "region"), CONSTRAINT "check_service_subnets" CHECK (check_service_subnets(subnets)), CONSTRAINT "PK_85a21558c006647cd76fdce044b" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "service" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "arn" character varying, "status" character varying, "desired_count" integer NOT NULL, "subnets" text array NOT NULL, "assign_public_ip" "public"."service_assign_public_ip_enum" NOT NULL DEFAULT 'DISABLED', "force_new_deployment" boolean NOT NULL DEFAULT false, "region" character varying NOT NULL DEFAULT default_aws_region(), "cluster_id" integer, "task_definition_id" integer, "target_group_id" integer, CONSTRAINT "uq_service_name_region" UNIQUE ("name", "region"), CONSTRAINT "check_service_subnets" CHECK (check_service_subnets(subnets)), CONSTRAINT "PK_85a21558c006647cd76fdce044b" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."task_definition_status_enum" AS ENUM('ACTIVE', 'INACTIVE')`,
@@ -41,7 +41,7 @@ export class awsEcsFargate1666784312020 implements MigrationInterface {
       `ALTER TABLE "cluster" ADD CONSTRAINT "FK_2639f93840ace6d5048e4a1f118" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "service" ADD CONSTRAINT "FK_5a4fe987d7ad1cae04473db3db8" FOREIGN KEY ("cluster_name") REFERENCES "cluster"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "service" ADD CONSTRAINT "FK_b1570c701dd1adce1391f2f25e7" FOREIGN KEY ("cluster_id") REFERENCES "cluster"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "service" ADD CONSTRAINT "FK_4518e1b3072a8f68c3bc747338e" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -112,7 +112,7 @@ export class awsEcsFargate1666784312020 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE "service" DROP CONSTRAINT "FK_55746a49f49deb0b497efcf2ace"`);
     await queryRunner.query(`ALTER TABLE "service" DROP CONSTRAINT "FK_c8f480e0b98911299c6920e7184"`);
     await queryRunner.query(`ALTER TABLE "service" DROP CONSTRAINT "FK_4518e1b3072a8f68c3bc747338e"`);
-    await queryRunner.query(`ALTER TABLE "service" DROP CONSTRAINT "FK_5a4fe987d7ad1cae04473db3db8"`);
+    await queryRunner.query(`ALTER TABLE "service" DROP CONSTRAINT "FK_b1570c701dd1adce1391f2f25e7"`);
     await queryRunner.query(`ALTER TABLE "cluster" DROP CONSTRAINT "FK_2639f93840ace6d5048e4a1f118"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_0407238e46717099da0443dff7"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_898ba6a6683e0f309aa8b47f46"`);
