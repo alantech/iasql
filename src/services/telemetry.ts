@@ -43,13 +43,15 @@ export type EventProps = {
 };
 
 export async function logEvent(
+  uid: string,
   event: string,
   dbProps: DbProps,
   eventProps?: EventProps,
-  uid?: string,
   deviceId?: string,
 ) {
   if (!singletonAmp || !singletonPh) return;
+  // make all events uppercase
+  event = event.toUpperCase();
   try {
     dbProps.iasqlEnv = IASQL_ENV;
     await singletonAmp.logEvent({
@@ -59,17 +61,15 @@ export async function logEvent(
       event_properties: eventProps,
       device_id: deviceId,
     });
-    if (uid) {
-      singletonPh.capture({
-        event,
-        distinctId: uid,
-        properties: eventProps,
-      });
-      singletonPh.identify({
-        distinctId: uid,
-        properties: dbProps,
-      });
-    }
+    singletonPh.capture({
+      event,
+      distinctId: uid,
+      properties: {
+        ...eventProps,
+        // set user properties
+        '$set': dbProps,
+      }
+    });
   } catch (e: any) {
     const message = `failed to log ${event} event`;
     if (config.sentry) {
@@ -81,20 +81,20 @@ export async function logEvent(
   }
 }
 
-export async function logConnect(dbProps: DbProps, eventProps?: EventProps, uid?: string, deviceId?: string) {
-  await logEvent('CONNECT', dbProps, eventProps, uid, deviceId);
+export async function logConnect(uid: string, dbProps: DbProps, eventProps?: EventProps, deviceId?: string) {
+  await logEvent(uid, 'CONNECT', dbProps, eventProps, deviceId);
 }
 
-export async function logDisconnect(dbProps: DbProps, eventProps?: EventProps, uid?: string) {
-  await logEvent('DISCONNECT', dbProps, eventProps, uid);
+export async function logDisconnect(uid: string, dbProps: DbProps, eventProps?: EventProps) {
+  await logEvent(uid, 'DISCONNECT', dbProps, eventProps);
 }
 
-export async function logExport(dbProps: DbProps, eventProps: EventProps, uid: string, deviceId?: string) {
-  await logEvent('EXPORT', dbProps, eventProps, uid, deviceId);
+export async function logExport(uid: string, dbProps: DbProps, eventProps: EventProps, deviceId?: string) {
+  await logEvent(uid, 'EXPORT', dbProps, eventProps, deviceId);
 }
 
-export async function logRunSql(dbProps: DbProps, eventProps: EventProps, uid?: string, deviceId?: string) {
-  await logEvent('RUNSQL', dbProps, eventProps, uid, deviceId);
+export async function logRunSql(uid: string, dbProps: DbProps, eventProps: EventProps, deviceId?: string) {
+  await logEvent(uid, 'RUNSQL', dbProps, eventProps, deviceId);
 }
 
 // ! DEPRECATED
@@ -105,15 +105,15 @@ export async function logOp(
   eventProps: EventProps,
   uid: string,
 ) {
-  await logEvent(opType, dbProps, eventProps, uid);
+  await logEvent(uid, opType, dbProps, eventProps);
 }
 
 export async function logRpc(
+  uid: string,
   moduleName: string,
   methodName: string,
   dbProps: DbProps,
   eventProps: EventProps,
-  uid: string,
 ) {
-  await logEvent(`${moduleName}:${methodName}`, dbProps, eventProps, uid);
+  await logEvent(uid, `${moduleName}:${methodName}`, dbProps, eventProps);
 }

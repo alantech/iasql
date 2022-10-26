@@ -26,6 +26,7 @@ async function connectHandler(req: any, res: any) {
     const database = await iasql.connect(dbAlias, uid, email, dbId);
     res.json(database);
     telemetry.logConnect(
+      uid,
       {
         dbAlias,
         dbId,
@@ -34,13 +35,12 @@ async function connectHandler(req: any, res: any) {
         operationCount: database.operationCount,
       },
       {},
-      uid,
       req.body.ampDeviceId,
     );
   } catch (e) {
     const error = logErrSentry(e, uid, email, dbAlias);
     res.status(500).end(error);
-    telemetry.logConnect({ dbId, email }, { error }, uid);
+    telemetry.logConnect(uid, { dbId, email }, { error });
   }
 }
 
@@ -77,6 +77,7 @@ db.post('/export', async (req, res) => {
     const dbId = database.pgName;
     res.send(await iasql.dump(dbId, !!dataOnly));
     telemetry.logExport(
+      uid,
       {
         dbAlias,
         email,
@@ -85,7 +86,6 @@ db.post('/export', async (req, res) => {
         operationCount: database.operationCount,
       },
       { dataOnly: !!dataOnly },
-      uid,
       ampDeviceId,
     );
   } catch (e) {
@@ -115,19 +115,19 @@ db.get('/disconnect/:dbAlias', async (req, res) => {
   try {
     dbId = await iasql.disconnect(dbAlias, uid);
     telemetry.logDisconnect(
+      uid,
       {
         dbAlias,
         email,
         dbId,
       },
       {},
-      uid,
     );
     res.json(`disconnected ${dbAlias}`);
   } catch (e) {
     const error = logErrSentry(e, uid, email, dbAlias);
     res.status(500).end(error);
-    telemetry.logDisconnect({ dbId, email }, { error }, uid);
+    telemetry.logDisconnect(uid, { dbId, email }, { error });
   }
 });
 
@@ -147,6 +147,7 @@ db.post('/run/:dbAlias', async (req, res) => {
     // ignore queries done by the dashboard itself
     if (byUser) {
       telemetry.logRunSql(
+        uid,
         {
           dbAlias,
           email,
@@ -156,7 +157,6 @@ db.post('/run/:dbAlias', async (req, res) => {
           output: JSON.stringify(output),
           sql,
         },
-        uid,
         ampDeviceId,
       );
     }
@@ -165,7 +165,7 @@ db.post('/run/:dbAlias', async (req, res) => {
     // do not send to sentry
     const error = e?.message ?? '';
     logger.error(`RunSQL user error: ${error}`, { uid, dbId, email, dbAlias });
-    telemetry.logRunSql({ dbId, email }, { sql, error }, uid);
+    telemetry.logRunSql(uid, { dbId, email }, { sql, error });
     res.status(500).end(error);
   }
 });
@@ -179,14 +179,14 @@ db.post('/event', async (req, res) => {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     const dbId = database.pgName;
     telemetry.logEvent(
-      eventName.toUpperCase(),
+      uid,
+      eventName,
       { dbAlias, dbId, email },
       { buttonAlias, sql },
-      uid,
       ampDeviceId,
     );
   } else {
-    telemetry.logEvent(eventName.toUpperCase(), { email }, { buttonAlias, sql }, uid, ampDeviceId);
+    telemetry.logEvent(uid, eventName, { email }, { buttonAlias, sql }, ampDeviceId);
   }
   res.json(`event registered`);
 });
