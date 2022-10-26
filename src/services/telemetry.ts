@@ -49,27 +49,30 @@ export async function logEvent(
   eventProps?: EventProps,
   deviceId?: string,
 ) {
-  if (!singletonAmp || !singletonPh) return;
   // make all events uppercase
   event = event.toUpperCase();
   try {
     dbProps.iasqlEnv = IASQL_ENV;
-    await singletonAmp.logEvent({
-      event_type: event,
-      user_id: uid,
-      user_properties: dbProps,
-      event_properties: eventProps,
-      device_id: deviceId,
-    });
-    singletonPh.capture({
-      event,
-      distinctId: uid,
-      properties: {
-        ...eventProps,
-        // set user properties
-        '$set': dbProps,
-      }
-    });
+    if (singletonAmp) {
+      await singletonAmp.logEvent({
+        event_type: event,
+        user_id: uid,
+        user_properties: dbProps,
+        event_properties: eventProps,
+        device_id: deviceId,
+      });
+    }
+    if (singletonPh) {
+      singletonPh.capture({
+        event,
+        distinctId: uid,
+        properties: {
+          ...eventProps,
+          // set user properties
+          '$set': dbProps,
+        }
+      });
+    }
   } catch (e: any) {
     const message = `failed to log ${event} event`;
     if (config.sentry) {
