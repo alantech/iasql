@@ -200,15 +200,12 @@ async function main() {
   });    
 
   await prisma.pipeline_declaration.upsert({
-    where: { name: pipelineName },
+    where: { name_region: { name: pipelineName, region },
     create: cpData,
     update: cpData,
   });
 
   console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`);
-
-  // clean up bucket before finishing
-  console.dir(await prisma.$queryRaw`SELECT * FROM s3_clean_bucket(${bucketName});`);
 }
 
 main()
