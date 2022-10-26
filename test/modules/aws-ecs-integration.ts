@@ -23,6 +23,7 @@ const dbAliasSidecar = `${dbAlias}sync`;
 const sidecarSync = runSync.bind(null, dbAliasSidecar);
 const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
 const region = process.env.AWS_REGION || 'barf';
+const nonDefaultRegion = 'us-east-1';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -601,6 +602,22 @@ describe('ECS Integration Testing', () => {
       (res: any[]) => expect(res[0].force_new_deployment).toBe(false),
     ),
   );
+
+  it('should fail moving just the deployment group', done =>
+    void query(`
+      UPDATE service
+      SET region = '${nonDefaultRegion}'
+      WHERE name = '${newServiceName}';
+  `)((e?: any) => {
+      try {
+        expect(e?.message).toContain('region cannot be modified');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+  }));
 
   it('sync sidecar database', sidecarSync());
 
