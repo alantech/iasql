@@ -1,6 +1,6 @@
 import * as Amplitude from '@amplitude/node';
-import { PostHog } from 'posthog-node'
 import * as sentry from '@sentry/node';
+import { PostHog } from 'posthog-node';
 
 import config, { IASQL_ENV } from '../config';
 import logger from './logger';
@@ -19,10 +19,9 @@ enum IasqlOperationType {
 }
 
 const singletonAmp = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
-const singletonPh = config.telemetry ?  new PostHog(
-  config.telemetry.posthogKey,
-  { host: 'https://app.posthog.com' }
-): undefined;
+const singletonPh = config.telemetry
+  ? new PostHog(config.telemetry.posthogKey, { host: 'https://app.posthog.com' })
+  : undefined;
 
 export type DbProps = {
   dbAlias?: string;
@@ -64,12 +63,12 @@ export async function logEvent(
       singletonPh.capture({
         event,
         distinctId: uid,
-        properties: eventProps
+        properties: eventProps,
       });
       singletonPh.identify({
         distinctId: uid,
         properties: dbProps,
-      })
+      });
     }
   } catch (e: any) {
     const message = `failed to log ${event} event`;
