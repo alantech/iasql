@@ -1,4 +1,5 @@
 import * as Amplitude from '@amplitude/node';
+import { PostHog } from 'posthog-node'
 import * as sentry from '@sentry/node';
 
 import config, { IASQL_ENV } from '../config';
@@ -17,7 +18,11 @@ enum IasqlOperationType {
   UPGRADE = 'UPGRADE',
 }
 
-const singleton = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
+const singletonAmp = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
+const singletonPh = config.telemetry ?  new PostHog(
+  config.telemetry.posthogKey,
+  { host: 'https://app.posthog.com' }
+): undefined;
 
 export type DbProps = {
   dbAlias?: string;
@@ -45,16 +50,27 @@ export async function logEvent(
   uid?: string,
   deviceId?: string,
 ) {
-  if (!singleton) return;
+  if (!singletonAmp || !singletonPh) return;
   try {
     dbProps.iasqlEnv = IASQL_ENV;
-    await singleton.logEvent({
+    await singletonAmp.logEvent({
       event_type: event,
       user_id: uid,
       user_properties: dbProps,
       event_properties: eventProps,
       device_id: deviceId,
     });
+    if (uid) {
+      singletonPh.capture({
+        event,
+        distinctId: uid,
+        properties: eventProps
+      });
+      singletonPh.identify({
+        distinctId: uid,
+        properties: dbProps,
+      })
+    }
   } catch (e: any) {
     const message = `failed to log ${event} event`;
     if (config.sentry) {
@@ -102,5 +118,3 @@ export async function logRpc(
 ) {
   await logEvent(`${moduleName}:${methodName}`, dbProps, eventProps, uid);
 }
-
-export default singleton;

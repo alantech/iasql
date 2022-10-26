@@ -48,6 +48,18 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
     ],
   ],
 
+  plugins: [
+    [
+      "posthog-docusaurus",
+      {
+        apiKey: "phc_WjwJsXXSuEl2R2zElUWL55mWpNIfWR8HrFvjxwlTGWH",
+        appUrl: "https://app.posthog.com", // optional
+        enableInDevelopment: false, // optional
+        // other options are passed to posthog-js init as is
+      },
+    ],
+  ],
+
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({

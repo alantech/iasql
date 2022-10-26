@@ -25,6 +25,7 @@ const config: ConfigInterface = {
   },
   telemetry: {
     amplitudeKey: '8fd6aa1d61c115e59e35b3adfd5dd41a',
+    posthogKey: 'phc_r8CxqcF9mvr6lZ6DZkcUcqfomLvI1hEGmHJvncKIMXw',
   },
 };
 
