@@ -108,15 +108,14 @@ BEGIN
   IF NEW.repository_uri IS NULL AND NEW.image_digest IS NULL THEN
     INSERT INTO repository (repository_name, region) VALUES (NEW.app_name || '-repository', NEW.region);
     -- fill in repository_name in container_definition
-    -- TODO: pick repository id by name and region once aws_ecs_fargate is converted to multiregion
-    INSERT INTO container_definition ("name", essential, repository_id, region, task_definition_id, memory_reservation, host_port, container_port, protocol, log_group_id, env_variables, region)
+    INSERT INTO container_definition ("name", essential, repository_id, task_definition_id, memory_reservation, host_port, container_port, protocol, log_group_id, env_variables, region)
     VALUES (
       NEW.app_name || '-container', true,
-      (SELECT id from repository where repository_name = NEW.app_name || '-repository'),
-      (SELECT region from repository where repository_name = NEW.app_name || '-repository'),
-      -- TODO: add region to log_group select when multi-region support added
-      (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL LIMIT 1), get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp', (SELECT id from log_group WHERE log_group_name = NEW.app_name || '-log-group'), NEW.env_variables,
-      NEW.region
+      (SELECT id from repository where repository_name = NEW.app_name || '-repository' AND region = NEW.region),
+      (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL AND region = NEW.region LIMIT 1),
+      get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp',
+      (SELECT id from log_group WHERE log_group_name = NEW.app_name || '-log-group' AND region = NEW.region),
+      NEW.env_variables, NEW.region
     );
   ELSE
     -- fill in image, tag and digest in container_definition
@@ -124,9 +123,10 @@ BEGIN
     VALUES (
       NEW.app_name || '-container', true,
       NEW.repository_uri,
-      (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL LIMIT 1),
-      NEW.image_tag, NEW.image_digest, get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp', (SELECT id from log_group WHERE log_group_name = NEW.app_name || '-log-group'), NEW.env_variables,
-      NEW.region
+      (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL AND region = NEW.region LIMIT 1),
+      NEW.image_tag, NEW.image_digest, get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp',
+      (SELECT id from log_group WHERE log_group_name = NEW.app_name || '-log-group' AND region = NEW.region),
+      NEW.env_variables, NEW.region
     );
   END IF;
 
@@ -134,9 +134,10 @@ BEGIN
   INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id, force_new_deployment, region)
   VALUES (
     NEW.app_name || '-service', NEW.desired_count, (SELECT ARRAY(SELECT subnet_id FROM subnet WHERE vpc_id = (SELECT id FROM vpc WHERE is_default = true and vpc.region = (SELECT region FROM aws_regions WHERE is_default = TRUE) LIMIT 1) LIMIT 3)), (CASE WHEN NEW.public_ip THEN 'ENABLED' ELSE 'DISABLED' END)::service_assign_public_ip_enum,
-    (SELECT id FROM cluster WHERE cluster_name = NEW.app_name || '-cluster'),
-    (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' ORDER BY revision DESC LIMIT 1),
-    (SELECT id FROM target_group WHERE target_group_name = NEW.app_name || '-target'), NEW.force_new_deployment, NEW.region
+    (SELECT id FROM cluster WHERE cluster_name = NEW.app_name || '-cluster' AND region = NEW.region),
+    (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND region = NEW.region ORDER BY revision DESC LIMIT 1),
+    (SELECT id FROM target_group WHERE target_group_name = NEW.app_name || '-target' AND region = NEW.region),
+    NEW.force_new_deployment, NEW.region
   );
 
   INSERT INTO service_security_groups (service_id, security_group_id)
@@ -320,7 +321,7 @@ BEGIN
     SELECT tag, digest, (SELECT repository_name FROM repository where id = repository_id AND region = _region), log_group_id, cpu, memory, image, env_variables
     INTO _image_tag, _image_digest, _repository_name, _log_group_id, _cpu, _mem, _repository_uri, _env_variables
     FROM container_definition
-    WHERE task_definition_id = _task_definition_id AND host_port = _app_port AND container_port = _app_port AND essential = true LIMIT 1 AND region = _region;
+    WHERE task_definition_id = _task_definition_id AND host_port = _app_port AND container_port = _app_port AND essential = true AND region = _region LIMIT 1;
 
     IF _cpu_mem IS NULL THEN
       _cpu_mem = get_cpu_mem_enum_from_parts(_cpu, _mem);
