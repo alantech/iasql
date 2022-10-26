@@ -14,7 +14,6 @@ import { AwsEc2Module } from '..';
 import { awsVpcModule } from '../..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
-import { AvailabilityZone } from '../../aws_vpc/entity';
 import { GeneralPurposeVolume, GeneralPurposeVolumeType, VolumeState } from '../entity';
 import { updateTags, eqTags } from './tags';
 
@@ -38,14 +37,15 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     if (!vol?.VolumeId) return undefined;
     out.volumeId = vol.VolumeId;
     out.volumeType = vol.VolumeType as GeneralPurposeVolumeType;
-    // todo: find by region too when multiregion
     out.availabilityZone =
-      (await awsVpcModule.availabilityZone.db.read(ctx)).find(
-        (az: AvailabilityZone) => az.name === vol.AvailabilityZone,
-      ) ??
-      (await awsVpcModule.availabilityZone.cloud.read(ctx)).find(
-        (az: AvailabilityZone) => az.name === vol.AvailabilityZone,
-      );
+      (await awsVpcModule.availabilityZone.db.read(
+        ctx,
+        awsVpcModule.availabilityZone.generateId({ name: vol.AvailabilityZone ?? '', region }),
+      )) ??
+      (await awsVpcModule.availabilityZone.cloud.read(
+        ctx,
+        awsVpcModule.availabilityZone.generateId({ name: vol.AvailabilityZone ?? '', region }),
+      ));
     out.size = vol.Size ?? 1;
     out.iops = vol.Iops;
     out.throughput = vol.Throughput;
@@ -54,8 +54,14 @@ export class GeneralPurposeVolumeMapper extends MapperBase<GeneralPurposeVolume>
     if (vol.Attachments?.length) {
       const attachment = vol.Attachments.pop();
       out.attachedInstance =
-        (await this.module.instance.db.read(ctx, `${attachment?.InstanceId}|${region}`)) ??
-        (await this.module.instance.cloud.read(ctx, `${attachment?.InstanceId}|${region}`));
+        (await this.module.instance.db.read(
+          ctx,
+          this.module.instance.generateId({ instanceId: attachment?.InstanceId ?? '', region }),
+        )) ??
+        (await this.module.instance.cloud.read(
+          ctx,
+          this.module.instance.generateId({ instanceId: attachment?.InstanceId ?? '', region }),
+        ));
       out.instanceDeviceName = attachment?.Device;
     }
     if (vol.Tags?.length) {

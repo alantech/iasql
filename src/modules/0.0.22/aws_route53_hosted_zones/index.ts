@@ -9,7 +9,7 @@ import {
 } from '@aws-sdk/client-route-53';
 
 import { AWS, crudBuilderFormat, paginateBuilder, crudBuilder2 } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { Context, Crud2, IdFields, MapperBase, ModuleBase } from '../../interfaces';
 import { awsElbModule } from '../aws_elb';
 import { AliasTarget, HostedZone } from './entity';
 import { RecordType, ResourceRecordSet } from './entity/resource_records_set';
@@ -199,7 +199,22 @@ class HostedZoneMapper extends MapperBase<HostedZone> {
 class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
   module: AwsRoute53HostedZoneModule;
   entity = ResourceRecordSet;
-  entityId = (e: ResourceRecordSet) => `${e.parentHostedZone.hostedZoneId}|${e.name}|${e.recordType}`;
+  generateId = (fields: IdFields) => {
+    const requiredFields = ['hostedZoneId', 'name', 'recordType'];
+    if (
+      Object.keys(fields).length !== requiredFields.length &&
+      !Object.keys(fields).every(fk => requiredFields.includes(fk))
+    ) {
+      throw new Error(`Id generation error. Valid fields to generate id are: ${requiredFields.join(', ')}`);
+    }
+    return `${fields.hostedZoneId}|${fields.name}|${fields.recordType}`;
+  };
+  entityId = (e: ResourceRecordSet) =>
+    this.generateId({
+      hostedZoneId: e.parentHostedZone.hostedZoneId,
+      name: e.name,
+      recordType: e.recordType,
+    });
   equals = (a: ResourceRecordSet, b: ResourceRecordSet) =>
     Object.is(a.parentHostedZone?.hostedZoneId, b.parentHostedZone?.hostedZoneId) &&
     Object.is(a.recordType, b.recordType) &&
