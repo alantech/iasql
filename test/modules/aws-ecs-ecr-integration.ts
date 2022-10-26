@@ -369,8 +369,8 @@ describe('ECS Integration Testing', () => {
   // Service
   it('fails adding a service', done => {
     query(`
-    INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_id)
-    VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, '{"fake"}', 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdRepositoryFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
+    INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
+    VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, '{"fake"}', 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdRepositoryFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
     `)((e: any) => {
       try {
         expect(e.message).toContain('violates check constraint');
@@ -385,8 +385,8 @@ describe('ECS Integration Testing', () => {
     'adds a new service',
     query(`
     BEGIN;
-      INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_id)
-      VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${process.env.AWS_REGION}' limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdRepositoryFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
+      INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
+      VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${process.env.AWS_REGION}' limit 3)), 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdRepositoryFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
 
       INSERT INTO service_security_groups (service_id, security_group_id)
       VALUES ((SELECT id FROM service WHERE name = '${serviceRepositoryName}'), (select id from security_group where group_name = '${securityGroup}' and region = '${region}' limit 1));
