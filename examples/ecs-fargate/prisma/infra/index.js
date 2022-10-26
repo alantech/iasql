@@ -206,6 +206,9 @@ async function main() {
   });
 
   console.dir(await prisma.$queryRaw`SELECT * from iasql_apply();`);
+
+  // clean up bucket before finishing
+  console.dir(await prisma.$queryRaw`SELECT * FROM s3_clean_bucket(${bucketName});`);
 }
 
 main()
