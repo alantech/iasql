@@ -136,8 +136,8 @@ BEGIN
     (SELECT id FROM target_group WHERE target_group_name = NEW.app_name || '-target'), NEW.force_new_deployment
   );
 
-  INSERT INTO service_security_groups (service_name, security_group_id)
-  VALUES (NEW.app_name || '-service', _security_group_id);
+  INSERT INTO service_security_groups (service_id, security_group_id)
+  VALUES ((SELECT id FROM service WHERE name = NEW.app_name || '-service'), _security_group_id);
 END
 $$;
 
@@ -168,7 +168,7 @@ OR REPLACE FUNCTION delete_ecs_simplified (OLD RECORD) RETURNS VOID LANGUAGE plp
 BEGIN
   -- delete ECS service
   DELETE FROM service_security_groups
-  WHERE service_name = OLD.app_name || '-service';
+  WHERE service_id = (SELECT id FROM service WHERE name = OLD.app_name || '-service');
 
   DELETE FROM service
   WHERE name = OLD.app_name || '-service';
@@ -299,7 +299,7 @@ BEGIN
 
     SELECT security_group_id INTO _security_group_id
     FROM service_security_groups
-    WHERE service_name = _service_name LIMIT 1;
+    WHERE service_id = (SELECT id FROM service WHERE name = _service_name) LIMIT 1;
 
     is_valid = _app_name IS NOT NULL AND _app_port IS NOT NULL AND _security_group_id IS NOT NULL;
 

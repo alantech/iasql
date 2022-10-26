@@ -246,8 +246,8 @@ describe('ECS Integration Testing', () => {
       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_id)
       VALUES ('${servicePublicRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${process.env.AWS_REGION}' limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdPublicRepositoryFamily}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
 
-      INSERT INTO service_security_groups (service_name, security_group_id)
-      VALUES ('${servicePublicRepositoryName}', (select id from security_group where group_name = '${securityGroup}' and region = '${region}' limit 1));
+      INSERT INTO service_security_groups (service_id, security_group_id)
+      VALUES ((SELECT id FROM service WHERE name = '${servicePublicRepositoryName}'), (select id from security_group where group_name = '${securityGroup}' and region = '${region}' limit 1));
     COMMIT;
   `));
 
@@ -260,7 +260,7 @@ describe('ECS Integration Testing', () => {
   it('check service_security_groups insertion', query(`
     SELECT *
     FROM service_security_groups
-    WHERE service_name = '${servicePublicRepositoryName}';
+    WHERE service_id = (SELECT id FROM service WHERE name = '${servicePublicRepositoryName}');
   `, (res: any[]) => expect(res.length).toBe(1)));
 
   it('applies service insertion', apply());

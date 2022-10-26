@@ -428,8 +428,8 @@ describe('ECS Integration Testing', () => {
       INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_id)
       VALUES ('${serviceName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
 
-      INSERT INTO service_security_groups (service_name, security_group_id)
-      VALUES ('${serviceName}', (select id from security_group where group_name = '${securityGroup}' and region = '${region}' limit 1));
+      INSERT INTO service_security_groups (service_id, security_group_id)
+      VALUES ((SELECT id FROM service WHERE name = '${serviceName}'), (select id from security_group where group_name = '${securityGroup}' and region = '${region}' limit 1));
     COMMIT;
   `),
   );
@@ -452,7 +452,7 @@ describe('ECS Integration Testing', () => {
       `
     SELECT *
     FROM service_security_groups
-    WHERE service_name = '${serviceName}';
+    WHERE service_id = (SELECT id FROM service WHERE name = '${serviceName}');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -468,7 +468,7 @@ describe('ECS Integration Testing', () => {
       ORDER BY family, revision DESC
       LIMIT 1
     )
-    UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td) and region = '${region}';
+    UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td) ;
   `),
   );
 
