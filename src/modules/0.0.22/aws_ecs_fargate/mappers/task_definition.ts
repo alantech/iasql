@@ -182,13 +182,8 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
     const out = new TaskDefinition();
     out.containerDefinitions = [];
     for (const tdc of td.containerDefinitions) {
-      try {
-        const cd = await this.containerDefinitionMapper(tdc, region, ctx);
-        out.containerDefinitions.push(cd);
-      } catch (e) {
-        logger.info(`+-+ am I failing trying to map container?`);
-        throw e;
-      }
+      const cd = await this.containerDefinitionMapper(tdc, region, ctx);
+      out.containerDefinitions.push(cd);
     }
     out.cpuMemory = `vCPU${+(td.cpu ?? '256') / 1024}-${+(td.memory ?? '512') / 1024}GB` as CpuMemCombination;
     if (td.executionRoleArn) {
@@ -348,11 +343,6 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
     read: async (ctx: Context, arn?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (arn) {
-        try {
-          parseArn(arn).region;
-        } catch (e: any) {
-          logger.info(`+-+ how are we gettign here??? ${e} - task definition arn ${arn}`);
-        }
         const region = parseArn(arn).region;
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
@@ -369,15 +359,9 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
             td => td.compatibilities.includes('FARGATE'),
           );
           for (const td of taskDefs) {
-            try {
-              out.push(await this.taskDefinitionMapper(td, region, ctx));
-            } catch (e) {
-              logger.info(`+-+ FAILED trying to map task definition ${e}`);
-              throw e;
-            }
+            out.push(await this.taskDefinitionMapper(td, region, ctx));
           }
         }
-        logger.info(`+-+ task definitions mapped ${JSON.stringify(out)}`);
         return out;
       }
     },
