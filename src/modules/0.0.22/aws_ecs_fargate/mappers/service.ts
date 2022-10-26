@@ -315,11 +315,6 @@ export class ServiceMapper extends MapperBase<Service> {
     read: async (ctx: Context, arn?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (arn) {
-        try {
-          parseArn(arn).region;
-        } catch (e: any) {
-          logger.info(`+-+ how are we gettign here??? ${e} - service arn ${arn}`)
-        }
         const region = parseArn(arn).region;
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
@@ -335,36 +330,19 @@ export class ServiceMapper extends MapperBase<Service> {
       } else {
         const out: Service[] = [];
         for (const region of enabledRegions) {
-          logger.info(`+-+ reading service for region ${region}`);
           const client = (await ctx.getAwsClient(region)) as AWS;
-          let clusters = [];
-          try {
-            clusters = ctx.memo?.cloud?.Cluster
-              ? Object.values(ctx.memo?.cloud?.Cluster)
-              : await this.module.cluster.cloud.read(ctx);
-          } catch (e) {
-            logger.info(`+-+ I KNOW I'M FAILING HERE BUT WHY ${e}`)
-            throw e;
-          }
-          logger.info(`+-+ successfully read clusters ${JSON.stringify(clusters)}`)
+          const clusters = ctx.memo?.cloud?.Cluster
+            ? Object.values(ctx.memo?.cloud?.Cluster)
+            : await this.module.cluster.cloud.read(ctx);
           const result = await this.getServices(
             client.ecsClient,
             clusters?.filter((c: Cluster) => c.region === region).map((c: Cluster) => c.clusterArn) ?? [],
           );
-          logger.info(`+-+ successfully get services ${JSON.stringify(result)}`)
           // Make sure we just handle FARGATE services
           const fargateResult = result.filter(s => s.launchType === 'FARGATE');
-          logger.info(`+-+ successfully filtered fargate ${JSON.stringify(fargateResult)}`)
           for (const s of fargateResult) {
-            try{
-              logger.info(`+-+ going to mapp service ${s.serviceArn}`)
-              const mappedService = await this.serviceMapper(s, region, ctx);
-              logger.info(`+-+ service mapped ${s.serviceArn}`)
-              if (mappedService) out.push(mappedService);
-            } catch (e) {
-              logger.info(`+-+ failing on service mapper? ${e} - service ${s.serviceArn}`)
-              throw e;
-            }
+            const mappedService = await this.serviceMapper(s, region, ctx);
+            if (mappedService) out.push(mappedService);
           }
         }
         return out;

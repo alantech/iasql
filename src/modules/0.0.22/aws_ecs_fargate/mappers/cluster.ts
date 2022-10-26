@@ -137,11 +137,6 @@ export class ClusterMapper extends MapperBase<Cluster> {
     read: async (ctx: Context, arn?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (arn) {
-        try {
-          parseArn(arn).region;
-        } catch (e: any) {
-          logger.info(`+-+ how are we gettign here??? ${e} - cluster arn ${arn}`)
-        }
         const region = parseArn(arn).region;
         if (enabledRegions.includes(region)) {
           const client = (await ctx.getAwsClient(region)) as AWS;
@@ -153,21 +148,9 @@ export class ClusterMapper extends MapperBase<Cluster> {
         const out: Cluster[] = [];
         for (const region of enabledRegions) {
           const client = (await ctx.getAwsClient(region)) as AWS;
-          let rawClusters = []
-          try {
-            rawClusters = (await this.getClusters(client.ecsClient)) ?? [];
-          } catch (e) {
-            logger.info(`+-+ am I failing getting raw clusters?`)
-            throw e;
-          }
+          const rawClusters = (await this.getClusters(client.ecsClient)) ?? [];
           for (const cluster of rawClusters) {
-            let outCluster
-            try {
-              outCluster = this.clusterMapper(cluster, region);
-            } catch (e) {
-              logger.info(`+-+ am I failing mapping clusters? ${e}`)
-              throw e;
-            }
+            const outCluster = this.clusterMapper(cluster, region);
             if (outCluster) out.push(outCluster);
           }
         }
