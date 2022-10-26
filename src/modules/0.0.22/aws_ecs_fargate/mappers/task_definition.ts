@@ -139,8 +139,14 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       try {
         // TODO: compare repository name + region once this module is multiregion
         const repository =
-          (await awsEcrModule.repository.db.read(ctx, `${repositoryName}|${region}`)) ??
-          (await awsEcrModule.repository.cloud.read(ctx, `${repositoryName}|${region}`));
+          (await awsEcrModule.repository.db.read(
+            ctx,
+            awsEcrModule.repository.generateId({ repositoryName, region }),
+          )) ??
+          (await awsEcrModule.repository.cloud.read(
+            ctx,
+            awsEcrModule.repository.generateId({ repositoryName, region }),
+          ));
         out.repository = repository;
       } catch (e) {
         // Repository could have been deleted
@@ -170,8 +176,14 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
       const groupName = c.logConfiguration.options['awslogs-group'];
       // TODO: also take the `region` into account in the below commands (when this module supports multi-region)
       const logGroup =
-        (await awsCloudwatchModule.logGroup.db.read(ctx, `${groupName}|${region}`)) ??
-        (await awsCloudwatchModule.logGroup.cloud.read(ctx, `${groupName}|${region}`));
+        (await awsCloudwatchModule.logGroup.db.read(
+          ctx,
+          awsCloudwatchModule.logGroup.generateId({ logGroupName: groupName, region }),
+        )) ??
+        (await awsCloudwatchModule.logGroup.cloud.read(
+          ctx,
+          awsCloudwatchModule.logGroup.generateId({ logGroupName: groupName, region }),
+        ));
       out.logGroup = logGroup;
     }
     out.region = region;

@@ -230,8 +230,14 @@ export class ServiceMapper extends MapperBase<Service> {
       const cloudSecurityGroups = networkConf.securityGroups ?? [];
       for (const sg of cloudSecurityGroups) {
         securityGroups.push(
-          (await awsSecurityGroupModule.securityGroup.db.read(ctx, `${sg}|${region}`)) ??
-            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx, `${sg}|${region}`)),
+          (await awsSecurityGroupModule.securityGroup.db.read(
+            ctx,
+            awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
+          )) ??
+            (await awsSecurityGroupModule.securityGroup.cloud.read(
+              ctx,
+              awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
+            )),
         );
       }
       if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length)
@@ -242,10 +248,15 @@ export class ServiceMapper extends MapperBase<Service> {
         // misconfigured resources
         let subnet: Subnet;
         try {
-          // todo: search by region when multiregion
           subnet =
-            (await awsVpcModule.subnet.db.read(ctx, `${sn}|${region}`)) ??
-            (await awsVpcModule.subnet.cloud.read(ctx, `${sn}|${region}`));
+            (await awsVpcModule.subnet.db.read(
+              ctx,
+              awsVpcModule.subnet.generateId({ subnetId: sn, region }),
+            )) ??
+            (await awsVpcModule.subnet.cloud.read(
+              ctx,
+              awsVpcModule.subnet.generateId({ subnetId: sn, region }),
+            ));
           if (!subnet) return undefined;
         } catch (e: any) {
           if (e.Code === 'InvalidSubnetID.NotFound') return undefined;
