@@ -35,7 +35,6 @@ async function connectHandler(req: any, res: any) {
         operationCount: database.operationCount,
       },
       {},
-      req.body.ampDeviceId,
     );
   } catch (e) {
     const error = logErrSentry(e, uid, email, dbAlias);
@@ -68,7 +67,7 @@ db.post('/connect', connectHandler);
 
 db.post('/export', async (req, res) => {
   logger.info('Calling /export');
-  const { dbAlias, dataOnly, ampDeviceId } = req.body;
+  const { dbAlias, dataOnly } = req.body;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
@@ -86,7 +85,6 @@ db.post('/export', async (req, res) => {
         operationCount: database.operationCount,
       },
       { dataOnly: !!dataOnly },
-      ampDeviceId,
     );
   } catch (e) {
     res.status(500).end(logErrSentry(e, uid, email, dbAlias));
@@ -136,7 +134,7 @@ db.post('/run/:dbAlias', async (req, res) => {
   if (!config.db.sqlViaRest) return res.status(400).end('SQL Querying via REST disabled');
   const { dbAlias } = req.params;
   if (!dbAlias) return res.status(400).json("Required key 'dbAlias' not provided");
-  const { sql, ampDeviceId, byStatement, byUser } = req.body;
+  const { sql, byStatement, byUser } = req.body;
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
   let dbId;
@@ -157,7 +155,6 @@ db.post('/run/:dbAlias', async (req, res) => {
           output: JSON.stringify(output),
           sql,
         },
-        ampDeviceId,
       );
     }
     res.json(output);
@@ -172,15 +169,15 @@ db.post('/run/:dbAlias', async (req, res) => {
 
 db.post('/event', async (req, res) => {
   logger.info('Calling /event');
-  const { dbAlias, eventName, ampDeviceId, buttonAlias, sql } = req.body;
+  const { dbAlias, eventName, buttonAlias, sql } = req.body;
   const uid = dbMan.getUid(req.user);
   const email = dbMan.getEmail(req.user);
   if (dbAlias) {
     const database: IasqlDatabase = await MetadataRepo.getDb(uid, dbAlias);
     const dbId = database.pgName;
-    telemetry.logEvent(uid, eventName, { dbAlias, dbId, email }, { buttonAlias, sql }, ampDeviceId);
+    telemetry.logEvent(uid, eventName, { dbAlias, dbId, email }, { buttonAlias, sql });
   } else {
-    telemetry.logEvent(uid, eventName, { email }, { buttonAlias, sql }, ampDeviceId);
+    telemetry.logEvent(uid, eventName, { email }, { buttonAlias, sql });
   }
   res.json(`event registered`);
 });

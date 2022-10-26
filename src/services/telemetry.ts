@@ -42,13 +42,7 @@ export type EventProps = {
   buttonAlias?: string;
 };
 
-export async function logEvent(
-  uid: string,
-  event: string,
-  dbProps: DbProps,
-  eventProps?: EventProps,
-  deviceId?: string,
-) {
+export async function logEvent(uid: string, event: string, dbProps: DbProps, eventProps?: EventProps) {
   // make all events uppercase
   event = event.toUpperCase();
   try {
@@ -59,7 +53,6 @@ export async function logEvent(
         user_id: uid,
         user_properties: dbProps,
         event_properties: eventProps,
-        device_id: deviceId,
       });
     }
     if (singletonPh) {
@@ -84,20 +77,20 @@ export async function logEvent(
   }
 }
 
-export async function logConnect(uid: string, dbProps: DbProps, eventProps?: EventProps, deviceId?: string) {
-  await logEvent(uid, 'CONNECT', dbProps, eventProps, deviceId);
+export async function logConnect(uid: string, dbProps: DbProps, eventProps?: EventProps) {
+  await logEvent(uid, 'CONNECT', dbProps, eventProps);
 }
 
 export async function logDisconnect(uid: string, dbProps: DbProps, eventProps?: EventProps) {
   await logEvent(uid, 'DISCONNECT', dbProps, eventProps);
 }
 
-export async function logExport(uid: string, dbProps: DbProps, eventProps: EventProps, deviceId?: string) {
-  await logEvent(uid, 'EXPORT', dbProps, eventProps, deviceId);
+export async function logExport(uid: string, dbProps: DbProps, eventProps: EventProps) {
+  await logEvent(uid, 'EXPORT', dbProps, eventProps);
 }
 
-export async function logRunSql(uid: string, dbProps: DbProps, eventProps: EventProps, deviceId?: string) {
-  await logEvent(uid, 'RUNSQL', dbProps, eventProps, deviceId);
+export async function logRunSql(uid: string, dbProps: DbProps, eventProps: EventProps) {
+  await logEvent(uid, 'RUNSQL', dbProps, eventProps);
 }
 
 // ! DEPRECATED
