@@ -15,7 +15,7 @@ import logger from '../../../../services/logger';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { Subnet } from '../../aws_vpc/entity';
-import { Service } from '../entity';
+import { Cluster, Service } from '../entity';
 
 export class ServiceMapper extends MapperBase<Service> {
   module: AwsEcsFargateModule;
@@ -349,7 +349,7 @@ export class ServiceMapper extends MapperBase<Service> {
           logger.info(`+-+ successfully read clusters ${JSON.stringify(clusters)}`)
           const result = await this.getServices(
             client.ecsClient,
-            clusters?.map((c: any) => c.clusterArn) ?? [],
+            clusters?.filter((c: Cluster) => c.region === region).map((c: Cluster) => c.clusterArn) ?? [],
           );
           logger.info(`+-+ successfully get services ${JSON.stringify(result)}`)
           // Make sure we just handle FARGATE services
