@@ -12,7 +12,6 @@ import { AwsEcsFargateModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { Cluster } from '../entity';
-import logger from '../../../../services/logger';
 
 export class ClusterMapper extends MapperBase<Cluster> {
   module: AwsEcsFargateModule;
