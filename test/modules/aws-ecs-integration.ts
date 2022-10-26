@@ -794,6 +794,10 @@ describe('ECS install/uninstall', () => {
   `),
   );
 
+  it('sets only 2 enabled regions to avoid long runs', query(`
+    UPDATE aws_regions SET is_enabled = FALSE WHERE region != 'us-east-1' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' LIMIT 1);
+  `));
+
   it('installs the ECS module', install(modules));
 
   it('uninstalls the ECS module', uninstall(modules));
