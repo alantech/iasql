@@ -1,4 +1,4 @@
 {
-  "name": "aws_acm_list",
+  "name": "aws_acm",
   "dependencies": ["iasql_platform", "aws_account"]
 }
