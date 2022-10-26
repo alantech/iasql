@@ -351,7 +351,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
         try {
           parseArn(arn).region;
         } catch (e: any) {
-          logger.info(`+-+ how are we gettign here??? ${e} - task definition arn ${arn}`)
+          logger.info(`+-+ how are we gettign here??? ${e} - task definition arn ${arn}`);
         }
         const region = parseArn(arn).region;
         if (enabledRegions.includes(region)) {
@@ -368,10 +368,8 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
           const taskDefs = ((await this.getTaskDefinitions(client.ecsClient)).taskDefinitions ?? []).filter(
             td => td.compatibilities.includes('FARGATE'),
           );
-          logger.info(`+-+ task definitions for region ${region} ${JSON.stringify(taskDefs)}`);
           for (const td of taskDefs) {
             try {
-              logger.info(`+-+ trying to map task definition ${JSON.stringify(td)}`);
               out.push(await this.taskDefinitionMapper(td, region, ctx));
             } catch (e) {
               logger.info(`+-+ FAILED trying to map task definition ${e}`);
@@ -379,6 +377,7 @@ export class TaskDefinitionMapper extends MapperBase<TaskDefinition> {
             }
           }
         }
+        logger.info(`+-+ task definitions mapped ${JSON.stringify(out)}`);
         return out;
       }
     },

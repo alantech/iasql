@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsEcsFargate1666711629814 implements MigrationInterface {
-  name = 'awsEcsFargate1666711629814';
+export class awsEcsFargate1666784312020 implements MigrationInterface {
+  name = 'awsEcsFargate1666784312020';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -62,7 +62,7 @@ export class awsEcsFargate1666711629814 implements MigrationInterface {
       `ALTER TABLE "task_definition" ADD CONSTRAINT "FK_5a2c9b79673407fb4988595a814" FOREIGN KEY ("region") REFERENCES "aws_regions"("region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "container_definition" ADD CONSTRAINT "FK_4f31e06ce7336bc5f3a50f0ba6b" FOREIGN KEY ("task_definition_id", "region") REFERENCES "task_definition"("id","region") ON DELETE CASCADE ON UPDATE CASCADE`,
+      `ALTER TABLE "container_definition" ADD CONSTRAINT "FK_95900c2acc0286c7976d9b729b2" FOREIGN KEY ("task_definition_id") REFERENCES "task_definition"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
     );
     await queryRunner.query(
       `ALTER TABLE "container_definition" ADD CONSTRAINT "FK_1e04ff635edd82118b875db54f1" FOREIGN KEY ("repository_id", "region") REFERENCES "repository"("id","region") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -104,7 +104,7 @@ export class awsEcsFargate1666711629814 implements MigrationInterface {
       `ALTER TABLE "container_definition" DROP CONSTRAINT "FK_1e04ff635edd82118b875db54f1"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "container_definition" DROP CONSTRAINT "FK_4f31e06ce7336bc5f3a50f0ba6b"`,
+      `ALTER TABLE "container_definition" DROP CONSTRAINT "FK_95900c2acc0286c7976d9b729b2"`,
     );
     await queryRunner.query(`ALTER TABLE "task_definition" DROP CONSTRAINT "FK_5a2c9b79673407fb4988595a814"`);
     await queryRunner.query(`ALTER TABLE "task_definition" DROP CONSTRAINT "FK_dcf86a08d8805551fe92f7cd8f1"`);

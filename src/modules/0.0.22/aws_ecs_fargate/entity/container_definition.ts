@@ -31,16 +31,7 @@ export class ContainerDefinition {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })
-  @JoinColumn([
-    {
-      name: 'task_definition_id',
-      referencedColumnName: 'id',
-    },
-    {
-      name: 'region',
-      referencedColumnName: 'region',
-    },
-  ])
+  @JoinColumn()
   taskDefinition: TaskDefinition;
 
   // TODO: add constraint  Up to 255 letters (uppercase and lowercase), numbers, hyphens, underscores, colons, periods, forward slashes, and number signs are allowed.
