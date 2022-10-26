@@ -28,14 +28,13 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
     const stagesB = _.pickBy(a.stages, _.identity);
     return (
       Object.is(a.serviceRole?.arn, b.serviceRole?.arn) &&
-      Object.is(a.name, b.name) &&
       Object.is(a.artifactStore.location, b.artifactStore.location) &&
       Object.is(a.artifactStore.type, b.artifactStore.type) &&
       _.isEqual(stagesA, stagesB)
     );
   };
 
-  async pipelineDeclarationMapper(pd: AWSPipelineDeclaration, ctx: Context) {
+  async pipelineDeclarationMapper(pd: AWSPipelineDeclaration, ctx: Context, region: string) {
     if (!pd.roleArn || !pd.name) return;
 
     const out = new PipelineDeclaration();
@@ -51,6 +50,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
       }
     }
     out.name = pd.name;
+    out.region = region;
     out.artifactStore = {
       encryptionKey: pd.artifactStore?.encryptionKey,
       location: pd.artifactStore?.location,
@@ -131,10 +131,13 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
 
   cloud: Crud2<PipelineDeclaration> = new Crud2({
     create: async (pds: PipelineDeclaration[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const pd of pds) {
-        if (!pd.name || !pd.serviceRole) continue;
+        if (!pd.name || !pd.serviceRole || !pd.region) continue;
+        const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+        if (!enabledRegions.includes(pd.region)) continue;
+
+        const client = (await ctx.getAwsClient(pd.region)) as AWS;
 
         const input: CreatePipelineCommandInput = {
           pipeline: {
@@ -146,7 +149,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
         };
         const rp = await this.createPipelineDeclaration(client.cpClient, input);
         if (rp) {
-          const newPipeline = await this.pipelineDeclarationMapper(rp, ctx);
+          const newPipeline = await this.pipelineDeclarationMapper(rp, ctx, pd.region);
           if (newPipeline) {
             // wait until the execution is finished
             const result = await this.waitForPipelineExecution(client.cpClient, pd.name);
@@ -157,42 +160,50 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
       return out;
     },
     read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      const region = await client.region;
-      if (!supportedRegions.includes(region)) return;
-
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
-      if (!enabledRegions.includes(region)) return;
-
-      if (id) {
-        const pipeline = await this.getPipelineDeclarations(client.cpClient, {
-          name: id,
-        });
-        if (pipeline) {
-          const pipe = await this.pipelineDeclarationMapper(pipeline, ctx);
-          return pipe;
-        }
-      } else {
-        const out = [];
-        const pipelines = await this.listPipelineDeclarations(client.cpClient);
-        if (!pipelines || !pipelines.length) return;
-
-        for (const pipeline of pipelines) {
-          const rawPipeline = await this.getPipelineDeclarations(client.cpClient, {
-            name: pipeline.name,
-          });
-          if (rawPipeline) {
-            const newPipeline = await this.pipelineDeclarationMapper(rawPipeline, ctx);
-            if (newPipeline) out.push(newPipeline);
+      if (!!id) {
+        const { region, name } = this.idFields(id);
+        if (enabledRegions.includes(region)) {
+          if (supportedRegions.includes(region)) {
+            const client = (await ctx.getAwsClient(region)) as AWS;
+            const pipeline = await this.getPipelineDeclarations(client.cpClient, {
+              name,
+            });
+            if (pipeline) {
+              const pipe = await this.pipelineDeclarationMapper(pipeline, ctx, region);
+              return pipe;
+            }
           }
         }
+      } else {
+        const out: PipelineDeclaration[] = [];
+        await Promise.all(
+          enabledRegions.map(async region => {
+            if (supportedRegions.includes(region)) {
+              const client = (await ctx.getAwsClient(region)) as AWS;
+
+              const pipelines = await this.listPipelineDeclarations(client.cpClient);
+              if (!pipelines || !pipelines.length) return;
+
+              for (const pipeline of pipelines) {
+                const rawPipeline = await this.getPipelineDeclarations(client.cpClient, {
+                  name: pipeline.name,
+                });
+                if (rawPipeline) {
+                  const newPipeline = await this.pipelineDeclarationMapper(rawPipeline, ctx, region);
+                  if (newPipeline) out.push(newPipeline);
+                }
+              }
+            }
+          }),
+        );
         return out;
       }
     },
     update: async (pds: PipelineDeclaration[], ctx: Context) => {
       const out = [];
       for (const pd of pds) {
-        const cloudRecord = ctx?.memo?.cloud?.PipelineDeclaration?.[pd.name ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.PipelineDeclaration?.[this.entityId(pd)];
         // we cannot allow to update a pipeline because we cannot reuse oauth or any secrets
         pd.serviceRole = cloudRecord.serviceRole;
         await this.module.pipelineDeclaration.db.update(pd, ctx);
@@ -201,8 +212,9 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
       return out;
     },
     delete: async (pds: PipelineDeclaration[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const pd of pds) {
+        const client = (await ctx.getAwsClient(pd.region)) as AWS;
+
         await this.deletePipelineDeclaration(client.cpClient, {
           name: pd.name,
         });

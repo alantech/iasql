@@ -258,6 +258,9 @@ jobs:
             );
           ";
 
+          echo "\nClean all buckets..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "select s3_clean_bucket(name) FROM bucket;"
+
           # Delete all recods
           echo "\nDelete all records..."
           psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"

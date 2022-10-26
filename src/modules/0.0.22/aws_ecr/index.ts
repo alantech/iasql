@@ -13,7 +13,7 @@ import {
 import { policiesAreSame } from '../../../services/aws-diff';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../services/aws_macros';
 import logger from '../../../services/logger';
-import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { Context, Crud2, IdFields, MapperBase, ModuleBase } from '../../interfaces';
 import {
   PublicRepository,
   Repository,
@@ -44,9 +44,20 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
     if (type === 'private') {
       // retrieve repository details
       const repo =
-        (await this.module.repository.db.read(ctx))
-          .filter((r: Repository) => r.repositoryName === image.repositoryName && r.region === region)
-          .pop() ?? (await this.module.repository.cloud.read(ctx, `${image.repositoryName}|${region}`));
+        (await this.module.repository.db.read(
+          ctx,
+          this.module.repository.generateId({
+            repositoryName: image.repositoryName ?? '',
+            region: region ?? '',
+          }),
+        )) ??
+        (await this.module.repository.cloud.read(
+          ctx,
+          this.module.repository.generateId({
+            repositoryName: image.repositoryName ?? '',
+            region: region ?? '',
+          }),
+        ));
       if (repo) out.privateRepository = repo;
     } else {
       const repo = await this.module.publicRepository.cloud.read(ctx, image.repositoryName);
@@ -249,7 +260,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         return out;
       }
     },
-    update: async (es: RepositoryImage[], ctx: Context) => {
+    update: async (_es: RepositoryImage[], _ctx: Context) => {
       return [];
     },
     delete: async (es: RepositoryImage[], ctx: Context) => {
@@ -533,7 +544,6 @@ class RepositoryMapper extends MapperBase<Repository> {
         await this.deleteECRRepository(client.ecrClient, e.repositoryName!);
         // Also need to delete the repository policy associated with this repository,
         // if any
-        // todo: fix with multiregion policies
         const policy = await this.module.repositoryPolicy.db.read(ctx, this.entityId(e));
         await this.module.repositoryPolicy.db.delete(policy, ctx);
       }
@@ -550,10 +560,24 @@ class RepositoryMapper extends MapperBase<Repository> {
 class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
   module: AwsEcrModule;
   entity = RepositoryPolicy;
-  entityId = (e: RepositoryPolicy) => `${e.repository.repositoryName}|${e.repository.region}`;
+  generateId = (fields: IdFields) => {
+    const requiredFields = ['repositoryName', 'region'];
+    if (
+      Object.keys(fields).length !== requiredFields.length &&
+      !Object.keys(fields).every(fk => requiredFields.includes(fk))
+    ) {
+      throw new Error(`Id generation error. Valid fields to generate id are: ${requiredFields.join(', ')}`);
+    }
+    return `${fields.repositoryName}|${fields.region}`;
+  };
+  entityId = (e: RepositoryPolicy) =>
+    this.module.repositoryPolicy.generateId({
+      repositoryName: e.repository.repositoryName,
+      region: e.repository.region,
+    });
   idFields = (id: string) => {
     const [repositoryName, region] = id.split('|');
-    return { repositoryName, region };
+    return { region, repositoryName };
   };
   equals = (a: RepositoryPolicy, b: RepositoryPolicy) => {
     try {
@@ -570,9 +594,14 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
     const out = new RepositoryPolicy();
     out.registryId = rp?.registryId;
     out.repository =
-      (await this.module.repository.db.read(ctx))
-        .filter((r: Repository) => r.region === region && r.repositoryName === rp.repositoryName)
-        .pop() ?? (await this.module.repository.cloud.read(ctx, `${rp.repositoryName}|${region}`));
+      (await this.module.repository.db.read(
+        ctx,
+        this.module.repository.generateId({ repositoryName: rp.repositoryName, region }),
+      )) ??
+      (await this.module.repository.cloud.read(
+        ctx,
+        this.module.repository.generateId({ repositoryName: rp.repositoryName, region }),
+      ));
     out.policyText = rp?.policyText?.replace(/\n/g, '').replace(/\s+/g, ' ') ?? null;
     out.region = region;
     return out;

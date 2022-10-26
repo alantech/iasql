@@ -30,7 +30,10 @@ class InstanceMetadataMapper extends MapperBase<InstanceMetadata> {
     if (!instance.InstanceId) return undefined;
     out.instanceId = instance.InstanceId;
     // fill join column which is the id from the `instance` table
-    const ins = await awsEc2Module.instance.db.read(ctx, `${out.instanceId}|${region}`);
+    const ins = await awsEc2Module.instance.db.read(
+      ctx,
+      awsEc2Module.instance.generateId({ instanceId: out.instanceId, region }),
+    );
     out.id = ins.id;
     out.architecture = instance.Architecture as Architecture;
     if (!instance.PrivateIpAddress) return undefined;

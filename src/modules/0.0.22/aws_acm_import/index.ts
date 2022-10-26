@@ -59,7 +59,6 @@ class CertificateImportMapper extends MapperBase<CertificateImport> {
         if (!importedCertArn) throw new Error('Error importing certificate');
         await this.module.certificateImport.db.delete(e, ctx);
         try {
-          // TODO: awsAcmListModule should also be converted to multi-region for this to work
           const importedCert = await awsAcmListModule.certificate.cloud.read(ctx, importedCertArn);
           await awsAcmListModule.certificate.db.create(importedCert, ctx);
         } catch (e) {
