@@ -162,12 +162,12 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
     read: async (ctx: Context, id?: string) => {
       const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
       if (!!id) {
-        const { region, pipelineName } = this.idFields(id);
+        const { region, name } = this.idFields(id);
         if (enabledRegions.includes(region)) {
           if (supportedRegions.includes(region)) {
             const client = (await ctx.getAwsClient(region)) as AWS;
             const pipeline = await this.getPipelineDeclarations(client.cpClient, {
-              name: pipelineName,
+              name,
             });
             if (pipeline) {
               const pipe = await this.pipelineDeclarationMapper(pipeline, ctx, region);
@@ -203,7 +203,7 @@ export class PipelineDeclarationMapper extends MapperBase<PipelineDeclaration> {
     update: async (pds: PipelineDeclaration[], ctx: Context) => {
       const out = [];
       for (const pd of pds) {
-        const cloudRecord = ctx?.memo?.cloud?.PipelineDeclaration?.[pd.name ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.PipelineDeclaration?.[this.entityId(pd)];
         // we cannot allow to update a pipeline because we cannot reuse oauth or any secrets
         pd.serviceRole = cloudRecord.serviceRole;
         await this.module.pipelineDeclaration.db.update(pd, ctx);
