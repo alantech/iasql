@@ -21,7 +21,7 @@ const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
 
 const modules = ['aws_cloudwatch'];
-jest.setTimeout(240000);
+jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 

@@ -10,7 +10,7 @@ const dbQuery = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const apply = runApply.bind(null, dbAlias);
 
-jest.setTimeout(240000);
+jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 

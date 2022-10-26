@@ -28,7 +28,7 @@ const modules = ['aws_ecr'];
 const dockerImage = 'public.ecr.aws/docker/library/hello-world:latest';
 const repositoryTag = 'v1';
 
-jest.setTimeout(240000);
+jest.setTimeout(360000);
 beforeAll(async () => {
   // pull sample image
   execSync(
