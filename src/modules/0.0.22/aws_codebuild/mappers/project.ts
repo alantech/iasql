@@ -20,7 +20,7 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
     Object.is(a.projectName, b.projectName) &&
     Object.is(a.arn, b.arn) &&
     Object.is(a.buildSpec, b.buildSpec) &&
-    Object.is(a.sourceLocation, b.sourceLocation) &&
+    Object.is(a.sourceLocation ?? '', b.sourceLocation ?? '') &&
     Object.is(a.sourceVersion, b.sourceVersion) &&
     Object.is(a.sourceType, b.sourceType) &&
     Object.is(a.image, b.image) &&
@@ -78,6 +78,10 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
       const out = [];
       for (const e of es) {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
+
+        const artifactType =
+          e.sourceType === SourceType.CODEPIPELINE ? SourceType.CODEPIPELINE : 'NO_ARTIFACTS';
+
         const input: CreateProjectCommandInput = {
           name: e.projectName,
           environment: {
@@ -89,14 +93,14 @@ export class CodebuildProjectMapper extends MapperBase<CodebuildProject> {
           },
           sourceVersion: e.sourceVersion,
           source: {
-            location: e.sourceLocation,
+            location: e.sourceLocation ?? undefined,
             type: e.sourceType,
             buildspec: e.buildSpec,
           },
           serviceRole: e.serviceRole?.arn,
           // TODO implement artifacts
           artifacts: {
-            type: 'NO_ARTIFACTS',
+            type: artifactType,
           },
         };
         const awsPj = await this.createProject(client.cbClient, input);

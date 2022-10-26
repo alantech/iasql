@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class awsCodebuild1665746759374 implements MigrationInterface {
-  name = 'awsCodebuild1665746759374';
+export class awsCodebuild1666771293452 implements MigrationInterface {
+  name = 'awsCodebuild1666771293452';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -10,9 +10,11 @@ export class awsCodebuild1665746759374 implements MigrationInterface {
     await queryRunner.query(
       `CREATE TYPE "public"."codebuild_project_environment_type_enum" AS ENUM('ARM_CONTAINER', 'LINUX_CONTAINER', 'LINUX_GPU_CONTAINER', 'WINDOWS_CONTAINER', 'WINDOWS_SERVER_2019_CONTAINER')`,
     );
-    await queryRunner.query(`CREATE TYPE "public"."codebuild_project_source_type_enum" AS ENUM('GITHUB')`);
     await queryRunner.query(
-      `CREATE TABLE "codebuild_project" ("id" SERIAL NOT NULL, "project_name" character varying NOT NULL, "arn" character varying, "build_spec" text, "source_location" character varying NOT NULL, "image" character varying NOT NULL DEFAULT 'aws/codebuild/standard:6.0', "compute_type" "public"."codebuild_project_compute_type_enum" NOT NULL DEFAULT 'BUILD_GENERAL1_SMALL', "environment_type" "public"."codebuild_project_environment_type_enum" NOT NULL DEFAULT 'LINUX_CONTAINER', "source_version" character varying, "source_type" "public"."codebuild_project_source_type_enum" NOT NULL, "environment_variables" text, "privileged_mode" boolean NOT NULL DEFAULT true, "region" character varying NOT NULL DEFAULT default_aws_region(), "service_role_name" character varying, CONSTRAINT "uq_codebuildproject_name_region" UNIQUE ("project_name", "region"), CONSTRAINT "uq_codebuildproject_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_7ad09b6ae15953c98345038ea57" PRIMARY KEY ("id"))`,
+      `CREATE TYPE "public"."codebuild_project_source_type_enum" AS ENUM('GITHUB', 'CODEPIPELINE')`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "codebuild_project" ("id" SERIAL NOT NULL, "project_name" character varying NOT NULL, "arn" character varying, "build_spec" text, "source_location" character varying, "image" character varying NOT NULL DEFAULT 'aws/codebuild/standard:6.0', "compute_type" "public"."codebuild_project_compute_type_enum" NOT NULL DEFAULT 'BUILD_GENERAL1_SMALL', "environment_type" "public"."codebuild_project_environment_type_enum" NOT NULL DEFAULT 'LINUX_CONTAINER', "source_version" character varying, "source_type" "public"."codebuild_project_source_type_enum" NOT NULL, "environment_variables" text, "privileged_mode" boolean NOT NULL DEFAULT true, "region" character varying NOT NULL DEFAULT default_aws_region(), "service_role_name" character varying, CONSTRAINT "uq_codebuildproject_name_region" UNIQUE ("project_name", "region"), CONSTRAINT "uq_codebuildproject_id_region" UNIQUE ("id", "region"), CONSTRAINT "PK_7ad09b6ae15953c98345038ea57" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."codebuild_build_list_build_status_enum" AS ENUM('FAILED', 'FAULT', 'IN_PROGRESS', 'STOPPED', 'SUCCEEDED', 'TIMED_OUT')`,
@@ -24,13 +26,13 @@ export class awsCodebuild1665746759374 implements MigrationInterface {
       `CREATE TABLE "codebuild_build_import" ("id" SERIAL NOT NULL, "region" character varying NOT NULL DEFAULT default_aws_region(), "project_name" character varying, CONSTRAINT "PK_4ea8c3dad42dee7fddcf905f35f" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TYPE "public"."source_credentials_list_source_type_enum" AS ENUM('GITHUB')`,
+      `CREATE TYPE "public"."source_credentials_list_source_type_enum" AS ENUM('GITHUB', 'CODEPIPELINE')`,
     );
     await queryRunner.query(
       `CREATE TABLE "source_credentials_list" ("arn" character varying NOT NULL, "source_type" "public"."source_credentials_list_source_type_enum" NOT NULL, "auth_type" character varying NOT NULL, "region" character varying NOT NULL DEFAULT default_aws_region(), CONSTRAINT "PK_8a8d9825b66a947e97685094d19" PRIMARY KEY ("arn"))`,
     );
     await queryRunner.query(
-      `CREATE TYPE "public"."source_credentials_import_source_type_enum" AS ENUM('GITHUB')`,
+      `CREATE TYPE "public"."source_credentials_import_source_type_enum" AS ENUM('GITHUB', 'CODEPIPELINE')`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."source_credentials_import_auth_type_enum" AS ENUM('PERSONAL_ACCESS_TOKEN')`,
