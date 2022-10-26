@@ -128,10 +128,10 @@ BEGIN
   END IF;
 
   -- create ECS service and associate it to security group
-  INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_id, force_new_deployment)
+  INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id, force_new_deployment)
   VALUES (
     NEW.app_name || '-service', NEW.desired_count, (SELECT ARRAY(SELECT subnet_id FROM subnet WHERE vpc_id = (SELECT id FROM vpc WHERE is_default = true and vpc.region = (SELECT region FROM aws_regions WHERE is_default = TRUE) LIMIT 1) LIMIT 3)), (CASE WHEN NEW.public_ip THEN 'ENABLED' ELSE 'DISABLED' END)::service_assign_public_ip_enum,
-    NEW.app_name || '-cluster',
+    (SELECT id FROM cluster WHERE cluster_name = NEW.app_name || '-cluster'),
     (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' ORDER BY revision DESC LIMIT 1),
     (SELECT id FROM target_group WHERE target_group_name = NEW.app_name || '-target'), NEW.force_new_deployment
   );
@@ -266,7 +266,7 @@ DECLARE
   _app_name TEXT;
   _app_port INTEGER;
   _target_group_id INTEGER;
-  _cluster_name TEXT;
+  _cluster_id TEXT;
   _desired_count INTEGER;
   _task_definition_id INTEGER;
   _image_tag TEXT;
@@ -287,8 +287,8 @@ DECLARE
 BEGIN
   -- clear out the ecs_simplified table and completely recreate it so there is no logic specific to the table / trigger input and so that deletes work since this is an AFTER UPDATE/INSERT/DELETE trigger
   DELETE FROM ecs_simplified;
-  FOR _service_name, _desired_count, _public_ip, _cluster_name, _target_group_id, _task_definition_id, _force_new_deployment IN
-  SELECT name, desired_count, assign_public_ip = 'ENABLED', cluster_name, target_group_id, task_definition_id, force_new_deployment FROM service
+  FOR _service_name, _desired_count, _public_ip, _cluster_id, _target_group_id, _task_definition_id, _force_new_deployment IN
+  SELECT name, desired_count, assign_public_ip = 'ENABLED', cluster_id, target_group_id, task_definition_id, force_new_deployment FROM service
   LOOP
 
     _app_name = SPLIT_PART(_service_name, '-', 1);
