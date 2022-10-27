@@ -107,7 +107,7 @@ The `iasql_wait_for` functions essentially execute (on another postgres thread/p
 SELECT count(*) > 0 FROM `table_name` WHERE id = `5` AND `cloud_id IS NOT NULL`
 ```
 
-The `iasql_wait_for_all`
+The `iasql_wait_for_all` function could instead simply wait for both a `start` and `end` cron commit record to be created with a timestamp greater than the `NOW()` it acquires at the beginning of its call to be sure that *all* pending changes have been executed.
 
 The parts in backticks are from the user-provided values. This is SQL injection, but it's their own database and we already allow arbitrary SQL statements to run on the database, so it doesn't affect the security situation in the slightest, even if it does immediately cause heart palpitations while looking at it. ;) This is also not blocking for the transition, but simply a pair of convenience functions that we should be able to provide relatively easily.
 
