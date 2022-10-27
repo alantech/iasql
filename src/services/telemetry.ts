@@ -65,6 +65,8 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
           $set: dbProps,
         },
       });
+    } else {
+      logger.warn(`Posthog is not properly setup using IASQL_ENV: ${IASQL_ENV}`);
     }
   } catch (e: any) {
     const message = `failed to log ${event} event`;
