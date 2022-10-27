@@ -5,6 +5,7 @@ import {
   Service as AwsService,
   paginateListServices,
 } from '@aws-sdk/client-ecs';
+import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsEcsFargateModule } from '..';
@@ -14,7 +15,7 @@ import logger from '../../../../services/logger';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { SecurityGroup } from '../../aws_security_group/entity';
 import { Subnet } from '../../aws_vpc/entity';
-import { Service } from '../entity';
+import { Cluster, Service } from '../entity';
 
 export class ServiceMapper extends MapperBase<Service> {
   module: AwsEcsFargateModule;
@@ -196,7 +197,7 @@ export class ServiceMapper extends MapperBase<Service> {
     );
   }
 
-  async serviceMapper(s: any, ctx: Context) {
+  async serviceMapper(s: any, region: string, ctx: Context) {
     const out = new Service();
     out.arn = s.serviceArn;
     if (s.clusterArn) {
@@ -229,12 +230,14 @@ export class ServiceMapper extends MapperBase<Service> {
       const cloudSecurityGroups = networkConf.securityGroups ?? [];
       for (const sg of cloudSecurityGroups) {
         securityGroups.push(
-          (await awsSecurityGroupModule.securityGroup.db.read(ctx)).find(
-            (scgrp: SecurityGroup) => scgrp.groupId === sg,
-          ) ??
-            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx)).find(
-              (scgrp: SecurityGroup) => scgrp.groupId === sg,
-            ),
+          (await awsSecurityGroupModule.securityGroup.db.read(
+            ctx,
+            awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
+          )) ??
+            (await awsSecurityGroupModule.securityGroup.cloud.read(
+              ctx,
+              awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
+            )),
         );
       }
       if (securityGroups.filter(sg => !!sg).length !== cloudSecurityGroups.length)
@@ -245,10 +248,15 @@ export class ServiceMapper extends MapperBase<Service> {
         // misconfigured resources
         let subnet: Subnet;
         try {
-          // todo: search by region when multiregion
           subnet =
-            (await awsVpcModule.subnet.db.read(ctx)).find((sbn: Subnet) => sbn.subnetId === sn) ??
-            (await awsVpcModule.subnet.cloud.read(ctx)).find((sbn: Subnet) => sbn.subnetId === sn);
+            (await awsVpcModule.subnet.db.read(
+              ctx,
+              awsVpcModule.subnet.generateId({ subnetId: sn, region }),
+            )) ??
+            (await awsVpcModule.subnet.cloud.read(
+              ctx,
+              awsVpcModule.subnet.generateId({ subnetId: sn, region }),
+            ));
           if (!subnet) return undefined;
         } catch (e: any) {
           if (e.Code === 'InvalidSubnetID.NotFound') return undefined;
@@ -258,14 +266,15 @@ export class ServiceMapper extends MapperBase<Service> {
     }
     out.status = s.status;
     out.forceNewDeployment = false;
+    out.region = region;
     return out;
   }
 
   cloud: Crud2<Service> = new Crud2({
     create: async (es: Service[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const res = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         if (!e.task?.taskDefinitionArn) {
           throw new Error('task definition need to be created first');
         }
@@ -305,39 +314,47 @@ export class ServiceMapper extends MapperBase<Service> {
         // Re-get the inserted record to get all of the relevant records we care about
         const newObject = await this.getService(client.ecsClient, result.serviceName!, result.clusterArn!);
         // We map this into the same kind of entity as `obj`
-        const newEntity = await this.serviceMapper(newObject, ctx);
+        const newEntity = await this.serviceMapper(newObject, e.region, ctx);
         if (!newEntity) continue;
         // Save the record back into the database to get the new fields updated
+        newEntity.id = e.id;
         await this.module.service.db.update(newEntity, ctx);
         res.push(newEntity);
       }
       return res;
     },
-    read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (id) {
-        const services = ctx.memo?.cloud?.Service
-          ? Object.values(ctx.memo?.cloud?.Service)
-          : await this.module.service.cloud.read(ctx);
-        const service = services?.find((s: any) => s?.arn === id);
-        if (!service) return;
-        const rawService = await this.getService(client.ecsClient, id, service.cluster.clusterArn);
-        if (!rawService) return;
-        return await this.serviceMapper(rawService, ctx);
+    read: async (ctx: Context, arn?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (arn) {
+        const region = parseArn(arn).region;
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const services = ctx.memo?.cloud?.Service
+            ? Object.values(ctx.memo?.cloud?.Service)
+            : await this.module.service.cloud.read(ctx);
+          const service = services?.find((s: any) => s?.arn === arn);
+          if (!service) return;
+          const rawService = await this.getService(client.ecsClient, arn, service.cluster.clusterArn);
+          if (!rawService) return;
+          return await this.serviceMapper(rawService, region, ctx);
+        }
       } else {
-        const clusters = ctx.memo?.cloud?.Cluster
-          ? Object.values(ctx.memo?.cloud?.Cluster)
-          : await this.module.cluster.cloud.read(ctx);
-        const result = await this.getServices(
-          client.ecsClient,
-          clusters?.map((c: any) => c.clusterArn) ?? [],
-        );
-        // Make sure we just handle FARGATE services
-        const fargateResult = result.filter(s => s.launchType === 'FARGATE');
-        const out = [];
-        for (const s of fargateResult) {
-          const mappedService = await this.serviceMapper(s, ctx);
-          if (mappedService) out.push(mappedService);
+        const out: Service[] = [];
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const clusters = ctx.memo?.cloud?.Cluster
+            ? Object.values(ctx.memo?.cloud?.Cluster)
+            : await this.module.cluster.cloud.read(ctx);
+          const result = await this.getServices(
+            client.ecsClient,
+            clusters?.filter((c: Cluster) => c.region === region).map((c: Cluster) => c.clusterArn) ?? [],
+          );
+          // Make sure we just handle FARGATE services
+          const fargateResult = result.filter(s => s.launchType === 'FARGATE');
+          for (const s of fargateResult) {
+            const mappedService = await this.serviceMapper(s, region, ctx);
+            if (mappedService) out.push(mappedService);
+          }
         }
         return out;
       }
@@ -363,10 +380,11 @@ export class ServiceMapper extends MapperBase<Service> {
       return 'update';
     },
     update: async (es: Service[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const res = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.Service?.[e.arn ?? ''];
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
+        const cloudRecord = ctx?.memo?.cloud?.Service?.[this.entityId(e)];
+        cloudRecord.id = e.id;
         const isUpdate = this.module.service.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           // Desired count or task definition
@@ -384,8 +402,9 @@ export class ServiceMapper extends MapperBase<Service> {
               desiredCount: e.desiredCount,
               forceNewDeployment: e.forceNewDeployment,
             });
-            const s = await this.serviceMapper(updatedService, ctx);
+            const s = await this.serviceMapper(updatedService, e.region, ctx);
             if (!s) continue;
+            s.id = e.id;
             await this.module.service.db.update(s, ctx);
             res.push(s);
             continue;
@@ -405,9 +424,9 @@ export class ServiceMapper extends MapperBase<Service> {
       return res;
     },
     delete: async (es: Service[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const t0 = Date.now();
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const t1 = Date.now();
         e.desiredCount = 0;
         await this.updateService(client.ecsClient, {

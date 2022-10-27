@@ -108,6 +108,10 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
+  it('sets only 2 enabled regions to avoid long runs', query(`
+    UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
+  `));
+
   it('creates a new sidecar test db ECS', done =>
     void iasql.connect(dbAliasSidecar, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -133,6 +137,10 @@ describe('ECS Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
+
+  it('sets only 2 enabled regions to avoid long runs', querySync(`
+    UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
+  `));
 
   it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 
@@ -314,29 +322,27 @@ describe('ECS Integration Testing', () => {
 
   it(
     'adds a new container definition',
-    // TODO: add region to repository selects when multi-region is supported
     query(`
     BEGIN;
       INSERT INTO container_definition ("name", repository_id, region, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-      VALUES('${containerNameRepository}', (select id from repository where repository_name = '${repositoryName}'), (select region from repository where repository_name = '${repositoryName}'), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
+      VALUES('${containerNameRepository}', (select id from repository where repository_name = '${repositoryName}' and region = '${region}'), (select region from repository where repository_name = '${repositoryName}'), '${imageTag}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null and region = '${region}' limit 1));
       INSERT INTO container_definition ("name", repository_id, region, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id)
-      VALUES('${containerNameRepository}dgst', (select id from repository where repository_name = '${repositoryName}'), (select region from repository where repository_name = '${repositoryName}'), false, ${containerMemoryReservation}, ${
+      VALUES('${containerNameRepository}dgst', (select id from repository where repository_name = '${repositoryName}' and region = '${region}'), (select region from repository where repository_name = '${repositoryName}'), false, ${containerMemoryReservation}, ${
       hostPort + 2
     }, ${
       containerPort + 2
-    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null limit 1));
+    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdRepositoryFamily}' and status is null and region = '${region}' limit 1));
     COMMIT;
   `),
   );
 
   it(
     'check container definition insertion',
-    // TODO: add region to repository selects when multi-region is supported
     query(
       `
     SELECT *
     FROM container_definition
-    WHERE name = '${containerNameRepository}' AND repository_id = (select id from repository where repository_name = '${repositoryName}') AND tag = '${imageTag}';
+    WHERE name = '${containerNameRepository}' AND repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${region}') AND tag = '${imageTag}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -358,12 +364,11 @@ describe('ECS Integration Testing', () => {
 
   it(
     'check container definition insertion',
-    // TODO: add region to repository selects when multi-region is supported
     query(
       `
     SELECT *
     FROM container_definition
-    WHERE name = '${containerNameRepository}' AND repository_id = (select id from repository where repository_name = '${repositoryName}') AND tag = '${imageTag}';
+    WHERE name = '${containerNameRepository}' AND repository_id = (select id from repository where repository_name = '${repositoryName}' and region = '${region}') AND tag = '${imageTag}';
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -372,8 +377,8 @@ describe('ECS Integration Testing', () => {
   // Service
   it('fails adding a service', done => {
     query(`
-    INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_id)
-    VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, '{"fake"}', 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdRepositoryFamily}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}'));
+    INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
+    VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, '{"fake"}', 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdRepositoryFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
     `)((e: any) => {
       try {
         expect(e.message).toContain('violates check constraint');
@@ -388,11 +393,11 @@ describe('ECS Integration Testing', () => {
     'adds a new service',
     query(`
     BEGIN;
-      INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_id)
-      VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${process.env.AWS_REGION}' limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdRepositoryFamily}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}'));
+      INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
+      VALUES ('${serviceRepositoryName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${process.env.AWS_REGION}' limit 3)), 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdRepositoryFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
 
-      INSERT INTO service_security_groups (service_name, security_group_id)
-      VALUES ('${serviceRepositoryName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
+      INSERT INTO service_security_groups (service_id, security_group_id)
+      VALUES ((SELECT id FROM service WHERE name = '${serviceRepositoryName}'), (select id from security_group where group_name = '${securityGroup}' and region = '${region}' limit 1));
     COMMIT;
   `),
   );
@@ -426,7 +431,7 @@ describe('ECS Integration Testing', () => {
       `
     SELECT *
     FROM service_security_groups
-    WHERE service_name = '${serviceRepositoryName}';
+    WHERE service_id = (SELECT id FROM service WHERE name = '${serviceRepositoryName}');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),

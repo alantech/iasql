@@ -1,7 +1,8 @@
-import { Column, Entity, OneToMany, ManyToOne, JoinColumn, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, ManyToOne, JoinColumn, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { ContainerDefinition } from '.';
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { IamRole } from '../../aws_iam/entity';
 
 export enum TaskDefinitionStatus {
@@ -63,6 +64,7 @@ export enum CpuMemCombination {
 }
 
 @Entity()
+@Unique('uq_task_definition_id_region', ['id', 'region'])
 export class TaskDefinition {
   @PrimaryGeneratedColumn()
   id?: number;
@@ -113,4 +115,13 @@ export class TaskDefinition {
     cascade: true,
   })
   containerDefinitions: ContainerDefinition[];
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  region: string;
 }

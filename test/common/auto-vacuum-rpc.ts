@@ -7,7 +7,7 @@ const uid = '12345';
 const email = 'test@example.com';
 const dbQuery = runQuery.bind(null, dbAlias);
 
-jest.setTimeout(240000);
+jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 

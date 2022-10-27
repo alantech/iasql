@@ -61,7 +61,7 @@ const updatedPolicyDocument = JSON.stringify(updatedPolicyJSON);
 updatedPolicyJSON.Statement[0].Sid = 'UpdatePolicy';
 const updatedNewPolicyDocument = JSON.stringify(updatedPolicyJSON);
 
-jest.setTimeout(240000);
+jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 

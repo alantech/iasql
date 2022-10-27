@@ -1,7 +1,18 @@
-import { Check, Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryColumn } from 'typeorm';
+import {
+  Check,
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  Unique,
+} from 'typeorm';
 
 import { Cluster, TaskDefinition } from '.';
 import { cloudId } from '../../../../services/cloud-id';
+import { AwsRegions } from '../../aws_account/entity';
 import { TargetGroup } from '../../aws_elb/entity';
 import { SecurityGroup } from '../../aws_security_group/entity';
 
@@ -12,8 +23,12 @@ export enum AssignPublicIp {
 
 @Entity()
 @Check('check_service_subnets', 'check_service_subnets(subnets)')
+@Unique('uq_service_name_region', ['name', 'region'])
 export class Service {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
   name: string;
 
   @Column({
@@ -31,7 +46,7 @@ export class Service {
     eager: true,
   })
   @JoinColumn({
-    name: 'cluster_name',
+    name: 'cluster_id',
   })
   cluster?: Cluster;
 
@@ -76,4 +91,13 @@ export class Service {
     default: false,
   })
   forceNewDeployment: boolean;
+
+  @Column({
+    type: 'character varying',
+    nullable: false,
+    default: () => 'default_aws_region()',
+  })
+  @ManyToOne(() => AwsRegions, { nullable: false })
+  @JoinColumn({ name: 'region' })
+  region: string;
 }

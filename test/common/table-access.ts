@@ -10,7 +10,7 @@ const email = 'test@example.com';
 
 let pgPassword: string, pgUser: string;
 
-jest.setTimeout(240000);
+jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 

@@ -14,6 +14,7 @@ CREATE TABLE
     load_balancer_dns CHARACTER VARYING,
     force_new_deployment BOOLEAN NOT NULL DEFAULT FALSE,
     env_variables TEXT,
+    region CHARACTER VARYING NOT NULL DEFAULT default_aws_region (),
     CONSTRAINT valid_image_fields CHECK (
       (
         image_tag IS NULL
@@ -61,26 +62,26 @@ DECLARE
   _security_group_id INTEGER;
 BEGIN
   -- security groups
-  INSERT INTO security_group (description, group_name)
-  VALUES (NEW.app_name || ' security group', NEW.app_name || '-security-group')
+  INSERT INTO security_group (description, group_name, region)
+  VALUES (NEW.app_name || ' security group', NEW.app_name || '-security-group', NEW.region)
   RETURNING id INTO _security_group_id;
 
-  INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-  VALUES (false, 'tcp', NEW.app_port, NEW.app_port, '0.0.0.0/0', NEW.app_name || '-security-group', _security_group_id);
+  INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id, region)
+  VALUES (false, 'tcp', NEW.app_port, NEW.app_port, '0.0.0.0/0', NEW.app_name || '-security-group', _security_group_id, NEW.region);
 
-  INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id)
-  VALUES (true, '-1', -1, -1, '0.0.0.0/0', NEW.app_name || '-security-group', _security_group_id);
+  INSERT INTO security_group_rule (is_egress, ip_protocol, from_port, to_port, cidr_ipv4, description, security_group_id, region)
+  VALUES (true, '-1', -1, -1, '0.0.0.0/0', NEW.app_name || '-security-group', _security_group_id, NEW.region);
 
   -- load balancer
   INSERT INTO target_group
-    (target_group_name, target_type, protocol, port, health_check_path)
+    (target_group_name, target_type, protocol, port, health_check_path, region)
   VALUES
-    (NEW.app_name || '-target', 'ip', 'HTTP', NEW.app_port, '/health');
+    (NEW.app_name || '-target', 'ip', 'HTTP', NEW.app_port, '/health', NEW.region);
 
   INSERT INTO load_balancer
-    (load_balancer_name, scheme, load_balancer_type, ip_address_type)
+    (load_balancer_name, scheme, load_balancer_type, ip_address_type, region)
   VALUES
-    (NEW.app_name || '-load-balancer', 'internet-facing', 'application', 'ipv4');
+    (NEW.app_name || '-load-balancer', 'internet-facing', 'application', 'ipv4', NEW.region);
 
   INSERT INTO load_balancer_security_groups
     (load_balancer_id, security_group_id)
@@ -93,51 +94,54 @@ BEGIN
     ((SELECT id FROM load_balancer WHERE load_balancer_name = NEW.app_name || '-load-balancer'), NEW.app_port, 'HTTP', 'forward', (SELECT id FROM target_group WHERE target_group_name = NEW.app_name || '-target'));
 
   -- setup ecs: cloudwatch + iam + ecr
-  INSERT INTO log_group (log_group_name) VALUES (NEW.app_name || '-log-group');
+  INSERT INTO log_group (log_group_name, region) VALUES (NEW.app_name || '-log-group', NEW.region);
 
-  INSERT INTO cluster (cluster_name) VALUES(NEW.app_name || '-cluster');
+  INSERT INTO cluster (cluster_name, region) VALUES(NEW.app_name || '-cluster', NEW.region);
 
   INSERT INTO iam_role (role_name, assume_role_policy_document, attached_policies_arns)
   VALUES (NEW.app_name || '-ecs-task-exec-role', '{"Version":"2012-10-17","Statement":[{"Sid":"","Effect":"Allow","Principal":{"Service":"ecs-tasks.amazonaws.com"},"Action":"sts:AssumeRole"}]}', array['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy']);
 
-  INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory)
-  VALUES (NEW.app_name || '-td', NEW.app_name || '-ecs-task-exec-role', NEW.app_name || '-ecs-task-exec-role', NEW.cpu_mem::TEXT::task_definition_cpu_memory_enum);
+  INSERT INTO task_definition ("family", task_role_name, execution_role_name, cpu_memory, region)
+  VALUES (NEW.app_name || '-td', NEW.app_name || '-ecs-task-exec-role', NEW.app_name || '-ecs-task-exec-role', NEW.cpu_mem::TEXT::task_definition_cpu_memory_enum, NEW.region);
 
   -- create a repository for it
   IF NEW.repository_uri IS NULL AND NEW.image_digest IS NULL THEN
-    INSERT INTO repository (repository_name) VALUES (NEW.app_name || '-repository');
+    INSERT INTO repository (repository_name, region) VALUES (NEW.app_name || '-repository', NEW.region);
     -- fill in repository_name in container_definition
-    -- TODO: pick repository id by name and region once aws_ecs_fargate is converted to multiregion
-    INSERT INTO container_definition ("name", essential, repository_id, region, task_definition_id, memory_reservation, host_port, container_port, protocol, log_group_id, env_variables)
+    INSERT INTO container_definition ("name", essential, repository_id, task_definition_id, memory_reservation, host_port, container_port, protocol, log_group_id, env_variables, region)
     VALUES (
       NEW.app_name || '-container', true,
-      (SELECT id from repository where repository_name = NEW.app_name || '-repository'),
-      (SELECT region from repository where repository_name = NEW.app_name || '-repository'),
-      -- TODO: add region to log_group select when multi-region support added
-      (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL LIMIT 1), get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp', (SELECT id from log_group WHERE log_group_name = NEW.app_name || '-log-group'), NEW.env_variables
+      (SELECT id from repository where repository_name = NEW.app_name || '-repository' AND region = NEW.region),
+      (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL AND region = NEW.region LIMIT 1),
+      get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp',
+      (SELECT id from log_group WHERE log_group_name = NEW.app_name || '-log-group' AND region = NEW.region),
+      NEW.env_variables, NEW.region
     );
   ELSE
     -- fill in image, tag and digest in container_definition
-    INSERT INTO container_definition ("name", essential, image, task_definition_id, tag, digest, memory_reservation, host_port, container_port, protocol, log_group_id, env_variables)
+    INSERT INTO container_definition ("name", essential, image, task_definition_id, tag, digest, memory_reservation, host_port, container_port, protocol, log_group_id, env_variables, region)
     VALUES (
       NEW.app_name || '-container', true,
       NEW.repository_uri,
-      (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL LIMIT 1),
-      NEW.image_tag, NEW.image_digest, get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp', (SELECT id from log_group WHERE log_group_name = NEW.app_name || '-log-group'), NEW.env_variables
+      (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND status IS NULL AND region = NEW.region LIMIT 1),
+      NEW.image_tag, NEW.image_digest, get_mem_from_cpu_mem_enum(NEW.cpu_mem), NEW.app_port, NEW.app_port, 'tcp',
+      (SELECT id from log_group WHERE log_group_name = NEW.app_name || '-log-group' AND region = NEW.region),
+      NEW.env_variables, NEW.region
     );
   END IF;
 
   -- create ECS service and associate it to security group
-  INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_id, force_new_deployment)
+  INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id, force_new_deployment, region)
   VALUES (
     NEW.app_name || '-service', NEW.desired_count, (SELECT ARRAY(SELECT subnet_id FROM subnet WHERE vpc_id = (SELECT id FROM vpc WHERE is_default = true and vpc.region = (SELECT region FROM aws_regions WHERE is_default = TRUE) LIMIT 1) LIMIT 3)), (CASE WHEN NEW.public_ip THEN 'ENABLED' ELSE 'DISABLED' END)::service_assign_public_ip_enum,
-    NEW.app_name || '-cluster',
-    (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' ORDER BY revision DESC LIMIT 1),
-    (SELECT id FROM target_group WHERE target_group_name = NEW.app_name || '-target'), NEW.force_new_deployment
+    (SELECT id FROM cluster WHERE cluster_name = NEW.app_name || '-cluster' AND region = NEW.region),
+    (SELECT id FROM task_definition WHERE family = NEW.app_name || '-td' AND region = NEW.region ORDER BY revision DESC LIMIT 1),
+    (SELECT id FROM target_group WHERE target_group_name = NEW.app_name || '-target' AND region = NEW.region),
+    NEW.force_new_deployment, NEW.region
   );
 
-  INSERT INTO service_security_groups (service_name, security_group_id)
-  VALUES (NEW.app_name || '-service', _security_group_id);
+  INSERT INTO service_security_groups (service_id, security_group_id)
+  VALUES ((SELECT id FROM service WHERE name = NEW.app_name || '-service'), _security_group_id);
 END
 $$;
 
@@ -168,7 +172,7 @@ OR REPLACE FUNCTION delete_ecs_simplified (OLD RECORD) RETURNS VOID LANGUAGE plp
 BEGIN
   -- delete ECS service
   DELETE FROM service_security_groups
-  WHERE service_name = OLD.app_name || '-service';
+  WHERE service_id = (SELECT id FROM service WHERE name = OLD.app_name || '-service');
 
   DELETE FROM service
   WHERE name = OLD.app_name || '-service';
@@ -266,7 +270,7 @@ DECLARE
   _app_name TEXT;
   _app_port INTEGER;
   _target_group_id INTEGER;
-  _cluster_name TEXT;
+  _cluster_id TEXT;
   _desired_count INTEGER;
   _task_definition_id INTEGER;
   _image_tag TEXT;
@@ -284,28 +288,29 @@ DECLARE
   _cpu INTEGER;
   _mem INTEGER;
   _security_group_id INTEGER;
+  _region TEXT;
 BEGIN
   -- clear out the ecs_simplified table and completely recreate it so there is no logic specific to the table / trigger input and so that deletes work since this is an AFTER UPDATE/INSERT/DELETE trigger
   DELETE FROM ecs_simplified;
-  FOR _service_name, _desired_count, _public_ip, _cluster_name, _target_group_id, _task_definition_id, _force_new_deployment IN
-  SELECT name, desired_count, assign_public_ip = 'ENABLED', cluster_name, target_group_id, task_definition_id, force_new_deployment FROM service
+  FOR _service_name, _desired_count, _public_ip, _cluster_id, _target_group_id, _task_definition_id, _force_new_deployment, _region IN
+  SELECT name, desired_count, assign_public_ip = 'ENABLED', cluster_id, target_group_id, task_definition_id, force_new_deployment, region FROM service
   LOOP
 
     _app_name = SPLIT_PART(_service_name, '-', 1);
 
     SELECT port INTO _app_port
     FROM target_group
-    WHERE id = _target_group_id AND target_type = 'ip' AND protocol = 'HTTP' AND health_check_path = '/health';
+    WHERE id = _target_group_id AND target_type = 'ip' AND protocol = 'HTTP' AND health_check_path = '/health' AND region = _region;
 
     SELECT security_group_id INTO _security_group_id
     FROM service_security_groups
-    WHERE service_name = _service_name LIMIT 1;
+    WHERE service_id = (SELECT id FROM service WHERE name = _service_name AND region = _region) LIMIT 1;
 
     is_valid = _app_name IS NOT NULL AND _app_port IS NOT NULL AND _security_group_id IS NOT NULL;
 
-    is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM security_group_rule WHERE security_group_id = _security_group_id AND is_egress = false AND ip_protocol = 'tcp' AND from_port = _app_port AND to_port = _app_port AND cidr_ipv4 = '0.0.0.0/0');
+    is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM security_group_rule WHERE security_group_id = _security_group_id AND is_egress = false AND ip_protocol = 'tcp' AND from_port = _app_port AND to_port = _app_port AND cidr_ipv4 = '0.0.0.0/0' AND region = _region);
 
-    is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM security_group_rule WHERE security_group_id = _security_group_id AND is_egress = true AND ip_protocol = '-1' AND from_port = -1 AND to_port = -1 AND cidr_ipv4 = '0.0.0.0/0');
+    is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM security_group_rule WHERE security_group_id = _security_group_id AND is_egress = true AND ip_protocol = '-1' AND from_port = -1 AND to_port = -1 AND cidr_ipv4 = '0.0.0.0/0' AND region = _region);
 
     SELECT cpu_memory::TEXT
     INTO _cpu_mem
@@ -313,17 +318,17 @@ BEGIN
     WHERE id = _task_definition_id AND execution_role_name = task_role_name;
 
     -- TODO get latest or sort ?
-    SELECT tag, digest, (SELECT repository_name FROM repository where id = repository_id), log_group_id, cpu, memory, image, env_variables
+    SELECT tag, digest, (SELECT repository_name FROM repository where id = repository_id AND region = _region), log_group_id, cpu, memory, image, env_variables
     INTO _image_tag, _image_digest, _repository_name, _log_group_id, _cpu, _mem, _repository_uri, _env_variables
     FROM container_definition
-    WHERE task_definition_id = _task_definition_id AND host_port = _app_port AND container_port = _app_port AND essential = true LIMIT 1;
+    WHERE task_definition_id = _task_definition_id AND host_port = _app_port AND container_port = _app_port AND essential = true AND region = _region LIMIT 1;
 
     IF _cpu_mem IS NULL THEN
       _cpu_mem = get_cpu_mem_enum_from_parts(_cpu, _mem);
     END IF;
 
     IF _repository_name IS NOT NULL THEN
-      SELECT repository_uri INTO _repository_uri FROM repository WHERE repository_name = _repository_name;
+      SELECT repository_uri INTO _repository_uri FROM repository WHERE repository_name = _repository_name AND region = _region;
     END IF;
 
     is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM listener WHERE port = _app_port AND target_group_id = _target_group_id AND protocol = 'HTTP' AND action_type = 'forward');
@@ -332,17 +337,17 @@ BEGIN
     FROM listener
     WHERE port = _app_port AND target_group_id = _target_group_id;
 
-    is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM load_balancer WHERE id = _load_balancer_id AND scheme = 'internet-facing' AND load_balancer_type = 'application' AND ip_address_type = 'ipv4');
+    is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM load_balancer WHERE id = _load_balancer_id AND scheme = 'internet-facing' AND load_balancer_type = 'application' AND ip_address_type = 'ipv4' AND region = _region);
 
     is_valid = is_valid AND 1 = (SELECT COUNT(*) FROM load_balancer_security_groups WHERE load_balancer_id = _load_balancer_id AND security_group_id = _security_group_id);
 
     SELECT dns_name INTO _load_balancer_dns
     FROM load_balancer
-    WHERE id = _load_balancer_id;
+    WHERE id = _load_balancer_id AND region = _region;
 
     IF is_valid THEN
-      INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip, load_balancer_dns, repository_uri, env_variables, force_new_deployment)
-      VALUES (_app_name, _desired_count, _app_port, _cpu_mem::task_definition_cpu_memory_enum, _image_tag, _public_ip, _load_balancer_dns, _repository_uri, _env_variables, _force_new_deployment);
+      INSERT INTO ecs_simplified (app_name, desired_count, app_port, cpu_mem, image_tag, public_ip, load_balancer_dns, repository_uri, env_variables, force_new_deployment, region)
+      VALUES (_app_name, _desired_count, _app_port, _cpu_mem::task_definition_cpu_memory_enum, _image_tag, _public_ip, _load_balancer_dns, _repository_uri, _env_variables, _force_new_deployment, _region);
     END IF;
   END LOOP;
 
@@ -491,3 +496,25 @@ SET
   arn = 'noop'
 WHERE
   1 != 1;
+
+CREATE
+OR REPLACE FUNCTION block_ecs_simplified_region_update () RETURNS TRIGGER AS $block_ecs_simplified_region_update$
+    BEGIN
+        RAISE EXCEPTION 'ECS simplified region cannot be modified'
+        USING detail = 'An ECS Simplified cannot be moved to another region', 
+        hint = 'If you want to change the region, first remove the service and recreate in the desired region.';
+        RETURN OLD;
+    END;
+$block_ecs_simplified_region_update$ LANGUAGE plpgsql;
+
+CREATE TRIGGER
+  block_ecs_simplified_region_update BEFORE
+UPDATE
+  ON ecs_simplified FOR EACH ROW
+  WHEN (
+    OLD.region IS DISTINCT
+    FROM
+      NEW.region
+  )
+EXECUTE
+  FUNCTION block_ecs_simplified_region_update ();

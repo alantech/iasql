@@ -35,7 +35,7 @@ const dockerImageUpdated =
   'public.ecr.aws/docker/library/hello-world@sha256:995efde2e81b21d1ea7066aa77a59298a62a9e9fbb4b77f36c189774ec9b1089';
 const repositoryTag = 'v1';
 
-jest.setTimeout(240000);
+jest.setTimeout(360000);
 beforeAll(async () => {
   // pull sample image
   execSync(

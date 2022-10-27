@@ -23,6 +23,7 @@ const dbAliasSidecar = `${dbAlias}sync`;
 const sidecarSync = runSync.bind(null, dbAliasSidecar);
 const sidecarInstall = runInstall.bind(null, dbAliasSidecar);
 const region = process.env.AWS_REGION || 'barf';
+const nonDefaultRegion = 'us-east-1';
 const apply = runApply.bind(null, dbAlias);
 const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
@@ -113,6 +114,10 @@ describe('ECS Integration Testing', () => {
   `),
   );
 
+  it('sets only 2 enabled regions to avoid long runs', query(`
+    UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
+  `));
+
   it('creates a new sidecar test db ECS', done =>
     void iasql.connect(dbAliasSidecar, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -138,6 +143,10 @@ describe('ECS Integration Testing', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = '${region}';
   `),
   );
+
+  it('sets only 2 enabled regions to avoid long runs', querySync(`
+    UPDATE aws_regions SET is_enabled = FALSE WHERE region != '${region}' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' AND region != '${region}' ORDER BY region DESC LIMIT 1);
+  `));
 
   it('installs the ecs module and its dependencies in sidecar db', sidecarInstall(modules));
 
@@ -313,23 +322,23 @@ describe('ECS Integration Testing', () => {
   );
 
   it(
-    'adds a new container definition', // TODO: add region to log_group selects when multi-region is supported
+    'adds a new container definition',
     query(`
     BEGIN;
       INSERT INTO container_definition ("name", image, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
-      VALUES('${containerName}', '${image}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName}'));
+      VALUES('${containerName}', '${image}', ${containerEssential}, ${containerMemoryReservation}, ${hostPort}, ${containerPort}, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null and region = '${region}' limit 1), (select id from log_group where log_group_name = '${logGroupName}' and region = '${region}'));
       INSERT INTO container_definition ("name", image, tag, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
       VALUES('${containerNameTag}', '${image}', '${imageTag}', false, ${containerMemoryReservation}, ${
       hostPort + 1
     }, ${
       containerPort + 1
-    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName}'));
+    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null and region = '${region}' limit 1), (select id from log_group where log_group_name = '${logGroupName}' and region = '${region}'));
       INSERT INTO container_definition ("name", image, digest, essential, memory_reservation, host_port, container_port, protocol, env_variables, task_definition_id, log_group_id)
       VALUES('${containerNameDigest}', '${image}', '${imageDigest}', false, ${containerMemoryReservation}, ${
       hostPort + 2
     }, ${
       containerPort + 2
-    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null limit 1), (select id from log_group where log_group_name = '${logGroupName}'));
+    }, '${protocol}', '{ "test": 2}', (select id from task_definition where family = '${tdFamily}' and status is null and region = '${region}' limit 1), (select id from log_group where log_group_name = '${logGroupName}' and region = '${region}'));
     COMMIT;
   `),
   );
@@ -425,11 +434,11 @@ describe('ECS Integration Testing', () => {
     'adds a new service',
     query(`
     BEGIN;
-      INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_name, task_definition_id, target_group_id)
-      VALUES ('${serviceName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${process.env.AWS_REGION}' limit 3)), 'ENABLED', '${clusterName}', (select id from task_definition where family = '${tdFamily}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}'));
+      INSERT INTO service ("name", desired_count, subnets, assign_public_ip, cluster_id, task_definition_id, target_group_id)
+      VALUES ('${serviceName}', ${serviceDesiredCount}, (select array(select subnet_id from subnet inner join vpc on vpc.id = subnet.vpc_id where is_default = true and vpc.region = '${region}' limit 3)), 'ENABLED', (SELECT id FROM cluster WHERE cluster_name = '${clusterName}'), (select id from task_definition where family = '${tdFamily}' and region = '${region}' order by revision desc limit 1), (SELECT id FROM target_group WHERE target_group_name = '${serviceTargetGroupName}' and region = '${region}'));
 
-      INSERT INTO service_security_groups (service_name, security_group_id)
-      VALUES ('${serviceName}', (select id from security_group where group_name = '${securityGroup}' limit 1));
+      INSERT INTO service_security_groups (service_id, security_group_id)
+      VALUES ((SELECT id FROM service WHERE name = '${serviceName}'), (select id from security_group where group_name = '${securityGroup}' and region = '${region}' limit 1));
     COMMIT;
   `),
   );
@@ -452,7 +461,7 @@ describe('ECS Integration Testing', () => {
       `
     SELECT *
     FROM service_security_groups
-    WHERE service_name = '${serviceName}';
+    WHERE service_id = (SELECT id FROM service WHERE name = '${serviceName}');
   `,
       (res: any[]) => expect(res.length).toBe(1),
     ),
@@ -468,7 +477,7 @@ describe('ECS Integration Testing', () => {
       ORDER BY family, revision DESC
       LIMIT 1
     )
-    UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td);
+    UPDATE task_definition SET revision = 55 WHERE family = '${tdFamily}' AND revision IN (SELECT revision FROM td) ;
   `),
   );
 
@@ -593,6 +602,22 @@ describe('ECS Integration Testing', () => {
       (res: any[]) => expect(res[0].force_new_deployment).toBe(false),
     ),
   );
+
+  it('should fail moving just the deployment group', done =>
+    void query(`
+      UPDATE service
+      SET region = '${nonDefaultRegion}'
+      WHERE name = '${newServiceName}';
+  `)((e?: any) => {
+      try {
+        expect(e?.message).toContain('region cannot be modified');
+      } catch (err) {
+        done(err);
+        return {};
+      }
+      done();
+      return {};
+  }));
 
   it('sync sidecar database', sidecarSync());
 
@@ -785,6 +810,10 @@ describe('ECS install/uninstall', () => {
     UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
   `),
   );
+
+  it('sets only 2 enabled regions to avoid long runs', query(`
+    UPDATE aws_regions SET is_enabled = FALSE WHERE region != 'us-east-1' AND region != (SELECT region FROM aws_regions WHERE region != 'us-east-1' LIMIT 1);
+  `));
 
   it('installs the ECS module', install(modules));
 

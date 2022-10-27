@@ -1,4 +1,10 @@
 DROP TRIGGER
+  IF EXISTS block_ecs_simplified_region_update ON ecs_simplified;
+
+DROP FUNCTION
+  "block_ecs_simplified_region_update";
+
+DROP TRIGGER
   insert_ecs_simplified_trigger ON ecs_simplified;
 
 DROP FUNCTION

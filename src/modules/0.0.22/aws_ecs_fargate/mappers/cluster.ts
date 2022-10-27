@@ -6,6 +6,7 @@ import {
   paginateListTasks,
   waitUntilTasksStopped,
 } from '@aws-sdk/client-ecs';
+import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
 import { AwsEcsFargateModule } from '..';
 import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
@@ -20,12 +21,13 @@ export class ClusterMapper extends MapperBase<Cluster> {
     Object.is(a.clusterName, b.clusterName) &&
     Object.is(a.clusterStatus, b.clusterStatus);
 
-  clusterMapper(c: any) {
+  clusterMapper(c: any, region: string) {
     // TODO: Improve the type here
     const out = new Cluster();
     out.clusterName = c.clusterName ?? 'default';
     out.clusterArn = c.clusterArn ?? null;
     out.clusterStatus = c.status ?? null;
+    out.region = region;
     return out;
   }
 
@@ -108,9 +110,9 @@ export class ClusterMapper extends MapperBase<Cluster> {
 
   cloud: Crud2<Cluster> = new Crud2({
     create: async (es: Cluster[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       const out = [];
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         const result = await this.createCluster(client.ecsClient, {
           clusterName: e.clusterName,
         });
@@ -123,22 +125,35 @@ export class ClusterMapper extends MapperBase<Cluster> {
         const newObject = await this.getCluster(client.ecsClient, result.clusterArn!);
         if (!newObject) continue;
         // We map this into the same kind of entity as `obj`
-        const newEntity = this.clusterMapper(newObject);
+        const newEntity = this.clusterMapper(newObject, e.region);
         // Save the record back into the database to get the new fields updated
+        newEntity.id = e.id;
         await this.module.cluster.db.update(newEntity, ctx);
         out.push(newEntity);
       }
       return out;
     },
-    read: async (ctx: Context, id?: string) => {
-      const client = (await ctx.getAwsClient()) as AWS;
-      if (id) {
-        const rawCluster = await this.getCluster(client.ecsClient, id);
-        if (!rawCluster) return;
-        return this.clusterMapper(rawCluster);
+    read: async (ctx: Context, arn?: string) => {
+      const enabledRegions = (await ctx.getEnabledAwsRegions()) as string[];
+      if (arn) {
+        const region = parseArn(arn).region;
+        if (enabledRegions.includes(region)) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawCluster = await this.getCluster(client.ecsClient, arn);
+          if (!rawCluster) return;
+          return this.clusterMapper(rawCluster, region);
+        }
       } else {
-        const clusters = (await this.getClusters(client.ecsClient)) ?? [];
-        return clusters.map((c: any) => this.clusterMapper(c));
+        const out: Cluster[] = [];
+        for (const region of enabledRegions) {
+          const client = (await ctx.getAwsClient(region)) as AWS;
+          const rawClusters = (await this.getClusters(client.ecsClient)) ?? [];
+          for (const cluster of rawClusters) {
+            const outCluster = this.clusterMapper(cluster, region);
+            if (outCluster) out.push(outCluster);
+          }
+        }
+        return out;
       }
     },
     updateOrReplace: (prev: Cluster, next: Cluster) => {
@@ -148,7 +163,8 @@ export class ClusterMapper extends MapperBase<Cluster> {
     update: async (es: Cluster[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.Cluster?.[e.clusterArn ?? ''];
+        const cloudRecord = ctx?.memo?.cloud?.Cluster?.[this.entityId(e)];
+        cloudRecord.id = e.id;
         const isUpdate = this.module.cluster.cloud.updateOrReplace(cloudRecord, e) === 'update';
         if (isUpdate) {
           await this.module.cluster.db.update(cloudRecord, ctx);
@@ -163,10 +179,10 @@ export class ClusterMapper extends MapperBase<Cluster> {
       return out;
     },
     delete: async (es: Cluster[], ctx: Context) => {
-      const client = (await ctx.getAwsClient()) as AWS;
       for (const e of es) {
+        const client = (await ctx.getAwsClient(e.region)) as AWS;
         if (e.clusterStatus === 'INACTIVE' && e.clusterName === 'default') {
-          const dbCluster = await this.module.cluster.db.read(ctx, e.clusterArn);
+          const dbCluster = await this.module.cluster.db.read(ctx, this.entityId(e));
           // Temporarily recreate the default inactive cluster if deleted to avoid infinite loops.
           if (!dbCluster) {
             await this.module.cluster.db.create(e, ctx);
