@@ -1,6 +1,4 @@
-import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
 import { InvokeCommandInput, InvokeCommandOutput } from '@aws-sdk/client-lambda';
-import { createWaiter } from '@aws-sdk/util-waiter';
 
 import { AwsLambdaModule } from '..';
 import { AWS } from '../../../../services/aws_macros';
