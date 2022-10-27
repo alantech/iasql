@@ -335,7 +335,10 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
           resourceRecordSet.AliasTarget = {
             HostedZoneId: e.aliasTarget.loadBalancer?.canonicalHostedZoneId,
             EvaluateTargetHealth: e.aliasTarget.evaluateTargetHealth,
-            DNSName: e.aliasTarget.loadBalancer?.dnsName,
+            DNSName:
+              e.aliasTarget?.loadBalancer?.loadBalancerType === LoadBalancerTypeEnum.APPLICATION
+                ? `dualstack.${e.aliasTarget.loadBalancer?.dnsName}`
+                : e.aliasTarget.loadBalancer?.dnsName,
           };
         }
         await createResourceRecordSet(
@@ -354,7 +357,7 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
         // We map this into the same kind of entity as `obj`
         const newObject = { ...newResourceRecordSet, HostedZoneId: e.parentHostedZone.hostedZoneId };
         const newEntity = await this.resourceRecordSetMapper(newObject, ctx);
-        if (!newEntity) return;
+        if (!newEntity) continue;
         // We attach the original object's ID to this new one, indicating the exact record it is
         // replacing in the database.
         if (e.id) {
