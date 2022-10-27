@@ -55,8 +55,8 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
         event_properties: eventProps,
       });
     }
+    logger.warn(`Posthog client: ${singletonPh?.toString()}, key ${config.telemetry?.posthogKey}, IASQL_ENV ${IASQL_ENV}, event ${event}`);
     if (singletonPh) {
-      logger.warn(`Posthog client: ${singletonPh.toString()}, key ${config.telemetry?.posthogKey}, IASQL_ENV ${IASQL_ENV}, event ${event}`);
       singletonPh.capture({
         event,
         distinctId: uid,
@@ -66,8 +66,6 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
           $set: dbProps,
         },
       });
-    } else {
-      logger.warn(`Posthog is not properly setup using IASQL_ENV: ${IASQL_ENV}`);
     }
   } catch (e: any) {
     const message = `failed to log ${event} event`;
