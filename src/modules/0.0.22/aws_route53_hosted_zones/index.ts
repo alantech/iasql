@@ -11,6 +11,7 @@ import {
 import { AWS, crudBuilderFormat, paginateBuilder, crudBuilder2 } from '../../../services/aws_macros';
 import { Context, Crud2, IdFields, MapperBase, ModuleBase } from '../../interfaces';
 import { awsElbModule } from '../aws_elb';
+import { LoadBalancerTypeEnum } from '../aws_elb/entity';
 import { AliasTarget, HostedZone } from './entity';
 import { RecordType, ResourceRecordSet } from './entity/resource_records_set';
 
@@ -256,10 +257,18 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
           ? at.DNSName.substring(0, at.DNSName.length - 1)
           : at.DNSName;
       const dbLoadBalancers = await awsElbModule.loadBalancer.db.read(ctx);
-      loadBalancer = dbLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
+      loadBalancer = dbLoadBalancers.find((lb: any) =>
+        lb?.loadBalancerType === LoadBalancerTypeEnum.APPLICATION
+          ? cleanAliasDns === `dualstack.${lb?.dnsName}`
+          : cleanAliasDns === lb.dnsName,
+      );
       if (!loadBalancer) {
         const cloudLoadBalancers = await awsElbModule.loadBalancer.cloud.read(ctx);
-        loadBalancer = cloudLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
+        loadBalancer = cloudLoadBalancers.find((lb: any) =>
+          lb?.loadBalancerType === LoadBalancerTypeEnum.APPLICATION
+            ? cleanAliasDns === `dualstack.${lb?.dnsName}`
+            : cleanAliasDns === lb.dnsName,
+        );
       }
       out.loadBalancer = loadBalancer;
       if (!out.loadBalancer) return undefined;
@@ -437,7 +446,10 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
           resourceRecordSet.AliasTarget = {
             HostedZoneId: e.aliasTarget.loadBalancer?.canonicalHostedZoneId,
             EvaluateTargetHealth: e.aliasTarget.evaluateTargetHealth,
-            DNSName: e.aliasTarget.loadBalancer?.dnsName,
+            DNSName:
+              e.aliasTarget?.loadBalancer?.loadBalancerType === LoadBalancerTypeEnum.APPLICATION
+                ? `dualstack.${e.aliasTarget.loadBalancer?.dnsName}`
+                : e.aliasTarget.loadBalancer?.dnsName,
           };
         }
         await deleteResourceRecordSet(
