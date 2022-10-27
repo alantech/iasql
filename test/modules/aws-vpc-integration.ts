@@ -852,7 +852,7 @@ describe('VPC install/uninstall', () => {
       'aws_ec2_metadata',
       'aws_route53_hosted_zones',
       'aws_memory_db',
-      'aws_acm_request',
+      'aws_acm',
       'aws_codedeploy',
       'aws_codepipeline',
     ]),

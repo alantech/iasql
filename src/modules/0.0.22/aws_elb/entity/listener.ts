@@ -1,7 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 import { cloudId } from '../../../../services/cloud-id';
-import { Certificate } from '../../aws_acm_list/entity';
+import { Certificate } from '../../aws_acm/entity';
 import { LoadBalancer } from './load_balancer';
 import { TargetGroup, ProtocolEnum } from './target_group';
 

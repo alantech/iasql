@@ -13,7 +13,7 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_memory_db', 'aws_acm_request'];
+const modules = ['aws_memory_db', 'aws_acm'];
 
 jest.setTimeout(1800000);
 beforeAll(async () => await execComposeUp());
@@ -208,9 +208,9 @@ describe('MemoryDB install/uninstall', () => {
     config.db.user,
     true).then(...finish(done)));
 
-  it('uninstalls the module', uninstall(modules));
+  it('uninstalls the module', uninstall(['aws_memory_db']));
 
-  it('installs the module', install(modules));
+  it('installs the module', install(['aws_memory_db']));
 
   it('deletes the test db', (done) => void iasql
     .disconnect(dbAlias, 'not-needed')

@@ -20,13 +20,13 @@ const sync = runSync.bind(null, dbAlias);
 const query = runQuery.bind(null, dbAlias);
 const install = runInstall.bind(null, dbAlias);
 const uninstall = runUninstall.bind(null, dbAlias);
-const modules = ['aws_acm_request', 'aws_route53_hosted_zones', 'aws_elb', 'aws_acm_list'];
+const modules = ['aws_acm', 'aws_route53_hosted_zones', 'aws_elb'];
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
 afterAll(async () => await execComposeDown());
 
-describe('AwsAcmRequest Integration Testing', () => {
+describe('AwsAcm Request Integration Testing', () => {
   it('creates a new test db', done =>
     void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
 
@@ -53,37 +53,30 @@ describe('AwsAcmRequest Integration Testing', () => {
   `),
   );
 
-  it('installs the acm_request module', install(modules));
+  it('installs the acm module alone', install(['aws_acm']));
 
   it(
-    'adds a new certificate to request',
+    'adds a new certificate to request with a domain without route53 support',
+    (done) => {
+      query(`
+        SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${process.env.AWS_REGION}', '');
+      `)((e: any) => {
+        if (e instanceof Error) {
+          return done();
+        }
+        return done('Somehow did not get an error back from the function');
+      });
+    }
+  );
+
+  it('installs the rest of the modules needed', install(modules));
+
+  it(
+    'adds a new certificate to request with a fake domain',
     query(`
-    INSERT INTO certificate_request (domain_name)
-    VALUES ('${domainName}');
-  `),
+      SELECT * FROM certificate_request('fakeDomain.com', 'DNS', '${process.env.AWS_REGION}', '');
+    `),
   );
-
-  it('sync before apply (should restore)', sync());
-
-  it(
-    'check no new certificate to request',
-    query(
-      `
-    SELECT *
-    FROM certificate_request;
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
-
-  it(
-    'adds a new certificate to request with incorrect domain',
-    query(`
-    INSERT INTO certificate_request (domain_name)
-    VALUES ('fakeDomain.com');
-  `),
-  );
-  it('applies the new certificate request', apply());
 
   it(
     'check new certificate was not created',
@@ -100,33 +93,8 @@ describe('AwsAcmRequest Integration Testing', () => {
   it(
     'adds a new certificate to request',
     query(`
-    INSERT INTO certificate_request (domain_name)
-    VALUES ('${domainName}');
+      SELECT * FROM certificate_request('${domainName}', 'DNS', '${process.env.AWS_REGION}', '');
   `),
-  );
-
-  it(
-    'check adds new certificate to request',
-    query(
-      `
-    SELECT *
-    FROM certificate_request;
-  `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
-
-  it('applies the new certificate request', apply());
-
-  it(
-    'check request row delete',
-    query(
-      `
-    SELECT *
-    FROM certificate_request;
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
   );
 
   it(
@@ -158,17 +126,6 @@ describe('AwsAcmRequest Integration Testing', () => {
   );
 
   it(
-    'check certificate request count after uninstall/install',
-    query(
-      `
-    SELECT *
-    FROM certificate_request;
-  `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
-  );
-
-  it(
     'deletes a certificate requested',
     query(`
     DELETE FROM certificate
@@ -191,16 +148,9 @@ describe('AwsAcmRequest Integration Testing', () => {
   );
 
   it('creates a certificate request in non-default region', query(`
-      INSERT INTO certificate_request (domain_name, region)
-      VALUES ('${domainName}', 'us-east-1');
-  `));
-
-  it('applies the creation of the certificate request in non-default region', apply());
-
-  it('checks the removal of the certificate request', query(`
-      SELECT *
-      FROM certificate_request;
-  `, (res: any[]) => expect(res.length).toBe(0)));
+      SELECT * FROM certificate_request('${domainName}', 'DNS', 'us-east-1', '');
+  `),
+  );
 
   it('checks the certificate in non-default region is created and validated', query(`
       SELECT *
@@ -225,46 +175,6 @@ describe('AwsAcmRequest Integration Testing', () => {
         AND status = 'ISSUED'
         AND region = 'us-east-1';
   `, (res: any[]) => expect(res.length).toBe(0)));
-
-  it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
-});
-
-describe('AwsAcmRequest install/uninstall', () => {
-  it('creates a new test db', done =>
-    void iasql.connect(dbAlias, 'not-needed', 'not-needed').then(...finish(done)));
-
-  it('installs the aws_account module', install(['aws_account']));
-
-  it(
-    'inserts aws credentials',
-    query(
-      `
-    INSERT INTO aws_credentials (access_key_id, secret_access_key)
-    VALUES ('${process.env.STAGING_ACCESS_KEY_ID}', '${process.env.STAGING_SECRET_ACCESS_KEY}')
-  `,
-      undefined,
-      false,
-    ),
-  );
-
-  it('syncs the regions', sync());
-
-  it(
-    'sets the default region',
-    query(`
-    UPDATE aws_regions SET is_default = TRUE WHERE region = 'us-east-1';
-  `),
-  );
-
-  it('installs the modules', install(modules));
-
-  it('uninstalls the module', uninstall(modules));
-
-  it('installs all modules', done => void iasql.install([], dbAlias, 'postgres', true).then(...finish(done)));
-
-  it('uninstalls the request module', uninstall(['aws_acm_request']));
-
-  it('installs the module', install(['aws_acm_request']));
 
   it('deletes the test db', done => void iasql.disconnect(dbAlias, 'not-needed').then(...finish(done)));
 });

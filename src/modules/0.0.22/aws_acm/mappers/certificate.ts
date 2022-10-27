@@ -1,17 +1,18 @@
 import { ACM, CertificateDetail, paginateListCertificates } from '@aws-sdk/client-acm';
 import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 
-import { AWS, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
-import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
+import { AwsAcmModule } from '..';
+import { AWS, crudBuilderFormat, paginateBuilder, mapLin } from '../../../../services/aws_macros';
+import { Context, Crud2, MapperBase } from '../../../interfaces';
 import {
   Certificate,
   certificateRenewalEligibilityEnum,
   certificateStatusEnum,
   certificateTypeEnum,
-} from './entity';
+} from '../entity';
 
-class CertificateMapper extends MapperBase<Certificate> {
-  module: AwsAcmListModule;
+export class CertificateMapper extends MapperBase<Certificate> {
+  module: AwsAcmModule;
   entity = Certificate;
   entityId = (e: Certificate) => e.arn ?? e.id.toString();
   equals = (a: Certificate, b: Certificate) =>
@@ -147,21 +148,9 @@ class CertificateMapper extends MapperBase<Certificate> {
     },
   });
 
-  constructor(module: AwsAcmListModule) {
+  constructor(module: AwsAcmModule) {
     super();
     this.module = module;
     super.init();
   }
 }
-
-class AwsAcmListModule extends ModuleBase {
-  certificate: CertificateMapper;
-
-  constructor() {
-    super();
-    this.certificate = new CertificateMapper(this);
-    super.init();
-  }
-}
-
-export const awsAcmListModule = new AwsAcmListModule();
