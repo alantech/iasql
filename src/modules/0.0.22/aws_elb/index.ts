@@ -20,8 +20,8 @@ import {
 import { parse as parseArn } from '@aws-sdk/util-arn-parser';
 import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
-import { awsAcmListModule, awsSecurityGroupModule } from '..';
-import { AWS, crudBuilder2, crudBuilderFormat, mapLin, paginateBuilder } from '../../../services/aws_macros';
+import { awsAcmModule, awsSecurityGroupModule } from '..';
+import { AWS, crudBuilder2, crudBuilderFormat, paginateBuilder, mapLin } from '../../../services/aws_macros';
 import { Context, Crud2, MapperBase, ModuleBase } from '../../interfaces';
 import { SecurityGroup } from '../aws_security_group/entity';
 import { awsVpcModule } from '../aws_vpc';
@@ -76,8 +76,8 @@ class ListenerMapper extends MapperBase<Listener> {
       out.sslPolicy = l.SslPolicy;
       const cloudCertificate = l.Certificates.pop();
       out.certificate =
-        (await awsAcmListModule.certificate.db.read(ctx, cloudCertificate?.CertificateArn)) ??
-        (await awsAcmListModule.certificate.cloud.read(ctx, cloudCertificate?.CertificateArn));
+        (await awsAcmModule.certificate.db.read(ctx, cloudCertificate?.CertificateArn)) ??
+        (await awsAcmModule.certificate.cloud.read(ctx, cloudCertificate?.CertificateArn));
     }
     return out;
   }
@@ -290,12 +290,14 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     for (const sg of cloudSecurityGroups) {
       try {
         securityGroups.push(
-          (await awsSecurityGroupModule.securityGroup.db.read(ctx)).find(
-            (scgrp: SecurityGroup) => scgrp.groupId === sg,
-          ) ??
-            (await awsSecurityGroupModule.securityGroup.cloud.read(ctx)).find(
-              (scgrp: SecurityGroup) => scgrp.groupId === sg,
-            ),
+          (await awsSecurityGroupModule.securityGroup.db.read(
+            ctx,
+            awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
+          )) ??
+            (await awsSecurityGroupModule.securityGroup.cloud.read(
+              ctx,
+              awsSecurityGroupModule.securityGroup.generateId({ groupId: sg, region }),
+            )),
         );
       } catch (_) {
         // If security groups are misconfigured ignore them
@@ -306,8 +308,8 @@ class LoadBalancerMapper extends MapperBase<LoadBalancer> {
     out.ipAddressType = lb.IpAddressType as IpAddressType;
     out.customerOwnedIpv4Pool = lb.CustomerOwnedIpv4Pool;
     const vpc =
-      (await awsVpcModule.vpc.db.read(ctx)).find((v: Vpc) => v.vpcId === lb.VpcId) ??
-      (await awsVpcModule.vpc.cloud.read(ctx)).find((v: Vpc) => v.vpcId === lb.VpcId);
+      (await awsVpcModule.vpc.db.read(ctx, awsVpcModule.vpc.generateId({ vpcId: lb.VpcId, region }))) ??
+      (await awsVpcModule.vpc.cloud.read(ctx, awsVpcModule.vpc.generateId({ vpcId: lb.VpcId, region })));
     out.vpc = vpc;
     out.availabilityZones = lb.AvailabilityZones?.map(az => az.ZoneName ?? '') ?? [];
     out.subnets = lb.AvailabilityZones?.map(az => az.SubnetId ?? '') ?? [];
@@ -631,8 +633,8 @@ class TargetGroupMapper extends MapperBase<TargetGroup> {
     out.protocolVersion = tg.ProtocolVersion as ProtocolVersionEnum;
     try {
       const vpc =
-        (await awsVpcModule.vpc.db.read(ctx)).find((v: Vpc) => v.vpcId === tg.VpcId) ??
-        (await awsVpcModule.vpc.cloud.read(ctx)).find((v: Vpc) => v.vpcId === tg.VpcId);
+        (await awsVpcModule.vpc.db.read(ctx, awsVpcModule.vpc.generateId({ vpcId: tg.VpcId, region }))) ??
+        (await awsVpcModule.vpc.cloud.read(ctx, awsVpcModule.vpc.generateId({ vpcId: tg.VpcId, region })));
       if (tg.VpcId && !vpc) return undefined;
       out.vpc = vpc;
     } catch (e: any) {

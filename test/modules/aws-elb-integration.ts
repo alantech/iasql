@@ -38,10 +38,8 @@ const modules = [
   'aws_security_group',
   'aws_elb',
   'aws_vpc',
-  'aws_acm_list',
-  'aws_acm_import',
+  'aws_acm',
   'aws_route53_hosted_zones',
-  'aws_acm_request',
 ];
 
 // Test constants
@@ -303,33 +301,8 @@ describe('ELB Integration Testing', () => {
   it(
     'adds a new certificate to import',
     query(`
-        INSERT INTO certificate_import (certificate, private_key)
-        VALUES ('${cert}', '${key}');
-    `),
-  );
-
-  it(
-    'check adds new certificate to import',
-    query(
-      `
-          SELECT *
-          FROM certificate_import;
-      `,
-      (res: any[]) => expect(res.length).toBe(1),
-    ),
-  );
-
-  it('applies the new certificate import', apply());
-
-  it(
-    'check import row delete',
-    query(
-      `
-          SELECT *
-          FROM certificate_import;
-      `,
-      (res: any[]) => expect(res.length).toBe(0),
-    ),
+      SELECT * FROM certificate_import('${cert}', '${key}', '${process.env.AWS_REGION}', '');
+  `),
   );
 
   it(
@@ -382,7 +355,7 @@ describe('ELB Integration Testing', () => {
     ),
   );
 
-  it('uninstalls the elb module', uninstall(['aws_acm_request', 'aws_route53_hosted_zones', 'aws_elb']));
+  it('uninstalls the elb module', uninstall(['aws_acm', 'aws_route53_hosted_zones', 'aws_elb']));
 
   it('installs the elb module', install(['aws_elb']));
 
@@ -633,9 +606,7 @@ describe('ELB install/uninstall', () => {
       'aws_ec2_metadata',
       'aws_route53_hosted_zones',
       'aws_vpc',
-      'aws_acm_list',
-      'aws_acm_import',
-      'aws_acm_request',
+      'aws_acm',
       'aws_security_group',
       'aws_memory_db',
       'aws_rds',

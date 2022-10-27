@@ -1,6 +1,7 @@
 import callsite from 'callsite';
 import fs from 'fs';
 import path from 'path';
+import { parse } from 'pgsql-parser';
 import { QueryRunner, getMetadataArgsStorage, ColumnType } from 'typeorm';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
@@ -216,6 +217,7 @@ export interface MapperInterface<E> {
   entity: new () => E;
   entityId: (e: E) => string;
   idFields: (id: string) => IdFields;
+  generateId: (idFields: IdFields) => string;
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
   db: Crud2<E>;
@@ -239,6 +241,7 @@ export class MapperBase<E> {
   entityId: (e: E) => string;
   // TODO: add better typing based on cloudColumns if possible
   idFields: (id: string) => IdFields;
+  generateId: (idFields: IdFields) => string;
   equals: (a: E, b: E) => boolean;
   source: 'db' | 'cloud';
   db: Crud2<E>;
@@ -249,16 +252,47 @@ export class MapperBase<E> {
     if (!this.entity) throw new Error('No entity defined for this mapper');
     const cloudColumns = getCloudId(this.entity);
     const ormMetadata = getMetadataArgsStorage();
+    // Technically we should have a check for if only one of the two is defined, because the author
+    // could create the 'id' string any way they want, and if not properly paired it could break in
+    // weird ways, but since all extant versions of 'entityId' join with '|', we're rolling with it
+    const primaryColumn =
+      ormMetadata.columns
+        .filter(c => c.target === this.entity)
+        .filter(c => c.options.primary)
+        .map(c => c.propertyName)
+        .shift() ?? '';
+    if (!this.generateId) {
+      this.generateId = (fields: IdFields) => {
+        if (cloudColumns && !(cloudColumns instanceof Error)) {
+          if (
+            Object.keys(fields).length !== cloudColumns.length ||
+            !Object.keys(fields).every(fk => cloudColumns.includes(fk))
+          ) {
+            throw new Error(
+              `Id generation error. Valid fields to generate id are: ${cloudColumns.join(
+                ', ',
+              )}. Receiving: ${Object.keys(fields).join(', ')}`,
+            );
+          }
+          const out = cloudColumns.map(col => fields[col]).join('|');
+          if (!out) return fields[primaryColumn] + '';
+          return out;
+        } else {
+          if (
+            Object.keys(fields).length !== 1 ||
+            !Object.keys(fields).every(fk => [primaryColumn].includes(fk))
+          ) {
+            throw new Error(
+              `Id generation error. Valid field to generate id is: ${primaryColumn}. Receiving: ${Object.keys(
+                fields,
+              ).join(', ')}`,
+            );
+          }
+          return fields[primaryColumn] + '';
+        }
+      };
+    }
     if (!this.entityId || !this.idFields) {
-      // Technically we should have a check for if only one of the two is defined, because the author
-      // could create the 'id' string any way they want, and if not properly paired it could break in
-      // weird ways, but since all extant versions of 'entityId' join with '|', we're rolling with it
-      const primaryColumn =
-        ormMetadata.columns
-          .filter(c => c.target === this.entity)
-          .filter(c => c.options.primary)
-          .map(c => c.propertyName)
-          .shift() ?? '';
       // Using + '' to coerce to string without worrying if `.toString()` exists, because JS
       this.entityId =
         this.entityId ||
@@ -498,9 +532,6 @@ export class ModuleBase {
       tables: [],
       functions: [],
     };
-    if (/^create table/i.test(afterInstallSql)) {
-      this.provides.tables.push((afterInstallSql.match(/^[^"]*"([^"]*)"/) ?? [])[1]);
-    }
     if (this.context) this.provides.context = this.context;
     this.migrations = {
       install: async (_q: QueryRunner) => undefined,
@@ -509,11 +540,15 @@ export class ModuleBase {
     const afterInstallMigration = afterInstallSql + rpcAfterInstallSql;
     const beforeUninstallMigration = rpcBeforeUninstallSql + beforeUninstallSql;
     if (beforeInstallSql) {
+      this.provides.tables.push(...this.getFromSql('tables', beforeInstallSql));
+      this.provides.functions.push(...this.getFromSql('functions', beforeInstallSql));
       this.migrations.beforeInstall = async (q: QueryRunner) => {
         await q.query(beforeInstallSql);
       };
     }
     if (afterInstallMigration) {
+      this.provides.tables.push(...this.getFromSql('tables', afterInstallMigration));
+      this.provides.functions.push(...this.getFromSql('functions', afterInstallMigration));
       this.migrations.afterInstall = async (q: QueryRunner) => {
         await q.query(afterInstallMigration);
       };
@@ -528,6 +563,24 @@ export class ModuleBase {
         await q.query(afterUninstallSql);
       };
     }
+  }
+
+  getFromSql(stmtType: 'tables' | 'functions', sql: string): string[] {
+    try {
+      const sqlParsed = parse(sql);
+      const stmtKey = stmtType === 'tables' ? 'CreateStmt' : 'CreateFunctionStmt';
+      return sqlParsed
+        .filter((s: any) => Object.keys(s.RawStmt?.stmt ?? {}).includes(stmtKey))
+        .map((s: any) => {
+          return stmtType === 'tables'
+            ? s.RawStmt?.stmt?.CreateStmt?.relation?.relname
+            : s.RawStmt?.stmt?.CreateFunctionStmt?.funcname?.pop()?.String?.str;
+        })
+        .filter((v: string | undefined) => !!v);
+    } catch (_) {
+      /** Do nothing */
+    }
+    return [];
   }
 
   loadTypeORM() {

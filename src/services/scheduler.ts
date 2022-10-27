@@ -215,6 +215,7 @@ export async function start(dbId: string, dbUser: string) {
             // TODO: refactor properly this condition if (uid && modulename !== 'iasqlFunctions' && methodname !== 'modulesList')
             if (uid)
               telemetry.logRpc(
+                uid,
                 modulename,
                 methodname,
                 {
@@ -229,7 +230,6 @@ export async function start(dbId: string, dbUser: string) {
                   output,
                   error,
                 },
-                uid,
               );
           } catch (e: any) {
             logger.error('could not log op event', e);

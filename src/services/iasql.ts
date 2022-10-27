@@ -1367,24 +1367,13 @@ export async function upgrade(dbId: string, dbUser: string) {
         // 6. Install the `aws_account` module and then re-insert the creds if present, then add
         //    the rest of the modules back.
         if (!!creds) {
-          await install(['aws_account'], dbId, dbUser, false, true);
-          await conn.query(`
-            INSERT INTO aws_credentials (access_key_id, secret_access_key)
-            VALUES ('${creds.access_key_id}', '${creds.secret_access_key}');
-          `);
-          await sync(dbId, false, true);
-          if (creds.region) {
-            await conn.query(`
-              UPDATE aws_regions SET is_default = true WHERE region = '${creds.region}';
-            `);
-          }
-          await install(
-            mods.filter((m: string) => !['aws_account', 'iasql_platform', 'iasql_functions'].includes(m)),
-            dbId,
-            dbUser,
-            false,
-            true,
+          const { continueUpgrade } = await import(
+            `../modules/${config.modules.latestVersion}/iasql_functions/iasql`
           );
+          const memo: any = {}; // TODO: Stronger typing here
+          const orm = await TypeormWrapper.createConn(dbId);
+          const context: Context = { orm, memo }; // Every module gets access to the DB
+          await continueUpgrade(dbId, dbUser, context, creds, mods);
         }
       } catch (e) {
         logger.error('Failed to upgrade', { e });

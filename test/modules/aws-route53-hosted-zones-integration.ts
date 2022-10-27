@@ -48,7 +48,7 @@ const syncStaging = runSync.bind(null, dbAlias + 'staging');
 const installStaging = runInstall.bind(null, dbAlias + 'staging');
 const uninstallStaging = runUninstall.bind(null, dbAlias + 'staging');
 const queryStaging = runQuery.bind(null, dbAlias + 'staging');
-const modules = ['aws_route53_hosted_zones', 'aws_acm_request'];
+const modules = ['aws_route53_hosted_zones', 'aws_acm', 'aws_elb', 'aws_ec2'];
 
 jest.setTimeout(360000);
 beforeAll(async () => await execComposeUp());
@@ -424,7 +424,20 @@ describe('Route53 install/uninstall', () => {
     config.db.user,
     true).then(...finish(done)));
 
-  it('uninstalls the route53 module', uninstall(modules));  
+  it(
+    'uninstalls the route53 module',
+    uninstall([
+      'aws_acm',
+      'aws_elb',
+      'aws_ecs_fargate',
+      'aws_ecs_simplified',
+      'aws_ec2',
+      'aws_ec2_metadata',
+      'aws_route53_hosted_zones',
+      'aws_codedeploy',
+      'aws_codepipeline',
+    ]),
+  );
 
   it('installs the route53 module', install(modules));
 

@@ -1,5 +1,6 @@
 import * as Amplitude from '@amplitude/node';
 import * as sentry from '@sentry/node';
+import { PostHog } from 'posthog-node';
 
 import config, { IASQL_ENV } from '../config';
 import logger from './logger';
@@ -17,7 +18,10 @@ enum IasqlOperationType {
   UPGRADE = 'UPGRADE',
 }
 
-const singleton = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
+const singletonAmp = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
+const singletonPh = config.telemetry
+  ? new PostHog(config.telemetry.posthogKey, { host: 'https://app.posthog.com' })
+  : undefined;
 
 export type DbProps = {
   dbAlias?: string;
@@ -35,25 +39,33 @@ export type EventProps = {
   dataOnly?: boolean;
   params?: string[];
   sql?: string;
+  buttonAlias?: string;
 };
 
-export async function logEvent(
-  event: string,
-  dbProps: DbProps,
-  eventProps?: EventProps,
-  uid?: string,
-  deviceId?: string,
-) {
-  if (!singleton) return;
+export async function logEvent(uid: string, event: string, dbProps: DbProps, eventProps?: EventProps) {
+  // make all events uppercase
+  event = event.toUpperCase();
   try {
     dbProps.iasqlEnv = IASQL_ENV;
-    await singleton.logEvent({
-      event_type: event,
-      user_id: uid,
-      user_properties: dbProps,
-      event_properties: eventProps,
-      device_id: deviceId,
-    });
+    if (singletonAmp) {
+      await singletonAmp.logEvent({
+        event_type: event,
+        user_id: uid,
+        user_properties: dbProps,
+        event_properties: eventProps,
+      });
+    }
+    if (singletonPh) {
+      singletonPh.capture({
+        event,
+        distinctId: uid,
+        properties: {
+          ...eventProps,
+          // set user properties
+          $set: dbProps,
+        },
+      });
+    }
   } catch (e: any) {
     const message = `failed to log ${event} event`;
     if (config.sentry) {
@@ -65,20 +77,20 @@ export async function logEvent(
   }
 }
 
-export async function logConnect(dbProps: DbProps, eventProps?: EventProps, uid?: string, deviceId?: string) {
-  await logEvent('CONNECT', dbProps, eventProps, uid, deviceId);
+export async function logConnect(uid: string, dbProps: DbProps, eventProps?: EventProps) {
+  await logEvent(uid, 'CONNECT', dbProps, eventProps);
 }
 
-export async function logDisconnect(dbProps: DbProps, eventProps?: EventProps, uid?: string) {
-  await logEvent('DISCONNECT', dbProps, eventProps, uid);
+export async function logDisconnect(uid: string, dbProps: DbProps, eventProps?: EventProps) {
+  await logEvent(uid, 'DISCONNECT', dbProps, eventProps);
 }
 
-export async function logExport(dbProps: DbProps, eventProps: EventProps, uid: string, deviceId?: string) {
-  await logEvent('EXPORT', dbProps, eventProps, uid, deviceId);
+export async function logExport(uid: string, dbProps: DbProps, eventProps: EventProps) {
+  await logEvent(uid, 'EXPORT', dbProps, eventProps);
 }
 
-export async function logRunSql(dbProps: DbProps, eventProps: EventProps, uid?: string, deviceId?: string) {
-  await logEvent('RUNSQL', dbProps, eventProps, uid, deviceId);
+export async function logRunSql(uid: string, dbProps: DbProps, eventProps: EventProps) {
+  await logEvent(uid, 'RUNSQL', dbProps, eventProps);
 }
 
 // ! DEPRECATED
@@ -89,17 +101,15 @@ export async function logOp(
   eventProps: EventProps,
   uid: string,
 ) {
-  await logEvent(opType, dbProps, eventProps, uid);
+  await logEvent(uid, opType, dbProps, eventProps);
 }
 
 export async function logRpc(
+  uid: string,
   moduleName: string,
   methodName: string,
   dbProps: DbProps,
   eventProps: EventProps,
-  uid: string,
 ) {
-  await logEvent(`${moduleName}:${methodName}`, dbProps, eventProps, uid);
+  await logEvent(uid, `${moduleName}:${methodName}`, dbProps, eventProps);
 }
-
-export default singleton;

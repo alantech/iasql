@@ -1023,11 +1023,14 @@ export async function continueUpgrade(
       UPDATE aws_regions SET is_default = true WHERE region = '${creds.region}';
     `);
   }
-  await install(
-    mods.filter((m: string) => !['aws_account', 'iasql_platform', 'iasql_functions'].includes(m)),
-    dbId,
-    dbUser,
-    false,
-    true,
-  );
+  const modsToInstall = new Set<string>();
+  mods.forEach((m: string) => {
+    if (['aws_account', 'iasql_platform', 'iasql_functions'].includes(m)) return;
+    // ACM logic not necessary after v0.0.22 is the last supported version
+    if (['aws_acm_list', 'aws_acm_import', 'aws_acm_request'].includes(m)) {
+      return modsToInstall.add('aws_acm');
+    }
+    modsToInstall.add(m);
+  });
+  await install([...modsToInstall.values()], dbId, dbUser, false, true);
 }

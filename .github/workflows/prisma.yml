@@ -5,10 +5,26 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['.github/workflows/prisma.yml', 'examples/**', 'src/**', 'test/tutorials/**', 'package.json', 'yarn.lock']
+    paths:
+      [
+        '.github/workflows/prisma.yml',
+        'examples/**',
+        'src/**',
+        'test/tutorials/**',
+        'package.json',
+        'yarn.lock',
+      ]
   pull_request:
     branches: [main]
-    paths: ['.github/workflows/prisma.yml', 'examples/**', 'src/**', 'test/tutorials/**', 'package.json', 'yarn.lock']
+    paths:
+      [
+        '.github/workflows/prisma.yml',
+        'examples/**',
+        'src/**',
+        'test/tutorials/**',
+        'package.json',
+        'yarn.lock',
+      ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -38,7 +54,7 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 16.x
-  
+
       - name: Start local iasql engine
         run: |
           IASQL_ENV=ci docker-compose up --build --detach
@@ -71,6 +87,8 @@ jobs:
         run: |
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          echo "\nClean all buckets..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "select s3_clean_bucket(name) FROM bucket;"
           echo "\nDelete all records..."
           psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"
           echo "\nApply..."
@@ -99,6 +117,8 @@ jobs:
         run: |
           export AWS_ACCESS_KEY_ID=$(echo "${ACCESS_KEY_IDS}" | jq -r ".[${ACCOUNT_INDEX}]")
           export AWS_SECRET_ACCESS_KEY=$(echo "${SECRET_ACCESS_KEYS}" | jq -r ".[${ACCOUNT_INDEX}]")
+          echo "\nClean all buckets..."
+          psql postgres://postgres:test@localhost:5432/iasql -c "select s3_clean_bucket(name) FROM bucket;"
           echo "\nDelete all records..."
           psql postgres://postgres:test@localhost:5432/iasql -c "select * from delete_all_records();"
           echo "\nApply..."

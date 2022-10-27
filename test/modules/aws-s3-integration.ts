@@ -52,6 +52,11 @@ const updatedPolicyJSON = {
   ],
 };
 
+const bucketContent = JSON.stringify({
+  name: 'Iasql',
+  value: 'Hello world!',
+});
+
 const updatedPolicyDocument = JSON.stringify(updatedPolicyJSON);
 updatedPolicyJSON.Statement[0].Sid = 'UpdatePolicy';
 const updatedNewPolicyDocument = JSON.stringify(updatedPolicyJSON);
@@ -134,6 +139,85 @@ describe('S3 Integration Testing', () => {
   );
 
   it(
+    'inserts content into bucket object',
+    query(
+      `INSERT INTO bucket_object (bucket_name, key, region) VALUES ('${s3Name}', 'fake_bucket', '${process.env.AWS_REGION}')`,
+    ),
+  );
+  it('applies the s3 object removal', apply());
+
+  it(
+    'check fake object deletion',
+    query(
+      `
+    SELECT *
+    FROM bucket_object 
+    WHERE bucket_name = '${s3Name}' AND key='fake_bucket';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+
+  it(
+    'adds content to bucket',
+    query(
+      `SELECT * FROM s3_upload_object('${s3Name}', 'iasql_message', '${bucketContent}', 'application/json')`,
+      (res: any[]) => expect(res[0].status).toStrictEqual('OK'),
+    ),
+  );
+  it(
+    'adds new content to bucket',
+    query(
+      `SELECT * FROM s3_upload_object('${s3Name}', 'iasql_message_1', '${bucketContent}', 'application/json')`,
+      (res: any[]) => expect(res[0].status).toStrictEqual('OK'),
+    ),
+  );
+
+  it(
+    'check object insertion',
+    query(
+      `
+    SELECT *
+    FROM bucket_object 
+    WHERE bucket_name = '${s3Name}';
+  `,
+      (res: any[]) => expect(res.length).toBe(2),
+    ),
+  );
+
+  it(
+    'deletes one object of the bucket',
+    query(`
+    DELETE FROM bucket_object WHERE bucket_name = '${s3Name}' AND key='iasql_message';
+  `),
+  );
+
+  it('applies the s3 object removal', apply());
+
+  it(
+    'check object deletion',
+    query(
+      `
+    SELECT *
+    FROM bucket_object 
+    WHERE bucket_name = '${s3Name}' AND key='iasql_message';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
+    ),
+  );
+  it(
+    'check object deletion',
+    query(
+      `
+    SELECT *
+    FROM bucket_object 
+    WHERE bucket_name = '${s3Name}' AND key='iasql_message_1';
+  `,
+      (res: any[]) => expect(res.length).toBe(1),
+    ),
+  );
+
+  it(
     'gets current bucket policy document',
     query(
       `
@@ -180,6 +264,18 @@ describe('S3 Integration Testing', () => {
     'cleans the bucket',
     query(`SELECT * FROM s3_clean_bucket('${s3Name}')`, (res: any[]) =>
       expect(res[0].status).toStrictEqual('OK'),
+    ),
+  );
+
+  it(
+    'check no s3 objects still exist',
+    query(
+      `
+    SELECT *
+    FROM bucket_object 
+    WHERE bucket_name = '${s3Name}';
+  `,
+      (res: any[]) => expect(res.length).toBe(0),
     ),
   );
 
@@ -304,7 +400,7 @@ describe('S3 install/uninstall', () => {
     select * from iasql_install('aws_s3');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(1);
+        expect(res.length).toBe(2);
       },
     ),
   );
@@ -316,7 +412,7 @@ describe('S3 install/uninstall', () => {
     select * from iasql_uninstall('aws_s3');
   `,
       (res: any[]) => {
-        expect(res.length).toBe(1);
+        expect(res.length).toBe(2);
       },
     ),
   );

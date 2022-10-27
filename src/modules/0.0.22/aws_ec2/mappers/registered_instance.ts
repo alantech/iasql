@@ -6,15 +6,30 @@ import {
 
 import { AwsEc2Module } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
-import { Context, Crud2, MapperBase } from '../../../interfaces';
+import { Context, Crud2, IdFields, MapperBase } from '../../../interfaces';
 import { awsElbModule } from '../../aws_elb';
 import { RegisteredInstance } from '../entity';
 
 export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
   module: AwsEc2Module;
   entity = RegisteredInstance;
+  generateId = (fields: IdFields) => {
+    const requiredFields = ['instanceId', 'targetGroupArn', 'port', 'region'];
+    if (
+      Object.keys(fields).length !== requiredFields.length &&
+      !Object.keys(fields).every(fk => requiredFields.includes(fk))
+    ) {
+      throw new Error(`Id generation error. Valid fields to generate id are: ${requiredFields.join(', ')}`);
+    }
+    return `${fields.instanceId}|${fields.targetGroupArn}|${fields.port}|${fields.region}`;
+  };
   entityId = (e: RegisteredInstance) =>
-    `${e.instance.instanceId}|${e.targetGroup.targetGroupArn}|${e.port}|${e.region}` ?? '';
+    this.module.registeredInstance.generateId({
+      instanceId: e.instance.instanceId ?? '',
+      targetGroupArn: e.targetGroup.targetGroupArn ?? '',
+      port: `${e.port}`,
+      region: e.region,
+    });
   equals = (a: RegisteredInstance, b: RegisteredInstance) => Object.is(a.port, b.port);
 
   async registeredInstanceMapper(
@@ -24,8 +39,14 @@ export class RegisteredInstanceMapper extends MapperBase<RegisteredInstance> {
   ) {
     const out = new RegisteredInstance();
     out.instance =
-      (await this.module.instance.db.read(ctx, `${registeredInstance.instanceId}|${region}`)) ??
-      (await this.module.instance.cloud.read(ctx, `${registeredInstance.instanceId}|${region}`));
+      (await this.module.instance.db.read(
+        ctx,
+        this.module.instance.generateId({ instanceId: registeredInstance.instanceId ?? '', region }),
+      )) ??
+      (await this.module.instance.cloud.read(
+        ctx,
+        this.module.instance.generateId({ instanceId: registeredInstance.instanceId ?? '', region }),
+      ));
     out.targetGroup =
       (await awsElbModule.targetGroup.db.read(ctx, registeredInstance.targetGroupArn)) ??
       (await awsElbModule.targetGroup.cloud.read(ctx, registeredInstance.targetGroupArn));

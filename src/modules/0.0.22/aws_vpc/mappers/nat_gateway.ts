@@ -32,8 +32,14 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
     if (natPublicAddress?.AllocationId) {
       try {
         out.elasticIp =
-          (await this.module.elasticIp.db.read(ctx, `${natPublicAddress.AllocationId}|${region}`)) ??
-          (await this.module.elasticIp.cloud.read(ctx, `${natPublicAddress.AllocationId}|${region}`));
+          (await this.module.elasticIp.db.read(
+            ctx,
+            this.module.elasticIp.generateId({ allocationId: natPublicAddress.AllocationId, region }),
+          )) ??
+          (await this.module.elasticIp.cloud.read(
+            ctx,
+            this.module.elasticIp.generateId({ allocationId: natPublicAddress.AllocationId, region }),
+          ));
       } catch (error: any) {
         if (error.Code === 'InvalidAllocationID.NotFound') return undefined;
       }
@@ -41,10 +47,15 @@ export class NatGatewayMapper extends MapperBase<NatGateway> {
     }
     out.natGatewayId = nat.NatGatewayId;
     out.state = nat.State as NatGatewayState;
-    // todo: search by region when multiregion
     out.subnet =
-      (await this.module.subnet.db.read(ctx)).find((subnet: Subnet) => subnet.subnetId === nat.SubnetId) ??
-      (await this.module.subnet.cloud.read(ctx)).find((subnet: Subnet) => subnet.subnetId === nat.SubnetId);
+      (await this.module.subnet.db.read(
+        ctx,
+        this.module.subnet.generateId({ subnetId: nat.SubnetId ?? '', region }),
+      )) ??
+      (await this.module.subnet.cloud.read(
+        ctx,
+        this.module.subnet.generateId({ subnetId: nat.SubnetId ?? '', region }),
+      ));
     if (nat.SubnetId && !out.subnet) return undefined;
     const tags: { [key: string]: string } = {};
     (nat.Tags || [])
