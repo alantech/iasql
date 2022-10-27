@@ -13,6 +13,7 @@ import {
 const prefix = getPrefix();
 const dbAlias = 'loggrouplambdatest';
 const resourceName = `${prefix}${dbAlias}`;
+const lambdaLogGroupName = `/aws/lambda/${resourceName}`;
 // Base64 for zip file with the following code:
 // exports.handler =  async function(event, context) {
 //   console.log("EVENT: \n" + JSON.stringify(event, null, 2))
@@ -110,7 +111,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
 
   it(
     'tail logs function',
-    query(`SELECT * FROM log_group_tail('/aws/lambda/${resourceName}');`, (res: any[]) =>
+    query(`SELECT * FROM log_group_tail('${lambdaLogGroupName}');`, (res: any[]) =>
       expect(res.length).toBeGreaterThan(0),
     ),
   );
@@ -121,7 +122,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
     BEGIN;
       DELETE FROM lambda_function WHERE name = '${resourceName}';
       DELETE FROM iam_role WHERE role_name = '${resourceName}';
-      DELETE FROM log_group WHERE log_group_name = '${resourceName}';
+      DELETE FROM log_group WHERE log_group_name = '${lambdaLogGroupName}';
     COMMIT;
   `),
   );
@@ -158,7 +159,7 @@ describe('AwsCloudwatch and AwsLambda Integration Testing', () => {
       `
     SELECT *
     FROM log_group
-    WHERE log_group_name = '${resourceName}';
+    WHERE log_group_name = '${lambdaLogGroupName}';
   `,
       (res: any[]) => expect(res.length).toBe(0),
     ),

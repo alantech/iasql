@@ -1,4 +1,6 @@
+import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
 import { InvokeCommandInput, InvokeCommandOutput } from '@aws-sdk/client-lambda';
+import { createWaiter } from '@aws-sdk/util-waiter';
 
 import { AwsLambdaModule } from '..';
 import { AWS } from '../../../../services/aws_macros';
@@ -48,12 +50,14 @@ export class LambdaFunctionInvokeRpc extends RpcBase {
       const lambdaLogGroupName = `/aws/lambda/${functionName}`;
       const functionLogGroup = await awsCloudwatchModule.logGroup.db.read(
         ctx,
-        `${lambdaLogGroupName}|${clientRegion}`,
+        awsCloudwatchModule.logGroup.generateId({ logGroupName: lambdaLogGroupName, region: clientRegion }),
       );
       if (!functionLogGroup) {
+        // It may take 5 to 10 minutes for logs to show up after a function invocation.
+        await awsCloudwatchModule.logGroup.waitForLogGroup(client.cwClient, lambdaLogGroupName);
         const cloudFunctionLogGroup = await awsCloudwatchModule.logGroup.cloud.read(
           ctx,
-          `${lambdaLogGroupName}|${clientRegion}`,
+          awsCloudwatchModule.logGroup.generateId({ logGroupName: lambdaLogGroupName, region: clientRegion }),
         );
         if (cloudFunctionLogGroup) {
           await awsCloudwatchModule.logGroup.db.create(cloudFunctionLogGroup, ctx);

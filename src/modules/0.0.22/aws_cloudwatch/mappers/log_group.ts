@@ -1,4 +1,9 @@
-import { CloudWatchLogs, paginateDescribeLogGroups } from '@aws-sdk/client-cloudwatch-logs';
+import {
+  CloudWatchLogs,
+  DescribeLogGroupsCommandInput,
+  paginateDescribeLogGroups,
+} from '@aws-sdk/client-cloudwatch-logs';
+import { createWaiter, WaiterState } from '@aws-sdk/util-waiter';
 
 import { AwsCloudwatchModule } from '..';
 import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aws_macros';
@@ -29,6 +34,32 @@ export class LogGroupMapper extends MapperBase<LogGroup> {
     logGroupName => ({ logGroupName }),
     _lg => undefined,
   );
+
+  async waitForLogGroup(client: CloudWatchLogs, logGroupNamePrefix: string) {
+    return createWaiter<CloudWatchLogs, DescribeLogGroupsCommandInput>(
+      {
+        client,
+        // 10 min waiter
+        maxWaitTime: 600,
+        minDelay: 1,
+        maxDelay: 4,
+      },
+      {
+        logGroupNamePrefix,
+      },
+      async (cl, input) => {
+        try {
+          const data = await cl.describeLogGroups(input);
+          if (!data.logGroups?.length) {
+            return { state: WaiterState.RETRY };
+          }
+          return { state: WaiterState.SUCCESS };
+        } catch (e: any) {
+          throw e;
+        }
+      },
+    );
+  }
 
   logGroupMapper(lg: any, region: string) {
     const out = new LogGroup();
