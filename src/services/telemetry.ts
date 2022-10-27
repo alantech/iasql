@@ -55,7 +55,7 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
         event_properties: eventProps,
       });
     }
-    logger.warn(`Posthog client: ${singletonPh?.toString()}, key ${config.telemetry?.posthogKey}, IASQL_ENV ${IASQL_ENV}, event ${event}`);
+    logger.info(`Posthog client: ${singletonPh?.toString()}, key ${config.telemetry?.posthogKey}, IASQL_ENV ${IASQL_ENV}, event ${event}`);
     if (singletonPh) {
       singletonPh.capture({
         event,
