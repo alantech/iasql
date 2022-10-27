@@ -216,6 +216,10 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
       name: e.name,
       recordType: e.recordType,
     });
+  idFields = (id: string) => {
+    const [hostedZoneId, name, recordType] = id.split('|');
+    return { hostedZoneId, name, recordType };
+  };
   equals = (a: ResourceRecordSet, b: ResourceRecordSet) =>
     Object.is(a.parentHostedZone?.hostedZoneId, b.parentHostedZone?.hostedZoneId) &&
     Object.is(a.recordType, b.recordType) &&
@@ -294,19 +298,23 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     create: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),
     update: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),
     delete: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.remove(ResourceRecordSet, es),
-    read: async (ctx: Context, zoneIdNameAndRecordType?: string) => {
+    read: async (ctx: Context, id?: string) => {
       // refer to entityId for the second input
-      const opts = zoneIdNameAndRecordType
-        ? {
-            where: {
-              parentHostedZone: {
-                id: zoneIdNameAndRecordType.split('|')[0],
+      const { hostedZoneId, name, recordType } = id
+        ? this.idFields(id)
+        : { hostedZoneId: undefined, name: undefined, recordType: undefined };
+      const opts =
+        hostedZoneId && name && recordType
+          ? {
+              where: {
+                parentHostedZone: {
+                  id: hostedZoneId,
+                },
+                name,
+                recordType,
               },
-              name: zoneIdNameAndRecordType.split('|')[1],
-              recordType: zoneIdNameAndRecordType.split('|')[2],
-            },
-          }
-        : {};
+            }
+          : {};
       return await ctx.orm.find(ResourceRecordSet, opts);
     },
   });
@@ -376,9 +384,9 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
         }
       }
       if (id) {
-        const [recordType, recordName] = id.split('|');
+        const { name, recordType } = this.idFields(id);
         const record = resourceRecordSet.find(
-          (rrs: any) => Object.is(rrs.Name, recordName) && Object.is(rrs.Type, recordType),
+          (rrs: any) => Object.is(rrs.Name, name) && Object.is(rrs.Type, recordType),
         );
         if (record) return record;
       } else {
@@ -394,7 +402,7 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     update: async (es: ResourceRecordSet[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.ResourceRecordSet[this.module.resourceRecordSet.entityId(e)];
+        const cloudRecord = ctx?.memo?.cloud?.ResourceRecordSet[this.entityId(e)];
         const newEntity = await this.module.resourceRecordSet.cloud.create(e, ctx);
         if (newEntity instanceof Array || !newEntity) continue;
         await this.module.resourceRecordSet.cloud.delete(cloudRecord, ctx);
