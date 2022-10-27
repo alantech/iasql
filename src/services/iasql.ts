@@ -225,17 +225,24 @@ export async function runSql(dbAlias: string, uid: string, sql: string, byStatem
       host: dbMan.baseConnConfig.host,
       ssl: dbMan.baseConnConfig.extra.ssl,
     });
-    await connTemp.connect();
-    await connTemp.query(dbMan.setPostgresRoleQuery(database, versionString));
-    const stmts = parse(sql);
+
     const out = [];
-    for (const stmt of stmts) {
-      if (byStatement) {
+    if (byStatement) {
+      const stmts = parse(sql);
+      for (const stmt of stmts) {
+        await connTemp.connect();
+        await connTemp.query(dbMan.setPostgresRoleQuery(database, versionString));
+
         out.push({
           statement: deparse(stmt),
           queryRes: await connTemp.query(deparse(stmt)),
         });
-      } else {
+      }
+    } else {
+      await connTemp.connect();
+      await connTemp.query(dbMan.setPostgresRoleQuery(database, versionString));
+      const stmts = parse(sql);
+      for (const stmt of stmts) {
         out.push(await connTemp.query(deparse(stmt)));
       }
     }
