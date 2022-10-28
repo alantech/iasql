@@ -1057,7 +1057,7 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
     startCommit.changeType = AuditLogChangeType.START_COMMIT;
     startCommit.tableName = 'iasql_audit_log';  // TODO: what table insert here??
     startCommit.ts = new Date();
-    await orm.save(iasqlAuditLog, startCommit);
+    await orm.save(IasqlAuditLog, startCommit);
     // Look for changes in audit logs. Filtered by user? How to know which are the changes we want?
     const changes = (await orm.find(iasqlAuditLog)).filter((m: IasqlAuditLog) => m.user === dbUser);
     // Find all of the installed modules
@@ -1072,6 +1072,14 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
     debugObj(e);
     throw e;
   } finally {
+     // Create end commit object
+     const endCommit = new IasqlAuditLog();
+     endCommit.user = config.db.user;
+     endCommit.change = {};
+     endCommit.changeType = AuditLogChangeType.END_COMMIT;
+     endCommit.tableName = 'iasql_audit_log';  // TODO: what table insert here??
+     endCommit.ts = new Date();
+     await orm?.save(IasqlAuditLog, endCommit);
     orm?.dropConn();
   }
 }
