@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   JoinTable,
   ManyToMany,
@@ -61,6 +62,7 @@ export class IasqlAuditLog {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Index()
   @Column({
     type: 'timestamp without time zone',
   })
