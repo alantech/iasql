@@ -15,6 +15,7 @@ import { sortModules } from '../../../services/mod-sort';
 import MetadataRepo from '../../../services/repositories/metadata';
 import * as scheduler from '../../../services/scheduler-api';
 import { TypeormWrapper } from '../../../services/typeorm';
+import { AuditLogChangeType, IasqlAuditLog } from '../iasql_platform/entity';
 
 // The last part of the upgrade method needs to call install and sync on the database. These method calls
 // will be running in this file, but they should use the latest version to ensure the new DB is initialized
@@ -1033,4 +1034,44 @@ export async function continueUpgrade(
     modsToInstall.add(m);
   });
   await install([...modsToInstall.values()], dbId, dbUser, false, true);
+}
+
+export async function commit(dbId: string, dbUser: string, dryRun: boolean, context: Context) {
+  const t1 = Date.now();
+  logger.info(`Applying ${dbId}`);
+  const dbMeta = await MetadataRepo.getDbById(dbId);
+  if (dbMeta?.upgrading) throw new Error('Cannot apply a change while upgrading');
+  const versionString = await TypeormWrapper.getVersionString(dbId);
+  const Modules = (AllModules as any)[versionString];
+  if (!Modules)
+    throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
+  let orm: TypeormWrapper | null = null;
+  try {
+    orm = await TypeormWrapper.createConn(dbId);
+    // Find audit log
+    const iasqlAuditLog = Modules?.iasqlPlatform?.iasqlAuditLog ?? throwError('Core iasqlPlatform not found');
+    // Create start commit object
+    const startCommit = new IasqlAuditLog();
+    startCommit.user = config.db.user;
+    startCommit.change = {};
+    startCommit.changeType = AuditLogChangeType.START_COMMIT;
+    startCommit.tableName = 'iasql_audit_log';  // TODO: what table insert here??
+    startCommit.ts = new Date();
+    await orm.save(iasqlAuditLog, startCommit);
+    // Look for changes in audit logs. Filtered by user? How to know which are the changes we want?
+    const changes = (await orm.find(iasqlAuditLog)).filter((m: IasqlAuditLog) => m.user === dbUser);
+    // Find all of the installed modules
+    const iasqlModule = Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
+    const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
+    // Get tables from all modules
+    // Filter tables names with tables from `changes`
+    // Get the relevant mappers, only for the ones we have changes
+    // Sync with those mappers
+    // Apply with those mappers
+  } catch (e: any) {
+    debugObj(e);
+    throw e;
+  } finally {
+    orm?.dropConn();
+  }
 }
