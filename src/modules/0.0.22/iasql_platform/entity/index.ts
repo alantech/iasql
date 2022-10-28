@@ -52,6 +52,8 @@ export enum AuditLogChangeType {
   INSERT = 'INSERT',
   UPDATE = 'UPDATE',
   DELETE = 'DELETE',
+  START_COMMIT = 'START_COMMIT',
+  END_COMMIT = 'END_COMMIT',
 }
 
 @Entity()
