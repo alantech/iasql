@@ -1,5 +1,6 @@
 import * as levenshtein from 'fastest-levenshtein';
 import { default as cloneDeep } from 'lodash.clonedeep';
+import { Not, In, Between, LessThan } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { snakeCase } from 'typeorm/util/StringUtils';
 
@@ -1055,11 +1056,28 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
     startCommit.user = config.db.user;
     startCommit.change = {};
     startCommit.changeType = AuditLogChangeType.START_COMMIT;
-    startCommit.tableName = 'iasql_audit_log';  // TODO: what table insert here??
+    startCommit.tableName = 'iasql_audit_log'; // TODO: what table insert here??
     startCommit.ts = new Date();
     await orm.save(IasqlAuditLog, startCommit);
     // Look for changes in audit logs. Filtered by user? How to know which are the changes we want?
-    const changes = (await orm.find(iasqlAuditLog)).filter((m: IasqlAuditLog) => m.user === dbUser);
+    const startedCommits = await orm.find(iasqlAuditLog, {
+      order: { ts: 'DESC' },
+      skip: 0,
+      take: 2,
+      where: { changeType: AuditLogChangeType.START_COMMIT },
+    });
+    console.log(`+-+ startedCommits = ${JSON.stringify(startedCommits)}`);
+    // We pick the second elemnt since the first one should be the one we just inserted
+    const previousCommit = startedCommits.length > 1 ? startedCommits[1] : null;
+    console.log(`+-+ previousCommit = ${JSON.stringify(previousCommit)}`);
+    const relevantChanges = await orm.find(iasqlAuditLog, {
+      order: { ts: 'DESC' },
+      where: {
+        changeType: Not(In([AuditLogChangeType.START_COMMIT, AuditLogChangeType.END_COMMIT])),
+        ts: previousCommit ? Between(previousCommit.ts, startCommit.ts) : LessThan(startCommit.ts),
+      },
+    });
+    console.log(`+-+ changes = ${JSON.stringify(relevantChanges)}`);
     // Find all of the installed modules
     const iasqlModule = Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
     const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
@@ -1072,14 +1090,15 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
     debugObj(e);
     throw e;
   } finally {
-     // Create end commit object
-     const endCommit = new IasqlAuditLog();
-     endCommit.user = config.db.user;
-     endCommit.change = {};
-     endCommit.changeType = AuditLogChangeType.END_COMMIT;
-     endCommit.tableName = 'iasql_audit_log';  // TODO: what table insert here??
-     endCommit.ts = new Date();
-     await orm?.save(IasqlAuditLog, endCommit);
+    // Create end commit object
+    const endCommit = new IasqlAuditLog();
+    endCommit.user = config.db.user;
+    endCommit.change = {};
+    endCommit.changeType = AuditLogChangeType.END_COMMIT;
+    endCommit.tableName = 'iasql_audit_log'; // TODO: what table insert here??
+    endCommit.ts = new Date();
+    await orm?.save(IasqlAuditLog, endCommit);
     orm?.dropConn();
   }
+  return { rows: [] };
 }
