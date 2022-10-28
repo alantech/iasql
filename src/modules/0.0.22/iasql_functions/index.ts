@@ -3,6 +3,7 @@ import { ModuleBase } from '../../interfaces';
 import { IasqlOperationType } from './entity';
 import {
   IasqlApply,
+  IasqlCommit,
   IasqlInstall,
   IasqlModulesList,
   IasqlPreviewApply,
@@ -21,6 +22,7 @@ export class IasqlFunctions extends ModuleBase {
   iasqlInstall: IasqlInstall;
   iasqlUninstall: IasqlUninstall;
   iasqlUpgrade: IasqlUpgrade;
+  iasqlCommit: IasqlCommit;
   constructor() {
     super();
     this.iasqlApply = new IasqlApply(this);
@@ -31,6 +33,7 @@ export class IasqlFunctions extends ModuleBase {
     this.iasqlInstall = new IasqlInstall(this);
     this.iasqlUninstall = new IasqlUninstall(this);
     this.iasqlUpgrade = new IasqlUpgrade(this);
+    this.iasqlCommit = new IasqlCommit(this);
     super.init();
   }
   // ! DEPRECATED

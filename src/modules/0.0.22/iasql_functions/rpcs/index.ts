@@ -1,3 +1,4 @@
+export * from './iasql_commit';
 export * from './iasql_apply';
 export * from './iasql_install';
 export * from './iasql_uninstall';
