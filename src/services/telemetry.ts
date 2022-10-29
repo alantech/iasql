@@ -24,6 +24,8 @@ const singletonPh = config.telemetry
   ? new PostHog(config.telemetry.posthogKey, { host: 'https://app.posthog.com' })
   : undefined;
 
+// TODO remove unused fields after 0.0.20 and make the rest required
+// instead of making them all optional
 export type DbProps = {
   dbAlias?: string;
   dbId?: string;
@@ -32,6 +34,7 @@ export type DbProps = {
   operationCount?: number;
   rpcCount?: number;
   email?: string;
+  dbVersion?: string;
 };
 
 export type EventProps = {
@@ -68,10 +71,11 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
               ? {
                   [`record_count__${dbProps.dbAlias}`]: dbProps.recordCount,
                   [`rpc_count__${dbProps.dbAlias}`]: dbProps.rpcCount,
+                  [`version__${dbProps.dbAlias}`]: dbProps.dbVersion,
                 }
               : {},
           $unset:
-            event === DISCONNECT ? [`record_count__${dbProps.dbAlias}`, `rpc_count__${dbProps.dbAlias}`] : [],
+            event === DISCONNECT ? [`record_count__${dbProps.dbAlias}`, `rpc_count__${dbProps.dbAlias}`, `version__${dbProps.dbAlias}`] : [],
           $setOnce: {
             email: dbProps.email,
           },
