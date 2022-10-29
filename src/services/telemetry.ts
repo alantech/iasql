@@ -75,7 +75,13 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
                 }
               : {},
           $unset:
-            event === DISCONNECT ? [`record_count__${dbProps.dbAlias}`, `rpc_count__${dbProps.dbAlias}`, `version__${dbProps.dbAlias}`] : [],
+            event === DISCONNECT
+              ? [
+                  `record_count__${dbProps.dbAlias}`,
+                  `rpc_count__${dbProps.dbAlias}`,
+                  `version__${dbProps.dbAlias}`,
+                ]
+              : [],
           $setOnce: {
             email: dbProps.email,
           },
