@@ -4,13 +4,13 @@ OR REPLACE FUNCTION iasql_audit () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEF
 begin
   if (TG_OP = 'INSERT') then
     INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
-    VALUES (now(), user, TG_TABLE_NAME, 'INSERT', ('{"change":' || to_json(NEW.*) || '}')::json);
+    VALUES (now(), SESSION_USER, TG_TABLE_NAME, 'INSERT', ('{"change":' || to_json(NEW.*) || '}')::json);
   elsif (TG_OP = 'DELETE') then
     INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
-    VALUES (now(), user, TG_TABLE_NAME, 'DELETE', ('{"original":' || to_json(OLD.*) || '}')::json);
+    VALUES (now(), SESSION_USER, TG_TABLE_NAME, 'DELETE', ('{"original":' || to_json(OLD.*) || '}')::json);
   elsif (TG_OP = 'UPDATE') then
     INSERT INTO iasql_audit_log (ts, "user", table_name, change_type, change)
-    VALUES (now(), user, TG_TABLE_NAME, 'UPDATE', ('{"original":' || to_json(OLD.*) || ', "change":' || to_json(NEW.*) || '}')::json);
+    VALUES (now(), SESSION_USER, TG_TABLE_NAME, 'UPDATE', ('{"original":' || to_json(OLD.*) || ', "change":' || to_json(NEW.*) || '}')::json);
   end if;
   return NULL;
 end;
