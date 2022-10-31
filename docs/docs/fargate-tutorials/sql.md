@@ -86,7 +86,6 @@ SELECT * from iasql_apply();
 >
 Run SQL
 </button>
-</a>
 
 If the function call is successful, it will return a virtual table with a record for each cloud resource that has been created, deleted, or updated.
 Login, build and push your code to the container registry

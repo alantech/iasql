@@ -37,9 +37,6 @@ psql postgres://postgres:test@localhost:5432/iasql -c "
 echo "\nInstalling modules in iasql db..."
 psql postgres://postgres:test@localhost:5432/iasql -c "
   SELECT iasql_install(
-    'aws_ecs_simplified',    
-    'aws_codebuild',
-    'aws_s3',
-    'aws_codepipeline'
+    'aws_ecs_simplified'
   );
 ";
