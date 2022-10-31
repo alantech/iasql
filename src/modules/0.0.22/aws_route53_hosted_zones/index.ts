@@ -11,6 +11,7 @@ import {
 import { AWS, crudBuilderFormat, paginateBuilder, crudBuilder2 } from '../../../services/aws_macros';
 import { Context, Crud2, IdFields, MapperBase, ModuleBase } from '../../interfaces';
 import { awsElbModule } from '../aws_elb';
+import { LoadBalancerTypeEnum } from '../aws_elb/entity';
 import { AliasTarget, HostedZone } from './entity';
 import { RecordType, ResourceRecordSet } from './entity/resource_records_set';
 
@@ -215,6 +216,10 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
       name: e.name,
       recordType: e.recordType,
     });
+  idFields = (id: string) => {
+    const [hostedZoneId, name, recordType] = id.split('|');
+    return { hostedZoneId, name, recordType };
+  };
   equals = (a: ResourceRecordSet, b: ResourceRecordSet) =>
     Object.is(a.parentHostedZone?.hostedZoneId, b.parentHostedZone?.hostedZoneId) &&
     Object.is(a.recordType, b.recordType) &&
@@ -256,10 +261,18 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
           ? at.DNSName.substring(0, at.DNSName.length - 1)
           : at.DNSName;
       const dbLoadBalancers = await awsElbModule.loadBalancer.db.read(ctx);
-      loadBalancer = dbLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
+      loadBalancer = dbLoadBalancers.find((lb: any) =>
+        lb?.loadBalancerType === LoadBalancerTypeEnum.APPLICATION
+          ? cleanAliasDns === `dualstack.${lb?.dnsName}`
+          : cleanAliasDns === lb.dnsName,
+      );
       if (!loadBalancer) {
         const cloudLoadBalancers = await awsElbModule.loadBalancer.cloud.read(ctx);
-        loadBalancer = cloudLoadBalancers.find((lb: any) => Object.is(lb.dnsName, cleanAliasDns));
+        loadBalancer = cloudLoadBalancers.find((lb: any) =>
+          lb?.loadBalancerType === LoadBalancerTypeEnum.APPLICATION
+            ? cleanAliasDns === `dualstack.${lb?.dnsName}`
+            : cleanAliasDns === lb.dnsName,
+        );
       }
       out.loadBalancer = loadBalancer;
       if (!out.loadBalancer) return undefined;
@@ -285,19 +298,23 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     create: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),
     update: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.save(ResourceRecordSet, es),
     delete: (es: ResourceRecordSet[], ctx: Context) => ctx.orm.remove(ResourceRecordSet, es),
-    read: async (ctx: Context, zoneIdNameAndRecordType?: string) => {
+    read: async (ctx: Context, id?: string) => {
       // refer to entityId for the second input
-      const opts = zoneIdNameAndRecordType
-        ? {
-            where: {
-              parentHostedZone: {
-                id: zoneIdNameAndRecordType.split('|')[0],
+      const { hostedZoneId, name, recordType } = id
+        ? this.idFields(id)
+        : { hostedZoneId: undefined, name: undefined, recordType: undefined };
+      const opts =
+        hostedZoneId && name && recordType
+          ? {
+              where: {
+                parentHostedZone: {
+                  id: hostedZoneId,
+                },
+                name,
+                recordType,
               },
-              name: zoneIdNameAndRecordType.split('|')[1],
-              recordType: zoneIdNameAndRecordType.split('|')[2],
-            },
-          }
-        : {};
+            }
+          : {};
       return await ctx.orm.find(ResourceRecordSet, opts);
     },
   });
@@ -318,7 +335,10 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
           resourceRecordSet.AliasTarget = {
             HostedZoneId: e.aliasTarget.loadBalancer?.canonicalHostedZoneId,
             EvaluateTargetHealth: e.aliasTarget.evaluateTargetHealth,
-            DNSName: e.aliasTarget.loadBalancer?.dnsName,
+            DNSName:
+              e.aliasTarget?.loadBalancer?.loadBalancerType === LoadBalancerTypeEnum.APPLICATION
+                ? `dualstack.${e.aliasTarget.loadBalancer?.dnsName}`
+                : e.aliasTarget.loadBalancer?.dnsName,
           };
         }
         await createResourceRecordSet(
@@ -337,7 +357,7 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
         // We map this into the same kind of entity as `obj`
         const newObject = { ...newResourceRecordSet, HostedZoneId: e.parentHostedZone.hostedZoneId };
         const newEntity = await this.resourceRecordSetMapper(newObject, ctx);
-        if (!newEntity) return;
+        if (!newEntity) continue;
         // We attach the original object's ID to this new one, indicating the exact record it is
         // replacing in the database.
         if (e.id) {
@@ -367,9 +387,9 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
         }
       }
       if (id) {
-        const [recordType, recordName] = id.split('|');
+        const { name, recordType } = this.idFields(id);
         const record = resourceRecordSet.find(
-          (rrs: any) => Object.is(rrs.Name, recordName) && Object.is(rrs.Type, recordType),
+          (rrs: any) => Object.is(rrs.Name, name) && Object.is(rrs.Type, recordType),
         );
         if (record) return record;
       } else {
@@ -385,7 +405,7 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
     update: async (es: ResourceRecordSet[], ctx: Context) => {
       const out = [];
       for (const e of es) {
-        const cloudRecord = ctx?.memo?.cloud?.ResourceRecordSet[this.module.resourceRecordSet.entityId(e)];
+        const cloudRecord = ctx?.memo?.cloud?.ResourceRecordSet[this.entityId(e)];
         const newEntity = await this.module.resourceRecordSet.cloud.create(e, ctx);
         if (newEntity instanceof Array || !newEntity) continue;
         await this.module.resourceRecordSet.cloud.delete(cloudRecord, ctx);
@@ -437,7 +457,10 @@ class ResourceRecordSetMapper extends MapperBase<ResourceRecordSet> {
           resourceRecordSet.AliasTarget = {
             HostedZoneId: e.aliasTarget.loadBalancer?.canonicalHostedZoneId,
             EvaluateTargetHealth: e.aliasTarget.evaluateTargetHealth,
-            DNSName: e.aliasTarget.loadBalancer?.dnsName,
+            DNSName:
+              e.aliasTarget?.loadBalancer?.loadBalancerType === LoadBalancerTypeEnum.APPLICATION
+                ? `dualstack.${e.aliasTarget.loadBalancer?.dnsName}`
+                : e.aliasTarget.loadBalancer?.dnsName,
           };
         }
         await deleteResourceRecordSet(
