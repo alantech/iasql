@@ -25,10 +25,6 @@ const config = process.env.IASQL_ENV === 'local' ? localConfig : prodConfig;
 
   customFields: config,
 
-  clientModules: [
-    require.resolve('./telemetry.js'),
-  ],
-
   presets: [
     [
       '@docusaurus/preset-classic',

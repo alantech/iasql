@@ -24,7 +24,6 @@ const config: ConfigInterface = {
     origin: 'http://localhost:3000',
   },
   telemetry: {
-    amplitudeKey: '8fd6aa1d61c115e59e35b3adfd5dd41a',
     posthogKey: 'phc_xvAQWfpHug7G0SuU5P9wwAbvP9ZawgAfIEZ9FUsiarS',
   },
 };

@@ -1,4 +1,3 @@
-import * as Amplitude from '@amplitude/node';
 import * as sentry from '@sentry/node';
 import { PostHog } from 'posthog-node';
 
@@ -19,7 +18,6 @@ enum IasqlOperationType {
 }
 
 const DISCONNECT = 'DISCONNECT';
-const singletonAmp = config.telemetry ? Amplitude.init(config.telemetry.amplitudeKey) : undefined;
 const singletonPh = config.telemetry
   ? new PostHog(config.telemetry.posthogKey, { host: 'https://app.posthog.com' })
   : undefined;
@@ -51,14 +49,6 @@ export async function logEvent(uid: string, event: string, dbProps: DbProps, eve
   event = event.toUpperCase();
   try {
     dbProps.iasqlEnv = IASQL_ENV;
-    if (singletonAmp) {
-      await singletonAmp.logEvent({
-        event_type: event,
-        user_id: uid,
-        user_properties: dbProps,
-        event_properties: eventProps,
-      });
-    }
     if (singletonPh) {
       singletonPh.capture({
         event,
