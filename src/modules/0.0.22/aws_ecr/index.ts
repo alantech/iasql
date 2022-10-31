@@ -21,6 +21,7 @@ import {
   ImageTagMutability,
   RepositoryImage,
 } from './entity';
+import { EcrBuildRpc } from './rpcs';
 
 class RepositoryImageMapper extends MapperBase<RepositoryImage> {
   module: AwsEcrModule;
@@ -749,11 +750,12 @@ class RepositoryPolicyMapper extends MapperBase<RepositoryPolicy> {
   }
 }
 
-class AwsEcrModule extends ModuleBase {
+export class AwsEcrModule extends ModuleBase {
   publicRepository: PublicRepositoryMapper;
   repository: RepositoryMapper;
   repositoryPolicy: RepositoryPolicyMapper;
   repositoryImages: RepositoryImageMapper;
+  ecrBuild: EcrBuildRpc;
 
   constructor() {
     super();
@@ -761,6 +763,7 @@ class AwsEcrModule extends ModuleBase {
     this.repository = new RepositoryMapper(this);
     this.repositoryPolicy = new RepositoryPolicyMapper(this);
     this.repositoryImages = new RepositoryImageMapper(this);
+    this.ecrBuild = new EcrBuildRpc(this);
     super.init();
   }
 }
