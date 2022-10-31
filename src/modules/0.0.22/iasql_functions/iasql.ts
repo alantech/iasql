@@ -1039,7 +1039,7 @@ export async function continueUpgrade(
 
 export async function commit(dbId: string, dbUser: string, dryRun: boolean, context: Context) {
   const t1 = Date.now();
-  logger.info(`Applying ${dbId}`);
+  logger.info(`Applying commit to ${dbId}`);
   const dbMeta = await MetadataRepo.getDbById(dbId);
   if (dbMeta?.upgrading) throw new Error('Cannot apply a change while upgrading');
   const versionString = await TypeormWrapper.getVersionString(dbId);
@@ -1051,14 +1051,7 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
     orm = await TypeormWrapper.createConn(dbId);
     // Find audit log
     const iasqlAuditLog = Modules?.iasqlPlatform?.iasqlAuditLog ?? throwError('Core iasqlPlatform not found');
-    // Create start commit object
-    const startCommit = new IasqlAuditLog();
-    startCommit.user = config.db.user;
-    startCommit.change = {};
-    startCommit.changeType = AuditLogChangeType.START_COMMIT;
-    startCommit.tableName = 'iasql_audit_log'; // TODO: what table insert here??
-    startCommit.ts = new Date();
-    await orm.save(IasqlAuditLog, startCommit);
+    const startCommit = await insertCommit(orm, 'start');
     // Look for changes in audit logs. Filtered by user? How to know which are the changes we want?
     const startedCommits = await orm.find(iasqlAuditLog, {
       order: { ts: 'DESC' },
@@ -1066,18 +1059,16 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
       take: 2,
       where: { changeType: AuditLogChangeType.START_COMMIT },
     });
-    console.log(`+-+ startedCommits = ${JSON.stringify(startedCommits)}`);
     // We pick the second elemnt since the first one should be the one we just inserted
     const previousCommit = startedCommits.length > 1 ? startedCommits[1] : null;
-    console.log(`+-+ previousCommit = ${JSON.stringify(previousCommit)}`);
     const relevantChanges = await orm.find(iasqlAuditLog, {
       order: { ts: 'DESC' },
       where: {
         changeType: Not(In([AuditLogChangeType.START_COMMIT, AuditLogChangeType.END_COMMIT])),
         ts: previousCommit ? Between(previousCommit.ts, startCommit.ts) : LessThan(startCommit.ts),
+        user: Not(config.db.user)
       },
     });
-    console.log(`+-+ changes = ${JSON.stringify(relevantChanges)}`);
     // Find all of the installed modules
     const iasqlModule = Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
     const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
@@ -1091,14 +1082,20 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
     throw e;
   } finally {
     // Create end commit object
-    const endCommit = new IasqlAuditLog();
-    endCommit.user = config.db.user;
-    endCommit.change = {};
-    endCommit.changeType = AuditLogChangeType.END_COMMIT;
-    endCommit.tableName = 'iasql_audit_log'; // TODO: what table insert here??
-    endCommit.ts = new Date();
-    await orm?.save(IasqlAuditLog, endCommit);
+    await insertCommit(orm, 'end');
     orm?.dropConn();
   }
   return { rows: [] };
+}
+
+async function insertCommit(orm: TypeormWrapper | null, type: 'start' | 'end') {
+  // Create start commit object
+  const commitLog = new IasqlAuditLog();
+  commitLog.user = config.db.user;
+  commitLog.change = {};
+  commitLog.changeType = type === 'start' ? AuditLogChangeType.START_COMMIT : AuditLogChangeType.END_COMMIT;
+  commitLog.tableName = 'iasql_audit_log'; // TODO: what table insert here??
+  commitLog.ts = new Date();
+  await orm?.save(IasqlAuditLog, commitLog);
+  return commitLog;
 }
