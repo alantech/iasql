@@ -4,9 +4,7 @@ import {
   ModifyVpcEndpointCommandInput,
   RouteTable,
   Tag,
-  UnsuccessfulItem,
   VpcEndpoint as AwsVpcEndpoint,
-  paginateDescribeVpcEndpoints,
 } from '@aws-sdk/client-ec2';
 
 import { AwsVpcModule } from '..';
@@ -15,6 +13,7 @@ import { AWS, crudBuilderFormat, paginateBuilder } from '../../../../services/aw
 import { isString } from '../../../../services/common';
 import { Context, Crud2, MapperBase } from '../../../interfaces';
 import { EndpointGateway, EndpointGatewayService, Vpc } from '../entity';
+import { getServiceFromServiceName, getVpcEndpointServiceName } from './endpoint_helpers';
 import { eqTags, updateTags } from './tags';
 
 export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
@@ -39,7 +38,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
     const out = new EndpointGateway();
     out.vpcEndpointId = eg.VpcEndpointId;
     if (!out.vpcEndpointId) return undefined;
-    const service = this.getServiceFromServiceName(eg.ServiceName);
+    const service = getServiceFromServiceName(eg.ServiceName);
     if (!service) return undefined;
     out.service = service;
     out.vpc =
@@ -60,27 +59,6 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
     return out;
   }
 
-  getServiceFromServiceName(serviceName: string) {
-    if (serviceName.includes('s3')) return EndpointGatewayService.S3;
-    if (serviceName.includes('dynamodb')) return EndpointGatewayService.DYNAMODB;
-  }
-
-  getVpcEndpointGatewayServiceName = crudBuilderFormat<
-    EC2,
-    'describeVpcEndpointServices',
-    string | undefined
-  >(
-    'describeVpcEndpointServices',
-    (_service: string) => ({
-      Filters: [
-        {
-          Name: 'service-type',
-          Values: ['Gateway'],
-        },
-      ],
-    }),
-    (res, service: string) => res?.ServiceNames?.find(sn => sn.includes(service)),
-  );
   getVpcRouteTables = crudBuilderFormat<EC2, 'describeRouteTables', RouteTable[] | undefined>(
     'describeRouteTables',
     vpcId => ({
@@ -93,46 +71,6 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
     }),
     res => res?.RouteTables,
   );
-  createVpcEndpointGateway = crudBuilderFormat<EC2, 'createVpcEndpoint', AwsVpcEndpoint | undefined>(
-    'createVpcEndpoint',
-    input => input,
-    res => res?.VpcEndpoint,
-  );
-  getVpcEndpointGateway = crudBuilderFormat<EC2, 'describeVpcEndpoints', AwsVpcEndpoint | undefined>(
-    'describeVpcEndpoints',
-    endpointId => ({ VpcEndpointIds: [endpointId] }),
-    res => res?.VpcEndpoints?.pop(),
-  );
-  getVpcEndpointGateways = paginateBuilder<EC2>(
-    paginateDescribeVpcEndpoints,
-    'VpcEndpoints',
-    undefined,
-    undefined,
-    () => ({
-      Filters: [
-        {
-          Name: 'vpc-endpoint-type',
-          Values: ['Gateway'],
-        },
-        // vpc-endpoint-state - The state of the endpoint:
-        // pendingAcceptance | pending | available | deleting | deleted | rejected | failed
-        {
-          Name: 'vpc-endpoint-state',
-          Values: ['available', 'rejected', 'failed'],
-        },
-      ],
-    }),
-  );
-  modifyVpcEndpointGateway = crudBuilderFormat<EC2, 'modifyVpcEndpoint', boolean | undefined>(
-    'modifyVpcEndpoint',
-    input => input,
-    res => res?.Return,
-  );
-  deleteVpcEndpointGateway = crudBuilderFormat<EC2, 'deleteVpcEndpoints', UnsuccessfulItem[] | undefined>(
-    'deleteVpcEndpoints',
-    endpointId => ({ VpcEndpointIds: [endpointId] }),
-    res => res?.Unsuccessful,
-  );
 
   cloud: Crud2<EndpointGateway> = new Crud2({
     create: async (es: EndpointGateway[], ctx: Context) => {
@@ -141,7 +79,7 @@ export class EndpointGatewayMapper extends MapperBase<EndpointGateway> {
         const client = (await ctx.getAwsClient(e.region)) as AWS;
         const input: CreateVpcEndpointCommandInput = {
           VpcEndpointType: 'Gateway',
-          ServiceName: await this.getVpcEndpointGatewayServiceName(client.ec2client, e.service),
+          ServiceName: getVpcEndpointServiceName(client.ec2client, e.service),
           VpcId: e.vpc?.vpcId,
         };
         if (e.policyDocument) {
