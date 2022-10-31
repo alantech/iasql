@@ -33,6 +33,7 @@ async function connectHandler(req: any, res: any) {
         email,
         recordCount: database.recordCount,
         operationCount: database.operationCount,
+        dbVersion: config.modules.latestVersion,
       },
       {},
     );
