@@ -35,7 +35,6 @@ export interface ConfigInterface {
   // Configuration for amplitude telemetry
   telemetry?: {
     // Not including this sub-object implies it is not enabled
-    amplitudeKey: string;
     posthogKey: string;
   };
   // Configuration for sentry error reporting
