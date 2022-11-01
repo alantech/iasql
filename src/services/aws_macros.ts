@@ -108,7 +108,10 @@ export class AWS {
       region: config.region,
       retryStrategy: this.slowRetryStrategy,
     });
-    this.acmClient = new ACM(config);
+    this.acmClient = new ACM({
+      ...config,
+      retryStrategy: this.slowRetryStrategy,
+    });
     this.appSyncClient = new AppSync(config);
     this.cloudfrontClient = new CloudFront(config);
     this.cbClient = new CodeBuild({
