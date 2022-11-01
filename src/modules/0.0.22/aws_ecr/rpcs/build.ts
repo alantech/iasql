@@ -89,10 +89,7 @@ export class EcrBuildRpc extends RpcBase {
     githubPersonalAccessToken: string,
     githubRef: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
-    const installedModules = await modules(false, true, _dbId);
-    if (!installedModules.map(m => m.moduleName).includes('aws_iam')) {
-      throw new Error('ECR build RPC is only available if you have "aws_iam" module installed');
-    }
+    await this.ensureAwsIamModule(_dbId);
 
     const ecrRepository = await this.getEcrRepoById(ctx, ecrRepositoryId);
     const region = ecrRepository.region;
@@ -150,6 +147,13 @@ export class EcrBuildRpc extends RpcBase {
     super();
     this.module = module;
     super.init();
+  }
+
+  private async ensureAwsIamModule(_dbId: string) {
+    const installedModules = await modules(false, true, _dbId);
+    if (!installedModules.map(m => m.moduleName).includes('aws_iam')) {
+      throw new Error('ecr_build RPC is only available if you have "aws_iam" module installed');
+    }
   }
 
   private async deleteCodebuildProject(codeBuildProjectName: string, client: AWS) {
