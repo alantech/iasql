@@ -5,7 +5,6 @@ const prefix = getPrefix();
 const dbAlias = 'vpctest';
 const nonDefaultRegion = 'us-east-1';
 const nonDefaultRegionAvailabilityZone = 'us-east-1a';
-const availabilityZone = `${process.env.AWS_REGION ?? 'barf'}a`;
 const ng = `${prefix}${dbAlias}-ng`;
 const pubNg = `${prefix}${dbAlias}-pub-ng1`;
 const eip = `${prefix}${dbAlias}-eip`;
@@ -85,7 +84,7 @@ describe('VPC Multiregion Integration Testing', () => {
     DELETE FROM security_group WHERE vpc_id = (SELECT id FROM vpc WHERE tags ->> 'name' = '${prefix}-1');
     WITH updated_subnet AS (
       UPDATE subnet
-      SET region='${process.env.AWS_REGION}', availability_zone='${availabilityZone}'
+      SET region='${process.env.AWS_REGION}', availability_zone=(SELECT name FROM availability_zone WHERE region = '${process.env.AWS_REGION}' ORDER BY name LIMIT 1)
       WHERE cidr_block='192.${randIPBlock}.0.0/16' AND availability_zone='${nonDefaultRegionAvailabilityZone}' AND region = '${nonDefaultRegion}'
     )
     UPDATE vpc
@@ -107,7 +106,7 @@ describe('VPC Multiregion Integration Testing', () => {
 
   it('check subnet is available in the new region', query(`
     SELECT * FROM subnet
-    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND availability_zone='${availabilityZone}' AND region = '${process.env.AWS_REGION}';
+    WHERE cidr_block='192.${randIPBlock}.0.0/16' AND availability_zone=(SELECT name FROM availability_zone WHERE region='${process.env.AWS_REGION}' ORDER BY name LIMIT 1) AND region = '${process.env.AWS_REGION}';
   ` , (res: any) => expect(res.length).toBe(1)));
 
   it('uninstalls the vpc module', uninstall(
