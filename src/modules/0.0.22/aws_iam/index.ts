@@ -432,7 +432,8 @@ class RoleMapper extends MapperBase<IamRole> {
         if (!rawRole) continue;
         const newRole = await this.roleMapper(rawRole, ctx);
         if (!newRole) continue;
-        if (await this.module.role.db.read(ctx, role.roleName)) await this.module.role.db.update(newRole, ctx);
+        if (await this.module.role.db.read(ctx, role.roleName))
+          await this.module.role.db.update(newRole, ctx);
         out.push(newRole);
       }
       return out;

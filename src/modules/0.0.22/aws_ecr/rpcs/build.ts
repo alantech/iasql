@@ -100,7 +100,7 @@ export class EcrBuildRpc extends RpcBase {
     }
 
     // create service role
-    let role: IamRole = await this.createServiceRole(prefix, ctx);
+    const role: IamRole = await this.createServiceRole(prefix, ctx);
 
     // create codebuild project
     const codeBuildProjectName = `${prefix}-ecr-builder`;
@@ -143,7 +143,7 @@ export class EcrBuildRpc extends RpcBase {
   constructor(module: AwsEcrModule) {
     super();
     this.module = module;
-    super.init;
+    super.init();
   }
 
   private async deleteCodebuildProject(codeBuildProjectName: string, client: AWS) {
@@ -162,7 +162,7 @@ export class EcrBuildRpc extends RpcBase {
 
   private async getEcrRepoById(ctx: Context, ecrRepositoryId: string) {
     const ecrRepository = ((await this.module.repository.db.read(ctx)) as Repository[]).find(
-      repo => repo.id === parseInt(ecrRepositoryId),
+      repo => repo.id === parseInt(ecrRepositoryId, 10),
     );
     if (!ecrRepository) throw new Error(`Can't find ecr repository with id ${ecrRepositoryId}.`);
     if (!ecrRepository.repositoryUri)
