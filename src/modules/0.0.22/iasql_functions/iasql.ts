@@ -1072,7 +1072,6 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
     const relevantChangesTables = relevantChanges.map(c => c.tableName);
     console.log(`+-+ relevant changes = ${JSON.stringify(relevantChanges)}`);
 
-
     // TODO: REFACTOR THIS!!!
     const relevantEntities: { [key: string]: any[] } = {};
     relevantChanges.forEach((c: IasqlAuditLog) => {
@@ -1096,25 +1095,22 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
     const iasqlModule = Modules?.iasqlPlatform?.iasqlModule ?? throwError('Core IasqlModule not found');
     const moduleNames = (await orm.find(iasqlModule)).map((m: any) => m.name);
     // Get the relevant mappers, which are the ones where the DB is the source-of-truth
-    const moduleList: ModuleInterface[] = (Object.values(Modules) as ModuleInterface[]).filter(
-      mod =>
-        moduleNames.includes(`${mod.name}@${mod.version}`),
+    const moduleList: ModuleInterface[] = (Object.values(Modules) as ModuleInterface[]).filter(mod =>
+      moduleNames.includes(`${mod.name}@${mod.version}`),
     );
     // Get modules affected
-    const moduleDirectlyAffected: ModuleInterface[] = moduleList.filter(
-      mod =>
-        mod.provides?.tables?.some((t: string) => relevantChangesTables.includes(t)),
+    const moduleDirectlyAffected: ModuleInterface[] = moduleList.filter(mod =>
+      mod.provides?.tables?.some((t: string) => relevantChangesTables.includes(t)),
     );
 
     const missingDeps = [
       ...new Set(
         moduleDirectlyAffected
-          .flatMap((m: ModuleInterface) =>
-            m.dependencies.filter(d => !moduleNames.includes(d)),
-          )
+          .flatMap((m: ModuleInterface) => m.dependencies.filter(d => !moduleNames.includes(d)))
           .filter(
             (m: any) =>
-              ![`iasql_platform@${versionString}`, `iasql_functions@${versionString}`].includes(m) && m !== undefined,
+              ![`iasql_platform@${versionString}`, `iasql_functions@${versionString}`].includes(m) &&
+              m !== undefined,
           ),
       ),
     ];
@@ -1127,15 +1123,14 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
 
     console.log(`+-+ relevant entities = ${JSON.stringify(relevantEntities)}`);
     const rootToLeafOrder: ModuleInterface[] = sortModules(modulesAffected, moduleNames);
-    console.log(`+-+ end sorting`)
+    console.log(`+-+ end sorting`);
     const mappers = rootToLeafOrder
       .map(mod => Object.values(mod))
       .flat()
       .filter(val => val instanceof MapperBase)
       .flat()
       .filter(mapper => mapper.source === 'db');
-    console.log(`+-+ mappers defined`)
-
+    console.log(`+-+ mappers defined`);
 
     // TODO: DRY THIS!!!
     // -- Sync with those mappers
@@ -1176,7 +1171,13 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: tables.map((t, i) => (context.memo.db[t] ? Object.values(context.memo.db[t]).filter((v: any) => !relevantEntities[t].some(e => idGens[i](v) === idGens[i](e))) : [])),
+          dbEntity: tables.map((t, i) =>
+            context.memo.db[t]
+              ? Object.values(context.memo.db[t]).filter(
+                  (v: any) => !relevantEntities[t].some(e => idGens[i](v) === idGens[i](e)),
+                )
+              : [],
+          ),
           cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
           comparator: comparators,
           idGen: idGens,
@@ -1324,7 +1325,6 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
     const t7 = Date.now();
     logger.info(`${dbId} synced, total time: ${t7 - t1}ms`);
 
-
     // TODO: DRY THIS!!!
     // -- Apply with those mappers
     const t8 = Date.now();
@@ -1365,7 +1365,13 @@ export async function commit(dbId: string, dbUser: string, dryRun: boolean, cont
         const records = colToRow({
           table: tables,
           mapper: mappers,
-          dbEntity: tables.map(t => (context.memo.db[t] ? Object.values(context.memo.db[t]) : [])),
+          dbEntity: tables.map((t, i) =>
+            context.memo.db[t]
+              ? Object.values(context.memo.db[t]).filter((v: any) =>
+                  relevantEntities[t].some(e => idGens[i](v) === idGens[i](e)),
+                )
+              : [],
+          ),
           cloudEntity: tables.map(t => (context.memo.cloud[t] ? Object.values(context.memo.cloud[t]) : [])),
           comparator: comparators,
           idGen: idGens,
