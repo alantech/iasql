@@ -186,7 +186,7 @@ class RepositoryImageMapper extends MapperBase<RepositoryImage> {
         // first private
         const repositories: Repository[] = ctx.memo?.cloud?.Repository
           ? Object.values(ctx.memo?.cloud?.Repository)
-          : [];
+          : await this.module.repository.cloud.read(ctx);
         const images: any[] = [];
         await Promise.all(
           enabledRegions.map(async region => {
