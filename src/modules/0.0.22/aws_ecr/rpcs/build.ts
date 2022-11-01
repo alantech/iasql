@@ -16,6 +16,7 @@ import { Context, RpcBase, RpcResponseObject } from '../../../interfaces';
 import { BuildStatus } from '../../aws_codebuild/entity';
 import { awsIamModule } from '../../aws_iam';
 import { IamRole } from '../../aws_iam/entity';
+import { modules } from '../../iasql_functions/iasql';
 import { Repository, RepositoryImage } from '../entity';
 import { AwsEcrModule } from '../index';
 
@@ -88,6 +89,11 @@ export class EcrBuildRpc extends RpcBase {
     githubPersonalAccessToken: string,
     githubRef: string,
   ): Promise<RpcResponseObject<typeof this.outputTable>[]> => {
+    const installedModules = await modules(false, true, _dbId);
+    if (!installedModules.map(m => m.moduleName).includes('aws_iam')) {
+      throw new Error('ECR build RPC is only available if you have "aws_iam" module installed');
+    }
+
     const ecrRepository = await this.getEcrRepoById(ctx, ecrRepositoryId);
     const region = ecrRepository.region;
     const client = (await ctx.getAwsClient(region)) as AWS;
