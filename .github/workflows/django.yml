@@ -96,6 +96,7 @@ jobs:
           DB_PASSWORD: test
           DB_HOST: '127.0.0.1'
           DB_PORT: 5432
+          GH_PAT: ${{ secrets.GH_PAT }}
 
       - name: Run cleaning script
         if: always()
