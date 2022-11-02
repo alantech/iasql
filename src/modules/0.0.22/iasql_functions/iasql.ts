@@ -1041,7 +1041,7 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
   const t1 = Date.now();
   logger.info(`Applying commit to ${dbId}`);
   const versionString = await TypeormWrapper.getVersionString(dbId);
-  const importedModules = await getLatestImportedModules(dbId, versionString);
+  const importedModules = await getImportedModules(dbId, versionString);
   let orm: TypeormWrapper | null = null;
   try {
     orm = await TypeormWrapper.createConn(dbId);
@@ -1134,14 +1134,14 @@ export async function commit(dbId: string, dryRun: boolean, context: Context) {
   }
 }
 
-async function getLatestImportedModules(dbId: string, versionString: string) {
+async function getImportedModules(dbId: string, versionString: string) {
   const dbMeta = await MetadataRepo.getDbById(dbId);
   if (dbMeta?.upgrading) throw new Error('Cannot apply a change while upgrading');
-  const modules = (AllModules as any)[versionString];
-  if (!modules) {
+  const importedModules = (AllModules as any)[versionString];
+  if (!importedModules) {
     throw new Error(`Unsupported version ${versionString}. Please upgrade or replace this database.`);
   }
-  return modules;
+  return importedModules;
 }
 
 async function insertCommit(
@@ -1234,7 +1234,7 @@ function getModulesWithChanges(
 
 async function commitSync(
   dbId: string,
-  modules: ModuleInterface[],
+  relevantModules: ModuleInterface[],
   context: Context,
   toCreate: Crupde,
   toUpdate: Crupde,
@@ -1244,7 +1244,7 @@ async function commitSync(
   changesByEntity: { [key: string]: any[] },
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
   const t1 = Date.now();
-  const mappers = modules
+  const mappers = relevantModules
     .map(mod => Object.values(mod))
     .flat()
     .filter(val => val instanceof MapperBase)
@@ -1442,7 +1442,7 @@ async function commitSync(
 
 async function commitApply(
   dbId: string,
-  modules: ModuleInterface[],
+  relevantModules: ModuleInterface[],
   context: Context,
   toCreate: Crupde,
   toUpdate: Crupde,
@@ -1452,7 +1452,7 @@ async function commitApply(
   changesByEntity: { [key: string]: any[] },
 ): Promise<{ iasqlPlanVersion: number; rows: any[] }> {
   const t1 = Date.now();
-  const mappers = modules
+  const mappers = relevantModules
     .map(mod => Object.values(mod))
     .flat()
     .filter(val => val instanceof MapperBase)
